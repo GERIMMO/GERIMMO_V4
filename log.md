@@ -777,3 +777,26 @@ pour rester à 25 $/mois — suppression à faire par l'humain dans le dashboard
 `app/CLAUDE.md` créé (conventions de dev + lien wiki→code), `.env.local` (clé publishable),
 `.env.example`, exclusion `app/` de l'indexation Obsidian. Vercel : projet à créer au premier
 déploiement (racine `app/`).
+
+## [2026-07-27] sprint | Sprint 0 — Socle : identité, isolation, authentification
+Démarrage du [[Plan de livraison et sprints|Sprint 0]]. ⚑ Décision de sprint tranchée de fait :
+**socle neuf** (nouveau projet Supabase, schéma cible A1 — pas de migration du code V3).
+**Base** : migration `socle_identite_isolation` appliquée — types énumérés, 5 tables
+(`organizations`, `accounts` miroir de auth.users, `persons` sans référence obligatoire au
+compte RM-A1.4, `memberships` avec contraintes RM-A1.1/A1.3/A1.5, `audit_log` dès le S0 pour
+RM-A1.11), fonctions d'autorisation stables (`is_super_admin`, `is_active_member`,
+`has_org_role`, `log_sa_access`), **RLS + politiques sur les 5 tables**, helpers refusés à
+`anon`. **Vérifications en base réussies** : « RLS actif partout » (0 table en défaut) ;
+isolation RM-A1.7 (l'admin d'Alpha voit 1 org/1 personne, le super admin voit tout,
+l'anonyme rien). **App (Next 16 — nouveautés lues dans les docs embarquées : `proxy.ts`
+remplace middleware, APIs async)** : clients Supabase SSR, page /connexion (FR),
+`proxy.ts` = garde d'authentification + **sessions par rôle RM-A4.5** (la plus stricte des
+adhésions actives, inactivité+absolu), sélecteur d'espace /espaces (entrée directe si
+adhésion unique), espace agence (personnes, RLS), console SA (/admin, traversée journalisée
+via `log_sa_access` RM-A1.11). **Tests versionnés** (`app/tests/socle.test.ts`, vitest+pg) :
+les 2 tests non négociables, auto-ignorés sans `SUPABASE_DB_URL`. **CI GitHub Actions**
+(lint, build, typecheck, tests). **Seed de démo** : 2 agences (Alpha, Beta), 4 comptes
+(`superadmin@`, `admin.alpha@`, `agent.alpha@`, `admin.beta@gerimmo-demo.fr`), copie dans
+`app/supabase/seed.sql` + migration de référence dans `app/supabase/migrations/`.
+**Reste (manuel, dashboard Supabase)** : politique de mots de passe 12 caractères +
+vérification fuites (RM-A4.3) — non exposée par l'API MCP. MFA super admin : sprint 15.

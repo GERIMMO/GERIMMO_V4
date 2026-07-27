@@ -764,3 +764,16 @@ Installation de Git 2.55 (winget), `git init` dans le vault, remote `origin` rel
 https://github.com/GERIMMO/GERIMMO_V4.git (dépôt vide). Ajout d'un `.gitignore`
 (fichiers volatils Obsidian/Claude), premier commit sur `main` avec l'intégralité du
 wiki. Push en attente : authentification GitHub interactive requise.
+
+## [2026-07-27] setup | Démarrage des devs : monorepo app/ + projet Supabase « Gerimmo V4 »
+Push initial vers GitHub effectué (auth via Git Credential Manager). **Décision : monorepo** —
+le code de l'application vit dans `app/` à côté du wiki (extraction en dépôt séparé possible
+plus tard sans perte). Scaffold **Next.js** (App Router, TypeScript, Tailwind v4, `src/`,
+Turbopack) + **shadcn/ui** initialisé + `@supabase/supabase-js` et `@supabase/ssr` installés.
+Côté Supabase : l'organisation GERIMMO est sur plan **Pro (25 $/mois)** ; création du projet
+**« Gerimmo V4 »** (`rddlxunppddzpsaatdaz`, eu-west-3, Postgres 17) ; décision humaine :
+**supprimer « Gerimmo V3 »** (données perdues, acté — la connaissance métier est dans le wiki)
+pour rester à 25 $/mois — suppression à faire par l'humain dans le dashboard (pas d'outil MCP).
+`app/CLAUDE.md` créé (conventions de dev + lien wiki→code), `.env.local` (clé publishable),
+`.env.example`, exclusion `app/` de l'indexation Obsidian. Vercel : projet à créer au premier
+déploiement (racine `app/`).

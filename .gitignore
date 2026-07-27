@@ -1,0 +1,12 @@
+# Obsidian — fichiers volatils de l'espace de travail
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache
+.trash/
+
+# Claude Code — paramètres locaux
+.claude/settings.local.json
+
+# Système
+Thumbs.db
+desktop.ini

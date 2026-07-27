@@ -1,0 +1,52 @@
+-- GERIMMO V3 - Index de premier niveau pour les filtres multi-organisations et la RLS.
+
+begin;
+
+create index if not exists admin_impersonation_sessions_org_idx on public.admin_impersonation_sessions (organization_id);
+create index if not exists automation_events_org_idx on public.automation_events (organization_id);
+create index if not exists bien_echeances_org_idx on public.bien_echeances (organization_id);
+create index if not exists bien_history_org_idx on public.bien_history (organization_id);
+create index if not exists bien_occupants_org_idx on public.bien_occupants (organization_id);
+create index if not exists billing_refunds_org_idx on public.billing_refunds (organization_id);
+create index if not exists bot_actions_org_idx on public.bot_actions (organization_id);
+create index if not exists bot_attachments_org_idx on public.bot_attachments (organization_id);
+create index if not exists bot_conversation_state_events_org_idx on public.bot_conversation_state_events (organization_id);
+create index if not exists bot_document_requests_org_idx on public.bot_document_requests (organization_id);
+create index if not exists bot_errors_org_idx on public.bot_errors (organization_id);
+create index if not exists bot_webhook_updates_org_idx on public.bot_webhook_updates (organization_id);
+create index if not exists business_email_outbox_org_idx on public.business_email_outbox (organization_id);
+create index if not exists communication_attachments_org_idx on public.communication_attachments (organization_id);
+create index if not exists communication_messages_org_idx on public.communication_messages (organization_id);
+create index if not exists communication_participants_org_idx on public.communication_participants (organization_id);
+create index if not exists data_import_jobs_org_idx on public.data_import_jobs (organization_id);
+create index if not exists document_access_rules_org_idx on public.document_access_rules (organization_id);
+create index if not exists document_alerts_org_idx on public.document_alerts (organization_id);
+create index if not exists document_email_outbox_org_idx on public.document_email_outbox (organization_id);
+create index if not exists document_events_org_idx on public.document_events (organization_id);
+create index if not exists document_templates_org_idx on public.document_templates (organization_id);
+create index if not exists document_versions_org_idx on public.document_versions (organization_id);
+create index if not exists incident_artisan_evaluations_org_idx on public.incident_artisan_evaluations (organization_id);
+create index if not exists incident_closure_events_org_idx on public.incident_closure_events (organization_id);
+create index if not exists incident_closure_reviews_org_idx on public.incident_closure_reviews (organization_id);
+create index if not exists incident_intervention_events_org_idx on public.incident_intervention_events (organization_id);
+create index if not exists incident_intervention_materials_org_idx on public.incident_intervention_materials (organization_id);
+create index if not exists incident_intervention_report_events_org_idx on public.incident_intervention_report_events (organization_id);
+create index if not exists incident_intervention_reports_org_idx on public.incident_intervention_reports (organization_id);
+create index if not exists incident_quote_comparison_items_org_idx on public.incident_quote_comparison_items (organization_id);
+create index if not exists incident_quote_events_org_idx on public.incident_quote_events (organization_id);
+create index if not exists incident_quote_recipients_org_idx on public.incident_quote_recipients (organization_id);
+create index if not exists incident_quote_validation_events_org_idx on public.incident_quote_validation_events (organization_id);
+create index if not exists incident_quotes_org_idx on public.incident_quotes (organization_id);
+create index if not exists incident_schedule_events_org_idx on public.incident_schedule_events (organization_id);
+create index if not exists incident_schedule_responses_org_idx on public.incident_schedule_responses (organization_id);
+create index if not exists incident_schedule_slot_batches_org_idx on public.incident_schedule_slot_batches (organization_id);
+create index if not exists incident_schedule_slots_org_idx on public.incident_schedule_slots (organization_id);
+create index if not exists marketing_events_org_idx on public.marketing_events (organization_id);
+create index if not exists monitoring_alerts_org_idx on public.monitoring_alerts (organization_id);
+create index if not exists observability_events_org_idx on public.observability_events (organization_id);
+create index if not exists privacy_requests_org_idx on public.privacy_requests (organization_id);
+create index if not exists promotion_redemptions_org_idx on public.promotion_redemptions (organization_id);
+create index if not exists quality_attachments_org_idx on public.quality_attachments (organization_id);
+create index if not exists subscription_history_org_idx on public.subscription_history (organization_id);
+
+commit;

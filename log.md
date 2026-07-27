@@ -758,3 +758,9 @@ S13), espace artisan (naissance S7), espace PD (S9), console SA (S9→S15), PM s
 espace ; (3) **sources wiki citées à chaque sprint** ; (4) features affinées en
 puces. Récap général et 3 questions pratiques posées à l'humain (repo, jour de
 démo, accès Supabase/Vercel).
+
+## [2026-07-27] setup | Initialisation Git et liaison GitHub
+Installation de Git 2.55 (winget), `git init` dans le vault, remote `origin` relié à
+https://github.com/GERIMMO/GERIMMO_V4.git (dépôt vide). Ajout d'un `.gitignore`
+(fichiers volatils Obsidian/Claude), premier commit sur `main` avec l'intégralité du
+wiki. Push en attente : authentification GitHub interactive requise.

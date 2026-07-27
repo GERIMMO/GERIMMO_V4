@@ -55,12 +55,17 @@ export async function proxy(request: NextRequest) {
   const signedInAt = user.last_sign_in_at
     ? new Date(user.last_sign_in_at).getTime()
     : now;
-  const lastActivityRaw = request.cookies.get(ACTIVITY_COOKIE)?.value;
-  const lastActivity = lastActivityRaw ? Number(lastActivityRaw) : now;
+  // Dernière activité = le plus récent entre le cookie et la connexion :
+  // une reconnexion vaut activité (sinon un vieux cookie déconnecterait en
+  // boucle), et un cookie absent ou corrompu retombe sur l'heure de connexion.
+  const parsed = Number(request.cookies.get(ACTIVITY_COOKIE)?.value);
+  const lastActivity = Math.max(
+    Number.isFinite(parsed) ? parsed : 0,
+    signedInAt
+  );
 
   const absoluteExpired = now - signedInAt > limits.absolute;
-  const inactivityExpired =
-    Number.isFinite(lastActivity) && now - lastActivity > limits.inactivity;
+  const inactivityExpired = now - lastActivity > limits.inactivity;
 
   if (absoluteExpired || inactivityExpired) {
     await supabase.auth.signOut();

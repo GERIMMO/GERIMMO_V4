@@ -109,6 +109,44 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
       expect(Number(isolation.rows[0].personnes_a)).toBe(1);
       expect(Number(isolation.rows[0].personnes_b)).toBe(0);
 
+      // Un locataire membre de A voit son agence mais aucune fiche personne
+      await db.query("reset role");
+      const {
+        rows: [{ id: compte_locataire }],
+      } = await db.query(`
+        insert into auth.users (
+          instance_id, id, aud, role, email, encrypted_password,
+          email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+          created_at, updated_at, confirmation_token, recovery_token,
+          email_change, email_change_token_new, email_change_token_current
+        ) values (
+          '00000000-0000-0000-0000-000000000000', gen_random_uuid(),
+          'authenticated', 'authenticated',
+          'test-locataire-' || gen_random_uuid() || '@test.local',
+          'x', now(), '{"provider":"email","providers":["email"]}'::jsonb,
+          '{}'::jsonb, now(), now(), '', '', '', '', ''
+        ) returning id
+      `);
+      await db.query(
+        `insert into public.memberships (account_id, organization_id, role)
+         values ($1, $2, 'locataire')`,
+        [compte_locataire, org_a]
+      );
+      await db.query(
+        `select set_config('request.jwt.claims',
+           json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)`,
+        [compte_locataire]
+      );
+      await db.query("set local role authenticated");
+      const locataire = await db.query(
+        `select
+           (select count(*) from public.organizations where id = $1) as org_visible,
+           (select count(*) from public.persons where organization_id = $1) as personnes`,
+        [org_a]
+      );
+      expect(Number(locataire.rows[0].org_visible)).toBe(1);
+      expect(Number(locataire.rows[0].personnes)).toBe(0);
+
       // Un anonyme ne voit rien du tout
       await db.query("reset role");
       await db.query("set local role anon");

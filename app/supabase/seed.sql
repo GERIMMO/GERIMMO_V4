@@ -16,7 +16,8 @@ begin
       ('superadmin@gerimmo-demo.fr'),
       ('admin.alpha@gerimmo-demo.fr'),
       ('agent.alpha@gerimmo-demo.fr'),
-      ('admin.beta@gerimmo-demo.fr')
+      ('admin.beta@gerimmo-demo.fr'),
+      ('multi@gerimmo-demo.fr')
     ) as t(email)
   loop
     insert into auth.users (
@@ -42,6 +43,11 @@ begin
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'agent');
 
   select id into v_uid from public.accounts where email = 'admin.beta@gerimmo-demo.fr';
+  insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_beta, 'admin_agence');
+
+  -- Double adhésion : fait apparaître le sélecteur d'espaces
+  select id into v_uid from public.accounts where email = 'multi@gerimmo-demo.fr';
+  insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'agent');
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_beta, 'admin_agence');
 
   insert into public.persons (organization_id, nom, prenom) values (v_org_alpha, 'Dupont', 'Alice');

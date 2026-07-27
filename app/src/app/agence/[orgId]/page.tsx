@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,23 @@ export const metadata = { title: "Espace agence — Gerimmo" };
 export default async function PageAgence(props: PageProps<"/agence/[orgId]">) {
   const { orgId } = await props.params;
   const supabase = await createClient();
+
+  // Cet espace est réservé aux rôles d'agence (la RLS protège les données,
+  // cette garde protège la navigation)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/connexion");
+  const { data: adhesion } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("account_id", user.id)
+    .eq("organization_id", orgId)
+    .eq("status", "active")
+    .maybeSingle();
+  if (!adhesion || !["admin_agence", "agent"].includes(adhesion.role)) {
+    redirect("/espaces");
+  }
 
   // La RLS garantit qu'une agence dont on n'est pas membre est invisible
   const { data: organisation } = await supabase

@@ -800,3 +800,21 @@ les 2 tests non négociables, auto-ignorés sans `SUPABASE_DB_URL`. **CI GitHub 
 `app/supabase/seed.sql` + migration de référence dans `app/supabase/migrations/`.
 **Reste (manuel, dashboard Supabase)** : politique de mots de passe 12 caractères +
 vérification fuites (RM-A4.3) — non exposée par l'API MCP. MFA super admin : sprint 15.
+
+## [2026-07-28] sprint | Sprint 0 — Revue de code, durcissement RLS, déploiement Vercel
+**Revue demandée par l'humain.** Trois défauts corrigés (migration
+`socle_durcissement_optimisation_rls`) : (1) **sécurité** — `persons_select` était ouvert
+à tout membre actif : un locataire membre aurait vu l'annuaire de son agence → restreint
+aux rôles gérants (vérifié en base : locataire = 1 org visible, 0 fiche) ; (2) **perf** —
+les politiques appelaient une fonction par ligne (la vigilance du lot 0) → réécriture avec
+fonctions stables sans argument de ligne (`user_org_ids`, `org_ids_avec_roles`) évaluées
+une fois par requête (InitPlan) ; (3) **privilèges** — écriture `accounts` limitée à la
+colonne `mfa_actif`, `audit_log` en lecture seule côté client, `anon` sans aucun privilège.
+Côté app : garde de rôle sur /agence (la RLS protège les données, la garde protège la
+navigation), cookie d'activité purgé à la déconnexion, test d'isolation étendu au cas
+locataire. Seed : compte `multi@gerimmo-demo.fr` à double adhésion (sélecteur d'espaces).
+**Déploiement** : app **en production sur Vercel** — https://gerimmo-v4-gerimmo.vercel.app
+(projet `gerimmo-v4`, équipe gerimmo, déployé par fichiers via MCP ; à relier au dépôt
+GitHub plus tard pour l'auto-déploiement). Recette fonctionnelle transmise à l'humain
+(6 scénarios : connexion, isolation Alpha/Beta, rôles, sélecteur, console SA journalisée,
+session). La base V4 : 5 tables, RLS partout, 5 comptes de démo, 2 agences.

@@ -24,24 +24,34 @@ export default async function PageJournaux() {
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  const [{ data: regles }, { data: audit }, { data: technique }, { count: enAttente }] =
-    await Promise.all([
-      supabase.from("retention_rules").select("*").order("data_type"),
-      supabase
-        .from("audit_log")
-        .select("action, organization_id, details, created_at")
-        .order("created_at", { ascending: false })
-        .limit(15),
-      supabase
-        .from("tech_log")
-        .select("evenement, created_at")
-        .order("created_at", { ascending: false })
-        .limit(15),
-      supabase
-        .from("purge_fichiers")
-        .select("*", { count: "exact", head: true })
-        .is("deleted_at", null),
-    ]);
+  const [
+    { data: regles },
+    { data: audit },
+    { data: technique },
+    { data: acces },
+    { count: enAttente },
+  ] = await Promise.all([
+    supabase.from("retention_rules").select("*").order("data_type"),
+    supabase
+      .from("audit_log")
+      .select("action, organization_id, details, created_at")
+      .order("created_at", { ascending: false })
+      .limit(15),
+    supabase
+      .from("tech_log")
+      .select("evenement, created_at")
+      .order("created_at", { ascending: false })
+      .limit(15),
+    supabase
+      .from("acces_pieces_log")
+      .select("action, created_at, document:documents(type, titre)")
+      .order("created_at", { ascending: false })
+      .limit(15),
+    supabase
+      .from("purge_fichiers")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 p-6">
@@ -149,6 +159,43 @@ export default async function PageJournaux() {
                     </span>
                   </li>
                 ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">
+              Journal d&apos;accès aux pièces
+            </CardTitle>
+            <CardDescription>
+              Toute consultation ou téléchargement d&apos;un document est
+              tracé (RM-0b.7.5) — conservé 1 an.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {(acces ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Vide.</p>
+            ) : (
+              <ul className="divide-y">
+                {(acces ?? []).map((l, i) => {
+                  const doc = l.document as unknown as {
+                    type: string;
+                    titre: string | null;
+                  } | null;
+                  return (
+                    <li key={i} className="py-2 text-sm">
+                      <span className="font-medium">{l.action}</span>
+                      <span className="ml-2 text-muted-foreground">
+                        {doc?.titre ?? "(document purgé)"}
+                      </span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {formaterDateHeure(l.created_at)}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </CardContent>

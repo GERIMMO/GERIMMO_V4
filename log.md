@@ -840,3 +840,30 @@ figé au S2 (tokens CSS obligatoires — contrainte marque blanche S14, layout d
 responsive de base), maquette rapide validée en début de sprint pour les écrans critiques
 (grille d'EDL S4, vue scindée S9, espaces LO/AR), passe d'identité visuelle complète entre la
 recette V0 et le S10.
+
+## [2026-07-28] sprint | Sprint 1 — GED, alertes, rétention RGPD, mot de passe oublié
+Exécution complète du périmètre validé (8 features). **Base** (4 migrations MCP) : `documents` +
+`document_liens` (rattachement multiple sans arborescence, le type pilote — module 12, empreinte
+SHA-256 anti-doublon en index unique), `alerts` (3 criticités, escalade nominative en historique
+jsonb, fermeture par l'action — module 14), `retention_rules` (**17 règles seedées** de la matrice
+A2 avec finalité/déclencheur/sort, dont `document_test` à durée nulle pour la recette de purge),
+`tech_log` (6 mois) + `acces_pieces_log` (1 an, alimenté par `log_document_access` definer),
+bucket Storage privé (10 Mo, PDF/JPEG/PNG) avec politiques par organisation, purge
+`appliquer_retention()` (pg_cron 03h00 + bouton SA) → tombstone « purgé le » + trace audit +
+**file `purge_fichiers`** pour la suppression physique via l'API Storage (le DELETE SQL sur
+storage.objects est interdit par Supabase — découvert et contourné proprement). **App** : pages
+Documents (dépôt type réel vérifié RM-A4.9, filtres RM-12.5.1, liens signés 60 s tracés RM-A4.10)
+et Alertes dans l'espace agence, console SA « Journaux et conservation » (règles, journaux, purge
+manuelle), flux **mot de passe oublié** (réponse neutre, RM-A4.3, sessions invalidées, trace
+tech_log, `/auth/confirm` réutilisable par le 16.8). **Revue/optimisation** : 3 défauts corrigés
+(open redirect `next`, extension du nom de téléchargement, course anti-doublon) + 2 correctifs
+révélés par les vérifications réelles (politique `ged_select` : le SA doit voir les objets purgés
+pour les supprimer — fichier orphelin détecté puis nettoyé ; `lancerPurge` ne marque supprimé que
+ce que l'API a confirmé) + advisors (revoke `handle_auth_user_change`, 3 index FK). **Tests** :
+19 passants en local (type réel, sessions, API), 11 d'intégration pg (via SUPABASE_DB_URL/CI),
+isolation et « RLS actif partout » rejoués en base via MCP (rollback), **purge physique vérifiée
+de bout en bout avec un vrai fichier**. Commit `03bcc96`. **Déploiement Vercel : bloqué par le
+classifieur de permissions de l'agent — à relancer avec l'accord de l'humain** (l'app est
+testable en local : `npm run dev`). Reste manuel (dashboard Supabase) : politique de mots de
+passe 12 caractères + protection fuites (confirmée désactivée par l'advisor), et pour le flux
+email en production : Site URL + redirect `/auth/confirm` dans Auth → URL Configuration.

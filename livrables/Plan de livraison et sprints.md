@@ -1,4 +1,4 @@
-# Plan de livraison et calendrier de sprints — Gerimmo V3
+﻿# Plan de livraison et calendrier de sprints — Gerimmo V3
 
 > **Proposé par l'agent le 2026-07-25**, sur la base du référentiel complet (22
 > modules + A1–A6) et des décisions d'arbitrage. Révisable à chaque fin de sprint
@@ -7,7 +7,13 @@
 
 ## Méthode
 
-- **Sprints de 2 semaines**, du lundi au vendredi de la semaine suivante.
+- **Sprints à durée variable** *(décision du 2026-07-28 — initialement 2 semaines)* :
+  on raisonne en numéros de sprint, sans dates ; la durée dépend du rythme des
+  échanges et des recettes. Un sprint se termine quand sa démo est validée.
+- **Design** *(acté le 2026-07-28)* : pas de sprint design dédié — design system
+  figé au S2 (tokens, layout), **maquette rapide validée en début de sprint** pour
+  les écrans critiques (grille d'EDL S4, vue scindée S9, espaces LO S3 / AR S7),
+  **identité visuelle complète entre la recette V0 et le sprint 10**.
 - **Rituels** : planification en début de sprint (périmètre fixé ensemble) ;
   **démo + recette fonctionnelle en fin de sprint** (validation des fonctionnalités
   une par une) ; mise à jour du wiki au fil de l'eau.
@@ -49,14 +55,14 @@
 
 | Phase | Contenu | Jalon |
 |---|---|---|
-| **V0** — sprints 0 à 9 | App web **fonctionnelle en interne**, sans intégration externe | **Recette V0 : mi-décembre 2026** |
-| **V1** — sprints 10 à 15 | Intégrations (Yousign, Stripe, WhatsApp), mobile, durcissement production | **Commercialisable : fin mars 2027** |
+| **V0** — sprints 0 à 9 | App web **fonctionnelle en interne**, sans intégration externe | **Recette V0 à l'issue du sprint 9** |
+| **V1** — sprints 10 à 15 | Intégrations (Yousign, Stripe, WhatsApp), mobile, durcissement production | **Commercialisable à l'issue du sprint 15** |
 
 ---
 
 ## V0 — l'application web fonctionnelle
 
-### Sprint 0 (27/07 → 07/08) — Socle : identité, isolation, authentification
+### Sprint 0 — Socle : identité, isolation, authentification
 **Personas : AA, AG, SA** (fondation pour tous).
 **Sources : [[Compte, personne et adhésion]] · [[Isolation multi-organisation]] · [[Socle de sécurité]] · [[Architecture du socle V3]]**
 - Repo git, CI (tests + lint), environnements dev/staging.
@@ -71,7 +77,7 @@
 - ⚑ Décision de sprint : **socle neuf vs migration du code existant**.
 **Démo : deux agences créées, données étanches, connexion par rôle.**
 
-### Sprint 1 (10/08 → 21/08) — Socle : GED et exploitation
+### Sprint 1 — Socle : GED et exploitation
 **Personas : AG, AA** (usage GED) · **SA** (journaux).
 **Sources : [[Document]] · [[RGPD]] · [[Agenda et échéances]] · [[Architecture du socle V3]]**
 - `documents` + `document_liens` : rattachement multiple (lot, bail, personne,
@@ -85,9 +91,17 @@
 - `retention_rules` (les 32 durées de la matrice A2) + tâches pg_cron (purges,
   sorts RGPD).
 - Navigation documentaire par filtres (type, période, entité) + recherche.
-**Démo : un fichier déposé, relu, tracé ; une alerte créée, escaladée, purgée.**
+- **Mot de passe oublié** *(ajout acté le 2026-07-28 — absent du référentiel V3)* :
+  lien sur `/connexion` → email de réinitialisation (Supabase Auth, lien à usage
+  unique, expiration 1 h) avec **réponse neutre** (ne révèle jamais si le compte
+  existe) → nouveau mot de passe soumis à la **politique RM-A4.3** (12 caractères,
+  vérification fuites) → **sessions actives invalidées** + email de confirmation ;
+  événement tracé (`tech_log`, 6 mois — matrice A2/A4). Même mécanique réutilisée
+  par la première connexion (parcours 16.8) au sprint 11.
+**Démo : un fichier déposé, relu, tracé ; une alerte créée, escaladée, purgée ;
+un mot de passe réinitialisé de bout en bout.**
 
-### Sprint 2 (24/08 → 04/09) — Le parc : biens et lots
+### Sprint 2 — Le parc : biens et lots
 **Personas : AG, AA, PD** (création et gestion du parc).
 **Sources : [[Bien]] · [[Lot]] · [[Diagnostic]] · [[Clé de répartition]]**
 - Création de bien → **lot unique automatique** (multi-lots invisible dans ~90 %
@@ -104,9 +118,13 @@
 - Équipements en **liste fermée** (prépare la grille d'EDL) ; critères de décence
   en alertes ; champs verrouillés quand le lot est loué.
 - Début de l'espace agence : navigation, tableau de bord, fiches bien/lot.
+- **Design system figé** *(acté le 2026-07-28)* : toutes les couleurs en
+  variables CSS/tokens (aucune couleur en dur — contrainte [[Marque blanche]] S14),
+  layout définitif de l'espace agence (sidebar, en-têtes, tableaux, états vides),
+  responsive de base (module 19 : site adapté).
 **Démo : bien créé → lot disponible → bail bloqué par un DPE expiré.**
 
-### Sprint 3 (07/09 → 18/09) — Personnes, dossier locataire, mandat
+### Sprint 3 — Personnes, dossier locataire, mandat
 **Personas : AG, AA** (constituent) · **LO, GA** (déposent) · **PM** (objet du mandat).
 **Sources : [[Dossier locataire]] · [[Compte, personne et adhésion]] · [[Mandat de gestion]]**
 - Fiches **personnes** sans rôle ; doublon nom+naissance alerté (non bloquant) ;
@@ -124,7 +142,7 @@
   rapport, avenants — signature = **dépôt du PDF** en V0.
 **Démo : un dossier complet, un garant partagé, un mandat actif sur 3 lots.**
 
-### Sprint 4 (21/09 → 02/10) — Bail et état des lieux
+### Sprint 4 — Bail et état des lieux
 **Personas : AG** (opère) · **LO, GA** (signent, consultent) · **PD** (mêmes parcours).
 **Sources : [[Bail]] · [[État des lieux]]**
 - Création de **bail** : nu / meublé (inventaire mobilier structuré) / colocation
@@ -140,7 +158,7 @@
 - **Comparatif entrée/sortie** : mêmes lignes garanties, écarts en évidence.
 **Démo : bail déposé, EDL d'entrée signé, échéancier créé.**
 
-### Sprint 5 (05/10 → 16/10) — Loyers et charges
+### Sprint 5 — Loyers et charges
 **Personas : AG, AA** (quittancent, relancent) · **LO** (espace loyers) · **PD**.
 **Sources : [[Quittancement des loyers]] · [[Relances et mise en demeure]] · [[Révision annuelle IRL]] · [[Régularisation des charges]]**
 - **Appel de loyer** au jour paramétré : loyer + provisions, prorata entrée/sortie,
@@ -159,7 +177,7 @@
   justificatifs bloquants, restitution ou complément.
 **Démo : un mois de quittancement, un partiel → reçu, un impayé relancé, une IRL.**
 
-### Sprint 6 (19/10 → 30/10) — Comptabilité et rapport de gestion
+### Sprint 6 — Comptabilité et rapport de gestion
 **Personas : AG, AA** (tiennent, clôturent) · **PM** (reçoit) · **PD** (récap fiscal).
 **Sources : [[Comptabilité]] · [[Rapport de gestion]] · [[Fiscalité]]**
 - **Écritures immuables dès création** : 2 dates (pièce/imputation), catégorie +
@@ -182,7 +200,7 @@
   intérêts d'emprunt en rubrique vide).
 **Démo : clôture → rapport → correction par contre-écriture → rectificatif.**
 
-### Sprint 7 (02/11 → 13/11) — Incidents, artisans, devis, interventions
+### Sprint 7 — Incidents, artisans, devis, interventions
 **Personas : LO** (déclare) · **AG, AA** (qualifient, arbitrent) · **AR** (naissance de son espace) · **PM** (accord au-delà du seuil).
 **Sources : [[Cycle de vie d'un incident]] · [[Artisan]] · [[Devis]] · [[Planification d'intervention]] · [[Intervention et clôture]]**
 - **Déclaration** (web, photos) depuis l'espace LO ou par l'agent.
@@ -209,7 +227,7 @@
   avec refacturation.
 **Démo : de la fuite déclarée à la facture comptabilisée, avec arbitrage de créneaux.**
 
-### Sprint 8 (16/11 → 27/11) — Garanties, restitution, fins de bail, copro
+### Sprint 8 — Garanties, restitution, fins de bail, copro
 **Personas : AG, AA** (opèrent) · **LO, GA** (suivent) · **PM** (fonds, appels de charges).
 **Sources : [[Dépôt de garantie]] · [[Restitution du dépôt de garantie]] · [[Vétusté et décote]] · [[Solde de tout compte]] · [[Appel de charges]]**
 - **Dépôt de garantie** : plafonds légaux, encaissement (écriture 4.2), jamais
@@ -231,7 +249,7 @@
   tarde à transmettre (3 semaines, puis escalade).
 **Démo : une sortie de locataire de bout en bout, retenue défendable, solde émis.**
 
-### Sprint 9 (30/11 → 11/12) — Administration, transverses, propriétaire direct
+### Sprint 9 — Administration, transverses, propriétaire direct
 **Personas : AA, SA** (administrent) · **AG** (agenda, messagerie) · **PD** (espace complet) · **LO** (messagerie).
 **Sources : [[Modèle de rôles et permissions]] · [[Agenda et échéances]] · [[Super Admin]] · [[Propriétaire bailleur]] · [[Canaux de communication]] (messagerie, module 15) · module 18**
 - **Rôles V3 définitifs** : agent **limité à ses mandats**, transfert temporaire
@@ -253,16 +271,17 @@
   (modèles, contestations), suspension lecture seule / archivage.
 **Démo : une journée type d'agence ; un PD autonome de bout en bout.**
 
-### Recette V0 (14/12 → 24/12) — 🎯 Jalon V0
+### Recette V0 — 🎯 Jalon V0
 Recette fonctionnelle complète ensemble (scénarios = US du référentiel),
 corrections, jeu de données de démo. **Livrable : app web fonctionnelle en
-interne.** Pause fin d'année.
+interne.** Suivie de la **passe d'identité visuelle** (logo, palette définitive,
+typographie, habillage des emails, écran de connexion) avant le sprint 10.
 
 ---
 
 ## V1 — intégrations et commercialisation
 
-### Sprint 10 (04/01 → 15/01) — Yousign
+### Sprint 10 — Yousign
 **Personas : LO, GA, PM** (signent sans compte) · **AG** (suit, relance).
 **Sources : [[Signature électronique]]**
 - Signature simple (email + code SMS), **aucun compte requis** pour signer.
@@ -274,7 +293,7 @@ interne.** Pause fin d'année.
   GED + **déclenchement du parcours métier** (bail actif, garantie effective…).
 - Le dépôt de PDF (V0) reste disponible en repli.
 
-### Sprint 11 (18/01 → 29/01) — Stripe et onboarding
+### Sprint 11 — Stripe et onboarding
 **Personas : AA** (souscrit) · **SA** (crée, facture) · **PD** (abonnement par bien).
 **Sources : [[Grille tarifaire]] · [[Onboarding et abonnement]] · [[Cycle de vie de l'abonnement]]**
 - **Comptage automatique des lots sous mandat** au dernier jour du mois (vacant
@@ -290,7 +309,7 @@ interne.** Pause fin d'année.
 - **Écran d'information « journal de gestion » au paramétrage initial**.
 - ⚠️ **Soumission des 8 templates WhatsApp à Meta** (délai d'approbation externe).
 
-### Sprint 12 (01/02 → 12/02) — WhatsApp
+### Sprint 12 — WhatsApp
 **Personas : LO, AR** (canal du quotidien) · **AG** (rattache) · **SA** (modèles).
 **Sources : [[Canaux de communication]]**
 - **Consentement** préalable daté, conservé, révocable (case espace, STOP, via
@@ -302,7 +321,7 @@ interne.** Pause fin d'année.
   clôture, ne voit que prénom + téléphone).
 - **Décommissionnement du bot Telegram** (décision du 2026-07-25).
 
-### Sprint 13 (15/02 → 26/02) — Mobile
+### Sprint 13 — Mobile
 **Personas : AG** (EDL terrain) · **LO** (incident sur le vif) · **AR** (chantier).
 **Sources : [[2026-07-24-gerimmo-v3-module-19-mobile|Module 19]] · [[État des lieux]]**
 - **EDL hors ligne** : sauvegarde locale automatique de chaque saisie,
@@ -317,7 +336,7 @@ interne.** Pause fin d'année.
 - **Compte rendu artisan mobile** : 2 écrans, photo centrale ; agenda toutes
   agences avec logo par intervention ; boutons larges, contrastes élevés.
 
-### Sprint 14 (01/03 → 12/03) — Commercial et différenciateurs
+### Sprint 14 — Commercial et différenciateurs
 **Personas : SA** (import, arbitre) · **AA** (marque blanche) · **AR** (score) · **LO, AG** (notent) · tous (retours).
 **Sources : [[Super Admin]] (import 0.12) · [[Artisan]] (notation) · [[Marque blanche]] · [[Retours utilisateurs]]**
 - **Import en masse du parc** (SA) : gabarit Excel imposé, 9 feuilles dans l'ordre
@@ -333,7 +352,7 @@ interne.** Pause fin d'année.
   personnelle**, masquage + prévisualisation), tri SA à 3 issues avec réponse
   systématique, transmission au suivi technique ; idées en lot 2.
 
-### Sprint 15 (15/03 → 26/03) — 🎯 Durcissement production
+### Sprint 15 — 🎯 Durcissement production
 **Personas : SA** (opère) · tous (bénéficient).
 **Sources : [[Socle de sécurité]] · [[Plan de reprise d'activité]] · livrables juridiques (`livrables/`)**
 - **Antivirus à l'upload** (service choisi, tableau des sous-traitants mis à jour).
@@ -345,7 +364,7 @@ interne.** Pause fin d'année.
 - **Mentions « journal de gestion » sur les 5 supports** ; CGU et politique de
   confidentialité publiées (livrables finalisés).
 - Revue de sécurité par l'agent (limites documentées) ; **mise en production**.
-**🎯 Jalon : produit commercialisable, fin mars 2027.**
+**🎯 Jalon : produit commercialisable.**
 
 ---
 
@@ -357,4 +376,4 @@ interne.** Pause fin d'année.
 | EDL hors ligne = le plus exigeant techniquement | Sprint dédié (13), maquette de la grille testée dès le sprint 4 |
 | Dérive de périmètre V0 | Le référentiel fige les règles ; tout ajout passe par la planification de sprint |
 | Migration du code existant vs socle neuf | **À trancher au sprint 0** ([[Divergences code et référentiel V3]]) |
-| Calendrier indicatif | Recalé à chaque fin de sprint ; les jalons V0/V1 priment sur le contenu |
+| Durée des sprints variable (sans dates) | Le périmètre du sprint en cours est ferme ; les jalons (fin S9, fin S15) priment sur le contenu |

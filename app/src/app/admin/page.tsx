@@ -38,11 +38,18 @@ export default async function PageAdmin() {
           <p className="text-sm text-muted-foreground">Console d&apos;administration</p>
           <h1 className="text-2xl font-semibold">Agences</h1>
         </div>
-        <form action={seDeconnecter}>
-          <Button variant="outline" size="sm" type="submit">
-            Se déconnecter
-          </Button>
-        </form>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            render={<Link href="/admin/journaux">Journaux et conservation</Link>}
+          />
+          <form action={seDeconnecter}>
+            <Button variant="outline" size="sm" type="submit">
+              Se déconnecter
+            </Button>
+          </form>
+        </div>
       </div>
 
       <div className="grid gap-4">

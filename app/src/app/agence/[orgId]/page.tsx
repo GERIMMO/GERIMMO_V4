@@ -49,6 +49,12 @@ export default async function PageAgence(props: PageProps<"/agence/[orgId]">) {
     .is("archived_at", null)
     .order("nom");
 
+  const { count: alertesOuvertes } = await supabase
+    .from("alerts")
+    .select("*", { count: "exact", head: true })
+    .eq("organization_id", orgId)
+    .eq("statut", "ouverte");
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-6">
       <div className="mb-8 flex items-center justify-between">
@@ -69,6 +75,23 @@ export default async function PageAgence(props: PageProps<"/agence/[orgId]">) {
           </form>
         </div>
       </div>
+
+      <nav className="mb-6 flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          render={<Link href={`/agence/${orgId}/documents`}>Documents</Link>}
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          render={
+            <Link href={`/agence/${orgId}/alertes`}>
+              Alertes{(alertesOuvertes ?? 0) > 0 ? ` (${alertesOuvertes})` : ""}
+            </Link>
+          }
+        />
+      </nav>
 
       <Card>
         <CardHeader>

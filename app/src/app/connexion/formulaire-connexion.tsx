@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 
+const MESSAGES: Record<string, { texte: string; ton: "info" | "succes" }> = {
+  "session-expiree": {
+    texte: "Votre session a expiré, veuillez vous reconnecter.",
+    ton: "info",
+  },
+  "mot-de-passe-modifie": {
+    texte: "Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.",
+    ton: "succes",
+  },
+  "lien-invalide": {
+    texte:
+      "Ce lien est invalide, expiré ou déjà utilisé. Redemandez un email de réinitialisation.",
+    ton: "info",
+  },
+};
+
 export function FormulaireConnexion() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const sessionExpiree = searchParams.get("raison") === "session-expiree";
+  const message = MESSAGES[searchParams.get("raison") ?? ""];
 
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
@@ -39,9 +56,15 @@ export function FormulaireConnexion() {
   return (
     <Card>
       <CardContent className="pt-6">
-        {sessionExpiree && (
-          <p className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-            Votre session a expiré, veuillez vous reconnecter.
+        {message && (
+          <p
+            className={`mb-4 rounded-md p-3 text-sm ${
+              message.ton === "succes"
+                ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+                : "bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+            }`}
+          >
+            {message.texte}
           </p>
         )}
         <form onSubmit={seConnecter} className="space-y-4">
@@ -72,6 +95,14 @@ export function FormulaireConnexion() {
           <Button type="submit" className="w-full" disabled={enCours}>
             {enCours ? "Connexion…" : "Se connecter"}
           </Button>
+          <p className="text-center text-sm">
+            <Link
+              href="/mot-de-passe-oublie"
+              className="text-muted-foreground underline-offset-4 hover:underline"
+            >
+              Mot de passe oublié ?
+            </Link>
+          </p>
         </form>
       </CardContent>
     </Card>

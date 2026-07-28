@@ -2,7 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
 
-const PUBLIC_PATHS = ["/connexion"];
+// Accessibles sans session. /auth/confirm traite les liens reçus par email
+// (réinitialisation…) : il doit rester traversable même connecté.
+const PUBLIC_PATHS = ["/connexion", "/mot-de-passe-oublie", "/auth/confirm"];
+const REDIRECT_SI_CONNECTE = ["/connexion", "/mot-de-passe-oublie"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -85,7 +88,7 @@ export async function proxy(request: NextRequest) {
   });
 
   // Un utilisateur connecté n'a rien à faire sur /connexion
-  if (isPublic) {
+  if (REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/espaces";
     url.search = "";

@@ -39,9 +39,22 @@ describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () =>
     clients.length = 0;
   });
 
-  it("un visiteur anonyme ne lit aucune table du socle", async () => {
+  it("un visiteur anonyme ne lit aucune table du socle ni du Sprint 1", async () => {
     const c = client();
-    for (const table of ["organizations", "accounts", "persons", "memberships", "audit_log"]) {
+    for (const table of [
+      "organizations",
+      "accounts",
+      "persons",
+      "memberships",
+      "audit_log",
+      "documents",
+      "document_liens",
+      "alerts",
+      "retention_rules",
+      "tech_log",
+      "acces_pieces_log",
+      "purge_fichiers",
+    ]) {
       const { data } = await c.from(table).select("*");
       expect(data ?? [], `fuite sur ${table}`).toHaveLength(0);
     }

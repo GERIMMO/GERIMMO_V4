@@ -818,3 +818,25 @@ locataire. Seed : compte `multi@gerimmo-demo.fr` à double adhésion (sélecteur
 GitHub plus tard pour l'auto-déploiement). Recette fonctionnelle transmise à l'humain
 (6 scénarios : connexion, isolation Alpha/Beta, rôles, sélecteur, console SA journalisée,
 session). La base V4 : 5 tables, RLS partout, 5 comptes de démo, 2 agences.
+
+## [2026-07-28] sprint | Sprint 0 validé en recette + « mot de passe oublié » ajouté au Sprint 1
+**Recette fonctionnelle du Sprint 0 déroulée par l'humain : les 6 scénarios passent**
+(connexion/accès protégé, isolation Alpha↔Beta dans les deux sens — RM-A1.7, garde de
+rôle /admin, sélecteur d'espaces du compte multi, console SA journalisée RM-A1.11,
+expiration de session SA 30 min + reconnexion propre RM-A4.5). Sprint 0 terminé au sens
+de la définition de « terminé ». **Décision humaine** : la fonctionnalité « mot de passe
+oublié » (absente du référentiel V3, constat du 2026-07-28) est **ajoutée au périmètre du
+Sprint 1** — flux Supabase Auth (lien email à usage unique, 1 h), réponse neutre sans
+énumération de comptes, politique RM-A4.3, invalidation des sessions actives, trace
+technique 6 mois ; la mécanique sera réutilisée par la première connexion (16.8) au S11.
+[[Plan de livraison et sprints]] mis à jour (périmètre + démo du Sprint 1).
+
+## [2026-07-28] maintenance | Cadence sans dates + design inscrit au plan
+Deux décisions humaines intégrées au [[Plan de livraison et sprints]]. (1) **Sprints à durée
+variable** : on raisonne en numéros de sprint, plus en dates — dates retirées des 16 titres et
+des jalons (recette V0 = fin S9, commercialisable = fin S15) ; un sprint se termine quand sa
+démo est validée. (2) **Design en trois niveaux** (proposition agent validée) : design system
+figé au S2 (tokens CSS obligatoires — contrainte marque blanche S14, layout de l'espace agence,
+responsive de base), maquette rapide validée en début de sprint pour les écrans critiques
+(grille d'EDL S4, vue scindée S9, espaces LO/AR), passe d'identité visuelle complète entre la
+recette V0 et le S10.

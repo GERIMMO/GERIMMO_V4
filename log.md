@@ -930,3 +930,15 @@ un accès = une trace). Erreurs désormais en pages françaises (403 accès refu
 introuvable, 410 purgé, 500 trace impossible, 502 stockage). `ouvrirDocument` supprimée,
 garde `verifierGerant` extraite dans `lib/ged-acces.ts`, boutons remplacés par des liens
 (`buttonVariants`, le Button Base UI n'a pas de `asChild`). Lint, build et 19 tests OK.
+
+## [2026-07-29] maintenance | Double build Vercel diagnostiqué + pop-up d'alertes précisée (tous personas)
+Deux suites de recette. **Vercel** : l'humain voyait des déploiements partir sur
+`next-js-and-shadcn-ui-admin-dashboard` — diagnostic via MCP : ce vieux projet (démo V3,
+branché sur le dépôt Gerimmo-V3 jusqu'au 21/07) s'est retrouvé connecté au dépôt
+GERIMMO_V4 lors de la remise en ordre du 28/07 ; chaque push déclenche donc deux builds,
+celui de `gerimmo-v4` (OK, la prod n'est pas affectée) et celui du vieux projet (ERROR
+systématique : ni Root Directory `app` ni variables d'env). Nettoyage côté humain :
+Settings → Git → Disconnect sur le vieux projet (voire suppression du projet si la démo
+V3 ne sert plus). **Scénario 4 précisé** : la pop-up d'alertes à la connexion concerne
+tout utilisateur ayant des alertes, quel que soit son persona (chacun selon ses droits),
+agrégation multi-agences le cas échéant — plan de livraison mis à jour.

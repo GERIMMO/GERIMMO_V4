@@ -122,15 +122,18 @@ un mot de passe réinitialisé de bout en bout.**
 - Équipements en **liste fermée** (prépare la grille d'EDL) ; critères de décence
   en alertes ; champs verrouillés quand le lot est loué.
 - Début de l'espace agence : navigation, tableau de bord, fiches bien/lot.
-- **Récap d'alertes à la connexion** *(retour recette S1, acté le 2026-07-29)* :
-  à l'ouverture de session, **pop-up de synthèse des alertes ouvertes, toutes
-  agences confondues et indépendante du profil** — vision macro d'abord (compteurs
-  par criticité puis par agence), puis navigation vers le détail pour **répondre
-  et fermer** sans perdre le fil. Exigences UX/UI : ne s'affiche que s'il existe
-  des alertes ouvertes ; jamais bloquante (Échap, clic extérieur) ; hiérarchie
-  visuelle par criticité (tokens du design system, pas de couleurs en dur) ;
-  rappelable à tout moment via un **badge permanent** dans l'en-tête (cloche avec
-  compteur) ; tri : critique → important → info, la plus ancienne en premier.
+- **Récap d'alertes à la connexion** *(retour recette S1, acté le 2026-07-29,
+  précisé le même jour)* : à l'ouverture de session, **pop-up de synthèse des
+  alertes ouvertes pour TOUT utilisateur qui en a, quel que soit son persona**
+  (AG, AA, PD, PM, LO, GA, SA) — chacun voit les alertes que ses droits lui
+  donnent ; pour un profil multi-agences, agrégation **toutes agences
+  confondues**. Vision macro d'abord (compteurs par criticité, puis par agence
+  le cas échéant), puis navigation vers le détail pour **répondre et fermer**
+  sans perdre le fil. Exigences UX/UI : ne s'affiche que s'il existe des alertes
+  ouvertes ; jamais bloquante (Échap, clic extérieur) ; hiérarchie visuelle par
+  criticité (tokens du design system, pas de couleurs en dur) ; rappelable à
+  tout moment via un **badge permanent** dans l'en-tête (cloche avec compteur) ;
+  tri : critique → important → info, la plus ancienne en premier.
 - **Design system figé** *(acté le 2026-07-28)* : toutes les couleurs en
   variables CSS/tokens (aucune couleur en dur — contrainte [[Marque blanche]] S14),
   layout définitif de l'espace agence (sidebar, en-têtes, tableaux, états vides),

@@ -867,3 +867,23 @@ classifieur de permissions de l'agent — à relancer avec l'accord de l'humain*
 testable en local : `npm run dev`). Reste manuel (dashboard Supabase) : politique de mots de
 passe 12 caractères + protection fuites (confirmée désactivée par l'advisor), et pour le flux
 email en production : Site URL + redirect `/auth/confirm` dans Auth → URL Configuration.
+
+## [2026-07-29] sprint | Sprint 1 déployé en production — chaîne GitHub → Vercel opérationnelle
+Résolution du blocage de déploiement (le 403 de la veille). Diagnostic : le projet Vercel
+`gerimmo-v4` n'avait **jamais été relié à GitHub** (le déploiement S0 était « par fichiers »
+via l'intégration, qui a perdu le droit de déployer en production) ; de plus l'intégration
+Claude↔Vercel voit un périmètre d'équipe différent de celui du dashboard humain. Remise en
+ordre (humain au dashboard, agent au diagnostic et aux déclenchements) : (1) **Root
+Directory = `app`** (monorepo : la racine est le wiki, sans package.json) ; (2) **Connect
+Git Repository** → GERIMMO/GERIMMO_V4 ; (3) premier build : **500 sur toutes les routes** —
+les variables d'environnement du déploiement par fichiers n'avaient jamais été enregistrées
+au niveau projet → ajout de NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ;
+(4) redéclenchement par commit vide → **Sprint 1 en ligne, confirmé par l'humain**
+(lien « Mot de passe oublié ? » visible sur https://gerimmo-v4.vercel.app/connexion).
+Péripétie de vérification : le Security Checkpoint anti-bot de Vercel a fini par bloquer les
+sondages curl de l'agent (403 « challenge ») — vérification finale au navigateur. **Acquis
+durable : chaque push sur `main` déploie désormais automatiquement.** Restent avant la
+recette du flux email en prod : Site URL + redirect `/auth/confirm` (Supabase → URL
+Configuration), politique 12 caractères + protection fuites (Sign In/Providers), et
+décision sur la Deployment Protection du domaine d'équipe (`gerimmo-v4-gerimmo.vercel.app`,
+encore derrière SSO — le domaine public `gerimmo-v4.vercel.app` est la référence).

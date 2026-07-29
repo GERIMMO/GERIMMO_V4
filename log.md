@@ -917,3 +917,16 @@ confirmer par une reproduction horodatée, la fenêtre de logs Supabase (100 év
 ~20 min) n'ayant pas couvert le passage réussi. Limite d'observabilité notée : la réponse
 neutre (RM-A4.3) masque les échecs d'envoi côté interface ; tracer l'erreur dans
 `tech_log` est une amélioration candidate.
+
+## [2026-07-29] recette | GED : fichiers servis par l'app — fin des erreurs « InvalidJWT » en anglais
+Retour humain : rouvrir un lien de consultation après 60 s affichait le JSON brut de
+Supabase Storage (`InvalidJWT — "exp" claim timestamp check failed`), non personnalisable
+car servi depuis leur domaine. Refonte : nouvelle route `GET
+/agence/[orgId]/documents/[documentId]/fichier` qui revérifie les droits, trace l'accès
+(inchangé : sans trace, pas d'accès) et **sert le fichier elle-même** — l'URL visible est
+applicative et stable, un refresh régénère tout en interne, le lien signé ne sort plus
+jamais du serveur (RM-A4.10 renforcée). Chaque refresh est retracé (conforme RM-0b.7.5 :
+un accès = une trace). Erreurs désormais en pages françaises (403 accès refusé, 404
+introuvable, 410 purgé, 500 trace impossible, 502 stockage). `ouvrirDocument` supprimée,
+garde `verifierGerant` extraite dans `lib/ged-acces.ts`, boutons remplacés par des liens
+(`buttonVariants`, le Button Base UI n'a pas de `asChild`). Lint, build et 19 tests OK.

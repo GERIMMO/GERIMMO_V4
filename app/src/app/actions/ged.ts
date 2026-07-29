@@ -2,35 +2,15 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import {
   detecterMimeReel,
   EXTENSIONS,
   TAILLE_MAX_OCTETS,
-  type MimeAccepte,
 } from "@/lib/file-type";
-import { ROLES_GERANTS, TYPES_DEPOSABLES } from "@/lib/ged";
+import { TYPES_DEPOSABLES } from "@/lib/ged";
+import { verifierGerant } from "@/lib/ged-acces";
 
 export type EtatDepot = { erreur?: string; succes?: string };
-
-async function verifierGerant(orgId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null };
-  const { data: adhesion } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("account_id", user.id)
-    .eq("organization_id", orgId)
-    .eq("status", "active")
-    .maybeSingle();
-  if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
-    return { supabase, user: null };
-  }
-  return { supabase, user };
-}
 
 export async function deposerDocument(
   orgId: string,
@@ -136,51 +116,4 @@ export async function deposerDocument(
 
   revalidatePath(`/agence/${orgId}/documents`);
   return { succes: "Document déposé." };
-}
-
-// Consultation / téléchargement : trace d'accès (RM-0b.7.5, RM-12.5.8) puis
-// lien signé à expiration courte — jamais d'URL directe (RM-A4.10).
-export async function ouvrirDocument(
-  orgId: string,
-  documentId: string,
-  mode: "consultation" | "telechargement"
-): Promise<{ url?: string; erreur?: string }> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return { erreur: "Accès refusé." };
-
-  const { data: doc } = await supabase
-    .from("documents")
-    .select("storage_path, titre, mime_type, purged_at")
-    .eq("id", documentId)
-    .eq("organization_id", orgId)
-    .maybeSingle();
-  if (!doc) return { erreur: "Document introuvable." };
-  if (doc.purged_at || !doc.storage_path) {
-    return { erreur: "Ce document a été purgé (règle de conservation)." };
-  }
-
-  // Nom de téléchargement : le titre, complété de l'extension réelle
-  const extension = EXTENSIONS[doc.mime_type as MimeAccepte] ?? "bin";
-  const nomFichier = (doc.titre ?? "document").endsWith(`.${extension}`)
-    ? (doc.titre ?? "document")
-    : `${doc.titre ?? "document"}.${extension}`;
-
-  const { error: erreurTrace } = await supabase.rpc("log_document_access", {
-    doc: documentId,
-    acces: mode,
-  });
-  if (erreurTrace) {
-    // La trace est une exigence, pas une option : sans trace, pas d'accès
-    return { erreur: `Trace d'accès impossible : ${erreurTrace.message}` };
-  }
-
-  const { data: signe, error: erreurLien } = await supabase.storage
-    .from("documents")
-    .createSignedUrl(doc.storage_path, 60, {
-      download: mode === "telechargement" ? nomFichier : undefined,
-    });
-  if (erreurLien || !signe) {
-    return { erreur: `Lien impossible : ${erreurLien?.message}` };
-  }
-  return { url: signe.signedUrl };
 }

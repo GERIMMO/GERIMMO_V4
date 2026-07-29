@@ -98,6 +98,10 @@
   vérification fuites) → **sessions actives invalidées** + email de confirmation ;
   événement tracé (`tech_log`, 6 mois — matrice A2/A4). Même mécanique réutilisée
   par la première connexion (parcours 16.8) au sprint 11.
+- **SMTP personnalisé à configurer avant toute utilisation réelle** *(constat
+  recette du 2026-07-29)* : le service email intégré de Supabase est limité à
+  2 emails/heure et réservé aux tests ; brancher un fournisseur (Resend, Brevo…)
+  et **franciser les modèles d'emails** (par défaut en anglais).
 **Démo : un fichier déposé, relu, tracé ; une alerte créée, escaladée, purgée ;
 un mot de passe réinitialisé de bout en bout.**
 
@@ -118,6 +122,15 @@ un mot de passe réinitialisé de bout en bout.**
 - Équipements en **liste fermée** (prépare la grille d'EDL) ; critères de décence
   en alertes ; champs verrouillés quand le lot est loué.
 - Début de l'espace agence : navigation, tableau de bord, fiches bien/lot.
+- **Récap d'alertes à la connexion** *(retour recette S1, acté le 2026-07-29)* :
+  à l'ouverture de session, **pop-up de synthèse des alertes ouvertes, toutes
+  agences confondues et indépendante du profil** — vision macro d'abord (compteurs
+  par criticité puis par agence), puis navigation vers le détail pour **répondre
+  et fermer** sans perdre le fil. Exigences UX/UI : ne s'affiche que s'il existe
+  des alertes ouvertes ; jamais bloquante (Échap, clic extérieur) ; hiérarchie
+  visuelle par criticité (tokens du design system, pas de couleurs en dur) ;
+  rappelable à tout moment via un **badge permanent** dans l'en-tête (cloche avec
+  compteur) ; tri : critique → important → info, la plus ancienne en premier.
 - **Design system figé** *(acté le 2026-07-28)* : toutes les couleurs en
   variables CSS/tokens (aucune couleur en dur — contrainte [[Marque blanche]] S14),
   layout définitif de l'espace agence (sidebar, en-têtes, tableaux, états vides),

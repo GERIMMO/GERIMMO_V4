@@ -25,8 +25,18 @@ export function ActionsDocument({
         return;
       }
       if (resultat.url) {
-        if (mode === "consultation") window.open(resultat.url, "_blank");
-        else window.location.assign(resultat.url);
+        if (mode === "consultation") {
+          window.open(resultat.url, "_blank");
+        } else {
+          // Un <a> cliqué déclenche le téléchargement sans naviguer :
+          // window.location.assign() arrachait l'app Next.js au passage
+          const lien = document.createElement("a");
+          lien.href = resultat.url;
+          lien.rel = "noopener";
+          document.body.appendChild(lien);
+          lien.click();
+          lien.remove();
+        }
       }
     });
   }

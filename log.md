@@ -887,3 +887,33 @@ recette du flux email en prod : Site URL + redirect `/auth/confirm` (Supabase �
 Configuration), politique 12 caractères + protection fuites (Sign In/Providers), et
 décision sur la Deployment Protection du domaine d'équipe (`gerimmo-v4-gerimmo.vercel.app`,
 encore derrière SSO — le domaine public `gerimmo-v4.vercel.app` est la référence).
+
+## [2026-07-29] verification | Prérequis Supabase post-Sprint 1 confirmés
+L'humain a appliqué au dashboard les 3 réglages manuels restants ; vérification par
+l'agent : (1) **politique 12 caractères** — testée en réel sur `/auth/v1/signup` avec un
+mot de passe de 8 caractères → rejet 422 `weak_password`, motif `length` (« at least 12
+characters ») ; (2) **protection mots de passe fuités** — le même test retourne aussi le
+motif `pwned`, et l'advisor « Leaked Password Protection Disabled » a disparu de
+`get_advisors` ; (3) **Site URL + redirect `/auth/confirm`** — non vérifiable par API
+(config Auth → URL Configuration non exposée) : à confirmer par la recette du flux
+« mot de passe oublié » en production (l'email reçu doit pointer vers
+`https://gerimmo-v4.vercel.app/auth/confirm`). Advisors sécurité restants : uniquement
+les WARN assumés sur les fonctions `SECURITY DEFINER` (helpers RLS + journalisation).
+
+## [2026-07-29] recette | Retours Sprint 1 — téléchargement corrigé, pop-up d'alertes actée, flux email débogué
+Recette humaine des scénarios S1/S4/S8 et suites. **Scénario 1** : le téléchargement
+cassait la page (« This page couldn't load ») — cause : `window.location.assign()` vers le
+lien signé arrachait l'app Next.js ; corrigé par un `<a>` cliqué programmatiquement
+(`actions-document.tsx`). **Scénario 4** : nouveau besoin acté au Sprint 2 — pop-up de
+synthèse des alertes à la connexion, toutes agences confondues et indépendante du profil
+(vision macro → détail → répondre/fermer), badge cloche permanent ; spécification ajoutée
+au plan de livraison avec exigences UX/UI. **Scénario 8 (flux email)** : débogage complet —
+(1) l'adresse de démo `multi@gerimmo-demo.fr` est rejetée par Supabase (domaine fictif) ;
+(2) le service email intégré est limité à 2 emails/heure (429 constatés) → **SMTP
+personnalisé inscrit au plan comme prérequis de mise en service réelle**, avec
+francisation des modèles (par défaut en anglais) ; (3) le re-clic sur un lien de
+réinitialisation consommé semble ouvrir la session existante (bénin a priori) — à
+confirmer par une reproduction horodatée, la fenêtre de logs Supabase (100 événements,
+~20 min) n'ayant pas couvert le passage réussi. Limite d'observabilité notée : la réponse
+neutre (RM-A4.3) masque les échecs d'envoi côté interface ; tracer l'erreur dans
+`tech_log` est une amélioration candidate.

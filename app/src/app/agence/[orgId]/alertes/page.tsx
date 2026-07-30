@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { CRITICITES, ROLES_GERANTS, formaterDate, formaterDateHeure } from "@/lib/ged";
+import {
+  CRITICITES,
+  COULEURS_CRITICITE,
+  ROLES_GERANTS,
+  formaterDate,
+  formaterDateHeure,
+} from "@/lib/ged";
 import { escaladerAlerte, fermerAlerte } from "@/app/actions/alertes";
 import {
   Card,
@@ -14,12 +20,6 @@ import { Button } from "@/components/ui/button";
 import { FormulaireAlerte } from "./formulaire-alerte";
 
 export const metadata = { title: "Alertes — Gerimmo" };
-
-const COULEURS_CRITICITE: Record<string, string> = {
-  informative: "bg-muted text-muted-foreground",
-  normale: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
-  critique: "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-200",
-};
 
 export default async function PageAlertes(
   props: PageProps<"/agence/[orgId]/alertes">

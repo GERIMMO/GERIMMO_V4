@@ -60,8 +60,8 @@ export function FormulaireConnexion() {
           <p
             className={`mb-4 rounded-md p-3 text-sm ${
               message.ton === "succes"
-                ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
-                : "bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+                ? "bg-success-soft text-success-soft-foreground"
+                : "bg-warning-soft text-warning-soft-foreground"
             }`}
           >
             {message.texte}

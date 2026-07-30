@@ -73,7 +73,7 @@ export function FormulaireAlerte({
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (
-        <p className="text-sm text-emerald-700 dark:text-emerald-400">
+        <p className="text-sm text-success-soft-foreground">
           {etat.succes}
         </p>
       )}

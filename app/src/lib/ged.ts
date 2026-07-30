@@ -34,6 +34,20 @@ export const CRITICITES: Record<string, string> = {
   critique: "Critique",
 };
 
+// Tri d'affichage : critique → normale → informative (spécification pop-up S2)
+export const ORDRE_CRITICITE: Record<string, number> = {
+  critique: 0,
+  normale: 1,
+  informative: 2,
+};
+
+// Badges de criticité — uniquement des tokens du design system (marque blanche S14)
+export const COULEURS_CRITICITE: Record<string, string> = {
+  informative: "bg-muted text-muted-foreground",
+  normale: "bg-warning-soft text-warning-soft-foreground",
+  critique: "bg-destructive-soft text-destructive-soft-foreground",
+};
+
 export const ROLES_GERANTS = ["admin_agence", "agent", "proprietaire_direct"];
 
 export function formaterDate(iso: string | null | undefined): string {

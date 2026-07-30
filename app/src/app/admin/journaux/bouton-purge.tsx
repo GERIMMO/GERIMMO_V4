@@ -29,7 +29,7 @@ export function BoutonPurge({ fichiersEnAttente }: { fichiersEnAttente: number }
         <p className="w-full text-sm text-destructive">{resultat.erreur}</p>
       )}
       {resultat && !resultat.erreur && (
-        <p className="w-full text-sm text-emerald-700 dark:text-emerald-400">
+        <p className="w-full text-sm text-success-soft-foreground">
           Purge effectuée : {resultat.documents_purges} document(s) purgé(s),{" "}
           {resultat.fichiers_supprimes} fichier(s) supprimé(s) physiquement,
           journaux nettoyés (

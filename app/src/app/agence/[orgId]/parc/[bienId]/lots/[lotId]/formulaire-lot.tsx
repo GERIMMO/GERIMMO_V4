@@ -1,0 +1,127 @@
+"use client";
+
+import { useActionState } from "react";
+import { modifierLot, type EtatParc } from "@/app/actions/parc";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+export type LotFormulaire = {
+  id: string;
+  nom: string;
+  surface_m2: number | null;
+  surface_carrez: number | null;
+  pieces: number | null;
+  meuble: boolean;
+  etage: string | null;
+  description: string | null;
+  tantieme: number | null;
+};
+
+export function FormulaireLot({
+  orgId,
+  bienId,
+  lot,
+  verrouille,
+}: {
+  orgId: string;
+  bienId: string;
+  lot: LotFormulaire;
+  verrouille: boolean;
+}) {
+  const actionLiee = modifierLot.bind(null, orgId, bienId, lot.id);
+  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+
+  return (
+    <form action={action} className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="lot-nom">Nom du lot</Label>
+          <Input id="lot-nom" name="nom" required maxLength={120} defaultValue={lot.nom} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lot-etage">Étage</Label>
+          <Input id="lot-etage" name="etage" maxLength={40} defaultValue={lot.etage ?? ""} />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lot-surface-form">Surface (m²)</Label>
+          <Input
+            id="lot-surface-form"
+            name="surface_m2"
+            type="number"
+            step="0.01"
+            min="0.01"
+            defaultValue={lot.surface_m2 ?? ""}
+            disabled={verrouille}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lot-carrez">Surface Carrez (m²)</Label>
+          <Input
+            id="lot-carrez"
+            name="surface_carrez"
+            type="number"
+            step="0.01"
+            min="0.01"
+            defaultValue={lot.surface_carrez ?? ""}
+            disabled={verrouille}
+          />
+          <p className="text-xs text-muted-foreground">
+            Champ simple en V1 — sans date ni mesureur, pas de défense en cas de
+            contestation &gt; 5 % (réserve RM-0.5.7).
+          </p>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lot-pieces-form">Pièces</Label>
+          <Input
+            id="lot-pieces-form"
+            name="pieces"
+            type="number"
+            min={1}
+            defaultValue={lot.pieces ?? ""}
+            disabled={verrouille}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lot-tantieme">Tantième de copropriété</Label>
+          <Input
+            id="lot-tantieme"
+            name="tantieme"
+            type="number"
+            step="0.01"
+            min="0.01"
+            defaultValue={lot.tantieme ?? ""}
+          />
+        </div>
+        <div className="flex items-center gap-2 pt-2">
+          <input
+            id="lot-meuble"
+            name="meuble"
+            type="checkbox"
+            defaultChecked={lot.meuble}
+            className="size-4"
+          />
+          <Label htmlFor="lot-meuble">Meublé</Label>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="lot-description">Description</Label>
+        <textarea
+          id="lot-description"
+          name="description"
+          rows={3}
+          maxLength={2000}
+          defaultValue={lot.description ?? ""}
+          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+        />
+      </div>
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && (
+        <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
+      )}
+      <Button type="submit" disabled={enCours}>
+        {enCours ? "Enregistrement…" : "Enregistrer"}
+      </Button>
+    </form>
+  );
+}

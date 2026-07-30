@@ -22,7 +22,7 @@ export function FormulaireReinitialisation() {
       <CardContent className="pt-6">
         {etat.message ? (
           <div className="space-y-4">
-            <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+            <p className="rounded-md bg-success-soft p-3 text-sm text-success-soft-foreground">
               {etat.message}
             </p>
             <Button

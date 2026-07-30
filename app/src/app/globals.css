@@ -27,6 +27,14 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-soft-foreground: var(--destructive-soft-foreground);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -64,6 +72,16 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Tokens sémantiques d'état (design system S2 — marque blanche S14 :
+     aucune couleur en dur dans les composants, tout passe par ces variables) */
+  --destructive-soft: oklch(0.936 0.032 17.717);
+  --destructive-soft-foreground: oklch(0.396 0.141 25.723);
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-soft: oklch(0.962 0.059 95.617);
+  --warning-soft-foreground: oklch(0.414 0.112 45.904);
+  --success: oklch(0.723 0.219 149.579);
+  --success-soft: oklch(0.962 0.044 156.743);
+  --success-soft-foreground: oklch(0.393 0.095 152.535);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -99,6 +117,14 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --destructive-soft: oklch(0.258 0.092 26.042);
+  --destructive-soft-foreground: oklch(0.808 0.114 19.571);
+  --warning: oklch(0.828 0.189 84.429);
+  --warning-soft: oklch(0.279 0.077 45.635);
+  --warning-soft-foreground: oklch(0.924 0.12 95.746);
+  --success: oklch(0.792 0.209 151.711);
+  --success-soft: oklch(0.266 0.065 152.934);
+  --success-soft-foreground: oklch(0.871 0.15 154.449);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);

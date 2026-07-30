@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import { ClocheAlertes } from "@/components/cloche-alertes";
+import { chargerSyntheseAlertes } from "@/lib/alertes";
 import {
   Card,
   CardDescription,
@@ -29,7 +31,9 @@ type Adhesion = {
 
 function cheminEspace(a: Adhesion): string | null {
   if (a.role === "super_admin") return "/admin";
-  if (a.role === "admin_agence" || a.role === "agent")
+  // Le propriétaire direct partage les écrans de l'espace agence dès le S2
+  // (parcours communs du plan) ; ses écrans propres arrivent au S9
+  if (["admin_agence", "agent", "proprietaire_direct"].includes(a.role))
     return a.organization ? `/agence/${a.organization.id}` : null;
   return null; // espaces des sprints suivants
 }
@@ -55,15 +59,21 @@ export default async function PageEspaces() {
     if (chemin) redirect(chemin);
   }
 
+  // Pop-up de synthèse à la connexion : toutes agences confondues (RLS)
+  const alertes = await chargerSyntheseAlertes(supabase);
+
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-6">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Mes espaces</h1>
-        <form action={seDeconnecter}>
-          <Button variant="outline" size="sm" type="submit">
-            Se déconnecter
-          </Button>
-        </form>
+        <div className="flex items-center gap-2">
+          <ClocheAlertes alertes={alertes} />
+          <form action={seDeconnecter}>
+            <Button variant="outline" size="sm" type="submit">
+              Se déconnecter
+            </Button>
+          </form>
+        </div>
       </div>
 
       {adhesions.length === 0 && (

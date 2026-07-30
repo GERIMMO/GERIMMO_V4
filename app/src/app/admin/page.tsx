@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import { ClocheAlertes } from "@/components/cloche-alertes";
+import { chargerSyntheseAlertes } from "@/lib/alertes";
 import {
   Card,
   CardDescription,
@@ -26,10 +28,11 @@ export default async function PageAdmin() {
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  const { data: organisations } = await supabase
-    .from("organizations")
-    .select("id, name, status")
-    .order("name");
+  // Pop-up de synthèse à la connexion : le SA voit toutes les agences
+  const [{ data: organisations }, alertes] = await Promise.all([
+    supabase.from("organizations").select("id, name, status").order("name"),
+    chargerSyntheseAlertes(supabase),
+  ]);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-6">
@@ -39,6 +42,7 @@ export default async function PageAdmin() {
           <h1 className="text-2xl font-semibold">Agences</h1>
         </div>
         <div className="flex gap-2">
+          <ClocheAlertes alertes={alertes} modeAdmin />
           <Button
             variant="outline"
             size="sm"

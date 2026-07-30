@@ -60,14 +60,22 @@ Personas : Administrateur d'agence (admin.alpha@) puis Agent immobilier (agent.a
 1. admin.alpha@ → Parc → carte « Équipements (liste fermée) » → ajouter « Réfrigérateur » puis « Lave-linge » → ils apparaissent en pastilles ; redéposer « Réfrigérateur » → refus : « Cet équipement existe déjà. »
 2. agent.alpha@ → même carte → **pas de formulaire d'ajout** (le catalogue est réservé à l'admin) ; fiche lot → cocher des équipements du catalogue → enregistrés, la sélection persiste au rechargement.
 
-## Scénario 8 — Verrouillage du lot loué + machine à états !
+## Scénario 8 (version complète) — Machine à états et verrouillages du lot loué !
 
-Personas : Agent immobilier (agent.alpha@) puis Administrateur d'agence (admin.alpha@)
-1. Sur un lot disponible → « Marquer loué » (raccourci de démo — le bail réel arrive au S4).
-2. Formulaire du lot → surface/Carrez/pièces sont **désactivées** ; renommer le lot ou changer sa description → accepté (seuls les champs contractuels sont verrouillés).
-3. Fiche bien → modifier l'**adresse** → refus : « Un lot de ce bien est loué : adresse verrouillée (avenant au bail requis) » ; renommer la référence interne → accepté.
-4. Lot loué → « Passer en préavis » → « Sortie effective (disponible) » → transitions acceptées ; puis « Archiver ».
-5. agent.alpha@ → « Réactiver (admin agence) » → refus : réservé à l'admin ; admin.alpha@ → « Réactiver » → le lot revient en **Brouillon**.
+Personas : Agent immobilier (agent.alpha@, étapes 1–11) puis Administrateur d'agence (admin.alpha@, étapes 12–13)
+1. Préparer un lot **Disponible** (détention 100 %, DPE et ERP valides — sortie du scénario 4).
+2. Vérifier les transitions proposées depuis Disponible : « Marquer loué », « Repasser en brouillon », « Archiver » — et **aucune autre** (les boutons ne proposent que les transitions légales de la machine à états).
+3. « Repasser en brouillon » puis « Passer en disponible » → aller-retour accepté (les blocages sont revérifiés au retour).
+4. « Marquer loué » *(raccourci de démo — le bail réel arrive au S4)* → badge **Loué** sur la fiche, la liste du parc et le tableau de bord.
+5. Champs verrouillés, un à un : dans le formulaire du lot, surface, surface Carrez et pièces sont **désactivées** ; toute tentative de modification (même en réactivant les champs via les outils du navigateur) → refus en base : « Lot loué : surface et pièces sont verrouillées (avenant au bail requis) ».
+6. Champs restant modifiables sur un lot loué : nom du lot, étage, description, tantième, meublé → acceptés.
+7. Fiche bien : modifier l'**adresse** (voie, complément, code postal ou ville) → refus : « Un lot de ce bien est loué : adresse verrouillée (avenant au bail requis) » ; renommer la référence interne ou changer l'année de construction → accepté.
+8. « Découper en lots » pendant que le lot est loué → refus : « Lot loué : résilier, archiver puis recréer (RM-0.3.8) ».
+9. « Passer en préavis » → badge **Préavis** ; refaire l'étape 5 → les champs restent verrouillés en préavis.
+10. Depuis Préavis, tester les **deux sorties** : « Préavis annulé (re-loué) » → retour **Loué** ; repasser en préavis puis « Sortie effective (disponible) » → **Disponible**.
+11. « Archiver » → badge **Archivé**, le lot disparaît des pastilles de la liste du parc ; « Réactiver (admin agence) » avec agent.alpha@ → refus : « Réactivation réservée à l'admin de l'agence ».
+12. admin.alpha@ → « Réactiver » → retour **Brouillon** ; repasser en disponible → accepté seulement si détention/diagnostics/clé sont toujours au vert (blocages revérifiés).
+13. Décence : sur un lot **non loué**, mettre la surface à 8 m² → bandeau d'alerte « Surface habitable < 9 m² : sous le seuil de décence » (non bloquant) ; à 9 m² → le bandeau disparaît.
 
 ## Scénario 9 — Isolation entre agences, étendue au parc !
 
@@ -75,9 +83,75 @@ Persona : Administrateur d'agence Beta (admin.beta@)
 1. Se connecter → Parc de Beta : **aucun** bien d'Alpha visible, tableau de bord à zéro.
 2. Coller l'URL directe d'une fiche bien d'Alpha (`/agence/<id-alpha>/parc/<id-bien>`) → redirection ou page introuvable — jamais les données d'Alpha.
 
-## Rappel — non-régression Sprint 1 (à re-dérouler rapidement)
+---
+
+# Tests de régression — Sprint 0 et Sprint 1
+
+> À re-dérouler à chaque fin de sprint. Complément humain des tests automatisés
+> (isolation RM-A1.7 et « RLS actif partout » tournent en CI à chaque push).
+
+## Régression R1 — Connexion et accès protégé (S0) !
+
+Persona : visiteur non connecté puis Administrateur d'agence (admin.alpha@)
+1. Ouvrir `/espaces` ou `/agence/…` sans être connecté → redirection vers `/connexion`.
+2. Se connecter avec un mauvais mot de passe → message d'erreur neutre, sans révéler si le compte existe.
+3. Se connecter avec admin.alpha@ → arrivée directe sur l'espace agence Alpha (adhésion unique, pas de sélecteur).
+
+## Régression R2 — Isolation Alpha ↔ Beta (S0, RM-A1.7) !
+
+Persona : Administrateur d'agence (admin.alpha@) puis (admin.beta@)
+1. admin.alpha@ ne voit que les données d'Alpha : documents, alertes, parc, tableau de bord.
+2. Coller l'URL directe d'une ressource de Beta (document, bien, fichier) → introuvable ou redirection, jamais les données.
+3. Refaire 1 et 2 dans l'autre sens avec admin.beta@ → même résultat.
+
+## Régression R3 — Sélecteur d'espaces (S0) !
+
+Persona : compte multi-agences (multi@)
+1. Se connecter → page « Mes espaces » listant les deux adhésions → choisir chacune → le bon espace s'ouvre à chaque fois.
+
+## Régression R4 — Garde de rôle et console SA journalisée (S0, RM-A1.11) !
+
+Persona : Agent immobilier (agent.alpha@) puis Super Admin (superadmin@)
+1. agent.alpha@ → ouvrir `/admin` → redirection vers `/espaces` (la garde protège la navigation, la RLS protège les données).
+2. superadmin@ → `/admin` → accès OK ; consulter une agence → la traversée est journalisée (visible dans Journaux).
+
+## Régression R5 — Expiration de session (S0, RM-A4.5) !
+
+Persona : Super Admin (superadmin@)
+1. Rester inactif plus de 30 minutes → à la prochaine action, retour à `/connexion` ; se reconnecter → session propre.
+
+## Régression R6 — GED : dépôt des documents (S1) !
 
 Persona : Agent immobilier (agent.alpha@)
-1. GED : déposer un PDF, le consulter (lien stable, retracé), le télécharger sans casser la page.
-2. Alertes : créer, escalader, fermer par une action.
-3. Mot de passe oublié : lien email → nouveau mot de passe conforme (12 caractères).
+1. Espace agence → Documents → déposer un PDF, type « Courrier », titre libre, rattaché à une personne → le document apparaît dans la liste avec type, date, taille et rattachement.
+2. Renommer un fichier .txt ou .exe en .pdf et le déposer → refusé : « Format refusé : … contenu réel vérifié » (l'extension ne fait pas foi).
+3. Redéposer exactement le même PDF qu'en 1 → refusé : doublon détecté par empreinte, avec le titre du document existant.
+
+## Régression R7 — GED : consultation tracée, lien stable, téléchargement (S1) !
+
+Persona : Agent immobilier (agent.alpha@) puis Super Admin (superadmin@)
+1. « Consulter » un document → il s'ouvre sur une URL applicative stable ; attendre plus de 60 s puis rafraîchir → le fichier se réaffiche (plus jamais le JSON « InvalidJWT » de Supabase).
+2. « Télécharger » → le fichier descend **sans casser la page** (correctif recette S1).
+3. superadmin@ → Journaux → journal d'accès aux pièces : chaque consultation et chaque rafraîchissement = une trace (« sans trace, pas d'accès »).
+
+## Régression R8 — Alertes : créer, escalader, fermer (S1) !
+
+Persona : Administrateur d'agence (admin.alpha@)
+1. Créer une alerte « normale » avec échéance → listée avec badge de criticité ; elle remonte dans la pop-up et la cloche (S2).
+2. L'escalader vers un autre gérant → l'alerte **se déplace** (jamais dupliquée), l'historique d'escalade est conservé ; une alerte « informative » ne propose pas d'escalade.
+3. La fermer → l'« action effectuée » est obligatoire ; l'alerte passe fermée avec l'action enregistrée.
+
+## Régression R9 — Rétention et purge (S1) !
+
+Persona : Agent immobilier (agent.alpha@) puis Super Admin (superadmin@)
+1. agent : déposer un « Document de test (purge immédiate) ».
+2. superadmin@ → Journaux → lancer la purge → compte rendu : le document de test est purgé (fichier supprimé physiquement), les autres documents intacts, journaux nettoyés.
+3. agent : tenter de consulter le document purgé → page française « 410 — document purgé ».
+
+## Régression R10 — Mot de passe oublié (S1, RM-A4.3) !
+
+Persona : compte de test avec une adresse email réelle
+1. `/connexion` → « Mot de passe oublié ? » → réponse **neutre identique** que le compte existe ou non (pas d'énumération).
+2. Ouvrir le lien reçu (usage unique, 1 h) → saisir un mot de passe de 8 caractères → refusé (politique : 12 caractères minimum) ; en saisir un de 12+ → accepté, les sessions actives sont invalidées, reconnexion demandée.
+3. Re-cliquer le lien déjà consommé → aucune session ne doit s'ouvrir (point noté au S1 : si une session apparaît, relever l'heure exacte pour vérification en logs).
+> Limite connue : service email Supabase limité à 2 emails/heure tant que Resend n'est pas branché (prérequis de mise en service).

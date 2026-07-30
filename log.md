@@ -967,3 +967,11 @@ absents du FormData non écrasés (lot loué renommable), date de clôture en Eu
 (3) vérification — advisors inchangés, validation SQL en transaction annulée : 26 contrôles
 OK. **Tests** : 31 locaux (unitaires parc + non-régression S1 conservée) + suite
 d'intégration `sprint2-parc.test.ts` (CI, secret `SUPABASE_DB_URL`). Lint, types, build OK.
+
+## [2026-07-30] sprint | Recette Sprint 2 remise — 9 scénarios au format « persona + étapes → attendu »
+Format de scénarios acté avec l''humain (titre, persona avec compte de démo, étapes
+numérotées « action → résultat attendu », refus avec message exact). Livrable :
+[[Recette Sprint 2 - scenarios]] (`livrables/`) — pop-up d''alertes (tous personas,
+multi-agences, console SA), bien → lot unique, démo « bail bloqué par un DPE expiré »,
+quote-parts, découpage + clé, équipements, verrouillage du lot loué, machine à états,
+isolation, rappel non-régression S1.

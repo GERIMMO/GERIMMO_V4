@@ -85,70 +85,46 @@ Persona : Administrateur d'agence Beta (admin.beta@)
 
 ---
 
-# Tests de régression — Sprint 0 et Sprint 1
+# Tests de régression — cœur des processus S0/S1
 
-> À re-dérouler à chaque fin de sprint. Complément humain des tests automatisés
-> (isolation RM-A1.7 et « RLS actif partout » tournent en CI à chaque push).
+> **Principe (acté le 2026-07-30)** : la régression ne reteste que le **cœur des
+> processus des sprints passés**. Exclus : ce qui est exercé de fait en testant
+> (connexion, navigation, sélecteur d'espaces) et ce que les scénarios du sprint
+> en cours couvrent déjà (ex. isolation du parc = scénario 9, alertes en pop-up =
+> scénarios 1–2). L'isolation RM-A1.7 et « RLS actif partout » tournent en CI à
+> chaque push.
 
-## Régression R1 — Connexion et accès protégé (S0) !
-
-Persona : visiteur non connecté puis Administrateur d'agence (admin.alpha@)
-1. Ouvrir `/espaces` ou `/agence/…` sans être connecté → redirection vers `/connexion`.
-2. Se connecter avec un mauvais mot de passe → message d'erreur neutre, sans révéler si le compte existe.
-3. Se connecter avec admin.alpha@ → arrivée directe sur l'espace agence Alpha (adhésion unique, pas de sélecteur).
-
-## Régression R2 — Isolation Alpha ↔ Beta (S0, RM-A1.7) !
-
-Persona : Administrateur d'agence (admin.alpha@) puis (admin.beta@)
-1. admin.alpha@ ne voit que les données d'Alpha : documents, alertes, parc, tableau de bord.
-2. Coller l'URL directe d'une ressource de Beta (document, bien, fichier) → introuvable ou redirection, jamais les données.
-3. Refaire 1 et 2 dans l'autre sens avec admin.beta@ → même résultat.
-
-## Régression R3 — Sélecteur d'espaces (S0) !
-
-Persona : compte multi-agences (multi@)
-1. Se connecter → page « Mes espaces » listant les deux adhésions → choisir chacune → le bon espace s'ouvre à chaque fois.
-
-## Régression R4 — Garde de rôle et console SA journalisée (S0, RM-A1.11) !
-
-Persona : Agent immobilier (agent.alpha@) puis Super Admin (superadmin@)
-1. agent.alpha@ → ouvrir `/admin` → redirection vers `/espaces` (la garde protège la navigation, la RLS protège les données).
-2. superadmin@ → `/admin` → accès OK ; consulter une agence → la traversée est journalisée (visible dans Journaux).
-
-## Régression R5 — Expiration de session (S0, RM-A4.5) !
-
-Persona : Super Admin (superadmin@)
-1. Rester inactif plus de 30 minutes → à la prochaine action, retour à `/connexion` ; se reconnecter → session propre.
-
-## Régression R6 — GED : dépôt des documents (S1) !
+## Régression R1 — GED : dépôt des documents (S1) !
 
 Persona : Agent immobilier (agent.alpha@)
 1. Espace agence → Documents → déposer un PDF, type « Courrier », titre libre, rattaché à une personne → le document apparaît dans la liste avec type, date, taille et rattachement.
 2. Renommer un fichier .txt ou .exe en .pdf et le déposer → refusé : « Format refusé : … contenu réel vérifié » (l'extension ne fait pas foi).
 3. Redéposer exactement le même PDF qu'en 1 → refusé : doublon détecté par empreinte, avec le titre du document existant.
 
-## Régression R7 — GED : consultation tracée, lien stable, téléchargement (S1) !
+## Régression R2 — GED : consultation tracée, lien stable, téléchargement (S1) !
 
 Persona : Agent immobilier (agent.alpha@) puis Super Admin (superadmin@)
 1. « Consulter » un document → il s'ouvre sur une URL applicative stable ; attendre plus de 60 s puis rafraîchir → le fichier se réaffiche (plus jamais le JSON « InvalidJWT » de Supabase).
 2. « Télécharger » → le fichier descend **sans casser la page** (correctif recette S1).
 3. superadmin@ → Journaux → journal d'accès aux pièces : chaque consultation et chaque rafraîchissement = une trace (« sans trace, pas d'accès »).
 
-## Régression R8 — Alertes : créer, escalader, fermer (S1) !
+## Régression R3 — Alertes : escalade et fermeture (S1) !
+
+> La création et l'affichage sont déjà exercés par les scénarios 1–2 du sprint ;
+> on ne reteste ici que la mécanique non touchée par le S2.
 
 Persona : Administrateur d'agence (admin.alpha@)
-1. Créer une alerte « normale » avec échéance → listée avec badge de criticité ; elle remonte dans la pop-up et la cloche (S2).
-2. L'escalader vers un autre gérant → l'alerte **se déplace** (jamais dupliquée), l'historique d'escalade est conservé ; une alerte « informative » ne propose pas d'escalade.
-3. La fermer → l'« action effectuée » est obligatoire ; l'alerte passe fermée avec l'action enregistrée.
+1. Escalader une alerte vers un autre gérant → l'alerte **se déplace** (jamais dupliquée), l'historique d'escalade est conservé ; une alerte « informative » ne propose pas d'escalade.
+2. La fermer → l'« action effectuée » est obligatoire ; l'alerte passe fermée avec l'action enregistrée.
 
-## Régression R9 — Rétention et purge (S1) !
+## Régression R4 — Rétention et purge (S1) !
 
 Persona : Agent immobilier (agent.alpha@) puis Super Admin (superadmin@)
 1. agent : déposer un « Document de test (purge immédiate) ».
 2. superadmin@ → Journaux → lancer la purge → compte rendu : le document de test est purgé (fichier supprimé physiquement), les autres documents intacts, journaux nettoyés.
 3. agent : tenter de consulter le document purgé → page française « 410 — document purgé ».
 
-## Régression R10 — Mot de passe oublié (S1, RM-A4.3) !
+## Régression R5 — Mot de passe oublié (S1, RM-A4.3) !
 
 Persona : compte de test avec une adresse email réelle
 1. `/connexion` → « Mot de passe oublié ? » → réponse **neutre identique** que le compte existe ou non (pas d'énumération).

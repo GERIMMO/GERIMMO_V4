@@ -1,11 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { creerBien, modifierBien, type EtatParc } from "@/app/actions/parc";
 import { TYPES_BIEN } from "@/lib/parc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+type SuggestionAdresse = {
+  label: string;
+  name: string;
+  postcode: string;
+  city: string;
+};
 
 export type BienFormulaire = {
   id: string;
@@ -31,6 +38,48 @@ export function FormulaireBien({
     ? modifierBien.bind(null, orgId, bien.id)
     : creerBien.bind(null, orgId);
   const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+
+  // Autocomplétion d'adresse via la Base Adresse Nationale (retour recette S2) :
+  // la sélection remplit la voie, le code postal et la ville
+  const [adresse, setAdresse] = useState(bien?.address_line1 ?? "");
+  const [codePostal, setCodePostal] = useState(bien?.postal_code ?? "");
+  const [ville, setVille] = useState(bien?.city ?? "");
+  const [suggestions, setSuggestions] = useState<SuggestionAdresse[]>([]);
+  const minuterieRecherche = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (minuterieRecherche.current) clearTimeout(minuterieRecherche.current);
+  }, []);
+
+  const rechercherAdresse = (saisie: string) => {
+    setAdresse(saisie);
+    if (minuterieRecherche.current) clearTimeout(minuterieRecherche.current);
+    if (saisie.trim().length < 4) {
+      setSuggestions([]);
+      return;
+    }
+    minuterieRecherche.current = setTimeout(async () => {
+      try {
+        const reponse = await fetch(
+          `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(saisie)}&limit=5&autocomplete=1`
+        );
+        if (!reponse.ok) return;
+        const donnees = (await reponse.json()) as {
+          features?: { properties: SuggestionAdresse }[];
+        };
+        setSuggestions((donnees.features ?? []).map((f) => f.properties));
+      } catch {
+        // Hors ligne ou API indisponible : la saisie manuelle reste possible
+      }
+    }, 300);
+  };
+
+  const choisirAdresse = (s: SuggestionAdresse) => {
+    setAdresse(s.name);
+    setCodePostal(s.postcode);
+    setVille(s.city);
+    setSuggestions([]);
+  };
 
   return (
     <form action={action} className="space-y-4">
@@ -68,16 +117,33 @@ export function FormulaireBien({
         </div>
       </div>
 
-      <div className="space-y-2">
+      <div className="relative space-y-2">
         <Label htmlFor="bien-adresse1">Adresse</Label>
         <Input
           id="bien-adresse1"
           name="address_line1"
           required
           maxLength={200}
-          defaultValue={bien?.address_line1}
-          placeholder="N° et voie"
+          value={adresse}
+          onChange={(e) => rechercherAdresse(e.target.value)}
+          placeholder="Taper le n° et la voie — suggestions automatiques"
+          autoComplete="off"
         />
+        {suggestions.length > 0 && (
+          <ul className="absolute z-10 w-full rounded-md border border-border bg-background shadow-md">
+            {suggestions.map((s) => (
+              <li key={s.label}>
+                <button
+                  type="button"
+                  onClick={() => choisirAdresse(s)}
+                  className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent"
+                >
+                  {s.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
         <Input
           name="address_line2"
           maxLength={200}
@@ -93,7 +159,8 @@ export function FormulaireBien({
             name="postal_code"
             required
             maxLength={12}
-            defaultValue={bien?.postal_code}
+            value={codePostal}
+            onChange={(e) => setCodePostal(e.target.value)}
           />
         </div>
         <div className="space-y-2">
@@ -103,7 +170,8 @@ export function FormulaireBien({
             name="city"
             required
             maxLength={120}
-            defaultValue={bien?.city}
+            value={ville}
+            onChange={(e) => setVille(e.target.value)}
           />
         </div>
       </div>

@@ -4,6 +4,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import {
   TYPES_BIEN,
   TYPES_DIAGNOSTIC,
+  TYPES_NON_DECOUPABLES,
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   COULEURS_STATUT_DIAGNOSTIC,
@@ -49,7 +50,7 @@ export default async function PageBien(
         .order("created_at"),
       supabase
         .from("diagnostics")
-        .select("id, type, date_realisation, date_expiration, diagnostiqueur")
+        .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id")
         .eq("bien_id", bienId)
         .is("archived_at", null)
         .order("type"),
@@ -147,6 +148,15 @@ export default async function PageBien(
                           <span className="text-muted-foreground"> — {d.diagnostiqueur}</span>
                         )}
                       </span>
+                      {d.document_id && (
+                        <a
+                          href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
+                          target="_blank"
+                          className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                        >
+                          Rapport
+                        </a>
+                      )}
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {d.date_expiration
                           ? `expire le ${formaterDate(d.date_expiration)}`
@@ -177,18 +187,31 @@ export default async function PageBien(
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Découper en lots</CardTitle>
-            <CardDescription>
-              Les nouveaux lots héritent des propriétaires du lot d&apos;origine
-              (RM-0.3.6) ; un lot loué ne se redécoupe pas (RM-0.3.8).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormulaireDecoupage orgId={orgId} bienId={bienId} />
-          </CardContent>
-        </Card>
+        {!(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Découper en lots</CardTitle>
+              <CardDescription>
+                Les nouveaux lots héritent des propriétaires du lot d&apos;origine
+                (RM-0.3.6) ; un lot loué ne se redécoupe pas (RM-0.3.8).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormulaireDecoupage orgId={orgId} bienId={bienId} />
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Découpage</CardTitle>
+              <CardDescription>
+                Un bien de type « {TYPES_BIEN[bien.type]} » est déjà l&apos;unité
+                locative : il ne se découpe pas en lots. Pour un immeuble entier,
+                créer un bien de type maison, local ou autre.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
       </div>
 
       {multiLots && (

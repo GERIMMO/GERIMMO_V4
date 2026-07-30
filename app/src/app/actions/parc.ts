@@ -3,7 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
-import { TYPES_BIEN, TYPES_DIAGNOSTIC, ETATS_LOT } from "@/lib/parc";
+import { deposerFichierGed } from "@/lib/ged-depot";
+import {
+  TYPES_BIEN,
+  TYPES_DIAGNOSTIC,
+  TYPES_NON_DECOUPABLES,
+  ETATS_LOT,
+} from "@/lib/parc";
 
 export type EtatParc = { erreur?: string; succes?: string };
 
@@ -166,6 +172,20 @@ export async function decouperBien(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  // Un appartement ou un parking ne se découpe pas (retour recette S2)
+  const { data: bien } = await supabase
+    .from("biens")
+    .select("type")
+    .eq("id", bienId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!bien) return { erreur: "Bien introuvable." };
+  if ((TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type)) {
+    return {
+      erreur: `Un bien de type « ${TYPES_BIEN[bien.type]} » ne se découpe pas en lots.`,
+    };
+  }
+
   const noms = formData.getAll("lot_nom").map((n) => String(n).trim());
   const surfaces = formData.getAll("lot_surface").map((s) => String(s).trim());
   const lots = noms
@@ -284,6 +304,26 @@ export async function deposerDiagnostic(
   if (auLot && !lotId) {
     return { erreur: "Ce diagnostic se rattache à un lot : le déposer depuis la fiche lot." };
   }
+
+  // PDF du rapport (retour recette S2) : déposé dans la GED (type réel vérifié,
+  // anti-doublon, accès tracés) et lié au diagnostic
+  let documentId: string | null = null;
+  const fichier = formData.get("fichier");
+  if (fichier instanceof File && fichier.size > 0) {
+    const depot = await deposerFichierGed(
+      supabase,
+      user,
+      orgId,
+      fichier,
+      "diagnostic",
+      `${referentiel.libelle} — ${realisation}`
+    );
+    if (depot.erreur || !depot.documentId) {
+      return { erreur: depot.erreur ?? "Échec du dépôt du fichier." };
+    }
+    documentId = depot.documentId;
+  }
+
   const { error } = await supabase.from("diagnostics").insert({
     organization_id: orgId,
     bien_id: auLot ? null : bienId,
@@ -292,12 +332,14 @@ export async function deposerDiagnostic(
     date_realisation: realisation,
     date_expiration: expiration || null,
     diagnostiqueur: diagnostiqueur || null,
+    document_id: documentId,
   });
   if (error) return { erreur: error.message };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   if (lotId) revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}/documents`);
   return { succes: `${referentiel.libelle} déposé.` };
 }
 

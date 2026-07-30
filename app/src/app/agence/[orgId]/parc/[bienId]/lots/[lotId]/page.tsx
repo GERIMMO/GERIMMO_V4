@@ -61,12 +61,16 @@ export default async function PageLot(
       .maybeSingle(),
     supabase
       .from("detentions")
-      .select("id, quote_part, date_debut, date_fin, person:persons(nom, prenom)")
+      // !detentions_person_id_fkey : deux relations lient detentions à persons
+      // depuis les FK composites (revue 2) — jointure explicite obligatoire
+      .select(
+        "id, quote_part, date_debut, date_fin, person:persons!detentions_person_id_fkey(nom, prenom)"
+      )
       .eq("lot_id", lotId)
       .order("date_debut", { ascending: false }),
     supabase
       .from("diagnostics")
-      .select("id, type, date_realisation, date_expiration, diagnostiqueur")
+      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id")
       .eq("lot_id", lotId)
       .is("archived_at", null)
       .order("type"),
@@ -237,6 +241,15 @@ export default async function PageLot(
                           <span className="text-muted-foreground"> — {d.diagnostiqueur}</span>
                         )}
                       </span>
+                      {d.document_id && (
+                        <a
+                          href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
+                          target="_blank"
+                          className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                        >
+                          Rapport
+                        </a>
+                      )}
                       <span className="shrink-0 text-xs text-muted-foreground">
                         {d.date_expiration
                           ? `expire le ${formaterDate(d.date_expiration)}`

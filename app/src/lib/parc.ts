@@ -14,6 +14,10 @@ export const TYPES_BIEN: Record<string, string> = {
 // Types pour lesquels le DPE est obligatoire (habitation, RM-0.7.4)
 export const TYPES_HABITATION = ["appartement", "maison"] as const;
 
+// Types qui ne se découpent pas en lots (retour recette S2 : un appartement
+// EST déjà l'unité locative ; une place de parking ne se divise pas)
+export const TYPES_NON_DECOUPABLES = ["appartement", "parking"] as const;
+
 export const ETATS_LOT: Record<string, string> = {
   brouillon: "Brouillon",
   disponible: "Disponible",

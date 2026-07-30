@@ -29,7 +29,11 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   const [{ data: biens }, { data: equipements }] = await Promise.all([
     supabase
       .from("biens")
-      .select("id, nom, type, address_line1, postal_code, city, lots(id, nom, etat, surface_m2)")
+      // !lots_bien_id_fkey : depuis les FK composites (revue 2), deux relations
+      // lient lots à biens — sans ce choix explicite, PostgREST refuse la jointure
+      .select(
+        "id, nom, type, address_line1, postal_code, city, lots!lots_bien_id_fkey(id, nom, etat, surface_m2)"
+      )
       .eq("organization_id", orgId)
       .order("nom"),
     supabase

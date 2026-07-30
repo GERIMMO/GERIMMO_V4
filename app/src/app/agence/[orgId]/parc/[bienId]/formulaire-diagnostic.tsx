@@ -31,6 +31,29 @@ export function FormulaireDiagnostic({
   const [realisation, setRealisation] = useState("");
   const [expiration, setExpiration] = useState("");
 
+  // Pré-remplissage de l'expiration : date de réalisation + validité du type
+  const majExpiration = (leType: string, laRealisation: string) => {
+    const validite = TYPES_DIAGNOSTIC[leType]?.validite_mois;
+    if (!laRealisation || validite === null || validite === undefined) return;
+    const d = new Date(laRealisation);
+    d.setMonth(d.getMonth() + validite);
+    setExpiration(d.toISOString().slice(0, 10));
+  };
+
+  // Date de réalisation pré-remplie à aujourd'hui (retour recette S2) —
+  // posée après l'hydratation pour rester cohérente avec le rendu serveur
+  useEffect(() => {
+    const minuterie = setTimeout(() => {
+      const aujourdhui = new Date().toLocaleDateString("en-CA", {
+        timeZone: "Europe/Paris",
+      });
+      setRealisation((r) => r || aujourdhui);
+      majExpiration(type, aujourdhui);
+    }, 0);
+    return () => clearTimeout(minuterie);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!etat.succes) return;
     formulaire.current?.reset();
@@ -40,15 +63,6 @@ export function FormulaireDiagnostic({
     }, 0);
     return () => clearTimeout(minuterie);
   }, [etat]);
-
-  // Pré-remplissage de l'expiration : date de réalisation + validité du type
-  const majExpiration = (leType: string, laRealisation: string) => {
-    const validite = TYPES_DIAGNOSTIC[leType]?.validite_mois;
-    if (!laRealisation || validite === null || validite === undefined) return;
-    const d = new Date(laRealisation);
-    d.setMonth(d.getMonth() + validite);
-    setExpiration(d.toISOString().slice(0, 10));
-  };
 
   return (
     <form ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
@@ -110,6 +124,21 @@ export function FormulaireDiagnostic({
           />
           <p className="text-xs text-muted-foreground">
             Laisser vide pour une validité illimitée (RM-0.6.4).
+          </p>
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor={`diag-fichier-${niveau}`}>
+            Rapport du diagnostiqueur (facultatif)
+          </Label>
+          <Input
+            id={`diag-fichier-${niveau}`}
+            name="fichier"
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+          />
+          <p className="text-xs text-muted-foreground">
+            PDF, JPEG ou PNG (10 Mo max) — déposé dans la GED et lié au
+            diagnostic, chaque consultation tracée.
           </p>
         </div>
       </div>

@@ -23,6 +23,15 @@
     « **RLS actif partout** ».
   - **Humain** : tests **fonctionnels** de recette — les **user stories du
     référentiel avec leurs critères d'acceptation** servent de scénarios.
+- **Revues itératives avant recette** *(formalisé le 2026-07-30 — pratiqué
+  depuis le Sprint 0)* : après le développement, l'agent enchaîne **revue de
+  code → corrections → re-test, jusqu'à 3 itérations**, AVANT de livrer les
+  user stories à la recette humaine. Objectifs : optimiser le code, éliminer
+  le code inutile, ne pas polluer la base (schéma minimal). Chaque itération
+  combine : advisors Supabase (sécurité + performance), relecture à froid
+  (regard indépendant), et validation des règles métier contre la base réelle
+  (transaction annulée). Les scénarios de recette des sprints précédents
+  restent dans la suite de tests (non-régression).
 - **Git** : une branche par fonctionnalité, PR, CI verte (tests + lint) avant merge.
 - **Définition de « terminé »** : code mergé · tests passants · règles RM couvertes ·
   démo validée par l'humain · wiki à jour.
@@ -99,9 +108,14 @@
   événement tracé (`tech_log`, 6 mois — matrice A2/A4). Même mécanique réutilisée
   par la première connexion (parcours 16.8) au sprint 11.
 - **SMTP personnalisé à configurer avant toute utilisation réelle** *(constat
-  recette du 2026-07-29)* : le service email intégré de Supabase est limité à
-  2 emails/heure et réservé aux tests ; brancher un fournisseur (Resend, Brevo…)
-  et **franciser les modèles d'emails** (par défaut en anglais).
+  recette du 2026-07-29 — reste ouvert du Sprint 1, reporté le même jour)* : le
+  service email intégré de Supabase est limité à 2 emails/heure et réservé aux
+  tests. **Réutiliser Resend + le domaine `gerimmo.app` déjà vérifié (acquis
+  V3)** : clé API Resend → SMTP Settings du projet V4 → limite emails à
+  30/heure ; puis **franciser les modèles d'emails** (par défaut en anglais).
+  Dans la foulée, **finir la recette du scénario 8** : email reçu → lien vers
+  `/auth/confirm` (preuve Site URL) → changement → re-clic horodaté du lien
+  consommé (vérifier en logs qu'aucune session n'en ressort).
 **Démo : un fichier déposé, relu, tracé ; une alerte créée, escaladée, purgée ;
 un mot de passe réinitialisé de bout en bout.**
 

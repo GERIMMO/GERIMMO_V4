@@ -942,3 +942,28 @@ Settings → Git → Disconnect sur le vieux projet (voire suppression du projet
 V3 ne sert plus). **Scénario 4 précisé** : la pop-up d'alertes à la connexion concerne
 tout utilisateur ayant des alertes, quel que soit son persona (chacun selon ses droits),
 agrégation multi-agences le cas échéant — plan de livraison mis à jour.
+
+## [2026-07-30] sprint | Sprint 2 — Le parc : biens, lots, diagnostics, clé, pop-up d'alertes
+Exécution complète du [[Plan de livraison et sprints|Sprint 2]], méthodologie S0 confirmée
+par l'humain (dev → revues itératives ≤ 3 → tests → déploiement → recette) et **formalisée
+dans le plan**. **Base** (3 migrations posées le 29/07 + 2 de revue) : `biens`/`lots`
+(lot unique automatique RM-0.1.2, machine à états par trigger, verrouillage du lot loué
+RM-0.5.1), `detentions` (quote-parts datées, ≤ 100 % y compris sur les périodes passées,
+jamais supprimées), `diagnostics` (bien/lot RM-0.6.2, remplacement = archivage RM-0.8.5,
+`lot_blocages_location` : DPE/ERP expiré = mise en location bloquée), `cles_repartition`
+(+ lignes, 100,00 % exact, immuables), `equipements_catalogue`/`lot_equipements` (liste
+fermée RM-0.5.5), alertes J-90/J-30/J+0 par pg_cron. **App** : espace agence avec layout
+définitif (sidebar, en-tête), tableau de bord, pages parc (liste, nouveau, fiche bien,
+fiche lot), formulaires (détention, diagnostics pré-remplis par validité, découpage, clé
+proposée par mode, équipements), design system en tokens (`warning/success/destructive
+-soft`, plus aucune couleur en dur), **pop-up de synthèse des alertes à la connexion pour
+tous les personas** (espaces, agence, console SA) + cloche permanente. **Revues (3 it.)** :
+(1) advisors → immuabilité des clés au niveau privilège (UPDATE limité à `invalidated_at`)
++ 6 index FK ; (2) relecture à froid (agent indépendant, 16 constats) → **FK composites
+`(id, organization_id)`** contre le rattachement inter-agences (constat critique : les
+politiques ne contrôlaient que `organization_id`), couverture exacte des lots dans la clé,
+interdiction de réactiver une clé invalidée, chevauchements de quote-parts passés, champs
+absents du FormData non écrasés (lot loué renommable), date de clôture en Europe/Paris ;
+(3) vérification — advisors inchangés, validation SQL en transaction annulée : 26 contrôles
+OK. **Tests** : 31 locaux (unitaires parc + non-régression S1 conservée) + suite
+d'intégration `sprint2-parc.test.ts` (CI, secret `SUPABASE_DB_URL`). Lint, types, build OK.

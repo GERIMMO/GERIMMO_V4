@@ -975,3 +975,19 @@ numérotées « action → résultat attendu », refus avec message exact). Livr
 multi-agences, console SA), bien → lot unique, démo « bail bloqué par un DPE expiré »,
 quote-parts, découpage + clé, équipements, verrouillage du lot loué, machine à états,
 isolation, rappel non-régression S1.
+
+## [2026-07-30] recette | Retours Sprint 2 — jointures PostgREST réparées, dépôt du rapport PDF, ergonomie bien
+Retour humain : biens créés mais introuvables, pas de PDF au dépôt de diagnostic, adresse
+non assistée, découpage proposé pour un appartement. **Cause racine du bug bloquant** : les
+FK composites de la revue 2 ont créé une seconde relation biens↔lots et detentions↔persons —
+PostgREST refusait les jointures imbriquées (PGRST201) et la liste du Parc revenait vide
+(les biens existaient, prouvé par l''API). Correctif : jointures explicites
+(`lots!lots_bien_id_fkey`, `persons!detentions_person_id_fkey`). **Ergonomie** : rapport du
+diagnostiqueur déposable (helper GED partagé `lib/ged-depot.ts` — type réel, anti-doublon,
+lien « Rapport » tracé), date de réalisation pré-remplie à aujourd''hui, autocomplétion
+d''adresse (Base Adresse Nationale), appartement/parking non découpables (carte masquée +
+garde serveur). **Vérification post-correctif** : 21 requêtes de pages (agent + SA) jouées
+contre l''API de prod → toutes OK ; 16 contrôles métier en transaction annulée → OK ;
+31 tests locaux + CI verte ; nouveau déploiement confirmé en prod. Leçon actée : toute
+revue qui touche le schéma doit rejouer les requêtes PostgREST des pages (les FK multiples
+cassent les jointures implicites) — et les parcours écran restent à valider par l''humain.

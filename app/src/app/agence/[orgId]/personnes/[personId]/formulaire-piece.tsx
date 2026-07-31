@@ -46,6 +46,12 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         </Label>
         <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" />
       </div>
+      <div className="w-40 space-y-1.5">
+        <Label htmlFor="piece-expire" className="text-xs">
+          Expire le (assurance)
+        </Label>
+        <Input id="piece-expire" name="expire_le" type="date" />
+      </div>
       <div className="space-y-1.5">
         <Label htmlFor="piece-fichier" className="text-xs">
           Fichier (PDF/JPG/PNG, 10 Mo)

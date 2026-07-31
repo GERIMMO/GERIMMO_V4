@@ -24,6 +24,7 @@ export async function deposerPieceDossier(
   const type = String(formData.get("type") ?? "");
   const titre = String(formData.get("titre") ?? "").trim();
   const remplaceId = String(formData.get("remplace_id") ?? "").trim();
+  const expireLe = String(formData.get("expire_le") ?? "").trim();
 
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez un fichier." };
@@ -51,15 +52,18 @@ export async function deposerPieceDossier(
     return { erreur: `Pièce déposée mais rattachement en échec : ${erreurLien.message}` };
   }
 
-  // Versioning : la nouvelle pièce remplace une version antérieure
-  if (remplaceId) {
-    const { error: erreurVersion } = await supabase
+  // Versioning (remplace une version antérieure) + date d'expiration (attestation)
+  const maj: { remplace_id?: string; expire_le?: string } = {};
+  if (remplaceId) maj.remplace_id = remplaceId;
+  if (expireLe) maj.expire_le = expireLe;
+  if (Object.keys(maj).length > 0) {
+    const { error: erreurMaj } = await supabase
       .from("documents")
-      .update({ remplace_id: remplaceId })
+      .update(maj)
       .eq("id", resultat.documentId)
       .eq("organization_id", orgId);
-    if (erreurVersion) {
-      return { erreur: `Pièce déposée mais versioning en échec : ${erreurVersion.message}` };
+    if (erreurMaj) {
+      return { erreur: `Pièce déposée mais mise à jour en échec : ${erreurMaj.message}` };
     }
   }
 

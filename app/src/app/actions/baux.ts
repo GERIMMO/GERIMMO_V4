@@ -1,0 +1,121 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { verifierGerant } from "@/lib/ged-acces";
+import { deposerFichierGed } from "@/lib/ged-depot";
+
+export type EtatBail = { erreur?: string; succes?: string };
+
+// Créer un bail (brouillon) sur un lot.
+export async function creerBail(
+  orgId: string,
+  lotId: string,
+  bienId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const type = String(formData.get("type") ?? "nu");
+  const locataire = String(formData.get("locataire_principal") ?? "");
+  const loyer = String(formData.get("loyer_hc") ?? "").trim();
+  const charges = String(formData.get("charges") ?? "").trim();
+  const depot = String(formData.get("depot_garantie") ?? "").trim();
+  const jour = String(formData.get("jour_echeance") ?? "1").trim();
+  if (!locataire) return { erreur: "Choisissez le locataire principal." };
+
+  const { data, error } = await supabase
+    .from("baux")
+    .insert({
+      organization_id: orgId,
+      lot_id: lotId,
+      type,
+      etat: "brouillon",
+      locataire_principal: locataire,
+      loyer_hc: loyer ? Number(loyer) : null,
+      charges: charges ? Number(charges) : null,
+      depot_garantie: depot ? Number(depot) : null,
+      jour_echeance: jour ? Number(jour) : 1,
+    })
+    .select("id")
+    .single();
+  if (error) return { erreur: `Création impossible : ${error.message}` };
+
+  revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  redirect(`/agence/${orgId}/baux/${data.id}`);
+}
+
+// Déposer le bail signé (PDF) et le rattacher au bail.
+export async function deposerBailSigne(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const fichier = formData.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le PDF signé." };
+  if (fichier.size > TAILLE_MAX_OCTETS) return { erreur: "Fichier trop volumineux (10 Mo max)." };
+
+  const res = await deposerFichierGed(supabase, user, orgId, fichier, "bail", "Bail signé");
+  if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };
+
+  const { error } = await supabase
+    .from("baux")
+    .update({ document_signe: res.documentId })
+    .eq("id", bailId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: error.message };
+
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Bail signé déposé." };
+}
+
+// Activer le bail (contrôles en base : PDF, lot disponible, diagnostics).
+export async function activerBail(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  _formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { error } = await supabase.rpc("activer_bail", { p_bail: bailId });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Bail activé — le lot est loué, alerte d'EDL d'entrée créée." };
+}
+
+// Enregistrer un congé (bail actif → préavis).
+export async function enregistrerConge(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const par = String(formData.get("par") ?? "locataire");
+  const date = String(formData.get("date_presentation") ?? "").trim();
+  const preavis = Number(formData.get("preavis_mois") ?? 3);
+  const motif = String(formData.get("motif") ?? "").trim();
+  if (!date) return { erreur: "Indiquez la date de première présentation." };
+
+  const { error } = await supabase.rpc("enregistrer_conge", {
+    p_bail: bailId,
+    p_par: par,
+    p_date_presentation: date,
+    p_preavis_mois: preavis,
+    p_motif: motif || null,
+    p_justificatif: null,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Congé enregistré — bail en préavis." };
+}

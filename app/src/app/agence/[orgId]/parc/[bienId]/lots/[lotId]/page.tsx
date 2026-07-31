@@ -27,8 +27,17 @@ import {
   BoutonCloreDetention,
 } from "./formulaire-detention";
 import { FormulaireEquipementsLot } from "./formulaire-equipements-lot";
+import { FormulaireBailLot } from "./formulaire-bail-lot";
+import { buttonVariants } from "@/components/ui/button";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
+
+const ETATS_BAIL: Record<string, string> = {
+  brouillon: "Brouillon",
+  actif: "Actif",
+  preavis: "Préavis",
+  termine: "Terminé",
+};
 
 export default async function PageLot(
   props: PageProps<"/agence/[orgId]/parc/[bienId]/lots/[lotId]">
@@ -45,6 +54,7 @@ export default async function PageLot(
     { data: equipesLot },
     { data: personnes },
     { data: blocages },
+    { data: baux },
   ] = await Promise.all([
     supabase
       .from("lots")
@@ -88,6 +98,11 @@ export default async function PageLot(
       .is("archived_at", null)
       .order("nom"),
     supabase.rpc("lot_blocages_location", { p_lot: lotId }),
+    supabase
+      .from("baux")
+      .select("id, type, etat")
+      .eq("lot_id", lotId)
+      .order("created_at", { ascending: false }),
   ]);
   if (!lot || !bien) notFound();
 
@@ -161,6 +176,49 @@ export default async function PageLot(
             lotId={lotId}
             etat={lot.etat}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Baux &amp; état des lieux</CardTitle>
+          <CardDescription>
+            Un bail signé active la location : le lot passe loué et une alerte d&apos;EDL
+            d&apos;entrée est créée. La grille d&apos;EDL se remplit sur la fiche du bail.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {(baux ?? []).length > 0 && (
+            <ul className="space-y-2">
+              {(baux ?? []).map((b) => (
+                <li key={b.id} className="flex items-center gap-3">
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                    {ETATS_BAIL[b.etat] ?? b.etat}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-sm">Bail {b.type}</span>
+                  <Link
+                    href={`/agence/${orgId}/baux/${b.id}`}
+                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                  >
+                    Ouvrir
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {detentionsActives.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
+              de créer un bail.
+            </p>
+          ) : (
+            <FormulaireBailLot
+              orgId={orgId}
+              bienId={bienId}
+              lotId={lotId}
+              personnes={personnes ?? []}
+            />
+          )}
         </CardContent>
       </Card>
 

@@ -35,6 +35,17 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
   const { data: pieces } = await supabase.rpc("mon_dossier_locataire", { p_org: orgId });
   const assurance = ((pieces ?? []) as Piece[]).find((p) => p.type === "attestation_assurance");
 
+  const { data: baux } = await supabase.rpc("mon_bail_locataire", { p_org: orgId });
+  const bail = ((baux ?? []) as {
+    type: string;
+    etat: string;
+    loyer_hc: number | null;
+    charges: number | null;
+    lot_nom: string;
+    date_debut: string | null;
+  }[])[0];
+  const TYPES_BAIL: Record<string, string> = { nu: "nu", meuble: "meublé", colocation: "colocation" };
+
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-6">
       <div>
@@ -45,6 +56,25 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
           Votre espace locataire — déposez et suivez votre attestation d&apos;assurance.
         </p>
       </div>
+
+      {bail && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mon bail</CardTitle>
+            <CardDescription>
+              {bail.lot_nom} · bail {TYPES_BAIL[bail.type] ?? bail.type}
+              {bail.etat === "preavis" ? " · en préavis" : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm">
+            <p>
+              Loyer : {bail.loyer_hc ? `${bail.loyer_hc} € hors charges` : "—"}
+              {bail.charges ? ` + ${bail.charges} € de charges` : ""}
+            </p>
+            {bail.date_debut && <p className="text-muted-foreground">Depuis le {bail.date_debut}</p>}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

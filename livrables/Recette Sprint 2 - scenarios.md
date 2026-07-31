@@ -4,6 +4,8 @@
 > Comptes de démo : `admin.alpha@` · `agent.alpha@` · `admin.beta@` · `multi@` ·
 > `superadmin@gerimmo-demo.fr`. Le sprint est terminé quand tous les scénarios
 > passent (définition de « terminé » du [[Plan de livraison et sprints]]).
+> Mise à jour 2026-07-31 (retour recette) : la mise en location se fait désormais
+> **depuis la fiche du bien** (scénarios 3 et 4) — la fiche lot garde les mêmes boutons.
 
 ## Scénario 1 — Pop-up d'alertes à la connexion !
 
@@ -23,15 +25,15 @@ Persona : compte multi-agences (multi@) puis Super Admin (superadmin@)
 ## Scénario 3 — Créer un bien = créer son lot unique !
 
 Persona : Agent immobilier (agent.alpha@)
-1. Espace agence → Parc → « Nouveau bien » : appartement, année de construction 1930, surface 45 m², 2 pièces → arrivée directe sur la fiche du bien, avec un lot « Lot unique » à l'état **Brouillon** (le multi-lots est invisible tant qu'on ne découpe pas).
+1. Espace agence → Parc → « Nouveau bien » : appartement, année de construction 1930, surface 45 m², 2 pièces → arrivée directe sur la fiche du bien, avec un lot « Lot unique » à l'état **Brouillon**, l'encart « Ce qui empêche la mise en location » et les boutons d'état **directement sur la fiche du bien** (le multi-lots est invisible tant qu'on ne découpe pas).
 2. Ouvrir la fiche du lot → la carte Diagnostics affiche les **attendus déduits** du bien : DPE, plomb (avant 1949), amiante, électricité, gaz ; côté fiche bien : ERP, amiante parties communes, termites.
 3. Tableau de bord → la carte Parc affiche 1 bien avec le badge « 1 brouillon ».
 
 ## Scénario 4 — Bail bloqué par un DPE expiré (démo du sprint) !
 
 Persona : Agent immobilier (agent.alpha@)
-1. Sur la fiche du lot en brouillon → l'encart « Ce qui empêche la mise en location » liste : détention incomplète (0 %), DPE absent, ERP absent.
-2. Cliquer « Passer en disponible » → refus, avec la liste des blocages dans le message.
+1. Sur la fiche du **bien** dont le lot est en brouillon (même encart sur la fiche du lot) → « Ce qui empêche la mise en location » liste : détention incomplète (0 %), DPE absent, ERP absent.
+2. Cliquer « Passer en disponible » depuis la fiche du bien → refus, avec la liste des blocages dans le message.
 3. Détention → « + Nouvelle personne… », nom libre, quote-part 100 % → « Détention active : 100 % » passe au vert.
 4. Fiche bien → déposer un **ERP** (l'expiration se pré-remplit à +6 mois) → badge **Valide**.
 5. Fiche lot → déposer un **DPE avec une date de réalisation d'il y a 11 ans** (l'expiration pré-remplie est passée) → badge **Expiré** ; « Passer en disponible » → refus : « DPE absent ou expiré (obligatoire en habitation) ».

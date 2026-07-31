@@ -991,3 +991,16 @@ contre l''API de prod → toutes OK ; 16 contrôles métier en transaction annul
 31 tests locaux + CI verte ; nouveau déploiement confirmé en prod. Leçon actée : toute
 revue qui touche le schéma doit rejouer les requêtes PostgREST des pages (les FK multiples
 cassent les jointures implicites) — et les parcours écran restent à valider par l''humain.
+
+## [2026-07-31] recette | Retour S2 — validation du bien exposée sur la fiche bien
+Retour humain : « je ne peux enregistrer les biens qu''en brouillon, pas de possibilité de
+les valider ». Diagnostic : pas un bug — le bien n''a pas de statut, la machine à états vit
+sur `lots.etat`, et l''action « Passer en disponible » (avec la checklist des blocages
+`lot_blocages_location`) n''existait que sur la **fiche lot**, que personne n''ouvre en
+mono-lot (~90 % des cas). Correctif (ergonomie, zéro migration) : la carte des lots de la
+**fiche bien** affiche désormais, pour chaque lot, l''encart « Ce qui empêche la mise en
+location » (si brouillon) et les boutons de transition — réutilisation telle quelle de
+`BoutonsEtatLot` et de l''action `changerEtatLot`. Vérifié : RPC `lot_blocages_location`
+rejouée en prod (blocages explicites retournés : détention 0 %, DPE/ERP absent — la
+situation exacte du recetteur) ; lint, types, build, 31 tests locaux OK. Scénarios 3 et 4
+de [[Recette Sprint 2 - scenarios]] mis à jour (mise en location depuis la fiche bien).

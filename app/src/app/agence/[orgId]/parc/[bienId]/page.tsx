@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormulaireBien, type BienFormulaire } from "../formulaire-bien";
+import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
 import { FormulaireDiagnostic } from "./formulaire-diagnostic";
 import { FormulaireDecoupage } from "./formulaire-decoupage";
 import { FormulaireCle } from "./formulaire-cle";
@@ -63,6 +64,21 @@ export default async function PageBien(
     ]);
   if (!bien) notFound();
 
+  // Blocages de mise en location, affichés directement sur la fiche bien :
+  // en mono-lot personne n'ouvre la fiche lot pour y trouver le bouton
+  const blocagesParLot = new Map(
+    await Promise.all(
+      (lots ?? [])
+        .filter((l) => l.etat === "brouillon")
+        .map(async (l) => {
+          const { data } = await supabase.rpc("lot_blocages_location", {
+            p_lot: l.id,
+          });
+          return [l.id, (data ?? []) as string[]] as const;
+        })
+    )
+  );
+
   const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
   const multiLots = lotsActifs.length > 1;
   // Diagnostics attendus au niveau bien uniquement — ceux du lot sont sur sa fiche
@@ -97,29 +113,51 @@ export default async function PageBien(
           </CardTitle>
           <CardDescription>
             Le bail porte toujours sur un lot, jamais sur le bien (RM-0.2.5).
+            La mise en location se fait ici, lot par lot.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ul className="divide-y divide-border">
-            {(lots ?? []).map((lot) => (
-              <li key={lot.id}>
-                <Link
-                  href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
-                  className="flex items-center gap-3 py-2.5 text-sm hover:bg-accent"
-                >
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
+            {(lots ?? []).map((lot) => {
+              const blocages = blocagesParLot.get(lot.id) ?? [];
+              return (
+                <li key={lot.id} className="space-y-2 py-2.5">
+                  <Link
+                    href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
+                    className="flex items-center gap-3 text-sm hover:bg-accent"
                   >
-                    {ETATS_LOT[lot.etat] ?? lot.etat}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate font-medium">{lot.nom}</span>
-                  <span className="shrink-0 text-muted-foreground">
-                    {formaterSurface(lot.surface_m2)}
-                    {lot.pieces ? ` · ${lot.pieces} p.` : ""}
-                  </span>
-                </Link>
-              </li>
-            ))}
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
+                    >
+                      {ETATS_LOT[lot.etat] ?? lot.etat}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate font-medium">{lot.nom}</span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {formaterSurface(lot.surface_m2)}
+                      {lot.pieces ? ` · ${lot.pieces} p.` : ""}
+                    </span>
+                  </Link>
+                  {lot.etat === "brouillon" && blocages.length > 0 && (
+                    <div className="rounded-lg bg-muted p-3 text-sm">
+                      <p className="mb-1 font-medium">
+                        Ce qui empêche la mise en location :
+                      </p>
+                      <ul className="list-inside list-disc text-muted-foreground">
+                        {blocages.map((b) => (
+                          <li key={b}>{b}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <BoutonsEtatLot
+                    orgId={orgId}
+                    bienId={bienId}
+                    lotId={lot.id}
+                    etat={lot.etat}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </CardContent>
       </Card>

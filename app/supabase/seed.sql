@@ -17,7 +17,8 @@ begin
       ('admin.alpha@gerimmo-demo.fr'),
       ('agent.alpha@gerimmo-demo.fr'),
       ('admin.beta@gerimmo-demo.fr'),
-      ('multi@gerimmo-demo.fr')
+      ('multi@gerimmo-demo.fr'),
+      ('locataire.alpha@gerimmo-demo.fr')
     ) as t(email)
   loop
     insert into auth.users (
@@ -52,4 +53,10 @@ begin
 
   insert into public.persons (organization_id, nom, prenom) values (v_org_alpha, 'Dupont', 'Alice');
   insert into public.persons (organization_id, nom, prenom) values (v_org_beta, 'Martin', 'Bruno');
+
+  -- Locataire de démo (espace LO) : compte + adhésion + fiche rattachée
+  select id into v_uid from public.accounts where email = 'locataire.alpha@gerimmo-demo.fr';
+  insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'locataire');
+  insert into public.persons (organization_id, account_id, nom, prenom, email)
+  values (v_org_alpha, v_uid, 'Leblanc', 'Julie', 'locataire.alpha@gerimmo-demo.fr');
 end $$;

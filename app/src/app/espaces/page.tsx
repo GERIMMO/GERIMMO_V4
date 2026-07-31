@@ -35,7 +35,10 @@ function cheminEspace(a: Adhesion): string | null {
   // (parcours communs du plan) ; ses écrans propres arrivent au S9
   if (["admin_agence", "agent", "proprietaire_direct"].includes(a.role))
     return a.organization ? `/agence/${a.organization.id}` : null;
+  if (a.role === "locataire")
+    return a.organization ? `/locataire/${a.organization.id}` : null;
   return null; // espaces des sprints suivants
+
 }
 
 export default async function PageEspaces() {

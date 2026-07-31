@@ -18,6 +18,7 @@ export function NavAgence({
   const entrees = [
     { href: base, libelle: "Tableau de bord", exact: true },
     { href: `${base}/parc`, libelle: "Parc" },
+    { href: `${base}/personnes`, libelle: "Personnes" },
     { href: `${base}/documents`, libelle: "Documents" },
     {
       href: `${base}/alertes`,

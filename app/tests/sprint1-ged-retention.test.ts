@@ -99,7 +99,7 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
     } = await db.query(
       `insert into public.documents
          (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte, retention_reference_date)
-       values ($1, $2::public.document_type, $3, $1 || '/' || gen_random_uuid() || '.pdf',
+       values ($1, $2::public.document_type, $3, $1::uuid::text || '/' || gen_random_uuid() || '.pdf',
                'application/pdf', 1000, 'e-' || gen_random_uuid(), ${referenceDate})
        returning id`,
       [org, type, titre]
@@ -163,14 +163,14 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
     await db.query(
       `insert into public.documents
          (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
-       values ($1, 'courrier', 'Original', $1 || '/a.pdf', 'application/pdf', 10, 'meme-empreinte')`,
+       values ($1, 'courrier', 'Original', $1::uuid::text || '/a.pdf', 'application/pdf', 10, 'meme-empreinte')`,
       [orgA]
     );
     await expect(
       db.query(
         `insert into public.documents
            (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
-         values ($1, 'courrier', 'Copie', $1 || '/b.pdf', 'application/pdf', 10, 'meme-empreinte')`,
+         values ($1, 'courrier', 'Copie', $1::uuid::text || '/b.pdf', 'application/pdf', 10, 'meme-empreinte')`,
         [orgA]
       )
     ).rejects.toThrow(/documents_empreinte_unique/);
@@ -184,12 +184,16 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
     await db.query(`select public.log_document_access($1, 'telechargement')`, [docA]);
 
     // Le locataire n'a pas accès à la GED : la trace est refusée
+    // (savepoints : une erreur attendue avorterait sinon toute la transaction)
     await simuler(db, locataireA);
+    await db.query("savepoint acces_refuse");
     await expect(
       db.query(`select public.log_document_access($1, 'consultation')`, [docA])
     ).rejects.toThrow(/acces refuse/);
+    await db.query("rollback to savepoint acces_refuse");
 
     // L'écriture directe dans le journal est impossible côté client
+    await db.query("savepoint ecriture_directe");
     await expect(
       db.query(
         `insert into public.acces_pieces_log (organization_id, account_id, document_id, action)
@@ -197,6 +201,7 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
         [orgA, locataireA, docA]
       )
     ).rejects.toThrow();
+    await db.query("rollback to savepoint ecriture_directe");
 
     await db.query("reset role");
     const { rows } = await db.query(

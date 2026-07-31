@@ -339,7 +339,7 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
     expect(etat.rows[0].etat).toBe("brouillon");
   });
 
-  it("découpage : héritage des propriétaires (RM-0.3.6), clé invalidée (RM-0.3.3), lot loué non redécoupable (RM-0.3.8)", async () => {
+  it("découpage : héritage des propriétaires (RM-0.3.6), clé invalidée (RM-0.3.3), bien découpable malgré un lot loué (variante V3)", async () => {
     const { bien, lot } = await creerBien();
     await detenirA100(lot);
 
@@ -407,16 +407,25 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
       [cle]
     );
 
-    // Lot d'origine loué : le bien ne se redécoupe pas
+    // Variante V3 (arbitrage B, 2026-07-31) : un lot loué n'empêche PAS de
+    // découper le bien. Le lot loué garde son bail (état inchangé) ; le nouveau
+    // lot naît en brouillon. Seule la scission du lot loué lui-même reste
+    // interdite (RM-0.3.8), ce que decouper_bien ne fait jamais.
     await deposerDiagnosticsValides(bien, lot);
     await db.query(`update public.lots set etat = 'disponible' where id = $1`, [lot]);
     await db.query(`update public.lots set etat = 'loue' where id = $1`, [lot]);
-    await attendreEchec(
-      db,
-      /loué/,
-      `select public.decouper_bien($1, $2::jsonb)`,
-      [bien, JSON.stringify([{ nom: "Lot 3" }])]
-    );
+    const {
+      rows: [{ decouper_bien: lot3 }],
+    } = await db.query(`select public.decouper_bien($1, $2::jsonb) as decouper_bien`, [
+      bien,
+      JSON.stringify([{ nom: "Lot 3" }]),
+    ]);
+    // Le lot loué conserve son bail (état loué inchangé)
+    const origine = await db.query(`select etat from public.lots where id = $1`, [lot]);
+    expect(origine.rows[0].etat).toBe("loue");
+    // Le nouveau lot naît en brouillon
+    const cree = await db.query(`select etat from public.lots where id = $1`, [lot3]);
+    expect(cree.rows[0].etat).toBe("brouillon");
   });
 
   it("alertes d'expiration : J-90/J-30/J+0, une par diagnostic et par seuil, refusées à un compte d'agence", async () => {
@@ -451,7 +460,8 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
 
     const alertes = await db.query(
       `select criticite, details->>'seuil' as seuil from public.alerts
-       where organization_id = $1 and type = 'diagnostic_expiration' order by seuil`,
+       where organization_id = $1 and type = 'diagnostic_expiration'
+       order by case details->>'seuil' when 'J-90' then 1 when 'J-30' then 2 when 'J+0' then 3 end`,
       [orgA]
     );
     expect(alertes.rows).toEqual([

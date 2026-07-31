@@ -147,17 +147,17 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
       expect(Number(locataire.rows[0].org_visible)).toBe(1);
       expect(Number(locataire.rows[0].personnes)).toBe(0);
 
-      // Un anonyme ne voit rien du tout
+      // Un anonyme est carrément refusé : le rôle anon est révoqué au
+      // durcissement (défense en profondeur au-dessus de la RLS — il ne peut
+      // même pas lire la table). Voir wiki/regles-metier/Isolation multi-organisation.
       await db.query("reset role");
       await db.query("set local role anon");
-      const anonyme = await db.query(
-        `select
-           (select count(*) from public.organizations where id in ($1, $2)) as orgs,
-           (select count(*) from public.persons where organization_id in ($1, $2)) as personnes`,
-        [org_a, org_b]
-      );
-      expect(Number(anonyme.rows[0].orgs)).toBe(0);
-      expect(Number(anonyme.rows[0].personnes)).toBe(0);
+      await expect(
+        db.query(`select count(*) from public.organizations where id in ($1, $2)`, [
+          org_a,
+          org_b,
+        ])
+      ).rejects.toThrow(/permission denied/);
     } finally {
       await db.query("rollback");
     }

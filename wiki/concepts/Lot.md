@@ -28,8 +28,17 @@ Source : [[2026-07-24-gerimmo-v3-module-0-biens-et-lots|Module 0]].
   (RM-0.3.4 : l'interface masque la notion de lot tant qu'il est unique).
 - Découpage en lots (0.3) : irréversible en pratique ; les nouveaux lots héritent du
   propriétaire d'origine (RM-0.3.6) ; toute modification du nombre de lots impose de
-  **revalider la clé** (RM-0.3.3). **Un lot loué ne se redécoupe pas** (RM-0.3.8 —
-  résilier, archiver, recréer).
+  **revalider la clé** (RM-0.3.3). **Le LOT loué lui-même ne se redécoupe pas**
+  (RM-0.3.8 — résilier, archiver, recréer), **mais le BIEN qui contient un lot loué
+  reste découpable** (variante V3 du module 0) : le lot loué **garde son bail**, les
+  nouveaux lots naissent en **brouillon**, une alerte signale les régularisations en cours.
+
+> [!note] Contradiction tranchée le 2026-07-31 (arbitrage humain, interprétation B)
+> Le module 0 opposait la variante **V3** (découpage autorisé avec un lot loué) et
+> **RM-0.3.8** (« un lot loué ne peut pas être redécoupé »). Décision : les deux
+> visent des opérations différentes — RM-0.3.8 interdit de scinder le **lot loué**,
+> V3 autorise de découper le **bien**. Le code (`decouper_bien`) bloquait tout ;
+> corrigé pour n'interdire que la scission du lot loué. Voir `log.md`.
 
 ## La détention (propriétaire ↔ lot)
 

@@ -12,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
 import { FormulairePiece } from "./formulaire-piece";
 import { FormulaireMandat, FormulaireLigneMandat, BoutonsEtatMandat } from "./formulaire-mandat";
+import { FormulaireInvitation } from "./formulaire-invitation";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
 
@@ -31,7 +32,7 @@ export default async function PagePersonne(
 
   const { data: personne } = await supabase
     .from("persons")
-    .select("id, nom, prenom, email, telephone, date_naissance")
+    .select("id, nom, prenom, email, telephone, date_naissance, account_id")
     .eq("id", personId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -95,6 +96,25 @@ export default async function PagePersonne(
           {personne.date_naissance ? ` · né(e) le ${personne.date_naissance}` : ""}
         </p>
       </div>
+
+      {/* Accès locataire : invitation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Accès locataire</CardTitle>
+          <CardDescription>
+            Donnez à cette personne l&apos;accès à son espace (dépôt d&apos;attestation,
+            suivi) via une invitation par email.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormulaireInvitation
+            orgId={orgId}
+            personId={personId}
+            email={personne.email}
+            dejaInvite={Boolean(personne.account_id)}
+          />
+        </CardContent>
+      </Card>
 
       {/* Dossier : pièces versionnées */}
       <Card>

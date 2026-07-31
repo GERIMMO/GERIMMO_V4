@@ -1004,3 +1004,4 @@ location » (si brouillon) et les boutons de transition — réutilisation telle
 rejouée en prod (blocages explicites retournés : détention 0 %, DPE/ERP absent — la
 situation exacte du recetteur) ; lint, types, build, 31 tests locaux OK. Scénarios 3 et 4
 de [[Recette Sprint 2 - scenarios]] mis à jour (mise en location depuis la fiche bien).
+Déploiement confirmé : gerimmo-v4.vercel.app sert le commit du correctif (READY).

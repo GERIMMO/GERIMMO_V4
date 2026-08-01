@@ -5,6 +5,7 @@ import {
   ajouterEcriture,
   passerContreEcriture,
   cloturerMois,
+  ventilerDepense,
   type EtatCompta,
 } from "@/app/actions/compta";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,44 @@ export function FormulaireEcriture({ orgId }: { orgId: string }) {
         {enCours ? "…" : "Ajouter l'écriture"}
       </Button>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+    </form>
+  );
+}
+
+export function FormulaireVentilation({
+  orgId,
+  biens,
+}: {
+  orgId: string;
+  biens: { id: string; nom: string }[];
+}) {
+  const [etat, action, enCours] = useActionState<EtatCompta, FormData>(
+    ventilerDepense.bind(null, orgId),
+    {}
+  );
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-2">
+      <div className="space-y-1">
+        <Label htmlFor="v-bien" className="text-xs">Bien</Label>
+        <select id="v-bien" name="bien_id" defaultValue="" className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+          <option value="" disabled>Choisir…</option>
+          {biens.map((b) => (
+            <option key={b.id} value={b.id}>{b.nom}</option>
+          ))}
+        </select>
+      </div>
+      <Input name="categorie" placeholder="Catégorie (travaux…)" className="h-9 w-36" />
+      <Input name="montant" type="number" step="0.01" min="0.01" placeholder="Montant €" className="h-9 w-28" />
+      <div className="space-y-1">
+        <Label htmlFor="v-piece" className="text-xs">Date pièce</Label>
+        <Input id="v-piece" name="date_piece" type="date" className="h-9" />
+      </div>
+      <Input name="libelle" placeholder="Libellé" className="h-9 w-36" />
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "…" : "Ventiler la dépense"}
+      </Button>
+      {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>
   );
 }

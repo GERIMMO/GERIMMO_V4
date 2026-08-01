@@ -1,7 +1,12 @@
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FormulaireEcriture, FormulaireCloture, BoutonContre } from "./formulaire-compta";
+import {
+  FormulaireEcriture,
+  FormulaireVentilation,
+  FormulaireCloture,
+  BoutonContre,
+} from "./formulaire-compta";
 
 export const metadata = { title: "Comptabilité — Gerimmo" };
 
@@ -23,7 +28,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspace(orgId);
 
-  const [{ data: ecritures }, { data: clotures }] = await Promise.all([
+  const [{ data: ecritures }, { data: clotures }, { data: biens }] = await Promise.all([
     supabase
       .from("ecritures")
       .select("id, categorie, sens, montant, date_piece, date_imputation, libelle, systeme, contre_ecriture_de")
@@ -31,6 +36,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       .order("date_imputation", { ascending: false })
       .limit(200),
     supabase.from("clotures_comptables").select("mois").eq("organization_id", orgId).order("mois", { ascending: false }),
+    supabase.from("biens").select("id, nom").eq("organization_id", orgId).order("nom"),
   ]);
 
   const lignes = (ecritures ?? []) as Ecriture[];
@@ -71,6 +77,15 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         </CardHeader>
         <CardContent className="space-y-4">
           <FormulaireEcriture orgId={orgId} />
+          <div className="border-t border-border pt-4">
+            <p className="mb-2 text-sm font-medium">
+              Dépense au niveau du bien (ventilée par lot via la clé)
+            </p>
+            <FormulaireVentilation
+              orgId={orgId}
+              biens={(biens ?? []) as { id: string; nom: string }[]}
+            />
+          </div>
           <div className="border-t border-border pt-4">
             <FormulaireCloture orgId={orgId} moisCourant={moisCourant} />
             {moisClotures.size > 0 && (

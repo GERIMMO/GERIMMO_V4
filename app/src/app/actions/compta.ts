@@ -48,6 +48,33 @@ export async function passerContreEcriture(
   return { succes: "Contre-écriture passée." };
 }
 
+// Ventiler une dépense au niveau du bien : une écriture par lot via la clé.
+export async function ventilerDepense(
+  orgId: string,
+  _etat: EtatCompta,
+  formData: FormData
+): Promise<EtatCompta> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const bienId = String(formData.get("bien_id") ?? "");
+  const categorie = String(formData.get("categorie") ?? "").trim();
+  const montant = Number(String(formData.get("montant") ?? "").trim());
+  if (!bienId) return { erreur: "Choisissez le bien." };
+  if (!categorie) return { erreur: "Catégorie obligatoire." };
+  if (!montant || montant <= 0) return { erreur: "Montant invalide." };
+  const { data, error } = await supabase.rpc("ventiler_depense_bien", {
+    p_bien: bienId,
+    p_categorie: categorie,
+    p_montant: montant,
+    p_date_piece: String(formData.get("date_piece") ?? "").trim() || new Date().toISOString().slice(0, 10),
+    p_date_imputation: String(formData.get("date_imputation") ?? "").trim() || new Date().toISOString().slice(0, 10),
+    p_libelle: String(formData.get("libelle") ?? "").trim() || categorie,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/comptabilite`);
+  return { succes: `Dépense ventilée en ${data ?? 0} écriture(s).` };
+}
+
 export async function cloturerMois(
   orgId: string,
   _etat: EtatCompta,

@@ -24,6 +24,7 @@ export type BienFormulaire = {
   city: string;
   annee_construction: number | null;
   copropriete: boolean;
+  zone_tendue: boolean;
 };
 
 // Création (avec surface/pièces du lot unique) ou édition d'un bien existant.
@@ -201,6 +202,21 @@ export function FormulaireBien({
             className="size-4"
           />
           <Label htmlFor="bien-copro">En copropriété</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            id="bien-zone-tendue"
+            name="zone_tendue"
+            type="checkbox"
+            defaultChecked={bien?.zone_tendue}
+            className="size-4"
+          />
+          <Label htmlFor="bien-zone-tendue">
+            En zone tendue
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              (préavis locataire d&apos;1 mois de plein droit)
+            </span>
+          </Label>
         </div>
       </div>
 

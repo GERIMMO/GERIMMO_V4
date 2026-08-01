@@ -366,4 +366,62 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     expect(dep.rows).toHaveLength(1);
     expect(Number(dep.rows[0].montant)).toBe(700);
   });
+
+  it("zone tendue : préavis locataire d'1 mois de plein droit, sans justificatif", async () => {
+    // Bien EN ZONE TENDUE
+    await simuler(db, gerant);
+    const {
+      rows: [{ id: bien }],
+    } = await db.query(
+      `select public.creer_bien_avec_lot($1,'Tendue','appartement'::public.bien_type,'1 rue Tendue',null,'75011','Paris',1990,false,45,2) as id`,
+      [orgA]
+    );
+    await db.query(`update public.biens set zone_tendue=true where id=$1`, [bien]);
+    const {
+      rows: [{ id: l }],
+    } = await db.query(`select id from public.lots where bien_id=$1`, [bien]);
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal, etat, type)
+       values ($1,$2,$3,'actif','nu') returning id`,
+      [orgA, l, locataire]
+    );
+    // Bail NU : hors zone tendue ce serait 3 mois, ou 1 mois sur justificatif.
+    // En zone tendue, 1 mois sans justificatif.
+    await db.query(
+      `select public.enregistrer_conge($1,'locataire',current_date,1::smallint,null,null)`,
+      [bail]
+    );
+    const c = await db.query(
+      `select preavis_mois, zone_tendue from public.conges where bail_id=$1`,
+      [bail]
+    );
+    expect(Number(c.rows[0].preavis_mois)).toBe(1);
+    expect(c.rows[0].zone_tendue).toBe(true);
+  });
+
+  it("hors zone tendue : le préavis réduit exige toujours un justificatif", async () => {
+    const l = await lot(); // creer_bien_avec_lot → zone_tendue false par défaut
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal, etat, type)
+       values ($1,$2,$3,'actif','nu') returning id`,
+      [orgA, l, locataire]
+    );
+    await attendreEchec(
+      db,
+      /justificatif est obligatoire/,
+      `select public.enregistrer_conge($1,'locataire',current_date,1::smallint,null,null)`,
+      [bail]
+    );
+    // Sans demande de réduction : 3 mois
+    await db.query(
+      `select public.enregistrer_conge($1,'locataire',current_date,3::smallint,null,null)`,
+      [bail]
+    );
+    const c = await db.query(`select preavis_mois from public.conges where bail_id=$1`, [bail]);
+    expect(Number(c.rows[0].preavis_mois)).toBe(3);
+  });
 });

@@ -42,6 +42,7 @@ export function RecapBien({
     ["Adresse", adresse],
     ["Année de construction", bien.annee_construction ? String(bien.annee_construction) : "—"],
     ["Copropriété", bien.copropriete ? "Oui" : "Non"],
+    ["Zone tendue", bien.zone_tendue ? "Oui" : "Non"],
     ["Nombre de lots", String(nbLots)],
   ];
 

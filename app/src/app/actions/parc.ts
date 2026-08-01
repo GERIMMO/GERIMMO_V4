@@ -81,6 +81,7 @@ export async function modifierBien(
       city: String(formData.get("city") ?? "").trim(),
       annee_construction: annee ? Number(annee) : null,
       copropriete: formData.get("copropriete") === "on",
+      zone_tendue: formData.get("zone_tendue") === "on",
     })
     .eq("id", bienId)
     .eq("organization_id", orgId);

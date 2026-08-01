@@ -139,8 +139,12 @@ export function FormulaireConge({
                 onChange={(e) => setReduit(e.target.checked)}
                 className="size-4"
               />
-              Préavis réduit à 1 mois (zone tendue, mutation, santé, perte d&apos;emploi…)
+              Préavis réduit à 1 mois (mutation, santé, perte d&apos;emploi, RSA/AAH…)
             </label>
+            <p className="text-xs text-muted-foreground">
+              En zone tendue, le préavis d&apos;un mois s&apos;applique de plein droit : inutile
+              de cocher, aucun justificatif n&apos;est exigible (la zone est portée par le bien).
+            </p>
             {reduit && (
               <Input
                 name="justificatif"

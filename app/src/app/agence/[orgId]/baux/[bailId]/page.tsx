@@ -12,6 +12,7 @@ import {
   FormulaireCreerEdl,
 } from "./formulaires-bail";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
+import { FormulaireColocation, type LigneColoc } from "./formulaire-colocation";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -37,8 +38,15 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     .maybeSingle();
   if (!bail) notFound();
 
-  const [{ data: lot }, { data: locataire }, { data: edls }, { data: conges }, { data: inventaire }] =
-    await Promise.all([
+  const [
+    { data: lot },
+    { data: locataire },
+    { data: edls },
+    { data: conges },
+    { data: inventaire },
+    { data: personnes },
+    { data: bailPersonnes },
+  ] = await Promise.all([
       supabase.from("lots").select("id, nom, bien_id").eq("id", bail.lot_id).maybeSingle(),
       bail.locataire_principal
         ? supabase.from("persons").select("nom, prenom").eq("id", bail.locataire_principal).maybeSingle()
@@ -59,7 +67,43 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .eq("bail_id", bailId)
         .order("ordre")
         .order("created_at"),
+      supabase
+        .from("persons")
+        .select("id, nom, prenom")
+        .eq("organization_id", orgId)
+        .order("nom"),
+      supabase
+        .from("bail_personnes")
+        .select("id, person_id, role, quote_part, surface_privative, garant_de")
+        .eq("bail_id", bailId),
     ]);
+
+  // Résolution des noms pour la colocation (colocataires + garants nominatifs)
+  const nomsPersonnes = new Map(
+    ((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map((p) => [
+      p.id,
+      `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`,
+    ])
+  );
+  const lignesColoc: LigneColoc[] = (
+    (bailPersonnes ?? []) as {
+      id: string;
+      person_id: string;
+      role: string;
+      quote_part: number | null;
+      surface_privative: number | null;
+      garant_de: string | null;
+    }[]
+  ).map((l) => ({
+    id: l.id,
+    person_id: l.person_id,
+    person_nom: nomsPersonnes.get(l.person_id) ?? "Personne",
+    role: l.role,
+    quote_part: l.quote_part,
+    surface_privative: l.surface_privative,
+    garant_de: l.garant_de,
+    garant_de_nom: l.garant_de ? nomsPersonnes.get(l.garant_de) ?? null : null,
+  }));
 
   const edlSignes = (edls ?? []).filter((e) => e.etat === "signe");
   const { data: comparatif } =
@@ -149,6 +193,35 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 <span className="font-medium">{formaterDate(c.date_effet)}</span>
               </p>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Colocation (bail unique) : colocataires + garants */}
+      {bail.type === "colocation" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Colocataires & garants</CardTitle>
+            <CardDescription>
+              Bail unique solidaire : ajoutez les colocataires (quote-part) et les
+              garants (nominatifs).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireColocation
+              orgId={orgId}
+              bailId={bailId}
+              personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(
+                (p) => ({ id: p.id, nom: `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` })
+              )}
+              lignes={lignesColoc}
+              principal={{
+                id: bail.locataire_principal ?? "",
+                nom: locataire
+                  ? `${locataire.nom}${locataire.prenom ? ` ${locataire.prenom}` : ""}`
+                  : "—",
+              }}
+            />
           </CardContent>
         </Card>
       )}

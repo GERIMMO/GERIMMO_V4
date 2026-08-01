@@ -206,3 +206,57 @@ export async function supprimerInventaireLigne(
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Meuble retiré de l'inventaire." };
 }
+
+// Colocation (bail unique) : ajouter un colocataire (quote-part) ou un garant
+// (nominatif — quel colocataire il couvre, RM-1.3.8 + loi/pratique).
+export async function ajouterBailPersonne(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const personId = String(formData.get("person_id") ?? "");
+  const role = String(formData.get("role") ?? "colocataire");
+  if (!personId) return { erreur: "Choisissez la personne." };
+  if (role !== "colocataire" && role !== "garant") return { erreur: "Rôle invalide." };
+
+  const qp = String(formData.get("quote_part") ?? "").trim();
+  const surf = String(formData.get("surface_privative") ?? "").trim();
+  const garantDe = String(formData.get("garant_de") ?? "").trim();
+  if (role === "garant" && !garantDe) {
+    return { erreur: "Indiquez le colocataire couvert par ce garant." };
+  }
+
+  const { error } = await supabase.from("bail_personnes").insert({
+    organization_id: orgId,
+    bail_id: bailId,
+    person_id: personId,
+    role,
+    quote_part: role === "colocataire" && qp ? Number(qp) : null,
+    surface_privative: role === "colocataire" && surf ? Number(surf) : null,
+    garant_de: role === "garant" ? garantDe : null,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: role === "garant" ? "Garant ajouté." : "Colocataire ajouté." };
+}
+
+export async function supprimerBailPersonne(
+  orgId: string,
+  bailId: string,
+  ligneId: string
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { error } = await supabase
+    .from("bail_personnes")
+    .delete()
+    .eq("id", ligneId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Personne retirée du bail." };
+}

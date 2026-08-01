@@ -154,3 +154,51 @@ export async function enregistrerConge(
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Congé enregistré — bail en préavis." };
 }
+
+// Inventaire du mobilier (annexe obligatoire du bail meublé, décret 2015-981).
+export async function ajouterInventaireLigne(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const designation = String(formData.get("designation") ?? "").trim();
+  if (!designation) return { erreur: "La désignation du meuble est obligatoire." };
+  const piece = String(formData.get("piece") ?? "").trim() || null;
+  const quantite = Math.max(1, Math.floor(Number(formData.get("quantite") ?? 1)) || 1);
+  const etat = String(formData.get("etat") ?? "").trim() || null;
+  const observation = String(formData.get("observation") ?? "").trim() || null;
+
+  const { error } = await supabase.from("inventaire_lignes").insert({
+    bail_id: bailId,
+    organization_id: orgId,
+    designation,
+    piece,
+    quantite,
+    etat,
+    observation,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Meuble ajouté à l'inventaire." };
+}
+
+export async function supprimerInventaireLigne(
+  orgId: string,
+  bailId: string,
+  ligneId: string
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { error } = await supabase
+    .from("inventaire_lignes")
+    .delete()
+    .eq("id", ligneId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Meuble retiré de l'inventaire." };
+}

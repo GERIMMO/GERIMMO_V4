@@ -11,6 +11,7 @@ import {
   FormulaireConge,
   FormulaireCreerEdl,
 } from "./formulaires-bail";
+import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -36,22 +37,29 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     .maybeSingle();
   if (!bail) notFound();
 
-  const [{ data: lot }, { data: locataire }, { data: edls }, { data: conges }] = await Promise.all([
-    supabase.from("lots").select("id, nom, bien_id").eq("id", bail.lot_id).maybeSingle(),
-    bail.locataire_principal
-      ? supabase.from("persons").select("nom, prenom").eq("id", bail.locataire_principal).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from("etats_des_lieux")
-      .select("id, type, etat")
-      .eq("bail_id", bailId)
-      .order("type"),
-    supabase
-      .from("conges")
-      .select("par, date_premiere_presentation, preavis_mois, date_effet")
-      .eq("bail_id", bailId)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [{ data: lot }, { data: locataire }, { data: edls }, { data: conges }, { data: inventaire }] =
+    await Promise.all([
+      supabase.from("lots").select("id, nom, bien_id").eq("id", bail.lot_id).maybeSingle(),
+      bail.locataire_principal
+        ? supabase.from("persons").select("nom, prenom").eq("id", bail.locataire_principal).maybeSingle()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("etats_des_lieux")
+        .select("id, type, etat")
+        .eq("bail_id", bailId)
+        .order("type"),
+      supabase
+        .from("conges")
+        .select("par, date_premiere_presentation, preavis_mois, date_effet")
+        .eq("bail_id", bailId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("inventaire_lignes")
+        .select("id, piece, designation, quantite, etat, observation")
+        .eq("bail_id", bailId)
+        .order("ordre")
+        .order("created_at"),
+    ]);
 
   const edlSignes = (edls ?? []).filter((e) => e.etat === "signe");
   const { data: comparatif } =
@@ -141,6 +149,26 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 <span className="font-medium">{formaterDate(c.date_effet)}</span>
               </p>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Inventaire du mobilier (bail meublé) */}
+      {bail.type === "meuble" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Inventaire du mobilier</CardTitle>
+            <CardDescription>
+              Annexe obligatoire du bail meublé (décret 2015-1437), reprise dans
+              l&apos;état des lieux.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireInventaire
+              orgId={orgId}
+              bailId={bailId}
+              lignes={(inventaire ?? []) as LigneInventaire[]}
+            />
           </CardContent>
         </Card>
       )}

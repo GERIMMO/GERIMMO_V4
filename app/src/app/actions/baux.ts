@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
+import { cibleBlocage } from "@/lib/parc";
 
-export type EtatBail = { erreur?: string; succes?: string };
+export type BlocageActionable = { message: string; href: string; libelle: string };
+export type EtatBail = { erreur?: string; succes?: string; blocages?: BlocageActionable[] };
 
 // Créer un bail (brouillon) sur un lot.
 export async function creerBail(
@@ -86,7 +88,31 @@ export async function activerBail(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase.rpc("activer_bail", { p_bail: bailId });
-  if (error) return { erreur: error.message };
+  if (error) {
+    // Blocage de mise en location : on transforme chaque cause en action cliquable
+    // (bouton « Corriger » vers la bonne section de la fiche lot / bien).
+    if (error.message.includes("Mise en location bloquée")) {
+      const { data: bail } = await supabase
+        .from("baux")
+        .select("lot_id")
+        .eq("id", bailId)
+        .maybeSingle();
+      const { data: lot } = bail
+        ? await supabase.from("lots").select("id, bien_id").eq("id", bail.lot_id).maybeSingle()
+        : { data: null };
+      const { data: causes } = bail
+        ? await supabase.rpc("lot_blocages_location", { p_lot: bail.lot_id })
+        : { data: null };
+      if (lot && Array.isArray(causes) && causes.length > 0) {
+        const blocages = (causes as string[]).map((m) => ({
+          message: m,
+          ...cibleBlocage(m, { orgId, bienId: lot.bien_id, lotId: lot.id }),
+        }));
+        return { erreur: "Mise en location bloquée — à corriger :", blocages };
+      }
+    }
+    return { erreur: error.message };
+  }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Bail activé — le lot est loué, alerte d'EDL d'entrée créée." };
 }

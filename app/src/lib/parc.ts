@@ -195,3 +195,24 @@ export function formaterSurface(m2: number | string | null): string {
   if (m2 === null || m2 === "") return "—";
   return `${Number(m2).toLocaleString("fr-FR")} m²`;
 }
+
+// Rend un blocage de mise en location « actionnable » : à partir de son message
+// (issu de lot_blocages_location), renvoie où aller pour le lever. Les ancres
+// (#detention, #diagnostics, #caracteristiques) ouvrent la bonne section de la
+// fiche lot ; l'ERP se traite sur la fiche bien (diagnostic de parties communes).
+export type CibleBlocage = { href: string; libelle: string };
+
+export function cibleBlocage(
+  message: string,
+  ctx: { orgId: string; bienId: string; lotId: string }
+): CibleBlocage {
+  const bien = `/agence/${ctx.orgId}/parc/${ctx.bienId}`;
+  const lot = `${bien}/lots/${ctx.lotId}`;
+  const m = message.toLowerCase();
+  if (m.includes("surface")) return { href: `${lot}#caracteristiques`, libelle: "Renseigner la surface" };
+  if (m.includes("détention") || m.includes("detention"))
+    return { href: `${lot}#detention`, libelle: "Compléter la détention" };
+  if (m.includes("erp")) return { href: `${bien}#diagnostics`, libelle: "Déposer l'ERP (fiche bien)" };
+  // DPE et autres diagnostics rattachés au lot (électricité, gaz, plomb, amiante privatif)
+  return { href: `${lot}#diagnostics`, libelle: "Mettre à jour les diagnostics" };
+}

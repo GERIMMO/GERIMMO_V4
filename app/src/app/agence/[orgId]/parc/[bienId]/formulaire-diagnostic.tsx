@@ -128,17 +128,19 @@ export function FormulaireDiagnostic({
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor={`diag-fichier-${niveau}`}>
-            Rapport du diagnostiqueur (facultatif)
+            Rapport du diagnostiqueur
           </Label>
           <Input
             id={`diag-fichier-${niveau}`}
             name="fichier"
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
+            required
           />
           <p className="text-xs text-muted-foreground">
-            PDF, JPEG ou PNG (10 Mo max) — déposé dans la GED et lié au
-            diagnostic, chaque consultation tracée.
+            Obligatoire — le diagnostic est annexé au bail. PDF, JPEG ou PNG
+            (10 Mo max), déposé dans la GED et lié au diagnostic, chaque
+            consultation tracée.
           </p>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import {
   deposerBailSigne,
@@ -8,7 +9,7 @@ import {
   type EtatBail,
 } from "@/app/actions/baux";
 import { creerEdl, type EtatEdl } from "@/app/actions/edl";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -41,6 +42,24 @@ export function BoutonActiverBail({ orgId, bailId }: { orgId: string; bailId: st
         {enCours ? "Activation…" : "Activer le bail"}
       </Button>
       {etat.erreur && <p className="mt-1 text-sm text-destructive">{etat.erreur}</p>}
+      {etat.blocages && etat.blocages.length > 0 && (
+        <ul className="mt-2 space-y-1.5">
+          {etat.blocages.map((b) => (
+            <li
+              key={b.message}
+              className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm"
+            >
+              <span className="min-w-0 flex-1 text-muted-foreground">{b.message}</span>
+              <Link
+                href={b.href}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                {b.libelle} →
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </form>
   );
 }

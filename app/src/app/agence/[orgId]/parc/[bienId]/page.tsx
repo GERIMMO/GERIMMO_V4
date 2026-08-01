@@ -163,7 +163,7 @@ export default async function PageBien(
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card id="diagnostics" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Diagnostics du bien</CardTitle>
             <CardDescription>

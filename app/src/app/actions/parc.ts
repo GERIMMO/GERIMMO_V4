@@ -341,24 +341,25 @@ export async function deposerDiagnostic(
     return { erreur: "Ce diagnostic se rattache à un lot : le déposer depuis la fiche lot." };
   }
 
-  // PDF du rapport (retour recette S2) : déposé dans la GED (type réel vérifié,
-  // anti-doublon, accès tracés) et lié au diagnostic
-  let documentId: string | null = null;
+  // PDF du rapport OBLIGATOIRE (arbitrage 2026-08-01) : le diagnostic est annexé
+  // au bail, on exige son rapport dès le dépôt. Déposé dans la GED (type réel
+  // vérifié, anti-doublon, accès tracés) et lié au diagnostic.
   const fichier = formData.get("fichier");
-  if (fichier instanceof File && fichier.size > 0) {
-    const depot = await deposerFichierGed(
-      supabase,
-      user,
-      orgId,
-      fichier,
-      "diagnostic",
-      `${referentiel.libelle} — ${realisation}`
-    );
-    if (depot.erreur || !depot.documentId) {
-      return { erreur: depot.erreur ?? "Échec du dépôt du fichier." };
-    }
-    documentId = depot.documentId;
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { erreur: "Le rapport (PDF) du diagnostic est obligatoire : il est annexé au bail." };
   }
+  const depot = await deposerFichierGed(
+    supabase,
+    user,
+    orgId,
+    fichier,
+    "diagnostic",
+    `${referentiel.libelle} — ${realisation}`
+  );
+  if (depot.erreur || !depot.documentId) {
+    return { erreur: depot.erreur ?? "Échec du dépôt du fichier." };
+  }
+  const documentId = depot.documentId;
 
   const { error } = await supabase.from("diagnostics").insert({
     organization_id: orgId,

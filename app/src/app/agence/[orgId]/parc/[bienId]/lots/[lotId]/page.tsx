@@ -10,6 +10,7 @@ import {
   statutDiagnostic,
   diagnosticsAttendus,
   alertesDecence,
+  cibleBlocage,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
 import {
@@ -176,25 +177,37 @@ export default async function PageLot(
               <p className="mb-1 font-medium">
                 Ce qui empêche la mise en location :
               </p>
-              <ul className="list-inside list-disc text-muted-foreground">
-                {(blocages as string[]).map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
+              <ul className="space-y-1.5">
+                {(blocages as string[]).map((b) => {
+                  const cible = cibleBlocage(b, { orgId, bienId, lotId });
+                  return (
+                    <li key={b} className="flex items-center justify-between gap-2">
+                      <span className="min-w-0 flex-1 text-muted-foreground">{b}</span>
+                      <Link
+                        href={cible.href}
+                        className={buttonVariants({ variant: "outline", size: "sm" })}
+                      >
+                        {cible.libelle} →
+                      </Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
           <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} />
 
           {/* Caractéristiques (récap + Modifier) */}
-          <div className="border-t border-border pt-4">
+          <div id="caracteristiques" className="scroll-mt-20 border-t border-border pt-4">
             <p className="mb-3 text-sm font-medium">Caractéristiques du lot</p>
             <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
           </div>
 
           {/* Détention */}
           <SectionLot
+            id="detention"
             titre="Détention"
-            ouvertParDefaut={detentionsActives.length === 0}
+            ouvertParDefaut={detentionsActives.length === 0 || totalQuoteParts !== 100}
             resume={
               detentionsActives.length === 0
                 ? "Aucun propriétaire"
@@ -268,6 +281,7 @@ export default async function PageLot(
 
           {/* Diagnostics */}
           <SectionLot
+            id="diagnostics"
             titre="Diagnostics du lot"
             ouvertParDefaut={manquants.length > 0}
             resume={
@@ -327,6 +341,7 @@ export default async function PageLot(
 
           {/* Équipements */}
           <SectionLot
+            id="equipements"
             titre="Équipements"
             resume={
               nbEquip === 0
@@ -345,6 +360,7 @@ export default async function PageLot(
 
           {/* Baux & état des lieux */}
           <SectionLot
+            id="baux"
             titre="Baux & état des lieux"
             resume={
               nbBaux === 0

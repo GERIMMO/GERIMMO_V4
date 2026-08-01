@@ -198,4 +198,43 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
     } = await db.query(`select public.finaliser_decompte($1) as solde`, [rst]);
     expect(Number(solde)).toBe(700);
   });
+
+  it("encaissement du dépôt : plafond légal bloquant (bail nu = 1 mois)", async () => {
+    // loyer_hc 700, bail nu → plafond 700 ; dépôt de 900 refusé
+    const bail = await bailAvecDepot(900);
+    await attendreEchec(
+      db,
+      /plafond légal/,
+      `select public.encaisser_depot($1,900,current_date,'virement',null,null)`,
+      [bail]
+    );
+  });
+
+  it("encaissement partiel puis solde, sans dépasser le dépôt dû", async () => {
+    const bail = await bailAvecDepot(700);
+    // 400 puis 300 → cumul 700
+    const { rows: r1 } = await db.query(
+      `select public.encaisser_depot($1,400,current_date,'virement',null,null) as cumul`,
+      [bail]
+    );
+    expect(Number(r1[0].cumul)).toBe(400);
+    const { rows: r2 } = await db.query(
+      `select public.encaisser_depot($1,300,current_date,'cheque',$2,null) as cumul`,
+      [bail, proprietaire]
+    );
+    expect(Number(r2[0].cumul)).toBe(700);
+    // Un euro de plus dépasse le dépôt dû
+    await attendreEchec(
+      db,
+      /dépasse le dépôt dû restant/,
+      `select public.encaisser_depot($1,1,current_date,'espèces',null,null)`,
+      [bail]
+    );
+    // Versant tiers tracé
+    const enc = await db.query(
+      `select versant_person_id from public.depot_encaissements where bail_id=$1 and montant=300`,
+      [bail]
+    );
+    expect(enc.rows[0].versant_person_id).toBe(proprietaire);
+  });
 });

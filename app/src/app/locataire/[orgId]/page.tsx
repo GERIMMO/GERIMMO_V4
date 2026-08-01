@@ -47,6 +47,13 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
   }[])[0];
   const TYPES_BAIL: Record<string, string> = { nu: "nu", meuble: "meublé", colocation: "colocation" };
 
+  const { data: depotRows } = await supabase.rpc("mon_depot_locataire", { p_org: orgId });
+  const depot = ((depotRows ?? []) as {
+    depot_du: number;
+    encaisse: number;
+    derniere_date: string | null;
+  }[])[0];
+
   const { data: echeancier } = await supabase.rpc("mon_echeancier_locataire", { p_org: orgId });
   const lignesLoyer = (echeancier ?? []) as {
     periode: string;
@@ -91,6 +98,15 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
               {bail.charges ? ` + ${bail.charges} € de charges` : ""}
             </p>
             {bail.date_debut && <p className="text-muted-foreground">Depuis le {bail.date_debut}</p>}
+            {depot && Number(depot.depot_du) > 0 && (
+              <p className="mt-1 text-muted-foreground">
+                Dépôt de garantie : {eur(Number(depot.encaisse))} encaissé
+                {Number(depot.encaisse) < Number(depot.depot_du)
+                  ? ` sur ${eur(Number(depot.depot_du))}`
+                  : ""}
+                {depot.derniere_date ? ` (le ${depot.derniere_date})` : ""}
+              </p>
+            )}
           </CardContent>
         </Card>
       )}

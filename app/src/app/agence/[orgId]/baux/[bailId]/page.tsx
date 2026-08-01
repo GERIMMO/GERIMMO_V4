@@ -27,6 +27,7 @@ import {
   type Restitution,
   type Retenue,
 } from "./formulaire-restitution";
+import { FormulaireDepot, type EncaissementDepot } from "./formulaire-depot";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -170,6 +171,15 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ])
     : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
+  // Encaissement du dépôt : dès que le bail n'est plus en brouillon
+  const { data: depotEncaissements } = loyersActif
+    ? await supabase
+        .from("depot_encaissements")
+        .select("id, montant, date_encaissement, moyen, versant_libelle, versant_person_id")
+        .eq("bail_id", bailId)
+        .order("date_encaissement")
+    : { data: [] };
+
   // Restitution du dépôt : dès que le bail est en préavis ou terminé
   const restitutionActif = bail.etat === "preavis" || bail.etat === "termine";
   const { data: restitution } = restitutionActif
@@ -290,6 +300,33 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               revisions={(revisions ?? []) as Revision[]}
               relances={(relances ?? []) as RelanceLigne[]}
               regularisations={(regularisations ?? []) as RegulLigne[]}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dépôt de garantie — encaissement */}
+      {loyersActif && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Dépôt de garantie</CardTitle>
+            <CardDescription>
+              Encaissement à l&apos;entrée : plafond légal contrôlé, versant tiers tracé,
+              encaissement partiel possible. Restitué en fin de bail.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireDepot
+              orgId={orgId}
+              bailId={bailId}
+              depotDu={Number(bail.depot_garantie ?? 0)}
+              encaissements={(depotEncaissements ?? []) as EncaissementDepot[]}
+              personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(
+                (p) => ({ id: p.id, nom: `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` })
+              )}
+              locataireNom={
+                locataire ? `${locataire.nom}${locataire.prenom ? ` ${locataire.prenom}` : ""}` : "Le locataire"
+              }
             />
           </CardContent>
         </Card>

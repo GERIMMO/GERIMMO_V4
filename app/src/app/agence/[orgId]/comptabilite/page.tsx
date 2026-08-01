@@ -142,7 +142,15 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Journal</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">Journal</CardTitle>
+            <a
+              href={`/agence/${orgId}/comptabilite/export`}
+              className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Exporter (CSV)
+            </a>
+          </div>
         </CardHeader>
         <CardContent>
           {lignes.length === 0 ? (

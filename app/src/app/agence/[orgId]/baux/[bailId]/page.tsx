@@ -22,6 +22,11 @@ import {
   type RelanceLigne,
   type RegulLigne,
 } from "./formulaire-loyers";
+import {
+  FormulaireRestitution,
+  type Restitution,
+  type Retenue,
+} from "./formulaire-restitution";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -164,6 +169,25 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .order("annee", { ascending: false }),
       ])
     : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
+
+  // Restitution du dépôt : dès que le bail est en préavis ou terminé
+  const restitutionActif = bail.etat === "preavis" || bail.etat === "termine";
+  const { data: restitution } = restitutionActif
+    ? await supabase
+        .from("restitutions")
+        .select(
+          "id, date_remise_cles, delai_mois, depot, impayes, sans_edl_entree, statut, solde, date_emission"
+        )
+        .eq("bail_id", bailId)
+        .maybeSingle()
+    : { data: null };
+  const { data: retenues } = restitution
+    ? await supabase
+        .from("retenues")
+        .select("id, libelle, cout, duree_vie_ans, age_ans, montant_retenu")
+        .eq("restitution_id", (restitution as { id: string }).id)
+        .order("created_at")
+    : { data: [] };
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 p-6">
@@ -354,6 +378,27 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           {(edls ?? []).length < 2 && <FormulaireCreerEdl orgId={orgId} bailId={bailId} />}
         </CardContent>
       </Card>
+
+      {/* Restitution du dépôt de garantie */}
+      {restitutionActif && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Restitution du dépôt de garantie</CardTitle>
+            <CardDescription>
+              Après la remise des clés : impayés imputés d&apos;abord, retenues avec
+              décote de vétusté justifiées, solde de tout compte dans le délai légal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireRestitution
+              orgId={orgId}
+              bailId={bailId}
+              restitution={(restitution ?? null) as Restitution | null}
+              retenues={(retenues ?? []) as Retenue[]}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Comparatif entrée/sortie */}
       {comparatif && (

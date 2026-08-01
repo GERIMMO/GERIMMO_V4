@@ -126,6 +126,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? await supabase.rpc("comparatif_edl", { p_bail: bailId })
       : { data: null };
   const ecarts = ((comparatif ?? []) as {
+    piece: string | null;
     libelle: string;
     etat_entree: string | null;
     etat_sortie: string | null;
@@ -454,8 +455,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ) : (
               <ul className="space-y-1 text-sm">
                 {ecarts.map((c) => (
-                  <li key={c.libelle} className="flex items-center gap-2">
-                    <span className="w-36 shrink-0 truncate">{c.libelle}</span>
+                  <li key={`${c.piece ?? ""}-${c.libelle}`} className="flex items-center gap-2">
+                    <span className="w-44 shrink-0 truncate">
+                      {c.piece ? <span className="text-muted-foreground">{c.piece} · </span> : null}
+                      {c.libelle}
+                    </span>
                     <span className="text-muted-foreground">
                       {c.etat_entree ? ETATS_ELEMENT[c.etat_entree] ?? c.etat_entree : "—"} →{" "}
                     </span>

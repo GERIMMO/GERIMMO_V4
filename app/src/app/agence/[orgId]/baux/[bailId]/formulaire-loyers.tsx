@@ -7,6 +7,7 @@ import {
   ajouterEncaissement,
   supprimerEncaissement,
   emettreQuittances,
+  envoyerQuittance,
   reviserLoyer,
   ajouterRelance,
   supprimerRelance,
@@ -33,7 +34,13 @@ export type Encaissement = {
   mode: string | null;
   note: string | null;
 };
-export type Quittance = { id: string; appel_id: string; montant: number; date_emission: string };
+export type Quittance = {
+  id: string;
+  appel_id: string;
+  montant: number;
+  date_emission: string;
+  email_envoye_at: string | null;
+};
 export type Revision = {
   id: string;
   date_effet: string;
@@ -117,7 +124,7 @@ export function FormulaireLoyers({
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const solde = totalDu - totalEncaisse;
-  const quittanceParAppel = new Map(quittances.map((q) => [q.appel_id, q.id]));
+  const quittanceParAppel = new Map(quittances.map((q) => [q.appel_id, q]));
 
   return (
     <div className="space-y-5">
@@ -161,15 +168,30 @@ export function FormulaireLoyers({
                   couvert {eur(l.montant_couvert)} · échéance {formaterDate(l.date_echeance)}
                 </span>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${st.classe}`}>{st.label}</span>
-                {quittanceParAppel.has(l.appel_id) && (
-                  <Link
-                    href={`/quittance/${quittanceParAppel.get(l.appel_id)}`}
-                    target="_blank"
-                    className="shrink-0 text-xs text-success-soft-foreground underline-offset-2 hover:underline"
-                  >
-                    ✓ quittance
-                  </Link>
-                )}
+                {(() => {
+                  const q = quittanceParAppel.get(l.appel_id);
+                  if (!q) return null;
+                  return (
+                    <span className="flex shrink-0 items-center gap-2">
+                      <Link
+                        href={`/quittance/${q.id}`}
+                        target="_blank"
+                        className="text-xs text-success-soft-foreground underline-offset-2 hover:underline"
+                      >
+                        ✓ quittance
+                      </Link>
+                      {q.email_envoye_at ? (
+                        <span className="text-xs text-muted-foreground">✉ envoyée</span>
+                      ) : (
+                        <form action={async () => { await envoyerQuittance(orgId, bailId, q.id); }}>
+                          <Button type="submit" variant="ghost" size="sm" className="h-6 px-2 text-xs">
+                            Envoyer
+                          </Button>
+                        </form>
+                      )}
+                    </span>
+                  );
+                })()}
               </li>
             );
           })}

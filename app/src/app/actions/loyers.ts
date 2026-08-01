@@ -1,10 +1,74 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
+import { envoyerEmail } from "@/lib/email";
 
 export type EtatLoyers = { erreur?: string; succes?: string };
+
+const eurE = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
+
+// Envoyer une quittance par email au locataire (API Resend).
+export async function envoyerQuittance(
+  orgId: string,
+  bailId: string,
+  quittanceId: string
+): Promise<EtatLoyers> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { data: bail } = await supabase
+    .from("baux")
+    .select("locataire_principal")
+    .eq("id", bailId)
+    .maybeSingle();
+  const { data: loc } = bail?.locataire_principal
+    ? await supabase.from("persons").select("email, nom, prenom").eq("id", bail.locataire_principal).maybeSingle()
+    : { data: null };
+  if (!loc?.email) return { erreur: "Le locataire n'a pas d'email renseigné." };
+
+  const { data } = await supabase.rpc("quittance_detail", { p_quittance: quittanceId });
+  const q = ((data ?? []) as {
+    emetteur: string;
+    periode: string;
+    loyer_hc: number;
+    charges: number;
+    montant: number;
+    est_quittance: boolean;
+  }[])[0];
+  if (!q) return { erreur: "Quittance introuvable." };
+
+  const mois = new Date(q.periode).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+  const origine = (await headers()).get("origin") ?? "";
+  const lien = `${origine}/quittance/${quittanceId}`;
+  const titre = q.est_quittance ? "Quittance de loyer" : "Reçu de paiement";
+  const html = `
+    <div style="font-family:sans-serif;font-size:14px;color:#111">
+      <h2>${titre} — ${mois}</h2>
+      <p>Bonjour${loc.prenom ? " " + loc.prenom : ""},</p>
+      <p>Veuillez trouver votre ${titre.toLowerCase()} de <strong>${mois}</strong> :</p>
+      <ul>
+        <li>Loyer hors charges : ${eurE(q.loyer_hc)}</li>
+        <li>Provision pour charges : ${eurE(q.charges)}</li>
+        <li><strong>Total : ${eurE(q.montant)}</strong></li>
+      </ul>
+      <p><a href="${lien}">Consulter / imprimer le document</a></p>
+      <p>— ${q.emetteur}</p>
+    </div>`;
+
+  const envoi = await envoyerEmail({ to: loc.email, subject: `${titre} — ${mois}`, html });
+  if (envoi.erreur) return { erreur: envoi.erreur };
+
+  await supabase
+    .from("quittances")
+    .update({ email_envoye_at: new Date().toISOString() })
+    .eq("id", quittanceId)
+    .eq("organization_id", orgId);
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: `Quittance envoyée à ${loc.email}.` };
+}
 
 // Relance d'impayé ou mise en demeure (LRAR hors plateforme : date de 1re présentation).
 export async function ajouterRelance(

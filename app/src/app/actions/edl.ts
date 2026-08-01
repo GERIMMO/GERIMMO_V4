@@ -62,6 +62,94 @@ export async function majGrilleEdl(
   return { succes: "Grille enregistrée." };
 }
 
+// Relevés de compteurs de l'EDL (eau, gaz, électricité).
+export async function ajouterCompteur(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  _etat: EtatEdl,
+  formData: FormData
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const type = String(formData.get("type") ?? "").trim();
+  if (!type) return { erreur: "Choisissez le type de compteur." };
+  const numero = String(formData.get("numero") ?? "").trim() || null;
+  const releveStr = String(formData.get("releve") ?? "").trim();
+  const { error } = await supabase.from("edl_compteurs").insert({
+    edl_id: edlId,
+    organization_id: orgId,
+    type,
+    numero,
+    releve: releveStr ? Number(releveStr) : null,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: "Relevé de compteur ajouté." };
+}
+
+export async function supprimerCompteur(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  compteurId: string
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { error } = await supabase
+    .from("edl_compteurs")
+    .delete()
+    .eq("id", compteurId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: "Relevé retiré." };
+}
+
+// Clés / badges remis (et restitution en sortie).
+export async function ajouterCle(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  _etat: EtatEdl,
+  formData: FormData
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const libelle = String(formData.get("libelle") ?? "").trim();
+  if (!libelle) return { erreur: "Précisez le type de clé." };
+  const nombre = Math.max(0, Math.floor(Number(formData.get("nombre") ?? 1)) || 0);
+  const reference = String(formData.get("reference") ?? "").trim() || null;
+  const { error } = await supabase.from("edl_cles").insert({
+    edl_id: edlId,
+    organization_id: orgId,
+    libelle,
+    nombre,
+    reference,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: "Clé ajoutée." };
+}
+
+export async function supprimerCle(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  cleId: string
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { error } = await supabase
+    .from("edl_cles")
+    .delete()
+    .eq("id", cleId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: "Clé retirée." };
+}
+
 // Signer l'EDL (aucune ligne sans état ; fige ensuite).
 export async function signerEdl(
   orgId: string,

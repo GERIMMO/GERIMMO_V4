@@ -386,6 +386,45 @@ export async function deposerDiagnostic(
   return { succes: `${referentiel.libelle} déposé.` };
 }
 
+// Pièces du lot : la vraie liste (Séjour, Chambre 1…) qui sert à générer la
+// grille d'état des lieux pièce par pièce (le champ lots.pieces reste le compteur).
+export async function ajouterPieceLot(
+  orgId: string,
+  bienId: string,
+  lotId: string,
+  _etat: EtatParc,
+  formData: FormData
+): Promise<EtatParc> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const nom = String(formData.get("nom") ?? "").trim();
+  if (!nom) return { erreur: "Le nom de la pièce est obligatoire." };
+  const { error } = await supabase
+    .from("lot_pieces")
+    .insert({ lot_id: lotId, organization_id: orgId, nom });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  return { succes: `Pièce « ${nom} » ajoutée.` };
+}
+
+export async function supprimerPieceLot(
+  orgId: string,
+  bienId: string,
+  lotId: string,
+  pieceId: string
+): Promise<EtatParc> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { error } = await supabase
+    .from("lot_pieces")
+    .delete()
+    .eq("id", pieceId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  return { succes: "Pièce retirée." };
+}
+
 // Informations pratiques du logement/immeuble (destinées au locataire) :
 // consignes libres saisies par le gérant, une fiche par bien (upsert).
 export async function enregistrerInfosPratiques(

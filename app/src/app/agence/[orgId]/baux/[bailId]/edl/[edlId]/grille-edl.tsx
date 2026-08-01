@@ -16,10 +16,27 @@ export const ETATS_ELEMENT: Record<string, string> = {
 type Ligne = {
   id: string;
   categorie: string;
+  piece: string | null;
   libelle: string;
   etat: string | null;
   commentaire: string | null;
 };
+
+// Regroupe les lignes par pièce (ou « Équipements » / « Général » pour les lignes
+// sans pièce), en préservant l'ordre d'apparition.
+function grouper(lignes: Ligne[]): { titre: string; lignes: Ligne[] }[] {
+  const groupes: { titre: string; lignes: Ligne[] }[] = [];
+  const index = new Map<string, number>();
+  for (const l of lignes) {
+    const titre = l.piece ?? (l.categorie === "equipement" ? "Équipements" : "Général");
+    if (!index.has(titre)) {
+      index.set(titre, groupes.length);
+      groupes.push({ titre, lignes: [] });
+    }
+    groupes[index.get(titre)!].lignes.push(l);
+  }
+  return groupes;
+}
 
 export function GrilleEdl({
   orgId,
@@ -41,16 +58,21 @@ export function GrilleEdl({
 
   if (signe) {
     return (
-      <div className="space-y-1">
-        {lignes.map((l) => (
-          <div key={l.id} className="flex items-center gap-3 border-b border-border py-1.5 text-sm">
-            <span className="w-40 shrink-0 truncate">{l.libelle}</span>
-            <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
-              {l.etat ? ETATS_ELEMENT[l.etat] ?? l.etat : "—"}
-            </span>
-            {l.commentaire && (
-              <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.commentaire}</span>
-            )}
+      <div className="space-y-3">
+        {grouper(lignes).map((g) => (
+          <div key={g.titre} className="space-y-1">
+            <p className="text-sm font-semibold">{g.titre}</p>
+            {g.lignes.map((l) => (
+              <div key={l.id} className="flex items-center gap-3 border-b border-border py-1.5 text-sm">
+                <span className="w-40 shrink-0 truncate">{l.libelle}</span>
+                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                  {l.etat ? ETATS_ELEMENT[l.etat] ?? l.etat : "—"}
+                </span>
+                {l.commentaire && (
+                  <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.commentaire}</span>
+                )}
+              </div>
+            ))}
           </div>
         ))}
         <p className="pt-3 text-sm text-success-soft-foreground">
@@ -62,28 +84,33 @@ export function GrilleEdl({
 
   return (
     <div className="space-y-4">
-      <form action={formMaj} className="space-y-1">
-        {lignes.map((l) => (
-          <div key={l.id} className="flex flex-wrap items-center gap-2 border-b border-border py-1.5">
-            <span className="w-36 shrink-0 truncate text-sm">{l.libelle}</span>
-            <select
-              name={`etat_${l.id}`}
-              defaultValue={l.etat ?? ""}
-              className="h-8 w-28 rounded-md border border-input bg-transparent px-2 text-sm"
-            >
-              <option value="">— état —</option>
-              {Object.entries(ETATS_ELEMENT).map(([v, lib]) => (
-                <option key={v} value={v}>
-                  {lib}
-                </option>
-              ))}
-            </select>
-            <Input
-              name={`commentaire_${l.id}`}
-              defaultValue={l.commentaire ?? ""}
-              placeholder="commentaire"
-              className="h-8 min-w-40 flex-1 text-sm"
-            />
+      <form action={formMaj} className="space-y-3">
+        {grouper(lignes).map((g) => (
+          <div key={g.titre} className="space-y-1">
+            <p className="text-sm font-semibold">{g.titre}</p>
+            {g.lignes.map((l) => (
+              <div key={l.id} className="flex flex-wrap items-center gap-2 border-b border-border py-1.5">
+                <span className="w-36 shrink-0 truncate text-sm">{l.libelle}</span>
+                <select
+                  name={`etat_${l.id}`}
+                  defaultValue={l.etat ?? ""}
+                  className="h-8 w-28 rounded-md border border-input bg-transparent px-2 text-sm"
+                >
+                  <option value="">— état —</option>
+                  {Object.entries(ETATS_ELEMENT).map(([v, lib]) => (
+                    <option key={v} value={v}>
+                      {lib}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  name={`commentaire_${l.id}`}
+                  defaultValue={l.commentaire ?? ""}
+                  placeholder="commentaire"
+                  className="h-8 min-w-40 flex-1 text-sm"
+                />
+              </div>
+            ))}
           </div>
         ))}
         <div className="flex items-center gap-3 pt-3">

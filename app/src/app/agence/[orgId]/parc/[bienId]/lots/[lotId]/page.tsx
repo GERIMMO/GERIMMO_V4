@@ -31,6 +31,7 @@ import {
   BoutonRouvrirDetention,
 } from "./formulaire-detention";
 import { FormulaireEquipementsLot } from "./formulaire-equipements-lot";
+import { FormulairePiecesLot, type PieceLot } from "./formulaire-pieces-lot";
 import { FormulaireBailLot } from "./formulaire-bail-lot";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -60,6 +61,7 @@ export default async function PageLot(
     { data: blocages },
     { data: baux },
     { data: proprietaires },
+    { data: piecesLot },
   ] = await Promise.all([
     supabase
       .from("lots")
@@ -113,6 +115,12 @@ export default async function PageLot(
       .select("person_id")
       .eq("organization_id", orgId)
       .is("date_fin", null),
+    supabase
+      .from("lot_pieces")
+      .select("id, nom")
+      .eq("lot_id", lotId)
+      .order("ordre")
+      .order("created_at"),
   ]);
   if (!lot || !bien) notFound();
 
@@ -355,6 +363,24 @@ export default async function PageLot(
               lotId={lotId}
               catalogue={catalogue ?? []}
               selection={(equipesLot ?? []).map((e) => e.equipement_id)}
+            />
+          </SectionLot>
+
+          {/* Pièces (pour la grille d'état des lieux) */}
+          <SectionLot
+            id="pieces"
+            titre="Pièces (état des lieux)"
+            resume={
+              (piecesLot ?? []).length === 0
+                ? "Aucune pièce définie"
+                : (piecesLot as PieceLot[]).map((p) => p.nom).join(", ")
+            }
+          >
+            <FormulairePiecesLot
+              orgId={orgId}
+              bienId={bienId}
+              lotId={lotId}
+              pieces={(piecesLot ?? []) as PieceLot[]}
             />
           </SectionLot>
 

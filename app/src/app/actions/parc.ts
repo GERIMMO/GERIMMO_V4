@@ -114,6 +114,7 @@ export async function modifierLot(
     etage: String(formData.get("etage") ?? "").trim() || null,
     description: String(formData.get("description") ?? "").trim() || null,
     tantieme: tantieme ? Number(tantieme) : null,
+    identifiant_fiscal: String(formData.get("identifiant_fiscal") ?? "").trim() || null,
   };
   for (const champ of ["surface_m2", "surface_carrez", "pieces"]) {
     if (formData.has(champ)) {
@@ -361,6 +362,10 @@ export async function deposerDiagnostic(
   }
   const documentId = depot.documentId;
 
+  // Classe énergétique (DPE uniquement) — sert au blocage « classe G interdite »
+  const classe = String(formData.get("classe_dpe") ?? "").trim().toUpperCase();
+  const classeDpe = type === "dpe" && /^[A-G]$/.test(classe) ? classe : null;
+
   const { error } = await supabase.from("diagnostics").insert({
     organization_id: orgId,
     bien_id: auLot ? null : bienId,
@@ -370,6 +375,7 @@ export async function deposerDiagnostic(
     date_expiration: expiration || null,
     diagnostiqueur: diagnostiqueur || null,
     document_id: documentId,
+    classe_dpe: classeDpe,
   });
   if (error) return { erreur: error.message };
 

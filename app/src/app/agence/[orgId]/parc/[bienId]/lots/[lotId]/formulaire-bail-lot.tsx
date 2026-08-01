@@ -74,6 +74,33 @@ export function FormulaireBailLot({
           <Label htmlFor="bail-jour">Jour d&apos;échéance</Label>
           <Input id="bail-jour" name="jour_echeance" type="number" min="1" max="28" defaultValue="1" />
         </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="bail-irl">Trimestre IRL de référence</Label>
+          <select
+            id="bail-irl"
+            name="irl_trimestre"
+            defaultValue=""
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="">—</option>
+            {["T1", "T2", "T3", "T4"].map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2 pt-6">
+          <input
+            id="bail-revision"
+            name="revision_irl"
+            type="checkbox"
+            value="on"
+            defaultChecked
+            className="size-4"
+          />
+          <Label htmlFor="bail-revision">Clause de révision annuelle (IRL)</Label>
+        </div>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       <Button type="submit" size="sm" disabled={enCours}>

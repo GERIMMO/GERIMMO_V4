@@ -27,6 +27,8 @@ export async function creerBail(
   const charges = String(formData.get("charges") ?? "").trim();
   const depot = String(formData.get("depot_garantie") ?? "").trim();
   const jour = String(formData.get("jour_echeance") ?? "1").trim();
+  const irlTrimestre = String(formData.get("irl_trimestre") ?? "").trim() || null;
+  const revisionIrl = formData.get("revision_irl") === "on";
   if (!locataire) return { erreur: "Choisissez le locataire principal." };
 
   const { data, error } = await supabase
@@ -41,6 +43,8 @@ export async function creerBail(
       charges: charges ? Number(charges) : null,
       depot_garantie: depot ? Number(depot) : null,
       jour_echeance: jour ? Number(jour) : 1,
+      irl_trimestre: irlTrimestre,
+      revision_irl: revisionIrl,
     })
     .select("id")
     .single();

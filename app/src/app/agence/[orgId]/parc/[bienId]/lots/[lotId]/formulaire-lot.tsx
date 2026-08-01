@@ -16,6 +16,7 @@ export type LotFormulaire = {
   etage: string | null;
   description: string | null;
   tantieme: number | null;
+  identifiant_fiscal: string | null;
 };
 
 export function FormulaireLot({
@@ -42,6 +43,16 @@ export function FormulaireLot({
         <div className="space-y-2">
           <Label htmlFor="lot-etage">Étage</Label>
           <Input id="lot-etage" name="etage" maxLength={40} defaultValue={lot.etage ?? ""} />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="lot-fiscal">Identifiant fiscal du logement</Label>
+          <Input
+            id="lot-fiscal"
+            name="identifiant_fiscal"
+            maxLength={20}
+            defaultValue={lot.identifiant_fiscal ?? ""}
+            placeholder="13 chiffres (avis de taxe foncière) — obligatoire au bail"
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="lot-surface-form">Surface (m²)</Label>

@@ -99,6 +99,27 @@ export function FormulaireDiagnostic({
             placeholder="Cabinet (facultatif)"
           />
         </div>
+        {type === "dpe" && (
+          <div className="space-y-1.5">
+            <Label htmlFor={`diag-classe-${niveau}`}>Classe énergétique (DPE)</Label>
+            <select
+              id={`diag-classe-${niveau}`}
+              name="classe_dpe"
+              defaultValue=""
+              className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+            >
+              <option value="">—</option>
+              {["A", "B", "C", "D", "E", "F", "G"].map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Classe G : logement interdit à la location (loi Climat).
+            </p>
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor={`diag-realisation-${niveau}`}>Réalisé le</Label>
           <Input

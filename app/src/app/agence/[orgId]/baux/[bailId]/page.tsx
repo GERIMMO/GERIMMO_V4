@@ -19,6 +19,8 @@ import {
   type Encaissement,
   type Quittance,
   type Revision,
+  type RelanceLigne,
+  type RegulLigne,
 } from "./formulaire-loyers";
 
 export const metadata = { title: "Bail — Gerimmo" };
@@ -126,23 +128,39 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
   // Loyers (dès que le bail n'est plus en brouillon)
   const loyersActif = bail.etat !== "brouillon";
-  const [{ data: echeancier }, { data: encaissements }, { data: quittances }, { data: revisions }] =
-    loyersActif
-      ? await Promise.all([
-          supabase.rpc("etat_loyers_bail", { p_bail: bailId }),
-          supabase
-            .from("encaissements")
-            .select("id, montant, date_paiement, mode, note")
-            .eq("bail_id", bailId)
-            .order("date_paiement", { ascending: false }),
-          supabase.from("quittances").select("id, appel_id, montant, date_emission").eq("bail_id", bailId),
-          supabase
-            .from("revisions_loyer")
-            .select("id, date_effet, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
-            .eq("bail_id", bailId)
-            .order("date_effet", { ascending: false }),
-        ])
-      : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }];
+  const [
+    { data: echeancier },
+    { data: encaissements },
+    { data: quittances },
+    { data: revisions },
+    { data: relances },
+    { data: regularisations },
+  ] = loyersActif
+    ? await Promise.all([
+        supabase.rpc("etat_loyers_bail", { p_bail: bailId }),
+        supabase
+          .from("encaissements")
+          .select("id, montant, date_paiement, mode, note")
+          .eq("bail_id", bailId)
+          .order("date_paiement", { ascending: false }),
+        supabase.from("quittances").select("id, appel_id, montant, date_emission").eq("bail_id", bailId),
+        supabase
+          .from("revisions_loyer")
+          .select("id, date_effet, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
+          .eq("bail_id", bailId)
+          .order("date_effet", { ascending: false }),
+        supabase
+          .from("relances")
+          .select("id, niveau, date_envoi, date_premiere_presentation, numero_recommande")
+          .eq("bail_id", bailId)
+          .order("date_envoi", { ascending: false }),
+        supabase
+          .from("regularisations_charges")
+          .select("id, annee, provisions, charges_reelles, ecart")
+          .eq("bail_id", bailId)
+          .order("annee", { ascending: false }),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 p-6">
@@ -243,6 +261,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               quittances={(quittances ?? []) as Quittance[]}
               revisionIrl={Boolean(bail.revision_irl)}
               revisions={(revisions ?? []) as Revision[]}
+              relances={(relances ?? []) as RelanceLigne[]}
+              regularisations={(regularisations ?? []) as RegulLigne[]}
             />
           </CardContent>
         </Card>

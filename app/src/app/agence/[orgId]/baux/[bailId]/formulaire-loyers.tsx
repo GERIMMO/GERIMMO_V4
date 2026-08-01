@@ -7,6 +7,9 @@ import {
   supprimerEncaissement,
   emettreQuittances,
   reviserLoyer,
+  ajouterRelance,
+  supprimerRelance,
+  regulariserCharges,
   type EtatLoyers,
 } from "@/app/actions/loyers";
 import { Button } from "@/components/ui/button";
@@ -38,6 +41,26 @@ export type Revision = {
   irl_reference: number;
   irl_nouveau: number;
 };
+export type RelanceLigne = {
+  id: string;
+  niveau: string;
+  date_envoi: string;
+  date_premiere_presentation: string | null;
+  numero_recommande: string | null;
+};
+export type RegulLigne = {
+  id: string;
+  annee: number;
+  provisions: number;
+  charges_reelles: number;
+  ecart: number;
+};
+
+const NIVEAU_RELANCE: Record<string, string> = {
+  relance_1: "Relance 1",
+  relance_2: "Relance 2",
+  mise_en_demeure: "Mise en demeure",
+};
 
 const STATUT: Record<string, { label: string; classe: string }> = {
   paye: { label: "Payé", classe: "bg-success-soft text-success-soft-foreground" },
@@ -58,6 +81,8 @@ export function FormulaireLoyers({
   quittances,
   revisionIrl,
   revisions,
+  relances,
+  regularisations,
 }: {
   orgId: string;
   bailId: string;
@@ -66,6 +91,8 @@ export function FormulaireLoyers({
   quittances: Quittance[];
   revisionIrl: boolean;
   revisions: Revision[];
+  relances: RelanceLigne[];
+  regularisations: RegulLigne[];
 }) {
   const [etatEnc, formEnc, enCoursEnc] = useActionState<EtatLoyers, FormData>(
     ajouterEncaissement.bind(null, orgId, bailId),
@@ -75,6 +102,16 @@ export function FormulaireLoyers({
     reviserLoyer.bind(null, orgId, bailId),
     {}
   );
+  const [etatRel, formRel, enCoursRel] = useActionState<EtatLoyers, FormData>(
+    ajouterRelance.bind(null, orgId, bailId),
+    {}
+  );
+  const [etatReg, formReg, enCoursReg] = useActionState<EtatLoyers, FormData>(
+    regulariserCharges.bind(null, orgId, bailId),
+    {}
+  );
+  const impaye = echeancier.some((l) => l.statut === "impaye");
+  const anneeDefaut = new Date().getUTCFullYear() - 1;
 
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
@@ -207,6 +244,94 @@ export function FormulaireLoyers({
           </p>
         </div>
       )}
+
+      {/* Impayés & relances */}
+      <div className="space-y-2 border-t border-border pt-4">
+        <p className="text-sm font-medium">
+          Relances{impaye && <span className="ml-2 text-xs text-destructive">impayé en cours</span>}
+        </p>
+        {relances.length > 0 && (
+          <ul className="divide-y divide-border">
+            {relances.map((r) => (
+              <li key={r.id} className="flex items-center gap-2 py-1.5 text-sm">
+                <span className="w-32 shrink-0">{NIVEAU_RELANCE[r.niveau] ?? r.niveau}</span>
+                <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                  envoyée {formaterDate(r.date_envoi)}
+                  {r.date_premiere_presentation && ` · 1re prés. ${formaterDate(r.date_premiere_presentation)}`}
+                  {r.numero_recommande && ` · R${r.numero_recommande}`}
+                </span>
+                <form action={async () => { await supprimerRelance(orgId, bailId, r.id); }}>
+                  <Button type="submit" variant="ghost" size="sm">✕</Button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form action={formRel} className="flex flex-wrap items-end gap-2">
+          <select name="niveau" defaultValue="relance_1" className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+            <option value="relance_1">Relance 1</option>
+            <option value="relance_2">Relance 2</option>
+            <option value="mise_en_demeure">Mise en demeure (LRAR)</option>
+          </select>
+          <div className="space-y-1">
+            <Label htmlFor="rel-date" className="text-xs">Envoyée le</Label>
+            <Input id="rel-date" name="date_envoi" type="date" className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="rel-pres" className="text-xs">1re présentation (MED)</Label>
+            <Input id="rel-pres" name="date_premiere_presentation" type="date" className="h-9" />
+          </div>
+          <Input name="numero_recommande" placeholder="N° recommandé" className="h-9 w-32" />
+          <Button type="submit" size="sm" variant="outline" disabled={enCoursRel}>
+            {enCoursRel ? "…" : "Enregistrer la relance"}
+          </Button>
+          {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
+        </form>
+        <p className="text-xs text-muted-foreground">
+          La mise en demeure part en LRAR hors plateforme ; saisissez la date de 1re présentation
+          (le délai court de là).
+        </p>
+      </div>
+
+      {/* Régularisation des charges */}
+      <div className="space-y-2 border-t border-border pt-4">
+        <p className="text-sm font-medium">Régularisation annuelle des charges</p>
+        {regularisations.length > 0 && (
+          <ul className="text-xs text-muted-foreground">
+            {regularisations.map((r) => (
+              <li key={r.id}>
+                {r.annee} : provisions {eur(r.provisions)} vs réel {eur(r.charges_reelles)} ={" "}
+                <span className={r.ecart >= 0 ? "text-success-soft-foreground" : "text-destructive"}>
+                  {r.ecart >= 0 ? `trop-perçu ${eur(r.ecart)}` : `complément ${eur(-r.ecart)}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <form action={formReg} className="flex flex-wrap items-end gap-2">
+          <div className="space-y-1">
+            <Label htmlFor="reg-annee" className="text-xs">Année</Label>
+            <Input id="reg-annee" name="annee" type="number" defaultValue={anneeDefaut} className="h-9 w-24" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="reg-reel" className="text-xs">Charges réelles (€)</Label>
+            <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" className="h-9 w-32" />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="reg-just" className="text-xs">Justificatif</Label>
+            <Input id="reg-just" name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9" />
+          </div>
+          <Button type="submit" size="sm" variant="outline" disabled={enCoursReg}>
+            {enCoursReg ? "…" : "Régulariser"}
+          </Button>
+          {etatReg.erreur && <p className="w-full text-sm text-destructive">{etatReg.erreur}</p>}
+          {etatReg.succes && <p className="w-full text-sm text-success-soft-foreground">{etatReg.succes}</p>}
+        </form>
+        <p className="text-xs text-muted-foreground">
+          Provisions calculées depuis les appels de l&apos;année (prorata inclus) ; justificatif
+          obligatoire, joint au décompte du locataire.
+        </p>
+      </div>
     </div>
   );
 }

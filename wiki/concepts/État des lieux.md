@@ -93,3 +93,13 @@ constat du refus, portée affaiblie · colocation → un seul EDL, signé par le
 Rattaché au [[Bail]] ; alerte d'entrée créée à la signature du bail, alerte de sortie
 au congé ([[Agenda et échéances]]) ; grille issue du [[Lot]] ; écarts consommés par la
 [[Restitution du dépôt de garantie]] ([[Dépôt de garantie]]) ; PDF en GED ([[Document]]).
+
+> [!info] Ce qui manque à la grille réelle (ingest bailpdf, 2026-08-01)
+> Voir [[Documents a generer et automatisation WhatsApp]]. Au-delà de la grille par
+> pièce (le stub actuel est une liste plate de 7 lignes), un EDL conforme exige :
+> **relevés de compteurs** (eau froide/chaude, gaz, élec HP/HC) à l'entrée ET à la
+> sortie · **clés/badges** (nombre + références, remise puis restitution) · **photos
+> horodatées** par ligne · chauffage (type + dernier entretien) et **DAAF** · en
+> sortie : **nouvelle adresse** du locataire + **chiffrage des dégradations**
+> (devis/factures). Pré-requis : modéliser les **pièces du lot** (aujourd'hui `pieces`
+> n'est qu'un nombre).

@@ -61,3 +61,9 @@ bail** ; côté preuve, « le bail fait foi » ([[Notification et valeur probant
 
 Conditionne l'état du [[Lot]] et la génération du [[Bail]] · alertes via
 [[Agenda et échéances]] (module 14) · stockage et versions : [[Document]].
+
+> [!info] Blocage DPE passoire (ingest bailpdf, 2026-08-01)
+> Au-delà de l'expiration, la **classe** du DPE bloque : location d'un logement classé
+> **G interdite** (2025), **F** à venir (2028). À ajouter : Gerimmo devrait **bloquer
+> la génération / l'activation d'un bail** si DPE = G (alerte si F) — cohérent avec la
+> révision IRL déjà bloquée en F/G. Voir [[Documents a generer et automatisation WhatsApp]].

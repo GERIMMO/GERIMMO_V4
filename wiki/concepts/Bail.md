@@ -135,3 +135,13 @@ colocataires.
 > - Le module 1 saisit la « date de réception » du congé ; la matrice demande le champ
 >   « **date de première présentation** » (RM-A3.5, rattachement prioritaire n° 1) —
 >   formulation à aligner en développement.
+
+> [!info] Champs manquants pour générer un bail conforme (ingest bailpdf, 2026-08-01)
+> Voir [[Documents a generer et automatisation WhatsApp]]. À stocker et non prévus
+> aujourd'hui : **identifiant fiscal du logement** (obligatoire 2024), **flag zone
+> tendue / encadrement**, loyer + date du **précédent locataire** (vacance < 18 mois),
+> **trimestre IRL** de référence, **plafond de dépôt dynamique** (1 mois nu / 2 meublé /
+> 0 mobilité), et pour la **colocation** : le modèle `baux.locataire_principal`
+> (singulier) est insuffisant → il faut **plusieurs locataires + quotes-parts + surface
+> privative + solidarité résiduelle 6 mois**. Blocage à ajouter : **DPE = G** interdit
+> la mise en location.

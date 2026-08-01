@@ -63,3 +63,14 @@ module 1.
 - Échéance de garantie alertée par le module 14 ([[Agenda et échéances]]).
 - En cas d'impayé, la mise en jeu de la garantie (relance du garant, sinistre GLI)
   s'opère **hors application** — voir [[Relances et mise en demeure]].
+
+> [!note] Étendue de l'engagement du garant en colocation — décision (humain, 2026-08-01)
+> Suit **la loi et la pratique** (arbitrage du garant, ingest [[2026-08-01-bailpdf-com]]) :
+> le garant est **rattaché à un colocataire nommé** (acte de cautionnement nominatif,
+> RM-1.3.8) ; si l'acte porte une **clause de solidarité**, le bailleur peut le
+> solliciter **au-delà de la part** de son colocataire (jusqu'au total) ; mais la **loi
+> ALUR plafonne** son engagement pour un colocataire **partant à 6 mois** après le
+> départ (ou dès l'acceptation d'un remplaçant). À stocker sur la garantie : **nature**
+> (simple / solidaire) et **durée** (déterminée / indéterminée). Le texte de la mention
+> légale doit suivre la **réforme 2022** (ordonnance 2021-1192), pas l'ancien « lu et
+> approuvé ». Voir [[Documents a generer et automatisation WhatsApp]].

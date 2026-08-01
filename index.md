@@ -105,6 +105,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-07-24-gerimmo-v3-module-18-administration|V3 · Module 18 — Administration]] — 3 rôles, paramétrage, facturation.
 - [[2026-07-24-gerimmo-v3-module-19-mobile|V3 · Module 19 — Mobile]] — site adapté, EDL hors ligne ; clôt le référentiel.
 - [[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs|V3 · Module 20 — Retours utilisateurs]] — bugs et idées.
+- [[2026-08-01-bailpdf-com|bailpdf.com]] — modèles de documents locatifs FR (bail, EDL, congés, caution…) ; reverse-engineering pour la génération Gerimmo.
 
 ## Synthèses
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).
@@ -115,6 +116,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.
 - [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.
 - [[Fonctionnalités par persona]] — matrice qui-fait-quoi (implémenté vs cible).
+- [[Documents a generer et automatisation WhatsApp]] — blueprint des documents (bail, EDL, congés…) : champ par champ AUTO vs à demander, données manquantes, surface de questions minimale pour le bot.
 - [[Récapitulatif fonctionnel et lacunes de spécification]] — **archivée** (snapshot du 2026-07-22, supplanté par le référentiel V3).
 
 ## Livrables (dossier `livrables/` — projets de documents)

@@ -123,7 +123,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <FormulaireConge orgId={orgId} bailId={bailId} />
+            <FormulaireConge orgId={orgId} bailId={bailId} type={bail.type} />
           </CardContent>
         </Card>
       )}

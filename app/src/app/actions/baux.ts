@@ -133,13 +133,22 @@ export async function enregistrerConge(
   const motif = String(formData.get("motif") ?? "").trim();
   if (!date) return { erreur: "Indiquez la date de première présentation." };
 
+  // Préavis réduit du locataire : justificatif déposé en GED, transmis au contrôle base.
+  let justificatif: string | null = null;
+  const fichier = formData.get("justificatif");
+  if (fichier instanceof File && fichier.size > 0) {
+    const res = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", "Justificatif de préavis réduit");
+    if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt du justificatif." };
+    justificatif = res.documentId;
+  }
+
   const { error } = await supabase.rpc("enregistrer_conge", {
     p_bail: bailId,
     p_par: par,
     p_date_presentation: date,
     p_preavis_mois: preavis,
     p_motif: motif || null,
-    p_justificatif: null,
+    p_justificatif: justificatif,
   });
   if (error) return { erreur: error.message };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);

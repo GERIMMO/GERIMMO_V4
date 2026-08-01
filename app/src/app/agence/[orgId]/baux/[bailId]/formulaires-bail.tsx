@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   deposerBailSigne,
   activerBail,
@@ -64,12 +64,28 @@ export function BoutonActiverBail({ orgId, bailId }: { orgId: string; bailId: st
   );
 }
 
-export function FormulaireConge({ orgId, bailId }: { orgId: string; bailId: string }) {
+export function FormulaireConge({
+  orgId,
+  bailId,
+  type,
+}: {
+  orgId: string;
+  bailId: string;
+  type: string;
+}) {
   const action = enregistrerConge.bind(null, orgId, bailId);
   const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const [par, setPar] = useState<"locataire" | "bailleur">("locataire");
+  const [reduit, setReduit] = useState(false);
+  const meuble = type === "meuble";
+
+  // Préavis légal dérivé (le contrôle en base fait autorité)
+  const preavis = par === "bailleur" ? (meuble ? 3 : 6) : meuble || reduit ? 1 : 3;
+
   return (
     <form action={formAction} className="space-y-3">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <input type="hidden" name="preavis_mois" value={preavis} />
+      <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="conge-par" className="text-xs">
             Donné par
@@ -77,7 +93,8 @@ export function FormulaireConge({ orgId, bailId }: { orgId: string; bailId: stri
           <select
             id="conge-par"
             name="par"
-            defaultValue="locataire"
+            value={par}
+            onChange={(e) => setPar(e.target.value as "locataire" | "bailleur")}
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
             <option value="locataire">Locataire</option>
@@ -90,21 +107,67 @@ export function FormulaireConge({ orgId, bailId }: { orgId: string; bailId: stri
           </Label>
           <Input id="conge-date" name="date_presentation" type="date" required />
         </div>
+      </div>
+
+      {par === "bailleur" ? (
         <div className="space-y-1.5">
-          <Label htmlFor="conge-preavis" className="text-xs">
-            Préavis (mois)
+          <Label htmlFor="conge-motif" className="text-xs">
+            Motif (obligatoire — sinon le congé est nul)
           </Label>
           <select
-            id="conge-preavis"
-            name="preavis_mois"
-            defaultValue="3"
+            id="conge-motif"
+            name="motif"
+            defaultValue=""
+            required
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
-            <option value="3">3 mois</option>
-            <option value="1">1 mois (réduit)</option>
+            <option value="" disabled>
+              Choisir un motif…
+            </option>
+            <option value="Reprise (bénéficiaire familial)">Reprise</option>
+            <option value="Vente du logement">Vente</option>
+            <option value="Motif légitime et sérieux">Motif légitime et sérieux</option>
           </select>
         </div>
-      </div>
+      ) : (
+        !meuble && (
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={reduit}
+                onChange={(e) => setReduit(e.target.checked)}
+                className="size-4"
+              />
+              Préavis réduit à 1 mois (zone tendue, mutation, santé, perte d&apos;emploi…)
+            </label>
+            {reduit && (
+              <Input
+                name="justificatif"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+                className="mt-1"
+              />
+            )}
+          </div>
+        )
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Préavis appliqué : <span className="font-medium">{preavis} mois</span>
+        {par === "bailleur"
+          ? meuble
+            ? " (bailleur, meublé)"
+            : " (bailleur, nu)"
+          : meuble
+            ? " (locataire, meublé)"
+            : reduit
+              ? " (locataire, réduit)"
+              : " (locataire, nu)"}
+        . La date d&apos;effet est calculée depuis la 1ʳᵉ présentation.
+      </p>
+
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "Enregistrement…" : "Enregistrer le congé"}
       </Button>

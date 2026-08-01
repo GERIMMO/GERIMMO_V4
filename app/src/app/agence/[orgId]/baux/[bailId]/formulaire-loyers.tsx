@@ -6,6 +6,7 @@ import {
   ajouterEncaissement,
   supprimerEncaissement,
   emettreQuittances,
+  reviserLoyer,
   type EtatLoyers,
 } from "@/app/actions/loyers";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,14 @@ export type Encaissement = {
   note: string | null;
 };
 export type Quittance = { id: string; appel_id: string; montant: number; date_emission: string };
+export type Revision = {
+  id: string;
+  date_effet: string;
+  ancien_loyer: number;
+  nouveau_loyer: number;
+  irl_reference: number;
+  irl_nouveau: number;
+};
 
 const STATUT: Record<string, { label: string; classe: string }> = {
   paye: { label: "Payé", classe: "bg-success-soft text-success-soft-foreground" },
@@ -47,15 +56,23 @@ export function FormulaireLoyers({
   echeancier,
   encaissements,
   quittances,
+  revisionIrl,
+  revisions,
 }: {
   orgId: string;
   bailId: string;
   echeancier: LigneEcheance[];
   encaissements: Encaissement[];
   quittances: Quittance[];
+  revisionIrl: boolean;
+  revisions: Revision[];
 }) {
   const [etatEnc, formEnc, enCoursEnc] = useActionState<EtatLoyers, FormData>(
     ajouterEncaissement.bind(null, orgId, bailId),
+    {}
+  );
+  const [etatRev, formRev, enCoursRev] = useActionState<EtatLoyers, FormData>(
+    reviserLoyer.bind(null, orgId, bailId),
     {}
   );
 
@@ -150,6 +167,46 @@ export function FormulaireLoyers({
           {etatEnc.erreur && <p className="w-full text-sm text-destructive">{etatEnc.erreur}</p>}
         </form>
       </div>
+
+      {/* Révision IRL */}
+      {revisionIrl && (
+        <div className="space-y-2 border-t border-border pt-4">
+          <p className="text-sm font-medium">Révision annuelle (IRL)</p>
+          {revisions.length > 0 && (
+            <ul className="text-xs text-muted-foreground">
+              {revisions.map((r) => (
+                <li key={r.id}>
+                  {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} (IRL{" "}
+                  {r.irl_reference} → {r.irl_nouveau})
+                </li>
+              ))}
+            </ul>
+          )}
+          <form action={formRev} className="flex flex-wrap items-end gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="irl-ref" className="text-xs">IRL de référence</Label>
+              <Input id="irl-ref" name="irl_reference" type="number" step="0.01" className="h-9 w-28" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="irl-nouv" className="text-xs">IRL nouveau</Label>
+              <Input id="irl-nouv" name="irl_nouveau" type="number" step="0.01" className="h-9 w-28" />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="irl-date" className="text-xs">Date d&apos;effet</Label>
+              <Input id="irl-date" name="date_effet" type="date" className="h-9" />
+            </div>
+            <Button type="submit" size="sm" variant="outline" disabled={enCoursRev}>
+              {enCoursRev ? "…" : "Réviser le loyer"}
+            </Button>
+            {etatRev.erreur && <p className="w-full text-sm text-destructive">{etatRev.erreur}</p>}
+            {etatRev.succes && <p className="w-full text-sm text-success-soft-foreground">{etatRev.succes}</p>}
+          </form>
+          <p className="text-xs text-muted-foreground">
+            Nouveau loyer = loyer × IRL nouveau / IRL de référence. Interdit si DPE F/G ;
+            le dépôt et les provisions ne changent pas.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

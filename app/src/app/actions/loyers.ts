@@ -59,6 +59,30 @@ export async function supprimerEncaissement(
   return { succes: "Encaissement supprimé." };
 }
 
+// Réviser le loyer selon l'IRL (clause requise, DPE F/G bloqué, prescription 1 an).
+export async function reviserLoyer(
+  orgId: string,
+  bailId: string,
+  _etat: EtatLoyers,
+  formData: FormData
+): Promise<EtatLoyers> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const ref = Number(String(formData.get("irl_reference") ?? "").trim());
+  const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim());
+  const dateEffet = String(formData.get("date_effet") ?? "").trim();
+  if (!ref || !nouv || !dateEffet) return { erreur: "Indices IRL et date d'effet obligatoires." };
+  const { data, error } = await supabase.rpc("reviser_loyer", {
+    p_bail: bailId,
+    p_irl_reference: ref,
+    p_irl_nouveau: nouv,
+    p_date_effet: dateEffet,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: `Loyer révisé à ${data} € HC.` };
+}
+
 // Émettre les quittances des mois intégralement soldés.
 export async function emettreQuittances(orgId: string, bailId: string): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);

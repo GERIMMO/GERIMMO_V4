@@ -46,6 +46,24 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
   }[])[0];
   const TYPES_BAIL: Record<string, string> = { nu: "nu", meuble: "meublé", colocation: "colocation" };
 
+  const { data: echeancier } = await supabase.rpc("mon_echeancier_locataire", { p_org: orgId });
+  const lignesLoyer = (echeancier ?? []) as {
+    periode: string;
+    montant_du: number;
+    montant_couvert: number;
+    statut: string;
+    a_quittance: boolean;
+  }[];
+  const LOYER_STATUT: Record<string, string> = {
+    paye: "Payé",
+    partiel: "Partiel",
+    impaye: "Impayé",
+    attendu: "À échoir",
+  };
+  const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
+  const moisLong = (d: string) =>
+    new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-6">
       <div>
@@ -72,6 +90,34 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
               {bail.charges ? ` + ${bail.charges} € de charges` : ""}
             </p>
             {bail.date_debut && <p className="text-muted-foreground">Depuis le {bail.date_debut}</p>}
+          </CardContent>
+        </Card>
+      )}
+
+      {lignesLoyer.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Mes loyers</CardTitle>
+            <CardDescription>Échéancier et quittances de votre location.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-border">
+              {lignesLoyer.map((l) => (
+                <li key={l.periode} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                  <span className="w-32 shrink-0 capitalize">{moisLong(l.periode)}</span>
+                  <span className="w-24 shrink-0 text-right">{eur(l.montant_du)}</span>
+                  <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                    {l.statut === "partiel" ? `réglé ${eur(l.montant_couvert)}` : ""}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs">
+                    {LOYER_STATUT[l.statut] ?? l.statut}
+                  </span>
+                  {l.a_quittance && (
+                    <span className="shrink-0 text-xs text-success-soft-foreground">✓ quittance</span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
       )}

@@ -13,6 +13,12 @@ import {
 } from "./formulaires-bail";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
 import { FormulaireColocation, type LigneColoc } from "./formulaire-colocation";
+import {
+  FormulaireLoyers,
+  type LigneEcheance,
+  type Encaissement,
+  type Quittance,
+} from "./formulaire-loyers";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -117,6 +123,20 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     ecart: boolean;
   }[]).filter((c) => c.ecart);
 
+  // Loyers (dès que le bail n'est plus en brouillon)
+  const loyersActif = bail.etat !== "brouillon";
+  const [{ data: echeancier }, { data: encaissements }, { data: quittances }] = loyersActif
+    ? await Promise.all([
+        supabase.rpc("etat_loyers_bail", { p_bail: bailId }),
+        supabase
+          .from("encaissements")
+          .select("id, montant, date_paiement, mode, note")
+          .eq("bail_id", bailId)
+          .order("date_paiement", { ascending: false }),
+        supabase.from("quittances").select("id, appel_id, montant, date_emission").eq("bail_id", bailId),
+      ])
+    : [{ data: [] }, { data: [] }, { data: [] }];
+
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 p-6">
       <div>
@@ -193,6 +213,28 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 <span className="font-medium">{formaterDate(c.date_effet)}</span>
               </p>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Loyers & quittances */}
+      {loyersActif && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Loyers & quittances</CardTitle>
+            <CardDescription>
+              Échéancier, encaissements (imputés du plus ancien au plus récent) et
+              quittances (émises après paiement intégral ; un partiel reste un reçu).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireLoyers
+              orgId={orgId}
+              bailId={bailId}
+              echeancier={(echeancier ?? []) as LigneEcheance[]}
+              encaissements={(encaissements ?? []) as Encaissement[]}
+              quittances={(quittances ?? []) as Quittance[]}
+            />
           </CardContent>
         </Card>
       )}

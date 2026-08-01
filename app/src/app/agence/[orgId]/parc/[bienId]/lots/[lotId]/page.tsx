@@ -20,11 +20,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormulaireDiagnostic } from "../../formulaire-diagnostic";
-import { FormulaireLot } from "./formulaire-lot";
+import { RecapLot } from "./recap-lot";
+import { SectionLot } from "./section-lot";
 import { BoutonsEtatLot } from "./boutons-etat-lot";
 import {
   FormulaireDetention,
   BoutonCloreDetention,
+  BoutonSupprimerDetention,
+  BoutonRouvrirDetention,
 } from "./formulaire-detention";
 import { FormulaireEquipementsLot } from "./formulaire-equipements-lot";
 import { FormulaireBailLot } from "./formulaire-bail-lot";
@@ -55,6 +58,7 @@ export default async function PageLot(
     { data: personnes },
     { data: blocages },
     { data: baux },
+    { data: proprietaires },
   ] = await Promise.all([
     supabase
       .from("lots")
@@ -103,6 +107,11 @@ export default async function PageLot(
       .select("id, type, etat")
       .eq("lot_id", lotId)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("detentions")
+      .select("person_id")
+      .eq("organization_id", orgId)
+      .is("date_fin", null),
   ]);
   if (!lot || !bien) notFound();
 
@@ -121,6 +130,10 @@ export default async function PageLot(
 
   const nomPersonne = (p: { nom: string; prenom: string | null } | null) =>
     p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "—";
+
+  const nbEquip = (equipesLot ?? []).length;
+  const nbDiag = (diagnostics ?? []).length;
+  const nbBaux = (baux ?? []).length;
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
@@ -157,7 +170,7 @@ export default async function PageLot(
             est réservée à l&apos;admin de l&apos;agence (RM-0.9.4).
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           {(blocages ?? []).length > 0 && lot.etat === "brouillon" && (
             <div className="rounded-lg bg-muted p-3 text-sm">
               <p className="mb-1 font-medium">
@@ -170,205 +183,211 @@ export default async function PageLot(
               </ul>
             </div>
           )}
-          <BoutonsEtatLot
-            orgId={orgId}
-            bienId={bienId}
-            lotId={lotId}
-            etat={lot.etat}
-          />
-        </CardContent>
-      </Card>
+          <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Baux &amp; état des lieux</CardTitle>
-          <CardDescription>
-            Un bail signé active la location : le lot passe loué et une alerte d&apos;EDL
-            d&apos;entrée est créée. La grille d&apos;EDL se remplit sur la fiche du bail.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {(baux ?? []).length > 0 && (
-            <ul className="space-y-2">
-              {(baux ?? []).map((b) => (
-                <li key={b.id} className="flex items-center gap-3">
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
-                    {ETATS_BAIL[b.etat] ?? b.etat}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm">Bail {b.type}</span>
-                  <Link
-                    href={`/agence/${orgId}/baux/${b.id}`}
-                    className={buttonVariants({ variant: "ghost", size: "sm" })}
-                  >
-                    Ouvrir
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-          {detentionsActives.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
-              de créer un bail.
-            </p>
-          ) : (
-            <FormulaireBailLot
-              orgId={orgId}
-              bienId={bienId}
-              lotId={lotId}
-              personnes={personnes ?? []}
-            />
-          )}
-        </CardContent>
-      </Card>
+          {/* Caractéristiques (récap + Modifier) */}
+          <div className="border-t border-border pt-4">
+            <p className="mb-3 text-sm font-medium">Caractéristiques du lot</p>
+            <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
+          </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Détention</CardTitle>
-            <CardDescription>
-              Quote-parts datées, jamais supprimées : les rapports passés
-              restent justes (RM-0.2.3). Location possible à 100 % exactement.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p
-              className={`text-sm ${totalQuoteParts === 100 ? "text-success-soft-foreground" : "text-warning-soft-foreground"}`}
-            >
-              Détention active : {totalQuoteParts} %
-            </p>
-            {(detentions ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Aucun propriétaire enregistré.
+          {/* Détention */}
+          <SectionLot
+            titre="Détention"
+            ouvertParDefaut={detentionsActives.length === 0}
+            resume={
+              detentionsActives.length === 0
+                ? "Aucun propriétaire"
+                : `${totalQuoteParts} % — ${detentionsActives
+                    .map((d) =>
+                      nomPersonne(d.person as unknown as { nom: string; prenom: string | null })
+                    )
+                    .join(", ")}`
+            }
+          >
+            <div className="space-y-4">
+              <p
+                className={`text-sm ${totalQuoteParts === 100 ? "text-success-soft-foreground" : "text-warning-soft-foreground"}`}
+              >
+                Détention active : {totalQuoteParts} %
               </p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {(detentions ?? []).map((d) => (
-                  <li key={d.id} className="flex items-center gap-2 py-2 text-sm">
-                    <span
-                      className={`min-w-0 flex-1 truncate ${d.date_fin ? "text-muted-foreground line-through" : ""}`}
-                    >
-                      {nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
-                    </span>
-                    <span className="shrink-0">{Number(d.quote_part)} %</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {formaterDate(d.date_debut)}
-                      {d.date_fin ? ` → ${formaterDate(d.date_fin)}` : ""}
-                    </span>
-                    {!d.date_fin && (
-                      <BoutonCloreDetention
-                        orgId={orgId}
-                        bienId={bienId}
-                        lotId={lotId}
-                        detentionId={d.id}
-                      />
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-            <FormulaireDetention
-              orgId={orgId}
-              bienId={bienId}
-              lotId={lotId}
-              personnes={personnes ?? []}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Diagnostics du lot</CardTitle>
-            <CardDescription>
-              DPE, électricité, gaz, plomb, amiante privatif (RM-0.6.2). Un
-              obligatoire expiré bloque la mise en location (RM-0.7.3).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {(diagnostics ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Aucun diagnostic déposé.</p>
-            ) : (
-              <ul className="divide-y divide-border">
-                {(diagnostics ?? []).map((d) => {
-                  const statut = statutDiagnostic(d.date_expiration);
-                  return (
+              {(detentions ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun propriétaire enregistré.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {(detentions ?? []).map((d) => (
                     <li key={d.id} className="flex items-center gap-2 py-2 text-sm">
-                      <span className="min-w-0 flex-1 truncate">
-                        {TYPES_DIAGNOSTIC[d.type]?.libelle ?? d.type}
-                        {d.diagnostiqueur && (
-                          <span className="text-muted-foreground"> — {d.diagnostiqueur}</span>
-                        )}
-                      </span>
-                      {d.document_id && (
-                        <a
-                          href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
-                          target="_blank"
-                          className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
-                        >
-                          Rapport
-                        </a>
-                      )}
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {d.date_expiration
-                          ? `expire le ${formaterDate(d.date_expiration)}`
-                          : "illimité"}
-                      </span>
                       <span
-                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_STATUT_DIAGNOSTIC[statut]}`}
+                        className={`min-w-0 flex-1 truncate ${d.date_fin ? "text-muted-foreground line-through" : ""}`}
                       >
-                        {LIBELLES_STATUT_DIAGNOSTIC[statut]}
+                        {nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
                       </span>
+                      <span className="shrink-0">{Number(d.quote_part)} %</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formaterDate(d.date_debut)}
+                        {d.date_fin ? ` → ${formaterDate(d.date_fin)}` : ""}
+                      </span>
+                      {!d.date_fin && (
+                        <BoutonCloreDetention
+                          orgId={orgId}
+                          bienId={bienId}
+                          lotId={lotId}
+                          detentionId={d.id}
+                        />
+                      )}
+                      {!d.date_fin && (baux ?? []).length === 0 && (
+                        <BoutonSupprimerDetention
+                          orgId={orgId}
+                          bienId={bienId}
+                          lotId={lotId}
+                          detentionId={d.id}
+                        />
+                      )}
+                      {d.date_fin && (
+                        <BoutonRouvrirDetention
+                          orgId={orgId}
+                          bienId={bienId}
+                          lotId={lotId}
+                          detentionId={d.id}
+                        />
+                      )}
                     </li>
-                  );
-                })}
-              </ul>
-            )}
-            {manquants.length > 0 && (
-              <p className="text-sm text-warning-soft-foreground">
-                Attendu{manquants.length > 1 ? "s" : ""} :{" "}
-                {manquants.map((t) => TYPES_DIAGNOSTIC[t].libelle).join(", ")}
-              </p>
-            )}
-            <FormulaireDiagnostic
+                  ))}
+                </ul>
+              )}
+              <FormulaireDetention
+                orgId={orgId}
+                bienId={bienId}
+                lotId={lotId}
+                personnes={personnes ?? []}
+                proprietairesIds={[...new Set((proprietaires ?? []).map((d) => d.person_id))]}
+                premierProprietaire={detentionsActives.length === 0}
+              />
+            </div>
+          </SectionLot>
+
+          {/* Diagnostics */}
+          <SectionLot
+            titre="Diagnostics du lot"
+            ouvertParDefaut={manquants.length > 0}
+            resume={
+              nbDiag === 0
+                ? "Aucun diagnostic"
+                : `${nbDiag} déposé${nbDiag > 1 ? "s" : ""}${manquants.length ? ` · manque : ${manquants.map((t) => TYPES_DIAGNOSTIC[t].libelle).join(", ")}` : ""}`
+            }
+          >
+            <div className="space-y-4">
+              {(diagnostics ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Aucun diagnostic déposé.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {(diagnostics ?? []).map((d) => {
+                    const statut = statutDiagnostic(d.date_expiration);
+                    return (
+                      <li key={d.id} className="flex items-center gap-2 py-2 text-sm">
+                        <span className="min-w-0 flex-1 truncate">
+                          {TYPES_DIAGNOSTIC[d.type]?.libelle ?? d.type}
+                          {d.diagnostiqueur && (
+                            <span className="text-muted-foreground"> — {d.diagnostiqueur}</span>
+                          )}
+                        </span>
+                        {d.document_id && (
+                          <a
+                            href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
+                            target="_blank"
+                            className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                          >
+                            Rapport
+                          </a>
+                        )}
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {d.date_expiration
+                            ? `expire le ${formaterDate(d.date_expiration)}`
+                            : "illimité"}
+                        </span>
+                        <span
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_STATUT_DIAGNOSTIC[statut]}`}
+                        >
+                          {LIBELLES_STATUT_DIAGNOSTIC[statut]}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {manquants.length > 0 && (
+                <p className="text-sm text-warning-soft-foreground">
+                  Attendu{manquants.length > 1 ? "s" : ""} :{" "}
+                  {manquants.map((t) => TYPES_DIAGNOSTIC[t].libelle).join(", ")}
+                </p>
+              )}
+              <FormulaireDiagnostic orgId={orgId} bienId={bienId} lotId={lotId} niveau="lot" />
+            </div>
+          </SectionLot>
+
+          {/* Équipements */}
+          <SectionLot
+            titre="Équipements"
+            resume={
+              nbEquip === 0
+                ? "Aucun équipement coché"
+                : `${nbEquip} équipement${nbEquip > 1 ? "s" : ""} coché${nbEquip > 1 ? "s" : ""}`
+            }
+          >
+            <FormulaireEquipementsLot
               orgId={orgId}
               bienId={bienId}
               lotId={lotId}
-              niveau="lot"
+              catalogue={catalogue ?? []}
+              selection={(equipesLot ?? []).map((e) => e.equipement_id)}
             />
-          </CardContent>
-        </Card>
-      </div>
+          </SectionLot>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Équipements</CardTitle>
-          <CardDescription>
-            Cochés depuis la liste fermée de l&apos;agence (RM-0.5.5) — ils
-            deviendront les lignes de la grille d&apos;état des lieux.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormulaireEquipementsLot
-            orgId={orgId}
-            bienId={bienId}
-            lotId={lotId}
-            catalogue={catalogue ?? []}
-            selection={(equipesLot ?? []).map((e) => e.equipement_id)}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Modifier le lot</CardTitle>
-          <CardDescription>
-            {verrouille
-              ? "Lot loué : surface et pièces sont verrouillées, modification par avenant au bail (RM-0.5.1)."
-              : "Surface, pièces, meublé, étage, tantième de copropriété."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormulaireLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
+          {/* Baux & état des lieux */}
+          <SectionLot
+            titre="Baux & état des lieux"
+            resume={
+              nbBaux === 0
+                ? "Aucun bail"
+                : `${nbBaux} bail${nbBaux > 1 ? "s" : ""} · ${(baux ?? [])
+                    .map((b) => ETATS_BAIL[b.etat] ?? b.etat)
+                    .join(", ")}`
+            }
+          >
+            <div className="space-y-4">
+              {(baux ?? []).length > 0 && (
+                <ul className="space-y-2">
+                  {(baux ?? []).map((b) => (
+                    <li key={b.id} className="flex items-center gap-3">
+                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                        {ETATS_BAIL[b.etat] ?? b.etat}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-sm">Bail {b.type}</span>
+                      <Link
+                        href={`/agence/${orgId}/baux/${b.id}`}
+                        className={buttonVariants({ variant: "ghost", size: "sm" })}
+                      >
+                        Ouvrir
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {detentionsActives.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
+                  de créer un bail.
+                </p>
+              ) : (
+                <FormulaireBailLot
+                  orgId={orgId}
+                  bienId={bienId}
+                  lotId={lotId}
+                  personnes={personnes ?? []}
+                />
+              )}
+            </div>
+          </SectionLot>
         </CardContent>
       </Card>
     </main>

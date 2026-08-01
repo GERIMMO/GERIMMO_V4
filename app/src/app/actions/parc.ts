@@ -279,6 +279,42 @@ export async function cloreDetention(
   return { succes: "Détention close." };
 }
 
+// Corriger une erreur de saisie : supprime la détention (en base, uniquement si
+// le lot n'a aucun bail — sinon RM-0.2.4 : on clôt, on ne supprime pas).
+export async function supprimerDetention(
+  orgId: string,
+  bienId: string,
+  lotId: string,
+  detentionId: string
+): Promise<EtatParc> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("supprimer_detention", { p_detention: detentionId });
+  if (error) return { erreur: error.message };
+
+  revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  return { succes: "Détention corrigée (supprimée)." };
+}
+
+// Rouvrir une détention close par erreur (clore accidentel). Garde-fou somme
+// ≤ 100 % + trace horodatée en base (audit_log).
+export async function rouvrirDetention(
+  orgId: string,
+  bienId: string,
+  lotId: string,
+  detentionId: string
+): Promise<EtatParc> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("rouvrir_detention", { p_detention: detentionId });
+  if (error) return { erreur: error.message };
+
+  revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  return { succes: "Détention rouverte." };
+}
+
 export async function deposerDiagnostic(
   orgId: string,
   bienId: string,

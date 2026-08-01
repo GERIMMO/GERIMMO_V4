@@ -59,7 +59,10 @@ export async function envoyerQuittance(
     </div>`;
 
   const envoi = await envoyerEmail({ to: loc.email, subject: `${titre} — ${mois}`, html });
-  if (envoi.erreur) return { erreur: envoi.erreur };
+  if (envoi.erreur) {
+    console.error("[quittance email] échec:", envoi.erreur);
+    return { erreur: envoi.erreur };
+  }
 
   await supabase
     .from("quittances")

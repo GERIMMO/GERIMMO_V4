@@ -70,6 +70,21 @@ const NIVEAU_RELANCE: Record<string, string> = {
   mise_en_demeure: "Mise en demeure",
 };
 
+function BoutonEnvoiQuittance({ orgId, bailId, quittanceId }: { orgId: string; bailId: string; quittanceId: string }) {
+  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+    async () => envoyerQuittance(orgId, bailId, quittanceId),
+    {}
+  );
+  return (
+    <form action={action} className="flex items-center gap-1">
+      <Button type="submit" variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={enCours}>
+        {enCours ? "…" : "Envoyer"}
+      </Button>
+      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+    </form>
+  );
+}
+
 const STATUT: Record<string, { label: string; classe: string }> = {
   paye: { label: "Payé", classe: "bg-success-soft text-success-soft-foreground" },
   partiel: { label: "Partiel", classe: "bg-warning-soft text-warning-soft-foreground" },
@@ -183,11 +198,7 @@ export function FormulaireLoyers({
                       {q.email_envoye_at ? (
                         <span className="text-xs text-muted-foreground">✉ envoyée</span>
                       ) : (
-                        <form action={async () => { await envoyerQuittance(orgId, bailId, q.id); }}>
-                          <Button type="submit" variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                            Envoyer
-                          </Button>
-                        </form>
+                        <BoutonEnvoiQuittance orgId={orgId} bailId={bailId} quittanceId={q.id} />
                       )}
                     </span>
                   );

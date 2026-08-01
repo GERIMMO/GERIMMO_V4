@@ -380,6 +380,41 @@ export async function deposerDiagnostic(
   return { succes: `${referentiel.libelle} déposé.` };
 }
 
+// Informations pratiques du logement/immeuble (destinées au locataire) :
+// consignes libres saisies par le gérant, une fiche par bien (upsert).
+export async function enregistrerInfosPratiques(
+  orgId: string,
+  bienId: string,
+  _etat: EtatParc,
+  formData: FormData
+): Promise<EtatParc> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const champ = (nom: string) => {
+    const v = String(formData.get(nom) ?? "").trim();
+    return v || null;
+  };
+  const { error } = await supabase.from("bien_infos_pratiques").upsert(
+    {
+      bien_id: bienId,
+      organization_id: orgId,
+      sortie_poubelles: champ("sortie_poubelles"),
+      local_poubelles: champ("local_poubelles"),
+      gardien: champ("gardien"),
+      travaux: champ("travaux"),
+      stationnement: champ("stationnement"),
+      autres: champ("autres"),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "bien_id" }
+  );
+  if (error) return { erreur: error.message };
+
+  revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  return { succes: "Informations pratiques enregistrées." };
+}
+
 // Clé de répartition (parcours 0.4) : validation stricte (= 100,00 exactement,
 // tous les lots actifs couverts) et immuabilité assurées en base.
 export async function validerCle(

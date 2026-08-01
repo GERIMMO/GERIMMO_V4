@@ -2,8 +2,83 @@
 
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
+import { envoyerEmail } from "@/lib/email";
 
 export type EtatCompta = { erreur?: string; succes?: string };
+
+// Générer le rapport de gestion d'un mandat pour un mois (clôture requise).
+export async function genererRapport(
+  orgId: string,
+  mandatId: string,
+  _etat: EtatCompta,
+  formData: FormData
+): Promise<EtatCompta> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const mois = String(formData.get("mois") ?? "").trim();
+  if (!mois) return { erreur: "Choisissez le mois." };
+  const { error } = await supabase.rpc("generer_rapport", { p_mandat: mandatId, p_mois: `${mois}-01` });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/comptabilite`);
+  return { succes: "Rapport généré (à valider)." };
+}
+
+// Valider et envoyer le rapport au mandant (fige + email + alerte versement J+15).
+export async function envoyerRapport(
+  orgId: string,
+  rapportId: string,
+  _etat: EtatCompta,
+  formData: FormData
+): Promise<EtatCompta> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const commentaire = String(formData.get("commentaire") ?? "").trim() || null;
+  const { error } = await supabase.rpc("envoyer_rapport", { p_rapport: rapportId, p_commentaire: commentaire });
+  if (error) return { erreur: error.message };
+
+  // Email au mandant (best-effort : le rapport est figé quoi qu'il arrive)
+  const { data: rap } = await supabase
+    .from("rapports_gestion")
+    .select("net, mois, mandat:mandats(person:persons(email, nom, prenom))")
+    .eq("id", rapportId)
+    .maybeSingle();
+  const mandant = (rap as { mandat?: { person?: { email?: string; nom?: string; prenom?: string } } } | null)?.mandat?.person;
+  let noteEmail = "";
+  if (mandant?.email) {
+    const net = Number((rap as { net: number }).net);
+    const html = `<div style="font-family:sans-serif"><h2>Rapport de gestion</h2>
+      <p>Bonjour${mandant.prenom ? " " + mandant.prenom : ""},</p>
+      <p>Votre rapport de gestion est disponible. Net à reverser : <strong>${net.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</strong>${net < 0 ? " (appel de fonds)" : ""}.</p>
+      ${commentaire ? `<p>${commentaire}</p>` : ""}<p>— Votre agence</p></div>`;
+    const env = await envoyerEmail({ to: mandant.email, subject: "Votre rapport de gestion", html });
+    noteEmail = env.erreur ? ` (email non envoyé : ${env.erreur})` : " Email envoyé au mandant.";
+  } else {
+    noteEmail = " (mandant sans email — remise hors plateforme.)";
+  }
+  revalidatePath(`/agence/${orgId}/comptabilite`);
+  return { succes: `Rapport envoyé et figé.${noteEmail}` };
+}
+
+export async function enregistrerVersement(
+  orgId: string,
+  rapportId: string,
+  _etat: EtatCompta,
+  formData: FormData
+): Promise<EtatCompta> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const montant = Number(String(formData.get("montant") ?? "").trim());
+  const date = String(formData.get("date") ?? "").trim();
+  if (!montant || !date) return { erreur: "Montant et date du versement obligatoires." };
+  const { error } = await supabase.rpc("enregistrer_versement", {
+    p_rapport: rapportId,
+    p_montant: montant,
+    p_date: date,
+  });
+  if (error) return { erreur: error.message };
+  revalidatePath(`/agence/${orgId}/comptabilite`);
+  return { succes: "Versement enregistré." };
+}
 
 export async function ajouterEcriture(
   orgId: string,

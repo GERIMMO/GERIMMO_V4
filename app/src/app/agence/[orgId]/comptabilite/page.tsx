@@ -6,6 +6,9 @@ import {
   FormulaireVentilation,
   FormulaireCloture,
   BoutonContre,
+  RapportsGestion,
+  type MandatCompta,
+  type RapportCompta,
 } from "./formulaire-compta";
 
 export const metadata = { title: "Comptabilité — Gerimmo" };
@@ -28,7 +31,13 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspace(orgId);
 
-  const [{ data: ecritures }, { data: clotures }, { data: biens }] = await Promise.all([
+  const [
+    { data: ecritures },
+    { data: clotures },
+    { data: biens },
+    { data: mandatsRaw },
+    { data: rapports },
+  ] = await Promise.all([
     supabase
       .from("ecritures")
       .select("id, categorie, sens, montant, date_piece, date_imputation, libelle, systeme, contre_ecriture_de")
@@ -37,6 +46,16 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       .limit(200),
     supabase.from("clotures_comptables").select("mois").eq("organization_id", orgId).order("mois", { ascending: false }),
     supabase.from("biens").select("id, nom").eq("organization_id", orgId).order("nom"),
+    supabase
+      .from("mandats")
+      .select("id, mandant:persons(nom, prenom)")
+      .eq("organization_id", orgId)
+      .eq("etat", "actif"),
+    supabase
+      .from("rapports_gestion")
+      .select("id, mandat_id, mois, statut, net, versement_montant")
+      .eq("organization_id", orgId)
+      .order("mois", { ascending: false }),
   ]);
 
   const lignes = (ecritures ?? []) as Ecriture[];
@@ -44,6 +63,12 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   const depenses = lignes.filter((e) => e.sens === "depense").reduce((s, e) => s + Number(e.montant), 0);
   const moisClotures = new Set(((clotures ?? []) as { mois: string }[]).map((c) => c.mois.slice(0, 7)));
   const moisCourant = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" }).slice(0, 7);
+  const mandats: MandatCompta[] = (
+    (mandatsRaw ?? []) as { id: string; mandant: { nom: string; prenom: string | null }[] | null }[]
+  ).map((m) => {
+    const p = m.mandant?.[0];
+    return { id: m.id, mandant_nom: p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "—" };
+  });
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
@@ -94,6 +119,24 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
               </p>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Rapports de gestion</CardTitle>
+          <CardDescription>
+            Un rapport par mandat et par mois (clôture requise), figé à l&apos;envoi ;
+            versement suivi, écart alerté.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RapportsGestion
+            orgId={orgId}
+            mandats={mandats}
+            rapports={(rapports ?? []) as RapportCompta[]}
+            moisCourant={moisCourant}
+          />
         </CardContent>
       </Card>
 

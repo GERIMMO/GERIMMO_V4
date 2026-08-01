@@ -33,6 +33,7 @@ import {
 import { FormulaireEquipementsLot } from "./formulaire-equipements-lot";
 import { FormulairePiecesLot, type PieceLot } from "./formulaire-pieces-lot";
 import { FormulaireBailLot } from "./formulaire-bail-lot";
+import { AppelsCharges, type AppelCharge } from "./formulaire-appels-charges";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
@@ -72,7 +73,7 @@ export default async function PageLot(
       .maybeSingle(),
     supabase
       .from("biens")
-      .select("id, nom, type, annee_construction")
+      .select("id, nom, type, annee_construction, copropriete")
       .eq("id", bienId)
       .eq("organization_id", orgId)
       .maybeSingle(),
@@ -123,6 +124,21 @@ export default async function PageLot(
       .order("created_at"),
   ]);
   if (!lot || !bien) notFound();
+
+  // Appels de charges de copropriété (module 0c) — uniquement si le bien est en copropriété
+  const { data: appelsRaw } = bien.copropriete
+    ? await supabase
+        .from("appels_charges")
+        .select(
+          "id, exercice, date_reception, total, statut, document_id, postes:appel_charges_postes(id, libelle, montant, nature, fonds_alur, propose)"
+        )
+        .eq("lot_id", lotId)
+        .order("exercice", { ascending: false })
+    : { data: [] };
+  const appelsCharges = ((appelsRaw ?? []) as AppelCharge[]).map((a) => ({
+    ...a,
+    postes: [...(a.postes ?? [])].sort((x, y) => x.libelle.localeCompare(y.libelle)),
+  }));
 
   const detentionsActives = (detentions ?? []).filter((d) => !d.date_fin);
   const totalQuoteParts = detentionsActives.reduce(
@@ -430,6 +446,34 @@ export default async function PageLot(
               )}
             </div>
           </SectionLot>
+
+          {/* Charges de copropriété (module 0c) — appels du syndic, ventilés */}
+          {bien.copropriete && (
+            <SectionLot
+              id="charges"
+              titre="Charges de copropriété"
+              resume={
+                appelsCharges.length === 0
+                  ? "Aucun appel de charges saisi"
+                  : `${appelsCharges.length} appel(s) · ${
+                      appelsCharges.filter((a) => a.statut === "brouillon").length
+                    } en cours`
+              }
+            >
+              <p className="mb-3 text-sm text-muted-foreground">
+                Saisie de l&apos;appel du syndic poste par poste, ventilé récupérable
+                (locataire) / non récupérable (propriétaire). La part récupérable alimente
+                la régularisation, bloquée tant qu&apos;aucun appel n&apos;est ventilé.
+              </p>
+              <AppelsCharges
+                orgId={orgId}
+                bienId={bienId}
+                lotId={lotId}
+                appels={appelsCharges}
+                anneeCourante={new Date().getFullYear()}
+              />
+            </SectionLot>
+          )}
         </CardContent>
       </Card>
     </main>

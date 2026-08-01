@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import {
   Card,
@@ -52,7 +53,7 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
     montant_du: number;
     montant_couvert: number;
     statut: string;
-    a_quittance: boolean;
+    quittance_id: string | null;
   }[];
   const LOYER_STATUT: Record<string, string> = {
     paye: "Payé",
@@ -112,8 +113,14 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
                   <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs">
                     {LOYER_STATUT[l.statut] ?? l.statut}
                   </span>
-                  {l.a_quittance && (
-                    <span className="shrink-0 text-xs text-success-soft-foreground">✓ quittance</span>
+                  {l.quittance_id && (
+                    <Link
+                      href={`/quittance/${l.quittance_id}`}
+                      target="_blank"
+                      className="shrink-0 text-xs text-success-soft-foreground underline-offset-2 hover:underline"
+                    >
+                      ✓ quittance
+                    </Link>
                   )}
                 </li>
               ))}

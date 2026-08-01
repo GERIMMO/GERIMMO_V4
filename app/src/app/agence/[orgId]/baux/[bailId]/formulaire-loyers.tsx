@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import {
   genererAppels,
@@ -116,7 +117,7 @@ export function FormulaireLoyers({
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const solde = totalDu - totalEncaisse;
-  const quittancesParAppel = new Set(quittances.map((q) => q.appel_id));
+  const quittanceParAppel = new Map(quittances.map((q) => [q.appel_id, q.id]));
 
   return (
     <div className="space-y-5">
@@ -160,8 +161,14 @@ export function FormulaireLoyers({
                   couvert {eur(l.montant_couvert)} · échéance {formaterDate(l.date_echeance)}
                 </span>
                 <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${st.classe}`}>{st.label}</span>
-                {quittancesParAppel.has(l.appel_id) && (
-                  <span className="shrink-0 text-xs text-muted-foreground">✓ quittance</span>
+                {quittanceParAppel.has(l.appel_id) && (
+                  <Link
+                    href={`/quittance/${quittanceParAppel.get(l.appel_id)}`}
+                    target="_blank"
+                    className="shrink-0 text-xs text-success-soft-foreground underline-offset-2 hover:underline"
+                  >
+                    ✓ quittance
+                  </Link>
                 )}
               </li>
             );

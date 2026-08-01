@@ -40,6 +40,8 @@ export type Quittance = {
   montant: number;
   date_emission: string;
   email_envoye_at: string | null;
+  // Paiement intégral → quittance ; paiement partiel → simple reçu (RM-3.4.2)
+  est_quittance: boolean;
 };
 export type Revision = {
   id: string;
@@ -106,6 +108,7 @@ export function FormulaireLoyers({
   revisions,
   relances,
   regularisations,
+  chargesForfait,
 }: {
   orgId: string;
   bailId: string;
@@ -116,6 +119,7 @@ export function FormulaireLoyers({
   revisions: Revision[];
   relances: RelanceLigne[];
   regularisations: RegulLigne[];
+  chargesForfait: boolean;
 }) {
   const [etatEnc, formEnc, enCoursEnc] = useActionState<EtatLoyers, FormData>(
     ajouterEncaissement.bind(null, orgId, bailId),
@@ -191,9 +195,11 @@ export function FormulaireLoyers({
                       <Link
                         href={`/quittance/${q.id}`}
                         target="_blank"
-                        className="text-xs text-success-soft-foreground underline-offset-2 hover:underline"
+                        className={`text-xs underline-offset-2 hover:underline ${
+                          q.est_quittance ? "text-success-soft-foreground" : "text-muted-foreground"
+                        }`}
                       >
-                        ✓ quittance
+                        {q.est_quittance ? "✓ quittance" : "reçu (partiel)"}
                       </Link>
                       {q.email_envoye_at ? (
                         <span className="text-xs text-muted-foreground">✉ envoyée</span>
@@ -333,9 +339,15 @@ export function FormulaireLoyers({
         </p>
       </div>
 
-      {/* Régularisation des charges */}
+      {/* Régularisation des charges — impossible au forfait (RM-3.9.8) */}
       <div className="space-y-2 border-t border-border pt-4">
         <p className="text-sm font-medium">Régularisation annuelle des charges</p>
+        {chargesForfait && (
+          <p className="text-sm text-muted-foreground">
+            Charges au forfait : aucune régularisation n&apos;est possible, le forfait est
+            définitif (loi 89-462, art. 23-1).
+          </p>
+        )}
         {regularisations.length > 0 && (
           <ul className="text-xs text-muted-foreground">
             {regularisations.map((r) => (
@@ -348,6 +360,7 @@ export function FormulaireLoyers({
             ))}
           </ul>
         )}
+        {!chargesForfait && (
         <form action={formReg} className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
             <Label htmlFor="reg-annee" className="text-xs">Année</Label>
@@ -367,10 +380,13 @@ export function FormulaireLoyers({
           {etatReg.erreur && <p className="w-full text-sm text-destructive">{etatReg.erreur}</p>}
           {etatReg.succes && <p className="w-full text-sm text-success-soft-foreground">{etatReg.succes}</p>}
         </form>
-        <p className="text-xs text-muted-foreground">
-          Provisions calculées depuis les appels de l&apos;année (prorata inclus) ; justificatif
-          obligatoire, joint au décompte du locataire.
-        </p>
+        )}
+        {!chargesForfait && (
+          <p className="text-xs text-muted-foreground">
+            Provisions calculées depuis les appels de l&apos;année (prorata inclus) ; justificatif
+            obligatoire, joint au décompte du locataire.
+          </p>
+        )}
       </div>
     </div>
   );

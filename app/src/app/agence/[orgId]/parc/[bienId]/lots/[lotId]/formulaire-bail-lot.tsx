@@ -67,6 +67,18 @@ export function FormulaireBailLot({
           <Input id="bail-charges" name="charges" type="number" step="0.01" min="0" />
         </div>
         <div className="space-y-1.5">
+          <Label htmlFor="bail-charges-mode">Mode de charges</Label>
+          <select
+            id="bail-charges-mode"
+            name="charges_mode"
+            defaultValue="provision"
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="provision">Provision (régularisée chaque année)</option>
+            <option value="forfait">Forfait (définitif, jamais régularisé)</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
           <Label htmlFor="bail-depot">Dépôt de garantie (€)</Label>
           <Input id="bail-depot" name="depot_garantie" type="number" step="0.01" min="0" />
         </div>

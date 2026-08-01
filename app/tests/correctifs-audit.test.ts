@@ -267,4 +267,103 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     );
     expect(Number(cumul)).toBe(1400);
   });
+
+  it("charges au FORFAIT : régularisation refusée (RM-3.9.8)", async () => {
+    const l = await lot();
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges,
+         charges_mode, date_debut)
+       values ($1,$2,$3,'actif',600,50,'forfait','2025-01-01') returning id`,
+      [orgA, l, locataire]
+    );
+    const {
+      rows: [{ id: doc }],
+    } = await db.query(
+      `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
+       values ($1,'justificatif','D',$1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',10,'e-'||gen_random_uuid()) returning id`,
+      [orgA]
+    );
+    await attendreEchec(
+      db,
+      /forfait/,
+      `select public.regulariser_charges($1,2025,1200,$2,null)`,
+      [bail, doc]
+    );
+  });
+
+  it("paiement partiel : un REÇU est émis, pas une quittance (RM-3.4.2)", async () => {
+    const l = await lot();
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges,
+         date_debut, date_fin)
+       values ($1,$2,$3,'termine',600,0,'2025-01-01','2025-02-28') returning id`,
+      [orgA, l, locataire]
+    );
+    await db.query(`select public.generer_appels_loyer($1)`, [bail]);
+    // Janvier payé en entier, février à moitié
+    await db.query(
+      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement)
+       values ($1,$2,900,current_date)`,
+      [orgA, bail]
+    );
+    await db.query(`select public.emettre_quittances($1)`, [bail]);
+    const q = await db.query(
+      `select q.est_quittance, q.montant, a.periode from public.quittances q
+       join public.appels_loyer a on a.id=q.appel_id
+       where q.bail_id=$1 order by a.periode`,
+      [bail]
+    );
+    expect(q.rows).toHaveLength(2);
+    expect(q.rows[0].est_quittance).toBe(true);
+    expect(Number(q.rows[0].montant)).toBe(600);
+    // Février : reçu du montant réellement encaissé (300)
+    expect(q.rows[1].est_quittance).toBe(false);
+    expect(Number(q.rows[1].montant)).toBe(300);
+  });
+
+  it("le dépôt de garantie produit une écriture au journal (encaissement et restitution)", async () => {
+    const l = await lot();
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, depot_garantie)
+       values ($1,$2,$3,'termine',700,700) returning id`,
+      [orgA, l, locataire]
+    );
+    await db.query(`select public.encaisser_depot($1,700,current_date,'virement',null,null)`, [bail]);
+    const rec = await db.query(
+      `select sens, montant from public.ecritures
+       where bail_id=$1 and categorie='depot_garantie'`,
+      [bail]
+    );
+    expect(rec.rows).toHaveLength(1);
+    expect(rec.rows[0].sens).toBe("recette");
+    expect(Number(rec.rows[0].montant)).toBe(700);
+
+    // EDL d'entrée signé puis restitution intégrale
+    const {
+      rows: [{ id: edl }],
+    } = await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type) values ($1,$2,'entree') returning id`,
+      [orgA, bail]
+    );
+    await db.query(`select public.generer_grille_edl($1)`, [edl]);
+    await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
+    await db.query(`select public.signer_edl($1)`, [edl]);
+    const {
+      rows: [{ id: rst }],
+    } = await db.query(`select public.demarrer_restitution($1,current_date,true) as id`, [bail]);
+    await db.query(`select public.finaliser_decompte($1)`, [rst]);
+    const dep = await db.query(
+      `select montant from public.ecritures
+       where bail_id=$1 and categorie='depot_garantie' and sens='depense'`,
+      [bail]
+    );
+    expect(dep.rows).toHaveLength(1);
+    expect(Number(dep.rows[0].montant)).toBe(700);
+  });
 });

@@ -46,7 +46,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { data: bail } = await supabase
     .from("baux")
     .select(
-      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, date_fin, revision_irl"
+      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, date_fin, revision_irl, charges_mode"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -152,7 +152,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .order("date_paiement", { ascending: false }),
         supabase
           .from("quittances")
-          .select("id, appel_id, montant, date_emission, email_envoye_at")
+          .select("id, appel_id, montant, date_emission, email_envoye_at, est_quittance")
           .eq("bail_id", bailId),
         supabase
           .from("revisions_loyer")
@@ -301,6 +301,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               revisions={(revisions ?? []) as Revision[]}
               relances={(relances ?? []) as RelanceLigne[]}
               regularisations={(regularisations ?? []) as RegulLigne[]}
+              chargesForfait={bail.charges_mode === "forfait"}
             />
           </CardContent>
         </Card>

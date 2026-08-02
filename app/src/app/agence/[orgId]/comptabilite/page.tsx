@@ -64,9 +64,17 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   const moisClotures = new Set(((clotures ?? []) as { mois: string }[]).map((c) => c.mois.slice(0, 7)));
   const moisCourant = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" }).slice(0, 7);
   const mandats: MandatCompta[] = (
-    (mandatsRaw ?? []) as { id: string; mandant: { nom: string; prenom: string | null }[] | null }[]
+    (mandatsRaw ?? []) as {
+      id: string;
+      mandant:
+        | { nom: string; prenom: string | null }
+        | { nom: string; prenom: string | null }[]
+        | null;
+    }[]
   ).map((m) => {
-    const p = m.mandant?.[0];
+    // Jointure to-one : PostgREST renvoie un objet (le typage générait un
+    // tableau — le nom du mandant s'affichait « — »). On accepte les deux.
+    const p = Array.isArray(m.mandant) ? m.mandant[0] : m.mandant;
     return { id: m.id, mandant_nom: p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "—" };
   });
 

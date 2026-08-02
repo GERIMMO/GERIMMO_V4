@@ -7,10 +7,7 @@ import {
   TYPES_NON_DECOUPABLES,
   ETATS_LOT,
   COULEURS_ETAT_LOT,
-  COULEURS_STATUT_DIAGNOSTIC,
-  LIBELLES_STATUT_DIAGNOSTIC,
   MODES_CLE,
-  statutDiagnostic,
   diagnosticsAttendus,
   formaterSurface,
   cibleBlocage,
@@ -28,7 +25,7 @@ import type { BienFormulaire } from "../formulaire-bien";
 import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
 import { SectionLot } from "./lots/[lotId]/section-lot";
 import { RecapBien } from "./recap-bien";
-import { FormulaireDiagnostic } from "./formulaire-diagnostic";
+import { LignesDiagnostics, type DiagnosticDepose } from "./lignes-diagnostics";
 import { FormulaireDecoupage } from "./formulaire-decoupage";
 import { FormulaireCle } from "./formulaire-cle";
 import {
@@ -158,56 +155,19 @@ export default async function PageBien(
                 : "")
             }
           >
-            <div className="space-y-4">
+            <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
                 ERP, amiante des parties communes, termites… Les diagnostics du
                 logement (DPE…) se déposent sur la fiche du lot (RM-0.6.2).
               </p>
-              {(diagnostics ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun diagnostic déposé.</p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {(diagnostics ?? []).map((d) => {
-                    const statut = statutDiagnostic(d.date_expiration);
-                    return (
-                      <li key={d.id} className="flex items-center gap-2 py-2 text-sm">
-                        <span className="min-w-0 flex-1 truncate">
-                          {TYPES_DIAGNOSTIC[d.type]?.libelle ?? d.type}
-                          {d.diagnostiqueur && (
-                            <span className="text-muted-foreground"> — {d.diagnostiqueur}</span>
-                          )}
-                        </span>
-                        {d.document_id && (
-                          <a
-                            href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
-                            target="_blank"
-                            className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
-                          >
-                            Rapport
-                          </a>
-                        )}
-                        <span className="shrink-0 text-xs text-muted-foreground">
-                          {d.date_expiration
-                            ? `expire le ${formaterDate(d.date_expiration)}`
-                            : "illimité"}
-                        </span>
-                        <span
-                          className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_STATUT_DIAGNOSTIC[statut]}`}
-                        >
-                          {LIBELLES_STATUT_DIAGNOSTIC[statut]}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              {manquants.length > 0 && (
-                <p className="text-sm text-warning-soft-foreground">
-                  Attendu{manquants.length > 1 ? "s" : ""} :{" "}
-                  {manquants.map((t) => TYPES_DIAGNOSTIC[t].libelle).join(", ")}
-                </p>
-              )}
-              <FormulaireDiagnostic orgId={orgId} bienId={bienId} lotId={null} niveau="bien" />
+              <LignesDiagnostics
+                orgId={orgId}
+                bienId={bienId}
+                lotId={null}
+                niveau="bien"
+                attendus={attendusBien}
+                diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
+              />
             </div>
           </SectionLot>
 

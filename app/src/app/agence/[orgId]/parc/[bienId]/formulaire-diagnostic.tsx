@@ -15,11 +15,14 @@ export function FormulaireDiagnostic({
   bienId,
   lotId,
   niveau,
+  typeInitial,
 }: {
   orgId: string;
   bienId: string;
   lotId: string | null;
   niveau: NiveauDiagnostic;
+  // Dépôt depuis la ligne d'un diagnostic précis : le type est déjà choisi
+  typeInitial?: string;
 }) {
   const types = Object.entries(TYPES_DIAGNOSTIC).filter(
     ([, t]) => t.niveau === niveau
@@ -27,7 +30,7 @@ export function FormulaireDiagnostic({
   const actionLiee = deposerDiagnostic.bind(null, orgId, bienId, lotId);
   const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
-  const [type, setType] = useState(types[0]?.[0] ?? "");
+  const [type, setType] = useState(typeInitial ?? types[0]?.[0] ?? "");
   const [realisation, setRealisation] = useState("");
   const [expiration, setExpiration] = useState("");
 

@@ -63,36 +63,56 @@ export function FormulaireDiagnostic({
     const minuterie = setTimeout(() => {
       setRealisation("");
       setExpiration("");
+      // form.reset() vient de remettre le <select> sur sa 1re option : sans ça,
+      // l'état React garde l'ancien type et le prochain dépôt part avec le
+      // mauvais — un « Termites » enregistré en « Amiante ».
+      setType(typeInitial ?? types[0]?.[0] ?? "");
     }, 0);
     return () => clearTimeout(minuterie);
   }, [etat]);
 
   return (
     <form ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
-      <p className="text-sm font-medium">Déposer un diagnostic</p>
+      <p className="text-sm font-medium">
+        {typeInitial
+          ? `Déposer : ${TYPES_DIAGNOSTIC[typeInitial]?.libelle ?? typeInitial}`
+          : "Déposer un diagnostic"}
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor={`diag-type-${niveau}`}>Type</Label>
-          <select
-            id={`diag-type-${niveau}`}
-            name="type"
-            value={type}
-            onChange={(e) => {
-              setType(e.target.value);
-              majExpiration(e.target.value, realisation);
-            }}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-          >
-            {types.map(([valeur, t]) => (
-              <option key={valeur} value={valeur}>
-                {t.libelle}
-              </option>
-            ))}
-          </select>
-          {TYPES_DIAGNOSTIC[type] && (
-            <p className="text-xs text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}</p>
-          )}
-        </div>
+        {typeInitial ? (
+          // Ouvert depuis la ligne d'un diagnostic précis : le type est acquis,
+          // un menu serait à la fois inutile et une source d'erreur (un reset
+          // le ramenait sur la 1re option et le dépôt partait du mauvais type).
+          <div className="space-y-1.5">
+            <input type="hidden" name="type" value={typeInitial} />
+            <p className="pt-1 text-xs text-muted-foreground">
+              {TYPES_DIAGNOSTIC[typeInitial]?.aide}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label htmlFor={`diag-type-${niveau}`}>Type</Label>
+            <select
+              id={`diag-type-${niveau}`}
+              name="type"
+              value={type}
+              onChange={(e) => {
+                setType(e.target.value);
+                majExpiration(e.target.value, realisation);
+              }}
+              className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+            >
+              {types.map(([valeur, t]) => (
+                <option key={valeur} value={valeur}>
+                  {t.libelle}
+                </option>
+              ))}
+            </select>
+            {TYPES_DIAGNOSTIC[type] && (
+              <p className="text-xs text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}</p>
+            )}
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor={`diag-diagnostiqueur-${niveau}`}>Diagnostiqueur</Label>
           <Input

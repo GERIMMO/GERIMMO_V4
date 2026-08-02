@@ -38,7 +38,7 @@ export default async function LayoutAgence({
           <Button
             variant="ghost"
             size="sm"
-            render={<Link href="/espaces">Mes espaces</Link>}
+            nativeButton={false} render={<Link href="/espaces">Mes espaces</Link>}
           />
           <form action={seDeconnecter}>
             <Button variant="outline" size="sm" type="submit">

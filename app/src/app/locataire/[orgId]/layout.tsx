@@ -22,7 +22,7 @@ export default async function LayoutLocataire({
           </Link>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="ghost" size="sm" render={<Link href="/espaces">Mes espaces</Link>} />
+          <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/espaces">Mes espaces</Link>} />
           <form action={seDeconnecter}>
             <Button variant="outline" size="sm" type="submit">
               Se déconnecter

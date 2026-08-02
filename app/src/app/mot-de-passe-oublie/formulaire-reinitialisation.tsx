@@ -28,7 +28,7 @@ export function FormulaireReinitialisation() {
             <Button
               variant="outline"
               className="w-full"
-              render={<Link href="/connexion">Retour à la connexion</Link>}
+              nativeButton={false} render={<Link href="/connexion">Retour à la connexion</Link>}
             />
           </div>
         ) : (

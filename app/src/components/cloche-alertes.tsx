@@ -19,7 +19,10 @@ export type AlerteSynthese = {
   created_at: string;
 };
 
-const CLE_SESSION = "gerimmo-synthese-alertes-vue";
+// Le drapeau « déjà vue » vit dans le sessionStorage, qui survit à la
+// déconnexion tant que l'onglet reste ouvert : la page de connexion le remet
+// à zéro, sinon une reconnexion dans le même onglet n'ouvrirait plus la synthèse.
+export const CLE_SESSION_ALERTES = "gerimmo-synthese-alertes-vue";
 
 export function ClocheAlertes({
   alertes,
@@ -35,8 +38,8 @@ export function ClocheAlertes({
   // À la connexion : ouverture automatique une seule fois par session,
   // et seulement s'il existe des alertes ouvertes
   useEffect(() => {
-    if (alertes.length === 0 || sessionStorage.getItem(CLE_SESSION)) return;
-    sessionStorage.setItem(CLE_SESSION, "1");
+    if (alertes.length === 0 || sessionStorage.getItem(CLE_SESSION_ALERTES)) return;
+    sessionStorage.setItem(CLE_SESSION_ALERTES, "1");
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);

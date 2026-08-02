@@ -218,8 +218,8 @@ export default async function PageBien(
             <SectionLot titre="Découpage en lots" resume="Non découpable">
               <p className="text-sm text-muted-foreground">
                 Un bien de type « {TYPES_BIEN[bien.type]} » est déjà l&apos;unité
-                locative : il ne se découpe pas en lots. Pour un immeuble entier,
-                créer un bien de type maison, local ou autre.
+                locative : il ne se découpe pas en lots. Pour un bâtiment entier,
+                créer un bien de type <strong>Immeuble</strong>.
               </p>
             </SectionLot>
           )}
@@ -309,10 +309,7 @@ export default async function PageBien(
               const blocages = blocagesParLot.get(lot.id) ?? [];
               return (
                 <li key={lot.id} className="space-y-2 py-2.5">
-                  <Link
-                    href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
-                    className="flex items-center gap-3 text-sm hover:bg-accent"
-                  >
+                  <div className="flex items-center gap-3 text-sm">
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
                     >
@@ -323,7 +320,13 @@ export default async function PageBien(
                       {formaterSurface(lot.surface_m2)}
                       {lot.pieces ? ` · ${lot.pieces} p.` : ""}
                     </span>
-                  </Link>
+                    <Link
+                      href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
+                      className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                    >
+                      Voir le lot →
+                    </Link>
+                  </div>
                   {lot.etat === "brouillon" && blocages.length > 0 && (
                     <div className="rounded-lg bg-muted p-3 text-sm">
                       <p className="mb-1 font-medium">

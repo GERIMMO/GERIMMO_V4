@@ -49,7 +49,7 @@ export default async function PageAdminOrganisation(
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-6">
       <div className="mb-8">
-        <Button variant="ghost" size="sm" render={<Link href="/admin" />}>
+        <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin" />}>
           ← Toutes les agences
         </Button>
         <h1 className="mt-2 text-2xl font-semibold">{organisation.name}</h1>

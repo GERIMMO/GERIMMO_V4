@@ -46,7 +46,7 @@ export default async function PageAdmin() {
           <Button
             variant="outline"
             size="sm"
-            render={<Link href="/admin/journaux">Journaux et conservation</Link>}
+            nativeButton={false} render={<Link href="/admin/journaux">Journaux et conservation</Link>}
           />
           <form action={seDeconnecter}>
             <Button variant="outline" size="sm" type="submit">

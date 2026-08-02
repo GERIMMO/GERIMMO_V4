@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { CLE_SESSION_ALERTES } from "@/components/cloche-alertes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +35,13 @@ export function FormulaireConnexion() {
   const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+
+  // Atterrir sur la page de connexion = nouvelle session utilisateur : on oublie
+  // la synthèse d'alertes déjà vue, sinon une reconnexion dans le même onglet
+  // ne la rouvrirait jamais (le sessionStorage survit à la déconnexion).
+  useEffect(() => {
+    sessionStorage.removeItem(CLE_SESSION_ALERTES);
+  }, []);
 
   async function seConnecter(e: React.FormEvent) {
     e.preventDefault();

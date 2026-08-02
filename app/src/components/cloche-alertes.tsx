@@ -35,17 +35,22 @@ export function ClocheAlertes({
 }) {
   const [ouverte, setOuverte] = useState(false);
 
-  // À la connexion : ouverture automatique une seule fois par session,
-  // et seulement s'il existe des alertes ouvertes
+  // À la connexion : ouverture automatique une seule fois par session, et
+  // seulement s'il existe des alertes ouvertes. Le drapeau « vue » se pose à la
+  // FERMETURE, pas à l'ouverture : la page-relais /espaces monte ce composant
+  // puis redirige aussitôt — poser le drapeau à l'ouverture y « consommait »
+  // la synthèse sans que personne ne l'ait vue.
   useEffect(() => {
     if (alertes.length === 0 || sessionStorage.getItem(CLE_SESSION_ALERTES)) return;
-    sessionStorage.setItem(CLE_SESSION_ALERTES, "1");
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);
     return () => clearTimeout(minuterie);
   }, [alertes.length]);
 
-  const fermer = useCallback(() => setOuverte(false), []);
+  const fermer = useCallback(() => {
+    sessionStorage.setItem(CLE_SESSION_ALERTES, "1");
+    setOuverte(false);
+  }, []);
 
   useEffect(() => {
     if (!ouverte) return;

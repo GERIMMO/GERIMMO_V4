@@ -200,6 +200,48 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .order("created_at")
     : { data: [] };
 
+  // « À faire maintenant » : la page suit le cycle de vie du bail, mais un
+  // agent qui débute ne connaît pas l'ordre — on le déduit des données et on
+  // l'affiche en tête, chaque étape pointant vers sa carte. 3 étapes maximum :
+  // au-delà, la liste redevient du bruit.
+  const edlEntreeSigne = (edls ?? []).some((e) => e.type === "entree" && e.etat === "signe");
+  const edlSortieSigne = (edls ?? []).some((e) => e.type === "sortie" && e.etat === "signe");
+  const depotEncaisse = ((depotEncaissements ?? []) as { montant: number }[]).reduce(
+    (s, e) => s + Number(e.montant),
+    0
+  );
+  const resteDepot = Number(bail.depot_garantie ?? 0) - depotEncaisse;
+  const aFaire: { texte: string; href: string }[] = [];
+  if (bail.etat === "brouillon") {
+    aFaire.push(
+      bail.document_signe
+        ? { texte: "Activer le bail (contrôles automatiques puis lot loué)", href: "#activation" }
+        : { texte: "Déposer le bail signé, puis l'activer", href: "#activation" }
+    );
+  } else {
+    if (!edlEntreeSigne)
+      aFaire.push({
+        texte: "Faire signer l'état des lieux d'entrée — sans lui, aucune retenue possible à la sortie",
+        href: "#edl",
+      });
+    if (resteDepot > 0)
+      aFaire.push({
+        texte: `Encaisser le dépôt de garantie (reste ${resteDepot.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €)`,
+        href: "#depot",
+      });
+    if ((echeancier ?? []).length === 0)
+      aFaire.push({ texte: "Générer l'échéancier des loyers", href: "#loyers" });
+    if (bail.etat === "preavis" && !edlSortieSigne)
+      aFaire.push({
+        texte: `Prévoir l'état des lieux de sortie${bail.date_fin ? ` (départ le ${formaterDate(bail.date_fin)})` : ""}`,
+        href: "#edl",
+      });
+    if ((bail.etat === "preavis" || bail.etat === "termine") && edlSortieSigne && !restitution)
+      aFaire.push({ texte: "Démarrer la restitution du dépôt de garantie", href: "#restitution" });
+    if (restitution && (restitution as { statut: string }).statut === "en_cours")
+      aFaire.push({ texte: "Finaliser le décompte de restitution", href: "#restitution" });
+  }
+
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 p-6">
       <div>
@@ -226,9 +268,28 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </p>
       </div>
 
+      {/* La prochaine action évidente, dérivée de l'état du bail */}
+      {aFaire.length > 0 && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <p className="text-sm font-semibold">À faire maintenant</p>
+          <ol className="mt-2 space-y-1.5">
+            {aFaire.slice(0, 3).map((a, i) => (
+              <li key={a.href + i} className="flex items-center gap-2 text-sm">
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
+                  {i + 1}
+                </span>
+                <a href={a.href} className="min-w-0 flex-1 underline-offset-2 hover:underline">
+                  {a.texte}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       {/* Cycle du bail */}
       {bail.etat === "brouillon" && (
-        <Card>
+        <Card id="activation" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Activer le bail</CardTitle>
             <CardDescription>
@@ -282,7 +343,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Loyers & quittances */}
       {loyersActif && (
-        <Card>
+        <Card id="loyers" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Loyers & quittances</CardTitle>
             <CardDescription>
@@ -309,7 +370,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Dépôt de garantie — encaissement */}
       {loyersActif && (
-        <Card>
+        <Card id="depot" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Dépôt de garantie</CardTitle>
             <CardDescription>
@@ -384,7 +445,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       {/* États des lieux */}
-      <Card>
+      <Card id="edl" className="scroll-mt-20">
         <CardHeader>
           <CardTitle className="text-base">États des lieux</CardTitle>
           <CardDescription>
@@ -436,7 +497,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Restitution du dépôt de garantie */}
       {restitutionActif && (
-        <Card>
+        <Card id="restitution" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Restitution du dépôt de garantie</CardTitle>
             <CardDescription>

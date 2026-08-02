@@ -289,15 +289,20 @@ export default async function PageBien(
                     bienId,
                     lotId: lotsActifs[0]?.id ?? "",
                   });
+                  // Cible sur cette page même : ancre native — un <Link> passe par
+                  // pushState, qui ne déclenche pas le hashchange qu'écoute SectionLot,
+                  // et la section ne s'ouvrait pas.
+                  const memePage = !cible.href.includes("/lots/");
+                  const classe =
+                    "shrink-0 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-medium hover:bg-muted";
                   return (
                     <li key={b} className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="min-w-0 flex-1">{b}</span>
-                      <Link
-                        href={cible.href}
-                        className="shrink-0 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-medium hover:bg-muted"
-                      >
-                        {cible.libelle}
-                      </Link>
+                      {memePage ? (
+                        <a href={cible.href} className={classe}>{cible.libelle}</a>
+                      ) : (
+                        <Link href={cible.href} className={classe}>{cible.libelle}</Link>
+                      )}
                     </li>
                   );
                 })}

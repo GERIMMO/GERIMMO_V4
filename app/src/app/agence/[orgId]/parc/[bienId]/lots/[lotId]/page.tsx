@@ -202,15 +202,21 @@ export default async function PageLot(
               <ul className="space-y-1.5">
                 {(blocages as string[]).map((b) => {
                   const cible = cibleBlocage(b, { orgId, bienId, lotId });
+                  // Ancre native pour les cibles de cette page (voir fiche bien) :
+                  // Link/pushState ne déclenche pas hashchange, la section restait fermée.
+                  const memePage = cible.href.includes(`/lots/${lotId}#`);
                   return (
                     <li key={b} className="flex items-center justify-between gap-2">
                       <span className="min-w-0 flex-1 text-muted-foreground">{b}</span>
-                      <Link
-                        href={cible.href}
-                        className={buttonVariants({ variant: "outline", size: "sm" })}
-                      >
-                        {cible.libelle} →
-                      </Link>
+                      {memePage ? (
+                        <a href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                          {cible.libelle} →
+                        </a>
+                      ) : (
+                        <Link href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                          {cible.libelle} →
+                        </Link>
+                      )}
                     </li>
                   );
                 })}

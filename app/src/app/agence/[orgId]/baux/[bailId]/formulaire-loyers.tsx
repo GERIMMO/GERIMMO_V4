@@ -157,18 +157,12 @@ export function FormulaireLoyers({
           </span>
         </p>
         <div className="flex gap-2">
-          <form action={async () => { await genererAppels(orgId, bailId); }}>
-            <Button type="submit" size="sm" variant="outline">
-              Générer l&apos;échéancier
-            </Button>
-          </form>
-          <form action={async () => { await emettreQuittances(orgId, bailId); }}>
-            <Button type="submit" size="sm" variant="outline">
-              Émettre les quittances
-            </Button>
-          </form>
+          <BoutonEcheancier orgId={orgId} bailId={bailId} />
+          <BoutonQuittances orgId={orgId} bailId={bailId} />
         </div>
       </div>
+      {/* Retour des deux actions du haut — une erreur avalée ici a déjà caché
+          un vrai blocage (« Le bail n'a pas de date de début ») pendant la recette */}
 
       {/* Échéancier */}
       {echeancier.length === 0 ? (
@@ -389,5 +383,38 @@ export function FormulaireLoyers({
         )}
       </div>
     </div>
+  );
+}
+
+
+function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) {
+  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+    async () => genererAppels(orgId, bailId),
+    {}
+  );
+  return (
+    <form action={action} className="flex items-center gap-2">
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "…" : "Générer l'échéancier"}
+      </Button>
+      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
+    </form>
+  );
+}
+
+function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) {
+  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+    async () => emettreQuittances(orgId, bailId),
+    {}
+  );
+  return (
+    <form action={action} className="flex items-center gap-2">
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "…" : "Émettre les quittances"}
+      </Button>
+      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
+    </form>
   );
 }

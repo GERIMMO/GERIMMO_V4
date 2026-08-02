@@ -123,7 +123,10 @@ function AppelBloc({
                 </span>
               </div>
               {modifiable && (
-                <FormQualifierPoste orgId={orgId} bienId={bienId} lotId={lotId} poste={p} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <FormQualifierPoste orgId={orgId} bienId={bienId} lotId={lotId} poste={p} />
+                  <BoutonSupprimerPoste orgId={orgId} bienId={bienId} lotId={lotId} posteId={p.id} />
+                </div>
               )}
             </li>
           ))}
@@ -262,7 +265,6 @@ function FormQualifierPoste({
       <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="h-7 text-xs">
         Qualifier
       </Button>
-      <BoutonSupprimerPoste orgId={orgId} bienId={bienId} lotId={lotId} posteId={poste.id} />
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );

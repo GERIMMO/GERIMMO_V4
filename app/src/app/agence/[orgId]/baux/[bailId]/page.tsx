@@ -393,7 +393,23 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </CardHeader>
         <CardContent className="space-y-4">
           {(edls ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun état des lieux.</p>
+            // Sans EDL d'entrée signé, le logement est réputé remis en bon état :
+            // aucune retenue ne sera possible à la sortie (RM-2.4.3).
+            bail.etat === "brouillon" ? (
+              <p className="text-sm text-muted-foreground">Aucun état des lieux.</p>
+            ) : (
+              <div className="rounded-lg border border-destructive-soft bg-destructive-soft/40 p-3">
+                <p className="text-sm font-medium text-destructive-soft-foreground">
+                  ⚠ Aucun état des lieux d&apos;entrée
+                </p>
+                <p className="mt-0.5 text-sm text-destructive-soft-foreground">
+                  Le bail est {ETATS_BAIL[bail.etat]?.toLowerCase() ?? bail.etat} : sans
+                  état des lieux d&apos;entrée signé, le logement sera réputé remis en
+                  bon état et <strong>aucune retenue ne pourra être faite sur le
+                  dépôt de garantie</strong> (RM-2.4.3).
+                </p>
+              </div>
+            )
           ) : (
             <ul className="space-y-2">
               {(edls ?? []).map((e) => (

@@ -347,6 +347,7 @@ export default async function PageLot(
           <SectionLot
             id="pieces"
             titre="Pièces (état des lieux)"
+            alerte={(piecesLot ?? []).length === 0 ? "À définir" : undefined}
             resume={
               (piecesLot ?? []).length === 0
                 ? "Aucune pièce définie"
@@ -413,6 +414,7 @@ export default async function PageLot(
             <SectionLot
               id="charges"
               titre="Charges de copropriété"
+              alerte={appelsCharges.length === 0 ? "Aucun appel saisi" : undefined}
               resume={
                 appelsCharges.length === 0
                   ? "Aucun appel de charges saisi"

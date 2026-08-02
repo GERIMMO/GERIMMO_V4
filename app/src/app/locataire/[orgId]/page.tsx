@@ -155,16 +155,29 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
         </CardHeader>
         <CardContent className="space-y-4">
           {assurance ? (
-            <div className="rounded-lg border border-border p-3 text-sm">
+            <div
+              className={`rounded-lg border p-3 text-sm ${
+                statutAssurance(assurance.expire_le).classe.includes("destructive")
+                  ? "border-destructive-soft bg-destructive-soft/40"
+                  : "border-border"
+              }`}
+            >
               <p className="font-medium">{assurance.titre || "Attestation déposée"}</p>
               <p className={statutAssurance(assurance.expire_le).classe}>
                 {statutAssurance(assurance.expire_le).texte}
               </p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              Aucune attestation déposée pour l&apos;instant.
-            </p>
+            // Obligation annuelle non tenue : le dire franchement, pas en gris
+            <div className="rounded-lg border border-destructive-soft bg-destructive-soft/40 p-3">
+              <p className="text-sm font-medium text-destructive-soft-foreground">
+                ⚠ Aucune attestation déposée
+              </p>
+              <p className="mt-0.5 text-sm text-destructive-soft-foreground">
+                L&apos;assurance habitation est obligatoire pendant toute la durée du
+                bail. Déposez votre attestation ci-dessous.
+              </p>
+            </div>
           )}
           <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
         </CardContent>

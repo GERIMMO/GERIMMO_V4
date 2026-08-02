@@ -37,6 +37,27 @@ export async function creerBien(
     return { erreur: "L'adresse (voie, code postal, ville) est obligatoire." };
   }
 
+  // Questionnaire progressif : un bien divisé arrive avec sa liste de lots.
+  // Le premier lot devient le « lot unique » créé par RM-0.1.2, les suivants
+  // passent par le découpage (héritage des détentions, clé invalidée).
+  type LotSaisi = { nom?: string; surface?: string; pieces?: string };
+  let lotsSaisis: LotSaisi[] = [];
+  const lotsBrut = String(formData.get("lots") ?? "").trim();
+  if (lotsBrut) {
+    try {
+      const parse = JSON.parse(lotsBrut);
+      if (Array.isArray(parse)) lotsSaisis = parse as LotSaisi[];
+    } catch {
+      return { erreur: "Liste des lots illisible." };
+    }
+  }
+  if ((TYPES_NON_DECOUPABLES as readonly string[]).includes(type) && lotsSaisis.length > 1) {
+    return {
+      erreur: `Un bien de type « ${TYPES_BIEN[type]} » est déjà l'unité locative : il ne se découpe pas en lots.`,
+    };
+  }
+  const premier = lotsSaisis[0];
+
   // Créer un bien = créer son lot unique (RM-0.1.2), atomique en base
   const { data: bienId, error } = await supabase.rpc("creer_bien_avec_lot", {
     p_org: orgId,
@@ -48,10 +69,37 @@ export async function creerBien(
     p_city: ville,
     p_annee: annee ? Number(annee) : null,
     p_copropriete: formData.get("copropriete") === "on",
-    p_surface: surface ? Number(surface) : null,
-    p_pieces: pieces ? Number(pieces) : null,
+    p_surface: premier?.surface ? Number(premier.surface) : surface ? Number(surface) : null,
+    p_pieces: premier?.pieces ? Number(premier.pieces) : pieces ? Number(pieces) : null,
   });
   if (error) return { erreur: `Création impossible : ${error.message}` };
+
+  if (lotsSaisis.length > 0 && bienId) {
+    // Le lot d'origine porte le nom saisi pour le premier lot
+    if (premier?.nom?.trim()) {
+      await supabase
+        .from("lots")
+        .update({ nom: premier.nom.trim() })
+        .eq("bien_id", bienId)
+        .eq("organization_id", orgId);
+    }
+    const suivants = lotsSaisis.slice(1).map((l, i) => ({
+      nom: l.nom?.trim() || `Lot ${i + 2}`,
+      surface_m2: l.surface ?? "",
+      pieces: l.pieces ?? "",
+    }));
+    if (suivants.length > 0) {
+      const { error: erreurDecoupe } = await supabase.rpc("decouper_bien", {
+        p_bien: bienId,
+        p_lots: suivants,
+      });
+      if (erreurDecoupe) {
+        return {
+          erreur: `Bien créé, mais les lots supplémentaires ont échoué : ${erreurDecoupe.message}`,
+        };
+      }
+    }
+  }
 
   revalidatePath(`/agence/${orgId}/parc`);
   redirect(`/agence/${orgId}/parc/${bienId}`);

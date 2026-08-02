@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { creerBien, modifierBien, type EtatParc } from "@/app/actions/parc";
-import { TYPES_BIEN } from "@/lib/parc";
+import { TYPES_BIEN, TYPES_NON_DECOUPABLES } from "@/lib/parc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +82,30 @@ export function FormulaireBien({
     setSuggestions([]);
   };
 
+  // Questionnaire progressif : le type choisi commande la suite. Un appartement
+  // ou un parking EST l'unité locative (un seul lot, pas de question) ; un
+  // immeuble est multi-lots par nature ; les autres types peuvent l'être.
+  const [type, setType] = useState(bien?.type ?? "appartement");
+  const nonDecoupable = (TYPES_NON_DECOUPABLES as readonly string[]).includes(type);
+  const [divise, setDivise] = useState(false);
+  const multiLots = !nonDecoupable && (type === "immeuble" || divise);
+
+  const [lots, setLots] = useState<{ nom: string; surface: string; pieces: string }[]>([
+    { nom: "", surface: "", pieces: "" },
+  ]);
+  const majLot = (i: number, champ: "nom" | "surface" | "pieces", valeur: string) =>
+    setLots((l) => l.map((x, j) => (j === i ? { ...x, [champ]: valeur } : x)));
+  const ajouterLot = () =>
+    setLots((l) => [...l, { nom: "", surface: "", pieces: "" }]);
+  const retirerLot = (i: number) => setLots((l) => l.filter((_, j) => j !== i));
+
+  // Changer de type remet la suite du questionnaire à zéro
+  const changerType = (nouveau: string) => {
+    setType(nouveau);
+    setDivise(false);
+    setLots([{ nom: "", surface: "", pieces: "" }]);
+  };
+
   return (
     <form action={action} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -105,7 +129,8 @@ export function FormulaireBien({
             <select
               id="bien-type"
               name="type"
-              defaultValue="appartement"
+              value={type}
+              onChange={(e) => changerType(e.target.value)}
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
               {Object.entries(TYPES_BIEN).map(([valeur, libelle]) => (
@@ -221,21 +246,105 @@ export function FormulaireBien({
       </div>
 
       {!bien && (
-        <div className="grid gap-4 border-t border-border pt-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="lot-surface">Surface du lot unique (m²)</Label>
-            <Input
-              id="lot-surface"
-              name="surface_m2"
-              type="number"
-              step="0.01"
-              min="0.01"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lot-pieces">Nombre de pièces</Label>
-            <Input id="lot-pieces" name="pieces" type="number" min={1} />
-          </div>
+        <div className="space-y-4 border-t border-border pt-4">
+          {/* Types divisibles hors immeuble : la question précède la suite */}
+          {!nonDecoupable && type !== "immeuble" && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={divise}
+                onChange={(e) => {
+                  setDivise(e.target.checked);
+                  setLots([{ nom: "", surface: "", pieces: "" }]);
+                }}
+                className="size-4"
+              />
+              Ce bien est divisé en plusieurs lots louables séparément
+            </label>
+          )}
+
+          {multiLots ? (
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium">
+                  {type === "immeuble" ? "Lots de l'immeuble" : "Lots du bien"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Un bail porte toujours sur un lot. Une clé de répartition sera à
+                  définir ensuite pour ventiler les charges communes.
+                </p>
+              </div>
+              {lots.map((lot, i) => (
+                <div key={i} className="flex flex-wrap items-end gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nom du lot</Label>
+                    <Input
+                      value={lot.nom}
+                      onChange={(e) => majLot(i, "nom", e.target.value)}
+                      placeholder={`Lot ${i + 1}`}
+                      className="w-44"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Surface (m²)</Label>
+                    <Input
+                      value={lot.surface}
+                      onChange={(e) => majLot(i, "surface", e.target.value)}
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      className="w-28"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Pièces</Label>
+                    <Input
+                      value={lot.pieces}
+                      onChange={(e) => majLot(i, "pieces", e.target.value)}
+                      type="number"
+                      min={1}
+                      className="w-20"
+                    />
+                  </div>
+                  {lots.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => retirerLot(i)}
+                      className="text-destructive"
+                    >
+                      Retirer
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button type="button" variant="outline" size="sm" onClick={ajouterLot}>
+                + Ajouter un lot
+              </Button>
+              {/* Transmis à l'action : la liste complète des lots à créer */}
+              <input type="hidden" name="lots" value={JSON.stringify(lots)} />
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="lot-surface">
+                  Surface {nonDecoupable ? "" : "du lot unique "}(m²)
+                </Label>
+                <Input
+                  id="lot-surface"
+                  name="surface_m2"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lot-pieces">Nombre de pièces</Label>
+                <Input id="lot-pieces" name="pieces" type="number" min={1} />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -248,7 +357,9 @@ export function FormulaireBien({
           ? "Enregistrement…"
           : bien
             ? "Enregistrer"
-            : "Créer le bien et son lot unique"}
+            : multiLots
+              ? `Créer le bien et ses ${lots.length} lot${lots.length > 1 ? "s" : ""}`
+              : "Créer le bien et son lot unique"}
       </Button>
     </form>
   );

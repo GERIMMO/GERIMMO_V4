@@ -214,6 +214,12 @@ export function cibleBlocage(
   if (m.includes("détention") || m.includes("detention"))
     return { href: `${lot}#detention`, libelle: "Compléter la détention" };
   if (m.includes("erp")) return { href: `${bien}#diagnostics`, libelle: "Déposer l'ERP (fiche bien)" };
+  // La clé se valide sur la fiche bien : sans ce cas, on retomberait sur les
+  // diagnostics du lot, qui n'ont rien à voir avec le blocage.
+  if (m.includes("clé de répartition") || m.includes("cle de repartition"))
+    return { href: `${bien}#cle`, libelle: "Valider la clé (fiche bien)" };
+  if (m.includes("nom du lot"))
+    return { href: `${lot}#caracteristiques`, libelle: "Nommer le lot" };
   // DPE et autres diagnostics rattachés au lot (électricité, gaz, plomb, amiante privatif)
   return { href: `${lot}#diagnostics`, libelle: "Mettre à jour les diagnostics" };
 }

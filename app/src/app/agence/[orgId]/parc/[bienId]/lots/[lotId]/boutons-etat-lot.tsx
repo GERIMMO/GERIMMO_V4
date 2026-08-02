@@ -32,11 +32,20 @@ export function BoutonsEtatLot({
   bienId,
   lotId,
   etat,
+  bloque = false,
+  compact = false,
 }: {
   orgId: string;
   bienId: string;
   lotId: string;
   etat: string;
+  // Des blocages subsistent : « Passer en disponible » reste cliquable (la base
+  // fait foi et renvoie l'erreur exacte) mais cesse de s'annoncer comme l'action
+  // évidente à faire.
+  bloque?: boolean;
+  // Liste de lots : le rappel sur la revérification est affiché une fois pour
+  // toute la carte, pas sous chaque lot.
+  compact?: boolean;
 }) {
   const actionLiee = changerEtatLot.bind(null, orgId, bienId, lotId);
   const [retour, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
@@ -51,7 +60,7 @@ export function BoutonsEtatLot({
             <Button
               type="submit"
               size="sm"
-              variant={t.cible === "disponible" ? "default" : "outline"}
+              variant={t.cible === "disponible" && !bloque ? "default" : "outline"}
               disabled={enCours}
             >
               {t.libelle}
@@ -63,10 +72,12 @@ export function BoutonsEtatLot({
       {retour.succes && (
         <p className="text-sm text-success-soft-foreground">{retour.succes}</p>
       )}
-      <p className="text-xs text-muted-foreground">
-        État courant : {ETATS_LOT[etat] ?? etat}. Le passage en « Disponible »
-        revérifie tous les blocages en base.
-      </p>
+      {!compact && (
+        <p className="text-xs text-muted-foreground">
+          État courant : {ETATS_LOT[etat] ?? etat}. Le passage en « Disponible »
+          revérifie tous les blocages en base.
+        </p>
+      )}
     </div>
   );
 }

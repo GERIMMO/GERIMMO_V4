@@ -8,6 +8,7 @@ import {
   statutDiagnostic,
   diagnosticsAttendus,
   alertesDecence,
+  cibleBlocage,
 } from "../src/lib/parc";
 
 describe("proposerCle", () => {
@@ -94,5 +95,30 @@ describe("alertesDecence", () => {
     expect(alertesDecence({ surface_m2: 8 })).toHaveLength(1);
     expect(alertesDecence({ surface_m2: 9 })).toHaveLength(0);
     expect(alertesDecence({ surface_m2: null })).toHaveLength(0);
+  });
+});
+
+describe("cibleBlocage", () => {
+  const ctx = { orgId: "o", bienId: "b", lotId: "l" };
+  const bien = "/agence/o/parc/b";
+  const lot = `${bien}/lots/l`;
+
+  it("renvoie la clé de répartition vers la fiche bien, pas vers les diagnostics", () => {
+    // Régression : ce message tombait dans le cas par défaut et proposait
+    // « Mettre à jour les diagnostics » du lot, sans rapport avec le blocage.
+    const c = cibleBlocage("Clé de répartition à (re)valider", ctx);
+    expect(c.href).toBe(`${bien}#cle`);
+    expect(c.libelle).toMatch(/clé/i);
+  });
+
+  it("renvoie l'ERP vers la fiche bien et le DPE vers la fiche lot", () => {
+    expect(cibleBlocage("ERP absent ou expiré", ctx).href).toBe(`${bien}#diagnostics`);
+    expect(cibleBlocage("DPE absent ou expiré", ctx).href).toBe(`${lot}#diagnostics`);
+  });
+
+  it("aiguille détention, surface et nom vers leurs sections du lot", () => {
+    expect(cibleBlocage("Détention incomplète (0 %)", ctx).href).toBe(`${lot}#detention`);
+    expect(cibleBlocage("Surface manquante", ctx).href).toBe(`${lot}#caracteristiques`);
+    expect(cibleBlocage("Nom du lot manquant", ctx).href).toBe(`${lot}#caracteristiques`);
   });
 });

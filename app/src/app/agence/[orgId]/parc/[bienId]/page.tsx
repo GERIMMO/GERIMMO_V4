@@ -13,6 +13,7 @@ import {
   statutDiagnostic,
   diagnosticsAttendus,
   formaterSurface,
+  cibleBlocage,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
 import {
@@ -97,6 +98,15 @@ export default async function PageBien(
 
   const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
   const multiLots = lotsActifs.length > 1;
+
+  // Sur un bien multi-lots, l'ERP et la clé de répartition se règlent au niveau
+  // du bien : les répéter sous chaque lot noie les points réellement propres au
+  // lot. On isole donc ce qui est commun à TOUS les lots bloqués.
+  const listesBlocages = [...blocagesParLot.values()];
+  const blocagesCommuns =
+    listesBlocages.length > 1
+      ? listesBlocages[0].filter((b) => listesBlocages.every((l) => l.includes(b)))
+      : [];
   // Diagnostics attendus au niveau bien uniquement — ceux du lot sont sur sa fiche
   const attendusBien = diagnosticsAttendus(bien).filter(
     (t) => TYPES_DIAGNOSTIC[t].niveau === "bien"
@@ -227,6 +237,7 @@ export default async function PageBien(
           {/* Clé de répartition (multi-lots) */}
           {multiLots && (
             <SectionLot
+              id="cle"
               titre="Clé de répartition"
               ouvertParDefaut={!cle}
               resume={
@@ -303,23 +314,58 @@ export default async function PageBien(
             La mise en location se fait ici, lot par lot.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {/* Ce qui bloque TOUS les lots : affiché une fois, pas sous chacun */}
+          {blocagesCommuns.length > 0 && (
+            <div className="rounded-lg border border-warning-soft bg-warning-soft/40 p-3">
+              <p className="text-sm font-medium text-warning-soft-foreground">
+                À régler pour l&apos;ensemble des lots
+              </p>
+              <ul className="mt-1.5 space-y-1">
+                {blocagesCommuns.map((b) => {
+                  const cible = cibleBlocage(b, {
+                    orgId,
+                    bienId,
+                    lotId: lotsActifs[0]?.id ?? "",
+                  });
+                  return (
+                    <li key={b} className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="min-w-0 flex-1">{b}</span>
+                      <Link
+                        href={cible.href}
+                        className="shrink-0 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-medium hover:bg-muted"
+                      >
+                        {cible.libelle}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
           <ul className="divide-y divide-border">
             {(lots ?? []).map((lot) => {
               const blocages = blocagesParLot.get(lot.id) ?? [];
+              const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
               return (
-                <li key={lot.id} className="space-y-2 py-2.5">
-                  <div className="flex items-center gap-3 text-sm">
+                <li key={lot.id} className="space-y-2 py-3">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
                     <span
                       className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
                     >
                       {ETATS_LOT[lot.etat] ?? lot.etat}
                     </span>
                     <span className="min-w-0 flex-1 truncate font-medium">{lot.nom}</span>
-                    <span className="shrink-0 text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {formaterSurface(lot.surface_m2)}
                       {lot.pieces ? ` · ${lot.pieces} p.` : ""}
                     </span>
+                    {blocages.length > 0 && (
+                      <span className="shrink-0 rounded-full bg-warning-soft px-2 py-0.5 text-xs text-warning-soft-foreground">
+                        {blocages.length} à régler
+                      </span>
+                    )}
                     <Link
                       href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
                       className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
@@ -327,28 +373,53 @@ export default async function PageBien(
                       Voir le lot →
                     </Link>
                   </div>
-                  {lot.etat === "brouillon" && blocages.length > 0 && (
-                    <div className="rounded-lg bg-muted p-3 text-sm">
-                      <p className="mb-1 font-medium">
-                        Ce qui empêche la mise en location :
-                      </p>
-                      <ul className="list-inside list-disc text-muted-foreground">
-                        {blocages.map((b) => (
-                          <li key={b}>{b}</li>
-                        ))}
+
+                  {/* Points propres à ce lot — repliés, la ligne reste lisible */}
+                  {propres.length > 0 && (
+                    <details className="group">
+                      <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
+                        <span className="group-open:hidden">
+                          ▸ Voir ce qui bloque ce lot ({propres.length})
+                        </span>
+                        <span className="hidden group-open:inline">▾ Masquer le détail</span>
+                      </summary>
+                      <ul className="mt-1.5 space-y-1 pl-3">
+                        {propres.map((b) => {
+                          const cible = cibleBlocage(b, { orgId, bienId, lotId: lot.id });
+                          return (
+                            <li
+                              key={b}
+                              className="flex flex-wrap items-center gap-2 text-sm"
+                            >
+                              <span className="min-w-0 flex-1 text-muted-foreground">{b}</span>
+                              <Link
+                                href={cible.href}
+                                className="shrink-0 rounded-md border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted"
+                              >
+                                {cible.libelle}
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
-                    </div>
+                    </details>
                   )}
+
                   <BoutonsEtatLot
                     orgId={orgId}
                     bienId={bienId}
                     lotId={lot.id}
                     etat={lot.etat}
+                    bloque={blocages.length > 0}
+                    compact
                   />
                 </li>
               );
             })}
           </ul>
+          <p className="text-xs text-muted-foreground">
+            Le passage en « Disponible » revérifie tous les blocages en base.
+          </p>
         </CardContent>
       </Card>
     </main>

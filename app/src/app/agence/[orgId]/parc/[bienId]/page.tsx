@@ -14,6 +14,7 @@ import {
   diagnosticsAttendus,
   formaterSurface,
   cibleBlocage,
+  alerteDiagnostics,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
 import {
@@ -149,7 +150,7 @@ export default async function PageBien(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du bien"
-            ouvertParDefaut={manquants.length > 0}
+            alerte={alerteDiagnostics(manquants, diagnostics ?? [])}
             resume={
               `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""}` +
               (manquants.length > 0
@@ -239,7 +240,7 @@ export default async function PageBien(
             <SectionLot
               id="cle"
               titre="Clé de répartition"
-              ouvertParDefaut={!cle}
+              alerte={cle ? undefined : "À valider"}
               resume={
                 cle
                   ? `En vigueur (${MODES_CLE[cle.mode] ?? cle.mode}, effet au ${formaterDate(cle.date_effet)})`

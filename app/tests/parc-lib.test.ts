@@ -9,6 +9,7 @@ import {
   diagnosticsAttendus,
   alertesDecence,
   cibleBlocage,
+  alerteDiagnostics,
 } from "../src/lib/parc";
 
 describe("proposerCle", () => {
@@ -120,5 +121,29 @@ describe("cibleBlocage", () => {
     expect(cibleBlocage("Détention incomplète (0 %)", ctx).href).toBe(`${lot}#detention`);
     expect(cibleBlocage("Surface manquante", ctx).href).toBe(`${lot}#caracteristiques`);
     expect(cibleBlocage("Nom du lot manquant", ctx).href).toBe(`${lot}#caracteristiques`);
+  });
+});
+
+describe("alerteDiagnostics", () => {
+  const dans = (jours: number) =>
+    new Date(Date.now() + jours * 86400000).toISOString().slice(0, 10);
+
+  it("reste silencieuse quand tout est en règle", () => {
+    expect(alerteDiagnostics([], [{ date_expiration: dans(400) }])).toBeUndefined();
+    expect(alerteDiagnostics([], [{ date_expiration: null }])).toBeUndefined();
+  });
+
+  it("signale les manquants, les périmés et les bientôt périmés", () => {
+    expect(alerteDiagnostics(["dpe"], [])).toBe("1 manquant");
+    expect(alerteDiagnostics([], [{ date_expiration: dans(-1) }])).toBe("1 périmé");
+    expect(alerteDiagnostics([], [{ date_expiration: dans(10) }])).toBe(
+      "1 bientôt périmé"
+    );
+  });
+
+  it("cumule les motifs et accorde le pluriel", () => {
+    expect(
+      alerteDiagnostics(["dpe", "erp"], [{ date_expiration: dans(-5) }, { date_expiration: dans(-2) }])
+    ).toBe("2 manquants · 2 périmés");
   });
 });

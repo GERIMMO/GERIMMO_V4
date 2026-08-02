@@ -203,6 +203,29 @@ export function formaterSurface(m2: number | string | null): string {
 // fiche lot ; l'ERP se traite sur la fiche bien (diagnostic de parties communes).
 export type CibleBlocage = { href: string; libelle: string };
 
+// Pastille d'alerte d'une section « Diagnostics » : ce qui manque, ce qui est
+// périmé, ce qui va l'être. Rend `undefined` quand tout est en règle — la
+// section reste alors repliée et silencieuse.
+export function alerteDiagnostics(
+  manquants: string[],
+  diagnostics: { date_expiration: string | null }[]
+): string | undefined {
+  const expires = diagnostics.filter(
+    (d) => statutDiagnostic(d.date_expiration) === "expire"
+  ).length;
+  const bientot = diagnostics.filter(
+    (d) => statutDiagnostic(d.date_expiration) === "expire_bientot"
+  ).length;
+  const parties = [
+    manquants.length > 0
+      ? `${manquants.length} manquant${manquants.length > 1 ? "s" : ""}`
+      : null,
+    expires > 0 ? `${expires} périmé${expires > 1 ? "s" : ""}` : null,
+    bientot > 0 ? `${bientot} bientôt périmé${bientot > 1 ? "s" : ""}` : null,
+  ].filter(Boolean);
+  return parties.length > 0 ? parties.join(" · ") : undefined;
+}
+
 export function cibleBlocage(
   message: string,
   ctx: { orgId: string; bienId: string; lotId: string }

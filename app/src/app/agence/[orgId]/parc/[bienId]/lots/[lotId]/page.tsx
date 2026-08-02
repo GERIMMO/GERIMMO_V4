@@ -11,6 +11,7 @@ import {
   diagnosticsAttendus,
   alertesDecence,
   cibleBlocage,
+  alerteDiagnostics,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
 import {
@@ -231,7 +232,7 @@ export default async function PageLot(
           <SectionLot
             id="detention"
             titre="Détention"
-            ouvertParDefaut={detentionsActives.length === 0 || totalQuoteParts !== 100}
+            alerte={totalQuoteParts !== 100 ? `${totalQuoteParts} % sur 100 %` : undefined}
             resume={
               detentionsActives.length === 0
                 ? "Aucun propriétaire"
@@ -307,7 +308,7 @@ export default async function PageLot(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du lot"
-            ouvertParDefaut={manquants.length > 0}
+            alerte={alerteDiagnostics(manquants, diagnostics ?? [])}
             resume={
               nbDiag === 0
                 ? "Aucun diagnostic"

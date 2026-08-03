@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
-import { afficherEcheance } from "@/lib/echeances";
+import { afficherEcheance, resumerBlocage } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, formaterDate } from "@/lib/ged";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,6 +66,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   ]);
 
   const alertes = (alertesBrutes ?? []) as Alerte[];
+
+  // « Cette semaine » : les rendez-vous datés des quinze prochains jours, quelle
+  // que soit leur origine — une alerte qui arrive à terme, un rapport à valider.
+  // Le jour de la semaine en tête : on repère « jeudi » plus vite qu'une date.
+  type RendezVous = { cle: string; date: string; titre: string; detail: string };
+  const rendezVous: RendezVous[] = [];
   const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
   const nomsLots = new Map(lotsActifs.map((l) => [l.id, { nom: l.nom, bienId: l.bien_id }]));
   const nbLoues = lotsActifs.filter((l) => l.etat === "loue" || l.etat === "preavis").length;
@@ -99,10 +105,41 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
   const depassees = triees.filter((a) => a.echeance && a.echeance < aujourdhui);
   const aVenir = triees.filter((a) => !a.echeance || a.echeance >= aujourdhui);
-  const plusUrgente = depassees[0] ? afficherEcheance(depassees[0].echeance) : null;
+  const plusUrgente = depassees[0]
+    ? afficherEcheance(depassees[0].echeance, new Date(), "long")
+    : null;
+  const plusUrgenteId = depassees[0]?.id ?? null;
 
   // Contexte d'une alerte : le lot concerné et le montant en jeu, tirés du
   // détail que chaque alerte transporte.
+  for (const a of alertes) {
+    const e = afficherEcheance(a.echeance);
+    if (e && !e.depassee && e.jours <= 15) {
+      const d = (a.details ?? {}) as Record<string, unknown>;
+      const lot = typeof d.lot_id === "string" ? nomsLots.get(d.lot_id) : undefined;
+      rendezVous.push({
+        cle: `a-${a.id}`,
+        date: a.echeance!,
+        titre: a.titre,
+        detail: lot ? lot.nom : (CRITICITES[a.criticite] ?? a.criticite),
+      });
+    }
+  }
+  for (const r of (rapports ?? []) as unknown as {
+    id: string;
+    mois: string;
+    mandat: { person: { nom: string; prenom: string | null }[] }[] | null;
+  }[]) {
+    const p = r.mandat?.[0]?.person?.[0];
+    rendezVous.push({
+      cle: `r-${r.id}`,
+      date: r.mois,
+      titre: `Rapport de gestion de ${new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" })}`,
+      detail: `${p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "Mandant"} · à valider avant envoi`,
+    });
+  }
+  rendezVous.sort((a, b) => a.date.localeCompare(b.date));
+
   const contexte = (a: Alerte) => {
     const d = (a.details ?? {}) as Record<string, unknown>;
     const lot = typeof d.lot_id === "string" ? nomsLots.get(d.lot_id) : undefined;
@@ -127,6 +164,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             day: "numeric",
             month: "long",
             year: "numeric",
+            timeZone: "Europe/Paris",
+          })}
+          {" · "}
+          {new Date().toLocaleTimeString("fr-FR", {
+            hour: "2-digit",
+            minute: "2-digit",
             timeZone: "Europe/Paris",
           })}
         </p>
@@ -226,7 +269,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                   (groupe) =>
                     groupe.liste.length > 0 && (
                       <div key={groupe.titre}>
-                        <p className="flex items-center gap-2 border-b border-border py-2">
+                        <p className="flex items-center justify-end gap-2 border-b border-border bg-[var(--filet-leger)] px-3 py-1.5">
                           {groupe.retard && (
                             <span aria-hidden className="size-1.5 rounded-full bg-destructive" />
                           )}
@@ -282,15 +325,27 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                       </p>
                                     )}
                                   </div>
-                                  <Link
-                                    href={`/agence/${orgId}/alertes`}
-                                    className={buttonVariants({
-                                      size: "sm",
-                                      variant: a.criticite === "critique" ? "default" : "outline",
-                                    })}
-                                  >
-                                    Traiter
-                                  </Link>
+                                  <span className="relative">
+                                    <Link
+                                      href={`/agence/${orgId}/alertes`}
+                                      className={buttonVariants({
+                                        size: "sm",
+                                        variant: a.id === plusUrgenteId ? "default" : "outline",
+                                      })}
+                                    >
+                                      Traiter
+                                    </Link>
+                                    {/* La plus urgente porte un repère : parmi plusieurs
+                                        retards, l'œil doit savoir par où commencer. */}
+                                    {a.id === plusUrgenteId && (
+                                      <span
+                                        aria-hidden
+                                        className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--or)] text-[0.625rem] font-medium text-[var(--encre)]"
+                                      >
+                                        !
+                                      </span>
+                                    )}
+                                  </span>
                                 </div>
                               </li>
                             );
@@ -309,40 +364,31 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           <Card>
             <CardContent>
               <h2 className="pb-2 text-[1.1rem]">Cette semaine</h2>
-              {(rapports ?? []).length === 0 ? (
+              {rendezVous.length === 0 ? (
                 <p className="py-2 text-sm text-muted-foreground">
-                  Rien de programmé — les échéances à venir apparaîtront ici.
+                  Rien de programmé dans les quinze jours.
                 </p>
               ) : (
                 <ul className="divide-y divide-border">
-                  {(
-                    // PostgREST rend les jointures « vers un » sous forme de
-                    // tableaux : on redescend au premier élément.
-                    (rapports ?? []) as unknown as {
-                      id: string;
-                      mois: string;
-                      mandat: { person: { nom: string; prenom: string | null }[] }[] | null;
-                    }[]
-                  ).map((r) => {
-                    const p = r.mandat?.[0]?.person?.[0];
-                    return (
-                      <li key={r.id} className="flex gap-3 py-2.5">
-                        <span className="libelle-champ w-14 shrink-0 pt-0.5">
-                          {new Date(r.mois).toLocaleDateString("fr-FR", {
-                            month: "short",
-                            year: "2-digit",
+                  {rendezVous.slice(0, 5).map((r) => (
+                    <li key={r.cle} className="flex gap-3 py-2.5">
+                      <span className="libelle-champ w-14 shrink-0 pt-0.5">
+                        {new Date(r.date)
+                          .toLocaleDateString("fr-FR", {
+                            weekday: "short",
+                            day: "2-digit",
                             timeZone: "UTC",
-                          })}
+                          })
+                          .replace(".", "")}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm">{r.titre}</span>
+                        <span className="block text-[0.8125rem] text-muted-foreground">
+                          {r.detail}
                         </span>
-                        <span className="min-w-0">
-                          <span className="block text-sm">Rapport de gestion à valider</span>
-                          <span className="block text-[0.8125rem] text-muted-foreground">
-                            {p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "Mandant"} · avant envoi
-                          </span>
-                        </span>
-                      </li>
-                    );
-                  })}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               )}
             </CardContent>
@@ -379,7 +425,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                           href={cible?.href ?? `/agence/${orgId}/parc/${l.bien_id}/lots/${l.id}`}
                           className="min-w-0 flex-1 truncate text-sm hover:underline"
                         >
-                          {motif ?? "Prêt à publier"}
+                          {motif ? resumerBlocage(motif) : "Prêt à publier"}
                         </Link>
                       </li>
                     );

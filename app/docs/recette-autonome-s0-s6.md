@@ -526,6 +526,21 @@ Trois manques comblés :
 jamais renseignée : les pièces remontaient dans l'ordre alphabétique, « Chambre » avant
 « Entrée ».*
 
+**Éprouvé dans le navigateur**, sur une branche Supabase montée pour l'occasion puis
+supprimée. Le parcours entier, sur un T3 sans pièces déclarées :
+
+| Étape | Résultat |
+|---|---|
+| Fiche du bail | « Déclarer les pièces du lot » apparaît en première étape, avant l'état des lieux |
+| Écran d'état des lieux | l'encadré signale l'absence de pièces et renvoie vers le lot |
+| Fiche du lot | la section s'ouvre sur l'ancre, la conséquence est énoncée |
+| Clic sur « Proposer les pièces » | 7 pièces créées, dans l'ordre : entrée, séjour, chambre 1, chambre 2, cuisine, salle de bain, WC |
+| Régénération de la grille | 49 lignes, 7 pièces distinctes, plus de section « Général » |
+| Retour à l'état des lieux | l'encadré a disparu |
+| Suppression des pièces | l'étape réapparaît sur la fiche du bail — la bascule joue dans les deux sens |
+
+Aucune erreur dans la console d'un onglet neuf.
+
 **2. La liste des personnes ne dit pas qui est qui.** Treize noms par ordre alphabétique,
 avec e-mail et téléphone. Rien n'indique qui est propriétaire, locataire ou garant, et il
 n'y a pas de recherche. À treize personnes c'est tenable ; à cent, l'écran devient

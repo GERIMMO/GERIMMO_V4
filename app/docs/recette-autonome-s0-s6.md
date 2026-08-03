@@ -31,9 +31,9 @@ du premier loyer, toutes deux portant sur de l'argent affiché à un locataire.
    séparé. La branche que j'ai créée le prouve : elle a coûté deux minutes à monter.
 3. **Les tests d'intégration ne tournent que contre la production.** Ils écrivent puis
    annulent, mais c'est une dépendance gênante — et elle m'a empêché de les rejouer ici.
-4. **S0, S1, S3 et S4 n'ont pas été éprouvés** dans cette campagne. Les fichiers pièges
-   de S1 (PNG renommé en PDF, doublon par empreinte, PDF corrompu) sont le cœur du
-   sprint et restent non testés.
+4. **S3 et S4 n'ont pas été éprouvés** : dossier locataire versionné, invitations, état
+   des lieux pièce par pièce, signature figeante. Ni la fin de S6 — clôture, rapport de
+   gestion, export CSV.
 5. **Mon propre test a corrompu le jeu de données** en cours de route (voir §11) : sans
    la vérification qui a suivi, j'aurais rapporté quatre anomalies inexistantes.
 

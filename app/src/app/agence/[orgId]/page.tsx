@@ -335,9 +335,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                     >
                                       Traiter
                                     </Link>
-                                    {/* La plus urgente porte un repère : parmi plusieurs
-                                        retards, l'œil doit savoir par où commencer. */}
-                                    {a.id === plusUrgenteId && (
+                                    {/* Repère sur tout ce qui est en retard ou critique.
+                                        Le bouton plein, lui, reste unique (charte 04) :
+                                        le « ! » dit l'urgence, le bouton dit par où
+                                        commencer. */}
+                                    {(groupe.retard || a.criticite === "critique") && (
                                       <span
                                         aria-hidden
                                         className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--or)] text-[0.625rem] font-medium text-[var(--encre)]"

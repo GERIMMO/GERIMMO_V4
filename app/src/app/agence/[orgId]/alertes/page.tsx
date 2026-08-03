@@ -6,7 +6,6 @@ import {
   CRITICITES,
   COULEURS_CRITICITE,
   ROLES_GERANTS,
-  formaterDate,
   formaterDateHeure,
 } from "@/lib/ged";
 import { escaladerAlerte, fermerAlerte } from "@/app/actions/alertes";

@@ -108,7 +108,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const plusUrgente = depassees[0]
     ? afficherEcheance(depassees[0].echeance, new Date(), "long")
     : null;
-  const plusUrgenteId = depassees[0]?.id ?? null;
 
   // Contexte d'une alerte : le lot concerné et le montant en jeu, tirés du
   // détail que chaque alerte transporte.
@@ -330,16 +329,16 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                       href={`/agence/${orgId}/alertes`}
                                       className={buttonVariants({
                                         size: "sm",
-                                        variant: a.id === plusUrgenteId ? "default" : "outline",
+                                        variant:
+                                          a.criticite === "critique" ? "destructive" : "outline",
                                       })}
                                     >
                                       Traiter
                                     </Link>
-                                    {/* Repère sur tout ce qui est en retard ou critique.
-                                        Le bouton plein, lui, reste unique (charte 04) :
-                                        le « ! » dit l'urgence, le bouton dit par où
-                                        commencer. */}
-                                    {(groupe.retard || a.criticite === "critique") && (
+                                    {/* Le repère et le rouge vont ensemble, et
+                                        seulement au critique : deux signaux pour une
+                                        seule idée, sinon ni l'un ni l'autre n'alerte. */}
+                                    {a.criticite === "critique" && (
                                       <span
                                         aria-hidden
                                         className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--or)] text-[0.625rem] font-medium text-[var(--encre)]"

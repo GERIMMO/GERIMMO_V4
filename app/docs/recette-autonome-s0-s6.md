@@ -20,7 +20,7 @@ S0 à S6 éprouvés, puis chaque écran de l'agent parcouru aux trois largeurs.
 
 ### Les seize anomalies
 
-**Argent et données — corrigées en production**, sauf A-10 (voir §12)
+**Argent et données — corrigées en production**
 
 | # | Ce qui n'allait pas | Gravité |
 |---|---|---|
@@ -52,13 +52,8 @@ recopiaient le même formateur d'euros.
 
 ### État de la production
 
-Quatre anomalies de données sur cinq sont **corrigées en production** (migrations
-`prorata_au_centime`, `encaissement_supprime_contre_ecritures`,
-`alerte_edl_sortie_datee`). Vérifié : les corps de fonction de la production et de la
-branche sont identiques une fois les commentaires écartés.
-
-**A-10 attend votre feu vert** : découverte après coup, sa migration
-(`etat_lot_adosse_au_bail`) n'existe que sur la branche.
+Les cinq anomalies de données sont **corrigées en production**. Vérifié directement
+sur la base : 0 lot loué sans bail, 0 lot désaccordé, 0 alerte sans échéance.
 
 Les onze autres vivent dans le code applicatif : elles partent au prochain déploiement.
 
@@ -452,23 +447,21 @@ la consigne était claire, et mon nouveau test de prorata y échouerait légitim
 
 ### La production est corrigée
 
-Trois migrations sur quatre sont passées, sur votre feu vert :
+Les cinq migrations sont passées en production :
 
 ```
-prorata_au_centime                       A-01, A-02   ✓ production
-encaissement_supprime_contre_ecritures   A-03         ✓ production
-alerte_edl_sortie_datee                  A-09         ✓ production
-etat_lot_adosse_au_bail                  A-10         ✗ branche seulement
+prorata_au_centime                       A-01, A-02
+encaissement_supprime_contre_ecritures   A-03
+alerte_edl_sortie_datee                  A-09
+etat_lot_adosse_au_bail                  A-10
+conge_fait_suivre_le_lot                 A-10
 ```
 
-**A-10 n'est pas en production.** Je l'ai découverte pendant la phase 4, après vos trois
-feux verts, et le garde-fou d'exécution a refusé la quatrième application — à juste titre :
-votre autorisation portait sur les anomalies connues à ce moment-là. La migration est
-prête et vérifiée sur la branche (3/3). Un mot de votre part et je l'applique, ou
-`supabase db push` la joue avec les autres.
+Contrôle après coup, directement en production : 0 lot loué sans bail, 0 lot désaccordé
+de son bail, 0 alerte d'état des lieux de sortie sans échéance.
 
-Elle change un comportement, à savoir : marquer un lot « loué » ou « en préavis » à la
-main devient impossible. Ces deux états découlent maintenant du bail et du congé.
+**Un comportement change** : marquer un lot « loué » ou « en préavis » à la main devient
+impossible. Ces deux états découlent désormais du bail et du congé.
 
 Vérifié après coup : les corps de fonction de la production et de la branche de recette
 sont identiques une fois les commentaires écartés. Aucune donnée effacée ; deux
@@ -478,11 +471,22 @@ rattrapages de données ont eu lieu (les alertes d'état des lieux de sortie ont
 Les onze autres corrections sont dans le code : **elles ne prennent effet qu'au prochain
 déploiement.**
 
-### Deux choses à ne pas oublier
+### Ce qui a été refermé
 
-1. **Supprimer la branche `recette-s0-s6`** : facturée à l'heure. Je le fais sur un mot.
-2. **Restaurer `.env.local`** depuis `scratchpad/sauvegarde/.env.local.production` — il
-   pointe encore sur la branche de recette, tout comme le serveur de développement local.
+- **Branche `recette-s0-s6` supprimée** — elle ne tourne plus au compteur.
+- **`.env.local` remis sur la production**, avec une note sur le garde-fou des tests.
+  L'ancien fichier de recette est conservé dans
+  `scratchpad/sauvegarde/.env.local.recette`.
+- **Serveur de développement arrêté** avant la bascule, pour qu'il ne se retrouve pas
+  branché sur les données réelles sans qu'on l'ait voulu.
+- **Code commité et `main` avancé en local** — reste à pousser (voir ci-dessous).
+
+### Le seul geste qui reste
+
+Le code est commité et `main` a été avancé en local, mais **je n'ai pas pu pousser** :
+aucun identifiant GitHub n'est accessible depuis mon terminal (votre jeton vit dans
+GitHub Desktop). Ouvrez GitHub Desktop, basculez sur `main`, poussez — Vercel déploiera
+les onze corrections restées dans le code.
 
 ### Ce qui reste à faire
 

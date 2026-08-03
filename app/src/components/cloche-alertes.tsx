@@ -84,29 +84,27 @@ export function ClocheAlertes({
         type="button"
         onClick={() => setOuverte(true)}
         aria-label={`Alertes ouvertes : ${alertes.length}`}
-        className="relative inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm hover:bg-muted"
+        className="relative inline-flex items-center text-muted-foreground transition-colors hover:text-foreground"
       >
         <svg
           aria-hidden
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="2"
-          className="size-4"
+          strokeWidth="1.5"
+          className="size-[1.15rem]"
         >
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.7 21a2 2 0 0 1-3.4 0" />
         </svg>
+        {/* Charte : une pastille suffit à signaler, le compte est dans l'onglet */}
         {alertes.length > 0 && (
           <span
-            className={`rounded-full px-1.5 text-xs font-medium ${
-              nbCritiques > 0
-                ? "bg-destructive-soft text-destructive-soft-foreground"
-                : "bg-warning-soft text-warning-soft-foreground"
+            aria-hidden
+            className={`absolute -top-0.5 -right-0.5 size-2 rounded-full ${
+              nbCritiques > 0 ? "bg-destructive" : "bg-[var(--or)]"
             }`}
-          >
-            {alertes.length}
-          </span>
+          />
         )}
       </button>
 

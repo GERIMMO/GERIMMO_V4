@@ -1,169 +1,395 @@
 import Link from "next/link";
-import { afficherEcheance } from "@/lib/echeances";
 import { verifierAccesEspace } from "@/lib/espace";
-import { ETATS_LOT, COULEURS_ETAT_LOT } from "@/lib/parc";
-import {
-  CRITICITES,
-  ORDRE_CRITICITE,
-  COULEURS_CRITICITE,
-  formaterDate,
-} from "@/lib/ged";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { afficherEcheance } from "@/lib/echeances";
+import { cibleBlocage } from "@/lib/parc";
+import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, formaterDate } from "@/lib/ged";
+import { Card, CardContent } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
-// Tableau de bord de l'espace agence (posé au S2, complété en continu) :
-// l'état du parc, les alertes à traiter, l'activité documentaire.
-export default async function PageTableauDeBord(
-  props: PageProps<"/agence/[orgId]">
-) {
+const eur = (n: number) =>
+  `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
+
+type Alerte = {
+  id: string;
+  type: string;
+  criticite: string;
+  titre: string;
+  echeance: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+};
+
+// Tableau de bord de l'espace agence. Il répond à une seule question : « que
+// dois-je faire, et qu'est-ce qui est déjà en retard ? » — d'où le tri par
+// échéance plutôt que par date de création, et la séparation nette entre ce qui
+// est dépassé et ce qui vient.
+export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId]">) {
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspace(orgId);
 
-  const [{ count: nbBiens }, { data: lots }, { data: alertes }, { count: nbDocuments }] =
-    await Promise.all([
-      supabase
-        .from("biens")
-        .select("*", { count: "exact", head: true })
-        .eq("organization_id", orgId),
-      supabase.from("lots").select("etat").eq("organization_id", orgId),
-      supabase
-        .from("alerts")
-        .select("id, criticite, titre, echeance, created_at")
-        .eq("organization_id", orgId)
-        .eq("statut", "ouverte")
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("documents")
-        .select("*", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .is("purged_at", null),
-    ]);
+  const [
+    { count: nbBiens },
+    { data: lots },
+    { data: alertesBrutes },
+    { count: nbDocuments },
+    { data: dernierDoc },
+    { data: rapports },
+  ] = await Promise.all([
+    supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
+    supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
+    supabase
+      .from("alerts")
+      .select("id, type, criticite, titre, echeance, details, created_at")
+      .eq("organization_id", orgId)
+      .eq("statut", "ouverte"),
+    supabase
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .is("purged_at", null),
+    supabase
+      .from("documents")
+      .select("created_at")
+      .eq("organization_id", orgId)
+      .is("purged_at", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("rapports_gestion")
+      .select("id, mois, statut, mandat:mandats(person:persons(nom, prenom))")
+      .eq("organization_id", orgId)
+      .eq("statut", "a_valider")
+      .order("mois"),
+  ]);
 
-  const parEtat = new Map<string, number>();
-  for (const l of lots ?? []) {
-    parEtat.set(l.etat, (parEtat.get(l.etat) ?? 0) + 1);
-  }
-  const alertesTriees = [...(alertes ?? [])].sort(
-    (a, b) =>
-      (ORDRE_CRITICITE[a.criticite] ?? 9) - (ORDRE_CRITICITE[b.criticite] ?? 9) ||
-      a.created_at.localeCompare(b.created_at)
+  const alertes = (alertesBrutes ?? []) as Alerte[];
+  const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
+  const nomsLots = new Map(lotsActifs.map((l) => [l.id, { nom: l.nom, bienId: l.bien_id }]));
+  const nbLoues = lotsActifs.filter((l) => l.etat === "loue" || l.etat === "preavis").length;
+  const enPreparation = lotsActifs.filter((l) => l.etat === "brouillon");
+
+  // Ce qui bloque chaque lot en préparation : on ne garde que le premier motif,
+  // le détail vit sur la fiche du lot.
+  const blocages = new Map(
+    await Promise.all(
+      enPreparation.slice(0, 6).map(async (l) => {
+        const { data } = await supabase.rpc("lot_blocages_location", { p_lot: l.id });
+        return [l.id, ((data ?? []) as string[])[0] ?? null] as const;
+      })
+    )
   );
 
-  const nbAlertes = (alertes ?? []).length;
-  const nbCritiques = (alertes ?? []).filter((a) => a.criticite === "critique").length;
+  // Tri par urgence réelle : l'échéance d'abord (les sans-date en fin), puis la
+  // criticité, puis l'ancienneté.
+  const triees = [...alertes].sort((a, b) => {
+    if (a.echeance && b.echeance) {
+      const parDate = a.echeance.localeCompare(b.echeance);
+      if (parDate !== 0) return parDate;
+    } else if (a.echeance !== b.echeance) {
+      return a.echeance ? -1 : 1;
+    }
+    return (
+      (ORDRE_CRITICITE[a.criticite] ?? 9) - (ORDRE_CRITICITE[b.criticite] ?? 9) ||
+      a.created_at.localeCompare(b.created_at)
+    );
+  });
+  const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  const depassees = triees.filter((a) => a.echeance && a.echeance < aujourdhui);
+  const aVenir = triees.filter((a) => !a.echeance || a.echeance >= aujourdhui);
+  const plusUrgente = depassees[0] ? afficherEcheance(depassees[0].echeance) : null;
+
+  // Contexte d'une alerte : le lot concerné et le montant en jeu, tirés du
+  // détail que chaque alerte transporte.
+  const contexte = (a: Alerte) => {
+    const d = (a.details ?? {}) as Record<string, unknown>;
+    const lot = typeof d.lot_id === "string" ? nomsLots.get(d.lot_id) : undefined;
+    const montant =
+      typeof d.solde === "number"
+        ? d.solde
+        : typeof d.montant === "number"
+          ? d.montant
+          : typeof d.net === "number"
+            ? d.net
+            : null;
+    return { lot, montant, libelle: typeof d.libelle === "string" ? d.libelle : null };
+  };
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-7">
-      <h1 className="mb-6 text-2xl font-semibold">Tableau de bord</h1>
+    <main className="mx-auto w-full max-w-6xl px-7 py-7">
+      <div className="mb-[1.125rem] flex flex-wrap items-baseline justify-between gap-3">
+        <h1>Tableau de bord</h1>
+        <p className="libelle-champ">
+          {new Date().toLocaleDateString("fr-FR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+            timeZone: "Europe/Paris",
+          })}
+        </p>
+      </div>
 
-      {/* Charte 04 — cartes de chiffre clé : libellé en capitales, chiffre en
-          Cormorant. « Un seul bloc graphite par rangée : celui qui porte le
-          chiffre le plus important » — ici les alertes quand il y en a, le parc
-          sinon, puisque c'est ce qui appelle une action. */}
+      {/* Trois chiffres clés. Charte : l'or signale — un liseré sur celui qui
+          appelle une action, jamais un aplat. */}
       <div className="mb-[1.125rem] grid gap-[1.125rem] sm:grid-cols-3">
-        <Link href={`/agence/${orgId}/parc`}>
-          <Card className={`h-full ${nbAlertes === 0 ? "bg-primary text-primary-foreground" : ""}`}>
-            <CardHeader>
-              <CardDescription className={nbAlertes === 0 ? "libelle-champ text-primary-foreground/70" : "libelle-champ"}>
-                Parc géré
-              </CardDescription>
-              <CardTitle className={`chiffre-cle ${nbAlertes === 0 ? "text-primary-foreground" : ""}`}>
-                {nbBiens ?? 0} bien{(nbBiens ?? 0) > 1 ? "s" : ""}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-x-3 gap-y-1.5">
-              {[...parEtat.entries()].map(([etat, nb]) => (
-                <span
-                  key={etat}
-                  className={`badge-statut shrink-0 ${nbAlertes === 0 ? "text-primary-foreground/80" : COULEURS_ETAT_LOT[etat] ?? ""}`}
-                >
-                  {nb} lot{nb > 1 ? "s" : ""} {ETATS_LOT[etat]?.toLowerCase() ?? etat}
-                </span>
-              ))}
-              {parEtat.size === 0 && (
-                <span className="text-sm text-muted-foreground">Aucun lot</span>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
         <Link href={`/agence/${orgId}/alertes`}>
-          <Card className={`h-full ${nbAlertes > 0 ? "bg-primary text-primary-foreground" : ""}`}>
-            <CardHeader>
-              <CardDescription className={nbAlertes > 0 ? "libelle-champ text-primary-foreground/70" : "libelle-champ"}>
-                À traiter
-              </CardDescription>
-              <CardTitle className={`chiffre-cle ${nbAlertes > 0 ? "text-primary-foreground" : ""}`}>
-                {nbAlertes}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className={`text-sm ${nbAlertes > 0 ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                {nbAlertes === 0
-                  ? "Rien en attente"
-                  : `dont ${nbCritiques} critique${nbCritiques > 1 ? "s" : ""}`}
+          <Card className={`h-full ${depassees.length > 0 ? "border-l-2 border-l-[var(--or)]" : ""}`}>
+            <CardContent className="space-y-1">
+              <p className="libelle-champ">À traiter</p>
+              <p className="flex items-baseline gap-2">
+                <span className="chiffre-cle">{alertes.length}</span>
+                <span className="text-sm text-muted-foreground">
+                  alerte{alertes.length > 1 ? "s" : ""} ouverte{alertes.length > 1 ? "s" : ""}
+                </span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {plusUrgente ? (
+                  <>
+                    La plus urgente est <span className={plusUrgente.classe}>{plusUrgente.texte}</span>
+                  </>
+                ) : alertes.length > 0 ? (
+                  "Aucune n'est en retard"
+                ) : (
+                  "Rien en attente"
+                )}
               </p>
             </CardContent>
           </Card>
         </Link>
+
+        <Link href={`/agence/${orgId}/parc`}>
+          <Card className="h-full">
+            <CardContent className="space-y-1">
+              <p className="libelle-champ">Parc</p>
+              <p className="flex items-baseline gap-2">
+                <span className="chiffre-cle">{nbBiens ?? 0}</span>
+                <span className="text-sm text-muted-foreground">
+                  bien{(nbBiens ?? 0) > 1 ? "s" : ""} · {lotsActifs.length} lot
+                  {lotsActifs.length > 1 ? "s" : ""}
+                </span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {nbLoues} loué{nbLoues > 1 ? "s" : ""} · {enPreparation.length} en préparation
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link href={`/agence/${orgId}/documents`}>
           <Card className="h-full">
-            <CardHeader>
-              <CardDescription className="libelle-champ">Documents</CardDescription>
-              <CardTitle className="chiffre-cle">{nbDocuments ?? 0}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">classés dans l&apos;agence</p>
+            <CardContent className="space-y-1">
+              <p className="libelle-champ">Documents</p>
+              <p className="flex items-baseline gap-2">
+                <span className="chiffre-cle">{nbDocuments ?? 0}</span>
+                <span className="text-sm text-muted-foreground">
+                  pièce{(nbDocuments ?? 0) > 1 ? "s" : ""} déposée{(nbDocuments ?? 0) > 1 ? "s" : ""}
+                </span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {dernierDoc ? `Dernier dépôt : ${formaterDate(dernierDoc.created_at)}` : "Aucun dépôt"}
+              </p>
             </CardContent>
           </Card>
         </Link>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">À traiter en priorité</CardTitle>
-          <CardDescription>
-            Les alertes ouvertes, la plus critique et la plus ancienne d&apos;abord.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {alertesTriees.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Aucune alerte ouverte — tout est traité.
-            </p>
-          ) : (
-            <ul className="divide-y">
-              {alertesTriees.slice(0, 8).map((a) => (
-                <li key={a.id} className="flex items-center gap-2 py-2 text-sm">
-                  <span
-                    className={`badge-statut shrink-0 ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
-                  >
-                    {CRITICITES[a.criticite] ?? a.criticite}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate">{a.titre}</span>
-                  {afficherEcheance(a.echeance) && (
-                    <span className={`shrink-0 text-xs ${afficherEcheance(a.echeance)!.classe}`}>
-                      {afficherEcheance(a.echeance)!.texte}
-                    </span>
-                  )}
+      <div className="grid gap-[1.125rem] lg:grid-cols-[1.6fr_1fr]">
+        {/* À traiter en priorité */}
+        <Card>
+          <CardContent>
+            <div className="flex items-baseline justify-between gap-3 pb-3">
+              <h2 className="text-[1.1rem]">À traiter en priorité</h2>
+              <Link
+                href={`/agence/${orgId}/alertes`}
+                className="text-[0.8125rem] text-muted-foreground hover:text-foreground"
+              >
+                Toutes les alertes
+              </Link>
+            </div>
+
+            {alertes.length === 0 ? (
+              <p className="py-4 text-sm text-muted-foreground">Rien à traiter — tout est à jour.</p>
+            ) : (
+              <>
+                <div className="flex items-baseline justify-between gap-3 border-b border-border pb-1.5">
+                  <span className="libelle-champ">Alerte</span>
+                  <span className="libelle-champ">Échéance</span>
+                </div>
+
+                {[
+                  { titre: "Échéance dépassée", liste: depassees, retard: true },
+                  { titre: "À venir", liste: aVenir, retard: false },
+                ].map(
+                  (groupe) =>
+                    groupe.liste.length > 0 && (
+                      <div key={groupe.titre}>
+                        <p className="flex items-center gap-2 border-b border-border py-2">
+                          {groupe.retard && (
+                            <span aria-hidden className="size-1.5 rounded-full bg-destructive" />
+                          )}
+                          <span className="libelle-champ">{groupe.titre}</span>
+                          <span className="libelle-champ">· {groupe.liste.length}</span>
+                        </p>
+                        <ul>
+                          {groupe.liste.slice(0, groupe.retard ? 99 : 4).map((a) => {
+                            const ech = afficherEcheance(a.echeance);
+                            const { lot, montant, libelle } = contexte(a);
+                            return (
+                              <li
+                                key={a.id}
+                                className={`flex flex-wrap items-center justify-between gap-3 border-b border-border py-3 ${
+                                  a.criticite === "critique"
+                                    ? "border-l-2 border-l-destructive pl-3"
+                                    : groupe.retard
+                                      ? "border-l-2 border-l-[var(--or)] pl-3"
+                                      : ""
+                                }`}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  {a.criticite !== "normale" && (
+                                    <p className={`badge-statut ${COULEURS_CRITICITE[a.criticite] ?? ""}`}>
+                                      {CRITICITES[a.criticite] ?? a.criticite}
+                                    </p>
+                                  )}
+                                  <p className="truncate font-medium">{a.titre}</p>
+                                  {(lot || montant !== null || libelle) && (
+                                    <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[0.8125rem] text-muted-foreground">
+                                      {lot && (
+                                        <span className="badge-statut rounded-[3px] border border-border px-1.5 py-0.5 text-muted-foreground">
+                                          {lot.nom}
+                                        </span>
+                                      )}
+                                      {libelle && <span className="truncate">{libelle}</span>}
+                                      {montant !== null && <span>{eur(montant)}</span>}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex shrink-0 items-center gap-3">
+                                  <div className="text-right">
+                                    {ech ? (
+                                      <>
+                                        <p className={`text-[0.8125rem] ${ech.classe}`}>{ech.texte}</p>
+                                        <p className="text-[0.8125rem] text-muted-foreground">
+                                          {formaterDate(a.echeance)}
+                                        </p>
+                                      </>
+                                    ) : (
+                                      <p className="text-[0.8125rem] text-muted-foreground">
+                                        sans échéance
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Link
+                                    href={`/agence/${orgId}/alertes`}
+                                    className={buttonVariants({
+                                      size: "sm",
+                                      variant: a.criticite === "critique" ? "default" : "outline",
+                                    })}
+                                  >
+                                    Traiter
+                                  </Link>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Colonne de droite */}
+        <div className="space-y-[1.125rem]">
+          <Card>
+            <CardContent>
+              <h2 className="pb-2 text-[1.1rem]">Cette semaine</h2>
+              {(rapports ?? []).length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">
+                  Rien de programmé — les échéances à venir apparaîtront ici.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {(
+                    // PostgREST rend les jointures « vers un » sous forme de
+                    // tableaux : on redescend au premier élément.
+                    (rapports ?? []) as unknown as {
+                      id: string;
+                      mois: string;
+                      mandat: { person: { nom: string; prenom: string | null }[] }[] | null;
+                    }[]
+                  ).map((r) => {
+                    const p = r.mandat?.[0]?.person?.[0];
+                    return (
+                      <li key={r.id} className="flex gap-3 py-2.5">
+                        <span className="libelle-champ w-14 shrink-0 pt-0.5">
+                          {new Date(r.mois).toLocaleDateString("fr-FR", {
+                            month: "short",
+                            year: "2-digit",
+                            timeZone: "UTC",
+                          })}
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm">Rapport de gestion à valider</span>
+                          <span className="block text-[0.8125rem] text-muted-foreground">
+                            {p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "Mandant"} · avant envoi
+                          </span>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent>
+              <div className="flex items-baseline justify-between gap-3 pb-2">
+                <h2 className="text-[1.1rem]">Lots en préparation</h2>
+                {enPreparation.length > 6 && (
                   <Link
-                    href={`/agence/${orgId}/alertes`}
-                    className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                    href={`/agence/${orgId}/parc`}
+                    className="text-[0.8125rem] text-muted-foreground hover:text-foreground"
                   >
-                    Traiter
+                    Voir les {enPreparation.length}
                   </Link>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </div>
+              {enPreparation.length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">Aucun lot en préparation.</p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {enPreparation.slice(0, 6).map((l) => {
+                    const motif = blocages.get(l.id);
+                    const cible = motif
+                      ? cibleBlocage(motif, { orgId, bienId: l.bien_id, lotId: l.id })
+                      : null;
+                    return (
+                      <li key={l.id} className="flex items-center gap-3 py-2.5">
+                        <span className="badge-statut shrink-0 rounded-[3px] border border-border px-1.5 py-0.5 text-muted-foreground">
+                          {l.nom}
+                        </span>
+                        <Link
+                          href={cible?.href ?? `/agence/${orgId}/parc/${l.bien_id}/lots/${l.id}`}
+                          className="min-w-0 flex-1 truncate text-sm hover:underline"
+                        >
+                          {motif ?? "Prêt à publier"}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </main>
   );
 }

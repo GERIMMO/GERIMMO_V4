@@ -2,13 +2,13 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { seDeconnecter } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 import { NavAgence } from "@/components/nav-agence";
 import { ClocheAlertes } from "@/components/cloche-alertes";
+import { MarqueGerimmo } from "@/components/marque-gerimmo";
 
-// Layout définitif de l'espace agence (design system S2) : en-tête avec cloche
-// d'alertes, navigation latérale (barre horizontale sur mobile), contenu.
-// Partagé avec le propriétaire direct (parcours communs dès S2).
+// Layout de l'espace agence — charte : marque à gauche, contexte d'agence
+// séparé d'un filet, actions à droite ; navigation en onglets sous l'en-tête,
+// liseré or sur l'onglet actif. Partagé avec le propriétaire direct.
 export default async function LayoutAgence({
   children,
   params,
@@ -23,37 +23,42 @@ export default async function LayoutAgence({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 md:px-6">
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">Espace agence</p>
-          <Link
-            href={`/agence/${orgId}`}
-            className="block truncate text-base font-semibold hover:underline"
-          >
-            {organisation.name}
-          </Link>
+      <header className="border-b border-border bg-card">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-7 py-4">
+          <div className="flex min-w-0 items-center gap-5">
+            <Link href={`/agence/${orgId}`} aria-label="Accueil de l'agence">
+              <MarqueGerimmo />
+            </Link>
+            <span aria-hidden className="h-8 w-px bg-border" />
+            <div className="min-w-0">
+              <p className="libelle-champ">Espace agence</p>
+              <p className="truncate text-sm font-medium">{organisation.name}</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-5">
+            <ClocheAlertes alertes={alertes} />
+            <Link
+              href="/espaces"
+              className="text-[0.8125rem] text-muted-foreground hover:text-foreground"
+            >
+              Mes espaces
+            </Link>
+            <form action={seDeconnecter}>
+              <button
+                type="submit"
+                className="text-[0.8125rem] text-muted-foreground hover:text-foreground"
+              >
+                Se déconnecter
+              </button>
+            </form>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <ClocheAlertes alertes={alertes} />
-          <Button
-            variant="ghost"
-            size="sm"
-            nativeButton={false} render={<Link href="/espaces">Mes espaces</Link>}
-          />
-          <form action={seDeconnecter}>
-            <Button variant="outline" size="sm" type="submit">
-              Se déconnecter
-            </Button>
-          </form>
+        <div className="mx-auto w-full max-w-6xl px-7">
+          <NavAgence orgId={orgId} alertesOuvertes={alertesOrg} />
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col md:flex-row">
-        <aside className="border-b border-border bg-sidebar px-3 py-2 md:w-52 md:shrink-0 md:border-r md:border-b-0 md:py-4">
-          <NavAgence orgId={orgId} alertesOuvertes={alertesOrg} />
-        </aside>
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }

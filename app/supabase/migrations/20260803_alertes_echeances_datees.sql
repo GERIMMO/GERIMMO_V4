@@ -1,0 +1,13 @@
+-- alerts.echeance existait sans jamais être renseignée : impossible de
+-- distinguer au tableau de bord ce qui est en retard de ce qui vient. Les trois
+-- délais posés ici viennent du référentiel : versement au mandant à J+15,
+-- décompte de restitution au terme légal (1 mois si sortie conforme, 2 sinon),
+-- état des lieux d'entrée à la prise d'effet du bail.
+-- Les corps de fonction sont repris à l'identique ; seul l'insert d'alerte change.
+-- (Voir la migration appliquée : activer_bail, envoyer_rapport, finaliser_decompte
+--  + rattrapage des alertes ouvertes.)
+
+-- Correctif immédiat : la réécriture ci-dessus était repartie d'une version
+-- antérieure de finaliser_decompte et avait supprimé l'écriture comptable de
+-- sortie du dépôt (ajoutée par les correctifs d'audit). Rétablie avec
+-- l'échéance — voir migration finaliser_decompte_ecriture_et_echeance.

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-// Navigation latérale de l'espace agence (layout définitif S2).
+// Navigation de l'espace agence — charte : l'or signale le liseré actif.
 // Chaque module de sprint ajoute son entrée ici.
 export function NavAgence({
   orgId,
@@ -29,7 +29,7 @@ export function NavAgence({
   ];
 
   return (
-    <nav className="flex gap-1 overflow-x-auto md:flex-col md:gap-0.5">
+    <nav className="flex gap-1 overflow-x-auto">
       {entrees.map((e) => {
         const active = e.exact ? pathname === e.href : pathname.startsWith(e.href);
         return (
@@ -37,15 +37,17 @@ export function NavAgence({
             key={e.href}
             href={e.href}
             className={cn(
-              "flex shrink-0 items-center gap-2 rounded-lg px-3 py-1.5 text-sm",
+              // Liseré or sous l'entrée active, tracé en permanence pour que
+              // la ligne de base ne saute pas d'un onglet à l'autre.
+              "flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-3 text-[0.8125rem] tracking-[0.02em] transition-colors",
               active
-                ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60"
+                ? "border-[var(--or)] font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {e.libelle}
             {e.badge !== undefined && (
-              <span className="rounded-full bg-warning-soft px-1.5 text-xs text-warning-soft-foreground">
+              <span className="flex size-[1.15rem] items-center justify-center rounded-full border border-[var(--or-filet)] text-[0.6875rem] text-[var(--or-texte)]">
                 {e.badge}
               </span>
             )}

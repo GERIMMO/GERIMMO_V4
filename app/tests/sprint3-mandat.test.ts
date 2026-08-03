@@ -3,6 +3,7 @@
  * Directement contre Postgres (comme sprint2-parc.test.ts) : rôles simulés,
  * transaction annulée à la fin. Nécessite SUPABASE_DB_URL.
  */
+import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -10,6 +11,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 config({ path: ".env.local" });
 
 const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
 
 async function creerUtilisateur(db: Client): Promise<string> {
   const {

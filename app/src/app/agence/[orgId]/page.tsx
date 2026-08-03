@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
-import { afficherEcheance, resumerBlocage } from "@/lib/echeances";
+import {
+  afficherEcheance,
+  dateRendezVous,
+  echeanceRapport,
+  resumerBlocage,
+} from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
+import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, formaterDate } from "@/lib/ged";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -59,7 +65,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .maybeSingle(),
     supabase
       .from("rapports_gestion")
-      .select("id, mois, statut, mandat:mandats(person:persons(nom, prenom))")
+      .select("id, mois, statut, mandat:mandats(date_rapport, person:persons(nom, prenom))")
       .eq("organization_id", orgId)
       .eq("statut", "a_valider")
       .order("mois"),
@@ -70,7 +76,13 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // « Cette semaine » : les rendez-vous datés des quinze prochains jours, quelle
   // que soit leur origine — une alerte qui arrive à terme, un rapport à valider.
   // Le jour de la semaine en tête : on repère « jeudi » plus vite qu'une date.
-  type RendezVous = { cle: string; date: string; titre: string; detail: string };
+  type RendezVous = {
+    cle: string;
+    date: string;
+    titre: string;
+    detail: string;
+    depassee?: boolean;
+  };
   const rendezVous: RendezVous[] = [];
   const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
   const nomsLots = new Map(lotsActifs.map((l) => [l.id, { nom: l.nom, bienId: l.bien_id }]));
@@ -127,14 +139,28 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   for (const r of (rapports ?? []) as unknown as {
     id: string;
     mois: string;
-    mandat: { person: { nom: string; prenom: string | null }[] }[] | null;
+    mandat: UnOuPlusieurs<{
+      date_rapport: number;
+      person: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
+    }>;
   }[]) {
-    const p = r.mandat?.[0]?.person?.[0];
+    const m = premier(r.mandat);
+    const p = premier(m?.person);
+    // Un rapport n'est pas dû le premier jour du mois qu'il couvre, mais le jour
+    // convenu au mandat, le mois suivant. Prendre `mois` tel quel faisait
+    // apparaître le rapport de juin dans « cette semaine » au mois d'août.
+    const echeance = echeanceRapport(r.mois, m?.date_rapport ?? 10);
+    const e = afficherEcheance(echeance);
+    // Les rapports en retard restent affichés : les masquer reviendrait à faire
+    // disparaître du travail qui reste à faire.
+    if (!e || (!e.depassee && e.jours > 15)) continue;
+    const qui = p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "Mandant";
     rendezVous.push({
       cle: `r-${r.id}`,
-      date: r.mois,
+      date: echeance,
       titre: `Rapport de gestion de ${new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" })}`,
-      detail: `${p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "Mandant"} · à valider avant envoi`,
+      detail: e.depassee ? `${qui} · ${e.texte.toLowerCase()}` : `${qui} · à valider avant envoi`,
+      depassee: e.depassee,
     });
   }
   rendezVous.sort((a, b) => a.date.localeCompare(b.date));
@@ -154,7 +180,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-7 py-7">
+    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
       <div className="mb-[1.125rem] flex flex-wrap items-baseline justify-between gap-3">
         <h1>Tableau de bord</h1>
         <p className="libelle-champ">
@@ -314,9 +340,13 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                     {ech ? (
                                       <>
                                         <p className={`text-[0.8125rem] ${ech.classe}`}>{ech.texte}</p>
-                                        <p className="text-[0.8125rem] text-muted-foreground">
-                                          {formaterDate(a.echeance)}
-                                        </p>
+                                        {/* Au-delà de quinze jours, le texte relatif est déjà la
+                                            date : la répéter dessous ne dit rien de plus. */}
+                                        {ech.texte !== formaterDate(a.echeance) && (
+                                          <p className="text-[0.8125rem] text-muted-foreground">
+                                            {formaterDate(a.echeance)}
+                                          </p>
+                                        )}
                                       </>
                                     ) : (
                                       <p className="text-[0.8125rem] text-muted-foreground">
@@ -373,14 +403,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                 <ul className="divide-y divide-border">
                   {rendezVous.slice(0, 5).map((r) => (
                     <li key={r.cle} className="flex gap-3 py-2.5">
-                      <span className="libelle-champ w-14 shrink-0 pt-0.5">
-                        {new Date(r.date)
-                          .toLocaleDateString("fr-FR", {
-                            weekday: "short",
-                            day: "2-digit",
-                            timeZone: "UTC",
-                          })
-                          .replace(".", "")}
+                      <span
+                        className={`libelle-champ w-14 shrink-0 pt-0.5${r.depassee ? " text-destructive" : ""}`}
+                      >
+                        {dateRendezVous(r.date)}
                       </span>
                       <span className="min-w-0">
                         <span className="block text-sm">{r.titre}</span>

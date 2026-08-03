@@ -24,18 +24,20 @@ export default async function LayoutAgence({
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="border-b border-border bg-card">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-7 py-4">
-          <div className="flex min-w-0 items-center gap-5">
+        {/* Sur un téléphone, les deux groupes ne tiennent pas sur une ligne : sans
+            `flex-wrap` ils se chevauchaient, marque par-dessus « Mes espaces ». */}
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 sm:px-7">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-5">
             <Link href={`/agence/${orgId}`} aria-label="Accueil de l'agence">
               <MarqueGerimmo />
             </Link>
-            <span aria-hidden className="h-8 w-px bg-border" />
+            <span aria-hidden className="hidden h-8 w-px bg-border sm:block" />
             <div className="min-w-0">
               <p className="libelle-champ">Espace agence</p>
               <p className="truncate text-sm font-medium">{organisation.name}</p>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-5">
+          <div className="flex shrink-0 items-center gap-4 sm:gap-5">
             <ClocheAlertes alertes={alertes} />
             <Link
               href="/espaces"
@@ -53,7 +55,7 @@ export default async function LayoutAgence({
             </form>
           </div>
         </div>
-        <div className="mx-auto w-full max-w-6xl px-7">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-7">
           <NavAgence orgId={orgId} alertesOuvertes={alertesOrg} />
         </div>
       </header>

@@ -7,6 +7,7 @@
  * Nécessite SUPABASE_DB_URL (chaîne de connexion Postgres) dans .env.local ou
  * l'environnement. Sans elle, les tests sont ignorés (skip) avec un avertissement.
  */
+import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -14,6 +15,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 config({ path: ".env.local" });
 
 const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
 
 describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
   let db: Client;

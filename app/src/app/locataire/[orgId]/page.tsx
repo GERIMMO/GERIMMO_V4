@@ -74,7 +74,7 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-[1.125rem] p-7">
+    <main className="mx-auto w-full max-w-2xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <h1 className="text-2xl font-semibold">
           Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""}

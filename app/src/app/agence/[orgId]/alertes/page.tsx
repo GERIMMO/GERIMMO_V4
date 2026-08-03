@@ -78,7 +78,7 @@ export default async function PageAlertes(
   );
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 p-7">
+    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
       <div className="mb-6">
         <p className="text-sm text-muted-foreground">
           <Link href={`/agence/${orgId}`} className="hover:underline">
@@ -97,9 +97,9 @@ export default async function PageAlertes(
                 Ouvertes ({(ouvertes ?? []).length})
               </CardTitle>
               <CardDescription>
-                Une alerte se ferme par l&apos;action qui la résout — dites ce
-                qui a été fait. L&apos;escalade la déplace nominativement, sans
-                la dupliquer.
+                Une alerte se ferme en disant ce qui a été fait. La confier à
+                quelqu&apos;un la lui transmet : elle change de main, elle ne se
+                dédouble pas.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -129,11 +129,11 @@ export default async function PageAlertes(
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Assignée à :{" "}
                           {a.assignee_account_id
-                            ? (emailParCompte.get(a.assignee_account_id) ?? "—")
-                            : "personne"}
-                          {nbEscalades > 0 && ` · ${nbEscalades} escalade(s)`}
+                            ? `Confiée à ${emailParCompte.get(a.assignee_account_id) ?? "—"}`
+                            : "Personne ne s'en occupe encore"}
+                          {nbEscalades > 0 &&
+                            ` · transmise ${nbEscalades} fois`}
                           {" · créée le "}
                           {formaterDateHeure(a.created_at)}
                         </p>
@@ -147,7 +147,7 @@ export default async function PageAlertes(
                                 defaultValue=""
                               >
                                 <option value="" disabled>
-                                  Escalader vers…
+                                  Confier à…
                                 </option>
                                 {membres
                                   .filter(
@@ -160,7 +160,7 @@ export default async function PageAlertes(
                                   ))}
                               </select>
                               <Button variant="outline" size="sm" type="submit">
-                                Escalader
+                                Confier
                               </Button>
                             </form>
                           )}
@@ -168,7 +168,7 @@ export default async function PageAlertes(
                             <input
                               name="action_effectuee"
                               required
-                              placeholder="Action effectuée (ferme l'alerte)…"
+                              placeholder="Ce que vous avez fait…"
                               className="h-8 min-w-40 flex-1 rounded-md border border-input bg-transparent px-2 text-xs"
                             />
                             <Button variant="outline" size="sm" type="submit">
@@ -216,8 +216,9 @@ export default async function PageAlertes(
           <CardHeader>
             <CardTitle className="text-base">Créer une alerte</CardTitle>
             <CardDescription>
-              Les alertes automatiques (assurances, diagnostics…) arriveront
-              avec leurs modules ; ici, création manuelle.
+              Gerimmo en crée déjà tout seul — diagnostic périmé, état des lieux
+              à faire, rapport à valider. Servez-vous d&apos;ici pour ce qui ne
+              rentre pas dans ces cases.
             </CardDescription>
           </CardHeader>
           <CardContent>

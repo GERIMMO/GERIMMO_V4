@@ -3,12 +3,14 @@
  * Vérifie le flux réel côté base : deposer_mon_attestation + mon_dossier_locataire
  * + la policy de stockage locataire. Nécessite SUPABASE_DB_URL.
  */
+import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
 
 async function simuler(db: Client, accountId: string | null, role = "authenticated") {
   await db.query("reset role");

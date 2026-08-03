@@ -47,11 +47,11 @@ export function FormulaireDetention({
   useEffect(() => {
     if (!etat.succes) return;
     formulaire.current?.reset();
-    setIndivision(false);
-    const minuterie = setTimeout(
-      () => setChoix(personnes.length > 0 ? "" : "nouvelle"),
-      0
-    );
+    // Après le rendu, sinon React enchaîne deux passes pour rien.
+    const minuterie = setTimeout(() => {
+      setIndivision(false);
+      setChoix(personnes.length > 0 ? "" : "nouvelle");
+    }, 0);
     return () => clearTimeout(minuterie);
   }, [etat, personnes.length]);
 

@@ -44,7 +44,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-7">
+    <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Parc</h1>
         <Link
@@ -111,16 +111,20 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle className="text-base">Équipements (liste fermée)</CardTitle>
+          <CardTitle className="text-base">Catalogue d&apos;équipements</CardTitle>
           <CardDescription>
-            Le catalogue de l&apos;agence, coché ensuite sur chaque lot — il
+            La liste de l&apos;agence, cochée ensuite sur chaque lot — elle
             prépare la grille d&apos;état des lieux.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {(equipements ?? []).length === 0 ? (
+            // Un état vide doit dire quoi faire, ou à qui s'adresser quand on ne
+            // peut pas le faire soi-même.
             <p className="text-sm text-muted-foreground">
-              Aucun équipement au catalogue.
+              {["admin_agence", "proprietaire_direct"].includes(role)
+                ? "Le catalogue est vide. Ajoutez un premier équipement ci-dessous : il sera proposé sur tous les lots."
+                : "Le catalogue est vide. Un administrateur de l'agence peut le remplir."}
             </p>
           ) : (
             <div className="flex flex-wrap gap-1.5">

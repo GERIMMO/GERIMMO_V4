@@ -1,10 +1,16 @@
 /**
  * Tests d'intégration — isolation à travers la VRAIE pile d'accès
- * (Supabase Auth + PostgREST + RLS), avec les comptes de démo.
- * C'est le chemin qu'emprunte l'application déployée.
+ * (Supabase Auth + PostgREST + RLS). C'est le chemin qu'emprunte l'application
+ * déployée : ce que ces tests prouvent, l'application le garantit.
  *
- * Nécessite NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
- * (.env.local) ainsi que le seed de démo (app/supabase/seed.sql).
+ * Ils vérifient la RÈGLE (RM-A1.7 : aucune agence ne voit les données d'une
+ * autre), pas l'inventaire d'un jeu de données. Une version précédente
+ * comparait des noms de fiches en dur — elle tombait en rouge dès qu'on changeait
+ * d'environnement, alors que l'étanchéité était intacte.
+ *
+ * Comptes : par défaut ceux du seed de démo (app/supabase/seed.sql). Sur un autre
+ * environnement, les redéfinir dans .env.local :
+ *   TEST_ADMIN_A, TEST_ADMIN_B, TEST_MULTI, TEST_SUPERADMIN, TEST_MOT_DE_PASSE
  */
 import { config } from "dotenv";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -14,7 +20,12 @@ config({ path: ".env.local" });
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-const MOT_DE_PASSE_DEMO = "Gerimmo-Demo-2026";
+
+const ADMIN_A = process.env.TEST_ADMIN_A ?? "admin.alpha@gerimmo-demo.fr";
+const ADMIN_B = process.env.TEST_ADMIN_B ?? "admin.beta@gerimmo-demo.fr";
+const MULTI = process.env.TEST_MULTI ?? "multi@gerimmo-demo.fr";
+const SUPERADMIN = process.env.TEST_SUPERADMIN ?? "superadmin@gerimmo-demo.fr";
+const MOT_DE_PASSE = process.env.TEST_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";
 
 function client(): SupabaseClient {
   return createClient(URL!, KEY!, {
@@ -24,12 +35,19 @@ function client(): SupabaseClient {
 
 async function connecte(email: string): Promise<SupabaseClient> {
   const c = client();
-  const { error } = await c.auth.signInWithPassword({
-    email,
-    password: MOT_DE_PASSE_DEMO,
-  });
-  expect(error, `connexion ${email} : ${error?.message}`).toBeNull();
+  const { error } = await c.auth.signInWithPassword({ email, password: MOT_DE_PASSE });
+  expect(
+    error,
+    `connexion ${email} : ${error?.message}. Comptes attendus absents de cet ` +
+      `environnement ? Renseignez TEST_ADMIN_A / TEST_ADMIN_B / TEST_MULTI / ` +
+      `TEST_SUPERADMIN / TEST_MOT_DE_PASSE dans .env.local.`
+  ).toBeNull();
   return c;
+}
+
+async function nomsDesFiches(c: SupabaseClient): Promise<string[]> {
+  const { data } = await c.from("persons").select("id");
+  return (data ?? []).map((p) => p.id as string);
 }
 
 describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () => {
@@ -60,76 +78,73 @@ describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () =>
     }
   });
 
-  it("l'admin d'Alpha ne voit qu'Alpha et ses fiches", async () => {
-    const c = await connecte("admin.alpha@gerimmo-demo.fr");
-    clients.push(c);
+  it("chaque admin ne voit que sa propre agence", async () => {
+    const a = await connecte(ADMIN_A);
+    const b = await connecte(ADMIN_B);
+    clients.push(a, b);
 
-    const { data: orgs } = await c.from("organizations").select("name");
-    expect(orgs?.map((o) => o.name)).toEqual(["Agence Alpha"]);
-
-    const { data: fiches } = await c.from("persons").select("nom");
-    const noms = fiches?.map((p) => p.nom) ?? [];
-    // Isolation (RM-A1.7) : la fiche seed d'Alpha est visible, aucune fiche de
-    // Beta ne fuit. Tolérant aux fiches de démo ajoutées en recette : on teste
-    // l'étanchéité entre agences, pas le contenu exact du seed.
-    expect(noms).toContain("Dupont"); // fiche d'Alpha (seed)
-    expect(noms).not.toContain("Martin"); // fiche de Beta — ne doit jamais fuiter
+    const { data: orgsA } = await a.from("organizations").select("id, name");
+    const { data: orgsB } = await b.from("organizations").select("id, name");
+    expect(orgsA, `${ADMIN_A} devrait voir exactement une agence`).toHaveLength(1);
+    expect(orgsB, `${ADMIN_B} devrait voir exactement une agence`).toHaveLength(1);
+    expect(orgsA![0].id).not.toBe(orgsB![0].id);
   });
 
-  it("l'admin de Beta ne voit que Beta et ses fiches", async () => {
-    const c = await connecte("admin.beta@gerimmo-demo.fr");
-    clients.push(c);
+  it("aucune fiche n'est visible des deux côtés à la fois", async () => {
+    const a = await connecte(ADMIN_A);
+    const b = await connecte(ADMIN_B);
+    clients.push(a, b);
 
-    const { data: orgs } = await c.from("organizations").select("name");
-    expect(orgs?.map((o) => o.name)).toEqual(["Agence Beta"]);
-
-    const { data: fiches } = await c.from("persons").select("nom");
-    const noms = fiches?.map((p) => p.nom) ?? [];
-    // Même principe que ci-dessus : on vérifie l'étanchéité, pas l'inventaire
-    // exact du jeu de démo, qui bouge au fil des recettes.
-    expect(noms).toContain("Martin"); // fiche de Beta (seed)
-    for (const alpha of ["Dupont", "Leblanc", "Le", "Testeur", "Moreau"]) {
-      expect(noms).not.toContain(alpha); // aucune fiche d'Alpha ne fuite
-    }
+    // Le cœur de la règle : l'intersection doit être vide. On compare les
+    // identifiants, pas les noms — deux « Dupont » dans deux agences sont deux
+    // personnes différentes et n'ont rien d'une fuite.
+    const idsA = new Set(await nomsDesFiches(a));
+    const idsB = await nomsDesFiches(b);
+    expect(idsA.size, "l'agence A n'a aucune fiche : test sans valeur").toBeGreaterThan(0);
+    expect(idsB.length, "l'agence B n'a aucune fiche : test sans valeur").toBeGreaterThan(0);
+    const communes = idsB.filter((id) => idsA.has(id));
+    expect(communes, "fiches visibles des deux agences").toHaveLength(0);
   });
 
-  it("le compte multi voit ses deux adhésions (sélecteur d'espaces)", async () => {
-    const c = await connecte("multi@gerimmo-demo.fr");
+  it("un compte présent dans deux agences voit ses deux adhésions", async () => {
+    const c = await connecte(MULTI);
     clients.push(c);
 
     const { data: user } = await c.auth.getUser();
     const { data: adhesions } = await c
       .from("memberships")
-      .select("role, organization:organizations(name)")
+      .select("role, organization_id")
       .eq("account_id", user.user!.id)
       .eq("status", "active");
-    const resume = (adhesions ?? [])
-      .map((a) => `${a.role}@${(a.organization as unknown as { name: string }).name}`)
-      .sort();
-    expect(resume).toEqual(["admin_agence@Agence Beta", "agent@Agence Alpha"]);
+
+    expect(adhesions?.length ?? 0).toBeGreaterThanOrEqual(2);
+    const agences = new Set((adhesions ?? []).map((a) => a.organization_id));
+    expect(agences.size, "les deux adhésions devraient viser deux agences").toBeGreaterThanOrEqual(2);
   });
 
-  it("le super admin voit toutes les agences ; un compte d'agence ne peut pas écrire chez l'autre", async () => {
-    const sa = await connecte("superadmin@gerimmo-demo.fr");
-    clients.push(sa);
-    const { data: orgs } = await sa.from("organizations").select("name");
-    expect(orgs?.map((o) => o.name).sort()).toEqual(["Agence Alpha", "Agence Beta"]);
+  it("le super admin voit toutes les agences", async () => {
+    const sa = await connecte(SUPERADMIN);
+    const a = await connecte(ADMIN_A);
+    clients.push(sa, a);
 
-    // Tentative d'écriture transverse : l'admin d'Alpha essaie de créer une
-    // fiche chez Beta — la RLS doit refuser.
-    const beta = orgs!.find((o) => o.name === "Agence Beta");
-    const { data: betaId } = await sa
-      .from("organizations")
-      .select("id")
-      .eq("name", "Agence Beta")
-      .single();
-    expect(beta).toBeDefined();
+    const { data: toutes } = await sa.from("organizations").select("id");
+    const { data: sienne } = await a.from("organizations").select("id");
+    expect((toutes ?? []).length).toBeGreaterThan((sienne ?? []).length);
+  });
 
-    const alpha = await connecte("admin.alpha@gerimmo-demo.fr");
-    clients.push(alpha);
-    const { error } = await alpha
+  it("un admin ne peut pas créer de fiche chez une autre agence", async () => {
+    const sa = await connecte(SUPERADMIN);
+    const a = await connecte(ADMIN_A);
+    clients.push(sa, a);
+
+    const { data: sienne } = await a.from("organizations").select("id");
+    const { data: toutes } = await sa.from("organizations").select("id");
+    const autre = (toutes ?? []).find((o) => o.id !== sienne![0].id);
+    expect(autre, "il faut au moins deux agences pour ce test").toBeDefined();
+
+    const { error } = await a
       .from("persons")
-      .insert({ organization_id: betaId!.id, nom: "Intrus" });
+      .insert({ organization_id: autre!.id, nom: "Intrus" });
     expect(error, "l'écriture transverse aurait dû être refusée").not.toBeNull();
   });
 });

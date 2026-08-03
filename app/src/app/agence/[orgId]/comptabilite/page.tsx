@@ -1,5 +1,5 @@
 import { verifierAccesEspace } from "@/lib/espace";
-import { formaterDate } from "@/lib/ged";
+import { formaterDate, moisEnFrancais } from "@/lib/ged";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FormulaireEcriture,
@@ -63,6 +63,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   const depenses = lignes.filter((e) => e.sens === "depense").reduce((s, e) => s + Number(e.montant), 0);
   const moisClotures = new Set(((clotures ?? []) as { mois: string }[]).map((c) => c.mois.slice(0, 7)));
   const moisCourant = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" }).slice(0, 7);
+  const anneeCourante = moisCourant.slice(0, 4);
   const mandats: MandatCompta[] = (
     (mandatsRaw ?? []) as {
       id: string;
@@ -79,13 +80,13 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   });
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-7">
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <h1 className="text-2xl font-semibold">Comptabilité</h1>
         <p className="text-sm text-muted-foreground">
-          Journal de gestion (caisse) : écritures immuables, correction par
-          contre-écriture, clôture mensuelle. Gerimmo n&apos;est pas un logiciel de
-          comptabilité de gérance.
+          Le journal des encaissements et des dépenses de l&apos;agence. Une
+          écriture ne se modifie pas : on l&apos;annule par une écriture inverse,
+          qui reste visible. Chaque mois se clôture une fois pour toutes.
         </p>
       </div>
 
@@ -104,15 +105,16 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         <CardHeader>
           <CardTitle className="text-base">Saisir une écriture</CardTitle>
           <CardDescription>
-            Deux dates : pièce (date réelle) et imputation (mois comptable). Les
-            honoraires sont générés automatiquement à l&apos;encaissement.
+            Deux dates : celle de la pièce justificative, et le mois sur lequel
+            l&apos;écriture compte. Les honoraires, eux, se créent tout seuls à
+            chaque encaissement de loyer.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <FormulaireEcriture orgId={orgId} />
           <div className="border-t border-border pt-4">
             <p className="mb-2 text-sm font-medium">
-              Dépense au niveau du bien (ventilée par lot via la clé)
+              Dépense sur tout le bien, répartie entre ses lots
             </p>
             <FormulaireVentilation
               orgId={orgId}
@@ -123,7 +125,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             <FormulaireCloture orgId={orgId} moisCourant={moisCourant} />
             {moisClotures.size > 0 && (
               <p className="mt-1 text-xs text-muted-foreground">
-                Mois clôturés : {[...moisClotures].join(", ")}
+                Mois déjà clôturés : {[...moisClotures].map(moisEnFrancais).join(", ")}
               </p>
             )}
           </div>
@@ -134,7 +136,8 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         <CardHeader>
           <CardTitle className="text-base">Rapports de gestion</CardTitle>
           <CardDescription>
-            Un rapport par mandat et par mois (clôture requise), figé à l&apos;envoi ;
+            Un rapport par mandant et par mois, une fois le mois clôturé. Une fois
+            envoyé, il ne bouge plus ;
             versement suivi, écart alerté.
           </CardDescription>
         </CardHeader>
@@ -152,12 +155,22 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <CardTitle className="text-base">Journal</CardTitle>
-            <a
-              href={`/agence/${orgId}/comptabilite/export`}
-              className="text-sm text-muted-foreground underline-offset-2 hover:underline"
-            >
-              Exporter (CSV)
-            </a>
+            {/* Deux portées : l'année en cours, celle que l'agent demande neuf
+                fois sur dix, et la totalité pour l'expert-comptable. */}
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <a
+                href={`/agence/${orgId}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
+                className="underline-offset-2 hover:underline"
+              >
+                Exporter {anneeCourante}
+              </a>
+              <a
+                href={`/agence/${orgId}/comptabilite/export`}
+                className="underline-offset-2 hover:underline"
+              >
+                Tout exporter
+              </a>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -177,8 +190,10 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                     </span>
                     <span className="w-28 shrink-0 truncate">{e.categorie}</span>
                     <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                      {e.libelle} · pièce {formaterDate(e.date_piece)}
-                      {e.systeme ? " · auto" : ""}
+                      {/* Sans libellé, la ligne commençait par un point médian orphelin. */}
+                      {e.libelle ? `${e.libelle} · ` : ""}
+                      pièce {formaterDate(e.date_piece)}
+                      {e.systeme ? " · créée automatiquement" : ""}
                     </span>
                     {!e.contre_ecriture_de && !clot && (
                       <BoutonContre orgId={orgId} ecritureId={e.id} />

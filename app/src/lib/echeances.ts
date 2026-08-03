@@ -69,6 +69,34 @@ export function afficherEcheance(
   };
 }
 
+// Un rapport de gestion couvre un mois mais se rend le mois suivant, au jour
+// convenu dans le mandat (le 10 par défaut, RM-5.3). Le mois couvert n'est donc
+// pas une échéance : c'est un intitulé.
+export function echeanceRapport(mois: string, jour: number): string {
+  const [a, m] = mois.slice(0, 7).split("-").map(Number);
+  const suivant = new Date(Date.UTC(a, m, 1)); // m, pas m-1 : le mois d'après
+  // Un mandat au 31 tombe au 28 en février : on borne au dernier jour du mois.
+  const dernier = new Date(
+    Date.UTC(suivant.getUTCFullYear(), suivant.getUTCMonth() + 1, 0)
+  ).getUTCDate();
+  suivant.setUTCDate(Math.min(jour, dernier));
+  return suivant.toISOString().slice(0, 10);
+}
+
+// Date courte pour une liste de rendez-vous : « lun 04 » se lit vite, mais ne
+// suffit plus dès qu'on sort de la quinzaine — d'où le mois pour le reste.
+export function dateRendezVous(date: string, aujourdhui: Date = new Date()): string {
+  const e = afficherEcheance(date, aujourdhui);
+  const proche = e !== null && !e.depassee && e.jours <= 15;
+  return new Date(date)
+    .toLocaleDateString("fr-FR", {
+      ...(proche ? { weekday: "short" } : { month: "short" }),
+      day: "2-digit",
+      timeZone: "UTC",
+    })
+    .replace(".", "");
+}
+
 // Les blocages viennent de la base avec leur formulation complète, utile sur la
 // fiche du lot mais trop longue en liste. Version courte pour le tableau de bord.
 export function resumerBlocage(message: string): string {

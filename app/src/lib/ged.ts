@@ -60,6 +60,31 @@ export function formaterDate(iso: string | null | undefined): string {
   });
 }
 
+// Un montant en euros, à la française : espace insécable avant le symbole,
+// virgule décimale, deux décimales toujours. Douze fichiers en avaient chacun
+// leur copie ; une seule suffit.
+export function eur(montant: number | string | null | undefined): string {
+  if (montant === null || montant === undefined || montant === "") return "—";
+  return `${Number(montant).toLocaleString("fr-FR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} €`;
+}
+
+// Un mois comptable arrive en « 2026-06 » ou « 2026-06-01 » selon la table.
+// Affiché tel quel, c'est une référence technique ; dit en français, c'est une
+// date que l'agent lit sans réfléchir.
+export function moisEnFrancais(mois: string | null | undefined): string {
+  if (!mois) return "—";
+  const [a, m] = mois.slice(0, 7).split("-").map(Number);
+  if (!a || !m) return mois;
+  return new Date(Date.UTC(a, m - 1, 1)).toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function formaterDateHeure(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("fr-FR", {

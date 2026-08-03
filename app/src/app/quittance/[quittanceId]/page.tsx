@@ -33,7 +33,7 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
   const titre = q.est_quittance ? "Quittance de loyer" : "Reçu de paiement partiel";
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-6 p-8">
+    <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{titre}</h1>

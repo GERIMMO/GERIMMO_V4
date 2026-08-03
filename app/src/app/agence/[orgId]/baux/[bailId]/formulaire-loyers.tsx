@@ -20,6 +20,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formaterDate } from "@/lib/ged";
 
+// Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
+// bloquer quelqu'un sur un cas rare.
+export const MODES_PAIEMENT: Record<string, string> = {
+  virement: "Virement",
+  cheque: "Chèque",
+  prelevement: "Prélèvement",
+  especes: "Espèces",
+  caf: "CAF / APL",
+  autre: "Autre",
+};
+
 export type LigneEcheance = {
   appel_id: string;
   periode: string;
@@ -220,7 +231,9 @@ export function FormulaireLoyers({
                 <span className="w-24 shrink-0 font-medium">{eur(e.montant)}</span>
                 <span className="text-xs text-muted-foreground">{formaterDate(e.date_paiement)}</span>
                 <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                  {e.mode ?? ""} {e.note ?? ""}
+                  {[e.mode ? (MODES_PAIEMENT[e.mode] ?? e.mode) : null, e.note]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
                 <form action={async () => { await supprimerEncaissement(orgId, bailId, e.id); }}>
                   <Button type="submit" variant="ghost" size="sm">Retirer</Button>
@@ -238,7 +251,23 @@ export function FormulaireLoyers({
             <Label htmlFor="enc-date" className="text-xs">Date</Label>
             <InputDateJour id="enc-date"   className="h-9" name="date_paiement" />
           </div>
-          <Input name="mode" placeholder="Mode (virement…)" className="h-9 w-36" />
+          {/* Champ libre auparavant : chacun écrivait « cheque », « Chèque »,
+              « CHQ ». Une liste courte suffit et rend le journal lisible. */}
+          <div className="space-y-1">
+            <Label htmlFor="enc-mode" className="text-xs">Payé par</Label>
+            <select
+              id="enc-mode"
+              name="mode"
+              defaultValue="virement"
+              className="h-9 w-36 rounded-md border border-input bg-transparent px-2 text-sm"
+            >
+              {Object.entries(MODES_PAIEMENT).map(([valeur, libelle]) => (
+                <option key={valeur} value={valeur}>
+                  {libelle}
+                </option>
+              ))}
+            </select>
+          </div>
           <Button type="submit" size="sm" variant="outline" disabled={enCoursEnc}>
             {enCoursEnc ? "…" : "Encaisser"}
           </Button>

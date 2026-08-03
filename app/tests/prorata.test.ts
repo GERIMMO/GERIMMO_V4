@@ -7,12 +7,14 @@
  * Régression A-02 : le montant dû était calculé à part et pouvait différer d'un
  * centime de la somme « loyer + charges » affichée sur la quittance.
  */
+import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
 
 describe.skipIf(!DB_URL)("Prorata du premier loyer", () => {
   let db: Client;

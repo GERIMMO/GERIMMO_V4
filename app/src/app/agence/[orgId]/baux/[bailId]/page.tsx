@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
-import { formaterDate } from "@/lib/ged";
+import { formaterDate, eur } from "@/lib/ged";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ETATS_ELEMENT } from "./edl/[edlId]/grille-edl";
@@ -243,7 +243,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-7">
+    <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         {lot && (
           <Link
@@ -262,8 +262,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <p className="text-sm text-muted-foreground">
           Locataire : {locataire ? `${locataire.nom}${locataire.prenom ? ` ${locataire.prenom}` : ""}` : "—"}
           {" · "}
-          {bail.loyer_hc ? `${bail.loyer_hc} € HC` : "loyer non fixé"}
-          {bail.charges ? ` + ${bail.charges} € de charges` : ""}
+          {/* « 1050 € HC » : un nombre brut et une abréviation. Le loyer se lit
+              mieux formaté, et « hors charges » s'écrit en toutes lettres. */}
+          {bail.loyer_hc
+            ? `${eur(Number(bail.loyer_hc))} hors charges`
+            : "loyer non fixé"}
+          {bail.charges ? ` + ${eur(Number(bail.charges))} de charges` : ""}
           {bail.date_fin ? ` · fin le ${formaterDate(bail.date_fin)}` : ""}
         </p>
       </div>

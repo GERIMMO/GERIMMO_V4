@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { moisEnFrancais } from "@/lib/ged";
 
 const eurC = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 
@@ -52,7 +53,7 @@ export function RapportsGestion({
               <ul className="space-y-1 text-sm">
                 {rs.map((r) => (
                   <li key={r.id} className="flex flex-wrap items-center gap-2">
-                    <span className="w-28 shrink-0">{r.mois.slice(0, 7)}</span>
+                    <span className="w-28 shrink-0">{moisEnFrancais(r.mois)}</span>
                     <span className="w-28 shrink-0">net {eurC(r.net)}</span>
                     <span className="badge-statut text-muted-foreground">
                       {r.statut === "envoye" ? "Envoyé" : "À valider"}
@@ -216,10 +217,13 @@ export function BoutonContre({ orgId, ecritureId }: { orgId: string; ecritureId:
     {}
   );
   return (
+    // « Contre-écriture » côtoyait des lignes elles-mêmes étiquetées
+    // « contre-écriture » : le même mot pour l'action et pour son résultat.
+    // Le bouton dit ce qu'il fait, l'étiquette dit ce que la ligne est.
     <form action={action} className="flex items-center gap-1">
       <Input name="motif" placeholder="motif" className="h-7 w-28 text-xs" />
       <Button type="submit" size="sm" variant="ghost" disabled={enCours}>
-        Contre-écriture
+        Annuler
       </Button>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>

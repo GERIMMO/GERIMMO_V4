@@ -159,7 +159,7 @@ export default async function PageLot(
   const nbBaux = (baux ?? []).length;
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-7">
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <Link
           href={`/agence/${orgId}/parc/${bienId}`}
@@ -188,9 +188,13 @@ export default async function PageLot(
       <Card>
         <CardHeader>
           <CardTitle className="text-base">État du lot</CardTitle>
+          {/* La suite d'états parlait le langage du code (« brouillon → disponible
+              → loué ⇄ préavis »). Dite en français, elle décrit la vie du lot. */}
           <CardDescription>
-            brouillon → disponible → loué ⇄ préavis → archivé ; la réactivation
-            est réservée à l&apos;administrateur de l&apos;agence.
+            Un lot se prépare, puis se met en location. Il devient loué à
+            l&apos;activation du bail, passe en préavis au congé du locataire, et
+            redevient libre à son départ. Un lot archivé n&apos;est réactivable
+            que par l&apos;administrateur de l&apos;agence.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">

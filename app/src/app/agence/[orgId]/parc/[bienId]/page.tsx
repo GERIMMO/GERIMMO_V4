@@ -114,7 +114,7 @@ export default async function PageBien(
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-7">
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <Link
           href={`/agence/${orgId}/parc`}
@@ -325,7 +325,7 @@ export default async function PageBien(
                     <span className="min-w-0 flex-1 truncate font-medium">{lot.nom}</span>
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {formaterSurface(lot.surface_m2)}
-                      {lot.pieces ? ` · ${lot.pieces} p.` : ""}
+                      {lot.pieces ? ` · ${lot.pieces} pièce${lot.pieces > 1 ? "s" : ""}` : ""}
                     </span>
                     {blocages.length > 0 && (
                       <span className="badge-statut shrink-0 text-warning-soft-foreground">
@@ -384,7 +384,7 @@ export default async function PageBien(
             })}
           </ul>
           <p className="text-xs text-muted-foreground">
-            Le passage en « Disponible » revérifie tous les blocages en base.
+            La mise en location vérifie une dernière fois qu’il ne manque rien au lot.
           </p>
         </CardContent>
       </Card>

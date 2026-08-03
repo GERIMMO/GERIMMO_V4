@@ -2,12 +2,14 @@
  * Tests d'intégration Sprint 4 — État des lieux (EDL) (module 1).
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
+import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
 
 async function creerUtilisateur(db: Client): Promise<string> {
   const {

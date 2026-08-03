@@ -5,26 +5,31 @@ import { changerEtatLot, type EtatParc } from "@/app/actions/parc";
 import { ETATS_LOT } from "@/lib/parc";
 import { Button } from "@/components/ui/button";
 
-// Transitions autorisées par la machine à états (module 0) — la base fait foi
-// (trigger) : ces boutons ne proposent que les transitions légales depuis
-// l'état courant. « loué » arrivera avec le bail (S4) ; on l'expose quand même
-// pour la démo interne tant que le module bail n'existe pas.
+// Transitions autorisées par la machine à états (module 0) — la base fait foi.
+//
+// « Loué » et « en préavis » ne sont PAS proposés à la main : ils découlent du
+// bail. Activer un bail passe le lot en loué, enregistrer un congé le passe en
+// préavis. Les boutons manuels d'avant le module bail laissaient marquer un lot
+// loué sans locataire, ou en préavis sans congé.
 const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
   brouillon: [
-    { cible: "disponible", libelle: "Passer en disponible" },
+    { cible: "disponible", libelle: "Mettre en location" },
     { cible: "archive", libelle: "Archiver" },
   ],
   disponible: [
-    { cible: "loue", libelle: "Marquer loué" },
-    { cible: "brouillon", libelle: "Repasser en brouillon" },
+    { cible: "brouillon", libelle: "Remettre en préparation" },
     { cible: "archive", libelle: "Archiver" },
   ],
-  loue: [{ cible: "preavis", libelle: "Passer en préavis" }],
-  preavis: [
-    { cible: "loue", libelle: "Préavis annulé (re-loué)" },
-    { cible: "disponible", libelle: "Sortie effective (disponible)" },
-  ],
-  archive: [{ cible: "brouillon", libelle: "Réactiver (admin agence)" }],
+  loue: [],
+  preavis: [{ cible: "disponible", libelle: "Le locataire est parti" }],
+  archive: [{ cible: "brouillon", libelle: "Réactiver (admin de l'agence)" }],
+};
+
+// Ce que l'agent doit faire à la place, quand l'état ne se change pas à la main.
+const AILLEURS: Record<string, string> = {
+  loue: "Ce lot est loué. Pour enregistrer un départ, passez par le bail et son congé.",
+  preavis:
+    "Le locataire a donné congé. Quand il aura rendu les clés et que l'état des lieux de sortie sera fait, marquez son départ.",
 };
 
 export function BoutonsEtatLot({
@@ -72,10 +77,15 @@ export function BoutonsEtatLot({
       {retour.succes && (
         <p className="text-sm text-success-soft-foreground">{retour.succes}</p>
       )}
+      {AILLEURS[etat] && (
+        <p className="text-xs text-muted-foreground">{AILLEURS[etat]}</p>
+      )}
       {!compact && (
         <p className="text-xs text-muted-foreground">
-          État courant : {ETATS_LOT[etat] ?? etat}. Le passage en « Disponible »
-          revérifie tous les blocages en base.
+          État actuel : {ETATS_LOT[etat] ?? etat}.
+          {/* La phrase sur la mise en location n'a de sens que si le bouton est là. */}
+          {transitions.some((t) => t.cible === "disponible") &&
+            " La mise en location vérifie une dernière fois qu'il ne manque rien au lot."}
         </p>
       )}
     </div>

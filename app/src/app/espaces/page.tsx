@@ -66,7 +66,7 @@ export default async function PageEspaces() {
   const alertes = await chargerSyntheseAlertes(supabase);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 p-7">
+    <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Mes espaces</h1>
         <div className="flex items-center gap-2">

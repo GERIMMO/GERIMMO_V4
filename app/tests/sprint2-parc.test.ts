@@ -6,6 +6,7 @@
  *
  * Nécessite SUPABASE_DB_URL. Sans elle, tests ignorés avec avertissement.
  */
+import { verifierBaseDeTest } from "./garde-base";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -13,6 +14,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 config({ path: ".env.local" });
 
 const DB_URL = process.env.SUPABASE_DB_URL;
+verifierBaseDeTest(DB_URL);
 
 async function creerUtilisateur(db: Client): Promise<string> {
   const {

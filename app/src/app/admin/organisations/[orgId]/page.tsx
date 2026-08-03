@@ -47,7 +47,7 @@ export default async function PageAdminOrganisation(
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-4xl flex-1 p-7">
+    <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="mb-8">
         <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin" />}>
           ← Toutes les agences

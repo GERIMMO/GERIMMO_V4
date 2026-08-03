@@ -19,11 +19,14 @@ export const TYPES_HABITATION = ["appartement", "maison", "immeuble"] as const;
 // EST déjà l'unité locative ; une place de parking ne se divise pas)
 export const TYPES_NON_DECOUPABLES = ["appartement", "parking"] as const;
 
+// « Brouillon » évoque un document inachevé ; le lot, lui, est en cours de
+// préparation à la location. Le tableau de bord disait déjà « en préparation » :
+// deux mots pour le même état, c'est un mot de trop.
 export const ETATS_LOT: Record<string, string> = {
-  brouillon: "Brouillon",
+  brouillon: "En préparation",
   disponible: "Disponible",
   loue: "Loué",
-  preavis: "Préavis",
+  preavis: "Préavis en cours",
   archive: "Archivé",
 };
 

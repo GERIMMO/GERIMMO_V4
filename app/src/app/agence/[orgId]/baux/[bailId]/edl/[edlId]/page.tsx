@@ -41,7 +41,7 @@ export default async function PageEdl(
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-7">
+    <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <Link
           href={`/agence/${orgId}/baux/${bailId}`}

@@ -1,4 +1,5 @@
 "use client";
+import { afficherEcheance } from "@/lib/echeances";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -166,6 +167,11 @@ export function ClocheAlertes({
                             {CRITICITES[a.criticite] ?? a.criticite}
                           </span>
                           <span className="min-w-0 flex-1 truncate">{a.titre}</span>
+                          {afficherEcheance(a.echeance) && (
+                            <span className={`shrink-0 text-xs ${afficherEcheance(a.echeance)!.classe}`}>
+                              {afficherEcheance(a.echeance)!.texte}
+                            </span>
+                          )}
                           <Link
                             href={
                               modeAdmin

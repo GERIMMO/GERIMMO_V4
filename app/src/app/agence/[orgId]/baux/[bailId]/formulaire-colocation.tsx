@@ -88,7 +88,7 @@ export function FormulaireColocation({
           )}
         </p>
         {colocataires.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucun colocataire ajouté.</p>
+          <p className="text-sm text-muted-foreground">Aucun colocataire ajouté pour l&apos;instant — seul le locataire principal figure au bail.</p>
         ) : (
           <ul className="divide-y divide-border">
             {colocataires.map((c) => (

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formaterDate } from "@/lib/ged";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -93,7 +94,7 @@ export default async function PagePersonne(
         </h1>
         <p className="text-sm text-muted-foreground">
           {[personne.email, personne.telephone].filter(Boolean).join(" · ") || "Aucun contact"}
-          {personne.date_naissance ? ` · né(e) le ${personne.date_naissance}` : ""}
+          {personne.date_naissance ? ` · né(e) le ${formaterDate(personne.date_naissance)}` : ""}
         </p>
       </div>
 
@@ -127,7 +128,7 @@ export default async function PagePersonne(
         </CardHeader>
         <CardContent className="space-y-4">
           {(pieces ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune pièce au dossier.</p>
+            <p className="text-sm text-muted-foreground">Aucune pièce déposée. Ajoutez ci-dessous les justificatifs (identité, revenus, assurance).</p>
           ) : (
             <ul className="divide-y divide-border">
               {(pieces ?? []).map(
@@ -165,7 +166,7 @@ export default async function PagePersonne(
         </CardHeader>
         <CardContent className="space-y-5">
           {(mandats ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun mandat.</p>
+            <p className="text-sm text-muted-foreground">Aucun mandat de gestion. C&apos;est lui qui autorise l&apos;agence à gérer les lots de ce propriétaire et fixe les honoraires.</p>
           ) : (
             (mandats ?? []).map((m) => {
               const sesLignes = (lignes ?? []).filter((l) => l.mandat_id === m.id);

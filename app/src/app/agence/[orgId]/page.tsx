@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { afficherEcheance } from "@/lib/echeances";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ETATS_LOT, COULEURS_ETAT_LOT } from "@/lib/parc";
 import {
@@ -130,9 +131,9 @@ export default async function PageTableauDeBord(
                     {CRITICITES[a.criticite] ?? a.criticite}
                   </span>
                   <span className="min-w-0 flex-1 truncate">{a.titre}</span>
-                  {a.echeance && (
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      échéance {formaterDate(a.echeance)}
+                  {afficherEcheance(a.echeance) && (
+                    <span className={`shrink-0 text-xs ${afficherEcheance(a.echeance)!.classe}`}>
+                      {afficherEcheance(a.echeance)!.texte}
                     </span>
                   )}
                   <Link

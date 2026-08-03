@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import { FormulaireDepot } from "./formulaire-depot";
 import { ActionsDocument } from "./actions-document";
 
@@ -51,6 +52,7 @@ export default async function PageDocuments(
     .maybeSingle();
   if (!organisation) notFound();
 
+  const filtresActifs = Object.values(recherche ?? {}).some((v) => v);
   // Navigation par filtres, jamais par dossiers (RM-12.5.1)
   let requete = supabase
     .from("documents")
@@ -160,9 +162,32 @@ export default async function PageDocuments(
           <Card>
             <CardContent className="pt-6">
               {(documents ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucun document ne correspond.
-                </p>
+                // Deux vides très différents : la bibliothèque est neuve, ou le
+                // filtre est trop étroit. Ne pas laisser l'agent croire au premier
+                // quand c'est le second.
+                filtresActifs ? (
+                  <div className="space-y-2 py-4">
+                    <p className="text-sm font-medium">Aucun document ne correspond</p>
+                    <p className="text-sm text-muted-foreground">
+                      Élargissez la recherche ou repartez de la liste complète.
+                    </p>
+                    <Link
+                      href={`/agence/${orgId}/documents`}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Effacer les filtres
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-1 py-4">
+                    <p className="text-sm font-medium">Aucun document pour l&apos;instant</p>
+                    <p className="text-sm text-muted-foreground">
+                      Baux, diagnostics et justificatifs déposés ailleurs dans
+                      l&apos;application se retrouvent ici. Vous pouvez aussi en
+                      déposer un directement, ci-contre.
+                    </p>
+                  </div>
+                )
               ) : (
                 <ul className="divide-y">
                   {(documents ?? []).map((d) => {

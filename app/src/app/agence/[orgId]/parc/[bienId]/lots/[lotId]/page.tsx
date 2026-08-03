@@ -253,7 +253,7 @@ export default async function PageLot(
                 Détention active : {totalQuoteParts} %
               </p>
               {(detentions ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun propriétaire enregistré.</p>
+                <p className="text-sm text-muted-foreground">Aucun propriétaire enregistré. Le lot ne pourra pas être mis en location tant que la propriété n&apos;est pas répartie à 100 %.</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {(detentions ?? []).map((d) => (

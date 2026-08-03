@@ -1,4 +1,5 @@
 "use client";
+import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState } from "react";
 import {
@@ -184,7 +185,7 @@ function FormCreerAppel({
         </div>
         <div className="space-y-1">
           <Label htmlFor="ac-date" className="text-xs">Reçu le</Label>
-          <Input id="ac-date" name="date_reception" type="date" className="h-9" />
+          <InputDateJour id="ac-date"   className="h-9" name="date_reception" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ac-total" className="text-xs">Total de l&apos;appel (€)</Label>

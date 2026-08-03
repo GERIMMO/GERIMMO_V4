@@ -71,7 +71,7 @@ export function EdlAnnexes({
       <div className="space-y-2">
         <p className="text-sm font-medium">Relevés de compteurs</p>
         {compteurs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucun relevé.</p>
+          <p className="text-sm text-muted-foreground">Aucun relevé de compteur. Notez les index à l&apos;entrée : ils feront foi à la sortie.</p>
         ) : (
           <ul className="divide-y divide-border">
             {compteurs.map((c) => (
@@ -118,7 +118,7 @@ export function EdlAnnexes({
       <div className="space-y-2 border-t border-border pt-4">
         <p className="text-sm font-medium">Clés / badges remis</p>
         {cles.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Aucune clé enregistrée.</p>
+          <p className="text-sm text-muted-foreground">Aucune clé enregistrée. Comptez les clés et badges remis : ils devront être rendus à la sortie.</p>
         ) : (
           <ul className="divide-y divide-border">
             {cles.map((k) => (

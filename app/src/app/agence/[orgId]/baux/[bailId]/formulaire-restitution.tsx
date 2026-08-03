@@ -1,3 +1,5 @@
+import { formaterDate } from "@/lib/ged";
+import { InputDateJour } from "@/components/input-date-jour";
 "use client";
 
 import { useActionState } from "react";
@@ -120,7 +122,7 @@ export function FormulaireRestitution({
 
       {finalise ? (
         <p className="text-sm text-success-soft-foreground">
-          Décompte finalisé{restitution.date_emission ? ` le ${restitution.date_emission}` : ""}.
+          Décompte finalisé{restitution.date_emission ? ` le ${formaterDate(restitution.date_emission)}` : ""}.
           Solde de tout compte :{" "}
           <span className="font-semibold">{eur(restitution.solde ?? 0)}</span>.
         </p>
@@ -145,7 +147,7 @@ function FormDemarrer({ orgId, bailId }: { orgId: string; bailId: string }) {
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <Label htmlFor="rst-date" className="text-xs">Remise des clés</Label>
-          <Input id="rst-date" name="date_remise_cles" type="date" className="h-9" />
+          <InputDateJour id="rst-date"   className="h-9" name="date_remise_cles" />
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm">
           <input type="checkbox" name="conforme" className="size-4" />

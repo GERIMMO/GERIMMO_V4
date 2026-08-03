@@ -1,4 +1,5 @@
 "use client";
+import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
 import { useActionState } from "react";
@@ -235,7 +236,7 @@ export function FormulaireLoyers({
           </div>
           <div className="space-y-1">
             <Label htmlFor="enc-date" className="text-xs">Date</Label>
-            <Input id="enc-date" name="date_paiement" type="date" className="h-9" />
+            <InputDateJour id="enc-date"   className="h-9" name="date_paiement" />
           </div>
           <Input name="mode" placeholder="Mode (virement…)" className="h-9 w-36" />
           <Button type="submit" size="sm" variant="outline" disabled={enCoursEnc}>
@@ -315,11 +316,11 @@ export function FormulaireLoyers({
           </select>
           <div className="space-y-1">
             <Label htmlFor="rel-date" className="text-xs">Envoyée le</Label>
-            <Input id="rel-date" name="date_envoi" type="date" className="h-9" />
+            <InputDateJour id="rel-date"   className="h-9" name="date_envoi" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="rel-pres" className="text-xs">1re présentation</Label>
-            <Input id="rel-pres" name="date_premiere_presentation" type="date" className="h-9" />
+            <InputDateJour id="rel-pres"   className="h-9" name="date_premiere_presentation" />
           </div>
           <Input name="numero_recommande" placeholder="N° recommandé" className="h-9 w-32" />
           <Button type="submit" size="sm" variant="outline" disabled={enCoursRel}>

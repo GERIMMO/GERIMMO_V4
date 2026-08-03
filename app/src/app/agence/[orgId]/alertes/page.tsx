@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { afficherEcheance } from "@/lib/echeances";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -122,9 +123,9 @@ export default async function PageAlertes(
                             {CRITICITES[a.criticite] ?? a.criticite}
                           </span>
                           <span className="font-medium">{a.titre}</span>
-                          {a.echeance && (
-                            <span className="text-muted-foreground">
-                              échéance {formaterDate(a.echeance)}
+                          {afficherEcheance(a.echeance) && (
+                            <span className={afficherEcheance(a.echeance)!.classe}>
+                              {afficherEcheance(a.echeance)!.texte}
                             </span>
                           )}
                         </div>

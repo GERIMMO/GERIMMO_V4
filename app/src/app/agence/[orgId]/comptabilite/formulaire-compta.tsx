@@ -1,4 +1,5 @@
 "use client";
+import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState } from "react";
 import {
@@ -39,7 +40,7 @@ export function RapportsGestion({
   moisCourant: string;
 }) {
   if (mandats.length === 0)
-    return <p className="text-sm text-muted-foreground">Aucun mandat actif.</p>;
+    return <p className="text-sm text-muted-foreground">Aucun mandat de gestion actif. Un rapport se génère par mandat : créez-en un depuis la fiche du propriétaire.</p>;
   return (
     <div className="space-y-4">
       {mandats.map((m) => {
@@ -105,7 +106,7 @@ function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string 
   return (
     <form action={action} className="flex items-center gap-1">
       <Input name="montant" type="number" step="0.01" placeholder="versé €" className="h-7 w-24 text-xs" />
-      <Input name="date" type="date" className="h-7 text-xs" />
+      <InputDateJour   className="h-7 text-xs" name="date" />
       <Button type="submit" size="sm" variant="ghost" disabled={enCours}>Versement</Button>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
@@ -136,11 +137,11 @@ export function FormulaireEcriture({ orgId }: { orgId: string }) {
       </div>
       <div className="space-y-1">
         <Label htmlFor="ec-piece" className="text-xs">Date pièce</Label>
-        <Input id="ec-piece" name="date_piece" type="date" className="h-9" />
+        <InputDateJour id="ec-piece"   className="h-9" name="date_piece" />
       </div>
       <div className="space-y-1">
         <Label htmlFor="ec-imput" className="text-xs">Imputation</Label>
-        <Input id="ec-imput" name="date_imputation" type="date" className="h-9" />
+        <InputDateJour id="ec-imput"   className="h-9" name="date_imputation" />
       </div>
       <Input name="libelle" placeholder="Libellé (facultatif)" className="h-9 w-40" />
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
@@ -177,7 +178,7 @@ export function FormulaireVentilation({
       <Input name="montant" type="number" step="0.01" min="0.01" placeholder="Montant €" className="h-9 w-28" />
       <div className="space-y-1">
         <Label htmlFor="v-piece" className="text-xs">Date pièce</Label>
-        <Input id="v-piece" name="date_piece" type="date" className="h-9" />
+        <InputDateJour id="v-piece"   className="h-9" name="date_piece" />
       </div>
       <Input name="libelle" placeholder="Libellé" className="h-9 w-36" />
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>

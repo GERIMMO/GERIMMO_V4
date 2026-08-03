@@ -57,9 +57,18 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
       {(biens ?? []).length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Aucun bien dans le parc. Créez le premier : son lot unique naît avec
-            lui.
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm font-medium">Votre parc est vide</p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Commencez par un bien : son lot naît avec lui, et c&apos;est le lot
+              qui portera le bail.
+            </p>
+            <Link
+              href={`/agence/${orgId}/parc/nouveau`}
+              className={buttonVariants({ size: "sm" })}
+            >
+              Créer mon premier bien
+            </Link>
           </CardContent>
         </Card>
       ) : (

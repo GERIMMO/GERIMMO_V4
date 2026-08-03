@@ -1,4 +1,5 @@
 "use client";
+import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import {
@@ -139,7 +140,7 @@ export function FormulaireDetention({
         )}
         <div className="space-y-1.5">
           <Label htmlFor="detention-debut">Début de détention</Label>
-          <Input id="detention-debut" name="date_debut" type="date" />
+          <InputDateJour id="detention-debut"   name="date_debut" />
           <p className="text-xs text-muted-foreground">
             Vide = aujourd&apos;hui. La somme active ne peut pas dépasser 100 %
             .

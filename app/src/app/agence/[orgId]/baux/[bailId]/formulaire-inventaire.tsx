@@ -79,7 +79,7 @@ export function FormulaireInventaire({
       </div>
 
       {lignes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun meuble inventorié.</p>
+        <p className="text-sm text-muted-foreground">Aucun meuble inventorié. L&apos;inventaire est une annexe obligatoire du bail meublé : ajoutez les meubles ci-dessous.</p>
       ) : (
         <ul className="divide-y divide-border">
           {lignes.map((l) => (

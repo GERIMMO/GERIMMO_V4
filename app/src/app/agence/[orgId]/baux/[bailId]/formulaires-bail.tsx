@@ -1,4 +1,5 @@
 "use client";
+import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
@@ -105,7 +106,7 @@ export function FormulaireConge({
           <Label htmlFor="conge-date" className="text-xs">
             1ʳᵉ présentation du recommandé
           </Label>
-          <Input id="conge-date" name="date_presentation" type="date" required />
+          <InputDateJour id="conge-date"   required name="date_presentation" />
         </div>
       </div>
 

@@ -162,7 +162,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         </CardHeader>
         <CardContent>
           {lignes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune écriture.</p>
+            <p className="text-sm text-muted-foreground">Aucune écriture pour l&apos;instant. Les honoraires se créent tout seuls à chaque encaissement de loyer ; saisissez ci-dessus une dépense ou une recette.</p>
           ) : (
             <ul className="divide-y divide-border">
               {lignes.map((e) => {

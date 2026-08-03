@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import {
   Card,
@@ -97,14 +98,14 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
               Loyer : {bail.loyer_hc ? `${bail.loyer_hc} € hors charges` : "—"}
               {bail.charges ? ` + ${bail.charges} € de charges` : ""}
             </p>
-            {bail.date_debut && <p className="text-muted-foreground">Depuis le {bail.date_debut}</p>}
+            {bail.date_debut && <p className="text-muted-foreground">Depuis le {formaterDate(bail.date_debut)}</p>}
             {depot && Number(depot.depot_du) > 0 && (
               <p className="mt-1 text-muted-foreground">
                 Dépôt de garantie : {eur(Number(depot.encaisse))} encaissé
                 {Number(depot.encaisse) < Number(depot.depot_du)
                   ? ` sur ${eur(Number(depot.depot_du))}`
                   : ""}
-                {depot.derniere_date ? ` (le ${depot.derniere_date})` : ""}
+                {depot.derniere_date ? ` (le ${formaterDate(depot.derniere_date)})` : ""}
               </p>
             )}
           </CardContent>

@@ -1,3 +1,5 @@
+import { formaterDate } from "@/lib/ged";
+import { InputDateJour } from "@/components/input-date-jour";
 "use client";
 
 import { useActionState } from "react";
@@ -76,7 +78,7 @@ export function FormulaireDepot({
             <li key={e.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
               <span className="w-24 shrink-0 text-right font-medium">{eur(e.montant)}</span>
               <span className="text-xs text-muted-foreground">
-                {e.date_encaissement}
+                {formaterDate(e.date_encaissement)}
                 {e.moyen ? ` · ${e.moyen}` : ""} · versé par {nom(e.versant_person_id, e.versant_libelle)}
               </span>
               <span className="ml-auto">
@@ -132,7 +134,7 @@ function FormEncaisser({
         </div>
         <div className="space-y-1">
           <Label htmlFor="dep-date" className="text-xs">Date</Label>
-          <Input id="dep-date" name="date" type="date" className="h-9" />
+          <InputDateJour id="dep-date"   className="h-9" name="date" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="dep-moyen" className="text-xs">Moyen</Label>

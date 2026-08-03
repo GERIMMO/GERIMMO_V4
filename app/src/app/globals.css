@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-interface);
+  --font-mono: var(--font-libelles);
+  --font-heading: var(--font-titres);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -57,49 +57,87 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  /* Tokens sémantiques d'état (design system S2 — marque blanche S14 :
-     aucune couleur en dur dans les composants, tout passe par ces variables) */
-  --destructive-soft: oklch(0.936 0.032 17.717);
-  --destructive-soft-foreground: oklch(0.396 0.141 25.723);
-  --warning: oklch(0.769 0.188 70.08);
-  --warning-soft: oklch(0.962 0.059 95.617);
-  --warning-soft-foreground: oklch(0.414 0.112 45.904);
-  --success: oklch(0.723 0.219 149.579);
-  --success-soft: oklch(0.962 0.044 156.743);
-  --success-soft-foreground: oklch(0.393 0.095 152.535);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* ------------------------------------------------------------------ */
+  /* Charte graphique GERIMMO v1.0 — juillet 2026.                       */
+  /* Trois familles : un or, un graphite chaud, une gamme de crèmes.      */
+  /* L'or ne sert JAMAIS de fond : il signale (liseré actif, chiffre clé, */
+  /* bouton secondaire). Deux fonds maximum par écran.                    */
+  /* Marque blanche (module 17) : ces variables sont le seul point de     */
+  /* personnalisation — aucune couleur en dur dans les composants.        */
+  /* ------------------------------------------------------------------ */
+
+  /* Or */
+  --or-clair: #f6e59c;
+  --or: #cfa634;              /* liseré actif */
+  --or-texte: #8f6510;        /* or lisible sur fond clair */
+  --or-filet: #e0d3ab;
+
+  /* Graphite chaud */
+  --encre: #1b1a16;           /* titres */
+  --graphite: #211f1a;        /* rail, aplats sombres */
+  --corps: #403c34;           /* corps de texte */
+  --texte-secondaire: #8b8474;
+  --libelle: #a09880;
+
+  /* Crèmes */
+  --creme: #f6f3ea;
+  --ivoire: #faf8f2;
+  --carte: #fffefa;
+  --filet: #e8e3d6;
+  --filet-leger: #f3efe4;
+
+  /* Correspondance avec les jetons de l'interface */
+  --background: var(--ivoire);
+  --foreground: var(--corps);
+  --card: var(--carte);
+  --card-foreground: var(--corps);
+  --popover: var(--carte);
+  --popover-foreground: var(--corps);
+  --primary: var(--graphite);
+  --primary-foreground: var(--ivoire);
+  --secondary: var(--creme);
+  --secondary-foreground: var(--encre);
+  --muted: var(--filet-leger);
+  --muted-foreground: var(--texte-secondaire);
+  --accent: var(--creme);
+  --accent-foreground: var(--encre);
+
+  /* États — les trois couleurs de statut de la charte.
+     Les badges s'écrivent en TEXTE COLORÉ, sans pastille ni fond : les
+     variantes -soft ne servent qu'aux encadrés d'alerte, jamais aux badges. */
+  --success: #4f7a52;              /* à jour, encaissé */
+  --success-soft: #eef3ee;
+  --success-soft-foreground: #4f7a52;
+  --warning: #a8791f;              /* en attente, relance */
+  --warning-soft: #f7f1e3;
+  --warning-soft-foreground: #a8791f;
+  --destructive: #a2453b;          /* retard, impayé */
+  --destructive-soft: #f6ecea;
+  --destructive-soft-foreground: #a2453b;
+
+  --border: var(--filet);
+  --input: var(--filet);
+  --ring: var(--or);
+
+  --chart-1: var(--or);
+  --chart-2: var(--corps);
+  --chart-3: var(--texte-secondaire);
+  --chart-4: var(--or-texte);
+  --chart-5: var(--graphite);
+
+  /* Géométrie : rayon 3 px boutons et filtres, 4 px cartes et tableaux */
+  --radius: 0.25rem;
+
+  --sidebar: var(--creme);
+  --sidebar-foreground: var(--corps);
+  --sidebar-primary: var(--graphite);
+  --sidebar-primary-foreground: var(--ivoire);
+  --sidebar-accent: var(--filet-leger);
+  --sidebar-accent-foreground: var(--encre);
+  --sidebar-border: var(--filet);
+  --sidebar-ring: var(--or);
 }
+
 
 .dark {
   --background: oklch(0.145 0 0);
@@ -149,8 +187,64 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Charte : corps 13 px en Jost */
+    font-size: 13px;
+    line-height: 1.55;
   }
   html {
     @apply font-sans;
   }
+
+  /* Charte — titres en Cormorant Garamond : 27 px page, 21–23 px section,
+     couleur encre. Les tailles Tailwind des composants restent respectées ;
+     seules la police et la couleur sont imposées ici. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-titres), Georgia, serif;
+    color: var(--encre);
+    font-weight: 400;
+  }
+  h1 {
+    font-size: 1.6875rem; /* 27 px */
+    line-height: 1.2;
+  }
+  h2 {
+    font-size: 1.375rem; /* 22 px */
+    line-height: 1.25;
+  }
+
+  /* Charte — mouvement : 0,15–0,20 s en ease, jamais de rebond ni de rotation */
+  button,
+  a,
+  [role="button"] {
+    transition-duration: 0.17s;
+    transition-timing-function: ease;
+  }
+}
+
+/* Charte — libellé de champ : Plex Mono, capitales, interlettrage 0.18em */
+.libelle-champ {
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 0.5625rem; /* 9 px */
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--libelle);
+}
+
+/* Charte — badge de statut : Plex Mono capitales, TEXTE COLORÉ SANS FOND */
+.badge-statut {
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 0.59375rem; /* 9,5 px */
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Charte — chiffre clé : Cormorant 34–36 px */
+.chiffre-cle {
+  font-family: var(--font-titres), Georgia, serif;
+  font-size: 2.1875rem; /* 35 px */
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--encre);
 }

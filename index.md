@@ -112,6 +112,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.
 - [[Modèle de données]] — schéma du code + cible socle V3.
 - [[Architecture du socle V3]] — lot 0 : 9 tables, RLS, pg_cron, séquence en 5 étapes.
+- [[Charte visuelle de l'espace agent]] — complète le design-system V3 : 6 patterns validés en recette, états d'interface, formats, accessibilité.
 - [[État du projet et décisions ouvertes]] — arbitrages quasi tous clos (25/07) ; reste les montants PD.
 - [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.
 - [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.

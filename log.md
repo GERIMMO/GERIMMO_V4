@@ -1048,3 +1048,13 @@ UI construite : sur la fiche lot, carte « Baux & état des lieux » (création 
 ## [2026-08-01] ingest | bailpdf.com — reverse-engineering des documents locatifs
 Ingestion du site [[2026-08-01-bailpdf-com|bailpdf.com]] (16 documents types) pour cadrer la **génération de documents** de Gerimmo, sous contrainte forte de l'humain : **tout doit être remplissable via le bot WhatsApp → maximum d'automatisation**. Chaque champ classé **AUTO** (déjà dans Gerimmo) ou **ASK** (question du bot). Synthèse créée : [[Documents a generer et automatisation WhatsApp]] — catalogue, données manquantes (identifiant fiscal, zone tendue, compteurs, clés, inventaire mobilier, quotes-parts colocation, IRL…), et **surface de questions minimale** pour le bot. Contradictions signalées : plafond de dépôt dynamique, blocage DPE G, non-rétroactivité IRL, texte légal exact du cautionnement (réforme 2022), insuffisance de `baux.locataire_principal` pour la colocation. **Décision actée (garant)** : loi + pratique — garant nominatif d'un colocataire, solidarité étendue si clause, plafonnée 6 mois après départ (ALUR). Pages touchées : [[Bail]], [[État des lieux]], [[Garantie]], [[Diagnostic]].
 
+
+## [2026-08-03] synthese | Charte visuelle de l'espace agent
+Le fichier V3 `03-design-system.md` (immuable, sections « à compléter ») est complété
+dans le wiki : [[Charte visuelle de l'espace agent]]. Six patterns validés par la
+recette du 2026-08-02 (bandeau « À faire maintenant », sections repliées + pastille ⚠,
+lignes actionnables, questionnaire progressif, proposé/validé en un clic, alerte =
+obligation non tenue), états d'interface (vide qui guide, erreur visible à côté du
+bouton, chargement), formats (dates françaises, montants virgule, retards en rouge),
+accessibilité (vrais boutons, pas de form imbriqué, confirmations destructives).
+Sert de référence à la tranche 1 des améliorations visuelles et aux écrans S7.

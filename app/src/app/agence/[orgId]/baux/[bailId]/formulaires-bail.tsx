@@ -7,6 +7,7 @@ import {
   deposerBailSigne,
   activerBail,
   enregistrerConge,
+  annulerConge,
   type EtatBail,
 } from "@/app/actions/baux";
 import { creerEdl, type EtatEdl } from "@/app/actions/edl";
@@ -205,6 +206,40 @@ export function FormulaireCreerEdl({ orgId, bailId }: { orgId: string; bailId: s
         {enCours ? "Création…" : "Créer + générer la grille"}
       </Button>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+    </form>
+  );
+}
+
+// Le locataire se rétracte. L'annulation n'est possible que tant que le départ
+// n'a pas eu lieu — la base refuse sinon, avec la raison.
+export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailId: string }) {
+  const action = annulerConge.bind(null, orgId, bailId);
+  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  return (
+    <form action={formAction} className="space-y-2">
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="annulation-motif" className="text-xs">
+            Pourquoi le congé s&apos;annule (facultatif)
+          </Label>
+          <Input
+            id="annulation-motif"
+            name="motif"
+            maxLength={200}
+            placeholder="Le locataire reste finalement…"
+            className="w-64"
+          />
+        </div>
+        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+          {enCours ? "…" : "Annuler le congé"}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Le bail redevient actif, le lot reste loué, et le congé annulé reste au
+        dossier. Impossible une fois l&apos;état des lieux de sortie signé.
+      </p>
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>
   );
 }

@@ -541,12 +541,23 @@ supprimée. Le parcours entier, sur un T3 sans pièces déclarées :
 
 Aucune erreur dans la console d'un onglet neuf.
 
-**2. La liste des personnes ne dit pas qui est qui.** Treize noms par ordre alphabétique,
-avec e-mail et téléphone. Rien n'indique qui est propriétaire, locataire ou garant, et il
-n'y a pas de recherche. À treize personnes c'est tenable ; à cent, l'écran devient
-inutilisable. Le rôle est pourtant déductible des détentions, des baux et des mandats.
+**2. La liste des personnes ne disait pas qui est qui.** — *corrigé le 3 août.*
 
-**3. Annuler un congé n'existe pas.** Un locataire qui se rétracte laisse le bail en
-préavis, sans chemin de retour. J'ai laissé la transition du lot ouverte pour ne pas
-bloquer un cas réel, mais le bail, lui, reste en préavis : les deux se désaccorderaient.
-Ce serait une action à part entière, pas un bouton d'état.
+Le rôle se déduit maintenant des données : détention en cours → Propriétaire (avec la
+mention « mandat » s'il en a un actif — un client se distingue d'un prospect), bail
+vivant → Locataire, garantie sur un bail vivant → Garant. Une fiche sans lien n'affiche
+rien, ce qui est déjà une information. La recherche filtre sans se soucier des accents
+ni de l'ordre des mots (« emile » trouve Émile, « garant » liste les garants).
+
+*`src/lib/roles-personnes.ts`, 8 tests, vérifié dans le navigateur.*
+
+**3. Annuler un congé n'existait pas.** — *corrigé le 3 août.*
+
+L'annulation remet le bail en actif sans date de fin, le lot en loué, referme l'alerte
+d'état des lieux de sortie — et le congé annulé reste au dossier avec sa date et son
+motif, car « annulé » n'est pas « n'a jamais existé ». Deux verrous : une fois l'état
+des lieux de sortie signé, ou la restitution du dépôt engagée, le retour n'a plus de
+sens et la base refuse en le disant.
+
+*Migration `20260803_annuler_conge.sql` (appliquée en production), 6 contrôles SQL,
+parcours navigateur complet — y compris le refus, affiché en clair sur la page.*

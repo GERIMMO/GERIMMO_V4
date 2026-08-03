@@ -168,6 +168,28 @@ export async function enregistrerConge(
   return { succes: avertissementJustificatif ? `${baseConge} ${avertissementJustificatif}` : baseConge };
 }
 
+// Le locataire se rétracte : le congé s'annule tant que le départ n'a pas eu
+// lieu. La base remet le bail en actif, le lot en loué, referme l'alerte de
+// sortie — et garde le congé annulé au dossier.
+export async function annulerConge(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const motif = String(formData.get("motif") ?? "").trim();
+  const { error } = await supabase.rpc("annuler_conge", {
+    p_bail: bailId,
+    p_motif: motif || null,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Congé annulé — le bail reprend son cours." };
+}
+
 // Inventaire du mobilier (annexe obligatoire du bail meublé, décret 2015-981).
 export async function ajouterInventaireLigne(
   orgId: string,

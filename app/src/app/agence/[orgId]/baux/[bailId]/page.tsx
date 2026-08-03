@@ -9,6 +9,7 @@ import {
   FormulaireBailSigne,
   BoutonActiverBail,
   FormulaireConge,
+  FormulaireAnnulerConge,
   FormulaireCreerEdl,
 } from "./formulaires-bail";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
@@ -79,7 +80,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .order("type"),
       supabase
         .from("conges")
-        .select("par, date_premiere_presentation, preavis_mois, date_effet")
+        .select("par, date_premiere_presentation, preavis_mois, date_effet, annule_le, annulation_motif")
         .eq("bail_id", bailId)
         .order("created_at", { ascending: false }),
       supabase
@@ -345,16 +346,30 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {(conges ?? []).length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Congé enregistré</CardTitle>
+            <CardTitle className="text-base">
+              {bail.etat === "preavis" ? "Congé en cours" : "Congés"}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="text-sm">
+          <CardContent className="space-y-3 text-sm">
             {(conges ?? []).map((c, i) => (
-              <p key={i}>
-                Donné par {c.par}, présentation le {formaterDate(c.date_premiere_presentation)},
-                préavis {c.preavis_mois} mois → effet le{" "}
-                <span className="font-medium">{formaterDate(c.date_effet)}</span>
+              <p key={i} className={c.annule_le ? "text-muted-foreground" : undefined}>
+                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, présentation
+                le {formaterDate(c.date_premiere_presentation)}, préavis {c.preavis_mois} mois
+                → effet le <span className="font-medium">{formaterDate(c.date_effet)}</span>
+                {/* Un congé annulé reste au dossier : il a existé. */}
+                {c.annule_le && (
+                  <span className="badge-statut ml-2 text-muted-foreground">
+                    annulé le {formaterDate(c.annule_le)}
+                    {c.annulation_motif ? ` — ${c.annulation_motif}` : ""}
+                  </span>
+                )}
               </p>
             ))}
+            {bail.etat === "preavis" && (
+              <div className="border-t border-border pt-3">
+                <FormulaireAnnulerConge orgId={orgId} bailId={bailId} />
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

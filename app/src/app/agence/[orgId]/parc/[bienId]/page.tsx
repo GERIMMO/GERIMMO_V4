@@ -318,7 +318,7 @@ export default async function PageBien(
                 <li key={lot.id} className="space-y-2 py-3">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
                     <span
-                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
+                      className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
                     >
                       {ETATS_LOT[lot.etat] ?? lot.etat}
                     </span>
@@ -328,7 +328,7 @@ export default async function PageBien(
                       {lot.pieces ? ` · ${lot.pieces} p.` : ""}
                     </span>
                     {blocages.length > 0 && (
-                      <span className="shrink-0 rounded-full bg-warning-soft px-2 py-0.5 text-xs text-warning-soft-foreground">
+                      <span className="badge-statut shrink-0 text-warning-soft-foreground">
                         {blocages.length} à régler
                       </span>
                     )}
@@ -345,9 +345,9 @@ export default async function PageBien(
                     <details className="group">
                       <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
                         <span className="group-open:hidden">
-                          ▸ Voir ce qui bloque ce lot ({propres.length})
+                          Voir ce qui bloque ce lot ({propres.length})
                         </span>
-                        <span className="hidden group-open:inline">▾ Masquer le détail</span>
+                        <span className="hidden group-open:inline">Masquer le détail</span>
                       </summary>
                       <ul className="mt-1.5 space-y-1 pl-3">
                         {propres.map((b) => {

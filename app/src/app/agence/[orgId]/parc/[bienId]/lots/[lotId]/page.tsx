@@ -170,7 +170,7 @@ export default async function PageLot(
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold">{lot.nom}</h1>
           <span
-            className={`rounded-full px-2.5 py-0.5 text-sm ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
+            className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
           >
             {ETATS_LOT[lot.etat] ?? lot.etat}
           </span>
@@ -180,7 +180,7 @@ export default async function PageLot(
       {decence.length > 0 && (
         <div className="rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground">
           {decence.map((a) => (
-            <p key={a}>⚠ {a}</p>
+            <p key={a}>{a}</p>
           ))}
         </div>
       )}
@@ -385,7 +385,7 @@ export default async function PageLot(
                 <ul className="space-y-2">
                   {(baux ?? []).map((b) => (
                     <li key={b.id} className="flex items-center gap-3">
-                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                      <span className="badge-statut text-muted-foreground">
                         {ETATS_BAIL[b.etat] ?? b.etat}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-sm">Bail {b.type}</span>

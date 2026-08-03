@@ -140,7 +140,7 @@ export function ClocheAlertes({
                 aria-label="Fermer"
                 className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted"
               >
-                ✕
+                Fermer
               </button>
             </div>
 
@@ -161,7 +161,7 @@ export function ClocheAlertes({
                       {groupe.liste.map((a) => (
                         <li key={a.id} className="flex items-center gap-2 py-2 text-sm">
                           <span
-                            className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
+                            className={`badge-statut shrink-0 ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
                           >
                             {CRITICITES[a.criticite] ?? a.criticite}
                           </span>

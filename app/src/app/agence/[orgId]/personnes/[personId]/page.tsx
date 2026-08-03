@@ -133,7 +133,7 @@ export default async function PagePersonne(
               {(pieces ?? []).map(
                 (p: { document_id: string; type: string; titre: string | null }) => (
                   <li key={p.document_id} className="flex items-center gap-3 py-2">
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                    <span className="badge-statut text-muted-foreground">
                       {TYPES_PIECE_DOSSIER[p.type] ?? p.type}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm">
@@ -173,7 +173,7 @@ export default async function PagePersonne(
                 <div key={m.id} className="rounded-lg border border-border p-3">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">
+                      <span className="badge-statut text-muted-foreground">
                         {ETATS_MANDAT[m.etat] ?? m.etat}
                       </span>
                       <span className="text-sm text-muted-foreground">

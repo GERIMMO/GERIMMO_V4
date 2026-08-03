@@ -81,7 +81,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                       .map((lot) => (
                         <span
                           key={lot.id}
-                          className={`rounded-full px-2 py-0.5 text-xs ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
+                          className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
                         >
                           {lot.nom} · {ETATS_LOT[lot.etat] ?? lot.etat}
                           {lot.surface_m2 !== null && ` · ${formaterSurface(lot.surface_m2)}`}

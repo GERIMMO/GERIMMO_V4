@@ -21,7 +21,7 @@ export function FormulaireInvitation({
   if (dejaInvite) {
     return (
       <p className="text-sm text-success-soft-foreground">
-        ✓ Compte locataire actif — la personne peut accéder à son espace.
+        Compte locataire actif — la personne peut accéder à son espace.
       </p>
     );
   }

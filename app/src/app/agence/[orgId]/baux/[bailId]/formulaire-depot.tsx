@@ -63,7 +63,7 @@ export function FormulaireDepot({
       </dl>
 
       {reste <= 0 ? (
-        <p className="text-sm text-success-soft-foreground">✓ Dépôt intégralement encaissé.</p>
+        <p className="text-sm text-success-soft-foreground">Dépôt intégralement encaissé.</p>
       ) : encaisse > 0 ? (
         <p className="text-sm text-warning-soft-foreground">
           Encaissement partiel : reste {eur(reste)} à percevoir.

@@ -10,6 +10,7 @@ import {
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
+import { BadgeStatut } from "@/components/badge-statut";
 import { FormulaireDiagnostic } from "./formulaire-diagnostic";
 
 export type DiagnosticDepose = {
@@ -79,15 +80,9 @@ export function LignesDiagnostics({
               </span>
 
               {manquant ? (
-                <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${
-                    obligatoire
-                      ? "bg-destructive-soft text-destructive-soft-foreground"
-                      : "bg-secondary text-muted-foreground"
-                  }`}
-                >
-                  {obligatoire ? "⚠ Manquant" : "Non déposé"}
-                </span>
+                <BadgeStatut ton={obligatoire ? "retard" : "neutre"}>
+                  {obligatoire ? "Manquant" : "Non déposé"}
+                </BadgeStatut>
               ) : (
                 <>
                   <span className="shrink-0 text-xs text-muted-foreground">
@@ -96,9 +91,8 @@ export function LignesDiagnostics({
                       : "validité illimitée"}
                   </span>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_STATUT_DIAGNOSTIC[statut!]}`}
+                    className={`badge-statut shrink-0 ${COULEURS_STATUT_DIAGNOSTIC[statut!]}`}
                   >
-                    {statut === "expire" ? "⚠ " : ""}
                     {LIBELLES_STATUT_DIAGNOSTIC[statut!]}
                   </span>
                 </>

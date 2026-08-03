@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { BadgeStatut } from "@/components/badge-statut";
 
 // Section pliable de la fiche : un résumé (replié) + le détail éditable (déplié
 // via « Modifier »). Toutes les sections restent repliées — une section
@@ -44,13 +45,9 @@ export function SectionLot({
     <div id={id} className="scroll-mt-20 border-t border-border pt-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+          <p className="flex flex-wrap items-baseline gap-2.5 text-sm font-medium">
             {titre}
-            {alerte && (
-              <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-normal text-warning-soft-foreground">
-                ⚠ {alerte}
-              </span>
-            )}
+            {alerte && <BadgeStatut ton="attente">{alerte}</BadgeStatut>}
           </p>
           {!ouvert && (
             <div

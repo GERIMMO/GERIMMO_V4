@@ -180,7 +180,7 @@ export function FormulaireLoyers({
                 <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                   couvert {eur(l.montant_couvert)} · échéance {formaterDate(l.date_echeance)}
                 </span>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${st.classe}`}>{st.label}</span>
+                <span className={`badge-statut shrink-0 ${st.classe}`}>{st.label}</span>
                 {(() => {
                   const q = quittanceParAppel.get(l.appel_id);
                   if (!q) return null;
@@ -193,7 +193,7 @@ export function FormulaireLoyers({
                           q.est_quittance ? "text-success-soft-foreground" : "text-muted-foreground"
                         }`}
                       >
-                        {q.est_quittance ? "✓ quittance" : "reçu (partiel)"}
+                        {q.est_quittance ? "quittance" : "reçu (partiel)"}
                       </Link>
                       {q.email_envoye_at ? (
                         <span className="text-xs text-muted-foreground">✉ envoyée</span>
@@ -222,7 +222,7 @@ export function FormulaireLoyers({
                   {e.mode ?? ""} {e.note ?? ""}
                 </span>
                 <form action={async () => { await supprimerEncaissement(orgId, bailId, e.id); }}>
-                  <Button type="submit" variant="ghost" size="sm">✕</Button>
+                  <Button type="submit" variant="ghost" size="sm">Retirer</Button>
                 </form>
               </li>
             ))}
@@ -301,7 +301,7 @@ export function FormulaireLoyers({
                   {r.numero_recommande && ` · R${r.numero_recommande}`}
                 </span>
                 <form action={async () => { await supprimerRelance(orgId, bailId, r.id); }}>
-                  <Button type="submit" variant="ghost" size="sm">✕</Button>
+                  <Button type="submit" variant="ghost" size="sm">Retirer</Button>
                 </form>
               </li>
             ))}

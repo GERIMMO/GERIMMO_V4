@@ -17,7 +17,7 @@ function BoutonRetirer({ orgId, bienId, lotId, pieceId }: { orgId: string; bienI
       }}
     >
       <Button type="submit" variant="ghost" size="sm">
-        ✕
+        Retirer
       </Button>
     </form>
   );

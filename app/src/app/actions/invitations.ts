@@ -32,7 +32,7 @@ export async function inviterLocataire(
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   if (erreurMail) {
     return {
-      succes: `Compte locataire créé pour ${email}. ⚠️ L'email n'a pas pu partir (${erreurMail.message}) — SMTP à configurer (Resend).`,
+      succes: `Compte locataire créé pour ${email}. L'email n'a pas pu partir (${erreurMail.message}) — SMTP à configurer (Resend).`,
     };
   }
   return {

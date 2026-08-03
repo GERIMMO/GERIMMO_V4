@@ -120,7 +120,7 @@ export function FormulaireRestitution({
 
       {finalise ? (
         <p className="text-sm text-success-soft-foreground">
-          ✓ Décompte finalisé{restitution.date_emission ? ` le ${restitution.date_emission}` : ""}.
+          Décompte finalisé{restitution.date_emission ? ` le ${restitution.date_emission}` : ""}.
           Solde de tout compte :{" "}
           <span className="font-semibold">{eur(restitution.solde ?? 0)}</span>.
         </p>

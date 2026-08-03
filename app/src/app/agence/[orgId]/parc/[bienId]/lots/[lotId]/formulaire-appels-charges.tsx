@@ -87,7 +87,7 @@ function AppelBloc({
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-medium">Exercice {appel.exercice}</span>
         <span className="text-sm text-muted-foreground">· total appel {eur(appel.total)}</span>
-        <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+        <span className="badge-statut text-muted-foreground">
           {appel.statut === "brouillon" ? "Brouillon" : appel.statut === "ventile" ? "Ventilé" : "Figé"}
         </span>
         {appel.document_id && (

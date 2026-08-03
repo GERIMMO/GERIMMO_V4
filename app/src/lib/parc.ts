@@ -28,12 +28,13 @@ export const ETATS_LOT: Record<string, string> = {
 };
 
 // Classes de badge par état — uniquement des tokens du design system
+// Charte 04 — badges de statut : texte coloré, sans pastille ni fond.
 export const COULEURS_ETAT_LOT: Record<string, string> = {
-  brouillon: "bg-muted text-muted-foreground",
-  disponible: "bg-success-soft text-success-soft-foreground",
-  loue: "bg-secondary text-secondary-foreground",
-  preavis: "bg-warning-soft text-warning-soft-foreground",
-  archive: "bg-muted text-muted-foreground opacity-70",
+  brouillon: "text-muted-foreground",
+  disponible: "text-success-soft-foreground",
+  loue: "text-foreground",
+  preavis: "text-warning-soft-foreground",
+  archive: "text-muted-foreground opacity-70",
 };
 
 export type NiveauDiagnostic = "bien" | "lot";
@@ -135,9 +136,9 @@ export function statutDiagnostic(
 }
 
 export const COULEURS_STATUT_DIAGNOSTIC: Record<StatutDiagnostic, string> = {
-  valide: "bg-success-soft text-success-soft-foreground",
-  expire_bientot: "bg-warning-soft text-warning-soft-foreground",
-  expire: "bg-destructive-soft text-destructive-soft-foreground",
+  valide: "text-success-soft-foreground",
+  expire_bientot: "text-warning-soft-foreground",
+  expire: "text-destructive",
 };
 
 export const LIBELLES_STATUT_DIAGNOSTIC: Record<StatutDiagnostic, string> = {

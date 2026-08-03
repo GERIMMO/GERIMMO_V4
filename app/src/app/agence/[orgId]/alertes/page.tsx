@@ -117,7 +117,7 @@ export default async function PageAlertes(
                       <li key={a.id} className="space-y-2 py-3 text-sm">
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`rounded-full px-2 py-0.5 text-xs ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
+                            className={`badge-statut shrink-0 ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
                           >
                             {CRITICITES[a.criticite] ?? a.criticite}
                           </span>

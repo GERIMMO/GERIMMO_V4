@@ -65,7 +65,7 @@ export function GrilleEdl({
             {g.lignes.map((l) => (
               <div key={l.id} className="flex items-center gap-3 border-b border-border py-1.5 text-sm">
                 <span className="w-40 shrink-0 truncate">{l.libelle}</span>
-                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                <span className="badge-statut text-muted-foreground">
                   {l.etat ? ETATS_ELEMENT[l.etat] ?? l.etat : "—"}
                 </span>
                 {l.commentaire && (
@@ -76,7 +76,7 @@ export function GrilleEdl({
           </div>
         ))}
         <p className="pt-3 text-sm text-success-soft-foreground">
-          ✓ État des lieux signé et figé — plus aucune modification possible.
+          État des lieux signé et figé — plus aucune modification possible.
         </p>
       </div>
     );

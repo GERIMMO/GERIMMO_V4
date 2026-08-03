@@ -53,7 +53,7 @@ export function RapportsGestion({
                   <li key={r.id} className="flex flex-wrap items-center gap-2">
                     <span className="w-28 shrink-0">{r.mois.slice(0, 7)}</span>
                     <span className="w-28 shrink-0">net {eurC(r.net)}</span>
-                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                    <span className="badge-statut text-muted-foreground">
                       {r.statut === "envoye" ? "Envoyé" : "À valider"}
                     </span>
                     {r.statut === "a_valider" ? (

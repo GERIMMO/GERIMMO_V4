@@ -91,7 +91,7 @@ export function FormulaireInventaire({
                 {l.observation && <span className="text-muted-foreground"> ({l.observation})</span>}
               </span>
               {l.etat && (
-                <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs">
+                <span className="shrink-0 badge-statut text-muted-foreground">
                   {LIBELLE_ETAT[l.etat] ?? l.etat}
                 </span>
               )}

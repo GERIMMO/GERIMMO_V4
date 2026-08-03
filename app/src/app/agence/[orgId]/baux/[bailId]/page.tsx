@@ -255,7 +255,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         )}
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold">Bail {TYPES_BAIL[bail.type] ?? bail.type}</h1>
-          <span className="rounded-full bg-secondary px-2.5 py-0.5 text-sm">
+          <span className="badge-statut text-muted-foreground">
             {ETATS_BAIL[bail.etat] ?? bail.etat}
           </span>
         </div>
@@ -300,7 +300,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </CardHeader>
           <CardContent className="space-y-4">
             {bail.document_signe ? (
-              <p className="text-sm text-success-soft-foreground">✓ Bail signé déposé.</p>
+              <p className="text-sm text-success-soft-foreground">Bail signé déposé.</p>
             ) : (
               <FormulaireBailSigne orgId={orgId} bailId={bailId} />
             )}
@@ -461,7 +461,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ) : (
               <div className="rounded-lg border border-destructive-soft bg-destructive-soft/40 p-3">
                 <p className="text-sm font-medium text-destructive-soft-foreground">
-                  ⚠ Aucun état des lieux d&apos;entrée
+                  Aucun état des lieux d&apos;entrée
                 </p>
                 <p className="mt-0.5 text-sm text-destructive-soft-foreground">
                   Le bail est {ETATS_BAIL[bail.etat]?.toLowerCase() ?? bail.etat} : sans
@@ -478,7 +478,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                   <span className="w-20 text-sm font-medium">
                     {e.type === "entree" ? "Entrée" : "Sortie"}
                   </span>
-                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs">
+                  <span className="badge-statut text-muted-foreground">
                     {e.etat === "signe" ? "Signé" : "En cours"}
                   </span>
                   <Link

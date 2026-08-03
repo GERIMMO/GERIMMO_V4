@@ -54,7 +54,7 @@ export async function creerPersonne(
     revalidatePath(`/agence/${orgId}/personnes`);
     return {
       succes:
-        "Fiche créée. ⚠️ Un homonyme avec la même date de naissance existe déjà — à vérifier.",
+        "Fiche créée. Un homonyme avec la même date de naissance existe déjà — à vérifier.",
     };
   }
   revalidatePath(`/agence/${orgId}/personnes`);

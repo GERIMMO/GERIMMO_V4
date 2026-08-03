@@ -39,7 +39,7 @@ function BoutonRetirer({ onAction }: { onAction: () => Promise<void> }) {
   return (
     <form action={onAction}>
       <Button type="submit" variant="ghost" size="sm">
-        ✕
+        Retirer
       </Button>
     </form>
   );

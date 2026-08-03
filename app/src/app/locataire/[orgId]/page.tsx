@@ -126,7 +126,7 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
                   <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                     {l.statut === "partiel" ? `réglé ${eur(l.montant_couvert)}` : ""}
                   </span>
-                  <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-xs">
+                  <span className="shrink-0 badge-statut text-muted-foreground">
                     {LOYER_STATUT[l.statut] ?? l.statut}
                   </span>
                   {l.quittance_id && (
@@ -135,7 +135,7 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
                       target="_blank"
                       className="shrink-0 text-xs text-success-soft-foreground underline-offset-2 hover:underline"
                     >
-                      ✓ quittance
+                      Voir la quittance
                     </Link>
                   )}
                 </li>
@@ -171,7 +171,7 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
             // Obligation annuelle non tenue : le dire franchement, pas en gris
             <div className="rounded-lg border border-destructive-soft bg-destructive-soft/40 p-3">
               <p className="text-sm font-medium text-destructive-soft-foreground">
-                ⚠ Aucune attestation déposée
+                Aucune attestation déposée
               </p>
               <p className="mt-0.5 text-sm text-destructive-soft-foreground">
                 L&apos;assurance habitation est obligatoire pendant toute la durée du

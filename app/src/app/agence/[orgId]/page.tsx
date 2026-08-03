@@ -70,7 +70,7 @@ export default async function PageTableauDeBord(
               {[...parEtat.entries()].map(([etat, nb]) => (
                 <span
                   key={etat}
-                  className={`rounded-full px-2 py-0.5 text-xs ${COULEURS_ETAT_LOT[etat] ?? ""}`}
+                  className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[etat] ?? ""}`}
                 >
                   {nb} {ETATS_LOT[etat]?.toLowerCase() ?? etat}
                 </span>
@@ -125,7 +125,7 @@ export default async function PageTableauDeBord(
               {alertesTriees.slice(0, 8).map((a) => (
                 <li key={a.id} className="flex items-center gap-2 py-2 text-sm">
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
+                    className={`badge-statut shrink-0 ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
                   >
                     {CRITICITES[a.criticite] ?? a.criticite}
                   </span>

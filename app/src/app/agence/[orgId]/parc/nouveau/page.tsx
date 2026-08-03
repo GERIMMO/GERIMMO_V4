@@ -17,7 +17,7 @@ export default async function PageNouveauBien(
   await verifierAccesEspace(orgId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl p-6">
+    <main className="mx-auto w-full max-w-2xl p-7">
       <h1 className="mb-6 text-2xl font-semibold">Nouveau bien</h1>
       <Card>
         <CardHeader>

@@ -159,7 +159,7 @@ export default async function PageLot(
   const nbBaux = (baux ?? []).length;
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-7">
       <div>
         <Link
           href={`/agence/${orgId}/parc/${bienId}`}

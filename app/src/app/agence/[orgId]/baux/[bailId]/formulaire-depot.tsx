@@ -1,6 +1,7 @@
+"use client";
+
 import { formaterDate } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
-"use client";
 
 import { useActionState } from "react";
 import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/app/actions/depot";

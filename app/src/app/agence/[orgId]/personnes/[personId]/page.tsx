@@ -80,7 +80,7 @@ export default async function PagePersonne(
   const libelleLot = (id: string) => lotsOptions.find((l) => l.id === id)?.libelle ?? id.slice(0, 8);
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-7">
       <div>
         <Link
           href={`/agence/${orgId}/personnes`}

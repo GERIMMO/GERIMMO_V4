@@ -24,9 +24,14 @@ export function InputDateJour({
   const [valeur, setValeur] = useState("");
 
   useEffect(() => {
-    setValeur((v) =>
-      v || new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" })
-    );
+    // Différé d'un tick : poser l'état dans le corps de l'effet déclenche un
+    // rendu en cascade (même motif que le dépôt de diagnostic).
+    const minuterie = setTimeout(() => {
+      setValeur((v) =>
+        v || new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" })
+      );
+    }, 0);
+    return () => clearTimeout(minuterie);
   }, []);
 
   return (

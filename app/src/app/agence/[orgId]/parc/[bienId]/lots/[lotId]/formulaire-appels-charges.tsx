@@ -194,7 +194,7 @@ function FormCreerAppel({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
-        <Button type="submit" size="sm" disabled={enCours}>
+        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
           {enCours ? "…" : "Créer l'appel"}
         </Button>
       </div>

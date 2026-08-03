@@ -79,7 +79,7 @@ export default async function PageAlertes(
   );
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 p-6">
+    <main className="mx-auto w-full max-w-5xl flex-1 p-7">
       <div className="mb-6">
         <p className="text-sm text-muted-foreground">
           <Link href={`/agence/${orgId}`} className="hover:underline">

@@ -44,12 +44,17 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   ]);
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-6">
+    <main className="mx-auto w-full max-w-5xl p-7">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Parc</h1>
         <Link
           href={`/agence/${orgId}/parc/nouveau`}
-          className={buttonVariants({ size: "sm" })}
+          className={buttonVariants({
+            size: "sm",
+            // Charte 04 : un seul bouton principal par écran. Sur un parc vide,
+            // c'est celui de la carte d'accueil qui porte l'appel à l'action.
+            variant: (biens ?? []).length === 0 ? "outline" : "default",
+          })}
         >
           Nouveau bien
         </Link>

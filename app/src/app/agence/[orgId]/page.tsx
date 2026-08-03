@@ -56,24 +56,35 @@ export default async function PageTableauDeBord(
       a.created_at.localeCompare(b.created_at)
   );
 
+  const nbAlertes = (alertes ?? []).length;
+  const nbCritiques = (alertes ?? []).filter((a) => a.criticite === "critique").length;
+
   return (
-    <main className="mx-auto w-full max-w-5xl p-6">
+    <main className="mx-auto w-full max-w-5xl p-7">
       <h1 className="mb-6 text-2xl font-semibold">Tableau de bord</h1>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      {/* Charte 04 — cartes de chiffre clé : libellé en capitales, chiffre en
+          Cormorant. « Un seul bloc graphite par rangée : celui qui porte le
+          chiffre le plus important » — ici les alertes quand il y en a, le parc
+          sinon, puisque c'est ce qui appelle une action. */}
+      <div className="mb-[1.125rem] grid gap-[1.125rem] sm:grid-cols-3">
         <Link href={`/agence/${orgId}/parc`}>
-          <Card className="h-full transition-colors hover:bg-accent">
+          <Card className={`h-full ${nbAlertes === 0 ? "bg-primary text-primary-foreground" : ""}`}>
             <CardHeader>
-              <CardDescription>Parc</CardDescription>
-              <CardTitle className="text-2xl">{nbBiens ?? 0} bien{(nbBiens ?? 0) > 1 ? "s" : ""}</CardTitle>
+              <CardDescription className={nbAlertes === 0 ? "libelle-champ text-primary-foreground/70" : "libelle-champ"}>
+                Parc géré
+              </CardDescription>
+              <CardTitle className={`chiffre-cle ${nbAlertes === 0 ? "text-primary-foreground" : ""}`}>
+                {nbBiens ?? 0} bien{(nbBiens ?? 0) > 1 ? "s" : ""}
+              </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-1.5">
+            <CardContent className="flex flex-wrap gap-x-3 gap-y-1.5">
               {[...parEtat.entries()].map(([etat, nb]) => (
                 <span
                   key={etat}
-                  className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[etat] ?? ""}`}
+                  className={`badge-statut shrink-0 ${nbAlertes === 0 ? "text-primary-foreground/80" : COULEURS_ETAT_LOT[etat] ?? ""}`}
                 >
-                  {nb} {ETATS_LOT[etat]?.toLowerCase() ?? etat}
+                  {nb} lot{nb > 1 ? "s" : ""} {ETATS_LOT[etat]?.toLowerCase() ?? etat}
                 </span>
               ))}
               {parEtat.size === 0 && (
@@ -83,27 +94,32 @@ export default async function PageTableauDeBord(
           </Card>
         </Link>
         <Link href={`/agence/${orgId}/alertes`}>
-          <Card className="h-full transition-colors hover:bg-accent">
+          <Card className={`h-full ${nbAlertes > 0 ? "bg-primary text-primary-foreground" : ""}`}>
             <CardHeader>
-              <CardDescription>Alertes ouvertes</CardDescription>
-              <CardTitle className="text-2xl">{(alertes ?? []).length}</CardTitle>
+              <CardDescription className={nbAlertes > 0 ? "libelle-champ text-primary-foreground/70" : "libelle-champ"}>
+                À traiter
+              </CardDescription>
+              <CardTitle className={`chiffre-cle ${nbAlertes > 0 ? "text-primary-foreground" : ""}`}>
+                {nbAlertes}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {(alertes ?? []).filter((a) => a.criticite === "critique").length}{" "}
-                critique(s)
+              <p className={`text-sm ${nbAlertes > 0 ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                {nbAlertes === 0
+                  ? "Rien en attente"
+                  : `dont ${nbCritiques} critique${nbCritiques > 1 ? "s" : ""}`}
               </p>
             </CardContent>
           </Card>
         </Link>
         <Link href={`/agence/${orgId}/documents`}>
-          <Card className="h-full transition-colors hover:bg-accent">
+          <Card className="h-full">
             <CardHeader>
-              <CardDescription>Documents</CardDescription>
-              <CardTitle className="text-2xl">{nbDocuments ?? 0}</CardTitle>
+              <CardDescription className="libelle-champ">Documents</CardDescription>
+              <CardTitle className="chiffre-cle">{nbDocuments ?? 0}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">documents classés</p>
+              <p className="text-sm text-muted-foreground">classés dans l&apos;agence</p>
             </CardContent>
           </Card>
         </Link>

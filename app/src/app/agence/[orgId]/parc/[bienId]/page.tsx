@@ -114,7 +114,7 @@ export default async function PageBien(
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-7">
       <div>
         <Link
           href={`/agence/${orgId}/parc`}

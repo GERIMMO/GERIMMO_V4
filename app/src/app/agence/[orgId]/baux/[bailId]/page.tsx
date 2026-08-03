@@ -243,7 +243,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-7">
       <div>
         {lot && (
           <Link

@@ -19,7 +19,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     .order("nom");
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-6">
+    <main className="mx-auto w-full max-w-5xl p-7">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Personnes</h1>
       </div>

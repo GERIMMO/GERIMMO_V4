@@ -240,6 +240,16 @@
   text-transform: uppercase;
 }
 
+/* Charte 04 — mouvement : aucune ombre au repos ; au survol d'un élément
+   cliquable, translation de 2 px et ombre très douce. Jamais de rebond. */
+a:hover > [data-slot="card"] {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 10px oklch(0% 0 0 / 0.05);
+}
+[data-slot="card"] {
+  transition: transform 0.17s ease, box-shadow 0.17s ease;
+}
+
 /* Charte — chiffre clé : Cormorant 34–36 px */
 .chiffre-cle {
   font-family: var(--font-titres), Georgia, serif;

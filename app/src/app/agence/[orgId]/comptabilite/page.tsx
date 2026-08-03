@@ -79,7 +79,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   });
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-7">
       <div>
         <h1 className="text-2xl font-semibold">Comptabilité</h1>
         <p className="text-sm text-muted-foreground">

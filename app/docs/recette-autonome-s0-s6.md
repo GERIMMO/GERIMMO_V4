@@ -481,12 +481,11 @@ déploiement.**
   branché sur les données réelles sans qu'on l'ait voulu.
 - **Code commité et `main` avancé en local** — reste à pousser (voir ci-dessous).
 
-### Le seul geste qui reste
+### Le code est en ligne
 
-Le code est commité et `main` a été avancé en local, mais **je n'ai pas pu pousser** :
-aucun identifiant GitHub n'est accessible depuis mon terminal (votre jeton vit dans
-GitHub Desktop). Ouvrez GitHub Desktop, basculez sur `main`, poussez — Vercel déploiera
-les onze corrections restées dans le code.
+`origin/main` porte les seize corrections (`129455f`). Le premier push était parti sur
+`recette-s0-s6` — Vercel déploie la production depuis `main`, la branche n'aurait donné
+qu'un aperçu.
 
 ### Ce qui reste à faire
 

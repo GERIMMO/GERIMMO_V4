@@ -1,5 +1,6 @@
 import { verifierAccesEspace } from "@/lib/espace";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { formaterDate } from "@/lib/ged";
 
 // Export CSV du journal de gestion (pas de FEC) — RM-A6 : mention « journal de gestion ».
 //
@@ -19,6 +20,7 @@ type LigneBrute = {
   montant: number | string;
   libelle: string | null;
   systeme: boolean;
+  id: string;
   contre_ecriture_de: string | null;
   lot_id: string | null;
   lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ nom: string | null }> }>;
@@ -47,7 +49,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   let requete = supabase
     .from("ecritures")
     .select(
-      "lot_id, date_piece, date_imputation, categorie, sens, montant, libelle, systeme," +
+      "id, lot_id, date_piece, date_imputation, categorie, sens, montant, libelle, systeme," +
         " contre_ecriture_de," +
         // Deux clés étrangères relient lots à biens (dont une composite qui garde
         // l'agence cohérente) : il faut nommer celle qu'on suit.
@@ -107,6 +109,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
           ?.find((m) => m.debut <= jour && (m.fin === null || m.fin >= jour))?.nom
       : undefined;
 
+  // La colonne « annule » portait l'identifiant technique de l'écriture reprise :
+  // trente-six caractères illisibles pour un comptable. On lui donne de quoi
+  // retrouver la ligne d'origine — sa catégorie et sa date.
+  const lignesBrutes = (data ?? []) as unknown as LigneBrute[];
+  const repereParId = new Map(
+    lignesBrutes.map((e) => [e.id, `${e.categorie} du ${formaterDate(e.date_piece)}`])
+  );
+
   const entete = [
     "date_piece",
     "date_imputation",
@@ -118,10 +128,10 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
     "montant",
     "libelle",
     "auto",
-    "contre_ecriture_de",
+    "annule",
   ].join(";");
 
-  const lignes = ((data ?? []) as unknown as LigneBrute[]).map((e) => {
+  const lignes = lignesBrutes.map((e) => {
     const lot = premier(e.lot);
     const surLEcriture = premier(premier(e.mandat)?.person);
     const mandant = surLEcriture
@@ -138,11 +148,16 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
       montantFr(e.montant),
       champ(e.libelle),
       e.systeme ? "oui" : "non",
-      e.contre_ecriture_de ?? "",
+      e.contre_ecriture_de
+        ? (repereParId.get(e.contre_ecriture_de) ?? e.contre_ecriture_de)
+        : "",
     ].join(";");
   });
 
-  const periode = du || au ? `Journal de gestion du ${du ?? "début"} au ${au ?? "ce jour"}` : "Journal de gestion";
+  const periode =
+    du || au
+      ? `Journal de gestion du ${du ? formaterDate(du) : "début"} au ${au ? formaterDate(au) : "ce jour"}`
+      : "Journal de gestion";
   const csv = [periode, entete, ...lignes].join("\r\n");
   return new Response("﻿" + csv, {
     headers: {

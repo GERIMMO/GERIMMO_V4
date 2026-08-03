@@ -1,0 +1,14 @@
+-- A-01 / A-02 — prorata du premier loyer.
+--
+-- Le coefficient était arrondi à 4 décimales AVANT d'être appliqué :
+-- round(20/31, 4) = 0,6452, puis 780 × 0,6452 = 503,26 € au lieu de 503,23 €.
+-- Trois centimes d'écart systématique sur toute entrée en cours de mois.
+--
+-- Et « montant_du » était calculé à part, sur le total : 870 × 0,6452 = 561,32,
+-- alors que les deux lignes affichées font 503,26 + 58,07 = 561,33. Le montant
+-- dû ne valait pas la somme de ses composantes — incohérence visible sur la
+-- quittance, qui détaille loyer et charges.
+--
+-- Correction : un seul arrondi, à la fin, sur chaque composante ; le montant dû
+-- EST la somme des composantes arrondies.
+-- (Corps complet appliqué : voir la migration prorata_au_centime.)

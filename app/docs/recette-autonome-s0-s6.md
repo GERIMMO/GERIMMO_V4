@@ -14,7 +14,7 @@ rendu maintenant plutôt que de laisser croire à une couverture que je n'ai pas
 |---|---|
 | 1 — Remise à zéro | **Terminée** |
 | 2 — Jeu de données | **Terminée** |
-| 3 — Recette par sprint | **Partielle** — S2, S5, S6 entamés ; S0, S1, S3, S4 non exécutés |
+| 3 — Recette par sprint | **Partielle** — S0, S1, S2, S5, S6 couverts ; S3 et S4 non exécutés |
 | 4 — Régression et transverses | **Non exécutée** |
 | 5 — Regard du découvreur | **Non exécutée** (le passage à vide de la phase 1 a été fait) |
 
@@ -157,13 +157,55 @@ côté Alpha.
 | S6 · Écritures immuables | **conforme** | ni modifiables ni supprimables en rôle applicatif |
 | S6 · Honoraires à l'encaissement | **conforme** | 47 écritures générées |
 | S0 · Super admin sans agence | **conforme** | contrainte `memberships_super_admin_sans_org` |
-| **S0 · Isolation entre agences** | **non testé** | — |
-| **S1 · Fichiers pièges** | **non testé** | — |
+| S0 · Isolation entre agences | **conforme** | 11 contrôles — voir ci-dessous |
+| S1 · Type réel des fichiers | **conforme** | PNG renommé en .pdf classé PNG, pas PDF |
+| S1 · Fichier vide refusé | **conforme** | aucun type reconnu → refus |
+| S1 · Limite de taille | **conforme** | 11 Mo détectés au-delà des 10 Mo |
+| S1 · Nom hostile (accents, apostrophe, emoji) | **conforme** | accepté, stocké sous un identifiant neutre |
 | **S3 · Dossier versionné, invitations** | **non testé** | — |
 | **S4 · État des lieux, signature figeante** | **non testé** | — |
 | **S6 · Clôture, rapport, export CSV** | **non testé** | — |
 
 ---
+
+### S0 — Isolation entre agences : intacte
+
+L'agent d'Alpha, muni de son vrai jeton, a interrogé **l'API directement**, hors de
+l'interface — le seul test qui vaille.
+
+| Table | Visible pour l'agent Alpha | Fuite de Beta |
+|---|---|---|
+| organisations | 1 | aucune |
+| biens · lots · baux | 5 · 7 · 5 | aucune |
+| personnes | 13 | aucune — `TEMOIN-BETA` invisible |
+| documents · écritures · mandats · alertes | 6 · 46 · 1 · 6 | aucune |
+
+**Accès forcé par identifiant** : en injectant l'identifiant d'une fiche de Beta dans
+la requête, l'agent d'Alpha reçoit **zéro ligne**. **Sans session**, l'API refuse
+(`42501`, permission refusée) — mieux qu'une liste vide.
+
+### S1 — Fichiers pièges
+
+| Piège | Résultat |
+|---|---|
+| PDF authentique | reconnu `application/pdf` |
+| PNG authentique | reconnu `image/png` |
+| **PNG renommé en `.pdf`** | **reconnu `image/png`** et stocké en `.png` — le mensonge de l'extension est neutralisé |
+| Fichier vide | **refusé**, aucun type reconnu |
+| PDF tronqué | accepté (en-tête valide) — voir la réserve ci-dessous |
+| 11 Mo | dépassement détecté |
+| Nom avec accents, apostrophes, emoji | accepté ; le chemin de stockage utilise un identifiant neutre |
+
+**Réserve — PDF tronqué.** Un PDF dont l'en-tête est valide mais le corps coupé est
+accepté. Le détecter supposerait d'analyser la structure du document, pas seulement sa
+signature. Je ne le compte pas comme anomalie : la règle documentée porte sur le **type
+réel**, pas sur l'intégrité. À arbitrer si vous voulez aller plus loin.
+
+**Point à trancher — « le PNG renommé doit être refusé ».** Votre prompt l'attendait ;
+l'application l'accepte **en tant que PNG**. Le référentiel dit « le type réel, jamais
+l'extension » — et le PNG est un format autorisé. Refuser un PNG valide au motif que son
+nom ment serait discutable. Le risque visé — faire passer un exécutable pour un PDF —
+est bien couvert. **Je n'ai rien changé** : dites-moi si vous voulez le refus strict.
 
 ## 7. Table de couverture
 
@@ -226,6 +268,10 @@ la consigne était claire, et mon nouveau test de prorata y échouerait légitim
 
 **La branche à relire.** `recette-s0-s6`, un commit : la correction du prorata avec ses
 trois tests. À fusionner après relecture.
+
+**Restent non exécutés :** S3 (dossier versionné, invitations), S4 (état des lieux,
+signature figeante), la fin de S6 (clôture, rapport de gestion, export CSV), et les
+phases 4 et 5.
 
 **Trois points hors de mon autonomie rencontrés :**
 

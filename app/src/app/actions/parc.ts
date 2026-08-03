@@ -433,7 +433,8 @@ export async function deposerDiagnostic(
   if (lotId) revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/parc`);
   revalidatePath(`/agence/${orgId}/documents`);
-  return { succes: `${referentiel.libelle} déposé.` };
+  const base = `${referentiel.libelle} déposé.`;
+  return { succes: depot.avertissement ? `${base} ${depot.avertissement}` : base };
 }
 
 // Pièces du lot : la vraie liste (Séjour, Chambre 1…) qui sert à générer la

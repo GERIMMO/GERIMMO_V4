@@ -45,11 +45,13 @@ export async function ajouterRetenue(
   const ageStr = String(formData.get("age") ?? "").trim();
 
   let justificatif: string | null = null;
+  let avertissement: string | undefined;
   const fichier = formData.get("justificatif");
   if (fichier instanceof File && fichier.size > 0) {
     const dep = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", `Devis/facture — ${libelle}`);
     if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du justificatif." };
     justificatif = dep.documentId;
+    avertissement = dep.avertissement;
   }
 
   const { error } = await supabase.rpc("ajouter_retenue", {
@@ -62,7 +64,7 @@ export async function ajouterRetenue(
   });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Retenue ajoutée." };
+  return { succes: avertissement ? `Retenue ajoutée. ${avertissement}` : "Retenue ajoutée." };
 }
 
 export async function supprimerRetenue(

@@ -83,7 +83,9 @@ export async function deposerBailSigne(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Bail signé déposé." };
+  return {
+    succes: res.avertissement ? `Bail signé déposé. ${res.avertissement}` : "Bail signé déposé.",
+  };
 }
 
 // Activer le bail (contrôles en base : PDF, lot disponible, diagnostics).
@@ -143,11 +145,13 @@ export async function enregistrerConge(
 
   // Préavis réduit du locataire : justificatif déposé en GED, transmis au contrôle base.
   let justificatif: string | null = null;
+  let avertissementJustificatif: string | undefined;
   const fichier = formData.get("justificatif");
   if (fichier instanceof File && fichier.size > 0) {
     const res = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", "Justificatif de préavis réduit");
     if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt du justificatif." };
     justificatif = res.documentId;
+    avertissementJustificatif = res.avertissement;
   }
 
   const { error } = await supabase.rpc("enregistrer_conge", {
@@ -160,7 +164,8 @@ export async function enregistrerConge(
   });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Congé enregistré — bail en préavis." };
+  const baseConge = "Congé enregistré — bail en préavis.";
+  return { succes: avertissementJustificatif ? `${baseConge} ${avertissementJustificatif}` : baseConge };
 }
 
 // Inventaire du mobilier (annexe obligatoire du bail meublé, décret 2015-981).

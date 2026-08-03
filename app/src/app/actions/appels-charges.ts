@@ -28,6 +28,7 @@ export async function creerAppelCharges(
   const dateReception = String(formData.get("date_reception") ?? "").trim() || null;
 
   let documentId: string | null = null;
+  let avertissement: string | undefined;
   const fichier = formData.get("document");
   if (fichier instanceof File && fichier.size > 0) {
     const dep = await deposerFichierGed(
@@ -35,6 +36,7 @@ export async function creerAppelCharges(
     );
     if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du document." };
     documentId = dep.documentId;
+    avertissement = dep.avertissement;
   }
 
   const { error } = await supabase.from("appels_charges").insert({
@@ -47,7 +49,7 @@ export async function creerAppelCharges(
   });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(chemin(orgId, bienId, lotId));
-  return { succes: "Appel de charges créé." };
+  return { succes: avertissement ? `Appel de charges créé. ${avertissement}` : "Appel de charges créé." };
 }
 
 export async function ajouterPosteCharge(

@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
@@ -21,7 +22,7 @@ export async function lancerPurge(): Promise<ResultatPurge> {
   if (!estSuperAdmin) return { erreur: "Réservé au super admin." };
 
   const { data, error } = await supabase.rpc("appliquer_retention");
-  if (error) return { erreur: `Purge en échec : ${error.message}` };
+  if (error) return { erreur: `Purge en échec : ${sansJargon(error.message)}` };
 
   // Suppression physique des fichiers en file. On ne marque « supprimé » que
   // ce que l'API a réellement supprimé : un chemin resté en file sera retenté

@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_GERANTS } from "@/lib/ged";
@@ -51,7 +52,7 @@ export async function creerAlerte(
     echeance: echeance || null,
     assignee_account_id: assignee || null,
   });
-  if (error) return { erreur: `Création impossible : ${error.message}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/alertes`);
   return { succes: "Alerte créée." };

@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -95,7 +96,7 @@ export async function ajouterRelance(
     numero_recommande: String(formData.get("numero_recommande") ?? "").trim() || null,
     note: String(formData.get("note") ?? "").trim() || null,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Relance enregistrée." };
 }
@@ -108,7 +109,7 @@ export async function supprimerRelance(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase.from("relances").delete().eq("id", relanceId).eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Relance supprimée." };
 }
@@ -139,7 +140,7 @@ export async function regulariserCharges(
     p_justificatif: depot.documentId,
     p_note: String(formData.get("note") ?? "").trim() || null,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   const ecart = Number(data);
   const msg =
     ecart > 0
@@ -156,7 +157,7 @@ export async function genererAppels(orgId: string, bailId: string): Promise<Etat
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { data, error } = await supabase.rpc("generer_appels_loyer", { p_bail: bailId });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: `${data ?? 0} appel(s) de loyer généré(s).` };
 }
@@ -183,7 +184,7 @@ export async function ajouterEncaissement(
     mode,
     note,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Encaissement enregistré." };
 }
@@ -200,7 +201,7 @@ export async function supprimerEncaissement(
     .delete()
     .eq("id", encId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Encaissement supprimé." };
 }
@@ -224,7 +225,7 @@ export async function reviserLoyer(
     p_irl_nouveau: nouv,
     p_date_effet: dateEffet,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: `Loyer révisé à ${data} € HC.` };
 }
@@ -234,7 +235,7 @@ export async function emettreQuittances(orgId: string, bailId: string): Promise<
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { data, error } = await supabase.rpc("emettre_quittances", { p_bail: bailId });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: `${data ?? 0} quittance(s) émise(s).` };
 }

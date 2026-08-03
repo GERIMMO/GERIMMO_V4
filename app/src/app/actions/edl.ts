@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -22,7 +23,7 @@ export async function creerEdl(
     .insert({ organization_id: orgId, bail_id: bailId, type })
     .select("id")
     .single();
-  if (error) return { erreur: `Création impossible : ${error.message}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
   const { error: erreurGrille } = await supabase.rpc("generer_grille_edl", { p_edl: data.id });
   if (erreurGrille) return { erreur: erreurGrille.message };
@@ -55,7 +56,7 @@ export async function majGrilleEdl(
       .update({ etat: etat || null, commentaire: commentaire || null })
       .eq("id", l.id)
       .eq("organization_id", orgId);
-    if (error) return { erreur: error.message };
+    if (error) return { erreur: sansJargon(error.message) };
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
@@ -83,7 +84,7 @@ export async function ajouterCompteur(
     numero,
     releve: releveStr ? Number(releveStr) : null,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Relevé de compteur ajouté." };
 }
@@ -101,7 +102,7 @@ export async function supprimerCompteur(
     .delete()
     .eq("id", compteurId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Relevé retiré." };
 }
@@ -127,7 +128,7 @@ export async function ajouterCle(
     nombre,
     reference,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Clé ajoutée." };
 }
@@ -145,7 +146,7 @@ export async function supprimerCle(
     .delete()
     .eq("id", cleId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Clé retirée." };
 }
@@ -161,7 +162,7 @@ export async function signerEdl(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase.rpc("signer_edl", { p_edl: edlId });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "État des lieux signé et figé." };
 }

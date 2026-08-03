@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -22,7 +23,7 @@ export async function demarrerRestitution(
     p_date_remise: date,
     p_conforme: conforme,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Restitution démarrée." };
 }
@@ -59,7 +60,7 @@ export async function ajouterRetenue(
     p_age: ageStr ? Number(ageStr) : null,
     p_justificatif: justificatif,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Retenue ajoutée." };
 }
@@ -72,7 +73,7 @@ export async function supprimerRetenue(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase.from("retenues").delete().eq("id", retenueId).eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Retenue retirée." };
 }
@@ -85,7 +86,7 @@ export async function finaliserDecompte(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { data, error } = await supabase.rpc("finaliser_decompte", { p_restitution: restitutionId });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   const solde = Number(data);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return {

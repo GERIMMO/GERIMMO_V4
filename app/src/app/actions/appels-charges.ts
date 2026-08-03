@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -44,7 +45,7 @@ export async function creerAppelCharges(
     total,
     document_id: documentId,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Appel de charges créé." };
 }
@@ -75,7 +76,7 @@ export async function ajouterPosteCharge(
     fonds_alur: proposition.fonds_alur,
     propose: true,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Poste ajouté." };
 }
@@ -101,7 +102,7 @@ export async function modifierPosteCharge(
     .update({ nature, fonds_alur: fondsAlur, propose: false })
     .eq("id", posteId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Poste qualifié." };
 }
@@ -119,7 +120,7 @@ export async function supprimerPosteCharge(
     .delete()
     .eq("id", posteId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Poste retiré." };
 }
@@ -133,7 +134,7 @@ export async function validerVentilation(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const { error } = await supabase.rpc("valider_ventilation", { p_appel: appelId });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Ventilation validée." };
 }
@@ -151,7 +152,7 @@ export async function supprimerAppelCharges(
     .delete()
     .eq("id", appelId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Appel supprimé." };
 }

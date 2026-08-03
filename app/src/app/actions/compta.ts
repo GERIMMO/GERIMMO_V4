@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { envoyerEmail } from "@/lib/email";
@@ -18,7 +19,7 @@ export async function genererRapport(
   const mois = String(formData.get("mois") ?? "").trim();
   if (!mois) return { erreur: "Choisissez le mois." };
   const { error } = await supabase.rpc("generer_rapport", { p_mandat: mandatId, p_mois: `${mois}-01` });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Rapport généré (à valider)." };
 }
@@ -34,7 +35,7 @@ export async function envoyerRapport(
   if (!user) return { erreur: "Accès refusé." };
   const commentaire = String(formData.get("commentaire") ?? "").trim() || null;
   const { error } = await supabase.rpc("envoyer_rapport", { p_rapport: rapportId, p_commentaire: commentaire });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   // Email au mandant (best-effort : le rapport est figé quoi qu'il arrive)
   const { data: rap } = await supabase
@@ -75,7 +76,7 @@ export async function enregistrerVersement(
     p_montant: montant,
     p_date: date,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Versement enregistré." };
 }
@@ -103,7 +104,7 @@ export async function ajouterEcriture(
     libelle: String(formData.get("libelle") ?? "").trim() || null,
     lot_id: String(formData.get("lot_id") ?? "").trim() || null,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Écriture enregistrée." };
 }
@@ -118,7 +119,7 @@ export async function passerContreEcriture(
   if (!user) return { erreur: "Accès refusé." };
   const motif = String(formData.get("motif") ?? "").trim();
   const { error } = await supabase.rpc("contre_ecriture", { p_ecriture: ecritureId, p_motif: motif });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Contre-écriture passée." };
 }
@@ -145,7 +146,7 @@ export async function ventilerDepense(
     p_date_imputation: String(formData.get("date_imputation") ?? "").trim() || new Date().toISOString().slice(0, 10),
     p_libelle: String(formData.get("libelle") ?? "").trim() || categorie,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: `Dépense ventilée en ${data ?? 0} écriture(s).` };
 }
@@ -160,7 +161,7 @@ export async function cloturerMois(
   const mois = String(formData.get("mois") ?? "").trim();
   if (!mois) return { erreur: "Mois obligatoire." };
   const { error } = await supabase.rpc("cloturer_mois", { p_org: orgId, p_mois: `${mois}-01` });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Mois clôturé." };
 }

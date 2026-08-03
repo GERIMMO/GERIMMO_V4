@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -49,7 +50,7 @@ export async function deposerPieceDossier(
     entite_id: personId,
   });
   if (erreurLien) {
-    return { erreur: `Pièce déposée mais rattachement en échec : ${erreurLien.message}` };
+    return { erreur: `Pièce déposée mais rattachement en échec : ${sansJargon(erreurLien.message)}` };
   }
 
   // Versioning (remplace une version antérieure) + date d'expiration (attestation)
@@ -63,7 +64,7 @@ export async function deposerPieceDossier(
       .eq("id", resultat.documentId)
       .eq("organization_id", orgId);
     if (erreurMaj) {
-      return { erreur: `Pièce déposée mais mise à jour en échec : ${erreurMaj.message}` };
+      return { erreur: `Pièce déposée mais mise à jour en échec : ${sansJargon(erreurMaj.message)}` };
     }
   }
 

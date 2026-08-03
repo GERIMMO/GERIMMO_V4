@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -81,7 +82,7 @@ export async function definirNouveauMotDePasse(
           "Mot de passe refusé : trop faible ou présent dans des fuites de données connues. Choisissez-en un autre.",
       };
     }
-    return { erreur: `Changement impossible : ${error.message}` };
+    return { erreur: `Changement impossible : ${sansJargon(error.message)}` };
   }
 
   // Sécurité : toute autre session active est invalidée — si quelqu'un était

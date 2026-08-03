@@ -84,7 +84,13 @@ describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () =>
     expect(orgs?.map((o) => o.name)).toEqual(["Agence Beta"]);
 
     const { data: fiches } = await c.from("persons").select("nom");
-    expect(fiches?.map((p) => p.nom)).toEqual(["Martin"]);
+    const noms = fiches?.map((p) => p.nom) ?? [];
+    // Même principe que ci-dessus : on vérifie l'étanchéité, pas l'inventaire
+    // exact du jeu de démo, qui bouge au fil des recettes.
+    expect(noms).toContain("Martin"); // fiche de Beta (seed)
+    for (const alpha of ["Dupont", "Leblanc", "Le", "Testeur", "Moreau"]) {
+      expect(noms).not.toContain(alpha); // aucune fiche d'Alpha ne fuite
+    }
   });
 
   it("le compte multi voit ses deux adhésions (sélecteur d'espaces)", async () => {

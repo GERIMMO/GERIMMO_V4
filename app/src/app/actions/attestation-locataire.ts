@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -47,7 +48,7 @@ export async function deposerMonAttestation(
     .from("documents")
     .upload(chemin, octets, { contentType: mime });
   if (erreurUpload) {
-    return { erreur: `Échec du dépôt du fichier : ${erreurUpload.message}` };
+    return { erreur: `Échec du dépôt du fichier : ${sansJargon(erreurUpload.message)}` };
   }
 
   const { error: erreurRpc } = await supabase.rpc("deposer_mon_attestation", {

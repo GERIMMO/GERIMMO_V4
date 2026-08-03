@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -47,7 +48,7 @@ export async function creerPersonne(
     })
     .select("id")
     .single();
-  if (error) return { erreur: `Création impossible : ${error.message}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
   // Doublon = on reste sur la liste avec l'avertissement (non bloquant)
   if (doublon) {
@@ -80,7 +81,7 @@ export async function modifierContactPersonne(
     .update({ email: email || null, telephone: telephone || null })
     .eq("id", personId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: `Modification impossible : ${error.message}` };
+  if (error) return { erreur: `Modification impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return { succes: "Coordonnées mises à jour." };

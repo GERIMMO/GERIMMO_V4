@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -72,7 +73,7 @@ export async function creerBien(
     p_surface: premier?.surface ? Number(premier.surface) : surface ? Number(surface) : null,
     p_pieces: premier?.pieces ? Number(premier.pieces) : pieces ? Number(pieces) : null,
   });
-  if (error) return { erreur: `Création impossible : ${error.message}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
   if (lotsSaisis.length > 0 && bienId) {
     // Le lot d'origine porte le nom saisi pour le premier lot
@@ -95,7 +96,7 @@ export async function creerBien(
       });
       if (erreurDecoupe) {
         return {
-          erreur: `Bien créé, mais les lots supplémentaires ont échoué : ${erreurDecoupe.message}`,
+          erreur: `Bien créé, mais les lots supplémentaires ont échoué : ${sansJargon(erreurDecoupe.message)}`,
         };
       }
     }
@@ -133,7 +134,7 @@ export async function modifierBien(
     })
     .eq("id", bienId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   return { succes: "Bien mis à jour." };
@@ -176,7 +177,7 @@ export async function modifierLot(
     .update(maj)
     .eq("id", lotId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Lot mis à jour." };
@@ -202,7 +203,7 @@ export async function changerEtatLot(
     .update({ etat: cible })
     .eq("id", lotId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
@@ -247,7 +248,7 @@ export async function decouperBien(
     p_bien: bienId,
     p_lots: lots,
   });
-  if (error) return { erreur: `Découpage impossible : ${error.message}` };
+  if (error) return { erreur: `Découpage impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   return {
@@ -296,7 +297,7 @@ export async function ajouterDetention(
     quote_part: quotePart,
     ...(dateDebut ? { date_debut: dateDebut } : {}),
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Détention enregistrée." };
@@ -323,7 +324,7 @@ export async function cloreDetention(
     .eq("id", detentionId)
     .eq("organization_id", orgId)
     .is("date_fin", null);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Détention close." };
@@ -341,7 +342,7 @@ export async function supprimerDetention(
   if (!user) return { erreur: "Accès refusé." };
 
   const { error } = await supabase.rpc("supprimer_detention", { p_detention: detentionId });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Détention corrigée (supprimée)." };
@@ -359,7 +360,7 @@ export async function rouvrirDetention(
   if (!user) return { erreur: "Accès refusé." };
 
   const { error } = await supabase.rpc("rouvrir_detention", { p_detention: detentionId });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Détention rouverte." };
@@ -426,7 +427,7 @@ export async function deposerDiagnostic(
     document_id: documentId,
     classe_dpe: classeDpe,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   if (lotId) revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
@@ -451,7 +452,7 @@ export async function ajouterPieceLot(
   const { error } = await supabase
     .from("lot_pieces")
     .insert({ lot_id: lotId, organization_id: orgId, nom });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: `Pièce « ${nom} » ajoutée.` };
 }
@@ -469,7 +470,7 @@ export async function supprimerPieceLot(
     .delete()
     .eq("id", pieceId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Pièce retirée." };
 }
@@ -503,7 +504,7 @@ export async function enregistrerInfosPratiques(
     },
     { onConflict: "bien_id" }
   );
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   return { succes: "Informations pratiques enregistrées." };
@@ -533,7 +534,7 @@ export async function validerCle(
     p_mode: mode,
     p_lignes: lignes,
   });
-  if (error) return { erreur: `Validation impossible : ${error.message}` };
+  if (error) return { erreur: `Validation impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   return { succes: "Clé de répartition validée." };
@@ -590,7 +591,7 @@ export async function definirEquipementsLot(
     const { error } = await supabase
       .from("lot_equipements")
       .insert(retenus.map((id) => ({ lot_id: lotId, equipement_id: id })));
-    if (error) return { erreur: error.message };
+    if (error) return { erreur: sansJargon(error.message) };
   }
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);

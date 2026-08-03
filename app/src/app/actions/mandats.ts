@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 
@@ -26,7 +27,7 @@ export async function creerMandat(
     seuil_delegation: seuilRaw ? Number(seuilRaw) : null,
     created_by: user.id,
   });
-  if (error) return { erreur: `Création impossible : ${error.message}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return { succes: "Mandat créé (brouillon)." };
@@ -54,7 +55,7 @@ export async function ajouterLigneMandat(
     lot_id: lotId,
     taux_honoraires: tauxRaw ? Number(tauxRaw) : 7,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return { succes: "Lot ajouté au mandat." };
@@ -77,7 +78,7 @@ export async function changerEtatMandat(
     .update({ etat: nouvelEtat })
     .eq("id", mandatId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: `Changement d'état impossible : ${error.message}` };
+  if (error) return { erreur: `Changement d'état impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return { succes: "État du mandat mis à jour." };

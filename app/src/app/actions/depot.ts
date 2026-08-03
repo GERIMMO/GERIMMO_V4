@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 
@@ -27,7 +28,7 @@ export async function encaisserDepot(
     p_versant_person: versantPerson,
     p_versant_libelle: versantLibelle,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Encaissement enregistré." };
 }
@@ -44,7 +45,7 @@ export async function supprimerEncaissementDepot(
     .delete()
     .eq("id", encId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Encaissement retiré." };
 }

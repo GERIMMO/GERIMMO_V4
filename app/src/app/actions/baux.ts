@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
@@ -51,7 +52,7 @@ export async function creerBail(
     })
     .select("id")
     .single();
-  if (error) return { erreur: `Création impossible : ${error.message}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   redirect(`/agence/${orgId}/baux/${data.id}`);
@@ -79,7 +80,7 @@ export async function deposerBailSigne(
     .update({ document_signe: res.documentId })
     .eq("id", bailId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Bail signé déposé." };
@@ -118,7 +119,7 @@ export async function activerBail(
         return { erreur: "Mise en location bloquée — à corriger :", blocages };
       }
     }
-    return { erreur: error.message };
+    return { erreur: sansJargon(error.message) };
   }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Bail activé — le lot est loué, un état des lieux d'entrée est à réaliser." };
@@ -157,7 +158,7 @@ export async function enregistrerConge(
     p_motif: motif || null,
     p_justificatif: justificatif,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Congé enregistré — bail en préavis." };
 }
@@ -188,7 +189,7 @@ export async function ajouterInventaireLigne(
     etat,
     observation,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Meuble ajouté à l'inventaire." };
 }
@@ -205,7 +206,7 @@ export async function supprimerInventaireLigne(
     .delete()
     .eq("id", ligneId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Meuble retiré de l'inventaire." };
 }
@@ -242,7 +243,7 @@ export async function ajouterBailPersonne(
     surface_privative: role === "colocataire" && surf ? Number(surf) : null,
     garant_de: role === "garant" ? garantDe : null,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: role === "garant" ? "Garant ajouté." : "Colocataire ajouté." };
 }
@@ -259,7 +260,7 @@ export async function supprimerBailPersonne(
     .delete()
     .eq("id", ligneId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Personne retirée du bail." };
 }

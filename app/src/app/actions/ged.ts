@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { TYPES_DEPOSABLES } from "@/lib/ged";
@@ -45,7 +46,7 @@ export async function deposerDocument(
       entite_id: personneId,
     });
     if (erreurLien) {
-      return { erreur: `Document déposé mais rattachement en échec : ${erreurLien.message}` };
+      return { erreur: `Document déposé mais rattachement en échec : ${sansJargon(erreurLien.message)}` };
     }
   }
 

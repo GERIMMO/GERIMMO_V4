@@ -1,5 +1,6 @@
 "use server";
 
+import { sansJargon } from "@/lib/erreurs";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -22,7 +23,7 @@ export async function inviterLocataire(
     p_org: orgId,
     p_person_id: personId,
   });
-  if (error) return { erreur: error.message };
+  if (error) return { erreur: sansJargon(error.message) };
 
   const origine = (await headers()).get("origin") ?? "";
   const { error: erreurMail } = await supabase.auth.resetPasswordForEmail(String(email), {
@@ -32,7 +33,7 @@ export async function inviterLocataire(
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   if (erreurMail) {
     return {
-      succes: `Compte locataire créé pour ${email}. L'email n'a pas pu partir (${erreurMail.message}) — SMTP à configurer (Resend).`,
+      succes: `Compte locataire créé pour ${email}. L'email n'a pas pu partir (${sansJargon(erreurMail.message)}) — SMTP à configurer (Resend).`,
     };
   }
   return {

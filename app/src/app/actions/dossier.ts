@@ -69,5 +69,6 @@ export async function deposerPieceDossier(
   }
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
-  return { succes: remplaceId ? "Nouvelle version déposée." : "Pièce ajoutée au dossier." };
+  const base = remplaceId ? "Nouvelle version déposée." : "Pièce ajoutée au dossier.";
+  return { succes: resultat.avertissement ? `${base} ${resultat.avertissement}` : base };
 }

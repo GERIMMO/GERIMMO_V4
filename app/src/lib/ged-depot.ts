@@ -2,11 +2,25 @@ import { createHash } from "node:crypto";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
   detecterMimeReel,
+  pdfComplet,
   EXTENSIONS,
   TAILLE_MAX_OCTETS,
 } from "@/lib/file-type";
 
-export type ResultatDepotGed = { documentId?: string; erreur?: string };
+export type ResultatDepotGed = {
+  documentId?: string;
+  erreur?: string;
+  // Le fichier a été accepté, mais son extension mentait sur son contenu :
+  // on le dit plutôt que de corriger en silence.
+  avertissement?: string;
+};
+
+// Libellés lisibles des formats acceptés, pour l'avertissement d'extension
+const NOMS_FORMAT: Record<string, string> = {
+  "application/pdf": "un PDF",
+  "image/jpeg": "une image JPEG",
+  "image/png": "une image PNG",
+};
 
 // Cœur du dépôt GED, partagé entre le formulaire Documents et les dépôts
 // contextuels (diagnostic S2, bail S4…) : type réel vérifié (RM-A4.9),
@@ -34,6 +48,22 @@ export async function deposerFichierGed(
         "Format refusé : seuls les fichiers PDF, JPEG et PNG sont acceptés (contenu réel vérifié).",
     };
   }
+
+  // Un PDF dont l'en-tête est valide mais le corps tronqué passe la détection de
+  // type et ne s'ouvrira jamais. On conserve des documents à valeur légale.
+  if (mime === "application/pdf" && !pdfComplet(octets)) {
+    return {
+      erreur:
+        "Ce PDF est incomplet : il a probablement été coupé pendant l'envoi. Renvoyez-le, un document tronqué ne s'ouvrira pas.",
+    };
+  }
+
+  // L'extension annonçait autre chose que le contenu réel : accepté, mais dit.
+  const extensionAnnoncee = fichier.name.split(".").pop()?.toLowerCase() ?? "";
+  const avertissement =
+    extensionAnnoncee && extensionAnnoncee !== EXTENSIONS[mime]
+      ? `Ce fichier est en réalité ${NOMS_FORMAT[mime]}, malgré son extension « .${extensionAnnoncee} ». Il a été enregistré comme tel.`
+      : undefined;
 
   // Empreinte anti-doublon : le même contenu ne se dépose pas deux fois
   const empreinte = createHash("sha256").update(octets).digest("hex");
@@ -95,5 +125,5 @@ export async function deposerFichierGed(
     return { erreur: `Document déposé mais rattachement en échec : ${erreurLien.message}` };
   }
 
-  return { documentId: document.id };
+  return { documentId: document.id, avertissement };
 }

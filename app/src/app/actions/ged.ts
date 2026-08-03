@@ -51,5 +51,9 @@ export async function deposerDocument(
   }
 
   revalidatePath(`/agence/${orgId}/documents`);
-  return { succes: "Document déposé." };
+  return {
+    succes: resultat.avertissement
+      ? `Document déposé. ${resultat.avertissement}`
+      : "Document déposé.",
+  };
 }

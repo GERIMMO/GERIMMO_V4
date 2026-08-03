@@ -3,7 +3,9 @@
  * Un exécutable renommé en .pdf doit être refusé.
  */
 import { describe, expect, it } from "vitest";
-import { detecterMimeReel, formaterTaille } from "../src/lib/file-type";
+import { detecterMimeReel, formaterTaille,
+  pdfComplet,
+} from "../src/lib/file-type";
 
 function octets(...valeurs: number[]): Uint8Array {
   return new Uint8Array(valeurs);
@@ -48,5 +50,32 @@ describe("formaterTaille", () => {
     expect(formaterTaille(512)).toBe("512 o");
     expect(formaterTaille(2048)).toBe("2 Ko");
     expect(formaterTaille(3 * 1024 * 1024)).toBe("3.0 Mo");
+  });
+});
+
+describe("pdfComplet — intégrité minimale du PDF", () => {
+  const octets = (s: string) => new Uint8Array([...s].map((c) => c.charCodeAt(0)));
+
+  it("accepte un PDF qui se termine par sa marque de fin", () => {
+    expect(pdfComplet(octets("%PDF-1.4\ncorps\n%%EOF\n"))).toBe(true);
+  });
+
+  it("refuse un PDF tronqué : en-tête valide, marque de fin absente", () => {
+    // Le piège de la recette : la détection de type le voit comme un PDF, mais
+    // il ne s'ouvrira jamais. Sur un bail, on ne s'en aperçoit qu'au moment de
+    // devoir le produire.
+    const tronque = octets("%PDF-1.4\n1 0 obj<</Type/Cata");
+    expect(detecterMimeReel(tronque)).toBe("application/pdf");
+    expect(pdfComplet(tronque)).toBe(false);
+  });
+
+  it("trouve la marque de fin même suivie d'octets de remplissage", () => {
+    expect(pdfComplet(octets("%PDF-1.4\ncorps\n%%EOF\n\n   \n"))).toBe(true);
+  });
+
+  it("ne cherche la marque que dans la fin du fichier", () => {
+    // « %%EOF » au tout début d'un fichier long ne prouve rien
+    const piege = octets("%PDF-1.4\n%%EOF\n" + "x".repeat(5000));
+    expect(pdfComplet(piege)).toBe(false);
   });
 });

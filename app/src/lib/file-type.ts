@@ -39,6 +39,21 @@ export function detecterMimeReel(octets: Uint8Array): MimeAccepte | null {
   return null;
 }
 
+// Un PDF complet se termine par « %%EOF », dans ses derniers octets. Un fichier
+// coupé en cours de transfert garde son en-tête « %PDF- » et passe donc la
+// détection de type, mais ne s'ouvrira jamais. On conserve des documents à
+// valeur légale : mieux vaut refuser au dépôt que découvrir un bail illisible
+// des mois plus tard, quand il faut le produire.
+export function pdfComplet(octets: Uint8Array): boolean {
+  const FIN = [0x25, 0x25, 0x45, 0x4f, 0x46]; // %%EOF
+  // La marque de fin peut être suivie d'un retour à la ligne ou d'espaces
+  const debut = Math.max(0, octets.length - 1024);
+  for (let i = octets.length - FIN.length; i >= debut; i--) {
+    if (FIN.every((b, j) => octets[i + j] === b)) return true;
+  }
+  return false;
+}
+
 export const TAILLE_MAX_OCTETS = 10 * 1024 * 1024; // 10 Mo (module 12)
 
 export function formaterTaille(octets: number): string {

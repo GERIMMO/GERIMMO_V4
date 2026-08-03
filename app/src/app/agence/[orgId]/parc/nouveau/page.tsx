@@ -21,11 +21,11 @@ export default async function PageNouveauBien(
       <h1 className="mb-6 text-2xl font-semibold">Nouveau bien</h1>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">L&apos;unité physique</CardTitle>
+          <CardTitle className="text-base">Adresse et caractéristiques</CardTitle>
           <CardDescription>
             Le bien porte l&apos;adresse et les diagnostics communs. Son lot
             unique est créé automatiquement : c&apos;est lui qui se loue
-            (RM-0.1.2).
+            .
           </CardDescription>
         </CardHeader>
         <CardContent>

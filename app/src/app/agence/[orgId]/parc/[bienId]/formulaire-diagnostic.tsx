@@ -167,7 +167,7 @@ export function FormulaireDiagnostic({
             onChange={(e) => setExpiration(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            Laisser vide pour une validité illimitée (RM-0.6.4).
+            Laisser vide pour une validité illimitée.
           </p>
         </div>
         <div className="space-y-1.5 sm:col-span-2">
@@ -183,7 +183,7 @@ export function FormulaireDiagnostic({
           />
           <p className="text-xs text-muted-foreground">
             Obligatoire — le diagnostic est annexé au bail. PDF, JPEG ou PNG
-            (10 Mo max), déposé dans la GED et lié au diagnostic, chaque
+            (10 Mo maximum), classé dans les documents et lié au diagnostic, chaque
             consultation tracée.
           </p>
         </div>

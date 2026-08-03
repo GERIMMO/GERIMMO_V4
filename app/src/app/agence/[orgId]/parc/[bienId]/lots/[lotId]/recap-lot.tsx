@@ -24,7 +24,7 @@ export function RecapLot({
         {verrouille && (
           <p className="text-xs text-warning-soft-foreground">
             Lot loué : surface et pièces verrouillées, modification par avenant au
-            bail (RM-0.5.1).
+            bail.
           </p>
         )}
         <FormulaireLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />

@@ -102,7 +102,7 @@ export default async function PageTableauDeBord(
               <CardTitle className="text-2xl">{nbDocuments ?? 0}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">dans la GED</p>
+              <p className="text-sm text-muted-foreground">documents classés</p>
             </CardContent>
           </Card>
         </Link>

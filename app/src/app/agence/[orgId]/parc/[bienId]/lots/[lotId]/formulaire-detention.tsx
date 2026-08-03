@@ -142,7 +142,7 @@ export function FormulaireDetention({
           <Input id="detention-debut" name="date_debut" type="date" />
           <p className="text-xs text-muted-foreground">
             Vide = aujourd&apos;hui. La somme active ne peut pas dépasser 100 %
-            (RM-0.2.1).
+            .
           </p>
         </div>
       </div>

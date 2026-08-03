@@ -190,7 +190,7 @@ export default async function PageLot(
           <CardTitle className="text-base">État du lot</CardTitle>
           <CardDescription>
             brouillon → disponible → loué ⇄ préavis → archivé ; la réactivation
-            est réservée à l&apos;admin de l&apos;agence (RM-0.9.4).
+            est réservée à l&apos;administrateur de l&apos;agence.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -234,7 +234,7 @@ export default async function PageLot(
           {/* Détention */}
           <SectionLot
             id="detention"
-            titre="Détention"
+            titre="Propriétaires du lot"
             alerte={totalQuoteParts !== 100 ? `${totalQuoteParts} % sur 100 %` : undefined}
             resume={
               detentionsActives.length === 0

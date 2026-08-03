@@ -59,7 +59,7 @@ export default async function PageEdl(
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Grille</CardTitle>
+          <CardTitle className="text-base">Pièce par pièce</CardTitle>
           <CardDescription>
             Une ligne par élément et équipement du lot. Aucune ligne ne peut rester
             sans état pour signer.

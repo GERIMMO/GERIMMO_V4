@@ -72,7 +72,7 @@ export function FormulaireColocation({
   return (
     <div className="space-y-5">
       <p className="text-xs text-muted-foreground">
-        Bail unique : un seul appel de loyer, jamais fractionné (RM-1.3.1). Les
+        Bail unique : un seul appel de loyer, jamais fractionné. Les
         quotes-parts servent à la répartition interne et aux attestations CAF.
         Locataire principal (référent) : <span className="font-medium">{principal.nom}</span>.
       </p>

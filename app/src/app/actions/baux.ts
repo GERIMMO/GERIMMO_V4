@@ -121,7 +121,7 @@ export async function activerBail(
     return { erreur: error.message };
   }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Bail activé — le lot est loué, alerte d'EDL d'entrée créée." };
+  return { succes: "Bail activé — le lot est loué, un état des lieux d'entrée est à réaliser." };
 }
 
 // Enregistrer un congé (bail actif → préavis).

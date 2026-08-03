@@ -295,7 +295,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <CardDescription>
               Déposez le bail signé (signature hors plateforme en V0), puis activez :
               contrôles automatiques (détention 100 %, diagnostics valides) → le lot
-              passe loué et une alerte d&apos;EDL d&apos;entrée est créée.
+              passe loué et une alerte d&apos;état des lieux d&apos;entrée est créée.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -314,7 +314,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardHeader>
             <CardTitle className="text-base">Congé</CardTitle>
             <CardDescription>
-              LRAR hors plateforme : saisissez la date de première présentation. Le
+              La lettre recommandée part hors de la plateforme : saisissez la date de première présentation. Le
               préavis réduit exige un justificatif.
             </CardDescription>
           </CardHeader>
@@ -467,7 +467,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                   Le bail est {ETATS_BAIL[bail.etat]?.toLowerCase() ?? bail.etat} : sans
                   état des lieux d&apos;entrée signé, le logement sera réputé remis en
                   bon état et <strong>aucune retenue ne pourra être faite sur le
-                  dépôt de garantie</strong> (RM-2.4.3).
+                  dépôt de garantie</strong>.
                 </p>
               </div>
             )

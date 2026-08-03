@@ -95,7 +95,7 @@ export async function modifierPosteCharge(
     return { erreur: "Nature invalide." };
   const fondsAlur = formData.get("fonds_alur") === "on";
   if (fondsAlur && nature === "recuperable")
-    return { erreur: "Le fonds travaux ALUR n'est jamais récupérable (RM-0c.3.4)." };
+    return { erreur: "Le fonds travaux ALUR n'est jamais récupérable : il reste à la charge du propriétaire." };
   const { error } = await supabase
     .from("appel_charges_postes")
     .update({ nature, fonds_alur: fondsAlur, propose: false })

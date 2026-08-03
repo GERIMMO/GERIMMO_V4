@@ -171,7 +171,7 @@ export default async function PageJournaux() {
             </CardTitle>
             <CardDescription>
               Toute consultation ou téléchargement d&apos;un document est
-              tracé (RM-0b.7.5) — conservé 1 an.
+              tracé — conservé 1 an.
             </CardDescription>
           </CardHeader>
           <CardContent>

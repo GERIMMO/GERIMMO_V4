@@ -40,7 +40,7 @@ export function FormulaireDepot({
   if (depotDu <= 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Aucun dépôt de garantie prévu au bail (Visale peut s&apos;y substituer, RM-2.3.3).
+        Aucun dépôt de garantie prévu au bail — la garantie Visale peut s&apos;y substituer.
       </p>
     );
   }
@@ -161,7 +161,7 @@ function FormEncaisser({
       </div>
       <p className="text-xs text-muted-foreground">
         Le montant total est plafonné au dépôt du bail ; le dépôt n&apos;est jamais
-        révisé en cours de bail (RM-2.1.5).
+        révisé en cours de bail.
       </p>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </form>

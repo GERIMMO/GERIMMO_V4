@@ -45,7 +45,7 @@ export function FormulairePiecesLot({
 
       {pieces.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Aucune pièce définie — la grille d&apos;EDL restera générique tant qu&apos;il n&apos;y en a pas.
+          Aucune pièce définie — la grille d&apos;état des lieux restera générique tant qu&apos;il n&apos;y en a pas.
         </p>
       ) : (
         <ul className="flex flex-wrap gap-1.5">

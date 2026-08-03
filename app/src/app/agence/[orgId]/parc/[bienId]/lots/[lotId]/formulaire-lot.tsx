@@ -79,7 +79,7 @@ export function FormulaireLot({
           />
           <p className="text-xs text-muted-foreground">
             Champ simple en V1 — sans date ni mesureur, pas de défense en cas de
-            contestation &gt; 5 % (réserve RM-0.5.7).
+            contestation au-delà de 5 % d&apos;écart.
           </p>
         </div>
         <div className="space-y-2">

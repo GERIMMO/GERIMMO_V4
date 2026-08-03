@@ -119,7 +119,7 @@ export default async function PagePersonne(
       {/* Dossier : pièces versionnées */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Dossier</CardTitle>
+          <CardTitle className="text-base">Pièces justificatives</CardTitle>
           <CardDescription>
             Les pièces suivent la personne dans l&apos;agence. Chaque nouveau dépôt
             d&apos;un même type crée une version — l&apos;ancienne est conservée.

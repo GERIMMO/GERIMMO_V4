@@ -100,7 +100,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           <CardTitle className="text-base">Équipements (liste fermée)</CardTitle>
           <CardDescription>
             Le catalogue de l&apos;agence, coché ensuite sur chaque lot — il
-            prépare la grille d&apos;état des lieux (RM-0.5.5).
+            prépare la grille d&apos;état des lieux.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

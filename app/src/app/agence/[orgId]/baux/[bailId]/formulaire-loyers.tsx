@@ -311,14 +311,14 @@ export function FormulaireLoyers({
           <select name="niveau" defaultValue="relance_1" className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
             <option value="relance_1">Relance 1</option>
             <option value="relance_2">Relance 2</option>
-            <option value="mise_en_demeure">Mise en demeure (LRAR)</option>
+            <option value="mise_en_demeure">Mise en demeure (recommandé)</option>
           </select>
           <div className="space-y-1">
             <Label htmlFor="rel-date" className="text-xs">Envoyée le</Label>
             <Input id="rel-date" name="date_envoi" type="date" className="h-9" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="rel-pres" className="text-xs">1re présentation (MED)</Label>
+            <Label htmlFor="rel-pres" className="text-xs">1re présentation</Label>
             <Input id="rel-pres" name="date_premiere_presentation" type="date" className="h-9" />
           </div>
           <Input name="numero_recommande" placeholder="N° recommandé" className="h-9 w-32" />
@@ -328,7 +328,7 @@ export function FormulaireLoyers({
           {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
         </form>
         <p className="text-xs text-muted-foreground">
-          La mise en demeure part en LRAR hors plateforme ; saisissez la date de 1re présentation
+          La mise en demeure part en lettre recommandée avec accusé de réception, hors de la plateforme ; saisissez la date de première présentation
           (le délai court de là).
         </p>
       </div>

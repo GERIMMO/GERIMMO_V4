@@ -158,7 +158,7 @@ export default async function PageBien(
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
                 ERP, amiante des parties communes, termites… Les diagnostics du
-                logement (DPE…) se déposent sur la fiche du lot (RM-0.6.2).
+                logement (DPE…) se déposent sur la fiche du lot.
               </p>
               <LignesDiagnostics
                 orgId={orgId}
@@ -180,7 +180,7 @@ export default async function PageBien(
               <div className="space-y-3">
                 <p className="text-xs text-muted-foreground">
                   Les nouveaux lots héritent des propriétaires du lot d&apos;origine
-                  (RM-0.3.6) ; un lot loué ne se redécoupe pas (RM-0.3.8).
+                  ; un lot loué ne se redécoupe pas.
                 </p>
                 <FormulaireDecoupage orgId={orgId} bienId={bienId} />
               </div>
@@ -210,7 +210,7 @@ export default async function PageBien(
               <div className="space-y-4">
                 <p className="text-xs text-muted-foreground">
                   100 % exactement, datée, jamais recalculée rétroactivement — une
-                  clé fausse fausse toutes les régularisations du bien (RM-0.4.1/2).
+                  clé fausse fausse toutes les régularisations du bien.
                 </p>
                 {cle ? (
                   <ul className="flex flex-wrap gap-1.5">
@@ -231,7 +231,7 @@ export default async function PageBien(
                 ) : (
                   <p className="text-sm text-warning-soft-foreground">
                     Aucune clé valide : les lots ne peuvent pas passer en disponible
-                    tant qu&apos;elle n&apos;est pas validée (RM-0.3.3).
+                    tant qu&apos;elle n&apos;est pas validée.
                   </p>
                 )}
                 <FormulaireCle
@@ -271,7 +271,7 @@ export default async function PageBien(
             {multiLots ? `${lotsActifs.length} lots` : "Lot unique"}
           </CardTitle>
           <CardDescription>
-            Le bail porte toujours sur un lot, jamais sur le bien (RM-0.2.5).
+            Le bail porte toujours sur un lot, jamais sur le bien.
             La mise en location se fait ici, lot par lot.
           </CardDescription>
         </CardHeader>

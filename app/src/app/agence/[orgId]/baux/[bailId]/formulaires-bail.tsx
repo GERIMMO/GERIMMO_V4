@@ -103,7 +103,7 @@ export function FormulaireConge({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="conge-date" className="text-xs">
-            1ʳᵉ présentation (LRAR)
+            1ʳᵉ présentation du recommandé
           </Label>
           <Input id="conge-date" name="date_presentation" type="date" required />
         </div>

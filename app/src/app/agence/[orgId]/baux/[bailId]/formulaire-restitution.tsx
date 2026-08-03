@@ -92,7 +92,7 @@ export function FormulaireRestitution({
       {restitution.sans_edl_entree && (
         <p className="rounded-md bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
           Sans état des lieux d&apos;entrée signé, aucune retenue n&apos;est possible :
-          restitution intégrale du dépôt (RM-2.4.3).
+          restitution intégrale du dépôt.
         </p>
       )}
 

@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
+import { piecesHabituelles } from "@/lib/pieces";
 import {
   TYPES_BIEN,
   TYPES_DIAGNOSTIC,
@@ -450,12 +451,70 @@ export async function ajouterPieceLot(
   if (!user) return { erreur: "Accès refusé." };
   const nom = String(formData.get("nom") ?? "").trim();
   if (!nom) return { erreur: "Le nom de la pièce est obligatoire." };
+  // La colonne `ordre` restait nulle : les pièces remontaient alors par ordre
+  // alphabétique, « Chambre » avant « Entrée ». On ajoute à la suite.
   const { error } = await supabase
     .from("lot_pieces")
-    .insert({ lot_id: lotId, organization_id: orgId, nom });
+    .insert({ lot_id: lotId, organization_id: orgId, nom, ordre: await prochainOrdre(supabase, lotId) });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: `Pièce « ${nom} » ajoutée.` };
+}
+
+async function prochainOrdre(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  lotId: string
+): Promise<number> {
+  const { data } = await supabase
+    .from("lot_pieces")
+    .select("ordre")
+    .eq("lot_id", lotId)
+    .order("ordre", { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle();
+  return ((data?.ordre as number | null) ?? -1) + 1;
+}
+
+// Proposer les pièces habituelles plutôt que la page blanche. L'agent qui doit
+// tout écrire à la main saute l'étape, et la grille d'état des lieux retombe sur
+// sept lignes génériques — un document qui tient mal face à une contestation.
+export async function proposerPiecesLot(
+  orgId: string,
+  bienId: string,
+  lotId: string
+): Promise<EtatParc> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { data: lot } = await supabase
+    .from("lots")
+    .select("pieces")
+    .eq("id", lotId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+
+  const { data: existantes } = await supabase
+    .from("lot_pieces")
+    .select("nom")
+    .eq("lot_id", lotId);
+  const deja = new Set(
+    ((existantes ?? []) as { nom: string }[]).map((p) => p.nom.toLocaleLowerCase("fr"))
+  );
+
+  const depart = await prochainOrdre(supabase, lotId);
+  const aCreer = piecesHabituelles(lot?.pieces as number | null)
+    .filter((nom) => !deja.has(nom.toLocaleLowerCase("fr")))
+    .map((nom, i) => ({ lot_id: lotId, organization_id: orgId, nom, ordre: depart + i }));
+
+  if (aCreer.length === 0)
+    return { succes: "Ces pièces sont déjà là — ajustez la liste si besoin." };
+
+  const { error } = await supabase.from("lot_pieces").insert(aCreer);
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  return {
+    succes: `${aCreer.length} pièces proposées. Retirez celles qui n'existent pas, ajoutez les autres.`,
+  };
 }
 
 export async function supprimerPieceLot(

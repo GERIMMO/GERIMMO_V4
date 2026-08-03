@@ -503,11 +503,28 @@ Rien n'est parti, ni vers votre adresse de test ni ailleurs.
 Ce ne sont pas des défauts : ce sont des choses qui n'existent pas encore et qui se
 verront dès le premier vrai client.
 
-**1. L'état des lieux n'a pas de pièces.** La grille est un squelette « Général » de sept
-lignes — sols, murs, plafonds, fenêtres, portes, prises, éclairage. Pas de cuisine, pas de
-salle de bain, pas de chambres. Or l'état des lieux est ce qui autorise ou interdit une
-retenue sur le dépôt de garantie : sept lignes génériques ne tiendront pas devant un
-locataire qui conteste. Le vrai chantier est en amont — modéliser les pièces du lot.
+**1. L'état des lieux par pièce existait, mais rien n'y menait.** — *corrigé le 3 août.*
+
+Je m'étais trompé en écrivant que la grille « n'avait pas de pièces ». La fonction
+`generer_grille_edl` parcourt bien `lot_pieces` et produit les sept éléments pour chaque
+pièce. La grille « Général » de sept lignes que j'avais vue était le **repli** appliqué
+quand le lot n'a aucune pièce déclarée — et rien, nulle part, ne disait à l'agent qu'il
+fallait les déclarer, ni ce qu'il perdait en s'en passant.
+
+Trois manques comblés :
+
+- la fiche du lot proposait d'ajouter les pièces une par une, sans jamais dire pourquoi.
+  Elle propose maintenant **la liste entière en un clic**, déduite du nombre de pièces du
+  lot (un T3 → entrée, séjour, deux chambres, cuisine, salle de bain, WC), à ajuster.
+  Retirer une ligne va plus vite que d'en écrire sept ;
+- l'écran d'état des lieux **signale** désormais qu'il ne détaille aucune pièce, et
+  renvoie vers la fiche du lot — tant qu'il n'est pas signé ;
+- la fiche du bail place « déclarer les pièces » **avant** « faire signer l'état des
+  lieux » dans « à faire maintenant » : une fois signé, l'état des lieux est figé.
+
+*`src/lib/pieces.ts`, 6 tests. La colonne `ordre` de `lot_pieces` n'était par ailleurs
+jamais renseignée : les pièces remontaient dans l'ordre alphabétique, « Chambre » avant
+« Entrée ».*
 
 **2. La liste des personnes ne dit pas qui est qui.** Treize noms par ordre alphabétique,
 avec e-mail et téléphone. Rien n'indique qui est propriétaire, locataire ou garant, et il

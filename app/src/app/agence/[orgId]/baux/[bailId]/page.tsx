@@ -55,6 +55,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
   const [
     { data: lot },
+    { count: piecesDuLot },
     { data: locataire },
     { data: edls },
     { data: conges },
@@ -63,6 +64,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes },
   ] = await Promise.all([
       supabase.from("lots").select("id, nom, bien_id").eq("id", bail.lot_id).maybeSingle(),
+      // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
+      supabase
+        .from("lot_pieces")
+        .select("id", { count: "exact", head: true })
+        .eq("lot_id", bail.lot_id),
       bail.locataire_principal
         ? supabase.from("persons").select("nom, prenom").eq("id", bail.locataire_principal).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -219,6 +225,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         : { texte: "Déposer le bail signé, puis l'activer", href: "#activation" }
     );
   } else {
+    // Déclarer les pièces vient AVANT l'état des lieux : une fois signé, il est
+    // figé, et une grille sans pièces ne rattache aucune dégradation à un endroit.
+    if (!edlEntreeSigne && piecesDuLot === 0)
+      aFaire.push({
+        texte:
+          "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
+        href: `/agence/${orgId}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
+      });
     if (!edlEntreeSigne)
       aFaire.push({
         texte: "Faire signer l'état des lieux d'entrée — sans lui, aucune retenue possible à la sortie",

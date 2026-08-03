@@ -4,6 +4,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GrilleEdl } from "./grille-edl";
 import { EdlAnnexes, type Compteur, type Cle } from "./edl-annexes";
+import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
 export const metadata = { title: "État des lieux — Gerimmo" };
 
@@ -40,6 +41,26 @@ export default async function PageEdl(
       .order("created_at"),
   ]);
 
+  // Repli générique : la grille existe mais sans aucune ligne rattachée à une
+  // pièce. Il faut le lot pour proposer d'y remédier.
+  const toutesLignes = (lignes ?? []) as { categorie: string; piece: string | null }[];
+  const grilleGenerique =
+    toutesLignes.length > 0 && !toutesLignes.some((l) => l.categorie === "piece");
+  const signe = edl.etat === "signe";
+
+  const { data: bail } = grilleGenerique
+    ? await supabase
+        .from("baux")
+        .select("lot:lots(id, bien_id)")
+        .eq("id", bailId)
+        .maybeSingle()
+    : { data: null };
+  const lotDuBail = premier(
+    (bail as { lot: UnOuPlusieurs<{ id: string; bien_id: string }> } | null)?.lot
+  );
+  const lotId = lotDuBail?.id ?? null;
+  const bienId = lotDuBail?.bien_id ?? null;
+
   return (
     <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
@@ -53,7 +74,7 @@ export default async function PageEdl(
           État des lieux d&apos;{edl.type === "entree" ? "entrée" : "sortie"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {edl.etat === "signe" ? "Signé (figé)" : "En cours de saisie"}
+          {signe ? "Signé — plus modifiable" : "En cours de saisie"}
         </p>
       </div>
 
@@ -66,11 +87,34 @@ export default async function PageEdl(
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* La grille retombe sur « Général » quand le lot n'a pas de pièces
+              déclarées. Rien ne le signalait : l'agent signait un document qui
+              ne distingue pas la cuisine de la chambre, et découvrait le
+              problème à la sortie, au moment de justifier une retenue. */}
+          {grilleGenerique && (
+            <div className="mb-4 rounded-lg border border-[var(--or)] bg-muted p-3 text-sm">
+              <p className="font-medium">Cet état des lieux ne détaille aucune pièce.</p>
+              <p className="mt-1 text-muted-foreground">
+                Le lot n&apos;a pas de pièces déclarées : la grille se limite aux
+                éléments généraux. À la sortie, il sera difficile de rattacher une
+                dégradation à un endroit précis — et donc de justifier une retenue
+                sur le dépôt de garantie.
+              </p>
+              {!signe && lotId && (
+                <Link
+                  href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}#pieces`}
+                  className="mt-2 inline-block underline underline-offset-2"
+                >
+                  Déclarer les pièces du lot, puis régénérer la grille
+                </Link>
+              )}
+            </div>
+          )}
           <GrilleEdl
             orgId={orgId}
             bailId={bailId}
             edlId={edlId}
-            signe={edl.etat === "signe"}
+            signe={signe}
             lignes={lignes ?? []}
           />
         </CardContent>
@@ -89,7 +133,7 @@ export default async function PageEdl(
             orgId={orgId}
             bailId={bailId}
             edlId={edlId}
-            signe={edl.etat === "signe"}
+            signe={signe}
             compteurs={(compteurs ?? []) as Compteur[]}
             cles={(cles ?? []) as Cle[]}
           />

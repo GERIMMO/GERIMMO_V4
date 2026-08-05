@@ -3,8 +3,8 @@ type: process
 tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
-updated: 2026-07-25
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]"]
+updated: 2026-08-05
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
 # Restitution du dépôt de garantie
@@ -23,7 +23,9 @@ Source : [[2026-07-24-gerimmo-v3-module-2-garanties|Module 2]], parcours 2.4 / 2
 - **1 mois** si l'EDL de sortie est conforme à l'entrée, **2 mois** en cas d'écarts
   (RM-2.4.2). Alerte avant l'échéance (US-2.4.4, module 14 — [[Agenda et échéances]]).
 - Délai dépassé : alerte ; la **pénalité de retard de 10 % par mois est hors périmètre
-  V1** (RM-2.4.10).
+  V1** (RM-2.4.10). Délais 1/2 mois depuis la remise des clés et majoration de retard
+  confirmés par [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]] (qui confirme aussi :
+  chaque retenue justifiée par devis/facture, vétusté normale jamais imputable).
 
 ## Le circuit (parcours nominal 2.4)
 

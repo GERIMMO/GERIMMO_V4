@@ -40,6 +40,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Occupation d'un bien]] — le « bail » simplifié du code actuel.
 - [[Gérant]] — terme générique : agent immobilier ou propriétaire bailleur.
 - [[Bail]] — nu/meublé/colocation, signature Yousign V1, préavis et congés.
+- [[Types de baux]] — panorama des 10 régimes locatifs ; périmètre V3 vs hors périmètre.
+- [[Structure du modèle-type de bail]] — les 11 sections du formulaire officiel, blueprint du générateur 1.16 ; 7 champs manquants.
 - [[État des lieux]] — constat mobile pièce par pièce ; sans EDL d'entrée, pas de retenue.
 - [[Signature électronique]] — circuit Yousign : simple, séquentiel, bailleur en dernier.
 - [[Marque blanche]] — logo + couleurs par agence ; mention Gerimmo conservée.
@@ -58,6 +60,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 ## Règles métier
 - [[Grille tarifaire]] — offres par audience ; V3 : mensuel + mise en route + redevance.
 - [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
+- [[Mentions obligatoires du bail]] — modèle-type 2015 + ajouts 2024 (identifiant fiscal, DPE) ; trou repéré au module 1.
+- [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.
 - [[Cycle de vie de l'abonnement]] — essai 14 j → paiement ou suspension.
 - [[Archivage plutôt que suppression]] — on archive, on ne supprime pas.
 - [[Isolation multi-organisation]] — RLS partout + test d'isolation par table.
@@ -106,6 +110,9 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-07-24-gerimmo-v3-module-19-mobile|V3 · Module 19 — Mobile]] — site adapté, EDL hors ligne ; clôt le référentiel.
 - [[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs|V3 · Module 20 — Retours utilisateurs]] — bugs et idées.
 - [[2026-08-01-bailpdf-com|bailpdf.com]] — modèles de documents locatifs FR (bail, EDL, congés, caution…) ; reverse-engineering pour la génération Gerimmo.
+- [[2026-08-05-bailpdf-contrat-de-bail|BailPDF — Contrat de bail]] — panorama des baux, mentions 2024, clauses ; source de vulgarisation à recouper.
+- [[2026-08-05-bailpdf-modele-bail-non-meuble|BailPDF — Modèle bail non meublé (PDF)]] — le formulaire officiel du modèle-type ; base du blueprint 1.16.
+- [[2026-08-05-bailpdf-modele-bail-meuble|BailPDF — Modèle bail meublé (PDF)]] — même squelette que le vide ; variantes durée, forfait, dépôt 2 mois, inventaire mobilier.
 
 ## Synthèses
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).

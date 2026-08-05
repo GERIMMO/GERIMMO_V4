@@ -3,8 +3,8 @@ type: process
 tags: [charges, regularisation, loyer]
 status: draft
 created: 2026-07-22
-updated: 2026-07-24
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
+updated: 2026-08-05
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
 # Régularisation des charges
@@ -64,6 +64,13 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
   émise → correction par **rectificative** uniquement, jamais par modification
   (RM-3.9.7) ; solde intégré au [[Solde de tout compte]] si le locataire est parti.
 - **Charges au forfait : aucune régularisation** (RM-3.9.8, le forfait est définitif).
+  ⚠️ Pour un **bail vide, le forfait n'est possible qu'en colocation** — le formulaire
+  officiel le dit en toutes lettres ([[2026-08-05-bailpdf-modele-bail-non-meuble]],
+  section IV.B) ; en **meublé, le forfait est libre** et « révisé chaque année dans
+  les mêmes conditions que le loyer » ([[2026-08-05-bailpdf-modele-bail-meuble]]).
+  Le module 3 ne mentionne pas cette restriction. Le modèle 1.16 et la saisie des
+  charges (3.1) devraient contraindre le choix « forfait » selon type de bail
+  (+ colocation si bail vide).
 - **Ajustement de la provision (3.10)** : proposé après le décompte (rapprochement des
   charges réelles), **jamais appliqué sans validation** — l'agent peut étaler une
   hausse mal reçue.

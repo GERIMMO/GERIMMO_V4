@@ -3,8 +3,8 @@ type: concept
 tags: [diagnostic, dpe, obligation-legale, bien, lot]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
-sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]"]
+updated: 2026-08-05
+sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]"]
 ---
 
 # Diagnostic
@@ -46,6 +46,31 @@ simple du lot, RM-0.5.7). Sur un bien à lot unique, les onglets bien/lot fusion
   redéposé (le dépôt lève le blocage sans autre action, RM-0.8.5).
 - Destinataire : l'agent en charge du mandat, à défaut l'admin agence (RM-0.8.4).
   Alimente le module 14 ([[Agenda et échéances]]).
+
+## Passoires thermiques — calendrier Climat et Résilience
+
+Au-delà de l'expiration du DPE, sa **lettre** conditionne le droit même de louer
+(loi Climat et Résilience 2021, [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]) :
+
+| Classe DPE | Interdiction de location (métropole) | Outre-mer (971/972/973/974/976) |
+|---|---|---|
+| **G** | Depuis le **1er janvier 2025** | **2028** |
+| **F** | **2028** | **2031** |
+| **E** | **2034** | — |
+
+Le calendrier outre-mer et la formulation exacte (« niveau de performance minimal »)
+viennent du rappel de décence imprimé dans le formulaire officiel
+([[2026-08-05-bailpdf-modele-bail-non-meuble]], section II).
+
+Le wiki documentait déjà le **gel de révision IRL** pour F/G ([[Révision annuelle IRL]],
+RM-3.8.6) ; l'interdiction de louer est plus forte. Depuis 2024, le bail doit en outre
+afficher la classe DPE et le calendrier d'interdiction
+([[Mentions obligatoires du bail]]).
+
+> [!warning] À trancher
+> Le module 0 bloque la création de bail sur DPE **expiré**, pas sur DPE **G** (ni F/E
+> aux échéances). Faut-il un blocage — ou au moins une alerte forte — à la création
+> d'un bail sur une passoire thermique ? À vérifier sur Légifrance et arbitrer.
 
 ## Cycle de vie
 

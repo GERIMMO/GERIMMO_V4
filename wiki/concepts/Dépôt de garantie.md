@@ -3,8 +3,8 @@ type: concept
 tags: [depot-de-garantie, bail, encaissement, restitution, plafond]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]"]
+updated: 2026-08-05
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
 # Dépôt de garantie
@@ -30,7 +30,14 @@ produisent chacun une écriture comptable (4.2 / 4.1).
 | **Bail mobilité** | Interdit | Hors périmètre |
 
 Le système **bloque la validation** si le montant saisi dépasse le plafond (US-2.1.1) —
-un dépôt excessif exposerait le bailleur à une restitution forcée.
+un dépôt excessif exposerait le bailleur à une restitution forcée. Plafonds, base hors
+charges et non-révision confirmés par [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]
+(loi ALUR) ; exiger un **complément de dépôt à l'état des lieux d'entrée** est une
+clause réputée non écrite ([[Clauses abusives et clauses résolutoires]]), tandis que le
+**défaut de versement** est l'un des quatre motifs de clause résolutoire admis.
+Dans les formulaires officiels, le montant s'écrit **en chiffres et en toutes lettres**
+(section VI) — détail à reprendre dans le gabarit
+([[Structure du modèle-type de bail]]).
 
 ## Règles d'encaissement (2.1)
 

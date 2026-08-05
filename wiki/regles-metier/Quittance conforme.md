@@ -3,8 +3,8 @@ type: business-rule
 tags: [quittance, legal, loyer]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-21
-sources: ["[[Dépôt Gerimmo-V3]]"]
+updated: 2026-08-05
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
 # Quittance conforme et courriers officiels
@@ -14,6 +14,9 @@ tout courrier officiel doit porter l'**identité légale du bailleur**.
 
 ## Fondement
 - **Loi du 6 juillet 1989, art. 21** : la quittance distingue le loyer et les charges.
+- La quittance est **gratuite** : une clause facturant au locataire les frais d'envoi
+  est réputée non écrite ([[Clauses abusives et clauses résolutoires]],
+  [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]).
 - Migration `20260720180000_fondations_documents_officiels.sql`.
 > « Un courrier officiel sans l'identité et l'adresse de son auteur n'a aucune valeur. »
 

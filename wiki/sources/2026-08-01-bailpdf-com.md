@@ -12,6 +12,15 @@ sources: []
 
 # Source — bailpdf.com
 
+> [!note] Sources sœurs (ingest du 2026-08-05)
+> Le même site a fait l'objet d'une seconde ingestion, plus profonde, sur le contrat
+> de bail : [[2026-08-05-bailpdf-contrat-de-bail]] (article de référence),
+> [[2026-08-05-bailpdf-modele-bail-non-meuble]] et
+> [[2026-08-05-bailpdf-modele-bail-meuble]] (formulaires officiels PDF) → blueprint
+> [[Structure du modèle-type de bail]]. Cette page reste la référence pour le
+> **catalogue des 16 documents** et l'angle **automatisation WhatsApp**
+> ([[Documents a generer et automatisation WhatsApp]]).
+
 **En une phrase :** site français de **modèles de documents locatifs** (contrats de
 bail, états des lieux, congés, quittances, cautionnement…) avec explications juridiques
 et références légales — ingéré le 2026-08-01 à la demande de l'humain pour **reverse-

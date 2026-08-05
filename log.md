@@ -1108,3 +1108,16 @@ meublé vs colocation seule en vide), [[Types de baux]] (bail étudiant jamais r
 [[Dépôt de garantie]] (montant en toutes lettres). Aucune contradiction. La liste des
 meubles du décret 2015 n'est pas dans le formulaire — l'inventaire structuré Gerimmo
 est plus exigeant, dans le bon sens. Les 3 sources bailpdf sont ingérées.
+
+## [2026-08-05] maintenance | Réconciliation git des deux postes de travail
+Constat : le poste Windows était resté sur le commit du 31/07 (fin des retours recette
+S2) pendant que l'autre poste avançait jusqu'au 03/08 — 79 commits d'écart, couvrant
+les sprints 3 à 6 complets, le S8 partiel (dépôt, restitution, copropriété), une
+recette autonome S0→S6 (16 anomalies corrigées) et la charte visuelle. Réconciliation :
+travail local du 05/08 commité sur branche `ingest-bailpdf-2026-08-05`, `main` avancé
+sur `origin/main`, fusion avec résolution des conflits (double ingestion bailpdf des
+01/08 et 05/08 : les deux conservées, journal chronologique, renvois croisés entre
+pages sources). **Décision humaine actée : la recette autonome ne vaut pas validation
+— une recette humaine complète S3→S8 sera déroulée** (scénarios en préparation),
+avec non-régression S0–S2 et revérification des 16 anomalies. Règle de travail :
+`git pull` en début de session sur chaque poste.

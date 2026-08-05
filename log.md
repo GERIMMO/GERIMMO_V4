@@ -1121,3 +1121,18 @@ pages sources). **Décision humaine actée : la recette autonome ne vaut pas val
 — une recette humaine complète S3→S8 sera déroulée** (scénarios en préparation),
 avec non-régression S0–S2 et revérification des 16 anomalies. Règle de travail :
 `git pull` en début de session sur chaque poste.
+
+## [2026-08-05] recette | Scénarios de recette humaine S3→S8 remis
+Suite de la réconciliation : poste remis en état (npm install, lint 0 erreur,
+typecheck OK après build, build Next vert, tests unitaires 72/72 — les 66 tests
+d'intégration se sautent sans SUPABASE_DB_URL sur ce poste, garde-fou anti-prod
+vérifié). Advisors Supabase relevés : 63 WARN sécurité (fonctions SECURITY DEFINER
+exposées, dont 12 appelables anonymement — au backlog S15, inscrites à la vigilance),
+1 WARN perf (double policy SELECT sur persons), le reste = bruit sur base quasi vide.
+Branche Supabase de recette payante : déjà supprimée (vérifié). **Livré** :
+[[Recette S3-S8 - scenarios]] — 24 scénarios en 7 blocs (non-régression S0-S2, S3
+personnes/dossier/mandat, S4 bail/EDL/congés, S5 loyers/quittances/IRL, S6
+comptabilité/export, S8 dépôt/restitution/copro, transverse charte+isolation), avec
+messages de refus exacts tirés des migrations et matrice de couverture des 16
+anomalies de la recette autonome. La validation des sprints 3→8 attend le déroulé
+humain de ces scénarios.

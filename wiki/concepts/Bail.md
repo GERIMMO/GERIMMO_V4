@@ -3,8 +3,8 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-07-24
-sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]"]
+updated: 2026-08-05
+sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
 # Bail
@@ -16,7 +16,8 @@ l'agence, ou gestion directe) — et le [[Locataire]]. Spécifié en détail par
 réglementaire la plus forte »). Cible : **baux conclus à partir du 1er octobre 2026**.
 
 **Périmètre** : bail nu, bail meublé, colocation en bail unique (contrats séparés :
-V2). Hors périmètre : commercial, mobilité, rural, saisonnier.
+V2). Hors périmètre : commercial, mobilité, rural, saisonnier — panorama complet des
+régimes dans [[Types de baux]].
 Objets liés : **Occupant** (locataire ↔ bail, quote-part de solidarité), **Lien de
 garantie** (garant ↔ bail, date d'extinction — [[Dossier locataire]]),
 **[[État des lieux]]**.
@@ -32,16 +33,18 @@ change rien aux baux en cours.
 
 | Aspect | Bail nu | Bail meublé |
 |---|---|---|
-| Durée minimale | 3 ans (personne physique, RM-1.1.8) | **1 an — 9 mois étudiant** (sans reconduction) |
+| Durée minimale | 3 ans (personne physique, RM-1.1.8) | **1 an — 9 mois étudiant** (sans reconduction) ; reconduction tacite **d'1 an** hors étudiant ([[2026-08-05-bailpdf-modele-bail-meuble]], section III) |
 | Préavis locataire | 3 mois (1 mois en zone tendue) | **1 mois toujours** |
 | Préavis bailleur | 6 mois | 3 mois |
 | [[Dépôt de garantie]] max | **1 mois** hors charges | **2 mois** — jamais révisé en cours de bail (RM-2.1.5) |
-| Inventaire mobilier | — | **Obligatoire, structuré** (pas un PDF joint) ; mobilier minimum décret 2015 sinon alerte de requalification |
+| Inventaire mobilier | — | **Obligatoire, structuré** (pas un PDF joint) ; mobilier minimum décret 2015 sinon alerte de requalification. Exigence légale : « inventaire et état détaillé du mobilier » **annexés**, établis à la remise des clés ([[2026-08-05-bailpdf-modele-bail-meuble]], section XI) — l'inventaire structuré Gerimmo rend cette annexe générable |
 
 Mentions obligatoires alimentées par le socle : parties (0b), désignation du logement
 (lot), loyer + IRL de référence, charges (provision ou forfait), dépôt de garantie,
 diagnostics annexés, notice d'information, zone tendue, dernier loyer si relocation
-< 18 mois.
+< 18 mois. Cadre légal complet (modèle-type 2015-587, ajouts 2024) :
+[[Mentions obligatoires du bail]] ; clauses admises et interdites du modèle :
+[[Clauses abusives et clauses résolutoires]].
 
 ## [[Signature électronique]] (1.6/1.7 fusionnés) — décision révisée
 
@@ -102,7 +105,9 @@ génération/signature ; la **révision IRL n'exige pas d'avenant** (module 3, R
 
 **Modèles par type** (1.16, admin agence) : fournis par défaut, **datés** — un bail
 conserve la version du modèle en vigueur à sa signature (RM-1.16.3) ; mentions
-légales non retirables. **Le locataire consulte** (1.14) : bail signé (jamais le PDF
+légales non retirables. **Gabarit de référence : [[Structure du modèle-type de bail]]**
+(les 11 sections du formulaire officiel, champ par champ, avec les 7 champs qui
+manquent aujourd'hui au modèle de données). **Le locataire consulte** (1.14) : bail signé (jamais le PDF
 non signé), avenants, diagnostics, EDL, inventaire — jamais le dossier des autres
 colocataires.
 
@@ -127,6 +132,15 @@ colocataires.
 > - Le référentiel est désormais **cohérent en interne** autour de Yousign V1. Reste
 >   **votre confirmation formelle** pour clore le point 13 de
 >   [[État du projet et décisions ouvertes]].
+
+> [!warning] Mentions 2024 absentes du module 1 (confirmé par le formulaire officiel)
+> Le décret n° 2023-796 impose depuis le 1/1/2024 trois mentions que le module 1 ne
+> liste pas : **identifiant fiscal du logement** (13 chiffres — aucun champ prévu au
+> [[Lot]]), **classe DPE + dépenses théoriques d'énergie**, et **bloc calendrier
+> passoires thermiques**. Le champ identifiant fiscal **figure bien dans le formulaire
+> officiel** ([[2026-08-05-bailpdf-modele-bail-non-meuble]], section II). Détail :
+> [[Mentions obligatoires du bail]] ; autres champs manquants (complément de loyer,
+> durée réduite, travaux…) : [[Structure du modèle-type de bail]].
 
 > [!warning] Points résiduels
 > - **Migration depuis le code** : articulation entre l'objet Bail V3 et

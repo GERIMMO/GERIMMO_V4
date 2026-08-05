@@ -3,8 +3,8 @@ type: process
 tags: [irl, revision, loyer, prescription]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
-sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
+updated: 2026-08-05
+sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
 # Révision annuelle IRL
@@ -37,7 +37,7 @@ Tâche quotidienne → détection des dates anniversaires → vérification de l
 
 | Cas | Comportement |
 |---|---|
-| **DPE F ou G (passoire thermique)** | **Blocage — révision légalement interdite** depuis août 2022 (RM-3.8.6) |
+| **DPE F ou G (passoire thermique)** | **Blocage — révision légalement interdite** depuis août 2022 (RM-3.8.6, confirmé par [[2026-08-05-bailpdf-contrat-de-bail\|BailPDF]] : ni révision ni augmentation, en cours de bail comme au renouvellement ; l'interdiction de **louer** suit son propre calendrier — [[Diagnostic]]) |
 | Date anniversaire + 1 an dépassée | **Blocage — révision prescrite** ; alerte forte avant expiration ([[Agenda et échéances]]) |
 | IRL en baisse | Le loyer baisse — rare mais légalement dû |
 | Dépôt de garantie, provisions | **Jamais modifiés** par la révision (RM-3.8.8, RM-2.1.5) |

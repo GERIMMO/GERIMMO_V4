@@ -3,8 +3,8 @@ type: concept
 tags: [garantie, caution, garant, visale, gli, caution-bancaire, bail]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]"]
+updated: 2026-08-05
+sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
 # Garantie
@@ -34,6 +34,9 @@ solidaire) → durée de l'engagement → génération de l'acte de cautionnemen
 **signature électronique Yousign via le module 13** (RM-2.2.6, décision actée) →
 **l'acte signé conditionne l'activation de la garantie** (RM-2.2.3). Yousign porte la
 preuve ([[Notification et valeur probante]], famille 2).
+Conforme au droit : **le garant ne signe pas le bail** — il signe un **acte de
+cautionnement distinct, annexé au bail**, reproduisant loyer, révision et durée de
+l'engagement ([[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]).
 
 **En colocation** : chaque garant couvre **un colocataire identifié** (RM-2.2.4 =
 RM-1.3.8), jamais le bail en bloc ; **son engagement s'éteint avec la solidarité du

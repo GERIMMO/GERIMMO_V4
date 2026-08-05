@@ -1005,3 +1005,53 @@ rejouée en prod (blocages explicites retournés : détention 0 %, DPE/ERP absen
 situation exacte du recetteur) ; lint, types, build, 31 tests locaux OK. Scénarios 3 et 4
 de [[Recette Sprint 2 - scenarios]] mis à jour (mise en location depuis la fiche bien).
 Déploiement confirmé : gerimmo-v4.vercel.app sert le commit du correctif (READY).
+
+## [2026-08-05] ingest | BailPDF — Contrat de bail (panorama des modèles et cadre légal)
+Source : https://bailpdf.com/contrat-de-bail (Selectra), déposée en
+`raw/bailpdf-contrat-de-bail.md` + 2 modèles PDF en `raw/assets/`. Site de
+vulgarisation — à recouper avec Légifrance avant tout gravage dans le modèle 1.16.
+**Créé** : [[2026-08-05-bailpdf-contrat-de-bail]] (source), [[Types de baux]]
+(panorama des 10 régimes, périmètre V3 vs hors périmètre),
+[[Mentions obligatoires du bail]] (8 rubriques du décret 2015-587 + ajouts 2024 du
+décret 2023-796), [[Clauses abusives et clauses résolutoires]] (9 non écrites,
+4 admises). **Mis à jour** : [[Bail]], [[Dépôt de garantie]],
+[[Restitution du dépôt de garantie]], [[Diagnostic]] (calendrier passoires : G interdit
+2025, F 2028, E 2034), [[Révision annuelle IRL]], [[Garantie]], [[Quittance conforme]].
+**Deux trous repérés** (callouts posés) : l'identifiant fiscal du logement et le bloc
+DPE/passoires (obligatoires depuis le 1/1/2024) sont absents des mentions du module 1
+et sans champ au lot ; la création de bail n'est pas bloquée/alertée sur DPE G malgré
+l'interdiction de louer depuis 2025. À vérifier sur Légifrance puis arbitrer.
+
+## [2026-08-05] ingest | BailPDF — Modèle de contrat de bail non meublé (PDF)
+Formulaire officiel du modèle-type (décret 2015-587) téléchargé depuis bailpdf.com,
+`raw/assets/contrat-bail-non-meuble.pdf` (texte extrait via pdftotext). Bien plus
+fiable que l'article : c'est le modèle-type quasi brut. **Créé** :
+[[2026-08-05-bailpdf-modele-bail-non-meuble]] (source),
+[[Structure du modèle-type de bail]] — les **11 sections du formulaire, champ par
+champ, mappées sur le modèle de données Gerimmo** : le blueprint demandé par l'humain
+pour le générateur de baux (1.16). **Mis à jour** : [[Bail]],
+[[Mentions obligatoires du bail]] (l'identifiant fiscal figure bien dans le formulaire
+officiel — trou du module 1 confirmé), [[Clauses abusives et clauses résolutoires]]
+(clause résolutoire exacte : troubles sur décision de justice, assurance pour compte),
+[[Diagnostic]] (calendrier décence outre-mer : F 2028, E 2031),
+[[Régularisation des charges]] (forfait possible uniquement en colocation pour un bail
+vide — restriction absente du module 3), [[Types de baux]] (durée réduite ≥ 1 an).
+**7 champs du formulaire sans équivalent Gerimmo** listés dans la page structure
+(identifiant fiscal, complément de loyer, durée réduite, réévaluation sous-évaluation,
+section travaux, assurance colocataires, descriptifs du bien). **Reste à ingérer** :
+le modèle meublé (`contrat-bail-meuble-1.pdf`) pour l'inventaire mobilier.
+
+## [2026-08-05] ingest | BailPDF — Modèle de contrat de bail meublé (PDF)
+Troisième source bailpdf.com : `raw/assets/contrat-bail-meuble-1.pdf`, le formulaire
+officiel du bail meublé. **Constat clé : même squelette de 11 sections que le modèle
+vide** — le générateur 1.16 peut être un gabarit unique à variantes. **Créé** :
+[[2026-08-05-bailpdf-modele-bail-meuble]] (source, lue en diff du modèle vide).
+**Mis à jour** : [[Structure du modèle-type de bail]] (tableau des variantes
+vide/meublé sur 4 sections : durée, forfait de charges, dépôt, annexes — blueprint
+désormais complet pour le périmètre V3), [[Bail]] (reconduction 1 an hors étudiant,
+inventaire mobilier = annexe légale), [[État des lieux]] (inventaire + état détaillé
+du mobilier à la remise des clés), [[Régularisation des charges]] (forfait libre en
+meublé vs colocation seule en vide), [[Types de baux]] (bail étudiant jamais reconduit),
+[[Dépôt de garantie]] (montant en toutes lettres). Aucune contradiction. La liste des
+meubles du décret 2015 n'est pas dans le formulaire — l'inventaire structuré Gerimmo
+est plus exigeant, dans le bon sens. Les 3 sources bailpdf sont ingérées.

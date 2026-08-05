@@ -3,8 +3,8 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-07-25
-sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
+updated: 2026-08-05
+sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
 # État des lieux
@@ -37,7 +37,10 @@ La grille est **générée depuis les pièces et équipements du lot** (RM-1.12.
 la liste fermée d'équipements du module 0 qui rend possible la génération ET la
 garantie que **la grille de sortie porte exactement les mêmes lignes que l'entrée**
 (RM-1.13.1). Une pièce découverte sur place peut être ajoutée : le lot est mis à jour.
-En meublé, l'inventaire mobilier (structuré, module 1.2) est repris dans la grille.
+En meublé, l'inventaire mobilier (structuré, module 1.2) est repris dans la grille —
+le formulaire officiel exige en annexe « un état des lieux, un inventaire et un état
+détaillé du mobilier », établis **à la remise des clés**, datés au plus tard du jour
+de la conclusion du contrat ([[2026-08-05-bailpdf-modele-bail-meuble]], section XI).
 Relevés de compteurs aux deux EDL (RM-1.13.5).
 
 ## Règles clés

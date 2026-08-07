@@ -1136,3 +1136,32 @@ comptabilité/export, S8 dépôt/restitution/copro, transverse charte+isolation)
 messages de refus exacts tirés des migrations et matrice de couverture des 16
 anomalies de la recette autonome. La validation des sprints 3→8 attend le déroulé
 humain de ces scénarios.
+
+## [2026-08-08] recette | Retours bloc 0 + S3 — bloc 0 validé, diagnostic des remarques
+
+Bloc 0 (non-régression S0–S2) : **validé** par l'humain (0.1, 0.2, 0.3 OK).
+Remarques S3 traitées : bug de clôture d'une détention à date de début future
+(contrainte `detentions_check` remontée en jargon SQL — corrigé : message clair
+orientant vers « Corriger ») ; doublon inter-agences confirmé **voulu**
+(isolation multi-tenant, détection nom + date de naissance dans la même agence
+seulement) ; lien locataire→lot = le bail (S4) ; propriétaire = locataire à
+trancher (avertissement non bloquant proposé, en attente).
+
+## [2026-08-08] ingest | Maquette — prototype cliquable (charte v2)
+
+L'humain livre `gerimmo-prototype.html` (copié dans `raw/maquettes/`), désigné
+référence de la charte graphique. Page source créée, synthèse
+[[Charte visuelle de l'espace agent]] marquée supplantée (palette encre
+bleue/laiton/crème, Instrument Sans remplace Jost).
+
+## [2026-08-08] sprint | Charte v2 appliquée (bloc 0 → S3) + refonte des alertes
+
+Appliqué dans `app/` : jetons globals.css, bandeau encre + nav laiton, connexion
+en deux volets, espaces, tableau de bord (KPI à jauges), alertes, puces de
+statut du parc. Refonte alertes (retour recette) : assignation obligatoire (≥ 1
+personne), « Tout le monde » réservé au responsable, alertes confiées à
+d'autres grisées en bas et intouchables (le responsable peut réassigner),
+modale Confier/Traiter avec message obligatoire, pop-up de connexion limitée à
+« mes alertes » avec bouton Fermer unique, KPI « À traiter » calculé sur mes
+alertes. Migration `alertes_assignation_obligatoire` appliquée (Supabase).
+Typecheck, lint, tests (72 ✓), build ✓, vérification visuelle locale ✓.

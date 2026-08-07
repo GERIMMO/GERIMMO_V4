@@ -4,6 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_GERANTS } from "@/lib/ged";
+import { ASSIGNATION_TOUS } from "@/lib/alertes";
 
 export type EtatAlerte = { erreur?: string; succes?: string };
 
@@ -12,7 +13,7 @@ async function verifierGerant(orgId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null };
+  if (!user) return { supabase, user: null, role: null };
   const { data: adhesion } = await supabase
     .from("memberships")
     .select("role")
@@ -21,9 +22,27 @@ async function verifierGerant(orgId: string) {
     .eq("status", "active")
     .maybeSingle();
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
-    return { supabase, user: null };
+    return { supabase, user: null, role: null };
   }
-  return { supabase, user };
+  return { supabase, user, role: adhesion.role as string };
+}
+
+// Le responsable de l'agence : seul autorisé à assigner « tout le monde ».
+// Le propriétaire direct gère seul son espace : même prérogative.
+const ROLES_RESPONSABLES = ["admin_agence", "proprietaire_direct"];
+
+// Une alerte se traite si elle est à moi ou à tout le monde ; le responsable
+// garde la main sur toutes (sinon une alerte confiée à un absent est bloquée).
+function peutAgir(
+  alerte: { assignee_account_id: string | null; assigned_all: boolean },
+  userId: string,
+  role: string
+) {
+  return (
+    alerte.assigned_all ||
+    alerte.assignee_account_id === userId ||
+    ROLES_RESPONSABLES.includes(role)
+  );
 }
 
 export async function creerAlerte(
@@ -31,8 +50,8 @@ export async function creerAlerte(
   _etat: EtatAlerte,
   formData: FormData
 ): Promise<EtatAlerte> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return { erreur: "Accès refusé." };
+  const { supabase, user, role } = await verifierGerant(orgId);
+  if (!user || !role) return { erreur: "Accès refusé." };
 
   const titre = String(formData.get("titre") ?? "").trim();
   const criticite = String(formData.get("criticite") ?? "normale");
@@ -43,6 +62,13 @@ export async function creerAlerte(
   if (!["informative", "normale", "critique"].includes(criticite)) {
     return { erreur: "Criticité invalide." };
   }
+  // Règle générale : une alerte est forcément assignée à au moins une personne
+  if (!assignee) return { erreur: "Choisir à qui l'alerte est assignée." };
+  if (assignee === ASSIGNATION_TOUS && !ROLES_RESPONSABLES.includes(role)) {
+    return {
+      erreur: "Seul le responsable de l'agence peut assigner à tout le monde.",
+    };
+  }
 
   const { error } = await supabase.from("alerts").insert({
     organization_id: orgId,
@@ -50,7 +76,8 @@ export async function creerAlerte(
     titre,
     criticite,
     echeance: echeance || null,
-    assignee_account_id: assignee || null,
+    assignee_account_id: assignee === ASSIGNATION_TOUS ? null : assignee,
+    assigned_all: assignee === ASSIGNATION_TOUS,
   });
   if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
@@ -58,58 +85,93 @@ export async function creerAlerte(
   return { succes: "Alerte créée." };
 }
 
-// Escalade nominative (module 14) : l'alerte se DÉPLACE vers quelqu'un,
-// elle ne se duplique jamais ; l'historique des escalades est conservé.
+// Confier (escalade nominative, module 14) : l'alerte se DÉPLACE vers
+// quelqu'un — ou vers tout le monde (responsable uniquement) — elle ne se
+// duplique jamais ; l'historique des escalades est conservé.
 export async function escaladerAlerte(
   orgId: string,
   alerteId: string,
+  _etat: EtatAlerte,
   formData: FormData
-): Promise<void> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return;
+): Promise<EtatAlerte> {
+  const { supabase, user, role } = await verifierGerant(orgId);
+  if (!user || !role) return { erreur: "Accès refusé." };
 
   const vers = String(formData.get("vers") ?? "");
-  if (!vers) return;
+  if (!vers) return { erreur: "Choisir à qui confier l'alerte." };
+  if (vers === ASSIGNATION_TOUS && !ROLES_RESPONSABLES.includes(role)) {
+    return {
+      erreur: "Seul le responsable de l'agence peut assigner à tout le monde.",
+    };
+  }
 
   const { data: alerte } = await supabase
     .from("alerts")
-    .select("assignee_account_id, escalades, statut, criticite")
+    .select("assignee_account_id, assigned_all, escalades, statut, criticite")
     .eq("id", alerteId)
     .eq("organization_id", orgId)
     .maybeSingle();
   // Une alerte informative ne s'escalade jamais (module 14)
-  if (!alerte || alerte.statut !== "ouverte" || alerte.criticite === "informative") return;
+  if (!alerte || alerte.statut !== "ouverte" || alerte.criticite === "informative") {
+    return { erreur: "Cette alerte ne peut pas être confiée." };
+  }
+  // Une alerte confiée à quelqu'un d'autre est intouchable (hors responsable)
+  if (!peutAgir(alerte, user.id, role)) {
+    return { erreur: "Cette alerte est confiée à quelqu'un d'autre." };
+  }
 
   const escalades = Array.isArray(alerte.escalades) ? alerte.escalades : [];
   escalades.push({
-    de: alerte.assignee_account_id,
+    de: alerte.assigned_all ? ASSIGNATION_TOUS : alerte.assignee_account_id,
     vers,
     par: user.id,
     le: new Date().toISOString(),
   });
 
-  await supabase
+  const { error } = await supabase
     .from("alerts")
-    .update({ assignee_account_id: vers, escalades })
+    .update({
+      assignee_account_id: vers === ASSIGNATION_TOUS ? null : vers,
+      assigned_all: vers === ASSIGNATION_TOUS,
+      escalades,
+    })
     .eq("id", alerteId)
     .eq("organization_id", orgId);
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/alertes`);
+  revalidatePath(`/agence/${orgId}`);
+  return { succes: "Alerte confiée." };
 }
 
-// Fermeture par l'action (module 14) : on enregistre CE QUI a fermé l'alerte.
+// Marquer traitée (module 14) : on enregistre CE QUI a fermé l'alerte.
 export async function fermerAlerte(
   orgId: string,
   alerteId: string,
+  _etat: EtatAlerte,
   formData: FormData
-): Promise<void> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return;
+): Promise<EtatAlerte> {
+  const { supabase, user, role } = await verifierGerant(orgId);
+  if (!user || !role) return { erreur: "Accès refusé." };
 
   const action = String(formData.get("action_effectuee") ?? "").trim();
-  if (!action) return;
+  if (!action) return { erreur: "Dire ce qui a été fait est obligatoire." };
 
-  await supabase
+  const { data: alerte } = await supabase
+    .from("alerts")
+    .select("assignee_account_id, assigned_all, statut")
+    .eq("id", alerteId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!alerte || alerte.statut !== "ouverte") {
+    return { erreur: "Cette alerte n'est plus ouverte." };
+  }
+  // Une alerte confiée à quelqu'un d'autre est grisée : on ne la ferme pas
+  if (!peutAgir(alerte, user.id, role)) {
+    return { erreur: "Cette alerte est confiée à quelqu'un d'autre." };
+  }
+
+  const { error } = await supabase
     .from("alerts")
     .update({
       statut: "fermee",
@@ -120,6 +182,9 @@ export async function fermerAlerte(
     .eq("id", alerteId)
     .eq("organization_id", orgId)
     .eq("statut", "ouverte");
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/alertes`);
+  revalidatePath(`/agence/${orgId}`);
+  return { succes: "Alerte traitée." };
 }

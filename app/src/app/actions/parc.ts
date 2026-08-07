@@ -319,6 +319,25 @@ export async function cloreDetention(
   const aujourdhui = new Date().toLocaleDateString("en-CA", {
     timeZone: "Europe/Paris",
   });
+
+  // Recette 08/08 : clore une détention qui n'a pas encore commencé posait
+  // date_fin < date_debut — la contrainte SQL claquait en jargon. Une
+  // détention future ne se clôt pas : c'est une erreur de saisie, on la
+  // supprime.
+  const { data: detention } = await supabase
+    .from("detentions")
+    .select("date_debut")
+    .eq("id", detentionId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (detention && detention.date_debut > aujourdhui) {
+    return {
+      erreur:
+        "Cette détention n'a pas encore débuté : elle ne peut pas être close. " +
+        "S'il s'agit d'une erreur de saisie, utilisez « Corriger » (suppression).",
+    };
+  }
+
   const { error } = await supabase
     .from("detentions")
     .update({ date_fin: aujourdhui })

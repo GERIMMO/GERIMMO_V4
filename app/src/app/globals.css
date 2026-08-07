@@ -58,80 +58,86 @@
 
 :root {
   /* ------------------------------------------------------------------ */
-  /* Charte graphique GERIMMO v1.0 — juillet 2026.                       */
-  /* Trois familles : un or, un graphite chaud, une gamme de crèmes.      */
-  /* L'or ne sert JAMAIS de fond : il signale (liseré actif, chiffre clé, */
-  /* bouton secondaire). Deux fonds maximum par écran.                    */
-  /* Marque blanche (module 17) : ces variables sont le seul point de     */
-  /* personnalisation — aucune couleur en dur dans les composants.        */
+  /* Charte graphique GERIMMO v2.0 — maquette août 2026                  */
+  /* (raw/maquettes/2026-08-08-gerimmo-prototype.html).                  */
+  /* Trois familles : une encre bleue profonde, un laiton, des crèmes.    */
+  /* L'encre porte le bandeau et les aplats ; le laiton signale (liseré   */
+  /* actif, pastille, bouton d'action) ; il ne sert jamais de fond de     */
+  /* page. Marque blanche (module 17) : ces variables restent le seul     */
+  /* point de personnalisation — aucune couleur en dur dans les           */
+  /* composants.                                                          */
   /* ------------------------------------------------------------------ */
 
-  /* Or */
-  --or-clair: #f6e59c;
-  --or: #cfa634;              /* liseré actif */
-  --or-texte: #8f6510;        /* or lisible sur fond clair */
+  /* Laiton (ex-« or » — les jetons gardent leur nom historique) */
+  --or-clair: #e8dfc9;
+  --or: #c9a227;              /* liseré actif, pastille */
+  --or-texte: #854f0b;        /* laiton lisible sur fond clair */
   --or-filet: #e0d3ab;
+  --sur-or: #412402;          /* texte posé sur un fond laiton */
 
-  /* Graphite chaud */
-  --encre: #1b1a16;           /* titres */
-  --graphite: #211f1a;        /* rail, aplats sombres */
-  --corps: #403c34;           /* corps de texte */
-  --texte-secondaire: #8b8474;
-  --libelle: #a09880;
+  /* Encre bleue */
+  --encre: #14304f;           /* titres, bandeau, aplats */
+  --graphite: #1d4066;        /* survol des aplats encre */
+  --sur-encre: #f5efe3;       /* texte posé sur fond encre */
+  --corps: #1c2024;           /* corps de texte */
+  --texte-secondaire: #4a4844;
+  --libelle: #6e675a;
 
-  /* Crèmes */
-  --creme: #f6f3ea;
-  --ivoire: #faf8f2;
-  --carte: #fffefa;
-  --filet: #e8e3d6;
-  --filet-leger: #f3efe4;
+  /* Crèmes et fonds */
+  --creme: #faf7f0;           /* fond de page */
+  --ivoire: #ffffff;          /* fond des cartes */
+  --carte: #ffffff;
+  --filet: #e4dcca;
+  --filet-leger: #f1efe8;
+  --ardoise: #e8eef4;         /* fond de sélection, rangs actifs */
+  --bleu: #2f6fb0;            /* liens, appuis froids */
 
   /* Correspondance avec les jetons de l'interface */
-  --background: var(--ivoire);
+  --background: var(--creme);
   --foreground: var(--corps);
   --card: var(--carte);
   --card-foreground: var(--corps);
   --popover: var(--carte);
   --popover-foreground: var(--corps);
-  --primary: var(--graphite);
-  --primary-foreground: var(--ivoire);
-  --secondary: var(--creme);
+  --primary: var(--encre);
+  --primary-foreground: var(--sur-encre);
+  --secondary: var(--filet-leger);
   --secondary-foreground: var(--encre);
   --muted: var(--filet-leger);
   --muted-foreground: var(--texte-secondaire);
-  --accent: var(--creme);
+  --accent: var(--ardoise);
   --accent-foreground: var(--encre);
 
-  /* États — les trois couleurs de statut de la charte.
-     Les badges s'écrivent en TEXTE COLORÉ, sans pastille ni fond : les
-     variantes -soft ne servent qu'aux encadrés d'alerte, jamais aux badges. */
-  --success: #4f7a52;              /* à jour, encaissé */
-  --success-soft: #eef3ee;
-  --success-soft-foreground: #4f7a52;
-  --warning: #a8791f;              /* en attente, relance */
-  --warning-soft: #f7f1e3;
-  --warning-soft-foreground: #a8791f;
-  --destructive: #a2453b;          /* retard, impayé */
-  --destructive-soft: #f6ecea;
-  --destructive-soft-foreground: #a2453b;
+  /* États — trois couleurs de statut ; les fonds -soft servent aux
+     encadrés d'alerte et aux puces de statut (maquette : puce fond doux
+     + texte foncé de la même famille). */
+  --success: #0f6e56;              /* à jour, encaissé, loué */
+  --success-soft: #e1f5ee;
+  --success-soft-foreground: #085041;
+  --warning: #ba7517;              /* en attente, en préparation */
+  --warning-soft: #faeeda;
+  --warning-soft-foreground: #854f0b;
+  --destructive: #a32d2d;          /* critique, retard, impayé */
+  --destructive-soft: #fcebeb;
+  --destructive-soft-foreground: #a32d2d;
 
   --border: var(--filet);
   --input: var(--filet);
   --ring: var(--or);
 
   --chart-1: var(--or);
-  --chart-2: var(--corps);
-  --chart-3: var(--texte-secondaire);
-  --chart-4: var(--or-texte);
-  --chart-5: var(--graphite);
+  --chart-2: var(--encre);
+  --chart-3: var(--bleu);
+  --chart-4: var(--warning);
+  --chart-5: var(--success);
 
-  /* Géométrie : rayon 3 px boutons et filtres, 4 px cartes et tableaux */
-  --radius: 0.25rem;
+  /* Géométrie maquette : cartes presque vives (2 px), boutons 6 px */
+  --radius: 0.375rem;
 
   --sidebar: var(--creme);
   --sidebar-foreground: var(--corps);
-  --sidebar-primary: var(--graphite);
-  --sidebar-primary-foreground: var(--ivoire);
+  --sidebar-primary: var(--encre);
+  --sidebar-primary-foreground: var(--sur-encre);
   --sidebar-accent: var(--filet-leger);
   --sidebar-accent-foreground: var(--encre);
   --sidebar-border: var(--filet);
@@ -187,8 +193,8 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Charte : corps 13 px en Jost */
-    font-size: 13px;
+    /* Charte v2 : corps 14 px en Instrument Sans */
+    font-size: 14px;
     line-height: 1.55;
   }
   html {
@@ -203,15 +209,19 @@
   h3 {
     font-family: var(--font-titres), Georgia, serif;
     color: var(--encre);
-    font-weight: 400;
+    font-weight: 500;
+    letter-spacing: 0.01em;
   }
   h1 {
-    font-size: 1.6875rem; /* 27 px */
+    font-size: 1.875rem; /* 30 px */
     line-height: 1.2;
   }
   h2 {
-    font-size: 1.375rem; /* 22 px */
+    font-size: 1.3125rem; /* 21 px */
     line-height: 1.25;
+  }
+  h3 {
+    font-size: 1.0625rem; /* 17 px */
   }
 
   /* Charte — mouvement : 0,15–0,20 s en ease, jamais de rebond ni de rotation */
@@ -248,13 +258,151 @@ a:hover > [data-slot="card"] {
 }
 [data-slot="card"] {
   transition: transform 0.17s ease, box-shadow 0.17s ease;
+  /* Maquette : cartes presque vives, l'arrondi reste aux boutons */
+  border-radius: 2px;
 }
 
-/* Charte — chiffre clé : Cormorant 34–36 px */
+/* Charte — chiffre clé : Cormorant ~29 px (maquette .kpi .chiffre) */
 .chiffre-cle {
   font-family: var(--font-titres), Georgia, serif;
-  font-size: 2.1875rem; /* 35 px */
-  font-weight: 400;
+  font-size: 1.8125rem; /* 29 px */
+  font-weight: 500;
   line-height: 1.1;
   color: var(--encre);
 }
+
+/* ------------------------------------------------------------------ */
+/* Composants de la maquette (charte v2) — classes partagées           */
+/* ------------------------------------------------------------------ */
+
+/* Sur-titre mono en capitales (maquette .eyebrow) */
+.eyebrow {
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--libelle);
+}
+
+/* Appui mono discret (maquette .mono) */
+.mono-discret {
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--libelle);
+}
+
+/* Tuile KPI : carte à liseré gauche, chiffre serif, jauge (maquette .kpi) */
+.kpi {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--ivoire);
+  border: 1px solid var(--filet);
+  border-left: 3px solid var(--libelle);
+  padding: 14px 16px;
+}
+.kpi.rouge { border-left-color: var(--destructive); }
+.kpi.or { border-left-color: var(--or); }
+.kpi.bleu { border-left-color: var(--bleu); }
+.kpi.vert { border-left-color: var(--success); }
+.kpi .chiffre {
+  font-family: var(--font-titres), Georgia, serif;
+  font-size: 29px;
+  font-weight: 500;
+  line-height: 1.1;
+  color: var(--encre);
+}
+a.kpi { color: inherit; position: relative; }
+a.kpi::after {
+  content: "›";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  color: var(--libelle);
+  font-size: 16px;
+  transition: transform 0.18s, color 0.18s;
+}
+a.kpi:hover { transform: translateY(-2px); border-color: var(--encre); }
+a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
+
+/* Jauge en segments (maquette .jauge) */
+.jauge { display: flex; gap: 3px; margin: 10px 0 7px; }
+.jauge span { height: 4px; display: block; }
+
+/* Puce de statut : pastille mono à fond doux (maquette .puce) */
+.puce {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.puce-loue { background: var(--success-soft); color: var(--success-soft-foreground); }
+.puce-prep { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+.puce-encre { background: var(--ardoise); color: var(--encre); }
+.puce-grise { background: var(--filet-leger); color: var(--texte-secondaire); }
+.puce-rouge { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
+
+/* Rang d'alerte : liseré de criticité à gauche (maquette .alerte) */
+.rang-alerte {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-left: 3px solid var(--libelle);
+  border-bottom: 1px solid var(--filet);
+  transition: background 0.15s;
+}
+.rang-alerte:last-child { border-bottom: none; }
+.rang-alerte:hover { background: #fcfaf5; }
+.rang-alerte.critique { border-left-color: var(--destructive); background: var(--destructive-soft); }
+.rang-alerte.critique:hover { background: #f9e0e0; }
+.rang-alerte.normale { border-left-color: var(--warning); }
+.rang-alerte .niveau {
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--texte-secondaire);
+}
+.rang-alerte.critique .niveau { color: var(--destructive); }
+.rang-alerte.normale .niveau { color: var(--warning-soft-foreground); }
+/* Alerte confiée à quelqu'un d'autre : grisée, aucune action possible */
+.rang-alerte.grisee {
+  border-left-color: var(--filet);
+  background: var(--filet-leger);
+  opacity: 0.62;
+}
+.rang-alerte.grisee:hover { background: var(--filet-leger); }
+
+/* Filtre en pastille (maquette .filtre) */
+.filtre {
+  font-size: 12px;
+  padding: 5px 13px;
+  border: 1px solid var(--filet);
+  border-radius: 20px;
+  background: var(--ivoire);
+  color: var(--texte-secondaire);
+}
+.filtre.actif {
+  background: var(--encre);
+  color: var(--sur-encre);
+  border-color: var(--encre);
+}
+
+/* Barre de complétude (maquette .barre) */
+.barre {
+  height: 5px;
+  background: var(--or-clair);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 70px;
+}
+.barre i { display: block; height: 100%; }

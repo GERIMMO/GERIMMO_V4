@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Jost, IBM_Plex_Mono } from "next/font/google";
+import { Cormorant_Garamond, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-// Charte graphique GERIMMO v1.0 (juillet 2026) — trois rôles, trois polices :
-// Cormorant Garamond pour la marque, les titres et les chiffres clés ;
-// Jost pour toute l'interface ; IBM Plex Mono pour les libellés en capitales.
+// Charte graphique GERIMMO v2.0 (maquette août 2026) — trois rôles, trois
+// polices : Cormorant Garamond pour la marque, les titres et les chiffres
+// clés ; Instrument Sans pour l'interface ; IBM Plex Mono pour les libellés.
 const titres = Cormorant_Garamond({
   variable: "--font-titres",
   subsets: ["latin"],
-  weight: ["400", "600"],
+  weight: ["400", "500"],
 });
 
-const interface_ = Jost({
+const interface_ = Instrument_Sans({
   variable: "--font-interface",
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: ["400", "500"],
 });
 
 const libelles = IBM_Plex_Mono({

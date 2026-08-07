@@ -2,15 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
 import { ClocheAlertes } from "@/components/cloche-alertes";
+import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 
 export const metadata = { title: "Mes espaces — Gerimmo" };
 
@@ -62,58 +56,86 @@ export default async function PageEspaces() {
     if (chemin) redirect(chemin);
   }
 
-  // Pop-up de synthèse à la connexion : toutes agences confondues (RLS)
+  // Pop-up de synthèse à la connexion : mes alertes, toutes agences confondues
   const alertes = await chargerSyntheseAlertes(supabase);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Mes espaces</h1>
-        <div className="flex items-center gap-2">
-          <ClocheAlertes alertes={alertes} />
-          <form action={seDeconnecter}>
-            <Button variant="outline" size="sm" type="submit">
-              Se déconnecter
-            </Button>
-          </form>
+    <div className="flex min-h-full flex-1 flex-col">
+      {/* Bandeau encre de la maquette, version nue : marque et sortie */}
+      <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3 sm:px-7">
+          <MarqueGerimmo surEncre />
+          <div className="flex items-center gap-4">
+            <ClocheAlertes alertes={alertes} surEncre />
+            <form action={seDeconnecter}>
+              <button
+                type="submit"
+                className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+              >
+                Se déconnecter
+              </button>
+            </form>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {adhesions.length === 0 && (
-        <p className="text-muted-foreground">
-          Aucun accès actif n&apos;est associé à votre compte. Rapprochez-vous
-          de votre agence.
+      <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
+        <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
+        <h1 className="mb-6">Mes espaces</h1>
+
+        {adhesions.length === 0 && (
+          <p className="text-muted-foreground">
+            Aucun accès actif n&apos;est associé à votre compte. Rapprochez-vous
+            de votre agence.
+          </p>
+        )}
+
+        <div className="grid gap-2.5">
+          {adhesions.map((a) => {
+            const chemin = cheminEspace(a);
+            const initiales = (a.organization?.name ?? "Gerimmo")
+              .split(/\s+/)
+              .map((m: string) => m[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
+            const carte = (
+              <span
+                className={`flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left transition-all ${
+                  chemin
+                    ? "hover:translate-x-[3px] hover:border-[var(--encre)]"
+                    : "opacity-60"
+                }`}
+              >
+                <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[var(--encre)] text-[13px] text-[var(--or)]">
+                  {initiales}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">
+                    {LIBELLES[a.role] ?? a.role}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">
+                    {a.organization?.name ?? "Toute la plateforme"}
+                    {!chemin && " — bientôt disponible"}
+                  </span>
+                </span>
+              </span>
+            );
+            return chemin ? (
+              <Link key={a.id} href={chemin}>
+                {carte}
+              </Link>
+            ) : (
+              <span key={a.id}>{carte}</span>
+            );
+          })}
+        </div>
+
+        <p className="mt-4.5 text-xs text-muted-foreground">
+          Le même compte peut porter plusieurs rôles : ce que vous voyez change
+          avec l&apos;espace, pas avec l&apos;identifiant.
         </p>
-      )}
-
-      <div className="grid gap-4">
-        {adhesions.map((a) => {
-          const chemin = cheminEspace(a);
-          const carte = (
-            <Card
-              key={a.id}
-              className={chemin ? "transition-colors hover:bg-accent" : "opacity-60"}
-            >
-              <CardHeader>
-                <CardTitle className="text-base">
-                  {LIBELLES[a.role] ?? a.role}
-                </CardTitle>
-                <CardDescription>
-                  {a.organization?.name ?? "Toute la plateforme"}
-                  {!chemin && " — bientôt disponible"}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          );
-          return chemin ? (
-            <Link key={a.id} href={chemin}>
-              {carte}
-            </Link>
-          ) : (
-            carte
-          );
-        })}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

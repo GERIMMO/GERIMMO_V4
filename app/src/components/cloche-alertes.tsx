@@ -5,9 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE } from "@/lib/ged";
 
-// Pop-up de synthèse des alertes à la connexion (S2, retour recette S1) :
-// vision macro toutes agences confondues, quel que soit le profil, puis accès
-// au détail pour répondre et fermer. Jamais bloquante (Échap, clic extérieur) ;
+// Pop-up de synthèse des alertes à la connexion (S2, revue recette 08/08) :
+// uniquement les alertes qui me sont confiées (nominativement ou « tout le
+// monde »), puis accès au détail pour répondre et fermer. Jamais bloquante
+// (Échap, clic extérieur, bouton Fermer en pied — seul bouton de sortie) ;
 // s'affiche une fois par session, rappelable via la cloche en permanence.
 
 export type AlerteSynthese = {
@@ -28,19 +29,22 @@ export const CLE_SESSION_ALERTES = "gerimmo-synthese-alertes-vue";
 export function ClocheAlertes({
   alertes,
   modeAdmin = false,
+  surEncre = false,
 }: {
   alertes: AlerteSynthese[];
   // Console SA : le détail renvoie vers la fiche agence de la console,
   // pas vers l'espace agence (dont le SA n'est pas membre)
   modeAdmin?: boolean;
+  // Bandeau encre de la maquette : la cloche s'éclaircit
+  surEncre?: boolean;
 }) {
   const [ouverte, setOuverte] = useState(false);
 
   // À la connexion : ouverture automatique une seule fois par session, et
-  // seulement s'il existe des alertes ouvertes. Le drapeau « vue » se pose à la
-  // FERMETURE, pas à l'ouverture : la page-relais /espaces monte ce composant
-  // puis redirige aussitôt — poser le drapeau à l'ouverture y « consommait »
-  // la synthèse sans que personne ne l'ait vue.
+  // seulement s'il existe des alertes qui me sont confiées. Le drapeau « vue »
+  // se pose à la FERMETURE, pas à l'ouverture : la page-relais /espaces monte
+  // ce composant puis redirige aussitôt — poser le drapeau à l'ouverture y
+  // « consommait » la synthèse sans que personne ne l'ait vue.
   useEffect(() => {
     if (alertes.length === 0 || sessionStorage.getItem(CLE_SESSION_ALERTES)) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
@@ -83,8 +87,12 @@ export function ClocheAlertes({
       <button
         type="button"
         onClick={() => setOuverte(true)}
-        aria-label={`Alertes ouvertes : ${alertes.length}`}
-        className="relative inline-flex items-center text-muted-foreground transition-colors hover:text-foreground"
+        aria-label={`Alertes qui me sont confiées : ${alertes.length}`}
+        className={`relative inline-flex items-center transition-colors ${
+          surEncre
+            ? "text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+            : "text-muted-foreground hover:text-foreground"
+        }`}
       >
         <svg
           aria-hidden
@@ -102,59 +110,49 @@ export function ClocheAlertes({
           <span
             aria-hidden
             className={`absolute -top-0.5 -right-0.5 size-2 rounded-full ${
-              nbCritiques > 0 ? "bg-destructive" : "bg-[var(--or)]"
-            }`}
+              nbCritiques > 0 ? "bg-[var(--destructive)]" : "bg-[var(--or)]"
+            } ${surEncre ? "ring-2 ring-[var(--encre)]" : ""}`}
           />
         )}
       </button>
 
       {ouverte && (
         <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-foreground/30 p-4 pt-[10vh]"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--encre)]/35 p-4 pt-[10vh]"
           onClick={fermer}
         >
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Synthèse des alertes"
-            className="w-full max-w-lg rounded-xl border border-border bg-background shadow-lg"
+            aria-label="Mes alertes"
+            className="w-full max-w-lg border border-border bg-background text-foreground shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div>
-                <h2 className="text-sm font-semibold">
-                  {alertes.length === 0
-                    ? "Aucune alerte ouverte"
-                    : `${alertes.length} alerte${alertes.length > 1 ? "s" : ""} ouverte${alertes.length > 1 ? "s" : ""}`}
-                </h2>
-                {nbCritiques > 0 && (
-                  <p className="text-xs text-destructive">
-                    dont {nbCritiques} critique{nbCritiques > 1 ? "s" : ""}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={fermer}
-                aria-label="Fermer"
-                className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted"
-              >
-                Fermer
-              </button>
+            {/* Tête encre façon maquette — pas de bouton de fermeture ici :
+                la sortie se fait par le bouton Fermer en pied (revue 08/08) */}
+            <div className="bg-[var(--encre)] px-5 py-3.5 text-[var(--sur-encre)]">
+              <h2 className="text-[17px] text-[var(--sur-encre)]">
+                {alertes.length === 0
+                  ? "Aucune alerte ne vous attend"
+                  : `${alertes.length} alerte${alertes.length > 1 ? "s" : ""} à traiter`}
+              </h2>
+              {nbCritiques > 0 && (
+                <p className="mono-discret text-[var(--sur-encre)]/70">
+                  dont {nbCritiques} critique{nbCritiques > 1 ? "s" : ""}
+                </p>
+              )}
             </div>
 
-            <div className="max-h-[55vh] overflow-y-auto px-4 py-2">
+            <div className="max-h-[55vh] overflow-y-auto px-5 py-2">
               {alertes.length === 0 ? (
                 <p className="py-4 text-sm text-muted-foreground">
-                  Rien à signaler — tout est traité.
+                  Rien ne vous est confié — tout est traité.
                 </p>
               ) : (
                 [...parAgence.entries()].map(([agenceId, groupe]) => (
                   <div key={agenceId} className="py-2">
                     {multiAgences && (
-                      <p className="pb-1 text-xs font-medium text-muted-foreground">
-                        {groupe.nom}
-                      </p>
+                      <p className="eyebrow pb-1">{groupe.nom}</p>
                     )}
                     <ul className="divide-y divide-border">
                       {groupe.liste.map((a) => (
@@ -177,7 +175,7 @@ export function ClocheAlertes({
                                 : `/agence/${a.organization_id}/alertes`
                             }
                             onClick={fermer}
-                            className="shrink-0 text-xs text-muted-foreground underline-offset-2 hover:underline"
+                            className="shrink-0 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
                           >
                             Traiter
                           </Link>
@@ -189,13 +187,13 @@ export function ClocheAlertes({
               )}
             </div>
 
-            <div className="border-t border-border px-4 py-2 text-right">
+            <div className="border-t border-border px-5 py-2.5 text-right">
               <button
                 type="button"
                 onClick={fermer}
-                className="rounded-md px-3 py-1.5 text-sm hover:bg-muted"
+                className="rounded-md border border-[var(--filet)] bg-[var(--ivoire)] px-4 py-1.5 text-sm text-[var(--encre)] transition-colors hover:bg-[var(--ardoise)]"
               >
-                Continuer vers l&apos;application
+                Fermer
               </button>
             </div>
           </div>

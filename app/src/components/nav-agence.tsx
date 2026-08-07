@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-// Navigation de l'espace agence — charte : l'or signale le liseré actif.
+// Navigation de l'espace agence — maquette : onglets posés sur le bandeau
+// encre, liseré laiton sous l'onglet actif, badge rouge sur Alertes.
 // Chaque module de sprint ajoute son entrée ici.
 export function NavAgence({
   orgId,
@@ -29,7 +30,7 @@ export function NavAgence({
   ];
 
   return (
-    <nav className="flex gap-1 overflow-x-auto">
+    <nav className="flex gap-6 overflow-x-auto [scrollbar-width:none]">
       {entrees.map((e) => {
         const active = e.exact ? pathname === e.href : pathname.startsWith(e.href);
         return (
@@ -37,17 +38,15 @@ export function NavAgence({
             key={e.href}
             href={e.href}
             className={cn(
-              // Liseré or sous l'entrée active, tracé en permanence pour que
-              // la ligne de base ne saute pas d'un onglet à l'autre.
-              "flex shrink-0 items-center gap-2 border-b-2 px-3.5 py-3 text-[0.8125rem] tracking-[0.02em] transition-colors",
+              "flex shrink-0 items-center border-b-2 py-3 text-[13px] whitespace-nowrap transition-colors",
               active
-                ? "border-[var(--or)] font-medium text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? "border-[var(--or)] text-[var(--sur-encre)]"
+                : "border-transparent text-[var(--sur-encre)]/60 hover:text-[var(--sur-encre)]"
             )}
           >
             {e.libelle}
             {e.badge !== undefined && (
-              <span className="flex size-[1.15rem] items-center justify-center rounded-full border border-[var(--or-filet)] text-[0.6875rem] text-[var(--or-texte)]">
+              <span className="ml-1.5 rounded-full bg-[var(--destructive)] px-[7px] py-px font-[family-name:var(--font-libelles)] text-[10px] text-white">
                 {e.badge}
               </span>
             )}

@@ -31,13 +31,13 @@ export const ETATS_LOT: Record<string, string> = {
 };
 
 // Classes de badge par état — uniquement des tokens du design system
-// Charte 04 — badges de statut : texte coloré, sans pastille ni fond.
+// Charte v2 (maquette) — puces de statut : pastille mono à fond doux.
 export const COULEURS_ETAT_LOT: Record<string, string> = {
-  brouillon: "text-muted-foreground",
-  disponible: "text-success-soft-foreground",
-  loue: "text-foreground",
-  preavis: "text-warning-soft-foreground",
-  archive: "text-muted-foreground opacity-70",
+  brouillon: "puce puce-prep",
+  disponible: "puce puce-encre",
+  loue: "puce puce-loue",
+  preavis: "puce puce-prep",
+  archive: "puce puce-grise",
 };
 
 export type NiveauDiagnostic = "bien" | "lot";

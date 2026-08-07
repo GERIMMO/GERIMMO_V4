@@ -1,14 +1,8 @@
 import Link from "next/link";
-import { afficherEcheance } from "@/lib/echeances";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  CRITICITES,
-  COULEURS_CRITICITE,
-  ROLES_GERANTS,
-  formaterDateHeure,
-} from "@/lib/ged";
-import { escaladerAlerte, fermerAlerte } from "@/app/actions/alertes";
+import { ROLES_GERANTS, formaterDateHeure } from "@/lib/ged";
+import { estConfieeAMoi } from "@/lib/alertes";
 import {
   Card,
   CardContent,
@@ -16,10 +10,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { FormulaireAlerte } from "./formulaire-alerte";
+import { ListeAlertes, type AlerteRang } from "./liste-alertes";
 
 export const metadata = { title: "Alertes — Gerimmo" };
+
+// Le responsable de l'agence garde la main sur toutes les alertes et peut
+// assigner « tout le monde » (revue recette 08/08)
+const ROLES_RESPONSABLES = ["admin_agence", "proprietaire_direct"];
 
 export default async function PageAlertes(
   props: PageProps<"/agence/[orgId]/alertes">
@@ -41,6 +39,7 @@ export default async function PageAlertes(
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
     redirect("/espaces");
   }
+  const estResponsable = ROLES_RESPONSABLES.includes(adhesion.role);
 
   const { data: organisation } = await supabase
     .from("organizations")
@@ -73,116 +72,36 @@ export default async function PageAlertes(
     email: string;
     role: string;
   }[];
-  const emailParCompte = new Map<string, string>(
-    membres.map((m) => [m.account_id, m.email])
-  );
+
+  const rangs = (ouvertes ?? []) as AlerteRang[];
+  const nbMiennes = rangs.filter((a) => estConfieeAMoi(a, user.id)).length;
 
   return (
-    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-      <div className="mb-6">
-        <p className="text-sm text-muted-foreground">
-          <Link href={`/agence/${orgId}`} className="hover:underline">
-            {organisation.name}
-          </Link>{" "}
-          / Alertes
-        </p>
-        <h1 className="text-2xl font-semibold">Alertes</h1>
+    <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
+      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            <Link href={`/agence/${orgId}`} className="hover:underline">
+              {organisation.name}
+            </Link>{" "}
+            / Alertes
+          </p>
+          <h1>Alertes</h1>
+        </div>
+        <span className="mono-discret">
+          {`${nbMiennes} à traiter · ${rangs.length - nbMiennes} confiée${rangs.length - nbMiennes > 1 ? "s" : ""} à d'autres`}
+        </span>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Ouvertes ({(ouvertes ?? []).length})
-              </CardTitle>
-              <CardDescription>
-                Une alerte se ferme en disant ce qui a été fait. La confier à
-                quelqu&apos;un la lui transmet : elle change de main, elle ne se
-                dédouble pas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {(ouvertes ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune alerte ouverte.</p>
-              ) : (
-                <ul className="divide-y">
-                  {(ouvertes ?? []).map((a) => {
-                    const escaladeLiee = escaladerAlerte.bind(null, orgId, a.id);
-                    const fermetureLiee = fermerAlerte.bind(null, orgId, a.id);
-                    const nbEscalades = Array.isArray(a.escalades)
-                      ? a.escalades.length
-                      : 0;
-                    return (
-                      <li key={a.id} className="space-y-2 py-3 text-sm">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`badge-statut shrink-0 ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
-                          >
-                            {CRITICITES[a.criticite] ?? a.criticite}
-                          </span>
-                          <span className="font-medium">{a.titre}</span>
-                          {afficherEcheance(a.echeance) && (
-                            <span className={afficherEcheance(a.echeance)!.classe}>
-                              {afficherEcheance(a.echeance)!.texte}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {a.assignee_account_id
-                            ? `Confiée à ${emailParCompte.get(a.assignee_account_id) ?? "—"}`
-                            : "Personne ne s'en occupe encore"}
-                          {nbEscalades > 0 &&
-                            ` · transmise ${nbEscalades} fois`}
-                          {" · créée le "}
-                          {formaterDateHeure(a.created_at)}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2">
-                          {a.criticite !== "informative" && (
-                            <form action={escaladeLiee} className="flex items-center gap-1">
-                              <select
-                                name="vers"
-                                required
-                                className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
-                                defaultValue=""
-                              >
-                                <option value="" disabled>
-                                  Confier à…
-                                </option>
-                                {membres
-                                  .filter(
-                                    (m) => m.account_id !== a.assignee_account_id
-                                  )
-                                  .map((m) => (
-                                    <option key={m.account_id} value={m.account_id}>
-                                      {m.email}
-                                    </option>
-                                  ))}
-                              </select>
-                              <Button variant="outline" size="sm" type="submit">
-                                Confier
-                              </Button>
-                            </form>
-                          )}
-                          <form action={fermetureLiee} className="flex flex-1 items-center gap-1">
-                            <input
-                              name="action_effectuee"
-                              required
-                              placeholder="Ce que vous avez fait…"
-                              className="h-8 min-w-40 flex-1 rounded-md border border-input bg-transparent px-2 text-xs"
-                            />
-                            <Button variant="outline" size="sm" type="submit">
-                              Fermer
-                            </Button>
-                          </form>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
+          <ListeAlertes
+            orgId={orgId}
+            alertes={rangs}
+            membres={membres}
+            monCompte={user.id}
+            estResponsable={estResponsable}
+          />
 
           <Card>
             <CardHeader>
@@ -222,7 +141,11 @@ export default async function PageAlertes(
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <FormulaireAlerte orgId={orgId} membres={membres} />
+            <FormulaireAlerte
+              orgId={orgId}
+              membres={membres}
+              estResponsable={estResponsable}
+            />
           </CardContent>
         </Card>
       </div>

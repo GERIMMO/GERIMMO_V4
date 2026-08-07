@@ -33,7 +33,7 @@ type Alerte = {
 // est dépassé et ce qui vient.
 export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId]">) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, user } = await verifierAccesEspace(orgId);
 
   const [
     { count: nbBiens },
@@ -45,11 +45,14 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   ] = await Promise.all([
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
+    // « À traiter » se calcule sur MES alertes (revue recette 08/08) : celles
+    // qui me sont confiées nominativement, plus celles à tout le monde.
     supabase
       .from("alerts")
       .select("id, type, criticite, titre, echeance, details, created_at")
       .eq("organization_id", orgId)
-      .eq("statut", "ouverte"),
+      .eq("statut", "ouverte")
+      .or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`),
     supabase
       .from("documents")
       .select("*", { count: "exact", head: true })
@@ -183,7 +186,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
       <div className="mb-[1.125rem] flex flex-wrap items-baseline justify-between gap-3">
         <h1>Tableau de bord</h1>
-        <p className="libelle-champ">
+        <p className="mono-discret">
           {new Date().toLocaleDateString("fr-FR", {
             weekday: "long",
             day: "numeric",
@@ -200,67 +203,82 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         </p>
       </div>
 
-      {/* Trois chiffres clés. Charte : l'or signale — un liseré sur celui qui
-          appelle une action, jamais un aplat. */}
-      <div className="mb-[1.125rem] grid gap-[1.125rem] sm:grid-cols-3">
-        <Link href={`/agence/${orgId}/alertes`}>
-          <Card className={`h-full ${depassees.length > 0 ? "border-l-2 border-l-[var(--or)]" : ""}`}>
-            <CardContent className="space-y-1">
-              <p className="libelle-champ">À traiter</p>
-              <p className="flex items-baseline gap-2">
-                <span className="chiffre-cle">{alertes.length}</span>
-                <span className="text-sm text-muted-foreground">
-                  alerte{alertes.length > 1 ? "s" : ""} ouverte{alertes.length > 1 ? "s" : ""}
-                </span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {plusUrgente ? (
-                  <>
-                    La plus urgente est <span className={plusUrgente.classe}>{plusUrgente.texte}</span>
-                  </>
-                ) : alertes.length > 0 ? (
-                  "Aucune n'est en retard"
-                ) : (
-                  "Rien en attente"
-                )}
-              </p>
-            </CardContent>
-          </Card>
+      {/* Trois chiffres clés — tuiles KPI de la maquette : liseré de couleur à
+          gauche, chiffre serif, jauge en segments. */}
+      <div className="mb-[1.125rem] grid gap-3.5 sm:grid-cols-3">
+        <Link href={`/agence/${orgId}/alertes`} className="kpi rouge h-full">
+          <span className="eyebrow">À traiter</span>
+          <span className="mt-1 flex items-baseline gap-2">
+            <span className="chiffre">{alertes.length}</span>
+            <span className="text-sm text-muted-foreground">
+              alerte{alertes.length > 1 ? "s" : ""} qui{" "}
+              {alertes.length > 1 ? "vous sont confiées" : "vous est confiée"}
+            </span>
+          </span>
+          <span className="jauge" aria-hidden>
+            <span
+              style={{
+                flex: alertes.filter((a) => a.criticite === "critique").length || 0.01,
+                background: "var(--destructive)",
+              }}
+            />
+            <span
+              style={{
+                flex:
+                  alertes.length -
+                    alertes.filter((a) => a.criticite === "critique").length || 0.01,
+                background: "var(--warning)",
+              }}
+            />
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            {plusUrgente ? (
+              <>
+                La plus urgente est{" "}
+                <span className={plusUrgente.classe}>{plusUrgente.texte}</span>
+              </>
+            ) : alertes.length > 0 ? (
+              "Aucune n'est en retard"
+            ) : (
+              "Rien en attente"
+            )}
+          </span>
         </Link>
 
-        <Link href={`/agence/${orgId}/parc`}>
-          <Card className="h-full">
-            <CardContent className="space-y-1">
-              <p className="libelle-champ">Parc</p>
-              <p className="flex items-baseline gap-2">
-                <span className="chiffre-cle">{nbBiens ?? 0}</span>
-                <span className="text-sm text-muted-foreground">
-                  bien{(nbBiens ?? 0) > 1 ? "s" : ""} · {lotsActifs.length} lot
-                  {lotsActifs.length > 1 ? "s" : ""}
-                </span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {nbLoues} loué{nbLoues > 1 ? "s" : ""} · {enPreparation.length} en préparation
-              </p>
-            </CardContent>
-          </Card>
+        <Link href={`/agence/${orgId}/parc`} className="kpi or h-full">
+          <span className="eyebrow">Parc</span>
+          <span className="mt-1 flex items-baseline gap-2">
+            <span className="chiffre">{nbBiens ?? 0}</span>
+            <span className="text-sm text-muted-foreground">
+              bien{(nbBiens ?? 0) > 1 ? "s" : ""} · {lotsActifs.length} lot
+              {lotsActifs.length > 1 ? "s" : ""}
+            </span>
+          </span>
+          <span className="jauge" aria-hidden>
+            <span style={{ flex: nbLoues || 0.01, background: "var(--success)" }} />
+            <span
+              style={{
+                flex: lotsActifs.length - nbLoues || 0.01,
+                background: "var(--or-clair)",
+              }}
+            />
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            {nbLoues} loué{nbLoues > 1 ? "s" : ""} · {enPreparation.length} en préparation
+          </span>
         </Link>
 
-        <Link href={`/agence/${orgId}/documents`}>
-          <Card className="h-full">
-            <CardContent className="space-y-1">
-              <p className="libelle-champ">Documents</p>
-              <p className="flex items-baseline gap-2">
-                <span className="chiffre-cle">{nbDocuments ?? 0}</span>
-                <span className="text-sm text-muted-foreground">
-                  pièce{(nbDocuments ?? 0) > 1 ? "s" : ""} déposée{(nbDocuments ?? 0) > 1 ? "s" : ""}
-                </span>
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {dernierDoc ? `Dernier dépôt : ${formaterDate(dernierDoc.created_at)}` : "Aucun dépôt"}
-              </p>
-            </CardContent>
-          </Card>
+        <Link href={`/agence/${orgId}/documents`} className="kpi bleu h-full">
+          <span className="eyebrow">Documents</span>
+          <span className="mt-1 flex items-baseline gap-2">
+            <span className="chiffre">{nbDocuments ?? 0}</span>
+            <span className="text-sm text-muted-foreground">
+              pièce{(nbDocuments ?? 0) > 1 ? "s" : ""} déposée{(nbDocuments ?? 0) > 1 ? "s" : ""}
+            </span>
+          </span>
+          <span className="block pt-[17px] text-xs text-muted-foreground">
+            {dernierDoc ? `Dernier dépôt : ${formaterDate(dernierDoc.created_at)}` : "Aucun dépôt"}
+          </span>
         </Link>
       </div>
 

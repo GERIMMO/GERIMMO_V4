@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { creerAlerte, type EtatAlerte } from "@/app/actions/alertes";
+import { ASSIGNATION_TOUS } from "@/lib/alertes";
 import { CRITICITES } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,9 +13,12 @@ type Membre = { account_id: string; email: string; role: string };
 export function FormulaireAlerte({
   orgId,
   membres,
+  estResponsable,
 }: {
   orgId: string;
   membres: Membre[];
+  // Seul le responsable de l'agence peut assigner à tout le monde
+  estResponsable: boolean;
 }) {
   const actionLiee = creerAlerte.bind(null, orgId);
   const [etat, action, enCours] = useActionState<EtatAlerte, FormData>(
@@ -56,20 +60,28 @@ export function FormulaireAlerte({
         <Input id="echeance" name="echeance" type="date" />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="assignee">Assigner à (facultatif)</Label>
+        <Label htmlFor="assignee">Assigné à</Label>
         <select
           id="assignee"
           name="assignee"
+          required
           defaultValue=""
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
-          <option value="">— Personne —</option>
+          <option value="" disabled>
+            — Choisir —
+          </option>
+          {/* Seul le responsable de l'agence peut assigner à tout le monde */}
+          {estResponsable && <option value={ASSIGNATION_TOUS}>Tout le monde</option>}
           {membres.map((m) => (
             <option key={m.account_id} value={m.account_id}>
               {m.email}
             </option>
           ))}
         </select>
+        <p className="text-xs text-muted-foreground">
+          Une alerte est toujours assignée à au moins une personne.
+        </p>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (

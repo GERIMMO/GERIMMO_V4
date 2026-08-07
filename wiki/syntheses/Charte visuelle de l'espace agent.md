@@ -9,6 +9,14 @@ sources: ["raw/Gerimmo-V3/docs/03-design-system.md"]
 
 # Charte visuelle de l'espace agent
 
+> [!warning] Supplantée le 2026-08-08
+> La maquette cliquable ([[2026-08-08-maquette-prototype-cliquable]]) devient la
+> référence graphique (« charte v2 ») : palette encre bleue/laiton/crème,
+> Instrument Sans à la place de Jost, bandeau encre, puces à fond doux. Les
+> principes d'usage ci-dessous (concevoir pour un agent débutant, français
+> intégral, marque blanche par jetons) restent valables ; les valeurs de
+> couleurs/polices de cette page ne le sont plus.
+
 **En une phrase :** complète le squelette `03-design-system.md` de V3 (sections
 « à compléter ») avec les conventions **validées en recette** le 2026-08-02 — pour
 qu'un écran futur (S7 incidents…) naisse conforme au lieu d'être harmonisé après coup.

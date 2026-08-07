@@ -1165,3 +1165,17 @@ modale Confier/Traiter avec message obligatoire, pop-up de connexion limitée à
 « mes alertes » avec bouton Fermer unique, KPI « À traiter » calculé sur mes
 alertes. Migration `alertes_assignation_obligatoire` appliquée (Supabase).
 Typecheck, lint, tests (72 ✓), build ✓, vérification visuelle locale ✓.
+
+## [2026-08-08] sprint | Règles Personnes et Parc (retour recette) + assistant maquette
+
+Personnes : nom, prénom (sauf raison sociale) et **email obligatoires** ;
+**email unique par agence** (index en base, doublon de test archivé — jamais
+supprimé) ; création refondue en **assistant 2 étapes** façon maquette (rôle →
+identité, avance auto, retour possible, rattachement facultatif d'un lot avec
+recherche pour le propriétaire mandant → détention 100 %). Parc : la création
+inline d'un propriétaire depuis la fiche lot exige l'email (fiche « propriétaire
+mandant ») ; espace propriétaire bailleur → bloc « Propriétaires du lot »
+masqué, détention posée automatiquement sur sa propre fiche à la création du
+bien. Interprétation à valider : le rattachement locataire/garant passe par le
+bail (S4) — l'assistant l'explique au lieu de proposer un lien mort.
+Migration `persons_email_unique` appliquée. Typecheck, lint, tests, build ✓.

@@ -47,7 +47,7 @@ export default async function PageLot(
   props: PageProps<"/agence/[orgId]/parc/[bienId]/lots/[lotId]">
 ) {
   const { orgId, bienId, lotId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, role } = await verifierAccesEspace(orgId);
 
   const [
     { data: lot },
@@ -235,7 +235,10 @@ export default async function PageLot(
             <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
           </div>
 
-          {/* Détention */}
+          {/* Détention — masquée pour le propriétaire bailleur (recette
+              08/08) : le propriétaire, c'est lui ; la détention existe bien
+              en base (posée à la création du bien), inutile de la montrer. */}
+          {role !== "proprietaire_direct" && (
           <SectionLot
             id="detention"
             titre="Propriétaires du lot"
@@ -310,6 +313,7 @@ export default async function PageLot(
               />
             </div>
           </SectionLot>
+          )}
 
           {/* Diagnostics */}
           <SectionLot

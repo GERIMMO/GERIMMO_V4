@@ -8,7 +8,7 @@ export async function verifierGerant(orgId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null };
+  if (!user) return { supabase, user: null, role: null };
   const { data: adhesion } = await supabase
     .from("memberships")
     .select("role")
@@ -17,7 +17,7 @@ export async function verifierGerant(orgId: string) {
     .eq("status", "active")
     .maybeSingle();
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
-    return { supabase, user: null };
+    return { supabase, user: null, role: null };
   }
-  return { supabase, user };
+  return { supabase, user, role: adhesion.role as string };
 }

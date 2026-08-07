@@ -20,7 +20,7 @@ export async function creerBien(
   _etat: EtatParc,
   formData: FormData
 ): Promise<EtatParc> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const nom = String(formData.get("nom") ?? "").trim();
@@ -75,6 +75,49 @@ export async function creerBien(
     p_pieces: premier?.pieces ? Number(premier.pieces) : pieces ? Number(pieces) : null,
   });
   if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
+
+  // Espace propriétaire direct (recette 08/08) : le propriétaire d'un bien,
+  // c'est lui — le champ propriétaire est masqué à l'écran mais la détention
+  // est bel et bien posée en base, sur sa propre fiche (créée au besoin).
+  // Posée AVANT le découpage : les lots supplémentaires en héritent.
+  if (role === "proprietaire_direct" && bienId) {
+    let { data: fiche } = await supabase
+      .from("persons")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("account_id", user.id)
+      .is("archived_at", null)
+      .maybeSingle();
+    if (!fiche) {
+      const { data: creee } = await supabase
+        .from("persons")
+        .insert({
+          organization_id: orgId,
+          account_id: user.id,
+          nom: user.email?.split("@")[0] ?? "Propriétaire",
+          email: user.email ?? null,
+        })
+        .select("id")
+        .single();
+      fiche = creee;
+    }
+    if (fiche) {
+      const { data: lotUnique } = await supabase
+        .from("lots")
+        .select("id")
+        .eq("bien_id", bienId)
+        .eq("organization_id", orgId)
+        .maybeSingle();
+      if (lotUnique) {
+        await supabase.from("detentions").insert({
+          lot_id: lotUnique.id,
+          organization_id: orgId,
+          person_id: fiche.id,
+          quote_part: 100,
+        });
+      }
+    }
+  }
 
   if (lotsSaisis.length > 0 && bienId) {
     // Le lot d'origine porte le nom saisi pour le premier lot
@@ -277,15 +320,32 @@ export async function ajouterDetention(
   // volée (les fiches complètes arrivent au S3)
   let personId = String(formData.get("person_id") ?? "");
   if (personId === "nouvelle") {
+    // Pop-up « le propriétaire n'existe pas » (recette 08/08) : fiche créée à
+    // la volée avec le rôle propriétaire mandant — mêmes règles que
+    // l'assistant : nom, prénom et email obligatoires, email unique.
     const nom = String(formData.get("nouveau_nom") ?? "").trim();
     const prenom = String(formData.get("nouveau_prenom") ?? "").trim();
+    const email = String(formData.get("nouveau_email") ?? "").trim();
     if (!nom) return { erreur: "Le nom du nouveau propriétaire est obligatoire." };
+    if (!email) return { erreur: "L'adresse email du propriétaire est obligatoire." };
+    const { data: memeEmail } = await supabase
+      .from("persons")
+      .select("id")
+      .eq("organization_id", orgId)
+      .ilike("email", email)
+      .is("archived_at", null);
+    if ((memeEmail ?? []).length > 0) {
+      return {
+        erreur:
+          "Cette adresse email est déjà portée par une fiche de l'agence — choisissez la personne existante dans la liste.",
+      };
+    }
     const { data: personne, error: erreurPersonne } = await supabase
       .from("persons")
-      .insert({ organization_id: orgId, nom, prenom: prenom || null })
+      .insert({ organization_id: orgId, nom, prenom: prenom || null, email })
       .select("id")
       .single();
-    if (erreurPersonne) return { erreur: erreurPersonne.message };
+    if (erreurPersonne) return { erreur: sansJargon(erreurPersonne.message) };
     personId = personne.id;
   }
   if (!personId) return { erreur: "Choisir un propriétaire." };

@@ -128,13 +128,30 @@ export function FormulaireDetention({
         )}
         {choix === "nouvelle" && (
           <>
+            {/* Le propriétaire n'existe pas : fiche créée à la volée avec le
+                rôle propriétaire mandant — mêmes règles que l'assistant
+                (email obligatoire et unique dans l'agence). */}
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Nouveau <b>propriétaire mandant</b> — la fiche complète se
+              retrouve dans Personnes.
+            </p>
             <div className="space-y-1.5">
-              <Label htmlFor="detention-nom">Nom</Label>
+              <Label htmlFor="detention-nom">Nom ou raison sociale *</Label>
               <Input id="detention-nom" name="nouveau_nom" required maxLength={120} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="detention-prenom">Prénom</Label>
               <Input id="detention-prenom" name="nouveau_prenom" maxLength={120} />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="detention-email">Adresse email *</Label>
+              <Input
+                id="detention-email"
+                name="nouveau_email"
+                type="email"
+                required
+                maxLength={200}
+              />
             </div>
           </>
         )}

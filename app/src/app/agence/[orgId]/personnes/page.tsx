@@ -11,7 +11,7 @@ export const metadata = { title: "Personnes — Gerimmo" };
 // sinon elle n'apprend rien.
 export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/personnes">) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, role } = await verifierAccesEspace(orgId);
 
   const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
   const [
@@ -20,6 +20,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     { data: mandats },
     { data: baux },
     { data: bailPersonnes },
+    { data: lots },
   ] = await Promise.all([
     supabase
       .from("persons")
@@ -44,6 +45,13 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
       .from("bail_personnes")
       .select("person_id, role, bail_id")
       .eq("organization_id", orgId),
+    // Lots rattachables depuis l'assistant (adresse du bien pour la recherche)
+    supabase
+      .from("lots")
+      .select("id, nom, bien:biens(address_line1, city)")
+      .eq("organization_id", orgId)
+      .neq("etat", "archive")
+      .order("nom"),
   ]);
 
   // Seuls les liens vivants font un rôle : une détention close ou un bail
@@ -79,10 +87,23 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     (personnes ?? []) as Omit<PersonneListe, "roles">[]
   ).map((p) => ({ ...p, roles: rolesDePersonne(p.id, liens) }));
 
+  type LotBrut = {
+    id: string;
+    nom: string;
+    bien: { address_line1: string; city: string } | { address_line1: string; city: string }[] | null;
+  };
+  const lotsRattachables = ((lots ?? []) as LotBrut[]).map((l) => {
+    const bien = Array.isArray(l.bien) ? l.bien[0] : l.bien;
+    return {
+      id: l.id,
+      libelle: bien ? `${l.nom} — ${bien.address_line1}, ${bien.city}` : l.nom,
+    };
+  });
+
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Personnes</h1>
+        <h1>Personnes</h1>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
@@ -91,8 +112,12 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
         <aside>
           <Card>
             <CardContent className="pt-6">
-              <p className="mb-3 text-sm font-medium">Nouvelle personne</p>
-              <FormulairePersonne orgId={orgId} />
+              <p className="mb-3 text-sm font-medium">Créer une fiche</p>
+              <FormulairePersonne
+                orgId={orgId}
+                lots={lotsRattachables}
+                estBailleurDirect={role === "proprietaire_direct"}
+              />
             </CardContent>
           </Card>
         </aside>

@@ -1232,3 +1232,13 @@ Revue de code : 6 défauts corrigés (concurrence escalades/mandats, prénom
 effaçable, pop-up clavier/fond). Test d''immuabilité du mandat résilié ajouté à
 la suite. Lint/build/tests OK (suite SQL sautée : pas de SUPABASE_DB_URL sur ce
 poste). Déployé sur Vercel via push.
+
+## [2026-08-13] recette | Livrable mis à jour : suivi du 13/08 et re-tests
+
+`livrables/Recette S3-S8 - tests par sprint et persona.md` : ajout d''un bloc
+« Suivi au 13/08 » (validés / correctifs livrés / re-tests, tableau retour →
+correctif) ; scénarios annotés ✔ (C.2-C.4, C.5.1-3+5, C.7, 3.3.3-4, 3.2.1+3) ou
+⟳ Re-test (C.1, C.5.4, C.6, C.8, 3.2.2) ; C.6 précise l''unicité PAR agence et
+le test d''inversion nom/prénom ; C.8 réécrit (pop-up + modification de fiche) ;
+3.2.2 passe par « Déposer une nouvelle version » ; 3.3 gagne l''étape 5 (mandat
+résilié historisé). Fiches de test en double du 13/08 listées à archiver.

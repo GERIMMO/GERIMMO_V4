@@ -1179,3 +1179,56 @@ masqué, détention posée automatiquement sur sa propre fiche à la création d
 bien. Interprétation à valider : le rattachement locataire/garant passe par le
 bail (S4) — l'assistant l'explique au lieu de proposer un lien mort.
 Migration `persons_email_unique` appliquée. Typecheck, lint, tests, build ✓.
+
+## [2026-08-08] recette | Reste à tester S3→S8 réorganisé par persona
+
+Suppression de `Clippings/` (4 captures ratées du web clipper, 33 octets chacune,
+doublons de sources bailpdf.com déjà ingérées). Rédaction de
+`livrables/Recette S3-S8 - reste a faire par persona.md` : bloc 0 validé exclu,
+re-vérifications des correctifs du 08/08 ajoutées (R1→R5 : assistant 2 étapes,
+email unique, clôture de détention, propriétaire inline, refonte alertes),
+scénarios S4→S8 + transverse repris avec la numérotation du 05/08, filtrés en
+5 sections : agent.alpha@, admin.alpha@, locataire.alpha@, admin.beta@, multi@.
+Deux décisions à trancher pendant la recette : propriétaire = locataire,
+rattachement locataire/garant via le bail.
+
+## [2026-08-08] recette | Document remplacé : tests SMART par sprint et persona
+
+À la demande de l''humain, le document « reste à faire par persona » est remplacé
+par `livrables/Recette S3-S8 - tests par sprint et persona.md` : organisation
+itérative sprint par sprint (étape correctifs alertes, puis S3, S4, S5, S6, S8,
+transverse), personas à l''intérieur de chaque sprint, scénarios SMART au format
+« action → résultat attendu » avec messages de refus exacts et « test le plus
+important » signalé par sprint. Index mis à jour.
+
+## [2026-08-13] recette | Retours étape C + Sprint 3 — 8 sujets traités, correctifs livrés
+
+Retours de recette humaine (étape correctifs + Sprint 3). C2/C3/C4/C5.1-3/C5.5
+validés. Traitement des 8 sujets remontés :
+- **C.1 (KO)** : le champ « message » n''existait pas dans « Confier » — ajouté,
+  obligatoire (UI + serveur), historisé dans les escalades. Destinataire déjà
+  doublement gardé (required + serveur), à re-vérifier en recette.
+- **C5.4 (KO)** : liste de lots vide dans l''assistant — cause prouvée (HTTP 300
+  PGRST201 : deux FK lots→biens rendent la jointure PostgREST ambiguë, erreur
+  avalée). Remplacée par deux requêtes plates.
+- **C6.1 (conforme)** : l''index unique (agence, email) existe et tient ; le cas
+  Alpha/Beta au même email est le comportement voulu (unicité PAR agence).
+- **C6.2 (KO confirmé en base)** : deux « Francois Jean » identiques créés sans
+  alerte. La détection ne comparait que le nom — désormais nom + prénom, dans
+  les deux sens (inversion), accents/casse ignorés, archivées exclues.
+- **C7.1 (pas d''anomalie)** : la clôture de la détention future (Quincy) a bien
+  été refusée — date_fin reste null en base, rien d''incohérent.
+- **C.8** : création du propriétaire depuis la fiche lot passée en pop-up ;
+  ajout de « Modifier la fiche » (nom, prénom, email, date de naissance, tél.)
+  qui manquait entièrement.
+- **3.2** : l''UI n''offrait aucun dépôt de « nouvelle version » (remplace_id
+  jamais posé → « CNI » et « CNI 2 » côte à côte). Ajout du bouton par pièce +
+  historique consultable + numéro de version.
+- **3.3** : mandat résilié verrouillé « historisé » — triggers en base
+  (20260813_mandat_resilie_historise + correctif anti-re-parentage), gardes
+  serveur (transitions légales uniquement), rendu grisé, taux et lots lisibles
+  même si la détention est close.
+Revue de code : 6 défauts corrigés (concurrence escalades/mandats, prénom
+effaçable, pop-up clavier/fond). Test d''immuabilité du mandat résilié ajouté à
+la suite. Lint/build/tests OK (suite SQL sautée : pas de SUPABASE_DB_URL sur ce
+poste). Déployé sur Vercel via push.

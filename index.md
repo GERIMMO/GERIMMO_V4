@@ -134,3 +134,5 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Article CGU - journal de gestion (projet)|Article CGU « journal de gestion »]] — traduit la doctrine A6 en clause contractuelle.
 - [[AIPD - Score artisan (projet)|AIPD — Score artisan]] — analyse d'impact du profilage artisan (art. 35 RGPD).
 - [[Plan de livraison et sprints]] — **le plan de référence** : 16 sprints, V0 mi-décembre 2026, V1 fin mars 2027.
+- [[Recette S3-S8 - scenarios]] — les 24 scénarios de recette humaine remis le 05/08 (référence de numérotation).
+- [[Recette S3-S8 - tests par sprint et persona]] — le reste à tester au 08/08 : scénarios SMART par sprint puis par persona (correctifs du 08/08 + S3→S8 + transverse).

@@ -1242,3 +1242,12 @@ correctif) ; scénarios annotés ✔ (C.2-C.4, C.5.1-3+5, C.7, 3.3.3-4, 3.2.1+3)
 le test d''inversion nom/prénom ; C.8 réécrit (pop-up + modification de fiche) ;
 3.2.2 passe par « Déposer une nouvelle version » ; 3.3 gagne l''étape 5 (mandat
 résilié historisé). Fiches de test en double du 13/08 listées à archiver.
+
+## [2026-08-13] recette | Livrable recentré : seuls les sujets en cours
+
+À la demande de l''humain, le livrable ne garde que ce qui reste à faire :
+étape 1 = les 6 re-tests des correctifs du 13/08 (C.1, C.5.4, C.6, C.8, 3.2.2,
+3.3.5) avec leurs encadrés « ce qui a changé », puis 3.4/3.5, sprints 4→8,
+transverse et décisions à trancher. Les scénarios validés (bloc 0, C.2-C.4,
+C.5.1-3+5, C.7, 3.2.1+3, 3.3.1-4) sortent du document — l''historique reste
+dans git (b14f4fe) et dans ce journal.

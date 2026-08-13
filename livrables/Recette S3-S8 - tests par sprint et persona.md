@@ -1,89 +1,39 @@
-# Recette S3→S8 — tests fonctionnels par sprint et persona
+# Recette S3→S8 — sujets en cours
 
-> Remis le 2026-08-08, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le 2026-08-13, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > Mot de passe commun : `Gerimmo-Demo-2026`.
 >
-> **Méthode itérative** : dérouler **un sprint à la fois**, dans l'ordre. Dans chaque
-> sprint, dérouler persona par persona. Un sprint est validé quand tous ses scénarios
-> passent → remonter les retours sprint par sprint.
-> **Déjà validé** : bloc 0 (non-régression S0–S2, le 08/08).
-> Les numéros de scénarios reprennent ceux du document du 05/08
-> ([[Recette S3-S8 - scenarios]]) ; les scénarios « C » couvrent les correctifs
-> livrés le 08/08.
+> Ce document ne garde que **ce qui reste à tester ou re-tester**. Sortis car
+> validés : bloc 0 (08/08) ; C.2, C.3, C.4, C.5 (étapes 1-3 et 5), C.7,
+> 3.2 (étapes 1 et 3), 3.3 (étapes 1-4) le 13/08.
+> Réponse à la question C.7.1 du 13/08 : rien de problématique — vérifié en
+> base, la clôture de la détention future a bien été refusée (`date_fin` vide).
+>
+> **Méthode itérative** : re-tests des correctifs d'abord, puis un sprint à la
+> fois, persona par persona. Les numéros reprennent ceux du document du 05/08
+> ([[Recette S3-S8 - scenarios]]).
 > Limite connue (pas une anomalie) : SMTP non configuré → constater que l'écran
 > propose l'envoi et l'enregistre suffit.
 
 ---
 
-## Suivi au 13/08 — recette du jour et correctifs livrés
-
-**Validés le 13/08** : C.2, C.3, C.4 · C.5 (étapes 1, 2, 3, 5) · C.7 · 3.3 (étapes 3 et 4).
-
-**Correctifs livrés le 13/08 — à re-tester** (chaque scénario concerné porte la
-mention « ⟳ Re-test 13/08 » avec ce qui a changé) :
-
-| Retour du 13/08 | Correctif | À re-tester |
-|---|---|---|
-| Confier possible sans destinataire / sans message | Champ « Message au destinataire » ajouté et obligatoire dans « Confier » (écran + serveur) | C.1 |
-| C5.4 : liste de lots vide dans l'assistant | Requête corrigée (jointure ambiguë) — lots + recherche de retour | C.5.4 |
-| C6.1 jugé KO | **Pas une anomalie** : l'unicité est PAR agence — Alpha et Beta peuvent partager un email. Le refus ne vaut que dans une même agence | C.6.1 |
-| C6.2 : aucune alerte doublon | Détection réécrite : nom + prénom comparés **dans les deux sens** (Jean Francois ↔ Francois Jean), accents/casse ignorés | C.6.2 |
-| C7.1 : « j'ai pu le faire, problématique ? » | **Non** : vérifié en base, la clôture a bien été refusée (date_fin vide). Créer une détention future est permis, la clore non | — |
-| C.8 : création pas en pop-up ; personne non modifiable | Pop-up « Nouveau propriétaire » + bouton « Modifier la fiche » (nom, prénom, email, tél., date de naissance) | C.8 |
-| 3.2 : « CNI » et « CNI 2 » côte à côte | Bouton « Déposer une nouvelle version » par pièce + numéro de version + historique dépliable | 3.2 |
-| 3.3 : mandat résilié encore modifiable | Mandat résilié **historisé** : grisé, plus aucune action, verrou aussi en base ; taux et lots restent lisibles | 3.3.5 (nouveau) |
-
-Fiches de test à nettoyer (doublons volontaires du 13/08) : « Francois Jean »
-×2 (Alpha), « jean luc » (Beta), « Jean Francois » (Alpha) — à archiver après
-le re-test de C.6.
-
----
-
-## Étape 1 — Correctifs du 08/08 : alertes (re-vérification)
+## Étape 1 — Re-tests des correctifs du 13/08
 
 ### Persona : Agent immobilier (agent.alpha@)
 
-**Scénario C.1 — Assignation obligatoire des alertes** — ⟳ Re-test 13/08
+**Re-test C.1 — Message obligatoire dans « Confier »**
 > Correctif : le champ « **Message au destinataire** » existe désormais dans
 > « Confier » et est obligatoire (il manquait entièrement).
-1. Ouvrir une alerte → « Confier » → tenter de valider **sans destinataire** → refus : au moins une personne est exigée.
-2. Dans la liste des destinataires → l'option « **Tout le monde** » n'apparaît **pas** (réservée au responsable).
-3. Choisir un destinataire mais valider « Confier » **sans message** → refus, le message est obligatoire. Même règle sur « Marquer traitée ».
+1. Ouvrir une alerte → « Confier » → valider **sans destinataire** → refus.
+2. Choisir un destinataire mais valider **sans message** → refus, le message est obligatoire. Même règle sur « Marquer traitée ».
 
-**Scénario C.2 — Alertes des autres : lecture seule** — ✔ Validé le 13/08
-1. Liste des alertes → celles confiées à quelqu'un d'autre sont **grisées, regroupées en bas** de liste.
-2. Cliquer dessus → aucune action possible (ni traiter, ni confier).
-
-**Scénario C.3 — Pop-up de connexion et KPI** — ✔ Validé le 13/08
-1. Se déconnecter/reconnecter → la pop-up de synthèse ne liste que **mes** alertes, un **seul** bouton « Fermer ».
-2. Tableau de bord → le KPI « À traiter » = le nombre de **mes** alertes ouvertes (compter pour vérifier).
-
-### Persona : Administrateur d'agence (admin.alpha@)
-
-**Scénario C.4 — Droits du responsable** — ✔ Validé le 13/08
-1. Confier une alerte → l'option « **Tout le monde** » est disponible.
-2. Ouvrir une alerte confiée à agent.alpha@ → le responsable peut la **réassigner** (là où l'agent ne le peut pas).
-
-> C'est le test le plus important de l'étape : un agent ne doit jamais pouvoir
-> toucher une alerte confiée à un autre, et « Tout le monde » ne doit exister
-> que pour le responsable.
-
----
-
-## Sprint 3 — Personnes, dossier locataire, mandat
-
-### Persona : Agent immobilier (agent.alpha@)
-
-**Scénario C.5 — Assistant de création en 2 étapes** — étapes 1, 2, 3, 5 ✔ validées le 13/08 ; étape 4 ⟳ Re-test 13/08
+**Re-test C.5.4 — Rattachement d'un lot dans l'assistant**
 > Correctif : la liste des lots sortait vide (requête cassée en silence) —
-> réparée et vérifiée : les 12 lots s'affichent, la recherche filtre.
-1. Personnes → « Nouvelle personne » → étape 1 : choisir le rôle « Locataire » → passage **automatique** à l'étape 2 (identité) ; le retour à l'étape 1 fonctionne.
-2. Valider sans prénom, puis sans email → refus à chaque fois, champ signalé (nom, prénom, email obligatoires).
-3. Créer une **raison sociale** (ex. « SCI Test ») → le prénom n'est **pas** exigé, l'email si.
-4. Recommencer avec le rôle « Propriétaire mandant » → l'étape 2 propose le **rattachement facultatif d'un lot** avec recherche (taper « quincy » → le lot de Quincy-sous-Sénart reste seul) → rattacher un lot → une **détention à 100 %** apparaît sur la fiche.
-5. Recommencer avec le rôle « Locataire » ou « Garant » → **aucun** rattachement de lot proposé ; l'assistant explique que le lien se fera **par le bail**.
+> réparée : les 12 lots s'affichent, la recherche filtre.
+1. Personnes → « Nouvelle personne » → rôle « Propriétaire mandant » → l'étape 2 propose le **rattachement facultatif d'un lot** : la liste est **peuplée** ; taper « quincy » dans la recherche → seul le lot de Quincy-sous-Sénart reste.
+2. Rattacher un lot → une **détention à 100 %** apparaît sur la fiche.
 
-**Scénario C.6 — Email unique par agence** — ⟳ Re-test 13/08
+**Re-test C.6 — Email unique par agence + alerte doublon**
 > Point d'attention : la règle est « unique **par** agence ». Le constat du
 > 13/08 (même email chez Alpha ET chez Beta) est le comportement **voulu** —
 > le refus n'est attendu que pour deux fiches de la **même** agence.
@@ -93,36 +43,30 @@ le re-test de C.6.
 2. Créer une personne avec le **même nom + même date de naissance** qu'une fiche existante mais un email différent → **alerte doublon non bloquante**, la création reste possible. Refaire en **inversant nom et prénom** → l'alerte se déclenche aussi.
 3. Nettoyage : archiver les fiches de test en double du 13/08 (« Francois Jean » ×2, « jean luc », « Jean Francois »).
 
-**Scénario C.7 — Détention : clôture à date future** — ✔ Validé le 13/08
-> Réponse à la question du 13/08 : rien de problématique — vérifié en base, la
-> clôture de la détention future (Quincy) a bien été **refusée** (`date_fin`
-> reste vide). Créer une détention à date future est permis ; la clore, non.
-1. Créer une détention avec une **date de début dans le futur** → tenter de la clôturer → **plus de jargon SQL** (`detentions_check`) : message en français clair orientant vers « **Corriger** ».
-
-**Scénario C.8 — Propriétaire créé depuis la fiche lot** — ⟳ Re-test 13/08
+**Re-test C.8 — Propriétaire depuis la fiche lot + modification de fiche**
 > Correctifs : la création passe désormais par une **pop-up**, et la fiche
 > d'une personne devient **modifiable** (ce qui manquait entièrement).
 1. Fiche d'un lot → « + Nouvelle personne… » → une **pop-up** « Nouveau propriétaire » s'ouvre → elle exige nom et **email** ; « Valider » referme la pop-up avec un récapitulatif (lien « modifier » pour rouvrir) → « Enregistrer la détention » crée la fiche « propriétaire mandant ».
 2. Fiche de la personne créée → « **Modifier la fiche** » → corriger nom, prénom, email, téléphone ou date de naissance → enregistré. L'email reste unique dans l'agence ; le prénom d'une personne physique ne peut pas être vidé.
 
-**Scénario 3.2 — Dossier versionné** — étapes 1 et 3 ✔ validées le 13/08 ; étape 2 ⟳ Re-test 13/08
+**Re-test 3.2.2 — Nouvelle version d'une pièce**
 > Correctif : le dépôt d'une nouvelle version passe par le bouton dédié
 > **« Déposer une nouvelle version »** sous la pièce (le 13/08, un second
 > dépôt classique créait un document indépendant — d'où « CNI » et « CNI 2 »
 > côte à côte ; ces deux-là restent dissociées, redéposer via le bouton ou me
 > demander de les lier en base).
-1. Fiche personne → déposer une pièce d'identité (PDF) → visible dans le dossier, dans sa catégorie.
-2. Sous la pièce → « **Déposer une nouvelle version** » (fichier différent) → seule la version courante s'affiche, marquée **v2** ; l'ancienne reste dans l'« **Historique** » dépliable (jamais supprimée), consultable.
-3. Déposer un justificatif de domicile → les deux catégories coexistent.
+1. Fiche personne → sous une pièce existante → « **Déposer une nouvelle version** » (fichier différent) → seule la version courante s'affiche, marquée **v2** ; l'ancienne reste dans l'« **Historique** » dépliable (jamais supprimée), consultable.
 
-**Scénario 3.3 — Mandat de gestion** — étapes 3 et 4 ✔ validées le 13/08 ; étape 5 ajoutée ⟳ Re-test 13/08
+**Re-test 3.3.5 — Mandat résilié historisé**
 > Correctif : un mandat **résilié** est désormais **historisé** — verrouillé
 > aussi en base (retour du 13/08 : il restait modifiable).
-1. Fiche d'une personne propriétaire (détention en cours) → créer un mandat → brouillon avec honoraires proposés à **7 %**, date de rapport au **10**, seuil de délégation par défaut.
-2. Ajouter des lots → seuls les lots **détenus par le mandant** sont proposés.
-3. Tenter de mettre un même lot dans un **second mandat actif** → refus (un seul mandat actif par lot).
-4. Faire les transitions brouillon → à signer → actif → préavis → résilié → chaque état s'affiche sur la fiche.
-5. Sur le mandat **résilié** → l'encart est **grisé**, marqué « Historisé — non modifiable » : plus aucun bouton d'état ni d'ajout de lot ; le **taux** et les **lots** du mandat restent lisibles.
+1. Sur le mandat **résilié** du 13/08 → l'encart est **grisé**, marqué « Historisé — non modifiable » : plus aucun bouton d'état ni d'ajout de lot ; le **taux** et les **lots** du mandat restent lisibles.
+
+---
+
+## Sprint 3 — reste à dérouler
+
+### Persona : Agent immobilier (agent.alpha@)
 
 **Scénario 3.4 — Attestation d'assurance expirée (partie agent)**
 1. Dossier d'un locataire → déposer une attestation avec une **date d'expiration dépassée** → après génération des alertes (bouton/cron superadmin), une alerte **critique** « défaut d'assurance » existe.
@@ -138,9 +82,9 @@ le re-test de C.6.
 1. Son espace affiche le **statut de son assurance**.
 2. Déposer lui-même une attestation à date d'expiration **future** → acceptée → le statut passe à jour côté agence (revérifier en agent.alpha@).
 
-> Test le plus important du sprint : l'**email unique par agence** (C.6) — c'est
-> la nouvelle règle en base ; vérifier aussi qu'elle ne bloque pas deux agences
-> différentes d'avoir le même email.
+> Test le plus important du sprint : l'**email unique par agence** (re-test
+> C.6) — c'est la nouvelle règle en base ; vérifier aussi qu'elle ne bloque
+> pas deux agences différentes d'avoir le même email.
 
 ---
 

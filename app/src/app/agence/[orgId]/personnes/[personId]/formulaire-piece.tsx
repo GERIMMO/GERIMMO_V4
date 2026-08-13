@@ -68,3 +68,64 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
     </form>
   );
 }
+
+// Nouvelle version d'une pièce existante (versioning RM-0b.4.1, recette 13/08) :
+// même type, l'ancienne passe à l'historique — jamais supprimée.
+export function FormulaireNouvelleVersion({
+  orgId,
+  personId,
+  remplaceId,
+  type,
+  titre,
+}: {
+  orgId: string;
+  personId: string;
+  remplaceId: string;
+  type: string;
+  titre: string | null;
+}) {
+  const action = deposerPieceDossier.bind(null, orgId, personId);
+  const [etat, formAction, enCours] = useActionState<EtatDossier, FormData>(action, {});
+
+  return (
+    <form action={formAction} className="mt-1 flex flex-wrap items-end gap-2">
+      <input type="hidden" name="remplace_id" value={remplaceId} />
+      <input type="hidden" name="type" value={type} />
+      <div className="min-w-40 flex-1 space-y-1.5">
+        <Label htmlFor={`version-titre-${remplaceId}`} className="text-xs">
+          Titre
+        </Label>
+        <Input
+          id={`version-titre-${remplaceId}`}
+          name="titre"
+          maxLength={200}
+          defaultValue={titre ?? ""}
+        />
+      </div>
+      {type === "attestation_assurance" && (
+        <div className="w-40 space-y-1.5">
+          <Label htmlFor={`version-expire-${remplaceId}`} className="text-xs">
+            Expire le
+          </Label>
+          <Input id={`version-expire-${remplaceId}`} name="expire_le" type="date" />
+        </div>
+      )}
+      <div className="space-y-1.5">
+        <Label htmlFor={`version-fichier-${remplaceId}`} className="text-xs">
+          Fichier (PDF/JPG/PNG, 10 Mo)
+        </Label>
+        <Input
+          id={`version-fichier-${remplaceId}`}
+          name="fichier"
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          required
+        />
+      </div>
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "Dépôt…" : "Déposer la nouvelle version"}
+      </Button>
+      {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+    </form>
+  );
+}

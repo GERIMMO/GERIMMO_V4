@@ -332,7 +332,9 @@ export async function ajouterDetention(
       .from("persons")
       .select("id")
       .eq("organization_id", orgId)
-      .ilike("email", email)
+      // % et _ sont des jokers pour ilike : on les échappe (les emails
+      // contiennent souvent des _) pour comparer l'adresse littérale.
+      .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
       .is("archived_at", null);
     if ((memeEmail ?? []).length > 0) {
       return {

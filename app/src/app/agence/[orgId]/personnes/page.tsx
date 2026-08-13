@@ -21,6 +21,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     { data: baux },
     { data: bailPersonnes },
     { data: lots },
+    { data: biens },
   ] = await Promise.all([
     supabase
       .from("persons")
@@ -45,13 +46,20 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
       .from("bail_personnes")
       .select("person_id, role, bail_id")
       .eq("organization_id", orgId),
-    // Lots rattachables depuis l'assistant (adresse du bien pour la recherche)
+    // Lots rattachables depuis l'assistant (adresse du bien pour la recherche).
+    // Pas d'embed lots→biens : la table a deux clés étrangères vers biens
+    // (simple + composite), PostgREST refuse la jointure ambiguë et la liste
+    // sortait vide (recette 13/08) — deux requêtes plates, jointure en mémoire.
     supabase
       .from("lots")
-      .select("id, nom, bien:biens(address_line1, city)")
+      .select("id, nom, bien_id")
       .eq("organization_id", orgId)
       .neq("etat", "archive")
       .order("nom"),
+    supabase
+      .from("biens")
+      .select("id, address_line1, city")
+      .eq("organization_id", orgId),
   ]);
 
   // Seuls les liens vivants font un rôle : une détention close ou un bail
@@ -87,18 +95,18 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     (personnes ?? []) as Omit<PersonneListe, "roles">[]
   ).map((p) => ({ ...p, roles: rolesDePersonne(p.id, liens) }));
 
-  type LotBrut = {
-    id: string;
-    nom: string;
-    bien: { address_line1: string; city: string } | { address_line1: string; city: string }[] | null;
-  };
-  const lotsRattachables = ((lots ?? []) as LotBrut[]).map((l) => {
-    const bien = Array.isArray(l.bien) ? l.bien[0] : l.bien;
-    return {
-      id: l.id,
-      libelle: bien ? `${l.nom} — ${bien.address_line1}, ${bien.city}` : l.nom,
-    };
-  });
+  const bienParId = new Map(
+    ((biens ?? []) as { id: string; address_line1: string; city: string }[]).map((b) => [b.id, b])
+  );
+  const lotsRattachables = ((lots ?? []) as { id: string; nom: string; bien_id: string }[]).map(
+    (l) => {
+      const bien = bienParId.get(l.bien_id);
+      return {
+        id: l.id,
+        libelle: bien ? `${l.nom} — ${bien.address_line1}, ${bien.city}` : l.nom,
+      };
+    }
+  );
 
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">

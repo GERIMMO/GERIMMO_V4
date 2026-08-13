@@ -205,6 +205,60 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
     );
   });
 
+  it("un mandat résilié est historisé : ni modification ni nouvelle ligne (recette 13/08)", async () => {
+    const lot = await lotDetenuPar(proprietaire);
+    const autreLot = await lotDetenuPar(proprietaire);
+    const mandat = await creerMandat(proprietaire);
+    await simuler(db, agentA);
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1, $2, $3, 7)`,
+      [orgA, mandat, lot]
+    );
+    await db.query(`update public.mandats set etat = 'resilie' where id = $1`, [mandat]);
+
+    // Plus aucune mise à jour : ni retour en arrière, ni édition des paramètres
+    await attendreEchec(db, /historisé/, `update public.mandats set etat = 'actif' where id = $1`, [
+      mandat,
+    ]);
+    await attendreEchec(
+      db,
+      /historisé/,
+      `update public.mandats set date_rapport = 15 where id = $1`,
+      [mandat]
+    );
+    // Plus de nouvelle ligne, ni de modification d'une ligne existante
+    await attendreEchec(
+      db,
+      /historisé/,
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id) values ($1, $2, $3)`,
+      [orgA, mandat, autreLot]
+    );
+    await attendreEchec(
+      db,
+      /historisé/,
+      `update public.mandat_lignes set taux_honoraires = 9 where mandat_id = $1`,
+      [mandat]
+    );
+    // Ni re-parentage d'une ligne vers un autre mandat (revue 13/08)
+    const mandatActif = await creerMandat(proprietaire);
+    await simuler(db, agentA);
+    await attendreEchec(
+      db,
+      /historisé/,
+      `update public.mandat_lignes set mandat_id = $1 where mandat_id = $2`,
+      [mandatActif, mandat]
+    );
+    // Le taux et le lot restent lisibles (historisé, pas effacé)
+    const { rows } = await db.query(
+      `select lot_id, taux_honoraires from public.mandat_lignes where mandat_id = $1`,
+      [mandat]
+    );
+    expect(rows.length).toBe(1);
+    expect(rows[0].lot_id).toBe(lot);
+    expect(Number(rows[0].taux_honoraires)).toBe(7);
+  });
+
   it("les mandats sont isolés par agence (RM-A1.7)", async () => {
     const lot = await lotDetenuPar(proprietaire);
     const mandat = await creerMandat(proprietaire);

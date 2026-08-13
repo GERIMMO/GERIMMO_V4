@@ -49,6 +49,18 @@ export async function ajouterLigneMandat(
   const tauxRaw = String(formData.get("taux_honoraires") ?? "").trim();
   if (!lotId) return { erreur: "Choisissez un lot." };
 
+  // Un mandat résilié est historisé (recette 13/08) : plus de lignes
+  const { data: mandat } = await supabase
+    .from("mandats")
+    .select("etat")
+    .eq("id", mandatId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!mandat) return { erreur: "Mandat introuvable." };
+  if (mandat.etat === "resilie") {
+    return { erreur: "Ce mandat est résilié : il est historisé et ne se modifie plus." };
+  }
+
   const { error } = await supabase.from("mandat_lignes").insert({
     organization_id: orgId,
     mandat_id: mandatId,
@@ -62,6 +74,15 @@ export async function ajouterLigneMandat(
 }
 
 // Changer l'état du mandat (brouillon → à signer → actif → préavis → résilié).
+// Chaque état n'accepte que son suivant ; un mandat résilié est historisé et ne
+// bouge plus (recette 13/08 — verrouillé aussi par trigger en base).
+const TRANSITIONS_MANDAT: Record<string, string> = {
+  brouillon: "a_signer",
+  a_signer: "actif",
+  actif: "preavis",
+  preavis: "resilie",
+};
+
 export async function changerEtatMandat(
   orgId: string,
   personId: string,
@@ -73,12 +94,33 @@ export async function changerEtatMandat(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  const { error } = await supabase
+  const { data: mandat } = await supabase
+    .from("mandats")
+    .select("etat")
+    .eq("id", mandatId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!mandat) return { erreur: "Mandat introuvable." };
+  if (mandat.etat === "resilie") {
+    return { erreur: "Ce mandat est résilié : il est historisé et ne se modifie plus." };
+  }
+  if (TRANSITIONS_MANDAT[mandat.etat] !== nouvelEtat) {
+    return { erreur: "Ce changement d'état n'est pas permis depuis l'état actuel." };
+  }
+
+  const { data: modifies, error } = await supabase
     .from("mandats")
     .update({ etat: nouvelEtat })
     .eq("id", mandatId)
-    .eq("organization_id", orgId);
+    .eq("organization_id", orgId)
+    .eq("etat", mandat.etat)
+    .select("id");
   if (error) return { erreur: `Changement d'état impossible : ${sansJargon(error.message)}` };
+  // 0 ligne touchée = l'état a changé entre la lecture et l'écriture
+  if ((modifies ?? []).length === 0) {
+    revalidatePath(`/agence/${orgId}/personnes/${personId}`);
+    return { erreur: "Le mandat a changé entre-temps — l'écran vient d'être rechargé, revérifiez son état." };
+  }
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return { succes: "État du mandat mis à jour." };

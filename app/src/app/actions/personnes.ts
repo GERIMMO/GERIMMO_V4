@@ -7,6 +7,12 @@ import { verifierGerant } from "@/lib/ged-acces";
 
 export type EtatPersonne = { erreur?: string; succes?: string };
 
+// ilike interprète % et _ comme jokers : un email en contient souvent (_),
+// on les échappe pour comparer l'adresse littérale.
+function motifLitteral(texte: string) {
+  return texte.replace(/[\\%_]/g, "\\$&");
+}
+
 // L'email est-il déjà porté par une fiche vivante de l'agence ? (l'index
 // unique le garantit en base ; on vérifie avant pour un message clair)
 async function emailDejaPris(
@@ -19,7 +25,7 @@ async function emailDejaPris(
     .from("persons")
     .select("id")
     .eq("organization_id", orgId)
-    .ilike("email", email)
+    .ilike("email", motifLitteral(email))
     .is("archived_at", null);
   if (saufPersonId) requete = requete.neq("id", saufPersonId);
   const { data } = await requete;
@@ -64,15 +70,29 @@ export async function creerPersonne(
     };
   }
 
+  // Doublon probable (RM-0b, recette 13/08) : même date de naissance et mêmes
+  // nom + prénom — y compris saisis dans l'autre sens (« Jean Francois » /
+  // « Francois Jean »), accents et casse ignorés, fiches archivées exclues.
+  const normaliser = (texte: string) =>
+    texte.trim().toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
   let doublon = false;
   if (dateNaissance) {
     const { data } = await supabase
       .from("persons")
-      .select("id")
+      .select("nom, prenom")
       .eq("organization_id", orgId)
-      .ilike("nom", nom)
-      .eq("date_naissance", dateNaissance);
-    doublon = (data ?? []).length > 0;
+      .eq("date_naissance", dateNaissance)
+      .is("archived_at", null);
+    const nomSaisi = normaliser(nom);
+    const prenomSaisi = normaliser(prenom);
+    doublon = ((data ?? []) as { nom: string; prenom: string | null }[]).some((p) => {
+      const nomFiche = normaliser(p.nom ?? "");
+      const prenomFiche = normaliser(p.prenom ?? "");
+      return (
+        (nomFiche === nomSaisi && prenomFiche === prenomSaisi) ||
+        (nomFiche === prenomSaisi && prenomFiche === nomSaisi && prenomSaisi !== "")
+      );
+    });
   }
 
   const { data: cree, error } = await supabase
@@ -110,7 +130,11 @@ export async function creerPersonne(
     if (erreurDetention) {
       revalidatePath(`/agence/${orgId}/personnes`);
       return {
-        succes: `Fiche créée, mais le rattachement au lot a échoué : ${sansJargon(erreurDetention.message)} Faites-le depuis la fiche du lot.`,
+        succes:
+          `Fiche créée, mais le rattachement au lot a échoué : ${sansJargon(erreurDetention.message)} Faites-le depuis la fiche du lot.` +
+          (doublon
+            ? " Attention : un homonyme avec la même date de naissance existe déjà — à vérifier."
+            : ""),
       };
     }
   }
@@ -120,16 +144,16 @@ export async function creerPersonne(
     revalidatePath(`/agence/${orgId}/personnes`);
     return {
       succes:
-        "Fiche créée. Un homonyme avec la même date de naissance existe déjà — à vérifier.",
+        "Fiche créée. Un homonyme avec la même date de naissance existe déjà (même en inversant nom et prénom) — vérifiez qu'il ne s'agit pas d'un doublon.",
     };
   }
   revalidatePath(`/agence/${orgId}/personnes`);
   redirect(`/agence/${orgId}/personnes/${cree.id}`);
 }
 
-// Modifier l'email d'une personne (rattachement au compte, RM-0b) — modifiable
-// par l'agent.
-export async function modifierContactPersonne(
+// Modifier l'identité et les coordonnées d'une personne (recette 13/08 : une
+// fiche créée doit rester corrigeable — nom, prénom, email, date de naissance).
+export async function modifierPersonne(
   orgId: string,
   personId: string,
   _etat: EtatPersonne,
@@ -138,9 +162,23 @@ export async function modifierContactPersonne(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const nom = String(formData.get("nom") ?? "").trim();
+  const prenom = String(formData.get("prenom") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const telephone = String(formData.get("telephone") ?? "").trim();
+  const dateNaissance = String(formData.get("date_naissance") ?? "").trim();
 
+  if (!nom) return { erreur: "Le nom (ou la raison sociale) est obligatoire." };
+  // Une personne physique (fiche avec prénom) garde un prénom — même règle
+  // qu'à la création ; seule une raison sociale (sans prénom) s'en passe.
+  const { data: actuelle } = await supabase
+    .from("persons")
+    .select("prenom")
+    .eq("id", personId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!actuelle) return { erreur: "Fiche introuvable." };
+  if (actuelle.prenom && !prenom) return { erreur: "Le prénom est obligatoire." };
   // L'email reste obligatoire et unique dans l'agence (recette 08/08)
   if (!email) return { erreur: "L'adresse email est obligatoire." };
   if (await emailDejaPris(supabase, orgId, email, personId)) {
@@ -152,11 +190,18 @@ export async function modifierContactPersonne(
 
   const { error } = await supabase
     .from("persons")
-    .update({ email, telephone: telephone || null })
+    .update({
+      nom,
+      prenom: prenom || null,
+      email,
+      telephone: telephone || null,
+      date_naissance: dateNaissance || null,
+    })
     .eq("id", personId)
     .eq("organization_id", orgId);
   if (error) return { erreur: `Modification impossible : ${sansJargon(error.message)}` };
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
-  return { succes: "Coordonnées mises à jour." };
+  revalidatePath(`/agence/${orgId}/personnes`);
+  return { succes: "Fiche mise à jour." };
 }

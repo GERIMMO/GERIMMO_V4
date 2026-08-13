@@ -98,7 +98,11 @@ export async function escaladerAlerte(
   if (!user || !role) return { erreur: "Accès refusé." };
 
   const vers = String(formData.get("vers") ?? "");
+  const message = String(formData.get("message") ?? "").trim();
   if (!vers) return { erreur: "Choisir à qui confier l'alerte." };
+  // Recette 13/08 : on ne confie jamais une alerte sans un mot — le
+  // destinataire doit savoir pourquoi elle lui arrive.
+  if (!message) return { erreur: "Le message au destinataire est obligatoire." };
   if (vers === ASSIGNATION_TOUS && !ROLES_RESPONSABLES.includes(role)) {
     return {
       erreur: "Seul le responsable de l'agence peut assigner à tout le monde.",
@@ -126,9 +130,12 @@ export async function escaladerAlerte(
     vers,
     par: user.id,
     le: new Date().toISOString(),
+    message,
   });
 
-  const { error } = await supabase
+  // L'écriture n'aboutit que si l'assignation n'a pas bougé depuis la lecture
+  // (revue 13/08) : deux « Confier » simultanés écraseraient l'historique.
+  let requete = supabase
     .from("alerts")
     .update({
       assignee_account_id: vers === ASSIGNATION_TOUS ? null : vers,
@@ -136,8 +143,19 @@ export async function escaladerAlerte(
       escalades,
     })
     .eq("id", alerteId)
-    .eq("organization_id", orgId);
+    .eq("organization_id", orgId)
+    .eq("statut", "ouverte")
+    .eq("assigned_all", alerte.assigned_all);
+  requete =
+    alerte.assignee_account_id === null
+      ? requete.is("assignee_account_id", null)
+      : requete.eq("assignee_account_id", alerte.assignee_account_id);
+  const { data: modifiees, error } = await requete.select("id");
   if (error) return { erreur: sansJargon(error.message) };
+  if ((modifiees ?? []).length === 0) {
+    revalidatePath(`/agence/${orgId}/alertes`);
+    return { erreur: "L'alerte a changé entre-temps — la liste vient d'être rechargée, revérifiez." };
+  }
 
   revalidatePath(`/agence/${orgId}/alertes`);
   revalidatePath(`/agence/${orgId}`);

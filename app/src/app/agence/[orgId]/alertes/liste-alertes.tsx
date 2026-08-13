@@ -246,29 +246,41 @@ function ModaleAlerte({
               <label htmlFor="confier-vers" className="libelle-champ">
                 Confier à
               </label>
-              <div className="flex items-center gap-2">
-                <select
-                  id="confier-vers"
-                  name="vers"
+              <select
+                id="confier-vers"
+                name="vers"
+                required
+                defaultValue=""
+                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+              >
+                <option value="" disabled>
+                  — Choisir —
+                </option>
+                {/* Seul le responsable peut assigner à tout le monde */}
+                {estResponsable && !alerte.assigned_all && (
+                  <option value={ASSIGNATION_TOUS}>Tout le monde</option>
+                )}
+                {membres
+                  .filter((m) => m.account_id !== alerte.assignee_account_id)
+                  .map((m) => (
+                    <option key={m.account_id} value={m.account_id}>
+                      {m.email}
+                    </option>
+                  ))}
+              </select>
+              {/* Recette 13/08 : on ne confie jamais sans un mot au destinataire */}
+              <label htmlFor="confier-message" className="libelle-champ">
+                Message au destinataire
+              </label>
+              <div className="flex items-start gap-2">
+                <textarea
+                  id="confier-message"
+                  name="message"
                   required
-                  defaultValue=""
-                  className="h-9 flex-1 rounded-md border border-input bg-transparent px-2 text-sm"
-                >
-                  <option value="" disabled>
-                    — Choisir —
-                  </option>
-                  {/* Seul le responsable peut assigner à tout le monde */}
-                  {estResponsable && !alerte.assigned_all && (
-                    <option value={ASSIGNATION_TOUS}>Tout le monde</option>
-                  )}
-                  {membres
-                    .filter((m) => m.account_id !== alerte.assignee_account_id)
-                    .map((m) => (
-                      <option key={m.account_id} value={m.account_id}>
-                        {m.email}
-                      </option>
-                    ))}
-                </select>
+                  rows={2}
+                  placeholder="Pourquoi vous lui confiez cette alerte…"
+                  className="w-full flex-1 rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
+                />
                 <Button variant="outline" size="sm" type="submit" disabled={confierEnCours}>
                   {confierEnCours ? "…" : "Confier"}
                 </Button>

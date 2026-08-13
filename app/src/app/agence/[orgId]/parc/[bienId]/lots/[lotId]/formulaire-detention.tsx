@@ -33,9 +33,31 @@ export function FormulaireDetention({
   const actionLiee = ajouterDetention.bind(null, orgId, bienId, lotId);
   const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
-  const [choix, setChoix] = useState(personnes.length > 0 ? "" : "nouvelle");
+  const [choix, setChoix] = useState("");
   // L'agent déclare l'indivision → la quote-part s'ouvre dès le 1er propriétaire.
   const [indivision, setIndivision] = useState(false);
+  // Nouvelle personne : saisie en pop-up (recette 13/08), valeurs reportées
+  // dans le formulaire via des champs cachés.
+  const [modaleOuverte, setModaleOuverte] = useState(false);
+  const [nouveau, setNouveau] = useState({ nom: "", prenom: "", email: "" });
+  const refNom = useRef<HTMLInputElement>(null);
+  const refEmail = useRef<HTMLInputElement>(null);
+
+  const annulerNouveau = () => {
+    setModaleOuverte(false);
+    setNouveau({ nom: "", prenom: "", email: "" });
+    setChoix("");
+  };
+
+  // Clic sur le fond : on referme sans perdre une saisie déjà commencée —
+  // seule une pop-up vide vaut annulation (revue 13/08).
+  const fermerModale = () => {
+    if (!nouveau.nom && !nouveau.email) {
+      annulerNouveau();
+      return;
+    }
+    setModaleOuverte(false);
+  };
 
   // C : les propriétaires existants remontent en tête ; on garde tout le monde.
   const nomComplet = (p: Personne) => `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`;
@@ -50,10 +72,11 @@ export function FormulaireDetention({
     // Après le rendu, sinon React enchaîne deux passes pour rien.
     const minuterie = setTimeout(() => {
       setIndivision(false);
-      setChoix(personnes.length > 0 ? "" : "nouvelle");
+      setChoix("");
+      setNouveau({ nom: "", prenom: "", email: "" });
     }, 0);
     return () => clearTimeout(minuterie);
-  }, [etat, personnes.length]);
+  }, [etat]);
 
   return (
     <form ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
@@ -70,7 +93,11 @@ export function FormulaireDetention({
             name="person_id"
             required
             value={choix}
-            onChange={(e) => setChoix(e.target.value)}
+            onChange={(e) => {
+              setChoix(e.target.value);
+              // « Nouvelle personne » : la saisie se fait dans une pop-up
+              if (e.target.value === "nouvelle") setModaleOuverte(true);
+            }}
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
             <option value="" disabled>
@@ -128,31 +155,23 @@ export function FormulaireDetention({
         )}
         {choix === "nouvelle" && (
           <>
-            {/* Le propriétaire n'existe pas : fiche créée à la volée avec le
-                rôle propriétaire mandant — mêmes règles que l'assistant
-                (email obligatoire et unique dans l'agence). */}
-            <p className="text-xs text-muted-foreground sm:col-span-2">
-              Nouveau <b>propriétaire mandant</b> — la fiche complète se
-              retrouve dans Personnes.
-            </p>
-            <div className="space-y-1.5">
-              <Label htmlFor="detention-nom">Nom ou raison sociale *</Label>
-              <Input id="detention-nom" name="nouveau_nom" required maxLength={120} />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="detention-prenom">Prénom</Label>
-              <Input id="detention-prenom" name="nouveau_prenom" maxLength={120} />
-            </div>
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="detention-email">Adresse email *</Label>
-              <Input
-                id="detention-email"
-                name="nouveau_email"
-                type="email"
-                required
-                maxLength={200}
-              />
-            </div>
+            {/* Valeurs saisies dans la pop-up, reportées ici pour l'envoi */}
+            <input type="hidden" name="nouveau_nom" value={nouveau.nom} />
+            <input type="hidden" name="nouveau_prenom" value={nouveau.prenom} />
+            <input type="hidden" name="nouveau_email" value={nouveau.email} />
+            {!modaleOuverte && (
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                Nouveau <b>propriétaire mandant</b> : {nouveau.nom}
+                {nouveau.prenom ? ` ${nouveau.prenom}` : ""} — {nouveau.email}{" "}
+                <button
+                  type="button"
+                  onClick={() => setModaleOuverte(true)}
+                  className="text-[var(--bleu)] underline-offset-2 hover:underline"
+                >
+                  modifier
+                </button>
+              </p>
+            )}
           </>
         )}
         <div className="space-y-1.5">
@@ -171,6 +190,98 @@ export function FormulaireDetention({
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "Enregistrement…" : "Enregistrer la détention"}
       </Button>
+
+      {/* Pop-up « nouveau propriétaire » (recette 13/08) : fiche créée à la
+          volée avec le rôle propriétaire mandant — mêmes règles que
+          l'assistant (email obligatoire et unique dans l'agence). */}
+      {modaleOuverte && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--encre)]/35 p-4"
+          onClick={fermerModale}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Nouveau propriétaire"
+            className="w-full max-w-md border border-border bg-background"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              // Entrée dans un champ valide la pop-up (sans soumettre la
+              // détention) — sur un bouton, elle garde son sens ; Échap referme.
+              if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
+                e.preventDefault();
+                if (refNom.current?.reportValidity() && refEmail.current?.reportValidity()) {
+                  setModaleOuverte(false);
+                }
+              }
+              if (e.key === "Escape") fermerModale();
+            }}
+          >
+            <div className="bg-[var(--encre)] px-5 py-3.5 text-[var(--sur-encre)]">
+              <h3 className="text-[var(--sur-encre)]">Nouveau propriétaire</h3>
+              <p className="mono-discret text-[var(--sur-encre)]/75">
+                La fiche complète se retrouve dans Personnes.
+              </p>
+            </div>
+            <div className="space-y-3 p-5">
+              <div className="space-y-1.5">
+                <Label htmlFor="detention-nom">Nom ou raison sociale *</Label>
+                <Input
+                  id="detention-nom"
+                  ref={refNom}
+                  required
+                  maxLength={120}
+                  value={nouveau.nom}
+                  onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="detention-prenom">Prénom</Label>
+                <Input
+                  id="detention-prenom"
+                  maxLength={120}
+                  value={nouveau.prenom}
+                  onChange={(e) => setNouveau({ ...nouveau, prenom: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="detention-email">Adresse email *</Label>
+                <Input
+                  id="detention-email"
+                  ref={refEmail}
+                  type="email"
+                  required
+                  maxLength={200}
+                  value={nouveau.email}
+                  onChange={(e) => setNouveau({ ...nouveau, email: e.target.value })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Une adresse ne peut appartenir qu&apos;à une seule fiche de
+                  l&apos;agence.
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={annulerNouveau}>
+                  Annuler
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    // Validation native des deux champs obligatoires avant de
+                    // refermer — la création réelle part avec la détention.
+                    if (!refNom.current?.reportValidity()) return;
+                    if (!refEmail.current?.reportValidity()) return;
+                    setModaleOuverte(false);
+                  }}
+                >
+                  Valider
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

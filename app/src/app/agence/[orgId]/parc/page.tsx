@@ -43,69 +43,97 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       .order("nom"),
   ]);
 
+  const biensVisibles = (biens ?? []).map((bien) => ({
+    ...bien,
+    lotsVisibles: (bien.lots as LotResume[]).filter((l) => l.etat !== "archive"),
+  }));
+  const nbLots = biensVisibles.reduce((n, b) => n + b.lotsVisibles.length, 0);
+  const nbLoues = biensVisibles.reduce(
+    (n, b) => n + b.lotsVisibles.filter((l) => l.etat === "loue").length,
+    0
+  );
+
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Parc</h1>
-        <Link
-          href={`/agence/${orgId}/parc/nouveau`}
-          className={buttonVariants({
-            size: "sm",
-            // Charte 04 : un seul bouton principal par écran. Sur un parc vide,
-            // c'est celui de la carte d'accueil qui porte l'appel à l'action.
-            variant: (biens ?? []).length === 0 ? "outline" : "default",
-          })}
-        >
-          Nouveau bien
-        </Link>
+      <div className="entete-page mb-6">
+        <h1>Parc</h1>
+        <div className="flex items-center gap-4">
+          <span className="mono-discret">
+            {biensVisibles.length} bien{biensVisibles.length > 1 ? "s" : ""} · {nbLots} lot
+            {nbLots > 1 ? "s" : ""}
+          </span>
+          {/* Charte 04 : un seul bouton principal par écran. Sur un parc vide,
+              c'est celui de l'état vide qui porte l'appel à l'action. */}
+          {biensVisibles.length > 0 && (
+            <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
+              + Ajouter un bien
+            </Link>
+          )}
+        </div>
       </div>
 
-      {(biens ?? []).length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <p className="text-sm font-medium">Votre parc est vide</p>
-            <p className="max-w-sm text-sm text-muted-foreground">
+      {biensVisibles.length === 0 ? (
+        <div className="colonne-liste">
+          <div className="vide">
+            <p className="font-medium text-foreground">Votre parc est vide</p>
+            <p className="mx-auto mt-1 max-w-sm">
               Commencez par un bien : son lot naît avec lui, et c&apos;est le lot
               qui portera le bail.
             </p>
             <Link
               href={`/agence/${orgId}/parc/nouveau`}
-              className={buttonVariants({ size: "sm" })}
+              className={`${buttonVariants({ size: "sm" })} mt-3`}
             >
               Créer mon premier bien
             </Link>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <div className="space-y-3">
-          {(biens ?? []).map((bien) => (
-            <Link key={bien.id} href={`/agence/${orgId}/parc/${bien.id}`} className="block">
-              <Card className="transition-colors hover:bg-accent">
-                <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{bien.nom}</p>
-                    <p className="truncate text-sm text-muted-foreground">
-                      {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1},{" "}
-                      {bien.postal_code} {bien.city}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {(bien.lots as LotResume[])
-                      .filter((l) => l.etat !== "archive")
-                      .map((lot) => (
-                        <span
-                          key={lot.id}
-                          className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
-                        >
-                          {lot.nom} · {ETATS_LOT[lot.etat] ?? lot.etat}
-                          {lot.surface_m2 !== null && ` · ${formaterSurface(lot.surface_m2)}`}
-                        </span>
-                      ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+        // Maquette (charte v2) : une seule colonne — l'adresse du bien en
+        // en-tête de groupe, ses lots en rangs indentés dessous.
+        <div className="colonne-liste">
+          {biensVisibles.map((bien) => (
+            <div key={bien.id}>
+              <Link href={`/agence/${orgId}/parc/${bien.id}`} className="tete-groupe block">
+                <span className="min-w-0">
+                  <b className="block truncate text-[13.5px] font-medium">{bien.nom}</b>
+                  <span className="mono-discret block truncate normal-case">
+                    {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1},{" "}
+                    {bien.postal_code} {bien.city}
+                  </span>
+                </span>
+                <span className="puce puce-encre shrink-0">
+                  {bien.lotsVisibles.filter((l) => l.etat === "loue").length}/
+                  {bien.lotsVisibles.length} loué
+                  {bien.lotsVisibles.filter((l) => l.etat === "loue").length > 1 ? "s" : ""}
+                </span>
+              </Link>
+              {bien.lotsVisibles.map((lot) => (
+                <Link
+                  key={lot.id}
+                  href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
+                  className="rang-lot"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[13px]">
+                    {lot.nom}
+                    {lot.surface_m2 !== null && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {formaterSurface(lot.surface_m2)}
+                      </span>
+                    )}
+                  </span>
+                  <span className={`${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"} shrink-0`}>
+                    {ETATS_LOT[lot.etat] ?? lot.etat}
+                  </span>
+                </Link>
+              ))}
+            </div>
           ))}
+          <p className="mono-discret border-t border-border px-3.5 py-2 normal-case">
+            {nbLoues}/{nbLots} lot{nbLots > 1 ? "s" : ""} loué{nbLoues > 1 ? "s" : ""} — cliquer
+            un bien pour sa fiche, un lot pour le détail.
+          </p>
         </div>
       )}
 
@@ -131,7 +159,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               {(equipements ?? []).map((e) => (
                 <span
                   key={e.id}
-                  className={`rounded-full border border-border px-2 py-0.5 text-xs ${e.actif ? "" : "opacity-50 line-through"}`}
+                  className={`puce ${e.actif ? "puce-encre" : "puce-grise line-through"}`}
                 >
                   {e.nom}
                 </span>

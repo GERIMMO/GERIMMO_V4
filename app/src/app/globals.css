@@ -406,3 +406,107 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   min-width: 70px;
 }
 .barre i { display: block; height: 100%; }
+
+/* En-tête de page (maquette .entete-page) : h1 + mention mono à droite */
+.entete-page {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Bouton d'action laiton (maquette .btn-or) */
+.btn-or {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--or);
+  color: #412402;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition: transform 0.17s ease, filter 0.17s ease;
+}
+.btn-or:hover { transform: translateY(-1px); filter: brightness(1.04); }
+
+/* Colonne de liste (maquette .colonne-liste) : un seul cadre, des rangs */
+.colonne-liste {
+  border: 1px solid var(--filet);
+  background: var(--ivoire);
+}
+
+/* Rang de liste (maquette .rang) : liseré gauche au survol/actif */
+.rang {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--filet);
+  transition: background 0.15s, border-color 0.15s;
+}
+.rang:last-child { border-bottom: none; }
+.rang:hover { background: #fcfaf5; border-left-color: var(--encre); }
+.rang b { font-size: 13.5px; font-weight: 500; }
+.rang small { font-size: 11.5px; color: var(--texte-secondaire); }
+
+/* Avatar à initiales (maquette .avatar) */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ardoise);
+  color: var(--encre);
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+}
+
+/* En-tête de groupe (maquette .tete-groupe) : l'adresse du bien, fond ardoise */
+.tete-groupe {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 14px;
+  background: var(--ardoise);
+  border-bottom: 1px solid var(--filet);
+}
+.colonne-liste > .tete-groupe:not(:first-child) { border-top: 1px solid var(--filet); }
+
+/* Rang de lot (maquette .rang-lot) : indenté sous son bien, filet vertical */
+.rang-lot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 26px;
+  border-bottom: 1px solid var(--filet-leger);
+  border-left: 3px solid transparent;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s;
+}
+.rang-lot::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--filet);
+}
+.rang-lot:hover { background: #fcfaf5; border-left-color: var(--encre); }
+
+/* État vide qui guide (maquette .vide) */
+.vide {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--texte-secondaire);
+  font-size: 13.5px;
+}

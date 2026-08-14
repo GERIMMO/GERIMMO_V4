@@ -32,7 +32,10 @@ export async function deposerFichierGed(
   orgId: string,
   fichier: File,
   type: string,
-  titre: string
+  titre: string,
+  // La fiche document est immuable (update révoqué en base) : le versionnage
+  // (remplace_id) et l'expiration se posent À L'INSERTION, jamais après coup.
+  options?: { remplaceId?: string; expireLe?: string }
 ): Promise<ResultatDepotGed> {
   if (fichier.size > TAILLE_MAX_OCTETS) {
     return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
@@ -100,6 +103,8 @@ export async function deposerFichierGed(
       taille_octets: fichier.size,
       empreinte,
       deposited_by: user.id,
+      ...(options?.remplaceId ? { remplace_id: options.remplaceId } : {}),
+      ...(options?.expireLe ? { expire_le: options.expireLe } : {}),
     })
     .select("id")
     .single();

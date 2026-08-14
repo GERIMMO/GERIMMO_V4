@@ -110,8 +110,11 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
 
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="entete-page mb-6">
         <h1>Personnes</h1>
+        <span className="mono-discret">
+          {fiches.length} fiche{fiches.length > 1 ? "s" : ""}
+        </span>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[1fr_20rem]">

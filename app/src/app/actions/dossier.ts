@@ -37,7 +37,27 @@ export async function deposerPieceDossier(
     return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
   }
 
-  const resultat = await deposerFichierGed(supabase, user, orgId, fichier, type, titre);
+  // Nouvelle version : la pièce remplacée doit exister dans l'agence — et la
+  // fiche document étant immuable (update révoqué en base), le lien de version
+  // se pose à l'insertion, dans deposerFichierGed (recette 14/08 : l'update
+  // après coup échouait en « permission denied » et chaque dépôt restait
+  // un document indépendant).
+  if (remplaceId) {
+    const { data: remplacee } = await supabase
+      .from("documents")
+      .select("id")
+      .eq("id", remplaceId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!remplacee) {
+      return { erreur: "La pièce à remplacer est introuvable dans l'agence." };
+    }
+  }
+
+  const resultat = await deposerFichierGed(supabase, user, orgId, fichier, type, titre, {
+    remplaceId: remplaceId || undefined,
+    expireLe: expireLe || undefined,
+  });
   if (resultat.erreur || !resultat.documentId) {
     return { erreur: resultat.erreur ?? "Échec du dépôt." };
   }
@@ -51,21 +71,6 @@ export async function deposerPieceDossier(
   });
   if (erreurLien) {
     return { erreur: `Pièce déposée mais rattachement en échec : ${sansJargon(erreurLien.message)}` };
-  }
-
-  // Versioning (remplace une version antérieure) + date d'expiration (attestation)
-  const maj: { remplace_id?: string; expire_le?: string } = {};
-  if (remplaceId) maj.remplace_id = remplaceId;
-  if (expireLe) maj.expire_le = expireLe;
-  if (Object.keys(maj).length > 0) {
-    const { error: erreurMaj } = await supabase
-      .from("documents")
-      .update(maj)
-      .eq("id", resultat.documentId)
-      .eq("organization_id", orgId);
-    if (erreurMaj) {
-      return { erreur: `Pièce déposée mais mise à jour en échec : ${sansJargon(erreurMaj.message)}` };
-    }
   }
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);

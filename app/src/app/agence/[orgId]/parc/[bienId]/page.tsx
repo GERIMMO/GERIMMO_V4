@@ -318,7 +318,7 @@ export default async function PageBien(
                 <li key={lot.id} className="space-y-2 py-3">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
                     <span
-                      className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
+                      className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
                     >
                       {ETATS_LOT[lot.etat] ?? lot.etat}
                     </span>

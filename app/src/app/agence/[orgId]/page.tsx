@@ -35,6 +35,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const { orgId } = await props.params;
   const { supabase, user } = await verifierAccesEspace(orgId);
 
+  // Mois courant (Europe/Paris) : les appels de loyer sont datés au 1er du mois
+  const moisCourant = `${new Date()
+    .toLocaleDateString("en-CA", { timeZone: "Europe/Paris" })
+    .slice(0, 7)}-01`;
+
   const [
     { count: nbBiens },
     { data: lots },
@@ -42,6 +47,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { count: nbDocuments },
     { data: dernierDoc },
     { data: rapports },
+    { data: appelsMois },
+    { data: encaissementsMois },
   ] = await Promise.all([
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
@@ -72,7 +79,25 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .eq("organization_id", orgId)
       .eq("statut", "a_valider")
       .order("mois"),
+    // KPI « Encaissé » (maquette) : le quittancement du mois en cours
+    supabase
+      .from("appels_loyer")
+      .select("montant_du")
+      .eq("organization_id", orgId)
+      .eq("periode", moisCourant),
+    supabase
+      .from("encaissements")
+      .select("montant")
+      .eq("organization_id", orgId)
+      .gte("date_paiement", moisCourant),
   ]);
+
+  const totalAppele = (appelsMois ?? []).reduce((s, a) => s + Number(a.montant_du), 0);
+  const totalEncaisse = (encaissementsMois ?? []).reduce((s, e) => s + Number(e.montant), 0);
+  const nomMois = new Date().toLocaleDateString("fr-FR", {
+    month: "long",
+    timeZone: "Europe/Paris",
+  });
 
   const alertes = (alertesBrutes ?? []) as Alerte[];
 
@@ -203,9 +228,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         </p>
       </div>
 
-      {/* Trois chiffres clés — tuiles KPI de la maquette : liseré de couleur à
+      {/* Quatre chiffres clés — tuiles KPI de la maquette : liseré de couleur à
           gauche, chiffre serif, jauge en segments. */}
-      <div className="mb-[1.125rem] grid gap-3.5 sm:grid-cols-3">
+      <div className="mb-[1.125rem] grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
         <Link href={`/agence/${orgId}/alertes`} className="kpi rouge h-full">
           <span className="eyebrow">À traiter</span>
           <span className="mt-1 flex items-baseline gap-2">
@@ -278,6 +303,32 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </span>
           <span className="block pt-[17px] text-xs text-muted-foreground">
             {dernierDoc ? `Dernier dépôt : ${formaterDate(dernierDoc.created_at)}` : "Aucun dépôt"}
+          </span>
+        </Link>
+
+        <Link href={`/agence/${orgId}/comptabilite`} className="kpi vert h-full">
+          <span className="eyebrow">Encaissé en {nomMois}</span>
+          <span className="mt-1 flex items-baseline gap-2">
+            <span className="chiffre">{eur(totalEncaisse)}</span>
+          </span>
+          <span className="jauge" aria-hidden>
+            <span
+              style={{
+                flex: Math.min(totalEncaisse, totalAppele) || 0.01,
+                background: "var(--success)",
+              }}
+            />
+            <span
+              style={{
+                flex: Math.max(totalAppele - totalEncaisse, 0) || 0.01,
+                background: "var(--or-clair)",
+              }}
+            />
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            {totalAppele > 0
+              ? `${Math.round((totalEncaisse / totalAppele) * 100)} % des ${eur(totalAppele)} appelés`
+              : "Aucun appel de loyer émis ce mois"}
           </span>
         </Link>
       </div>

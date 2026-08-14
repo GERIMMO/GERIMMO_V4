@@ -119,6 +119,16 @@ export function FormulairePersonne({
         {rond(2, "Identité")}
       </div>
 
+      {/* Affiché ICI (hors étape 2) : après une création, l'assistant repart à
+          l'étape 1 — l'avertissement doublon doit survivre à ce repli
+          (recette 13/08 : « aucune alerte » alors que le serveur la renvoyait). */}
+      {etat.succes && (
+        <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
+      )}
+      {etat.avertissement && (
+        <p className="text-sm text-warning-soft-foreground">⚠ {etat.avertissement}</p>
+      )}
+
       {etape === 1 && (
         <div className="space-y-2.5">
           {roles.map((r) => (
@@ -257,9 +267,6 @@ export function FormulairePersonne({
           )}
 
           {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-          {etat.succes && (
-            <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
-          )}
           <div className="flex items-center gap-2">
             <Button
               type="button"

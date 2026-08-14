@@ -12,7 +12,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
 import { FormulairePiece, FormulaireNouvelleVersion } from "./formulaire-piece";
-import { FormulaireIdentite } from "./formulaire-identite";
+import { FormulaireIdentite, BoutonArchiverPersonne } from "./formulaire-identite";
 import { FormulaireMandat, FormulaireLigneMandat, BoutonsEtatMandat } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
 
@@ -72,10 +72,11 @@ export default async function PagePersonne(
     return chaine;
   };
 
-  // Lots détenus par la personne (pour composer un mandat)
+  // Lots détenus par la personne (affichés sur la fiche, recette 14/08 —
+  // et base des mandats)
   const { data: detentions } = await supabase
     .from("detentions")
-    .select("lot_id")
+    .select("lot_id, quote_part, date_debut")
     .eq("organization_id", orgId)
     .eq("person_id", personId)
     .is("date_fin", null);
@@ -139,7 +140,7 @@ export default async function PagePersonne(
         >
           ← Personnes
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">
+        <h1 className="mt-1">
           {personne.nom}
           {personne.prenom ? ` ${personne.prenom}` : ""}
         </h1>
@@ -147,7 +148,7 @@ export default async function PagePersonne(
           {[personne.email, personne.telephone].filter(Boolean).join(" · ") || "Aucun contact"}
           {personne.date_naissance ? ` · né(e) le ${formaterDate(personne.date_naissance)}` : ""}
         </p>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap items-start gap-2">
           <FormulaireIdentite
             orgId={orgId}
             personId={personId}
@@ -157,8 +158,34 @@ export default async function PagePersonne(
             telephone={personne.telephone}
             dateNaissance={personne.date_naissance}
           />
+          <BoutonArchiverPersonne orgId={orgId} personId={personId} />
         </div>
       </div>
+
+      {/* Détentions en cours : la fiche montre ce que la personne possède
+          (recette 14/08 — l'assistant crée la détention, la fiche l'affiche) */}
+      {(detentions ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Lots détenus</CardTitle>
+            <CardDescription>
+              Les quote-parts se règlent sur la fiche du lot.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-border">
+              {(detentions ?? []).map((d) => (
+                <li key={d.lot_id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                  <span>{libelleLot(d.lot_id)}</span>
+                  <span className="text-muted-foreground">
+                    {Number(d.quote_part)} % · depuis le {formaterDate(d.date_debut)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Accès locataire : invitation */}
       <Card>

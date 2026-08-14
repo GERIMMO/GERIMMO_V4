@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 
-export type EtatPersonne = { erreur?: string; succes?: string };
+export type EtatPersonne = { erreur?: string; succes?: string; avertissement?: string };
 
 // ilike interprète % et _ comme jokers : un email en contient souvent (_),
 // on les échappe pour comparer l'adresse littérale.
@@ -143,12 +143,91 @@ export async function creerPersonne(
   if (doublon) {
     revalidatePath(`/agence/${orgId}/personnes`);
     return {
-      succes:
-        "Fiche créée. Un homonyme avec la même date de naissance existe déjà (même en inversant nom et prénom) — vérifiez qu'il ne s'agit pas d'un doublon.",
+      succes: "Fiche créée.",
+      avertissement:
+        "Un homonyme avec la même date de naissance existe déjà (même en inversant nom et prénom) — vérifiez qu'il ne s'agit pas d'un doublon.",
     };
   }
   revalidatePath(`/agence/${orgId}/personnes`);
   redirect(`/agence/${orgId}/personnes/${cree.id}`);
+}
+
+// Archiver une fiche (recette 14/08 : le nettoyage des doublons se faisait en
+// base à la main — jamais de suppression, RM « archivage plutôt que
+// suppression »). Refusé tant que la fiche porte des liens vivants.
+export async function archiverPersonne(
+  orgId: string,
+  personId: string,
+  _etat: EtatPersonne,
+  _formData: FormData
+): Promise<EtatPersonne> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { data: fiche } = await supabase
+    .from("persons")
+    .select("account_id, archived_at")
+    .eq("id", personId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!fiche) return { erreur: "Fiche introuvable." };
+  if (fiche.archived_at) return { erreur: "Cette fiche est déjà archivée." };
+  if (fiche.account_id) {
+    return {
+      erreur:
+        "Cette fiche est reliée à un compte (espace locataire) : elle ne peut pas être archivée.",
+    };
+  }
+
+  const [{ data: detentions }, { data: mandats }, { data: baux }, { data: roles }] =
+    await Promise.all([
+      supabase
+        .from("detentions")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("person_id", personId)
+        .is("date_fin", null)
+        .limit(1),
+      supabase
+        .from("mandats")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("person_id", personId)
+        .neq("etat", "resilie")
+        .limit(1),
+      supabase
+        .from("baux")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("locataire_principal", personId)
+        .in("etat", ["actif", "preavis"])
+        .limit(1),
+      supabase
+        .from("bail_personnes")
+        .select("id")
+        .eq("organization_id", orgId)
+        .eq("person_id", personId)
+        .limit(1),
+    ]);
+  if ((detentions ?? []).length > 0) {
+    return { erreur: "Cette personne détient un lot : clore la détention avant d'archiver." };
+  }
+  if ((mandats ?? []).length > 0) {
+    return { erreur: "Cette personne a un mandat non résilié : résilier avant d'archiver." };
+  }
+  if ((baux ?? []).length > 0 || (roles ?? []).length > 0) {
+    return { erreur: "Cette personne figure sur un bail : la fiche reste active." };
+  }
+
+  const { error } = await supabase
+    .from("persons")
+    .update({ archived_at: new Date().toISOString() })
+    .eq("id", personId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: `Archivage impossible : ${sansJargon(error.message)}` };
+
+  revalidatePath(`/agence/${orgId}/personnes`);
+  redirect(`/agence/${orgId}/personnes`);
 }
 
 // Modifier l'identité et les coordonnées d'une personne (recette 13/08 : une

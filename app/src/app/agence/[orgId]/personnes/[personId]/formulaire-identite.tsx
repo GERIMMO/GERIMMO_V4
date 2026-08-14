@@ -1,10 +1,50 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { modifierPersonne, type EtatPersonne } from "@/app/actions/personnes";
+import {
+  archiverPersonne,
+  modifierPersonne,
+  type EtatPersonne,
+} from "@/app/actions/personnes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+// Archiver la fiche (jamais de suppression) : confirmation en deux temps.
+// Refusé côté serveur si la fiche porte encore des liens vivants.
+export function BoutonArchiverPersonne({
+  orgId,
+  personId,
+}: {
+  orgId: string;
+  personId: string;
+}) {
+  const action = archiverPersonne.bind(null, orgId, personId);
+  const [etat, formAction, enCours] = useActionState<EtatPersonne, FormData>(action, {});
+  const [confirmation, setConfirmation] = useState(false);
+
+  if (!confirmation) {
+    return (
+      <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmation(true)}>
+        Archiver la fiche
+      </Button>
+    );
+  }
+  return (
+    <form action={formAction} className="flex items-center gap-2">
+      <span className="text-xs text-muted-foreground">
+        La fiche disparaît des listes, rien n&apos;est supprimé.
+      </span>
+      <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmation(false)}>
+        Annuler
+      </Button>
+      <Button type="submit" variant="outline" size="sm" disabled={enCours}>
+        {enCours ? "Archivage…" : "Confirmer l'archivage"}
+      </Button>
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+    </form>
+  );
+}
 
 // Modifier l'identité d'une fiche (recette 13/08) : replié par défaut, le
 // formulaire reprend les valeurs actuelles — l'email reste unique par agence.

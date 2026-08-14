@@ -17,8 +17,10 @@ export type LiensPersonnes = {
 
 export type RolePersonne = {
   libelle: string;
-  /** Classe de texte, charte §04 : texte coloré, jamais de pastille. */
+  /** Classe de texte (charte v1, écrans non repris) */
   classe: string;
+  /** Pastille à fond doux (charte v2 / maquette .puce) */
+  puce: string;
 };
 
 // L'ordre est celui de la lecture : d'abord ce que la personne possède, puis
@@ -31,15 +33,26 @@ export function rolesDePersonne(personId: string, liens: LiensPersonnes): RolePe
       // sous mandat est un client, un propriétaire sans mandat est un prospect.
       libelle: liens.mandants.has(personId) ? "Propriétaire · mandat" : "Propriétaire",
       classe: "text-foreground",
+      puce: "puce-encre",
     });
   }
   if (liens.locataires.has(personId)) {
-    roles.push({ libelle: "Locataire", classe: "text-success-soft-foreground" });
+    roles.push({
+      libelle: "Locataire",
+      classe: "text-success-soft-foreground",
+      puce: "puce-loue",
+    });
   }
   if (liens.garants.has(personId)) {
-    roles.push({ libelle: "Garant", classe: "text-muted-foreground" });
+    roles.push({ libelle: "Garant", classe: "text-muted-foreground", puce: "puce-grise" });
   }
   return roles;
+}
+
+// Initiales pour l'avatar de la liste (maquette .avatar) : « Dupont Alice » → DA
+export function initiales(nom: string, prenom: string | null): string {
+  const premiere = (texte: string) => texte.trim().charAt(0).toUpperCase();
+  return `${premiere(nom)}${prenom ? premiere(prenom) : ""}` || "?";
 }
 
 // Recherche insensible aux accents et à la casse : « helene » trouve

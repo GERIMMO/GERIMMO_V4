@@ -170,7 +170,7 @@ export default async function PageLot(
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-semibold">{lot.nom}</h1>
           <span
-            className={`badge-statut shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? ""}`}
+            className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
           >
             {ETATS_LOT[lot.etat] ?? lot.etat}
           </span>

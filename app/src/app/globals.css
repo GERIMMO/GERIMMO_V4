@@ -510,3 +510,41 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   color: var(--texte-secondaire);
   font-size: 13.5px;
 }
+
+/* En-tête de carte (maquette .entete-carte) : titre + mention/lien à droite */
+.entete-carte {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+/* Lien discret bleu (maquette .lien-discret) */
+.lien-discret {
+  font-size: 12px;
+  color: var(--bleu);
+}
+.lien-discret:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* Barre sticky en tête d'une colonne de liste (maquette .tete-liste) */
+.tete-liste {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--filet);
+  background: var(--ivoire);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Donut + légende côte à côte (maquette .bloc-graph) */
+.bloc-graph {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}

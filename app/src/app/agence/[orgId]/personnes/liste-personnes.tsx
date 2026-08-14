@@ -48,6 +48,14 @@ export function ListePersonnes({
       />
 
       <div className="colonne-liste">
+        <div className="tete-liste">
+          <span className="mono-discret">Toutes les fiches</span>
+          <span className="mono-discret">
+            {visibles.length === personnes.length
+              ? `${personnes.length}`
+              : `${visibles.length} / ${personnes.length}`}
+          </span>
+        </div>
         {visibles.length === 0 ? (
           <div className="vide">
             {personnes.length === 0 ? (

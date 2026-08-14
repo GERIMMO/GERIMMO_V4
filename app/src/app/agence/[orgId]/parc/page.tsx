@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
+import { resumerBlocage } from "@/lib/echeances";
 import { TYPES_BIEN, ETATS_LOT, COULEURS_ETAT_LOT, formaterSurface } from "@/lib/parc";
+import { Donut, LegendeDonut } from "@/components/graphes";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
@@ -26,7 +28,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   const { orgId } = await props.params;
   const { supabase, role } = await verifierAccesEspace(orgId);
 
-  const [{ data: biens }, { data: equipements }] = await Promise.all([
+  const [{ data: biens }, { data: equipements }, { data: bauxActifs }] = await Promise.all([
     supabase
       .from("biens")
       // !lots_bien_id_fkey : depuis les FK composites (revue 2), deux relations
@@ -41,6 +43,12 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       .select("id, nom, actif")
       .eq("organization_id", orgId)
       .order("nom"),
+    // Aperçu (maquette) : le quittancement mensuel des baux en cours
+    supabase
+      .from("baux")
+      .select("loyer_hc, charges")
+      .eq("organization_id", orgId)
+      .in("etat", ["actif", "preavis"]),
   ]);
 
   const biensVisibles = (biens ?? []).map((bien) => ({
@@ -49,9 +57,46 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   }));
   const nbLots = biensVisibles.reduce((n, b) => n + b.lotsVisibles.length, 0);
   const nbLoues = biensVisibles.reduce(
-    (n, b) => n + b.lotsVisibles.filter((l) => l.etat === "loue").length,
+    (n, b) => n + b.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length,
     0
   );
+  const tousLots = biensVisibles.flatMap((b) =>
+    b.lotsVisibles.map((l) => ({ ...l, bien_id: b.id }))
+  );
+  const enPreparation = tousLots.filter((l) => l.etat === "brouillon");
+  const tauxOccupation = nbLots ? Math.round((nbLoues / nbLots) * 100) : 0;
+  const quittancement = (bauxActifs ?? []).reduce(
+    (s, b) => s + Number(b.loyer_hc) + Number(b.charges),
+    0
+  );
+  const segmentsParc = [
+    { libelle: "Loués", valeur: nbLoues, couleur: "var(--success)" },
+    {
+      libelle: "Disponibles",
+      valeur: tousLots.filter((l) => l.etat === "disponible").length,
+      couleur: "var(--or)",
+    },
+    { libelle: "En préparation", valeur: enPreparation.length, couleur: "var(--warning)" },
+  ];
+
+  // « Éléments à compléter » (maquette) : les motifs de blocage de mise en
+  // location, agrégés sur les lots en préparation, triés du plus fréquent.
+  const listesBlocages = await Promise.all(
+    enPreparation.map(async (l) => {
+      const { data } = await supabase.rpc("lot_blocages_location", { p_lot: l.id });
+      return (data ?? []) as string[];
+    })
+  );
+  const parMotif = new Map<string, number>();
+  for (const motifs of listesBlocages) {
+    for (const motif of motifs) {
+      const cle = resumerBlocage(motif);
+      parMotif.set(cle, (parMotif.get(cle) ?? 0) + 1);
+    }
+  }
+  const motifsTries = [...parMotif.entries()].sort((a, b) => b[1] - a[1]);
+  const totalBlocages = motifsTries.reduce((s, [, n]) => s + n, 0);
+  const maxMotif = Math.max(1, ...motifsTries.map(([, n]) => n));
 
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
@@ -89,51 +134,144 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           </div>
         </div>
       ) : (
-        // Maquette (charte v2) : une seule colonne — l'adresse du bien en
-        // en-tête de groupe, ses lots en rangs indentés dessous.
-        <div className="colonne-liste">
-          {biensVisibles.map((bien) => (
-            <div key={bien.id}>
-              <Link href={`/agence/${orgId}/parc/${bien.id}`} className="tete-groupe block">
-                <span className="min-w-0">
-                  <b className="block truncate text-[13.5px] font-medium">{bien.nom}</b>
-                  <span className="mono-discret block truncate normal-case">
-                    {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1},{" "}
-                    {bien.postal_code} {bien.city}
+        // Maquette (charte v2) : maître-détail — la liste des lots regroupés
+        // par bien à gauche (adresse en en-tête de groupe, lots indentés), la
+        // vue d'ensemble à droite. Cliquer ouvre la fiche (bien ou lot).
+        <div className="split">
+          <div className="colonne-liste">
+            <div className="tete-liste">
+              <span className="mono-discret">Lots</span>
+              <span className="mono-discret">
+                {nbLoues}/{nbLots} loué{nbLoues > 1 ? "s" : ""}
+              </span>
+            </div>
+            {biensVisibles.map((bien) => (
+              <div key={bien.id}>
+                <Link href={`/agence/${orgId}/parc/${bien.id}`} className="tete-groupe block">
+                  <span className="min-w-0">
+                    <b className="block truncate text-[13.5px] font-medium">{bien.nom}</b>
+                    <span className="mono-discret block truncate normal-case">
+                      {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1},{" "}
+                      {bien.postal_code} {bien.city}
+                    </span>
                   </span>
-                </span>
-                <span className="puce puce-encre shrink-0">
-                  {bien.lotsVisibles.filter((l) => l.etat === "loue").length}/
-                  {bien.lotsVisibles.length} loué
-                  {bien.lotsVisibles.filter((l) => l.etat === "loue").length > 1 ? "s" : ""}
-                </span>
-              </Link>
-              {bien.lotsVisibles.map((lot) => (
-                <Link
-                  key={lot.id}
-                  href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
-                  className="rang-lot"
-                >
-                  <span className="min-w-0 flex-1 truncate text-[13px]">
-                    {lot.nom}
-                    {lot.surface_m2 !== null && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · {formaterSurface(lot.surface_m2)}
-                      </span>
-                    )}
-                  </span>
-                  <span className={`${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"} shrink-0`}>
-                    {ETATS_LOT[lot.etat] ?? lot.etat}
+                  <span className="puce puce-encre shrink-0">
+                    {bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length}
+                    /{bien.lotsVisibles.length} loué
+                    {bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis")
+                      .length > 1
+                      ? "s"
+                      : ""}
                   </span>
                 </Link>
-              ))}
+                {bien.lotsVisibles.map((lot) => (
+                  <Link
+                    key={lot.id}
+                    href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
+                    className="rang-lot"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[13px]">
+                      {lot.nom}
+                      {lot.surface_m2 !== null && (
+                        <span className="text-muted-foreground">
+                          {" "}
+                          · {formaterSurface(lot.surface_m2)}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={`${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"} shrink-0`}
+                    >
+                      {ETATS_LOT[lot.etat] ?? lot.etat}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Aperçu du parc (maquette apercuParc) : KPI, répartition, blocages */}
+          <div className="min-w-0 space-y-3.5">
+            <p className="text-sm text-muted-foreground">
+              Sélectionnez un lot dans la liste pour ouvrir sa fiche, ou traitez
+              ce qui bloque ci-dessous.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="kpi or">
+                <span className="eyebrow">Occupation</span>
+                <span className="chiffre block">{tauxOccupation} %</span>
+                <span className="block text-xs text-muted-foreground">
+                  {nbLoues} loué{nbLoues > 1 ? "s" : ""} sur {nbLots}
+                </span>
+              </div>
+              <div className="kpi">
+                <span className="eyebrow">À finaliser</span>
+                <span className="chiffre block">{enPreparation.length}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {totalBlocages} élément{totalBlocages > 1 ? "s" : ""} manquant
+                  {totalBlocages > 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="kpi bleu">
+                <span className="eyebrow">Quittancement</span>
+                <span className="chiffre block">
+                  {quittancement.toLocaleString("fr-FR")} €
+                </span>
+                <span className="block text-xs text-muted-foreground">
+                  par mois, baux en cours
+                </span>
+              </div>
             </div>
-          ))}
-          <p className="mono-discret border-t border-border px-3.5 py-2 normal-case">
-            {nbLoues}/{nbLots} lot{nbLots > 1 ? "s" : ""} loué{nbLoues > 1 ? "s" : ""} — cliquer
-            un bien pour sa fiche, un lot pour le détail.
-          </p>
+            <div className="grid gap-3.5 lg:grid-cols-2">
+              <Card>
+                <CardContent>
+                  <div className="entete-carte">
+                    <h3 className="text-[1.05rem]">Répartition du parc</h3>
+                  </div>
+                  <div className="bloc-graph">
+                    <Donut
+                      segments={segmentsParc}
+                      centre={`${tauxOccupation} %`}
+                      sous="LOUÉS"
+                    />
+                    <LegendeDonut segments={segmentsParc} />
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent>
+                  <div className="entete-carte">
+                    <h3 className="text-[1.05rem]">Éléments à compléter</h3>
+                    <span className="mono-discret">{totalBlocages} au total</span>
+                  </div>
+                  {motifsTries.length === 0 ? (
+                    <p className="text-sm text-success-soft-foreground">
+                      Tous vos lots sont prêts à la location. Rien à compléter.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {motifsTries.map(([motif, n]) => (
+                        <div key={motif}>
+                          <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px]">
+                            <span className="min-w-0 truncate">{motif}</span>
+                            <span className="mono-discret">{n}</span>
+                          </div>
+                          <span className="barre block" style={{ height: 7 }}>
+                            <i
+                              style={{
+                                width: `${Math.round((n / maxMotif) * 100)}%`,
+                                background: "var(--warning)",
+                              }}
+                            />
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       )}
 

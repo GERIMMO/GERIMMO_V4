@@ -1278,3 +1278,25 @@ entete-page). Reste maquette (proposé) : layout maître-détail .split, donuts
 de répartition, barres de complétude des lots, assistant plein écran.
 Données de test créées : « Recette Mandant » (détention 100 % Lot 1 Calvisson),
 « Testy 4 » confiée à admin.alpha@ (test C.1). Livrable annoté.
+
+## [2026-08-14] synthese | Audit de cohérence maquette ↔ application + alignements
+
+À la demande de l''humain (« pas de surprise, pas 50 recettes ») : comparaison
+ligne à ligne du prototype HTML (raw/maquettes) avec les écrans Tableau de
+bord, Parc et Personnes. Alignements livrés dans la foulée :
+- Tableau de bord : KPI Occupation en % (le chiffre est le taux, comme la
+  maquette), Encaissé en bleu avec « x % du quittancement du mois », Documents
+  en 4e tuile neutre ; rangée graphique ajoutée — donut « Répartition du
+  parc » + barres « Encaissements et dépenses » 6 mois (SVG pur,
+  src/components/graphes.tsx, écritures réelles).
+- Parc : passage au maître-détail .split de la maquette — colonne de liste
+  sticky (tete-liste) + aperçu du parc à droite (KPI Occupation/À finaliser/
+  Quittancement, donut, carte « Éléments à compléter » par motif de blocage).
+- Personnes : tete-liste (compteur) sur la colonne.
+- globals.css : entete-carte, lien-discret, tete-liste, bloc-graph.
+Synthèse wiki créée : [[Coherence maquette-application]] — conformités +
+**tableau des 16 écarts assumés** (recherche globale, incidents, articles,
+complétude des lots, panneau in-page, sous-onglets, assistant plein écran,
+carte « À vérifier », Card shadcn…) avec 4 points à trancher. Règle de
+recette : un écran qui ne colle ni à la maquette ni à ce tableau = anomalie.
+Lint/build/tests OK. Déployé via push.

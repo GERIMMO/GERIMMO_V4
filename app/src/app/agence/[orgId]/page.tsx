@@ -11,6 +11,7 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, formaterDate } from "@/lib/ged";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -39,6 +40,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const moisCourant = `${new Date()
     .toLocaleDateString("en-CA", { timeZone: "Europe/Paris" })
     .slice(0, 7)}-01`;
+  const dateSixMois = new Date(`${moisCourant}T12:00:00`);
+  dateSixMois.setMonth(dateSixMois.getMonth() - 5);
+  const moisSixMoisAvant = `${dateSixMois.toISOString().slice(0, 7)}-01`;
 
   const [
     { count: nbBiens },
@@ -49,6 +53,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: rapports },
     { data: appelsMois },
     { data: encaissementsMois },
+    { data: ecrituresSixMois },
   ] = await Promise.all([
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
@@ -90,6 +95,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .select("montant")
       .eq("organization_id", orgId)
       .gte("date_paiement", moisCourant),
+    // Carte « Encaissements et dépenses » (maquette) : 6 mois d'écritures
+    supabase
+      .from("ecritures")
+      .select("sens, montant, date_imputation")
+      .eq("organization_id", orgId)
+      .gte("date_imputation", moisSixMoisAvant),
   ]);
 
   const totalAppele = (appelsMois ?? []).reduce((s, a) => s + Number(a.montant_du), 0);
@@ -98,6 +109,22 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     month: "long",
     timeZone: "Europe/Paris",
   });
+
+  // Six derniers mois : encaissé (crédits) et dépenses (débits) par mois
+  const historique: { libelle: string; a: number; b: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(`${moisCourant}T12:00:00`);
+    d.setMonth(d.getMonth() - i);
+    const prefixe = d.toISOString().slice(0, 7);
+    const duMois = (ecrituresSixMois ?? []).filter((e) =>
+      String(e.date_imputation).startsWith(prefixe)
+    );
+    historique.push({
+      libelle: d.toLocaleDateString("fr-FR", { month: "short", timeZone: "Europe/Paris" }),
+      a: duMois.filter((e) => e.sens === "recette").reduce((s, e) => s + Number(e.montant), 0),
+      b: duMois.filter((e) => e.sens === "depense").reduce((s, e) => s + Number(e.montant), 0),
+    });
+  }
 
   const alertes = (alertesBrutes ?? []) as Alerte[];
 
@@ -116,6 +143,18 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const nomsLots = new Map(lotsActifs.map((l) => [l.id, { nom: l.nom, bienId: l.bien_id }]));
   const nbLoues = lotsActifs.filter((l) => l.etat === "loue" || l.etat === "preavis").length;
   const enPreparation = lotsActifs.filter((l) => l.etat === "brouillon");
+  const tauxOccupation = lotsActifs.length
+    ? Math.round((nbLoues / lotsActifs.length) * 100)
+    : 0;
+  const segmentsParc = [
+    { libelle: "Loués", valeur: nbLoues, couleur: "var(--success)" },
+    {
+      libelle: "Disponibles",
+      valeur: lotsActifs.filter((l) => l.etat === "disponible").length,
+      couleur: "var(--or)",
+    },
+    { libelle: "En préparation", valeur: enPreparation.length, couleur: "var(--warning)" },
+  ];
 
   // Ce qui bloque chaque lot en préparation : on ne garde que le premier motif,
   // le détail vit sur la fiche du lot.
@@ -270,52 +309,44 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </span>
         </Link>
 
+        {/* Maquette : le chiffre du parc est l'OCCUPATION en % */}
         <Link href={`/agence/${orgId}/parc`} className="kpi or h-full">
-          <span className="eyebrow">Parc</span>
+          <span className="eyebrow">Occupation</span>
           <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{nbBiens ?? 0}</span>
+            <span className="chiffre">{tauxOccupation} %</span>
             <span className="text-sm text-muted-foreground">
-              bien{(nbBiens ?? 0) > 1 ? "s" : ""} · {lotsActifs.length} lot
-              {lotsActifs.length > 1 ? "s" : ""}
+              {nbLoues} / {lotsActifs.length} lots loués
             </span>
           </span>
           <span className="jauge" aria-hidden>
-            <span style={{ flex: nbLoues || 0.01, background: "var(--success)" }} />
+            <span style={{ flex: tauxOccupation || 0.01, background: "var(--success)" }} />
             <span
               style={{
-                flex: lotsActifs.length - nbLoues || 0.01,
+                flex: 100 - tauxOccupation || 0.01,
                 background: "var(--or-clair)",
               }}
             />
           </span>
           <span className="block text-xs text-muted-foreground">
-            {nbLoues} loué{nbLoues > 1 ? "s" : ""} · {enPreparation.length} en préparation
+            {enPreparation.length} lot{enPreparation.length > 1 ? "s" : ""} à finaliser ·{" "}
+            {nbBiens ?? 0} bien{(nbBiens ?? 0) > 1 ? "s" : ""}
           </span>
         </Link>
 
-        <Link href={`/agence/${orgId}/documents`} className="kpi bleu h-full">
-          <span className="eyebrow">Documents</span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{nbDocuments ?? 0}</span>
-            <span className="text-sm text-muted-foreground">
-              pièce{(nbDocuments ?? 0) > 1 ? "s" : ""} déposée{(nbDocuments ?? 0) > 1 ? "s" : ""}
-            </span>
-          </span>
-          <span className="block pt-[17px] text-xs text-muted-foreground">
-            {dernierDoc ? `Dernier dépôt : ${formaterDate(dernierDoc.created_at)}` : "Aucun dépôt"}
-          </span>
-        </Link>
-
-        <Link href={`/agence/${orgId}/comptabilite`} className="kpi vert h-full">
+        {/* Maquette : l'encaissé du mois en bleu, jauge de quittancement */}
+        <Link href={`/agence/${orgId}/comptabilite`} className="kpi bleu h-full">
           <span className="eyebrow">Encaissé en {nomMois}</span>
           <span className="mt-1 flex items-baseline gap-2">
             <span className="chiffre">{eur(totalEncaisse)}</span>
+            {totalAppele > 0 && (
+              <span className="text-sm text-muted-foreground">/ {eur(totalAppele)} appelés</span>
+            )}
           </span>
           <span className="jauge" aria-hidden>
             <span
               style={{
                 flex: Math.min(totalEncaisse, totalAppele) || 0.01,
-                background: "var(--success)",
+                background: "var(--bleu)",
               }}
             />
             <span
@@ -327,10 +358,62 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </span>
           <span className="block text-xs text-muted-foreground">
             {totalAppele > 0
-              ? `${Math.round((totalEncaisse / totalAppele) * 100)} % des ${eur(totalAppele)} appelés`
+              ? `${Math.round((totalEncaisse / totalAppele) * 100)} % du quittancement du mois`
               : "Aucun appel de loyer émis ce mois"}
           </span>
         </Link>
+
+        <Link href={`/agence/${orgId}/documents`} className="kpi h-full">
+          <span className="eyebrow">Documents</span>
+          <span className="mt-1 flex items-baseline gap-2">
+            <span className="chiffre">{nbDocuments ?? 0}</span>
+            <span className="text-sm text-muted-foreground">
+              pièce{(nbDocuments ?? 0) > 1 ? "s" : ""} déposée{(nbDocuments ?? 0) > 1 ? "s" : ""}
+            </span>
+          </span>
+          <span className="block pt-[17px] text-xs text-muted-foreground">
+            {dernierDoc ? `Dernier dépôt : ${formaterDate(dernierDoc.created_at)}` : "Aucun dépôt"}
+          </span>
+        </Link>
+      </div>
+
+      {/* Rangée graphique de la maquette : répartition du parc + encaissements
+          et dépenses sur 6 mois. (Le donut « incidents par payeur » attendra le
+          module incidents.) */}
+      <div className="mb-[1.125rem] grid gap-3.5 md:grid-cols-2">
+        <Card>
+          <CardContent>
+            <div className="entete-carte">
+              <h3 className="text-[1.05rem]">Répartition du parc</h3>
+              <span className="mono-discret">
+                {lotsActifs.length} lot{lotsActifs.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <div className="bloc-graph">
+              <Donut segments={segmentsParc} centre={`${tauxOccupation} %`} sous="LOUÉS" />
+              <LegendeDonut segments={segmentsParc} />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <div className="entete-carte">
+              <h3 className="text-[1.05rem]">Encaissements et dépenses</h3>
+              <span className="mono-discret">6 mois</span>
+            </div>
+            <BarresDouble donnees={historique} />
+            <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden className="size-2.5" style={{ background: "var(--success)" }} />
+                Encaissé
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden className="size-2.5" style={{ background: "var(--warning)" }} />
+                Dépenses
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-[1.125rem] lg:grid-cols-[1.6fr_1fr]">

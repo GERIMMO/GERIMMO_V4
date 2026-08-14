@@ -1251,3 +1251,30 @@ résilié historisé). Fiches de test en double du 13/08 listées à archiver.
 transverse et décisions à trancher. Les scénarios validés (bloc 0, C.2-C.4,
 C.5.1-3+5, C.7, 3.2.1+3, 3.3.1-4) sortent du document — l''historique reste
 dans git (b14f4fe) et dans ce journal.
+
+## [2026-08-14] recette | Recette automatisée des 6 re-tests + 2 anomalies corrigées + maquette
+
+Recette automatisée en conditions réelles (session agent.alpha, navigateur) sur
+les 6 re-tests du 13/08 — ne vaut pas validation humaine :
+- C.1, C.5.4, C.6.1, 3.3.5 ✔ ; C.8 ✔ (pop-up + modification de fiche).
+- **Anomalie 1 (3.2.2)** : « Déposer une nouvelle version » créait encore un
+  document indépendant — l''update posant remplace_id est interdit en base
+  (documents immuables, « permission denied »). Corrigé : remplace_id/expire_le
+  passés À L''INSERTION (ged-depot + dossier.ts) ; re-testé : badge v2 +
+  historique sur la pièce d''Alice Dupont.
+- **Anomalie 2 (C.6.2)** : la détection doublon fonctionnait mais son
+  avertissement était démonté par le repli de l''assistant vers l''étape 1 —
+  la vraie cause du « aucune alerte » du 13/08. Corrigé : message affiché hors
+  étape, typé avertissement (orange).
+Ajouts : action « Archiver la fiche » (gardes : détention/mandat/bail/compte)
+— les 4 fiches doublons d''Alpha archivées via l''UI (« jean luc » reste chez
+Beta) ; section « Lots détenus » sur la fiche personne.
+Maquette charte v2 appliquée (rapport maquette ↔ écrans) : Personnes (colonne
+à rangs + avatars + puces + compteur), Parc (tete-groupe par bien + rangs de
+lots + bouton laiton + fin du conflit badge-statut/puce), Tableau de bord
+(4e KPI « Encaissé » avec jauge de quittancement), classes maquette ajoutées à
+globals.css (rang, avatar, tete-groupe, rang-lot, colonne-liste, vide, btn-or,
+entete-page). Reste maquette (proposé) : layout maître-détail .split, donuts
+de répartition, barres de complétude des lots, assistant plein écran.
+Données de test créées : « Recette Mandant » (détention 100 % Lot 1 Calvisson),
+« Testy 4 » confiée à admin.alpha@ (test C.1). Livrable annoté.

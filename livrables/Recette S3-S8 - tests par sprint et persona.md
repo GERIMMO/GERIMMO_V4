@@ -19,6 +19,27 @@
 
 ## Étape 1 — Re-tests des correctifs du 13/08
 
+> **Recette automatisée du 14/08** (agent, en conditions réelles sur le site) —
+> à confirmer d'un coup d'œil humain, elle ne vaut pas validation :
+> - **C.1** ✔ refus sans destinataire, refus sans message, envoi avec message OK
+>   (l'alerte « Testy 4 » a été confiée à admin.alpha@ pour ce test — reprends-la).
+> - **C.5.4** ✔ liste peuplée, recherche OK, **détention 100 % créée** (fiche
+>   « Recette Mandant » sur Lot 1, 3 Rue des Essais) ; la fiche personne affiche
+>   désormais une section « **Lots détenus** » (nouveau).
+> - **C.6.1** ✔ refus net sur email déjà pris dans Alpha.
+> - **C.6.2** ✔ détection OK, mais l'avertissement était **invisible** (masqué
+>   par le repli de l'assistant — la cause de ton « aucune alerte ») → corrigé
+>   le 14/08 : il s'affiche en orange au-dessus de l'assistant.
+> - **3.2.2** : le bouton créait encore un document indépendant (écriture du
+>   lien de version interdite en base) → **corrigé le 14/08** (lien posé à
+>   l'insertion) puis re-testé : badge **v2** + « Historique — 1 version
+>   antérieure (conservée) » sur la pièce d'Alice Dupont.
+> - **3.3.5** ✔ mandats résiliés grisés « Historisé — non modifiable », taux et
+>   lots lisibles.
+> - **Nettoyage** ✔ fait via le nouveau bouton « **Archiver la fiche** » :
+>   les 4 doublons d'Alpha sont archivés (reste « jean luc » chez **Beta**,
+>   à archiver depuis une session Beta).
+
 ### Persona : Agent immobilier (agent.alpha@)
 
 **Re-test C.1 — Message obligatoire dans « Confier »**

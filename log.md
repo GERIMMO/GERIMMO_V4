@@ -1329,3 +1329,15 @@ commercial ni super admin. Acté dans [[Onboarding et abonnement]] (nouvelle sec
 [[Propriétaire bailleur]], [[État du projet et décisions ouvertes]] (« plus aucun
 arbitrage en attente », 2026-08-19) et le plan de sprints (S11, livrables). Plus
 aucun point ouvert sur ce persona : exclusivité PD/PM assumée + arrivée spécifiée.
+
+## [2026-08-19] decision | Priorisation du PD : scission du sprint 9 (9a dédié, 9b transverses)
+Le PD est « le cœur de l'appli » : à l'image du sprint dédié aux incidents (S7),
+le S9 est scindé. **S9a — Propriétaire direct** en premier : auto-inscription en
+ligne (remontée du S11, essai 14 j, Stripe restant au S11), espace complet,
+livre recettes-dépenses, récap fiscal — démo « un PD s'inscrit seul et gère de
+bout en bout ». **S9b — Administration et transverses** ensuite : rôles V3,
+paramétrage, agenda, messagerie, vue scindée, console SA. Plan de sprints mis à
+jour (sections, tableau des espaces, jalons fin S9b) + [[Propriétaire bailleur]],
+[[Onboarding et abonnement]], [[État du projet et décisions ouvertes]].
+Contexte d'avancement : S0–S8 développés, recette humaine S3–S8 en cours —
+le S9a est le prochain sprint de développement.

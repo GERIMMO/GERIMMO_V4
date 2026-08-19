@@ -58,8 +58,9 @@ publique lui permet de créer seul son compte et son organisation
 (`independent_owner`), de démarrer l'**essai 14 jours**, puis de souscrire
 l'**abonnement par bien** via Stripe (1ᵉʳ bien gratuit, 2,50 €/bien/mois —
 [[Grille tarifaire]]). Pas de circuit commercial : il est indépendant de bout en
-bout. Écran à construire au **sprint 11**, cohérent avec l'auto-inscription
-`createOrganization` du code hérité.
+bout. **Écran à construire au sprint 9a** (sprint dédié au PD, scission décidée le
+2026-08-19), le paiement Stripe restant au sprint 11 — cohérent avec
+l'auto-inscription `createOrganization` du code hérité.
 
 ## Cycle de vie ensuite
 - Voir [[Cycle de vie de l'abonnement]] (essai → paiement/suspension via Stripe + Vercel Cron).

@@ -12,7 +12,7 @@
   échanges et des recettes. Un sprint se termine quand sa démo est validée.
 - **Design** *(acté le 2026-07-28)* : pas de sprint design dédié — design system
   figé au S2 (tokens, layout), **maquette rapide validée en début de sprint** pour
-  les écrans critiques (grille d'EDL S4, vue scindée S9, espaces LO S3 / AR S7),
+  les écrans critiques (grille d'EDL S4, vue scindée S9b, espaces LO S3 / AR S7),
   **identité visuelle complète entre la recette V0 et le sprint 10**.
 - **Rituels** : planification en début de sprint (périmètre fixé ensemble) ;
   **démo + recette fonctionnelle en fin de sprint** (validation des fonctionnalités
@@ -53,18 +53,18 @@
 
 | Espace | Structure cible | Construit aux sprints |
 |---|---|---|
-| **Espace agence** (AA + AG) | Tableau de bord · Parc (biens/lots, vue scindée) · Personnes & dossiers · Baux & EDL · Loyers & impayés · Comptabilité & rapports · Incidents & artisans · Agenda & alertes · Messagerie · Paramétrage (AA seul) | **Fil rouge S0 → S9** : chaque sprint ajoute son module ; navigation et tableau de bord posés au S2, complétés en continu ; paramétrage et restriction « ses mandats » au S9 |
-| **Espace locataire** (LO) | Accueil (statut incidents, prochaine échéance) · Mes loyers (échéancier, quittances) · Mon dossier (pièces, assurance) · Mes incidents · Mon bail & documents · Messagerie | **S3** (naissance : invitation + dépôt d'assurance) → S4 (bail) → S5 (loyers) → S7 (incidents) → S8 (dépôt de garantie, décompte) → S9 (messagerie) ; **mobile au S13** |
+| **Espace agence** (AA + AG) | Tableau de bord · Parc (biens/lots, vue scindée) · Personnes & dossiers · Baux & EDL · Loyers & impayés · Comptabilité & rapports · Incidents & artisans · Agenda & alertes · Messagerie · Paramétrage (AA seul) | **Fil rouge S0 → S9b** : chaque sprint ajoute son module ; navigation et tableau de bord posés au S2, complétés en continu ; paramétrage et restriction « ses mandats » au S9b |
+| **Espace locataire** (LO) | Accueil (statut incidents, prochaine échéance) · Mes loyers (échéancier, quittances) · Mon dossier (pièces, assurance) · Mes incidents · Mon bail & documents · Messagerie | **S3** (naissance : invitation + dépôt d'assurance) → S4 (bail) → S5 (loyers) → S7 (incidents) → S8 (dépôt de garantie, décompte) → S9b (messagerie) ; **mobile au S13** |
 | **Espace artisan** (AR) | Accueil/agenda (toutes agences, logo par intervention) · Mes missions (accepter, créneaux, compte rendu) · Devis & factures · Mes pièces (décennale…) · Ma note | **S7** (naissance complète : missions/devis/compte rendu) → S12 (WhatsApp) → S13 (mobile chantier) → S14 (note visible) |
-| **Espace propriétaire direct** (PD) | Reprend l'espace agence **sans** honoraires/mandats/multi-agents + Livre recettes-dépenses + Récapitulatif fiscal | Parcours partagés dès **S2** (parc) et S4–S5 (bail, loyers) ; **spécifiques au S9** (livre, écrans propres) ; abonnement par bien au S11 |
-| **Console SA** | Supervision (indicateurs, agences) · Files d'attente (modèles, contestations, bugs, idées) · Facturation · Import de parc · Sécurité/journaux | **S9** (essentiel : création d'agence, files) → S11 (facturation Stripe) → S14 (import en masse, contestations, retours) → S15 (MFA, journaux, sécurité) |
+| **Espace propriétaire direct** (PD) | Reprend l'espace agence **sans** honoraires/mandats/multi-agents + Livre recettes-dépenses + Récapitulatif fiscal | Parcours partagés dès **S2** (parc) et S4–S5 (bail, loyers) ; **naissance complète au S9a** (auto-inscription, livre, écrans propres — sprint dédié, décision 2026-08-19) ; paiement Stripe au S11 |
+| **Console SA** | Supervision (indicateurs, agences) · Files d'attente (modèles, contestations, bugs, idées) · Facturation · Import de parc · Sécurité/journaux | **S9b** (essentiel : création d'agence, files) → S11 (facturation Stripe) → S14 (import en masse, contestations, retours) → S15 (MFA, journaux, sécurité) |
 | **PM** | — pas d'espace (décision P1.2 : réception pure) | Destinataire : rapport (S6), décompte (S8), signature Yousign (S10) |
 
 ## Vue d'ensemble
 
 | Phase | Contenu | Jalon |
 |---|---|---|
-| **V0** — sprints 0 à 9 | App web **fonctionnelle en interne**, sans intégration externe | **Recette V0 à l'issue du sprint 9** |
+| **V0** — sprints 0 à 9 (9a puis 9b) | App web **fonctionnelle en interne**, sans intégration externe | **Recette V0 à l'issue du sprint 9b** |
 | **V1** — sprints 10 à 15 | Intégrations (Yousign, Stripe, WhatsApp), mobile, durcissement production | **Commercialisable à l'issue du sprint 15** |
 
 ---
@@ -279,9 +279,27 @@ un mot de passe réinitialisé de bout en bout.**
   tarde à transmettre (3 semaines, puis escalade).
 **Démo : une sortie de locataire de bout en bout, retenue défendable, solde émis.**
 
-### Sprint 9 — Administration, transverses, propriétaire direct
-**Personas : AA, SA** (administrent) · **AG** (agenda, messagerie) · **PD** (espace complet) · **LO** (messagerie).
-**Sources : [[Modèle de rôles et permissions]] · [[Agenda et échéances]] · [[Super Admin]] · [[Propriétaire bailleur]] · [[Canaux de communication]] (messagerie, module 15) · module 18**
+### Sprint 9a — Propriétaire direct *(scission décidée le 2026-08-19 : le PD est le cœur de l'appli, il passe en premier — à l'image du sprint dédié aux incidents)*
+**Personas : PD** (naissance complète de son espace).
+**Sources : [[Propriétaire bailleur]] · [[Onboarding et abonnement]] · [[Fiscalité]] · [[Comptabilité]]**
+- **Auto-inscription en ligne** *(remontée du S11, décision du 2026-08-19)* : page
+  d'inscription publique → compte + organisation `independent_owner` → **essai
+  14 jours**. Le paiement Stripe (abonnement par bien) reste au S11.
+- **Espace PD complet** : parcours agent repris **sans** honoraires / mandats /
+  multi-agents ; ses lots remplacent « ses mandats ».
+- **Livre recettes-dépenses** (sans honoraires), clôture recommandée (jamais
+  bloquante pour lui).
+- **Récapitulatif fiscal** (aide à la déclaration des revenus locatifs — seul
+  persona qui en bénéficie).
+- Rappel des garde-fous : exclusivité PD/PM par personne (pas de parc mixte,
+  décision 2026-08-19) ; `can_manage_organization()` limité à sa propre
+  organisation.
+**Démo : un PD s'inscrit seul, crée son bien, signe un bail, quittance et sort
+son livre — autonome de bout en bout.**
+
+### Sprint 9b — Administration et transverses
+**Personas : AA, SA** (administrent) · **AG** (agenda, messagerie) · **LO** (messagerie).
+**Sources : [[Modèle de rôles et permissions]] · [[Agenda et échéances]] · [[Super Admin]] · [[Canaux de communication]] (messagerie, module 15) · module 18**
 - **Rôles V3 définitifs** : agent **limité à ses mandats**, transfert temporaire
   (sans changer le titulaire), désactivation bloquée tant que les mandats ne sont
   pas réaffectés ; AA = agent ++.
@@ -295,11 +313,9 @@ un mot de passe réinitialisé de bout en bout.**
   échanges qui engagent (mandat), archivage avec le bail.
 - **Vue scindée du bien** : sélection → écran en deux, détail + éléments non
   concernés assombris.
-- **Espace PD complet** : parcours agent repris + **livre recettes-dépenses**
-  (sans honoraires), clôture recommandée, récap fiscal.
 - **Console SA (essentiel)** : création d'agence, indicateurs, files d'attente
   (modèles, contestations), suspension lecture seule / archivage.
-**Démo : une journée type d'agence ; un PD autonome de bout en bout.**
+**Démo : une journée type d'agence.**
 
 ### Recette V0 — 🎯 Jalon V0
 Recette fonctionnelle complète ensemble (scénarios = US du référentiel),
@@ -336,9 +352,9 @@ typographie, habillage des emails, écran de connexion) avant le sprint 10.
 - **Essai 14 jours** sans restriction → alerte J-3 → lecture seule.
 - Création d'agence **par le SA** (après contrat) avec paramètres par défaut ;
   invitations complètes tous rôles.
-- **Auto-inscription du PD** *(décision du 2026-08-19)* : page d'inscription
-  publique → compte + organisation `independent_owner` → essai 14 j → abonnement
-  par bien. Aucun circuit commercial pour le PD.
+- **Abonnement du PD** *(l'écran d'auto-inscription lui-même est remonté au
+  S9a — décision du 2026-08-19)* : branchement Stripe de l'abonnement par bien
+  au terme de l'essai. Aucun circuit commercial pour le PD.
 - **Écran d'information « journal de gestion » au paramétrage initial**.
 - ⚠️ **Soumission des 8 templates WhatsApp à Meta** (délai d'approbation externe).
 
@@ -409,4 +425,4 @@ typographie, habillage des emails, écran de connexion) avant le sprint 10.
 | EDL hors ligne = le plus exigeant techniquement | Sprint dédié (13), maquette de la grille testée dès le sprint 4 |
 | Dérive de périmètre V0 | Le référentiel fige les règles ; tout ajout passe par la planification de sprint |
 | Migration du code existant vs socle neuf | **À trancher au sprint 0** ([[Divergences code et référentiel V3]]) |
-| Durée des sprints variable (sans dates) | Le périmètre du sprint en cours est ferme ; les jalons (fin S9, fin S15) priment sur le contenu |
+| Durée des sprints variable (sans dates) | Le périmètre du sprint en cours est ferme ; les jalons (fin S9b, fin S15) priment sur le contenu |

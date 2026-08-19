@@ -2,30 +2,10 @@
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
-import { ROLES_GERANTS } from "@/lib/ged";
+import { verifierGerant } from "@/lib/ged-acces";
 import { ASSIGNATION_TOUS } from "@/lib/alertes";
 
 export type EtatAlerte = { erreur?: string; succes?: string };
-
-async function verifierGerant(orgId: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { supabase, user: null, role: null };
-  const { data: adhesion } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("account_id", user.id)
-    .eq("organization_id", orgId)
-    .eq("status", "active")
-    .maybeSingle();
-  if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
-    return { supabase, user: null, role: null };
-  }
-  return { supabase, user, role: adhesion.role as string };
-}
 
 // Le responsable de l'agence : seul autorisé à assigner « tout le monde ».
 // Le propriétaire direct gère seul son espace : même prérogative.

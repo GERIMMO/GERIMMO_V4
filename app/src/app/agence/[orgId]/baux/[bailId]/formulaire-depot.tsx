@@ -1,6 +1,6 @@
 "use client";
 
-import { formaterDate } from "@/lib/ged";
+import { eur, formaterDate } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState } from "react";
@@ -8,8 +8,6 @@ import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/ap
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 
 export type EncaissementDepot = {
   id: string;
@@ -74,7 +72,7 @@ export function FormulaireDepot({
       ) : null}
 
       {encaissements.length > 0 && (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-y divide-border border border-border">
           {encaissements.map((e) => (
             <li key={e.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
               <span className="w-24 shrink-0 text-right font-medium">{eur(e.montant)}</span>
@@ -118,7 +116,7 @@ function FormEncaisser({
     {}
   );
   return (
-    <form action={action} className="space-y-2 rounded-lg border border-dashed border-border p-3">
+    <form action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Enregistrer un encaissement</p>
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">

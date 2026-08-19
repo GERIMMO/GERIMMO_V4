@@ -20,7 +20,7 @@ export default function PageConnexion() {
             interventions — pour les agences et les propriétaires bailleurs.
           </p>
         </div>
-        <p className="mono-discret text-[var(--sur-encre)]/40">
+        <p className="mono-discret text-[var(--sur-encre)]/60">
           Un seul compte, tous vos espaces
         </p>
       </div>

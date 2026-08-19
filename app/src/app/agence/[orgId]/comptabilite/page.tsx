@@ -1,5 +1,6 @@
 import { verifierAccesEspace } from "@/lib/espace";
-import { formaterDate, moisEnFrancais } from "@/lib/ged";
+import { eur, formaterDate, moisEnFrancais, aujourdhuiParis } from "@/lib/ged";
+import { nomComplet } from "@/lib/roles-personnes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FormulaireEcriture,
@@ -24,8 +25,6 @@ type Ecriture = {
   systeme: boolean;
   contre_ecriture_de: string | null;
 };
-
-const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 
 export default async function PageComptabilite(props: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await props.params;
@@ -62,7 +61,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   const recettes = lignes.filter((e) => e.sens === "recette").reduce((s, e) => s + Number(e.montant), 0);
   const depenses = lignes.filter((e) => e.sens === "depense").reduce((s, e) => s + Number(e.montant), 0);
   const moisClotures = new Set(((clotures ?? []) as { mois: string }[]).map((c) => c.mois.slice(0, 7)));
-  const moisCourant = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" }).slice(0, 7);
+  const moisCourant = aujourdhuiParis().slice(0, 7);
   const anneeCourante = moisCourant.slice(0, 4);
   const mandats: MandatCompta[] = (
     (mandatsRaw ?? []) as {
@@ -76,13 +75,22 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
     // Jointure to-one : PostgREST renvoie un objet (le typage générait un
     // tableau — le nom du mandant s'affichait « — »). On accepte les deux.
     const p = Array.isArray(m.mandant) ? m.mandant[0] : m.mandant;
-    return { id: m.id, mandant_nom: p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "—" };
+    return { id: m.id, mandant_nom: p ? nomComplet(p) : "—" };
   });
+
+  // Repère de tête : où en est la comptabilité — clôtures triées du plus récent
+  const dernierCloture = [...moisClotures][0];
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
-        <h1 className="text-2xl font-semibold">Comptabilité</h1>
+        <div className="entete-page mb-6">
+          <h1>Comptabilité</h1>
+          <span className="mono-discret">
+            {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
+            {moisEnFrancais(moisCourant)} ouvert
+          </span>
+        </div>
         <p className="text-sm text-muted-foreground">
           Le journal des encaissements et des dépenses de l&apos;agence. Une
           écriture ne se modifie pas : on l&apos;annule par une écriture inverse,
@@ -90,16 +98,21 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Solde</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm">
-          Recettes <span className="font-medium">{eur(recettes)}</span> · Dépenses{" "}
-          <span className="font-medium">{eur(depenses)}</span> · Net{" "}
-          <span className="font-semibold">{eur(recettes - depenses)}</span>
-        </CardContent>
-      </Card>
+      {/* Solde en tuiles KPI (maquette) — même motif que le tableau de bord */}
+      <div className="grid gap-3.5 sm:grid-cols-3">
+        <div className="kpi bleu">
+          <span className="eyebrow">Recettes</span>
+          <span className="chiffre mt-1 block">{eur(recettes)}</span>
+        </div>
+        <div className="kpi or">
+          <span className="eyebrow">Dépenses</span>
+          <span className="chiffre mt-1 block">{eur(depenses)}</span>
+        </div>
+        <div className="kpi">
+          <span className="eyebrow">Net</span>
+          <span className="chiffre mt-1 block">{eur(recettes - depenses)}</span>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -157,16 +170,16 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             <CardTitle className="text-base">Journal</CardTitle>
             {/* Deux portées : l'année en cours, celle que l'agent demande neuf
                 fois sur dix, et la totalité pour l'expert-comptable. */}
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-3">
               <a
                 href={`/agence/${orgId}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
-                className="underline-offset-2 hover:underline"
+                className="lien-discret"
               >
                 Exporter {anneeCourante}
               </a>
               <a
                 href={`/agence/${orgId}/comptabilite/export`}
-                className="underline-offset-2 hover:underline"
+                className="lien-discret"
               >
                 Tout exporter
               </a>
@@ -175,36 +188,56 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         </CardHeader>
         <CardContent>
           {lignes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune écriture pour l&apos;instant. Les honoraires se créent tout seuls à chaque encaissement de loyer ; saisissez ci-dessus une dépense ou une recette.</p>
+            <div className="vide">Aucune écriture pour l&apos;instant. Les honoraires se créent tout seuls à chaque encaissement de loyer ; saisissez ci-dessus une dépense ou une recette.</div>
           ) : (
-            <ul className="divide-y divide-border">
-              {lignes.map((e) => {
-                const clot = moisClotures.has(e.date_imputation.slice(0, 7));
-                return (
-                  <li key={e.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                    <span
-                      className={`w-24 shrink-0 text-right font-medium ${e.sens === "recette" ? "text-success-soft-foreground" : "text-destructive"}`}
-                    >
-                      {e.sens === "recette" ? "+" : "−"}
-                      {eur(e.montant)}
-                    </span>
-                    <span className="w-28 shrink-0 truncate">{e.categorie}</span>
-                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                      {/* Sans libellé, la ligne commençait par un point médian orphelin. */}
-                      {e.libelle ? `${e.libelle} · ` : ""}
-                      pièce {formaterDate(e.date_piece)}
-                      {e.systeme ? " · créée automatiquement" : ""}
-                    </span>
-                    {!e.contre_ecriture_de && !clot && (
-                      <BoutonContre orgId={orgId} ecritureId={e.id} />
-                    )}
-                    {e.contre_ecriture_de && (
-                      <span className="shrink-0 text-xs text-muted-foreground">contre-écriture</span>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="libelle-champ py-2 pr-3 font-normal">Date</th>
+                    <th className="libelle-champ py-2 pr-3 font-normal">Catégorie</th>
+                    <th className="libelle-champ py-2 pr-3 font-normal">Libellé</th>
+                    <th className="libelle-champ py-2 text-right font-normal">Montant</th>
+                    <th aria-hidden />
+                  </tr>
+                </thead>
+                <tbody>
+                  {lignes.map((e) => {
+                    const clot = moisClotures.has(e.date_imputation.slice(0, 7));
+                    return (
+                      <tr key={e.id} className="border-b border-border last:border-0">
+                        <td className="mono-discret py-2 pr-3 whitespace-nowrap">
+                          {formaterDate(e.date_imputation)}
+                        </td>
+                        <td className="py-2 pr-3">
+                          <span className="puce puce-grise">{e.categorie}</span>
+                        </td>
+                        <td className="py-2 pr-3 text-xs text-muted-foreground">
+                          {/* Sans libellé, la ligne commençait par un point médian orphelin. */}
+                          {e.libelle ? `${e.libelle} · ` : ""}
+                          pièce {formaterDate(e.date_piece)}
+                          {e.systeme ? " · créée automatiquement" : ""}
+                        </td>
+                        <td
+                          className={`py-2 text-right font-medium whitespace-nowrap ${e.sens === "recette" ? "text-success" : ""}`}
+                        >
+                          {e.sens === "recette" ? "+" : "−"}
+                          {eur(e.montant)}
+                        </td>
+                        <td className="py-2 pl-3 text-right">
+                          {!e.contre_ecriture_de && !clot && (
+                            <BoutonContre orgId={orgId} ecritureId={e.id} />
+                          )}
+                          {e.contre_ecriture_de && (
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">contre-écriture</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

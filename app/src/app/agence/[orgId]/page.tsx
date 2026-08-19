@@ -8,15 +8,13 @@ import {
 } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, formaterDate } from "@/lib/ged";
+import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
+import { nomComplet } from "@/lib/roles-personnes";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
-
-const eur = (n: number) =>
-  `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 
 type Alerte = {
   id: string;
@@ -37,9 +35,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const { supabase, user } = await verifierAccesEspace(orgId);
 
   // Mois courant (Europe/Paris) : les appels de loyer sont datés au 1er du mois
-  const moisCourant = `${new Date()
-    .toLocaleDateString("en-CA", { timeZone: "Europe/Paris" })
-    .slice(0, 7)}-01`;
+  const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
   const dateSixMois = new Date(`${moisCourant}T12:00:00`);
   dateSixMois.setMonth(dateSixMois.getMonth() - 5);
   const moisSixMoisAvant = `${dateSixMois.toISOString().slice(0, 7)}-01`;
@@ -181,7 +177,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       a.created_at.localeCompare(b.created_at)
     );
   });
-  const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  const aujourdhui = aujourdhuiParis();
   const depassees = triees.filter((a) => a.echeance && a.echeance < aujourdhui);
   const aVenir = triees.filter((a) => !a.echeance || a.echeance >= aujourdhui);
   const plusUrgente = depassees[0]
@@ -221,7 +217,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // Les rapports en retard restent affichés : les masquer reviendrait à faire
     // disparaître du travail qui reste à faire.
     if (!e || (!e.depassee && e.jours > 15)) continue;
-    const qui = p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "Mandant";
+    const qui = p ? nomComplet(p) : "Mandant";
     rendezVous.push({
       cle: `r-${r.id}`,
       date: echeance,

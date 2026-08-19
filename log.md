@@ -1350,3 +1350,27 @@ bailleur compris (compte + organisation `independent_owner`). Acté dans
 [[Super Admin]] (Administration V3), [[Propriétaire bailleur]] (arrivée),
 [[Onboarding et abonnement]], [[État du projet et décisions ouvertes]] et le plan
 de sprints (console SA, S9b).
+
+## [2026-08-19] sprint | Passe globale : alignement charte v2 + optimisations (S0→S8)
+À la demande de l'humain (« refais une passe globale, corrige, optimise, mets à
+jour le livrable »). 3 revues parallèles (charte écrans agence / charte hors
+agence / qualité-perf du code) puis corrections sur ~35 fichiers :
+- Charte : en-têtes serif partout, table stylée du journal comptable branchée
+  (+ tuiles KPI compta), états en puces via lib/baux.ts (bail, mandat, EDL,
+  loyers — fin des statuts gris), encadrés à liseré, états vides guidants,
+  bandeau encre pour l'espace locataire et la console admin, libellés français
+  centralisés (lib/libelles.ts), formats fr-FR (dates, eur() unique — 10 copies
+  supprimées), quittance imprimable sans note technique.
+- Fond : aujourdhuiParis() généralisé (bug date UTC → écriture possible sur un
+  mois clôturé avant 2 h), erreurs d'écriture plus jamais avalées (quittance,
+  création de bien PD, suppression d'encaissement), gardes d'accès dédupliquées
+  (verifierAccesEspace), motifLitteral() sur les ilike, nomComplet() (17
+  concat), requêtes parallélisées (fiche personne, fiche bail, espace
+  locataire), selects allégés (alertes). Constat de revue invalidé et documenté:
+  lot_equipements n'a pas de colonne org (trigger).
+- Hors passe (documenté) : N+1 lot_blocages_location → RPC ensembliste à créer
+  dans un prochain sprint.
+Lint 0 erreur, 72 tests verts, build OK. Livrable de recette mis à jour
+(étape 2 « passe globale » + périmètre réel sans S7) ; synthèse
+[[Coherence maquette-application]] étendue à tous les écrans. Recette humaine
+à suivre par l'humain.

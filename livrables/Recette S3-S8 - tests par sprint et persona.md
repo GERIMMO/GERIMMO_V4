@@ -1,7 +1,9 @@
 # Recette S3→S8 — sujets en cours
 
-> Mis à jour le 2026-08-13, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le 2026-08-19, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > Mot de passe commun : `Gerimmo-Demo-2026`.
+> Périmètre réel : S3, S4, S5, S6 et S8 — le **S7 (incidents) n'est pas encore
+> développé** (constat du 19/08, à planifier après le S9a).
 >
 > Ce document ne garde que **ce qui reste à tester ou re-tester**. Sortis car
 > validés : bloc 0 (08/08) ; C.2, C.3, C.4, C.5 (étapes 1-3 et 5), C.7,
@@ -82,6 +84,59 @@
 > Correctif : un mandat **résilié** est désormais **historisé** — verrouillé
 > aussi en base (retour du 13/08 : il restait modifiable).
 1. Sur le mandat **résilié** du 13/08 → l'encart est **grisé**, marqué « Historisé — non modifiable » : plus aucun bouton d'état ni d'ajout de lot ; le **taux** et les **lots** du mandat restent lisibles.
+
+---
+
+## Étape 2 — Passe globale du 19/08 : alignement charte + optimisations
+
+> Le 19/08, une passe complète (3 revues + corrections) a aligné **tous** les
+> écrans sur la charte v2 de la maquette (l'audit du 14/08 ne couvrait que
+> Tableau de bord, Parc et Personnes) et corrigé des défauts de fond. Lint,
+> tests (72) et build sont verts. À l'œil pendant la recette : tout écran doit
+> ressembler aux trois écrans de référence — en-tête serif + compteur mono,
+> statuts en **puces colorées** (plus de statuts gris), états vides guidants.
+
+### Persona : Agent immobilier (agent.alpha@)
+
+**Vérif G.1 — Journal comptable (l'écran le plus retouché)**
+1. Comptabilité → le journal est une **vraie table** : en-têtes en petites capitales mono, dates en mono, catégories en puce grise, montants alignés à droite, crédits en **vert avec « + »**.
+2. Au-dessus : **3 tuiles KPI** (Recettes, Dépenses, Net) et, dans l'en-tête, la mention mono « {mois} clôturé · {mois} ouvert ».
+3. Les liens d'export CSV sont en **bleu** ; l'état vide du journal guide vers la saisie.
+
+**Vérif G.2 — Fiche bail : nouvel en-tête**
+1. Sur un bail actif → sur-titre « BAIL NU/MEUBLÉ… » en petites capitales, **le nom du locataire en titre**, l'état du bail en **puce colorée** (actif = vert doux, préavis = ambre, terminé = gris).
+2. Sur un bail **brouillon sans locataire** → le titre replie sur le nom du lot, rien ne casse.
+3. Le bloc « À faire maintenant » est un aplat ardoise à liseré or, coins carrés.
+
+**Vérif G.3 — Échéancier et suppression d'encaissement**
+1. Les statuts d'échéancier sont des **puces** : payé vert doux, partiel ambre, **impayé rouge doux**, à échoir gris.
+2. Supprimer un encaissement refusé (mois clôturé) → **le refus s'affiche** désormais sous le bouton (avant, il était silencieux).
+
+**Vérif G.4 — EDL et fiches**
+1. Grille d'EDL : noms de pièces en mono, états des éléments en puces (bon = vert, usage = gris, mauvais/absent = rouge) ; en-tête avec « ENTRÉE · date » et puce Signé/En cours.
+2. Fiche bien et fiche lot : sur-titre « TYPE · VILLE » au-dessus du titre.
+3. Fiche personne : **avatar à initiales** dans l'en-tête ; état du mandat en puce.
+4. Documents : liste en rangs charte, compteur « N pièces » ; la recherche traite « % » et « _ » comme des caractères normaux.
+
+### Persona : Locataire (locataire.alpha@)
+
+**Vérif G.5 — Espace locataire dans la charte**
+1. **Bandeau encre** avec la marque GERIMMO + « ESPACE LOCATAIRE » (fini l'en-tête blanc).
+2. Dates au format **français** (12/09/2026, plus de 2026-09-12) ; loyers formatés « 780,00 € » ; statut **Impayé en rouge**, Payé en vert.
+3. Ouvrir une quittance → **imprimer (aperçu)** : la note technique du bas **ne sort pas** sur le papier.
+
+### Persona : Super Admin (superadmin@)
+
+**Vérif G.6 — Console dans la charte**
+1. Bandeau encre commun (marque + « CONSOLE D'ADMINISTRATION » + cloche + journaux + déconnexion).
+2. Fiche d'une agence → rôles et statuts **en français** (« Administrateur d'agence (adhésion active) », plus de « admin_agence (active) »).
+
+> Corrections de fond invisibles à l'œil mais actées (pour info) : date du jour
+> calculée en heure de Paris partout (une ventilation saisie avant 2 h du matin
+> ne peut plus tomber sur la veille / un mois clôturé) ; l'envoi de quittance
+> signale désormais un échec de mémorisation au lieu d'un faux succès ; la
+> création de bien en propriétaire direct signale toute écriture échouée ;
+> requêtes des fiches personne/bail et de l'espace locataire parallélisées.
 
 ---
 

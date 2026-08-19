@@ -15,9 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { moisEnFrancais } from "@/lib/ged";
-
-const eurC = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
+import { eur, moisEnFrancais } from "@/lib/ged";
 
 export type MandatCompta = { id: string; mandant_nom: string };
 export type RapportCompta = {
@@ -47,23 +45,36 @@ export function RapportsGestion({
       {mandats.map((m) => {
         const rs = rapports.filter((r) => r.mandat_id === m.id);
         return (
-          <div key={m.id} className="space-y-2 rounded-lg border border-border p-3">
+          <div key={m.id} className="space-y-2 border border-border p-3">
             <p className="text-sm font-medium">{m.mandant_nom}</p>
             {rs.length > 0 && (
               <ul className="space-y-1 text-sm">
                 {rs.map((r) => (
                   <li key={r.id} className="flex flex-wrap items-center gap-2">
                     <span className="w-28 shrink-0">{moisEnFrancais(r.mois)}</span>
-                    <span className="w-28 shrink-0">net {eurC(r.net)}</span>
-                    <span className="badge-statut text-muted-foreground">
-                      {r.statut === "envoye" ? "Envoyé" : "À valider"}
+                    <span className="w-28 shrink-0">net {eur(r.net)}</span>
+                    {/* Cycle du rapport : à valider → envoyé → versé */}
+                    <span
+                      className={
+                        r.statut === "a_valider"
+                          ? "puce puce-prep"
+                          : r.versement_montant == null
+                            ? "puce puce-encre"
+                            : "puce puce-loue"
+                      }
+                    >
+                      {r.statut === "a_valider"
+                        ? "À valider"
+                        : r.versement_montant == null
+                          ? "Envoyé"
+                          : "Versé"}
                     </span>
                     {r.statut === "a_valider" ? (
                       <BoutonEnvoyerRapport orgId={orgId} rapportId={r.id} />
                     ) : r.versement_montant == null ? (
                       <FormVersement orgId={orgId} rapportId={r.id} />
                     ) : (
-                      <span className="text-xs text-muted-foreground">versé {eurC(r.versement_montant)}</span>
+                      <span className="text-xs text-muted-foreground">versé {eur(r.versement_montant)}</span>
                     )}
                   </li>
                 ))}

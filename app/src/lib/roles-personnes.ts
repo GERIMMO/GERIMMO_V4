@@ -49,6 +49,11 @@ export function rolesDePersonne(personId: string, liens: LiensPersonnes): RolePe
   return roles;
 }
 
+// « Dupont Alice » — dix-sept endroits concaténaient nom et prénom à la main
+export function nomComplet(p: { nom: string; prenom?: string | null }): string {
+  return `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`;
+}
+
 // Initiales pour l'avatar de la liste (maquette .avatar) : « Dupont Alice » → DA
 export function initiales(nom: string, prenom: string | null): string {
   const premiere = (texte: string) => texte.trim().charAt(0).toUpperCase();

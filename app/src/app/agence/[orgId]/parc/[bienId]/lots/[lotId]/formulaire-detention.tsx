@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { nomComplet } from "@/lib/roles-personnes";
 
 type Personne = { id: string; nom: string; prenom: string | null };
 
@@ -60,7 +61,6 @@ export function FormulaireDetention({
   };
 
   // C : les propriétaires existants remontent en tête ; on garde tout le monde.
-  const nomComplet = (p: Personne) => `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`;
   const dejaProprietaires = personnes.filter((p) => proprietairesIds.includes(p.id));
   const autres = personnes.filter((p) => !proprietairesIds.includes(p.id));
   // Quote-part visible dès qu'il y a (ou qu'on déclare) plusieurs propriétaires
@@ -161,8 +161,7 @@ export function FormulaireDetention({
             <input type="hidden" name="nouveau_email" value={nouveau.email} />
             {!modaleOuverte && (
               <p className="text-xs text-muted-foreground sm:col-span-2">
-                Nouveau <b>propriétaire mandant</b> : {nouveau.nom}
-                {nouveau.prenom ? ` ${nouveau.prenom}` : ""} — {nouveau.email}{" "}
+                Nouveau <b>propriétaire mandant</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
                 <button
                   type="button"
                   onClick={() => setModaleOuverte(true)}

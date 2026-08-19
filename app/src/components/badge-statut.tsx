@@ -1,4 +1,4 @@
-// Badge de statut — charte graphique GERIMMO v1.0, section 04 :
+// Badge de statut — charte graphique GERIMMO v2, section 04 :
 // « Texte coloré, sans pastille ni fond. Alignés à droite de la ligne. »
 // IBM Plex Mono 9,5 px, capitales, interlettrage 0,12em.
 //

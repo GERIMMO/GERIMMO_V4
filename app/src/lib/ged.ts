@@ -85,6 +85,19 @@ export function moisEnFrancais(mois: string | null | undefined): string {
   });
 }
 
+// La date du jour côté serveur (Vercel tourne en UTC) : toISOString donnerait
+// la veille avant 2 h du matin, heure de Paris. Sept fichiers avaient chacun
+// leur copie de ce contournement ; une seule suffit.
+export function aujourdhuiParis(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+}
+
+// Une saisie utilisateur employée dans un motif ilike doit être littérale :
+// sans échappement, « 100% » ou « _ » deviennent des jokers SQL.
+export function motifLitteral(saisie: string): string {
+  return saisie.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export function formaterDateHeure(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleString("fr-FR", {

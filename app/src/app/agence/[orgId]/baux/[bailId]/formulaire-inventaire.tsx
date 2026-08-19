@@ -70,7 +70,7 @@ export function FormulaireInventaire({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+      <div className="bg-muted p-3 text-xs text-muted-foreground">
         <p className="mb-1 font-medium text-foreground">
           Mobilier minimum obligatoire (décret 2015-1437)
         </p>
@@ -91,7 +91,7 @@ export function FormulaireInventaire({
                 {l.observation && <span className="text-muted-foreground"> ({l.observation})</span>}
               </span>
               {l.etat && (
-                <span className="shrink-0 badge-statut text-muted-foreground">
+                <span className="puce puce-grise shrink-0">
                   {LIBELLE_ETAT[l.etat] ?? l.etat}
                 </span>
               )}

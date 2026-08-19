@@ -1,4 +1,5 @@
 import { verifierAccesEspace } from "@/lib/espace";
+import { aujourdhuiParis } from "@/lib/ged";
 import { Card, CardContent } from "@/components/ui/card";
 import { rolesDePersonne } from "@/lib/roles-personnes";
 import { FormulairePersonne } from "./formulaire-personne";
@@ -13,7 +14,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
   const { orgId } = await props.params;
   const { supabase, role } = await verifierAccesEspace(orgId);
 
-  const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  const aujourdhui = aujourdhuiParis();
   const [
     { data: personnes },
     { data: detentions },

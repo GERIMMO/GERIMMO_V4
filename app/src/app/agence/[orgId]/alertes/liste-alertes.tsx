@@ -119,9 +119,9 @@ export function ListeAlertes({
 
       <div className="border border-border bg-card">
         {miennes.length === 0 && autres.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted-foreground">
+          <div className="vide">
             Aucune alerte à ce niveau. Rien ne vous attend ici.
-          </p>
+          </div>
         ) : (
           <>
             {miennes.map((a) => rang(a, false))}

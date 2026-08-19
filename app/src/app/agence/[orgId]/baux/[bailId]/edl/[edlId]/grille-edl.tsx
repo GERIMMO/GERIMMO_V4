@@ -13,6 +13,15 @@ export const ETATS_ELEMENT: Record<string, string> = {
   absent: "Absent",
 };
 
+// Puces charte v2 : neuf/bon acquis, usagé neutre, mauvais/absent alertent
+export const COULEURS_ETAT_ELEMENT: Record<string, string> = {
+  neuf: "puce puce-loue",
+  bon: "puce puce-loue",
+  usage: "puce puce-grise",
+  mauvais: "puce puce-rouge",
+  absent: "puce puce-rouge",
+};
+
 type Ligne = {
   id: string;
   categorie: string;
@@ -61,11 +70,11 @@ export function GrilleEdl({
       <div className="space-y-3">
         {grouper(lignes).map((g) => (
           <div key={g.titre} className="space-y-1">
-            <p className="text-sm font-semibold">{g.titre}</p>
+            <p className="mono-discret">{g.titre}</p>
             {g.lignes.map((l) => (
               <div key={l.id} className="flex items-center gap-3 border-b border-border py-1.5 text-sm">
                 <span className="w-40 shrink-0 truncate">{l.libelle}</span>
-                <span className="badge-statut text-muted-foreground">
+                <span className={(l.etat && COULEURS_ETAT_ELEMENT[l.etat]) || "puce puce-grise"}>
                   {l.etat ? ETATS_ELEMENT[l.etat] ?? l.etat : "—"}
                 </span>
                 {l.commentaire && (
@@ -87,7 +96,7 @@ export function GrilleEdl({
       <form action={formMaj} className="space-y-3">
         {grouper(lignes).map((g) => (
           <div key={g.titre} className="space-y-1">
-            <p className="text-sm font-semibold">{g.titre}</p>
+            <p className="mono-discret">{g.titre}</p>
             {g.lignes.map((l) => (
               <div key={l.id} className="flex flex-wrap items-center gap-2 border-b border-border py-1.5">
                 <span className="w-36 shrink-0 truncate text-sm">{l.libelle}</span>

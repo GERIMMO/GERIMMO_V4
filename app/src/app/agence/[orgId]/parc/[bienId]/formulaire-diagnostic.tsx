@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { deposerDiagnostic, type EtatParc } from "@/app/actions/parc";
 import { TYPES_DIAGNOSTIC, type NiveauDiagnostic } from "@/lib/parc";
+import { aujourdhuiParis } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,9 +48,7 @@ export function FormulaireDiagnostic({
   // posée après l'hydratation pour rester cohérente avec le rendu serveur
   useEffect(() => {
     const minuterie = setTimeout(() => {
-      const aujourdhui = new Date().toLocaleDateString("en-CA", {
-        timeZone: "Europe/Paris",
-      });
+      const aujourdhui = aujourdhuiParis();
       setRealisation((r) => r || aujourdhui);
       majExpiration(type, aujourdhui);
     }, 0);

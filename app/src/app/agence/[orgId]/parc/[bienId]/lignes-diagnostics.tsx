@@ -9,7 +9,7 @@ import {
   type NiveauDiagnostic,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { BadgeStatut } from "@/components/badge-statut";
 import { FormulaireDiagnostic } from "./formulaire-diagnostic";
 
@@ -103,7 +103,7 @@ export function LignesDiagnostics({
                   href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
                   target="_blank"
                   rel="noreferrer"
-                  className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                  className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                 >
                   Voir
                 </a>
@@ -125,7 +125,7 @@ export function LignesDiagnostics({
             )}
 
             {ouvert === type && (
-              <div className="mt-2 rounded-lg border border-border p-3">
+              <div className="mt-2 border border-border p-3">
                 <FormulaireDiagnostic
                   orgId={orgId}
                   bienId={bienId}

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { ROLES_GERANTS, formaterDateHeure } from "@/lib/ged";
+import { verifierAccesEspace } from "@/lib/espace";
+import { formaterDateHeure } from "@/lib/ged";
 import { estConfieeAMoi } from "@/lib/alertes";
 import {
   Card,
@@ -23,34 +22,12 @@ export default async function PageAlertes(
   props: PageProps<"/agence/[orgId]/alertes">
 ) {
   const { orgId } = await props.params;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/connexion");
-  const { data: adhesion } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("account_id", user.id)
-    .eq("organization_id", orgId)
-    .eq("status", "active")
-    .maybeSingle();
-  if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
-    redirect("/espaces");
-  }
-  const estResponsable = ROLES_RESPONSABLES.includes(adhesion.role);
-
-  const { data: organisation } = await supabase
-    .from("organizations")
-    .select("id, name")
-    .eq("id", orgId)
-    .maybeSingle();
-  if (!organisation) notFound();
+  const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
+  const estResponsable = ROLES_RESPONSABLES.includes(role);
 
   const { data: ouvertes } = await supabase
     .from("alerts")
-    .select("*")
+    .select("id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades")
     .eq("organization_id", orgId)
     .eq("statut", "ouverte")
     .order("criticite", { ascending: false })
@@ -58,7 +35,7 @@ export default async function PageAlertes(
 
   const { data: fermees } = await supabase
     .from("alerts")
-    .select("*")
+    .select("id, titre, closed_at, closed_action")
     .eq("organization_id", orgId)
     .eq("statut", "fermee")
     .order("closed_at", { ascending: false })
@@ -78,7 +55,7 @@ export default async function PageAlertes(
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
-      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+      <div className="entete-page mb-6">
         <div>
           <p className="text-sm text-muted-foreground">
             <Link href={`/agence/${orgId}`} className="hover:underline">

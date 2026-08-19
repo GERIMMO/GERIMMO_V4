@@ -18,7 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formaterDate } from "@/lib/ged";
+import { eur, formaterDate } from "@/lib/ged";
+import { STATUTS_APPEL_LOYER, COULEURS_STATUT_APPEL_LOYER } from "@/lib/baux";
 
 // Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
 // bloquer quelqu'un sur un cas rare.
@@ -99,16 +100,56 @@ function BoutonEnvoiQuittance({ orgId, bailId, quittanceId }: { orgId: string; b
   );
 }
 
-const STATUT: Record<string, { label: string; classe: string }> = {
-  paye: { label: "Payé", classe: "bg-success-soft text-success-soft-foreground" },
-  partiel: { label: "Partiel", classe: "bg-warning-soft text-warning-soft-foreground" },
-  impaye: { label: "Impayé", classe: "bg-destructive/10 text-destructive" },
-  attendu: { label: "À échoir", classe: "bg-secondary text-secondary-foreground" },
-};
-
-const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 const mois = (d: string) =>
   new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+
+// Les suppressions passent aussi par useActionState : un refus du serveur
+// (mois clôturé, quittance émise…) doit se lire, pas se perdre.
+function BoutonRetirerEncaissement({
+  orgId,
+  bailId,
+  encaissementId,
+}: {
+  orgId: string;
+  bailId: string;
+  encaissementId: string;
+}) {
+  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+    async () => supprimerEncaissement(orgId, bailId, encaissementId),
+    {}
+  );
+  return (
+    <form action={action} className="flex items-center gap-1">
+      <Button type="submit" variant="ghost" size="sm" disabled={enCours}>
+        {enCours ? "…" : "Retirer"}
+      </Button>
+      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+    </form>
+  );
+}
+
+function BoutonRetirerRelance({
+  orgId,
+  bailId,
+  relanceId,
+}: {
+  orgId: string;
+  bailId: string;
+  relanceId: string;
+}) {
+  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+    async () => supprimerRelance(orgId, bailId, relanceId),
+    {}
+  );
+  return (
+    <form action={action} className="flex items-center gap-1">
+      <Button type="submit" variant="ghost" size="sm" disabled={enCours}>
+        {enCours ? "…" : "Retirer"}
+      </Button>
+      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+    </form>
+  );
+}
 
 export function FormulaireLoyers({
   orgId,
@@ -164,7 +205,7 @@ export function FormulaireLoyers({
         <p className="text-sm">
           Dû <span className="font-medium">{eur(totalDu)}</span> · Encaissé{" "}
           <span className="font-medium">{eur(totalEncaisse)}</span> · Solde{" "}
-          <span className={`font-semibold ${solde > 0 ? "text-destructive" : "text-success-soft-foreground"}`}>
+          <span className={`font-semibold ${solde > 0 ? "text-destructive" : "text-success"}`}>
             {eur(solde)}
           </span>
         </p>
@@ -184,7 +225,6 @@ export function FormulaireLoyers({
       ) : (
         <ul className="divide-y divide-border">
           {echeancier.map((l) => {
-            const st = STATUT[l.statut] ?? STATUT.attendu;
             return (
               <li key={l.appel_id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="w-32 shrink-0 capitalize">{mois(l.periode)}</span>
@@ -192,7 +232,11 @@ export function FormulaireLoyers({
                 <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                   couvert {eur(l.montant_couvert)} · échéance {formaterDate(l.date_echeance)}
                 </span>
-                <span className={`badge-statut shrink-0 ${st.classe}`}>{st.label}</span>
+                <span
+                  className={`shrink-0 ${COULEURS_STATUT_APPEL_LOYER[l.statut] ?? COULEURS_STATUT_APPEL_LOYER.attendu}`}
+                >
+                  {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
+                </span>
                 {(() => {
                   const q = quittanceParAppel.get(l.appel_id);
                   if (!q) return null;
@@ -202,7 +246,7 @@ export function FormulaireLoyers({
                         href={`/quittance/${q.id}`}
                         target="_blank"
                         className={`text-xs underline-offset-2 hover:underline ${
-                          q.est_quittance ? "text-success-soft-foreground" : "text-muted-foreground"
+                          q.est_quittance ? "text-success" : "text-muted-foreground"
                         }`}
                       >
                         {q.est_quittance ? "quittance" : "reçu (partiel)"}
@@ -235,9 +279,7 @@ export function FormulaireLoyers({
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
-                <form action={async () => { await supprimerEncaissement(orgId, bailId, e.id); }}>
-                  <Button type="submit" variant="ghost" size="sm">Retirer</Button>
-                </form>
+                <BoutonRetirerEncaissement orgId={orgId} bailId={bailId} encaissementId={e.id} />
               </li>
             ))}
           </ul>
@@ -330,9 +372,7 @@ export function FormulaireLoyers({
                   {r.date_premiere_presentation && ` · 1re prés. ${formaterDate(r.date_premiere_presentation)}`}
                   {r.numero_recommande && ` · R${r.numero_recommande}`}
                 </span>
-                <form action={async () => { await supprimerRelance(orgId, bailId, r.id); }}>
-                  <Button type="submit" variant="ghost" size="sm">Retirer</Button>
-                </form>
+                <BoutonRetirerRelance orgId={orgId} bailId={bailId} relanceId={r.id} />
               </li>
             ))}
           </ul>

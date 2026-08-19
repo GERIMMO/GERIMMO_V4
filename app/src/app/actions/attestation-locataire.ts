@@ -4,7 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 
 export type EtatAttestation = { erreur?: string; succes?: string };
 
@@ -21,6 +21,19 @@ export async function deposerMonAttestation(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { erreur: "Vous n'êtes pas connecté." };
+
+  // Défense en profondeur : adhésion locataire active dans cette agence,
+  // vérifiée avant de construire le chemin Storage (les policies base la
+  // revérifient — même garde que verifierAccesEspaceLocataire, sans redirect).
+  const { data: adhesion } = await supabase
+    .from("memberships")
+    .select("role")
+    .eq("account_id", user.id)
+    .eq("organization_id", orgId)
+    .eq("status", "active")
+    .eq("role", "locataire")
+    .maybeSingle();
+  if (!adhesion) return { erreur: "Accès refusé." };
 
   const fichier = formData.get("fichier");
   const titre = String(formData.get("titre") ?? "").trim();
@@ -40,6 +53,14 @@ export async function deposerMonAttestation(
   const mime = detecterMimeReel(octets);
   if (!mime) {
     return { erreur: "Format refusé : PDF, JPEG ou PNG uniquement (contenu vérifié)." };
+  }
+  // Même exigence que le dépôt GED (ged-depot.ts) : un PDF tronqué garde son
+  // en-tête mais ne s'ouvrira jamais — on refuse au dépôt.
+  if (mime === "application/pdf" && !pdfComplet(octets)) {
+    return {
+      erreur:
+        "Ce PDF est incomplet : il a probablement été coupé pendant l'envoi. Renvoyez-le, un document tronqué ne s'ouvrira pas.",
+    };
   }
   const empreinte = createHash("sha256").update(octets).digest("hex");
   const chemin = `${orgId}/${randomUUID()}.${EXTENSIONS[mime]}`;

@@ -11,6 +11,8 @@ import {
   alerteDiagnostics,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
+import { ETATS_BAIL, COULEURS_ETAT_BAIL } from "@/lib/baux";
+import { nomComplet } from "@/lib/roles-personnes";
 import {
   Card,
   CardContent,
@@ -35,13 +37,6 @@ import { AppelsCharges, type AppelCharge } from "./formulaire-appels-charges";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
-
-const ETATS_BAIL: Record<string, string> = {
-  brouillon: "Brouillon",
-  actif: "Actif",
-  preavis: "Préavis",
-  termine: "Terminé",
-};
 
 export default async function PageLot(
   props: PageProps<"/agence/[orgId]/parc/[bienId]/lots/[lotId]">
@@ -71,7 +66,7 @@ export default async function PageLot(
       .maybeSingle(),
     supabase
       .from("biens")
-      .select("id, nom, type, annee_construction, copropriete")
+      .select("id, nom, type, city, annee_construction, copropriete")
       .eq("id", bienId)
       .eq("organization_id", orgId)
       .maybeSingle(),
@@ -152,7 +147,7 @@ export default async function PageLot(
   const verrouille = ["loue", "preavis"].includes(lot.etat);
 
   const nomPersonne = (p: { nom: string; prenom: string | null } | null) =>
-    p ? `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` : "—";
+    p ? nomComplet(p) : "—";
 
   const nbEquip = (equipesLot ?? []).length;
   const nbDiag = (diagnostics ?? []).length;
@@ -167,18 +162,24 @@ export default async function PageLot(
         >
           ← {bien.nom}
         </Link>
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold">{lot.nom}</h1>
-          <span
-            className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
-          >
-            {ETATS_LOT[lot.etat] ?? lot.etat}
-          </span>
+        <p className="eyebrow mt-1">
+          {bien.nom}
+          {bien.city ? ` · ${bien.city}` : ""}
+        </p>
+        <div className="entete-page">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1>{lot.nom}</h1>
+            <span
+              className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
+            >
+              {ETATS_LOT[lot.etat] ?? lot.etat}
+            </span>
+          </div>
         </div>
       </div>
 
       {decence.length > 0 && (
-        <div className="rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground">
+        <div className="border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
           {decence.map((a) => (
             <p key={a}>{a}</p>
           ))}
@@ -393,7 +394,7 @@ export default async function PageLot(
                 <ul className="space-y-2">
                   {(baux ?? []).map((b) => (
                     <li key={b.id} className="flex items-center gap-3">
-                      <span className="badge-statut text-muted-foreground">
+                      <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
                         {ETATS_BAIL[b.etat] ?? b.etat}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-sm">Bail {b.type}</span>

@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate, eur } from "@/lib/ged";
+import { TYPES_BAIL, ETATS_BAIL, COULEURS_ETAT_BAIL, COULEURS_ETAT_EDL } from "@/lib/baux";
+import { nomComplet } from "@/lib/roles-personnes";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { ETATS_ELEMENT } from "./edl/[edlId]/grille-edl";
+import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "./edl/[edlId]/grille-edl";
 import {
   FormulaireBailSigne,
   BoutonActiverBail,
@@ -31,14 +33,6 @@ import {
 import { FormulaireDepot, type EncaissementDepot } from "./formulaire-depot";
 
 export const metadata = { title: "Bail — Gerimmo" };
-
-const TYPES_BAIL: Record<string, string> = { nu: "Nu", meuble: "Meublé", colocation: "Colocation" };
-const ETATS_BAIL: Record<string, string> = {
-  brouillon: "Brouillon",
-  actif: "Actif",
-  preavis: "Préavis",
-  termine: "Terminé",
-};
 
 export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[bailId]">) {
   const { orgId, bailId } = await props.params;
@@ -104,7 +98,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const nomsPersonnes = new Map(
     ((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map((p) => [
       p.id,
-      `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}`,
+      nomComplet(p),
     ])
   );
   const lignesColoc: LigneColoc[] = (
@@ -149,6 +143,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: revisions },
     { data: relances },
     { data: regularisations },
+    // Encaissement du dépôt : même condition, même aller-retour
+    { data: depotEncaissements },
   ] = loyersActif
     ? await Promise.all([
         supabase.rpc("etat_loyers_bail", { p_bail: bailId }),
@@ -176,17 +172,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .select("id, annee, provisions, charges_reelles, ecart")
           .eq("bail_id", bailId)
           .order("annee", { ascending: false }),
+        supabase
+          .from("depot_encaissements")
+          .select("id, montant, date_encaissement, moyen, versant_libelle, versant_person_id")
+          .eq("bail_id", bailId)
+          .order("date_encaissement"),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
-
-  // Encaissement du dépôt : dès que le bail n'est plus en brouillon
-  const { data: depotEncaissements } = loyersActif
-    ? await supabase
-        .from("depot_encaissements")
-        .select("id, montant, date_encaissement, moyen, versant_libelle, versant_person_id")
-        .eq("bail_id", bailId)
-        .order("date_encaissement")
-    : { data: [] };
+    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
 
   // Restitution du dépôt : dès que le bail est en préavis ou terminé
   const restitutionActif = bail.etat === "preavis" || bail.etat === "termine";
@@ -241,7 +233,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       });
     if (resteDepot > 0)
       aFaire.push({
-        texte: `Encaisser le dépôt de garantie (reste ${resteDepot.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €)`,
+        texte: `Encaisser le dépôt de garantie (reste ${eur(resteDepot)})`,
         href: "#depot",
       });
     if ((echeancier ?? []).length === 0)
@@ -268,15 +260,18 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ← {lot.nom}
           </Link>
         )}
-        <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold">Bail {TYPES_BAIL[bail.type] ?? bail.type}</h1>
-          <span className="badge-statut text-muted-foreground">
-            {ETATS_BAIL[bail.etat] ?? bail.etat}
-          </span>
+        <p className="eyebrow mt-1">Bail {TYPES_BAIL[bail.type] ?? bail.type}</p>
+        <div className="entete-page">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Le titre porte qui habite où — le type de bail vit dans l'eyebrow */}
+            <h1>{locataire ? nomComplet(locataire) : lot?.nom ?? "Bail"}</h1>
+            <span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>
+              {ETATS_BAIL[bail.etat] ?? bail.etat}
+            </span>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          Locataire : {locataire ? `${locataire.nom}${locataire.prenom ? ` ${locataire.prenom}` : ""}` : "—"}
-          {" · "}
+          {!locataire && <>Locataire : — · </>}
           {/* « 1050 € HC » : un nombre brut et une abréviation. Le loyer se lit
               mieux formaté, et « hors charges » s'écrit en toutes lettres. */}
           {bail.loyer_hc
@@ -289,7 +284,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* La prochaine action évidente, dérivée de l'état du bail */}
       {aFaire.length > 0 && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="border-l-[3px] border-l-[var(--or)] bg-accent p-4">
           <p className="text-sm font-semibold">À faire maintenant</p>
           <ol className="mt-2 space-y-1.5">
             {aFaire.slice(0, 3).map((a, i) => (
@@ -418,11 +413,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               depotDu={Number(bail.depot_garantie ?? 0)}
               encaissements={(depotEncaissements ?? []) as EncaissementDepot[]}
               personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(
-                (p) => ({ id: p.id, nom: `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` })
+                (p) => ({ id: p.id, nom: nomComplet(p) })
               )}
-              locataireNom={
-                locataire ? `${locataire.nom}${locataire.prenom ? ` ${locataire.prenom}` : ""}` : "Le locataire"
-              }
+              locataireNom={locataire ? nomComplet(locataire) : "Le locataire"}
             />
           </CardContent>
         </Card>
@@ -443,14 +436,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               orgId={orgId}
               bailId={bailId}
               personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(
-                (p) => ({ id: p.id, nom: `${p.nom}${p.prenom ? ` ${p.prenom}` : ""}` })
+                (p) => ({ id: p.id, nom: nomComplet(p) })
               )}
               lignes={lignesColoc}
               principal={{
                 id: bail.locataire_principal ?? "",
-                nom: locataire
-                  ? `${locataire.nom}${locataire.prenom ? ` ${locataire.prenom}` : ""}`
-                  : "—",
+                nom: locataire ? nomComplet(locataire) : "—",
               }}
             />
           </CardContent>
@@ -492,7 +483,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             bail.etat === "brouillon" ? (
               <p className="text-sm text-muted-foreground">Aucun état des lieux.</p>
             ) : (
-              <div className="rounded-lg border border-destructive-soft bg-destructive-soft/40 p-3">
+              <div className="border-l-[3px] border-l-destructive bg-destructive-soft p-3">
                 <p className="text-sm font-medium text-destructive-soft-foreground">
                   Aucun état des lieux d&apos;entrée
                 </p>
@@ -511,7 +502,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                   <span className="w-20 text-sm font-medium">
                     {e.type === "entree" ? "Entrée" : "Sortie"}
                   </span>
-                  <span className="badge-statut text-muted-foreground">
+                  <span className={COULEURS_ETAT_EDL[e.etat] ?? "puce puce-grise"}>
                     {e.etat === "signe" ? "Signé" : "En cours"}
                   </span>
                   <Link
@@ -566,15 +557,27 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ) : (
               <ul className="space-y-1 text-sm">
                 {ecarts.map((c) => (
-                  <li key={`${c.piece ?? ""}-${c.libelle}`} className="flex items-center gap-2">
+                  <li
+                    key={`${c.piece ?? ""}-${c.libelle}`}
+                    className="flex flex-wrap items-center gap-2"
+                  >
                     <span className="w-44 shrink-0 truncate">
                       {c.piece ? <span className="text-muted-foreground">{c.piece} · </span> : null}
                       {c.libelle}
                     </span>
-                    <span className="text-muted-foreground">
-                      {c.etat_entree ? ETATS_ELEMENT[c.etat_entree] ?? c.etat_entree : "—"} →{" "}
+                    <span
+                      className={
+                        (c.etat_entree && COULEURS_ETAT_ELEMENT[c.etat_entree]) || "puce puce-grise"
+                      }
+                    >
+                      {c.etat_entree ? ETATS_ELEMENT[c.etat_entree] ?? c.etat_entree : "—"}
                     </span>
-                    <span className="font-medium text-destructive">
+                    <span aria-hidden className="text-muted-foreground">→</span>
+                    <span
+                      className={
+                        (c.etat_sortie && COULEURS_ETAT_ELEMENT[c.etat_sortie]) || "puce puce-grise"
+                      }
+                    >
                       {c.etat_sortie ? ETATS_ELEMENT[c.etat_sortie] ?? c.etat_sortie : "—"}
                     </span>
                   </li>

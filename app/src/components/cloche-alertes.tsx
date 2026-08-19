@@ -4,6 +4,7 @@ import { afficherEcheance } from "@/lib/echeances";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE } from "@/lib/ged";
+import { buttonVariants } from "@/components/ui/button";
 
 // Pop-up de synthèse des alertes à la connexion (S2, revue recette 08/08) :
 // uniquement les alertes qui me sont confiées (nominativement ou « tout le
@@ -155,7 +156,9 @@ export function ClocheAlertes({
                       <p className="eyebrow pb-1">{groupe.nom}</p>
                     )}
                     <ul className="divide-y divide-border">
-                      {groupe.liste.map((a) => (
+                      {groupe.liste.map((a) => {
+                        const echeance = afficherEcheance(a.echeance);
+                        return (
                         <li key={a.id} className="flex items-center gap-2 py-2 text-sm">
                           <span
                             className={`badge-statut shrink-0 ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
@@ -163,9 +166,9 @@ export function ClocheAlertes({
                             {CRITICITES[a.criticite] ?? a.criticite}
                           </span>
                           <span className="min-w-0 flex-1 truncate">{a.titre}</span>
-                          {afficherEcheance(a.echeance) && (
-                            <span className={`shrink-0 text-xs ${afficherEcheance(a.echeance)!.classe}`}>
-                              {afficherEcheance(a.echeance)!.texte}
+                          {echeance && (
+                            <span className={`shrink-0 text-xs ${echeance.classe}`}>
+                              {echeance.texte}
                             </span>
                           )}
                           <Link
@@ -180,7 +183,8 @@ export function ClocheAlertes({
                             Traiter
                           </Link>
                         </li>
-                      ))}
+                        );
+                      })}
                     </ul>
                   </div>
                 ))
@@ -191,7 +195,7 @@ export function ClocheAlertes({
               <button
                 type="button"
                 onClick={fermer}
-                className="rounded-md border border-[var(--filet)] bg-[var(--ivoire)] px-4 py-1.5 text-sm text-[var(--encre)] transition-colors hover:bg-[var(--ardoise)]"
+                className={buttonVariants({ variant: "outline", size: "sm" })}
               >
                 Fermer
               </button>

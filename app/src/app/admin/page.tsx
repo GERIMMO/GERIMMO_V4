@@ -1,10 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { seDeconnecter } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
-import { ClocheAlertes } from "@/components/cloche-alertes";
-import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
 import {
   Card,
   CardDescription,
@@ -14,47 +10,30 @@ import {
 
 export const metadata = { title: "Console d'administration — Gerimmo" };
 
-const STATUTS: Record<string, string> = {
-  essai: "Essai",
-  active: "Active",
-  suspendue: "Suspendue",
-  archivee: "Archivée",
-};
-
 export default async function PageAdmin() {
   const supabase = await createClient();
 
-  // Réservé au super admin : sans ce rôle, la RLS ne renvoie que ses agences
-  const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
-  if (!estSuperAdmin) redirect("/espaces");
-
-  // Pop-up de synthèse à la connexion : le SA voit toutes les agences
-  const [{ data: organisations }, alertes] = await Promise.all([
-    supabase.from("organizations").select("id, name, status").order("name"),
-    chargerSyntheseAlertes(supabase),
-  ]);
+  // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond
+  const { data: organisations } = await supabase
+    .from("organizations")
+    .select("id, name, status")
+    .order("name");
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">Console d&apos;administration</p>
-          <h1 className="text-2xl font-semibold">Agences</h1>
-        </div>
-        <div className="flex gap-2">
-          <ClocheAlertes alertes={alertes} modeAdmin />
-          <Button
-            variant="outline"
-            size="sm"
-            nativeButton={false} render={<Link href="/admin/journaux">Journaux et conservation</Link>}
-          />
-          <form action={seDeconnecter}>
-            <Button variant="outline" size="sm" type="submit">
-              Se déconnecter
-            </Button>
-          </form>
-        </div>
+      <div className="mb-6 entete-page">
+        <h1>Agences</h1>
+        <span className="mono-discret">
+          {(organisations ?? []).length} agence{(organisations ?? []).length > 1 ? "s" : ""}
+        </span>
       </div>
+
+      {(organisations ?? []).length === 0 && (
+        <div className="vide">
+          Aucune agence sur la plateforme pour l&apos;instant. La création
+          d&apos;agence arrive avec la console complète (sprint 9b).
+        </div>
+      )}
 
       <div className="grid gap-4">
         {(organisations ?? []).map((o) => (
@@ -62,7 +41,9 @@ export default async function PageAdmin() {
             <Card className="transition-colors hover:bg-accent">
               <CardHeader>
                 <CardTitle className="text-base">{o.name}</CardTitle>
-                <CardDescription>{STATUTS[o.status] ?? o.status}</CardDescription>
+                <CardDescription>
+                  {LIBELLES_STATUT_ORGANISATION[o.status] ?? o.status}
+                </CardDescription>
               </CardHeader>
             </Card>
           </Link>

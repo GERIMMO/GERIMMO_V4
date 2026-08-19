@@ -11,20 +11,14 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
+import { ETATS_MANDAT, COULEURS_ETAT_MANDAT } from "@/lib/baux";
+import { nomComplet, initiales } from "@/lib/roles-personnes";
 import { FormulairePiece, FormulaireNouvelleVersion } from "./formulaire-piece";
 import { FormulaireIdentite, BoutonArchiverPersonne } from "./formulaire-identite";
 import { FormulaireMandat, FormulaireLigneMandat, BoutonsEtatMandat } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
-
-const ETATS_MANDAT: Record<string, string> = {
-  brouillon: "Brouillon",
-  a_signer: "À signer",
-  actif: "Actif",
-  preavis: "Préavis",
-  resilie: "Résilié",
-};
 
 export default async function PagePersonne(
   props: PageProps<"/agence/[orgId]/personnes/[personId]">
@@ -40,17 +34,40 @@ export default async function PagePersonne(
     .maybeSingle();
   if (!personne) notFound();
 
-  // Pièces courantes du dossier (versioning : seules les non remplacées)
-  const { data: pieces } = await supabase.rpc("dossier_personne", { p_person: personId });
+  // Quatre lectures indépendantes — un seul aller-retour
+  const [
+    // Pièces courantes du dossier (versioning : seules les non remplacées)
+    { data: pieces },
+    // Versions antérieures (recette 13/08) : l'historique reste consultable —
+    // on remonte la chaîne remplace_id de chaque pièce courante.
+    { data: liensDossier },
+    // Lots détenus par la personne (affichés sur la fiche, recette 14/08 —
+    // et base des mandats)
+    { data: detentions },
+    // Mandats de la personne
+    { data: mandats },
+  ] = await Promise.all([
+    supabase.rpc("dossier_personne", { p_person: personId }),
+    supabase
+      .from("document_liens")
+      .select("document_id")
+      .eq("organization_id", orgId)
+      .eq("entite", "personne")
+      .eq("entite_id", personId),
+    supabase
+      .from("detentions")
+      .select("lot_id, quote_part, date_debut")
+      .eq("organization_id", orgId)
+      .eq("person_id", personId)
+      .is("date_fin", null),
+    supabase
+      .from("mandats")
+      .select("id, etat, date_rapport, seuil_delegation")
+      .eq("organization_id", orgId)
+      .eq("person_id", personId)
+      .order("created_at"),
+  ]);
 
-  // Versions antérieures (recette 13/08) : l'historique reste consultable —
-  // on remonte la chaîne remplace_id de chaque pièce courante.
-  const { data: liensDossier } = await supabase
-    .from("document_liens")
-    .select("document_id")
-    .eq("organization_id", orgId)
-    .eq("entite", "personne")
-    .eq("entite_id", personId);
   const idsDossier = (liensDossier ?? []).map((l) => l.document_id);
   const { data: tousDocs } = idsDossier.length
     ? await supabase
@@ -72,14 +89,6 @@ export default async function PagePersonne(
     return chaine;
   };
 
-  // Lots détenus par la personne (affichés sur la fiche, recette 14/08 —
-  // et base des mandats)
-  const { data: detentions } = await supabase
-    .from("detentions")
-    .select("lot_id, quote_part, date_debut")
-    .eq("organization_id", orgId)
-    .eq("person_id", personId)
-    .is("date_fin", null);
   const lotIds = [...new Set((detentions ?? []).map((d) => d.lot_id))];
   const { data: lots } = lotIds.length
     ? await supabase.from("lots").select("id, nom, bien_id").in("id", lotIds)
@@ -94,13 +103,7 @@ export default async function PagePersonne(
     libelle: `${nomBien(l.bien_id)} · ${l.nom}`,
   }));
 
-  // Mandats de la personne + leurs lignes
-  const { data: mandats } = await supabase
-    .from("mandats")
-    .select("id, etat, date_rapport, seuil_delegation")
-    .eq("organization_id", orgId)
-    .eq("person_id", personId)
-    .order("created_at");
+  // Lignes des mandats
   const mandatIds = (mandats ?? []).map((m) => m.id);
   const { data: lignes } = mandatIds.length
     ? await supabase
@@ -140,14 +143,19 @@ export default async function PagePersonne(
         >
           ← Personnes
         </Link>
-        <h1 className="mt-1">
-          {personne.nom}
-          {personne.prenom ? ` ${personne.prenom}` : ""}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {[personne.email, personne.telephone].filter(Boolean).join(" · ") || "Aucun contact"}
-          {personne.date_naissance ? ` · né(e) le ${formaterDate(personne.date_naissance)}` : ""}
-        </p>
+        <div className="mt-1 flex items-center gap-3">
+          {/* Même avatar que la liste des personnes, en plus grand (46 px) */}
+          <span aria-hidden className="avatar" style={{ width: 46, height: 46, fontSize: 14 }}>
+            {initiales(personne.nom, personne.prenom)}
+          </span>
+          <div className="min-w-0">
+            <h1>{nomComplet(personne)}</h1>
+            <p className="text-sm text-muted-foreground">
+              {[personne.email, personne.telephone].filter(Boolean).join(" · ") || "Aucun contact"}
+              {personne.date_naissance ? ` · né(e) le ${formaterDate(personne.date_naissance)}` : ""}
+            </p>
+          </div>
+        </div>
         <div className="mt-2 flex flex-wrap items-start gap-2">
           <FormulaireIdentite
             orgId={orgId}
@@ -311,11 +319,11 @@ export default async function PagePersonne(
               return (
                 <div
                   key={m.id}
-                  className={`rounded-lg border border-border p-3 ${historise ? "bg-muted opacity-70" : ""}`}
+                  className={`border border-border p-3 ${historise ? "bg-muted opacity-70" : ""}`}
                 >
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <span className="badge-statut text-muted-foreground">
+                      <span className={COULEURS_ETAT_MANDAT[m.etat] ?? "puce puce-grise"}>
                         {ETATS_MANDAT[m.etat] ?? m.etat}
                       </span>
                       {historise && (

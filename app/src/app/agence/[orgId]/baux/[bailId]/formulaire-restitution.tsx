@@ -1,6 +1,6 @@
 "use client";
 
-import { formaterDate } from "@/lib/ged";
+import { eur, formaterDate } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState } from "react";
@@ -14,8 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 
 export type Restitution = {
   id: string;
@@ -93,14 +91,14 @@ export function FormulaireRestitution({
       </dl>
 
       {restitution.sans_edl_entree && (
-        <p className="rounded-md bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+        <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
           Sans état des lieux d&apos;entrée signé, aucune retenue n&apos;est possible :
           restitution intégrale du dépôt.
         </p>
       )}
 
       {retenues.length > 0 && (
-        <ul className="divide-y divide-border rounded-lg border border-border">
+        <ul className="divide-y divide-border border border-border">
           {retenues.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
               <span className="min-w-0 flex-1 truncate">{r.libelle}</span>
@@ -177,7 +175,7 @@ function FormRetenue({
     {}
   );
   return (
-    <form action={action} className="space-y-2 rounded-lg border border-dashed border-border p-3">
+    <form action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Ajouter une retenue (décote de vétusté)</p>
       <div className="flex flex-wrap items-end gap-2">
         <Input name="libelle" placeholder="Ex. remise en peinture séjour" className="h-9 w-56" />

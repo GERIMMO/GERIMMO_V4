@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
+import { formaterDate } from "@/lib/ged";
+import { COULEURS_ETAT_EDL } from "@/lib/baux";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GrilleEdl } from "./grille-edl";
 import { EdlAnnexes, type Compteur, type Cle } from "./edl-annexes";
@@ -70,12 +72,18 @@ export default async function PageEdl(
         >
           ← Bail
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">
-          État des lieux d&apos;{edl.type === "entree" ? "entrée" : "sortie"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {signe ? "Signé — plus modifiable" : "En cours de saisie"}
+        <p className="eyebrow mt-1">
+          {edl.type === "entree" ? "Entrée" : "Sortie"}
+          {edl.date_edl ? ` · ${formaterDate(edl.date_edl)}` : ""}
         </p>
+        <div className="entete-page">
+          <h1>
+            État des lieux d&apos;{edl.type === "entree" ? "entrée" : "sortie"}
+          </h1>
+          <span className={COULEURS_ETAT_EDL[edl.etat] ?? "puce puce-grise"}>
+            {signe ? "Signé — figé" : "En cours de saisie"}
+          </span>
+        </div>
       </div>
 
       <Card>
@@ -92,7 +100,7 @@ export default async function PageEdl(
               ne distingue pas la cuisine de la chambre, et découvrait le
               problème à la sortie, au moment de justifier une retenue. */}
           {grilleGenerique && (
-            <div className="mb-4 rounded-lg border border-[var(--or)] bg-muted p-3 text-sm">
+            <div className="mb-4 border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm">
               <p className="font-medium">Cet état des lieux ne détaille aucune pièce.</p>
               <p className="mt-1 text-muted-foreground">
                 Le lot n&apos;a pas de pièces déclarées : la grille se limite aux

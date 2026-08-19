@@ -5,6 +5,7 @@ import { creerBail, type EtatBail } from "@/app/actions/baux";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { nomComplet } from "@/lib/roles-personnes";
 
 type Personne = { id: string; nom: string; prenom: string | null };
 
@@ -52,8 +53,7 @@ export function FormulaireBailLot({
             </option>
             {personnes.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.nom}
-                {p.prenom ? ` ${p.prenom}` : ""}
+                {nomComplet(p)}
               </option>
             ))}
           </select>

@@ -3,17 +3,35 @@ type: synthesis
 tags: [maquette, charte, ui, recette]
 status: stable
 created: 2026-08-14
-updated: 2026-08-14
+updated: 2026-08-19
 sources: ["[[2026-08-08-maquette-prototype-cliquable]]"]
 ---
 
-# Cohérence maquette ↔ application (écrans agence)
+# Cohérence maquette ↔ application
 
-Audit ligne à ligne du 14/08/2026 : le prototype cliquable
-(`raw/maquettes/2026-08-08-gerimmo-prototype.html`) comparé au code des écrans
-**Tableau de bord**, **Parc** et **Personnes**. Objectif : plus aucun écart
-non documenté — ce qui diffère de la maquette ci-dessous est un **choix
-assumé**, pas un oubli.
+Audit ligne à ligne du 14/08/2026 (**Tableau de bord**, **Parc**, **Personnes**)
+**étendu le 19/08/2026 à tous les écrans** : le prototype cliquable
+(`raw/maquettes/2026-08-08-gerimmo-prototype.html`) comparé au code. Objectif :
+plus aucun écart non documenté — ce qui diffère de la maquette ci-dessous est
+un **choix assumé**, pas un oubli.
+
+## Passe globale du 19/08 (tous les écrans restants)
+
+Trois revues (2 charte + 1 qualité) puis corrections sur ~35 fichiers,
+lint/tests/build verts. Alignements livrés : en-têtes charte partout (h1 serif
+nu dans `entete-page` + compteur `mono-discret`) ; **table stylée du journal
+comptable branchée** (th mono, catégories en puces, crédits `+` verts) + tuiles
+KPI compta ; **états d'objets en puces** via `lib/baux.ts`
+(bail/mandat/EDL/appels de loyer — fin des statuts gris) ; encadrés
+d'avertissement uniformisés (fond doux + liseré gauche 3 px) ; états vides
+`.vide` guidants ; **bandeau encre** pour l'espace locataire et la console
+admin ; libellés français centralisés (`lib/libelles.ts`) ; formats fr-FR
+(dates, montants via `eur()` unique — 10 copies locales supprimées) ; quittance
+imprimable propre (`print:hidden`). Côté fond : `aujourdhuiParis()` généralisé
+(bug UTC/mois clôturé), erreurs d'écriture plus jamais avalées (quittance,
+création de bien PD, suppressions d'encaissement), gardes d'accès dédupliquées,
+requêtes parallélisées (fiches personne/bail, espace locataire), `ilike`
+échappé.
 
 ## Conforme à la maquette (après les alignements du 14/08)
 
@@ -80,7 +98,10 @@ badge rouge sur Alertes, cloche.
 | Carte « **À vérifier** » (fiches en anomalie, liseré rouge) + « Par rôle » (barre empilée) | Absentes | Aucun critère d'« anomalie de fiche » n'est défini en base (le `p.ok` de la maquette est fictif). Définir la règle métier d'abord, l'écran ensuite. |
 | `Card` shadcn (anneau gris) vs `.carte` maquette (filet crème) | Card shadcn conservée | Écart de teinte marginal ; unifier = retoucher ~20 fichiers pour un gain faible. À reprendre lors d'un lot « polish » global. |
 | Boutons `.btn` / `.btn-encre` de la maquette | Variantes shadcn (`default`, `outline`, `destructive`) | Mêmes rôles, tokens charte déjà appliqués aux variantes. `btn-or` (laiton), lui, est repris tel quel. |
-| Table stylée (th mono, `tr.cliquable`) | Pas encore utilisée | Aucune table sur les écrans agence actuels ; à brancher sur le journal comptable (écran S6) qui en a une. |
+| ~~Table stylée (th mono, `tr.cliquable`)~~ | **Branchée le 19/08** sur le journal comptable et la matrice A2 (console) | L'écart est levé. |
+| Graphie « email » (maquette : « e-mail ») | « email » conservé partout | Cohérence interne de l'app (formulaires personnes, invitations) ; changer = retoucher tous les libellés pour un gain nul. |
+| Formulaire de connexion dans une `Card` | Conservé | La maquette pose les champs nus ; la Card ne nuit pas et l'écran de connexion sera revu à la passe d'identité visuelle (jalon V0). |
+| Avatar « Mes espaces » encre/laiton | Conservé | Variante d'entrée d'espace, distincte de l'`.avatar` ardoise des listes ; contraste vérifié (≈ 5:1). |
 | Animations d'entrée (`monte`, décalées) | Non reprises | Choix de sobriété ; les transitions au survol de la charte sont là. |
 
 ## Ce que ça garantit pour la recette

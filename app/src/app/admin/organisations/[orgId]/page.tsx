@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { libelleRole, libelleStatutAdhesion } from "@/lib/libelles";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -52,7 +53,7 @@ export default async function PageAdminOrganisation(
         <Button variant="ghost" size="sm" nativeButton={false} render={<Link href="/admin" />}>
           ← Toutes les agences
         </Button>
-        <h1 className="mt-2 text-2xl font-semibold">{organisation.name}</h1>
+        <h1 className="mt-2">{organisation.name}</h1>
         <p className="text-sm text-muted-foreground">
           Consultation journalisée au journal d&apos;audit (RM-A1.11).
         </p>
@@ -65,6 +66,9 @@ export default async function PageAdminOrganisation(
             <CardDescription>Adhésions de l&apos;agence</CardDescription>
           </CardHeader>
           <CardContent>
+            {(adhesions ?? []).length === 0 && (
+              <div className="vide">Aucune adhésion dans cette agence.</div>
+            )}
             <ul className="divide-y">
               {(adhesions ?? []).map((m) => (
                 <li key={m.id} className="py-2 text-sm">
@@ -72,7 +76,7 @@ export default async function PageAdminOrganisation(
                     {(m.account as unknown as { email: string } | null)?.email}
                   </span>{" "}
                   <span className="text-muted-foreground">
-                    — {m.role} ({m.status})
+                    — {libelleRole(m.role)} (adhésion {libelleStatutAdhesion(m.status)})
                   </span>
                 </li>
               ))}
@@ -86,6 +90,9 @@ export default async function PageAdminOrganisation(
             <CardDescription>Fiches de l&apos;agence</CardDescription>
           </CardHeader>
           <CardContent>
+            {(personnes ?? []).length === 0 && (
+              <div className="vide">Aucune fiche personne dans cette agence.</div>
+            )}
             <ul className="divide-y">
               {(personnes ?? []).map((p) => (
                 <li key={p.id} className="py-2 text-sm">

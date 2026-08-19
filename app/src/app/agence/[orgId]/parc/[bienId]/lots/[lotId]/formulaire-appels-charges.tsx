@@ -12,11 +12,10 @@ import {
   type EtatAppel,
 } from "@/app/actions/appels-charges";
 import { LIBELLES_NATURE, type NatureCharge } from "@/lib/charges";
+import { eur } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 
 export type PosteCharge = {
   id: string;

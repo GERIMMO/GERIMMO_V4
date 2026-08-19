@@ -69,7 +69,7 @@ export function FormulaireConnexion() {
             className={`mb-4 rounded-md p-3 text-sm ${
               message.ton === "succes"
                 ? "bg-success-soft text-success-soft-foreground"
-                : "bg-warning-soft text-warning-soft-foreground"
+                : "bg-accent text-accent-foreground"
             }`}
           >
             {message.texte}

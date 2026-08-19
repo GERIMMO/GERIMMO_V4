@@ -57,12 +57,12 @@ export default async function PageJournaux() {
     <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
       <div className="mb-6">
         <p className="text-sm text-muted-foreground">
-          <Link href="/admin" className="hover:underline">
+          <Link href="/admin" className="text-[var(--bleu)] hover:underline">
             Console d&apos;administration
           </Link>{" "}
           / Journaux et conservation
         </p>
-        <h1 className="text-2xl font-semibold">Journaux et conservation</h1>
+        <h1>Journaux et conservation</h1>
       </div>
 
       <div className="mb-6">
@@ -84,12 +84,12 @@ export default async function PageJournaux() {
           <CardContent className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
-                  <th className="py-2 pr-4">Type de donnée</th>
-                  <th className="py-2 pr-4">Finalité</th>
-                  <th className="py-2 pr-4">Déclencheur</th>
-                  <th className="py-2 pr-4">Durée</th>
-                  <th className="py-2">Sort final</th>
+                <tr className="border-b text-left">
+                  <th className="libelle-champ py-2 pr-4 font-normal">Type de donnée</th>
+                  <th className="libelle-champ py-2 pr-4 font-normal">Finalité</th>
+                  <th className="libelle-champ py-2 pr-4 font-normal">Déclencheur</th>
+                  <th className="libelle-champ py-2 pr-4 font-normal">Durée</th>
+                  <th className="libelle-champ py-2 font-normal">Sort final</th>
                 </tr>
               </thead>
               <tbody>
@@ -123,7 +123,7 @@ export default async function PageJournaux() {
           </CardHeader>
           <CardContent>
             {(audit ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Vide.</p>
+              <div className="vide">Aucune action sensible journalisée pour l&apos;instant.</div>
             ) : (
               <ul className="divide-y">
                 {(audit ?? []).map((l, i) => (
@@ -148,7 +148,7 @@ export default async function PageJournaux() {
           </CardHeader>
           <CardContent>
             {(technique ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Vide.</p>
+              <div className="vide">Aucun événement technique sur la période conservée.</div>
             ) : (
               <ul className="divide-y">
                 {(technique ?? []).map((l, i) => (
@@ -176,7 +176,7 @@ export default async function PageJournaux() {
           </CardHeader>
           <CardContent>
             {(acces ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Vide.</p>
+              <div className="vide">Aucune consultation de pièce tracée pour l&apos;instant.</div>
             ) : (
               <ul className="divide-y">
                 {(acces ?? []).map((l, i) => {

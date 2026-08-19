@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
+import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
 import { piecesHabituelles } from "@/lib/pieces";
 import {
   TYPES_BIEN,
@@ -89,7 +90,7 @@ export async function creerBien(
       .is("archived_at", null)
       .maybeSingle();
     if (!fiche) {
-      const { data: creee } = await supabase
+      const { data: creee, error: erreurFiche } = await supabase
         .from("persons")
         .insert({
           organization_id: orgId,
@@ -99,6 +100,11 @@ export async function creerBien(
         })
         .select("id")
         .single();
+      if (erreurFiche) {
+        return {
+          erreur: `Bien créé, mais votre fiche propriétaire a échoué : ${sansJargon(erreurFiche.message)}`,
+        };
+      }
       fiche = creee;
     }
     if (fiche) {
@@ -109,12 +115,17 @@ export async function creerBien(
         .eq("organization_id", orgId)
         .maybeSingle();
       if (lotUnique) {
-        await supabase.from("detentions").insert({
+        const { error: erreurDetention } = await supabase.from("detentions").insert({
           lot_id: lotUnique.id,
           organization_id: orgId,
           person_id: fiche.id,
           quote_part: 100,
         });
+        if (erreurDetention) {
+          return {
+            erreur: `Bien créé, mais la détention n'a pas pu être posée : ${sansJargon(erreurDetention.message)}`,
+          };
+        }
       }
     }
   }
@@ -122,11 +133,16 @@ export async function creerBien(
   if (lotsSaisis.length > 0 && bienId) {
     // Le lot d'origine porte le nom saisi pour le premier lot
     if (premier?.nom?.trim()) {
-      await supabase
+      const { error: erreurNom } = await supabase
         .from("lots")
         .update({ nom: premier.nom.trim() })
         .eq("bien_id", bienId)
         .eq("organization_id", orgId);
+      if (erreurNom) {
+        return {
+          erreur: `Bien créé, mais le nom du premier lot n'a pas pu être posé : ${sansJargon(erreurNom.message)}`,
+        };
+      }
     }
     const suivants = lotsSaisis.slice(1).map((l, i) => ({
       nom: l.nom?.trim() || `Lot ${i + 2}`,
@@ -332,9 +348,7 @@ export async function ajouterDetention(
       .from("persons")
       .select("id")
       .eq("organization_id", orgId)
-      // % et _ sont des jokers pour ilike : on les échappe (les emails
-      // contiennent souvent des _) pour comparer l'adresse littérale.
-      .ilike("email", email.replace(/[\\%_]/g, "\\$&"))
+      .ilike("email", motifLitteral(email))
       .is("archived_at", null);
     if ((memeEmail ?? []).length > 0) {
       return {
@@ -362,7 +376,12 @@ export async function ajouterDetention(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
+  // Les blocages « détention » s'affichent aussi sur la fiche bien, le parc et
+  // le tableau de bord : mêmes chemins que changerEtatLot.
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}`);
   return { succes: "Détention enregistrée." };
 }
 
@@ -377,10 +396,7 @@ export async function cloreDetention(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  // Date du jour en heure de Paris (toISOString donnerait la veille avant 2 h)
-  const aujourdhui = new Date().toLocaleDateString("en-CA", {
-    timeZone: "Europe/Paris",
-  });
+  const aujourdhui = aujourdhuiParis();
 
   // Recette 08/08 : clore une détention qui n'a pas encore commencé posait
   // date_fin < date_debut — la contrainte SQL claquait en jargon. Une
@@ -408,7 +424,12 @@ export async function cloreDetention(
     .is("date_fin", null);
   if (error) return { erreur: sansJargon(error.message) };
 
+  // Mêmes chemins que changerEtatLot : le blocage « détention » peut renaître
+  // sur la fiche bien, le parc et le tableau de bord.
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+  revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+  revalidatePath(`/agence/${orgId}/parc`);
+  revalidatePath(`/agence/${orgId}`);
   return { succes: "Détention close." };
 }
 
@@ -704,7 +725,7 @@ export async function ajouterEquipementCatalogue(
           ? "Cet équipement existe déjà."
           : error.code === "42501"
             ? "Le catalogue est géré par l'admin de l'agence."
-            : error.message,
+            : sansJargon(error.message),
     };
   }
 
@@ -723,11 +744,13 @@ export async function definirEquipementsLot(
   if (!user) return { erreur: "Accès refusé." };
 
   const retenus = formData.getAll("equipement_id").map(String);
+  // lot_equipements n'a pas de colonne organization_id : l'isolation par
+  // agence est assurée par RLS + trigger (migration 2026-07-30).
   const { error: erreurPurge } = await supabase
     .from("lot_equipements")
     .delete()
     .eq("lot_id", lotId);
-  if (erreurPurge) return { erreur: erreurPurge.message };
+  if (erreurPurge) return { erreur: sansJargon(erreurPurge.message) };
   if (retenus.length > 0) {
     const { error } = await supabase
       .from("lot_equipements")

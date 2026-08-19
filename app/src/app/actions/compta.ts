@@ -4,6 +4,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { envoyerEmail } from "@/lib/email";
+import { aujourdhuiParis, eur } from "@/lib/ged";
 
 export type EtatCompta = { erreur?: string; succes?: string };
 
@@ -49,7 +50,7 @@ export async function envoyerRapport(
     const net = Number((rap as { net: number }).net);
     const html = `<div style="font-family:sans-serif"><h2>Rapport de gestion</h2>
       <p>Bonjour${mandant.prenom ? " " + mandant.prenom : ""},</p>
-      <p>Votre rapport de gestion est disponible. Net à reverser : <strong>${net.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €</strong>${net < 0 ? " (appel de fonds)" : ""}.</p>
+      <p>Votre rapport de gestion est disponible. Net à reverser : <strong>${eur(net)}</strong>${net < 0 ? " (appel de fonds)" : ""}.</p>
       ${commentaire ? `<p>${commentaire}</p>` : ""}<p>— Votre agence</p></div>`;
     const env = await envoyerEmail({ to: mandant.email, subject: "Votre rapport de gestion", html });
     noteEmail = env.erreur ? ` (email non envoyé : ${env.erreur})` : " Email envoyé au mandant.";
@@ -142,8 +143,8 @@ export async function ventilerDepense(
     p_bien: bienId,
     p_categorie: categorie,
     p_montant: montant,
-    p_date_piece: String(formData.get("date_piece") ?? "").trim() || new Date().toISOString().slice(0, 10),
-    p_date_imputation: String(formData.get("date_imputation") ?? "").trim() || new Date().toISOString().slice(0, 10),
+    p_date_piece: String(formData.get("date_piece") ?? "").trim() || aujourdhuiParis(),
+    p_date_imputation: String(formData.get("date_imputation") ?? "").trim() || aujourdhuiParis(),
     p_libelle: String(formData.get("libelle") ?? "").trim() || categorie,
   });
   if (error) return { erreur: sansJargon(error.message) };

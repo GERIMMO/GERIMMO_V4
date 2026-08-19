@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { formaterDate } from "@/lib/ged";
+import { eur, formaterDate } from "@/lib/ged";
+import {
+  COULEURS_STATUT_APPEL_LOYER,
+  STATUTS_APPEL_LOYER,
+  TYPES_BAIL,
+} from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import {
   Card,
@@ -26,18 +31,27 @@ function statutAssurance(expire: string | null): { texte: string; classe: string
   );
   if (jours < 0) return { texte: `expirée depuis ${-jours} j`, classe: "text-destructive" };
   if (jours <= 30)
-    return { texte: `expire dans ${jours} j (${expire})`, classe: "text-warning-soft-foreground" };
-  return { texte: `valide jusqu'au ${expire}`, classe: "text-success-soft-foreground" };
+    return {
+      texte: `expire dans ${jours} j (${formaterDate(expire)})`,
+      classe: "text-warning-soft-foreground",
+    };
+  return { texte: `valide jusqu'au ${formaterDate(expire)}`, classe: "text-success-soft-foreground" };
 }
 
 export default async function PageLocataire(props: PageProps<"/locataire/[orgId]">) {
   const { orgId } = await props.params;
   const { supabase, personne } = await verifierAccesEspaceLocataire(orgId);
 
-  const { data: pieces } = await supabase.rpc("mon_dossier_locataire", { p_org: orgId });
+  // Quatre RPC indépendants : en parallèle plutôt qu'en cascade
+  const [{ data: pieces }, { data: baux }, { data: depotRows }, { data: echeancier }] =
+    await Promise.all([
+      supabase.rpc("mon_dossier_locataire", { p_org: orgId }),
+      supabase.rpc("mon_bail_locataire", { p_org: orgId }),
+      supabase.rpc("mon_depot_locataire", { p_org: orgId }),
+      supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
+    ]);
   const assurance = ((pieces ?? []) as Piece[]).find((p) => p.type === "attestation_assurance");
 
-  const { data: baux } = await supabase.rpc("mon_bail_locataire", { p_org: orgId });
   const bail = ((baux ?? []) as {
     type: string;
     etat: string;
@@ -46,16 +60,13 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
     lot_nom: string;
     date_debut: string | null;
   }[])[0];
-  const TYPES_BAIL: Record<string, string> = { nu: "nu", meuble: "meublé", colocation: "colocation" };
 
-  const { data: depotRows } = await supabase.rpc("mon_depot_locataire", { p_org: orgId });
   const depot = ((depotRows ?? []) as {
     depot_du: number;
     encaisse: number;
     derniere_date: string | null;
   }[])[0];
 
-  const { data: echeancier } = await supabase.rpc("mon_echeancier_locataire", { p_org: orgId });
   const lignesLoyer = (echeancier ?? []) as {
     periode: string;
     montant_du: number;
@@ -63,20 +74,13 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
     statut: string;
     quittance_id: string | null;
   }[];
-  const LOYER_STATUT: Record<string, string> = {
-    paye: "Payé",
-    partiel: "Partiel",
-    impaye: "Impayé",
-    attendu: "À échoir",
-  };
-  const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
   const moisLong = (d: string) =>
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
-        <h1 className="text-2xl font-semibold">
+        <h1>
           Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""}
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -89,14 +93,14 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
           <CardHeader>
             <CardTitle className="text-base">Mon bail</CardTitle>
             <CardDescription>
-              {bail.lot_nom} · bail {TYPES_BAIL[bail.type] ?? bail.type}
+              {bail.lot_nom} · bail {(TYPES_BAIL[bail.type] ?? bail.type).toLowerCase()}
               {bail.etat === "preavis" ? " · en préavis" : ""}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm">
             <p>
-              Loyer : {bail.loyer_hc ? `${bail.loyer_hc} € hors charges` : "—"}
-              {bail.charges ? ` + ${bail.charges} € de charges` : ""}
+              Loyer : {bail.loyer_hc ? `${eur(bail.loyer_hc)} hors charges` : "—"}
+              {bail.charges ? ` + ${eur(bail.charges)} de charges` : ""}
             </p>
             {bail.date_debut && <p className="text-muted-foreground">Depuis le {formaterDate(bail.date_debut)}</p>}
             {depot && Number(depot.depot_du) > 0 && (
@@ -127,14 +131,16 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
                   <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                     {l.statut === "partiel" ? `réglé ${eur(l.montant_couvert)}` : ""}
                   </span>
-                  <span className="shrink-0 badge-statut text-muted-foreground">
-                    {LOYER_STATUT[l.statut] ?? l.statut}
+                  <span
+                    className={`shrink-0 ${COULEURS_STATUT_APPEL_LOYER[l.statut] ?? "puce puce-grise"}`}
+                  >
+                    {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
                   </span>
                   {l.quittance_id && (
                     <Link
                       href={`/quittance/${l.quittance_id}`}
                       target="_blank"
-                      className="shrink-0 text-xs text-success-soft-foreground underline-offset-2 hover:underline"
+                      className="shrink-0 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
                     >
                       Voir la quittance
                     </Link>

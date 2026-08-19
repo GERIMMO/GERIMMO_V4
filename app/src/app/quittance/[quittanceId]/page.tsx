@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formaterDate } from "@/lib/ged";
+import { eur, formaterDate } from "@/lib/ged";
 
 export const metadata = { title: "Quittance — Gerimmo" };
-
-const eur = (n: number) => `${Number(n).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`;
 
 export default async function PageQuittance(props: { params: Promise<{ quittanceId: string }> }) {
   const { quittanceId } = await props.params;
@@ -36,7 +34,7 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
     <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{titre}</h1>
+          <h1>{titre}</h1>
           <p className="text-sm text-muted-foreground capitalize">{mois}</p>
         </div>
         <p className="text-sm text-muted-foreground">Émis le {formaterDate(q.date_emission)}</p>
@@ -83,7 +81,7 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
           : `Ce reçu constate un paiement partiel de ${mois}. Il ne vaut pas quittance : le solde reste dû.`}
       </p>
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-muted-foreground print:hidden">
         Document généré par Gerimmo — utilisez la fonction d&apos;impression de votre
         navigateur pour l&apos;imprimer ou l&apos;enregistrer en PDF.
       </p>

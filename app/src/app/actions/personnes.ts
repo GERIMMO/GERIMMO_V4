@@ -4,14 +4,9 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
+import { motifLitteral } from "@/lib/ged";
 
 export type EtatPersonne = { erreur?: string; succes?: string; avertissement?: string };
-
-// ilike interprète % et _ comme jokers : un email en contient souvent (_),
-// on les échappe pour comparer l'adresse littérale.
-function motifLitteral(texte: string) {
-  return texte.replace(/[\\%_]/g, "\\$&");
-}
 
 // L'email est-il déjà porté par une fiche vivante de l'agence ? (l'index
 // unique le garantit en base ; on vérifie avant pour un message clair)

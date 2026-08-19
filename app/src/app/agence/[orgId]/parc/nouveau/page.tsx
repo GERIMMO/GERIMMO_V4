@@ -18,7 +18,9 @@ export default async function PageNouveauBien(
 
   return (
     <main className="mx-auto w-full max-w-2xl p-4 sm:p-7">
-      <h1 className="mb-6 text-2xl font-semibold">Nouveau bien</h1>
+      <div className="entete-page mb-6">
+        <h1>Nouveau bien</h1>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Adresse et caractéristiques</CardTitle>

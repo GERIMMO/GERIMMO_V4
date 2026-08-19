@@ -21,6 +21,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { buttonVariants } from "@/components/ui/button";
 import type { BienFormulaire } from "../formulaire-bien";
 import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
 import { SectionLot } from "./lots/[lotId]/section-lot";
@@ -122,9 +123,14 @@ export default async function PageBien(
         >
           ← Parc
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{bien.nom}</h1>
+        <p className="eyebrow mt-1">
+          {TYPES_BIEN[bien.type] ?? bien.type} · {bien.city}
+        </p>
+        <div className="entete-page">
+          <h1>{bien.nom}</h1>
+        </div>
         <p className="text-sm text-muted-foreground">
-          {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1}
+          {bien.address_line1}
           {bien.address_line2 ? `, ${bien.address_line2}` : ""}, {bien.postal_code}{" "}
           {bien.city}
           {bien.copropriete ? " · copropriété" : ""}
@@ -278,7 +284,7 @@ export default async function PageBien(
         <CardContent className="space-y-3">
           {/* Ce qui bloque TOUS les lots : affiché une fois, pas sous chacun */}
           {blocagesCommuns.length > 0 && (
-            <div className="rounded-lg border border-warning-soft bg-warning-soft/40 p-3">
+            <div className="border-l-[3px] border-l-warning bg-warning-soft p-3">
               <p className="text-sm font-medium text-warning-soft-foreground">
                 À régler pour l&apos;ensemble des lots
               </p>
@@ -293,8 +299,7 @@ export default async function PageBien(
                   // pushState, qui ne déclenche pas le hashchange qu'écoute SectionLot,
                   // et la section ne s'ouvrait pas.
                   const memePage = !cible.href.includes("/lots/");
-                  const classe =
-                    "shrink-0 rounded-md border border-border bg-background px-2 py-0.5 text-xs font-medium hover:bg-muted";
+                  const classe = `shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`;
                   return (
                     <li key={b} className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="min-w-0 flex-1">{b}</span>
@@ -334,7 +339,7 @@ export default async function PageBien(
                     )}
                     <Link
                       href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
-                      className="shrink-0 rounded-lg border border-border px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                      className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                     >
                       Voir le lot →
                     </Link>
@@ -360,7 +365,7 @@ export default async function PageBien(
                               <span className="min-w-0 flex-1 text-muted-foreground">{b}</span>
                               <Link
                                 href={cible.href}
-                                className="shrink-0 rounded-md border border-border px-2 py-0.5 text-xs font-medium hover:bg-muted"
+                                className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                               >
                                 {cible.libelle}
                               </Link>

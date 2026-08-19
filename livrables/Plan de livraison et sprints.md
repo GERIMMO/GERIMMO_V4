@@ -313,8 +313,10 @@ son livre — autonome de bout en bout.**
   échanges qui engagent (mandat), archivage avec le bail.
 - **Vue scindée du bien** : sélection → écran en deux, détail + éléments non
   concernés assombris.
-- **Console SA (essentiel)** : création d'agence, indicateurs, files d'attente
-  (modèles, contestations), suspension lecture seule / archivage.
+- **Console SA (essentiel)** : création d'agence et **création manuelle de tout
+  profil, PD compris** *(décision du 2026-08-19 — l'auto-inscription du S9a reste
+  la voie normale)*, indicateurs, files d'attente (modèles, contestations),
+  suspension lecture seule / archivage.
 **Démo : une journée type d'agence.**
 
 ### Recette V0 — 🎯 Jalon V0

@@ -73,10 +73,11 @@ Application concrète (module 0b) : **le mandant n'a aucun accès aux pièces du
 même si le lot change de propriétaire.
 
 ## Arrivée dans l'application (décision 2026-08-19)
-Il **s'inscrit seul en ligne** : page d'inscription publique → création de son compte
-et de son organisation `independent_owner` → essai 14 jours → abonnement par bien
-via Stripe. Pas de commerciaux, pas de super admin dans la boucle — indépendant de
-bout en bout. Détail : [[Onboarding et abonnement]]. **Priorisé le 2026-08-19** :
+**Voie normale :** il **s'inscrit seul en ligne** — page d'inscription publique →
+création de son compte et de son organisation `independent_owner` → essai 14 jours →
+abonnement par bien via Stripe. Pas de commerciaux, indépendant de bout en bout.
+**Voie de secours :** le [[Super Admin]] peut aussi **créer manuellement tout
+profil**, PD compris (support, cas particuliers). Détail : [[Onboarding et abonnement]]. **Priorisé le 2026-08-19** :
 le S9 est scindé, le PD ouvre le bal — sprint **9a dédié** (auto-inscription +
 espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe au S11.
 

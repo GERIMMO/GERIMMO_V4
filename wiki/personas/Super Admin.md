@@ -3,7 +3,7 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-08-19
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -55,6 +55,11 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
   seule** (export toujours possible), résiliation → **archivage jamais suppression**,
   réactivation par lui seul.
 - Met à jour les **seuils légaux** des alertes (RM-14.2.5) et crée les agences (16.1).
+- **Création manuelle de tout profil** *(décision du 2026-08-19)* : au-delà des
+  agences, il peut créer **n'importe quel profil à la main**, y compris un
+  [[Propriétaire bailleur]] (compte + organisation `independent_owner`) —
+  l'auto-inscription en ligne du PD est la **voie normale**, la création par le
+  super admin la **voie de secours/support**.
 - **[[Retours utilisateurs]]** (module 20) : trie les signalements (bug /
   incompréhension / idée — réponse dans tous les cas), **transmet les bugs confirmés
   au suivi technique sans jamais corriger depuis l'administration** (RM-20.3.1/2 —

@@ -1341,3 +1341,12 @@ jour (sections, tableau des espaces, jalons fin S9b) + [[Propriétaire bailleur]
 [[Onboarding et abonnement]], [[État du projet et décisions ouvertes]].
 Contexte d'avancement : S0–S8 développés, recette humaine S3–S8 en cours —
 le S9a est le prochain sprint de développement.
+
+## [2026-08-19] decision | Le super admin peut créer manuellement tout profil (PD compris)
+Précision humaine complétant la décision d'auto-inscription : la page publique
+reste la voie normale d'arrivée du PD, mais le super admin dispose d'une voie de
+secours/support — création manuelle de n'importe quel profil, propriétaire
+bailleur compris (compte + organisation `independent_owner`). Acté dans
+[[Super Admin]] (Administration V3), [[Propriétaire bailleur]] (arrivée),
+[[Onboarding et abonnement]], [[État du projet et décisions ouvertes]] et le plan
+de sprints (console SA, S9b).

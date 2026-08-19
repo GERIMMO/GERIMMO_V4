@@ -57,7 +57,9 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > **s'inscrit seul en ligne** — page d'inscription publique, création de son compte
 > et de son organisation `independent_owner`, essai 14 jours, puis abonnement par
 > bien via Stripe ([[Grille tarifaire]]). Pas de circuit commercial ni de super
-> admin dans la boucle. **Priorisation actée dans la foulée** : le S9 est scindé —
+> admin dans la boucle pour la voie normale — mais le **super admin peut créer
+> manuellement tout profil, PD compris** (voie de secours/support, précision du
+> même jour). **Priorisation actée dans la foulée** : le S9 est scindé —
 > **sprint 9a dédié au PD** (auto-inscription remontée du S11 + espace complet),
 > puis 9b administration/transverses ; le paiement Stripe reste au S11 →
 > [[Onboarding et abonnement]].

@@ -3,7 +3,7 @@ type: persona
 tags: [role, proprietaire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-08-19
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -24,6 +24,13 @@ en gardant un portail propre **n'est pas actif pour l'instant**.
 Le schéma (`member_type = 'owner'` rattachable à une org `agency`) *anticipe* ce futur cas, mais
 il n'est pas exploité aujourd'hui — voir le point de divergence dans
 [[État du projet et décisions ouvertes]].
+
+**Décision du 2026-08-19 — exclusivité PD / PM par personne, assumée :** une même
+personne ne peut pas être **à la fois** propriétaire gestion directe (pour une partie
+de son parc) et propriétaire mandant (pour l'autre). Le **parc mixte partiellement
+confié** est un angle mort **connu et accepté pour le moment** : le seul mécanisme
+prévu reste la **bascule complète** d'un état à l'autre par l'adhésion (cas n°5 d'A1,
+[[Compte, personne et adhésion]]).
 
 ## Scission officielle PM / PD (module 0, 2026-07-24)
 Le module 0 officialise la scission en **deux personas distincts, aux droits opposés**,
@@ -64,6 +71,12 @@ dernier point de l'audit encore ouvert — **l'audit est intégralement soldé**
 Application concrète (module 0b) : **le mandant n'a aucun accès aux pièces du
 [[Dossier locataire]]** (RM-0b.7.4, bloquant) — le dossier reste accessible à l'agence
 même si le lot change de propriétaire.
+
+## Arrivée dans l'application (décision 2026-08-19)
+Il **s'inscrit seul en ligne** : page d'inscription publique → création de son compte
+et de son organisation `independent_owner` → essai 14 jours → abonnement par bien
+via Stripe. Pas de commerciaux, pas de super admin dans la boucle — indépendant de
+bout en bout. Détail : [[Onboarding et abonnement]] (écran prévu au sprint 11).
 
 ## Rôle et objectifs
 - Gérer/suivre ses [[Bien|biens]], ses [[Locataire|locataires]], ses [[Période de loyer|loyers]] et incidents.

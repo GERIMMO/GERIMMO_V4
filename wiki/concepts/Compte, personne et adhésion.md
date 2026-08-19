@@ -3,7 +3,7 @@ type: concept
 tags: [identite, compte, adhesion, multi-tenant, socle]
 status: stable
 created: 2026-07-24
-updated: 2026-07-25
+updated: 2026-08-19
 sources: ["[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]"]
 ---
 
@@ -55,6 +55,9 @@ Points structurants :
 5. **Propriétaire direct devenant mandant** — c'est l'**état de l'adhésion** qui change,
    pas la personne : adhésion inactivée à la signature du mandat (« le mandant reçoit,
    il ne consulte pas »), réactivée au retour en gestion directe. Voir [[Propriétaire bailleur]].
+   *Décision 2026-08-19 : cette bascule est **exclusive et complète** — une même
+   personne ne cumule pas gestion directe et mandat (pas de parc mixte), angle mort
+   accepté pour le moment.*
 6. **Frontière données globales / privées** — trois niveaux de données.
    Voir [[Isolation multi-organisation]].
 

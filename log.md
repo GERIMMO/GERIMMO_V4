@@ -1300,3 +1300,32 @@ complétude des lots, panneau in-page, sous-onglets, assistant plein écran,
 carte « À vérifier », Card shadcn…) avec 4 points à trancher. Règle de
 recette : un écran qui ne colle ni à la maquette ni à ce tableau = anomalie.
 Lint/build/tests OK. Déployé via push.
+
+## [2026-08-19] query | Où est la notion de propriétaire bailleur ? Son « arrivée » semble oubliée
+Réponse : la notion vit dans [[Propriétaire bailleur]] (persona bien développé, scission
+PM/PD, audit soldé). En revanche l'intuition est juste sur l'arrivée : le module 16 V3
+ne décrit que la création d'agence par le super admin (16.1) et les invitations —
+aucun parcours d'arrivée du PD (qui crée son organisation `independent_owner`, quand,
+essai/abonnement, lien avec la grille 1ᵉʳ bien gratuit). Seule trace : le callout
+« Divergence code ↔ V3 » de [[Onboarding et abonnement]], centré sur l'agence.
+Lacune signalée à l'humain ; à ajouter au besoin dans [[Récapitulatif fonctionnel et
+lacunes de spécification]] / [[État du projet et décisions ouvertes]].
+
+## [2026-08-19] decision | Exclusivité PD / PM assumée + lacune onboarding PD actée
+Décision humaine : une même personne ne peut pas être à la fois propriétaire gestion
+directe et propriétaire mandant (pas de parc mixte partiellement confié) — angle mort
+connu et **accepté pour le moment** ; la bascule d'adhésion (cas n°5 d'A1) reste le
+seul mécanisme. Acté dans [[Propriétaire bailleur]], [[Compte, personne et adhésion]]
+et [[État du projet et décisions ouvertes]]. Dans la foulée, la lacune « arrivée du
+PD » (qui crée l'organisation `independent_owner`, essai/Stripe — module 16 muet)
+est rouverte comme arbitrage à trancher avant les sprints 9 et 11 : callout ajouté
+dans [[Onboarding et abonnement]] + entrée dans [[État du projet et décisions ouvertes]].
+
+## [2026-08-19] decision | Arrivée du PD tranchée : auto-inscription en ligne
+L'arbitrage rouvert le matin même est clos par l'humain : le propriétaire gestion
+directe s'inscrit **seul en ligne** (page publique → compte + organisation
+`independent_owner` → essai 14 j → abonnement par bien Stripe), sans circuit
+commercial ni super admin. Acté dans [[Onboarding et abonnement]] (nouvelle section),
+[[Propriétaire bailleur]], [[État du projet et décisions ouvertes]] (« plus aucun
+arbitrage en attente », 2026-08-19) et le plan de sprints (S11, livrables). Plus
+aucun point ouvert sur ce persona : exclusivité PD/PM assumée + arrivée spécifiée.

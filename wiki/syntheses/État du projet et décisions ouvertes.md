@@ -3,7 +3,7 @@ type: synthesis
 tags: [etat-projet, decisions, contradictions]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-08-19
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
 ---
 
@@ -43,6 +43,24 @@ de `raw/assets/` est **écarté** par décision humaine du 2026-07-25 — ne pas
 **Plus aucun arbitrage en attente** (2026-07-25). Dernier point clos : grille PD
 validée (1ᵉʳ bien gratuit, 2,50 €/bien/mois, sans mise en place) et grille agences
 actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
+
+> [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
+> **Une même personne ne peut pas être à la fois propriétaire gestion directe et
+> propriétaire mandant** (pas de parc mixte partiellement confié à une agence) :
+> angle mort **connu et accepté pour le moment**. Le passage de l'un à l'autre reste
+> la bascule d'adhésion du cas n°5 d'A1 ([[Compte, personne et adhésion]]) — détail
+> dans [[Propriétaire bailleur]].
+
+> [!note] Décision 2026-08-19 — arrivée du PD : auto-inscription en ligne
+> L'arbitrage rouvert le même jour (le module 16 ne décrivait que la création
+> d'agence par le super admin) est **clos** : le propriétaire gestion directe
+> **s'inscrit seul en ligne** — page d'inscription publique, création de son compte
+> et de son organisation `independent_owner`, essai 14 jours, puis abonnement par
+> bien via Stripe ([[Grille tarifaire]]). Pas de circuit commercial ni de super
+> admin dans la boucle. Écran à construire au **sprint 11** →
+> [[Onboarding et abonnement]].
+
+**Plus aucun arbitrage en attente** (2026-08-19).
 
 ## B. Choix techniques et produits restant à faire (référentiel)
 

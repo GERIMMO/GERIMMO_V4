@@ -3,7 +3,7 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-08-19
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]"]
 ---
 
@@ -49,6 +49,17 @@ prise en main.
 > (avec **Telegram**). Le V3 : création **par le super admin** après contrat, pas
 > d'auto-inscription décrite, enrôlement **WhatsApp**. L'articulation essai/abonnement
 > Stripe avec ce circuit commercial est à clarifier (module 18 ?).
+
+## Arrivée du propriétaire direct (décision 2026-08-19)
+Le module 16 ne décrivait que la création d'**agence** (par le super admin) ; la
+lacune sur l'arrivée du [[Propriétaire bailleur|propriétaire gestion directe]] a été
+**tranchée le 2026-08-19 : auto-inscription en ligne**. Une page d'inscription
+publique lui permet de créer seul son compte et son organisation
+(`independent_owner`), de démarrer l'**essai 14 jours**, puis de souscrire
+l'**abonnement par bien** via Stripe (1ᵉʳ bien gratuit, 2,50 €/bien/mois —
+[[Grille tarifaire]]). Pas de circuit commercial : il est indépendant de bout en
+bout. Écran à construire au **sprint 11**, cohérent avec l'auto-inscription
+`createOrganization` du code hérité.
 
 ## Cycle de vie ensuite
 - Voir [[Cycle de vie de l'abonnement]] (essai → paiement/suspension via Stripe + Vercel Cron).

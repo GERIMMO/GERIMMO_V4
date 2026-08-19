@@ -336,6 +336,9 @@ typographie, habillage des emails, écran de connexion) avant le sprint 10.
 - **Essai 14 jours** sans restriction → alerte J-3 → lecture seule.
 - Création d'agence **par le SA** (après contrat) avec paramètres par défaut ;
   invitations complètes tous rôles.
+- **Auto-inscription du PD** *(décision du 2026-08-19)* : page d'inscription
+  publique → compte + organisation `independent_owner` → essai 14 j → abonnement
+  par bien. Aucun circuit commercial pour le PD.
 - **Écran d'information « journal de gestion » au paramétrage initial**.
 - ⚠️ **Soumission des 8 templates WhatsApp à Meta** (délai d'approbation externe).
 

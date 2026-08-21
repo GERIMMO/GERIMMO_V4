@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
-import { formaterDate, formaterDateHeure } from "@/lib/ged";
+import { formaterDate, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
@@ -11,9 +11,12 @@ import {
   ETATS_INCIDENT,
   IMPUTATIONS_INCIDENT,
   MOTIFS_CLOTURE,
+  MOTIFS_CLOTURE_PAR_ETAT,
   TYPES_EVENEMENT_INCIDENT,
+  type EtatIncident,
   categorieIncident,
   titreIncident,
+  transitionIncidentPossible,
 } from "@/lib/incidents";
 import {
   Card,
@@ -31,8 +34,6 @@ import {
 } from "./actions-incident";
 
 export const metadata = { title: "Incident — Gerimmo" };
-
-const ROLES_RESPONSABLES = ["admin_agence", "proprietaire_direct"];
 
 type Evenement = {
   id: string;
@@ -89,15 +90,13 @@ export default async function PageIncident(
     );
 
   const categorie = categorieIncident(incident.categorie);
-  const aQualifier = incident.etat === "declare" || incident.etat === "rouvert";
-  // Depuis « déclaré » on classe (sans suite, syndic) ; une fois qualifié ou
-  // terminé, on clôt « résolu » — les règles exactes sont défendues en base.
-  const motifsCloture =
-    incident.etat === "declare"
-      ? ["sans_suite", "transmis_syndic"]
-      : incident.etat === "qualifie" || incident.etat === "termine"
-        ? ["resolu", "transmis_syndic"]
-        : [];
+  // L'UI dérive tout du référentiel (lib/incidents.ts), miroir de la machine
+  // défendue en base — pas de règle recopiée en dur dans la page.
+  const etatIncident = incident.etat as EtatIncident;
+  const aQualifier = transitionIncidentPossible(etatIncident, "qualifie");
+  const motifsCloture = transitionIncidentPossible(etatIncident, "clos")
+    ? (MOTIFS_CLOTURE_PAR_ETAT[etatIncident] ?? [])
+    : [];
 
   // Chronologie : le détail utile de chaque événement, dans les mots du métier
   const detailEvenement = (e: Evenement): string | null => {
@@ -298,7 +297,9 @@ export default async function PageIncident(
                 <p className="text-sm text-muted-foreground">
                   {incident.etat === "en_cours"
                     ? "Une intervention est en cours : la clôture attend le compte rendu de l'artisan."
-                    : "La clôture viendra après l'intervention."}
+                    : incident.etat === "rouvert"
+                      ? "Un incident rouvert repasse d'abord par la qualification."
+                      : "La clôture viendra après l'intervention."}
                 </p>
               )}
             </CardContent>
@@ -351,26 +352,27 @@ export default async function PageIncident(
             </CardHeader>
             <CardContent>
               <ul className="space-y-0">
-                {((evenements ?? []) as Evenement[]).map((e) => (
-                  <li
-                    key={e.id}
-                    className="relative border-l-2 border-l-border pb-4 pl-4 last:pb-0"
-                  >
-                    <span
-                      aria-hidden
-                      className="absolute top-1 -left-[5px] size-2 rounded-full bg-[var(--or)]"
-                    />
-                    <p className="libelle-champ">{formaterDateHeure(e.created_at)}</p>
-                    <p className="text-sm font-medium">
-                      {TYPES_EVENEMENT_INCIDENT[e.type] ?? e.type}
-                    </p>
-                    {detailEvenement(e) && (
-                      <p className="text-[0.8125rem] text-muted-foreground">
-                        {detailEvenement(e)}
+                {((evenements ?? []) as Evenement[]).map((e) => {
+                  const detail = detailEvenement(e);
+                  return (
+                    <li
+                      key={e.id}
+                      className="relative border-l-2 border-l-border pb-4 pl-4 last:pb-0"
+                    >
+                      <span
+                        aria-hidden
+                        className="absolute top-1 -left-[5px] size-2 rounded-full bg-[var(--or)]"
+                      />
+                      <p className="libelle-champ">{formaterDateHeure(e.created_at)}</p>
+                      <p className="text-sm font-medium">
+                        {TYPES_EVENEMENT_INCIDENT[e.type] ?? e.type}
                       </p>
-                    )}
-                  </li>
-                ))}
+                      {detail && (
+                        <p className="text-[0.8125rem] text-muted-foreground">{detail}</p>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </CardContent>
           </Card>

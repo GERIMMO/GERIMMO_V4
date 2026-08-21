@@ -8,7 +8,10 @@ import {
   COULEURS_ETAT_INCIDENT,
   ETATS_INCIDENT,
   IMPUTATIONS_INCIDENT,
+  MOTIFS_CLOTURE,
+  MOTIFS_CLOTURE_PAR_ETAT,
   TRANSITIONS_INCIDENT,
+  type EtatIncident,
   categorieIncident,
   libelleEtatLocataire,
   titreIncident,
@@ -41,6 +44,25 @@ describe("machine à états A5 (module 7)", () => {
     expect(transitionIncidentPossible("rouvert", "clos")).toBe(false);
     // Un refus d'artisan revient à « qualifié », jamais en arrière complet
     expect(transitionIncidentPossible("affecte", "declare")).toBe(false);
+  });
+
+  it("les motifs de clôture par état restent cohérents avec la machine", () => {
+    for (const [etat, motifs] of Object.entries(MOTIFS_CLOTURE_PAR_ETAT)) {
+      // Un état qui propose des motifs doit pouvoir transiter vers « clos »
+      expect(transitionIncidentPossible(etat, "clos")).toBe(true);
+      for (const motif of motifs) expect(Object.keys(MOTIFS_CLOTURE)).toContain(motif);
+    }
+    // Et réciproquement : tout état clôturable a ses motifs définis
+    for (const etat of Object.keys(TRANSITIONS_INCIDENT) as EtatIncident[]) {
+      if (transitionIncidentPossible(etat, "clos")) {
+        expect(MOTIFS_CLOTURE_PAR_ETAT[etat]?.length).toBeGreaterThan(0);
+      }
+    }
+    // Règles métier : jamais « résolu » sans qualification, jamais
+    // « sans suite » une fois qualifié ou terminé
+    expect(MOTIFS_CLOTURE_PAR_ETAT.declare).not.toContain("resolu");
+    expect(MOTIFS_CLOTURE_PAR_ETAT.qualifie).not.toContain("sans_suite");
+    expect(MOTIFS_CLOTURE_PAR_ETAT.termine).not.toContain("sans_suite");
   });
 
   it("chaque état a un libellé et une puce de couleur", () => {

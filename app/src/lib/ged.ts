@@ -51,6 +51,11 @@ export const COULEURS_CRITICITE: Record<string, string> = {
 
 export const ROLES_GERANTS = ["admin_agence", "agent", "proprietaire_direct"];
 
+// Le responsable de l'espace : assigne « tout le monde », réattribue les
+// dossiers. Trois écrans en avaient chacun leur copie (revue S7) ; une seule
+// suffit — la liste SQL (attribuer_incident) doit lui rester alignée.
+export const ROLES_RESPONSABLES = ["admin_agence", "proprietaire_direct"];
+
 export function formaterDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("fr-FR", {

@@ -39,11 +39,13 @@ function priseEnCharge(i: IncidentLocataire): string | null {
 
 function PetitFormulaire({
   action,
+  nomChamp,
   placeholder,
   bouton,
   enCours,
 }: {
   action: (formData: FormData) => void;
+  nomChamp: string;
   placeholder: string;
   bouton: string;
   enCours: boolean;
@@ -51,7 +53,7 @@ function PetitFormulaire({
   return (
     <form action={action} className="mt-2 flex items-start gap-2">
       <textarea
-        name="message"
+        name={nomChamp}
         required
         rows={2}
         placeholder={placeholder}
@@ -73,14 +75,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
   const [etatPersiste, actionPersiste, persisteEnCours] = useActionState<
     EtatIncidentAction,
     FormData
-  >(
-    (etat: EtatIncidentAction, formData: FormData) => {
-      // Le champ s'appelle « message » dans le petit formulaire partagé
-      formData.set("motif", String(formData.get("message") ?? ""));
-      return signalerProblemePersiste(orgId, incident.id, etat, formData);
-    },
-    {}
-  );
+  >(signalerProblemePersiste.bind(null, orgId, incident.id), {});
 
   const charge = priseEnCharge(incident);
   const peutContester =
@@ -157,6 +152,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
       {ouvert === "contester" && peutContester && !etatContestation.succes && (
         <PetitFormulaire
           action={actionContestation}
+          nomChamp="message"
           placeholder="Expliquez pourquoi — votre message est transmis à l'agence."
           bouton="Envoyer"
           enCours={contestationEnCours}
@@ -165,6 +161,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
       {ouvert === "persiste" && incident.etat === "clos" && !etatPersiste.succes && (
         <PetitFormulaire
           action={actionPersiste}
+          nomChamp="motif"
           placeholder="Qu'est-ce qui ne va toujours pas ?"
           bouton="Rouvrir"
           enCours={persisteEnCours}

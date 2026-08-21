@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
-import { formaterDateHeure } from "@/lib/ged";
+import { formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
 import { estConfieeAMoi } from "@/lib/alertes";
 import {
   Card,
@@ -13,10 +13,6 @@ import { FormulaireAlerte } from "./formulaire-alerte";
 import { ListeAlertes, type AlerteRang } from "./liste-alertes";
 
 export const metadata = { title: "Alertes — Gerimmo" };
-
-// Le responsable de l'agence garde la main sur toutes les alertes et peut
-// assigner « tout le monde » (revue recette 08/08)
-const ROLES_RESPONSABLES = ["admin_agence", "proprietaire_direct"];
 
 export default async function PageAlertes(
   props: PageProps<"/agence/[orgId]/alertes">

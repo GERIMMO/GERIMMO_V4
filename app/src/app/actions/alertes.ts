@@ -4,12 +4,9 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { ASSIGNATION_TOUS } from "@/lib/alertes";
+import { ROLES_RESPONSABLES } from "@/lib/ged";
 
 export type EtatAlerte = { erreur?: string; succes?: string };
-
-// Le responsable de l'agence : seul autorisé à assigner « tout le monde ».
-// Le propriétaire direct gère seul son espace : même prérogative.
-const ROLES_RESPONSABLES = ["admin_agence", "proprietaire_direct"];
 
 // Une alerte se traite si elle est à moi ou à tout le monde ; le responsable
 // garde la main sur toutes (sinon une alerte confiée à un absent est bloquée).

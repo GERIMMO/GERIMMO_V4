@@ -102,11 +102,6 @@ export const COULEURS_IMPUTATION: Record<string, string> = {
   degradation_fautive: "puce puce-rouge",
 };
 
-export const URGENCES_INCIDENT: Record<string, string> = {
-  normale: "Normal",
-  urgente: "Urgent",
-};
-
 export const CANAUX_INCIDENT: Record<string, string> = {
   espace_locataire: "Espace locataire",
   agence: "Agence",
@@ -116,6 +111,15 @@ export const MOTIFS_CLOTURE: Record<string, string> = {
   resolu: "Résolu",
   sans_suite: "Classé sans suite",
   transmis_syndic: "Transmis au syndic (parties communes)",
+};
+
+// Quels motifs selon l'état — miroir des règles de cloturer_incident : un
+// déclaré se classe (jamais « résolu » sans qualification), un qualifié ou
+// terminé se résout (jamais « sans suite » une fois jugé ou intervenu).
+export const MOTIFS_CLOTURE_PAR_ETAT: Partial<Record<EtatIncident, string[]>> = {
+  declare: ["sans_suite", "transmis_syndic"],
+  qualifie: ["resolu", "transmis_syndic"],
+  termine: ["resolu", "transmis_syndic"],
 };
 
 // Chronologie de la fiche : libellés des événements tracés en base

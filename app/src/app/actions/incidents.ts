@@ -5,8 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sansJargon } from "@/lib/erreurs";
-import { verifierGerant } from "@/lib/ged-acces";
-import { createClient } from "@/lib/supabase/server";
+import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { categorieIncident, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
 
@@ -112,11 +111,8 @@ export async function declarerMonIncident(
   _etat: EtatIncidentAction,
   formData: FormData
 ): Promise<EtatIncidentAction> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { erreur: "Vous n'êtes pas connecté." };
+  const { supabase, user } = await verifierLocataire(orgId);
+  if (!user) return { erreur: "Accès refusé." };
 
   const champs = lireChampsDeclaration(formData);
   if (champs.erreur) return { erreur: champs.erreur };
@@ -149,11 +145,8 @@ export async function contesterImputation(
   _etat: EtatIncidentAction,
   formData: FormData
 ): Promise<EtatIncidentAction> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { erreur: "Vous n'êtes pas connecté." };
+  const { supabase, user } = await verifierLocataire(orgId);
+  if (!user) return { erreur: "Accès refusé." };
 
   const message = String(formData.get("message") ?? "").trim();
   if (!message) {
@@ -179,11 +172,8 @@ export async function signalerProblemePersiste(
   _etat: EtatIncidentAction,
   formData: FormData
 ): Promise<EtatIncidentAction> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { erreur: "Vous n'êtes pas connecté." };
+  const { supabase, user } = await verifierLocataire(orgId);
+  if (!user) return { erreur: "Accès refusé." };
 
   const motif = String(formData.get("motif") ?? "").trim();
   if (!motif) return { erreur: "Dites en quelques mots ce qui ne va toujours pas." };
@@ -230,9 +220,13 @@ export async function ouvrirIncident(
   });
   if (error) return { erreur: `Ouverture impossible : ${sansJargon(error.message)}` };
 
-  await joindrePhotos(supabase, orgId, incidentId, photos.fichiers ?? []);
-
+  const avertissement = await joindrePhotos(supabase, orgId, incidentId, photos.fichiers ?? []);
   revalidatePath(`/agence/${orgId}/incidents`);
+  if (avertissement) {
+    // L'incident est bien créé : on le dit, avec ce qui n'a pas suivi —
+    // rediriger en avalant l'avertissement le ferait disparaître.
+    return { succes: "Incident ouvert — retrouvez-le en tête de liste.", avertissement };
+  }
   redirect(`/agence/${orgId}/incidents/${incidentId}`);
 }
 

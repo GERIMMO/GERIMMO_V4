@@ -495,6 +495,52 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     expect(i.bail_id).not.toBeNull();
   });
 
+  it("garde-fous en base : catégorie fermée, plafond de photos, « terminé » jamais classé sans suite", async () => {
+    await simuler(db, compteLocataire);
+    // La catégorie est une liste fermée (contrainte incidents_categorie_connue)
+    await attendreEchec(
+      db,
+      /incidents_categorie_connue/,
+      `select public.declarer_mon_incident($1,'categorie_bidon','Test',null,null,'normale')`,
+      [orgA]
+    );
+
+    const incident = await declarer();
+    // Dix photos au plus par incident, quel que soit le nombre de requêtes
+    for (let i = 0; i < 10; i++) {
+      await db.query(
+        `select public.joindre_photo_incident($1,$2,$1::text||'/photo-'||$3||'.jpg','image/jpeg',100,'empreinte-cap-'||$3)`,
+        [orgA, incident, String(i)]
+      );
+    }
+    await attendreEchec(
+      db,
+      /Dix photos au maximum/,
+      `select public.joindre_photo_incident($1,$2,$1::text||'/photo-11.jpg','image/jpeg',100,'empreinte-cap-11')`,
+      [orgA, incident]
+    );
+
+    // Un incident terminé (intervention faite) ne se classe pas « sans suite »
+    await simuler(db, agentA);
+    await db.query(`select public.qualifier_incident($1,$2,'locataire','Décret 87-712')`, [
+      orgA,
+      incident,
+    ]);
+    await db.query("reset role");
+    await db.query(`update public.incidents set etat = 'termine' where id = $1`, [incident]);
+    await simuler(db, agentA);
+    await attendreEchec(
+      db,
+      /se clôture « résolu »/,
+      `select public.cloturer_incident($1,$2,'sans_suite',null)`,
+      [orgA, incident]
+    );
+    await db.query(`select public.cloturer_incident($1,$2,'resolu','Intervention validée')`, [
+      orgA,
+      incident,
+    ]);
+  });
+
   it("attribution : un agent se saisit d'un dossier libre, le rend, mais ne vole pas celui d'un autre", async () => {
     const incident = await declarer();
 

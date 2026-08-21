@@ -146,13 +146,22 @@
 
 ## Vérifications déjà faites par l'agent (ne valent pas validation humaine)
 
-- 81 tests Vitest verts (72 existants en non-régression + 9 unitaires machine à
-  états/catégories) ; les 13 tests d'intégration S7 sont écrits (pattern
-  rollback) et s'activeront avec `SUPABASE_DB_URL`.
-- 14 scénarios d'intégration déroulés en conditions réelles sur la base (via
-  MCP, transaction annulée) : déclaration, doublon+urgence, isolation inter-
-  agences, justification obligatoire, transitions interdites (requalification,
-  en cours → clos, résolu sans qualification), contestation unique et non
-  bloquante, clôture soldant les alertes, réouverture avec historique,
-  saisie agence, attribution, lecture locataire, RLS.
+- 82 tests Vitest verts (72 existants en non-régression + 10 unitaires machine
+  à états/catégories/motifs) ; les 14 tests d'intégration S7 sont écrits
+  (pattern rollback) et s'activeront avec `SUPABASE_DB_URL`.
+- 27 scénarios d'intégration déroulés en conditions réelles sur la base (via
+  MCP, transactions annulées, zéro résidu) : déclaration, doublon+urgence,
+  isolation inter-agences, justification obligatoire, transitions interdites
+  (requalification, en cours → clos, résolu sans qualification, rouvert → clos,
+  terminé sans suite), contestation unique et non bloquante, clôture soldant
+  les alertes, réouverture avec historique, saisie agence, lot archivé refusé,
+  attributions (agent/admin/non-membre), photos (MIME, chemin, plafond de dix,
+  incident clos), colocataires informés, transmission syndic, catégorie
+  fermée, lecture locataire, RLS.
+- Revue de code (3 angles : réutilisation, simplification, altitude) : 7 suites
+  appliquées — garde-fous déplacés en base, garde locataire factorisée,
+  référentiel unique transitions/motifs branché à l'UI, rôles responsables
+  centralisés ; 3 écartées et documentées (composants ui partagés = passe
+  charte globale, harnais de tests = convention des 12 fichiers existants,
+  fusion GED complète = doublon déjà tranché par l'index en base).
 - Lint 0 erreur, typecheck OK, build OK.

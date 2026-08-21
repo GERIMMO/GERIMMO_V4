@@ -128,6 +128,10 @@ export function FormulaireIncident({
       </div>
 
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+      {etat.avertissement && (
+        <p className="text-sm text-warning-soft-foreground">{etat.avertissement}</p>
+      )}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={enCours}>
           {enCours ? "Ouverture…" : "Ouvrir l'incident"}

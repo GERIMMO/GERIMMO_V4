@@ -49,7 +49,11 @@ function lireChampsDeclaration(formData: FormData): {
 
 // Dépose les photos jointes : fichier au Storage (policies existantes), fiche
 // document + lien via la fonction definer. Les photos qui échouent ne bloquent
-// pas l'incident déjà créé — on le dit.
+// pas l'incident déjà créé — on le dit. Trois temps (revue n°2) : validation
+// et empreintes en parallèle, contrôle anti-doublon AVANT l'upload (sinon
+// l'objet Storage restait orphelin quand la fiche refusait l'empreinte),
+// uploads en parallèle, puis les RPC en séquence (le plafond de dix photos se
+// compte en base — des appels concurrents le fausseraient).
 async function joindrePhotos(
   supabase: SupabaseClient,
   orgId: string,
@@ -57,36 +61,78 @@ async function joindrePhotos(
   fichiers: File[]
 ): Promise<string | undefined> {
   const echecs: string[] = [];
-  for (const fichier of fichiers) {
-    if (fichier.size === 0) continue;
-    if (fichier.size > TAILLE_MAX_OCTETS) {
-      echecs.push(`« ${fichier.name} » dépasse 10 Mo`);
-      continue;
-    }
-    const octets = new Uint8Array(await fichier.arrayBuffer());
-    const mime = detecterMimeReel(octets);
-    if (mime !== "image/jpeg" && mime !== "image/png") {
-      echecs.push(`« ${fichier.name} » n'est pas une image JPEG ou PNG`);
-      continue;
-    }
-    const chemin = `${orgId}/${randomUUID()}.${EXTENSIONS[mime]}`;
-    const { error: erreurUpload } = await supabase.storage
+
+  type Prete = {
+    fichier: File;
+    octets: Uint8Array;
+    mime: "image/jpeg" | "image/png";
+    empreinte: string;
+  };
+  const pretes = (
+    await Promise.all(
+      fichiers.map(async (fichier): Promise<Prete | null> => {
+        if (fichier.size === 0) return null;
+        if (fichier.size > TAILLE_MAX_OCTETS) {
+          echecs.push(`« ${fichier.name} » dépasse 10 Mo`);
+          return null;
+        }
+        const octets = new Uint8Array(await fichier.arrayBuffer());
+        const mime = detecterMimeReel(octets);
+        if (mime !== "image/jpeg" && mime !== "image/png") {
+          echecs.push(`« ${fichier.name} » n'est pas une image JPEG ou PNG`);
+          return null;
+        }
+        const empreinte = createHash("sha256").update(octets).digest("hex");
+        return { fichier, octets, mime, empreinte };
+      })
+    )
+  ).filter((p): p is Prete => p !== null);
+
+  let deposables = pretes;
+  if (pretes.length > 0) {
+    const { data: doublons } = await supabase
       .from("documents")
-      .upload(chemin, octets, { contentType: mime });
-    if (erreurUpload) {
-      echecs.push(`« ${fichier.name} » : ${sansJargon(erreurUpload.message)}`);
-      continue;
-    }
-    const { error: erreurRpc } = await supabase.rpc("joindre_photo_incident", {
+      .select("empreinte")
+      .eq("organization_id", orgId)
+      .in("empreinte", pretes.map((p) => p.empreinte))
+      .is("purged_at", null);
+    const dejaDeposees = new Set((doublons ?? []).map((d) => d.empreinte));
+    deposables = pretes.filter((p) => {
+      if (dejaDeposees.has(p.empreinte)) {
+        echecs.push(`« ${p.fichier.name} » est déjà dans la GED`);
+        return false;
+      }
+      return true;
+    });
+  }
+
+  const uploads = await Promise.all(
+    deposables.map(async (p) => {
+      const chemin = `${orgId}/${randomUUID()}.${EXTENSIONS[p.mime]}`;
+      const { error } = await supabase.storage
+        .from("documents")
+        .upload(chemin, p.octets, { contentType: p.mime });
+      if (error) {
+        echecs.push(`« ${p.fichier.name} » : ${sansJargon(error.message)}`);
+        return null;
+      }
+      return { ...p, chemin };
+    })
+  );
+
+  for (const u of uploads) {
+    if (!u) continue;
+    const { error } = await supabase.rpc("joindre_photo_incident", {
       p_org: orgId,
       p_incident: incidentId,
-      p_storage_path: chemin,
-      p_mime: mime,
-      p_taille: fichier.size,
-      p_empreinte: createHash("sha256").update(octets).digest("hex"),
+      p_storage_path: u.chemin,
+      p_mime: u.mime,
+      p_taille: u.fichier.size,
+      p_empreinte: u.empreinte,
     });
-    if (erreurRpc) echecs.push(`« ${fichier.name} » : ${sansJargon(erreurRpc.message)}`);
+    if (error) echecs.push(`« ${u.fichier.name} » : ${sansJargon(error.message)}`);
   }
+
   return echecs.length > 0 ? `Photos non jointes : ${echecs.join(" ; ")}.` : undefined;
 }
 

@@ -1430,3 +1430,22 @@ L'humain confirme les quatre recommandations (implémentation inchangée) :
    du plan de livraison est caduque.
 Pages : [[Coherence maquette-application]] (les écarts S7 passent d'« à
 trancher » à actés), [[Incident]], [[Cycle de vie d'un incident]].
+
+## [2026-08-21] sprint | S7 revue n°2 : confidentialité inter-locataires et cohérence du cycle
+Rapport final de la revue de fond (10 findings, 3 déjà corrigés en n°1).
+Correctifs appliqués (migration `s7_incidents_confidentialite` + TS) :
+- **mes_incidents_locataire scopée au BAIL, plus au lot** : un nouveau
+  locataire voyait les incidents (description, imputation, contestation) de
+  l'ancien locataire du même lot — divulgation corrigée ; l'ancien déclarant
+  garde son historique ; la fonction expose `est_declarant`.
+- Contestation d'un incident clos refusée (l'alerte n'aurait plus de clôture
+  pour la solder) + adhésion locataire active exigée.
+- La réouverture **efface l'imputation** (l'historique reste en événement) :
+  donut « par payeur » et espace locataire ne montrent plus une prise en
+  charge périmée pendant la requalification.
+- UI : contester/rouvrir réservés au déclarant (les colocataires restent
+  informés) ; photos : pré-contrôle d'empreinte avant upload (plus d'objet
+  Storage orphelin) + uploads parallèles, RPC en séquence (plafond exact).
+Vérifs : 82 tests verts (+2 intégration écrits), build OK, 4 scénarios
+réels en base (rollback). Non retenus documentés : badge org-wide (maquette),
+micro-optimisations. Itérations de revue closes (2/3).

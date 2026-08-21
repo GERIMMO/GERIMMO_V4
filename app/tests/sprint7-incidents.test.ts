@@ -449,12 +449,15 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     const {
       rows: [i],
     } = await db.query(
-      `select etat, clos_le, cloture_motif from public.incidents where id = $1`,
+      `select etat, clos_le, cloture_motif, imputation from public.incidents where id = $1`,
       [incident]
     );
     expect(i.etat).toBe("rouvert");
     expect(i.clos_le).toBeNull();
     expect(i.cloture_motif).toBeNull();
+    // La requalification repart de zéro : l'ancienne imputation ne préjuge
+    // pas de la nouvelle (revue n°2 — le donut la comptait encore)
+    expect(i.imputation).toBeNull();
     // L'historique de clôture reste dans les événements
     const { rows: evenements } = await db.query(
       `select type from public.incident_evenements where incident_id = $1 order by created_at`,
@@ -493,6 +496,63 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     expect(i.canal).toBe("agence");
     expect(i.declarant_person_id).toBe(personneLocataire);
     expect(i.bail_id).not.toBeNull();
+  });
+
+  it("confidentialité : le nouveau locataire du lot ne voit pas les incidents de l'ancien bail (revue n°2)", async () => {
+    const incident = await declarer();
+
+    // Fin du premier bail, nouveau locataire sur le même lot
+    await db.query(
+      `update public.baux set etat = 'termine', date_fin = current_date where organization_id = $1`,
+      [orgA]
+    );
+    const compteSuivant = await creerUtilisateur(db);
+    await db.query(
+      `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'locataire')`,
+      [compteSuivant, orgA]
+    );
+    const {
+      rows: [{ id: personneSuivante }],
+    } = await db.query(
+      `insert into public.persons (organization_id, nom, prenom, account_id)
+       values ($1,'Suivant','Bob',$2) returning id`,
+      [orgA, compteSuivant]
+    );
+    await db.query(
+      `insert into public.baux (organization_id, lot_id, etat, locataire_principal) values ($1,$2,'actif',$3)`,
+      [orgA, lotA, personneSuivante]
+    );
+
+    // Le nouveau locataire ne voit rien du bail précédent…
+    await simuler(db, compteSuivant);
+    const { rows: vus } = await db.query(`select id from public.mes_incidents_locataire($1)`, [orgA]);
+    expect(vus).toHaveLength(0);
+    // …l'ancien déclarant garde son historique (est_declarant vrai)
+    await simuler(db, compteLocataire);
+    const { rows: miens } = await db.query(
+      `select id, est_declarant from public.mes_incidents_locataire($1)`,
+      [orgA]
+    );
+    expect(miens.map((m) => m.id)).toContain(incident);
+    expect(miens.find((m) => m.id === incident)!.est_declarant).toBe(true);
+  });
+
+  it("contestation d'un incident clos refusée : l'alerte n'aurait plus de clôture pour la solder (revue n°2)", async () => {
+    const incident = await declarer();
+    await simuler(db, agentA);
+    await db.query(`select public.qualifier_incident($1,$2,'locataire','Décret 87-712')`, [
+      orgA,
+      incident,
+    ]);
+    await db.query(`select public.cloturer_incident($1,$2,'resolu','Réparé')`, [orgA, incident]);
+
+    await simuler(db, compteLocataire);
+    await attendreEchec(
+      db,
+      /clos — rouvrez-le/,
+      `select public.contester_imputation($1,$2,'Trop tard mais je conteste')`,
+      [orgA, incident]
+    );
   });
 
   it("garde-fous en base : catégorie fermée, plafond de photos, « terminé » jamais classé sans suite", async () => {

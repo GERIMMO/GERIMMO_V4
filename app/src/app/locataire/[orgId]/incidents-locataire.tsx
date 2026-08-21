@@ -28,6 +28,7 @@ export type IncidentLocataire = {
   clos_le: string | null;
   declare_le: string;
   nb_photos: number;
+  est_declarant: boolean;
 };
 
 // « Qui prend en charge », dans les mots du locataire (maquette)
@@ -78,10 +79,14 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
   >(signalerProblemePersiste.bind(null, orgId, incident.id), {});
 
   const charge = priseEnCharge(incident);
+  // Contestation et réouverture : réservées au déclarant (les colocataires
+  // sont informés mais les fonctions en base n'acceptent que lui)
   const peutContester =
+    incident.est_declarant &&
     (incident.imputation === "locataire" || incident.imputation === "degradation_fautive") &&
     !incident.imputation_contestee_le &&
     incident.etat !== "clos";
+  const peutRouvrir = incident.est_declarant && incident.etat === "clos";
 
   return (
     <li className="space-y-1.5 py-3 text-sm">
@@ -136,7 +141,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
               Contester cette imputation
             </button>
           ))}
-        {incident.etat === "clos" &&
+        {peutRouvrir &&
           !etatPersiste.succes &&
           (ouvert === "persiste" ? null : (
             <button
@@ -158,7 +163,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
           enCours={contestationEnCours}
         />
       )}
-      {ouvert === "persiste" && incident.etat === "clos" && !etatPersiste.succes && (
+      {ouvert === "persiste" && peutRouvrir && !etatPersiste.succes && (
         <PetitFormulaire
           action={actionPersiste}
           nomChamp="motif"

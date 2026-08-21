@@ -88,7 +88,9 @@
 
 1. LO, sur le signalement clos : cliquer **« Le problème persiste »**, expliquer
    → « Signalement rouvert — votre gérant est prévenu » ; puce
-   **« Rouvert — votre gérant le réexamine »**.
+   **« Rouvert — votre gérant le réexamine »**, et la ligne « Qui prend en
+   charge » repasse à « Votre gérant l'examine » (l'ancienne imputation ne
+   préjuge pas de la requalification).
 2. AG : alerte **« Incident rouvert, à requalifier — INC-… »** ; la fiche est
    repassée **« Rouvert — à requalifier »**, le formulaire de qualification est
    revenu (clos → rouvert → qualifié : la réouverture ne court-circuite jamais
@@ -125,6 +127,17 @@
 
 1. Se connecter chez Beta → onglet Incidents vide, aucun badge, aucune alerte :
    rien des incidents d'Alpha ne transparaît (RM-A1.7).
+
+## 11. Confidentialité inter-locataires (revue n°2 — si un second compte locataire est disponible)
+
+1. Terminer le bail du locataire déclarant, créer un bail actif pour un autre
+   locataire **sur le même lot** → son espace ne montre **aucun** incident de
+   l'ancien bail (ni description, ni imputation).
+2. L'ancien déclarant, tant que son adhésion est active, garde son historique
+   dans « Mes signalements ».
+3. Boutons « Contester » / « Le problème persiste » : visibles **uniquement
+   pour le déclarant** — un colocataire voit l'incident (informé) mais sans ces
+   actions.
 
 ---
 
@@ -164,4 +177,15 @@
   centralisés ; 3 écartées et documentées (composants ui partagés = passe
   charte globale, harnais de tests = convention des 12 fichiers existants,
   fusion GED complète = doublon déjà tranché par l'index en base).
+- Revue n°2 (rapport final consolidé, 10 findings dont 3 déjà corrigés) :
+  **confidentialité inter-locataires corrigée** (la lecture locataire est
+  scopée au bail, plus au lot — le nouveau locataire ne voit rien de l'ancien),
+  contestation d'un incident clos refusée (plus d'alerte orpheline),
+  réouverture efface l'imputation (donut et espace locataire cohérents pendant
+  la requalification), boutons contester/rouvrir réservés au déclarant,
+  photos : pré-contrôle d'empreinte (plus d'objet Storage orphelin) + uploads
+  parallèles. 4 scénarios de re-vérification déroulés en base (rollback).
+  Non retenus, documentés : badge nav = total des incidents ouverts de
+  l'agence (choix maquette, à la différence du badge Alertes personnel) ;
+  numérotation sous verrou et index de tri = négligeables à l'échelle V0.
 - Lint 0 erreur, typecheck OK, build OK.

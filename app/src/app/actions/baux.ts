@@ -3,7 +3,7 @@
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
@@ -22,33 +22,16 @@ export async function creerBail(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  const type = String(formData.get("type") ?? "nu");
-  const locataire = String(formData.get("locataire_principal") ?? "");
-  const loyer = String(formData.get("loyer_hc") ?? "").trim();
-  const charges = String(formData.get("charges") ?? "").trim();
-  const depot = String(formData.get("depot_garantie") ?? "").trim();
-  const jour = String(formData.get("jour_echeance") ?? "1").trim();
-  const irlTrimestre = String(formData.get("irl_trimestre") ?? "").trim() || null;
-  const revisionIrl = formData.get("revision_irl") === "on";
-  // Provision (régularisable) ou forfait (définitif, jamais régularisé — RM-3.9.8)
-  const chargesMode = formData.get("charges_mode") === "forfait" ? "forfait" : "provision";
-  if (!locataire) return { erreur: "Choisissez le locataire principal." };
+  const champs = lireChampsBail(formData);
+  if ("erreur" in champs) return { erreur: champs.erreur };
 
   const { data, error } = await supabase
     .from("baux")
     .insert({
       organization_id: orgId,
       lot_id: lotId,
-      type,
       etat: "brouillon",
-      locataire_principal: locataire,
-      loyer_hc: loyer ? Number(loyer) : null,
-      charges: charges ? Number(charges) : null,
-      charges_mode: chargesMode,
-      depot_garantie: depot ? Number(depot) : null,
-      jour_echeance: jour ? Number(jour) : 1,
-      irl_trimestre: irlTrimestre,
-      revision_irl: revisionIrl,
+      ...champs.valeurs,
     })
     .select("id")
     .single();
@@ -56,6 +39,66 @@ export async function creerBail(
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   redirect(`/agence/${orgId}/baux/${data.id}`);
+}
+
+// Champs communs création / édition (recette 21/08 : le brouillon devient
+// corrigeable, et la date d'entrée se saisit — elle tombait au jour du clic
+// « Activer », faussant l'échéancier)
+function lireChampsBail(
+  formData: FormData
+): { erreur: string } | { valeurs: Record<string, unknown> } {
+  const locataire = String(formData.get("locataire_principal") ?? "");
+  if (!locataire) return { erreur: "Choisissez le locataire principal." };
+  const loyer = String(formData.get("loyer_hc") ?? "").trim();
+  const charges = String(formData.get("charges") ?? "").trim();
+  const depot = String(formData.get("depot_garantie") ?? "").trim();
+  const jour = String(formData.get("jour_echeance") ?? "1").trim();
+  return {
+    valeurs: {
+      type: String(formData.get("type") ?? "nu"),
+      locataire_principal: locataire,
+      date_debut: String(formData.get("date_debut") ?? "").trim() || null,
+      loyer_hc: loyer ? Number(loyer) : null,
+      charges: charges ? Number(charges) : null,
+      // Provision (régularisable) ou forfait (définitif — RM-3.9.8)
+      charges_mode: formData.get("charges_mode") === "forfait" ? "forfait" : "provision",
+      depot_garantie: depot ? Number(depot) : null,
+      jour_echeance: jour ? Number(jour) : 1,
+      irl_trimestre: String(formData.get("irl_trimestre") ?? "").trim() || null,
+      revision_irl: formData.get("revision_irl") === "on",
+    },
+  };
+}
+
+// Corriger un brouillon (recette 21/08 : la saisie initiale était figée dès
+// la création — il fallait recréer un bail pour changer un montant).
+export async function modifierBail(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const champs = lireChampsBail(formData);
+  if ("erreur" in champs) return { erreur: champs.erreur };
+
+  // Seul un brouillon se corrige : signé, le bail est le contrat
+  const { data: modifies, error } = await supabase
+    .from("baux")
+    .update(champs.valeurs)
+    .eq("id", bailId)
+    .eq("organization_id", orgId)
+    .eq("etat", "brouillon")
+    .select("id");
+  if (error) return { erreur: sansJargon(error.message) };
+  if ((modifies ?? []).length === 0) {
+    return { erreur: "Seul un bail en brouillon se corrige — celui-ci a déjà avancé." };
+  }
+
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Brouillon corrigé." };
 }
 
 // Déposer le bail signé (PDF) et le rattacher au bail.
@@ -71,6 +114,15 @@ export async function deposerBailSigne(
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le PDF signé." };
   if (fichier.size > TAILLE_MAX_OCTETS) return { erreur: "Fichier trop volumineux (10 Mo max)." };
+  // Recette 21/08 : un bail signé est un PDF — une photo de la première page
+  // passait la GED (qui accepte les images) et valait document contractuel.
+  const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));
+  if (mime !== "application/pdf") {
+    return {
+      erreur:
+        "Le bail signé se dépose en PDF complet — une image d'une page ne vaut pas le contrat.",
+    };
+  }
 
   const res = await deposerFichierGed(supabase, user, orgId, fichier, "bail", "Bail signé");
   if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };

@@ -242,7 +242,7 @@ export default async function PageLot(
           {role !== "proprietaire_direct" && (
           <SectionLot
             id="detention"
-            titre="Propriétaires du lot"
+            titre="Propriétaires mandants du lot"
             alerte={totalQuoteParts !== 100 ? `${totalQuoteParts} % sur 100 %` : undefined}
             resume={
               detentionsActives.length === 0
@@ -261,7 +261,7 @@ export default async function PageLot(
                 Détention active : {totalQuoteParts} %
               </p>
               {(detentions ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun propriétaire enregistré. Le lot ne pourra pas être mis en location tant que la propriété n&apos;est pas répartie à 100 %.</p>
+                <p className="text-sm text-muted-foreground">Aucun propriétaire mandant enregistré. Le lot ne pourra pas être mis en location tant que la propriété n&apos;est pas répartie à 100 %.</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {(detentions ?? []).map((d) => (
@@ -410,7 +410,7 @@ export default async function PageLot(
               )}
               {detentionsActives.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
+                  Ajoutez un propriétaire mandant (détention à 100 %) et une personne locataire avant
                   de créer un bail.
                 </p>
               ) : (

@@ -14,6 +14,7 @@ import {
   FormulaireAnnulerConge,
   FormulaireCreerEdl,
 } from "./formulaires-bail";
+import { FormulaireEditionBail } from "./formulaire-edition-bail";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
 import { FormulaireColocation, type LigneColoc } from "./formulaire-colocation";
 import {
@@ -41,7 +42,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { data: bail } = await supabase
     .from("baux")
     .select(
-      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, date_fin, revision_irl, charges_mode"
+      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -299,6 +300,39 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ))}
           </ol>
         </div>
+      )}
+
+      {/* Brouillon corrigeable (recette 21/08) : la saisie de création se
+          reprend ici tant que le bail n'est pas signé. */}
+      {bail.etat === "brouillon" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Corriger le brouillon</CardTitle>
+            <CardDescription>
+              Type, locataire, date d&apos;entrée, montants — tout se reprend tant
+              que le bail n&apos;est pas signé.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireEditionBail
+              orgId={orgId}
+              bailId={bailId}
+              personnes={(personnes ?? []) as { id: string; nom: string; prenom: string | null }[]}
+              defauts={{
+                type: bail.type,
+                locataire_principal: bail.locataire_principal,
+                date_debut: bail.date_debut,
+                loyer_hc: bail.loyer_hc,
+                charges: bail.charges,
+                charges_mode: bail.charges_mode,
+                depot_garantie: bail.depot_garantie,
+                jour_echeance: bail.jour_echeance,
+                irl_trimestre: bail.irl_trimestre,
+                revision_irl: bail.revision_irl,
+              }}
+            />
+          </CardContent>
+        </Card>
       )}
 
       {/* Cycle du bail */}

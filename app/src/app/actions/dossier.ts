@@ -77,3 +77,24 @@ export async function deposerPieceDossier(
   const base = remplaceId ? "Nouvelle version déposée." : "Pièce ajoutée au dossier.";
   return { succes: resultat.avertissement ? `${base} ${resultat.avertissement}` : base };
 }
+
+// Valider l'attestation déposée par le locataire (recette 21/08) : l'agence
+// vérifie la pièce, la validation solde l'alerte « à vérifier » — règles en
+// base (valider_attestation).
+export async function validerAttestation(
+  orgId: string,
+  personId: string,
+  documentId: string
+): Promise<EtatDossier> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("valider_attestation", {
+    p_org: orgId,
+    p_document: documentId,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revalidatePath(`/agence/${orgId}/personnes/${personId}`);
+  return { succes: "Attestation validée — le locataire le voit dans son espace." };
+}

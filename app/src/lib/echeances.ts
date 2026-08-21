@@ -101,7 +101,7 @@ export function dateRendezVous(date: string, aujourdhui: Date = new Date()): str
 // fiche du lot mais trop longue en liste. Version courte pour le tableau de bord.
 export function resumerBlocage(message: string): string {
   const m = message.toLowerCase();
-  if (m.includes("détention")) return "Propriétaire non rattaché";
+  if (m.includes("détention")) return "Propriétaire mandant non rattaché";
   if (m.includes("dpe")) return "DPE absent";
   if (m.includes("erp")) return "État des risques absent";
   if (m.includes("clé de répartition")) return "Clé de répartition à valider";

@@ -22,9 +22,9 @@ export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: 
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor="bail-signe" className="text-xs">
-          Bail signé (PDF/JPG/PNG)
+          Bail signé (PDF uniquement)
         </Label>
-        <Input id="bail-signe" name="fichier" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
+        <Input id="bail-signe" name="fichier" type="file" accept=".pdf" required />
       </div>
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "Dépôt…" : "Déposer le bail signé"}

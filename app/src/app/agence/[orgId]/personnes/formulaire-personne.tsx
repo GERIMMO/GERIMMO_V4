@@ -254,7 +254,7 @@ export function FormulairePersonne({
                 ))}
               </select>
               <p className="text-xs text-muted-foreground">
-                Facultatif. Le propriétaire devient détenteur du lot (100 % —
+                Facultatif. Le propriétaire mandant devient détenteur du lot (100 % —
                 les quote-parts se règlent sur la fiche du lot).
               </p>
             </div>

@@ -5,6 +5,7 @@ import {
   creerMandat,
   ajouterLigneMandat,
   changerEtatMandat,
+  supprimerLigneMandat,
   type EtatMandat,
 } from "@/app/actions/mandats";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,35 @@ export function FormulaireLigneMandat({
         {enCours ? "…" : "Ajouter"}
       </Button>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+    </form>
+  );
+}
+
+// Retirer un lot d'un mandat en brouillon (recette 21/08 : après signature,
+// les lots et taux sont figés — le contrat fait foi)
+export function BoutonRetirerLigne({
+  orgId,
+  personId,
+  mandatId,
+  ligneId,
+}: {
+  orgId: string;
+  personId: string;
+  mandatId: string;
+  ligneId: string;
+}) {
+  const action = async () => {
+    await supprimerLigneMandat(orgId, personId, mandatId, ligneId);
+  };
+  return (
+    <form action={action} className="inline">
+      <button
+        type="submit"
+        className="text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
+        aria-label="Retirer ce lot du mandat"
+      >
+        Retirer
+      </button>
     </form>
   );
 }

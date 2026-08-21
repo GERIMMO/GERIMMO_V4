@@ -21,6 +21,7 @@ export type AlerteRang = {
   assignee_account_id: string | null;
   assigned_all: boolean;
   escalades: unknown;
+  details: Record<string, unknown> | null;
 };
 
 type Membre = { account_id: string; email: string; role: string };
@@ -85,6 +86,13 @@ export function ListeAlertes({
             {NIVEAUX[a.criticite] ?? a.criticite} · confiée à {nomAssignation(a)}
           </div>
           <div className="mt-0.5 text-sm">{a.titre}</div>
+          {/* Le contexte que l'alerte transporte (recette 21/08 : treize
+              « État des lieux à réaliser » identiques, illisibles) */}
+          {typeof a.details?.libelle === "string" && (
+            <div className="truncate text-xs text-muted-foreground">
+              {a.details.libelle}
+            </div>
+          )}
           <div className="text-xs text-muted-foreground">
             créée le {formaterDateHeure(a.created_at)}
             {echeance && (

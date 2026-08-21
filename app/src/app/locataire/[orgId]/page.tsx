@@ -22,6 +22,8 @@ type Piece = {
   type: string;
   titre: string | null;
   expire_le: string | null;
+  depose_le: string;
+  verifie_le: string | null;
 };
 
 function statutAssurance(expire: string | null): { texte: string; classe: string } {
@@ -50,7 +52,11 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
       supabase.rpc("mon_depot_locataire", { p_org: orgId }),
       supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     ]);
-  const assurance = ((pieces ?? []) as Piece[]).find((p) => p.type === "attestation_assurance");
+  // La DERNIÈRE attestation (recette 21/08 : le tri ascendant faisait
+  // réapparaître la plus ancienne après un renouvellement)
+  const assurance = ((pieces ?? []) as Piece[])
+    .filter((p) => p.type === "attestation_assurance")
+    .sort((a, b) => b.depose_le.localeCompare(a.depose_le))[0];
 
   const bail = ((baux ?? []) as {
     type: string;
@@ -84,14 +90,14 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
           Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Votre espace locataire — déposez et suivez votre attestation d&apos;assurance.
+          Votre espace locataire — votre logement, vos loyers et votre assurance.
         </p>
       </div>
 
       {bail && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Mon bail</CardTitle>
+            <CardTitle className="text-base">Mon logement</CardTitle>
             <CardDescription>
               {bail.lot_nom} · bail {(TYPES_BAIL[bail.type] ?? bail.type).toLowerCase()}
               {bail.etat === "preavis" ? " · en préavis" : ""}
@@ -169,7 +175,15 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
                   : "border-border"
               }`}
             >
-              <p className="font-medium">{assurance.titre || "Attestation déposée"}</p>
+              <p className="flex flex-wrap items-center gap-2 font-medium">
+                {assurance.titre || "Attestation déposée"}
+                {/* Workflow recette 21/08 : l'agence vérifie chaque dépôt */}
+                {assurance.verifie_le ? (
+                  <span className="puce puce-loue">Validée par votre agence</span>
+                ) : (
+                  <span className="puce puce-prep">En cours de vérification</span>
+                )}
+              </p>
               <p className={statutAssurance(assurance.expire_le).classe}>
                 {statutAssurance(assurance.expire_le).texte}
               </p>

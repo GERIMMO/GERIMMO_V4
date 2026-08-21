@@ -1,7 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
-import { deposerPieceDossier, type EtatDossier } from "@/app/actions/dossier";
+import {
+  deposerPieceDossier,
+  validerAttestation,
+  type EtatDossier,
+} from "@/app/actions/dossier";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +69,32 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
       {etat.succes && (
         <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
+    </form>
+  );
+}
+
+// Valider l'attestation déposée par le locataire (recette 21/08) : l'agent
+// ouvre la pièce, la vérifie, puis la marque validée — le locataire voit le
+// statut passer de « en cours de vérification » à « validée ».
+export function BoutonValiderAttestation({
+  orgId,
+  personId,
+  documentId,
+}: {
+  orgId: string;
+  personId: string;
+  documentId: string;
+}) {
+  const [etat, formAction, enCours] = useActionState<EtatDossier, FormData>(
+    () => validerAttestation(orgId, personId, documentId),
+    {}
+  );
+  return (
+    <form action={formAction} className="inline">
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "…" : "Valider"}
+      </Button>
+      {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
     </form>
   );
 }

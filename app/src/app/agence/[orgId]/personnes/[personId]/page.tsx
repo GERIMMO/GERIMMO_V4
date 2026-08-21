@@ -10,12 +10,21 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
+import { TYPES_PIECE_DOSSIER, statutEcheancePiece } from "@/lib/dossier";
 import { ETATS_MANDAT, COULEURS_ETAT_MANDAT } from "@/lib/baux";
 import { nomComplet, initiales } from "@/lib/roles-personnes";
-import { FormulairePiece, FormulaireNouvelleVersion } from "./formulaire-piece";
+import {
+  FormulairePiece,
+  FormulaireNouvelleVersion,
+  BoutonValiderAttestation,
+} from "./formulaire-piece";
 import { FormulaireIdentite, BoutonArchiverPersonne } from "./formulaire-identite";
-import { FormulaireMandat, FormulaireLigneMandat, BoutonsEtatMandat } from "./formulaire-mandat";
+import {
+  FormulaireMandat,
+  FormulaireLigneMandat,
+  BoutonsEtatMandat,
+  BoutonRetirerLigne,
+} from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
@@ -229,11 +238,21 @@ export default async function PagePersonne(
           ) : (
             <ul className="divide-y divide-border">
               {(pieces ?? []).map(
-                (p: { document_id: string; type: string; titre: string | null }) => {
+                (p: {
+                  document_id: string;
+                  type: string;
+                  titre: string | null;
+                  expire_le: string | null;
+                  verifie_le: string | null;
+                }) => {
                   const anciennes = versionsAnterieures(p.document_id);
+                  // Recette 21/08 : l'échéance de l'attestation est enfin
+                  // visible côté agence, avec son état de vérification.
+                  const echeancePiece = statutEcheancePiece(p.expire_le);
+                  const estAttestation = p.type === "attestation_assurance";
                   return (
                     <li key={p.document_id} className="py-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <span className="badge-statut text-muted-foreground">
                           {TYPES_PIECE_DOSSIER[p.type] ?? p.type}
                         </span>
@@ -245,12 +264,30 @@ export default async function PagePersonne(
                             </span>
                           )}
                         </span>
+                        {echeancePiece && (
+                          <span className={`text-xs ${echeancePiece.classe}`}>
+                            {echeancePiece.texte}
+                          </span>
+                        )}
+                        {estAttestation &&
+                          (p.verifie_le ? (
+                            <span className="puce puce-loue">Validée</span>
+                          ) : (
+                            <span className="puce puce-prep">À vérifier</span>
+                          ))}
                         <Link
                           href={`/agence/${orgId}/documents/${p.document_id}/fichier`}
                           className={buttonVariants({ variant: "ghost", size: "sm" })}
                         >
                           Ouvrir
                         </Link>
+                        {estAttestation && !p.verifie_le && (
+                          <BoutonValiderAttestation
+                            orgId={orgId}
+                            personId={personId}
+                            documentId={p.document_id}
+                          />
+                        )}
                       </div>
                       {anciennes.length > 0 && (
                         <details className="mt-1 pl-1 text-xs text-muted-foreground">
@@ -348,22 +385,38 @@ export default async function PagePersonne(
                   {sesLignes.length > 0 && (
                     <ul className="mb-2 space-y-1 text-sm">
                       {sesLignes.map((l) => (
-                        <li key={l.id} className="flex justify-between">
+                        <li key={l.id} className="flex items-center justify-between gap-2">
                           <span>{libelleLot(l.lot_id)}</span>
-                          <span className="text-muted-foreground">
+                          <span className="flex items-center gap-2 text-muted-foreground">
                             {l.taux_honoraires} %{l.date_fin ? " (clos)" : ""}
+                            {m.etat === "brouillon" && !l.date_fin && (
+                              <BoutonRetirerLigne
+                                orgId={orgId}
+                                personId={personId}
+                                mandatId={m.id}
+                                ligneId={l.id}
+                              />
+                            )}
                           </span>
                         </li>
                       ))}
                     </ul>
                   )}
-                  {!historise && (
+                  {/* Recette 21/08 : les lots et taux se composent en brouillon
+                      — signé, le mandat affiche le contenu du contrat, figé. */}
+                  {m.etat === "brouillon" ? (
                     <FormulaireLigneMandat
                       orgId={orgId}
                       personId={personId}
                       mandatId={m.id}
                       lots={lotsOptions}
                     />
+                  ) : (
+                    !historise && (
+                      <p className="border-t border-border pt-2 text-xs text-muted-foreground">
+                        Lots et taux figés — ils sont ceux du contrat signé.
+                      </p>
+                    )
                   )}
                 </div>
               );

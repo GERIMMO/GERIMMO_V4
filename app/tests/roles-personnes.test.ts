@@ -17,23 +17,23 @@ const liens = (l: Partial<Record<keyof Parameters<typeof rolesDePersonne>[1], st
 });
 
 describe("rolesDePersonne", () => {
-  it("distingue le propriétaire sous mandat du simple propriétaire", () => {
+  it("distingue le mandant sous mandat du mandant sans mandat (recette 21/08 : jamais « Propriétaire » nu)", () => {
     // Le mandat est l'information commerciale : client ou prospect.
     const l = liens({ proprietaires: ["a", "b"], mandants: ["a"] });
-    expect(rolesDePersonne("a", l)[0].libelle).toBe("Propriétaire · mandat");
-    expect(rolesDePersonne("b", l)[0].libelle).toBe("Propriétaire");
+    expect(rolesDePersonne("a", l)[0].libelle).toBe("Propriétaire mandant");
+    expect(rolesDePersonne("b", l)[0].libelle).toBe("Propriétaire mandant · sans mandat");
   });
 
   it("un mandant est propriétaire même sans détention listée", () => {
     // Le mandat prouve la propriété (RM-5.1.1) : ne pas l'afficher serait faux.
     const l = liens({ mandants: ["a"] });
-    expect(rolesDePersonne("a", l)[0].libelle).toBe("Propriétaire · mandat");
+    expect(rolesDePersonne("a", l)[0].libelle).toBe("Propriétaire mandant");
   });
 
   it("cumule les rôles dans l'ordre possède / occupe / garantit", () => {
     const l = liens({ proprietaires: ["a"], locataires: ["a"], garants: ["a"] });
     expect(rolesDePersonne("a", l).map((r) => r.libelle)).toEqual([
-      "Propriétaire",
+      "Propriétaire mandant · sans mandat",
       "Locataire",
       "Garant",
     ]);

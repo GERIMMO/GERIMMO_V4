@@ -27,7 +27,9 @@ export default async function PageAlertes(
 
   const { data: ouvertes } = await supabase
     .from("alerts")
-    .select("id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades")
+    .select(
+      "id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details"
+    )
     .eq("organization_id", orgId)
     .eq("statut", "ouverte")
     .order("criticite", { ascending: false })

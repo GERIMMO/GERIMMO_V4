@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ComboboxLot } from "@/components/combobox-lot";
 
 type LotOption = { id: string; libelle: string };
 
@@ -78,22 +79,8 @@ export function FormulaireLigneMandat({
         <Label htmlFor={`l-lot-${mandatId}`} className="text-xs">
           Lot
         </Label>
-        <select
-          id={`l-lot-${mandatId}`}
-          name="lot_id"
-          required
-          defaultValue=""
-          className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-        >
-          <option value="" disabled>
-            — Choisir un lot —
-          </option>
-          {lots.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.libelle}
-            </option>
-          ))}
-        </select>
+        {/* Même combobox que le rattachement de personne (recette 21/08) */}
+        <ComboboxLot lots={lots} id={`l-lot-${mandatId}`} name="lot_id" requis />
       </div>
       <div className="w-24 space-y-1.5">
         <Label htmlFor={`l-taux-${mandatId}`} className="text-xs">

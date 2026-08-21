@@ -31,7 +31,11 @@ export async function creerEdl(
   redirect(`/agence/${orgId}/baux/${bailId}/edl/${data.id}`);
 }
 
-// Enregistrer toute la grille (état + commentaire par ligne) tant que non signé.
+// Enregistrer toute la grille (état + commentaire par ligne) tant que non
+// signé. Si le formulaire porte `signer`, la signature suit l'enregistrement
+// dans la même action (recette 21/08 : il fallait cliquer « Enregistrer »
+// puis « Signer » — sinon la signature lisait la base non modifiée et
+// refusait, sans que rien ne le dise).
 export async function majGrilleEdl(
   orgId: string,
   bailId: string,
@@ -57,6 +61,17 @@ export async function majGrilleEdl(
       .eq("id", l.id)
       .eq("organization_id", orgId);
     if (error) return { erreur: sansJargon(error.message) };
+  }
+
+  if (formData.get("signer")) {
+    const { error } = await supabase.rpc("signer_edl", { p_edl: edlId });
+    if (error) {
+      revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+      return { erreur: `Grille enregistrée, mais signature refusée : ${sansJargon(error.message)}` };
+    }
+    revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+    revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+    return { succes: "État des lieux signé — il est figé." };
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);

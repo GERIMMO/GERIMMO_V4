@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-import { majGrilleEdl, signerEdl, type EtatEdl } from "@/app/actions/edl";
+import { useActionState, useState } from "react";
+import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -62,8 +62,13 @@ export function GrilleEdl({
 }) {
   const actionMaj = majGrilleEdl.bind(null, orgId, bailId, edlId);
   const [etatMaj, formMaj, enCoursMaj] = useActionState<EtatEdl, FormData>(actionMaj, {});
-  const actionSigne = signerEdl.bind(null, orgId, bailId, edlId);
-  const [etatSigne, formSigne, enCoursSigne] = useActionState<EtatEdl, FormData>(actionSigne, {});
+  // La grille est pilotée (recette 21/08) : c'est ce qui permet de remplir une
+  // section d'un coup, de surligner les lignes sans état, et de savoir avant
+  // de signer combien il en manque.
+  const [etats, setEtats] = useState<Record<string, string>>(() =>
+    Object.fromEntries(lignes.map((l) => [l.id, l.etat ?? ""]))
+  );
+  const manquantes = lignes.filter((l) => !etats[l.id]).length;
 
   if (signe) {
     return (
@@ -96,13 +101,45 @@ export function GrilleEdl({
       <form action={formMaj} className="space-y-3">
         {grouper(lignes).map((g) => (
           <div key={g.titre} className="space-y-1">
-            <p className="mono-discret">{g.titre}</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="mono-discret">{g.titre}</p>
+              {/* Toute la section d'un coup, puis on ajuste ligne à ligne */}
+              <select
+                value=""
+                aria-label={`Appliquer un état à toute la section ${g.titre}`}
+                onChange={(e) => {
+                  const valeur = e.target.value;
+                  if (!valeur) return;
+                  setEtats((prev) => {
+                    const suivant = { ...prev };
+                    for (const l of g.lignes) suivant[l.id] = valeur;
+                    return suivant;
+                  });
+                }}
+                className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs text-muted-foreground"
+              >
+                <option value="">Toute la section…</option>
+                {Object.entries(ETATS_ELEMENT).map(([v, lib]) => (
+                  <option key={v} value={v}>
+                    {lib}
+                  </option>
+                ))}
+              </select>
+            </div>
             {g.lignes.map((l) => (
-              <div key={l.id} className="flex flex-wrap items-center gap-2 border-b border-border py-1.5">
+              <div
+                key={l.id}
+                className={`flex flex-wrap items-center gap-2 border-b border-border py-1.5 ${
+                  etats[l.id] ? "" : "border-l-2 border-l-destructive pl-2"
+                }`}
+              >
                 <span className="w-36 shrink-0 truncate text-sm">{l.libelle}</span>
                 <select
                   name={`etat_${l.id}`}
-                  defaultValue={l.etat ?? ""}
+                  value={etats[l.id]}
+                  onChange={(e) =>
+                    setEtats((prev) => ({ ...prev, [l.id]: e.target.value }))
+                  }
                   className="h-8 w-28 rounded-md border border-input bg-transparent px-2 text-sm"
                 >
                   <option value="">— état —</option>
@@ -122,25 +159,31 @@ export function GrilleEdl({
             ))}
           </div>
         ))}
-        <div className="flex items-center gap-3 pt-3">
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
           <Button type="submit" size="sm" variant="outline" disabled={enCoursMaj}>
             {enCoursMaj ? "Enregistrement…" : "Enregistrer la grille"}
           </Button>
+          {/* Un seul geste : la signature enregistre la grille puis la fige */}
+          <Button
+            type="submit"
+            name="signer"
+            value="1"
+            size="sm"
+            disabled={enCoursMaj || manquantes > 0}
+          >
+            {enCoursMaj ? "…" : "Enregistrer et signer"}
+          </Button>
+          {manquantes > 0 && (
+            <span className="text-sm text-warning-soft-foreground">
+              {manquantes} ligne{manquantes > 1 ? "s" : ""} sans état (en rouge) —
+              la signature attendra.
+            </span>
+          )}
           {etatMaj.succes && (
             <span className="text-sm text-success-soft-foreground">{etatMaj.succes}</span>
           )}
           {etatMaj.erreur && <span className="text-sm text-destructive">{etatMaj.erreur}</span>}
         </div>
-      </form>
-
-      <form action={formSigne} className="border-t border-border pt-4">
-        <p className="mb-2 text-sm text-muted-foreground">
-          La signature fige l&apos;état des lieux : chaque ligne doit avoir un état.
-        </p>
-        <Button type="submit" size="sm" disabled={enCoursSigne}>
-          {enCoursSigne ? "Signature…" : "Signer l'état des lieux"}
-        </Button>
-        {etatSigne.erreur && <p className="mt-1 text-sm text-destructive">{etatSigne.erreur}</p>}
       </form>
     </div>
   );

@@ -11,7 +11,7 @@ import {
   alerteDiagnostics,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
-import { ETATS_BAIL, COULEURS_ETAT_BAIL } from "@/lib/baux";
+import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
   Card,
@@ -101,7 +101,7 @@ export default async function PageLot(
     supabase.rpc("lot_blocages_location", { p_lot: lotId }),
     supabase
       .from("baux")
-      .select("id, type, etat")
+      .select("id, type, etat, locataire_principal")
       .eq("lot_id", lotId)
       .order("created_at", { ascending: false }),
     supabase
@@ -148,6 +148,25 @@ export default async function PageLot(
 
   const nomPersonne = (p: { nom: string; prenom: string | null } | null) =>
     p ? nomComplet(p) : "—";
+
+  // Recette 21/08 : la fiche lot se lit d'un coup d'œil — propriétaires
+  // mandants (détentions en cours) et locataire du bail en cours dans le récap.
+  const nomsParId = new Map(
+    ((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map((p) => [
+      p.id,
+      nomComplet(p),
+    ])
+  );
+  const recapProprietaires = detentionsActives
+    .map((d) =>
+      nomPersonne(d.person as unknown as { nom: string; prenom: string | null } | null)
+    )
+    .filter((n) => n !== "—")
+    .join(", ");
+  const bailEnCours = (baux ?? []).find((b) => ["actif", "preavis"].includes(b.etat));
+  const recapLocataire = bailEnCours?.locataire_principal
+    ? nomsParId.get(bailEnCours.locataire_principal)
+    : undefined;
 
   const nbEquip = (equipesLot ?? []).length;
   const nbDiag = (diagnostics ?? []).length;
@@ -233,7 +252,14 @@ export default async function PageLot(
           {/* Caractéristiques (récap + Modifier) */}
           <div id="caracteristiques" className="scroll-mt-20 border-t border-border pt-4">
             <p className="mb-3 text-sm font-medium">Caractéristiques du lot</p>
-            <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
+            <RecapLot
+              orgId={orgId}
+              bienId={bienId}
+              lot={lot}
+              verrouille={verrouille}
+              proprietaires={recapProprietaires}
+              locataire={recapLocataire}
+            />
           </div>
 
           {/* Détention — masquée pour le propriétaire bailleur (recette
@@ -397,7 +423,14 @@ export default async function PageLot(
                       <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
                         {ETATS_BAIL[b.etat] ?? b.etat}
                       </span>
-                      <span className="min-w-0 flex-1 truncate text-sm">Bail {b.type}</span>
+                      {/* Recette 21/08 : la vue macro dit qui habite, avant
+                          d'ouvrir — type lisible + locataire */}
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        Bail {(TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
+                        {b.locataire_principal && nomsParId.get(b.locataire_principal)
+                          ? ` — ${nomsParId.get(b.locataire_principal)}`
+                          : ""}
+                      </span>
                       <Link
                         href={`/agence/${orgId}/baux/${b.id}`}
                         className={buttonVariants({ variant: "ghost", size: "sm" })}

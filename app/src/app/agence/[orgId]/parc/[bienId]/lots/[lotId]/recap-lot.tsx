@@ -10,11 +10,17 @@ export function RecapLot({
   bienId,
   lot,
   verrouille,
+  proprietaires,
+  locataire,
 }: {
   orgId: string;
   bienId: string;
   lot: LotFormulaire;
   verrouille: boolean;
+  // Recette 21/08 : le lot se lit d'un coup d'œil — qui le possède, qui
+  // l'occupe — sans parcourir les sections.
+  proprietaires?: string;
+  locataire?: string;
 }) {
   const [modifier, setModifier] = useState(false);
 
@@ -36,12 +42,16 @@ export function RecapLot({
   }
 
   const lignes: [string, string][] = [
+    ["Propriétaire mandant", proprietaires || "—"],
+    ["Locataire", locataire || "—"],
     ["Surface", lot.surface_m2 !== null ? formaterSurface(lot.surface_m2) : "—"],
     ["Surface Carrez", lot.surface_carrez !== null ? formaterSurface(lot.surface_carrez) : "—"],
     ["Pièces", lot.pieces !== null ? String(lot.pieces) : "—"],
     ["Étage", lot.etage || "—"],
     ["Meublé", lot.meuble ? "Oui" : "Non"],
     ["Tantième de copropriété", lot.tantieme !== null ? String(lot.tantieme) : "—"],
+    // Recette 21/08 : visible sans ouvrir « Modifier le lot »
+    ["Identifiant fiscal", lot.identifiant_fiscal || "—"],
   ];
 
   return (

@@ -1374,3 +1374,29 @@ Lint 0 erreur, 72 tests verts, build OK. Livrable de recette mis à jour
 (étape 2 « passe globale » + périmètre réel sans S7) ; synthèse
 [[Coherence maquette-application]] étendue à tous les écrans. Recette humaine
 à suivre par l'humain.
+
+## [2026-08-21] recette | Retours S3-S8 corrigés : 6 anomalies + 4 chantiers UX, déployés sur main
+À la demande de l'humain (« développe et corrige mes retours de recette et
+déploie dans main »). Triage issu de ses retours (transmis via l'agent de
+revue) ; 3 commits sur main, 3 migrations via MCP.
+Anomalies : mandat sans lot bloqué avant signature (lots/taux composables en
+brouillon seulement, retrait possible, figés ensuite) ; attestation
+d'assurance — cycle complet (dépôt versionné remplace_id, alerte agence à
+chaque dépôt — le message « votre agence est notifiée » était faux —,
+validation par l'agent avec statut visible des deux côtés, cron des alertes
+d'expiration enfin planifié : la fonction existait depuis le S3 mais n'était
+jamais appelée, échéance affichée côté agence) ; baux — date d'entrée
+saisissable (elle tombait au jour du clic « Activer », le « 12 du mois
+impossible » venait de là), brouillon corrigeable (modifierBail), bail signé
+PDF uniquement ; alerte EDL nominative (lot + locataire, contexte affiché sur
+la page Alertes) ; terminologie « propriétaire mandant » partout côté agence.
+UX : fiche bien avec rubrique Propriétaires mandants ; récap lot enrichi
+(propriétaire, locataire, identifiant fiscal) ; liste des baux en vue macro ;
+combobox lot (C.5.4 + lignes de mandat) ; EDL par section + lignes incomplètes
+en rouge + « Enregistrer et signer » en un geste ; « Mon logement » côté
+locataire.
+Vérifs : 72 tests verts, 7 tests d'intégration écrits, 6 scénarios réels en
+base (rollback), lint/build OK. Livrable de re-test :
+`livrables/Recette 2026-08-21 - retours corriges.md`. Reste hors passe :
+navigation vers l'échéancier (G.3), UX doublon GED, menu locataire complet
+(porté par la branche S7).

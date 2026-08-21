@@ -3,7 +3,7 @@ type: process
 tags: [incident, workflow]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-08-21
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
 ---
 
@@ -62,11 +62,25 @@ Voir [[Machines à états et événements]].
 ## Automatisations
 - Déclaration et suivi possibles par **bot Telegram/WhatsApp** ; journalisation `bot_actions`.
 
+## Implémentation (S7, 2026-08-21)
+
+L'incrément 1 du sprint 7 (branche `sprint7-incidents`) implémente la **gestion
+de l'incident** avec les 7 états du registre A5 : déclaration (espace locataire
+à bail actif, ou saisie agence), qualification/imputation justifiée et
+opposable, information immédiate du locataire, contestation tracée sans
+bloquer, clôture (résolu / classé sans suite / transmis au syndic — RM-7.1.4),
+réouverture par le gérant ou le déclarant, attribution des dossiers, photos via
+la GED (`photo_incident`, plafond de dix), historique append-only
+(`incident_evenements`), alertes chaînées (à qualifier / contestée / soldées à
+la clôture, RM-7.6.2). Les états artisans (affecté → en cours → terminé)
+attendent les incréments suivants ([[Demande et sélection de devis]],
+[[Planification d'intervention]], [[Intervention et clôture]]).
+
 > [!warning] Points à trancher / contradictions
-> - **États du code ≠ registre V3** : le code connaît `nouveau` →
->   `cloture_normale`/`cloture_reserve`, le registre V3 impose 7 états
->   (déclaré…rouvert). Correspondance et migration à définir
->   ([[Machines à états et événements]]).
+> - ~~**États du code ≠ registre V3**~~ → **levé le 2026-08-21** : la nouvelle
+>   application implémente les 7 états du registre
+>   ([[Machines à états et événements]]) ; le vocabulaire `nouveau…cloture_*`
+>   ne subsiste que dans l'ancien dépôt `raw/Gerimmo-V3`.
 > - Détail des sous-processus dans leurs pages dédiées (liens ci-dessus).
 > - **Intention produit v0** ([[2026-07-21-fonctionnalites-par-persona-v0]]) : à la déclaration, Gerimmo génère une **« fiche type »** envoyée au proprio/gestionnaire ; en cas d'absence d'accord sur la date, **escalade au propriétaire**. Non explicite dans le code.
 >

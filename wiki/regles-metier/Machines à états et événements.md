@@ -3,7 +3,7 @@ type: business-rule
 tags: [etats, transitions, evenements, webhooks, idempotence, transverse]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-08-21
 sources: ["[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
@@ -97,12 +97,15 @@ Voir [[Architecture du socle V3]].
 >   au registre (RM-A5.1/A5.2, 8 modules) et la **transaction unique des effets
 >   immédiats** (RM-A5.3, 6 modules — le module 1 décrit les 4 conséquences du bail
 >   signé sans dire qu'elles forment une transaction).
-> - Les **vocabulaires d'états du code diffèrent du registre V3** — lot :
->   `vacant/occupe/travaux/archive` vs disponible/loué/préavis/archivé (l'état
->   **préavis** n'existe pas en code, `travaux` n'existe pas au registre) ; incident :
->   `nouveau…cloture_normale/cloture_reserve` vs les 7 états V3 ; devis :
->   `demande/recu/refuse/expire/retenu` vs demandé/déposé/validé/refusé/expiré/facturé.
->   Une **table de correspondance et une migration** seront nécessaires.
+> - Les **vocabulaires d'états de l'ancien code (raw/Gerimmo-V3) diffèrent du
+>   registre V3** — lot : `vacant/occupe/travaux/archive` vs
+>   disponible/loué/préavis/archivé ; devis : `demande/recu/refuse/expire/retenu`
+>   vs demandé/déposé/validé/refusé/expiré/facturé. **Incident : levé le
+>   2026-08-21** — la nouvelle application (S7, branche `sprint7-incidents`)
+>   implémente les 7 états du registre (`incident_etat`), transitions défendues
+>   par fonctions SECURITY DEFINER (RM-A5.1 « par construction ») ; seuls les
+>   états sans artisan sont servis pour l'instant (affecté/en cours/terminé
+>   attendent les incréments devis/interventions).
 > - Aucune infrastructure d'idempotence/rejeu (table d'événements, file) n'existe dans
 >   le code actuel — chantier spécifié depuis par le lot 0 (table `events`, étape 4 du
 >   socle).

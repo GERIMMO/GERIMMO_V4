@@ -3,7 +3,7 @@ type: synthesis
 tags: [maquette, charte, ui, recette]
 status: stable
 created: 2026-08-14
-updated: 2026-08-19
+updated: 2026-08-21
 sources: ["[[2026-08-08-maquette-prototype-cliquable]]"]
 ---
 
@@ -85,7 +85,7 @@ badge rouge sur Alertes, cloche.
 |---|---|---|
 | **Recherche globale** dans le bandeau (Ctrl-K, modale de résultats) | Non implémentée | Fonctionnalité transverse à part entière — à planifier comme incrément, pas comme habillage. La recherche locale existe sur Personnes. |
 | **Avatar + menu compte** dans le bandeau | « Mes espaces / Se déconnecter » en liens | Même service ; le menu déroulant viendra avec les préférences de compte. |
-| KPI **Incidents** + donut « Incidents par payeur » | Absents | Le module incidents (S7) n'existe pas encore ; sa tuile prendra la place au S7. |
+| ~~KPI **Incidents** + donut « Incidents par payeur »~~ | **Donut branché le 21/08** (S7) au tableau de bord, 3ᵉ carte de la rangée graphique | L'écart est levé ; pas de 5ᵉ tuile KPI (la grille `xl:grid-cols-4` reste intacte, les alertes incidents alimentent déjà « À traiter »). |
 | Carte **« À lire »** (articles) | Absente | Le module éditorial n'est pas au périmètre V0. |
 | **« Prochains rendez-vous »** avec pastille jour ardoise | Carte « Cette semaine » (libellé jour mono) | Même contenu, rendu plus sobre ; la pastille date viendra avec le planning (S7). |
 | Rangs d'alerte du tableau de bord = `ligneAlerte` maquette | Liste **plus riche** que la maquette | Le tableau réel groupe dépassé/à venir et montre lot + montant — on ne l'appauvrit pas pour ressembler au prototype. La page Alertes, elle, utilise `rang-alerte` conforme. |
@@ -103,6 +103,28 @@ badge rouge sur Alertes, cloche.
 | Formulaire de connexion dans une `Card` | Conservé | La maquette pose les champs nus ; la Card ne nuit pas et l'écran de connexion sera revu à la passe d'identité visuelle (jalon V0). |
 | Avatar « Mes espaces » encre/laiton | Conservé | Variante d'entrée d'espace, distincte de l'`.avatar` ardoise des listes ; contraste vérifié (≈ 5:1). |
 | Animations d'entrée (`monte`, décalées) | Non reprises | Choix de sobriété ; les transitions au survol de la charte sont là. |
+
+## Module Incidents (S7, incrément 1 — 21/08)
+
+Développé sur la branche `sprint7-incidents` (voir
+[[Cycle de vie d'un incident]] et `livrables/Recette S7 - incidents.md`).
+Repris de la maquette : libellés des statuts locataire (`LIB_LOC`), grammaire de
+couleur (rouge = action agence, encre = en cours, vert = clos), catégories avec
+repère juridique, urgence à deux niveaux, onglet Incidents en 3ᵉ position avec
+badge, donut « par payeur », attribution des dossiers, formulaire « Nouvel
+incident » avec carte « Ce qui va se passer ». Écarts assumés propres au S7 :
+
+| Élément maquette | Décision | Pourquoi |
+|---|---|---|
+| **Conseil d'imputation** pré-sélectionné (« Suivre le conseil ») | Repère juridique affiché en **information**, rien de pré-coché | RM-7.2.1 (décision actée 25/07) : imputation décidée par l'agent **sans proposition automatique** — le référentiel prime sur la maquette. À trancher si l'humain préfère la maquette. |
+| Carte « **Qui paiera la réparation** » dès la déclaration locataire | Absente — statut « votre gérant l'examine » jusqu'à qualification | RM-7.2.4 : le locataire est informé **après** la décision de l'agent. |
+| 9 statuts maquette (devis, créneaux, planifié…) | **Registre A5** (7 états), seuls les états sans artisan sont servis | Les statuts artisans/devis/planning arrivent avec les incréments S7 suivants ; le vocabulaire V3 fait foi ([[Machines à états et événements]]). |
+| Description facultative (bot : « 2 photos + la pièce suffisent ») | Description **obligatoire** (comme le formulaire maquette) | RM-19.2.2 est une règle du module 19 (mobile, S13) — à assouplir à ce moment-là. |
+| Liste `.split` (liste 340 px + panneau de suivi) | Liste pleine page + fiche navigable | Même choix que Parc/Personnes : pages profondes liables. |
+| Bouton WhatsApp / bot locataire | Absent | Canaux bot hors périmètre V1 ([[Canaux de communication]]). |
+| Vignettes photos côté locataire | Compteur seul (« 2 photos ») | La route de consultation de fichiers n'existe que côté agence (journalisation d'accès) — route locataire à un prochain incrément. |
+| Files d'attente « À qualifier / Devis à valider / Terminé » | Filtres « En cours / À traiter / Clos / Tous » | Les files devis/terminé n'ont pas d'objet sans artisans ; le filtre « À traiter » couvre déclaré + rouvert + terminé. |
+| Imputation `Bailleur` / `Locataire` | locataire / propriétaire / **dégradation fautive** + clôture « transmis au syndic » | Le module 7 (RM-7.2, RM-7.1.4) est plus riche que la maquette ; le plan de livraison disait « copro » — module 7 retenu. |
 
 ## Ce que ça garantit pour la recette
 

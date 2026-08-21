@@ -1374,3 +1374,45 @@ Lint 0 erreur, 72 tests verts, build OK. Livrable de recette mis à jour
 (étape 2 « passe globale » + périmètre réel sans S7) ; synthèse
 [[Coherence maquette-application]] étendue à tous les écrans. Recette humaine
 à suivre par l'humain.
+
+## [2026-08-21] query  | Où en est la mécanique de dépôt et gestion d'incident ?
+Réponse : non développée — le S7 (incidents) est le seul sprint manquant du
+périmètre livré (S0→S6 + S8), constat acté le 19/08 dans le livrable de recette,
+planifié après le S9a (propriétaire direct). La spécification est complète côté
+wiki (module 7 ingéré : [[Cycle de vie d'un incident]], [[Demande et sélection
+de devis]], [[Planification d'intervention]], [[Intervention et clôture]],
+[[Incident]], [[Artisan]]). Seules traces dans le code : type de document
+`incident` en GED et mention au tableau de bord agence.
+
+## [2026-08-21] sprint | S7 incidents (incrément 1) : la gestion de l incident, sur branche
+À la demande de l'humain (« développe la mécanique d'incident, pas sur main,
+rigoureux, optimise, recette unitaire et intégration, focus locataire +
+agence/PD, gestion de l'incident »). Branche `sprint7-incidents` (4 commits),
+base migrée via MCP (4 migrations : fondation, correctif criticité,
+optimisation lecture, garde-fous).
+- Périmètre : déclaration (locataire à bail actif / saisie agence),
+  qualification-imputation justifiée (RM-7.2), contestation tracée non
+  bloquante, clôture (résolu/sans suite/syndic), réouverture, attribution,
+  photos GED (plafond 10), alertes chaînées (RM-7.6.2), historique append-only.
+  Machine A5 complète (7 états), transitions défendues en base (SECURITY
+  DEFINER, aucune policy d'écriture) ; états artisans non servis (incréments
+  suivants). Écrans : agence (liste+filtres, fiche, nouveau, donut « par
+  payeur », onglet+badge), locataire (carte accueil RM-19.2.3, déclaration
+  photo-d'abord RM-19.2.2, contestation, « le problème persiste »).
+- Vérifications : 82 tests Vitest verts (10 unitaires S7 + non-régression),
+  14 tests d'intégration écrits (pattern rollback, s'activent avec
+  SUPABASE_DB_URL), **27 scénarios déroulés en conditions réelles** via MCP en
+  transactions annulées (zéro résidu vérifié) — dont un vrai bug attrapé
+  (cast enum criticité) et corrigé.
+- Revue n°1 (3 angles) : 7 suites appliquées (garde-fous en base — catégories
+  fermées, plafond photos, terminé≠sans suite ; verifierLocataire ;
+  lib source unique transitions/motifs ; ROLES_RESPONSABLES centralisé ;
+  nettoyages), 3 écartées documentées. Advisors Supabase RAS.
+- Wiki : [[Cycle de vie d'un incident]] (implémentation + contradiction levée),
+  [[Machines à états et événements]] (vocabulaire incident aligné),
+  [[Coherence maquette-application]] (section S7, 9 écarts assumés).
+  Livrable : `livrables/Recette S7 - incidents.md` (10 scénarios humains).
+- **4 arbitrages soumis à l'humain** (réponse en attente) : conseil
+  d'imputation maquette vs RM-7.2.1 ; aperçu « qui paiera » locataire vs
+  RM-7.2.4 ; description obligatoire vs RM-19.2.2 ; imputations module 7 vs
+  « copro » du plan. Implémenté : le référentiel, partout.

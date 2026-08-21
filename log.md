@@ -1416,3 +1416,17 @@ optimisation lecture, garde-fous).
   d'imputation maquette vs RM-7.2.1 ; aperçu « qui paiera » locataire vs
   RM-7.2.4 ; description obligatoire vs RM-19.2.2 ; imputations module 7 vs
   « copro » du plan. Implémenté : le référentiel, partout.
+
+## [2026-08-21] decision | S7 : quatre arbitrages maquette/référentiel tranchés — le référentiel prime
+L'humain confirme les quatre recommandations (implémentation inchangée) :
+1. Qualification : repère juridique informatif, rien de pré-coché (RM-7.2.1
+   confirmée — le « conseil pré-sélectionné » de la maquette est écarté).
+2. Locataire : « qui paiera » visible seulement après la décision de l'agent
+   (RM-7.2.4 confirmée — pas d'aperçu à la déclaration).
+3. Description obligatoire à la déclaration ; l'assouplissement « deux photos
+   + la pièce suffisent » (RM-19.2.2) attendra le S13 mobile.
+4. Imputations du module 7 (locataire / propriétaire / dégradation fautive,
+   parties communes → clôture « transmis au syndic ») — la mention « copro »
+   du plan de livraison est caduque.
+Pages : [[Coherence maquette-application]] (les écarts S7 passent d'« à
+trancher » à actés), [[Incident]], [[Cycle de vie d'un incident]].

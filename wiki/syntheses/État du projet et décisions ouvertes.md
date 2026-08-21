@@ -3,7 +3,7 @@ type: synthesis
 tags: [etat-projet, decisions, contradictions]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-19
+updated: 2026-08-21
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
 ---
 
@@ -65,6 +65,19 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > [[Onboarding et abonnement]].
 
 **Plus aucun arbitrage en attente** (2026-08-19).
+
+> [!note] Décision 2026-08-21 — S7 incidents : le référentiel prime sur la maquette (4 points)
+> Au développement du module incidents (branche `sprint7-incidents`), quatre
+> écarts maquette/référentiel soumis et tranchés **en faveur du référentiel** :
+> qualification sans proposition automatique (RM-7.2.1 confirmée), locataire
+> informé de l'imputation **après** la décision de l'agent (RM-7.2.4),
+> description obligatoire à la déclaration (l'assouplissement RM-19.2.2
+> attendra le S13 mobile), imputations du module 7 — la « copro » du plan de
+> livraison est caduque, les parties communes se clôturent « transmis au
+> syndic » (RM-7.1.4). Détail : [[Coherence maquette-application]],
+> [[Cycle de vie d'un incident]].
+
+**Plus aucun arbitrage en attente** (2026-08-21).
 
 ## B. Choix techniques et produits restant à faire (référentiel)
 

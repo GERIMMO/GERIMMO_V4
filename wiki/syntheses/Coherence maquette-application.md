@@ -116,7 +116,7 @@ incident » avec carte « Ce qui va se passer ». Écarts assumés propres au S7
 
 | Élément maquette | Décision | Pourquoi |
 |---|---|---|
-| **Conseil d'imputation** pré-sélectionné (« Suivre le conseil ») | Repère juridique affiché en **information**, rien de pré-coché | RM-7.2.1 (décision actée 25/07) : imputation décidée par l'agent **sans proposition automatique** — le référentiel prime sur la maquette. À trancher si l'humain préfère la maquette. |
+| **Conseil d'imputation** pré-sélectionné (« Suivre le conseil ») | Repère juridique affiché en **information**, rien de pré-coché | RM-7.2.1 (décision actée 25/07) : imputation décidée par l'agent **sans proposition automatique** — le référentiel prime sur la maquette. **Confirmé par l'humain le 21/08** (les 4 écarts métier de ce tableau sont actés — voir `log.md`). |
 | Carte « **Qui paiera la réparation** » dès la déclaration locataire | Absente — statut « votre gérant l'examine » jusqu'à qualification | RM-7.2.4 : le locataire est informé **après** la décision de l'agent. |
 | 9 statuts maquette (devis, créneaux, planifié…) | **Registre A5** (7 états), seuls les états sans artisan sont servis | Les statuts artisans/devis/planning arrivent avec les incréments S7 suivants ; le vocabulaire V3 fait foi ([[Machines à états et événements]]). |
 | Description facultative (bot : « 2 photos + la pièce suffisent ») | Description **obligatoire** (comme le formulaire maquette) | RM-19.2.2 est une règle du module 19 (mobile, S13) — à assouplir à ce moment-là. |

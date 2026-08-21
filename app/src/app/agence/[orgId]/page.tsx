@@ -101,7 +101,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // Donut « Incidents par payeur » (maquette) : les dossiers en cours
     supabase
       .from("incidents")
-      .select("imputation, etat")
+      .select("imputation")
       .eq("organization_id", orgId)
       .neq("etat", "clos"),
   ]);

@@ -19,7 +19,15 @@ export default async function LayoutAgence({
   // Revue recette 08/08 : la pop-up et la cloche ne montrent que les alertes
   // qui me sont confiées, dans l'agence où je me trouve — l'acteur
   // multi-agences navigue d'une agence à l'autre pour voir les siennes.
-  const alertes = await chargerSyntheseAlertes(supabase, { orgId });
+  const [alertes, { count: incidentsOuverts }] = await Promise.all([
+    chargerSyntheseAlertes(supabase, { orgId }),
+    // Badge maquette : les incidents encore ouverts (tout sauf clos)
+    supabase
+      .from("incidents")
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .neq("etat", "clos"),
+  ]);
   const alertesOrg = alertes.length;
 
   return (
@@ -65,7 +73,11 @@ export default async function LayoutAgence({
         </div>
         <div className="border-t border-[var(--sur-encre)]/10">
           <div className="mx-auto w-full max-w-6xl px-4 sm:px-7">
-            <NavAgence orgId={orgId} alertesOuvertes={alertesOrg} />
+            <NavAgence
+              orgId={orgId}
+              alertesOuvertes={alertesOrg}
+              incidentsOuverts={incidentsOuverts ?? 0}
+            />
           </div>
         </div>
       </header>

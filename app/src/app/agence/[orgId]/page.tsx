@@ -50,6 +50,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: appelsMois },
     { data: encaissementsMois },
     { data: ecrituresSixMois },
+    { data: incidentsEnCours },
   ] = await Promise.all([
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
@@ -97,6 +98,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .select("sens, montant, date_imputation")
       .eq("organization_id", orgId)
       .gte("date_imputation", moisSixMoisAvant),
+    // Donut « Incidents par payeur » (maquette) : les dossiers en cours
+    supabase
+      .from("incidents")
+      .select("imputation, etat")
+      .eq("organization_id", orgId)
+      .neq("etat", "clos"),
   ]);
 
   const totalAppele = (appelsMois ?? []).reduce((s, a) => s + Number(a.montant_du), 0);
@@ -123,6 +130,29 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   }
 
   const alertes = (alertesBrutes ?? []) as Alerte[];
+
+  // Incidents par payeur : l'imputation décide de qui paie (module 7) —
+  // « pas encore tranché » est la file d'attente de qualification.
+  const dossiersIncidents = (incidentsEnCours ?? []) as { imputation: string | null }[];
+  const segmentsIncidents = [
+    {
+      libelle: "Charge propriétaire",
+      valeur: dossiersIncidents.filter((i) => i.imputation === "proprietaire").length,
+      couleur: "var(--encre)",
+    },
+    {
+      libelle: "Charge locataire",
+      valeur: dossiersIncidents.filter(
+        (i) => i.imputation === "locataire" || i.imputation === "degradation_fautive"
+      ).length,
+      couleur: "var(--warning)",
+    },
+    {
+      libelle: "Pas encore tranché",
+      valeur: dossiersIncidents.filter((i) => !i.imputation).length,
+      couleur: "var(--destructive)",
+    },
+  ];
 
   // « Cette semaine » : les rendez-vous datés des quinze prochains jours, quelle
   // que soit leur origine — une alerte qui arrive à terme, un rapport à valider.
@@ -373,10 +403,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         </Link>
       </div>
 
-      {/* Rangée graphique de la maquette : répartition du parc + encaissements
-          et dépenses sur 6 mois. (Le donut « incidents par payeur » attendra le
-          module incidents.) */}
-      <div className="mb-[1.125rem] grid gap-3.5 md:grid-cols-2">
+      {/* Rangée graphique de la maquette : répartition du parc, incidents par
+          payeur, encaissements et dépenses sur 6 mois. */}
+      <div className="mb-[1.125rem] grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardContent>
             <div className="entete-carte">
@@ -389,6 +418,34 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               <Donut segments={segmentsParc} centre={`${tauxOccupation} %`} sous="LOUÉS" />
               <LegendeDonut segments={segmentsParc} />
             </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <div className="entete-carte">
+              <h3 className="text-[1.05rem]">Incidents par payeur</h3>
+              <Link
+                href={`/agence/${orgId}/incidents`}
+                className="mono-discret hover:text-foreground"
+              >
+                {dossiersIncidents.length} dossier{dossiersIncidents.length > 1 ? "s" : ""}
+              </Link>
+            </div>
+            {dossiersIncidents.length === 0 ? (
+              <p className="py-6 text-sm text-muted-foreground">
+                Aucun incident en cours — vos locataires déclarent depuis leur
+                espace.
+              </p>
+            ) : (
+              <div className="bloc-graph">
+                <Donut
+                  segments={segmentsIncidents}
+                  centre={`${dossiersIncidents.length}`}
+                  sous="EN COURS"
+                />
+                <LegendeDonut segments={segmentsIncidents} />
+              </div>
+            )}
           </CardContent>
         </Card>
         <Card>

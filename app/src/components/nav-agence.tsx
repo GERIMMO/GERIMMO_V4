@@ -10,15 +10,22 @@ import { cn } from "@/lib/utils";
 export function NavAgence({
   orgId,
   alertesOuvertes,
+  incidentsOuverts,
 }: {
   orgId: string;
   alertesOuvertes: number;
+  incidentsOuverts: number;
 }) {
   const pathname = usePathname();
   const base = `/agence/${orgId}`;
   const entrees = [
     { href: base, libelle: "Tableau de bord", exact: true },
     { href: `${base}/parc`, libelle: "Parc" },
+    {
+      href: `${base}/incidents`,
+      libelle: "Incidents",
+      badge: incidentsOuverts > 0 ? incidentsOuverts : undefined,
+    },
     { href: `${base}/personnes`, libelle: "Personnes" },
     { href: `${base}/comptabilite`, libelle: "Comptabilité" },
     { href: `${base}/documents`, libelle: "Documents" },

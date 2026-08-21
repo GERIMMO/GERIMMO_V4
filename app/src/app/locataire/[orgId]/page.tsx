@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormulaireAttestation } from "./formulaire-attestation";
+import { IncidentsLocataire, type IncidentLocataire } from "./incidents-locataire";
 
 export const metadata = { title: "Mon espace — Gerimmo" };
 
@@ -42,14 +43,21 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
   const { orgId } = await props.params;
   const { supabase, personne } = await verifierAccesEspaceLocataire(orgId);
 
-  // Quatre RPC indépendants : en parallèle plutôt qu'en cascade
-  const [{ data: pieces }, { data: baux }, { data: depotRows }, { data: echeancier }] =
-    await Promise.all([
-      supabase.rpc("mon_dossier_locataire", { p_org: orgId }),
-      supabase.rpc("mon_bail_locataire", { p_org: orgId }),
-      supabase.rpc("mon_depot_locataire", { p_org: orgId }),
-      supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
-    ]);
+  // Cinq RPC indépendants : en parallèle plutôt qu'en cascade
+  const [
+    { data: pieces },
+    { data: baux },
+    { data: depotRows },
+    { data: echeancier },
+    { data: incidentsBruts },
+  ] = await Promise.all([
+    supabase.rpc("mon_dossier_locataire", { p_org: orgId }),
+    supabase.rpc("mon_bail_locataire", { p_org: orgId }),
+    supabase.rpc("mon_depot_locataire", { p_org: orgId }),
+    supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
+    supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
+  ]);
+  const incidents = (incidentsBruts ?? []) as IncidentLocataire[];
   const assurance = ((pieces ?? []) as Piece[]).find((p) => p.type === "attestation_assurance");
 
   const bail = ((baux ?? []) as {
@@ -115,6 +123,20 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
           </CardContent>
         </Card>
       )}
+
+      {/* Statut des incidents visible dès l'accueil (RM-19.2.3) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Mes signalements</CardTitle>
+          <CardDescription>
+            Un problème dans le logement ? Déclarez-le ici et suivez qui prend la
+            réparation en charge.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <IncidentsLocataire orgId={orgId} incidents={incidents} />
+        </CardContent>
+      </Card>
 
       {lignesLoyer.length > 0 && (
         <Card>

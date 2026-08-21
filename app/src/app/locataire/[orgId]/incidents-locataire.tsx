@@ -1,0 +1,205 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState, useState } from "react";
+import {
+  contesterImputation,
+  signalerProblemePersiste,
+  type EtatIncidentAction,
+} from "@/app/actions/incidents";
+import { formaterDate } from "@/lib/ged";
+import {
+  COULEURS_ETAT_LOCATAIRE,
+  libelleEtatLocataire,
+  titreIncident,
+} from "@/lib/incidents";
+import { Button } from "@/components/ui/button";
+
+export type IncidentLocataire = {
+  id: string;
+  numero: string;
+  categorie: string;
+  piece: string | null;
+  urgence: string;
+  etat: string;
+  imputation: string | null;
+  imputation_justification: string | null;
+  imputation_contestee_le: string | null;
+  clos_le: string | null;
+  declare_le: string;
+  nb_photos: number;
+};
+
+// « Qui prend en charge », dans les mots du locataire (maquette)
+function priseEnCharge(i: IncidentLocataire): string | null {
+  if (!i.imputation) return i.etat === "clos" ? null : "Votre gérant l'examine";
+  if (i.imputation === "proprietaire") return "Le propriétaire — vous n'avancez rien";
+  return "Vous — réparation à votre charge";
+}
+
+function PetitFormulaire({
+  action,
+  placeholder,
+  bouton,
+  enCours,
+}: {
+  action: (formData: FormData) => void;
+  placeholder: string;
+  bouton: string;
+  enCours: boolean;
+}) {
+  return (
+    <form action={action} className="mt-2 flex items-start gap-2">
+      <textarea
+        name="message"
+        required
+        rows={2}
+        placeholder={placeholder}
+        className="w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm"
+      />
+      <Button type="submit" variant="outline" size="sm" disabled={enCours}>
+        {enCours ? "…" : bouton}
+      </Button>
+    </form>
+  );
+}
+
+function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentLocataire }) {
+  const [ouvert, setOuvert] = useState<"contester" | "persiste" | null>(null);
+  const [etatContestation, actionContestation, contestationEnCours] = useActionState<
+    EtatIncidentAction,
+    FormData
+  >(contesterImputation.bind(null, orgId, incident.id), {});
+  const [etatPersiste, actionPersiste, persisteEnCours] = useActionState<
+    EtatIncidentAction,
+    FormData
+  >(
+    (etat: EtatIncidentAction, formData: FormData) => {
+      // Le champ s'appelle « message » dans le petit formulaire partagé
+      formData.set("motif", String(formData.get("message") ?? ""));
+      return signalerProblemePersiste(orgId, incident.id, etat, formData);
+    },
+    {}
+  );
+
+  const charge = priseEnCharge(incident);
+  const peutContester =
+    (incident.imputation === "locataire" || incident.imputation === "degradation_fautive") &&
+    !incident.imputation_contestee_le &&
+    incident.etat !== "clos";
+
+  return (
+    <li className="space-y-1.5 py-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-medium">{titreIncident(incident.categorie)}</span>
+        <span className={COULEURS_ETAT_LOCATAIRE[incident.etat] ?? "puce puce-grise"}>
+          {libelleEtatLocataire(incident.etat, incident.imputation)}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {incident.numero} · déclaré le {formaterDate(incident.declare_le)}
+        {incident.piece ? ` · ${incident.piece}` : ""}
+        {incident.nb_photos > 0
+          ? ` · ${incident.nb_photos} photo${incident.nb_photos > 1 ? "s" : ""}`
+          : ""}
+      </p>
+
+      {charge && (
+        <p className="text-muted-foreground">
+          <span className="libelle-champ">Qui prend en charge</span> — {charge}
+          {incident.imputation_justification ? ` (${incident.imputation_justification})` : ""}
+        </p>
+      )}
+
+      {incident.imputation_contestee_le && (
+        <p className="text-xs text-muted-foreground">
+          Votre contestation du {formaterDate(incident.imputation_contestee_le)} est
+          transmise — elle ne suspend pas la réparation.
+        </p>
+      )}
+
+      {etatContestation.erreur && (
+        <p className="text-destructive">{etatContestation.erreur}</p>
+      )}
+      {etatContestation.succes && (
+        <p className="text-success-soft-foreground">{etatContestation.succes}</p>
+      )}
+      {etatPersiste.erreur && <p className="text-destructive">{etatPersiste.erreur}</p>}
+      {etatPersiste.succes && (
+        <p className="text-success-soft-foreground">{etatPersiste.succes}</p>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+        {peutContester &&
+          !etatContestation.succes &&
+          (ouvert === "contester" ? null : (
+            <button
+              type="button"
+              onClick={() => setOuvert("contester")}
+              className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+            >
+              Contester cette imputation
+            </button>
+          ))}
+        {incident.etat === "clos" &&
+          !etatPersiste.succes &&
+          (ouvert === "persiste" ? null : (
+            <button
+              type="button"
+              onClick={() => setOuvert("persiste")}
+              className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+            >
+              Le problème persiste
+            </button>
+          ))}
+      </div>
+
+      {ouvert === "contester" && peutContester && !etatContestation.succes && (
+        <PetitFormulaire
+          action={actionContestation}
+          placeholder="Expliquez pourquoi — votre message est transmis à l'agence."
+          bouton="Envoyer"
+          enCours={contestationEnCours}
+        />
+      )}
+      {ouvert === "persiste" && incident.etat === "clos" && !etatPersiste.succes && (
+        <PetitFormulaire
+          action={actionPersiste}
+          placeholder="Qu'est-ce qui ne va toujours pas ?"
+          bouton="Rouvrir"
+          enCours={persisteEnCours}
+        />
+      )}
+    </li>
+  );
+}
+
+// Carte « Mes signalements » de l'accueil locataire : le statut de chaque
+// incident est visible dès l'accueil (RM-19.2.3)
+export function IncidentsLocataire({
+  orgId,
+  incidents,
+}: {
+  orgId: string;
+  incidents: IncidentLocataire[];
+}) {
+  return (
+    <div className="space-y-3">
+      {incidents.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Rien en cours. Un problème dans le logement ? Signalez-le, vous saurez
+          qui prend la réparation en charge.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {incidents.map((i) => (
+            <CarteIncident key={i.id} orgId={orgId} incident={i} />
+          ))}
+        </ul>
+      )}
+      <Link href={`/locataire/${orgId}/incident`} className="btn-or">
+        Signaler un problème
+      </Link>
+    </div>
+  );
+}

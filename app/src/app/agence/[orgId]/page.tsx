@@ -503,8 +503,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                     )}
                                   </div>
                                   <span className="relative">
+                                    {/* Recette 22/08 : ouvre directement la pop-up
+                                        de traitement de CETTE alerte, au lieu de
+                                        poser l'agent devant la liste complète */}
                                     <Link
-                                      href={`/agence/${orgId}/alertes`}
+                                      href={`/agence/${orgId}/alertes?traiter=${a.id}`}
                                       className={buttonVariants({
                                         size: "sm",
                                         variant:

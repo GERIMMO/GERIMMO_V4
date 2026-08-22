@@ -61,11 +61,12 @@ export function FormulaireInfosPratiques({
         {CHAMPS.map((c) => (
           <div key={c.nom} className="space-y-1.5">
             <Label htmlFor={`ip-${c.nom}`}>{c.label}</Label>
+            {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
             <textarea
               id={`ip-${c.nom}`}
               name={c.nom}
               rows={2}
-              defaultValue={infos?.[c.nom] ?? ""}
+              defaultValue={etat.valeurs?.[c.nom] ?? infos?.[c.nom] ?? ""}
               className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
               placeholder={c.aide}
             />

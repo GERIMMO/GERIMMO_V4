@@ -26,18 +26,20 @@ export function FormulaireMandat({ orgId, personId }: { orgId: string; personId:
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="m-rapport">Date de rapport (jour du mois)</Label>
+          {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
+              sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
           <Input
             id="m-rapport"
             name="date_rapport"
             type="number"
             min="1"
             max="28"
-            defaultValue="10"
+            defaultValue={etat.valeurs?.date_rapport ?? "10"}
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="m-seuil">Seuil de délégation (€)</Label>
-          <Input id="m-seuil" name="seuil_delegation" type="number" min="0" placeholder="500 (défaut)" />
+          <Input id="m-seuil" name="seuil_delegation" type="number" min="0" placeholder="500 (défaut)" defaultValue={etat.valeurs?.seuil_delegation} />
         </div>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
@@ -55,20 +57,25 @@ export function FormulaireLigneMandat({
   personId,
   mandatId,
   lots,
+  nbLotsDetenus,
 }: {
   orgId: string;
   personId: string;
   mandatId: string;
   lots: LotOption[];
+  nbLotsDetenus: number;
 }) {
   const action = ajouterLigneMandat.bind(null, orgId, personId, mandatId);
   const [etat, formAction, enCours] = useActionState<EtatMandat, FormData>(action, {});
 
+  // Recette 22/08 : la liste ne propose plus les lots déjà couverts par un
+  // mandat actif — proposer un lot pour le voir refusé alourdissait l'écran.
   if (lots.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        Cette personne ne détient aucun lot — ajoutez d&apos;abord une détention
-        sur un lot du parc pour composer le mandat.
+        {nbLotsDetenus > 0
+          ? "Tous les lots de cette personne sont déjà couverts par un mandat — rien à ajouter ici."
+          : "Cette personne ne détient aucun lot — ajoutez d'abord une détention sur un lot du parc pour composer le mandat."}
       </p>
     );
   }
@@ -86,6 +93,8 @@ export function FormulaireLigneMandat({
         <Label htmlFor={`l-taux-${mandatId}`} className="text-xs">
           Taux %
         </Label>
+        {/* Recette 22/08 : le taux est contractuel — il se choisit, pas de
+            valeur glissée en silence. */}
         <Input
           id={`l-taux-${mandatId}`}
           name="taux_honoraires"
@@ -93,7 +102,9 @@ export function FormulaireLigneMandat({
           step="0.01"
           min="0"
           max="100"
-          defaultValue="7"
+          required
+          placeholder="ex. 7"
+          defaultValue={etat.valeurs?.taux_honoraires}
         />
       </div>
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>

@@ -5,6 +5,7 @@ import { formaterDate } from "@/lib/ged";
 import { COULEURS_ETAT_EDL } from "@/lib/baux";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GrilleEdl } from "./grille-edl";
+import { BoutonRegenererGrille } from "./bouton-regenerer-grille";
 import { EdlAnnexes, type Compteur, type Cle } from "./edl-annexes";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
@@ -63,6 +64,19 @@ export default async function PageEdl(
   const lotId = lotDuBail?.id ?? null;
   const bienId = lotDuBail?.bien_id ?? null;
 
+  // Le lot a-t-il des pièces déclarées depuis la création de cet EDL ? Si oui,
+  // la grille se régénère sur place (recette 22/08 : déclarer les pièces après
+  // coup laissait l'EDL sur la grille générique, sans issue depuis cet écran).
+  let lotAPieces = false;
+  if (grilleGenerique && !signe && lotId) {
+    const { count } = await supabase
+      .from("lot_pieces")
+      .select("*", { count: "exact", head: true })
+      .eq("lot_id", lotId)
+      .eq("organization_id", orgId);
+    lotAPieces = (count ?? 0) > 0;
+  }
+
   return (
     <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
@@ -108,12 +122,15 @@ export default async function PageEdl(
                 dégradation à un endroit précis — et donc de justifier une retenue
                 sur le dépôt de garantie.
               </p>
-              {!signe && lotId && (
+              {!signe && lotAPieces && (
+                <BoutonRegenererGrille orgId={orgId} bailId={bailId} edlId={edlId} />
+              )}
+              {!signe && !lotAPieces && lotId && (
                 <Link
                   href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}#pieces`}
                   className="mt-2 inline-block underline underline-offset-2"
                 >
-                  Déclarer les pièces du lot, puis régénérer la grille
+                  Déclarer les pièces du lot, puis revenir régénérer la grille ici
                 </Link>
               )}
             </div>

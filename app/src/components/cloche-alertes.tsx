@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 
 // Pop-up de synthèse des alertes à la connexion (S2, revue recette 08/08) :
 // uniquement les alertes qui me sont confiées (nominativement ou « tout le
@@ -58,15 +59,6 @@ export function ClocheAlertes({
     setOuverte(false);
   }, []);
 
-  useEffect(() => {
-    if (!ouverte) return;
-    const surTouche = (e: KeyboardEvent) => {
-      if (e.key === "Escape") fermer();
-    };
-    window.addEventListener("keydown", surTouche);
-    return () => window.removeEventListener("keydown", surTouche);
-  }, [ouverte, fermer]);
-
   const triees = [...alertes].sort((a, b) => {
     const parCriticite =
       (ORDRE_CRITICITE[a.criticite] ?? 9) - (ORDRE_CRITICITE[b.criticite] ?? 9);
@@ -118,33 +110,33 @@ export function ClocheAlertes({
       </button>
 
       {ouverte && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--encre)]/35 p-4 pt-[10vh]"
-          onClick={fermer}
+        /* Modale unique de la charte (recette 22/08) — posée en haut, sortie
+           par le bouton Fermer en pied (revue 08/08), Échap et voile aussi */
+        <Modale
+          titre={
+            alertes.length === 0
+              ? "Aucune alerte ne vous attend"
+              : `${alertes.length} alerte${alertes.length > 1 ? "s" : ""} à traiter`
+          }
+          surtitre={
+            nbCritiques > 0
+              ? `dont ${nbCritiques} critique${nbCritiques > 1 ? "s" : ""}`
+              : undefined
+          }
+          haut
+          large
+          fermer={fermer}
+          pied={
+            <button
+              type="button"
+              onClick={fermer}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Fermer
+            </button>
+          }
         >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Mes alertes"
-            className="w-full max-w-lg border border-border bg-background text-foreground shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Tête encre façon maquette — pas de bouton de fermeture ici :
-                la sortie se fait par le bouton Fermer en pied (revue 08/08) */}
-            <div className="bg-[var(--encre)] px-5 py-3.5 text-[var(--sur-encre)]">
-              <h2 className="text-[17px] text-[var(--sur-encre)]">
-                {alertes.length === 0
-                  ? "Aucune alerte ne vous attend"
-                  : `${alertes.length} alerte${alertes.length > 1 ? "s" : ""} à traiter`}
-              </h2>
-              {nbCritiques > 0 && (
-                <p className="mono-discret text-[var(--sur-encre)]/70">
-                  dont {nbCritiques} critique{nbCritiques > 1 ? "s" : ""}
-                </p>
-              )}
-            </div>
-
-            <div className="max-h-[55vh] overflow-y-auto px-5 py-2">
+            <div className="max-h-[55vh] overflow-y-auto">
               {alertes.length === 0 ? (
                 <p className="py-4 text-sm text-muted-foreground">
                   Rien ne vous est confié — tout est traité.
@@ -171,11 +163,14 @@ export function ClocheAlertes({
                               {echeance.texte}
                             </span>
                           )}
+                          {/* Recette 22/08 : « Traiter » ouvre directement la
+                              pop-up de traitement sur la page Alertes — plus
+                              d'atterrissage sur une liste à re-parcourir */}
                           <Link
                             href={
                               modeAdmin
                                 ? `/admin/organisations/${a.organization_id}`
-                                : `/agence/${a.organization_id}/alertes`
+                                : `/agence/${a.organization_id}/alertes?traiter=${a.id}`
                             }
                             onClick={fermer}
                             className="shrink-0 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
@@ -190,18 +185,7 @@ export function ClocheAlertes({
                 ))
               )}
             </div>
-
-            <div className="border-t border-border px-5 py-2.5 text-right">
-              <button
-                type="button"
-                onClick={fermer}
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                Fermer
-              </button>
-            </div>
-          </div>
-        </div>
+        </Modale>
       )}
     </>
   );

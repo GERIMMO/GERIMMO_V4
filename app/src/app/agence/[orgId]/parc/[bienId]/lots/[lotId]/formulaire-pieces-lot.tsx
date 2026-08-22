@@ -117,7 +117,8 @@ export function FormulairePiecesLot({
 
       {/* Ajout libre */}
       <form action={formAction} className="flex items-end gap-2">
-        <Input name="nom" maxLength={60} placeholder="Autre pièce (ex. Bureau, Dressing)…" className="max-w-xs" />
+        {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
+        <Input name="nom" maxLength={60} placeholder="Autre pièce (ex. Bureau, Dressing)…" className="max-w-xs" defaultValue={etat.valeurs?.nom} />
         <Button type="submit" size="sm" variant="outline" disabled={enCours}>
           {enCours ? "Ajout…" : "Ajouter"}
         </Button>

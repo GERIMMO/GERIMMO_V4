@@ -4,8 +4,14 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatRestit = { erreur?: string; succes?: string };
+export type EtatRestit = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 export async function demarrerRestitution(
   orgId: string,
@@ -15,15 +21,16 @@ export async function demarrerRestitution(
 ): Promise<EtatRestit> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const date = String(formData.get("date_remise_cles") ?? "").trim();
-  if (!date) return { erreur: "Date de remise des clés obligatoire." };
+  if (!date) return { erreur: "Date de remise des clés obligatoire.", valeurs };
   const conforme = formData.get("conforme") === "on";
   const { error } = await supabase.rpc("demarrer_restitution", {
     p_bail: bailId,
     p_date_remise: date,
     p_conforme: conforme,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Restitution démarrée." };
 }
@@ -37,10 +44,11 @@ export async function ajouterRetenue(
 ): Promise<EtatRestit> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
   const cout = Number(String(formData.get("cout") ?? "").trim());
-  if (!libelle) return { erreur: "Libellé obligatoire." };
-  if (!cout || cout <= 0) return { erreur: "Coût invalide." };
+  if (!libelle) return { erreur: "Libellé obligatoire.", valeurs };
+  if (!cout || cout <= 0) return { erreur: "Coût invalide.", valeurs };
   const dureeStr = String(formData.get("duree_vie") ?? "").trim();
   const ageStr = String(formData.get("age") ?? "").trim();
 
@@ -49,7 +57,7 @@ export async function ajouterRetenue(
   const fichier = formData.get("justificatif");
   if (fichier instanceof File && fichier.size > 0) {
     const dep = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", `Devis/facture — ${libelle}`);
-    if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du justificatif." };
+    if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du justificatif.", valeurs };
     justificatif = dep.documentId;
     avertissement = dep.avertissement;
   }
@@ -62,7 +70,7 @@ export async function ajouterRetenue(
     p_age: ageStr ? Number(ageStr) : null,
     p_justificatif: justificatif,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: avertissement ? `Retenue ajoutée. ${avertissement}` : "Retenue ajoutée." };
 }

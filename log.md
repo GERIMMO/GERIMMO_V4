@@ -1422,3 +1422,33 @@ en tête) et **Partie 2 — Reste à recetter**, elle-même en deux blocs :
 2.A les re-tests suite aux retours de recette (étapes 1 du 13/08, 2 du 19/08,
 3 du 21/08), 2.B les sprints jamais déroulés (S3 reste, S4, S5, S6, S8,
 transverse, décisions à trancher). Contenu des scénarios inchangé.
+
+## [2026-08-23] dev | Retours de recette du 22/08 : correctifs sur main (1/2)
+
+Retours traités avant le chantier incidents (branche S7) :
+- **EDL 4.5.3** : un EDL créé avant la déclaration des pièces restait sur la
+  grille générique — bouton « Régénérer la grille depuis les pièces du lot »
+  posé sur l'écran d'EDL (la RPC savait faire, aucun écran ne l'appelait).
+- **Formulaires vidés** : React 19 réinitialise les champs non contrôlés après
+  CHAQUE action, y compris en erreur — la grille d'EDL est passée en champs
+  contrôlés, et une mécanique commune (`lib/formulaires.ts`, l'action renvoie
+  `valeurs`, le formulaire les repose en `defaultValue`) est appliquée à
+  ~30 actions et ~25 formulaires (personnes, mandats, baux, parc, compta…).
+- **Mandats** : taux d'honoraires obligatoire (plus de 7 % posé en silence) ;
+  un mandat sans lot ni taux ne change plus d'état — garde applicative ET
+  migration en base (`20260823_mandat_vide_ne_change_plus_detat.sql`) pour les
+  mandats hérités ; le combobox ne propose plus les lots déjà couverts.
+- **« Traiter »** : tableau de bord et cloche ouvrent désormais la pop-up de
+  traitement directement (`/alertes?traiter=<id>`).
+- **Modale unique** (`components/ui/modale.tsx`) : grammaire maquette (voile
+  encre 35 %, angles vifs, en-tête encre/rouge, surtitre mono) ; modale
+  d'alerte et pop-up de la cloche refactorées dessus.
+- **Espace locataire aligné maquette (B.4)** : bandeau deux étages #0F2438,
+  onglets (Mon logement / Mes loyers), nom du locataire en en-tête, page
+  « Mon logement » en deux colonnes avec lignes libellé↔valeur ; « Mes
+  loyers » devient un onglet ; « Validée par votre agence » → « Validée »
+  (libellé générique agence/bailleur).
+- Divers : message doublon GED explicité (empreinte du CONTENU), vue macro des
+  baux de la fiche lot enrichie (loyer cc, dates).
+Vérifs : typecheck/lint 0 erreur, 75 tests unitaires verts, build OK ; tests
+d'intégration du 22/08 écrits (`tests/recette-2026-08-22.test.ts`).

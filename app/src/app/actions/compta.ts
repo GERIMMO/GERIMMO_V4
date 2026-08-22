@@ -5,8 +5,14 @@ import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { envoyerEmail } from "@/lib/email";
 import { aujourdhuiParis, eur } from "@/lib/ged";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatCompta = { erreur?: string; succes?: string };
+export type EtatCompta = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 // Générer le rapport de gestion d'un mandat pour un mois (clôture requise).
 export async function genererRapport(
@@ -17,10 +23,11 @@ export async function genererRapport(
 ): Promise<EtatCompta> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const mois = String(formData.get("mois") ?? "").trim();
-  if (!mois) return { erreur: "Choisissez le mois." };
+  if (!mois) return { erreur: "Choisissez le mois.", valeurs };
   const { error } = await supabase.rpc("generer_rapport", { p_mandat: mandatId, p_mois: `${mois}-01` });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Rapport généré (à valider)." };
 }
@@ -34,9 +41,10 @@ export async function envoyerRapport(
 ): Promise<EtatCompta> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const commentaire = String(formData.get("commentaire") ?? "").trim() || null;
   const { error } = await supabase.rpc("envoyer_rapport", { p_rapport: rapportId, p_commentaire: commentaire });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   // Email au mandant (best-effort : le rapport est figé quoi qu'il arrive)
   const { data: rap } = await supabase
@@ -69,15 +77,16 @@ export async function enregistrerVersement(
 ): Promise<EtatCompta> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const montant = Number(String(formData.get("montant") ?? "").trim());
   const date = String(formData.get("date") ?? "").trim();
-  if (!montant || !date) return { erreur: "Montant et date du versement obligatoires." };
+  if (!montant || !date) return { erreur: "Montant et date du versement obligatoires.", valeurs };
   const { error } = await supabase.rpc("enregistrer_versement", {
     p_rapport: rapportId,
     p_montant: montant,
     p_date: date,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Versement enregistré." };
 }
@@ -89,12 +98,13 @@ export async function ajouterEcriture(
 ): Promise<EtatCompta> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const categorie = String(formData.get("categorie") ?? "").trim();
   const sens = String(formData.get("sens") ?? "");
   const montant = Number(String(formData.get("montant") ?? "").trim());
-  if (!categorie) return { erreur: "Catégorie obligatoire." };
-  if (sens !== "recette" && sens !== "depense") return { erreur: "Sens invalide." };
-  if (!montant || montant <= 0) return { erreur: "Montant invalide." };
+  if (!categorie) return { erreur: "Catégorie obligatoire.", valeurs };
+  if (sens !== "recette" && sens !== "depense") return { erreur: "Sens invalide.", valeurs };
+  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
   const { error } = await supabase.from("ecritures").insert({
     organization_id: orgId,
     categorie,
@@ -105,7 +115,7 @@ export async function ajouterEcriture(
     libelle: String(formData.get("libelle") ?? "").trim() || null,
     lot_id: String(formData.get("lot_id") ?? "").trim() || null,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Écriture enregistrée." };
 }
@@ -118,9 +128,10 @@ export async function passerContreEcriture(
 ): Promise<EtatCompta> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const motif = String(formData.get("motif") ?? "").trim();
   const { error } = await supabase.rpc("contre_ecriture", { p_ecriture: ecritureId, p_motif: motif });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Contre-écriture passée." };
 }
@@ -133,12 +144,13 @@ export async function ventilerDepense(
 ): Promise<EtatCompta> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const bienId = String(formData.get("bien_id") ?? "");
   const categorie = String(formData.get("categorie") ?? "").trim();
   const montant = Number(String(formData.get("montant") ?? "").trim());
-  if (!bienId) return { erreur: "Choisissez le bien." };
-  if (!categorie) return { erreur: "Catégorie obligatoire." };
-  if (!montant || montant <= 0) return { erreur: "Montant invalide." };
+  if (!bienId) return { erreur: "Choisissez le bien.", valeurs };
+  if (!categorie) return { erreur: "Catégorie obligatoire.", valeurs };
+  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
   const { data, error } = await supabase.rpc("ventiler_depense_bien", {
     p_bien: bienId,
     p_categorie: categorie,
@@ -147,7 +159,7 @@ export async function ventilerDepense(
     p_date_imputation: String(formData.get("date_imputation") ?? "").trim() || aujourdhuiParis(),
     p_libelle: String(formData.get("libelle") ?? "").trim() || categorie,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: `Dépense ventilée en ${data ?? 0} écriture(s).` };
 }
@@ -159,10 +171,11 @@ export async function cloturerMois(
 ): Promise<EtatCompta> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const mois = String(formData.get("mois") ?? "").trim();
-  if (!mois) return { erreur: "Mois obligatoire." };
+  if (!mois) return { erreur: "Mois obligatoire.", valeurs };
   const { error } = await supabase.rpc("cloturer_mois", { p_org: orgId, p_mois: `${mois}-01` });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Mois clôturé." };
 }

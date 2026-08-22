@@ -7,9 +7,16 @@ import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
-export type EtatBail = { erreur?: string; succes?: string; blocages?: BlocageActionable[] };
+export type EtatBail = {
+  erreur?: string;
+  succes?: string;
+  blocages?: BlocageActionable[];
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 // Créer un bail (brouillon) sur un lot.
 export async function creerBail(
@@ -22,8 +29,9 @@ export async function creerBail(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const champs = lireChampsBail(formData);
-  if ("erreur" in champs) return { erreur: champs.erreur };
+  if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
 
   const { data, error } = await supabase
     .from("baux")
@@ -35,7 +43,7 @@ export async function creerBail(
     })
     .select("id")
     .single();
-  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   redirect(`/agence/${orgId}/baux/${data.id}`);
@@ -81,8 +89,9 @@ export async function modifierBail(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const champs = lireChampsBail(formData);
-  if ("erreur" in champs) return { erreur: champs.erreur };
+  if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
 
   // Seul un brouillon se corrige : signé, le bail est le contrat
   const { data: modifies, error } = await supabase
@@ -92,9 +101,9 @@ export async function modifierBail(
     .eq("organization_id", orgId)
     .eq("etat", "brouillon")
     .select("id");
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   if ((modifies ?? []).length === 0) {
-    return { erreur: "Seul un bail en brouillon se corrige — celui-ci a déjà avancé." };
+    return { erreur: "Seul un bail en brouillon se corrige — celui-ci a déjà avancé.", valeurs };
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
@@ -189,11 +198,12 @@ export async function enregistrerConge(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const par = String(formData.get("par") ?? "locataire");
   const date = String(formData.get("date_presentation") ?? "").trim();
   const preavis = Number(formData.get("preavis_mois") ?? 3);
   const motif = String(formData.get("motif") ?? "").trim();
-  if (!date) return { erreur: "Indiquez la date de première présentation." };
+  if (!date) return { erreur: "Indiquez la date de première présentation.", valeurs };
 
   // Préavis réduit du locataire : justificatif déposé en GED, transmis au contrôle base.
   let justificatif: string | null = null;
@@ -201,7 +211,7 @@ export async function enregistrerConge(
   const fichier = formData.get("justificatif");
   if (fichier instanceof File && fichier.size > 0) {
     const res = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", "Justificatif de préavis réduit");
-    if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt du justificatif." };
+    if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt du justificatif.", valeurs };
     justificatif = res.documentId;
     avertissementJustificatif = res.avertissement;
   }
@@ -214,7 +224,7 @@ export async function enregistrerConge(
     p_motif: motif || null,
     p_justificatif: justificatif,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   const baseConge = "Congé enregistré — bail en préavis.";
   return { succes: avertissementJustificatif ? `${baseConge} ${avertissementJustificatif}` : baseConge };
@@ -232,12 +242,13 @@ export async function annulerConge(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const motif = String(formData.get("motif") ?? "").trim();
   const { error } = await supabase.rpc("annuler_conge", {
     p_bail: bailId,
     p_motif: motif || null,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Congé annulé — le bail reprend son cours." };
 }
@@ -252,8 +263,9 @@ export async function ajouterInventaireLigne(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const designation = String(formData.get("designation") ?? "").trim();
-  if (!designation) return { erreur: "La désignation du meuble est obligatoire." };
+  if (!designation) return { erreur: "La désignation du meuble est obligatoire.", valeurs };
   const piece = String(formData.get("piece") ?? "").trim() || null;
   const quantite = Math.max(1, Math.floor(Number(formData.get("quantite") ?? 1)) || 1);
   const etat = String(formData.get("etat") ?? "").trim() || null;
@@ -268,7 +280,7 @@ export async function ajouterInventaireLigne(
     etat,
     observation,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Meuble ajouté à l'inventaire." };
 }
@@ -301,16 +313,17 @@ export async function ajouterBailPersonne(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const personId = String(formData.get("person_id") ?? "");
   const role = String(formData.get("role") ?? "colocataire");
-  if (!personId) return { erreur: "Choisissez la personne." };
-  if (role !== "colocataire" && role !== "garant") return { erreur: "Rôle invalide." };
+  if (!personId) return { erreur: "Choisissez la personne.", valeurs };
+  if (role !== "colocataire" && role !== "garant") return { erreur: "Rôle invalide.", valeurs };
 
   const qp = String(formData.get("quote_part") ?? "").trim();
   const surf = String(formData.get("surface_privative") ?? "").trim();
   const garantDe = String(formData.get("garant_de") ?? "").trim();
   if (role === "garant" && !garantDe) {
-    return { erreur: "Indiquez le colocataire couvert par ce garant." };
+    return { erreur: "Indiquez le colocataire couvert par ce garant.", valeurs };
   }
 
   const { error } = await supabase.from("bail_personnes").insert({
@@ -322,7 +335,7 @@ export async function ajouterBailPersonne(
     surface_privative: role === "colocataire" && surf ? Number(surf) : null,
     garant_de: role === "garant" ? garantDe : null,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: role === "garant" ? "Garant ajouté." : "Colocataire ajouté." };
 }

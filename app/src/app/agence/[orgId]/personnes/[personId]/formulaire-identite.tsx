@@ -94,10 +94,12 @@ export function FormulaireIdentite({
   return (
     <form action={formAction} className="mt-2 max-w-xl space-y-3 border border-border bg-card p-4">
       <p className="text-sm font-medium">Modifier la fiche</p>
+      {/* En erreur, l'action renvoie la saisie (etat.valeurs) : le reset React
+          retombe sur les corrections, pas sur les valeurs d'origine. */}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="ident-nom">Nom ou raison sociale *</Label>
-          <Input id="ident-nom" name="nom" required maxLength={120} defaultValue={nom} />
+          <Input id="ident-nom" name="nom" required maxLength={120} defaultValue={etat.valeurs?.nom ?? nom} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ident-prenom">Prénom{prenom ? " *" : ""}</Label>
@@ -107,7 +109,7 @@ export function FormulaireIdentite({
             name="prenom"
             maxLength={120}
             required={Boolean(prenom)}
-            defaultValue={prenom ?? ""}
+            defaultValue={etat.valeurs?.prenom ?? prenom ?? ""}
           />
         </div>
         <div className="space-y-1.5">
@@ -118,12 +120,12 @@ export function FormulaireIdentite({
             type="email"
             required
             maxLength={200}
-            defaultValue={email ?? ""}
+            defaultValue={etat.valeurs?.email ?? email ?? ""}
           />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ident-tel">Téléphone</Label>
-          <Input id="ident-tel" name="telephone" maxLength={40} defaultValue={telephone ?? ""} />
+          <Input id="ident-tel" name="telephone" maxLength={40} defaultValue={etat.valeurs?.telephone ?? telephone ?? ""} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ident-naissance">Date de naissance</Label>
@@ -131,7 +133,7 @@ export function FormulaireIdentite({
             id="ident-naissance"
             name="date_naissance"
             type="date"
-            defaultValue={dateNaissance ?? ""}
+            defaultValue={etat.valeurs?.date_naissance ?? dateNaissance ?? ""}
           />
         </div>
       </div>

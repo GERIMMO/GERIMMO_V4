@@ -41,10 +41,13 @@ export function FormulaireDepot({
       </div>
       <div className="space-y-2">
         <Label htmlFor="type-depot">Type de document</Label>
+        {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08 —
+            le fichier, lui, est à re-choisir). */}
         <select
           id="type-depot"
           name="type"
           required
+          defaultValue={etat.valeurs?.type}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           {TYPES_DEPOSABLES.map((t) => (
@@ -56,13 +59,14 @@ export function FormulaireDepot({
       </div>
       <div className="space-y-2">
         <Label htmlFor="titre">Titre (facultatif)</Label>
-        <Input id="titre" name="titre" type="text" maxLength={200} />
+        <Input id="titre" name="titre" type="text" maxLength={200} defaultValue={etat.valeurs?.titre} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="personne">Rattacher à une personne (facultatif)</Label>
         <select
           id="personne"
           name="personne"
+          defaultValue={etat.valeurs?.personne ?? ""}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           <option value="">— Agence seulement —</option>

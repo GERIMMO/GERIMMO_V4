@@ -5,8 +5,14 @@ import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { proposerNature, type NatureCharge } from "@/lib/charges";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatAppel = { erreur?: string; succes?: string };
+export type EtatAppel = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 function chemin(orgId: string, bienId: string, lotId: string) {
   return `/agence/${orgId}/parc/${bienId}/lots/${lotId}`;
@@ -21,10 +27,11 @@ export async function creerAppelCharges(
 ): Promise<EtatAppel> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const exercice = Number(String(formData.get("exercice") ?? "").trim());
   const total = Number(String(formData.get("total") ?? "").trim());
-  if (!exercice || exercice < 2000 || exercice > 2100) return { erreur: "Exercice invalide." };
-  if (!total || total <= 0) return { erreur: "Total de l'appel invalide." };
+  if (!exercice || exercice < 2000 || exercice > 2100) return { erreur: "Exercice invalide.", valeurs };
+  if (!total || total <= 0) return { erreur: "Total de l'appel invalide.", valeurs };
   const dateReception = String(formData.get("date_reception") ?? "").trim() || null;
 
   let documentId: string | null = null;
@@ -34,7 +41,7 @@ export async function creerAppelCharges(
     const dep = await deposerFichierGed(
       supabase, user, orgId, fichier, "justificatif", `Appel de charges ${exercice}`
     );
-    if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du document." };
+    if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du document.", valeurs };
     documentId = dep.documentId;
     avertissement = dep.avertissement;
   }
@@ -47,7 +54,7 @@ export async function creerAppelCharges(
     total,
     document_id: documentId,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: avertissement ? `Appel de charges créé. ${avertissement}` : "Appel de charges créé." };
 }
@@ -62,10 +69,11 @@ export async function ajouterPosteCharge(
 ): Promise<EtatAppel> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
   const montant = Number(String(formData.get("montant") ?? "").trim());
-  if (!libelle) return { erreur: "Libellé du poste obligatoire." };
-  if (!montant || montant <= 0) return { erreur: "Montant du poste invalide." };
+  if (!libelle) return { erreur: "Libellé du poste obligatoire.", valeurs };
+  if (!montant || montant <= 0) return { erreur: "Montant du poste invalide.", valeurs };
 
   // La grille décret 87-713 propose la nature ; l'agent corrigera si besoin.
   const proposition = proposerNature(libelle);
@@ -78,7 +86,7 @@ export async function ajouterPosteCharge(
     fonds_alur: proposition.fonds_alur,
     propose: true,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Poste ajouté." };
 }
@@ -93,18 +101,19 @@ export async function modifierPosteCharge(
 ): Promise<EtatAppel> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const nature = String(formData.get("nature") ?? "") as NatureCharge;
   if (!["recuperable", "non_recuperable", "a_qualifier"].includes(nature))
-    return { erreur: "Nature invalide." };
+    return { erreur: "Nature invalide.", valeurs };
   const fondsAlur = formData.get("fonds_alur") === "on";
   if (fondsAlur && nature === "recuperable")
-    return { erreur: "Le fonds travaux ALUR n'est jamais récupérable : il reste à la charge du propriétaire." };
+    return { erreur: "Le fonds travaux ALUR n'est jamais récupérable : il reste à la charge du propriétaire.", valeurs };
   const { error } = await supabase
     .from("appel_charges_postes")
     .update({ nature, fonds_alur: fondsAlur, propose: false })
     .eq("id", posteId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(chemin(orgId, bienId, lotId));
   return { succes: "Poste qualifié." };
 }

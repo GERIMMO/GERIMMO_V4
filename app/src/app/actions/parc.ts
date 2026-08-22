@@ -7,6 +7,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
 import { piecesHabituelles } from "@/lib/pieces";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 import {
   TYPES_BIEN,
   TYPES_DIAGNOSTIC,
@@ -14,7 +15,12 @@ import {
   ETATS_LOT,
 } from "@/lib/parc";
 
-export type EtatParc = { erreur?: string; succes?: string };
+export type EtatParc = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 export async function creerBien(
   orgId: string,
@@ -24,6 +30,7 @@ export async function creerBien(
   const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
   const type = String(formData.get("type") ?? "");
   const adresse1 = String(formData.get("address_line1") ?? "").trim();
@@ -34,10 +41,10 @@ export async function creerBien(
   const surface = String(formData.get("surface_m2") ?? "").trim();
   const pieces = String(formData.get("pieces") ?? "").trim();
 
-  if (!nom) return { erreur: "La référence du bien est obligatoire." };
-  if (!(type in TYPES_BIEN)) return { erreur: "Type de bien invalide." };
+  if (!nom) return { erreur: "La référence du bien est obligatoire.", valeurs };
+  if (!(type in TYPES_BIEN)) return { erreur: "Type de bien invalide.", valeurs };
   if (!adresse1 || !codePostal || !ville) {
-    return { erreur: "L'adresse (voie, code postal, ville) est obligatoire." };
+    return { erreur: "L'adresse (voie, code postal, ville) est obligatoire.", valeurs };
   }
 
   // Questionnaire progressif : un bien divisé arrive avec sa liste de lots.
@@ -51,12 +58,13 @@ export async function creerBien(
       const parse = JSON.parse(lotsBrut);
       if (Array.isArray(parse)) lotsSaisis = parse as LotSaisi[];
     } catch {
-      return { erreur: "Liste des lots illisible." };
+      return { erreur: "Liste des lots illisible.", valeurs };
     }
   }
   if ((TYPES_NON_DECOUPABLES as readonly string[]).includes(type) && lotsSaisis.length > 1) {
     return {
       erreur: `Un bien de type « ${TYPES_BIEN[type]} » est déjà l'unité locative : il ne se découpe pas en lots.`,
+      valeurs,
     };
   }
   const premier = lotsSaisis[0];
@@ -75,7 +83,7 @@ export async function creerBien(
     p_surface: premier?.surface ? Number(premier.surface) : surface ? Number(surface) : null,
     p_pieces: premier?.pieces ? Number(premier.pieces) : pieces ? Number(pieces) : null,
   });
-  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
 
   // Espace propriétaire direct (recette 08/08) : le propriétaire d'un bien,
   // c'est lui — le champ propriétaire est masqué à l'écran mais la détention
@@ -103,6 +111,7 @@ export async function creerBien(
       if (erreurFiche) {
         return {
           erreur: `Bien créé, mais votre fiche propriétaire a échoué : ${sansJargon(erreurFiche.message)}`,
+          valeurs,
         };
       }
       fiche = creee;
@@ -124,6 +133,7 @@ export async function creerBien(
         if (erreurDetention) {
           return {
             erreur: `Bien créé, mais la détention n'a pas pu être posée : ${sansJargon(erreurDetention.message)}`,
+            valeurs,
           };
         }
       }
@@ -141,6 +151,7 @@ export async function creerBien(
       if (erreurNom) {
         return {
           erreur: `Bien créé, mais le nom du premier lot n'a pas pu être posé : ${sansJargon(erreurNom.message)}`,
+          valeurs,
         };
       }
     }
@@ -157,6 +168,7 @@ export async function creerBien(
       if (erreurDecoupe) {
         return {
           erreur: `Bien créé, mais les lots supplémentaires ont échoué : ${sansJargon(erreurDecoupe.message)}`,
+          valeurs,
         };
       }
     }
@@ -175,9 +187,10 @@ export async function modifierBien(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
   const annee = String(formData.get("annee_construction") ?? "").trim();
-  if (!nom) return { erreur: "La référence du bien est obligatoire." };
+  if (!nom) return { erreur: "La référence du bien est obligatoire.", valeurs };
 
   // L'adresse est verrouillée en base si un lot est loué (trigger RM-0.5.1)
   const { error } = await supabase
@@ -194,7 +207,7 @@ export async function modifierBien(
     })
     .eq("id", bienId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   return { succes: "Bien mis à jour." };
@@ -210,9 +223,10 @@ export async function modifierLot(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
   const tantieme = String(formData.get("tantieme") ?? "").trim();
-  if (!nom) return { erreur: "Le nom du lot est obligatoire." };
+  if (!nom) return { erreur: "Le nom du lot est obligatoire.", valeurs };
 
   // Surface, Carrez et pièces sont verrouillées en base si le lot est loué
   // (trigger RM-0.5.1) : le formulaire les désactive alors, elles sont donc
@@ -237,7 +251,7 @@ export async function modifierLot(
     .update(maj)
     .eq("id", lotId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Lot mis à jour." };
@@ -326,10 +340,11 @@ export async function ajouterDetention(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const quotePart = Number(String(formData.get("quote_part") ?? ""));
   const dateDebut = String(formData.get("date_debut") ?? "");
   if (!(quotePart > 0 && quotePart <= 100)) {
-    return { erreur: "La quote-part doit être comprise entre 0 et 100." };
+    return { erreur: "La quote-part doit être comprise entre 0 et 100.", valeurs };
   }
 
   // Propriétaire : une personne existante, ou une fiche minimale créée à la
@@ -342,8 +357,8 @@ export async function ajouterDetention(
     const nom = String(formData.get("nouveau_nom") ?? "").trim();
     const prenom = String(formData.get("nouveau_prenom") ?? "").trim();
     const email = String(formData.get("nouveau_email") ?? "").trim();
-    if (!nom) return { erreur: "Le nom du nouveau propriétaire est obligatoire." };
-    if (!email) return { erreur: "L'adresse email du propriétaire est obligatoire." };
+    if (!nom) return { erreur: "Le nom du nouveau propriétaire est obligatoire.", valeurs };
+    if (!email) return { erreur: "L'adresse email du propriétaire est obligatoire.", valeurs };
     const { data: memeEmail } = await supabase
       .from("persons")
       .select("id")
@@ -354,6 +369,7 @@ export async function ajouterDetention(
       return {
         erreur:
           "Cette adresse email est déjà portée par une fiche de l'agence — choisissez la personne existante dans la liste.",
+        valeurs,
       };
     }
     const { data: personne, error: erreurPersonne } = await supabase
@@ -361,10 +377,10 @@ export async function ajouterDetention(
       .insert({ organization_id: orgId, nom, prenom: prenom || null, email })
       .select("id")
       .single();
-    if (erreurPersonne) return { erreur: sansJargon(erreurPersonne.message) };
+    if (erreurPersonne) return { erreur: sansJargon(erreurPersonne.message), valeurs };
     personId = personne.id;
   }
-  if (!personId) return { erreur: "Choisir un propriétaire." };
+  if (!personId) return { erreur: "Choisir un propriétaire.", valeurs };
 
   // La somme des quote-parts actives ≤ 100 % est garantie par trigger (RM-0.2.1)
   const { error } = await supabase.from("detentions").insert({
@@ -374,7 +390,7 @@ export async function ajouterDetention(
     quote_part: quotePart,
     ...(dateDebut ? { date_debut: dateDebut } : {}),
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   // Les blocages « détention » s'affichent aussi sur la fiche bien, le parc et
   // le tableau de bord : mêmes chemins que changerEtatLot.
@@ -479,20 +495,21 @@ export async function deposerDiagnostic(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const type = String(formData.get("type") ?? "");
   const realisation = String(formData.get("date_realisation") ?? "");
   const expiration = String(formData.get("date_expiration") ?? "");
   const diagnostiqueur = String(formData.get("diagnostiqueur") ?? "").trim();
 
   const referentiel = TYPES_DIAGNOSTIC[type];
-  if (!referentiel) return { erreur: "Type de diagnostic invalide." };
-  if (!realisation) return { erreur: "La date de réalisation est obligatoire." };
+  if (!referentiel) return { erreur: "Type de diagnostic invalide.", valeurs };
+  if (!realisation) return { erreur: "La date de réalisation est obligatoire.", valeurs };
 
   // Rattachement bien OU lot selon la nature du diagnostic (RM-0.6.2) ;
   // le dépôt archive l'ancien du même type et lève seul le blocage (RM-0.8.5)
   const auLot = referentiel.niveau === "lot";
   if (auLot && !lotId) {
-    return { erreur: "Ce diagnostic se rattache à un lot : le déposer depuis la fiche lot." };
+    return { erreur: "Ce diagnostic se rattache à un lot : le déposer depuis la fiche lot.", valeurs };
   }
 
   // PDF du rapport OBLIGATOIRE (arbitrage 2026-08-01) : le diagnostic est annexé
@@ -500,7 +517,7 @@ export async function deposerDiagnostic(
   // vérifié, anti-doublon, accès tracés) et lié au diagnostic.
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Le rapport (PDF) du diagnostic est obligatoire : il est annexé au bail." };
+    return { erreur: "Le rapport (PDF) du diagnostic est obligatoire : il est annexé au bail.", valeurs };
   }
   const depot = await deposerFichierGed(
     supabase,
@@ -511,7 +528,7 @@ export async function deposerDiagnostic(
     `${referentiel.libelle} — ${realisation}`
   );
   if (depot.erreur || !depot.documentId) {
-    return { erreur: depot.erreur ?? "Échec du dépôt du fichier." };
+    return { erreur: depot.erreur ?? "Échec du dépôt du fichier.", valeurs };
   }
   const documentId = depot.documentId;
 
@@ -530,7 +547,7 @@ export async function deposerDiagnostic(
     document_id: documentId,
     classe_dpe: classeDpe,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   if (lotId) revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
@@ -551,14 +568,15 @@ export async function ajouterPieceLot(
 ): Promise<EtatParc> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
-  if (!nom) return { erreur: "Le nom de la pièce est obligatoire." };
+  if (!nom) return { erreur: "Le nom de la pièce est obligatoire.", valeurs };
   // La colonne `ordre` restait nulle : les pièces remontaient alors par ordre
   // alphabétique, « Chambre » avant « Entrée ». On ajoute à la suite.
   const { error } = await supabase
     .from("lot_pieces")
     .insert({ lot_id: lotId, organization_id: orgId, nom, ordre: await prochainOrdre(supabase, lotId) });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: `Pièce « ${nom} » ajoutée.` };
 }
@@ -648,6 +666,7 @@ export async function enregistrerInfosPratiques(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const champ = (nom: string) => {
     const v = String(formData.get(nom) ?? "").trim();
     return v || null;
@@ -666,7 +685,7 @@ export async function enregistrerInfosPratiques(
     },
     { onConflict: "bien_id" }
   );
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}`);
   return { succes: "Informations pratiques enregistrées." };
@@ -712,8 +731,9 @@ export async function ajouterEquipementCatalogue(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
-  if (!nom) return { erreur: "Le nom de l'équipement est obligatoire." };
+  if (!nom) return { erreur: "Le nom de l'équipement est obligatoire.", valeurs };
 
   const { error } = await supabase
     .from("equipements_catalogue")
@@ -726,6 +746,7 @@ export async function ajouterEquipementCatalogue(
           : error.code === "42501"
             ? "Le catalogue est géré par l'admin de l'agence."
             : sansJargon(error.message),
+      valeurs,
     };
   }
 

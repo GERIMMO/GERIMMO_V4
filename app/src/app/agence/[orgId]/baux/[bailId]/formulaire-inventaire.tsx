@@ -103,24 +103,25 @@ export function FormulaireInventaire({
 
       <form action={formAction} className="space-y-3 border-t border-border pt-4">
         <p className="text-sm font-medium">Ajouter un meuble</p>
+        {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="inv-designation" className="text-xs">
               Désignation
             </Label>
-            <Input id="inv-designation" name="designation" required maxLength={120} placeholder="Canapé, lit 140, table…" />
+            <Input id="inv-designation" name="designation" required maxLength={120} placeholder="Canapé, lit 140, table…" defaultValue={etat.valeurs?.designation} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="inv-piece" className="text-xs">
               Pièce
             </Label>
-            <Input id="inv-piece" name="piece" maxLength={60} placeholder="Séjour, chambre 1…" />
+            <Input id="inv-piece" name="piece" maxLength={60} placeholder="Séjour, chambre 1…" defaultValue={etat.valeurs?.piece} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="inv-quantite" className="text-xs">
               Quantité
             </Label>
-            <Input id="inv-quantite" name="quantite" type="number" min={1} defaultValue={1} />
+            <Input id="inv-quantite" name="quantite" type="number" min={1} defaultValue={etat.valeurs?.quantite ?? 1} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="inv-etat" className="text-xs">
@@ -129,7 +130,7 @@ export function FormulaireInventaire({
             <select
               id="inv-etat"
               name="etat"
-              defaultValue="bon"
+              defaultValue={etat.valeurs?.etat ?? "bon"}
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
               {ETATS.map((e) => (
@@ -143,7 +144,7 @@ export function FormulaireInventaire({
             <Label htmlFor="inv-obs" className="text-xs">
               Observation
             </Label>
-            <Input id="inv-obs" name="observation" maxLength={200} placeholder="Rayure, tache… (facultatif)" />
+            <Input id="inv-obs" name="observation" maxLength={200} placeholder="Rayure, tache… (facultatif)" defaultValue={etat.valeurs?.observation} />
           </div>
         </div>
         {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

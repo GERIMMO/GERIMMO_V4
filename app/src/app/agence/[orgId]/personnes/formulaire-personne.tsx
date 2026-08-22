@@ -181,26 +181,29 @@ export function FormulairePersonne({
             </label>
           )}
 
+          {/* defaultValue={etat.valeurs?.…} : en erreur, l'action renvoie la
+              saisie et le reset React retombe dessus au lieu de vider (recette
+              22/08 — mécanique commune, voir lib/formulaires.ts). */}
           {morale ? (
             <div className="space-y-1.5">
               <Label htmlFor="p-nom">Raison sociale *</Label>
-              <Input id="p-nom" name="nom" required maxLength={120} placeholder="SCI Marchand" />
+              <Input id="p-nom" name="nom" required maxLength={120} placeholder="SCI Marchand" defaultValue={etat.valeurs?.nom} />
             </div>
           ) : (
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="p-nom">Nom *</Label>
-                <Input id="p-nom" name="nom" required maxLength={120} />
+                <Input id="p-nom" name="nom" required maxLength={120} defaultValue={etat.valeurs?.nom} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="p-prenom">Prénom *</Label>
-                <Input id="p-prenom" name="prenom" required maxLength={120} />
+                <Input id="p-prenom" name="prenom" required maxLength={120} defaultValue={etat.valeurs?.prenom} />
               </div>
             </>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="p-email">Adresse email *</Label>
-            <Input id="p-email" name="email" type="email" required maxLength={200} />
+            <Input id="p-email" name="email" type="email" required maxLength={200} defaultValue={etat.valeurs?.email} />
             <p className="text-xs text-muted-foreground">
               Une adresse ne peut appartenir qu&apos;à une seule fiche de
               l&apos;agence.
@@ -208,12 +211,12 @@ export function FormulairePersonne({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-tel">Téléphone</Label>
-            <Input id="p-tel" name="telephone" maxLength={40} />
+            <Input id="p-tel" name="telephone" maxLength={40} defaultValue={etat.valeurs?.telephone} />
           </div>
           {!morale && (
             <div className="space-y-1.5">
               <Label htmlFor="p-naissance">Date de naissance</Label>
-              <Input id="p-naissance" name="date_naissance" type="date" />
+              <Input id="p-naissance" name="date_naissance" type="date" defaultValue={etat.valeurs?.date_naissance} />
             </div>
           )}
 

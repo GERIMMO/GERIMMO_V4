@@ -26,6 +26,7 @@ import {
   BoutonRetirerLigne,
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
+import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
 
@@ -111,6 +112,23 @@ export default async function PagePersonne(
     id: l.id,
     libelle: `${nomBien(l.bien_id)} · ${l.nom}`,
   }));
+
+  // Lots déjà couverts par un mandat non résilié (le sien ou celui d'un
+  // co-détenteur) : inutile de les proposer, la base les refuserait (RM-5.1.3).
+  const { data: lignesCouvrantes } = lotIds.length
+    ? await supabase
+        .from("mandat_lignes")
+        .select("lot_id, mandat:mandats!inner(etat)")
+        .eq("organization_id", orgId)
+        .in("lot_id", lotIds)
+        .is("date_fin", null)
+    : { data: [] };
+  const lotsCouverts = new Set(
+    ((lignesCouvrantes ?? []) as { lot_id: string; mandat: UnOuPlusieurs<{ etat: string }> }[])
+      .filter((l) => premier(l.mandat)?.etat !== "resilie")
+      .map((l) => l.lot_id)
+  );
+  const lotsProposables = lotsOptions.filter((o) => !lotsCouverts.has(o.id));
 
   // Lignes des mandats
   const mandatIds = (mandats ?? []).map((m) => m.id);
@@ -409,7 +427,8 @@ export default async function PagePersonne(
                       orgId={orgId}
                       personId={personId}
                       mandatId={m.id}
-                      lots={lotsOptions}
+                      lots={lotsProposables}
+                      nbLotsDetenus={lotsOptions.length}
                     />
                   ) : (
                     !historise && (

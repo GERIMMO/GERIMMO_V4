@@ -23,7 +23,8 @@ export function FormulaireBailLot({
 
   return (
     <form action={formAction} className="space-y-3">
-      <ChampsBail personnes={personnes} />
+      {/* etat.valeurs : en erreur, la saisie du bail est reposée (recette 22/08) */}
+      <ChampsBail personnes={personnes} valeurs={etat.valeurs} />
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       <Button type="submit" size="sm" disabled={enCours}>
         {enCours ? "Création…" : "Créer le bail"}

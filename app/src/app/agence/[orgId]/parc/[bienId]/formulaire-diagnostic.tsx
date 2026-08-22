@@ -114,11 +114,13 @@ export function FormulaireDiagnostic({
         )}
         <div className="space-y-1.5">
           <Label htmlFor={`diag-diagnostiqueur-${niveau}`}>Diagnostiqueur</Label>
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <Input
             id={`diag-diagnostiqueur-${niveau}`}
             name="diagnostiqueur"
             maxLength={120}
             placeholder="Cabinet (facultatif)"
+            defaultValue={etat.valeurs?.diagnostiqueur}
           />
         </div>
         {type === "dpe" && (
@@ -127,7 +129,7 @@ export function FormulaireDiagnostic({
             <select
               id={`diag-classe-${niveau}`}
               name="classe_dpe"
-              defaultValue=""
+              defaultValue={etat.valeurs?.classe_dpe ?? ""}
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
               <option value="">—</option>

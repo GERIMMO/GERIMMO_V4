@@ -116,10 +116,11 @@ export function FormulaireConge({
           <Label htmlFor="conge-motif" className="text-xs">
             Motif (obligatoire — sinon le congé est nul)
           </Label>
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <select
             id="conge-motif"
             name="motif"
-            defaultValue=""
+            defaultValue={etat.valeurs?.motif ?? ""}
             required
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
@@ -222,12 +223,14 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
           <Label htmlFor="annulation-motif" className="text-xs">
             Pourquoi le congé s&apos;annule (facultatif)
           </Label>
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <Input
             id="annulation-motif"
             name="motif"
             maxLength={200}
             placeholder="Le locataire reste finalement…"
             className="w-64"
+            defaultValue={etat.valeurs?.motif}
           />
         </div>
         <Button type="submit" size="sm" variant="outline" disabled={enCours}>

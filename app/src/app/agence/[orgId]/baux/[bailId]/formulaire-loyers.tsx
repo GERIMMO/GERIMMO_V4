@@ -284,10 +284,11 @@ export function FormulaireLoyers({
             ))}
           </ul>
         )}
+        {/* En erreur, la saisie est reposée via etatEnc.valeurs (recette 22/08) */}
         <form action={formEnc} className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
             <Label htmlFor="enc-montant" className="text-xs">Montant (€)</Label>
-            <Input id="enc-montant" name="montant" type="number" step="0.01" min="0.01" className="h-9 w-28" />
+            <Input id="enc-montant" name="montant" type="number" step="0.01" min="0.01" defaultValue={etatEnc.valeurs?.montant} className="h-9 w-28" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="enc-date" className="text-xs">Date</Label>
@@ -300,7 +301,7 @@ export function FormulaireLoyers({
             <select
               id="enc-mode"
               name="mode"
-              defaultValue="virement"
+              defaultValue={etatEnc.valeurs?.mode ?? "virement"}
               className="h-9 w-36 rounded-md border border-input bg-transparent px-2 text-sm"
             >
               {Object.entries(MODES_PAIEMENT).map(([valeur, libelle]) => (
@@ -331,18 +332,19 @@ export function FormulaireLoyers({
               ))}
             </ul>
           )}
+          {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
           <form action={formRev} className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
               <Label htmlFor="irl-ref" className="text-xs">IRL de référence</Label>
-              <Input id="irl-ref" name="irl_reference" type="number" step="0.01" className="h-9 w-28" />
+              <Input id="irl-ref" name="irl_reference" type="number" step="0.01" defaultValue={etatRev.valeurs?.irl_reference} className="h-9 w-28" />
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-nouv" className="text-xs">IRL nouveau</Label>
-              <Input id="irl-nouv" name="irl_nouveau" type="number" step="0.01" className="h-9 w-28" />
+              <Input id="irl-nouv" name="irl_nouveau" type="number" step="0.01" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-date" className="text-xs">Date d&apos;effet</Label>
-              <Input id="irl-date" name="date_effet" type="date" className="h-9" />
+              <Input id="irl-date" name="date_effet" type="date" defaultValue={etatRev.valeurs?.date_effet} className="h-9" />
             </div>
             <Button type="submit" size="sm" variant="outline" disabled={enCoursRev}>
               {enCoursRev ? "…" : "Réviser le loyer"}
@@ -377,8 +379,9 @@ export function FormulaireLoyers({
             ))}
           </ul>
         )}
+        {/* En erreur, la saisie est reposée via etatRel.valeurs (recette 22/08) */}
         <form action={formRel} className="flex flex-wrap items-end gap-2">
-          <select name="niveau" defaultValue="relance_1" className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+          <select name="niveau" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
             <option value="relance_1">Relance 1</option>
             <option value="relance_2">Relance 2</option>
             <option value="mise_en_demeure">Mise en demeure (recommandé)</option>
@@ -391,7 +394,7 @@ export function FormulaireLoyers({
             <Label htmlFor="rel-pres" className="text-xs">1re présentation</Label>
             <InputDateJour id="rel-pres"   className="h-9" name="date_premiere_presentation" />
           </div>
-          <Input name="numero_recommande" placeholder="N° recommandé" className="h-9 w-32" />
+          <Input name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-32" />
           <Button type="submit" size="sm" variant="outline" disabled={enCoursRel}>
             {enCoursRel ? "…" : "Enregistrer la relance"}
           </Button>
@@ -426,13 +429,14 @@ export function FormulaireLoyers({
         )}
         {!chargesForfait && (
         <form action={formReg} className="flex flex-wrap items-end gap-2">
+          {/* En erreur, la saisie est reposée via etatReg.valeurs (recette 22/08) */}
           <div className="space-y-1">
             <Label htmlFor="reg-annee" className="text-xs">Année</Label>
-            <Input id="reg-annee" name="annee" type="number" defaultValue={anneeDefaut} className="h-9 w-24" />
+            <Input id="reg-annee" name="annee" type="number" defaultValue={etatReg.valeurs?.annee ?? anneeDefaut} className="h-9 w-24" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="reg-reel" className="text-xs">Charges réelles (€)</Label>
-            <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" className="h-9 w-32" />
+            <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="reg-just" className="text-xs">Justificatif</Label>

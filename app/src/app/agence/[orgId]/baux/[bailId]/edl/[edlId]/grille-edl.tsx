@@ -68,6 +68,12 @@ export function GrilleEdl({
   const [etats, setEtats] = useState<Record<string, string>>(() =>
     Object.fromEntries(lignes.map((l) => [l.id, l.etat ?? ""]))
   );
+  // Commentaires contrôlés eux aussi (recette 22/08) : React réinitialise les
+  // champs libres d'un formulaire après son action — la grille semblait se
+  // vider à chaque « Enregistrer » alors que la base était bien à jour.
+  const [commentaires, setCommentaires] = useState<Record<string, string>>(() =>
+    Object.fromEntries(lignes.map((l) => [l.id, l.commentaire ?? ""]))
+  );
   const manquantes = lignes.filter((l) => !etats[l.id]).length;
 
   if (signe) {
@@ -136,7 +142,7 @@ export function GrilleEdl({
                 <span className="w-36 shrink-0 truncate text-sm">{l.libelle}</span>
                 <select
                   name={`etat_${l.id}`}
-                  value={etats[l.id]}
+                  value={etats[l.id] ?? ""}
                   onChange={(e) =>
                     setEtats((prev) => ({ ...prev, [l.id]: e.target.value }))
                   }
@@ -151,7 +157,10 @@ export function GrilleEdl({
                 </select>
                 <Input
                   name={`commentaire_${l.id}`}
-                  defaultValue={l.commentaire ?? ""}
+                  value={commentaires[l.id] ?? ""}
+                  onChange={(e) =>
+                    setCommentaires((prev) => ({ ...prev, [l.id]: e.target.value }))
+                  }
                   placeholder="commentaire"
                   className="h-8 min-w-40 flex-1 text-sm"
                 />

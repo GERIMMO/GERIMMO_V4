@@ -25,7 +25,9 @@ export function FormulaireEditionBail({
 
   return (
     <form action={formAction} className="space-y-3">
-      <ChampsBail personnes={personnes} defauts={defauts} prefixe="edition" />
+      {/* etat.valeurs prime sur les défauts du brouillon : un refus ne doit pas
+          écraser les corrections saisies (recette 22/08). */}
+      <ChampsBail personnes={personnes} defauts={defauts} prefixe="edition" valeurs={etat.valeurs} />
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>

@@ -138,6 +138,7 @@ export function FormulaireDetention({
         {montrerQuotePart ? (
           <div className="space-y-1.5">
             <Label htmlFor="detention-quote-part">Quote-part (%)</Label>
+            {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
             <Input
               id="detention-quote-part"
               name="quote_part"
@@ -147,6 +148,7 @@ export function FormulaireDetention({
               max="100"
               required
               placeholder="ex. 50"
+              defaultValue={etat.valeurs?.quote_part}
             />
           </div>
         ) : (

@@ -36,11 +36,13 @@ export function FormulaireAttestation({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="att-expire">Date d&apos;expiration</Label>
-          <Input id="att-expire" name="expire_le" type="date" required />
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08 —
+              le fichier, lui, est à re-choisir). */}
+          <Input id="att-expire" name="expire_le" type="date" required defaultValue={etat.valeurs?.expire_le} />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="att-titre">Assureur (facultatif)</Label>
-          <Input id="att-titre" name="titre" maxLength={200} placeholder="ex. MAIF, contrat n°…" />
+          <Input id="att-titre" name="titre" maxLength={200} placeholder="ex. MAIF, contrat n°…" defaultValue={etat.valeurs?.titre} />
         </div>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

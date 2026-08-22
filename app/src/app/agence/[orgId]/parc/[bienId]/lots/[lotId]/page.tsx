@@ -10,7 +10,7 @@ import {
   cibleBlocage,
   alerteDiagnostics,
 } from "@/lib/parc";
-import { formaterDate } from "@/lib/ged";
+import { formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
@@ -101,7 +101,7 @@ export default async function PageLot(
     supabase.rpc("lot_blocages_location", { p_lot: lotId }),
     supabase
       .from("baux")
-      .select("id, type, etat, locataire_principal")
+      .select("id, type, etat, locataire_principal, loyer_hc, charges, date_debut, date_fin")
       .eq("lot_id", lotId)
       .order("created_at", { ascending: false }),
     supabase
@@ -423,13 +423,27 @@ export default async function PageLot(
                       <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
                         {ETATS_BAIL[b.etat] ?? b.etat}
                       </span>
-                      {/* Recette 21/08 : la vue macro dit qui habite, avant
-                          d'ouvrir — type lisible + locataire */}
+                      {/* Recette 21/08 puis 22/08 : la vue macro dit qui
+                          habite, pour combien et depuis quand — avant
+                          d'ouvrir. */}
                       <span className="min-w-0 flex-1 truncate text-sm">
                         Bail {(TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
                         {b.locataire_principal && nomsParId.get(b.locataire_principal)
                           ? ` — ${nomsParId.get(b.locataire_principal)}`
                           : ""}
+                        {(b.loyer_hc != null || b.date_debut || b.date_fin) && (
+                          <span className="block truncate text-xs text-muted-foreground sm:inline sm:before:content-['_·_']">
+                            {[
+                              b.loyer_hc != null
+                                ? `${eur(Number(b.loyer_hc) + Number(b.charges ?? 0))} cc`
+                                : null,
+                              b.date_debut ? `entrée le ${formaterDate(b.date_debut)}` : null,
+                              b.date_fin ? `fin le ${formaterDate(b.date_fin)}` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        )}
                       </span>
                       <Link
                         href={`/agence/${orgId}/baux/${b.id}`}

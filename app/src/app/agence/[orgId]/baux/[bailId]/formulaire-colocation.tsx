@@ -113,10 +113,11 @@ export function FormulaireColocation({
             <Label htmlFor="coloc-person" className="text-xs">
               Personne
             </Label>
+            {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08) */}
             <select
               id="coloc-person"
               name="person_id"
-              defaultValue=""
+              defaultValue={etatC.valeurs?.person_id ?? ""}
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
               <option value="" disabled>
@@ -133,13 +134,13 @@ export function FormulaireColocation({
             <Label htmlFor="coloc-qp" className="text-xs">
               Quote-part %
             </Label>
-            <Input id="coloc-qp" name="quote_part" type="number" min="0" max="100" step="0.01" />
+            <Input id="coloc-qp" name="quote_part" type="number" min="0" max="100" step="0.01" defaultValue={etatC.valeurs?.quote_part} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="coloc-surf" className="text-xs">
               Surface privée (m²)
             </Label>
-            <Input id="coloc-surf" name="surface_privative" type="number" min="0" step="0.01" />
+            <Input id="coloc-surf" name="surface_privative" type="number" min="0" step="0.01" defaultValue={etatC.valeurs?.surface_privative} />
           </div>
           <div className="sm:col-span-4">
             <Button type="submit" size="sm" variant="outline" disabled={enCoursC}>
@@ -176,10 +177,11 @@ export function FormulaireColocation({
             <Label htmlFor="garant-person" className="text-xs">
               Garant
             </Label>
+            {/* En erreur, la saisie est reposée via etatG.valeurs (recette 22/08) */}
             <select
               id="garant-person"
               name="person_id"
-              defaultValue=""
+              defaultValue={etatG.valeurs?.person_id ?? ""}
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
               <option value="" disabled>
@@ -199,7 +201,7 @@ export function FormulaireColocation({
             <select
               id="garant-de"
               name="garant_de"
-              defaultValue=""
+              defaultValue={etatG.valeurs?.garant_de ?? ""}
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
               <option value="" disabled>

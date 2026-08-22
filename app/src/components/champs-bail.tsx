@@ -26,15 +26,19 @@ const classeSelect =
   "h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm";
 
 // Les champs communs création / édition d'un bail. `prefixe` distingue les ids
-// quand deux formulaires cohabitent sur une même page.
+// quand deux formulaires cohabitent sur une même page. `valeurs` : la saisie
+// renvoyée par l'action en erreur — reposée en priorité pour que le reset
+// React ne vide pas le formulaire (recette 22/08, voir lib/formulaires.ts).
 export function ChampsBail({
   personnes,
   defauts = {},
   prefixe = "bail",
+  valeurs,
 }: {
   personnes: Personne[];
   defauts?: BailDefauts;
   prefixe?: string;
+  valeurs?: Record<string, string>;
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
@@ -43,7 +47,7 @@ export function ChampsBail({
         <select
           id={`${prefixe}-type`}
           name="type"
-          defaultValue={defauts.type ?? "nu"}
+          defaultValue={valeurs?.type ?? defauts.type ?? "nu"}
           className={classeSelect}
         >
           <option value="nu">Nu</option>
@@ -57,7 +61,7 @@ export function ChampsBail({
           id={`${prefixe}-locataire`}
           name="locataire_principal"
           required
-          defaultValue={defauts.locataire_principal ?? ""}
+          defaultValue={valeurs?.locataire_principal ?? defauts.locataire_principal ?? ""}
           className={classeSelect}
         >
           <option value="" disabled>
@@ -78,7 +82,7 @@ export function ChampsBail({
           id={`${prefixe}-debut`}
           name="date_debut"
           type="date"
-          defaultValue={defauts.date_debut ?? ""}
+          defaultValue={valeurs?.date_debut ?? defauts.date_debut ?? ""}
         />
       </div>
       <div className="space-y-1.5">
@@ -89,7 +93,7 @@ export function ChampsBail({
           type="number"
           min="1"
           max="28"
-          defaultValue={defauts.jour_echeance ?? 1}
+          defaultValue={valeurs?.jour_echeance ?? defauts.jour_echeance ?? 1}
         />
       </div>
       <div className="space-y-1.5">
@@ -100,7 +104,7 @@ export function ChampsBail({
           type="number"
           step="0.01"
           min="0"
-          defaultValue={defauts.loyer_hc ?? ""}
+          defaultValue={valeurs?.loyer_hc ?? defauts.loyer_hc ?? ""}
         />
       </div>
       <div className="space-y-1.5">
@@ -111,7 +115,7 @@ export function ChampsBail({
           type="number"
           step="0.01"
           min="0"
-          defaultValue={defauts.charges ?? ""}
+          defaultValue={valeurs?.charges ?? defauts.charges ?? ""}
         />
       </div>
       <div className="space-y-1.5">
@@ -119,7 +123,7 @@ export function ChampsBail({
         <select
           id={`${prefixe}-charges-mode`}
           name="charges_mode"
-          defaultValue={defauts.charges_mode ?? "provision"}
+          defaultValue={valeurs?.charges_mode ?? defauts.charges_mode ?? "provision"}
           className={classeSelect}
         >
           <option value="provision">Provision (régularisée chaque année)</option>
@@ -134,7 +138,7 @@ export function ChampsBail({
           type="number"
           step="0.01"
           min="0"
-          defaultValue={defauts.depot_garantie ?? ""}
+          defaultValue={valeurs?.depot_garantie ?? defauts.depot_garantie ?? ""}
         />
       </div>
       <div className="space-y-1.5">
@@ -142,7 +146,7 @@ export function ChampsBail({
         <select
           id={`${prefixe}-irl`}
           name="irl_trimestre"
-          defaultValue={defauts.irl_trimestre ?? ""}
+          defaultValue={valeurs?.irl_trimestre ?? defauts.irl_trimestre ?? ""}
           className={classeSelect}
         >
           <option value="">—</option>
@@ -159,7 +163,7 @@ export function ChampsBail({
           name="revision_irl"
           type="checkbox"
           value="on"
-          defaultChecked={defauts.revision_irl ?? true}
+          defaultChecked={valeurs ? valeurs.revision_irl === "on" : defauts.revision_irl ?? true}
           className="size-4"
         />
         <Label htmlFor={`${prefixe}-revision`}>Clause de révision annuelle (IRL)</Label>

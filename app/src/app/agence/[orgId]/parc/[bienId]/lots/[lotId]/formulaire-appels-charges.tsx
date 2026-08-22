@@ -180,7 +180,8 @@ function FormCreerAppel({
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
           <Label htmlFor="ac-ex" className="text-xs">Exercice</Label>
-          <Input id="ac-ex" name="exercice" type="number" min="2000" max="2100" defaultValue={anneeCourante} className="h-9 w-24" />
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
+          <Input id="ac-ex" name="exercice" type="number" min="2000" max="2100" defaultValue={etat.valeurs?.exercice ?? anneeCourante} className="h-9 w-24" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ac-date" className="text-xs">Reçu le</Label>
@@ -188,7 +189,7 @@ function FormCreerAppel({
         </div>
         <div className="space-y-1">
           <Label htmlFor="ac-total" className="text-xs">Total de l&apos;appel (€)</Label>
-          <Input id="ac-total" name="total" type="number" step="0.01" min="0.01" className="h-9 w-32" />
+          <Input id="ac-total" name="total" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.total} className="h-9 w-32" />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -222,8 +223,9 @@ function FormAjouterPoste({
   );
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
-      <Input name="libelle" placeholder="Poste (ex. ascenseur — entretien)" className="h-9 w-64" />
-      <Input name="montant" type="number" step="0.01" min="0.01" placeholder="€" className="h-9 w-24" />
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
+      <Input name="libelle" placeholder="Poste (ex. ascenseur — entretien)" defaultValue={etat.valeurs?.libelle} className="h-9 w-64" />
+      <Input name="montant" type="number" step="0.01" min="0.01" placeholder="€" defaultValue={etat.valeurs?.montant} className="h-9 w-24" />
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "…" : "Ajouter le poste"}
       </Button>
@@ -249,9 +251,10 @@ function FormQualifierPoste({
   );
   return (
     <form action={action} className="mt-1 flex flex-wrap items-center gap-2">
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <select
         name="nature"
-        defaultValue={poste.nature}
+        defaultValue={etat.valeurs?.nature ?? poste.nature}
         className="h-7 rounded-md border border-input bg-transparent px-1 text-xs"
       >
         <option value="recuperable">Récupérable</option>
@@ -259,7 +262,7 @@ function FormQualifierPoste({
         <option value="a_qualifier">À qualifier</option>
       </select>
       <label className="flex items-center gap-1 text-xs">
-        <input type="checkbox" name="fonds_alur" defaultChecked={poste.fonds_alur} className="size-3.5" />
+        <input type="checkbox" name="fonds_alur" defaultChecked={etat.valeurs ? etat.valeurs.fonds_alur === "on" : poste.fonds_alur} className="size-3.5" />
         fonds ALUR
       </label>
       <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="h-7 text-xs">

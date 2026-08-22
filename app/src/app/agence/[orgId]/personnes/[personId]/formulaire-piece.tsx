@@ -30,11 +30,13 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         <Label htmlFor="piece-type" className="text-xs">
           Type de pièce
         </Label>
+        {/* defaultValue={etat.valeurs?.…} : en erreur, la saisie est reposée
+            (recette 22/08 — le fichier, lui, est à re-choisir). */}
         <select
           id="piece-type"
           name="type"
           required
-          defaultValue="piece_identite"
+          defaultValue={etat.valeurs?.type ?? "piece_identite"}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           {Object.entries(TYPES_PIECE_DOSSIER).map(([valeur, libelle]) => (
@@ -48,13 +50,13 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         <Label htmlFor="piece-titre" className="text-xs">
           Titre
         </Label>
-        <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" />
+        <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" defaultValue={etat.valeurs?.titre} />
       </div>
       <div className="w-40 space-y-1.5">
         <Label htmlFor="piece-expire" className="text-xs">
           Expire le (assurance)
         </Label>
-        <Input id="piece-expire" name="expire_le" type="date" />
+        <Input id="piece-expire" name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="piece-fichier" className="text-xs">
@@ -129,7 +131,7 @@ export function FormulaireNouvelleVersion({
           id={`version-titre-${remplaceId}`}
           name="titre"
           maxLength={200}
-          defaultValue={titre ?? ""}
+          defaultValue={etat.valeurs?.titre ?? titre ?? ""}
         />
       </div>
       {type === "attestation_assurance" && (
@@ -137,7 +139,7 @@ export function FormulaireNouvelleVersion({
           <Label htmlFor={`version-expire-${remplaceId}`} className="text-xs">
             Expire le
           </Label>
-          <Input id={`version-expire-${remplaceId}`} name="expire_le" type="date" />
+          <Input id={`version-expire-${remplaceId}`} name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
         </div>
       )}
       <div className="space-y-1.5">

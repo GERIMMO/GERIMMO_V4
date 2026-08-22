@@ -1412,3 +1412,13 @@ fichier, `livrables/Recette S3-S8 - tests par sprint et persona.md`.
   pour garder la vision de ce qui a déjà été validé : bloc 0 (08/08), C.2-C.4,
   C.5.1-3+5, C.7, 3.2.1+3, 3.3.1-4 (13/08), recette automatisée du 14/08
   (ne vaut pas validation), correctifs du 21/08 (re-tests en étape 3).
+
+## [2026-08-22] recette | Livrable restructuré en deux parties : Recetté OK / Reste à recetter
+
+Suite du réaménagement demandé : le fichier central
+`livrables/Recette S3-S8 - tests par sprint et persona.md` est restructuré en
+deux parties : **Partie 1 — Recetté OK** (l'historique des validations remonte
+en tête) et **Partie 2 — Reste à recetter**, elle-même en deux blocs :
+2.A les re-tests suite aux retours de recette (étapes 1 du 13/08, 2 du 19/08,
+3 du 21/08), 2.B les sprints jamais déroulés (S3 reste, S4, S5, S6, S8,
+transverse, décisions à trancher). Contenu des scénarios inchangé.

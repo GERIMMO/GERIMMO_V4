@@ -1,7 +1,11 @@
 "use client";
 
 import { useActionState, useEffect, useRef } from "react";
-import { deposerPieceDossier, type EtatDossier } from "@/app/actions/dossier";
+import {
+  deposerPieceDossier,
+  validerAttestation,
+  type EtatDossier,
+} from "@/app/actions/dossier";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,11 +30,13 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         <Label htmlFor="piece-type" className="text-xs">
           Type de pièce
         </Label>
+        {/* defaultValue={etat.valeurs?.…} : en erreur, la saisie est reposée
+            (recette 22/08 — le fichier, lui, est à re-choisir). */}
         <select
           id="piece-type"
           name="type"
           required
-          defaultValue="piece_identite"
+          defaultValue={etat.valeurs?.type ?? "piece_identite"}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           {Object.entries(TYPES_PIECE_DOSSIER).map(([valeur, libelle]) => (
@@ -44,13 +50,13 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         <Label htmlFor="piece-titre" className="text-xs">
           Titre
         </Label>
-        <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" />
+        <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" defaultValue={etat.valeurs?.titre} />
       </div>
       <div className="w-40 space-y-1.5">
         <Label htmlFor="piece-expire" className="text-xs">
           Expire le (assurance)
         </Label>
-        <Input id="piece-expire" name="expire_le" type="date" />
+        <Input id="piece-expire" name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="piece-fichier" className="text-xs">
@@ -65,6 +71,32 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
       {etat.succes && (
         <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
+    </form>
+  );
+}
+
+// Valider l'attestation déposée par le locataire (recette 21/08) : l'agent
+// ouvre la pièce, la vérifie, puis la marque validée — le locataire voit le
+// statut passer de « en cours de vérification » à « validée ».
+export function BoutonValiderAttestation({
+  orgId,
+  personId,
+  documentId,
+}: {
+  orgId: string;
+  personId: string;
+  documentId: string;
+}) {
+  const [etat, formAction, enCours] = useActionState<EtatDossier, FormData>(
+    () => validerAttestation(orgId, personId, documentId),
+    {}
+  );
+  return (
+    <form action={formAction} className="inline">
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "…" : "Valider"}
+      </Button>
+      {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
     </form>
   );
 }
@@ -99,7 +131,7 @@ export function FormulaireNouvelleVersion({
           id={`version-titre-${remplaceId}`}
           name="titre"
           maxLength={200}
-          defaultValue={titre ?? ""}
+          defaultValue={etat.valeurs?.titre ?? titre ?? ""}
         />
       </div>
       {type === "attestation_assurance" && (
@@ -107,7 +139,7 @@ export function FormulaireNouvelleVersion({
           <Label htmlFor={`version-expire-${remplaceId}`} className="text-xs">
             Expire le
           </Label>
-          <Input id={`version-expire-${remplaceId}`} name="expire_le" type="date" />
+          <Input id={`version-expire-${remplaceId}`} name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
         </div>
       )}
       <div className="space-y-1.5">

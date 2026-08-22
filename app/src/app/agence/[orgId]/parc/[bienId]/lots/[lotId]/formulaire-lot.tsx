@@ -35,14 +35,16 @@ export function FormulaireLot({
 
   return (
     <form action={action} className="space-y-4">
+      {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe sur
+          la saisie, pas sur les valeurs d'origine (recette 22/08). */}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="lot-nom">Nom du lot</Label>
-          <Input id="lot-nom" name="nom" required maxLength={120} defaultValue={lot.nom} />
+          <Input id="lot-nom" name="nom" required maxLength={120} defaultValue={etat.valeurs?.nom ?? lot.nom} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="lot-etage">Étage</Label>
-          <Input id="lot-etage" name="etage" maxLength={40} defaultValue={lot.etage ?? ""} />
+          <Input id="lot-etage" name="etage" maxLength={40} defaultValue={etat.valeurs?.etage ?? lot.etage ?? ""} />
         </div>
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="lot-fiscal">Identifiant fiscal du logement</Label>
@@ -50,7 +52,7 @@ export function FormulaireLot({
             id="lot-fiscal"
             name="identifiant_fiscal"
             maxLength={20}
-            defaultValue={lot.identifiant_fiscal ?? ""}
+            defaultValue={etat.valeurs?.identifiant_fiscal ?? lot.identifiant_fiscal ?? ""}
             placeholder="13 chiffres (avis de taxe foncière) — obligatoire au bail"
           />
         </div>
@@ -62,7 +64,7 @@ export function FormulaireLot({
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={lot.surface_m2 ?? ""}
+            defaultValue={etat.valeurs?.surface_m2 ?? lot.surface_m2 ?? ""}
             disabled={verrouille}
           />
         </div>
@@ -74,7 +76,7 @@ export function FormulaireLot({
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={lot.surface_carrez ?? ""}
+            defaultValue={etat.valeurs?.surface_carrez ?? lot.surface_carrez ?? ""}
             disabled={verrouille}
           />
           <p className="text-xs text-muted-foreground">
@@ -89,7 +91,7 @@ export function FormulaireLot({
             name="pieces"
             type="number"
             min={1}
-            defaultValue={lot.pieces ?? ""}
+            defaultValue={etat.valeurs?.pieces ?? lot.pieces ?? ""}
             disabled={verrouille}
           />
         </div>
@@ -101,7 +103,7 @@ export function FormulaireLot({
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={lot.tantieme ?? ""}
+            defaultValue={etat.valeurs?.tantieme ?? lot.tantieme ?? ""}
           />
         </div>
         <div className="flex items-center gap-2 pt-2">
@@ -109,7 +111,7 @@ export function FormulaireLot({
             id="lot-meuble"
             name="meuble"
             type="checkbox"
-            defaultChecked={lot.meuble}
+            defaultChecked={etat.valeurs ? etat.valeurs.meuble === "on" : lot.meuble}
             className="size-4"
           />
           <Label htmlFor="lot-meuble">Meublé</Label>
@@ -122,7 +124,7 @@ export function FormulaireLot({
           name="description"
           rows={3}
           maxLength={2000}
-          defaultValue={lot.description ?? ""}
+          defaultValue={etat.valeurs?.description ?? lot.description ?? ""}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
         />
       </div>

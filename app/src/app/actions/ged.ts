@@ -6,8 +6,14 @@ import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { TYPES_DEPOSABLES } from "@/lib/ged";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatDepot = { erreur?: string; succes?: string };
+export type EtatDepot = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 export async function deposerDocument(
   orgId: string,
@@ -17,24 +23,25 @@ export async function deposerDocument(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const fichier = formData.get("fichier");
   const type = String(formData.get("type") ?? "");
   const titre = String(formData.get("titre") ?? "").trim();
   const personneId = String(formData.get("personne") ?? "");
 
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Choisissez un fichier." };
+    return { erreur: "Choisissez un fichier.", valeurs };
   }
   if (!(TYPES_DEPOSABLES as readonly string[]).includes(type)) {
-    return { erreur: "Type de document invalide." };
+    return { erreur: "Type de document invalide.", valeurs };
   }
   if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
+    return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
   }
 
   const resultat = await deposerFichierGed(supabase, user, orgId, fichier, type, titre);
   if (resultat.erreur || !resultat.documentId) {
-    return { erreur: resultat.erreur ?? "Échec du dépôt." };
+    return { erreur: resultat.erreur ?? "Échec du dépôt.", valeurs };
   }
 
   // Rattachement complémentaire (module 12) : la personne si choisie
@@ -46,7 +53,7 @@ export async function deposerDocument(
       entite_id: personneId,
     });
     if (erreurLien) {
-      return { erreur: `Document déposé mais rattachement en échec : ${sansJargon(erreurLien.message)}` };
+      return { erreur: `Document déposé mais rattachement en échec : ${sansJargon(erreurLien.message)}`, valeurs };
     }
   }
 

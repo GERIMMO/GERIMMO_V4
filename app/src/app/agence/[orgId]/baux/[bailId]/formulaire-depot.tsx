@@ -121,13 +121,14 @@ function FormEncaisser({
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
           <Label htmlFor="dep-montant" className="text-xs">Montant (€)</Label>
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <Input
             id="dep-montant"
             name="montant"
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={reste}
+            defaultValue={etat.valeurs?.montant ?? reste}
             className="h-9 w-28"
           />
         </div>
@@ -137,7 +138,7 @@ function FormEncaisser({
         </div>
         <div className="space-y-1">
           <Label htmlFor="dep-moyen" className="text-xs">Moyen</Label>
-          <Input id="dep-moyen" name="moyen" placeholder="virement, chèque…" className="h-9 w-36" />
+          <Input id="dep-moyen" name="moyen" placeholder="virement, chèque…" defaultValue={etat.valeurs?.moyen} className="h-9 w-36" />
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-2">
@@ -146,7 +147,7 @@ function FormEncaisser({
           <select
             id="dep-versant"
             name="versant_person"
-            defaultValue=""
+            defaultValue={etat.valeurs?.versant_person ?? ""}
             className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
           >
             <option value="">Le locataire</option>
@@ -155,7 +156,7 @@ function FormEncaisser({
             ))}
           </select>
         </div>
-        <Input name="versant_libelle" placeholder="ou tiers hors fiche" className="h-9 w-44" />
+        <Input name="versant_libelle" placeholder="ou tiers hors fiche" defaultValue={etat.valeurs?.versant_libelle} className="h-9 w-44" />
         <Button type="submit" size="sm" disabled={enCours}>
           {enCours ? "…" : "Encaisser"}
         </Button>

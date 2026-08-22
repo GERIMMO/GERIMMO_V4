@@ -92,7 +92,8 @@ function BoutonGenererRapport({ orgId, mandatId, moisCourant }: { orgId: string;
   const [etat, action, enCours] = useActionState<EtatCompta, FormData>(genererRapport.bind(null, orgId, mandatId), {});
   return (
     <form action={action} className="flex items-end gap-2">
-      <Input name="mois" type="month" defaultValue={moisCourant} className="h-8 text-sm" />
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
+      <Input name="mois" type="month" defaultValue={etat.valeurs?.mois ?? moisCourant} className="h-8 text-sm" />
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "…" : "Générer le rapport"}
       </Button>
@@ -106,7 +107,7 @@ function BoutonEnvoyerRapport({ orgId, rapportId }: { orgId: string; rapportId: 
   const [etat, action, enCours] = useActionState<EtatCompta, FormData>(envoyerRapport.bind(null, orgId, rapportId), {});
   return (
     <form action={action} className="flex items-center gap-1">
-      <Input name="commentaire" placeholder="commentaire" className="h-7 w-32 text-xs" />
+      <Input name="commentaire" placeholder="commentaire" defaultValue={etat.valeurs?.commentaire} className="h-7 w-32 text-xs" />
       <Button type="submit" size="sm" variant="ghost" disabled={enCours}>Valider & envoyer</Button>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
@@ -117,7 +118,7 @@ function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string 
   const [etat, action, enCours] = useActionState<EtatCompta, FormData>(enregistrerVersement.bind(null, orgId, rapportId), {});
   return (
     <form action={action} className="flex items-center gap-1">
-      <Input name="montant" type="number" step="0.01" placeholder="versé €" className="h-7 w-24 text-xs" />
+      <Input name="montant" type="number" step="0.01" placeholder="versé €" defaultValue={etat.valeurs?.montant} className="h-7 w-24 text-xs" />
       <InputDateJour   className="h-7 text-xs" name="date" />
       <Button type="submit" size="sm" variant="ghost" disabled={enCours}>Versement</Button>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
@@ -132,20 +133,21 @@ export function FormulaireEcriture({ orgId }: { orgId: string }) {
   );
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <div className="space-y-1">
         <Label htmlFor="ec-sens" className="text-xs">Sens</Label>
-        <select id="ec-sens" name="sens" defaultValue="depense" className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+        <select id="ec-sens" name="sens" defaultValue={etat.valeurs?.sens ?? "depense"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
           <option value="recette">Recette</option>
           <option value="depense">Dépense</option>
         </select>
       </div>
       <div className="space-y-1">
         <Label htmlFor="ec-cat" className="text-xs">Catégorie</Label>
-        <Input id="ec-cat" name="categorie" placeholder="travaux, charges…" className="h-9 w-36" />
+        <Input id="ec-cat" name="categorie" placeholder="travaux, charges…" defaultValue={etat.valeurs?.categorie} className="h-9 w-36" />
       </div>
       <div className="space-y-1">
         <Label htmlFor="ec-montant" className="text-xs">Montant (€)</Label>
-        <Input id="ec-montant" name="montant" type="number" step="0.01" min="0.01" className="h-9 w-28" />
+        <Input id="ec-montant" name="montant" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-28" />
       </div>
       <div className="space-y-1">
         <Label htmlFor="ec-piece" className="text-xs">Date pièce</Label>
@@ -155,7 +157,7 @@ export function FormulaireEcriture({ orgId }: { orgId: string }) {
         <Label htmlFor="ec-imput" className="text-xs">Imputation</Label>
         <InputDateJour id="ec-imput"   className="h-9" name="date_imputation" />
       </div>
-      <Input name="libelle" placeholder="Libellé (facultatif)" className="h-9 w-40" />
+      <Input name="libelle" placeholder="Libellé (facultatif)" defaultValue={etat.valeurs?.libelle} className="h-9 w-40" />
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "…" : "Ajouter l'écriture"}
       </Button>
@@ -177,22 +179,23 @@ export function FormulaireVentilation({
   );
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <div className="space-y-1">
         <Label htmlFor="v-bien" className="text-xs">Bien</Label>
-        <select id="v-bien" name="bien_id" defaultValue="" className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+        <select id="v-bien" name="bien_id" defaultValue={etat.valeurs?.bien_id ?? ""} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
           <option value="" disabled>Choisir…</option>
           {biens.map((b) => (
             <option key={b.id} value={b.id}>{b.nom}</option>
           ))}
         </select>
       </div>
-      <Input name="categorie" placeholder="Catégorie (travaux…)" className="h-9 w-36" />
-      <Input name="montant" type="number" step="0.01" min="0.01" placeholder="Montant €" className="h-9 w-28" />
+      <Input name="categorie" placeholder="Catégorie (travaux…)" defaultValue={etat.valeurs?.categorie} className="h-9 w-36" />
+      <Input name="montant" type="number" step="0.01" min="0.01" placeholder="Montant €" defaultValue={etat.valeurs?.montant} className="h-9 w-28" />
       <div className="space-y-1">
         <Label htmlFor="v-piece" className="text-xs">Date pièce</Label>
         <InputDateJour id="v-piece"   className="h-9" name="date_piece" />
       </div>
-      <Input name="libelle" placeholder="Libellé" className="h-9 w-36" />
+      <Input name="libelle" placeholder="Libellé" defaultValue={etat.valeurs?.libelle} className="h-9 w-36" />
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "…" : "Ventiler la dépense"}
       </Button>
@@ -211,7 +214,7 @@ export function FormulaireCloture({ orgId, moisCourant }: { orgId: string; moisC
     <form action={action} className="flex items-end gap-2">
       <div className="space-y-1">
         <Label htmlFor="clot-mois" className="text-xs">Mois</Label>
-        <Input id="clot-mois" name="mois" type="month" defaultValue={moisCourant} className="h-9" />
+        <Input id="clot-mois" name="mois" type="month" defaultValue={etat.valeurs?.mois ?? moisCourant} className="h-9" />
       </div>
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "…" : "Clôturer le mois"}
@@ -232,7 +235,7 @@ export function BoutonContre({ orgId, ecritureId }: { orgId: string; ecritureId:
     // « contre-écriture » : le même mot pour l'action et pour son résultat.
     // Le bouton dit ce qu'il fait, l'étiquette dit ce que la ligne est.
     <form action={action} className="flex items-center gap-1">
-      <Input name="motif" placeholder="motif" className="h-7 w-28 text-xs" />
+      <Input name="motif" placeholder="motif" defaultValue={etat.valeurs?.motif} className="h-7 w-28 text-xs" />
       <Button type="submit" size="sm" variant="ghost" disabled={enCours}>
         Annuler
       </Button>

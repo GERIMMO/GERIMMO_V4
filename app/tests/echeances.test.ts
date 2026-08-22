@@ -49,7 +49,7 @@ describe("afficherEcheance — forme longue (phrase)", () => {
 describe("resumerBlocage", () => {
   it("raccourcit les messages de la base pour une liste", () => {
     expect(resumerBlocage("Détention incomplète (0 % — il faut exactement 100 %)")).toBe(
-      "Propriétaire non rattaché"
+      "Propriétaire mandant non rattaché"
     );
     expect(resumerBlocage("DPE absent ou expiré (obligatoire en habitation)")).toBe(
       "DPE absent"

@@ -149,7 +149,8 @@ function FormDemarrer({ orgId, bailId }: { orgId: string; bailId: string }) {
           <InputDateJour id="rst-date"   className="h-9" name="date_remise_cles" />
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm">
-          <input type="checkbox" name="conforme" className="size-4" />
+          {/* En erreur, la case cochée est reposée via etat.valeurs (recette 22/08) */}
+          <input type="checkbox" name="conforme" defaultChecked={etat.valeurs ? etat.valeurs.conforme === "on" : false} className="size-4" />
           Sortie conforme à l&apos;entrée (délai 1 mois)
         </label>
         <Button type="submit" size="sm" disabled={enCours}>
@@ -177,19 +178,20 @@ function FormRetenue({
   return (
     <form action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Ajouter une retenue (décote de vétusté)</p>
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <div className="flex flex-wrap items-end gap-2">
-        <Input name="libelle" placeholder="Ex. remise en peinture séjour" className="h-9 w-56" />
+        <Input name="libelle" placeholder="Ex. remise en peinture séjour" defaultValue={etat.valeurs?.libelle} className="h-9 w-56" />
         <div className="space-y-1">
           <Label htmlFor="ret-cout" className="text-xs">Coût (€)</Label>
-          <Input id="ret-cout" name="cout" type="number" step="0.01" min="0.01" className="h-9 w-24" />
+          <Input id="ret-cout" name="cout" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.cout} className="h-9 w-24" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-duree" className="text-xs">Durée de vie (ans)</Label>
-          <Input id="ret-duree" name="duree_vie" type="number" step="1" min="1" list="bareme-vetuste" className="h-9 w-28" />
+          <Input id="ret-duree" name="duree_vie" type="number" step="1" min="1" list="bareme-vetuste" defaultValue={etat.valeurs?.duree_vie} className="h-9 w-28" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-age" className="text-xs">Âge (ans)</Label>
-          <Input id="ret-age" name="age" type="number" step="1" min="0" className="h-9 w-20" />
+          <Input id="ret-age" name="age" type="number" step="1" min="0" defaultValue={etat.valeurs?.age} className="h-9 w-20" />
         </div>
       </div>
       <datalist id="bareme-vetuste">

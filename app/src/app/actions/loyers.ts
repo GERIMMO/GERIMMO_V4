@@ -7,8 +7,14 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { envoyerEmail } from "@/lib/email";
 import { eur } from "@/lib/ged";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatLoyers = { erreur?: string; succes?: string };
+export type EtatLoyers = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 // Envoyer une quittance par email au locataire (API Resend).
 export async function envoyerQuittance(
@@ -90,9 +96,10 @@ export async function ajouterRelance(
 ): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const niveau = String(formData.get("niveau") ?? "");
   if (!["relance_1", "relance_2", "mise_en_demeure"].includes(niveau))
-    return { erreur: "Niveau de relance invalide." };
+    return { erreur: "Niveau de relance invalide.", valeurs };
   const { error } = await supabase.from("relances").insert({
     organization_id: orgId,
     bail_id: bailId,
@@ -103,7 +110,7 @@ export async function ajouterRelance(
     numero_recommande: String(formData.get("numero_recommande") ?? "").trim() || null,
     note: String(formData.get("note") ?? "").trim() || null,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Relance enregistrée." };
 }
@@ -130,15 +137,16 @@ export async function regulariserCharges(
 ): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const annee = Number(String(formData.get("annee") ?? "").trim());
   const reelles = Number(String(formData.get("charges_reelles") ?? "").trim());
-  if (!annee) return { erreur: "Année invalide." };
-  if (Number.isNaN(reelles) || reelles < 0) return { erreur: "Charges réelles invalides." };
+  if (!annee) return { erreur: "Année invalide.", valeurs };
+  if (Number.isNaN(reelles) || reelles < 0) return { erreur: "Charges réelles invalides.", valeurs };
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
-    return { erreur: "Le justificatif est obligatoire (décompte remis au locataire)." };
+    return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };
   const depot = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", `Décompte de charges ${annee}`);
-  if (depot.erreur || !depot.documentId) return { erreur: depot.erreur ?? "Échec du dépôt du justificatif." };
+  if (depot.erreur || !depot.documentId) return { erreur: depot.erreur ?? "Échec du dépôt du justificatif.", valeurs };
 
   const { data, error } = await supabase.rpc("regulariser_charges", {
     p_bail: bailId,
@@ -147,7 +155,7 @@ export async function regulariserCharges(
     p_justificatif: depot.documentId,
     p_note: String(formData.get("note") ?? "").trim() || null,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   const ecart = Number(data);
   const msg =
     ecart > 0
@@ -178,8 +186,9 @@ export async function ajouterEncaissement(
 ): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const montant = Number(String(formData.get("montant") ?? "").trim());
-  if (!montant || montant <= 0) return { erreur: "Montant invalide." };
+  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
   const date = String(formData.get("date_paiement") ?? "").trim() || null;
   const mode = String(formData.get("mode") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
@@ -191,7 +200,7 @@ export async function ajouterEncaissement(
     mode,
     note,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Encaissement enregistré." };
 }
@@ -222,17 +231,18 @@ export async function reviserLoyer(
 ): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const ref = Number(String(formData.get("irl_reference") ?? "").trim());
   const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim());
   const dateEffet = String(formData.get("date_effet") ?? "").trim();
-  if (!ref || !nouv || !dateEffet) return { erreur: "Indices IRL et date d'effet obligatoires." };
+  if (!ref || !nouv || !dateEffet) return { erreur: "Indices IRL et date d'effet obligatoires.", valeurs };
   const { data, error } = await supabase.rpc("reviser_loyer", {
     p_bail: bailId,
     p_irl_reference: ref,
     p_irl_nouveau: nouv,
     p_date_effet: dateEffet,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: `Loyer révisé à ${data} € HC.` };
 }

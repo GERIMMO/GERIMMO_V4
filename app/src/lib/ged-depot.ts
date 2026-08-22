@@ -79,7 +79,9 @@ export async function deposerFichierGed(
     .maybeSingle();
   if (doublon) {
     return {
-      erreur: `Ce fichier existe déjà dans la GED (« ${doublon.titre ?? "sans titre"} »). Rattachez le document existant plutôt que de le déposer à nouveau.`,
+      // Détection par empreinte du CONTENU (recette 22/08 : le titre peut
+      // différer, c'est bien le même fichier octet pour octet — le dire).
+      erreur: `Un fichier au contenu strictement identique existe déjà dans la GED, sous le nom « ${doublon.titre ?? "sans titre"} ». Rattachez cette pièce existante plutôt que de la déposer en double.`,
     };
   }
 

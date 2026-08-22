@@ -5,8 +5,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { motifLitteral } from "@/lib/ged";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatPersonne = { erreur?: string; succes?: string; avertissement?: string };
+export type EtatPersonne = {
+  erreur?: string;
+  succes?: string;
+  avertissement?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08 :
+  // React réinitialise les champs après l'action — un refus vidait tout).
+  valeurs?: Record<string, string>;
+};
 
 // L'email est-il déjà porté par une fiche vivante de l'agence ? (l'index
 // unique le garantit en base ; on vérifie avant pour un message clair)
@@ -40,6 +48,7 @@ export async function creerPersonne(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const morale = formData.get("morale") === "on";
   const nom = String(formData.get("nom") ?? "").trim();
   const prenom = String(formData.get("prenom") ?? "").trim();
@@ -54,14 +63,16 @@ export async function creerPersonne(
       erreur: morale
         ? "La raison sociale est obligatoire."
         : "Le nom est obligatoire.",
+      valeurs,
     };
   }
-  if (!morale && !prenom) return { erreur: "Le prénom est obligatoire." };
-  if (!email) return { erreur: "L'adresse email est obligatoire." };
+  if (!morale && !prenom) return { erreur: "Le prénom est obligatoire.", valeurs };
+  if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
   if (await emailDejaPris(supabase, orgId, email)) {
     return {
       erreur:
         "Cette adresse email est déjà portée par une autre fiche de l'agence — une adresse ne peut appartenir qu'à une seule personne.",
+      valeurs,
     };
   }
 
@@ -102,7 +113,7 @@ export async function creerPersonne(
     })
     .select("id")
     .single();
-  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
+  if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
 
   // Rattachement immédiat (facultatif) : un propriétaire mandant devient
   // détenteur du lot choisi, à 100 % — les quote-parts fines se règlent sur
@@ -236,13 +247,14 @@ export async function modifierPersonne(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
   const prenom = String(formData.get("prenom") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const telephone = String(formData.get("telephone") ?? "").trim();
   const dateNaissance = String(formData.get("date_naissance") ?? "").trim();
 
-  if (!nom) return { erreur: "Le nom (ou la raison sociale) est obligatoire." };
+  if (!nom) return { erreur: "Le nom (ou la raison sociale) est obligatoire.", valeurs };
   // Une personne physique (fiche avec prénom) garde un prénom — même règle
   // qu'à la création ; seule une raison sociale (sans prénom) s'en passe.
   const { data: actuelle } = await supabase
@@ -251,14 +263,15 @@ export async function modifierPersonne(
     .eq("id", personId)
     .eq("organization_id", orgId)
     .maybeSingle();
-  if (!actuelle) return { erreur: "Fiche introuvable." };
-  if (actuelle.prenom && !prenom) return { erreur: "Le prénom est obligatoire." };
+  if (!actuelle) return { erreur: "Fiche introuvable.", valeurs };
+  if (actuelle.prenom && !prenom) return { erreur: "Le prénom est obligatoire.", valeurs };
   // L'email reste obligatoire et unique dans l'agence (recette 08/08)
-  if (!email) return { erreur: "L'adresse email est obligatoire." };
+  if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
   if (await emailDejaPris(supabase, orgId, email, personId)) {
     return {
       erreur:
         "Cette adresse email est déjà portée par une autre fiche de l'agence.",
+      valeurs,
     };
   }
 
@@ -273,7 +286,7 @@ export async function modifierPersonne(
     })
     .eq("id", personId)
     .eq("organization_id", orgId);
-  if (error) return { erreur: `Modification impossible : ${sansJargon(error.message)}` };
+  if (error) return { erreur: `Modification impossible : ${sansJargon(error.message)}`, valeurs };
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   revalidatePath(`/agence/${orgId}/personnes`);

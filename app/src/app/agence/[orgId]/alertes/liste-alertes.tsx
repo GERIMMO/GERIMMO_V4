@@ -11,6 +11,7 @@ import { ASSIGNATION_TOUS, estConfieeAMoi } from "@/lib/alertes";
 import { afficherEcheance } from "@/lib/echeances";
 import { CRITICITES, formaterDateHeure } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
+import { Modale } from "@/components/ui/modale";
 
 export type AlerteRang = {
   id: string;
@@ -21,6 +22,7 @@ export type AlerteRang = {
   assignee_account_id: string | null;
   assigned_all: boolean;
   escalades: unknown;
+  details: Record<string, unknown> | null;
 };
 
 type Membre = { account_id: string; email: string; role: string };
@@ -42,15 +44,21 @@ export function ListeAlertes({
   membres,
   monCompte,
   estResponsable,
+  ouvrirAlerteId,
 }: {
   orgId: string;
   alertes: AlerteRang[];
   membres: Membre[];
   monCompte: string;
   estResponsable: boolean;
+  // « Traiter » depuis le tableau de bord ou la cloche (recette 22/08) : la
+  // pop-up de traitement s'ouvre d'emblée sur cette alerte.
+  ouvrirAlerteId?: string;
 }) {
   const [filtre, setFiltre] = useState<string>("toutes");
-  const [ouverte, setOuverte] = useState<AlerteRang | null>(null);
+  const [ouverte, setOuverte] = useState<AlerteRang | null>(
+    () => alertes.find((a) => a.id === ouvrirAlerteId) ?? null
+  );
 
   const emailParCompte = new Map(membres.map((m) => [m.account_id, m.email]));
   const nomAssignation = (a: AlerteRang) =>
@@ -85,6 +93,13 @@ export function ListeAlertes({
             {NIVEAUX[a.criticite] ?? a.criticite} · confiée à {nomAssignation(a)}
           </div>
           <div className="mt-0.5 text-sm">{a.titre}</div>
+          {/* Le contexte que l'alerte transporte (recette 21/08 : treize
+              « État des lieux à réaliser » identiques, illisibles) */}
+          {typeof a.details?.libelle === "string" && (
+            <div className="truncate text-xs text-muted-foreground">
+              {a.details.libelle}
+            </div>
+          )}
           <div className="text-xs text-muted-foreground">
             créée le {formaterDateHeure(a.created_at)}
             {echeance && (
@@ -189,46 +204,18 @@ function ModaleAlerte({
     if (etatConfier.succes || etatTraiter.succes) fermer();
   }, [etatConfier.succes, etatTraiter.succes, fermer]);
 
-  useEffect(() => {
-    const surTouche = (e: KeyboardEvent) => {
-      if (e.key === "Escape") fermer();
-    };
-    window.addEventListener("keydown", surTouche);
-    return () => window.removeEventListener("keydown", surTouche);
-  }, [fermer]);
-
   const echeance = afficherEcheance(alerte.echeance);
   const nbEscalades = Array.isArray(alerte.escalades)
     ? alerte.escalades.length
     : 0;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--encre)]/35 p-4"
-      onClick={fermer}
+    <Modale
+      titre={alerte.titre}
+      surtitre={`${CRITICITES[alerte.criticite] ?? alerte.criticite} · confiée à ${nomAssignation}`}
+      variante={alerte.criticite === "critique" ? "critique" : "encre"}
+      fermer={fermer}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Traiter l'alerte"
-        className="w-full max-w-md border border-border bg-background"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className={`px-5 py-3.5 text-[var(--sur-encre)] ${
-            alerte.criticite === "critique"
-              ? "bg-[var(--destructive)]"
-              : "bg-[var(--encre)]"
-          }`}
-        >
-          <p className="mono-discret text-[var(--sur-encre)]/75">
-            {CRITICITES[alerte.criticite] ?? alerte.criticite} · confiée à{" "}
-            {nomAssignation}
-          </p>
-          <h3 className="mt-0.5 text-[var(--sur-encre)]">{alerte.titre}</h3>
-        </div>
-
-        <div className="space-y-4 p-5">
           <div className="text-sm text-muted-foreground">
             {echeance ? (
               <p>
@@ -315,8 +302,6 @@ function ModaleAlerte({
               </Button>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </Modale>
   );
 }

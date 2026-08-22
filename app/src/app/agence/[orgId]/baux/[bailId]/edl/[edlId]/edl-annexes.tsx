@@ -90,9 +90,10 @@ export function EdlAnnexes({
         )}
         {!signe && (
           <form action={formCompteur} className="flex flex-wrap items-end gap-2">
+            {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08) */}
             <select
               name="type"
-              defaultValue=""
+              defaultValue={etatC.valeurs?.type ?? ""}
               className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
             >
               <option value="" disabled>
@@ -104,8 +105,8 @@ export function EdlAnnexes({
                 </option>
               ))}
             </select>
-            <Input name="numero" placeholder="N° compteur" className="h-9 w-36" />
-            <Input name="releve" type="number" step="0.001" placeholder="Relevé" className="h-9 w-28" />
+            <Input name="numero" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-36" />
+            <Input name="releve" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-28" />
             <Button type="submit" size="sm" variant="outline" disabled={enCoursC}>
               {enCoursC ? "Ajout…" : "Ajouter"}
             </Button>
@@ -136,9 +137,10 @@ export function EdlAnnexes({
         )}
         {!signe && (
           <form action={formCle} className="flex flex-wrap items-end gap-2">
+            {/* En erreur, la saisie est reposée via etatK.valeurs (recette 22/08) */}
             <select
               name="libelle"
-              defaultValue=""
+              defaultValue={etatK.valeurs?.libelle ?? ""}
               className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
             >
               <option value="" disabled>
@@ -150,8 +152,8 @@ export function EdlAnnexes({
                 </option>
               ))}
             </select>
-            <Input name="nombre" type="number" min="0" defaultValue={1} className="h-9 w-20" />
-            <Input name="reference" placeholder="Référence" className="h-9 w-36" />
+            <Input name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-20" />
+            <Input name="reference" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-36" />
             <Button type="submit" size="sm" variant="outline" disabled={enCoursK}>
               {enCoursK ? "Ajout…" : "Ajouter"}
             </Button>

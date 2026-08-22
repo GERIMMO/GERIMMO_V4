@@ -22,9 +22,9 @@ export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: 
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor="bail-signe" className="text-xs">
-          Bail signé (PDF/JPG/PNG)
+          Bail signé (PDF uniquement)
         </Label>
-        <Input id="bail-signe" name="fichier" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
+        <Input id="bail-signe" name="fichier" type="file" accept=".pdf" required />
       </div>
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "Dépôt…" : "Déposer le bail signé"}
@@ -116,10 +116,11 @@ export function FormulaireConge({
           <Label htmlFor="conge-motif" className="text-xs">
             Motif (obligatoire — sinon le congé est nul)
           </Label>
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <select
             id="conge-motif"
             name="motif"
-            defaultValue=""
+            defaultValue={etat.valeurs?.motif ?? ""}
             required
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
@@ -222,12 +223,14 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
           <Label htmlFor="annulation-motif" className="text-xs">
             Pourquoi le congé s&apos;annule (facultatif)
           </Label>
+          {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <Input
             id="annulation-motif"
             name="motif"
             maxLength={200}
             placeholder="Le locataire reste finalement…"
             className="w-64"
+            defaultValue={etat.valeurs?.motif}
           />
         </div>
         <Button type="submit" size="sm" variant="outline" disabled={enCours}>

@@ -6,8 +6,14 @@ import { TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatDossier = { erreur?: string; succes?: string };
+export type EtatDossier = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 // Déposer une pièce au dossier d'une personne. Si `remplace_id` est fourni, la
 // nouvelle pièce remplace une version antérieure (versioning intégral RM-0b.4.1 :
@@ -21,6 +27,7 @@ export async function deposerPieceDossier(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const fichier = formData.get("fichier");
   const type = String(formData.get("type") ?? "");
   const titre = String(formData.get("titre") ?? "").trim();
@@ -28,13 +35,13 @@ export async function deposerPieceDossier(
   const expireLe = String(formData.get("expire_le") ?? "").trim();
 
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Choisissez un fichier." };
+    return { erreur: "Choisissez un fichier.", valeurs };
   }
   if (!(type in TYPES_PIECE_DOSSIER)) {
-    return { erreur: "Type de pièce invalide." };
+    return { erreur: "Type de pièce invalide.", valeurs };
   }
   if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
+    return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
   }
 
   // Nouvelle version : la pièce remplacée doit exister dans l'agence — et la
@@ -50,7 +57,7 @@ export async function deposerPieceDossier(
       .eq("organization_id", orgId)
       .maybeSingle();
     if (!remplacee) {
-      return { erreur: "La pièce à remplacer est introuvable dans l'agence." };
+      return { erreur: "La pièce à remplacer est introuvable dans l'agence.", valeurs };
     }
   }
 
@@ -59,7 +66,7 @@ export async function deposerPieceDossier(
     expireLe: expireLe || undefined,
   });
   if (resultat.erreur || !resultat.documentId) {
-    return { erreur: resultat.erreur ?? "Échec du dépôt." };
+    return { erreur: resultat.erreur ?? "Échec du dépôt.", valeurs };
   }
 
   // Rattachement à la personne (le dossier suit la personne, RM-0b.7.2)
@@ -70,10 +77,31 @@ export async function deposerPieceDossier(
     entite_id: personId,
   });
   if (erreurLien) {
-    return { erreur: `Pièce déposée mais rattachement en échec : ${sansJargon(erreurLien.message)}` };
+    return { erreur: `Pièce déposée mais rattachement en échec : ${sansJargon(erreurLien.message)}`, valeurs };
   }
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   const base = remplaceId ? "Nouvelle version déposée." : "Pièce ajoutée au dossier.";
   return { succes: resultat.avertissement ? `${base} ${resultat.avertissement}` : base };
+}
+
+// Valider l'attestation déposée par le locataire (recette 21/08) : l'agence
+// vérifie la pièce, la validation solde l'alerte « à vérifier » — règles en
+// base (valider_attestation).
+export async function validerAttestation(
+  orgId: string,
+  personId: string,
+  documentId: string
+): Promise<EtatDossier> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("valider_attestation", {
+    p_org: orgId,
+    p_document: documentId,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revalidatePath(`/agence/${orgId}/personnes/${personId}`);
+  return { succes: "Attestation validée — le locataire le voit dans son espace." };
 }

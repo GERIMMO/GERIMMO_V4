@@ -18,12 +18,18 @@ export default async function PageAlertes(
   props: PageProps<"/agence/[orgId]/alertes">
 ) {
   const { orgId } = await props.params;
+  // « Traiter » depuis le tableau de bord ou la cloche (recette 22/08) : la
+  // pop-up de traitement de cette alerte s'ouvre à l'arrivée sur la page.
+  const { traiter } = await props.searchParams;
+  const traiterId = typeof traiter === "string" ? traiter : undefined;
   const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
   const estResponsable = ROLES_RESPONSABLES.includes(role);
 
   const { data: ouvertes } = await supabase
     .from("alerts")
-    .select("id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades")
+    .select(
+      "id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details"
+    )
     .eq("organization_id", orgId)
     .eq("statut", "ouverte")
     .order("criticite", { ascending: false })
@@ -74,6 +80,7 @@ export default async function PageAlertes(
             membres={membres}
             monCompte={user.id}
             estResponsable={estResponsable}
+            ouvrirAlerteId={traiterId}
           />
 
           <Card>

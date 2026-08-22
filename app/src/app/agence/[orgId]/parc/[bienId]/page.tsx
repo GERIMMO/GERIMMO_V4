@@ -14,6 +14,7 @@ import {
   alerteDiagnostics,
 } from "@/lib/parc";
 import { formaterDate } from "@/lib/ged";
+import { nomComplet } from "@/lib/roles-personnes";
 import {
   Card,
   CardContent,
@@ -48,6 +49,7 @@ export default async function PageBien(
     { data: diagnostics },
     { data: cle },
     { data: infos },
+    { data: detentionsBien },
   ] = await Promise.all([
     supabase
       .from("biens")
@@ -77,6 +79,16 @@ export default async function PageBien(
       .select("sortie_poubelles, local_poubelles, gardien, travaux, stationnement, autres")
       .eq("bien_id", bienId)
       .maybeSingle(),
+    // Recette 21/08 : la fiche bien dit qui possède quoi — détentions en
+    // cours de tous les lots du bien (jointure explicite : deux FK vers persons)
+    supabase
+      .from("detentions")
+      .select(
+        "lot_id, quote_part, person:persons!detentions_person_id_fkey(id, nom, prenom), lot:lots!inner(bien_id)"
+      )
+      .eq("organization_id", orgId)
+      .eq("lot.bien_id", bienId)
+      .is("date_fin", null),
   ]);
   if (!bien) notFound();
 
@@ -113,6 +125,32 @@ export default async function PageBien(
   const deposes = new Set((diagnostics ?? []).map((d) => d.type));
   const manquants = attendusBien.filter((t) => !deposes.has(t));
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
+
+  // Une ligne par propriétaire mandant : ses lots et quote-parts agrégés
+  const nomsLots = new Map((lots ?? []).map((l) => [l.id, l.nom]));
+  const parProprietaire = new Map<
+    string,
+    { id: string; nom: string; parts: string[] }
+  >();
+  for (const d of (detentionsBien ?? []) as unknown as {
+    lot_id: string;
+    quote_part: number;
+    person: { id: string; nom: string; prenom: string | null } | null;
+  }[]) {
+    if (!d.person) continue;
+    const entree = parProprietaire.get(d.person.id) ?? {
+      id: d.person.id,
+      nom: nomComplet(d.person),
+      parts: [],
+    };
+    entree.parts.push(
+      `${nomsLots.get(d.lot_id) ?? "Lot"} (${Number(d.quote_part)} %)`
+    );
+    parProprietaire.set(d.person.id, entree);
+  }
+  const proprietairesBien = [...parProprietaire.values()]
+    .map((p) => ({ id: p.id, nom: p.nom, detail: p.parts.join(" · ") }))
+    .sort((a, b) => a.nom.localeCompare(b.nom));
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
@@ -175,6 +213,41 @@ export default async function PageBien(
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
               />
             </div>
+          </SectionLot>
+
+          {/* Propriétaires mandants du bien (recette 21/08) : qui possède
+              quoi, sans ouvrir chaque fiche lot */}
+          <SectionLot
+            titre="Propriétaires mandants"
+            resume={
+              proprietairesBien.length === 0
+                ? "Aucun"
+                : proprietairesBien.map((p) => p.nom).join(", ")
+            }
+          >
+            {proprietairesBien.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucune détention en cours — elles se règlent sur la fiche de
+                chaque lot.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border text-sm">
+                {proprietairesBien.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex flex-wrap items-baseline justify-between gap-2 py-2"
+                  >
+                    <Link
+                      href={`/agence/${orgId}/personnes/${p.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {p.nom}
+                    </Link>
+                    <span className="text-muted-foreground">{p.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </SectionLot>
 
           {/* Découpage en lots */}

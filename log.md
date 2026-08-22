@@ -1449,3 +1449,80 @@ Correctifs appliqués (migration `s7_incidents_confidentialite` + TS) :
 Vérifs : 82 tests verts (+2 intégration écrits), build OK, 4 scénarios
 réels en base (rollback). Non retenus documentés : badge org-wide (maquette),
 micro-optimisations. Itérations de revue closes (2/3).
+## [2026-08-21] recette | Retours S3-S8 corrigés : 6 anomalies + 4 chantiers UX, déployés sur main
+À la demande de l'humain (« développe et corrige mes retours de recette et
+déploie dans main »). Triage issu de ses retours (transmis via l'agent de
+revue) ; 3 commits sur main, 3 migrations via MCP.
+Anomalies : mandat sans lot bloqué avant signature (lots/taux composables en
+brouillon seulement, retrait possible, figés ensuite) ; attestation
+d'assurance — cycle complet (dépôt versionné remplace_id, alerte agence à
+chaque dépôt — le message « votre agence est notifiée » était faux —,
+validation par l'agent avec statut visible des deux côtés, cron des alertes
+d'expiration enfin planifié : la fonction existait depuis le S3 mais n'était
+jamais appelée, échéance affichée côté agence) ; baux — date d'entrée
+saisissable (elle tombait au jour du clic « Activer », le « 12 du mois
+impossible » venait de là), brouillon corrigeable (modifierBail), bail signé
+PDF uniquement ; alerte EDL nominative (lot + locataire, contexte affiché sur
+la page Alertes) ; terminologie « propriétaire mandant » partout côté agence.
+UX : fiche bien avec rubrique Propriétaires mandants ; récap lot enrichi
+(propriétaire, locataire, identifiant fiscal) ; liste des baux en vue macro ;
+combobox lot (C.5.4 + lignes de mandat) ; EDL par section + lignes incomplètes
+en rouge + « Enregistrer et signer » en un geste ; « Mon logement » côté
+locataire.
+Vérifs : 72 tests verts, 7 tests d'intégration écrits, 6 scénarios réels en
+base (rollback), lint/build OK. Livrable de re-test :
+`livrables/Recette 2026-08-21 - retours corriges.md`. Reste hors passe :
+navigation vers l'échéancier (G.3), UX doublon GED, menu locataire complet
+(porté par la branche S7).
+
+## [2026-08-22] recette | Livrable central unique : fusion du re-test du 21/08 + historique des validations
+
+À la demande de l'humain : les tests à faire sont centralisés dans un seul
+fichier, `livrables/Recette S3-S8 - tests par sprint et persona.md`.
+- Le livrable `Recette 2026-08-21 - retours corriges.md` y est fusionné en
+  **étape 3** (re-tests A.1-A.6 et B.1-B.4, numérotation conservée), puis
+  supprimé.
+- Nouvelle section **« Historique — recetté et validé »** en fin de document,
+  pour garder la vision de ce qui a déjà été validé : bloc 0 (08/08), C.2-C.4,
+  C.5.1-3+5, C.7, 3.2.1+3, 3.3.1-4 (13/08), recette automatisée du 14/08
+  (ne vaut pas validation), correctifs du 21/08 (re-tests en étape 3).
+
+## [2026-08-22] recette | Livrable restructuré en deux parties : Recetté OK / Reste à recetter
+
+Suite du réaménagement demandé : le fichier central
+`livrables/Recette S3-S8 - tests par sprint et persona.md` est restructuré en
+deux parties : **Partie 1 — Recetté OK** (l'historique des validations remonte
+en tête) et **Partie 2 — Reste à recetter**, elle-même en deux blocs :
+2.A les re-tests suite aux retours de recette (étapes 1 du 13/08, 2 du 19/08,
+3 du 21/08), 2.B les sprints jamais déroulés (S3 reste, S4, S5, S6, S8,
+transverse, décisions à trancher). Contenu des scénarios inchangé.
+
+## [2026-08-23] dev | Retours de recette du 22/08 : correctifs sur main (1/2)
+
+Retours traités avant le chantier incidents (branche S7) :
+- **EDL 4.5.3** : un EDL créé avant la déclaration des pièces restait sur la
+  grille générique — bouton « Régénérer la grille depuis les pièces du lot »
+  posé sur l'écran d'EDL (la RPC savait faire, aucun écran ne l'appelait).
+- **Formulaires vidés** : React 19 réinitialise les champs non contrôlés après
+  CHAQUE action, y compris en erreur — la grille d'EDL est passée en champs
+  contrôlés, et une mécanique commune (`lib/formulaires.ts`, l'action renvoie
+  `valeurs`, le formulaire les repose en `defaultValue`) est appliquée à
+  ~30 actions et ~25 formulaires (personnes, mandats, baux, parc, compta…).
+- **Mandats** : taux d'honoraires obligatoire (plus de 7 % posé en silence) ;
+  un mandat sans lot ni taux ne change plus d'état — garde applicative ET
+  migration en base (`20260823_mandat_vide_ne_change_plus_detat.sql`) pour les
+  mandats hérités ; le combobox ne propose plus les lots déjà couverts.
+- **« Traiter »** : tableau de bord et cloche ouvrent désormais la pop-up de
+  traitement directement (`/alertes?traiter=<id>`).
+- **Modale unique** (`components/ui/modale.tsx`) : grammaire maquette (voile
+  encre 35 %, angles vifs, en-tête encre/rouge, surtitre mono) ; modale
+  d'alerte et pop-up de la cloche refactorées dessus.
+- **Espace locataire aligné maquette (B.4)** : bandeau deux étages #0F2438,
+  onglets (Mon logement / Mes loyers), nom du locataire en en-tête, page
+  « Mon logement » en deux colonnes avec lignes libellé↔valeur ; « Mes
+  loyers » devient un onglet ; « Validée par votre agence » → « Validée »
+  (libellé générique agence/bailleur).
+- Divers : message doublon GED explicité (empreinte du CONTENU), vue macro des
+  baux de la fiche lot enrichie (loyer cc, dates).
+Vérifs : typecheck/lint 0 erreur, 75 tests unitaires verts, build OK ; tests
+d'intégration du 22/08 écrits (`tests/recette-2026-08-22.test.ts`).

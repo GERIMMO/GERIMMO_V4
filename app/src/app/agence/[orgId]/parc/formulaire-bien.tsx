@@ -111,12 +111,14 @@ export function FormulaireBien({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="bien-nom">Référence interne</Label>
+          {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
+              sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
           <Input
             id="bien-nom"
             name="nom"
             required
             maxLength={120}
-            defaultValue={bien?.nom}
+            defaultValue={etat.valeurs?.nom ?? bien?.nom}
             placeholder="12 rue des Lilas"
           />
         </div>
@@ -173,7 +175,7 @@ export function FormulaireBien({
         <Input
           name="address_line2"
           maxLength={200}
-          defaultValue={bien?.address_line2 ?? ""}
+          defaultValue={etat.valeurs?.address_line2 ?? bien?.address_line2 ?? ""}
           placeholder="Complément (facultatif)"
         />
       </div>
@@ -211,7 +213,7 @@ export function FormulaireBien({
             type="number"
             min={1000}
             max={2100}
-            defaultValue={bien?.annee_construction ?? ""}
+            defaultValue={etat.valeurs?.annee_construction ?? bien?.annee_construction ?? ""}
           />
           <p className="text-xs text-muted-foreground">
             Elle déduit les diagnostics attendus (plomb avant 1949, amiante
@@ -223,7 +225,7 @@ export function FormulaireBien({
             id="bien-copro"
             name="copropriete"
             type="checkbox"
-            defaultChecked={bien?.copropriete}
+            defaultChecked={etat.valeurs ? etat.valeurs.copropriete === "on" : bien?.copropriete}
             className="size-4"
           />
           <Label htmlFor="bien-copro">En copropriété</Label>
@@ -233,7 +235,7 @@ export function FormulaireBien({
             id="bien-zone-tendue"
             name="zone_tendue"
             type="checkbox"
-            defaultChecked={bien?.zone_tendue}
+            defaultChecked={etat.valeurs ? etat.valeurs.zone_tendue === "on" : bien?.zone_tendue}
             className="size-4"
           />
           <Label htmlFor="bien-zone-tendue">
@@ -337,11 +339,12 @@ export function FormulaireBien({
                   type="number"
                   step="0.01"
                   min="0.01"
+                  defaultValue={etat.valeurs?.surface_m2}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lot-pieces">Nombre de pièces</Label>
-                <Input id="lot-pieces" name="pieces" type="number" min={1} />
+                <Input id="lot-pieces" name="pieces" type="number" min={1} defaultValue={etat.valeurs?.pieces} />
               </div>
             </div>
           )}

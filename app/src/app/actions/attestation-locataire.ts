@@ -5,8 +5,14 @@ import { createHash, randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatAttestation = { erreur?: string; succes?: string };
+export type EtatAttestation = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 // Le locataire dépose lui-même son attestation d'assurance depuis son espace
 // (RM-0b.5.1). Le fichier va au stockage (policy locataire), puis une fonction
@@ -35,24 +41,25 @@ export async function deposerMonAttestation(
     .maybeSingle();
   if (!adhesion) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const fichier = formData.get("fichier");
   const titre = String(formData.get("titre") ?? "").trim();
   const expire = String(formData.get("expire_le") ?? "").trim();
 
   if (!(fichier instanceof File) || fichier.size === 0) {
-    return { erreur: "Choisissez le fichier de votre attestation." };
+    return { erreur: "Choisissez le fichier de votre attestation.", valeurs };
   }
   if (fichier.size > TAILLE_MAX_OCTETS) {
-    return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
+    return { erreur: "Fichier trop volumineux (10 Mo maximum).", valeurs };
   }
   if (!expire) {
-    return { erreur: "Indiquez la date d'expiration figurant sur l'attestation." };
+    return { erreur: "Indiquez la date d'expiration figurant sur l'attestation.", valeurs };
   }
 
   const octets = new Uint8Array(await fichier.arrayBuffer());
   const mime = detecterMimeReel(octets);
   if (!mime) {
-    return { erreur: "Format refusé : PDF, JPEG ou PNG uniquement (contenu vérifié)." };
+    return { erreur: "Format refusé : PDF, JPEG ou PNG uniquement (contenu vérifié).", valeurs };
   }
   // Même exigence que le dépôt GED (ged-depot.ts) : un PDF tronqué garde son
   // en-tête mais ne s'ouvrira jamais — on refuse au dépôt.
@@ -60,6 +67,7 @@ export async function deposerMonAttestation(
     return {
       erreur:
         "Ce PDF est incomplet : il a probablement été coupé pendant l'envoi. Renvoyez-le, un document tronqué ne s'ouvrira pas.",
+      valeurs,
     };
   }
   const empreinte = createHash("sha256").update(octets).digest("hex");
@@ -69,7 +77,7 @@ export async function deposerMonAttestation(
     .from("documents")
     .upload(chemin, octets, { contentType: mime });
   if (erreurUpload) {
-    return { erreur: `Échec du dépôt du fichier : ${sansJargon(erreurUpload.message)}` };
+    return { erreur: `Échec du dépôt du fichier : ${sansJargon(erreurUpload.message)}`, valeurs };
   }
 
   const { error: erreurRpc } = await supabase.rpc("deposer_mon_attestation", {
@@ -81,7 +89,7 @@ export async function deposerMonAttestation(
     p_titre: titre,
     p_expire: expire,
   });
-  if (erreurRpc) return { erreur: erreurRpc.message };
+  if (erreurRpc) return { erreur: erreurRpc.message, valeurs };
 
   revalidatePath(`/locataire/${orgId}`);
   return { succes: "Attestation déposée. Merci — votre agence est notifiée." };

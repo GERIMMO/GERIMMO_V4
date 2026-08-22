@@ -82,12 +82,12 @@ export function FormulaireDetention({
     <form ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">
         {premierProprietaire
-          ? "Le propriétaire du lot"
-          : "Ajouter un co-propriétaire (indivision)"}
+          ? "Le propriétaire mandant du lot"
+          : "Ajouter un propriétaire mandant (indivision)"}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="detention-personne">Propriétaire</Label>
+          <Label htmlFor="detention-personne">Propriétaire mandant</Label>
           <select
             id="detention-personne"
             name="person_id"
@@ -104,7 +104,7 @@ export function FormulaireDetention({
               — Choisir —
             </option>
             {dejaProprietaires.length > 0 && (
-              <optgroup label="Propriétaires existants">
+              <optgroup label="Propriétaires mandants existants">
                 {dejaProprietaires.map((p) => (
                   <option key={p.id} value={p.id}>
                     {nomComplet(p)}
@@ -138,6 +138,7 @@ export function FormulaireDetention({
         {montrerQuotePart ? (
           <div className="space-y-1.5">
             <Label htmlFor="detention-quote-part">Quote-part (%)</Label>
+            {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
             <Input
               id="detention-quote-part"
               name="quote_part"
@@ -147,6 +148,7 @@ export function FormulaireDetention({
               max="100"
               required
               placeholder="ex. 50"
+              defaultValue={etat.valeurs?.quote_part}
             />
           </div>
         ) : (
@@ -201,7 +203,7 @@ export function FormulaireDetention({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Nouveau propriétaire"
+            aria-label="Nouveau propriétaire mandant"
             className="w-full max-w-md border border-border bg-background"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
@@ -217,7 +219,7 @@ export function FormulaireDetention({
             }}
           >
             <div className="bg-[var(--encre)] px-5 py-3.5 text-[var(--sur-encre)]">
-              <h3 className="text-[var(--sur-encre)]">Nouveau propriétaire</h3>
+              <h3 className="text-[var(--sur-encre)]">Nouveau propriétaire mandant</h3>
               <p className="mono-discret text-[var(--sur-encre)]/75">
                 La fiche complète se retrouve dans Personnes.
               </p>

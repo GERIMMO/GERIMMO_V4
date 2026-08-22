@@ -16,12 +16,14 @@ export function FormulaireEquipementCatalogue({ orgId }: { orgId: string }) {
 
   return (
     <form ref={formulaire} action={action} className="flex flex-wrap items-center gap-2">
+      {/* En erreur (doublon…), la saisie est reposée via etat.valeurs (recette 22/08) */}
       <Input
         name="nom"
         required
         maxLength={80}
         placeholder="Nouvel équipement (ex. Réfrigérateur)"
         className="max-w-xs"
+        defaultValue={etat.valeurs?.nom}
       />
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
         {enCours ? "Ajout…" : "Ajouter au catalogue"}

@@ -4,8 +4,14 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatEdl = { erreur?: string; succes?: string };
+export type EtatEdl = {
+  erreur?: string;
+  succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 // Créer un EDL (entrée ou sortie) pour un bail, puis générer sa grille.
 export async function creerEdl(
@@ -31,7 +37,31 @@ export async function creerEdl(
   redirect(`/agence/${orgId}/baux/${bailId}/edl/${data.id}`);
 }
 
-// Enregistrer toute la grille (état + commentaire par ligne) tant que non signé.
+// Régénérer la grille d'un EDL non signé depuis les pièces du lot (recette
+// 22/08, scénario 4.5.3 : l'EDL créé avant la déclaration des pièces restait
+// sur la grille générique — la RPC savait régénérer, aucun écran ne l'appelait).
+export async function regenererGrilleEdl(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  _etat: EtatEdl,
+  _formData: FormData
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { data: nombre, error } = await supabase.rpc("generer_grille_edl", { p_edl: edlId });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: `Grille régénérée depuis les pièces du lot (${nombre} lignes).` };
+}
+
+// Enregistrer toute la grille (état + commentaire par ligne) tant que non
+// signé. Si le formulaire porte `signer`, la signature suit l'enregistrement
+// dans la même action (recette 21/08 : il fallait cliquer « Enregistrer »
+// puis « Signer » — sinon la signature lisait la base non modifiée et
+// refusait, sans que rien ne le dise).
 export async function majGrilleEdl(
   orgId: string,
   bailId: string,
@@ -59,6 +89,17 @@ export async function majGrilleEdl(
     if (error) return { erreur: sansJargon(error.message) };
   }
 
+  if (formData.get("signer")) {
+    const { error } = await supabase.rpc("signer_edl", { p_edl: edlId });
+    if (error) {
+      revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+      return { erreur: `Grille enregistrée, mais signature refusée : ${sansJargon(error.message)}` };
+    }
+    revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+    revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+    return { succes: "État des lieux signé — il est figé." };
+  }
+
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Grille enregistrée." };
 }
@@ -73,8 +114,9 @@ export async function ajouterCompteur(
 ): Promise<EtatEdl> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const type = String(formData.get("type") ?? "").trim();
-  if (!type) return { erreur: "Choisissez le type de compteur." };
+  if (!type) return { erreur: "Choisissez le type de compteur.", valeurs };
   const numero = String(formData.get("numero") ?? "").trim() || null;
   const releveStr = String(formData.get("releve") ?? "").trim();
   const { error } = await supabase.from("edl_compteurs").insert({
@@ -84,7 +126,7 @@ export async function ajouterCompteur(
     numero,
     releve: releveStr ? Number(releveStr) : null,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Relevé de compteur ajouté." };
 }
@@ -117,8 +159,9 @@ export async function ajouterCle(
 ): Promise<EtatEdl> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
-  if (!libelle) return { erreur: "Précisez le type de clé." };
+  if (!libelle) return { erreur: "Précisez le type de clé.", valeurs };
   const nombre = Math.max(0, Math.floor(Number(formData.get("nombre") ?? 1)) || 0);
   const reference = String(formData.get("reference") ?? "").trim() || null;
   const { error } = await supabase.from("edl_cles").insert({
@@ -128,7 +171,7 @@ export async function ajouterCle(
     nombre,
     reference,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Clé ajoutée." };
 }

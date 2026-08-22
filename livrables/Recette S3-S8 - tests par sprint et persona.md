@@ -1,15 +1,14 @@
 # Recette S3→S8 — sujets en cours
 
-> Mis à jour le 2026-08-19, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le 2026-08-22, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> **Fichier central de recette**, en deux parties :
+> **1. Recetté OK** — ce qui est validé, on n'y revient plus.
+> **2. Reste à recetter** — d'abord les **re-tests suite à tes retours**
+> (étapes 1 à 3), puis les sprints **jamais déroulés**.
+>
 > Mot de passe commun : `Gerimmo-Demo-2026`.
 > Périmètre réel : S3, S4, S5, S6 et S8 — le **S7 (incidents) n'est pas encore
 > développé** (constat du 19/08, à planifier après le S9a).
->
-> Ce document ne garde que **ce qui reste à tester ou re-tester**. Sortis car
-> validés : bloc 0 (08/08) ; C.2, C.3, C.4, C.5 (étapes 1-3 et 5), C.7,
-> 3.2 (étapes 1 et 3), 3.3 (étapes 1-4) le 13/08.
-> Réponse à la question C.7.1 du 13/08 : rien de problématique — vérifié en
-> base, la clôture de la détention future a bien été refusée (`date_fin` vide).
 >
 > **Méthode itérative** : re-tests des correctifs d'abord, puis un sprint à la
 > fois, persona par persona. Les numéros reprennent ceux du document du 05/08
@@ -19,7 +18,32 @@
 
 ---
 
-## Étape 1 — Re-tests des correctifs du 13/08
+# Partie 1 — Recetté OK (ne plus re-tester)
+
+> Trace des scénarios **validés en recette humaine**, gardée ici pour la vision
+> d'ensemble. Le détail des scénarios sortis du corps du document reste dans
+> git (commit b14f4fe) et dans `log.md`.
+
+- **08/08 — Bloc 0 (non-régression S0–S2)** : 0.1, 0.2, 0.3 **validés**.
+- **13/08 — Étape correctifs + début du Sprint 3** : **validés** C.2, C.3,
+  C.4, C.5 (étapes 1-3 et 5), C.7 ; 3.2 (étapes 1 et 3) ; 3.3 (étapes 1-4).
+  Question C.7.1 : pas une anomalie — vérifié en base, la clôture de la
+  détention future a bien été refusée (`date_fin` vide).
+- **14/08 — Recette automatisée (agent)** des 6 re-tests du 13/08 (C.1, C.5.4,
+  C.6.1, C.6.2, 3.2.2, 3.3.5) : tous passés en conditions réelles, mais **ne
+  vaut pas validation humaine** → à confirmer d'un coup d'œil via l'étape 1.
+- **21/08 — Retours de recette S3-S8** : les 6 anomalies (A.1-A.6) et
+  4 chantiers UX (B.1-B.4) remontés ont été **corrigés et déployés sur main**
+  (tests/lint/build verts, scénarios rejoués par l'agent en base) → re-tests
+  humains via l'étape 3.
+
+---
+
+# Partie 2 — Reste à recetter
+
+## 2.A — Suite à tes retours : re-tests des correctifs
+
+### Étape 1 — Re-tests des correctifs du 13/08
 
 > **Recette automatisée du 14/08** (agent, en conditions réelles sur le site) —
 > à confirmer d'un coup d'œil humain, elle ne vaut pas validation :
@@ -42,7 +66,7 @@
 >   les 4 doublons d'Alpha sont archivés (reste « jean luc » chez **Beta**,
 >   à archiver depuis une session Beta).
 
-### Persona : Agent immobilier (agent.alpha@)
+#### Persona : Agent immobilier (agent.alpha@)
 
 **Re-test C.1 — Message obligatoire dans « Confier »**
 > Correctif : le champ « **Message au destinataire** » existe désormais dans
@@ -85,9 +109,7 @@
 > aussi en base (retour du 13/08 : il restait modifiable).
 1. Sur le mandat **résilié** du 13/08 → l'encart est **grisé**, marqué « Historisé — non modifiable » : plus aucun bouton d'état ni d'ajout de lot ; le **taux** et les **lots** du mandat restent lisibles.
 
----
-
-## Étape 2 — Passe globale du 19/08 : alignement charte + optimisations
+### Étape 2 — Passe globale du 19/08 : alignement charte + optimisations
 
 > Le 19/08, une passe complète (3 revues + corrections) a aligné **tous** les
 > écrans sur la charte v2 de la maquette (l'audit du 14/08 ne couvrait que
@@ -96,7 +118,7 @@
 > ressembler aux trois écrans de référence — en-tête serif + compteur mono,
 > statuts en **puces colorées** (plus de statuts gris), états vides guidants.
 
-### Persona : Agent immobilier (agent.alpha@)
+#### Persona : Agent immobilier (agent.alpha@)
 
 **Vérif G.1 — Journal comptable (l'écran le plus retouché)**
 1. Comptabilité → le journal est une **vraie table** : en-têtes en petites capitales mono, dates en mono, catégories en puce grise, montants alignés à droite, crédits en **vert avec « + »**.
@@ -118,14 +140,14 @@
 3. Fiche personne : **avatar à initiales** dans l'en-tête ; état du mandat en puce.
 4. Documents : liste en rangs charte, compteur « N pièces » ; la recherche traite « % » et « _ » comme des caractères normaux.
 
-### Persona : Locataire (locataire.alpha@)
+#### Persona : Locataire (locataire.alpha@)
 
 **Vérif G.5 — Espace locataire dans la charte**
 1. **Bandeau encre** avec la marque GERIMMO + « ESPACE LOCATAIRE » (fini l'en-tête blanc).
 2. Dates au format **français** (12/09/2026, plus de 2026-09-12) ; loyers formatés « 780,00 € » ; statut **Impayé en rouge**, Payé en vert.
 3. Ouvrir une quittance → **imprimer (aperçu)** : la note technique du bas **ne sort pas** sur le papier.
 
-### Persona : Super Admin (superadmin@)
+#### Persona : Super Admin (superadmin@)
 
 **Vérif G.6 — Console dans la charte**
 1. Bandeau encre commun (marque + « CONSOLE D'ADMINISTRATION » + cloche + journaux + déconnexion).
@@ -138,11 +160,119 @@
 > création de bien en propriétaire direct signale toute écriture échouée ;
 > requêtes des fiches personne/bail et de l'espace locataire parallélisées.
 
+### Étape 3 — Re-tests des correctifs du 21/08 (retours de recette S3-S8)
+
+> Correctifs des 6 anomalies et 4 chantiers UX issus des retours de recette,
+> déployés sur main le 21/08 (3 migrations appliquées). **À dérouler en
+> premier** lors de la prochaine session de recette. Les réponses aux trois
+> questions posées (doublon GED, mandat résilié, échéancier G.3) sont dans
+> `log.md` — le doublon GED est un comportement voulu (empreinte du contenu),
+> l'accès à l'échéancier reste à traiter dans une passe navigation.
+
+#### Anomalies corrigées
+
+**Re-test A.1 — Mandat sans lot** · persona AA (`admin.alpha@`)
+1. Fiche d'un propriétaire mandant → créer un mandat (brouillon), **sans lot**.
+2. Cliquer « Passer à signer » → **refus** : « Un mandat sans lot ne part pas à
+   la signature : ajoutez au moins un lot avec son taux d'honoraires. »
+3. Ajouter un lot (le champ est maintenant un **combobox** : taper filtre,
+   cliquer choisit, le choix reste affiché) → un lien **« Retirer »** apparaît
+   sur la ligne tant que le mandat est en brouillon.
+4. « Passer à signer » → accepté ; la zone d'ajout disparaît, remplacée par
+   « Lots et taux figés — ils sont ceux du contrat signé. »
+5. Tenter d'ajouter une ligne via un vieux formulaire resté ouvert → refus
+   « Les lots et taux d'un mandat se composent en brouillon… ».
+
+**Re-test A.2 + A.3 — Attestation d'assurance** · personas LO (`locataire.alpha@`) puis AG (`agent.alpha@`)
+1. LO : déposer une attestation (date d'expiration obligatoire) → succès ; la
+   carte affiche la puce **« En cours de vérification »** (orange).
+2. AG : une alerte **« Attestation d'assurance déposée — {nom} »** est ouverte
+   (cloche + page Alertes, avec « Expire le … — à vérifier puis valider » en
+   sous-ligne).
+3. Fiche personne → Pièces justificatives : l'attestation porte son
+   **échéance colorée** (« valide jusqu'au … » / « expire dans N j » /
+   « expirée depuis N j ») et la puce **« À vérifier »** + bouton **Valider**.
+4. Valider → puce **« Validée »**, l'alerte passe en « Fermées récemment »
+   (« Attestation vérifiée et validée »).
+5. LO : la puce passe à **« Validée par votre agence »** (vert).
+6. LO : redéposer une attestation (renouvellement) → la fiche personne montre
+   **une seule** attestation courante (v2), l'ancienne dans l'historique ;
+   côté LO c'est bien la **dernière** qui s'affiche (plus l'ancienne).
+7. Alertes d'expiration : elles tournent chaque nuit (3 h 45) — pour vérifier
+   sans attendre : déposer une attestation expirant sous 30 jours et demander
+   au super admin d'exécuter la génération, ou constater l'alerte le lendemain.
+
+**Re-test A.4 — Baux** · persona AG
+1. Fiche lot → créer un bail : le formulaire porte un champ **« Date
+   d'entrée »**. Saisir le **12** du mois → accepté.
+2. Sur la fiche du bail (brouillon) : carte **« Corriger le brouillon »** avec
+   tous les champs **pré-remplis** — modifier le loyer, enregistrer →
+   « Brouillon corrigé. », l'en-tête reflète le nouveau montant.
+3. Déposer un JPG comme bail signé → **refus** : « Le bail signé se dépose en
+   PDF complet — une image d'une page ne vaut pas le contrat. » (le champ
+   n'accepte plus que .pdf).
+4. Déposer un PDF, activer → la date d'entrée reste **le 12** (pas le jour du
+   clic) ; l'échéancier démarre au bon mois.
+
+**Re-test A.5 — Alerte EDL nominative** · persona AG
+1. Après l'activation ci-dessus : l'alerte s'intitule **« État des lieux
+   d'entrée — {lot} · {locataire} »** ; sur la page Alertes, la sous-ligne de
+   contexte apparaît sous le titre.
+
+**Re-test A.6 — Terminologie « propriétaire mandant »** · persona AA
+1. Liste des personnes : les puces disent **« Propriétaire mandant »** (ou
+   « Propriétaire mandant · sans mandat ») — plus jamais « Propriétaire » nu.
+2. Fiche lot : section **« Propriétaires mandants du lot »** ; formulaire de
+   détention : libellés « Propriétaire mandant ».
+
+#### Améliorations UX
+
+**Re-test B.1 — Parc** · personas AG/AA
+1. Fiche bien : nouvelle rubrique **« Propriétaires mandants »** — une ligne
+   par personne (cliquable vers sa fiche) avec ses lots et quote-parts.
+2. Fiche lot → Caractéristiques : le récap commence par **Propriétaire
+   mandant** et **Locataire** (bail en cours), et l'**identifiant fiscal** est
+   visible sans ouvrir « Modifier le lot ».
+3. Section « Baux & état des lieux » : chaque rang affiche **« Bail nu —
+   {locataire} »** (type lisible + qui habite) avant d'ouvrir.
+
+**Re-test B.2 — Combobox lot (C.5.4)** · persona AA
+1. Nouvelle personne « Propriétaire mandant » → « Rattacher à un lot » est un
+   champ unique : taper filtre, cliquer choisit, **le choix reste affiché** ;
+   retaper libère le choix. Laisser vide = rattacher plus tard.
+
+**Re-test B.3 — EDL** · persona AG
+1. Ouvrir un EDL non signé : chaque section a un sélecteur **« Toute la
+   section… »** — choisir « Bon » remplit toutes les lignes de la pièce, puis
+   s'ajuste ligne à ligne.
+2. Les lignes **sans état sont surlignées en rouge** (liseré gauche) ; le
+   bouton **« Enregistrer et signer »** est grisé avec le compteur « N lignes
+   sans état (en rouge) — la signature attendra. »
+3. Tout remplir → « Enregistrer et signer » en **un seul geste** : la grille
+   est enregistrée puis signée (« État des lieux signé — il est figé. »)
+   — plus besoin d'enregistrer d'abord.
+
+**Re-test B.4 — Espace locataire** · persona LO
+1. La carte s'appelle **« Mon logement »** ; le sous-titre de l'accueil couvre
+   logement, loyers et assurance.
+
+> Vérifications déjà faites par l'agent le 21/08 (ne valent pas validation
+> humaine) : 72 tests Vitest verts, 7 tests d'intégration
+> (`recette-2026-08-21.test.ts`, pattern rollback), 6 scénarios déroulés en
+> conditions réelles sur la base (transaction annulée), lint/typecheck/build OK.
+>
+> Hors de cette passe (assumé) : espace locataire « menu maquette » complet et
+> incidents (branche `sprint7-incidents`, recette prête) ; accès à l'échéancier
+> depuis la fiche bail (G.3, passe navigation à venir) ; UX du message de
+> doublon GED (rattacher en un clic — la mécanique est saine).
+
 ---
 
-## Sprint 3 — reste à dérouler
+## 2.B — Jamais déroulé : sprint par sprint
 
-### Persona : Agent immobilier (agent.alpha@)
+### Sprint 3 — reste à dérouler
+
+#### Persona : Agent immobilier (agent.alpha@)
 
 **Scénario 3.4 — Attestation d'assurance expirée (partie agent)**
 1. Dossier d'un locataire → déposer une attestation avec une **date d'expiration dépassée** → après génération des alertes (bouton/cron superadmin), une alerte **critique** « défaut d'assurance » existe.
@@ -152,7 +282,7 @@
 1. Fiche d'une personne sans compte → « Inviter comme locataire » → état du compte « invité/créé » (l'email réel dépend du SMTP — hors périmètre).
 2. Réinviter la même personne → **pas de doublon** de compte.
 
-### Persona : Locataire (locataire.alpha@)
+#### Persona : Locataire (locataire.alpha@)
 
 **Scénario 3.4 — Assurance côté locataire (suite)**
 1. Son espace affiche le **statut de son assurance**.
@@ -162,11 +292,9 @@
 > C.6) — c'est la nouvelle règle en base ; vérifier aussi qu'elle ne bloque
 > pas deux agences différentes d'avoir le même email.
 
----
+### Sprint 4 — Bail et état des lieux
 
-## Sprint 4 — Bail et état des lieux
-
-### Persona : Agent immobilier (agent.alpha@)
+#### Persona : Agent immobilier (agent.alpha@)
 
 **Scénario 4.1 — Créer et activer un bail nu (chaîne critique)**
 1. Fiche d'un lot **Disponible** → créer un bail nu : locataire, loyer **780 €**, charges **90 €**, dépôt, jour d'échéance ; date d'entrée le **12 du mois** (prépare le prorata du sprint 5).
@@ -203,7 +331,7 @@
 **Scénario 4.7 — Comparatif EDL (partie agent)**
 1. Faire un EDL de sortie avec **2 états dégradés** par rapport à l'entrée → le **comparatif** met ces 2 écarts en évidence, ligne à ligne.
 
-### Persona : Locataire (locataire.alpha@)
+#### Persona : Locataire (locataire.alpha@)
 
 **Scénario 4.7 — Consultation du bail (suite)**
 1. « Mon bail » → le bail **signé** est consultable (jamais un brouillon), avec ses documents.
@@ -211,11 +339,9 @@
 > Test le plus important du sprint : la **chaîne d'activation** (4.1) — sans elle,
 > rien des sprints 5, 6 et 8 n'est testable. La dérouler en premier.
 
----
+### Sprint 5 — Loyers, quittances, relances, IRL
 
-## Sprint 5 — Loyers, quittances, relances, IRL
-
-### Persona : Agent immobilier (agent.alpha@)
+#### Persona : Agent immobilier (agent.alpha@)
 
 **Scénario 5.1 — Prorata au centime (A-01, A-02)**
 1. Sur le bail entré le 12 (loyer 780 €, charges 90 €, mois de 31 jours) → le premier appel affiche exactement **503,23 € de loyer + 58,06 € de charges = 561,29 €** (arrondi une seule fois, à la fin, par composante — pas 503,26/561,32).
@@ -237,7 +363,7 @@
 2. Bail au DPE **F ou G** → révision **bloquée**.
 3. Vérifier qu'aucun appel **déjà émis** n'est modifié rétroactivement.
 
-### Persona : Locataire (locataire.alpha@)
+#### Persona : Locataire (locataire.alpha@)
 
 **Scénario 5.3 — Échéancier et quittances**
 1. « Mes loyers » → échéancier visible, quittances et reçus **téléchargeables**.
@@ -246,11 +372,9 @@
 > Test le plus important du sprint : le **prorata au centime** (5.1) — les valeurs
 > attendues sont exactes au centime, toute autre valeur est une anomalie.
 
----
+### Sprint 6 — Comptabilité et rapport de gestion
 
-## Sprint 6 — Comptabilité et rapport de gestion
-
-### Persona : Agent immobilier (agent.alpha@)
+#### Persona : Agent immobilier (agent.alpha@)
 
 **Scénario 6.1 — Journal : immuable, contre-écriture, honoraires**
 1. Chaque encaissement du sprint 5 a produit ses écritures **automatiquement**, honoraires au taux du mandat inclus ; le nom du **mandant s'affiche** sur chaque écriture (A-08).
@@ -262,7 +386,7 @@
 1. Générer le rapport du mandant sur un mois → le relire → l'**envoyer** → le rapport est **figé** (toute correction passe par un rectificatif).
 2. Enregistrer le **versement** au mandant → tracé.
 
-### Persona : Administrateur d'agence (admin.alpha@)
+#### Persona : Administrateur d'agence (admin.alpha@)
 
 **Scénario 6.2 — Clôture et ventilation**
 1. Clôturer un mois → plus **aucune** écriture possible dessus ; réouverture possible par l'admin, **avec motif** obligatoire.
@@ -277,11 +401,9 @@
 > Test le plus important du sprint : l'**immuabilité du journal** (6.1.2) — aucune
 > écriture ne doit être modifiable, la seule correction est la contre-passation.
 
----
+### Sprint 8 (partiel) — Dépôt de garantie et copropriété
 
-## Sprint 8 (partiel) — Dépôt de garantie et copropriété
-
-### Persona : Agent immobilier (agent.alpha@)
+#### Persona : Agent immobilier (agent.alpha@)
 
 **Scénario 8.1 — Encaissement du dépôt**
 1. Bail actif → enregistrer l'encaissement du dépôt : date, moyen, montant, **versant** (tester avec un tiers payeur) → badge « encaissé » sur le bail + écriture comptable au journal.
@@ -299,11 +421,9 @@
 > Test le plus important du sprint : **sans EDL d'entrée, restitution intégrale**
 > (8.2.3) — c'est la règle légale la plus protectrice du locataire.
 
----
+### Transverse — à vérifier en continu, puis en clôture de recette
 
-## Transverse — à vérifier en continu, puis en clôture de recette
-
-### Persona : Agent immobilier (agent.alpha@) — au fil des sprints
+#### Persona : Agent immobilier (agent.alpha@) — au fil des sprints
 
 **Scénario T.1 — Charte v2 et vocabulaire (A-11 → A-15)**
 1. Sur téléphone (ou fenêtre étroite) : l'**en-tête ne se chevauche plus**, la navigation reste utilisable.
@@ -312,13 +432,13 @@
 4. Le même état de lot porte **le même mot** sur tous les écrans ; « Assignée à » ne se lit plus dans les deux sens.
 5. Le **rouge est réservé au critique** ; bandeau « À faire maintenant » sur la fiche bail ; états vides qui guident.
 
-### Persona : Administrateur d'agence Beta (admin.beta@) — en fin de recette
+#### Persona : Administrateur d'agence Beta (admin.beta@) — en fin de recette
 
 **Scénario T.2 — Isolation Alpha / Beta**
 1. Copier depuis la session Alpha les **URLs directes** d'une fiche personne, d'un mandat, d'un bail, d'un EDL, d'une écriture et d'une quittance.
 2. Connecté en admin.beta@ → aucune de ces données n'est visible dans les listes, et chaque **URL directe → refus/404**.
 
-### Persona : Multi-agences (multi@)
+#### Persona : Multi-agences (multi@)
 
 **Scénario T.3 — Cloisonnement du compte multi**
 1. Se connecter en multi@ → chaque agence s'affiche **séparément**, jamais de données mélangées ; basculer d'une agence à l'autre et vérifier que les listes changent intégralement.
@@ -327,9 +447,7 @@
 > fuir entre agences**, y compris sur les nouvelles tables (mandats, baux, EDL,
 > écritures, quittances, dépôts).
 
----
-
-## Deux décisions à trancher pendant la recette
+### Deux décisions à trancher pendant la recette
 
 - **Propriétaire = locataire du même lot** : un avertissement non bloquant a été proposé — valider ou ajuster.
 - **Rattachement locataire/garant via le bail** (C.5.5) : l'assistant l'explique au lieu d'un lien mort — confirmer cette interprétation.

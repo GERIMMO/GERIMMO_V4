@@ -29,9 +29,12 @@ export function rolesDePersonne(personId: string, liens: LiensPersonnes): RolePe
   const roles: RolePersonne[] = [];
   if (liens.proprietaires.has(personId) || liens.mandants.has(personId)) {
     roles.push({
-      // Le mandat est l'information qui compte pour l'agence : un propriétaire
-      // sous mandat est un client, un propriétaire sans mandat est un prospect.
-      libelle: liens.mandants.has(personId) ? "Propriétaire · mandat" : "Propriétaire",
+      // Recette 21/08 : côté agence, jamais « Propriétaire » nu — le terme est
+      // « propriétaire mandant ». Le mandat reste l'information qui compte :
+      // sous mandat = client, sans mandat = prospect.
+      libelle: liens.mandants.has(personId)
+        ? "Propriétaire mandant"
+        : "Propriétaire mandant · sans mandat",
       classe: "text-foreground",
       puce: "puce-encre",
     });

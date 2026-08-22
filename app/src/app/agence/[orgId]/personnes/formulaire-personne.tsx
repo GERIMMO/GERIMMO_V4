@@ -5,6 +5,7 @@ import { creerPersonne, type EtatPersonne } from "@/app/actions/personnes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ComboboxLot } from "@/components/combobox-lot";
 
 export type LotRattachable = {
   id: string;
@@ -55,7 +56,6 @@ export function FormulairePersonne({
   const [role, setRole] = useState<string | null>(null);
   const [etape, setEtape] = useState<1 | 2>(1);
   const [morale, setMorale] = useState(false);
-  const [rechercheLot, setRechercheLot] = useState("");
 
   const roles = estBailleurDirect
     ? ROLES.filter((r) => r.cle !== "proprietaire_mandant")
@@ -70,24 +70,11 @@ export function FormulairePersonne({
       setRole(null);
       setEtape(1);
       setMorale(false);
-      setRechercheLot("");
       /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [etat]);
 
   const estProprio = role === "proprietaire_mandant";
-  // Recherche full-texte simple sur le libellé du lot (numéro, adresse, ville)
-  const lotsVisibles = rechercheLot
-    ? lots.filter((l) =>
-        l.libelle
-          .toLowerCase()
-          .normalize("NFD")
-          .replace(/\p{Diacritic}/gu, "")
-          .includes(
-            rechercheLot.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "")
-          )
-      )
-    : lots;
 
   // Fil d'étapes de la maquette : deux ronds, le courant en encre
   const rond = (n: 1 | 2, libelle: string) => (
@@ -194,26 +181,29 @@ export function FormulairePersonne({
             </label>
           )}
 
+          {/* defaultValue={etat.valeurs?.…} : en erreur, l'action renvoie la
+              saisie et le reset React retombe dessus au lieu de vider (recette
+              22/08 — mécanique commune, voir lib/formulaires.ts). */}
           {morale ? (
             <div className="space-y-1.5">
               <Label htmlFor="p-nom">Raison sociale *</Label>
-              <Input id="p-nom" name="nom" required maxLength={120} placeholder="SCI Marchand" />
+              <Input id="p-nom" name="nom" required maxLength={120} placeholder="SCI Marchand" defaultValue={etat.valeurs?.nom} />
             </div>
           ) : (
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="p-nom">Nom *</Label>
-                <Input id="p-nom" name="nom" required maxLength={120} />
+                <Input id="p-nom" name="nom" required maxLength={120} defaultValue={etat.valeurs?.nom} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="p-prenom">Prénom *</Label>
-                <Input id="p-prenom" name="prenom" required maxLength={120} />
+                <Input id="p-prenom" name="prenom" required maxLength={120} defaultValue={etat.valeurs?.prenom} />
               </div>
             </>
           )}
           <div className="space-y-1.5">
             <Label htmlFor="p-email">Adresse email *</Label>
-            <Input id="p-email" name="email" type="email" required maxLength={200} />
+            <Input id="p-email" name="email" type="email" required maxLength={200} defaultValue={etat.valeurs?.email} />
             <p className="text-xs text-muted-foreground">
               Une adresse ne peut appartenir qu&apos;à une seule fiche de
               l&apos;agence.
@@ -221,41 +211,24 @@ export function FormulairePersonne({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-tel">Téléphone</Label>
-            <Input id="p-tel" name="telephone" maxLength={40} />
+            <Input id="p-tel" name="telephone" maxLength={40} defaultValue={etat.valeurs?.telephone} />
           </div>
           {!morale && (
             <div className="space-y-1.5">
               <Label htmlFor="p-naissance">Date de naissance</Label>
-              <Input id="p-naissance" name="date_naissance" type="date" />
+              <Input id="p-naissance" name="date_naissance" type="date" defaultValue={etat.valeurs?.date_naissance} />
             </div>
           )}
 
           {estProprio ? (
             <div className="space-y-1.5">
               <Label htmlFor="p-lot">Rattacher à un lot de l&apos;agence</Label>
-              <Input
-                type="search"
-                value={rechercheLot}
-                onChange={(e) => setRechercheLot(e.target.value)}
-                placeholder="Filtrer : adresse, lot, ville…"
-                aria-label="Filtrer les lots"
-              />
-              <select
-                id="p-lot"
-                name="lot_id"
-                defaultValue=""
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-              >
-                <option value="">— À rattacher plus tard —</option>
-                {lotsVisibles.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.libelle}
-                  </option>
-                ))}
-              </select>
+              {/* Recette 21/08 (C.5.4) : recherche et choix en un seul champ */}
+              <ComboboxLot lots={lots} id="p-lot" name="lot_id" />
               <p className="text-xs text-muted-foreground">
-                Facultatif. Le propriétaire devient détenteur du lot (100 % —
-                les quote-parts se règlent sur la fiche du lot).
+                Facultatif — laissez vide pour rattacher plus tard. Le
+                propriétaire mandant devient détenteur du lot (100 % — les
+                quote-parts se règlent sur la fiche du lot).
               </p>
             </div>
           ) : (

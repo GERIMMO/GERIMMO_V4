@@ -1400,3 +1400,15 @@ base (rollback), lint/build OK. Livrable de re-test :
 `livrables/Recette 2026-08-21 - retours corriges.md`. Reste hors passe :
 navigation vers l'échéancier (G.3), UX doublon GED, menu locataire complet
 (porté par la branche S7).
+
+## [2026-08-22] recette | Livrable central unique : fusion du re-test du 21/08 + historique des validations
+
+À la demande de l'humain : les tests à faire sont centralisés dans un seul
+fichier, `livrables/Recette S3-S8 - tests par sprint et persona.md`.
+- Le livrable `Recette 2026-08-21 - retours corriges.md` y est fusionné en
+  **étape 3** (re-tests A.1-A.6 et B.1-B.4, numérotation conservée), puis
+  supprimé.
+- Nouvelle section **« Historique — recetté et validé »** en fin de document,
+  pour garder la vision de ce qui a déjà été validé : bloc 0 (08/08), C.2-C.4,
+  C.5.1-3+5, C.7, 3.2.1+3, 3.3.1-4 (13/08), recette automatisée du 14/08
+  (ne vaut pas validation), correctifs du 21/08 (re-tests en étape 3).

@@ -1,15 +1,15 @@
 # Recette S3→S8 — sujets en cours
 
-> Mis à jour le 2026-08-19, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le 2026-08-22, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> **Fichier central de recette** : tous les tests à faire sont ici (le livrable
+> séparé « Recette 2026-08-21 - retours corriges » a été fusionné en étape 3).
 > Mot de passe commun : `Gerimmo-Demo-2026`.
 > Périmètre réel : S3, S4, S5, S6 et S8 — le **S7 (incidents) n'est pas encore
 > développé** (constat du 19/08, à planifier après le S9a).
 >
-> Ce document ne garde que **ce qui reste à tester ou re-tester**. Sortis car
-> validés : bloc 0 (08/08) ; C.2, C.3, C.4, C.5 (étapes 1-3 et 5), C.7,
-> 3.2 (étapes 1 et 3), 3.3 (étapes 1-4) le 13/08.
-> Réponse à la question C.7.1 du 13/08 : rien de problématique — vérifié en
-> base, la clôture de la détention future a bien été refusée (`date_fin` vide).
+> Le corps du document = **ce qui reste à tester ou re-tester**. Ce qui a été
+> recetté et validé est conservé dans la section « **Historique — recetté et
+> validé** » en fin de document (vision d'ensemble sans re-tester).
 >
 > **Méthode itérative** : re-tests des correctifs d'abord, puis un sprint à la
 > fois, persona par persona. Les numéros reprennent ceux du document du 05/08
@@ -137,6 +137,114 @@
 > signale désormais un échec de mémorisation au lieu d'un faux succès ; la
 > création de bien en propriétaire direct signale toute écriture échouée ;
 > requêtes des fiches personne/bail et de l'espace locataire parallélisées.
+
+---
+
+## Étape 3 — Re-tests des correctifs du 21/08 (retours de recette S3-S8)
+
+> Correctifs des 6 anomalies et 4 chantiers UX issus des retours de recette,
+> déployés sur main le 21/08 (3 migrations appliquées). **À dérouler en
+> premier** lors de la prochaine session de recette. Les réponses aux trois
+> questions posées (doublon GED, mandat résilié, échéancier G.3) sont dans
+> `log.md` — le doublon GED est un comportement voulu (empreinte du contenu),
+> l'accès à l'échéancier reste à traiter dans une passe navigation.
+
+### Anomalies corrigées
+
+**Re-test A.1 — Mandat sans lot** · persona AA (`admin.alpha@`)
+1. Fiche d'un propriétaire mandant → créer un mandat (brouillon), **sans lot**.
+2. Cliquer « Passer à signer » → **refus** : « Un mandat sans lot ne part pas à
+   la signature : ajoutez au moins un lot avec son taux d'honoraires. »
+3. Ajouter un lot (le champ est maintenant un **combobox** : taper filtre,
+   cliquer choisit, le choix reste affiché) → un lien **« Retirer »** apparaît
+   sur la ligne tant que le mandat est en brouillon.
+4. « Passer à signer » → accepté ; la zone d'ajout disparaît, remplacée par
+   « Lots et taux figés — ils sont ceux du contrat signé. »
+5. Tenter d'ajouter une ligne via un vieux formulaire resté ouvert → refus
+   « Les lots et taux d'un mandat se composent en brouillon… ».
+
+**Re-test A.2 + A.3 — Attestation d'assurance** · personas LO (`locataire.alpha@`) puis AG (`agent.alpha@`)
+1. LO : déposer une attestation (date d'expiration obligatoire) → succès ; la
+   carte affiche la puce **« En cours de vérification »** (orange).
+2. AG : une alerte **« Attestation d'assurance déposée — {nom} »** est ouverte
+   (cloche + page Alertes, avec « Expire le … — à vérifier puis valider » en
+   sous-ligne).
+3. Fiche personne → Pièces justificatives : l'attestation porte son
+   **échéance colorée** (« valide jusqu'au … » / « expire dans N j » /
+   « expirée depuis N j ») et la puce **« À vérifier »** + bouton **Valider**.
+4. Valider → puce **« Validée »**, l'alerte passe en « Fermées récemment »
+   (« Attestation vérifiée et validée »).
+5. LO : la puce passe à **« Validée par votre agence »** (vert).
+6. LO : redéposer une attestation (renouvellement) → la fiche personne montre
+   **une seule** attestation courante (v2), l'ancienne dans l'historique ;
+   côté LO c'est bien la **dernière** qui s'affiche (plus l'ancienne).
+7. Alertes d'expiration : elles tournent chaque nuit (3 h 45) — pour vérifier
+   sans attendre : déposer une attestation expirant sous 30 jours et demander
+   au super admin d'exécuter la génération, ou constater l'alerte le lendemain.
+
+**Re-test A.4 — Baux** · persona AG
+1. Fiche lot → créer un bail : le formulaire porte un champ **« Date
+   d'entrée »**. Saisir le **12** du mois → accepté.
+2. Sur la fiche du bail (brouillon) : carte **« Corriger le brouillon »** avec
+   tous les champs **pré-remplis** — modifier le loyer, enregistrer →
+   « Brouillon corrigé. », l'en-tête reflète le nouveau montant.
+3. Déposer un JPG comme bail signé → **refus** : « Le bail signé se dépose en
+   PDF complet — une image d'une page ne vaut pas le contrat. » (le champ
+   n'accepte plus que .pdf).
+4. Déposer un PDF, activer → la date d'entrée reste **le 12** (pas le jour du
+   clic) ; l'échéancier démarre au bon mois.
+
+**Re-test A.5 — Alerte EDL nominative** · persona AG
+1. Après l'activation ci-dessus : l'alerte s'intitule **« État des lieux
+   d'entrée — {lot} · {locataire} »** ; sur la page Alertes, la sous-ligne de
+   contexte apparaît sous le titre.
+
+**Re-test A.6 — Terminologie « propriétaire mandant »** · persona AA
+1. Liste des personnes : les puces disent **« Propriétaire mandant »** (ou
+   « Propriétaire mandant · sans mandat ») — plus jamais « Propriétaire » nu.
+2. Fiche lot : section **« Propriétaires mandants du lot »** ; formulaire de
+   détention : libellés « Propriétaire mandant ».
+
+### Améliorations UX
+
+**Re-test B.1 — Parc** · personas AG/AA
+1. Fiche bien : nouvelle rubrique **« Propriétaires mandants »** — une ligne
+   par personne (cliquable vers sa fiche) avec ses lots et quote-parts.
+2. Fiche lot → Caractéristiques : le récap commence par **Propriétaire
+   mandant** et **Locataire** (bail en cours), et l'**identifiant fiscal** est
+   visible sans ouvrir « Modifier le lot ».
+3. Section « Baux & état des lieux » : chaque rang affiche **« Bail nu —
+   {locataire} »** (type lisible + qui habite) avant d'ouvrir.
+
+**Re-test B.2 — Combobox lot (C.5.4)** · persona AA
+1. Nouvelle personne « Propriétaire mandant » → « Rattacher à un lot » est un
+   champ unique : taper filtre, cliquer choisit, **le choix reste affiché** ;
+   retaper libère le choix. Laisser vide = rattacher plus tard.
+
+**Re-test B.3 — EDL** · persona AG
+1. Ouvrir un EDL non signé : chaque section a un sélecteur **« Toute la
+   section… »** — choisir « Bon » remplit toutes les lignes de la pièce, puis
+   s'ajuste ligne à ligne.
+2. Les lignes **sans état sont surlignées en rouge** (liseré gauche) ; le
+   bouton **« Enregistrer et signer »** est grisé avec le compteur « N lignes
+   sans état (en rouge) — la signature attendra. »
+3. Tout remplir → « Enregistrer et signer » en **un seul geste** : la grille
+   est enregistrée puis signée (« État des lieux signé — il est figé. »)
+   — plus besoin d'enregistrer d'abord.
+
+**Re-test B.4 — Espace locataire** · persona LO
+1. La carte s'appelle **« Mon logement »** ; le sous-titre de l'accueil couvre
+   logement, loyers et assurance.
+
+> Vérifications déjà faites par l'agent le 21/08 (ne valent pas validation
+> humaine) : 72 tests Vitest verts, 7 tests d'intégration
+> (`recette-2026-08-21.test.ts`, pattern rollback), 6 scénarios déroulés en
+> conditions réelles sur la base (transaction annulée), lint/typecheck/build OK.
+>
+> Hors de cette passe (assumé) : espace locataire « menu maquette » complet et
+> incidents (branche `sprint7-incidents`, recette prête) ; accès à l'échéancier
+> depuis la fiche bail (G.3, passe navigation à venir) ; UX du message de
+> doublon GED (rattacher en un clic — la mécanique est saine).
 
 ---
 
@@ -333,3 +441,24 @@
 
 - **Propriétaire = locataire du même lot** : un avertissement non bloquant a été proposé — valider ou ajuster.
 - **Rattachement locataire/garant via le bail** (C.5.5) : l'assistant l'explique au lieu d'un lien mort — confirmer cette interprétation.
+
+---
+
+## Historique — recetté et validé (ne plus re-tester)
+
+> Trace des scénarios **validés en recette humaine**, gardée ici pour la vision
+> d'ensemble. Le détail des scénarios sortis du corps du document reste dans
+> git (commit b14f4fe) et dans `log.md`.
+
+- **08/08 — Bloc 0 (non-régression S0–S2)** : 0.1, 0.2, 0.3 **validés**.
+- **13/08 — Étape correctifs + début du Sprint 3** : **validés** C.2, C.3,
+  C.4, C.5 (étapes 1-3 et 5), C.7 ; 3.2 (étapes 1 et 3) ; 3.3 (étapes 1-4).
+  Question C.7.1 : pas une anomalie — vérifié en base, la clôture de la
+  détention future a bien été refusée (`date_fin` vide).
+- **14/08 — Recette automatisée (agent)** des 6 re-tests du 13/08 (C.1, C.5.4,
+  C.6.1, C.6.2, 3.2.2, 3.3.5) : tous passés en conditions réelles, mais **ne
+  vaut pas validation humaine** → à confirmer d'un coup d'œil via l'étape 1.
+- **21/08 — Retours de recette S3-S8** : les 6 anomalies (A.1-A.6) et
+  4 chantiers UX (B.1-B.4) remontés ont été **corrigés et déployés sur main**
+  (tests/lint/build verts, scénarios rejoués par l'agent en base) → re-tests
+  humains via l'étape 3.

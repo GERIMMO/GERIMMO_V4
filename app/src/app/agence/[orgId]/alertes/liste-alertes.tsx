@@ -12,6 +12,7 @@ import { afficherEcheance } from "@/lib/echeances";
 import { CRITICITES, formaterDateHeure } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
+import { ModaleIncident, type IncidentPourModale } from "./modale-incident";
 
 export type AlerteRang = {
   id: string;
@@ -45,6 +46,7 @@ export function ListeAlertes({
   monCompte,
   estResponsable,
   ouvrirAlerteId,
+  incidents,
 }: {
   orgId: string;
   alertes: AlerteRang[];
@@ -54,6 +56,9 @@ export function ListeAlertes({
   // « Traiter » depuis le tableau de bord ou la cloche (recette 22/08) : la
   // pop-up de traitement s'ouvre d'emblée sur cette alerte.
   ouvrirAlerteId?: string;
+  // Les incidents liés aux alertes qui en transportent un (details.incident_id) :
+  // « Traiter » ouvre alors la pop-up incident, pas la modale d'alerte générique.
+  incidents?: IncidentPourModale[];
 }) {
   const [filtre, setFiltre] = useState<string>("toutes");
   const [ouverte, setOuverte] = useState<AlerteRang | null>(
@@ -156,16 +161,29 @@ export function ListeAlertes({
         jamais.
       </p>
 
-      {ouverte && (
-        <ModaleAlerte
-          orgId={orgId}
-          alerte={ouverte}
-          membres={membres}
-          estResponsable={estResponsable}
-          nomAssignation={nomAssignation(ouverte)}
-          fermer={() => setOuverte(null)}
-        />
-      )}
+      {ouverte &&
+        (() => {
+          const incident = (incidents ?? []).find(
+            (i) => i.id === ouverte.details?.incident_id
+          );
+          return incident ? (
+            <ModaleIncident
+              orgId={orgId}
+              incident={incident}
+              critique={ouverte.criticite === "critique"}
+              fermer={() => setOuverte(null)}
+            />
+          ) : (
+            <ModaleAlerte
+              orgId={orgId}
+              alerte={ouverte}
+              membres={membres}
+              estResponsable={estResponsable}
+              nomAssignation={nomAssignation(ouverte)}
+              fermer={() => setOuverte(null)}
+            />
+          );
+        })()}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modale } from "@/components/ui/modale";
 import { nomComplet } from "@/lib/roles-personnes";
 
 type Personne = { id: string; nom: string; prenom: string | null };
@@ -194,37 +195,27 @@ export function FormulaireDetention({
 
       {/* Pop-up « nouveau propriétaire » (recette 13/08) : fiche créée à la
           volée avec le rôle propriétaire mandant — mêmes règles que
-          l'assistant (email obligatoire et unique dans l'agence). */}
+          l'assistant (email obligatoire et unique dans l'agence). Modale
+          unique de la charte (recette 22/08). */}
       {modaleOuverte && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--encre)]/35 p-4"
-          onClick={fermerModale}
+        <Modale
+          titre="Nouveau propriétaire mandant"
+          surtitre="La fiche complète se retrouve dans Personnes"
+          fermer={fermerModale}
         >
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Nouveau propriétaire mandant"
-            className="w-full max-w-md border border-border bg-background"
-            onClick={(e) => e.stopPropagation()}
+            className="space-y-3"
             onKeyDown={(e) => {
               // Entrée dans un champ valide la pop-up (sans soumettre la
-              // détention) — sur un bouton, elle garde son sens ; Échap referme.
+              // détention) — sur un bouton, elle garde son sens.
               if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
                 e.preventDefault();
                 if (refNom.current?.reportValidity() && refEmail.current?.reportValidity()) {
                   setModaleOuverte(false);
                 }
               }
-              if (e.key === "Escape") fermerModale();
             }}
           >
-            <div className="bg-[var(--encre)] px-5 py-3.5 text-[var(--sur-encre)]">
-              <h3 className="text-[var(--sur-encre)]">Nouveau propriétaire mandant</h3>
-              <p className="mono-discret text-[var(--sur-encre)]/75">
-                La fiche complète se retrouve dans Personnes.
-              </p>
-            </div>
-            <div className="space-y-3 p-5">
               <div className="space-y-1.5">
                 <Label htmlFor="detention-nom">Nom ou raison sociale *</Label>
                 <Input
@@ -279,9 +270,8 @@ export function FormulaireDetention({
                   Valider
                 </Button>
               </div>
-            </div>
           </div>
-        </div>
+        </Modale>
       )}
     </form>
   );

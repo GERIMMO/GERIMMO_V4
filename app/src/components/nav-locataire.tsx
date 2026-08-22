@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 // Navigation de l'espace locataire — maquette chromeLoc : onglets posés sur le
-// bandeau encre assombri, liseré laiton sous l'onglet actif. Les onglets
-// « Mes demandes » (incidents) arrivent avec le Sprint 7.
+// bandeau encre assombri, liseré laiton sous l'onglet actif.
 export function NavLocataire({ orgId }: { orgId: string }) {
   const pathname = usePathname();
   const base = `/locataire/${orgId}`;
   const entrees = [
     { href: base, libelle: "Mon logement", exact: true },
+    { href: `${base}/demandes`, libelle: "Mes demandes" },
     { href: `${base}/loyers`, libelle: "Mes loyers" },
   ];
 

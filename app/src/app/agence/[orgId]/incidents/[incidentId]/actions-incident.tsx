@@ -31,17 +31,24 @@ function Retour({ etat }: { etat: EtatIncidentAction }) {
 
 // Qualification / imputation (RM-7.2) : l'agent choisit — rien n'est
 // pré-sélectionné (RM-7.2.1) — et justifie (opposable, RM-7.2.3).
+// `apresSucces` : la pop-up de traitement (recette 22/08) se referme sur le
+// geste abouti — la fiche, elle, reste en place.
 export function FormulaireQualification({
   orgId,
   incidentId,
   categorie,
+  apresSucces,
 }: {
   orgId: string;
   incidentId: string;
   categorie: string;
+  apresSucces?: () => void;
 }) {
   const actionLiee = qualifierIncident.bind(null, orgId, incidentId);
   const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  useEffect(() => {
+    if (etat.succes) apresSucces?.();
+  }, [etat.succes, apresSucces]);
 
   return (
     <form action={action} className="space-y-3">
@@ -82,13 +89,18 @@ export function FormulaireCloture({
   orgId,
   incidentId,
   motifs,
+  apresSucces,
 }: {
   orgId: string;
   incidentId: string;
   motifs: string[];
+  apresSucces?: () => void;
 }) {
   const actionLiee = cloturerIncident.bind(null, orgId, incidentId);
   const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  useEffect(() => {
+    if (etat.succes) apresSucces?.();
+  }, [etat.succes, apresSucces]);
 
   return (
     <form action={action} className="space-y-3">

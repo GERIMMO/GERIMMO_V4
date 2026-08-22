@@ -8,8 +8,15 @@ import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { categorieIncident, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
-export type EtatIncidentAction = { erreur?: string; succes?: string; avertissement?: string };
+export type EtatIncidentAction = {
+  erreur?: string;
+  succes?: string;
+  avertissement?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
+};
 
 // Une déclaration porte au plus cinq photos — assez pour montrer le désordre,
 // pas assez pour transformer la GED en pellicule.
@@ -160,10 +167,11 @@ export async function declarerMonIncident(
   const { supabase, user } = await verifierLocataire(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const champs = lireChampsDeclaration(formData);
-  if (champs.erreur) return { erreur: champs.erreur };
+  if (champs.erreur) return { erreur: champs.erreur, valeurs };
   const photos = lirePhotos(formData);
-  if (photos.erreur) return { erreur: photos.erreur };
+  if (photos.erreur) return { erreur: photos.erreur, valeurs };
 
   const { data: incidentId, error } = await supabase.rpc("declarer_mon_incident", {
     p_org: orgId,
@@ -173,11 +181,12 @@ export async function declarerMonIncident(
     p_anciennete: champs.anciennete || null,
     p_urgence: champs.urgence,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   const avertissement = await joindrePhotos(supabase, orgId, incidentId, photos.fichiers ?? []);
 
   revalidatePath(`/locataire/${orgId}`);
+  revalidatePath(`/locataire/${orgId}/demandes`);
   return {
     succes: "Signalement envoyé — votre gérant est prévenu. Suivez-le depuis votre espace.",
     avertissement,
@@ -207,6 +216,7 @@ export async function contesterImputation(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/locataire/${orgId}`);
+  revalidatePath(`/locataire/${orgId}/demandes`);
   return { succes: "Contestation transmise à l'agence. Elle ne suspend pas la réparation." };
 }
 
@@ -232,6 +242,7 @@ export async function signalerProblemePersiste(
   if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/locataire/${orgId}`);
+  revalidatePath(`/locataire/${orgId}/demandes`);
   return { succes: "Signalement rouvert — votre gérant est prévenu." };
 }
 
@@ -248,12 +259,13 @@ export async function ouvrirIncident(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const lotId = String(formData.get("lot") ?? "");
-  if (!lotId) return { erreur: "Choisissez le lot concerné." };
+  if (!lotId) return { erreur: "Choisissez le lot concerné.", valeurs };
   const champs = lireChampsDeclaration(formData);
-  if (champs.erreur) return { erreur: champs.erreur };
+  if (champs.erreur) return { erreur: champs.erreur, valeurs };
   const photos = lirePhotos(formData);
-  if (photos.erreur) return { erreur: photos.erreur };
+  if (photos.erreur) return { erreur: photos.erreur, valeurs };
 
   const { data: incidentId, error } = await supabase.rpc("ouvrir_incident_agence", {
     p_org: orgId,
@@ -264,7 +276,7 @@ export async function ouvrirIncident(
     p_anciennete: champs.anciennete || null,
     p_urgence: champs.urgence,
   });
-  if (error) return { erreur: `Ouverture impossible : ${sansJargon(error.message)}` };
+  if (error) return { erreur: `Ouverture impossible : ${sansJargon(error.message)}`, valeurs };
 
   const avertissement = await joindrePhotos(supabase, orgId, incidentId, photos.fichiers ?? []);
   revalidatePath(`/agence/${orgId}/incidents`);
@@ -307,6 +319,9 @@ export async function qualifierIncident(
 
   revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
+  // La qualification solde l'alerte « à qualifier » : la page Alertes (d'où la
+  // pop-up de traitement peut être ouverte, recette 22/08) doit se rafraîchir.
+  revalidatePath(`/agence/${orgId}/alertes`);
   return { succes: "Incident qualifié — le locataire voit l'imputation dès maintenant." };
 }
 
@@ -333,6 +348,7 @@ export async function cloturerIncident(
 
   revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
+  revalidatePath(`/agence/${orgId}/alertes`);
   return { succes: "Incident clos — les alertes liées sont soldées." };
 }
 
@@ -357,6 +373,7 @@ export async function rouvrirIncident(
 
   revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
+  revalidatePath(`/agence/${orgId}/alertes`);
   return { succes: "Incident rouvert — il repasse par la qualification." };
 }
 

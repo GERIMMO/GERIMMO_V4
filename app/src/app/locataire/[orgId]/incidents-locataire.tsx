@@ -176,8 +176,9 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
   );
 }
 
-// Carte « Mes signalements » de l'accueil locataire : le statut de chaque
-// incident est visible dès l'accueil (RM-19.2.3)
+// Liste « Mes demandes » (onglet dédié depuis la recette 22/08) : le statut de
+// chaque signalement, dans les mots du locataire (RM-19.2.3). Le CTA
+// « Signaler un problème » vit dans l'en-tête de la page.
 export function IncidentsLocataire({
   orgId,
   incidents,
@@ -185,23 +186,28 @@ export function IncidentsLocataire({
   orgId: string;
   incidents: IncidentLocataire[];
 }) {
-  return (
-    <div className="space-y-3">
-      {incidents.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Rien en cours. Un problème dans le logement ? Signalez-le, vous saurez
-          qui prend la réparation en charge.
+  if (incidents.length === 0) {
+    return (
+      <div className="vide">
+        <p className="font-medium">Rien en cours.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Un problème dans le logement ? Signalez-le — vous saurez qui prend la
+          réparation en charge.
         </p>
-      ) : (
-        <ul className="divide-y divide-border">
-          {incidents.map((i) => (
-            <CarteIncident key={i.id} orgId={orgId} incident={i} />
-          ))}
-        </ul>
-      )}
-      <Link href={`/locataire/${orgId}/incident`} className="btn-or">
-        Signaler un problème
-      </Link>
-    </div>
+        <Link
+          href={`/locataire/${orgId}/incident`}
+          className="mt-3 inline-block text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
+        >
+          Signaler un problème
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <ul className="divide-y divide-border">
+      {incidents.map((i) => (
+        <CarteIncident key={i.id} orgId={orgId} incident={i} />
+      ))}
+    </ul>
   );
 }

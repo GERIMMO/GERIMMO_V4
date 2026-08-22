@@ -42,9 +42,17 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
         <Input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple />
       </div>
 
+      {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
+          sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
       <div className="space-y-1.5">
         <Label htmlFor="categorie">De quoi s&apos;agit-il ? *</Label>
-        <select id="categorie" name="categorie" required defaultValue="" className={classeSelect}>
+        <select
+          id="categorie"
+          name="categorie"
+          required
+          defaultValue={etat.valeurs?.categorie ?? ""}
+          className={classeSelect}
+        >
           <option value="" disabled>
             Choisissez la catégorie la plus proche…
           </option>
@@ -58,7 +66,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
 
       <div className="space-y-1.5">
         <Label htmlFor="piece">Dans quelle pièce ?</Label>
-        <select id="piece" name="piece" defaultValue="" className={classeSelect}>
+        <select id="piece" name="piece" defaultValue={etat.valeurs?.piece ?? ""} className={classeSelect}>
           <option value="">—</option>
           {PIECES_INCIDENT.map((p) => (
             <option key={p} value={p}>
@@ -76,18 +84,29 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           required
           rows={3}
           placeholder="Depuis quand, où exactement, est-ce que cela s'aggrave…"
+          defaultValue={etat.valeurs?.description}
           className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
         />
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="anciennete">Depuis quand ?</Label>
-        <Input id="anciennete" name="anciennete" placeholder="« Depuis dimanche »" />
+        <Input
+          id="anciennete"
+          name="anciennete"
+          placeholder="« Depuis dimanche »"
+          defaultValue={etat.valeurs?.anciennete}
+        />
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="urgence">Est-ce urgent ?</Label>
-        <select id="urgence" name="urgence" defaultValue="normale" className={classeSelect}>
+        <select
+          id="urgence"
+          name="urgence"
+          defaultValue={etat.valeurs?.urgence ?? "normale"}
+          className={classeSelect}
+        >
           <option value="normale">Non, cela peut attendre quelques jours</option>
           <option value="urgente">Oui, dégât en cours ou logement inutilisable</option>
         </select>

@@ -44,9 +44,17 @@ export function FormulaireIncident({
 
   return (
     <form action={action} className="space-y-4">
+      {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
+          sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
       <div className="space-y-1.5">
         <Label htmlFor="lot">Lot concerné *</Label>
-        <select id="lot" name="lot" required defaultValue="" className={classeSelect}>
+        <select
+          id="lot"
+          name="lot"
+          required
+          defaultValue={etat.valeurs?.lot ?? ""}
+          className={classeSelect}
+        >
           <option value="" disabled>
             Choisissez le lot…
           </option>
@@ -64,7 +72,7 @@ export function FormulaireIncident({
           id="categorie"
           name="categorie"
           required
-          defaultValue=""
+          defaultValue={etat.valeurs?.categorie ?? ""}
           className={classeSelect}
           onChange={(e) => setCategorie(e.target.value)}
         >
@@ -83,7 +91,7 @@ export function FormulaireIncident({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="piece">Pièce concernée</Label>
-          <select id="piece" name="piece" defaultValue="" className={classeSelect}>
+          <select id="piece" name="piece" defaultValue={etat.valeurs?.piece ?? ""} className={classeSelect}>
             <option value="">—</option>
             {PIECES_INCIDENT.map((p) => (
               <option key={p} value={p}>
@@ -94,7 +102,12 @@ export function FormulaireIncident({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="urgence">Urgence</Label>
-          <select id="urgence" name="urgence" defaultValue="normale" className={classeSelect}>
+          <select
+            id="urgence"
+            name="urgence"
+            defaultValue={etat.valeurs?.urgence ?? "normale"}
+            className={classeSelect}
+          >
             <option value="normale">Normal — peut attendre quelques jours</option>
             <option value="urgente">Urgent — dégât en cours ou logement inutilisable</option>
           </select>
@@ -109,6 +122,7 @@ export function FormulaireIncident({
           required
           rows={3}
           placeholder="Ce que décrit le locataire : où exactement, depuis quand, est-ce que cela s'aggrave…"
+          defaultValue={etat.valeurs?.description}
           className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
         />
       </div>
@@ -119,6 +133,7 @@ export function FormulaireIncident({
           id="anciennete"
           name="anciennete"
           placeholder="« Depuis dimanche, ça s'étend »"
+          defaultValue={etat.valeurs?.anciennete}
         />
       </div>
 

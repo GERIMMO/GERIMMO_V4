@@ -136,4 +136,5 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[AIPD - Score artisan (projet)|AIPD — Score artisan]] — analyse d'impact du profilage artisan (art. 35 RGPD).
 - [[Plan de livraison et sprints]] — **le plan de référence** : 16 sprints, V0 mi-décembre 2026, V1 fin mars 2027.
 - [[Recette S3-S8 - scenarios]] — les 24 scénarios de recette humaine remis le 05/08 (référence de numérotation).
-- [[Recette S3-S8 - tests par sprint et persona]] — le reste à tester au 08/08 : scénarios SMART par sprint puis par persona (correctifs du 08/08 + S3→S8 + transverse).
+- [[Recette - test par sprint et persona]] — **le fichier central de recette** (ex « Recette S3-S8 - tests par sprint et persona », renommé le 23/08) : Partie 1 recetté OK / Partie 2 reste à recetter (re-tests du 23/08, Sprint 7 incidents, sprints jamais déroulés, transverse).
+- [[Recette S7 - incidents]] — les scénarios détaillés du Sprint 7 (déclaration locataire, qualification, clôture, réouverture, pop-up de traitement).

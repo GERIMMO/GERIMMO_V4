@@ -1526,3 +1526,38 @@ Retours traités avant le chantier incidents (branche S7) :
   baux de la fiche lot enrichie (loyer cc, dates).
 Vérifs : typecheck/lint 0 erreur, 75 tests unitaires verts, build OK ; tests
 d'intégration du 22/08 écrits (`tests/recette-2026-08-22.test.ts`).
+
+## [2026-08-23] dev | Retours de recette du 22/08 (2/2) : incidents merges, pop-up unifiee, livrable central
+
+Suite et fin de la session :
+- **Branche `sprint7-incidents`** : main mergee dedans (2 conflits resolus :
+  page locataire refondue conservee, log concatene), puis completee :
+  - pop-up de traitement d'incident : « Traiter » sur une alerte incident
+    ouvre le contenu de la fiche (qualification, cloture) dans la modale
+    unique de la charte — depuis le tableau de bord, la cloche et la page
+    Alertes ; l'alerte se solde en base, la pop-up se referme sur le geste
+    abouti (`apresSucces`) ;
+  - espace locataire : onglet « Mes demandes » + carte CTA « Un probleme
+    dans le logement ? » sur l'accueil (RM-19.2.3 respectee) ;
+  - conservation des saisies appliquee aux formulaires incidents ;
+  - pop-up « Nouveau proprietaire mandant » refactoree sur la Modale.
+  Branche poussee (ebc4443) puis **mergee sur main** (fast-forward) et
+  **deployee** (push origin/main → Vercel).
+- **Base de production** : les 5 migrations S7 etaient deja appliquees ;
+  ajout de `mandat_vide_ne_change_plus_detat`. **8 scenarios rejoues en
+  conditions reelles** (transaction annulee) : garde mandat vide, chaine
+  mandat complet, regeneration EDL 4.5.3, refus sur EDL signe, chaine
+  incident (alerte creee → qualification solde → cloture) — tous OK.
+- **Decisions** : profil artisan NON cree (les etats affecte/en_cours/termine
+  attendent le module devis S13 — un ecran sans workflow serait mort) ;
+  le proprietaire bailleur passe deja par les memes fonctions que l'agence
+  (roles generiques, libelles locataire neutralises : « Validee »).
+- **Livrable** : `Recette S3-S8 - tests par sprint et persona.md` renomme en
+  `Recette - test par sprint et persona.md`, restructure : Partie 1 enrichie
+  des validations du 22/08, Partie 2 = etape 4 (re-tests du 23/08 D.1-D.7),
+  Sprint 7 complet (7.1-7.4), reliquats (G.2-G.4, A.1-A.6, B.1.1, 3.4.2,
+  3.5, 4.4, 4.6 reliquat, 4.7 LO), sprints 5/6/8 et transverse inchanges.
+  Reponse a la question 3.5 : la notification d'invitation est l'email
+  Supabase de definition de mot de passe (gabarit par defaut en anglais, a
+  franciser au branchement SMTP).
+Verifs finales : typecheck/lint 0 erreur, 85 tests unitaires verts, build OK.

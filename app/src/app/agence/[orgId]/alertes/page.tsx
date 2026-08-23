@@ -27,27 +27,27 @@ export default async function PageAlertes(
   const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
   const estResponsable = ROLES_RESPONSABLES.includes(role);
 
-  const { data: ouvertes } = await supabase
-    .from("alerts")
-    .select(
-      "id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details"
-    )
-    .eq("organization_id", orgId)
-    .eq("statut", "ouverte")
-    .order("criticite", { ascending: false })
-    .order("echeance", { ascending: true, nullsFirst: false });
-
-  const { data: fermees } = await supabase
-    .from("alerts")
-    .select("id, titre, closed_at, closed_action")
-    .eq("organization_id", orgId)
-    .eq("statut", "fermee")
-    .order("closed_at", { ascending: false })
-    .limit(10);
-
-  const { data: donneesMembres } = await supabase.rpc("org_membres_gerants", {
-    org: orgId,
-  });
+  // Trois lectures indépendantes : en parallèle plutôt qu'en cascade
+  const [{ data: ouvertes }, { data: fermees }, { data: donneesMembres }] =
+    await Promise.all([
+      supabase
+        .from("alerts")
+        .select(
+          "id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details"
+        )
+        .eq("organization_id", orgId)
+        .eq("statut", "ouverte")
+        .order("criticite", { ascending: false })
+        .order("echeance", { ascending: true, nullsFirst: false }),
+      supabase
+        .from("alerts")
+        .select("id, titre, closed_at, closed_action")
+        .eq("organization_id", orgId)
+        .eq("statut", "fermee")
+        .order("closed_at", { ascending: false })
+        .limit(10),
+      supabase.rpc("org_membres_gerants", { org: orgId }),
+    ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;
     email: string;

@@ -18,13 +18,17 @@ export default async function PageNouvelIncident(
   const { orgId } = await props.params;
   const { supabase, organisation } = await verifierAccesEspace(orgId);
 
-  // Les lots où un incident peut s'ouvrir : tout le parc non archivé
-  const { data: lotsBruts } = await supabase
+  // Les lots où un incident peut s'ouvrir : tout le parc non archivé.
+  // FK explicite (recette 23/08) : lots→biens porte DEUX clés (simple +
+  // même-org) — l'embed nu était ambigu (PGRST201) et la liste sortait vide,
+  // en silence.
+  const { data: lotsBruts, error: erreurLots } = await supabase
     .from("lots")
-    .select("id, nom, etat, bien:biens(nom)")
+    .select("id, nom, etat, bien:biens!lots_bien_id_fkey(nom)")
     .eq("organization_id", orgId)
     .neq("etat", "archive")
     .order("nom");
+  if (erreurLots) console.error("incidents/nouveau — lots illisibles :", erreurLots.message);
   const lots = ((lotsBruts ?? []) as unknown as {
     id: string;
     nom: string;

@@ -1581,3 +1581,38 @@ Verifs finales : typecheck/lint 0 erreur, 85 tests unitaires verts, build OK.
 - **Livrable** : `Recette - test par sprint et persona.md` allege des items
   purement UI (design des pop-up, details visuels D.7) — la fluidite se juge
   en testant ; note du correctif lot ajoutee au scenario 7.4.
+
+## [2026-08-23] revue | Passe de revue complete des derniers developpements + E2E incidents
+
+Trois revues paralleles (incidents/alertes, espace locataire/EDL, retention
+des saisies/mandats) sur tout ce qui a ete developpe les 22-23/08, puis un
+parcours E2E reel en production (compte demo agent au navigateur, locataire
+via l API comme api-isolation.test.ts).
+
+**E2E incidents joue deux fois en production** (INC-2026-0001, dossier de test
+clos) : declaration locataire → alerte → pop-up Traiter depuis le tableau de
+bord → qualification → imputation visible locataire → contestation → cloture
+→ reouverture → requalification → cloture finale. 7 evenements traces,
+0 alerte orpheline.
+
+**9 defauts reels corriges** (details au commit 2de78b1) — les 3 majeurs :
+- la pop-up incident retombait sur la modale d alerte generique perimee
+  apres un geste aboutit (revalidation dans le meme commit React que le
+  succes) — regle sure posee : une alerte disparue ferme sa modale ;
+  ?traiter= consomme puis retire de l URL ;
+- l alerte « imputation contestee » etait insoldable sans cloturer :
+  la REqualification (reponse a la contestation) existe desormais, en base
+  et dans la pop-up, et solde l alerte ;
+- un EDL signe restait modifiable sur compteurs/cles ; la grille de SORTIE
+  ne matchait plus l entree signee si les pieces etaient declarees entre les
+  deux (comparatif entierement en ecart) → sortie miroir de l entree.
+Plus : colocataire qui voyait « aucun bail actif », zone tendue ignoree a la
+creation d un bien, mandat vide en impasse (retour en brouillon), decoupage
+qui perdait la saisie, migrations S7 renommees en horodatage complet (chaine
+rejouable).
+
+Migration `revue_s7_correctifs` appliquee en prod ; 8 scenarios rejoues en
+base reelle (rollback) tous verts ; tests/recette-2026-08-23.test.ts ecrit ;
+85 tests unitaires, typecheck/lint 0 erreur, build OK ; correctifs verifies
+au navigateur sur le deploye (pop-up se ferme proprement, URL nettoyee,
+requalification OK).

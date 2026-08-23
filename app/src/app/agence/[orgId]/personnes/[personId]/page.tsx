@@ -397,6 +397,7 @@ export default async function PagePersonne(
                         personId={personId}
                         mandatId={m.id}
                         etat={m.etat}
+                        nbLignesActives={sesLignes.filter((l) => !l.date_fin).length}
                       />
                     )}
                   </div>

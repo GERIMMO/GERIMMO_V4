@@ -85,6 +85,22 @@ export async function creerBien(
   });
   if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
 
+  // Revue 23/08 : la case « zone tendue » cochée à la création était ignorée
+  // en silence (le RPC ne la connaît pas) — or elle décide du préavis du
+  // congé locataire (1 mois vs 3). Posée juste après la création.
+  if (formData.get("zone_tendue") === "on" && bienId) {
+    const { error: erreurZone } = await supabase
+      .from("biens")
+      .update({ zone_tendue: true })
+      .eq("id", bienId)
+      .eq("organization_id", orgId);
+    if (erreurZone) {
+      return {
+        erreur: `Bien créé, mais la zone tendue n'a pas pu être enregistrée : ${sansJargon(erreurZone.message)} — cochez-la depuis la fiche du bien.`,
+      };
+    }
+  }
+
   // Espace propriétaire direct (recette 08/08) : le propriétaire d'un bien,
   // c'est lui — le champ propriétaire est masqué à l'écran mais la détention
   // est bel et bien posée en base, sur sa propre fiche (créée au besoin).

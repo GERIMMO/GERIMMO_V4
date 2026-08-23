@@ -44,12 +44,15 @@ function PetitFormulaire({
   placeholder,
   bouton,
   enCours,
+  valeurInitiale,
 }: {
   action: (formData: FormData) => void;
   nomChamp: string;
   placeholder: string;
   bouton: string;
   enCours: boolean;
+  // Saisie reposée après un refus (conservation des saisies, recette 22/08)
+  valeurInitiale?: string;
 }) {
   return (
     <form action={action} className="mt-2 flex items-start gap-2">
@@ -58,6 +61,7 @@ function PetitFormulaire({
         required
         rows={2}
         placeholder={placeholder}
+        defaultValue={valeurInitiale}
         className="w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm"
       />
       <Button type="submit" variant="outline" size="sm" disabled={enCours}>
@@ -161,6 +165,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
           placeholder="Expliquez pourquoi — votre message est transmis à l'agence."
           bouton="Envoyer"
           enCours={contestationEnCours}
+          valeurInitiale={etatContestation.valeurs?.message}
         />
       )}
       {ouvert === "persiste" && peutRouvrir && !etatPersiste.succes && (
@@ -170,6 +175,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
           placeholder="Qu'est-ce qui ne va toujours pas ?"
           bouton="Rouvrir"
           enCours={persisteEnCours}
+          valeurInitiale={etatPersiste.valeurs?.motif}
         />
       )}
     </li>

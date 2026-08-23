@@ -11,10 +11,12 @@ export function BoutonRegenererGrille({
   orgId,
   bailId,
   edlId,
+  libelle = "Régénérer la grille depuis les pièces du lot",
 }: {
   orgId: string;
   bailId: string;
   edlId: string;
+  libelle?: string;
 }) {
   const action = regenererGrilleEdl.bind(null, orgId, bailId, edlId);
   const [etat, formAction, enCours] = useActionState<EtatEdl, FormData>(action, {});
@@ -22,9 +24,10 @@ export function BoutonRegenererGrille({
   return (
     <form action={formAction} className="mt-2 space-y-1">
       <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "Régénération…" : "Régénérer la grille depuis les pièces du lot"}
+        {enCours ? "Régénération…" : libelle}
       </Button>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>
   );
 }

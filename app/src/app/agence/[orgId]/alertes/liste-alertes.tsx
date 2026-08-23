@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import {
   escaladerAlerte,
@@ -61,9 +61,43 @@ export function ListeAlertes({
   incidents?: IncidentPourModale[];
 }) {
   const [filtre, setFiltre] = useState<string>("toutes");
-  const [ouverte, setOuverte] = useState<AlerteRang | null>(
-    () => alertes.find((a) => a.id === ouvrirAlerteId) ?? null
-  );
+  const [ouverte, setOuverte] = useState<AlerteRang | null>(null);
+  // Une alerte incident s'ouvre en pop-up incident ; « Confier » et
+  // « Réassigner » repassent par la modale générique (revue 23/08 — le
+  // routage forcé avait fait disparaître la délégation des alertes incident).
+  const [forcerGenerique, setForcerGenerique] = useState(false);
+  // L'auto-ouverture se consomme UNE fois, puis le paramètre est retiré de
+  // l'URL : sans cela, la revalidation qui suit le traitement remontait le
+  // composant avec ?traiter= encore présent et rouvrait une modale périmée
+  // (recette 23/08, constaté en production).
+  // Réinitialisation pilotée par l'URL, pas un état dérivé du rendu — même
+  // idiome que l'assistant personnes.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  const consomme = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ouvrirAlerteId) {
+      consomme.current = null;
+      return;
+    }
+    if (consomme.current === ouvrirAlerteId) return;
+    consomme.current = ouvrirAlerteId;
+    const cible = alertes.find((a) => a.id === ouvrirAlerteId);
+    // On n'ouvre que ce qu'on a le droit de traiter (grisée = intouchable)
+    if (cible && (estConfieeAMoi(cible, monCompte) || estResponsable)) {
+      setOuverte(cible);
+      setForcerGenerique(false);
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [ouvrirAlerteId, alertes, monCompte, estResponsable]);
+  // Le geste abouti solde l'alerte en base et la revalidation arrive dans le
+  // MÊME commit React que le succès : la pop-up incident peut être démontée
+  // avant son propre `apresSucces` et retomber sur la modale générique avec
+  // un objet périmé (recette 23/08, constaté en production). La règle sûre :
+  // une alerte qui a quitté la liste ferme sa modale.
+  useEffect(() => {
+    if (ouverte && !alertes.some((a) => a.id === ouverte.id)) setOuverte(null);
+  }, [alertes, ouverte]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const emailParCompte = new Map(membres.map((m) => [m.account_id, m.email]));
   const nomAssignation = (a: AlerteRang) =>
@@ -119,7 +153,12 @@ export function ListeAlertes({
             type="button"
             variant={!grisee && a.criticite === "critique" ? "destructive" : "outline"}
             size="sm"
-            onClick={() => setOuverte(a)}
+            onClick={() => {
+              setOuverte(a);
+              // « Réassigner » = geste de délégation : modale générique,
+              // même si l'alerte transporte un incident.
+              setForcerGenerique(grisee);
+            }}
           >
             {grisee ? "Réassigner" : "Traiter"}
           </Button>
@@ -166,12 +205,13 @@ export function ListeAlertes({
           const incident = (incidents ?? []).find(
             (i) => i.id === ouverte.details?.incident_id
           );
-          return incident ? (
+          return incident && !forcerGenerique ? (
             <ModaleIncident
               orgId={orgId}
               incident={incident}
               critique={ouverte.criticite === "critique"}
               fermer={() => setOuverte(null)}
+              basculerGenerique={() => setForcerGenerique(true)}
             />
           ) : (
             <ModaleAlerte

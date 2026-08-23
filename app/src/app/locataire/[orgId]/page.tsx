@@ -20,8 +20,10 @@ type Piece = {
 
 function statutAssurance(expire: string | null): { texte: string; classe: string } {
   if (!expire) return { texte: "sans date d'expiration", classe: "text-muted-foreground" };
+  // Minuit LOCAL des deux côtés (revue 23/08 : la date seule se parse en UTC,
+  // le lendemain de l'expiration affichait encore « expire dans 0 j »)
   const jours = Math.ceil(
-    (new Date(expire).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000
+    (new Date(`${expire}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000
   );
   if (jours < 0) return { texte: `expirée depuis ${-jours} j`, classe: "text-destructive" };
   if (jours <= 30)

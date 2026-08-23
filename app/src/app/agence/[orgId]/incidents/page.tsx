@@ -50,19 +50,33 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   const vue = VUES.some((v) => v.cle === vueBrute) ? vueBrute! : "en-cours";
   const { supabase, organisation } = await verifierAccesEspace(orgId);
 
-  const [{ data: incidentsBruts }, { data: donneesMembres }] = await Promise.all([
-    supabase
-      .from("incidents")
-      .select(
-        "id, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), declarant:persons(nom, prenom)"
-      )
-      .eq("organization_id", orgId)
-      .order("created_at", { ascending: false })
-      .limit(300),
-    supabase.rpc("org_membres_gerants", { org: orgId }),
-  ]);
+  // Revue 23/08 : un plafond global faisait sortir les plus VIEUX dossiers —
+  // précisément ceux que la file « À traiter » ne doit jamais perdre. Les
+  // dossiers vivants sont lus sans plafond ; seuls les clos sont bornés.
+  const colonnes =
+    "id, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), declarant:persons(nom, prenom)";
+  const [{ data: vivantsBruts }, { data: closBruts }, { data: donneesMembres }] =
+    await Promise.all([
+      supabase
+        .from("incidents")
+        .select(colonnes)
+        .eq("organization_id", orgId)
+        .neq("etat", "clos")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("incidents")
+        .select(colonnes)
+        .eq("organization_id", orgId)
+        .eq("etat", "clos")
+        .order("created_at", { ascending: false })
+        .limit(200),
+      supabase.rpc("org_membres_gerants", { org: orgId }),
+    ]);
 
-  const incidents = (incidentsBruts ?? []) as unknown as Rang[];
+  const incidents = [
+    ...((vivantsBruts ?? []) as unknown as Rang[]),
+    ...((closBruts ?? []) as unknown as Rang[]),
+  ];
   const emails = new Map(
     ((donneesMembres ?? []) as { account_id: string; email: string }[]).map((m) => [
       m.account_id,

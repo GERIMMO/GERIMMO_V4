@@ -157,8 +157,26 @@ export async function changerEtatMandat(
   if (mandat.etat === "resilie") {
     return { erreur: "Ce mandat est résilié : il est historisé et ne se modifie plus." };
   }
-  if (TRANSITIONS_MANDAT[mandat.etat] !== nouvelEtat) {
+  // Porte de sortie (revue 23/08) : un mandat vide qui a quitté le brouillon
+  // était une impasse — ni composable, ni résiliable, personne inarchivable.
+  // Le retour en brouillon permet de le recomposer, puis d'avancer.
+  const retourBrouillon = nouvelEtat === "brouillon" && mandat.etat !== "brouillon";
+  if (!retourBrouillon && TRANSITIONS_MANDAT[mandat.etat] !== nouvelEtat) {
     return { erreur: "Ce changement d'état n'est pas permis depuis l'état actuel." };
+  }
+  if (retourBrouillon) {
+    const { count } = await supabase
+      .from("mandat_lignes")
+      .select("*", { count: "exact", head: true })
+      .eq("mandat_id", mandatId)
+      .eq("organization_id", orgId)
+      .is("date_fin", null);
+    if ((count ?? 0) > 0) {
+      return {
+        erreur:
+          "Ce mandat porte des lots : signé, son contenu est celui du contrat — il ne repasse pas en brouillon.",
+      };
+    }
   }
   // Recette 21/08 puis 22/08 : un mandat vide traversait toute la chaîne
   // jusqu'à « résilié » sans jamais avoir porté de lot ni de taux. Le contrat

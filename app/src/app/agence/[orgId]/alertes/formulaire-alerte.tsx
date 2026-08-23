@@ -35,14 +35,20 @@ export function FormulaireAlerte({
     <form ref={formulaire} action={action} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="titre-alerte">Titre</Label>
-        <Input id="titre-alerte" name="titre" required maxLength={200} />
+        <Input
+          id="titre-alerte"
+          name="titre"
+          required
+          maxLength={200}
+          defaultValue={etat.valeurs?.titre}
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="criticite">Criticité</Label>
         <select
           id="criticite"
           name="criticite"
-          defaultValue="normale"
+          defaultValue={etat.valeurs?.criticite ?? "normale"}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           {Object.entries(CRITICITES).map(([valeur, libelle]) => (
@@ -57,7 +63,7 @@ export function FormulaireAlerte({
       </div>
       <div className="space-y-2">
         <Label htmlFor="echeance">Échéance (facultatif)</Label>
-        <Input id="echeance" name="echeance" type="date" />
+        <Input id="echeance" name="echeance" type="date" defaultValue={etat.valeurs?.echeance} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="assignee">Assigné à</Label>
@@ -65,7 +71,7 @@ export function FormulaireAlerte({
           id="assignee"
           name="assignee"
           required
-          defaultValue=""
+          defaultValue={etat.valeurs?.assignee ?? ""}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
           <option value="" disabled>

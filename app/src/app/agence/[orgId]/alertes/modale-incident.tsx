@@ -7,6 +7,7 @@ import { nomComplet } from "@/lib/roles-personnes";
 import {
   COULEURS_ETAT_INCIDENT,
   ETATS_INCIDENT,
+  IMPUTATIONS_INCIDENT,
   MOTIFS_CLOTURE_PAR_ETAT,
   categorieIncident,
   titreIncident,
@@ -26,6 +27,7 @@ export type IncidentPourModale = {
   urgence: string;
   etat: string;
   imputation: string | null;
+  imputation_contestation: string | null;
   created_at: string;
   lot: { nom: string } | null;
   declarant: { nom: string; prenom: string | null } | null;
@@ -41,13 +43,22 @@ export function ModaleIncident({
   incident,
   critique,
   fermer,
+  basculerGenerique,
 }: {
   orgId: string;
   incident: IncidentPourModale;
   critique: boolean;
   fermer: () => void;
+  // Confier/déléguer l'alerte : on repasse par la modale générique
+  basculerGenerique?: () => void;
 }) {
-  const aQualifier = incident.etat === "declare" || incident.etat === "rouvert";
+  // Revue 23/08 : un incident QUALIFIÉ se requalifie aussi — c'est la réponse
+  // à une contestation (maintenir ou changer l'imputation, justification
+  // opposable) et cela solde l'alerte « contestée » en base.
+  const aQualifier =
+    incident.etat === "declare" ||
+    incident.etat === "rouvert" ||
+    incident.etat === "qualifie";
   const motifsCloture = MOTIFS_CLOTURE_PAR_ETAT[incident.etat as EtatIncident] ?? [];
 
   return (
@@ -90,7 +101,25 @@ export function ModaleIncident({
             <span>{incident.piece}</span>
           </div>
         )}
+        {incident.imputation && (
+          <div className="ligne-info">
+            <span>Imputation actuelle</span>
+            <span>{IMPUTATIONS_INCIDENT[incident.imputation] ?? incident.imputation}</span>
+          </div>
+        )}
       </div>
+
+      {/* La contestation en toutes lettres : c'est à elle que l'agent répond */}
+      {incident.imputation_contestation && (
+        <div className="border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm">
+          <p className="font-medium">Le locataire conteste l&apos;imputation :</p>
+          <p className="mt-1 text-muted-foreground">« {incident.imputation_contestation} »</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Requalifiez pour répondre — maintenir l&apos;imputation vaut réponse,
+            l&apos;alerte se solde.
+          </p>
+        </div>
+      )}
 
       {/* Le contenu de traitement de la fiche incident, tel quel */}
       {aQualifier && (
@@ -116,20 +145,41 @@ export function ModaleIncident({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border pt-3">
+      {/* Aucun geste possible ici (clos, ou état intermédiaire à venir) :
+          le dire plutôt qu'une pop-up muette */}
+      {!aQualifier && motifsCloture.length === 0 && (
+        <p className="border-t border-border pt-3 text-sm text-muted-foreground">
+          {incident.etat === "clos"
+            ? "Cet incident est clos — rien à traiter ici."
+            : "Cet incident est entre deux étapes — le traitement se poursuit depuis sa fiche."}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
         <Link
           href={`/agence/${orgId}/incidents/${incident.id}`}
           className="text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
         >
           Ouvrir la fiche complète (photos, chronologie, attribution)
         </Link>
-        <button
-          type="button"
-          onClick={fermer}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          Fermer
-        </button>
+        <span className="flex items-center gap-3">
+          {basculerGenerique && (
+            <button
+              type="button"
+              onClick={basculerGenerique}
+              className="text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
+            >
+              Confier l&apos;alerte…
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={fermer}
+            className="text-sm text-muted-foreground hover:underline"
+          >
+            Fermer
+          </button>
+        </span>
       </div>
     </Modale>
   );

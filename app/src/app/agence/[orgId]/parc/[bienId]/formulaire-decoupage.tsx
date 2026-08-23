@@ -1,10 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { decouperBien, type EtatParc } from "@/app/actions/parc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+type LigneSaisie = { nom: string; surface: string };
+
+// Formulaire entièrement contrôlé (revue 23/08) : les champs répétés
+// `lot_nom`/`lot_surface` ne survivent pas au reset React après une erreur —
+// six lignes saisies disparaissaient sur un refus du découpage. L'état
+// React est la seule source, le reset ne peut plus rien effacer.
 export function FormulaireDecoupage({
   orgId,
   bienId,
@@ -14,25 +20,31 @@ export function FormulaireDecoupage({
 }) {
   const actionLiee = decouperBien.bind(null, orgId, bienId);
   const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
-  const [nbLignes, setNbLignes] = useState(1);
-  const formulaire = useRef<HTMLFormElement>(null);
+  const [lignes, setLignes] = useState<LigneSaisie[]>([{ nom: "", surface: "" }]);
 
   useEffect(() => {
     if (!etat.succes) return;
-    formulaire.current?.reset();
-    const minuterie = setTimeout(() => setNbLignes(1), 0);
-    return () => clearTimeout(minuterie);
+    // Découpage réussi : on repart d'une ligne vide (piloté par la réponse
+    // du serveur, même idiome que l'assistant personnes)
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setLignes([{ nom: "", surface: "" }]);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [etat]);
 
+  const majLigne = (i: number, champ: keyof LigneSaisie, valeur: string) =>
+    setLignes((prev) => prev.map((l, n) => (n === i ? { ...l, [champ]: valeur } : l)));
+
   return (
-    <form ref={formulaire} action={action} className="space-y-3">
-      {Array.from({ length: nbLignes }, (_, i) => (
+    <form action={action} className="space-y-3">
+      {lignes.map((l, i) => (
         <div key={i} className="flex gap-2">
           <Input
             name="lot_nom"
             maxLength={120}
             placeholder={`Nom du lot (ex. Lot ${i + 2} — RDC gauche)`}
             className="flex-1"
+            value={l.nom}
+            onChange={(e) => majLigne(i, "nom", e.target.value)}
           />
           <Input
             name="lot_surface"
@@ -41,6 +53,8 @@ export function FormulaireDecoupage({
             min="0.01"
             placeholder="m²"
             className="w-24"
+            value={l.surface}
+            onChange={(e) => majLigne(i, "surface", e.target.value)}
           />
         </div>
       ))}
@@ -49,7 +63,7 @@ export function FormulaireDecoupage({
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => setNbLignes((n) => n + 1)}
+          onClick={() => setLignes((prev) => [...prev, { nom: "", surface: "" }])}
         >
           + Ajouter une ligne
         </Button>

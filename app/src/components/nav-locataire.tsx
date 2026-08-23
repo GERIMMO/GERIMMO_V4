@@ -11,14 +11,17 @@ export function NavLocataire({ orgId }: { orgId: string }) {
   const base = `/locataire/${orgId}`;
   const entrees = [
     { href: base, libelle: "Mon logement", exact: true },
-    { href: `${base}/demandes`, libelle: "Mes demandes" },
+    // La page de déclaration (/incident) vit sous « Mes demandes »
+    { href: `${base}/demandes`, libelle: "Mes demandes", aussi: `${base}/incident` },
     { href: `${base}/loyers`, libelle: "Mes loyers" },
   ];
 
   return (
     <nav className="flex gap-6 overflow-x-auto [scrollbar-width:none]">
       {entrees.map((e) => {
-        const active = e.exact ? pathname === e.href : pathname.startsWith(e.href);
+        const active = e.exact
+          ? pathname === e.href
+          : pathname.startsWith(e.href) || (e.aussi ? pathname.startsWith(e.aussi) : false);
         return (
           <Link
             key={e.href}

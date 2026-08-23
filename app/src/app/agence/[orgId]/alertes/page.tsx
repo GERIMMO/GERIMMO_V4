@@ -67,15 +67,19 @@ export default async function PageAlertes(
         .filter((id): id is string => typeof id === "string")
     ),
   ];
-  const { data: incidentsBruts } = incidentIds.length
+  const { data: incidentsBruts, error: erreurIncidents } = incidentIds.length
     ? await supabase
         .from("incidents")
         .select(
-          "id, numero, categorie, description, piece, urgence, etat, imputation, created_at, lot:lots(nom), declarant:persons(nom, prenom)"
+          "id, numero, categorie, description, piece, urgence, etat, imputation, imputation_contestation, created_at, lot:lots(nom), declarant:persons(nom, prenom)"
         )
         .eq("organization_id", orgId)
         .in("id", incidentIds)
-    : { data: [] };
+    : { data: [], error: null };
+  // Une erreur avalée ferait retomber « Traiter » sur la modale générique en
+  // silence (revue 23/08) — au moins une trace serveur.
+  if (erreurIncidents)
+    console.error("alertes — incidents liés illisibles :", erreurIncidents.message);
   const incidentsLies: IncidentPourModale[] = (
     (incidentsBruts ?? []) as unknown as (Omit<IncidentPourModale, "lot" | "declarant"> & {
       lot: UnOuPlusieurs<{ nom: string }>;

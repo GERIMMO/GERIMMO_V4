@@ -104,6 +104,24 @@ export async function majGrilleEdl(
   return { succes: "Grille enregistrée." };
 }
 
+// Un EDL signé est figé : compteurs et clés compris (revue 23/08 — seules les
+// lignes étaient verrouillées ; un onglet resté ouvert pouvait encore écrire).
+// Le trigger en base est la vraie garde, ceci donne un message propre.
+async function edlEstSigne(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  edlId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("etats_des_lieux")
+    .select("etat")
+    .eq("id", edlId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  return data?.etat === "signe";
+}
+const MSG_EDL_FIGE = "Cet état des lieux est signé — il est figé, compteurs et clés compris.";
+
 // Relevés de compteurs de l'EDL (eau, gaz, électricité).
 export async function ajouterCompteur(
   orgId: string,
@@ -114,6 +132,7 @@ export async function ajouterCompteur(
 ): Promise<EtatEdl> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  if (await edlEstSigne(supabase, orgId, edlId)) return { erreur: MSG_EDL_FIGE };
   const valeurs = valeursDuFormulaire(formData);
   const type = String(formData.get("type") ?? "").trim();
   if (!type) return { erreur: "Choisissez le type de compteur.", valeurs };
@@ -139,6 +158,7 @@ export async function supprimerCompteur(
 ): Promise<EtatEdl> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  if (await edlEstSigne(supabase, orgId, edlId)) return { erreur: MSG_EDL_FIGE };
   const { error } = await supabase
     .from("edl_compteurs")
     .delete()
@@ -159,6 +179,7 @@ export async function ajouterCle(
 ): Promise<EtatEdl> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  if (await edlEstSigne(supabase, orgId, edlId)) return { erreur: MSG_EDL_FIGE };
   const valeurs = valeursDuFormulaire(formData);
   const libelle = String(formData.get("libelle") ?? "").trim();
   if (!libelle) return { erreur: "Précisez le type de clé.", valeurs };
@@ -184,6 +205,7 @@ export async function supprimerCle(
 ): Promise<EtatEdl> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+  if (await edlEstSigne(supabase, orgId, edlId)) return { erreur: MSG_EDL_FIGE };
   const { error } = await supabase
     .from("edl_cles")
     .delete()

@@ -57,7 +57,13 @@ export function FormulaireQualification({
         <legend className="libelle-champ">Qui prend en charge *</legend>
         {Object.entries(IMPUTATIONS_INCIDENT).map(([valeur, libelle]) => (
           <label key={valeur} className="flex items-center gap-2 text-sm">
-            <input type="radio" name="imputation" value={valeur} required />
+            <input
+              type="radio"
+              name="imputation"
+              value={valeur}
+              required
+              defaultChecked={etat.valeurs?.imputation === valeur}
+            />
             {libelle}
           </label>
         ))}
@@ -69,6 +75,7 @@ export function FormulaireQualification({
           name="justification"
           required
           rows={2}
+          defaultValue={etat.valeurs?.justification}
           placeholder="Opposable au locataire — le fondement et le constat qui motivent votre décision."
           className={classeTextarea}
         />
@@ -106,7 +113,13 @@ export function FormulaireCloture({
     <form action={action} className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="motif">Motif *</Label>
-        <select id="motif" name="motif" required defaultValue="" className={classeSelect}>
+        <select
+          id="motif"
+          name="motif"
+          required
+          defaultValue={etat.valeurs?.motif ?? ""}
+          className={classeSelect}
+        >
           <option value="" disabled>
             Choisissez…
           </option>
@@ -123,6 +136,7 @@ export function FormulaireCloture({
           id="commentaire"
           name="commentaire"
           rows={2}
+          defaultValue={etat.valeurs?.commentaire}
           placeholder="« Conseil téléphonique : purge du radiateur, chauffe rétablie. »"
           className={classeTextarea}
         />
@@ -153,6 +167,7 @@ export function FormulaireReouverture({
           id="motif-reouverture"
           name="motif"
           required
+          defaultValue={etat.valeurs?.motif}
           placeholder="Le désordre est réapparu…"
         />
       </div>

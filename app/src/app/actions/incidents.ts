@@ -203,9 +203,13 @@ export async function contesterImputation(
   const { supabase, user } = await verifierLocataire(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const message = String(formData.get("message") ?? "").trim();
   if (!message) {
-    return { erreur: "Expliquez pourquoi vous contestez — votre message est transmis à l'agence." };
+    return {
+      erreur: "Expliquez pourquoi vous contestez — votre message est transmis à l'agence.",
+      valeurs,
+    };
   }
 
   const { error } = await supabase.rpc("contester_imputation", {
@@ -213,7 +217,7 @@ export async function contesterImputation(
     p_incident: incidentId,
     p_message: message,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
@@ -231,15 +235,16 @@ export async function signalerProblemePersiste(
   const { supabase, user } = await verifierLocataire(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const motif = String(formData.get("motif") ?? "").trim();
-  if (!motif) return { erreur: "Dites en quelques mots ce qui ne va toujours pas." };
+  if (!motif) return { erreur: "Dites en quelques mots ce qui ne va toujours pas.", valeurs };
 
   const { error } = await supabase.rpc("rouvrir_incident", {
     p_org: orgId,
     p_incident: incidentId,
     p_motif: motif,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
@@ -280,6 +285,7 @@ export async function ouvrirIncident(
 
   const avertissement = await joindrePhotos(supabase, orgId, incidentId, photos.fichiers ?? []);
   revalidatePath(`/agence/${orgId}/incidents`);
+  revalidatePath(`/agence/${orgId}`);
   if (avertissement) {
     // L'incident est bien créé : on le dit, avec ce qui n'a pas suivi —
     // rediriger en avalant l'avertissement le ferait disparaître.
@@ -300,13 +306,17 @@ export async function qualifierIncident(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const imputation = String(formData.get("imputation") ?? "");
   const justification = String(formData.get("justification") ?? "").trim();
   if (!["locataire", "proprietaire", "degradation_fautive"].includes(imputation)) {
-    return { erreur: "Choisissez qui prend la réparation en charge." };
+    return { erreur: "Choisissez qui prend la réparation en charge.", valeurs };
   }
   if (!justification) {
-    return { erreur: "La justification est obligatoire — elle est opposable au locataire." };
+    return {
+      erreur: "La justification est obligatoire — elle est opposable au locataire.",
+      valeurs,
+    };
   }
 
   const { error } = await supabase.rpc("qualifier_incident", {
@@ -315,13 +325,15 @@ export async function qualifierIncident(
     p_imputation: imputation,
     p_justification: justification,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
   // La qualification solde l'alerte « à qualifier » : la page Alertes (d'où la
   // pop-up de traitement peut être ouverte, recette 22/08) doit se rafraîchir.
   revalidatePath(`/agence/${orgId}/alertes`);
+  // Tableau de bord : donut incidents + KPI
+  revalidatePath(`/agence/${orgId}`);
   return { succes: "Incident qualifié — le locataire voit l'imputation dès maintenant." };
 }
 
@@ -334,9 +346,10 @@ export async function cloturerIncident(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const motif = String(formData.get("motif") ?? "");
   const commentaire = String(formData.get("commentaire") ?? "").trim();
-  if (!(motif in MOTIFS_CLOTURE)) return { erreur: "Choisissez le motif de clôture." };
+  if (!(motif in MOTIFS_CLOTURE)) return { erreur: "Choisissez le motif de clôture.", valeurs };
 
   const { error } = await supabase.rpc("cloturer_incident", {
     p_org: orgId,
@@ -344,11 +357,12 @@ export async function cloturerIncident(
     p_motif: motif,
     p_commentaire: commentaire || null,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
   revalidatePath(`/agence/${orgId}/alertes`);
+  revalidatePath(`/agence/${orgId}`);
   return { succes: "Incident clos — les alertes liées sont soldées." };
 }
 
@@ -361,19 +375,23 @@ export async function rouvrirIncident(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const motif = String(formData.get("motif") ?? "").trim();
-  if (!motif) return { erreur: "Dites pourquoi vous rouvrez — le désordre réapparu, par exemple." };
+  if (!motif) {
+    return { erreur: "Dites pourquoi vous rouvrez — le désordre réapparu, par exemple.", valeurs };
+  }
 
   const { error } = await supabase.rpc("rouvrir_incident", {
     p_org: orgId,
     p_incident: incidentId,
     p_motif: motif,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
   revalidatePath(`/agence/${orgId}/alertes`);
+  revalidatePath(`/agence/${orgId}`);
   return { succes: "Incident rouvert — il repasse par la qualification." };
 }
 
@@ -399,6 +417,7 @@ export async function attribuerIncident(
 
   revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
+  revalidatePath(`/agence/${orgId}`);
   return { succes: responsable ? "Dossier attribué." : "Dossier remis au pot commun." };
 }
 

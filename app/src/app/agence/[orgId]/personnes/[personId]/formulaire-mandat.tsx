@@ -144,17 +144,21 @@ export function BoutonRetirerLigne({
   );
 }
 
-// Boutons de transition d'état du mandat
+// Boutons de transition d'état du mandat. Un mandat VIDE hors brouillon est
+// une impasse (revue 23/08) : le seul geste proposé est le retour en
+// brouillon, pour le composer — ou l'abandonner proprement.
 export function BoutonsEtatMandat({
   orgId,
   personId,
   mandatId,
   etat,
+  nbLignesActives,
 }: {
   orgId: string;
   personId: string;
   mandatId: string;
   etat: string;
+  nbLignesActives: number;
 }) {
   const suivant: Record<string, { libelle: string; vers: string }> = {
     brouillon: { libelle: "Passer à signer", vers: "a_signer" },
@@ -162,7 +166,10 @@ export function BoutonsEtatMandat({
     actif: { libelle: "Mettre en préavis", vers: "preavis" },
     preavis: { libelle: "Résilier", vers: "resilie" },
   };
-  const transition = suivant[etat];
+  const videHorsBrouillon = nbLignesActives === 0 && etat !== "brouillon" && etat !== "resilie";
+  const transition = videHorsBrouillon
+    ? { libelle: "Repasser en brouillon (mandat vide)", vers: "brouillon" }
+    : suivant[etat];
   const action = changerEtatMandat.bind(
     null,
     orgId,

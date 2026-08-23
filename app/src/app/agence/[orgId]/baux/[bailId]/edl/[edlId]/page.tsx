@@ -44,11 +44,16 @@ export default async function PageEdl(
       .order("created_at"),
   ]);
 
-  // Repli générique : la grille existe mais sans aucune ligne rattachée à une
-  // pièce. Il faut le lot pour proposer d'y remédier.
-  const toutesLignes = (lignes ?? []) as { categorie: string; piece: string | null }[];
-  const grilleGenerique =
-    toutesLignes.length > 0 && !toutesLignes.some((l) => l.categorie === "piece");
+  // Repli générique : aucune ligne rattachée à une pièce — y compris la
+  // grille VIDE (création dont la génération a échoué, revue 23/08 : l'écran
+  // proposait alors de signer une grille sans lignes, sans issue).
+  const toutesLignes = (lignes ?? []) as {
+    categorie: string;
+    piece: string | null;
+    etat: string | null;
+  }[];
+  const grilleGenerique = !toutesLignes.some((l) => l.categorie === "piece");
+  const lignesRemplies = toutesLignes.filter((l) => l.etat).length;
   const signe = edl.etat === "signe";
 
   const { data: bail } = grilleGenerique
@@ -115,15 +120,32 @@ export default async function PageEdl(
               problème à la sortie, au moment de justifier une retenue. */}
           {grilleGenerique && (
             <div className="mb-4 border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm">
-              <p className="font-medium">Cet état des lieux ne détaille aucune pièce.</p>
-              <p className="mt-1 text-muted-foreground">
-                Le lot n&apos;a pas de pièces déclarées : la grille se limite aux
-                éléments généraux. À la sortie, il sera difficile de rattacher une
-                dégradation à un endroit précis — et donc de justifier une retenue
-                sur le dépôt de garantie.
+              <p className="font-medium">
+                {toutesLignes.length === 0
+                  ? "Cet état des lieux n'a pas de grille."
+                  : "Cet état des lieux ne détaille aucune pièce."}
               </p>
-              {!signe && lotAPieces && (
-                <BoutonRegenererGrille orgId={orgId} bailId={bailId} edlId={edlId} />
+              <p className="mt-1 text-muted-foreground">
+                {toutesLignes.length === 0
+                  ? "Sa génération n'a pas abouti — régénérez-la avant toute saisie."
+                  : "Le lot n'a pas de pièces déclarées : la grille se limite aux éléments généraux. À la sortie, il sera difficile de rattacher une dégradation à un endroit précis — et donc de justifier une retenue sur le dépôt de garantie."}
+              </p>
+              {/* Revue 23/08 : régénérer remplace la grille — le dire quand
+                  des états ont déjà été saisis, plutôt que les perdre muet. */}
+              {!signe && lignesRemplies > 0 && (
+                <p className="mt-1 font-medium text-warning-soft-foreground">
+                  Attention : régénérer remplace la grille — les {lignesRemplies} état
+                  {lignesRemplies > 1 ? "s" : ""} déjà saisi{lignesRemplies > 1 ? "s" : ""} seront
+                  perdus.
+                </p>
+              )}
+              {!signe && (lotAPieces || toutesLignes.length === 0) && (
+                <BoutonRegenererGrille
+                  orgId={orgId}
+                  bailId={bailId}
+                  edlId={edlId}
+                  libelle={lotAPieces ? "Régénérer la grille depuis les pièces du lot" : "Générer la grille"}
+                />
               )}
               {!signe && !lotAPieces && lotId && (
                 <Link

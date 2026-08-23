@@ -104,8 +104,6 @@
    la pop-up déjà ouverte** sur la bonne alerte.
 2. Cloche → « Traiter » → même comportement.
 3. Page Alertes → « Traiter » → la pop-up s'ouvre sur place (comme avant).
-4. Toutes les pop-up ont le **même design** (maquette) : voile encre, angles
-   vifs, en-tête encre — ou **rouge** pour le critique — avec surtitre mono.
 
 **Re-test D.5 — Doublon GED : message explicite**
 1. Déposer un fichier au **contenu identique** à une pièce existante (même
@@ -120,19 +118,14 @@
 
 #### Persona : Locataire (locataire.alpha@)
 
-**Re-test D.7 — Espace locataire aligné maquette (remplace B.4)**
-> Refonte : bandeau encre assombri **à deux étages** avec **onglets**
-> (Mon logement / Mes demandes / Mes loyers), nom du **locataire** dans
-> l'en-tête (plus celui de l'agence), page « Mon logement » en deux colonnes
-> avec lignes libellé ↔ valeur, cartes à liseré.
-1. Connexion locataire → bandeau à onglets, liseré laiton sous l'onglet
-   actif ; l'en-tête porte votre nom.
-2. « Mon logement » : eyebrow avec le nom du lot, carte « Mon bail » en
-   lignes Type / Depuis le / Loyer + charges / Dépôt ; bouton « Mes
-   quittances » → onglet « Mes loyers ».
-3. Carte « Un problème dans le logement ? » (liseré laiton) → CTA « Signaler
-   un problème » + lien « Mes demandes ».
-4. L'attestation validée porte la puce **« Validée »** (libellé générique —
+**Re-test D.7 — Espace locataire refondu (remplace B.4)**
+> Refonte sur la maquette — le rendu se juge à l'œil en naviguant, seuls les
+> points fonctionnels sont listés :
+1. La navigation se fait par **onglets** (Mon logement / Mes demandes /
+   Mes loyers) ; « Mes quittances » mène à l'onglet « Mes loyers ».
+2. Carte « Un problème dans le logement ? » → CTA « Signaler un problème »
+   + lien « Mes demandes » (avec le compte des dossiers en cours).
+3. L'attestation validée porte la puce **« Validée »** (libellé générique —
    plus de « Validée par votre agence »).
 
 ## 2.B — Sprint 7 : Incidents (nouveau — à dérouler entièrement)
@@ -189,6 +182,8 @@
    réouverture recrée « à requalifier ».
 4. Saisie agence : « Ouvrir un incident » (appel téléphonique) — lot
    obligatoire, mêmes règles ; doublon possible signalé sans bloquer.
+   *(Correctif du 23/08 : la liste des lots sortait vide — embed ambigu
+   réparé, 13 lots vérifiés en conditions réelles.)*
 5. Attribution : le responsable attribue ; un agent « le prend en charge »
    ou le « remet au pot commun ».
 
@@ -368,9 +363,6 @@
 3. **Aucun jargon technique** : pas de « blocages en base », pas de mois `2026-06`, pas d'erreur PostgreSQL brute.
 4. Le même état de lot porte **le même mot** sur tous les écrans ; « Assignée à » ne se lit plus dans les deux sens.
 5. Le **rouge est réservé au critique** ; bandeau « À faire maintenant » sur la fiche bail ; états vides qui guident.
-6. **Toutes les pop-up** (alerte, incident, nouveau propriétaire, cloche)
-   partagent le même design maquette : voile encre 35 %, angles vifs,
-   en-tête coloré à surtitre mono.
 
 #### Persona : Administrateur d'agence Beta (admin.beta@) — en fin de recette
 

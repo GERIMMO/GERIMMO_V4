@@ -1561,3 +1561,23 @@ Suite et fin de la session :
   Supabase de definition de mot de passe (gabarit par defaut en anglais, a
   franciser au branchement SMTP).
 Verifs finales : typecheck/lint 0 erreur, 85 tests unitaires verts, build OK.
+
+## [2026-08-23] dev | Passe UX sur la maquette + correctif du selecteur de lot (incidents)
+
+- **Maquette** : nouvelle version datee `raw/maquettes/2026-08-23-gerimmo-prototype.html`
+  (l originale du 08/08 reste intacte — raw/ immuable). Quatre chantiers :
+  modales irreprochables (fermetures animees, Echap partout, croix, aria-modal,
+  piege de focus, verrou de scroll), chargements simules (spinner sur le bouton,
+  18 actions), fluidite (scroll conserve, saisies reposees apres re-render,
+  entree animee au seul changement de page ; startViewTransition ecarte apres
+  mesure ~1 s/navigation), mobile 390 px + cibles 44 px. Verifie : node --check,
+  6 personas / 49 ecrans sans erreur console, rendu moyen 2 ms.
+- **App — bug reel trouve au test navigateur** : sur « Ouvrir un incident »,
+  la liste des lots sortait vide. Cause : l embed `bien:biens(nom)` etait
+  ambigu (PGRST201 — deux FK lots→biens : simple + meme-org) et l erreur etait
+  avalee. Correctif : `biens!lots_bien_id_fkey` (comme l export compta) +
+  erreur journalisee. Audit des autres embeds : seul cet endroit etait touche.
+  Page Alertes : lectures parallelisees. Deploye (ea3e401).
+- **Livrable** : `Recette - test par sprint et persona.md` allege des items
+  purement UI (design des pop-up, details visuels D.7) — la fluidite se juge
+  en testant ; note du correctif lot ajoutee au scenario 7.4.

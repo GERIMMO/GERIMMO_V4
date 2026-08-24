@@ -1616,3 +1616,31 @@ base reelle (rollback) tous verts ; tests/recette-2026-08-23.test.ts ecrit ;
 85 tests unitaires, typecheck/lint 0 erreur, build OK ; correctifs verifies
 au navigateur sur le deploye (pop-up se ferme proprement, URL nettoyee,
 requalification OK).
+
+## [2026-08-24] dev | Retours de recette du 24/08 : pop-up sur place, incidents dans leur onglet, alignement maquette
+
+Retours traites :
+- **« Traiter » sans redirection** : une alerte generique ouvre la pop-up SUR
+  L ECRAN COURANT (tableau de bord et cloche compris — ModaleAlerte extraite
+  en composant partage, la cloche porte l etat de traitement au-dessus de sa
+  synthese) ; une alerte INCIDENT emmene dans l onglet Incidents, positionne
+  sur le dossier (?sel=). La modale incident en pop-up est supprimee — les
+  incidents se traitent dans leur onglet (decision recette 24/08).
+- **Onglet Incidents en vue scindee maquette** : liste a gauche (rangs, puces,
+  responsable, legende), dossier a droite (pane-incident.tsx — en-tete mono,
+  barre d etapes du flux, « Ce qu a dit le locataire », qualification a
+  lisere laiton avec REqualification et encart de contestation, chronologie
+  a pastilles). /incidents/[id] redirige vers ?sel= (liens conserves).
+- **Locataire aligne maquette** : « Signaler un probleme » en deux colonnes
+  avec l encart adaptatif « Qui paiera la reparation » (repere par categorie,
+  formulation validee : le proprietaire peut refuser la prise en charge ;
+  l agence peut missionner un artisan, refacture apres accord sur devis),
+  erreurs en bandeau .err, message « aller-retour avec l agence », succes en
+  vert puis redirection auto vers Mes demandes (2,5 s) ; « Mes demandes » en
+  cartes a lisere par etat.
+- **Bug photos corrige** : la limite serveur des Server Actions (11 Mo)
+  bloquait une declaration avec plusieurs vraies photos avant meme notre
+  code → 55 Mo (5 photos × 10 Mo max). Flux API verifie compte demo reel.
+- Livrable recette : etape 5 (E.1-E.4), validations du 24/08 en Partie 1,
+  reliquat S7 reduit a 7.2.2 (colocataire) et 7.4.5 (responsable).
+Verifs : typecheck/lint 0 erreur, 85 tests verts, build OK.

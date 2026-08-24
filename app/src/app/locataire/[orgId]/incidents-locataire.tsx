@@ -14,6 +14,7 @@ import {
   titreIncident,
 } from "@/lib/incidents";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export type IncidentLocataire = {
   id: string;
@@ -92,30 +93,47 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
     incident.etat !== "clos";
   const peutRouvrir = incident.est_declarant && incident.etat === "clos";
 
+  // Liseré gauche façon maquette pLocIncidents : vert = clos, ambre = une
+  // décision ou une action côté locataire (à sa charge, intervention
+  // terminée), encre = le dossier avance côté agence.
+  const liser =
+    incident.etat === "clos"
+      ? "border-l-[var(--success)]"
+      : (incident.etat === "qualifie" && incident.imputation !== "proprietaire") ||
+          incident.etat === "termine"
+        ? "border-l-[var(--warning)]"
+        : "border-l-[var(--encre)]";
+
   return (
-    <li className="space-y-1.5 py-3 text-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="font-medium">{titreIncident(incident.categorie)}</span>
-        <span className={COULEURS_ETAT_LOCATAIRE[incident.etat] ?? "puce puce-grise"}>
-          {libelleEtatLocataire(incident.etat, incident.imputation)}
-        </span>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        {incident.numero} · déclaré le {formaterDate(incident.declare_le)}
-        {incident.piece ? ` · ${incident.piece}` : ""}
-        {incident.nb_photos > 0
-          ? ` · ${incident.nb_photos} photo${incident.nb_photos > 1 ? "s" : ""}`
-          : ""}
-      </p>
-
-      {charge && (
-        <p className="text-muted-foreground">
-          <span className="libelle-champ">Qui prend en charge</span> — {charge}
-          {incident.imputation_justification ? ` (${incident.imputation_justification})` : ""}
+    <Card className={`border-l-[3px] ${liser}`}>
+      <CardContent className="space-y-1.5 text-sm">
+        <div className="entete-carte !mb-0">
+          <h3>{titreIncident(incident.categorie)}</h3>
+          <span className={COULEURS_ETAT_LOCATAIRE[incident.etat] ?? "puce puce-grise"}>
+            {libelleEtatLocataire(incident.etat, incident.imputation)}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          {incident.numero} · déclaré le {formaterDate(incident.declare_le)}
+          {incident.piece ? ` · ${incident.piece}` : ""}
+          {incident.nb_photos > 0
+            ? ` · ${incident.nb_photos} photo${incident.nb_photos > 1 ? "s" : ""}`
+            : ""}
         </p>
-      )}
 
-      {incident.imputation_contestee_le && (
+        {charge && (
+          <div className="ligne-info">
+            <span>Qui prend en charge</span>
+            <span className="text-right">
+              {charge}
+              {incident.imputation_justification
+                ? ` (${incident.imputation_justification})`
+                : ""}
+            </span>
+          </div>
+        )}
+
+        {incident.imputation_contestee_le && (
         <p className="text-xs text-muted-foreground">
           Votre contestation du {formaterDate(incident.imputation_contestee_le)} est
           transmise — elle ne suspend pas la réparation.
@@ -178,7 +196,8 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
           valeurInitiale={etatPersiste.valeurs?.motif}
         />
       )}
-    </li>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -194,26 +213,30 @@ export function IncidentsLocataire({
 }) {
   if (incidents.length === 0) {
     return (
-      <div className="vide">
-        <p className="font-medium">Rien en cours.</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Un problème dans le logement ? Signalez-le — vous saurez qui prend la
-          réparation en charge.
-        </p>
-        <Link
-          href={`/locataire/${orgId}/incident`}
-          className="mt-3 inline-block text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
-        >
-          Signaler un problème
-        </Link>
-      </div>
+      <Card>
+        <CardContent>
+          <div className="vide">
+            <p className="font-medium">Rien en cours.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Un problème dans le logement ? Signalez-le — vous saurez qui prend
+              la réparation en charge.
+            </p>
+            <Link
+              href={`/locataire/${orgId}/incident`}
+              className="mt-3 inline-block text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
+            >
+              Signaler un problème
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
   return (
-    <ul className="divide-y divide-border">
+    <div className="space-y-3">
       {incidents.map((i) => (
         <CarteIncident key={i.id} orgId={orgId} incident={i} />
       ))}
-    </ul>
+    </div>
   );
 }

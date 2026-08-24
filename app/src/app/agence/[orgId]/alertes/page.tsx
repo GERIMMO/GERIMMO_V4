@@ -11,8 +11,6 @@ import {
 } from "@/components/ui/card";
 import { FormulaireAlerte } from "./formulaire-alerte";
 import { ListeAlertes, type AlerteRang } from "./liste-alertes";
-import type { IncidentPourModale } from "./modale-incident";
-import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
 export const metadata = { title: "Alertes — Gerimmo" };
 
@@ -57,36 +55,6 @@ export default async function PageAlertes(
   const rangs = (ouvertes ?? []) as AlerteRang[];
   const nbMiennes = rangs.filter((a) => estConfieeAMoi(a, user.id)).length;
 
-  // Les alertes incidents transportent details.incident_id (recette 22/08) :
-  // « Traiter » ouvre alors la pop-up incident — qualification et clôture sur
-  // place, le contenu de la fiche dans la modale de la charte.
-  const incidentIds = [
-    ...new Set(
-      rangs
-        .map((a) => a.details?.incident_id)
-        .filter((id): id is string => typeof id === "string")
-    ),
-  ];
-  const { data: incidentsBruts, error: erreurIncidents } = incidentIds.length
-    ? await supabase
-        .from("incidents")
-        .select(
-          "id, numero, categorie, description, piece, urgence, etat, imputation, imputation_contestation, created_at, lot:lots(nom), declarant:persons(nom, prenom)"
-        )
-        .eq("organization_id", orgId)
-        .in("id", incidentIds)
-    : { data: [], error: null };
-  // Une erreur avalée ferait retomber « Traiter » sur la modale générique en
-  // silence (revue 23/08) — au moins une trace serveur.
-  if (erreurIncidents)
-    console.error("alertes — incidents liés illisibles :", erreurIncidents.message);
-  const incidentsLies: IncidentPourModale[] = (
-    (incidentsBruts ?? []) as unknown as (Omit<IncidentPourModale, "lot" | "declarant"> & {
-      lot: UnOuPlusieurs<{ nom: string }>;
-      declarant: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
-    })[]
-  ).map((i) => ({ ...i, lot: premier(i.lot) ?? null, declarant: premier(i.declarant) ?? null }));
-
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
@@ -113,7 +81,6 @@ export default async function PageAlertes(
             monCompte={user.id}
             estResponsable={estResponsable}
             ouvrirAlerteId={traiterId}
-            incidents={incidentsLies}
           />
 
           <Card>

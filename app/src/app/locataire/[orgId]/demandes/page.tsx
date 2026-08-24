@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
-import { Card, CardContent } from "@/components/ui/card";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
 
 export const metadata = { title: "Mes demandes — Gerimmo" };
@@ -36,11 +35,9 @@ export default async function PageDemandesLocataire(
         </div>
       </div>
 
-      <Card>
-        <CardContent className="pt-5">
-          <IncidentsLocataire orgId={orgId} incidents={incidents} />
-        </CardContent>
-      </Card>
+      {/* Chaque signalement porte sa propre carte (maquette pLocIncidents) —
+          plus d'enveloppe commune ici */}
+      <IncidentsLocataire orgId={orgId} incidents={incidents} />
     </main>
   );
 }

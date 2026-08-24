@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormulaireIncidentLocataire } from "./formulaire-incident-locataire";
 
 export const metadata = { title: "Signaler un problème — Gerimmo" };
 
-// Déclaration d'incident par le locataire (module 7 + module 19) : la photo
-// est proposée avant la description — « il photographie sur le vif ».
+// Déclaration d'incident par le locataire (module 7 + module 19) : deux
+// colonnes façon maquette pLocDeclarer — le formulaire à gauche, l'encart
+// adaptatif « Qui paiera la réparation » à droite (les deux cartes vivent dans
+// FormulaireIncidentLocataire, l'encart suivant la catégorie choisie).
 export default async function PageSignalerIncident(
   props: PageProps<"/locataire/[orgId]/incident">
 ) {
@@ -14,7 +15,7 @@ export default async function PageSignalerIncident(
   await verifierAccesEspaceLocataire(orgId);
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-[1.125rem] p-4 sm:p-7">
+    <main className="mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href={`/locataire/${orgId}`} className="hover:underline">
@@ -29,18 +30,7 @@ export default async function PageSignalerIncident(
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Votre signalement</CardTitle>
-          <CardDescription>
-            Une ou deux photos prises sur le vif évitent souvent un déplacement
-            pour rien.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormulaireIncidentLocataire orgId={orgId} />
-        </CardContent>
-      </Card>
+      <FormulaireIncidentLocataire orgId={orgId} />
     </main>
   );
 }

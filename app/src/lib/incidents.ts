@@ -19,7 +19,9 @@ export type ImputationIncident = "locataire" | "proprietaire" | "degradation_fau
 // clos → déclaré (la réouverture repasse par la qualification).
 export const TRANSITIONS_INCIDENT: Record<EtatIncident, EtatIncident[]> = {
   declare: ["qualifie", "clos"],
-  qualifie: ["affecte", "clos"],
+  // qualifie → qualifie : la requalification (base du 23/08) — la réponse de
+  // l'agence à une contestation ; maintenir l'imputation vaut aussi réponse.
+  qualifie: ["qualifie", "affecte", "clos"],
   affecte: ["en_cours", "qualifie"],
   en_cours: ["termine"],
   termine: ["clos"],

@@ -31,7 +31,7 @@ export async function chargerSyntheseAlertes(
   let requete = supabase
     .from("alerts")
     .select(
-      "id, organization_id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, organization:organizations(name)"
+      "id, organization_id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details, organization:organizations(name)"
     )
     .eq("statut", "ouverte")
     .or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`)
@@ -49,5 +49,9 @@ export async function chargerSyntheseAlertes(
     titre: a.titre,
     echeance: a.echeance,
     created_at: a.created_at,
+    assignee_account_id: a.assignee_account_id,
+    assigned_all: a.assigned_all,
+    escalades: a.escalades,
+    details: a.details,
   }));
 }

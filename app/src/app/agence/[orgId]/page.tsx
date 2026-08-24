@@ -8,7 +8,8 @@ import {
 } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
+import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, ROLES_RESPONSABLES, formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
+import { TraiterAlerte } from "./alertes/traiter-alerte";
 import { nomComplet } from "@/lib/roles-personnes";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -24,6 +25,9 @@ type Alerte = {
   echeance: string | null;
   details: Record<string, unknown> | null;
   created_at: string;
+  assignee_account_id: string | null;
+  assigned_all: boolean;
+  escalades: unknown;
 };
 
 // Tableau de bord de l'espace agence. Il répond à une seule question : « que
@@ -32,7 +36,8 @@ type Alerte = {
 // est dépassé et ce qui vient.
 export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId]">) {
   const { orgId } = await props.params;
-  const { supabase, user } = await verifierAccesEspace(orgId);
+  const { supabase, user, role } = await verifierAccesEspace(orgId);
+  const estResponsable = ROLES_RESPONSABLES.includes(role);
 
   // Mois courant (Europe/Paris) : les appels de loyer sont datés au 1er du mois
   const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
@@ -51,6 +56,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: encaissementsMois },
     { data: ecrituresSixMois },
     { data: incidentsEnCours },
+    { data: donneesMembres },
   ] = await Promise.all([
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
@@ -58,7 +64,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // qui me sont confiées nominativement, plus celles à tout le monde.
     supabase
       .from("alerts")
-      .select("id, type, criticite, titre, echeance, details, created_at")
+      .select(
+        "id, type, criticite, titre, echeance, details, created_at, assignee_account_id, assigned_all, escalades"
+      )
       .eq("organization_id", orgId)
       .eq("statut", "ouverte")
       .or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`),
@@ -104,7 +112,15 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .select("imputation")
       .eq("organization_id", orgId)
       .neq("etat", "clos"),
+    // La pop-up « Traiter » s'ouvre sur place (recette 24/08) : il lui faut
+    // la liste des gérants pour « Confier à »
+    supabase.rpc("org_membres_gerants", { org: orgId }),
   ]);
+  const membres = (donneesMembres ?? []) as {
+    account_id: string;
+    email: string;
+    role: string;
+  }[];
 
   const totalAppele = (appelsMois ?? []).reduce((s, a) => s + Number(a.montant_du), 0);
   const totalEncaisse = (encaissementsMois ?? []).reduce((s, e) => s + Number(e.montant), 0);
@@ -560,19 +576,36 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                     )}
                                   </div>
                                   <span className="relative">
-                                    {/* Recette 22/08 : ouvre directement la pop-up
-                                        de traitement de CETTE alerte, au lieu de
-                                        poser l'agent devant la liste complète */}
-                                    <Link
-                                      href={`/agence/${orgId}/alertes?traiter=${a.id}`}
-                                      className={buttonVariants({
-                                        size: "sm",
-                                        variant:
-                                          a.criticite === "critique" ? "destructive" : "outline",
-                                      })}
-                                    >
-                                      Traiter
-                                    </Link>
+                                    {/* Recette 24/08 : la pop-up s'ouvre SUR le
+                                        tableau de bord ; une alerte incident,
+                                        elle, emmène au dossier dans l'onglet
+                                        Incidents, positionné dessus. */}
+                                    {typeof a.details?.incident_id === "string" ? (
+                                      <Link
+                                        href={`/agence/${orgId}/incidents?sel=${a.details.incident_id}`}
+                                        className={buttonVariants({
+                                          size: "sm",
+                                          variant:
+                                            a.criticite === "critique" ? "destructive" : "outline",
+                                        })}
+                                      >
+                                        Traiter
+                                      </Link>
+                                    ) : (
+                                      <TraiterAlerte
+                                        orgId={orgId}
+                                        alerte={a}
+                                        membres={membres}
+                                        estResponsable={estResponsable}
+                                        className={buttonVariants({
+                                          size: "sm",
+                                          variant:
+                                            a.criticite === "critique" ? "destructive" : "outline",
+                                        })}
+                                      >
+                                        Traiter
+                                      </TraiterAlerte>
+                                    )}
                                     {/* Le repère et le rouge vont ensemble, et
                                         seulement au critique : deux signaux pour une
                                         seule idée, sinon ni l'un ni l'autre n'alerte. */}

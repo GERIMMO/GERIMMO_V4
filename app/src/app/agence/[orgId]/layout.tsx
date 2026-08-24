@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
 import { NavAgence } from "@/components/nav-agence";
 import { ClocheAlertes } from "@/components/cloche-alertes";
@@ -14,21 +15,31 @@ export default async function LayoutAgence({
   params,
 }: LayoutProps<"/agence/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, organisation, role } = await verifierAccesEspace(orgId);
 
   // Revue recette 08/08 : la pop-up et la cloche ne montrent que les alertes
   // qui me sont confiées, dans l'agence où je me trouve — l'acteur
   // multi-agences navigue d'une agence à l'autre pour voir les siennes.
-  const [alertes, { count: incidentsOuverts }] = await Promise.all([
-    chargerSyntheseAlertes(supabase, { orgId }),
-    // Badge maquette : les incidents encore ouverts (tout sauf clos)
-    supabase
-      .from("incidents")
-      .select("*", { count: "exact", head: true })
-      .eq("organization_id", orgId)
-      .neq("etat", "clos"),
-  ]);
+  const [alertes, { count: incidentsOuverts }, { data: donneesMembres }] =
+    await Promise.all([
+      chargerSyntheseAlertes(supabase, { orgId }),
+      // Badge maquette : les incidents encore ouverts (tout sauf clos)
+      supabase
+        .from("incidents")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .neq("etat", "clos"),
+      // « Traiter » depuis la cloche ouvre la pop-up sur place (recette
+      // 24/08) : il lui faut la liste des gérants pour « Confier à »
+      supabase.rpc("org_membres_gerants", { org: orgId }),
+    ]);
   const alertesOrg = alertes.length;
+  const membres = (donneesMembres ?? []) as {
+    account_id: string;
+    email: string;
+    role: string;
+  }[];
+  const estResponsable = ROLES_RESPONSABLES.includes(role);
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
@@ -54,7 +65,12 @@ export default async function LayoutAgence({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-4 sm:gap-5">
-            <ClocheAlertes alertes={alertes} surEncre />
+            <ClocheAlertes
+              alertes={alertes}
+              surEncre
+              membres={membres}
+              estResponsable={estResponsable}
+            />
             <Link
               href="/espaces"
               className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"

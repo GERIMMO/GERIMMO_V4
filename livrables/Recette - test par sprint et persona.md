@@ -1,10 +1,10 @@
 # Recette — test par sprint et persona
 
-> Mis à jour le **2026-08-23**, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le **2026-08-24**, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > **Fichier central de recette**, en deux parties :
 > **1. Recetté OK** — ce qui est validé, on n'y revient plus.
-> **2. Reste à recetter** — d'abord les **re-tests des correctifs du 23/08**
-> (étape 4), puis le **Sprint 7 — Incidents** (nouveau, mergé), puis ce qui
+> **2. Reste à recetter** — d'abord les **re-tests des correctifs du 24/08**
+> (étape 5), puis le reliquat du **Sprint 7 — Incidents**, puis ce qui
 > reste des étapes précédentes et les sprints jamais déroulés.
 >
 > Mot de passe commun : `Gerimmo-Demo-2026`.
@@ -44,153 +44,91 @@
   d'activation complète), 4.2 (garde-fous juridiques), 4.3 (bail meublé),
   4.5 (étapes 1, 2 et 4), 4.6 (étapes 4 et 5 ; étape 3 OK sauf l'alerte,
   restée à vérifier), 4.7 côté agent (comparatif EDL).
+- **24/08 — Étape 4 (correctifs du 23/08)** : **validés** D.1 (régénération
+  de grille d'EDL), D.2 (formulaires qui ne se vident plus), D.3 (mandat :
+  lot et taux obligatoires), D.5 (doublon GED), D.6 (vue macro des baux),
+  D.7 (espace locataire refondu). D.4 validé sur le fond mais refondu le
+  24/08 (pop-up sur l'écran courant — re-test en étape 5).
+- **24/08 — Sprint 7 (partiel)** : **validés** 7.1 (étapes 2 et 3), 7.2
+  (étape 1 ; étape 2 hors colocataire), 7.3 (étapes 1 et 3), 7.4 (étapes
+  1 à 4 ; étape 5 restant à tester en responsable d'agence). Les points UI
+  remontés (7.1.1, 7.3.2, 7.3.4) sont traités le 24/08 — re-tests en étape 5.
 
 ---
 
 # Partie 2 — Reste à recetter
 
-## 2.A — Étape 4 : re-tests des correctifs du 23/08
+## 2.A — Étape 5 : re-tests des correctifs du 24/08
 
-> Corrections des retours de recette du 22/08, **déployées sur main le 23/08**
-> (1 migration appliquée, scénarios rejoués par l'agent en base réelle avec
-> transaction annulée — tous verts ; 85 tests unitaires, lint, build OK).
+> Réponses aux retours de recette du 24/08 : pop-up **sur l'écran courant**,
+> incidents traités **dans l'onglet Incidents**, écrans incidents **alignés
+> sur la maquette** (agence et locataire), bug des photos corrigé.
 > **À dérouler en premier.**
 
 #### Persona : Agent immobilier (agent.alpha@)
 
-**Re-test D.1 — EDL créé avant les pièces (scénario 4.5.3)**
-> Correctif : la grille savait se régénérer en base, aucun écran ne
-> l'appelait — le bouton est maintenant sur l'écran d'EDL lui-même.
-1. Créer un bail sur un lot **sans pièces déclarées** → ouvrir l'EDL d'entrée
-   → l'encart « Cet état des lieux ne détaille aucune pièce » propose de
-   déclarer les pièces (lien vers le lot).
-2. Fiche du lot → « Proposer les pièces » → revenir sur l'EDL → l'encart
-   propose désormais **« Régénérer la grille depuis les pièces du lot »** →
-   un clic → la grille passe en pièce par pièce (7 éléments par pièce).
-3. Sur un EDL **signé** → aucune régénération proposée.
+**Re-test E.1 — « Traiter » : pop-up sur place, incidents dans leur onglet**
+> Refonte demandée le 24/08 : plus aucune redirection vers l'onglet Alertes.
+1. Tableau de bord → « Traiter » sur une alerte **générique** (EDL, assurance,
+   DPE…) → la pop-up s'ouvre **sur le tableau de bord**, sans navigation.
+2. Cloche → « Traiter » sur une alerte générique → la synthèse se referme et
+   la pop-up de traitement s'ouvre **sur l'écran où vous êtes**.
+3. « Traiter » sur une alerte **incident** (à qualifier, contestée, rouvert) —
+   depuis le tableau de bord, la cloche ou la page Alertes → arrivée dans
+   **l'onglet Incidents, positionné sur le dossier** (vue scindée, dossier
+   ouvert à droite).
 
-**Re-test D.2 — Les formulaires ne se vident plus**
-> Correctif de fond : React réinitialisait les champs après chaque action,
-> y compris en erreur. La grille d'EDL est désormais pilotée de bout en bout,
-> et ~25 formulaires (personnes, mandats, baux, parc, compta…) reposent la
-> saisie quand le serveur refuse.
-1. EDL non signé : remplir des états et des commentaires → « Enregistrer la
-   grille » → **tout reste affiché** (plus de formulaire vidé).
-2. Personnes → « Nouvelle personne » : remplir la fiche avec un **email déjà
-   pris dans l'agence** → refus → **toute la saisie est encore là**, seule
-   l'erreur s'affiche.
-3. Même vérification sur un formulaire au choix (mandat, bail, dépôt…) :
-   provoquer un refus → la saisie survit.
-
-**Re-test D.3 — Mandat : lot et taux vraiment obligatoires**
-> Correctifs : taux sans valeur par défaut silencieuse ; un mandat sans lot ni
-> taux ne change **plus d'état du tout** (garde aussi en base, migration
-> `mandat_vide_ne_change_plus_detat`) ; le combobox ne propose plus les lots
-> déjà couverts par un mandat actif.
-1. Créer un mandat (brouillon) → dans « Ajouter un lot », le champ **Taux %**
-   est vide et obligatoire (plus de 7 posé en silence).
-2. Le combobox de lot **ne propose plus** un lot déjà couvert par un mandat
-   actif ; si tous les lots de la personne sont couverts, le formulaire le
-   dit (« rien à ajouter ici »).
-3. Sur un mandat **vide** (dont l'ancien mandat résilié du retour de recette) :
-   plus aucun bouton d'état ne passe — message « Un mandat sans lot ni taux ne
-   change pas d'état ».
-
-**Re-test D.4 — « Traiter » ouvre la pop-up, partout**
-> Correctif : depuis le tableau de bord et la cloche, « Traiter » posait
-> l'agent devant la liste des alertes ; il ouvre maintenant directement la
-> pop-up de traitement de **cette** alerte.
-1. Tableau de bord → « Traiter » sur une alerte → arrivée sur Alertes **avec
-   la pop-up déjà ouverte** sur la bonne alerte.
-2. Cloche → « Traiter » → même comportement.
-3. Page Alertes → « Traiter » → la pop-up s'ouvre sur place (comme avant).
-
-**Re-test D.5 — Doublon GED : message explicite**
-1. Déposer un fichier au **contenu identique** à une pièce existante (même
-   sous un autre nom) → le message dit désormais : « Un fichier au contenu
-   strictement identique existe déjà dans la GED, sous le nom “…” ». C'est
-   l'empreinte du **contenu** qui est comparée — comportement voulu.
-
-**Re-test D.6 — Vue macro des baux (fiche lot)**
-1. Fiche lot → « Baux & état des lieux » : chaque rang affiche l'état (puce),
-   **« Bail nu — {locataire} »**, et dessous **le loyer cc et les dates**
-   (entrée / fin) — on sait quel bail on ouvre.
+**Re-test E.2 — Onglet Incidents en vue scindée (maquette)**
+1. Incidents → **liste à gauche** (rang : titre court, n° · lot, puce d'état,
+   responsable), **dossier à droite** ; sans sélection, l'état vide invite à
+   choisir un dossier.
+2. Ouvrir un dossier → en-tête maquette (n° · canal · date en surtitre mono),
+   barre d'étapes du flux, carte « Ce qu'a dit le locataire », qualification
+   à liseré laiton, chronologie à pastilles.
+3. Un incident **qualifié contesté** : l'encart de contestation s'affiche et
+   la **requalification** est proposée (maintenir l'imputation vaut réponse —
+   l'alerte « contestée » se solde).
 
 #### Persona : Locataire (locataire.alpha@)
 
-**Re-test D.7 — Espace locataire refondu (remplace B.4)**
-> Refonte sur la maquette — le rendu se juge à l'œil en naviguant, seuls les
-> points fonctionnels sont listés :
-1. La navigation se fait par **onglets** (Mon logement / Mes demandes /
-   Mes loyers) ; « Mes quittances » mène à l'onglet « Mes loyers ».
-2. Carte « Un problème dans le logement ? » → CTA « Signaler un problème »
-   + lien « Mes demandes » (avec le compte des dossiers en cours).
-3. L'attestation validée porte la puce **« Validée »** (libellé générique —
-   plus de « Validée par votre agence »).
+**Re-test E.3 — « Signaler un problème » aligné maquette**
+1. L'écran est en **deux colonnes** : à droite l'encart **« Qui paiera la
+   réparation »** s'adapte à la catégorie choisie — plutôt à votre charge
+   (fondement + « le propriétaire peut refuser de prendre en charge
+   financièrement l'incident ; l'agence peut missionner un artisan pour
+   vous, l'intervention vous est alors refacturée après votre accord sur le
+   devis ») / plutôt au propriétaire / à qualifier par votre gérant.
+2. Erreur de validation → **bandeau d'erreur maquette** (fond rouge doux,
+   liseré) en haut du formulaire, message « Décrivez le problème en une
+   phrase au moins — cela évite un aller-retour avec l'agence. »
+3. **Avec des photos jointes** (plusieurs vraies photos de téléphone) →
+   l'envoi **passe** (correctif : la limite de 11 Mo du serveur bloquait
+   avant notre code) → **message de confirmation en vert**, puis redirection
+   automatique vers « Mes demandes » après ~2,5 s.
 
-## 2.B — Sprint 7 : Incidents (nouveau — à dérouler entièrement)
+**Re-test E.4 — « Mes demandes » aligné maquette**
+1. Une **carte par signalement**, liseré gauche selon l'état (encre en cours,
+   ambre à votre charge/terminé, vert clos), titre court + puce d'état dans
+   vos mots, ligne « Qui prend en charge », contestation/réouverture inchangées.
 
-> Développé sur la branche `sprint7-incidents`, revu (2 revues), **mergé sur
-> main le 23/08**. Le détail complet des scénarios est dans
-> [[Recette S7 - incidents]] — ci-dessous l'essentiel par persona.
-> Machine à états défendue en base : déclaré → qualifié → clos, réouverture
-> possible ; les états affecté / en cours / terminé attendent le module
-> devis-artisans (S13) — le **profil artisan n'est volontairement pas créé** :
-> sans devis ni planning, ce serait un écran mort.
+## 2.B — Sprint 7 : Incidents — reliquat
 
-#### Persona : Locataire (locataire.alpha@)
+> L'essentiel du S7 est **validé le 24/08** (voir Partie 1). Restent :
 
-**Scénario 7.1 — Déclarer un problème**
-1. « Mes demandes » (ou la carte de l'accueil) → « Signaler un problème » :
-   photos d'abord (5 max), catégorie en liste fermée, description
-   obligatoire, urgence en deux choix parlants → envoi → confirmation.
-2. La demande apparaît dans « Mes demandes » avec un statut **dans vos
-   mots** (« Reçu — votre gérant l'examine »), jamais le vocabulaire interne.
-3. Provoquer un refus (description vide) → **la saisie reste affichée**.
+**7.2.2 (colocataire)** · persona LO — un colocataire voit le bail et les
+incidents du bail, mais ne peut ni contester ni rouvrir (réservé au
+déclarant). *(Correctif du 23/08 : le colocataire voyait « aucun bail
+actif » — RPC corrigées, à vérifier d'un coup d'œil.)*
 
-**Scénario 7.2 — Suivre, contester, rouvrir**
-1. Après qualification par l'agence : « Qui prend en charge » s'affiche avec
-   la justification ; si c'est à votre charge → lien « Contester cette
-   imputation » (message obligatoire, transmis, non suspensif, une fois).
-2. Sur un incident clos → « Le problème persiste » (motif) → il repart chez
-   le gérant. Contestation et réouverture : **réservées au déclarant** (un
-   colocataire lit seulement).
-
-#### Persona : Agent immobilier (agent.alpha@)
-
-**Scénario 7.3 — La pop-up de traitement (cœur du re-test)**
-1. Une déclaration locataire crée l'alerte « Incident à qualifier — INC-… »
-   (critique si urgente) : cloche + tableau de bord + page Alertes.
-2. « Traiter » — **depuis n'importe lequel des trois endroits** — ouvre la
-   **pop-up incident** : en-tête maquette (rouge si critique), n° d'incident,
-   description, lignes catégorie / déclarant / date / pièce, puis **le
-   contenu de la fiche** : repère juridique, imputation (rien de pré-coché),
-   justification obligatoire → « Qualifier » → la pop-up se referme,
-   l'alerte est **soldée automatiquement**.
-3. Le lien « Ouvrir la fiche complète » mène au dossier (photos, chronologie,
-   attribution).
-4. Onglet Incidents : vues En cours / À traiter / Clos / Tous, badge sur
-   l'onglet, n° INC-AAAA-NNNN, tri « ce qui attend l'agence d'abord ».
-
-**Scénario 7.4 — Qualifier, clôturer, rouvrir**
-1. Qualifier : le locataire voit l'imputation immédiatement (revérifier en
-   locataire.alpha@).
-2. Clôturer : motifs selon l'état (un déclaré se classe sans suite ou part au
-   syndic, un qualifié se résout) ; la clôture solde **toutes** les alertes
-   de l'incident.
-3. Une contestation locataire crée l'alerte « Imputation contestée » ; une
-   réouverture recrée « à requalifier ».
-4. Saisie agence : « Ouvrir un incident » (appel téléphonique) — lot
-   obligatoire, mêmes règles ; doublon possible signalé sans bloquer.
-   *(Correctif du 23/08 : la liste des lots sortait vide — embed ambigu
-   réparé, 13 lots vérifiés en conditions réelles.)*
-5. Attribution : le responsable attribue ; un agent « le prend en charge »
-   ou le « remet au pot commun ».
+**7.4.5 (attribution en responsable)** · persona AA (`admin.alpha@`) — le
+responsable attribue un dossier à un agent ; l'agent « le prend en charge »
+ou le « remet au pot commun ».
 
 > Note propriétaire bailleur : le rôle `proprietaire_direct` passe par les
 > **mêmes écrans et les mêmes fonctions** que l'agence (vérifié en base) — le
-> jour où l'espace bailleur s'ouvre, le workflow incident est déjà générique
-> (libellés côté locataire déjà neutres : « Validée », « votre gérant »).
+> jour où l'espace bailleur s'ouvre, le workflow incident est déjà générique.
+> Le **profil artisan** attend le module devis-artisans (S13) : sans devis ni
+> planning, ce serait un écran mort.
 
 ## 2.C — Reste des étapes précédentes
 

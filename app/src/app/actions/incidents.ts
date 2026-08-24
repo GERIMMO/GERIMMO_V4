@@ -42,7 +42,7 @@ function lireChampsDeclaration(formData: FormData): {
   }
   if (!description) {
     return {
-      erreur: "Décrivez le problème en une phrase au moins — cela évite un déplacement pour rien.",
+      erreur: "Décrivez le problème en une phrase au moins — cela évite un aller-retour avec l'agence.",
     };
   }
   if (piece && !(PIECES_INCIDENT as readonly string[]).includes(piece)) {

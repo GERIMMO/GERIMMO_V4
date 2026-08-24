@@ -49,8 +49,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { count: nbBiens },
     { data: lots },
     { data: alertesBrutes },
-    { count: nbDocuments },
-    { data: dernierDoc },
     { data: rapports },
     { data: appelsMois },
     { data: encaissementsMois },
@@ -70,19 +68,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .eq("organization_id", orgId)
       .eq("statut", "ouverte")
       .or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`),
-    supabase
-      .from("documents")
-      .select("*", { count: "exact", head: true })
-      .eq("organization_id", orgId)
-      .is("purged_at", null),
-    supabase
-      .from("documents")
-      .select("created_at")
-      .eq("organization_id", orgId)
-      .is("purged_at", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
     supabase
       .from("rapports_gestion")
       .select("id, mois, statut, mandat:mandats(date_rapport, person:persons(nom, prenom))")
@@ -351,6 +336,43 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </span>
         </Link>
 
+        {/* Tuile Incidents de la maquette (conformité 24/08) : dossiers en
+            cours, jauge par payeur, la file à qualifier en sous-ligne. */}
+        <Link
+          href={`/agence/${orgId}/incidents`}
+          className="kpi h-full"
+          style={{ borderLeftColor: "var(--warning)" }}
+        >
+          <span className="eyebrow">Incidents</span>
+          <span className="mt-1 flex items-baseline gap-2">
+            <span className="chiffre">{dossiersIncidents.length}</span>
+            <span className="text-sm text-muted-foreground">en cours</span>
+          </span>
+          <span className="jauge" aria-hidden>
+            {segmentsIncidents.map((s) => (
+              <span
+                key={s.libelle}
+                style={{ flex: s.valeur || 0.01, background: s.couleur }}
+              />
+            ))}
+          </span>
+          <span className="block text-xs text-muted-foreground">
+            {(() => {
+              const aTrancher =
+                segmentsIncidents.find((s) => s.libelle === "Pas encore tranché")?.valeur ?? 0;
+              return aTrancher > 0 ? (
+                <span className="text-warning-soft-foreground">
+                  {aTrancher} à qualifier — votre décision lance la suite
+                </span>
+              ) : dossiersIncidents.length > 0 ? (
+                "Tous qualifiés — rien à trancher"
+              ) : (
+                "Aucun dossier en cours"
+              );
+            })()}
+          </span>
+        </Link>
+
         {/* Maquette : le chiffre du parc est l'OCCUPATION en % */}
         <Link href={`/agence/${orgId}/parc`} className="kpi or h-full">
           <span className="eyebrow">Occupation</span>
@@ -405,18 +427,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </span>
         </Link>
 
-        <Link href={`/agence/${orgId}/documents`} className="kpi h-full">
-          <span className="eyebrow">Documents</span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{nbDocuments ?? 0}</span>
-            <span className="text-sm text-muted-foreground">
-              pièce{(nbDocuments ?? 0) > 1 ? "s" : ""} déposée{(nbDocuments ?? 0) > 1 ? "s" : ""}
-            </span>
-          </span>
-          <span className="block pt-[17px] text-xs text-muted-foreground">
-            {dernierDoc ? `Dernier dépôt : ${formaterDate(dernierDoc.created_at)}` : "Aucun dépôt"}
-          </span>
-        </Link>
       </div>
 
       {/* Rangée graphique de la maquette : répartition du parc, incidents par

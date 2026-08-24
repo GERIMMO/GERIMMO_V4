@@ -1644,3 +1644,17 @@ Retours traites :
 - Livrable recette : etape 5 (E.1-E.4), validations du 24/08 en Partie 1,
   reliquat S7 reduit a 7.2.2 (colocataire) et 7.4.5 (responsable).
 Verifs : typecheck/lint 0 erreur, 85 tests verts, build OK.
+
+## [2026-08-24] revue | Re-test complet + passe de conformite maquette
+
+Suite technique : typecheck/lint 0 erreur, 85 tests unitaires verts, build OK ;
+5 flux critiques rejoues en base reelle (rollback) tous verts : alerte
+incident, chaine qualification→requalification→cloture, regeneration EDL,
+gel EDL signe, mandat vide (retour brouillon).
+Conformite maquette (comparaison ecran a ecran, maquette servie en local) :
+vue scindee incidents agence conforme (liste, rang actif, barre d etapes,
+chronologie), Signaler un probleme et Mes demandes locataire conformes.
+Deux ecarts corriges : le CTA « Signaler un probleme » manquait dans le
+bandeau locataire (chromeLoc), et la tuile KPI « Incidents » manquait sur le
+tableau de bord (remplace la tuile Documents, hors maquette — jauge par
+payeur, file a qualifier en sous-ligne, deux requetes documents retirees).

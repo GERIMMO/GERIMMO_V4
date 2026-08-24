@@ -400,10 +400,13 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         {/* Maquette : l'encaissé du mois en bleu, jauge de quittancement */}
         <Link href={`/agence/${orgId}/comptabilite`} className="kpi bleu h-full">
           <span className="eyebrow">Encaissé en {nomMois}</span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{eur(totalEncaisse)}</span>
+          <span className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            {/* Le montant ne casse jamais avant son « € » (conformité 24/08) */}
+            <span className="chiffre whitespace-nowrap">{eur(totalEncaisse)}</span>
             {totalAppele > 0 && (
-              <span className="text-sm text-muted-foreground">/ {eur(totalAppele)} appelés</span>
+              <span className="text-sm whitespace-nowrap text-muted-foreground">
+                / {eur(totalAppele)} appelés
+              </span>
             )}
           </span>
           <span className="jauge" aria-hidden>

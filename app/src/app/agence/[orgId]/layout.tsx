@@ -6,6 +6,7 @@ import { seDeconnecter } from "@/app/actions/auth";
 import { NavAgence } from "@/components/nav-agence";
 import { ClocheAlertes } from "@/components/cloche-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { Toasteur } from "@/components/ui/toast";
 
 // Layout de l'espace agence — charte : marque à gauche, contexte d'agence
 // séparé d'un filet, actions à droite ; navigation en onglets sous l'en-tête,
@@ -99,6 +100,9 @@ export default async function LayoutAgence({
       </header>
 
       <div className="min-w-0 flex-1">{children}</div>
+      {/* Confirmations façon maquette (recette 24/08) : le geste abouti fait
+          disparaître la ligne, le toast dit ce qui vient de se passer. */}
+      <Toasteur />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { afficherEcheance } from "@/lib/echeances";
 import { CRITICITES } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
+import { afficherToast } from "@/components/ui/toast";
 
 export type AlerteRang = {
   id: string;
@@ -46,8 +47,19 @@ export function ModaleAlerte({
   nomAssignation: string;
   fermer: () => void;
 }) {
-  const confierLiee = escaladerAlerte.bind(null, orgId, alerte.id);
-  const traiterLiee = fermerAlerte.bind(null, orgId, alerte.id);
+  // Le toast se déclenche ICI, à la résolution de l'action — pas dans un
+  // effet : la revalidation retire la ligne (et cette modale) dans le même
+  // commit React que le succès, un effet local n'aurait jamais tourné.
+  const confierLiee = async (etat: EtatAlerte, formData: FormData) => {
+    const res = await escaladerAlerte(orgId, alerte.id, etat, formData);
+    if (res.succes) afficherToast(res.succes);
+    return res;
+  };
+  const traiterLiee = async (etat: EtatAlerte, formData: FormData) => {
+    const res = await fermerAlerte(orgId, alerte.id, etat, formData);
+    if (res.succes) afficherToast(res.succes);
+    return res;
+  };
   const [etatConfier, actionConfier, confierEnCours] = useActionState<
     EtatAlerte,
     FormData

@@ -1671,3 +1671,20 @@ Commit 1b47e55, deploye et verifie en production : deux alertes de test
 etiquetees TEST TOAST creees puis traitees (une via la cloche sur le tableau
 de bord, une via la page Alertes) — toast visible, modale fermee sur place,
 compteurs synchronises, aucune alerte reelle touchee.
+
+## [2026-08-24] dev | Fluidite de navigation : squelettes + indicateurs de lien
+Retour utilisateur : « quand on clique, rien ne se passe tant qu'on n'a pas
+la reponse — ca peut faire penser a un bug ». Toutes les pages etant
+dynamiques (Supabase), le clic restait fige jusqu'au rendu serveur. Doc Next
+embarquee lue (linking-and-navigating, loading.js, useLinkStatus). Ajouts :
+loading.tsx agence/[orgId] et locataire/[orgId] (navigation d'onglet
+immediate, bandeau et onglets en place, squelette charte qui respire),
+loading.tsx racine (entree d'espace : rond d'attente au lieu d'un ecran
+fige), et IndicateurLien (useLinkStatus) pour ce que loading.tsx ne couvre
+pas — un changement de searchParams seul ne le re-declenche pas : lisere
+laiton battant sous l'onglet clique, anneau sur la ligne d'incident cliquee,
+filtres de vue, « Fermer » de la vue scindee, liens « Traiter ». Apparition
+differee de 150 ms (pas de clignotement), espace reserve (pas de decalage),
+prefers-reduced-motion respecte. Commit 800d09b, verifie en production :
+squelette capture au clic d'onglet, anneau capture sur la ligne cliquee,
+liste stable, aucune erreur console.

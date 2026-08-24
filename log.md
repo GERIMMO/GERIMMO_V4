@@ -1658,3 +1658,16 @@ Deux ecarts corriges : le CTA « Signaler un probleme » manquait dans le
 bandeau locataire (chromeLoc), et la tuile KPI « Incidents » manquait sur le
 tableau de bord (remplace la tuile Documents, hors maquette — jauge par
 payeur, file a qualifier en sous-ligne, deux requetes documents retirees).
+
+## [2026-08-24] dev | Toast de confirmation apres traitement d une alerte (maquette)
+Retour utilisateur suite a la verification UX des workflows : « je veux bien
+ce niveau de feedback ». Traiter une alerte generique fermait la pop-up sans
+un mot — le seul feedback etait la disparition de la ligne. Ajout d un toast
+facon maquette (bandeau encre en bas, ~6 s, fermeture au x) : « Alerte
+confiee. » / « Alerte traitee. ». Le composant declencheur etant demonte dans
+le meme commit React que le succes, le Toasteur vit dans le layout agence et
+se declenche a la resolution de l action (afficherToast), pas dans un effet.
+Commit 1b47e55, deploye et verifie en production : deux alertes de test
+etiquetees TEST TOAST creees puis traitees (une via la cloche sur le tableau
+de bord, une via la page Alertes) — toast visible, modale fermee sur place,
+compteurs synchronises, aucune alerte reelle touchee.

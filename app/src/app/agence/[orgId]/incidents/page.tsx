@@ -8,6 +8,7 @@ import {
   titreIncident,
 } from "@/lib/incidents";
 import { buttonVariants } from "@/components/ui/button";
+import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { PaneIncident, type MembreGerant } from "./pane-incident";
 
 export const metadata = { title: "Incidents — Gerimmo" };
@@ -148,8 +149,12 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           <div className="tete-liste">
             <span className="mono-discret">{enCours.length} EN COURS</span>
             {sel && (
-              <Link href={lien(vue, null)} className="text-xs text-[var(--bleu)] hover:underline">
+              <Link
+                href={lien(vue, null)}
+                className="inline-flex items-center gap-1.5 text-xs text-[var(--bleu)] hover:underline"
+              >
                 Fermer
+                <IndicateurLien />
               </Link>
             )}
           </div>
@@ -158,9 +163,12 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
               <Link
                 key={v.cle}
                 href={lien(v.cle, sel)}
-                className={`filtre${vue === v.cle ? " actif" : ""}`}
+                className={`filtre inline-flex items-center gap-1.5${vue === v.cle ? " actif" : ""}`}
               >
                 {v.libelle} · {filtres[v.cle as keyof typeof filtres].length}
+                {/* Changer de vue ne recharge que le contenu : l'anneau dit
+                    que le clic est pris (recette 24/08, fluidité) */}
+                <IndicateurLien />
               </Link>
             ))}
           </div>
@@ -229,6 +237,9 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                   </span>
                   <span className="flex shrink-0 flex-col items-end gap-1">
                     <span className="flex items-center gap-1.5">
+                      {/* Ouvrir un dossier ne recharge pas la liste : l'anneau
+                          sur la ligne cliquée confirme le geste */}
+                      <IndicateurLien />
                       {i.urgence === "urgente" && (
                         <span className="puce puce-rouge">Urgent</span>
                       )}

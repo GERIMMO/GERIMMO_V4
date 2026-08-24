@@ -13,6 +13,7 @@ import { TraiterAlerte } from "./alertes/traiter-alerte";
 import { nomComplet } from "@/lib/roles-personnes";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
@@ -603,6 +604,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                         })}
                                       >
                                         Traiter
+                                        <IndicateurLien />
                                       </Link>
                                     ) : (
                                       <TraiterAlerte

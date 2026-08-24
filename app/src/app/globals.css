@@ -551,6 +551,80 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   100% { opacity: 0; transform: translate(-50%, 10px); }
 }
 
+/* ——— Fluidité de navigation (recette 24/08 : « rien ne se passe au clic ») ——— */
+
+/* Indicateur de lien (useLinkStatus) : espace réservé, invisible au repos.
+   Il n'apparaît qu'après ~150 ms — une navigation instantanée ne clignote pas. */
+.indic-lien { opacity: 0; }
+
+/* Variante anneau : petit rond qui tourne, dans la couleur du texte courant */
+.indic-rond {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  flex-shrink: 0;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.indic-rond.attente {
+  animation: indic-tourne 0.7s linear 0.15s infinite;
+}
+@keyframes indic-tourne {
+  from { opacity: 1; transform: rotate(0deg); }
+  to { opacity: 1; transform: rotate(360deg); }
+}
+
+/* Variante onglet : le liseré laiton bat sous l'onglet pendant la navigation */
+.indic-onglet {
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 2px;
+  background: var(--or);
+}
+.indic-onglet.attente {
+  animation: indic-onde 0.9s ease-in-out 0.15s infinite;
+}
+@keyframes indic-onde {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Squelettes des états de chargement (loading.tsx) : blocs calmes qui
+   respirent, angles vifs de la charte */
+.squelette {
+  background: var(--filet-leger);
+  border-radius: 2px;
+  animation: squelette-souffle 1.1s ease-in-out infinite alternate;
+}
+@keyframes squelette-souffle {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+/* Rond d'attente autonome (entrée dans un espace) */
+.rond-attente {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--filet);
+  border-top-color: var(--encre);
+  border-radius: 50%;
+  animation: rond-tourne 0.7s linear infinite;
+}
+@keyframes rond-tourne {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squelette,
+  .indic-onglet.attente {
+    animation: none;
+    opacity: 1;
+  }
+}
+
 /* Bloc d'erreur de formulaire (maquette .err) */
 .err {
   background: var(--destructive-soft);

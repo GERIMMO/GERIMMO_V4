@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { IndicateurLien } from "@/components/ui/indicateur-lien";
 
 // Navigation de l'espace locataire — maquette chromeLoc : onglets posés sur le
 // bandeau encre assombri, liseré laiton sous l'onglet actif.
@@ -28,13 +29,15 @@ export function NavLocataire({ orgId }: { orgId: string }) {
               key={e.href}
               href={e.href}
               className={cn(
-                "flex shrink-0 items-center border-b-2 py-3 text-[13px] whitespace-nowrap transition-colors",
+                "relative flex shrink-0 items-center border-b-2 py-3 text-[13px] whitespace-nowrap transition-colors",
                 active
                   ? "border-[var(--or)] text-[var(--sur-encre)]"
                   : "border-transparent text-[var(--sur-encre)]/60 hover:text-[var(--sur-encre)]"
               )}
             >
               {e.libelle}
+              {/* Le liseré laiton bat le temps que la page arrive */}
+              <IndicateurLien variante="onglet" />
             </Link>
           );
         })}

@@ -6,6 +6,7 @@ import { estConfieeAMoi } from "@/lib/alertes";
 import { afficherEcheance } from "@/lib/echeances";
 import { formaterDateHeure } from "@/lib/ged";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { ModaleAlerte, type AlerteRang, type Membre } from "./modale-alerte";
 
 export type { AlerteRang } from "./modale-alerte";
@@ -138,6 +139,7 @@ export function ListeAlertes({
               })}
             >
               Traiter
+              <IndicateurLien />
             </Link>
           ) : (
             <Button

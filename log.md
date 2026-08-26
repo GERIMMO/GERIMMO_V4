@@ -1734,3 +1734,21 @@ Bonus agence (note du diagnostic) : « Bail signe depose. » porte desormais
 un lien « Le consulter » vers la piece.
 Verifs : build OK, typecheck/lint 0 erreur, 85 tests verts ; en base, le
 bail de locataire.alpha@ (preavis) porte bien un PDF signe vivant.
+
+## [2026-08-26] query | Detail des sprints restants + inventaire des manques V0
+Demande de l humain (avec 3 ecarts reperes en recette : onglet Mes documents
+locataire, agenda agence, section Documents agence). Comparaison ecran par
+ecran maquette du 23/08 <-> application : les 3 ecarts confirmes, et
+inventaire complet dresse. Points saillants :
+- Locataire : Mes documents, Mes rendez-vous et Conseils manquants ; une
+  seule attestation d assurance visible (le renouvellement masque la
+  validee) ; pas de « Donner mon preavis ».
+- Agence : Agenda et Messages manquants (S9b), Documents tres en-deca de la
+  maquette (maitre-detail, pieces a renouveler, par type, detail de piece,
+  Remplacer, visibilite), comptabilite et parc sans sous-onglets,
+  administration agence (8 sous-onglets) absente, recherche globale absente.
+- Hors plan (a trancher) : conformite/registres loi Hoguet, pilotage avance,
+  editorial/articles, rentabilite du mandat.
+Nouveau livrable : « Reste a faire V0 - sprints et ecarts maquette » (detail
+fin S8 / S9a / S9b, inventaire par espace avec rattachement au sprint ou
+[hors plan], synthese du perimetre V0 restant). Index mis a jour.

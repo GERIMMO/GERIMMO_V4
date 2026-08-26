@@ -1709,3 +1709,28 @@ Recette humaine sur https://gerimmo-v4.vercel.app :
   de Partie 2 du livrable, diagnostic en cours.
 Livrable central mis a jour (validations en Partie 1, section « Points
 gardes pour plus tard » creee, sections soldees retirees de la Partie 2).
+
+## [2026-08-26] dev | Anomalie 4.7.1 : le locataire consulte son bail signe
+Diagnostic : la consultation du bail signe cote locataire n avait jamais ete
+implementee — quatre maillons manquaient : mon_bail_locataire ne renvoyait
+pas baux.document_signe ; aucune route de fichier cote locataire ;
+log_document_access refusait le role locataire ; aucune policy de lecture
+storage/documents pour ce role (le PDF n est rattache au bail que par la
+colonne baux.document_signe, jamais par document_liens).
+Correctif (migration bail_signe_locataire, appliquee via MCP + copie de
+reference dans app/supabase/migrations) :
+- mon_bail_locataire renvoie aussi document_signe ;
+- nouvelle RPC definer mon_bail_document_locataire (metadonnees de la piece,
+  acces verifie : locataire principal ou colocataire, bail actif/preavis) ;
+- log_document_access accepte le locataire pour la piece de SON bail (la
+  trace reste obligatoire, RM-0b.7.5) ;
+- policy storage ged_select_locataire_bail via une fonction definer
+  chemins_pieces_bail_locataire (meme lecon que le correctif attestations
+  du sprint 3 : les policies s evaluent sous la RLS des tables referencees).
+Cote app : route locataire/[orgId]/bail/fichier calquee sur la route agence
+(trace avant acces, fichier servi par le serveur, pas d URL signee exposee,
+RM-A4.10) ; bouton « Consulter mon bail signe » dans la carte Mon bail.
+Bonus agence (note du diagnostic) : « Bail signe depose. » porte desormais
+un lien « Le consulter » vers la piece.
+Verifs : build OK, typecheck/lint 0 erreur, 85 tests verts ; en base, le
+bail de locataire.alpha@ (preavis) porte bien un PDF signe vivant.

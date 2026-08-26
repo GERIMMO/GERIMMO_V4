@@ -75,11 +75,15 @@
 
 ## 2.A — Anomalie du 26/08 : bail signé invisible côté locataire (4.7.1)
 
-> Constat de recette du 26/08, persona LO : « Mon bail » ne permet **pas de
-> consulter le bail signé** — la pièce n'est pas disponible. À corriger,
-> puis re-tester :
-1. « Mon bail » → le bail **signé** est consultable (jamais un brouillon),
-   avec ses documents.
+> Constat de recette du 26/08, persona LO : « Mon bail » ne permettait **pas
+> de consulter le bail signé**. Cause : la consultation n'avait jamais été
+> implémentée côté locataire (ni donnée, ni lien, ni route, ni droit de
+> lecture). **Corrigé et déployé le 26/08** — à re-tester :
+1. Accueil locataire → carte « Mon bail » → bouton **« Consulter mon bail
+   signé »** → la pièce s'ouvre dans un nouvel onglet (jamais un brouillon —
+   seul le PDF déposé à l'activation est servi).
+2. Bonus agence (persona AG) : fiche d'un bail **brouillon** avec bail signé
+   déposé → le lien **« Le consulter »** ouvre la pièce.
 
 ### Points gardés pour plus tard (non bloquants)
 

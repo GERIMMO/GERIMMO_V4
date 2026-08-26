@@ -348,7 +348,17 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </CardHeader>
           <CardContent className="space-y-4">
             {bail.document_signe ? (
-              <p className="text-sm text-success-soft-foreground">Bail signé déposé.</p>
+              <p className="text-sm text-success-soft-foreground">
+                Bail signé déposé.{" "}
+                <a
+                  href={`/agence/${orgId}/documents/${bail.document_signe}/fichier`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[var(--bleu)] underline-offset-2 hover:underline"
+                >
+                  Le consulter
+                </a>
+              </p>
             ) : (
               <FormulaireBailSigne orgId={orgId} bailId={bailId} />
             )}

@@ -62,6 +62,7 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
     charges: number | null;
     lot_nom: string;
     date_debut: string | null;
+    document_signe: string | null;
   }[])[0];
 
   const depot = ((depotRows ?? []) as {
@@ -130,6 +131,16 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
                   </div>
                 )}
                 <div className="mt-4 flex flex-wrap gap-2">
+                  {bail.document_signe && (
+                    <a
+                      href={`/locataire/${orgId}/bail/fichier`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Consulter mon bail signé
+                    </a>
+                  )}
                   <Link
                     href={`/locataire/${orgId}/loyers`}
                     className={buttonVariants({ variant: "outline", size: "sm" })}

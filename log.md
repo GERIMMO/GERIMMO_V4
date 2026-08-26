@@ -1688,3 +1688,24 @@ differee de 150 ms (pas de clignotement), espace reserve (pas de decalage),
 prefers-reduced-motion respecte. Commit 800d09b, verifie en production :
 squelette capture au clic d'onglet, anneau capture sur la ligne cliquee,
 liste stable, aucune erreur console.
+
+## [2026-08-26] recette | Point recette du 26/08 : etape 5 soldee, S5 entame, une anomalie
+Recette humaine sur https://gerimmo-v4.vercel.app :
+- **Etape 5 soldee** : E.1 (1-3), E.2 (1-3), E.3 (1 et 3), E.4 valides.
+  E.3.2 (bandeau d erreur maquette) accepte en l etat — point garde pour
+  plus tard.
+- **Sprint 7** : 7.4.5 (attribution en responsable) valide — reste 7.2.2
+  (colocataire).
+- **Etape 2 soldee** : G.2 (1-3), G.4 (1-4), G.3.1 valides ; G.3.2 teste
+  partiellement (pas assez de recul en mois clotures, semble OK — a
+  confirmer au sprint 6).
+- **Sprint 3** : 3.4.2 valide (ancienne alerte critique conservee) —
+  scenario 3.4 solde.
+- **Sprint 5 entame** : 5.1 (prorata au centime, etapes 1-2) valide, a
+  repasser en non-regression ; 5.3 (echeancier locataire, etapes 1-2)
+  valide.
+- **Anomalie 4.7.1** : cote locataire, « Mon bail » ne permet pas de
+  consulter le bail signe — la piece n est pas disponible. Passee en tete
+  de Partie 2 du livrable, diagnostic en cours.
+Livrable central mis a jour (validations en Partie 1, section « Points
+gardes pour plus tard » creee, sections soldees retirees de la Partie 2).

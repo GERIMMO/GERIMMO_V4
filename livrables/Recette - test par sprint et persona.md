@@ -1,11 +1,11 @@
 # Recette — test par sprint et persona
 
-> Mis à jour le **2026-08-24**, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le **2026-08-26**, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > **Fichier central de recette**, en deux parties :
 > **1. Recetté OK** — ce qui est validé, on n'y revient plus.
-> **2. Reste à recetter** — d'abord les **re-tests des correctifs du 24/08**
-> (étape 5), puis le reliquat du **Sprint 7 — Incidents**, puis ce qui
-> reste des étapes précédentes et les sprints jamais déroulés.
+> **2. Reste à recetter** — d'abord l'**anomalie du 26/08** (bail signé
+> invisible côté locataire), puis le reliquat du **Sprint 7 — Incidents**,
+> puis ce qui reste des étapes précédentes et les sprints jamais déroulés.
 >
 > Mot de passe commun : `Gerimmo-Demo-2026`.
 > Périmètre réel : S3 → S8 **incidents inclus** — le S7 est développé et
@@ -53,76 +53,53 @@
   (étape 1 ; étape 2 hors colocataire), 7.3 (étapes 1 et 3), 7.4 (étapes
   1 à 4 ; étape 5 restant à tester en responsable d'agence). Les points UI
   remontés (7.1.1, 7.3.2, 7.3.4) sont traités le 24/08 — re-tests en étape 5.
+- **26/08 — Étape 5 (correctifs du 24/08)** : **validés** E.1, E.2, E.3
+  (étapes 1 et 3 ; étape 2 acceptée en l'état — point d'alignement gardé
+  pour plus tard, voir « Points gardés pour plus tard »), E.4 — **l'étape 5
+  est soldée**.
+- **26/08 — Sprint 7** : **validé** 7.4.5 (attribution en responsable) —
+  ne reste que 7.2.2 (colocataire).
+- **26/08 — Étape 2 (passe charte du 19/08)** : **validés** G.2, G.4 et
+  G.3.1 ; G.3.2 (suppression d'encaissement refusée sur mois clôturé) testé
+  partiellement — semble OK, pas assez de recul en mois clôturés, à
+  confirmer au sprint 6. **L'étape 2 est soldée.**
+- **26/08 — Sprint 3** : **validé** 3.4.2 (l'ancienne alerte critique est
+  conservée après redépôt) — le scénario 3.4 est soldé.
+- **26/08 — Sprint 5 (début)** : **validés** 5.1 (étapes 1 et 2 — prorata au
+  centime conforme ; à repasser en non-régression), 5.3 (étapes 1 et 2,
+  côté locataire).
 
 ---
 
 # Partie 2 — Reste à recetter
 
-## 2.A — Étape 5 : re-tests des correctifs du 24/08
+## 2.A — Anomalie du 26/08 : bail signé invisible côté locataire (4.7.1)
 
-> Réponses aux retours de recette du 24/08 : pop-up **sur l'écran courant**,
-> incidents traités **dans l'onglet Incidents**, écrans incidents **alignés
-> sur la maquette** (agence et locataire), bug des photos corrigé.
-> **À dérouler en premier.**
+> Constat de recette du 26/08, persona LO : « Mon bail » ne permet **pas de
+> consulter le bail signé** — la pièce n'est pas disponible. À corriger,
+> puis re-tester :
+1. « Mon bail » → le bail **signé** est consultable (jamais un brouillon),
+   avec ses documents.
 
-#### Persona : Agent immobilier (agent.alpha@)
+### Points gardés pour plus tard (non bloquants)
 
-**Re-test E.1 — « Traiter » : pop-up sur place, incidents dans leur onglet**
-> Refonte demandée le 24/08 : plus aucune redirection vers l'onglet Alertes.
-1. Tableau de bord → « Traiter » sur une alerte **générique** (EDL, assurance,
-   DPE…) → la pop-up s'ouvre **sur le tableau de bord**, sans navigation.
-2. Cloche → « Traiter » sur une alerte générique → la synthèse se referme et
-   la pop-up de traitement s'ouvre **sur l'écran où vous êtes**.
-3. « Traiter » sur une alerte **incident** (à qualifier, contestée, rouvert) —
-   depuis le tableau de bord, la cloche ou la page Alertes → arrivée dans
-   **l'onglet Incidents, positionné sur le dossier** (vue scindée, dossier
-   ouvert à droite).
-
-**Re-test E.2 — Onglet Incidents en vue scindée (maquette)**
-1. Incidents → **liste à gauche** (rang : titre court, n° · lot, puce d'état,
-   responsable), **dossier à droite** ; sans sélection, l'état vide invite à
-   choisir un dossier.
-2. Ouvrir un dossier → en-tête maquette (n° · canal · date en surtitre mono),
-   barre d'étapes du flux, carte « Ce qu'a dit le locataire », qualification
-   à liseré laiton, chronologie à pastilles.
-3. Un incident **qualifié contesté** : l'encart de contestation s'affiche et
-   la **requalification** est proposée (maintenir l'imputation vaut réponse —
-   l'alerte « contestée » se solde).
-
-#### Persona : Locataire (locataire.alpha@)
-
-**Re-test E.3 — « Signaler un problème » aligné maquette**
-1. L'écran est en **deux colonnes** : à droite l'encart **« Qui paiera la
-   réparation »** s'adapte à la catégorie choisie — plutôt à votre charge
-   (fondement + « le propriétaire peut refuser de prendre en charge
-   financièrement l'incident ; l'agence peut missionner un artisan pour
-   vous, l'intervention vous est alors refacturée après votre accord sur le
-   devis ») / plutôt au propriétaire / à qualifier par votre gérant.
-2. Erreur de validation → **bandeau d'erreur maquette** (fond rouge doux,
-   liseré) en haut du formulaire, message « Décrivez le problème en une
-   phrase au moins — cela évite un aller-retour avec l'agence. »
-3. **Avec des photos jointes** (plusieurs vraies photos de téléphone) →
-   l'envoi **passe** (correctif : la limite de 11 Mo du serveur bloquait
-   avant notre code) → **message de confirmation en vert**, puis redirection
-   automatique vers « Mes demandes » après ~2,5 s.
-
-**Re-test E.4 — « Mes demandes » aligné maquette**
-1. Une **carte par signalement**, liseré gauche selon l'état (encre en cours,
-   ambre à votre charge/terminé, vert clos), titre court + puce d'état dans
-   vos mots, ligne « Qui prend en charge », contestation/réouverture inchangées.
+- **E.3.2** — le bandeau d'erreur de « Signaler un problème » n'est pas
+  tout à fait conforme à l'attendu ; accepté en l'état le 26/08, à
+  reprendre plus tard.
+- **G.3.2** — refus de suppression d'encaissement sur mois clôturé : testé
+  partiellement (pas assez de recul en mois clôturés), à confirmer au
+  sprint 6.
+- **5.1 (prorata au centime)** — validé le 26/08, à repasser lors des
+  passes de **non-régression** des prochains sprints.
 
 ## 2.B — Sprint 7 : Incidents — reliquat
 
-> L'essentiel du S7 est **validé le 24/08** (voir Partie 1). Restent :
+> L'essentiel du S7 est **validé les 24 et 26/08** (voir Partie 1). Reste :
 
 **7.2.2 (colocataire)** · persona LO — un colocataire voit le bail et les
 incidents du bail, mais ne peut ni contester ni rouvrir (réservé au
 déclarant). *(Correctif du 23/08 : le colocataire voyait « aucun bail
 actif » — RPC corrigées, à vérifier d'un coup d'œil.)*
-
-**7.4.5 (attribution en responsable)** · persona AA (`admin.alpha@`) — le
-responsable attribue un dossier à un agent ; l'agent « le prend en charge »
-ou le « remet au pot commun ».
 
 > Note propriétaire bailleur : le rôle `proprietaire_direct` passe par les
 > **mêmes écrans et les mêmes fonctions** que l'agence (vérifié en base) — le
@@ -131,23 +108,6 @@ ou le « remet au pot commun ».
 > planning, ce serait un écran mort.
 
 ## 2.C — Reste des étapes précédentes
-
-### Étape 2 (19/08) — jamais déroulés
-
-**Vérif G.2 — Fiche bail : nouvel en-tête** · persona AG
-1. Sur un bail actif → sur-titre « BAIL NU/MEUBLÉ… » en petites capitales, **le nom du locataire en titre**, l'état du bail en **puce colorée** (actif = vert doux, préavis = ambre, terminé = gris).
-2. Sur un bail **brouillon sans locataire** → le titre replie sur le nom du lot, rien ne casse.
-3. Le bloc « À faire maintenant » est un aplat ardoise à liseré or, coins carrés.
-
-**Vérif G.3 — Échéancier et suppression d'encaissement** · persona AG
-1. Les statuts d'échéancier sont des **puces** : payé vert doux, partiel ambre, **impayé rouge doux**, à échoir gris.
-2. Supprimer un encaissement refusé (mois clôturé) → **le refus s'affiche** sous le bouton.
-
-**Vérif G.4 — EDL et fiches** · persona AG
-1. Grille d'EDL : noms de pièces en mono, états des éléments en puces ; en-tête avec « ENTRÉE · date » et puce Signé/En cours.
-2. Fiche bien et fiche lot : sur-titre « TYPE · VILLE » au-dessus du titre.
-3. Fiche personne : **avatar à initiales** dans l'en-tête ; état du mandat en puce.
-4. Documents : liste en rangs charte, compteur « N pièces » ; la recherche traite « % » et « _ » comme des caractères normaux.
 
 ### Étape 3 (21/08) — re-tests A.1 à A.6 non déroulés
 
@@ -170,12 +130,6 @@ ou le « remet au pot commun ».
 ### Sprint 3 — reste à dérouler
 
 #### Persona : Agent immobilier (agent.alpha@)
-
-**Scénario 3.4 — Attestation d'assurance expirée (suite)**
-1. ~~Étape 1 validée le 22/08.~~
-2. Redéposer une attestation valide → l'ancienne alerte critique est
-   **conservée** (preuve), pas effacée. *(Couvert par les tests
-   d'intégration ; un coup d'œil humain suffit.)*
 
 **Scénario 3.5 — Invitation locataire (suite)**
 1. **Contenu de la notification** (ta question du 22/08) : l'email envoyé est
@@ -204,18 +158,12 @@ ou le « remet au pot commun ».
 3. (Étape 3 validée le 22/08 **sauf l'alerte**) : congé bailleur avec motif →
    vérifier que l'**alerte d'EDL de sortie datée** est bien créée.
 
-#### Persona : Locataire (locataire.alpha@)
-
-**Scénario 4.7 — Consultation du bail (suite)**
-1. « Mon bail » → le bail **signé** est consultable (jamais un brouillon), avec ses documents.
+> Le scénario 4.7 côté locataire (consultation du bail signé) est sorti en
+> **anomalie du 26/08** — voir 2.A.
 
 ### Sprint 5 — Loyers, quittances, relances, IRL
 
 #### Persona : Agent immobilier (agent.alpha@)
-
-**Scénario 5.1 — Prorata au centime (A-01, A-02)**
-1. Sur le bail entré le 12 (loyer 780 €, charges 90 €, mois de 31 jours) → le premier appel affiche exactement **503,23 € de loyer + 58,06 € de charges = 561,29 €** (arrondi une seule fois, à la fin, par composante — pas 503,26/561,32).
-2. Sur tout appel : additionner à la main les lignes affichées → le **montant dû est exactement la somme**.
 
 **Scénario 5.2 — Encaissement, quittance, reçu (A-03, A-16)**
 1. Encaisser le montant **total** d'un appel → **quittance** générée, consultable, imprimable ; l'envoi par email est proposé et enregistré.
@@ -233,14 +181,8 @@ ou le « remet au pot commun ».
 2. Bail au DPE **F ou G** → révision **bloquée**.
 3. Vérifier qu'aucun appel **déjà émis** n'est modifié rétroactivement.
 
-#### Persona : Locataire (locataire.alpha@)
-
-**Scénario 5.3 — Échéancier et quittances**
-1. « Mes loyers » (désormais un **onglet**) → échéancier visible, quittances et reçus **téléchargeables**.
-2. Vérifier qu'**aucun commentaire interne** de l'agence n'apparaît nulle part.
-
-> Test le plus important du sprint : le **prorata au centime** (5.1) — les valeurs
-> attendues sont exactes au centime, toute autre valeur est une anomalie.
+> 5.1 (prorata au centime) et 5.3 (échéancier locataire) sont **validés le
+> 26/08** — voir Partie 1 ; 5.1 à repasser en non-régression.
 
 ### Sprint 6 — Comptabilité et rapport de gestion
 

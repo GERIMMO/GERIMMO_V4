@@ -1789,3 +1789,14 @@ remplacement, documents_courants, revue2_ged — appliquees via MCP, copies
 de reference commitees.
 Livrable recette : nouvelle section 2.B (scenarios N.1 a N.6 + decisions de
 revue a confirmer). Le compte demo porte deja le cas des deux attestations.
+
+## [2026-08-26] revue | Verification en production de la livraison du soir
+Deploiement Vercel constate en ligne. Verifie en session agence reelle :
+vue scindee Documents (41 pieces, doctrine, filtres), vue d ensemble
+(« Pieces a renouveler » : 3, « Par type » avec compteurs exacts,
+« 40 pieces conservees, hors pieces purgees »), fiche d une attestation
+(eyebrow, puce « a renouveler », apercu PDF rendu par la route fichier,
+rattachements « Agence » + « Leblanc Julie », bouton Rattacher). La route
+fichier locataire refuse proprement un non-locataire (page « Acces refuse »
+en francais). Le clic final locataire (onglet Mes documents, compte demo)
+revient a la recette humaine — scenarios N.1 a N.6 du livrable.

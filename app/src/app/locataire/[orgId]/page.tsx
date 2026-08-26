@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eur, formaterDate } from "@/lib/ged";
+import { estExpiree, eur, formaterDate } from "@/lib/ged";
 import { TYPES_BAIL } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
@@ -44,16 +44,25 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
   // Quatre RPC indépendants : en parallèle plutôt qu'en cascade
   const [{ data: pieces }, { data: baux }, { data: depotRows }, { data: incidentsBruts }] =
     await Promise.all([
-      supabase.rpc("mon_dossier_locataire", { p_org: orgId }),
+      supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
       supabase.rpc("mon_depot_locataire", { p_org: orgId }),
       supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     ]);
   // La DERNIÈRE attestation (recette 21/08 : le tri ascendant faisait
   // réapparaître la plus ancienne après un renouvellement)
-  const assurance = ((pieces ?? []) as Piece[])
+  const attestations = ((pieces ?? []) as Piece[])
     .filter((p) => p.type === "attestation_assurance")
-    .sort((a, b) => b.depose_le.localeCompare(a.depose_le))[0];
+    .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
+  const assurance = attestations[0];
+  // Recette 26/08 : pendant la vérification d'un renouvellement, la dernière
+  // attestation VALIDÉE reste en vigueur — le dire plutôt que la faire
+  // disparaître (mes_pieces_locataire renvoie les deux). Une validée expirée
+  // n'est plus « en vigueur » (revue 26/08).
+  const assuranceValideeEnVigueur =
+    assurance && !assurance.verifie_le
+      ? attestations.find((p) => p.verifie_le && !estExpiree(p.expire_le))
+      : undefined;
 
   const bail = ((baux ?? []) as {
     type: string;
@@ -196,10 +205,25 @@ export default async function PageLocataire(props: PageProps<"/locataire/[orgId]
                   ))}
               </div>
               {assurance ? (
-                <div className="ligne-info">
-                  <span>{assurance.titre || "Attestation déposée"}</span>
-                  <span className={statut?.classe}>{statut?.texte}</span>
-                </div>
+                <>
+                  <div className="ligne-info">
+                    <span>{assurance.titre || "Attestation déposée"}</span>
+                    <span className={statut?.classe}>{statut?.texte}</span>
+                  </div>
+                  {assuranceValideeEnVigueur && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Votre attestation validée reste en vigueur pendant la
+                      vérification —{" "}
+                      <Link
+                        href={`/locataire/${orgId}/documents`}
+                        className="text-[var(--bleu)] underline-offset-2 hover:underline"
+                      >
+                        la consulter dans Mes documents
+                      </Link>
+                      .
+                    </p>
+                  )}
+                </>
               ) : (
                 // Obligation annuelle non tenue : le dire franchement, pas en gris
                 <div className="mb-3 rounded-lg border border-destructive-soft bg-destructive-soft/40 p-3">

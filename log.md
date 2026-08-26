@@ -1752,3 +1752,40 @@ inventaire complet dresse. Points saillants :
 Nouveau livrable : « Reste a faire V0 - sprints et ecarts maquette » (detail
 fin S8 / S9a / S9b, inventaire par espace avec rattachement au sprint ou
 [hors plan], synthese du perimetre V0 restant). Index mis a jour.
+
+## [2026-08-26] dev | Livraison du soir : Mes documents locataire + Documents agence (maquette)
+Deux ecarts maquette du livrable « Reste a faire V0 » developpes en parallele
+de la recette humaine, selon la methodologie complete (dev -> 2 revues -> 3
+passes d integration -> deploiement -> scenarios de recette).
+**Feature 1 — « Mes documents » locataire** : nouvel onglet listant bail
+signe, attestations et quittances (Ouvrir/Telecharger via une route de
+fichier securisee, trace obligatoire). Besoin de recette du 26/08 couvert :
+pendant la verification d un renouvellement, la derniere attestation VALIDEE
+reste visible (RPC mes_pieces_locataire) ; l accueil l explique et pointe
+vers l onglet ; puce « Expiree » si la validee ne couvre plus.
+**Feature 2 — « Documents » agence** : vue scindee maquette (liste + vue
+d ensemble « Pieces a renouveler » / « Par type » cliquable, stats agregees
+en SQL), fiche de piece (apercu, rattachements, cycle de vie avec
+conservation et « Visible par »), actions Rattacher (toast) et Remplacer
+(RPC transactionnelle : fiche versionnee + liens copies + pointeur
+baux.document_signe deplace ; historique des versions sur la fiche).
+**Revues** : passe 1 (securite + conformite maquette) — 1 bloquant corrige
+(le type pilote seul les droits : whitelist attestation/piece d identite/
+justificatif cote locataire), verrou d organisation (trigger
+document_liens_meme_agence), adhesion locataire ACTIVE exigee partout,
+bail servi seulement actif/preavis, MIME whitelist + nosniff sur les 3
+routes de fichiers, index unique sur remplace_id. Passe 2 — stats SQL
+(documents_stats_par_type / documents_a_renouveler), adhesion active sur
+les fonctions bail du matin, prefixe de chemin storage verrouille,
+messages 23505 discrimines.
+**Tests** : build/typecheck/lint 0 erreur, 85 tests unitaires verts ;
+nouveau fichier tests/mes-documents-locataire.test.ts (6 tests
+d integration : cycle des deux attestations, bail signe, traces, courrier
+invisible, lien inter-agences, version remplacee) ; 3 passes d integration
+en base reelle (transactions annulees) toutes vertes, non-regression des
+flux attestation/bail signe/GED comprise.
+**Migrations** : mes_documents_locataire, ged_perimetre_locataire_et_
+remplacement, documents_courants, revue2_ged — appliquees via MCP, copies
+de reference commitees.
+Livrable recette : nouvelle section 2.B (scenarios N.1 a N.6 + decisions de
+revue a confirmer). Le compte demo porte deja le cas des deux attestations.

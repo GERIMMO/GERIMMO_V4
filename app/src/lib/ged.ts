@@ -28,6 +28,48 @@ export const TYPES_DEPOSABLES = [
   "document_test",
 ] as const;
 
+// Le type pilote seul les droits d'accès (module 12) : qui voit la pièce,
+// au-delà de l'agence. Affiché sur la fiche de pièce (maquette pageDocument).
+export const VISIBILITE_DOCUMENT: Record<string, string> = {
+  bail: "Agence et locataire",
+  quittance: "Agence et locataire",
+  etat_des_lieux: "Agence et locataire",
+  attestation_assurance: "Agence et la personne concernée",
+  piece_identite: "Agence et la personne concernée",
+  justificatif: "Agence et la personne concernée",
+};
+
+export function visibiliteDocument(type: string): string {
+  return VISIBILITE_DOCUMENT[type] ?? "Agence seule";
+}
+
+// Une durée de conservation en mois, dite en français (maquette : puce de
+// conservation sur chaque rang de la GED)
+export function dureeConservation(mois: number | null | undefined): string {
+  if (mois === null || mois === undefined) return "—";
+  if (mois === 0) return "purge immédiate";
+  if (mois % 12 === 0) return `${mois / 12} an${mois >= 24 ? "s" : ""}`;
+  return `${mois} mois`;
+}
+
+// « À renouveler » : échéance passée ou à moins de 30 jours — sur l'horloge
+// de Paris (revue 26/08 : la règle vivait en double, sur l'horloge UTC).
+// La date seuil sert aussi de paramètre à documents_a_renouveler (SQL).
+export function limiteRenouvellement(): string {
+  const limite = new Date(`${aujourdhuiParis()}T00:00:00`);
+  limite.setDate(limite.getDate() + 30);
+  return limite.toLocaleDateString("en-CA");
+}
+
+export function estARenouveler(expireLe: string | null | undefined): boolean {
+  return Boolean(expireLe && expireLe <= limiteRenouvellement());
+}
+
+// Une échéance passée, toujours sur l'horloge de Paris
+export function estExpiree(expireLe: string | null | undefined): boolean {
+  return Boolean(expireLe && expireLe < aujourdhuiParis());
+}
+
 export const CRITICITES: Record<string, string> = {
   informative: "Informative",
   normale: "Normale",

@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
-import { verifierGerant } from "@/lib/ged-acces";
+import { verifierLocataire } from "@/lib/ged-acces";
 import { EXTENSIONS, type MimeAccepte } from "@/lib/file-type";
 
-// Consultation / téléchargement d'une pièce. Le fichier est servi par cette
-// route : l'URL visible reste une URL Gerimmo stable — un refresh revérifie
-// les droits, retrace l'accès et relit le fichier. Le lien signé Supabase ne
-// sort jamais du serveur (RM-A4.10), donc plus d'erreur brute « InvalidJWT »
-// à l'expiration. Trace obligatoire avant tout accès (RM-0b.7.5, RM-12.5.8).
+// Consultation d'une pièce par le locataire (« Mes documents »). Même
+// architecture que les autres routes de fichier : l'accès est porté par la
+// RPC definer mon_document_locataire (pièce de SON dossier ou bail signé de
+// SON bail), la trace est obligatoire avant tout accès (RM-0b.7.5) et le
+// lien signé Supabase ne sort jamais du serveur (RM-A4.10).
 
 function pageErreur(status: number, titre: string, message: string) {
   const html = `<!doctype html>
@@ -23,7 +23,7 @@ function pageErreur(status: number, titre: string, message: string) {
   p { color: #525252; font-size: .9rem; line-height: 1.5; }
 </style>
 </head>
-<body><main><h1>${titre}</h1><p>${message}</p><p>Vous pouvez fermer cet onglet et réessayer depuis la page Documents.</p></main></body>
+<body><main><h1>${titre}</h1><p>${message}</p><p>Vous pouvez fermer cet onglet et réessayer depuis « Mes documents ».</p></main></body>
 </html>`;
   return new Response(html, {
     status,
@@ -33,7 +33,7 @@ function pageErreur(status: number, titre: string, message: string) {
 
 export async function GET(
   request: NextRequest,
-  ctx: RouteContext<"/agence/[orgId]/documents/[documentId]/fichier">
+  ctx: RouteContext<"/locataire/[orgId]/documents/[documentId]/fichier">
 ) {
   const { orgId, documentId } = await ctx.params;
   const mode =
@@ -41,23 +41,34 @@ export async function GET(
       ? "telechargement"
       : "consultation";
 
-  const { supabase, user } = await verifierGerant(orgId);
+  // Défense en profondeur : adhésion 'locataire' active exigée ici, dans les
+  // RPC definer ET dans la policy storage (revue 26/08)
+  const { supabase, user } = await verifierLocataire(orgId);
   if (!user) {
     return pageErreur(
       403,
       "Accès refusé",
-      "Votre session a peut-être expiré, ou vous n'avez pas accès aux documents de cette agence. Reconnectez-vous puis réessayez."
+      "Votre session a peut-être expiré, ou vous n'avez plus accès à cet espace. Reconnectez-vous puis réessayez."
     );
   }
 
-  const { data: doc } = await supabase
-    .from("documents")
-    .select("storage_path, titre, mime_type, purged_at")
-    .eq("id", documentId)
-    .eq("organization_id", orgId)
-    .maybeSingle();
+  const { data } = await supabase.rpc("mon_document_locataire", {
+    p_org: orgId,
+    p_doc: documentId,
+  });
+  const doc = ((data ?? []) as {
+    document_id: string;
+    titre: string | null;
+    mime_type: string;
+    storage_path: string | null;
+    purged_at: string | null;
+  }[])[0];
   if (!doc) {
-    return pageErreur(404, "Document introuvable", "Ce document n'existe pas ou n'appartient pas à cette agence.");
+    return pageErreur(
+      404,
+      "Pièce introuvable",
+      "Cette pièce n'existe pas ou n'est pas à votre disposition."
+    );
   }
   if (doc.purged_at || !doc.storage_path) {
     return pageErreur(
@@ -68,7 +79,7 @@ export async function GET(
   }
 
   const { error: erreurTrace } = await supabase.rpc("log_document_access", {
-    doc: documentId,
+    doc: doc.document_id,
     acces: mode,
   });
   if (erreurTrace) {
@@ -87,12 +98,10 @@ export async function GET(
     return pageErreur(
       502,
       "Fichier indisponible",
-      "Le fichier n'a pas pu être relu depuis le stockage. Réessayez dans un instant ; si le problème persiste, signalez-le."
+      "Le fichier n'a pas pu être relu depuis le stockage. Réessayez dans un instant ; si le problème persiste, signalez-le à votre agence."
     );
   }
 
-  // Nom de fichier : le titre, complété de l'extension réelle ; variante ASCII
-  // en repli + forme UTF-8 (RFC 5987) pour conserver les accents
   // Liste blanche MIME : un type inattendu se sert en octet-stream téléchargé,
   // jamais rendu inline (revue 26/08 — pas de HTML servi sur notre origine)
   const mimeSur = doc.mime_type in EXTENSIONS ? (doc.mime_type as MimeAccepte) : null;

@@ -89,7 +89,7 @@ export async function deposerMonAttestation(
     p_titre: titre,
     p_expire: expire,
   });
-  if (erreurRpc) return { erreur: erreurRpc.message, valeurs };
+  if (erreurRpc) return { erreur: sansJargon(erreurRpc.message), valeurs };
 
   revalidatePath(`/locataire/${orgId}`);
   return { succes: "Attestation déposée. Merci — votre agence est notifiée." };

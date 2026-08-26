@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { verifierLocataire } from "@/lib/ged-acces";
 import { EXTENSIONS, type MimeAccepte } from "@/lib/file-type";
 
 // Consultation du bail signé par le locataire (RM-4.7). Même architecture que
@@ -42,15 +42,14 @@ export async function GET(
       ? "telechargement"
       : "consultation";
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Défense en profondeur : adhésion 'locataire' active exigée ici, dans les
+  // RPC definer ET dans la policy storage (revue 26/08)
+  const { supabase, user } = await verifierLocataire(orgId);
   if (!user) {
     return pageErreur(
       403,
       "Accès refusé",
-      "Votre session a peut-être expiré. Reconnectez-vous puis réessayez."
+      "Votre session a peut-être expiré, ou vous n'avez plus accès à cet espace. Reconnectez-vous puis réessayez."
     );
   }
 
@@ -101,17 +100,22 @@ export async function GET(
     );
   }
 
-  const extension = EXTENSIONS[doc.mime_type as MimeAccepte] ?? "bin";
+  // Liste blanche MIME : un type inattendu se sert en octet-stream téléchargé,
+  // jamais rendu inline (revue 26/08 — pas de HTML servi sur notre origine)
+  const mimeSur = doc.mime_type in EXTENSIONS ? (doc.mime_type as MimeAccepte) : null;
+  const extension = mimeSur ? EXTENSIONS[mimeSur] : "bin";
   const titre = doc.titre ?? "Bail signé";
   const nomFichier = titre.endsWith(`.${extension}`) ? titre : `${titre}.${extension}`;
   const nomAscii = nomFichier.replace(/"/g, "'").replace(/[^\x20-\x7E]/g, "_");
-  const disposition = mode === "telechargement" ? "attachment" : "inline";
+  const disposition =
+    mode === "telechargement" || !mimeSur ? "attachment" : "inline";
 
   return new Response(fichier, {
     headers: {
-      "Content-Type": doc.mime_type,
+      "Content-Type": mimeSur ?? "application/octet-stream",
       "Content-Disposition": `${disposition}; filename="${nomAscii}"; filename*=UTF-8''${encodeURIComponent(nomFichier)}`,
       "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }

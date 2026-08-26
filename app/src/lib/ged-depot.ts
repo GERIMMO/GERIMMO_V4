@@ -111,11 +111,13 @@ export async function deposerFichierGed(
     .select("id")
     .single();
   if (erreurInsert || !document) {
-    // 23505 : l'index anti-doublon a tranché une course entre deux dépôts
+    // 23505 : anti-doublon OU unicité de version (revue 26/08) — le nom de
+    // la contrainte départage
     if (erreurInsert?.code === "23505") {
       return {
-        erreur:
-          "Ce fichier vient d'être déposé par ailleurs (doublon détecté). Actualisez la liste.",
+        erreur: erreurInsert.message.includes("remplace_id")
+          ? "Une nouvelle version de cette pièce vient d'être déposée par ailleurs. Actualisez la page."
+          : "Ce fichier vient d'être déposé par ailleurs (doublon détecté). Actualisez la liste.",
       };
     }
     return { erreur: `Échec de l'enregistrement : ${erreurInsert?.message}` };

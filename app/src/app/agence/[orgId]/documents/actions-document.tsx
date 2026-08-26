@@ -6,9 +6,12 @@ import { buttonVariants } from "@/components/ui/button";
 export function ActionsDocument({
   orgId,
   documentId,
+  titre,
 }: {
   orgId: string;
   documentId: string;
+  // Distingue les liens répétés pour les lecteurs d'écran (revue 26/08)
+  titre?: string | null;
 }) {
   const base = `/agence/${orgId}/documents/${documentId}/fichier`;
   return (
@@ -17,6 +20,7 @@ export function ActionsDocument({
         href={base}
         target="_blank"
         rel="noopener"
+        aria-label={titre ? `Consulter ${titre}` : undefined}
         className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         Consulter
@@ -27,6 +31,7 @@ export function ActionsDocument({
         href={`${base}?mode=telechargement`}
         target="_blank"
         rel="noopener"
+        aria-label={titre ? `Télécharger ${titre}` : undefined}
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         Télécharger

@@ -3,9 +3,10 @@
 > Mis à jour le **2026-08-26**, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > **Fichier central de recette**, en deux parties :
 > **1. Recetté OK** — ce qui est validé, on n'y revient plus.
-> **2. Reste à recetter** — d'abord l'**anomalie du 26/08** (bail signé
-> invisible côté locataire), puis le reliquat du **Sprint 7 — Incidents**,
-> puis ce qui reste des étapes précédentes et les sprints jamais déroulés.
+> **2. Reste à recetter** — d'abord l'**anomalie du 26/08** (bail signé) et
+> la **livraison du 26/08 au soir** (« Mes documents » locataire + refonte
+> « Documents » agence), puis le reliquat du **Sprint 7 — Incidents**, puis
+> ce qui reste des étapes précédentes et les sprints jamais déroulés.
 >
 > Mot de passe commun : `Gerimmo-Demo-2026`.
 > Périmètre réel : S3 → S8 **incidents inclus** — le S7 est développé et
@@ -96,7 +97,85 @@
 - **5.1 (prorata au centime)** — validé le 26/08, à repasser lors des
   passes de **non-régression** des prochains sprints.
 
-## 2.B — Sprint 7 : Incidents — reliquat
+## 2.B — Livraison du 26/08 (soir) : « Mes documents » (LO) + « Documents » (AG)
+
+> Réponse aux deux premiers écarts maquette du livrable
+> [[Reste a faire V0 - sprints et ecarts maquette]] — dont ta demande sur les
+> **deux attestations** (la validée reste visible pendant la vérification du
+> renouvellement). Développée, **revue en deux passes**, testée par **trois
+> passes d'intégration en base réelle (transactions annulées)** et déployée
+> le 26/08. Le compte démo porte déjà le cas des deux attestations.
+
+#### Persona : Locataire (locataire.alpha@)
+
+**Scénario N.1 — Onglet « Mes documents »**
+1. Nouvel onglet **« Mes documents »** (après « Mes loyers ») → la liste des
+   pièces avec le compteur « N pièces à votre disposition » : le **bail
+   signé**, les **attestations d'assurance**, les **quittances**.
+2. « Ouvrir » sur le bail signé → la pièce s'ouvre dans un nouvel onglet ;
+   « Télécharger » la télécharge sous son nom.
+3. « Ouvrir » sur une quittance → la quittance s'affiche (page dédiée — pas
+   de bouton Télécharger sur les quittances, assumé).
+
+**Scénario N.2 — Deux attestations pendant un renouvellement**
+> Le cas est en place sur le compte démo : une validée (expire le 28/08) +
+> une en cours de vérification.
+1. « Mes documents » montre **les deux** attestations : la **validée** (puce
+   verte) ET la nouvelle **« En cours de vérification »** (puce ambre), avec
+   la note « Votre attestation validée reste en vigueur… ». Une validée mais
+   **expirée** porterait la puce rouge « Expirée ».
+2. Accueil « Mon logement » → sous la ligne d'assurance, la mention « Votre
+   attestation validée reste en vigueur pendant la vérification » + lien
+   vers Mes documents.
+3. Persona AG : **valider** la nouvelle attestation (fiche personne) → côté
+   LO, **une seule** attestation reste : la nouvelle, « Validée ».
+
+**Scénario N.3 — Le type pilote les droits** · AG puis LO
+1. AG : déposer une pièce de type **« Courrier »** rattachée à la fiche de
+   Leblanc → côté LO, elle **n'apparaît pas** dans « Mes documents » (type
+   agence seule — seuls attestation, pièce d'identité et justificatif sont
+   des pièces du dossier visibles).
+
+#### Persona : Agent immobilier (agent.alpha@)
+
+**Scénario N.4 — Documents en vue scindée (maquette)**
+1. Onglet Documents → **liste à gauche** (rang : titre, type · date · taille
+   · rattachements, **puce de conservation** — rouge quand l'échéance est à
+   moins de 30 jours), **vue d'ensemble à droite** : carte « Pièces à
+   renouveler », carte « Par type » (barre proportionnelle + **types
+   cliquables** qui filtrent la liste).
+2. Cliquer une pièce → sa **fiche** à droite : sur-titre TYPE · DÉPOSÉE LE,
+   **aperçu du document**, carte **Rattachements** (puces des fiches), carte
+   **Cycle de vie** (type, conservation, « Visible par »), Consulter /
+   Télécharger.
+3. « + Déposer une pièce » → le formulaire s'ouvre dans le volet droit.
+4. Une pièce **purgée** reste cliquable → sa fiche de traçabilité RGPD.
+
+**Scénario N.5 — Rattacher une pièce**
+1. Fiche d'une pièce → « Rattacher à une autre fiche » → personne, lot ou
+   bail → toast **« Pièce rattachée — elle apparaît désormais sur cette
+   fiche. »**, la puce s'ajoute.
+2. Re-rattacher la même fiche → refus : « Cette pièce est déjà rattachée à
+   cette fiche. »
+
+**Scénario N.6 — Remplacer : l'historique est conservé**
+1. Fiche d'une pièce → « Remplacer » → nouvelle version (nouvelle date
+   d'expiration proposée si la pièce en portait une) → la fiche s'ouvre sur
+   la **nouvelle** version ; « Versions antérieures » liste l'ancienne.
+2. Remplacer le **bail signé** d'un bail → côté LO, « Mes documents » et
+   « Consulter mon bail signé » servent la **nouvelle** version (le pointeur
+   du bail suit le remplacement).
+3. Redéposer un fichier au contenu strictement identique → refus doublon
+   avec le nom de la pièce existante.
+
+> Décisions prises en revue, à confirmer en recette :
+> - **l'accès du locataire s'éteint avec son adhésion** (un ex-locataire ne
+>   consulte plus ses pièces) et le bail signé ne se sert que sur bail
+>   **actif ou en préavis** ;
+> - l'**aperçu** d'une pièce côté agence compte comme une **consultation
+>   tracée** au journal d'accès.
+
+## 2.C — Sprint 7 : Incidents — reliquat
 
 > L'essentiel du S7 est **validé les 24 et 26/08** (voir Partie 1). Reste :
 
@@ -111,7 +190,7 @@ actif » — RPC corrigées, à vérifier d'un coup d'œil.)*
 > Le **profil artisan** attend le module devis-artisans (S13) : sans devis ni
 > planning, ce serait un écran mort.
 
-## 2.C — Reste des étapes précédentes
+## 2.D — Reste des étapes précédentes
 
 ### Étape 3 (21/08) — re-tests A.1 à A.6 non déroulés
 

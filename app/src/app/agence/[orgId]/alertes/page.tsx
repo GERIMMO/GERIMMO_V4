@@ -39,7 +39,7 @@ export default async function PageAlertes(
         .order("echeance", { ascending: true, nullsFirst: false }),
       supabase
         .from("alerts")
-        .select("id, titre, closed_at, closed_action")
+        .select("id, titre, closed_at, closed_action, closed_by")
         .eq("organization_id", orgId)
         .eq("statut", "fermee")
         .order("closed_at", { ascending: false })
@@ -100,8 +100,9 @@ export default async function PageAlertes(
                     <li key={a.id} className="py-2 text-sm">
                       <span className="font-medium">{a.titre}</span>
                       <span className="ml-2 text-muted-foreground">
-                        fermée le {formaterDateHeure(a.closed_at)} — «{" "}
-                        {a.closed_action} »
+                        {/* Sans auteur : fermée par l'événement d'origine (29/08) */}
+                        {a.closed_by ? "fermée" : "fermée automatiquement"} le{" "}
+                        {formaterDateHeure(a.closed_at)} — « {a.closed_action} »
                       </span>
                     </li>
                   ))}

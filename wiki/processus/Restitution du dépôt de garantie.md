@@ -92,3 +92,11 @@ Décision à **deux vitesses**, qui réconcilie le parcours 2.7 et le livrable A
 > - ~~Canal du décompte~~ → **tranché le 2026-07-25** (voir section ci-dessus).
 > - La **pénalité de retard de 10 % par mois de loyer** (majoration légale en cas de
 >   restitution tardive) est hors périmètre V1 : l'application alerte mais ne calcule pas.
+
+## Événements ajoutés le 2026-08-29 (application)
+- **Décompte envoyé** : date d'envoi enregistrée sur la restitution (après
+  finalisation, jamais dans le futur ni avant l'émission) — ferme l'alerte d'envoi.
+- **Justificatif fourni a posteriori** sur une retenue (même après finalisation :
+  il s'agit de défendre la retenue, pas de la modifier) — ferme l'alerte « retenue
+  sans justificatif ». **Retrait d'une retenue** (avant finalisation) — idem.
+Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).

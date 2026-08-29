@@ -1,12 +1,13 @@
 # Recette — test par sprint et persona
 
-> Mis à jour le **2026-08-26**, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le **2026-08-29**, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > **Fichier central de recette**, en deux parties :
 > **1. Recetté OK** — ce qui est validé, on n'y revient plus.
-> **2. Reste à recetter** — d'abord l'**anomalie du 26/08** (bail signé) et
-> la **livraison du 26/08 au soir** (« Mes documents » locataire + refonte
-> « Documents » agence), puis le reliquat du **Sprint 7 — Incidents**, puis
-> ce qui reste des étapes précédentes et les sprints jamais déroulés.
+> **2. Reste à recetter** — d'abord la **livraison du 29/08** (validation du
+> bail, alertes liées à leur événement), puis l'**anomalie du 26/08** (bail
+> signé) et la **livraison du 26/08 au soir** (« Mes documents » locataire +
+> refonte « Documents » agence), puis le reliquat du **Sprint 7 — Incidents**,
+> puis ce qui reste des étapes précédentes et les sprints jamais déroulés.
 >
 > Mot de passe commun : `Gerimmo-Demo-2026`.
 > Périmètre réel : S3 → S8 **incidents inclus** — le S7 est développé et
@@ -73,6 +74,42 @@
 ---
 
 # Partie 2 — Reste à recetter
+
+## 2.0 — Livraison du 29/08 : validation du bail + alertes liées à leur événement
+
+> Deux décisions du 29/08, développées, revues, testées en base (CI) et
+> déployées le jour même :
+> 1. **Le bail se valide** (bouton « Valider » en bas de la fiche) : bail signé
+>    déposé **et** état des lieux d'entrée signé sont des prérequis ; l'alerte
+>    « EDL d'entrée » n'existe plus ; section « Règlement de copropriété »
+>    (facultatif) ; un seul bail actif par lot, un brouillon peut coexister.
+> 2. **Une alerte automatique est liée à l'événement qui l'a créée** et se
+>    ferme d'elle-même quand il est traité — motif conservé dans « Fermées
+>    récemment » avec la mention « fermée automatiquement ».
+
+#### Persona : Agent immobilier (agent.alpha@)
+
+**Scénario 29.1 — Valider un bail (remplace 4.1 et A.5)**
+1. Fiche d'un lot **Disponible** → créer un bail nu (locataire, loyer, dépôt) → la fiche bail s'ouvre en **brouillon** ; « À faire maintenant » liste dans l'ordre : déposer le bail signé → (déclarer les pièces) → signer l'EDL d'entrée → valider.
+2. Carte **« Valider le bail »** en bas de l'écran : les deux prérequis sont affichés (○ Bail signé déposé · ○ État des lieux d'entrée signé), le bouton **« Valider » est grisé**.
+3. Carte « Bail signé » → déposer le PDF → ✓ ; carte « États des lieux » → créer l'EDL d'entrée, remplir la grille, signer → ✓ ; le bouton s'active.
+4. Facultatif : carte « Règlement de copropriété » → déposer un PDF → « Règlement déposé · Le consulter ».
+5. « Valider » → « Bail validé — le lot est loué » ; bail **Actif**, lot **Loué**, **aucune alerte** créée (cloche inchangée).
+6. Sur le même lot (loué), créer un second bail → accepté en brouillon ; le préparer (bail signé + EDL signé) et « Valider » → refus « Un bail est déjà en cours sur ce lot : il doit être terminé avant de valider celui-ci ».
+7. *(Contrôle en base, non visible)* tenter de valider un brouillon sans EDL signé → refus « L'état des lieux d'entrée doit être signé avant de valider le bail ».
+
+**Scénario 29.2 — Alertes fermées par leur événement**
+1. Onglet **Alertes** : noter les alertes ouvertes. Chacune des actions ci-dessous doit faire **disparaître** l'alerte concernée des ouvertes et l'ajouter à « Fermées récemment » avec la mention **« fermée automatiquement »** et le motif.
+2. **Assurance** : le locataire (locataire.alpha@) dépose une nouvelle attestation → les alertes d'expiration **de l'ancienne** se ferment (« Nouvelle version déposée : … ») ; la nouvelle alerte « Attestation à vérifier » porte la nouvelle version ; la valider la ferme (déjà en place).
+3. **Diagnostic** : sur un lot dont un diagnostic expire (alerte J-90/J-30/J0), déposer un diagnostic du même type → toutes les alertes de l'ancien se ferment (« Diagnostic renouvelé ou archivé »).
+4. **Versement** (Comptabilité) : envoyer un rapport de gestion → alerte « versement » ; enregistrer le versement du **bon montant** → l'alerte se ferme (« Versement de X € enregistré le … »). Enregistrer un montant **faux** → une alerte critique « Écart » ; ressaisir un autre montant faux → **toujours une seule** alerte d'écart (mise à jour) ; ressaisir le bon montant → « Écart régularisé — … ».
+5. **Restitution** (bail en préavis/terminé avec EDL d'entrée signé) : ajouter une retenue **sans justificatif** → alerte ; sur la ligne, **« Joindre le devis / la facture »** → l'alerte se ferme (« Justificatif fourni pour la retenue « … » »). Ajouter une autre retenue sans justificatif puis **« Retirer »** → la ligne disparaît réellement et l'alerte se ferme (« Retenue « … » retirée »).
+6. Finaliser le décompte → alerte « décompte à envoyer » ; sous le solde, **« Envoyé au locataire le [date] » → « Décompte envoyé »** → l'alerte se ferme (« Décompte envoyé au locataire le … ») ; date future → refus « Date d'envoi invalide » ; second clic → « Décompte déjà envoyé le … ».
+7. **Congé** : bail actif → enregistrer un congé → alerte « EDL de sortie » datée ; créer et signer l'EDL de sortie → l'alerte se ferme (« État des lieux de sortie signé »).
+
+> Non visible mais acté : les fermetures automatiques ne suppriment jamais
+> l'alerte (historique 12 mois) ; les alertes **manuelles** ne sont jamais
+> fermées automatiquement.
 
 ## 2.A — Anomalie du 26/08 : bail signé invisible côté locataire (4.7.1)
 
@@ -202,10 +239,11 @@ actif » — RPC corrigées, à vérifier d'un coup d'œil.)*
   « Attestation déposée » → échéance colorée → Valider → côté LO la puce
   passe à **« Validée »** (libellé générique depuis le 23/08) ; le
   renouvellement ne montre qu'**une** attestation courante (v2).
-- **A.4 Baux** · AG — date d'entrée le 12 conservée à l'activation, brouillon
+- **A.4 Baux** · AG — date d'entrée le 12 conservée à la validation, brouillon
   corrigeable pré-rempli, bail signé en PDF uniquement.
-- **A.5 Alerte EDL nominative** · AG — « État des lieux d'entrée — {lot} ·
-  {locataire} ».
+- ~~**A.5 Alerte EDL nominative**~~ — **sans objet depuis le 29/08** : l'alerte
+  d'EDL d'entrée n'existe plus, l'EDL d'entrée signé conditionne la validation
+  du bail (voir 2.0).
 - **A.6 Terminologie « propriétaire mandant »** · AA — puces et sections.
 - **B.1.1 Fiche bien** · AG/AA — rubrique **« Propriétaires mandants »** :
   une ligne par personne (cliquable) avec ses lots et quote-parts.
@@ -306,7 +344,7 @@ actif » — RPC corrigées, à vérifier d'un coup d'œil.)*
 **Scénario 8.2 — Restitution : délais, retenues, décote**
 1. Enregistrer la **remise des clés** → le compteur légal démarre : **1 mois** si l'EDL de sortie est conforme, **2 mois** s'il y a des écarts (vérifier la date affichée).
 2. Les **écarts du comparatif d'EDL** (les 2 dégradations du 4.7) sont repris ; juger l'imputabilité, saisir un coût → la **décote de vétusté** s'applique ; sans justificatif joint → alerte.
-3. Sur un bail **sans EDL d'entrée** → **aucune retenue possible**, restitution intégrale imposée.
+3. Sur un bail **sans EDL d'entrée** → **aucune retenue possible**, restitution intégrale imposée. *(Depuis le 29/08 un bail ne se valide plus sans EDL d'entrée signé : ce cas ne concerne que les baux activés avant, ou repris de l'existant — le compte démo en garde un.)*
 4. Finaliser le décompte → toute nouvelle retenue → « Décompte finalisé — plus de retenue possible » ; relancer une restitution sur le même bail → « Restitution déjà finalisée pour ce bail ».
 
 **Scénario 8.3 — Copropriété : appel de charges**

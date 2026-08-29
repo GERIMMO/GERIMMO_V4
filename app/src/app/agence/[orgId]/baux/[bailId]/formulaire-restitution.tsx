@@ -9,6 +9,8 @@ import {
   ajouterRetenue,
   supprimerRetenue,
   finaliserDecompte,
+  justifierRetenue,
+  marquerDecompteEnvoye,
   type EtatRestit,
 } from "@/app/actions/restitution";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ export type Restitution = {
   statut: string;
   solde: number | null;
   date_emission: string | null;
+  envoye_le: string | null;
 };
 export type Retenue = {
   id: string;
@@ -33,6 +36,7 @@ export type Retenue = {
   duree_vie_ans: number | null;
   age_ans: number | null;
   montant_retenu: number;
+  sans_justificatif: boolean;
 };
 
 // Durées de vie indicatives (barème de vétusté usuel) — aide à la saisie.
@@ -110,6 +114,9 @@ export function FormulaireRestitution({
               </span>
               <span className="w-24 text-right font-medium">{eur(r.montant_retenu)}</span>
               {!finalise && <BoutonSupprimerRetenue orgId={orgId} bailId={bailId} retenueId={r.id} />}
+              {r.sans_justificatif && (
+                <FormJustifierRetenue orgId={orgId} bailId={bailId} retenue={r} />
+              )}
             </li>
           ))}
         </ul>
@@ -120,11 +127,20 @@ export function FormulaireRestitution({
       )}
 
       {finalise ? (
-        <p className="text-sm text-success-soft-foreground">
-          Décompte finalisé{restitution.date_emission ? ` le ${formaterDate(restitution.date_emission)}` : ""}.
-          Solde de tout compte :{" "}
-          <span className="font-semibold">{eur(restitution.solde ?? 0)}</span>.
-        </p>
+        <div className="space-y-2">
+          <p className="text-sm text-success-soft-foreground">
+            Décompte finalisé{restitution.date_emission ? ` le ${formaterDate(restitution.date_emission)}` : ""}.
+            Solde de tout compte :{" "}
+            <span className="font-semibold">{eur(restitution.solde ?? 0)}</span>.
+          </p>
+          {restitution.envoye_le ? (
+            <p className="text-sm text-success-soft-foreground">
+              Décompte envoyé au locataire le {formaterDate(restitution.envoye_le)}.
+            </p>
+          ) : (
+            <FormDecompteEnvoye orgId={orgId} bailId={bailId} restitutionId={restitution.id} />
+          )}
+        </div>
       ) : (
         <BoutonFinaliser orgId={orgId} bailId={bailId} restitutionId={restitution.id} />
       )}
@@ -232,6 +248,72 @@ function BoutonSupprimerRetenue({
       <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="text-xs text-destructive">
         Retirer
       </Button>
+    </form>
+  );
+}
+
+// Sans justificatif, la retenue est difficilement défendable : on peut en
+// joindre un après coup — l'alerte liée se ferme d'elle-même.
+function FormJustifierRetenue({
+  orgId,
+  bailId,
+  retenue,
+}: {
+  orgId: string;
+  bailId: string;
+  retenue: Retenue;
+}) {
+  const [etat, action, enCours] = useActionState<EtatRestit, FormData>(
+    justifierRetenue.bind(null, orgId, bailId, retenue.id, retenue.libelle),
+    {}
+  );
+  return (
+    <form action={action} className="flex w-full flex-wrap items-center gap-2 pl-1">
+      <span className="text-xs text-destructive">Sans justificatif</span>
+      <Input
+        name="justificatif"
+        type="file"
+        accept=".pdf,image/*"
+        required
+        className="h-8 max-w-xs text-xs"
+        aria-label={`Justificatif pour ${retenue.libelle}`}
+      />
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "…" : "Joindre le devis / la facture"}
+      </Button>
+      {etat.erreur && <span className="w-full text-xs text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="w-full text-xs text-success-soft-foreground">{etat.succes}</span>}
+    </form>
+  );
+}
+
+// L'envoi du décompte est l'événement qui ferme l'alerte « décompte à envoyer »
+function FormDecompteEnvoye({
+  orgId,
+  bailId,
+  restitutionId,
+}: {
+  orgId: string;
+  bailId: string;
+  restitutionId: string;
+}) {
+  const [etat, action, enCours] = useActionState<EtatRestit, FormData>(
+    marquerDecompteEnvoye.bind(null, orgId, bailId, restitutionId),
+    {}
+  );
+  return (
+    <form action={action} className="flex flex-wrap items-end gap-2">
+      <div className="space-y-1.5">
+        <Label htmlFor="decompte-envoye-date" className="text-xs">
+          Envoyé au locataire le
+        </Label>
+        <InputDateJour id="decompte-envoye-date" name="date" required />
+      </div>
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "…" : "Décompte envoyé"}
+      </Button>
+      {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="w-full text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
   );
 }

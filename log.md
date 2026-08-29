@@ -1830,3 +1830,24 @@ migrations `20260801_*` contraire à l'ordre d'application réel.
 
 CI verte sur 063c2a5 (lint, build, typecheck, tests d'intégration inclus) :
 https://github.com/GERIMMO/GERIMMO_V4/actions/runs/33267869212 — déploiement Vercel par le push.
+
+## [2026-08-29] dev | Alertes liées à leur événement d'origine (volet 2) + recette 29/08
+
+Livré (migration `20260829120000_alertes_liees_evenement_origine`, appliquée en prod
+via MCP, rétro-remplissage vérifié : 100 % des alertes automatiques ont une origine) :
+`alerts.origine_type/origine_id` posés par trigger à l'insertion (les fonctions
+créatrices ne changent pas), `fermer_alertes_origine(org, type, id, motif, types[])`
+(motif obligatoire, alerte conservée, `closed_by` = auteur de l'action ou null en
+cron → « fermée automatiquement » à l'écran). Branchements : `enregistrer_versement`
+(ferme l'appel de versement ; l'écart se met à jour au lieu de s'empiler et se ferme
+à la régularisation), trigger diagnostics (archivage → alertes d'expiration fermées),
+trigger documents (nouvelle version → alertes de l'ancienne fermées, y compris via la
+GED agence qui laissait l'alerte ouverte), `restitutions.envoye_le` +
+`marquer_decompte_envoye`, `ajouter_retenue` porte désormais `retenue_id`,
+`justifier_retenue` (nouveau), `supprimer_retenue` (nouveau — l'ancien DELETE direct
+ne supprimait rien faute de policy et affichait « Retenue retirée »), trigger EDL de
+sortie signé. UI : formulaire de restitution (joindre un justificatif, « Décompte
+envoyé »), page Alertes (« fermée automatiquement »). Tests : `alertes-origine.test.ts`
+(6 scénarios). Recette : section 2.0 (scénarios 29.1 et 29.2), A.4/A.5/8.2.3 révisés.
+Wiki : [[Agenda et échéances]], [[Restitution du dépôt de garantie]].
+Décision confirmée par Tahir : on conserve l'alerte fermée avec son motif.

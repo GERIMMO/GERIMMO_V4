@@ -82,10 +82,60 @@ export async function supprimerRetenue(
 ): Promise<EtatRestit> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase.from("retenues").delete().eq("id", retenueId).eq("organization_id", orgId);
+  // Revue 29/08 : le DELETE direct ne supprimait rien (aucune policy DELETE)
+  // tout en affichant « Retenue retirée » — on passe par la fonction, qui
+  // ferme aussi l'alerte « sans justificatif » liée à cette retenue.
+  const { error } = await supabase.rpc("supprimer_retenue", { p_retenue: retenueId });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Retenue retirée." };
+}
+
+// Justificatif fourni après coup : ferme l'alerte « retenue sans justificatif »
+// (alerte liée à son événement d'origine — décision 29/08).
+export async function justifierRetenue(
+  orgId: string,
+  bailId: string,
+  retenueId: string,
+  libelle: string,
+  _etat: EtatRestit,
+  formData: FormData
+): Promise<EtatRestit> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const fichier = formData.get("justificatif");
+  if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le devis ou la facture." };
+  const dep = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", `Devis/facture — ${libelle}`);
+  if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du justificatif." };
+  const { error } = await supabase.rpc("justifier_retenue", {
+    p_retenue: retenueId,
+    p_document: dep.documentId,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: dep.avertissement ? `Justificatif joint. ${dep.avertissement}` : "Justificatif joint." };
+}
+
+// Décompte envoyé au locataire : l'événement qui ferme l'alerte d'envoi.
+export async function marquerDecompteEnvoye(
+  orgId: string,
+  bailId: string,
+  restitutionId: string,
+  _etat: EtatRestit,
+  formData: FormData
+): Promise<EtatRestit> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
+  const date = String(formData.get("date") ?? "").trim();
+  if (!date) return { erreur: "Indiquez la date d'envoi.", valeurs };
+  const { error } = await supabase.rpc("marquer_decompte_envoye", {
+    p_restitution: restitutionId,
+    p_date: date,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Décompte marqué envoyé — l'alerte d'envoi est fermée." };
 }
 
 export async function finaliserDecompte(

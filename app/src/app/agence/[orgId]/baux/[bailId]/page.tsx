@@ -188,7 +188,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     ? await supabase
         .from("restitutions")
         .select(
-          "id, date_remise_cles, delai_mois, depot, impayes, sans_edl_entree, statut, solde, date_emission"
+          "id, date_remise_cles, delai_mois, depot, impayes, sans_edl_entree, statut, solde, date_emission, envoye_le"
         )
         .eq("bail_id", bailId)
         .maybeSingle()
@@ -196,7 +196,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { data: retenues } = restitution
     ? await supabase
         .from("retenues")
-        .select("id, libelle, cout, duree_vie_ans, age_ans, montant_retenu")
+        .select("id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif")
         .eq("restitution_id", (restitution as { id: string }).id)
         .order("created_at")
     : { data: [] };

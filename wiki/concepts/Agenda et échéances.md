@@ -30,10 +30,18 @@ d'alertes consolidés.
   2026-08-29) : elle porte la référence de l'objet d'origine et se **ferme
   d'elle-même** quand cet objet est traité dans son module (paiement enregistré,
   attestation remplacée, incident clos…). L'utilisateur ne voit que ce qui lui est
-  utile ; la mécanique est côté serveur. Inventaire du 29/08 : 11 types
-  automatiques, 6 sans fermeture auto — chantier S9b. Cas tranché le même jour :
-  l'alerte `edl_entree` est **supprimée**, l'EDL d'entrée signé devient un prérequis
-  de la validation du [[Bail]].
+  utile ; la mécanique est côté serveur. **Livré le 29/08** : colonnes
+  `origine_type`/`origine_id` posées à la création (dérivées des détails), fonction
+  unique de fermeture par l'événement (motif obligatoire, alerte conservée, jamais
+  supprimée, « fermée automatiquement » à l'écran). Événements branchés :
+  versement enregistré (appel + écart, un seul écart à la fois), diagnostic archivé
+  ou renouvelé, document remplacé par une nouvelle version, décompte de restitution
+  **envoyé** (événement créé), justificatif fourni ou retenue retirée (événements
+  créés), EDL de sortie signé, plus ceux déjà en place (incident qualifié/clos,
+  attestation validée, congé annulé). Cas tranché le même jour : l'alerte
+  `edl_entree` est **supprimée**, l'EDL d'entrée signé devient un prérequis de la
+  validation du [[Bail]]. Les alertes manuelles ne se ferment jamais
+  automatiquement.
 - **Escalade = déplacement** vers la vue retards de l'admin, **avec le nom de
   l'agent** (RM-14.4.4/5) — l'admin traite, réaffecte ou renvoie.
 - **Annonces** (information datée, sans action) : agence → agents/locataires/

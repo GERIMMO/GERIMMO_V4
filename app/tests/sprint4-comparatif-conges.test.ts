@@ -168,6 +168,16 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
       `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe) values ($1,$2,$3,$4) returning id`,
       [orgA, lot, locataire, doc]
     );
+    // EDL d'entrée signé : prérequis de la validation (29/08)
+    const {
+      rows: [{ id: entree }],
+    } = await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type) values ($1,$2,'entree') returning id`,
+      [orgA, bail]
+    );
+    await db.query(`select public.generer_grille_edl($1)`, [entree]);
+    await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [entree]);
+    await db.query(`select public.signer_edl($1)`, [entree]);
     await db.query(`select public.activer_bail($1)`, [bail]);
 
     // Préavis réduit sans justificatif : refusé

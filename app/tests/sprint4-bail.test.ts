@@ -45,7 +45,7 @@ async function attendreEchec(db: Client, motif: RegExp, sql: string, params: unk
   await db.query("rollback to savepoint e");
 }
 
-describe.skipIf(!DB_URL)("Sprint 4 — bail : activation", () => {
+describe.skipIf(!DB_URL)("Sprint 4 — bail : validation", () => {
   let db: Client;
   let orgA: string;
   let agentA: string;
@@ -142,11 +142,26 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation", () => {
     return id;
   }
 
-  it("activation : PDF signé + lot disponible → bail actif, lot loué, alerte EDL", async () => {
+  // Décision 29/08 : l'EDL d'entrée signé est un prérequis de la validation
+  async function signerEdlEntree(bail: string): Promise<string> {
+    const {
+      rows: [{ id: edl }],
+    } = await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type) values ($1,$2,'entree') returning id`,
+      [orgA, bail]
+    );
+    await db.query(`select public.generer_grille_edl($1)`, [edl]);
+    await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [edl]);
+    await db.query(`select public.signer_edl($1)`, [edl]);
+    return edl;
+  }
+
+  it("validation : PDF signé + EDL d'entrée signé + lot disponible → bail actif, lot loué, aucune alerte", async () => {
     const lot = await lotLouable();
     const doc = await docBail();
     await simuler(db, agentA);
     const bail = await creerBail(lot, doc);
+    await signerEdlEntree(bail);
 
     await db.query(`select public.activer_bail($1)`, [bail]);
 
@@ -154,21 +169,56 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation", () => {
     expect(b.rows[0].etat).toBe("actif");
     const l = await db.query(`select etat from public.lots where id=$1`, [lot]);
     expect(l.rows[0].etat).toBe("loue");
+    // L'EDL d'entrée n'est plus une alerte : c'est un prérequis (29/08)
     const a = await db.query(
       `select count(*)::int as n from public.alerts where type='edl_entree' and details->>'bail_id'=$1`,
       [bail]
     );
-    expect(a.rows[0].n).toBe(1);
+    expect(a.rows[0].n).toBe(0);
   });
 
-  it("refuse l'activation sans bail signé déposé", async () => {
+  it("refuse la validation sans état des lieux d'entrée signé", async () => {
+    const lot = await lotLouable();
+    const doc = await docBail();
+    await simuler(db, agentA);
+    const bail = await creerBail(lot, doc);
+    await attendreEchec(db, /état des lieux d'entrée/, `select public.activer_bail($1)`, [bail]);
+    // Un EDL créé mais non signé ne suffit pas
+    const {
+      rows: [{ id: edl }],
+    } = await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type) values ($1,$2,'entree') returning id`,
+      [orgA, bail]
+    );
+    await db.query(`select public.generer_grille_edl($1)`, [edl]);
+    await attendreEchec(db, /état des lieux d'entrée/, `select public.activer_bail($1)`, [bail]);
+  });
+
+  it("un seul bail en cours par lot — le brouillon suivant coexiste mais attend", async () => {
+    const lot = await lotLouable();
+    await simuler(db, agentA);
+    const premier = await creerBail(lot, await docBail());
+    await signerEdlEntree(premier);
+    await db.query(`select public.activer_bail($1)`, [premier]);
+
+    // Le brouillon suivant se crée sans obstacle sur un lot loué…
+    const second = await creerBail(lot, await docBail());
+    await signerEdlEntree(second);
+    // …mais ne se valide pas tant que le premier est en cours
+    await attendreEchec(db, /déjà en cours sur ce lot/, `select public.activer_bail($1)`, [second]);
+    const b = await db.query(`select etat from public.baux where id=$1`, [second]);
+    expect(b.rows[0].etat).toBe("brouillon");
+  });
+
+  it("refuse la validation sans bail signé déposé", async () => {
     const lot = await lotLouable();
     await simuler(db, agentA);
     const bail = await creerBail(lot, null);
-    await attendreEchec(db, /signé/, `select public.activer_bail($1)`, [bail]);
+    await signerEdlEntree(bail);
+    await attendreEchec(db, /bail signé/, `select public.activer_bail($1)`, [bail]);
   });
 
-  it("refuse l'activation si un diagnostic est expiré (blocage location)", async () => {
+  it("refuse la validation si un diagnostic est expiré (blocage location)", async () => {
     const lot = await lotLouable();
     const doc = await docBail();
     // le DPE expire (réalisation reculée pour rester cohérent : realisation < expiration)
@@ -180,6 +230,7 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation", () => {
     );
     await simuler(db, agentA);
     const bail = await creerBail(lot, doc);
+    await signerEdlEntree(bail);
     await attendreEchec(db, /bloqu|DPE|disponible/, `select public.activer_bail($1)`, [bail]);
   });
 

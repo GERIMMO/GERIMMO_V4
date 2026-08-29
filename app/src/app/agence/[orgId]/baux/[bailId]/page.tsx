@@ -9,7 +9,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "./edl/[edlId]/grille-edl";
 import {
   FormulaireBailSigne,
-  BoutonActiverBail,
+  BoutonValiderBail,
+  FormulaireReglementCopropriete,
   FormulaireConge,
   FormulaireAnnulerConge,
   FormulaireCreerEdl,
@@ -42,7 +43,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { data: bail } = await supabase
     .from("baux")
     .select(
-      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre"
+      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -212,12 +213,24 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   );
   const resteDepot = Number(bail.depot_garantie ?? 0) - depotEncaisse;
   const aFaire: { texte: string; href: string }[] = [];
+  // Prérequis de la validation (décision 29/08) : bail signé déposé, EDL
+  // d'entrée signé — puis « Valider » en bas de l'écran.
+  const prerequisValidation = [
+    { libelle: "Bail signé déposé", ok: Boolean(bail.document_signe), href: "#bail-signe" },
+    { libelle: "État des lieux d'entrée signé", ok: edlEntreeSigne, href: "#edl" },
+  ];
   if (bail.etat === "brouillon") {
-    aFaire.push(
-      bail.document_signe
-        ? { texte: "Activer le bail (contrôles automatiques puis lot loué)", href: "#activation" }
-        : { texte: "Déposer le bail signé, puis l'activer", href: "#activation" }
-    );
+    if (!bail.document_signe)
+      aFaire.push({ texte: "Déposer le bail signé (PDF)", href: "#bail-signe" });
+    if (!edlEntreeSigne && piecesDuLot === 0)
+      aFaire.push({
+        texte:
+          "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
+        href: `/agence/${orgId}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
+      });
+    if (!edlEntreeSigne)
+      aFaire.push({ texte: "Réaliser et signer l'état des lieux d'entrée", href: "#edl" });
+    aFaire.push({ texte: "Valider le bail (contrôles automatiques, puis lot loué)", href: "#validation" });
   } else {
     // Déclarer les pièces vient AVANT l'état des lieux : une fois signé, il est
     // figé, et une grille sans pièces ne rattache aucune dégradation à un endroit.
@@ -337,13 +350,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Cycle du bail */}
       {bail.etat === "brouillon" && (
-        <Card id="activation" className="scroll-mt-20">
+        <Card id="bail-signe" className="scroll-mt-20">
           <CardHeader>
-            <CardTitle className="text-base">Activer le bail</CardTitle>
+            <CardTitle className="text-base">Bail signé</CardTitle>
             <CardDescription>
-              Déposez le bail signé (signature hors plateforme en V0), puis activez :
-              contrôles automatiques (détention 100 %, diagnostics valides) → le lot
-              passe loué et une alerte d&apos;état des lieux d&apos;entrée est créée.
+              Signature hors plateforme en V0 : déposez le PDF signé, il conditionne la
+              validation du bail.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -362,10 +374,36 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ) : (
               <FormulaireBailSigne orgId={orgId} bailId={bailId} />
             )}
-            <BoutonActiverBail orgId={orgId} bailId={bailId} />
           </CardContent>
         </Card>
       )}
+
+      <Card id="reglement-copro" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle className="text-base">Règlement de copropriété</CardTitle>
+          <CardDescription>
+            Facultatif — les extraits du règlement annexés au bail quand le lot est en
+            copropriété.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {bail.reglement_copropriete ? (
+            <p className="text-sm text-success-soft-foreground">
+              Règlement déposé.{" "}
+              <a
+                href={`/agence/${orgId}/documents/${bail.reglement_copropriete}/fichier`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[var(--bleu)] underline-offset-2 hover:underline"
+              >
+                Le consulter
+              </a>
+            </p>
+          ) : (
+            <FormulaireReglementCopropriete orgId={orgId} bailId={bailId} />
+          )}
+        </CardContent>
+      </Card>
 
       {bail.etat === "actif" && (
         <Card>
@@ -525,7 +563,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             // Sans EDL d'entrée signé, le logement est réputé remis en bon état :
             // aucune retenue ne sera possible à la sortie (RM-2.4.3).
             bail.etat === "brouillon" ? (
-              <p className="text-sm text-muted-foreground">Aucun état des lieux.</p>
+              <p className="text-sm text-muted-foreground">
+                Aucun état des lieux. L&apos;état des lieux d&apos;entrée signé est requis
+                pour valider le bail.
+              </p>
             ) : (
               <div className="border-l-[3px] border-l-destructive bg-destructive-soft p-3">
                 <p className="text-sm font-medium text-destructive-soft-foreground">
@@ -628,6 +669,22 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 ))}
               </ul>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Valider — en bas de l'écran, une fois le bail préparé (décision 29/08) */}
+      {bail.etat === "brouillon" && (
+        <Card id="validation" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle className="text-base">Valider le bail</CardTitle>
+            <CardDescription>
+              Contrôles automatiques (détention 100 %, diagnostics valides, un seul bail en
+              cours sur le lot) → le lot passe loué.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BoutonValiderBail orgId={orgId} bailId={bailId} prerequis={prerequisValidation} />
           </CardContent>
         </Card>
       )}

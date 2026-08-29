@@ -111,46 +111,79 @@ export async function modifierBail(
 }
 
 // Déposer le bail signé (PDF) et le rattacher au bail.
+// Pièces PDF rattachées au bail : le bail signé (obligatoire pour valider) et
+// le règlement de copropriété (facultatif). Même contrôle : un PDF complet,
+// une image d'une page ne vaut pas le document.
+async function deposerPieceBail(
+  orgId: string,
+  bailId: string,
+  formData: FormData,
+  piece: {
+    colonne: "document_signe" | "reglement_copropriete";
+    type: string;
+    titre: string;
+    succes: string;
+  }
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const fichier = formData.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le PDF." };
+  if (fichier.size > TAILLE_MAX_OCTETS) return { erreur: "Fichier trop volumineux (10 Mo max)." };
+  // Recette 21/08 : un bail signé est un PDF — une photo de la première page
+  // passait la GED (qui accepte les images) et valait document contractuel.
+  const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));
+  if (mime !== "application/pdf") {
+    return { erreur: `${piece.titre} se dépose en PDF complet — une image d'une page ne vaut pas le document.` };
+  }
+
+  const res = await deposerFichierGed(supabase, user, orgId, fichier, piece.type, piece.titre);
+  if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };
+
+  const { error } = await supabase
+    .from("baux")
+    .update({ [piece.colonne]: res.documentId })
+    .eq("id", bailId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: res.avertissement ? `${piece.succes} ${res.avertissement}` : piece.succes };
+}
+
 export async function deposerBailSigne(
   orgId: string,
   bailId: string,
   _etat: EtatBail,
   formData: FormData
 ): Promise<EtatBail> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return { erreur: "Accès refusé." };
-
-  const fichier = formData.get("fichier");
-  if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le PDF signé." };
-  if (fichier.size > TAILLE_MAX_OCTETS) return { erreur: "Fichier trop volumineux (10 Mo max)." };
-  // Recette 21/08 : un bail signé est un PDF — une photo de la première page
-  // passait la GED (qui accepte les images) et valait document contractuel.
-  const mime = detecterMimeReel(new Uint8Array(await fichier.arrayBuffer()));
-  if (mime !== "application/pdf") {
-    return {
-      erreur:
-        "Le bail signé se dépose en PDF complet — une image d'une page ne vaut pas le contrat.",
-    };
-  }
-
-  const res = await deposerFichierGed(supabase, user, orgId, fichier, "bail", "Bail signé");
-  if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };
-
-  const { error } = await supabase
-    .from("baux")
-    .update({ document_signe: res.documentId })
-    .eq("id", bailId)
-    .eq("organization_id", orgId);
-  if (error) return { erreur: sansJargon(error.message) };
-
-  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return {
-    succes: res.avertissement ? `Bail signé déposé. ${res.avertissement}` : "Bail signé déposé.",
-  };
+  return deposerPieceBail(orgId, bailId, formData, {
+    colonne: "document_signe",
+    type: "bail",
+    titre: "Bail signé",
+    succes: "Bail signé déposé.",
+  });
 }
 
-// Activer le bail (contrôles en base : PDF, lot disponible, diagnostics).
-export async function activerBail(
+export async function deposerReglementCopropriete(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  return deposerPieceBail(orgId, bailId, formData, {
+    colonne: "reglement_copropriete",
+    type: "reglement_copropriete",
+    titre: "Règlement de copropriété",
+    succes: "Règlement de copropriété déposé.",
+  });
+}
+
+// Valider le bail (contrôles en base : PDF signé, EDL d'entrée signé, un seul
+// bail en cours sur le lot, lot disponible, diagnostics). Décision 29/08 : le
+// bouton s'appelle « Valider » et clôt la préparation du bail.
+export async function validerBail(
   orgId: string,
   bailId: string,
   _etat: EtatBail,
@@ -185,7 +218,7 @@ export async function activerBail(
     return { erreur: sansJargon(error.message) };
   }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Bail activé — le lot est loué, un état des lieux d'entrée est à réaliser." };
+  return { succes: "Bail validé — le lot est loué." };
 }
 
 // Enregistrer un congé (bail actif → préavis).

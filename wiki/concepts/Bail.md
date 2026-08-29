@@ -54,11 +54,24 @@ garants → **bailleur en dernier**. Le lot **reste disponible** tant que la sig
 n'est pas complète ; expiration à 30 jours, relançable. **La réception du bail signé
 active tout** (chaîne critique RM-1.7.1–1.7.3, [[Machines à états et événements]]) :
 bail *actif*, **lot *loué*** (même si l'entrée est ultérieure), échéancier de loyer
-créé (calé sur la date d'entrée), alerte d'EDL d'entrée. Le document signé **fait
+créé (calé sur la date d'entrée). Le document signé **fait
 foi**, rapatrié avec horodatage (dossier de preuve Yousign —
 [[Notification et valeur probante]]). Aucune modification pendant la signature.
 Bail préexistant à l'arrivée sur Gerimmo : dépôt du PDF signé (décision 2026-07-22,
 inchangée).
+
+### Validation du bail en V0 (décision 2026-08-29)
+Le bail se **valide** (bouton « Valider » en bas de la fiche), il ne s'« active »
+plus. Prérequis contrôlés en base, dans l'ordre : locataire principal · **bail signé
+déposé (PDF)** · **[[État des lieux]] d'entrée signé** — l'EDL n'est plus une alerte
+créée après coup, c'est une condition (sans lui, aucune retenue possible à la sortie,
+RM-2.4.3) · dépôt de garantie sous le plafond · **un seul bail actif ou en préavis par
+lot** (un brouillon peut coexister pour préparer le bail suivant, il attend la fin du
+précédent) · lot disponible · aucun blocage de mise en location (détention 100 %,
+diagnostics). Effet : bail *actif*, lot *loué*, aucune alerte. Pièce facultative
+rattachée au bail : **règlement de copropriété** (type GED `reglement_copropriete`,
+conservation calée sur le bail — hypothèse à confirmer). Voir
+[[Agenda et échéances]] pour la règle « alerte liée à son événement d'origine ».
 
 ## Colocation en bail unique (1.3) — « le parcours le plus délicat »
 

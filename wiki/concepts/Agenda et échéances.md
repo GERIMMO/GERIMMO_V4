@@ -26,6 +26,14 @@ d'alertes consolidés.
   Une alerte légale ne se désactive pas (RM-14.2.3).
 - **Fermeture par l'action, jamais par marquage** (RM-14.3.2) ; report = date +
   motif ; sans objet = fermeture auto.
+- **Une alerte automatique est liée à l'événement qui l'a créée** (décision
+  2026-08-29) : elle porte la référence de l'objet d'origine et se **ferme
+  d'elle-même** quand cet objet est traité dans son module (paiement enregistré,
+  attestation remplacée, incident clos…). L'utilisateur ne voit que ce qui lui est
+  utile ; la mécanique est côté serveur. Inventaire du 29/08 : 11 types
+  automatiques, 6 sans fermeture auto — chantier S9b. Cas tranché le même jour :
+  l'alerte `edl_entree` est **supprimée**, l'EDL d'entrée signé devient un prérequis
+  de la validation du [[Bail]].
 - **Escalade = déplacement** vers la vue retards de l'admin, **avec le nom de
   l'agent** (RM-14.4.4/5) — l'admin traite, réaffecte ou renvoie.
 - **Annonces** (information datée, sans action) : agence → agents/locataires/

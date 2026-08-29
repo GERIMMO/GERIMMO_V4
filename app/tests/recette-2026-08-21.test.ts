@@ -185,7 +185,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
   });
 });
 
-describe.skipIf(!DB_URL)("Recette 21/08 — alerte EDL contextualisée", () => {
+describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08)", () => {
   let db: Client;
 
   beforeAll(async () => {
@@ -202,7 +202,10 @@ describe.skipIf(!DB_URL)("Recette 21/08 — alerte EDL contextualisée", () => {
     await db.query("rollback");
   });
 
-  it("le titre de l'alerte EDL porte le lot et le locataire", async () => {
+  // 21/08 : l'alerte EDL d'entrée devait nommer le lot et le locataire.
+  // 29/08 : l'alerte est retirée — l'EDL d'entrée signé conditionne la
+  // validation du bail. Le scénario vérifie la nouvelle règle.
+  it("sans EDL d'entrée signé le bail ne se valide pas ; signé, il se valide sans alerte", async () => {
     const {
       rows: [{ id: org }],
     } = await db.query(
@@ -270,19 +273,33 @@ describe.skipIf(!DB_URL)("Recette 21/08 — alerte EDL contextualisée", () => {
     );
 
     await simuler(db, agent);
+    await db.query("savepoint edl");
+    await expect(db.query(`select public.activer_bail($1)`, [bail])).rejects.toThrow(
+      /état des lieux d'entrée/
+    );
+    await db.query("rollback to savepoint edl");
+
+    const {
+      rows: [{ id: edl }],
+    } = await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type) values ($1,$2,'entree') returning id`,
+      [org, bail]
+    );
+    await db.query(`select public.generer_grille_edl($1)`, [edl]);
+    await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [edl]);
+    await db.query(`select public.signer_edl($1)`, [edl]);
     await db.query(`select public.activer_bail($1)`, [bail]);
     await db.query("reset role");
 
+    const etat = await db.query(`select etat from public.baux where id=$1`, [bail]);
+    expect(etat.rows[0].etat).toBe("actif");
     const {
-      rows: [alerte],
+      rows: [{ n }],
     } = await db.query(
-      `select titre, details from public.alerts
+      `select count(*)::int as n from public.alerts
        where organization_id = $1 and type = 'edl_entree' and details->>'bail_id' = $2`,
       [org, bail]
     );
-    // Le titre nomme le lot et le locataire (recette 21/08)
-    expect(alerte.titre).toMatch(/Jules Martin/);
-    expect(alerte.details.libelle).toMatch(/Jules Martin/);
-    expect(alerte.details.person_id).toBe(locataire);
+    expect(n).toBe(0);
   });
 });

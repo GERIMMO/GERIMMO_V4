@@ -75,9 +75,10 @@ Persona : Agent immobilier (agent.alpha@)
 ### Scénario 4.1 — Créer et activer un bail nu (chaîne critique) !
 Persona : Agent immobilier (agent.alpha@)
 1. Fiche d'un lot **Disponible** → créer un bail nu : locataire, loyer 780 €, charges 90 €, dépôt, jour d'échéance ; date d'entrée le **12 du mois** (pour le prorata, scénario 5.1).
-2. « Activer » sans PDF → refus : « Déposez le bail signé (PDF) avant activation (V0 : signature hors plateforme) ».
-3. Déposer le PDF signé → « Activer » → bail **actif**, lot **Loué**, **alerte EDL d'entrée** créée, échéancier de loyers généré.
-4. Tenter d'activer un bail sur un lot au DPE expiré → refus « Mise en location bloquée : … ».
+2. *(révisé le 29/08)* Le bouton **« Valider »** (bas de la fiche) reste grisé tant que la liste de prérequis n'est pas cochée : bail signé déposé, EDL d'entrée signé.
+3. Déposer le PDF signé (carte « Bail signé ») ; créer l'EDL d'entrée, remplir la grille, signer ; facultatif : déposer le règlement de copropriété → « Valider » → bail **actif**, lot **Loué**, **aucune alerte** créée ; échéancier de loyers à générer.
+4. Tenter de valider un bail sur un lot au DPE expiré → refus « Mise en location bloquée : … ».
+5. Sur le lot loué, créer un second bail (brouillon) : accepté ; le valider → refus « Un bail est déjà en cours sur ce lot : il doit être terminé avant de valider celui-ci ».
 
 ### Scénario 4.2 — Garde-fous juridiques (DPE G, identifiant fiscal, dépôt) !
 Persona : Agent immobilier (agent.alpha@)

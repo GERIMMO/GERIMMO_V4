@@ -1800,3 +1800,30 @@ rattachements « Agence » + « Leblanc Julie », bouton Rattacher). La route
 fichier locataire refuse proprement un non-locataire (page « Acces refuse »
 en francais). Le clic final locataire (onglet Mes documents, compte demo)
 revient a la recette humaine — scenarios N.1 a N.6 du livrable.
+
+## [2026-08-29] dev | Validation du bail : EDL d'entrée prérequis, règlement de copro, un seul bail actif
+
+Décisions de Tahir (29/08) : l'alerte automatique `edl_entree` est retirée ; l'EDL
+d'entrée signé devient une **condition** de la validation ; le bouton « Activer le
+bail » devient **« Valider »** en bas de la fiche ; section facultative **règlement de
+copropriété** ; **un seul bail actif** par lot, un brouillon pouvant coexister.
+
+Livré : migration `20260829100000_bail_validation_edl_entree_reglement_copro`
+(appliquée en prod via MCP, vérifiée : 2 alertes edl_entree fermées avec motif, 4
+brouillons existants devront passer par l'EDL), `activer_bail` réécrite (nouveaux
+refus, plus d'alerte), `baux.reglement_copropriete` + type GED `reglement_copropriete`
++ règle de conservation « Fin du bail / 60 mois » (**hypothèse** à confirmer),
+`actions/baux.ts` (`validerBail`, `deposerReglementCopropriete`, dépôt PDF factorisé),
+page bail (cartes « Bail signé » / « Règlement de copropriété », carte « Valider le
+bail » avec checklist, « À faire » réordonné), 3 fichiers de tests réécrits + 2
+scénarios (refus sans EDL signé, second bail en attente). Typecheck/lint OK, 85 tests
+unitaires verts ; tests d'intégration via CI (pas de `SUPABASE_DB_URL` local).
+Wiki : [[Bail]], [[Agenda et échéances]] ; recette S3-S8 scénario 4.1 révisé.
+
+Concept acté en amont (à développer au S9b) : **une alerte automatique est liée à son
+événement d'origine et se ferme quand il est traité**. Inventaire fait ce jour :
+11 types automatiques, 9 sans anti-doublon, 6 sans fermeture auto
+(`diagnostic_expiration`, `assurance_expiration`, `versement_proprietaire`,
+`ecart_versement`, `decompte`/`decompte_lrar`, `retenue_sans_justificatif`) ;
+fragilités : dédoublonnage des crons sans filtre `statut`, ordre alphabétique des
+migrations `20260801_*` contraire à l'ordre d'application réel.

@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
   deposerBailSigne,
-  activerBail,
+  validerBail,
+  deposerReglementCopropriete,
   enregistrerConge,
   annulerConge,
   type EtatBail,
@@ -15,19 +16,30 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: string }) {
-  const action = deposerBailSigne.bind(null, orgId, bailId);
+// Une pièce PDF du bail : champ fichier + bouton, même gabarit pour le bail
+// signé et le règlement de copropriété.
+function FormulairePieceBail({
+  id,
+  libelle,
+  bouton,
+  action,
+}: {
+  id: string;
+  libelle: string;
+  bouton: string;
+  action: (etat: EtatBail, formData: FormData) => Promise<EtatBail>;
+}) {
   const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
-        <Label htmlFor="bail-signe" className="text-xs">
-          Bail signé (PDF uniquement)
+        <Label htmlFor={id} className="text-xs">
+          {libelle}
         </Label>
-        <Input id="bail-signe" name="fichier" type="file" accept=".pdf" required />
+        <Input id={id} name="fichier" type="file" accept=".pdf" required />
       </div>
       <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Dépôt…" : "Déposer le bail signé"}
+        {enCours ? "Dépôt…" : bouton}
       </Button>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>}
@@ -35,13 +47,66 @@ export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: 
   );
 }
 
-export function BoutonActiverBail({ orgId, bailId }: { orgId: string; bailId: string }) {
-  const action = activerBail.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: string }) {
   return (
-    <form action={formAction}>
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "Activation…" : "Activer le bail"}
+    <FormulairePieceBail
+      id="bail-signe"
+      libelle="Bail signé (PDF uniquement)"
+      bouton="Déposer le bail signé"
+      action={deposerBailSigne.bind(null, orgId, bailId)}
+    />
+  );
+}
+
+export function FormulaireReglementCopropriete({ orgId, bailId }: { orgId: string; bailId: string }) {
+  return (
+    <FormulairePieceBail
+      id="reglement-copro"
+      libelle="Règlement de copropriété (PDF, facultatif)"
+      bouton="Déposer le règlement"
+      action={deposerReglementCopropriete.bind(null, orgId, bailId)}
+    />
+  );
+}
+
+// « Valider » (décision 29/08) : en bas de l'écran, il clôt la préparation du
+// bail. Les prérequis sont rappelés à côté ; la base reste seule juge et
+// renvoie le motif exact du refus.
+export function BoutonValiderBail({
+  orgId,
+  bailId,
+  prerequis,
+}: {
+  orgId: string;
+  bailId: string;
+  prerequis: { libelle: string; ok: boolean; href: string }[];
+}) {
+  const action = validerBail.bind(null, orgId, bailId);
+  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const manquants = prerequis.filter((p) => !p.ok);
+  return (
+    <form action={formAction} className="space-y-3">
+      <ul className="space-y-1 text-sm">
+        {prerequis.map((p) => (
+          <li key={p.href} className="flex items-center gap-2">
+            <span
+              aria-hidden
+              className={p.ok ? "text-success-soft-foreground" : "text-muted-foreground"}
+            >
+              {p.ok ? "✓" : "○"}
+            </span>
+            {p.ok ? (
+              <span>{p.libelle}</span>
+            ) : (
+              <a href={p.href} className="underline-offset-2 hover:underline">
+                {p.libelle}
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+      <Button type="submit" disabled={enCours || manquants.length > 0}>
+        {enCours ? "Validation…" : "Valider"}
       </Button>
       {etat.erreur && <p className="mt-1 text-sm text-destructive">{etat.erreur}</p>}
       {etat.blocages && etat.blocages.length > 0 && (

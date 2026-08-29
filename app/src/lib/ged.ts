@@ -7,6 +7,7 @@ export const TYPES_DOCUMENT: Record<string, string> = {
   attestation_assurance: "Attestation d'assurance",
   quittance: "Quittance",
   bail: "Bail",
+  reglement_copropriete: "Règlement de copropriété",
   etat_des_lieux: "État des lieux",
   mandat: "Mandat de gestion",
   diagnostic: "Diagnostic",

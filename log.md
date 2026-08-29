@@ -1851,3 +1851,6 @@ envoyé »), page Alertes (« fermée automatiquement »). Tests : `alertes-orig
 (6 scénarios). Recette : section 2.0 (scénarios 29.1 et 29.2), A.4/A.5/8.2.3 révisés.
 Wiki : [[Agenda et échéances]], [[Restitution du dépôt de garantie]].
 Décision confirmée par Tahir : on conserve l'alerte fermée avec son motif.
+
+CI verte sur 5078dec (tests d'intégration alertes-origine inclus) :
+https://github.com/GERIMMO/GERIMMO_V4/actions/runs/33268639859 — déployé sur Vercel.

@@ -146,6 +146,35 @@ Chaque écart est rattaché à un sprint du plan quand il en relève, ou marqué
 
 ---
 
+## 5 bis. Chantier « Bail » à prioriser (demande du 29/08 — non développé)
+
+> Inscrit pour le prochain sprint à prioriser. **Revient sur une partie de la
+> livraison du 29/08** (bouton « Valider », EDL d'entrée en prérequis) — à
+> arbitrer en début de sprint.
+
+**Fiche bail — plus de bouton « Valider »** ; deux conditions vérifiées
+automatiquement :
+- **Bail signé déposé** ⇒ le bail passe **actif** et le lot passe **loué**
+  immédiatement (l'état du bien change au dépôt, plus d'action séparée). Les
+  contrôles de mise en location (détention 100 %, diagnostics, un seul bail en
+  cours sur le lot, plafond du dépôt) s'appliquent au moment du dépôt.
+- **EDL d'entrée non signé** ⇒ **alerte automatique**, liée au bail (origine =
+  bail), qui se ferme d'elle-même à la signature de l'EDL d'entrée (mécanique
+  livrée le 29/08 : [[Agenda et échéances]]).
+
+**Section Bail › Bail signé — prévisualisation et envoi** :
+- **Prévisualiser** le bail → ouverture dans une **modale** (composant Modale
+  unique) avec deux actions : **Envoyer** ou **Corriger**.
+- **Envoyer** ⇒ envoi au **locataire renseigné** sur le bail (canal à préciser :
+  email — SMTP/Resend encore à configurer — ou espace locataire « Mes
+  documents »).
+- **Corriger** ⇒ retour au brouillon éditable.
+
+Points à trancher au cadrage : ce qui est prévisualisé (PDF déposé ou bail
+généré depuis le modèle — génération prévue en V1, S10 Yousign) ; sort de la
+règle « sans EDL d'entrée, aucune retenue » (reste vraie côté restitution) ;
+reprise des tests et scénarios 29.1 qui décrivent le bouton « Valider ».
+
 ## 6. Synthèse — le vrai périmètre restant de la V0
 
 1. **Fin du Sprint 8** : caution et garanties externes (Visale/GLI),

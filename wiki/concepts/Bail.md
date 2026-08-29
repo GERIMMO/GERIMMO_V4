@@ -73,6 +73,15 @@ rattachée au bail : **règlement de copropriété** (type GED `reglement_coprop
 conservation calée sur le bail — hypothèse à confirmer). Voir
 [[Agenda et échéances]] pour la règle « alerte liée à son événement d'origine ».
 
+> [!warning] Points à trancher / contradictions
+> - **Demande du 2026-08-29 (soir), non développée, à prioriser** : supprimer le
+>   bouton « Valider » — le dépôt du bail signé active le bail et passe le lot à
+>   loué ; l'EDL d'entrée non signé redevient une **alerte automatique** liée au
+>   bail (fermée à la signature). Prévisualisation du bail en modale avec
+>   « Envoyer » (au locataire) / « Corriger ». Contredit la règle « EDL d'entrée
+>   = prérequis » livrée le matin même — voir
+>   [[Reste a faire V0 - sprints et ecarts maquette]] § 5 bis.
+
 ## Colocation en bail unique (1.3) — « le parcours le plus délicat »
 
 - **Un seul appel de loyer, jamais fractionné** (RM-1.3.1) — fractionner nierait la

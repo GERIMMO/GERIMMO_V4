@@ -1854,3 +1854,11 @@ Décision confirmée par Tahir : on conserve l'alerte fermée avec son motif.
 
 CI verte sur 5078dec (tests d'intégration alertes-origine inclus) :
 https://github.com/GERIMMO/GERIMMO_V4/actions/runs/33268639859 — déployé sur Vercel.
+
+## [2026-08-29] backlog | Chantier Bail à prioriser (demande de Tahir, non développé)
+
+Retrait du bouton « Valider » : dépôt du bail signé ⇒ bail actif + lot loué ; EDL
+d'entrée non signé ⇒ alerte automatique liée au bail (fermée à la signature).
+Section « Bail signé » : prévisualisation en modale avec « Envoyer » (au locataire
+renseigné) / « Corriger ». Inscrit dans [[Reste a faire V0 - sprints et ecarts
+maquette]] § 5 bis et signalé en contradiction dans [[Bail]]. Rien codé.

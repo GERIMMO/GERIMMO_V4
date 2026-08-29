@@ -146,9 +146,10 @@ Chaque écart est rattaché à un sprint du plan quand il en relève, ou marqué
 
 ---
 
-## 5 bis. Chantier « Bail » à prioriser (demande du 29/08 — non développé)
+## 5 bis. Sprint « Alertes & documents » (créé le 29/08 — à prioriser, non développé)
 
-> Inscrit pour le prochain sprint à prioriser. **Revient sur une partie de la
+> Sprint créé pour regrouper les demandes alertes/documents ; ordre à fixer
+> par rapport à S9a/S9b (voir [[Plan de livraison et sprints]]). **Revient sur une partie de la
 > livraison du 29/08** (bouton « Valider », EDL d'entrée en prérequis) — à
 > arbitrer en début de sprint.
 
@@ -169,6 +170,13 @@ automatiquement :
   email — SMTP/Resend encore à configurer — ou espace locataire « Mes
   documents »).
 - **Corriger** ⇒ retour au brouillon éditable.
+
+**Autres éléments regroupés dans ce sprint** :
+- Alertes : dédoublonnage des crons diagnostics/assurance (filtre de statut),
+  alertes d'approche du compteur de restitution (§ 2), vue « traitées » enrichie.
+- Documents : règlement de copropriété dans « Mes documents » du locataire ;
+  règle de conservation du règlement (hypothèse « fin du bail + 60 mois ») à
+  confirmer ; pièces du bail exposées au locataire.
 
 Points à trancher au cadrage : ce qui est prévisualisé (PDF déposé ou bail
 généré depuis le modèle — génération prévue en V1, S10 Yousign) ; sort de la

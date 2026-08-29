@@ -1862,3 +1862,10 @@ d'entrée non signé ⇒ alerte automatique liée au bail (fermée à la signatu
 Section « Bail signé » : prévisualisation en modale avec « Envoyer » (au locataire
 renseigné) / « Corriger ». Inscrit dans [[Reste a faire V0 - sprints et ecarts
 maquette]] § 5 bis et signalé en contradiction dans [[Bail]]. Rien codé.
+
+## [2026-08-29] plan | Création du sprint « Alertes & documents » (à prioriser)
+
+Sprint ajouté au [[Plan de livraison et sprints]] (avant le jalon V0, position à
+fixer) : bail sans « Valider » (dépôt du signé ⇒ actif/loué, EDL en alerte),
+prévisualisation/envoi du bail signé, fin de consolidation des alertes, documents du
+locataire (règlement de copropriété, pièces du bail). Détail § 5 bis du reste à faire.

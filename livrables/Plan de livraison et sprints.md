@@ -319,6 +319,24 @@ son livre — autonome de bout en bout.**
   suspension lecture seule / archivage.
 **Démo : une journée type d'agence.**
 
+### Sprint « Alertes & documents » *(créé le 2026-08-29 — à prioriser, position à fixer avant S9a/S9b)*
+**Personas : AG, AA** (agence) · **LO** (réception des documents).
+**Sources : [[Agenda et échéances]] · [[Bail]] · [[Document]] · [[Restitution du dépôt de garantie]]**
+Regroupe tout ce qui touche au couple **alerte ↔ événement** et au **cycle des documents** :
+- **Bail sans bouton « Valider »** : bail signé déposé ⇒ bail *actif* + lot *loué*
+  (contrôles de mise en location au dépôt) ; EDL d'entrée non signé ⇒ **alerte
+  automatique** liée au bail, fermée à la signature.
+- **Bail signé — prévisualisation** en modale : **Envoyer** (au locataire renseigné ;
+  canal à trancher : email SMTP/Resend ou « Mes documents ») / **Corriger**.
+- **Alertes** : finir la consolidation « une alerte = un événement » (dédoublonnage des
+  crons diagnostics/assurance avec filtre de statut, alertes d'approche du compteur de
+  restitution, escalade nominative existante), vue « traitées » enrichie.
+- **Documents** : règlement de copropriété visible dans « Mes documents » du
+  locataire ; règle de conservation du règlement à confirmer ; exposition des pièces
+  du bail (bail, EDL, règlement) au locataire.
+- Détail et points à trancher : [[Reste a faire V0 - sprints et ecarts maquette]] § 5 bis.
+**Démo : un bail signé déposé qui loue le lot, l'alerte EDL qui se ferme à la signature, le locataire qui reçoit son bail.**
+
 ### Recette V0 — 🎯 Jalon V0
 Recette fonctionnelle complète ensemble (scénarios = US du référentiel),
 corrections, jeu de données de démo. **Livrable : app web fonctionnelle en

@@ -1827,3 +1827,6 @@ Concept acté en amont (à développer au S9b) : **une alerte automatique est li
 `ecart_versement`, `decompte`/`decompte_lrar`, `retenue_sans_justificatif`) ;
 fragilités : dédoublonnage des crons sans filtre `statut`, ordre alphabétique des
 migrations `20260801_*` contraire à l'ordre d'application réel.
+
+CI verte sur 063c2a5 (lint, build, typecheck, tests d'intégration inclus) :
+https://github.com/GERIMMO/GERIMMO_V4/actions/runs/33267869212 — déploiement Vercel par le push.

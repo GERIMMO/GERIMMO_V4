@@ -345,6 +345,32 @@ Regroupe tout ce qui touche au couple **alerte ↔ événement** et au **cycle d
 - Détail et points à trancher : [[Reste a faire V0 - sprints et ecarts maquette]] § 5 bis.
 **Démo : un bail signé déposé qui loue le lot, l'alerte EDL qui se ferme à la signature, le locataire qui reçoit son bail.**
 
+### Sprint « Documents-0 » *(cadré le 2026-08-31 — génération de PDF, périmètre arrêté par Tahir)*
+**Personas : AG, AA, PD** (génèrent) · **LO** (reçoit certains documents).
+**Sources : [[Etat des lieux generation de documents]] · [[Structure du modèle-type de bail]] · [[Mentions obligatoires du bail]] · [[Document]]**
+Périmètre : **socle de rendu → vague A → bail nu**. Règle de fusion : une
+donnée absente de la base n'arrête jamais la génération — le PDF affiche le
+**libellé du champ en italique** (comme les épreuves) et la liste des champs
+manquants est remise dans la recette.
+- **Socle de rendu** : gabarits HTML fidèles aux épreuves `pdf-vierges/`
+  (charte, en-têtes, pied « Réf · Modèle · Empreinte · Généré avec Gerimmo »),
+  rendu PDF serveur (Chromium serverless), rangement en GED (empreinte,
+  liens bail/lot/personne), visible dans l'onglet Documents.
+- **Vague A (8 documents, 0 question)** : quittance (18), reçu de paiement
+  partiel (19), reçu de dépôt de garantie (20), révision IRL (23), décompte de
+  prorata (21), rappel d'attestation d'assurance (13), notice d'information
+  (05, avec table de textes réglementaires), avis d'échéance (17). Un bouton
+  « Générer le PDF » à l'endroit naturel de chaque document.
+- **Bail nu (01)** : bouton **« Générer le bail »** sur le bail en brouillon
+  dès que le locataire est renseigné ; blocs conditionnels pilotés par les
+  données (zone tendue, copropriété, colocataires, garants, indivision…) ;
+  champs indisponibles laissés en libellé.
+- **Hors sprint (assumé)** : questionnaire de génération, enrichissement des
+  fiches (adresse bailleur, chauffage…), baux 02/03/04, cycle de vie avancé du
+  document généré (le circuit du bail signé déposé reste inchangé).
+**Démo : une quittance, un avis d'échéance et un bail nu générés en PDF, rangés
+dans Documents, avec la liste honnête de ce qui manque en base.**
+
 ### Recette V0 — 🎯 Jalon V0
 Recette fonctionnelle complète ensemble (scénarios = US du référentiel),
 corrections, jeu de données de démo. **Livrable : app web fonctionnelle en

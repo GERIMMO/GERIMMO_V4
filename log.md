@@ -2058,3 +2058,13 @@ loyers de référence (lot), certification+assurance diagnostiqueur, GES,
 dépenses d'énergie, date de signature du bail, IBAN, identité agence.
 [[Etat des lieux generation de documents]] corrigé (note de vérification).
 
+## [2026-08-31] plan | Sprint « Documents-0 » arrêté : socle de rendu → vague A → bail nu
+
+Décision de Tahir : socle de rendu basé sur les épreuves pdf-vierges, puis
+vague A (8 documents 0 question) + bail nu ; toute donnée absente reste en
+libellé de champ de fusion dans le PDF et la liste des manquants est remise en
+recette. Hors sprint : questionnaire, enrichissement des fiches, baux 02-04,
+cycle de vie avancé. Hypothèses posées : génération manuelle (bouton), bail
+généré non signé jamais exposé au locataire. Sprint inscrit au
+[[Plan de livraison et sprints]] avant la Recette V0.
+

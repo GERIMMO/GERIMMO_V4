@@ -1,10 +1,12 @@
 # Recette — test par sprint et persona
 
-> Mis à jour le **2026-08-29**, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le **2026-08-30**, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > **Fichier central de recette**, en deux parties :
 > **1. Recetté OK** — ce qui est validé, on n'y revient plus.
-> **2. Reste à recetter** — d'abord la **livraison du 29/08** (validation du
-> bail, alertes liées à leur événement), puis l'**anomalie du 26/08** (bail
+> **2. Reste à recetter** — d'abord la **livraison du 30/08** (Sprint 9a
+> propriétaire direct + sprint « Alertes & documents »), puis la **livraison
+> du 29/08** (alertes liées à leur événement — le scénario 29.1 « Valider »
+> est remplacé par 30.5), puis l'**anomalie du 26/08** (bail
 > signé) et la **livraison du 26/08 au soir** (« Mes documents » locataire +
 > refonte « Documents » agence), puis le reliquat du **Sprint 7 — Incidents**,
 > puis ce qui reste des étapes précédentes et les sprints jamais déroulés.
@@ -18,6 +20,9 @@
 > ([[Recette S3-S8 - scenarios]]).
 > Limite connue (pas une anomalie) : SMTP non configuré → constater que l'écran
 > propose l'envoi et l'enregistre suffit.
+> **Cloche retirée le 30/08** : partout où un scénario antérieur dit « la cloche »,
+> lire « l'onglet Alertes (badge) » dans l'espace agence, et le lien « Alertes »
+> de l'en-tête sur « Mes espaces » et la console SA.
 
 ---
 
@@ -75,28 +80,92 @@
 
 # Partie 2 — Reste à recetter
 
+## 2.00 — Livraison du 30/08 : Sprint 9a (propriétaire direct) + sprint « Alertes & documents »
+
+> Deux sprints développés, revus, vérifiés en base (scénarios SQL déroulés en
+> transaction annulée sur la base de production, 18/18 verts) et déployés le
+> 30/08. **Point d'attention** : la CI ne joue pas les tests d'intégration
+> (`SUPABASE_DB_URL` absent des secrets — `npm test` dure 9 s) ; les suites
+> vitest correspondantes existent (`sprint9a-proprietaire-direct`,
+> `sprint4-bail`, `alertes-origine`, `mes-documents-locataire`) et tourneront
+> dès que le secret sera renseigné.
+
+#### Persona : Propriétaire bailleur en gestion directe (nouveau compte)
+
+**Scénario 30.1 — S'inscrire seul et ouvrir son espace**
+1. Page de connexion → lien « Propriétaire bailleur ? Ouvrir mon espace » → `/inscription` (écran scindé, promesse « 14 jours d'essai, sans carte bancaire »).
+2. Renseigner Prénom `Claire`, Nom `Moreau`, une adresse email réelle à vous, mot de passe `Recette-Claire-2026!`, confirmation identique, cocher les conditions → « Ouvrir mon espace ».
+3. Résultat attendu : message « Vérifiez votre boîte mail : un lien de confirmation vient de vous être envoyé. Votre espace s'ouvrira au premier clic. » (la confirmation d'email est exigée par le projet).
+4. Cliquer le lien reçu → arrivée directe dans l'espace : bandeau « **Espace propriétaire** · Parc de Claire Moreau », bandeau d'essai « Essai gratuit jusqu'au JJ/MM/AAAA (14 jours restants) », onglets **Tableau de bord · Mes lots · Incidents · Locataires · Livre · Documents · Alertes**.
+5. Recommencer l'inscription avec la **même adresse** → refus « Un compte existe déjà pour cette adresse : connectez-vous, ou réinitialisez votre mot de passe. »
+6. Mot de passe de 8 caractères → refus « Le mot de passe doit compter au moins 12 caractères. » ; confirmation différente → « Les deux saisies ne correspondent pas. » ; sans les conditions → « Acceptez les conditions d'utilisation pour continuer. » (la saisie reste posée).
+
+**Scénario 30.2 — Gérer seul : bien, locataire, bail, loyer (bout en bout)**
+1. **Mes lots** → créer un bien (appartement, 45 m², 2 pièces) → le lot naît ; détention : la fiche « Claire Moreau » (créée à l'inscription) à **100 %** ; déposer un DPE et un ERP valides → lot **Disponible**.
+2. **Locataires** → « Nouvelle personne » `Julie Leblanc` avec email → la fiche se crée (droit ouvert au S9a ; avant, un propriétaire ne pouvait pas créer de fiche). La fiche **ne montre pas** de carte « Mandats de gestion ».
+3. Fiche du lot → créer un bail nu (loyer 650 €, charges 50 €, dépôt 650 €) → brouillon ; carte « Bail signé » → déposer un PDF → « Bail signé déposé — le bail est actif, le lot est loué. L'état des lieux d'entrée reste à signer : une alerte le rappelle. » ; onglet **Alertes** : badge 1, alerte « État des lieux d'entrée — … · Julie Leblanc ».
+4. Carte « Loyers » → générer l'échéancier → encaisser l'appel du mois en totalité → **Livre** : une seule écriture « loyer » (recette), **aucune ligne « honoraires »** ; KPI Recettes = montant encaissé.
+5. **Livre** → saisir une dépense `Assurance PNO`, 180 €, date de pièce du jour → journal à jour ; « Clôturer le mois » → « Mois clôturé. » ; tenter d'ajouter une écriture imputée sur ce mois → refus « Mois clôturé : imputez au mois ouvert ou passez une contre-écriture (RM-4.4.1) ».
+6. Lien « Récapitulatif fiscal AAAA (déclaration 2044) → » : ligne **211** = loyers encaissés, **223** = 180,00 €, **250 Intérêts d'emprunt** = « à compléter par vos soins », revenu foncier net = loyers − 180 ; les liens d'années (AAAA-2, AAAA-1, AAAA) filtrent.
+7. Vérification d'isolation : se connecter en `agent.alpha@` → onglet Personnes → **aucune** trace de Claire Moreau ni de Julie Leblanc ; en Claire → **aucune** fiche de l'Agence Alpha.
+
+**Scénario 30.3 — Garde-fous du propriétaire direct**
+1. En `admin.alpha@` (Agence Alpha) : créer une personne avec **l'adresse email de Claire** → fiche « Mandats de gestion » → créer un mandat et l'envoyer en signature → refus « Cette personne gère déjà son parc en direct sur Gerimmo : elle ne peut pas être mandante (exclusivité PD/PM) » (le brouillon, lui, reste possible).
+2. *(Contrôle en base, non visible)* une adresse déjà mandante d'une agence (mandat actif) qui s'inscrit → l'espace ne s'ouvre pas ; « Mes espaces » affiche « Votre espace propriétaire n'a pas pu être ouvert : Cette adresse est celle d'un propriétaire mandant … (exclusivité PD/PM) ».
+3. Le propriétaire ne peut ni prolonger son essai ni s'activer lui-même : seul le super admin modifie statut/type/essai (message « Seul le super admin modifie le statut, le type ou l'essai d'une organisation »).
+4. `superadmin@` → console → la fiche de l'organisation « Parc de Claire Moreau » apparaît avec le statut **Essai**.
+
+#### Persona : Agent immobilier (agent.alpha@)
+
+**Scénario 30.4 — Le dépôt du bail signé active le bail (remplace 29.1)**
+1. Fiche d'un lot **Disponible** → créer un bail nu → brouillon ; « À faire maintenant » liste : (déclarer les pièces) → signer l'EDL d'entrée (à la remise des clés) → **déposer le bail signé — il active le bail et loue le lot**. **Aucune carte « Valider le bail »** en bas de l'écran.
+2. Carte « Bail signé » (libellé « son dépôt active le bail et loue le lot ») → déposer un PDF **sans** EDL d'entrée signé → « Bail signé déposé — le bail est actif, le lot est loué. L'état des lieux d'entrée reste à signer : une alerte le rappelle. » ; bail **Actif**, lot **Loué** ; onglet **Alertes** : « État des lieux d'entrée — <lot> · <locataire> », normale, échéance = date d'effet.
+3. Carte « États des lieux » → créer l'EDL d'entrée, remplir, **signer** → l'alerte disparaît des ouvertes ; « Fermées récemment » : « Fermée automatiquement le … — « État des lieux d'entrée signé » » avec sa criticité, son type `edl_entree` et son origine `bail`.
+4. Déposer le PDF sur un lot dont un diagnostic est **expiré** → refus **avant** dépôt « Mise en location bloquée — à corriger : » + lignes cliquables « Corriger → » (le PDF n'est pas stocké, le bail reste brouillon).
+5. Sur un lot déjà loué, créer un second bail et déposer un PDF → refus « Un bail est déjà en cours sur ce lot : il doit être terminé avant de déposer celui-ci ».
+6. Déposer une image JPG → refus « Bail signé se dépose en PDF complet — une image d'une page ne vaut pas le document. »
+
+**Scénario 30.5 — Prévisualiser, Envoyer, Corriger**
+1. Bail actif, carte « Bail signé » : « Bail signé déposé — le bail est actif. » + boutons **Prévisualiser** / **Ouvrir dans un onglet**.
+2. « Prévisualiser » → modale « Bail signé » (surtitre « Locataire : <email> »), le PDF s'affiche dans la modale ; pied : **Corriger** · **Envoyer au locataire**.
+3. « Envoyer au locataire » → SMTP non configuré : message « Envoi email non configuré (…) Le bail reste disponible dans « Mes documents » du locataire. » (attendu tant que Resend n'est pas branché) ; avec SMTP : toast « Bail envoyé à <email>. » et la carte affiche « Envoyé au locataire le … », le bouton devient « Renvoyer ».
+4. Locataire sans email → le bouton « Envoyer au locataire » est **grisé** (surtitre « Locataire sans email »).
+5. « Corriger » → texte « Le bail revient en brouillon, le lot redevient disponible, le PDF est détaché. » + bouton **Confirmer la correction** → toast « Bail remis en brouillon — corrigez-le, puis redéposez le PDF signé. » ; bail **Brouillon**, lot **Disponible**, carte « Corriger le brouillon » de retour, alerte EDL fermée (« Bail remis en brouillon pour correction »).
+6. Sur un bail actif dont l'échéancier a été généré : le bouton **Corriger** n'apparaît plus ; *(en base)* `devalider_bail` refuse « Ce bail a déjà vécu (loyers appelés ou encaissés) : il ne revient pas en brouillon — passez par un avenant ou un congé ».
+
+**Scénario 30.6 — Alertes : une par objet, compteur de restitution, vue « traitées »**
+1. Onglet **Alertes** → « Fermées récemment » affiche jusqu'à 30 alertes avec **criticité**, **type** et **origine** (ex. `diagnostic_expiration · diagnostic`), la date et le motif.
+2. *(Cron, vérifié en base)* un diagnostic qui passe de J-90 à J-30 **met à jour** son alerte (criticité, titre, échéance) au lieu d'en créer une seconde ; une alerte fermée à la main n'est pas recréée au même seuil ; l'expiration (J+0) rouvre une alerte critique.
+3. Restitution : bail en préavis → « Démarrer la restitution » (remise des clés datée de **25 jours** avant, conforme = 1 mois) → *(cron quotidien 4 h 15, ou en base)* alerte « Restitution du dépôt — <lot> · <locataire> : à rendre avant le JJ/MM/AAAA » (normale, échéance = date limite) ; dépassement → la même alerte devient **critique** « délai légal dépassé depuis le … (intérêts de retard dus) » ; « Finaliser le décompte » → elle se ferme (« Décompte finalisé ») et l'alerte « Décompte de restitution à envoyer » porte l'échéance légale.
+4. En-tête de l'espace agence : **plus de cloche** ; la pop-up de synthèse s'affiche toujours à la connexion s'il y a des alertes confiées ; `multi@` → « Mes espaces » : lien **« Alertes (n) »** dans l'en-tête qui rouvre la synthèse ; `superadmin@` → console : même lien.
+
+#### Persona : Locataire (locataire.alpha@)
+
+**Scénario 30.7 — Les pièces du bail dans « Mes documents »**
+1. L'agent dépose un **règlement de copropriété** (PDF) sur le bail actif de Julie → côté locataire, **Mes documents** liste « Règlement de copropriété · déposé le … » avec Ouvrir / Télécharger, à côté du bail signé.
+2. « Ouvrir » affiche le PDF ; *(agence)* fiche de la pièce → visibilité « Agence et locataire ».
+3. Une pièce « Courrier » rattachée à sa fiche reste **invisible** (le type pilote seul les droits — non-régression 26/08).
+4. Bail **terminé** → le bail signé et le règlement disparaissent de « Mes documents » ; l'URL directe d'une de ces pièces répond « introuvable ».
+
+**Le test le plus important de la livraison** : 30.4 étape 4 — un PDF refusé au contrôle de mise en location **ne laisse rien derrière lui** (bail brouillon, lot disponible, rien en GED) : c'est ce qui rend acceptable la suppression du bouton « Valider ».
+
 ## 2.0 — Livraison du 29/08 : validation du bail + alertes liées à leur événement
 
 > Deux décisions du 29/08, développées, revues, testées en base (CI) et
 > déployées le jour même :
-> 1. **Le bail se valide** (bouton « Valider » en bas de la fiche) : bail signé
->    déposé **et** état des lieux d'entrée signé sont des prérequis ; l'alerte
->    « EDL d'entrée » n'existe plus ; section « Règlement de copropriété »
->    (facultatif) ; un seul bail actif par lot, un brouillon peut coexister.
+> 1. ~~**Le bail se valide** (bouton « Valider »)~~ — **caduc depuis le 30/08** :
+>    le dépôt du bail signé active le bail (30.4). Restent vrais : la section
+>    « Règlement de copropriété » (facultatif) ; un seul bail actif par lot, un
+>    brouillon peut coexister.
 > 2. **Une alerte automatique est liée à l'événement qui l'a créée** et se
 >    ferme d'elle-même quand il est traité — motif conservé dans « Fermées
 >    récemment » avec la mention « fermée automatiquement ».
 
 #### Persona : Agent immobilier (agent.alpha@)
 
-**Scénario 29.1 — Valider un bail (remplace 4.1 et A.5)**
-1. Fiche d'un lot **Disponible** → créer un bail nu (locataire, loyer, dépôt) → la fiche bail s'ouvre en **brouillon** ; « À faire maintenant » liste dans l'ordre : déposer le bail signé → (déclarer les pièces) → signer l'EDL d'entrée → valider.
-2. Carte **« Valider le bail »** en bas de l'écran : les deux prérequis sont affichés (○ Bail signé déposé · ○ État des lieux d'entrée signé), le bouton **« Valider » est grisé**.
-3. Carte « Bail signé » → déposer le PDF → ✓ ; carte « États des lieux » → créer l'EDL d'entrée, remplir la grille, signer → ✓ ; le bouton s'active.
-4. Facultatif : carte « Règlement de copropriété » → déposer un PDF → « Règlement déposé · Le consulter ».
-5. « Valider » → « Bail validé — le lot est loué » ; bail **Actif**, lot **Loué**, **aucune alerte** créée (cloche inchangée).
-6. Sur le même lot (loué), créer un second bail → accepté en brouillon ; le préparer (bail signé + EDL signé) et « Valider » → refus « Un bail est déjà en cours sur ce lot : il doit être terminé avant de valider celui-ci ».
-7. *(Contrôle en base, non visible)* tenter de valider un brouillon sans EDL signé → refus « L'état des lieux d'entrée doit être signé avant de valider le bail ».
+**Scénario 29.1 — ~~Valider un bail~~ (remplacé le 30/08 par 30.4 et 30.5)**
+Le bouton « Valider » et le prérequis « EDL d'entrée signé » ont été retirés le
+30/08 (sprint « Alertes & documents ») : ne pas dérouler.
 
 **Scénario 29.2 — Alertes fermées par leur événement**
 1. Onglet **Alertes** : noter les alertes ouvertes. Chacune des actions ci-dessous doit faire **disparaître** l'alerte concernée des ouvertes et l'ajouter à « Fermées récemment » avec la mention **« fermée automatiquement »** et le motif.

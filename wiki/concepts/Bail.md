@@ -3,7 +3,7 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-08-05
+updated: 2026-08-30
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -73,14 +73,24 @@ rattachée au bail : **règlement de copropriété** (type GED `reglement_coprop
 conservation calée sur le bail — hypothèse à confirmer). Voir
 [[Agenda et échéances]] pour la règle « alerte liée à son événement d'origine ».
 
-> [!warning] Points à trancher / contradictions
-> - **Demande du 2026-08-29 (soir), non développée, à prioriser** : supprimer le
->   bouton « Valider » — le dépôt du bail signé active le bail et passe le lot à
->   loué ; l'EDL d'entrée non signé redevient une **alerte automatique** liée au
->   bail (fermée à la signature). Prévisualisation du bail en modale avec
->   « Envoyer » (au locataire) / « Corriger ». Contredit la règle « EDL d'entrée
->   = prérequis » livrée le matin même — voir
->   [[Reste a faire V0 - sprints et ecarts maquette]] § 5 bis.
+> [!note] Activation du bail — tranché et livré le 2026-08-30 (sprint « Alertes & documents »)
+> - **Plus de bouton « Valider »** : le **dépôt du PDF signé active le bail et loue
+>   le lot**. Les contrôles de mise en location (locataire principal, plafond du
+>   dépôt, un seul bail vivant par lot, lot disponible, détention 100 %,
+>   diagnostics) passent **avant** le dépôt (`controler_mise_en_location`) : un
+>   PDF refusé ne laisse rien derrière lui.
+> - **EDL d'entrée** : plus un prérequis — s'il n'est pas signé au dépôt, une
+>   **alerte automatique** liée au bail (origine = bail) le rappelle, fermée
+>   d'elle-même à la signature. La règle de la restitution reste : sans EDL
+>   d'entrée signé, aucune retenue (RM-2.4.3).
+> - **Prévisualisation** du bail signé dans la modale, avec **Envoyer** (email au
+>   locataire renseigné ; la pièce est déjà dans « Mes documents ») et
+>   **Corriger** (`devalider_bail` : retour en brouillon, lot disponible, PDF
+>   détaché — refusé dès qu'un loyer a été appelé ou encaissé, ou qu'une
+>   restitution a démarré). Envoi mémorisé (`baux.signe_envoye_le`).
+> - Le locataire voit, en plus du bail signé, le **règlement de copropriété** du
+>   bail dans « Mes documents » (fonction partagée `pieces_bail_locataire`).
+> Détail de recette : [[Recette - test par sprint et persona]] § 2.00 (30.4, 30.5, 30.7).
 
 ## Colocation en bail unique (1.3) — « le parcours le plus délicat »
 

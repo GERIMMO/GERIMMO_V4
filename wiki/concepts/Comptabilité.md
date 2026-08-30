@@ -3,7 +3,7 @@ type: concept
 tags: [comptabilite, finances, gerant]
 status: draft
 created: 2026-07-22
-updated: 2026-07-25
+updated: 2026-08-30
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-module-4-comptabilite]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]"]
 ---
 
@@ -123,3 +123,11 @@ encaissement (4.2) et restitution (4.1) produisent simplement **deux écritures*
 >   aucun expert identifié à ce jour).
 > - ~~Export~~ → **tranché par A6 : trois exports à tout moment** (journal complet,
 >   documents, référentiel), CSV sans FEC ; format définitif au lot 1.
+
+## Livre du propriétaire direct — livré (2026-08-30, S9a)
+
+Le journal est commun ; pour une organisation `proprietaire_direct`, l'écran
+s'appelle « Livre recettes-dépenses », ne montre ni rapports de gestion ni
+mention d'honoraires, et donne accès au [[Fiscalité|récapitulatif fiscal]].
+`cloturer_mois` / `rouvrir_mois` acceptent le PD ; aucune écriture d'honoraires
+ne se crée sans ligne de mandat. Voir [[Propriétaire bailleur]].

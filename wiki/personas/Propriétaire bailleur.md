@@ -3,7 +3,7 @@ type: persona
 tags: [role, proprietaire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-19
+updated: 2026-08-30
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -108,3 +108,30 @@ espace complet + livre recettes-dépenses + récap fiscal), le paiement Stripe a
 - Approuve l'[[Artisan]] **par intervention** (sélection du devis sur ses propres incidents), mais
   ne **supervise** pas les artisans en tant que tels (`supervise:contractor` réservé à l'agence).
 - Voir [[Modèle de rôles et permissions]], [[Isolation multi-organisation]].
+
+## Livraison du Sprint 9a (2026-08-30 — en recette)
+
+- **Auto-inscription** : page publique `/inscription` (prénom, nom, email, mot de
+  passe 12 caractères, conditions) → compte Supabase Auth (confirmation d'email)
+  → à la première session, `initialiser_espace_proprietaire()` (idempotente)
+  crée l'organisation `type = proprietaire_direct` (« Parc de Prénom Nom »),
+  **statut essai, `essai_fin` = J+14**, l'adhésion `proprietaire_direct` et sa
+  **fiche personne** (qui porte la détention de ses lots). Le paiement Stripe
+  reste au S11 ; rien ne se ferme à la fin de l'essai pour l'instant.
+- **Espace propriétaire** = les écrans de l'agence, relus : « Espace
+  propriétaire », bandeau d'essai, onglets **Mes lots · Locataires · Livre**,
+  pas de carte Mandats sur les fiches, pas de rapports de gestion, aucun
+  honoraire (les honoraires ne naissent qu'avec une ligne de mandat).
+- **Livre recettes-dépenses** : même journal immuable, clôture par le
+  propriétaire lui-même (recommandée, jamais imposée par un rapport).
+- **Récapitulatif fiscal** (`/comptabilite/fiscal`, PD seulement) : rubriques
+  de la 2044 alimentées par mots-clés des catégories du livre, agrégées sur la
+  date de pièce, contre-écritures soustraites de leur rubrique, **fonds travaux
+  ALUR à part**, **intérêts d'emprunt à compléter**, « autres dépenses non
+  rangées » pour ne rien perdre — phase 1 (location nue) de [[Fiscalité]].
+- **Garde-fous livrés** : exclusivité PD/PM par adresse email (inscription
+  refusée à un mandant en cours ; mandat refusé à un PD — `a_signer`/`actif`/
+  `preavis`) ; `can_manage_organization(org)` = SA, admin d'agence ou PD de
+  **sa** propre organisation ; statut/type/essai réservés au SA (trigger).
+- Droits ajustés : le PD crée et modifie ses personnes, clôture et rouvre ses
+  mois. Recette : [[Recette - test par sprint et persona]] § 2.00 (30.1 à 30.3).

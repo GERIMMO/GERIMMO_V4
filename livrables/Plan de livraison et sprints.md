@@ -279,7 +279,7 @@ un mot de passe réinitialisé de bout en bout.**
   tarde à transmettre (3 semaines, puis escalade).
 **Démo : une sortie de locataire de bout en bout, retenue défendable, solde émis.**
 
-### Sprint 9a — Propriétaire direct *(scission décidée le 2026-08-19 : le PD est le cœur de l'appli, il passe en premier — à l'image du sprint dédié aux incidents)*
+### Sprint 9a — Propriétaire direct *(scission décidée le 2026-08-19 ; **développé et déployé le 2026-08-30, en recette** — voir [[Recette - test par sprint et persona]] § 2.00)*
 **Personas : PD** (naissance complète de son espace).
 **Sources : [[Propriétaire bailleur]] · [[Onboarding et abonnement]] · [[Fiscalité]] · [[Comptabilité]]**
 - **Auto-inscription en ligne** *(remontée du S11, décision du 2026-08-19)* : page
@@ -319,15 +319,17 @@ son livre — autonome de bout en bout.**
   suspension lecture seule / archivage.
 **Démo : une journée type d'agence.**
 
-### Sprint « Alertes & documents » *(créé le 2026-08-29 — à prioriser, position à fixer avant S9a/S9b)*
+### Sprint « Alertes & documents » *(créé le 2026-08-29 ; **développé et déployé le 2026-08-30, juste après le S9a, en recette**)*
 **Personas : AG, AA** (agence) · **LO** (réception des documents).
 **Sources : [[Agenda et échéances]] · [[Bail]] · [[Document]] · [[Restitution du dépôt de garantie]]**
 Regroupe tout ce qui touche au couple **alerte ↔ événement** et au **cycle des documents** :
 - **Bail sans bouton « Valider »** : bail signé déposé ⇒ bail *actif* + lot *loué*
   (contrôles de mise en location au dépôt) ; EDL d'entrée non signé ⇒ **alerte
   automatique** liée au bail, fermée à la signature.
-- **Bail signé — prévisualisation** en modale : **Envoyer** (au locataire renseigné ;
-  canal à trancher : email SMTP/Resend ou « Mes documents ») / **Corriger**.
+- **Bail signé — prévisualisation** en modale : **Envoyer** (email au locataire
+  renseigné, qui le retrouve dans « Mes documents » — les deux canaux, tranché au
+  développement) / **Corriger** (retour en brouillon tant qu'aucun loyer n'a été
+  appelé ; le PDF est détaché, le lot redevient disponible).
 - **Alertes** : finir la consolidation « une alerte = un événement » (dédoublonnage des
   crons diagnostics/assurance avec filtre de statut, alertes d'approche du compteur de
   restitution, escalade nominative existante), vue « traitées » enrichie.

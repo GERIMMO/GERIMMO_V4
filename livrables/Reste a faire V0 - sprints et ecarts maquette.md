@@ -19,9 +19,12 @@ décote de vétusté, restitution intégrale sans EDL d'entrée, décompte figé
 solde de tout compte avec créance locataire) et copropriété (appel de charges
 poste à poste, régularisation bloquée sans appel).
 
-Reste pour la V0 : **la fin du S8, le S9a, le S9b**, plus les **écarts
-maquette** listés en §5 — dont une partie relève de ces sprints et une partie
-n'est couverte par aucun sprint du plan (à trancher, §6).
+**Livrés le 30/08 (en recette)** : le **S9a** (propriétaire direct — §3) et le
+sprint **« Alertes & documents »** (§5 bis).
+
+Reste pour la V0 : **la fin du S8 et le S9b**, plus les **écarts maquette**
+listés en §5 — dont une partie relève de ces sprints et une partie n'est
+couverte par aucun sprint du plan (à trancher, §6).
 
 ---
 
@@ -48,7 +51,7 @@ le code** (à confirmer en planification de sprint) :
 
 ---
 
-## 3. Sprint 9a — Propriétaire direct (le détail)
+## 3. Sprint 9a — Propriétaire direct (le détail) — **livré le 30/08, en recette**
 
 Décision du 19/08 : le PD est le cœur de l'appli, sprint dédié avant les
 transverses. Personas : **PD** (naissance complète de son espace).
@@ -146,12 +149,15 @@ Chaque écart est rattaché à un sprint du plan quand il en relève, ou marqué
 
 ---
 
-## 5 bis. Sprint « Alertes & documents » (créé le 29/08 — à prioriser, non développé)
+## 5 bis. Sprint « Alertes & documents » (créé le 29/08 — **développé et déployé le 30/08, en recette**)
 
-> Sprint créé pour regrouper les demandes alertes/documents ; ordre à fixer
-> par rapport à S9a/S9b (voir [[Plan de livraison et sprints]]). **Revient sur une partie de la
-> livraison du 29/08** (bouton « Valider », EDL d'entrée en prérequis) — à
-> arbitrer en début de sprint.
+> Développé le 30/08 juste après le S9a. **Revient sur une partie de la
+> livraison du 29/08** (bouton « Valider » retiré, EDL d'entrée redevenu une
+> alerte). Tranché au développement : « Envoyer » = email au locataire + pièce
+> déjà dans « Mes documents » ; « Corriger » = `devalider_bail`, possible tant
+> qu'aucun loyer n'a été appelé/encaissé ni restitution démarrée ; ce qui est
+> prévisualisé = le PDF déposé (la génération arrive au S10) ; règle « sans EDL
+> d'entrée, aucune retenue » inchangée ; scénarios 29.1 remplacés par 30.4/30.5.
 
 **Fiche bail — plus de bouton « Valider »** ; deux conditions vérifiées
 automatiquement :
@@ -192,8 +198,9 @@ reprise des tests et scénarios 29.1 qui décrivent le bouton « Valider ».
 ## 6. Synthèse — le vrai périmètre restant de la V0
 
 1. **Fin du Sprint 8** : caution et garanties externes (Visale/GLI),
-   alertes de compteur, provision 20 %, relances copro (§2).
-2. **Sprint 9a** : espace propriétaire direct complet (§3).
+   provision 20 %, relances copro (§2) — les alertes de compteur de
+   restitution sont livrées (30/08).
+2. ~~**Sprint 9a** : espace propriétaire direct complet (§3)~~ — **livré le 30/08**.
 3. **Sprint 9b** : rôles, paramétrage, **agenda** (écart maquette n°1 agence),
    **messagerie**, réglages, console SA (§4).
 4. **Chantiers maquette V0 sans sprint attitré — à planifier** (proposition :

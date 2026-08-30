@@ -3,7 +3,7 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-19
+updated: 2026-08-30
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]"]
 ---
 
@@ -68,3 +68,10 @@ l'auto-inscription `createOrganization` du code hérité.
 
 ## Automatisations
 - Événement `trial.started` → e-mail de bienvenue/essai (Resend). Voir [[Canaux de communication]].
+
+## Livré le 2026-08-30 (S9a)
+
+L'auto-inscription du propriétaire direct est en place (`/inscription` →
+Supabase Auth → `initialiser_espace_proprietaire`, essai 14 jours porté par
+`organizations.essai_fin`). La création d'agence reste réservée au super admin.
+Détail : [[Propriétaire bailleur]].

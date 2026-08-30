@@ -3,7 +3,7 @@ type: concept
 tags: [fiscalite, revenus-fonciers, proprietaire]
 status: draft
 created: 2026-07-22
-updated: 2026-07-24
+updated: 2026-08-30
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]"]
 ---
 
@@ -76,3 +76,12 @@ au propriétaire en gestion directe.
 > - Fiscalité française uniquement, ou aussi belge (cf. cible FR/BE de l'analyse) ?
 > - Contenu exact de l'export SCI-IS : à définir avec un expert-comptable (FEC ? grand livre ?).
 > - Garde-fous de l'agent IA de mise à jour (V2) : validation humaine avant application ?
+
+## Phase 1 livrée (2026-08-30, S9a)
+
+Le récapitulatif 2044 (location nue) existe pour le propriétaire direct :
+`src/lib/fiscal.ts` (rangement par mots-clés des catégories libres du livre,
+date de pièce, ALUR à part, intérêts d'emprunt vides) et la page
+`/comptabilite/fiscal`. Pas de table de paramètres fiscaux par année pour
+l'instant (les seuils micro-foncier ne sont qu'un rappel à l'écran) ; meublé,
+LMP et SCI restent en V2. Voir [[Propriétaire bailleur]].

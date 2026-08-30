@@ -3,7 +3,7 @@ type: concept
 tags: [agenda, echeances, rdv, alertes, produit-v0]
 status: draft
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-08-30
 sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]"]
 ---
 
@@ -118,3 +118,25 @@ manuel. Le référentiel V3 (module 14, Agenda et alertes) couvre donc cette int
 >   Reste l'**implémentation** : le code n'a que `bien_echeances` +
 >   `expiration_alert_days` — l'écran unique, l'escalade et les 27 types sont à
 >   construire. → [[État du projet et décisions ouvertes]]
+
+## Événements ajoutés le 2026-08-30 (application — sprint « Alertes & documents »)
+
+- **Une alerte par objet pour les crons** : `poser_alerte_seuil` remplace
+  l'empilement J-90/J-30/J+0 (diagnostics) et J-30/J-15/J+0/J+15 (assurance)
+  par **une seule alerte ouverte par objet, mise à jour** (criticité, titre,
+  échéance, seuil) quand le seuil avance ; une alerte fermée à la main n'est
+  pas recréée au même seuil, mais un seuil suivant rouvre le sujet.
+- **Compteur de restitution** (nouveau type `restitution_echeance`, origine =
+  restitution) : cron quotidien 4 h 15 — **J-7** avant la date limite légale
+  (remise des clés + 1 ou 2 mois, `restitution_date_limite`) en normale,
+  **dépassement** en critique ; fermée par `finaliser_decompte`, qui date
+  désormais l'alerte « décompte à envoyer » de cette même limite.
+- **EDL d'entrée** : `activer_bail` recrée l'alerte `edl_entree` si l'état des
+  lieux n'est pas signé au dépôt du bail ; le trigger de signature la ferme
+  (comme pour la sortie) ; `devalider_bail` la ferme aussi (« Bail remis en
+  brouillon pour correction »).
+- **Interface** : la cloche de l'en-tête est retirée (doublon de l'onglet
+  Alertes et de son badge) ; la pop-up de synthèse à la connexion reste ;
+  « Mes espaces » et la console SA gardent un lien texte « Alertes (n) » qui
+  la rouvre. La vue « Fermées récemment » montre criticité, type, origine et
+  motif (30 dernières). Voir [[Bail]], [[Restitution du dépôt de garantie]].

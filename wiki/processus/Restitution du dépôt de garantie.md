@@ -3,7 +3,7 @@ type: process
 tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
-updated: 2026-08-05
+updated: 2026-08-30
 sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -100,3 +100,12 @@ Décision à **deux vitesses**, qui réconcilie le parcours 2.7 et le livrable A
   il s'agit de défendre la retenue, pas de la modifier) — ferme l'alerte « retenue
   sans justificatif ». **Retrait d'une retenue** (avant finalisation) — idem.
 Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).
+
+## Événements ajoutés le 2026-08-30 (application)
+
+- **Alertes d'approche du compteur** (`restitution_echeance`) : J-7 avant la
+  date limite (remise des clés + délai 1/2 mois), puis dépassement en critique
+  — une seule alerte mise à jour, fermée à la finalisation du décompte
+  (« Décompte finalisé »). L'alerte « Décompte à envoyer » porte désormais
+  l'échéance légale. Cron `alertes-restitutions-quotidiennes` (4 h 15). Voir
+  [[Agenda et échéances]].

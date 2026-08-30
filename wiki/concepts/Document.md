@@ -3,7 +3,7 @@ type: concept
 tags: [document, ged]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-08-30
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -90,3 +90,13 @@ la liste reste visible d'un côté, un **panneau de détail du bien** s'ouvre de
 pour garder le focus. Remplace la navigation « Bâtiment > Bien » de la note v0
 ([[2026-07-21-fonctionnalites-par-persona-v0]]) ; clôt le point 12 des décisions
 ouvertes.
+
+## Pièces du bail visibles du locataire (2026-08-30)
+
+Le périmètre locataire de la GED (quatre fonctions : `mes_pieces_locataire`,
+`mon_document_locataire`, `chemins_pieces_locataire`, `log_document_access`)
+partage désormais un seul prédicat, `pieces_bail_locataire` : les pièces des
+**baux vivants** (actif/préavis) dont la personne est locataire principal ou
+colocataire — **bail signé** et **règlement de copropriété**. Un bail terminé
+retire ces pièces de « Mes documents ». Le type `reglement_copropriete` est
+déclaré « Agence et locataire ». Voir [[Bail]].

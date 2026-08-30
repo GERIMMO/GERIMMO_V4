@@ -1876,3 +1876,57 @@ Ajout au sprint (demande de Tahir) : retirer la cloche, redondante avec l'entré
 « Alertes » du menu ; pop-up de connexion conservée. Revient sur la décision S2 du
 29/07 ; scénarios de recette citant la cloche à reprendre ; point d'accès à garder
 pour « Mes espaces » et la console SA. Plan + § 5 bis du reste à faire mis à jour.
+
+## [2026-08-30] dev | Sprint 9a — Propriétaire direct : auto-inscription, espace, livre, récapitulatif fiscal
+
+Livré (commit `64b3669`, migration `20260830100000_s9a_proprietaire_direct`
+appliquée en prod via MCP, CI verte) : `organizations.type` (agence |
+proprietaire_direct) + `essai_fin` ; `initialiser_espace_proprietaire()`
+(definer, idempotente : organisation « Parc de Prénom Nom » en essai J+14,
+adhésion, fiche personne) appelée depuis `/espaces` après `signUp` (page
+publique `/inscription`, confirmation d'email exigée par le projet — les deux
+flux convergent) ; droits du PD sur les personnes et la clôture ; trigger
+d'exclusivité PD/PM sur les mandats + contrôle miroir à l'inscription ;
+`can_manage_organization` ; statut/type/essai réservés au SA. App : layout
+« Espace propriétaire » + bandeau d'essai, onglets Mes lots / Locataires /
+Livre, livre sans rapports ni honoraires, page `/comptabilite/fiscal`
+(rubriques 2044, `src/lib/fiscal.ts`), fiche personne sans mandats, seed
+`proprietaire@gerimmo-demo.fr`. Tests : `fiscal.test.ts` (5, unitaires),
+`sprint9a-proprietaire-direct.test.ts` (6 scénarios d'intégration dont le
+bout en bout bien → bail → loyer sans honoraires → clôture → récap). Règles
+vérifiées contre le wiki : [[Propriétaire bailleur]], [[Onboarding et
+abonnement]], [[Fiscalité]], [[Comptabilité]] — pages mises à jour.
+
+## [2026-08-30] dev | Sprint « Alertes & documents » : bail activé au dépôt, Envoyer/Corriger, alertes consolidées, pièces du bail, cloche retirée
+
+Livré (commit `a0bef25`, migration `20260830120000_alertes_documents`
+appliquée en prod via MCP, CI verte) : `controler_mise_en_location` (contrôles
+avant dépôt) + `activer_bail` sans prérequis EDL (alerte `edl_entree` liée au
+bail, fermée à la signature — le trigger EDL couvre entrée et sortie) ;
+`devalider_bail` (« Corriger ») avec transition lot loué → disponible sans
+bail vivant ; `poser_alerte_seuil` : une alerte par objet pour les crons
+diagnostics/assurance ; `generer_alertes_restitution` + cron (J-7, dépassé),
+`finaliser_decompte` ferme le compteur et date le décompte ;
+`pieces_bail_locataire` partagé par les quatre fonctions du périmètre
+locataire (bail signé + règlement de copropriété) ; `baux.signe_envoye_le`.
+App : dépôt qui active (blocages actionnables), `CarteBailSigne` (modale de
+prévisualisation, Envoyer par email, Corriger avec confirmation), plus de
+carte « Valider » ; `SyntheseAlertes` remplace la cloche (rappel texte sur
+« Mes espaces » et la console SA) ; « Fermées récemment » enrichie ; règlement
+visible du locataire. Tests réécrits/étendus : `sprint4-bail`,
+`alertes-origine`, `mes-documents-locataire`.
+
+Recette autonome : 18 scénarios SQL déroulés en transaction annulée sur la
+base (activation/alerte/signature, Corriger et ses refus, second bail refusé,
+compteur J-7 → dépassé → finalisation, cron diagnostics dédoublonné, pièces
+du bail côté locataire) — tous conformes. Recette humaine remise :
+[[Recette - test par sprint et persona]] § 2.00 (30.1 à 30.7).
+
+**Constat CI** : l'étape `npm test` dure 9 s sur les runs 82/83 — les tests
+d'intégration se sautent (secret `SUPABASE_DB_URL` vraisemblablement absent).
+Les mentions « CI verte, tests d'intégration inclus » des entrées précédentes
+sont à lire avec cette réserve. À faire : renseigner le secret (base de test,
+jamais la prod) pour que les 130 tests d'intégration tournent.
+Wiki : [[Bail]] (contradiction soldée), [[Agenda et échéances]],
+[[Restitution du dépôt de garantie]], [[Document]] ; plan et reste à faire
+mis à jour.

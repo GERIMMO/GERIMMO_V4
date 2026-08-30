@@ -59,6 +59,42 @@ export function FormulaireInscription() {
             </div>
           </div>
           <div className="space-y-2">
+            <Label htmlFor="ins-adresse">Adresse postale</Label>
+            <Input id="ins-adresse" name="adresse" autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="12 rue des Lilas" />
+            <p className="text-xs text-muted-foreground">
+              Elle signera vos documents (baux, quittances…).
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="ins-cp">Code postal</Label>
+              <Input id="ins-cp" name="code_postal" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ins-ville">Ville</Label>
+              <Input id="ins-ville" name="ville" autoComplete="address-level2" defaultValue={etat.valeurs?.ville} />
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="ins-tel">Téléphone</Label>
+              <Input id="ins-tel" name="telephone" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ins-qualite">Vous louez en tant que</Label>
+              <select
+                id="ins-qualite"
+                name="qualite"
+                defaultValue={etat.valeurs?.qualite ?? "Personne physique"}
+                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+              >
+                <option>Personne physique</option>
+                <option>SCI</option>
+                <option>Indivision</option>
+              </select>
+            </div>
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="email">Adresse email</Label>
             <Input
               id="email"

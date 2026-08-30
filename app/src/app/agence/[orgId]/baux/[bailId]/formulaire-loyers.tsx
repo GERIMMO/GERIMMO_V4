@@ -16,6 +16,7 @@ import {
   type EtatLoyers,
 } from "@/app/actions/loyers";
 import { Button } from "@/components/ui/button";
+import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, formaterDate } from "@/lib/ged";
@@ -33,6 +34,7 @@ export const MODES_PAIEMENT: Record<string, string> = {
 };
 
 export type LigneEcheance = {
+  prorata?: boolean;
   appel_id: string;
   periode: string;
   date_echeance: string;
@@ -239,22 +241,53 @@ export function FormulaireLoyers({
                 </span>
                 {(() => {
                   const q = quittanceParAppel.get(l.appel_id);
-                  if (!q) return null;
                   return (
                     <span className="flex shrink-0 items-center gap-2">
-                      <Link
-                        href={`/quittance/${q.id}`}
-                        target="_blank"
-                        className={`text-xs underline-offset-2 hover:underline ${
-                          q.est_quittance ? "text-success" : "text-muted-foreground"
-                        }`}
-                      >
-                        {q.est_quittance ? "quittance" : "reçu (partiel)"}
-                      </Link>
-                      {q.email_envoye_at ? (
-                        <span className="text-xs text-muted-foreground">✉ envoyée</span>
-                      ) : (
-                        <BoutonEnvoiQuittance orgId={orgId} bailId={bailId} quittanceId={q.id} />
+                      {q && (
+                        <>
+                          <Link
+                            href={`/quittance/${q.id}`}
+                            target="_blank"
+                            className={`text-xs underline-offset-2 hover:underline ${
+                              q.est_quittance ? "text-success" : "text-muted-foreground"
+                            }`}
+                          >
+                            {q.est_quittance ? "quittance" : "reçu (partiel)"}
+                          </Link>
+                          {q.email_envoye_at ? (
+                            <span className="text-xs text-muted-foreground">✉ envoyée</span>
+                          ) : (
+                            <BoutonEnvoiQuittance orgId={orgId} bailId={bailId} quittanceId={q.id} />
+                          )}
+                          {/* Documents-0 : le PDF (18/19), rangé en GED */}
+                          <BoutonGenererDocument
+                            orgId={orgId}
+                            code="quittance"
+                            cibleId={q.id}
+                            cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                            libelle="PDF"
+                            variant="ghost"
+                          />
+                        </>
+                      )}
+                      {/* Documents-0 : avis d'échéance (17), prorata (21) */}
+                      <BoutonGenererDocument
+                        orgId={orgId}
+                        code="avis_echeance"
+                        cibleId={l.appel_id}
+                        cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                        libelle="Avis PDF"
+                        variant="ghost"
+                      />
+                      {Number(l.montant_du) > 0 && l.prorata && (
+                        <BoutonGenererDocument
+                          orgId={orgId}
+                          code="prorata"
+                          cibleId={l.appel_id}
+                          cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                          libelle="Prorata PDF"
+                          variant="ghost"
+                        />
                       )}
                     </span>
                   );
@@ -325,9 +358,18 @@ export function FormulaireLoyers({
           {revisions.length > 0 && (
             <ul className="text-xs text-muted-foreground">
               {revisions.map((r) => (
-                <li key={r.id}>
+                <li key={r.id} className="flex flex-wrap items-center gap-2">
                   {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} (IRL{" "}
                   {r.irl_reference} → {r.irl_nouveau})
+                  {/* Documents-0 : la lettre de révision (23) */}
+                  <BoutonGenererDocument
+                    orgId={orgId}
+                    code="revision_irl"
+                    cibleId={r.id}
+                    cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                    libelle="Lettre PDF"
+                    variant="ghost"
+                  />
                 </li>
               ))}
             </ul>

@@ -69,9 +69,13 @@ export default async function LayoutAgence({
               <p className="eyebrow text-[var(--sur-encre)]/55">
                 {estProprietaire ? "Espace propriétaire" : "Espace agence"}
               </p>
-              <p className="truncate text-[13px] text-[var(--sur-encre)]">
+              {/* Documents-0 : le nom ouvre le profil (identité des documents) */}
+              <Link
+                href={`/agence/${orgId}/profil`}
+                className="block truncate text-[13px] text-[var(--sur-encre)] underline-offset-2 hover:underline"
+              >
                 {organisation.name}
-              </p>
+              </Link>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-4 sm:gap-5">

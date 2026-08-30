@@ -148,7 +148,16 @@ export async function inscrireProprietaire(
     email,
     password: motDePasse,
     options: {
-      data: { nom, prenom, espace: "proprietaire_direct" },
+      data: {
+        nom,
+        prenom,
+        espace: "proprietaire_direct",
+        telephone: String(formData.get("telephone") ?? "").trim(),
+        adresse: String(formData.get("adresse") ?? "").trim(),
+        code_postal: String(formData.get("code_postal") ?? "").trim(),
+        ville: String(formData.get("ville") ?? "").trim(),
+        qualite: String(formData.get("qualite") ?? "").trim(),
+      },
       emailRedirectTo: `${origine}/auth/confirm?next=/espaces`,
     },
   });

@@ -6,6 +6,7 @@ import { InputDateJour } from "@/components/input-date-jour";
 import { useActionState } from "react";
 import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/app/actions/depot";
 import { Button } from "@/components/ui/button";
+import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -80,7 +81,16 @@ export function FormulaireDepot({
                 {formaterDate(e.date_encaissement)}
                 {e.moyen ? ` · ${e.moyen}` : ""} · versé par {nom(e.versant_person_id, e.versant_libelle)}
               </span>
-              <span className="ml-auto">
+              <span className="ml-auto flex items-center gap-2">
+                {/* Documents-0 : le reçu de dépôt (20) */}
+                <BoutonGenererDocument
+                  orgId={orgId}
+                  code="recu_depot"
+                  cibleId={e.id}
+                  cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                  libelle="Reçu PDF"
+                  variant="ghost"
+                />
                 <BoutonSupprimer orgId={orgId} bailId={bailId} encId={e.id} />
               </span>
             </li>

@@ -16,6 +16,7 @@ import {
 } from "./formulaires-bail";
 import { FormulaireEditionBail } from "./formulaire-edition-bail";
 import { CarteBailSigne } from "./carte-bail-signe";
+import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
 import { FormulaireColocation, type LigneColoc } from "./formulaire-colocation";
 import {
@@ -386,6 +387,26 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </CardContent>
         </Card>
       )}
+
+      {/* Documents-0 : la notice d'information (05), annexe obligatoire */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Notice d&apos;information</CardTitle>
+          <CardDescription>
+            Annexe obligatoire au contrat (arrêté du 29 mai 2015) — générée et
+            rangée dans Documents, à remettre avec le bail.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BoutonGenererDocument
+            orgId={orgId}
+            code="notice"
+            cibleId={bailId}
+            cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+            libelle="Générer la notice (PDF)"
+          />
+        </CardContent>
+      </Card>
 
       <Card id="reglement-copro" className="scroll-mt-20">
         <CardHeader>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { formaterDate } from "@/lib/ged";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -266,6 +267,17 @@ export default async function PagePersonne(
                   // visible côté agence, avec son état de vérification.
                   const echeancePiece = statutEcheancePiece(p.expire_le);
                   const estAttestation = p.type === "attestation_assurance";
+                  // Documents-0 : rappel d'assurance (13) dès qu'une échéance existe
+                  const boutonRappel = estAttestation && p.expire_le ? (
+                    <BoutonGenererDocument
+                      orgId={orgId}
+                      code="rappel_assurance"
+                      cibleId={p.document_id}
+                      cheminRetour={`/agence/${orgId}/personnes/${personId}`}
+                      libelle="Rappel PDF"
+                      variant="ghost"
+                    />
+                  ) : null;
                   return (
                     <li key={p.document_id} className="py-2">
                       <div className="flex flex-wrap items-center gap-3">
@@ -304,6 +316,7 @@ export default async function PagePersonne(
                             documentId={p.document_id}
                           />
                         )}
+                        {boutonRappel}
                       </div>
                       {anciennes.length > 0 && (
                         <details className="mt-1 pl-1 text-xs text-muted-foreground">

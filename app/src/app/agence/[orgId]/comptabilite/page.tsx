@@ -28,7 +28,7 @@ type Ecriture = {
 
 export default async function PageComptabilite(props: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
 
   const [
     { data: ecritures },
@@ -85,17 +85,25 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <div className="entete-page mb-6">
-          <h1>Comptabilité</h1>
+          <h1>{estProprietaire ? "Livre recettes-dépenses" : "Comptabilité"}</h1>
           <span className="mono-discret">
             {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
             {moisEnFrancais(moisCourant)} ouvert
           </span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Le journal des encaissements et des dépenses de l&apos;agence. Une
-          écriture ne se modifie pas : on l&apos;annule par une écriture inverse,
-          qui reste visible. Chaque mois se clôture une fois pour toutes.
+          {estProprietaire
+            ? "Vos encaissements et vos dépenses, sans honoraires. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible. Clôturer un mois est recommandé, jamais imposé."
+            : "Le journal des encaissements et des dépenses de l'agence. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible. Chaque mois se clôture une fois pour toutes."}
         </p>
+        {/* S9a : seul le propriétaire direct bénéficie de l'aide fiscale */}
+        {estProprietaire && (
+          <p className="mt-2 text-sm">
+            <a href={`/agence/${orgId}/comptabilite/fiscal`} className="lien-discret">
+              Récapitulatif fiscal {anneeCourante} (déclaration 2044) →
+            </a>
+          </p>
+        )}
       </div>
 
       {/* Solde en tuiles KPI (maquette) — même motif que le tableau de bord */}
@@ -119,8 +127,10 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           <CardTitle className="text-base">Saisir une écriture</CardTitle>
           <CardDescription>
             Deux dates : celle de la pièce justificative, et le mois sur lequel
-            l&apos;écriture compte. Les honoraires, eux, se créent tout seuls à
-            chaque encaissement de loyer.
+            l&apos;écriture compte.
+            {estProprietaire
+              ? " Les loyers encaissés s'inscrivent tout seuls."
+              : " Les honoraires, eux, se créent tout seuls à chaque encaissement de loyer."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -145,6 +155,8 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         </CardContent>
       </Card>
 
+      {/* Un rapport se rend à un mandant : le propriétaire direct n'en a pas */}
+      {!estProprietaire && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Rapports de gestion</CardTitle>
@@ -163,6 +175,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           />
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -188,7 +201,12 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         </CardHeader>
         <CardContent>
           {lignes.length === 0 ? (
-            <div className="vide">Aucune écriture pour l&apos;instant. Les honoraires se créent tout seuls à chaque encaissement de loyer ; saisissez ci-dessus une dépense ou une recette.</div>
+            <div className="vide">
+              Aucune écriture pour l&apos;instant.{" "}
+              {estProprietaire
+                ? "Les loyers encaissés s'inscrivent tout seuls ; saisissez ci-dessus une dépense ou une recette."
+                : "Les honoraires se créent tout seuls à chaque encaissement de loyer ; saisissez ci-dessus une dépense ou une recette."}
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

@@ -29,12 +29,20 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
 
   const { data: organisation } = await supabase
     .from("organizations")
-    .select("id, name, status")
+    .select("id, name, status, type, essai_fin")
     .eq("id", orgId)
     .maybeSingle();
   if (!organisation) notFound();
 
-  return { supabase, user, role: adhesion.role as string, organisation };
+  return {
+    supabase,
+    user,
+    role: adhesion.role as string,
+    organisation,
+    // S9a : le propriétaire direct reprend les écrans de l'agence, sans
+    // mandats ni honoraires — les pages s'adaptent sur ce seul drapeau.
+    estProprietaire: organisation.type === "proprietaire_direct",
+  };
 });
 
 // Garde de l'espace locataire (module 0b). Le locataire n'accède qu'à sa propre

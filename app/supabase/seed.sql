@@ -4,12 +4,17 @@ do $$
 declare
   v_org_alpha uuid;
   v_org_beta uuid;
+  v_org_pd uuid;
   v_uid uuid;
   v_pwd text := 'Gerimmo-Demo-2026';
   r record;
 begin
   insert into public.organizations (name, status) values ('Agence Alpha', 'active') returning id into v_org_alpha;
   insert into public.organizations (name, status) values ('Agence Beta', 'active') returning id into v_org_beta;
+  -- Propriétaire direct de démo (S9a) : son parc, en essai 14 jours
+  insert into public.organizations (name, type, status, essai_fin)
+  values ('Parc de Claire Moreau', 'proprietaire_direct', 'essai', current_date + 14)
+  returning id into v_org_pd;
 
   for r in
     select * from (values
@@ -18,7 +23,8 @@ begin
       ('agent.alpha@gerimmo-demo.fr'),
       ('admin.beta@gerimmo-demo.fr'),
       ('multi@gerimmo-demo.fr'),
-      ('locataire.alpha@gerimmo-demo.fr')
+      ('locataire.alpha@gerimmo-demo.fr'),
+      ('proprietaire@gerimmo-demo.fr')
     ) as t(email)
   loop
     insert into auth.users (
@@ -59,4 +65,10 @@ begin
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'locataire');
   insert into public.persons (organization_id, account_id, nom, prenom, email)
   values (v_org_alpha, v_uid, 'Leblanc', 'Julie', 'locataire.alpha@gerimmo-demo.fr');
+
+  -- Propriétaire direct : adhésion + sa propre fiche (elle porte la détention de ses lots)
+  select id into v_uid from public.accounts where email = 'proprietaire@gerimmo-demo.fr';
+  insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_pd, 'proprietaire_direct');
+  insert into public.persons (organization_id, account_id, nom, prenom, email)
+  values (v_org_pd, v_uid, 'Moreau', 'Claire', 'proprietaire@gerimmo-demo.fr');
 end $$;

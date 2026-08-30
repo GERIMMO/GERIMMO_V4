@@ -5,6 +5,7 @@ import { seDeconnecter } from "@/app/actions/auth";
 import { ClocheAlertes } from "@/components/cloche-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { sansJargon } from "@/lib/erreurs";
 
 export const metadata = { title: "Mes espaces — Gerimmo" };
 
@@ -50,6 +51,17 @@ export default async function PageEspaces() {
 
   const adhesions = (data ?? []) as unknown as Adhesion[];
 
+  // S9a — un propriétaire qui vient de s'inscrire (immédiatement, ou via le
+  // lien de confirmation reçu par email) n'a pas encore d'espace : on l'ouvre
+  // ici, une fois pour toutes (fonction idempotente), puis on y entre.
+  let erreurOuverture: string | null = null;
+  if (adhesions.length === 0 && user.user_metadata?.espace === "proprietaire_direct") {
+    const { data: orgId, error } = await supabase.rpc("initialiser_espace_proprietaire");
+    if (orgId) redirect(`/agence/${orgId}`);
+    // Refus métier (ex. : adresse d'un mandant — exclusivité PD/PM) : dit tel quel
+    erreurOuverture = error ? sansJargon(error.message) : null;
+  }
+
   // Une seule adhésion : entrée directe, pas de sélecteur
   if (adhesions.length === 1) {
     const chemin = cheminEspace(adhesions[0]);
@@ -85,8 +97,9 @@ export default async function PageEspaces() {
 
         {adhesions.length === 0 && (
           <p className="text-muted-foreground">
-            Aucun accès actif n&apos;est associé à votre compte. Rapprochez-vous
-            de votre agence.
+            {erreurOuverture
+              ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
+              : "Aucun accès actif n'est associé à votre compte. Rapprochez-vous de votre agence."}
           </p>
         )}
 

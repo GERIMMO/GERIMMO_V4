@@ -34,7 +34,7 @@ export default async function PagePersonne(
   props: PageProps<"/agence/[orgId]/personnes/[personId]">
 ) {
   const { orgId, personId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
 
   const { data: personne } = await supabase
     .from("persons")
@@ -353,7 +353,8 @@ export default async function PagePersonne(
         </CardContent>
       </Card>
 
-      {/* Mandats de gestion */}
+      {/* Mandats de gestion — un propriétaire direct n'en signe pas (S9a) */}
+      {!estProprietaire && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Mandats de gestion</CardTitle>
@@ -445,6 +446,7 @@ export default async function PagePersonne(
           <FormulaireMandat orgId={orgId} personId={personId} />
         </CardContent>
       </Card>
+      )}
     </main>
   );
 }

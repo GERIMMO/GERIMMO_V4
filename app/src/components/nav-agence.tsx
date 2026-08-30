@@ -12,23 +12,27 @@ export function NavAgence({
   orgId,
   alertesOuvertes,
   incidentsOuverts,
+  proprietaire = false,
 }: {
   orgId: string;
   alertesOuvertes: number;
   incidentsOuverts: number;
+  // S9a : mêmes écrans pour le propriétaire direct, mots de son quotidien —
+  // « ses lots » remplacent « ses mandats », son livre remplace la comptabilité.
+  proprietaire?: boolean;
 }) {
   const pathname = usePathname();
   const base = `/agence/${orgId}`;
   const entrees = [
     { href: base, libelle: "Tableau de bord", exact: true },
-    { href: `${base}/parc`, libelle: "Parc" },
+    { href: `${base}/parc`, libelle: proprietaire ? "Mes lots" : "Parc" },
     {
       href: `${base}/incidents`,
       libelle: "Incidents",
       badge: incidentsOuverts > 0 ? incidentsOuverts : undefined,
     },
-    { href: `${base}/personnes`, libelle: "Personnes" },
-    { href: `${base}/comptabilite`, libelle: "Comptabilité" },
+    { href: `${base}/personnes`, libelle: proprietaire ? "Locataires" : "Personnes" },
+    { href: `${base}/comptabilite`, libelle: proprietaire ? "Livre" : "Comptabilité" },
     { href: `${base}/documents`, libelle: "Documents" },
     {
       href: `${base}/alertes`,

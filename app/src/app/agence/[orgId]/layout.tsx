@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
-import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
 import { NavAgence } from "@/components/nav-agence";
 import { ClocheAlertes } from "@/components/cloche-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { Toasteur } from "@/components/ui/toast";
+
+// Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée
+function joursRestants(iso: string): number {
+  const ms = new Date(`${iso}T00:00:00`).getTime() - new Date(`${aujourdhuiParis()}T00:00:00`).getTime();
+  return Math.round(ms / 86_400_000);
+}
 
 // Layout de l'espace agence — charte : marque à gauche, contexte d'agence
 // séparé d'un filet, actions à droite ; navigation en onglets sous l'en-tête,
@@ -16,7 +22,8 @@ export default async function LayoutAgence({
   params,
 }: LayoutProps<"/agence/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, organisation, role } = await verifierAccesEspace(orgId);
+  const { supabase, organisation, role, estProprietaire } =
+    await verifierAccesEspace(orgId);
 
   // Revue recette 08/08 : la pop-up et la cloche ne montrent que les alertes
   // qui me sont confiées, dans l'agence où je me trouve — l'acteur
@@ -59,7 +66,9 @@ export default async function LayoutAgence({
               className="hidden h-7 w-px bg-[var(--sur-encre)]/20 sm:block"
             />
             <div className="min-w-0">
-              <p className="eyebrow text-[var(--sur-encre)]/55">Espace agence</p>
+              <p className="eyebrow text-[var(--sur-encre)]/55">
+                {estProprietaire ? "Espace propriétaire" : "Espace agence"}
+              </p>
               <p className="truncate text-[13px] text-[var(--sur-encre)]">
                 {organisation.name}
               </p>
@@ -94,10 +103,21 @@ export default async function LayoutAgence({
               orgId={orgId}
               alertesOuvertes={alertesOrg}
               incidentsOuverts={incidentsOuverts ?? 0}
+              proprietaire={estProprietaire}
             />
           </div>
         </div>
       </header>
+      {/* S9a : l'essai de 14 jours se voit sans gêner ; l'abonnement par bien
+          (Stripe) arrive au S11 — d'ici là, rien ne se ferme. */}
+      {organisation.status === "essai" && organisation.essai_fin && (
+        <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground sm:px-7">
+          Essai gratuit jusqu&apos;au {formaterDate(organisation.essai_fin)}
+          {joursRestants(organisation.essai_fin) < 0
+            ? " — période d'essai terminée, l'abonnement arrive prochainement"
+            : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
+        </p>
+      )}
 
       <div className="min-w-0 flex-1">{children}</div>
       {/* Confirmations façon maquette (recette 24/08) : le geste abouti fait

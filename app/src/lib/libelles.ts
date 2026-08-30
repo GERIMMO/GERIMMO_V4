@@ -7,8 +7,10 @@ export const LIBELLES_ROLES: Record<string, string> = {
   admin_agence: "Administrateur d'agence",
   agent: "Agent immobilier",
   proprietaire_direct: "Propriétaire direct",
+  proprietaire_mandant: "Propriétaire mandant",
   locataire: "Locataire",
   artisan: "Artisan",
+  garant: "Garant",
 };
 
 export const LIBELLES_STATUT_ADHESION: Record<string, string> = {

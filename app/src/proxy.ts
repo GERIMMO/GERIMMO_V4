@@ -4,8 +4,13 @@ import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
 
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
 // (réinitialisation…) : il doit rester traversable même connecté.
-const PUBLIC_PATHS = ["/connexion", "/mot-de-passe-oublie", "/auth/confirm"];
-const REDIRECT_SI_CONNECTE = ["/connexion", "/mot-de-passe-oublie"];
+const PUBLIC_PATHS = [
+  "/connexion",
+  "/inscription",
+  "/mot-de-passe-oublie",
+  "/auth/confirm",
+];
+const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });

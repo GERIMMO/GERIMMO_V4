@@ -2004,3 +2004,19 @@ sujet : [[Documents a generer et automatisation WhatsApp]] (catalogue AUTO/ASK),
 cadrage posées (sources des templates, moteur de rendu, périmètre, champs
 manquants, cycle de vie du document généré, articulation avec le dépôt signé).
 
+## [2026-08-30] query | Documents-0 : les 50 templates dépouillés, classement par couverture base
+
+Réponses de Tahir au cadrage : templates = design/sections de référence (pas de
+sources Handlebars fournies) ; vrai fichier PDF fidèle à la mise en forme ;
+champs manquants à déterminer ensemble ; bouton « Générer le bail » sur le bail
+en brouillon dès le locataire renseigné (cycle de vie à préciser plus tard).
+Analyse livrée : extraction automatique des champs (italiques) des 50 épreuves,
+croisée avec le schéma réel. Manques transverses : adresse postale du bailleur
+(persons sans adresse), identité réglementaire de l'agence (organizations n'a
+que name), IBAN, commune de signature, qualité du bailleur, commune de
+naissance. Classement en 4 tiers : 8 docs quasi 100 % auto (notice, quittance,
+reçus, IRL, prorata, avis d'échéance, rappel assurance) ; bail nu ≈ 70 %
+(manques descriptifs logement + zone tendue détaillée + caution structurée) ;
+tier 4 dépendant de modules futurs (Stripe S11, artisans S13, registre S9b).
+Proposition : démarrer tier 1 + bail nu avec formulaire de complément.
+

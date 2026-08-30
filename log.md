@@ -2020,3 +2020,20 @@ reçus, IRL, prorata, avis d'échéance, rappel assurance) ; bail nu ≈ 70 %
 tier 4 dépendant de modules futurs (Stripe S11, artisans S13, registre S9b).
 Proposition : démarrer tier 1 + bail nu avec formulaire de complément.
 
+## [2026-08-30] query | Documents-0 : dictionnaire annoté des baux (01-10) croisé avec la base
+
+Nouveau livrable de Tahir : `pdf-vierges/baux-annotes/` — PDF annotés + 
+`champs-baux-et-annexes.md` (459 champs, 147 blocs conditionnels, boucles,
+statuts Automatique / À demander / Relevé sur place). Analyse croisée avec le
+schéma réel : le « Automatique » du dictionnaire suppose des fiches enrichies
+(~16 champs manquants sur bailleur/lot/bien pour le bail nu : adresse+qualité
+bailleur, chauffage/eau chaude, TIC, parties communes, dernier loyer, loyers de
+référence, permis de louer, servitude…) ; inversement ~11 de ses « à demander »
+sont déjà portés par baux (loyer, charges+mode, dépôt, dates, jour, IRL
+trimestre). État réel : notice 100 % (table `textes` à créer), DDT ~23/37
+(résultats, GES, diagnostiqueur manquants ; type « bruit » absent de l'enum),
+inventaire ✓ (version sortie à faire), bail nu ~40 % aujourd'hui, avenant au
+bail = questionnaire pur (24 champs). Dette de référentiel consolidée remise à
+Tahir. Proposé : ingérer le dictionnaire comme source wiki, puis sprint =
+fiches enrichies + moteur de rendu + « Générer le bail » (docs 01/05/06/07).
+

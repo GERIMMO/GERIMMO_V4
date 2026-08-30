@@ -23,7 +23,8 @@ type LigneEcheancier = {
 };
 
 // Écran « Mes documents » — maquette pLocDocs : un tableau des pièces à
-// disposition (bail signé, attestations, pièces du dossier), une ligne par
+// disposition (bail signé, règlement de copropriété, attestations, pièces du
+// dossier — sprint « Alertes & documents » pour les pièces du bail), une ligne par
 // pièce avec Ouvrir / Télécharger. Les quittances gardent leur page dédiée.
 // Besoin de recette du 26/08 : pendant qu'une attestation renouvelée attend
 // sa validation, la dernière attestation VALIDÉE reste visible.
@@ -78,8 +79,8 @@ export default async function PageDocumentsLocataire(
         <CardContent className="pt-5">
           {total === 0 ? (
             <p className="vide">
-              Aucune pièce pour l&apos;instant — votre bail signé, vos quittances et
-              vos attestations apparaîtront ici.
+              Aucune pièce pour l&apos;instant — votre bail signé, le règlement de
+              copropriété, vos quittances et vos attestations apparaîtront ici.
             </p>
           ) : (
             <ul className="divide-y divide-border">

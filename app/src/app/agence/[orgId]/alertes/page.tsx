@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
-import { formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
+import { CRITICITES, COULEURS_CRITICITE, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
 import { estConfieeAMoi } from "@/lib/alertes";
 import {
   Card,
@@ -39,11 +39,11 @@ export default async function PageAlertes(
         .order("echeance", { ascending: true, nullsFirst: false }),
       supabase
         .from("alerts")
-        .select("id, titre, closed_at, closed_action, closed_by")
+        .select("id, type, criticite, titre, closed_at, closed_action, closed_by, origine_type")
         .eq("organization_id", orgId)
         .eq("statut", "fermee")
         .order("closed_at", { ascending: false })
-        .limit(10),
+        .limit(30),
       supabase.rpc("org_membres_gerants", { org: orgId }),
     ]);
   const membres = (donneesMembres ?? []) as {
@@ -97,13 +97,24 @@ export default async function PageAlertes(
               ) : (
                 <ul className="divide-y">
                   {(fermees ?? []).map((a) => (
-                    <li key={a.id} className="py-2 text-sm">
-                      <span className="font-medium">{a.titre}</span>
-                      <span className="ml-2 text-muted-foreground">
+                    <li key={a.id} className="space-y-0.5 py-2 text-sm">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span className={`badge-statut ${COULEURS_CRITICITE[a.criticite] ?? ""}`}>
+                          {CRITICITES[a.criticite] ?? a.criticite}
+                        </span>
+                        <span className="font-medium">{a.titre}</span>
+                        {/* Sprint « Alertes & documents » : le type et l'objet
+                            d'origine se lisent sans ouvrir l'alerte */}
+                        <span className="mono-discret">
+                          {a.type}
+                          {a.origine_type ? ` · ${a.origine_type}` : ""}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground">
                         {/* Sans auteur : fermée par l'événement d'origine (29/08) */}
-                        {a.closed_by ? "fermée" : "fermée automatiquement"} le{" "}
+                        {a.closed_by ? "Fermée" : "Fermée automatiquement"} le{" "}
                         {formaterDateHeure(a.closed_at)} — « {a.closed_action} »
-                      </span>
+                      </p>
                     </li>
                   ))}
                 </ul>

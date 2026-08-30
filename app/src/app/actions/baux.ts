@@ -8,6 +8,8 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { envoyerEmail } from "@/lib/email";
+import { headers } from "next/headers";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
 export type EtatBail = {
@@ -110,10 +112,33 @@ export async function modifierBail(
   return { succes: "Brouillon corrigé." };
 }
 
-// Déposer le bail signé (PDF) et le rattacher au bail.
-// Pièces PDF rattachées au bail : le bail signé (obligatoire pour valider) et
-// le règlement de copropriété (facultatif). Même contrôle : un PDF complet,
-// une image d'une page ne vaut pas le document.
+// Blocages de mise en location, chacun transformé en action cliquable
+// (bouton « Corriger » vers la bonne section de la fiche lot / bien).
+async function blocagesActionables(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  bailId: string
+): Promise<BlocageActionable[]> {
+  const { data: bail } = await supabase
+    .from("baux")
+    .select("lot_id")
+    .eq("id", bailId)
+    .maybeSingle();
+  if (!bail) return [];
+  const [{ data: lot }, { data: causes }] = await Promise.all([
+    supabase.from("lots").select("id, bien_id").eq("id", bail.lot_id).maybeSingle(),
+    supabase.rpc("lot_blocages_location", { p_lot: bail.lot_id }),
+  ]);
+  if (!lot || !Array.isArray(causes)) return [];
+  return (causes as string[]).map((m) => ({
+    message: m,
+    ...cibleBlocage(m, { orgId, bienId: lot.bien_id, lotId: lot.id }),
+  }));
+}
+
+// Pièces PDF rattachées au bail : le bail signé et le règlement de
+// copropriété (facultatif). Même contrôle : un PDF complet, une image d'une
+// page ne vaut pas le document.
 async function deposerPieceBail(
   orgId: string,
   bailId: string,
@@ -138,6 +163,21 @@ async function deposerPieceBail(
     return { erreur: `${piece.titre} se dépose en PDF complet — une image d'une page ne vaut pas le document.` };
   }
 
+  // Le bail signé active le bail (sprint « Alertes & documents ») : les
+  // contrôles de mise en location passent AVANT le dépôt — un PDF refusé ne
+  // laisse rien derrière lui.
+  const activation = piece.colonne === "document_signe";
+  if (activation) {
+    const { error } = await supabase.rpc("controler_mise_en_location", { p_bail: bailId });
+    if (error) {
+      if (error.message.includes("Mise en location bloquée")) {
+        const blocages = await blocagesActionables(supabase, orgId, bailId);
+        if (blocages.length > 0) return { erreur: "Mise en location bloquée — à corriger :", blocages };
+      }
+      return { erreur: sansJargon(error.message) };
+    }
+  }
+
   const res = await deposerFichierGed(supabase, user, orgId, fichier, piece.type, piece.titre);
   if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };
 
@@ -148,8 +188,33 @@ async function deposerPieceBail(
     .eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message) };
 
+  let succes = piece.succes;
+  if (activation) {
+    const { error: erreurActivation } = await supabase.rpc("activer_bail", { p_bail: bailId });
+    if (erreurActivation) {
+      // Les contrôles venaient de passer : un refus ici est une course (un
+      // autre bail activé entre-temps). Le PDF est détaché, rien n'est à
+      // moitié fait — le document reste en GED.
+      await supabase
+        .from("baux")
+        .update({ document_signe: null })
+        .eq("id", bailId)
+        .eq("organization_id", orgId);
+      return { erreur: sansJargon(erreurActivation.message) };
+    }
+    const { count } = await supabase
+      .from("etats_des_lieux")
+      .select("id", { count: "exact", head: true })
+      .eq("bail_id", bailId)
+      .eq("type", "entree")
+      .eq("etat", "signe");
+    succes =
+      "Bail signé déposé — le bail est actif, le lot est loué." +
+      (count ? "" : " L'état des lieux d'entrée reste à signer : une alerte le rappelle.");
+  }
+
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: res.avertissement ? `${piece.succes} ${res.avertissement}` : piece.succes };
+  return { succes: res.avertissement ? `${succes} ${res.avertissement}` : succes };
 }
 
 export async function deposerBailSigne(
@@ -180,45 +245,65 @@ export async function deposerReglementCopropriete(
   });
 }
 
-// Valider le bail (contrôles en base : PDF signé, EDL d'entrée signé, un seul
-// bail en cours sur le lot, lot disponible, diagnostics). Décision 29/08 : le
-// bouton s'appelle « Valider » et clôt la préparation du bail.
-export async function validerBail(
-  orgId: string,
-  bailId: string,
-  _etat: EtatBail,
-  _formData: FormData
-): Promise<EtatBail> {
+// « Corriger » : le bail tout juste activé revient en brouillon (la base
+// refuse dès qu'un loyer a été appelé ou encaissé) ; le PDF est détaché.
+export async function corrigerBail(orgId: string, bailId: string): Promise<EtatBail> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase.rpc("activer_bail", { p_bail: bailId });
-  if (error) {
-    // Blocage de mise en location : on transforme chaque cause en action cliquable
-    // (bouton « Corriger » vers la bonne section de la fiche lot / bien).
-    if (error.message.includes("Mise en location bloquée")) {
-      const { data: bail } = await supabase
-        .from("baux")
-        .select("lot_id")
-        .eq("id", bailId)
-        .maybeSingle();
-      const { data: lot } = bail
-        ? await supabase.from("lots").select("id, bien_id").eq("id", bail.lot_id).maybeSingle()
-        : { data: null };
-      const { data: causes } = bail
-        ? await supabase.rpc("lot_blocages_location", { p_lot: bail.lot_id })
-        : { data: null };
-      if (lot && Array.isArray(causes) && causes.length > 0) {
-        const blocages = (causes as string[]).map((m) => ({
-          message: m,
-          ...cibleBlocage(m, { orgId, bienId: lot.bien_id, lotId: lot.id }),
-        }));
-        return { erreur: "Mise en location bloquée — à corriger :", blocages };
-      }
-    }
-    return { erreur: sansJargon(error.message) };
-  }
+  const { error } = await supabase.rpc("devalider_bail", { p_bail: bailId });
+  if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Bail validé — le lot est loué." };
+  return { succes: "Bail remis en brouillon — corrigez-le, puis redéposez le PDF signé." };
+}
+
+// « Envoyer » : le bail signé est déjà dans « Mes documents » du locataire ;
+// l'email l'en avertit avec le lien vers son espace. L'envoi est mémorisé.
+export async function envoyerBailSigne(orgId: string, bailId: string): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { data: bail } = await supabase
+    .from("baux")
+    .select("etat, document_signe, locataire_principal, lot:lots(nom)")
+    .eq("id", bailId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!bail?.document_signe) return { erreur: "Aucun bail signé déposé." };
+  if (bail.etat === "brouillon") return { erreur: "Le bail n'est pas actif." };
+  const { data: loc } = bail.locataire_principal
+    ? await supabase
+        .from("persons")
+        .select("email, prenom")
+        .eq("id", bail.locataire_principal)
+        .maybeSingle()
+    : { data: null };
+  if (!loc?.email) return { erreur: "Le locataire n'a pas d'email renseigné." };
+
+  const origine = (await headers()).get("origin") ?? "";
+  const lot = (Array.isArray(bail.lot) ? bail.lot[0] : bail.lot) as { nom: string } | null;
+  const html = `
+    <div style="font-family:sans-serif;font-size:14px;color:#111">
+      <h2>Votre bail signé est disponible</h2>
+      <p>Bonjour${loc.prenom ? " " + loc.prenom : ""},</p>
+      <p>Votre bail${lot ? ` pour <strong>${lot.nom}</strong>` : ""} est signé : vous pouvez le consulter et le télécharger à tout moment depuis votre espace, rubrique « Mes documents ».</p>
+      <p><a href="${origine}/locataire/${orgId}/documents">Ouvrir mes documents</a></p>
+    </div>`;
+  const envoi = await envoyerEmail({ to: loc.email, subject: "Votre bail signé est disponible", html });
+  if (envoi.erreur) {
+    return {
+      erreur: `${envoi.erreur} Le bail reste disponible dans « Mes documents » du locataire.`,
+    };
+  }
+  const { error: erreurMemo } = await supabase
+    .from("baux")
+    .update({ signe_envoye_le: new Date().toISOString() })
+    .eq("id", bailId)
+    .eq("organization_id", orgId);
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  if (erreurMemo) {
+    return { succes: `Bail envoyé à ${loc.email}, mais l'envoi n'a pas pu être mémorisé.` };
+  }
+  return { succes: `Bail envoyé à ${loc.email}.` };
 }
 
 // Enregistrer un congé (bail actif → préavis).

@@ -9,13 +9,13 @@ import { buttonVariants } from "@/components/ui/button";
 import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "./edl/[edlId]/grille-edl";
 import {
   FormulaireBailSigne,
-  BoutonValiderBail,
   FormulaireReglementCopropriete,
   FormulaireConge,
   FormulaireAnnulerConge,
   FormulaireCreerEdl,
 } from "./formulaires-bail";
 import { FormulaireEditionBail } from "./formulaire-edition-bail";
+import { CarteBailSigne } from "./carte-bail-signe";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
 import { FormulaireColocation, type LigneColoc } from "./formulaire-colocation";
 import {
@@ -43,7 +43,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { data: bail } = await supabase
     .from("baux")
     .select(
-      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre"
+      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -67,7 +67,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .select("id", { count: "exact", head: true })
         .eq("lot_id", bail.lot_id),
       bail.locataire_principal
-        ? supabase.from("persons").select("nom, prenom").eq("id", bail.locataire_principal).maybeSingle()
+        ? supabase.from("persons").select("nom, prenom, email").eq("id", bail.locataire_principal).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase
         .from("etats_des_lieux")
@@ -213,15 +213,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   );
   const resteDepot = Number(bail.depot_garantie ?? 0) - depotEncaisse;
   const aFaire: { texte: string; href: string }[] = [];
-  // Prérequis de la validation (décision 29/08) : bail signé déposé, EDL
-  // d'entrée signé — puis « Valider » en bas de l'écran.
-  const prerequisValidation = [
-    { libelle: "Bail signé déposé", ok: Boolean(bail.document_signe), href: "#bail-signe" },
-    { libelle: "État des lieux d'entrée signé", ok: edlEntreeSigne, href: "#edl" },
-  ];
+  // Sprint « Alertes & documents » : plus de bouton « Valider » — le dépôt du
+  // bail signé active le bail et loue le lot ; l'état des lieux d'entrée se
+  // signe à la remise des clés, avant ou après, et une alerte le rappelle.
   if (bail.etat === "brouillon") {
-    if (!bail.document_signe)
-      aFaire.push({ texte: "Déposer le bail signé (PDF)", href: "#bail-signe" });
     if (!edlEntreeSigne && piecesDuLot === 0)
       aFaire.push({
         texte:
@@ -229,8 +224,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         href: `/agence/${orgId}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
       });
     if (!edlEntreeSigne)
-      aFaire.push({ texte: "Réaliser et signer l'état des lieux d'entrée", href: "#edl" });
-    aFaire.push({ texte: "Valider le bail (contrôles automatiques, puis lot loué)", href: "#validation" });
+      aFaire.push({ texte: "Réaliser et signer l'état des lieux d'entrée (à la remise des clés)", href: "#edl" });
+    aFaire.push({
+      texte: "Déposer le bail signé (PDF) — il active le bail et loue le lot",
+      href: "#bail-signe",
+    });
   } else {
     // Déclarer les pièces vient AVANT l'état des lieux : une fois signé, il est
     // figé, et une grille sans pièces ne rattache aucune dégradation à un endroit.
@@ -349,28 +347,30 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       {/* Cycle du bail */}
-      {bail.etat === "brouillon" && (
+      {(bail.etat === "brouillon" || bail.document_signe) && (
         <Card id="bail-signe" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Bail signé</CardTitle>
             <CardDescription>
-              Signature hors plateforme en V0 : déposez le PDF signé, il conditionne la
-              validation du bail.
+              Signature hors plateforme en V0 : le dépôt du PDF signé active le bail
+              et loue le lot (contrôles de mise en location au dépôt). Le locataire
+              le retrouve dans « Mes documents ».
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {bail.document_signe ? (
-              <p className="text-sm text-success-soft-foreground">
-                Bail signé déposé.{" "}
-                <a
-                  href={`/agence/${orgId}/documents/${bail.document_signe}/fichier`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-[var(--bleu)] underline-offset-2 hover:underline"
-                >
-                  Le consulter
-                </a>
-              </p>
+              <CarteBailSigne
+                orgId={orgId}
+                bailId={bailId}
+                documentId={bail.document_signe}
+                envoyeLe={bail.signe_envoye_le}
+                locataireEmail={locataire?.email ?? null}
+                // Retour en brouillon possible tant que rien n'a vécu : ni loyer
+                // appelé, ni restitution — la base est seule juge.
+                corrigeable={
+                  bail.etat === "actif" && (echeancier ?? []).length === 0 && !restitution
+                }
+              />
             ) : (
               <FormulaireBailSigne orgId={orgId} bailId={bailId} />
             )}
@@ -564,8 +564,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             // aucune retenue ne sera possible à la sortie (RM-2.4.3).
             bail.etat === "brouillon" ? (
               <p className="text-sm text-muted-foreground">
-                Aucun état des lieux. L&apos;état des lieux d&apos;entrée signé est requis
-                pour valider le bail.
+                Aucun état des lieux. Celui d&apos;entrée se signe à la remise des
+                clés — sans lui, aucune retenue ne sera possible à la sortie ; une
+                alerte le rappellera dès le dépôt du bail signé.
               </p>
             ) : (
               <div className="border-l-[3px] border-l-destructive bg-destructive-soft p-3">
@@ -673,21 +674,6 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
-      {/* Valider — en bas de l'écran, une fois le bail préparé (décision 29/08) */}
-      {bail.etat === "brouillon" && (
-        <Card id="validation" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle className="text-base">Valider le bail</CardTitle>
-            <CardDescription>
-              Contrôles automatiques (détention 100 %, diagnostics valides, un seul bail en
-              cours sur le lot) → le lot passe loué.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <BoutonValiderBail orgId={orgId} bailId={bailId} prerequis={prerequisValidation} />
-          </CardContent>
-        </Card>
-      )}
     </main>
   );
 }

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
-import { ClocheAlertes } from "@/components/cloche-alertes";
+import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { sansJargon } from "@/lib/erreurs";
@@ -78,7 +78,7 @@ export default async function PageEspaces() {
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3 sm:px-7">
           <MarqueGerimmo surEncre />
           <div className="flex items-center gap-4">
-            <ClocheAlertes alertes={alertes} surEncre />
+            <SyntheseAlertes alertes={alertes} surEncre rappel />
             <form action={seDeconnecter}>
               <button
                 type="submit"

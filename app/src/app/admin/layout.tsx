@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
-import { ClocheAlertes } from "@/components/cloche-alertes";
+import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 
@@ -36,7 +36,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
             >
               Journaux et conservation
             </Link>
-            <ClocheAlertes alertes={alertes} modeAdmin surEncre />
+            <SyntheseAlertes alertes={alertes} modeAdmin surEncre rappel />
             <form action={seDeconnecter}>
               <button
                 type="submit"

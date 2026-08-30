@@ -4,7 +4,7 @@ import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
 import { NavAgence } from "@/components/nav-agence";
-import { ClocheAlertes } from "@/components/cloche-alertes";
+import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { Toasteur } from "@/components/ui/toast";
 
@@ -25,9 +25,9 @@ export default async function LayoutAgence({
   const { supabase, organisation, role, estProprietaire } =
     await verifierAccesEspace(orgId);
 
-  // Revue recette 08/08 : la pop-up et la cloche ne montrent que les alertes
-  // qui me sont confiées, dans l'agence où je me trouve — l'acteur
-  // multi-agences navigue d'une agence à l'autre pour voir les siennes.
+  // Revue recette 08/08 : la pop-up de connexion et le badge du menu ne
+  // montrent que les alertes qui me sont confiées, dans l'agence où je me
+  // trouve — l'acteur multi-agences navigue d'une agence à l'autre.
   const [alertes, { count: incidentsOuverts }, { data: donneesMembres }] =
     await Promise.all([
       chargerSyntheseAlertes(supabase, { orgId }),
@@ -37,7 +37,7 @@ export default async function LayoutAgence({
         .select("*", { count: "exact", head: true })
         .eq("organization_id", orgId)
         .neq("etat", "clos"),
-      // « Traiter » depuis la cloche ouvre la pop-up sur place (recette
+        // « Traiter » depuis la synthèse ouvre la pop-up sur place (recette
       // 24/08) : il lui faut la liste des gérants pour « Confier à »
       supabase.rpc("org_membres_gerants", { org: orgId }),
     ]);
@@ -75,7 +75,9 @@ export default async function LayoutAgence({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-4 sm:gap-5">
-            <ClocheAlertes
+            {/* Pop-up de synthèse à la connexion — sans cloche (30/08) : le
+                menu Alertes en dessous porte déjà le badge. */}
+            <SyntheseAlertes
               alertes={alertes}
               surEncre
               membres={membres}

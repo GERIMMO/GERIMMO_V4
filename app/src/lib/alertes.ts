@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AlerteSynthese } from "@/components/cloche-alertes";
+import type { AlerteSynthese } from "@/components/synthese-alertes";
 
 // Valeur sentinelle du sélecteur d'assignation : « tout le monde »
 // (réservée au responsable de l'agence — voir actions/alertes.ts)
@@ -14,7 +14,7 @@ export function estConfieeAMoi(
   return alerte.assigned_all || alerte.assignee_account_id === userId;
 }
 
-// Synthèse des alertes ouvertes pour la pop-up de connexion et la cloche.
+// Synthèse des alertes ouvertes pour la pop-up de connexion (et son rappel).
 // Retour recette 08/08 : uniquement celles qui me sont confiées (à moi ou à
 // tout le monde) — la vision macro « toutes agences, toutes mains » est
 // abandonnée. `orgId` restreint à l'agence courante (layout agence) ; sans

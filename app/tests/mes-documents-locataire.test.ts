@@ -313,4 +313,57 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
       db.query(`select public.valider_attestation($1, $2)`, [orgA, doc1])
     ).rejects.toThrow(/plus récente/);
   });
+
+  it("le règlement de copropriété du bail est une pièce du locataire (sprint « Alertes & documents »)", async () => {
+    await simuler(db, compteAgent);
+    const {
+      rows: [{ id: bien }],
+    } = await db.query(
+      `select public.creer_bien_avec_lot($1,'9 rue du Règlement','appartement'::public.bien_type,
+         '9 rue du Règlement', null, '75001','Paris',1990,false,50,3) as id`,
+      [orgA]
+    );
+    const {
+      rows: [{ id: lot }],
+    } = await db.query(`select id from public.lots where bien_id = $1`, [bien]);
+    const cheminBail = `${orgA}/bail-copro-test.pdf`;
+    const cheminReglement = `${orgA}/reglement-copro-test.pdf`;
+    const docBail = await insererDocument(db, orgA, "bail", "Bail signé", cheminBail);
+    const docReglement = await insererDocument(db, orgA, "reglement_copropriete", "Règlement", cheminReglement);
+    const {
+      rows: [{ id: personneLo }],
+    } = await db.query(
+      `select id from public.persons where organization_id = $1 and account_id = $2`,
+      [orgA, compteLo]
+    );
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, document_signe, reglement_copropriete)
+       values ($1,$2,'actif',$3,$4,$5) returning id`,
+      [orgA, lot, personneLo, docBail, docReglement]
+    );
+
+    await simuler(db, compteLo);
+    const pieces = await db.query(
+      `select document_id, type, source from public.mes_pieces_locataire($1) where source = 'bail' order by type`,
+      [orgA]
+    );
+    expect(pieces.rows).toEqual([
+      { document_id: docBail, type: "bail", source: "bail" },
+      { document_id: docReglement, type: "reglement_copropriete", source: "bail" },
+    ]);
+    const meta = await db.query(`select storage_path from public.mon_document_locataire($1, $2)`, [orgA, docReglement]);
+    expect(meta.rows[0].storage_path).toBe(cheminReglement);
+    const chemins = await db.query(`select * from public.chemins_pieces_locataire()`);
+    expect(chemins.rows.map((r) => r.chemins_pieces_locataire)).toContain(cheminReglement);
+    await db.query(`select public.log_document_access($1, 'consultation')`, [docReglement]);
+
+    // Bail terminé : les pièces du bail ne sont plus exposées
+    await db.query("reset role");
+    await db.query(`update public.baux set etat='termine' where id=$1`, [bail]);
+    await simuler(db, compteLo);
+    const apres = await db.query(`select * from public.mon_document_locataire($1, $2)`, [orgA, docReglement]);
+    expect(apres.rows).toHaveLength(0);
+  });
 });

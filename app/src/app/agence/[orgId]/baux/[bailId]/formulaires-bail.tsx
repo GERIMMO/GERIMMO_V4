@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
   deposerBailSigne,
-  validerBail,
   deposerReglementCopropriete,
   enregistrerConge,
   annulerConge,
@@ -42,6 +41,21 @@ function FormulairePieceBail({
         {enCours ? "Dépôt…" : bouton}
       </Button>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+      {etat.blocages && etat.blocages.length > 0 && (
+        <ul className="w-full space-y-1.5">
+          {etat.blocages.map((b) => (
+            <li
+              key={b.message}
+              className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm"
+            >
+              <span className="min-w-0 flex-1 text-muted-foreground">{b.message}</span>
+              <Link href={b.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                {b.libelle} →
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       {etat.succes && <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>
   );
@@ -51,7 +65,7 @@ export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: 
   return (
     <FormulairePieceBail
       id="bail-signe"
-      libelle="Bail signé (PDF uniquement)"
+      libelle="Bail signé (PDF uniquement) — son dépôt active le bail et loue le lot"
       bouton="Déposer le bail signé"
       action={deposerBailSigne.bind(null, orgId, bailId)}
     />
@@ -66,68 +80,6 @@ export function FormulaireReglementCopropriete({ orgId, bailId }: { orgId: strin
       bouton="Déposer le règlement"
       action={deposerReglementCopropriete.bind(null, orgId, bailId)}
     />
-  );
-}
-
-// « Valider » (décision 29/08) : en bas de l'écran, il clôt la préparation du
-// bail. Les prérequis sont rappelés à côté ; la base reste seule juge et
-// renvoie le motif exact du refus.
-export function BoutonValiderBail({
-  orgId,
-  bailId,
-  prerequis,
-}: {
-  orgId: string;
-  bailId: string;
-  prerequis: { libelle: string; ok: boolean; href: string }[];
-}) {
-  const action = validerBail.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
-  const manquants = prerequis.filter((p) => !p.ok);
-  return (
-    <form action={formAction} className="space-y-3">
-      <ul className="space-y-1 text-sm">
-        {prerequis.map((p) => (
-          <li key={p.href} className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className={p.ok ? "text-success-soft-foreground" : "text-muted-foreground"}
-            >
-              {p.ok ? "✓" : "○"}
-            </span>
-            {p.ok ? (
-              <span>{p.libelle}</span>
-            ) : (
-              <a href={p.href} className="underline-offset-2 hover:underline">
-                {p.libelle}
-              </a>
-            )}
-          </li>
-        ))}
-      </ul>
-      <Button type="submit" disabled={enCours || manquants.length > 0}>
-        {enCours ? "Validation…" : "Valider"}
-      </Button>
-      {etat.erreur && <p className="mt-1 text-sm text-destructive">{etat.erreur}</p>}
-      {etat.blocages && etat.blocages.length > 0 && (
-        <ul className="mt-2 space-y-1.5">
-          {etat.blocages.map((b) => (
-            <li
-              key={b.message}
-              className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm"
-            >
-              <span className="min-w-0 flex-1 text-muted-foreground">{b.message}</span>
-              <Link
-                href={b.href}
-                className={buttonVariants({ variant: "outline", size: "sm" })}
-              >
-                {b.libelle} →
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </form>
   );
 }
 

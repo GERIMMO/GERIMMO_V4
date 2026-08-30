@@ -353,4 +353,116 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     expect(a.statut).toBe("fermee");
     expect(a.closed_action).toBe("État des lieux de sortie signé");
   });
+
+  it("compteur de restitution : alerte J-7 puis dépassée (une seule, mise à jour), fermée à la finalisation", async () => {
+    const bail = await bailAvecEdlEntree();
+    await db.query("reset role");
+    await db.query(`update public.baux set etat='preavis' where id=$1`, [bail]);
+    // Remise des clés il y a 25 jours, conforme → limite dans 5 jours (J-7)
+    await simuler(db, gerant);
+    const {
+      rows: [{ id: restitution }],
+    } = await db.query(
+      `select public.demarrer_restitution($1, current_date - 25, true) as id`,
+      [bail]
+    );
+    await db.query("reset role");
+    await db.query(`select set_config('request.jwt.claims', '', true)`);
+    const {
+      rows: [{ n }],
+    } = await db.query(`select public.generer_alertes_restitution() as n`);
+    expect(Number(n)).toBe(1);
+    const a1 = await db.query(
+      `select criticite, details->>'seuil' as seuil, origine_type, origine_id, echeance::text
+         from public.alerts where type='restitution_echeance' and details->>'restitution_id'=$1`,
+      [restitution]
+    );
+    expect(a1.rows).toHaveLength(1);
+    expect(a1.rows[0]).toMatchObject({ criticite: "normale", seuil: "J-7", origine_type: "restitution", origine_id: restitution });
+
+    // Le délai passe : la même alerte devient critique, aucune seconde ligne
+    await db.query(`update public.restitutions set date_remise_cles = current_date - 40 where id=$1`, [restitution]);
+    const {
+      rows: [{ n: n2 }],
+    } = await db.query(`select public.generer_alertes_restitution() as n`);
+    expect(Number(n2)).toBe(0);
+    const a2 = await db.query(
+      `select criticite, details->>'seuil' as seuil, statut from public.alerts
+        where type='restitution_echeance' and details->>'restitution_id'=$1`,
+      [restitution]
+    );
+    expect(a2.rows).toHaveLength(1);
+    expect(a2.rows[0]).toMatchObject({ criticite: "critique", seuil: "J+0", statut: "ouverte" });
+
+    // La finalisation du décompte ferme le compteur ; l'alerte « décompte » porte l'échéance légale
+    await simuler(db, gerant);
+    await db.query(`select public.finaliser_decompte($1)`, [restitution]);
+    const a3 = await db.query(
+      `select statut, closed_action from public.alerts
+        where type='restitution_echeance' and details->>'restitution_id'=$1`,
+      [restitution]
+    );
+    expect(a3.rows[0]).toMatchObject({ statut: "fermee", closed_action: "Décompte finalisé" });
+    const d = await db.query(
+      `select echeance::text from public.alerts where type in ('decompte','decompte_lrar') and details->>'restitution_id'=$1`,
+      [restitution]
+    );
+    expect(d.rows[0].echeance).toBe(
+      (await db.query(`select (current_date - 40 + interval '1 month')::date::text as d`)).rows[0].d
+    );
+  });
+
+  it("crons diagnostics : une seule alerte par diagnostic, mise à jour au fil des seuils, un seuil fermé n'est pas recréé", async () => {
+    const lotId = await lot();
+    await db.query("reset role");
+    const {
+      rows: [{ id: diag }],
+    } = await db.query(
+      `insert into public.diagnostics (organization_id, lot_id, type, date_realisation, date_expiration)
+       values ($1,$2,'dpe',current_date-3000,current_date+60) returning id`,
+      [org, lotId]
+    );
+    await db.query(`select set_config('request.jwt.claims', '', true)`);
+    await db.query(`select public.generer_alertes_diagnostics()`);
+    const j90 = await db.query(
+      `select id, criticite, details->>'seuil' as seuil from public.alerts
+        where type='diagnostic_expiration' and details->>'diagnostic_id'=$1`,
+      [diag]
+    );
+    expect(j90.rows).toHaveLength(1);
+    expect(j90.rows[0]).toMatchObject({ criticite: "informative", seuil: "J-90" });
+
+    // À J-30 : la même alerte change de seuil (avant : une seconde ligne)
+    await db.query(`update public.diagnostics set date_expiration=current_date+10 where id=$1`, [diag]);
+    await db.query(`select public.generer_alertes_diagnostics()`);
+    const j30 = await db.query(
+      `select id, criticite, details->>'seuil' as seuil, statut from public.alerts
+        where type='diagnostic_expiration' and details->>'diagnostic_id'=$1`,
+      [diag]
+    );
+    expect(j30.rows).toHaveLength(1);
+    expect(j30.rows[0]).toMatchObject({ id: j90.rows[0].id, criticite: "normale", seuil: "J-30", statut: "ouverte" });
+
+    // Traitée à la main : le cron ne la ressuscite pas au même seuil…
+    await db.query(
+      `update public.alerts set statut='fermee', closed_at=now(), closed_action='vu' where id=$1`,
+      [j30.rows[0].id]
+    );
+    await db.query(`select public.generer_alertes_diagnostics()`);
+    const encore = await db.query(
+      `select count(*)::int as n from public.alerts where type='diagnostic_expiration' and details->>'diagnostic_id'=$1`,
+      [diag]
+    );
+    expect(encore.rows[0].n).toBe(1);
+    // …mais l'expiration (nouveau seuil) rouvre le sujet
+    await db.query(`update public.diagnostics set date_expiration=current_date-1 where id=$1`, [diag]);
+    await db.query(`select public.generer_alertes_diagnostics()`);
+    const j0 = await db.query(
+      `select criticite, details->>'seuil' as seuil, statut from public.alerts
+        where type='diagnostic_expiration' and details->>'diagnostic_id'=$1 and statut='ouverte'`,
+      [diag]
+    );
+    expect(j0.rows).toHaveLength(1);
+    expect(j0.rows[0]).toMatchObject({ criticite: "critique", seuil: "J+0" });
+  });
 });

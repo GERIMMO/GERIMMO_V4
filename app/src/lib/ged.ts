@@ -35,6 +35,7 @@ export const VISIBILITE_DOCUMENT: Record<string, string> = {
   bail: "Agence et locataire",
   quittance: "Agence et locataire",
   etat_des_lieux: "Agence et locataire",
+  reglement_copropriete: "Agence et locataire",
   attestation_assurance: "Agence et la personne concernée",
   piece_identite: "Agence et la personne concernée",
   justificatif: "Agence et la personne concernée",

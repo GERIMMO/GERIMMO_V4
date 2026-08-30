@@ -12,7 +12,9 @@ import { ModaleAlerte } from "@/app/agence/[orgId]/alertes/modale-alerte";
 // uniquement les alertes qui me sont confiées (nominativement ou « tout le
 // monde »), puis accès au détail pour répondre et fermer. Jamais bloquante
 // (Échap, clic extérieur, bouton Fermer en pied — seul bouton de sortie) ;
-// s'affiche une fois par session, rappelable via la cloche en permanence.
+// s'affiche une fois par session. La cloche de l'en-tête a été retirée
+// (demande du 30/08 : doublon de l'entrée « Alertes » du menu) ; là où ce
+// menu n'existe pas (« Mes espaces », console SA), un lien texte la rappelle.
 
 export type AlerteSynthese = {
   id: string;
@@ -33,14 +35,18 @@ export type AlerteSynthese = {
 // à zéro, sinon une reconnexion dans le même onglet n'ouvrirait plus la synthèse.
 export const CLE_SESSION_ALERTES = "gerimmo-synthese-alertes-vue";
 
-export function ClocheAlertes({
+export function SyntheseAlertes({
   alertes,
   modeAdmin = false,
   surEncre = false,
   membres,
   estResponsable = false,
+  rappel = false,
 }: {
   alertes: AlerteSynthese[];
+  // Lien texte « Alertes (n) » qui rouvre la synthèse — pour les écrans sans
+  // menu Alertes ; dans l'espace agence, l'onglet du menu suffit.
+  rappel?: boolean;
   // Console SA : le détail renvoie vers la fiche agence de la console,
   // pas vers l'espace agence (dont le SA n'est pas membre)
   modeAdmin?: boolean;
@@ -92,37 +98,28 @@ export function ClocheAlertes({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOuverte(true)}
-        aria-label={`Alertes qui me sont confiées : ${alertes.length}`}
-        className={`relative inline-flex items-center transition-colors ${
-          surEncre
-            ? "text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-            : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <svg
-          aria-hidden
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          className="size-[1.15rem]"
+      {rappel && (
+        <button
+          type="button"
+          onClick={() => setOuverte(true)}
+          className={`text-[0.8125rem] transition-colors ${
+            surEncre
+              ? "text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
         >
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-        </svg>
-        {/* Charte : une pastille suffit à signaler, le compte est dans l'onglet */}
-        {alertes.length > 0 && (
-          <span
-            aria-hidden
-            className={`absolute -top-0.5 -right-0.5 size-2 rounded-full ${
-              nbCritiques > 0 ? "bg-[var(--destructive)]" : "bg-[var(--or)]"
-            } ${surEncre ? "ring-2 ring-[var(--encre)]" : ""}`}
-          />
-        )}
-      </button>
+          Alertes
+          {alertes.length > 0 && (
+            <span
+              className={`ml-1.5 rounded-full px-[7px] py-px font-[family-name:var(--font-libelles)] text-[10px] text-white ${
+                nbCritiques > 0 ? "bg-[var(--destructive)]" : "bg-[var(--or)]"
+              }`}
+            >
+              {alertes.length}
+            </span>
+          )}
+        </button>
+      )}
 
       {ouverte && (
         /* Modale unique de la charte (recette 22/08) — posée en haut, sortie

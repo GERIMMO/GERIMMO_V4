@@ -365,11 +365,22 @@ manquants est remise dans la recette.
   dès que le locataire est renseigné ; blocs conditionnels pilotés par les
   données (zone tendue, copropriété, colocataires, garants, indivision…) ;
   champs indisponibles laissés en libellé.
+- **États des lieux (14 entrée / 15 sortie)** *(ajout du 31/08)* : PDF généré
+  depuis la grille réelle (pièces, états, commentaires, compteurs, clés ;
+  en sortie : comparatif et retenues avec vétusté) — bouton sur la grille.
+- **Identité des parties** *(ajout du 31/08 — les documents en ont besoin)* :
+  formulaire d'**inscription du propriétaire** enrichi (adresse postale,
+  téléphone, qualité personne physique/SCI) ; page **profil de
+  l'organisation** (agence et propriétaire) où le responsable complète
+  adresse, téléphone, email de contact, SIRET — sert l'en-tête/pied des
+  documents et le « Fait à ». Colonnes ajoutées à `persons` et
+  `organizations` ; fiche personne enrichie en conséquence.
 - **Hors sprint (assumé)** : questionnaire de génération, enrichissement des
-  fiches (adresse bailleur, chauffage…), baux 02/03/04, cycle de vie avancé du
-  document généré (le circuit du bail signé déposé reste inchangé).
-**Démo : une quittance, un avis d'échéance et un bail nu générés en PDF, rangés
-dans Documents, avec la liste honnête de ce qui manque en base.**
+  fiches lot/diagnostics (chauffage, GES…), baux 02/03/04, cycle de vie avancé
+  du document généré (le circuit du bail signé déposé reste inchangé).
+**Démo : une quittance, un avis d'échéance, un bail nu et un EDL d'entrée
+générés en PDF, rangés dans Documents, avec la liste honnête de ce qui manque
+en base.**
 
 ### Recette V0 — 🎯 Jalon V0
 Recette fonctionnelle complète ensemble (scénarios = US du référentiel),

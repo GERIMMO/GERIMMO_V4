@@ -2068,3 +2068,11 @@ cycle de vie avancé. Hypothèses posées : génération manuelle (bouton), bail
 généré non signé jamais exposé au locataire. Sprint inscrit au
 [[Plan de livraison et sprints]] avant la Recette V0.
 
+## [2026-08-31] plan | Documents-0 élargi : EDL, inscription propriétaire enrichie, profil d'organisation
+
+Ajouts de Tahir au sprint : génération des EDL d'entrée/sortie (14/15) depuis
+la grille réelle ; formulaire d'inscription du propriétaire complété des infos
+nécessaires aux documents (adresse, téléphone, qualité) ; page profil de
+l'organisation (agence et PD) éditable par le responsable (adresse, téléphone,
+email, SIRET) pour l'en-tête/pied et le « Fait à ». Plan mis à jour.
+

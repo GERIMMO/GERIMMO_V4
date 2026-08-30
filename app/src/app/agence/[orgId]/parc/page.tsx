@@ -35,7 +35,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   const selection = lireSelection(sel);
   const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
 
-  const [{ data: biens }, { data: equipements }, { data: bauxActifs }] = await Promise.all([
+  const [{ data: biens }, { data: equipements }, { data: bauxActifs }, { data: blocagesParc }] =
+    await Promise.all([
     supabase
       .from("biens")
       // !lots_bien_id_fkey : depuis les FK composites (revue 2), deux relations
@@ -56,6 +57,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       .select("loyer_hc, charges")
       .eq("organization_id", orgId)
       .in("etat", ["actif", "preavis"]),
+    // Motifs de blocage de tous les lots en préparation, en un aller-retour (perf 30/08)
+    supabase.rpc("lots_blocages_location", { p_org: orgId }),
   ]);
 
   const biensVisibles = (biens ?? []).map((bien) => ({
@@ -88,11 +91,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
   // « Éléments à compléter » (maquette) : les motifs de blocage de mise en
   // location, agrégés sur les lots en préparation, triés du plus fréquent.
-  const listesBlocages = await Promise.all(
-    enPreparation.map(async (l) => {
-      const { data } = await supabase.rpc("lot_blocages_location", { p_lot: l.id });
-      return (data ?? []) as string[];
-    })
+  const listesBlocages = ((blocagesParc ?? []) as { lot_id: string; blocages: string[] | null }[]).map(
+    (b) => b.blocages ?? []
   );
   const parMotif = new Map<string, number>();
   for (const motifs of listesBlocages) {

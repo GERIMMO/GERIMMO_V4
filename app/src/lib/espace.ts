@@ -16,9 +16,11 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
 
+  // Perf 30/08 : l'adhésion et son organisation en un seul aller-retour
+  // (deux requêtes en cascade auparavant, sur chaque page de l'espace).
   const { data: adhesion } = await supabase
     .from("memberships")
-    .select("role")
+    .select("role, organisation:organizations(id, name, status, type, essai_fin)")
     .eq("account_id", user.id)
     .eq("organization_id", orgId)
     .eq("status", "active")
@@ -26,12 +28,15 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
     redirect("/espaces");
   }
-
-  const { data: organisation } = await supabase
-    .from("organizations")
-    .select("id, name, status, type, essai_fin")
-    .eq("id", orgId)
-    .maybeSingle();
+  const organisation = (Array.isArray(adhesion.organisation)
+    ? adhesion.organisation[0]
+    : adhesion.organisation) as {
+    id: string;
+    name: string;
+    status: string;
+    type: string;
+    essai_fin: string | null;
+  } | null;
   if (!organisation) notFound();
 
   return {

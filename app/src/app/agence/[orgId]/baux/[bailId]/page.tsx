@@ -124,31 +124,36 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   }));
 
   const edlSignes = (edls ?? []).filter((e) => e.etat === "signe");
-  const { data: comparatif } =
-    edlSignes.some((e) => e.type === "entree") && edlSignes.some((e) => e.type === "sortie")
-      ? await supabase.rpc("comparatif_edl", { p_bail: bailId })
-      : { data: null };
-  const ecarts = ((comparatif ?? []) as {
-    piece: string | null;
-    libelle: string;
-    etat_entree: string | null;
-    etat_sortie: string | null;
-    ecart: boolean;
-  }[]).filter((c) => c.ecart);
-
+  const comparatifPossible =
+    edlSignes.some((e) => e.type === "entree") && edlSignes.some((e) => e.type === "sortie");
   // Loyers (dès que le bail n'est plus en brouillon)
   const loyersActif = bail.etat !== "brouillon";
+  // Restitution du dépôt : dès que le bail est en préavis ou terminé
+  const restitutionActif = bail.etat === "preavis" || bail.etat === "termine";
+
+  // Perf 30/08 : trois lectures qui ne dépendent que du bail partaient l'une
+  // après l'autre (comparatif, loyers, restitution puis retenues) — une seule
+  // vague, les retenues embarquées dans la restitution.
+  const vide = { data: [] as never[] };
   const [
-    { data: echeancier },
-    { data: encaissements },
-    { data: quittances },
-    { data: revisions },
-    { data: relances },
-    { data: regularisations },
-    // Encaissement du dépôt : même condition, même aller-retour
-    { data: depotEncaissements },
-  ] = loyersActif
-    ? await Promise.all([
+    { data: comparatif },
+    [
+      { data: echeancier },
+      { data: encaissements },
+      { data: quittances },
+      { data: revisions },
+      { data: relances },
+      { data: regularisations },
+      // Encaissement du dépôt : même condition, même aller-retour
+      { data: depotEncaissements },
+    ],
+    { data: restitutionBrute },
+  ] = await Promise.all([
+    comparatifPossible
+      ? supabase.rpc("comparatif_edl", { p_bail: bailId })
+      : Promise.resolve({ data: null }),
+    loyersActif
+      ? Promise.all([
         supabase.rpc("etat_loyers_bail", { p_bail: bailId }),
         supabase
           .from("encaissements")
@@ -180,26 +185,30 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .eq("bail_id", bailId)
           .order("date_encaissement"),
       ])
-    : [{ data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }, { data: [] }];
-
-  // Restitution du dépôt : dès que le bail est en préavis ou terminé
-  const restitutionActif = bail.etat === "preavis" || bail.etat === "termine";
-  const { data: restitution } = restitutionActif
-    ? await supabase
-        .from("restitutions")
-        .select(
-          "id, date_remise_cles, delai_mois, depot, impayes, sans_edl_entree, statut, solde, date_emission, envoye_le"
-        )
-        .eq("bail_id", bailId)
-        .maybeSingle()
-    : { data: null };
-  const { data: retenues } = restitution
-    ? await supabase
-        .from("retenues")
-        .select("id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif")
-        .eq("restitution_id", (restitution as { id: string }).id)
-        .order("created_at")
-    : { data: [] };
+      : Promise.resolve([vide, vide, vide, vide, vide, vide, vide]),
+    restitutionActif
+      ? supabase
+          .from("restitutions")
+          .select(
+            "id, date_remise_cles, delai_mois, depot, impayes, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, created_at)"
+          )
+          .eq("bail_id", bailId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const ecarts = ((comparatif ?? []) as {
+    piece: string | null;
+    libelle: string;
+    etat_entree: string | null;
+    etat_sortie: string | null;
+    ecart: boolean;
+  }[]).filter((c) => c.ecart);
+  const restitution = restitutionBrute as
+    | (Restitution & { retenues?: (Retenue & { created_at: string })[] })
+    | null;
+  const retenues: Retenue[] = [...(restitution?.retenues ?? [])].sort((a, b) =>
+    a.created_at.localeCompare(b.created_at)
+  );
 
   // « À faire maintenant » : la page suit le cycle de vie du bail, mais un
   // agent qui débute ne connaît pas l'ordre — on le déduit des données et on

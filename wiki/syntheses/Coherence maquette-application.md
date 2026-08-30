@@ -48,7 +48,9 @@ la maquette la garde ; écart assumé à la demande de Tahir.
   Documents (neutre). Liseré gauche, chiffre Cormorant 29 px, chevron au survol.
 - **Rangée graphique** : donut « Répartition du parc » (loués / disponibles /
   en préparation, % au centre) + barres doubles « Encaissements et dépenses »
-  sur 6 mois (écritures réelles). SVG pur, sans bibliothèque.
+  sur 6 mois (écritures réelles), **infobulle au survol** de chaque mois
+  (encaissé + dépenses, 30/08). SVG pur, sans bibliothèque. **Curseur main** sur
+  tout ce qui se clique (boutons compris, 30/08).
 - Deux colonnes : alertes à gauche, cartes contextuelles à droite.
 
 **Parc**
@@ -86,7 +88,7 @@ la maquette la garde ; écart assumé à la demande de Tahir.
 |---|---|---|
 | **Recherche globale** dans le bandeau (Ctrl-K, modale de résultats) | Non implémentée | Fonctionnalité transverse à part entière — à planifier comme incrément, pas comme habillage. La recherche locale existe sur Personnes. |
 | **Avatar + menu compte** dans le bandeau | « Mes espaces / Se déconnecter » en liens | Même service ; le menu déroulant viendra avec les préférences de compte. |
-| ~~KPI **Incidents** + donut « Incidents par payeur »~~ | **Donut branché le 21/08** (S7) au tableau de bord, 3ᵉ carte de la rangée graphique | L'écart est levé ; pas de 5ᵉ tuile KPI (la grille `xl:grid-cols-4` reste intacte, les alertes incidents alimentent déjà « À traiter »). |
+| KPI **Incidents** + donut « Incidents par payeur » | Tuile Incidents conservée ; **donut retiré le 30/08** (demande de Tahir : un incident est une alerte, la carte n'apportait rien) — la rangée graphique passe à 2 cartes | La file « à qualifier » reste lisible sur la tuile ; le détail par payeur vit dans l'onglet Incidents. |
 | Carte **« À lire »** (articles) | Absente | Le module éditorial n'est pas au périmètre V0. |
 | **« Prochains rendez-vous »** avec pastille jour ardoise | Carte « Cette semaine » (libellé jour mono) | Même contenu, rendu plus sobre ; la pastille date viendra avec le planning (S7). |
 | Rangs d'alerte du tableau de bord = `ligneAlerte` maquette | Liste **plus riche** que la maquette | Le tableau réel groupe dépassé/à venir et montre lot + montant — on ne l'appauvrit pas pour ressembler au prototype. La page Alertes, elle, utilise `rang-alerte` conforme. |

@@ -120,20 +120,45 @@ export function BarresDouble({
   hauteur?: number;
 }) {
   const max = Math.max(1, ...donnees.flatMap((d) => [d.a, d.b]));
+  const eur = (n: number) =>
+    `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
   return (
-    <div className="flex items-end gap-3" style={{ height: hauteur + 18 }}>
+    // Marge haute réservée à l'infobulle : elle ne dépasse jamais de la carte
+    <div className="flex items-end gap-3 pt-16" style={{ height: hauteur + 18 + 64 }}>
       {donnees.map((d) => (
-        <div key={d.libelle} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+        // Retour recette 30/08 : le montant apparaît en infobulle au survol de
+        // chaque barre (et de la colonne entière — les petites barres sont
+        // difficiles à viser). Les deux séries sont dites d'un coup.
+        <div
+          key={d.libelle}
+          // Les deux dernières colonnes ancrent l'infobulle à droite, sinon elle
+          // sortirait de la carte.
+          className="group relative flex min-w-0 flex-1 flex-col items-center gap-1 [&:nth-last-child(-n+2)>[role=tooltip]]:left-auto [&:nth-last-child(-n+2)>[role=tooltip]]:right-0 [&:nth-last-child(-n+2)>[role=tooltip]]:translate-x-0 [&:nth-last-child(-n+2)>[role=tooltip]]:after:left-auto [&:nth-last-child(-n+2)>[role=tooltip]]:after:right-3"
+          tabIndex={0}
+          aria-label={`${d.libelle} — encaissé ${eur(d.a)}, dépenses ${eur(d.b)}`}
+        >
+          <span
+            role="tooltip"
+            className="infobulle pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap group-hover:block group-focus-visible:block"
+          >
+            <b className="block">{d.libelle}</b>
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden className="size-2" style={{ background: couleurA }} />
+              Encaissé {eur(d.a)}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span aria-hidden className="size-2" style={{ background: couleurB }} />
+              Dépenses {eur(d.b)}
+            </span>
+          </span>
           <div className="flex w-full items-end justify-center gap-[3px]" style={{ height: hauteur }}>
             <span
-              className="w-2/5 max-w-4"
-              style={{ height: `${Math.round((d.a / max) * 100)}%`, background: couleurA }}
-              title={`${d.libelle} — encaissé : ${d.a.toLocaleString("fr-FR")} €`}
+              className="w-2/5 max-w-4 transition-opacity group-hover:opacity-80"
+              style={{ height: `${Math.max(2, Math.round((d.a / max) * 100))}%`, background: couleurA }}
             />
             <span
-              className="w-2/5 max-w-4"
-              style={{ height: `${Math.round((d.b / max) * 100)}%`, background: couleurB }}
-              title={`${d.libelle} — dépenses : ${d.b.toLocaleString("fr-FR")} €`}
+              className="w-2/5 max-w-4 transition-opacity group-hover:opacity-80"
+              style={{ height: `${Math.max(2, Math.round((d.b / max) * 100))}%`, background: couleurB }}
             />
           </div>
           <span className="mono-discret truncate">{d.libelle}</span>

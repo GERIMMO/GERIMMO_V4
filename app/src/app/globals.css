@@ -191,6 +191,17 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Retour recette 30/08 : un bouton se signale comme un lien — curseur main
+     partout où l'on peut cliquer, sauf sur ce qui est désactivé. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  input[type="submit"]:not(:disabled),
+  input[type="file"]:not(:disabled),
+  select:not(:disabled),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
   body {
     @apply bg-background text-foreground;
     /* Charte v2 : corps 14 px en Instrument Sans */
@@ -505,6 +516,25 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 /* Sélection ouverte dans le panneau (maquette .actif) : liseré laiton, fond crème */
 .rang.actif, .rang-lot.actif { background: #fcfaf5; border-left-color: var(--or); }
 .tete-groupe.actif { box-shadow: inset 3px 0 0 var(--or); }
+
+/* Infobulle des graphiques (charte : encre sur ivoire, angles vifs, mono discret) */
+.infobulle {
+  background: var(--encre);
+  color: var(--sur-encre);
+  padding: 6px 9px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+.infobulle::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: var(--encre);
+}
 
 /* État vide qui guide (maquette .vide) */
 .vide {

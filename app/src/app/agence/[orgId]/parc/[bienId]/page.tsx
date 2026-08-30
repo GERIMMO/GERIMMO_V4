@@ -94,17 +94,15 @@ export default async function PageBien(
 
   // Blocages de mise en location, affichés directement sur la fiche bien :
   // en mono-lot personne n'ouvre la fiche lot pour y trouver le bouton
+  const { data: blocagesBien } = await supabase.rpc("lots_blocages_location", {
+    p_org: orgId,
+    p_bien: bienId,
+  });
   const blocagesParLot = new Map(
-    await Promise.all(
-      (lots ?? [])
-        .filter((l) => l.etat === "brouillon")
-        .map(async (l) => {
-          const { data } = await supabase.rpc("lot_blocages_location", {
-            p_lot: l.id,
-          });
-          return [l.id, (data ?? []) as string[]] as const;
-        })
-    )
+    ((blocagesBien ?? []) as { lot_id: string; blocages: string[] | null }[]).map((b) => [
+      b.lot_id,
+      b.blocages ?? [],
+    ])
   );
 
   const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");

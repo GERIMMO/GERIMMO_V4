@@ -1955,3 +1955,30 @@ Demande de Tahir : refaire les tests, comparer le fonctionnement à la maquette
 - Constaté, non corrigé (donnée, pas code) : le PDF du bail actif de démo
   « Moreau Sofia » répond « Fichier indisponible » (objet absent du stockage).
 Recette : scénario 30.8 ajouté ; [[Coherence maquette-application]] mis à jour.
+
+## [2026-08-30] dev | Performance, tableau de bord (retours de Tahir), re-tests
+
+Demande : refaire les tests, optimiser chargement/navigation/cache, retirer
+« Incidents par payeur » (un incident est une alerte), infobulles sur les barres
+encaissements/dépenses, curseur main sur les boutons.
+- **Mesures** (serveur de dev, base réelle, pages chaudes, temps du code
+  applicatif) : tableau de bord 420-580 ms → 330-410 ms ; Parc 323 → 258 ms ;
+  fiche personne 514 → 369 ms ; fiche bail 524 → 448 ms. Le reste est la
+  latence Supabase (≈ 50-100 ms par aller-retour) et le proxy (1 requête
+  d'adhésions par page, gardée pour la politique de sessions).
+- **Optimisations** : `lots_blocages_location(org, bien)` (migration
+  `20260830140000_perf_blocages_org`, en prod) remplace N appels par lot en
+  préparation (tableau de bord, Parc, fiche bien) ; fiche personne : 8
+  allers-retours en cascade → 3 vagues (lots avec bien embarqué) ; fiche bail :
+  comparatif + loyers + restitution (retenues embarquées) en une vague ;
+  `verifierAccesEspace` : adhésion + organisation en une requête ;
+  `staleTimes { dynamic: 30 }` : retour sur un onglet récent sans aller-retour.
+- **Tableau de bord** : carte « Incidents par payeur » retirée (tuile Incidents
+  conservée), rangée graphique à 2 cartes ; `BarresDouble` : infobulle charte
+  au survol/focus (mois, encaissé, dépenses), ancrée à droite sur les dernières
+  colonnes ; `globals.css` : curseur main sur boutons/sélecteurs/fichiers.
+- **Tests** : 90 unitaires verts, typecheck/lint 0 erreur ; recette navigateur
+  (admin.alpha@) : tableau de bord, Parc scindé, fiche personne, fiche bail,
+  infobulle vue. Leçon : un `.next` périmé après changement de config rendait
+  tout `/agence/*` en 404 — redémarrage propre (`rm -rf .next`) obligatoire.
+Recette : scénario 30.9 ; [[Coherence maquette-application]] mis à jour.

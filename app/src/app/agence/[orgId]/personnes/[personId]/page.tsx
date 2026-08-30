@@ -78,13 +78,42 @@ export default async function PagePersonne(
       .order("created_at"),
   ]);
 
+  // Perf 30/08 : ce qui ne dépend que de la première vague part en parallèle
+  // (documents du dossier, lots détenus avec leur bien, lignes de mandats,
+  // lots déjà couverts) — 8 allers-retours en cascade sont devenus 3 vagues.
   const idsDossier = (liensDossier ?? []).map((l) => l.document_id);
-  const { data: tousDocs } = idsDossier.length
-    ? await supabase
-        .from("documents")
-        .select("id, titre, remplace_id, created_at")
-        .in("id", idsDossier)
-    : { data: [] };
+  const lotIds = [...new Set((detentions ?? []).map((d) => d.lot_id))];
+  const mandatIds = (mandats ?? []).map((m) => m.id);
+  type LotAvecBien = { id: string; nom: string; bien_id: string; bien: UnOuPlusieurs<{ nom: string }> };
+  const [{ data: tousDocs }, { data: lots }, { data: lignesCouvrantes }, { data: lignes }] =
+    await Promise.all([
+      idsDossier.length
+        ? supabase.from("documents").select("id, titre, remplace_id, created_at").in("id", idsDossier)
+        : Promise.resolve({ data: [] }),
+      lotIds.length
+        ? supabase
+            .from("lots")
+            .select("id, nom, bien_id, bien:biens!lots_bien_id_fkey(nom)")
+            .in("id", lotIds)
+        : Promise.resolve({ data: [] }),
+      // Lots déjà couverts par un mandat non résilié (le sien ou celui d'un
+      // co-détenteur) : inutile de les proposer, la base les refuserait (RM-5.1.3).
+      lotIds.length
+        ? supabase
+            .from("mandat_lignes")
+            .select("lot_id, mandat:mandats!inner(etat)")
+            .eq("organization_id", orgId)
+            .in("lot_id", lotIds)
+            .is("date_fin", null)
+        : Promise.resolve({ data: [] }),
+      // Lignes des mandats
+      mandatIds.length
+        ? supabase
+            .from("mandat_lignes")
+            .select("id, mandat_id, lot_id, taux_honoraires, date_fin")
+            .in("mandat_id", mandatIds)
+        : Promise.resolve({ data: [] }),
+    ]);
   type DocVersion = { id: string; titre: string | null; remplace_id: string | null; created_at: string };
   const docParId = new Map(((tousDocs ?? []) as DocVersion[]).map((d) => [d.id, d]));
   const versionsAnterieures = (documentId: string) => {
@@ -99,30 +128,11 @@ export default async function PagePersonne(
     return chaine;
   };
 
-  const lotIds = [...new Set((detentions ?? []).map((d) => d.lot_id))];
-  const { data: lots } = lotIds.length
-    ? await supabase.from("lots").select("id, nom, bien_id").in("id", lotIds)
-    : { data: [] };
-  const bienIds = [...new Set((lots ?? []).map((l) => l.bien_id))];
-  const { data: biens } = bienIds.length
-    ? await supabase.from("biens").select("id, nom").in("id", bienIds)
-    : { data: [] };
-  const nomBien = (id: string) => (biens ?? []).find((b) => b.id === id)?.nom ?? "";
-  const lotsOptions = (lots ?? []).map((l) => ({
+  const lotsDetenus = ((lots ?? []) as unknown as LotAvecBien[]);
+  const lotsOptions = lotsDetenus.map((l) => ({
     id: l.id,
-    libelle: `${nomBien(l.bien_id)} · ${l.nom}`,
+    libelle: `${premier(l.bien)?.nom ?? ""} · ${l.nom}`,
   }));
-
-  // Lots déjà couverts par un mandat non résilié (le sien ou celui d'un
-  // co-détenteur) : inutile de les proposer, la base les refuserait (RM-5.1.3).
-  const { data: lignesCouvrantes } = lotIds.length
-    ? await supabase
-        .from("mandat_lignes")
-        .select("lot_id, mandat:mandats!inner(etat)")
-        .eq("organization_id", orgId)
-        .in("lot_id", lotIds)
-        .is("date_fin", null)
-    : { data: [] };
   const lotsCouverts = new Set(
     ((lignesCouvrantes ?? []) as { lot_id: string; mandat: UnOuPlusieurs<{ etat: string }> }[])
       .filter((l) => premier(l.mandat)?.etat !== "resilie")
@@ -130,35 +140,23 @@ export default async function PagePersonne(
   );
   const lotsProposables = lotsOptions.filter((o) => !lotsCouverts.has(o.id));
 
-  // Lignes des mandats
-  const mandatIds = (mandats ?? []).map((m) => m.id);
-  const { data: lignes } = mandatIds.length
-    ? await supabase
-        .from("mandat_lignes")
-        .select("id, mandat_id, lot_id, taux_honoraires, date_fin")
-        .in("mandat_id", mandatIds)
-    : { data: [] };
   // Libellés des lots cités par les mandats — y compris ceux dont la détention
   // est close (un mandat résilié reste lisible : taux ET lots, recette 13/08).
   const lotsManquantsIds = [...new Set((lignes ?? []).map((l) => l.lot_id))].filter(
     (id) => !lotsOptions.some((o) => o.id === id)
   );
-  const { data: lotsManquants } = lotsManquantsIds.length
-    ? await supabase.from("lots").select("id, nom, bien_id").in("id", lotsManquantsIds)
+  const { data: lotsManquantsBrut } = lotsManquantsIds.length
+    ? await supabase
+        .from("lots")
+        .select("id, nom, bien_id, bien:biens!lots_bien_id_fkey(nom)")
+        .in("id", lotsManquantsIds)
     : { data: [] };
-  const biensManquantsIds = [...new Set((lotsManquants ?? []).map((l) => l.bien_id))].filter(
-    (id) => !(biens ?? []).some((b) => b.id === id)
-  );
-  const { data: biensManquants } = biensManquantsIds.length
-    ? await supabase.from("biens").select("id, nom").in("id", biensManquantsIds)
-    : { data: [] };
-  const nomBienComplet = (id: string) =>
-    [...(biens ?? []), ...(biensManquants ?? [])].find((b) => b.id === id)?.nom ?? "";
+  const lotsManquants = ((lotsManquantsBrut ?? []) as unknown as LotAvecBien[]);
   const libelleLot = (id: string) => {
     const option = lotsOptions.find((l) => l.id === id);
     if (option) return option.libelle;
-    const lot = (lotsManquants ?? []).find((l) => l.id === id);
-    return lot ? `${nomBienComplet(lot.bien_id)} · ${lot.nom}` : id.slice(0, 8);
+    const lot = lotsManquants.find((l) => l.id === id);
+    return lot ? `${premier(lot.bien)?.nom ?? ""} · ${lot.nom}` : id.slice(0, 8);
   };
 
   return (

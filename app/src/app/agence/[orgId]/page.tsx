@@ -54,6 +54,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: appelsMois },
     { data: encaissementsMois },
     { data: ecrituresSixMois },
+    { data: blocagesParc },
     { data: incidentsEnCours },
     { data: donneesMembres },
   ] = await Promise.all([
@@ -92,7 +93,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .select("sens, montant, date_imputation")
       .eq("organization_id", orgId)
       .gte("date_imputation", moisSixMoisAvant),
-    // Donut « Incidents par payeur » (maquette) : les dossiers en cours
+    // Ce qui bloque chaque lot en préparation — un seul aller-retour (perf 30/08)
+    supabase.rpc("lots_blocages_location", { p_org: orgId }),
+    // Tuile Incidents : les dossiers en cours et leur imputation
     supabase
       .from("incidents")
       .select("imputation")
@@ -133,7 +136,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
   const alertes = (alertesBrutes ?? []) as Alerte[];
 
-  // Incidents par payeur : l'imputation décide de qui paie (module 7) —
+  // Tuile Incidents : l'imputation décide de qui paie (module 7) —
   // « pas encore tranché » est la file d'attente de qualification.
   const dossiersIncidents = (incidentsEnCours ?? []) as { imputation: string | null }[];
   const segmentsIncidents = [
@@ -187,12 +190,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // Ce qui bloque chaque lot en préparation : on ne garde que le premier motif,
   // le détail vit sur la fiche du lot.
   const blocages = new Map(
-    await Promise.all(
-      enPreparation.slice(0, 6).map(async (l) => {
-        const { data } = await supabase.rpc("lot_blocages_location", { p_lot: l.id });
-        return [l.id, ((data ?? []) as string[])[0] ?? null] as const;
-      })
-    )
+    ((blocagesParc ?? []) as { lot_id: string; blocages: string[] | null }[]).map((b) => [
+      b.lot_id,
+      (b.blocages ?? [])[0] ?? null,
+    ])
   );
 
   // Tri par urgence réelle : l'échéance d'abord (les sans-date en fin), puis la
@@ -433,9 +434,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
       </div>
 
-      {/* Rangée graphique de la maquette : répartition du parc, incidents par
-          payeur, encaissements et dépenses sur 6 mois. */}
-      <div className="mb-[1.125rem] grid gap-3.5 md:grid-cols-2 xl:grid-cols-3">
+      {/* Rangée graphique : répartition du parc, encaissements et dépenses sur
+          6 mois. « Incidents par payeur » retiré le 30/08 : un incident est une
+          alerte, il vit déjà dans « À traiter » et dans l'onglet Incidents. */}
+      <div className="mb-[1.125rem] grid gap-3.5 md:grid-cols-2">
         <Card>
           <CardContent>
             <div className="entete-carte">
@@ -448,34 +450,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               <Donut segments={segmentsParc} centre={`${tauxOccupation} %`} sous="LOUÉS" />
               <LegendeDonut segments={segmentsParc} />
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <div className="entete-carte">
-              <h3 className="text-[1.05rem]">Incidents par payeur</h3>
-              <Link
-                href={`/agence/${orgId}/incidents`}
-                className="mono-discret hover:text-foreground"
-              >
-                {dossiersIncidents.length} dossier{dossiersIncidents.length > 1 ? "s" : ""}
-              </Link>
-            </div>
-            {dossiersIncidents.length === 0 ? (
-              <p className="py-6 text-sm text-muted-foreground">
-                Aucun incident en cours — vos locataires déclarent depuis leur
-                espace.
-              </p>
-            ) : (
-              <div className="bloc-graph">
-                <Donut
-                  segments={segmentsIncidents}
-                  centre={`${dossiersIncidents.length}`}
-                  sous="EN COURS"
-                />
-                <LegendeDonut segments={segmentsIncidents} />
-              </div>
-            )}
           </CardContent>
         </Card>
         <Card>

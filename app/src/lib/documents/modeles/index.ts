@@ -11,6 +11,8 @@ import { assemblerRevisionIrl } from "./revision-irl";
 import { assemblerProrata } from "./prorata";
 import { assemblerRappelAssurance } from "./rappel-assurance";
 import { assemblerNotice } from "./notice";
+import { assemblerBailNu } from "./bail-nu";
+import { assemblerEdl } from "./edl";
 
 export type LienDocument = { entite: "bail" | "personne" | "lot"; entiteId: string };
 
@@ -43,6 +45,10 @@ export const MODELES = {
   rappel_assurance: { typeGed: "courrier", assembler: assemblerRappelAssurance },
   // 05 — cible : id du bail
   notice: { typeGed: "courrier", assembler: assemblerNotice },
+  // 01 — cible : id du bail (brouillon, locataire renseigné)
+  bail_nu: { typeGed: "bail", assembler: assemblerBailNu },
+  // 14/15 — cible : id de l'état des lieux (le type décide du visage)
+  edl: { typeGed: "etat_des_lieux", assembler: assemblerEdl },
 } satisfies Record<string, Modele>;
 
 export type CodeModele = keyof typeof MODELES;

@@ -2076,3 +2076,24 @@ nécessaires aux documents (adresse, téléphone, qualité) ; page profil de
 l'organisation (agence et PD) éditable par le responsable (adresse, téléphone,
 email, SIRET) pour l'en-tête/pied et le « Fait à ». Plan mis à jour.
 
+## [2026-08-31] dev | Sprint « Documents-0 » livré : socle de rendu, vague A, bail nu, EDL, identité
+
+Livré (commits `7d51f80` + suivant, migration `20260831100000_documents0_identite`
+appliquée en prod) : socle de rendu fidèle aux épreuves (gabarit encre/laiton,
+Caladea embarquée base64, pied « Réf · Modèle 2026.11-g1 · Empreinte » sur
+chaque page, rendu Chromium réutilisé — 1,9 s la première génération, ~1,1 s
+ensuite) ; action générique (GED + liens bail/personne/lot + revalidation +
+liste des manquants) ; bouton commun avec toast et « Ouvrir le PDF ».
+Modèles : 18/19 quittance-reçu, 17 avis, 20 reçu de dépôt, 23 révision IRL,
+21 prorata, 13 rappel d'assurance, 05 notice (rubriques condensées fidèles),
+01 bail nu (sections I→XII conditionnelles, dépôt en toutes lettres, refus
+propre du meublé), 14/15 EDL (grille réelle, compteurs, clés, comparatif et
+vétusté en sortie). Identité : persons + organizations enrichies, inscription
+propriétaire complétée (adresse/tél/qualité), page Profil de l'organisation
+(nom du bandeau cliquable), correctif du libellé « Bail signé » sur vieux
+brouillons. Tests : 13 unitaires modèles + rendu PDF réel (Chrome) ; recette
+navigateur sur base réelle : profil rempli, notice/quittance/avis/bail nu/EDL
+générés, tous visibles dans Documents avec leurs règles de conservation.
+Recette humaine remise : § 2.000 (D0.1 → D0.5) avec le tableau des parcours et
+la liste des champs restés en libellé par document.
+

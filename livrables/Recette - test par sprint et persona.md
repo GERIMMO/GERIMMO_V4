@@ -1,6 +1,6 @@
 # Recette — test par sprint et persona
 
-> Mis à jour le **2026-08-30**, à dérouler sur **https://gerimmo-v4.vercel.app**.
+> Mis à jour le **2026-08-31**, à dérouler sur **https://gerimmo-v4.vercel.app**.
 > **Fichier central de recette**, en deux parties :
 > **1. Recetté OK** — ce qui est validé, on n'y revient plus.
 > **2. Reste à recetter** — d'abord la **livraison du 30/08** (Sprint 9a
@@ -79,6 +79,92 @@
 ---
 
 # Partie 2 — Reste à recetter
+
+## 2.000 — Livraison du 31/08 : sprint « Documents-0 » (génération de PDF)
+
+> Socle de rendu + vague A + bail nu + EDL + identité des parties, développés,
+> testés (13 tests unitaires modèles + rendu PDF réel par Chrome) et vérifiés
+> de bout en bout en local sur la base réelle (profil d'agence rempli, notice,
+> quittance, avis, bail nu et EDL générés et rangés dans Documents). Règle du
+> sprint : **une donnée absente reste en libellé italique dans le PDF** ; le
+> bouton affiche la liste des champs restés en libellé, reprise ci-dessous.
+
+#### Parcours utilisateur — où se déclenche chaque document
+
+| Document | Parcours de déclenchement |
+|---|---|
+| **Profil (préalable)** | En-tête de l'espace → cliquer le **nom de l'organisation** → page **Profil** → compléter adresse, CP, ville, téléphone, email (réservé au responsable) → « Enregistrer ». C'est l'en-tête/pied et le « Fait à » de tous les documents. |
+| 18 Quittance / 19 Reçu | Fiche bail → carte **Loyers & quittances** → sur la ligne du mois, bouton **« PDF »** à côté de la quittance/du reçu. |
+| 17 Avis d'échéance | Même ligne d'échéancier → bouton **« Avis PDF »**. |
+| 21 Décompte de prorata | Ligne d'un mois **proraté** (entrée/sortie) → bouton **« Prorata PDF »**. |
+| 23 Révision IRL | Carte Loyers → bloc **Révision annuelle (IRL)** → sur la révision → **« Lettre PDF »**. |
+| 20 Reçu de dépôt | Fiche bail → carte **Dépôt de garantie** → sur l'encaissement → **« Reçu PDF »**. |
+| 13 Rappel d'assurance | Fiche personne → pièce **attestation d'assurance** (avec échéance) → **« Rappel PDF »**. |
+| 05 Notice d'information | Fiche bail → carte **« Notice d'information »** → **« Générer la notice (PDF) »**. |
+| 01 Bail nu | Fiche bail **en brouillon** (locataire renseigné) → carte **« Générer le bail »** → **« Générer le bail (PDF) »**. Refus propre si meublé/colocation (modèles 02/03 à venir). |
+| 14/15 État des lieux | Grille de l'EDL → bouton **« Générer le PDF »** dans l'en-tête (entrée ou sortie ; la sortie ajoute comparatif et retenues avec vétusté). |
+
+Chaque génération : toast de confirmation, lien **« Ouvrir le PDF »**, fichier
+**visible dans l'onglet Documents** (rattaché au bail / à la personne / au lot,
+règle de conservation du type appliquée), pied « Réf · Modèle 2026.11-g1 ·
+Empreinte » sur chaque page.
+
+#### Persona : Administrateur d'agence (admin.alpha@)
+
+**Scénario D0.1 — Le profil signe les documents**
+1. Cliquer « Agence Alpha » dans le bandeau → page Profil, encart « À compléter… » si des champs manquent.
+2. Renseigner adresse/CP/ville/téléphone/email → « Enregistrer » → « Profil enregistré — les prochains documents générés l'utiliseront. »
+3. En `agent.alpha@` : la page est en **lecture seule** (« Réservé au responsable… » à la soumission).
+4. Générer ensuite n'importe quel document → l'en-tête porte l'identité saisie, le « Fait à » la ville.
+
+**Scénario D0.2 — Quittance, avis, prorata, révision, reçu de dépôt**
+1. Bail actif → ligne d'échéancier → « PDF » (quittance) → toast + « Ouvrir le PDF » : mise en page identique à l'épreuve 18 (période, cartouches, détail, total, mentions art. 21).
+2. « Avis PDF » → épreuve 17 ; s'il n'y a ni IBAN ni mode de règlement, la ligne « Restés en libellé » liste `virement, prélèvement, chèque… · domicile du bailleur… · IBAN, facultatif`.
+3. Mois proraté → « Prorata PDF » → base de calcul (jours occupés/jours du mois) et détail chiffré.
+4. Révision IRL → « Lettre PDF » → indices N/N-1, variation, note de calcul, mention prescription 1 an.
+5. Dépôt → « Reçu PDF » → versement, total encaissé, plafond légal (1 mois nu / 2 meublé), conditions de restitution.
+6. Onglet **Documents** : toutes ces pièces apparaissent en tête de liste, typées (Quittance/Courrier), rattachées au locataire.
+
+**Scénario D0.3 — Notice et bail nu**
+1. Fiche bail → « Générer la notice (PDF) » → 0 champ manquant attendu (document 100 % auto) ; 3 pages, 11 rubriques.
+2. Bail nu en brouillon avec locataire → « Générer le bail (PDF) » → 3 pages, sections I → XI (XII si colocataires), blocs pilotés par les données : indivision (quote-parts), mandataire (agence), zone tendue, copropriété, encadré DPE F/G, dépôt **en toutes lettres**.
+3. Sur un bail **meublé** → refus : « Ce modèle couvre le bail nu — le meublé et la colocation arrivent avec les modèles 02/03. »
+4. Sans locataire → la carte affiche « Renseignez d'abord le locataire principal ».
+
+**Scénario D0.4 — États des lieux**
+1. Grille d'un EDL d'entrée signé → « Générer le PDF » → grille par pièce (élément/état/observations), relevés de compteurs, clés, équipements de sécurité.
+2. EDL de sortie → le PDF ajoute la **synthèse des écarts** vs l'entrée et, si une restitution existe, le **comparatif chiffré avec vétusté** et son total.
+3. Chaque ligne sans état saisi reste en libellé `neuf, bon, usagé, mauvais` (et remonte dans la liste).
+
+#### Persona : Propriétaire direct (proprietaire@gerimmo-demo.fr)
+
+**Scénario D0.5 — Mêmes parcours, identité du propriétaire**
+1. L'inscription demande désormais **adresse, CP, ville, téléphone, qualité** (personne physique/SCI/indivision) — reprises sur sa fiche personne ET son organisation.
+2. « Parc de Claire Moreau » (bandeau) → Profil : pré-rempli avec l'inscription, modifiable.
+3. Générer une quittance/un bail sur son parc → le bailleur (sa fiche) porte nom, **qualité** et adresse ; le « Fait à » sa ville.
+
+#### La liste des champs qui restent en libellé (constatée en génération réelle)
+
+> C'est la **dette de référentiel** du sprint : rien ne bloque, tout s'imprime
+> en italique gris — à combler par les prochains sprints (fiches lot/diagnostics,
+> questionnaire de bail).
+
+| Document | Champs restés en libellé (si la donnée manque) |
+|---|---|
+| 18/19 Quittance/Reçu | date et mode de règlement (si aucun encaissement saisi) |
+| 17 Avis d'échéance | mode de règlement · lieu de paiement · IBAN |
+| 21 Prorata | rien (calculé) |
+| 23 Révision IRL | valeur de l'indice (si non saisie) · trimestre (si bail sans) |
+| 20 Reçu de dépôt | mode de versement (si non saisi) |
+| 13 Rappel d'assurance | adresse/canal de réponse (si email agence absent) · logement (si aucun bail vivant) |
+| 05 Notice | rien |
+| 01 Bail nu (~30 champs) | qualité + domicile + email/tél du bailleur (si fiche incomplète) · commune de naissance et adresse actuelle du locataire · carte professionnelle (agence) · équipements du logement · chauffage · eau chaude · locaux privatifs / communs / TIC · période de construction (si année absente) · événement de durée réduite · modalité de fixation du loyer · zone tendue : loyers de référence ×2, complément ×2, dernier loyer ×3 · valeur de l'indice IRL · à échoir/échu · lieu de paiement · IBAN · total 1re échéance · travaux ×4 · honoraires ×3 · conditions particulières |
+| 14 EDL entrée | personnes présentes · états non relevés · compteurs/clés (si non saisis) · DAAF · attestation fournie · observations |
+| 15 EDL sortie | + adresse de restitution du dépôt · grille de vétusté convenue |
+
+**Le test le plus important du sprint** : D0.3.2 — le bail nu généré doit être
+imprimable et signable tel quel, avec uniquement des trous **volontaires et
+visibles** (italique gris), jamais de donnée fausse.
 
 ## 2.00 — Livraison du 30/08 : Sprint 9a (propriétaire direct) + sprint « Alertes & documents »
 

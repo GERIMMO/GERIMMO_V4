@@ -345,7 +345,7 @@ Regroupe tout ce qui touche au couple **alerte ↔ événement** et au **cycle d
 - Détail et points à trancher : [[Reste a faire V0 - sprints et ecarts maquette]] § 5 bis.
 **Démo : un bail signé déposé qui loue le lot, l'alerte EDL qui se ferme à la signature, le locataire qui reçoit son bail.**
 
-### Sprint « Documents-0 » *(cadré le 2026-08-31 — génération de PDF, périmètre arrêté par Tahir)*
+### Sprint « Documents-0 » *(cadré et **développé le 2026-08-31, en recette** — génération de PDF)*
 **Personas : AG, AA, PD** (génèrent) · **LO** (reçoit certains documents).
 **Sources : [[Etat des lieux generation de documents]] · [[Structure du modèle-type de bail]] · [[Mentions obligatoires du bail]] · [[Document]]**
 Périmètre : **socle de rendu → vague A → bail nu**. Règle de fusion : une

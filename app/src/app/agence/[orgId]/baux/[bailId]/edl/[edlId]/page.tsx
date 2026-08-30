@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate } from "@/lib/ged";
@@ -99,8 +100,18 @@ export default async function PageEdl(
           <h1>
             État des lieux d&apos;{edl.type === "entree" ? "entrée" : "sortie"}
           </h1>
-          <span className={COULEURS_ETAT_EDL[edl.etat] ?? "puce puce-grise"}>
-            {signe ? "Signé — figé" : "En cours de saisie"}
+          <span className="flex items-center gap-3">
+            <span className={COULEURS_ETAT_EDL[edl.etat] ?? "puce puce-grise"}>
+              {signe ? "Signé — figé" : "En cours de saisie"}
+            </span>
+            {/* Documents-0 : le PDF (14/15) depuis la grille réelle */}
+            <BoutonGenererDocument
+              orgId={orgId}
+              code="edl"
+              cibleId={edlId}
+              cheminRetour={`/agence/${orgId}/baux/${bailId}/edl/${edlId}`}
+              libelle="Générer le PDF"
+            />
           </span>
         </div>
       </div>

@@ -18,6 +18,7 @@ export function CarteBailSigne({
   envoyeLe,
   locataireEmail,
   corrigeable,
+  actif = true,
 }: {
   orgId: string;
   bailId: string;
@@ -25,6 +26,9 @@ export function CarteBailSigne({
   envoyeLe: string | null;
   locataireEmail: string | null;
   corrigeable: boolean;
+  // Un vieux brouillon peut porter un PDF sans être actif (données d'avant le
+  // 30/08) : le texte ne doit pas mentir sur l'état du bail.
+  actif?: boolean;
 }) {
   const [ouverte, setOuverte] = useState(false);
   const [confirmerCorrection, setConfirmerCorrection] = useState(false);
@@ -59,7 +63,7 @@ export function CarteBailSigne({
   return (
     <div className="space-y-3">
       <p className="text-sm text-success-soft-foreground">
-        Bail signé déposé — le bail est actif.
+        {actif ? "Bail signé déposé — le bail est actif." : "Un PDF signé est déposé, mais le bail est resté en brouillon : redéposez-le pour l'activer, ou corrigez le brouillon."}
         {envoyeLe && (
           <span className="text-muted-foreground"> Envoyé au locataire le {formaterDateHeure(envoyeLe)}.</span>
         )}

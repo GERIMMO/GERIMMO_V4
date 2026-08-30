@@ -356,6 +356,39 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
+      {/* Documents-0 : générer le bail nu (01) depuis le brouillon — le PDF
+          sert à imprimer et faire signer ; le dépôt du signé reste le seul
+          déclencheur d'activation. */}
+      {bail.etat === "brouillon" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Générer le bail</CardTitle>
+            <CardDescription>
+              Le contrat type (logement nu) rempli avec ce que Gerimmo sait déjà —
+              les champs sans donnée restent en libellé, la liste vous est donnée.
+              À imprimer, faire signer, puis déposer ci-dessous.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {bail.locataire_principal ? (
+              <BoutonGenererDocument
+                orgId={orgId}
+                code="bail_nu"
+                cibleId={bailId}
+                cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                libelle="Générer le bail (PDF)"
+                variant="default"
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Renseignez d&apos;abord le locataire principal (carte « Corriger le
+                brouillon ») : le contrat se génère ensuite.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cycle du bail */}
       {(bail.etat === "brouillon" || bail.document_signe) && (
         <Card id="bail-signe" className="scroll-mt-20">
@@ -380,6 +413,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 corrigeable={
                   bail.etat === "actif" && (echeancier ?? []).length === 0 && !restitution
                 }
+                actif={bail.etat !== "brouillon"}
               />
             ) : (
               <FormulaireBailSigne orgId={orgId} bailId={bailId} />

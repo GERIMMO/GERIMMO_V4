@@ -1988,3 +1988,19 @@ Recette : scénario 30.9 ; [[Coherence maquette-application]] mis à jour.
 Demande de Tahir : la tuile Occupation répétait le taux du donut « Répartition
 du parc ». Retirée ; rangée KPI à 3 tuiles (À traiter · Incidents · Encaissé).
 Recette 30.9.1 et [[Coherence maquette-application]] mis à jour.
+
+## [2026-08-30] query | Sprint « Documents-0 » : cadrage de la génération PDF (bail nu d'abord)
+
+Demande de Tahir : générer des documents PDF depuis les templates
+`C:/Users/Admin/Documents/Projet/Gerimmo/pdf-vierges/` (50 épreuves, ex.
+01-bail-nu), auto-remplis depuis la base, rangés dans l'onglet Documents.
+Constats : les PDF sont des épreuves de validation (pas des formulaires
+AcroForm) issues d'un générateur Handlebars (`{{#if}}`, dictionnaire commun,
+`_intitules_par_document.js` cités par AUDIT-corrections-appliquees.md) dont
+les sources ne sont pas dans les dossiers fournis. Le wiki couvre déjà le
+sujet : [[Documents a generer et automatisation WhatsApp]] (catalogue AUTO/ASK),
+[[Structure du modèle-type de bail]] (11 sections, 7 champs manquants),
+[[Mentions obligatoires du bail]] (décret 2015-587 + 2023-796). Questions de
+cadrage posées (sources des templates, moteur de rendu, périmètre, champs
+manquants, cycle de vie du document généré, articulation avec le dépôt signé).
+

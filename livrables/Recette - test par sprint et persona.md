@@ -157,7 +157,7 @@
 **Compte de démo ajouté le 30/08** : `proprietaire@gerimmo-demo.fr` / `Gerimmo-Demo-2026` (Parc de Claire Moreau, essai jusqu'au 13/09) — pour dérouler 30.2, 30.3 et 30.8.5 sans passer par l'inscription.
 
 **Scénario 30.9 — Tableau de bord et confort (retours du 30/08)**
-1. Tableau de bord : la rangée graphique compte **deux** cartes (Répartition du parc · Encaissements et dépenses) — plus de « Incidents par payeur » ; la tuile **Incidents** (en cours, à qualifier) reste.
+1. Tableau de bord : **trois** tuiles KPI (À traiter · Incidents · Encaissé) — plus de tuile « Occupation » (doublon du donut) ; la rangée graphique compte **deux** cartes (Répartition du parc · Encaissements et dépenses) — plus de « Incidents par payeur ».
 2. Survoler une colonne de « Encaissements et dépenses » → infobulle encre « <mois> · Encaissé x € · Dépenses y € » (aussi sur les colonnes quasi vides ; au clavier, la colonne est focusable).
 3. Survoler n'importe quel bouton (Traiter, Déposer, Clôturer, Prévisualiser…) → curseur main, comme sur un lien ; un bouton grisé garde la flèche.
 4. Navigation : revenir sur un onglet ouvert il y a moins de 30 s (Parc → Tableau de bord → Parc) est instantané (cache client) ; après une action (dépôt, clôture), la page concernée est rafraîchie tout de suite.

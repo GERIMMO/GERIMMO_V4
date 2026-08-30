@@ -1982,3 +1982,9 @@ encaissements/dépenses, curseur main sur les boutons.
   infobulle vue. Leçon : un `.next` périmé après changement de config rendait
   tout `/agence/*` en 404 — redémarrage propre (`rm -rf .next`) obligatoire.
 Recette : scénario 30.9 ; [[Coherence maquette-application]] mis à jour.
+
+## [2026-08-30] dev | Tableau de bord : tuile « Occupation » retirée (doublon du donut)
+
+Demande de Tahir : la tuile Occupation répétait le taux du donut « Répartition
+du parc ». Retirée ; rangée KPI à 3 tuiles (À traiter · Incidents · Encaissé).
+Recette 30.9.1 et [[Coherence maquette-application]] mis à jour.

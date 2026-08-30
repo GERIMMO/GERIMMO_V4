@@ -298,7 +298,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
       {/* Quatre chiffres clés — tuiles KPI de la maquette : liseré de couleur à
           gauche, chiffre serif, jauge en segments. */}
-      <div className="mb-[1.125rem] grid gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-[1.125rem] grid gap-3.5 sm:grid-cols-3">
         <Link href={`/agence/${orgId}/alertes`} className="kpi rouge h-full">
           <span className="eyebrow">À traiter</span>
           <span className="mt-1 flex items-baseline gap-2">
@@ -375,29 +375,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </span>
         </Link>
 
-        {/* Maquette : le chiffre du parc est l'OCCUPATION en % */}
-        <Link href={`/agence/${orgId}/parc`} className="kpi or h-full">
-          <span className="eyebrow">Occupation</span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{tauxOccupation} %</span>
-            <span className="text-sm text-muted-foreground">
-              {nbLoues} / {lotsActifs.length} lots loués
-            </span>
-          </span>
-          <span className="jauge" aria-hidden>
-            <span style={{ flex: tauxOccupation || 0.01, background: "var(--success)" }} />
-            <span
-              style={{
-                flex: 100 - tauxOccupation || 0.01,
-                background: "var(--or-clair)",
-              }}
-            />
-          </span>
-          <span className="block text-xs text-muted-foreground">
-            {enPreparation.length} lot{enPreparation.length > 1 ? "s" : ""} à finaliser ·{" "}
-            {nbBiens ?? 0} bien{(nbBiens ?? 0) > 1 ? "s" : ""}
-          </span>
-        </Link>
+        {/* Tuile « Occupation » retirée le 30/08 : doublon du donut
+            « Répartition du parc » juste en dessous (même taux, même détail). */}
 
         {/* Maquette : l'encaissé du mois en bleu, jauge de quittancement */}
         <Link href={`/agence/${orgId}/comptabilite`} className="kpi bleu h-full">

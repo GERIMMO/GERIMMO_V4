@@ -42,10 +42,10 @@ la maquette la garde ; écart assumé à la demande de Tahir.
 
 **Tableau de bord**
 - En-tête : h1 + date/heure en mono (`entete-page`).
-- **4 tuiles KPI à jauge** : À traiter (rouge, jauge critiques/normales),
-  **Occupation en %** (or, jauge loués/reste — le chiffre est le taux, comme la
-  maquette), **Encaissé du mois** (bleu, « x % du quittancement du mois »),
-  Documents (neutre). Liseré gauche, chiffre Cormorant 29 px, chevron au survol.
+- **3 tuiles KPI à jauge** : À traiter (rouge, jauge critiques/normales),
+  Incidents (or, jauge par payeur), **Encaissé du mois** (bleu, « x % du
+  quittancement du mois »). ~~Occupation en %~~ retirée le 30/08 (demande de
+  Tahir : doublon du donut « Répartition du parc » qui affiche le même taux). Liseré gauche, chiffre Cormorant 29 px, chevron au survol.
 - **Rangée graphique** : donut « Répartition du parc » (loués / disponibles /
   en préparation, % au centre) + barres doubles « Encaissements et dépenses »
   sur 6 mois (écritures réelles), **infobulle au survol** de chaque mois

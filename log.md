@@ -2037,3 +2037,11 @@ bail = questionnaire pur (24 champs). Dette de référentiel consolidée remise 
 Tahir. Proposé : ingérer le dictionnaire comme source wiki, puis sprint =
 fiches enrichies + moteur de rendu + « Générer le bail » (docs 01/05/06/07).
 
+## [2026-08-30] query | État des lieux global de la génération de documents (50 templates)
+
+Synthèse filée : [[Etat des lieux generation de documents]] — fusion du
+classement des 50 épreuves et du dictionnaire annoté 01-10, en 4 vagues
+(A : 8 docs quasi 100 % auto ; B : bien couverts ; C : baux + questionnaires ;
+D : dépendants S9b/S11/S13), manques transverses, dette de référentiel
+consolidée et ordre de réalisation proposé. Index mis à jour.
+

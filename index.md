@@ -126,6 +126,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.
 - [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.
 - [[Fonctionnalités par persona]] — matrice qui-fait-quoi (implémenté vs cible).
+- [[Etat des lieux generation de documents]] — les 50 templates PDF croisés avec la base : vagues de couverture, dette de référentiel, ordre de réalisation (Documents-0).
 - [[Documents a generer et automatisation WhatsApp]] — blueprint des documents (bail, EDL, congés…) : champ par champ AUTO vs à demander, données manquantes, surface de questions minimale pour le bot.
 - [[Récapitulatif fonctionnel et lacunes de spécification]] — **archivée** (snapshot du 2026-07-22, supplanté par le référentiel V3).
 

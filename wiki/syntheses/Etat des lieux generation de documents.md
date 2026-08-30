@@ -3,11 +3,27 @@ type: synthesis
 tags: [documents, generation, pdf, bail, templates, documents-0]
 status: in-progress
 created: 2026-08-30
-updated: 2026-08-30
+updated: 2026-08-31
 sources: ["[[Documents a generer et automatisation WhatsApp]]", "[[Structure du modèle-type de bail]]", "[[Mentions obligatoires du bail]]"]
 ---
 
 # État des lieux — génération de documents (sprint Documents-0)
+
+> [!note] Vérifié sur le schéma de PRODUCTION le 2026-08-31
+> À la demande de Tahir, les statuts « en base / manquant » ci-dessous ont été
+> revérifiés contre `information_schema` de la base de production (pas contre
+> le dictionnaire annoté, qui présume un référentiel cible). Corrections
+> apportées ce jour : `diagnostics.diagnostiqueur` **existe** (nom seul) ;
+> `etats_des_lieux.date_edl` et `signe_le` **existent** ; `biens` porte déjà
+> **syndic_nom / syndic_email / reference_copropriete / zone_tendue** ;
+> `lots.description` peut porter les « autres parties » en attendant un champ
+> structuré ; `incidents` est plus riche qu'annoncé (canal, pièce, ancienneté,
+> urgence, justification d'imputation) — le récap d'incident (47) remonte
+> d'un cran. Restent confirmés manquants : adresse/lieu de naissance des
+> personnes, chauffage/eau chaude/TIC/parties communes/permis/servitude/
+> dernier loyer/loyers de référence sur le lot, certification et assurance du
+> diagnostiqueur, classe GES et dépenses d'énergie, date de signature du bail,
+> IBAN, identité de l'agence.
 
 **Objet :** où en est-on, document par document, entre les **50 épreuves PDF**
 (`Projet/Gerimmo/pdf-vierges/`, version 2026.11) et les **données réellement en
@@ -46,9 +62,10 @@ renseigné ; le cycle de vie précis du document généré sera affiné ensuite.
 rectificative · 59 rapport de gestion (n° registre) · 51/52 fiscal (régime) ·
 14/15 EDL (DAAF, heure, nouvelle adresse du locataire — compteurs et clés ✓) ·
 63 justificatif de versement (IBAN) · 38 solde de tout compte (IBAN,
-provision 20 %) · 07 inventaire (version sortie) · 06 DDT (diagnostics à
-enrichir : résultat, classe GES, dépenses, diagnostiqueur ×3, type « bruit »
-absent de l'enum).
+provision 20 %) · 07 inventaire (version sortie) · 06 DDT (diagnostiqueur **nom ✓** ; à
+enrichir : résultat par diagnostic, classe GES, dépenses d'énergie,
+certification et assurance du diagnostiqueur, type « bruit » absent de
+l'enum).
 
 ### Vague C — à moitié : fiches à enrichir + questionnaire de génération
 - **01 bail nu ≈ 40 % aujourd'hui** : ✅ parties, logement de base, identifiant
@@ -76,7 +93,9 @@ absent de l'enum).
 - **48 clôture mensuelle** : écritures ✓ ; volet « rapprochement/comptes » à
   adapter à la doctrine journal de gestion.
 - **22 attestation de loyer** : loyer ✓ ; organisme, lien, occupants.
-- **47 récapitulatif d'incident** : incident ✓ ; chronologie, entreprise (S13).
+- **47 récapitulatif d'incident** : incident très couvert ✓ (canal, pièce,
+  ancienneté, urgence, imputation + justification, clôture) → passe en
+  vague B ; manquent chronologie formatée et volet entreprise (S13).
 - **08 avenant au bail** : questionnaire pur (24 champs), 7 automatiques.
 - **41 autorisation de travaux** : questionnaire pur, acceptable.
 
@@ -97,7 +116,8 @@ candidature) · **42/45/46/56** (artisans/devis/interventions — S13) ·
   permis de louer (×3), servitude, dernier loyer (×3), loyers de
   référence (×2).
 - **Diagnostics** : résultat, classe GES, estimation de dépenses,
-  diagnostiqueur (×3), type « nuisances sonores ».
+  certification + assurance du diagnostiqueur (le **nom existe ✓**),
+  type « nuisances sonores ».
 - **Organisation** : lieu du document + identité complète (partagé S9b/S15).
 - **Nouvelles structures** : table `textes` ; questionnaire de bail persisté
   (honoraires, paiement, complément, travaux, conditions particulières, IBAN —

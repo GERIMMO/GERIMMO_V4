@@ -2045,3 +2045,16 @@ classement des 50 épreuves et du dictionnaire annoté 01-10, en 4 vagues
 D : dépendants S9b/S11/S13), manques transverses, dette de référentiel
 consolidée et ordre de réalisation proposé. Index mis à jour.
 
+## [2026-08-31] query | Documents-0 : statuts revérifiés contre le schéma de production
+
+Demande de Tahir : ne pas se fier au dictionnaire annoté pour le « présent en
+base » — vérification faite via information_schema (36 tables). Corrections :
+diagnostics.diagnostiqueur existe (nom), etats_des_lieux.date_edl/signe_le
+existent, biens porte syndic_nom/email + reference_copropriete + zone_tendue,
+incidents plus riche qu'annoncé (47 passe en vague B), lots.description
+disponible. Confirmés manquants : adresse et lieu de naissance des personnes,
+chauffage/eau chaude/TIC/parties communes/permis/servitude/dernier loyer/
+loyers de référence (lot), certification+assurance diagnostiqueur, GES,
+dépenses d'énergie, date de signature du bail, IBAN, identité agence.
+[[Etat des lieux generation de documents]] corrigé (note de vérification).
+

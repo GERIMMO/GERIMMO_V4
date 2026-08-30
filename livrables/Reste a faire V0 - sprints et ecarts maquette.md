@@ -177,6 +177,12 @@ automatiquement :
 - Documents : règlement de copropriété dans « Mes documents » du locataire ;
   règle de conservation du règlement (hypothèse « fin du bail + 60 mois ») à
   confirmer ; pièces du bail exposées au locataire.
+- **Interface : suppression de la cloche de l'en-tête** (demande du 30/08) —
+  doublon de l'entrée « Alertes » du menu avec son badge. Conserver la pop-up de
+  synthèse à la connexion ; vérifier que « Mes espaces » (multi-agences) et la
+  console SA, qui n'ont pas de menu Alertes, gardent un point d'accès aux alertes.
+  Scénarios à reprendre : Recette Sprint 2 (1.3, 2.1, 2.2), Recette S3-S8 (§1),
+  Recette S7, Recette par sprint et persona (« cloche inchangée »).
 
 Points à trancher au cadrage : ce qui est prévisualisé (PDF déposé ou bail
 généré depuis le modèle — génération prévue en V1, S10 Yousign) ; sort de la

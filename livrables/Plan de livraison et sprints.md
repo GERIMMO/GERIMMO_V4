@@ -334,6 +334,12 @@ Regroupe tout ce qui touche au couple **alerte ↔ événement** et au **cycle d
 - **Documents** : règlement de copropriété visible dans « Mes documents » du
   locataire ; règle de conservation du règlement à confirmer ; exposition des pièces
   du bail (bail, EDL, règlement) au locataire.
+- **Suppression de la cloche de l'en-tête** *(demande du 2026-08-30)* : redondante
+  avec l'entrée « Alertes » (badge) de la barre de menu. La pop-up de synthèse à
+  la connexion reste ; son rappel à la demande passe par le menu Alertes. Revient
+  sur la décision S2 du 2026-07-29 (« badge permanent » cloche) — à répercuter sur
+  les scénarios de recette S2/S3-S8/S7 qui citent la cloche, et sur les espaces
+  sans menu Alertes (« Mes espaces », console SA) où un accès équivalent doit rester.
 - Détail et points à trancher : [[Reste a faire V0 - sprints et ecarts maquette]] § 5 bis.
 **Démo : un bail signé déposé qui loue le lot, l'alerte EDL qui se ferme à la signature, le locataire qui reçoit son bail.**
 

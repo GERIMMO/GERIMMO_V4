@@ -1869,3 +1869,10 @@ Sprint ajouté au [[Plan de livraison et sprints]] (avant le jalon V0, position 
 fixer) : bail sans « Valider » (dépôt du signé ⇒ actif/loué, EDL en alerte),
 prévisualisation/envoi du bail signé, fin de consolidation des alertes, documents du
 locataire (règlement de copropriété, pièces du bail). Détail § 5 bis du reste à faire.
+
+## [2026-08-30] plan | Sprint « Alertes & documents » : suppression de la cloche de l'en-tête
+
+Ajout au sprint (demande de Tahir) : retirer la cloche, redondante avec l'entrée
+« Alertes » du menu ; pop-up de connexion conservée. Revient sur la décision S2 du
+29/07 ; scénarios de recette citant la cloche à reprendre ; point d'accès à garder
+pour « Mes espaces » et la console SA. Plan + § 5 bis du reste à faire mis à jour.

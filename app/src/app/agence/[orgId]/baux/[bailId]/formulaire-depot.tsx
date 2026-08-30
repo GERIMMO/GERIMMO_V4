@@ -81,7 +81,7 @@ export function FormulaireDepot({
                 {formaterDate(e.date_encaissement)}
                 {e.moyen ? ` · ${e.moyen}` : ""} · versé par {nom(e.versant_person_id, e.versant_libelle)}
               </span>
-              <span className="ml-auto flex items-center gap-2">
+              <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
                 {/* Documents-0 : le reçu de dépôt (20) */}
                 <BoutonGenererDocument
                   orgId={orgId}

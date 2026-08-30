@@ -2097,3 +2097,22 @@ générés, tous visibles dans Documents avec leurs règles de conservation.
 Recette humaine remise : § 2.000 (D0.1 → D0.5) avec le tableau des parcours et
 la liste des champs restés en libellé par document.
 
+## [2026-08-31] revue | Documents-0 : passe qualité, responsive, règles, intégration
+
+Re-tests demandés par Tahir après la livraison Documents-0 :
+- **Unitaires** 104 verts · typecheck/lint 0 erreur.
+- **Intégration SQL rejouée et étendue : 22/22** (18 scénarios Alertes &
+  documents + 3 nouveaux « identité » : profil modifiable par le responsable,
+  statut toujours réservé au SA, persons porte adresse/qualité) — importante
+  après la migration identité.
+- **Règle d'accès vérifiée en prod** : 0 document généré ne fuit vers le
+  locataire (mes_pieces_locataire = 4 pièces légitimes, 0 générée).
+- **Revue ergonomique navigateur** (bail/loyers, dépôt, fiche personne,
+  profil, inscription, documents, grille EDL) : boutons alignés, rien de
+  cassé ; ligne d'échéancier lisible (Impayé · quittance · Envoyer · PDF ·
+  Avis PDF). Correctifs mobile : les groupes d'actions de l'échéancier et du
+  dépôt replient désormais (flex-wrap) — l'audit responsive s'est fait par le
+  code, la fenêtre Chrome maximisée refusant le redimensionnement.
+- Optimisation déjà en place confirmée : navigateur Chromium réutilisé
+  (~1,1 s par PDF après le premier).
+

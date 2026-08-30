@@ -242,7 +242,7 @@ export function FormulaireLoyers({
                 {(() => {
                   const q = quittanceParAppel.get(l.appel_id);
                   return (
-                    <span className="flex shrink-0 items-center gap-2">
+                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {q && (
                         <>
                           <Link

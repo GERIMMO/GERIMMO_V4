@@ -11,7 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireEquipementCatalogue } from "./formulaire-equipement-catalogue";
+import { PaneParc, lireSelection } from "./pane-parc";
 
 export const metadata = { title: "Parc — Gerimmo" };
 
@@ -26,7 +28,12 @@ type LotResume = {
 // moins un lot ; le multi-lots reste discret tant qu'on ne découpe pas).
 export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">) {
   const { orgId } = await props.params;
-  const { supabase, role } = await verifierAccesEspace(orgId);
+  // Maquette : la sélection (?sel=bien:… | lot:…) s'ouvre dans le panneau de
+  // droite ; sans sélection, la vue d'ensemble. Un changement de searchParams
+  // ne re-déclenche pas loading.tsx : les rangs portent un IndicateurLien.
+  const { sel } = (await props.searchParams) as { sel?: string | string[] };
+  const selection = lireSelection(sel);
+  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
 
   const [{ data: biens }, { data: equipements }, { data: bauxActifs }] = await Promise.all([
     supabase
@@ -101,7 +108,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Parc</h1>
+        <h1>{estProprietaire ? "Mes lots" : "Parc"}</h1>
         <div className="flex items-center gap-4">
           <span className="mono-discret">
             {biensVisibles.length} bien{biensVisibles.length > 1 ? "s" : ""} · {nbLots} lot
@@ -135,19 +142,30 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         </div>
       ) : (
         // Maquette (charte v2) : maître-détail — la liste des lots regroupés
-        // par bien à gauche (adresse en en-tête de groupe, lots indentés), la
-        // vue d'ensemble à droite. Cliquer ouvre la fiche (bien ou lot).
+        // par bien à gauche (adresse en en-tête de groupe, lots indentés) ; à
+        // droite la sélection (recette 30/08 : comme la maquette, on ne quitte
+        // plus le Parc pour lire un bien ou un lot), sinon la vue d'ensemble.
         <div className="split">
-          <div className="colonne-liste">
+          <div className="colonne-liste-split">
             <div className="tete-liste">
               <span className="mono-discret">Lots</span>
-              <span className="mono-discret">
-                {nbLoues}/{nbLots} loué{nbLoues > 1 ? "s" : ""}
-              </span>
+              {selection ? (
+                <Link href={`/agence/${orgId}/parc`} className="lien-discret text-xs">
+                  Vue d&apos;ensemble
+                  <IndicateurLien />
+                </Link>
+              ) : (
+                <span className="mono-discret">
+                  {nbLoues}/{nbLots} loué{nbLoues > 1 ? "s" : ""}
+                </span>
+              )}
             </div>
             {biensVisibles.map((bien) => (
               <div key={bien.id}>
-                <Link href={`/agence/${orgId}/parc/${bien.id}`} className="tete-groupe block">
+                <Link
+                  href={`/agence/${orgId}/parc?sel=bien:${bien.id}`}
+                  className={`tete-groupe${selection?.type === "bien" && selection.id === bien.id ? " actif" : ""}`}
+                >
                   <span className="min-w-0">
                     <b className="block truncate text-[13.5px] font-medium">{bien.nom}</b>
                     <span className="mono-discret block truncate normal-case">
@@ -163,12 +181,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                       ? "s"
                       : ""}
                   </span>
+                  <IndicateurLien />
                 </Link>
                 {bien.lotsVisibles.map((lot) => (
                   <Link
                     key={lot.id}
-                    href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
-                    className="rang-lot"
+                    href={`/agence/${orgId}/parc?sel=lot:${lot.id}`}
+                    className={`rang-lot${selection?.type === "lot" && selection.id === lot.id ? " actif" : ""}`}
                   >
                     <span className="min-w-0 flex-1 truncate text-[13px]">
                       {lot.nom}
@@ -184,17 +203,21 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     >
                       {ETATS_LOT[lot.etat] ?? lot.etat}
                     </span>
+                    <IndicateurLien />
                   </Link>
                 ))}
               </div>
             ))}
           </div>
 
-          {/* Aperçu du parc (maquette apercuParc) : KPI, répartition, blocages */}
+          {selection ? (
+            <PaneParc supabase={supabase} orgId={orgId} selection={selection} />
+          ) : (
+          /* Aperçu du parc (maquette apercuParc) : KPI, répartition, blocages */
           <div className="min-w-0 space-y-3.5">
             <p className="text-sm text-muted-foreground">
-              Sélectionnez un lot dans la liste pour ouvrir sa fiche, ou traitez
-              ce qui bloque ci-dessous.
+              Sélectionnez un bien ou un lot dans la liste pour le lire ici, ou
+              traitez ce qui bloque ci-dessous.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="kpi or">
@@ -272,6 +295,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               </Card>
             </div>
           </div>
+          )}
         </div>
       )}
 
@@ -279,8 +303,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         <CardHeader>
           <CardTitle className="text-base">Catalogue d&apos;équipements</CardTitle>
           <CardDescription>
-            La liste de l&apos;agence, cochée ensuite sur chaque lot — elle
-            prépare la grille d&apos;état des lieux.
+            {estProprietaire ? "Votre liste" : "La liste de l'agence"}, cochée
+            ensuite sur chaque lot — elle prépare la grille d&apos;état des lieux.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

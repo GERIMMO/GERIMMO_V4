@@ -3,7 +3,7 @@ type: synthesis
 tags: [maquette, charte, ui, recette]
 status: stable
 created: 2026-08-14
-updated: 2026-08-21
+updated: 2026-08-30
 sources: ["[[2026-08-08-maquette-prototype-cliquable]]"]
 ---
 
@@ -37,7 +37,8 @@ requêtes parallélisées (fiches personne/bail, espace locataire), `ilike`
 
 **Chrome commun** — bandeau encre, marque serif espacée, filet, contexte
 d'agence, navigation laiton (onglet actif souligné, 60 % d'opacité au repos),
-badge rouge sur Alertes, cloche.
+badge rouge sur Alertes. **Cloche retirée le 30/08** (doublon de l'onglet) —
+la maquette la garde ; écart assumé à la demande de Tahir.
 
 **Tableau de bord**
 - En-tête : h1 + date/heure en mono (`entete-page`).
@@ -91,7 +92,7 @@ badge rouge sur Alertes, cloche.
 | Rangs d'alerte du tableau de bord = `ligneAlerte` maquette | Liste **plus riche** que la maquette | Le tableau réel groupe dépassé/à venir et montre lot + montant — on ne l'appauvrit pas pour ressembler au prototype. La page Alertes, elle, utilise `rang-alerte` conforme. |
 | « Lots en préparation » avec **barre de complétude + %** | Motif de blocage cliquable, sans % | Aucune métrique « % de complétude » n'existe en base — en inventer une serait un faux chiffre. Le nombre d'éléments manquants est dans l'aperçu du Parc. À trancher : définir une vraie complétude (critères pondérés) ou en rester au motif. |
 | Bouton « action groupée » (rattacher N lots à X) | Absent | Action de masse à spécifier (règle métier de détention) avant d'exister en un clic. |
-| **Sélection dans le panneau** (clic = détail à droite, `paneDe`) | Clic = navigation vers la fiche (routes) | L'app a des pages profondes liables (URL partageables, historique navigateur) — le panneau in-page les dupliquerait. Le `.split` maquette est repris pour la **vue d'ensemble**. |
+| ~~**Sélection dans le panneau** (clic = détail à droite, `paneDe`)~~ | **Aligné le 30/08 sur le Parc** : clic sur un bien ou un lot = panneau de droite (`?sel=bien:…` / `lot:…`, `pane-parc.tsx`), « ‹ Vue d'ensemble » pour revenir, « Ouvrir la fiche » pour la page complète | Retour recette 30/08 (« ouvrir un bien m'emmenait ailleurs »). Les pages profondes restent liables ; le panneau reprend `paneLot`/`pageBien` de la maquette (éléments manquants, propriétaire, occupant, lots du bien). Personnes et Incidents : Incidents est déjà scindé (`?sel=`) ; **Personnes reste en navigation** — à aligner de la même façon si le retour se confirme. |
 | **Sous-onglets Lots / Biens** du Parc | Vue unique « Lots groupés par bien » | Les en-têtes d'adresse mènent déjà à la fiche bien : les deux vues en une. À revoir si le parc dépasse ~30 biens. |
 | Barre + « compl % » sur chaque `rang-lot` | Puce d'état seule | Même raison que la complétude ci-dessus. |
 | **Assistant plein écran** 760 px + colonne « récap vivant » + « Quitter » | Assistant en panneau latéral de la page Personnes | Le panneau suffit à 2 étapes ; le plein écran + récap prendra son sens sur les assistants longs (bail S4). À trancher. |

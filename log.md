@@ -1930,3 +1930,28 @@ jamais la prod) pour que les 130 tests d'intégration tournent.
 Wiki : [[Bail]] (contradiction soldée), [[Agenda et échéances]],
 [[Restitution du dépôt de garantie]], [[Document]] ; plan et reste à faire
 mis à jour.
+
+## [2026-08-30] revue | Re-tests, alignement maquette (Parc scindé), recette navigateur
+
+Demande de Tahir : refaire les tests, comparer le fonctionnement à la maquette
+(« ouvrir un bien m'ouvre l'autre onglet ») et corriger.
+- **Tests** : 90 unitaires verts ; 18 scénarios SQL d'intégration rejoués en
+  transaction annulée (bail au dépôt, EDL, Corriger, compteur de restitution,
+  crons, pièces du bail) — conformes ; **recette navigateur en local** sur la
+  base réelle (admin.alpha@, proprietaire@, multi@) : Parc scindé, carte
+  « Bail signé » + modale (Envoyer → message SMTP attendu), Alertes (vue
+  « Fermées récemment » enrichie), espace propriétaire (bandeau d'essai, Livre,
+  récapitulatif fiscal), lien « Alertes (n) » sur « Mes espaces ».
+- **Parc aligné sur la maquette** (`paneDe`/`paneLot`/`pageBien`) : la
+  sélection d'un bien ou d'un lot s'ouvre dans le panneau de droite
+  (`?sel=`, `pane-parc.tsx`), « Vue d'ensemble » pour revenir, fiche complète
+  à un clic. C'était un écart « assumé » du 14/08, désormais levé ; Personnes
+  reste en navigation (à aligner si le retour se confirme).
+- **Rattrapage** : les doublons d'alertes ouverts des anciens crons (un par
+  seuil) sont fermés, migration `20260830130000_alertes_doublons_historiques`
+  appliquée en prod. Libellés PD : « Mes lots », « Votre liste ».
+- **Compte de démo** `proprietaire@gerimmo-demo.fr` créé en prod (comme les
+  autres comptes gerimmo-demo).
+- Constaté, non corrigé (donnée, pas code) : le PDF du bail actif de démo
+  « Moreau Sofia » répond « Fichier indisponible » (objet absent du stockage).
+Recette : scénario 30.8 ajouté ; [[Coherence maquette-application]] mis à jour.

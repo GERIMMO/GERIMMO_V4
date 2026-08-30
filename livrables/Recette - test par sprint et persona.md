@@ -147,6 +147,15 @@
 3. Une pièce « Courrier » rattachée à sa fiche reste **invisible** (le type pilote seul les droits — non-régression 26/08).
 4. Bail **terminé** → le bail signé et le règlement disparaissent de « Mes documents » ; l'URL directe d'une de ces pièces répond « introuvable ».
 
+**Scénario 30.8 — Parc : la sélection s'ouvre à côté de la liste (retour recette 30/08)**
+1. Onglet **Parc** → vue d'ensemble à droite (KPI, répartition, éléments à compléter) ; cliquer l'**adresse d'un bien** → le bien s'ouvre **dans le panneau de droite** (type · ville, adresse, KPI Lots / Loyers en cours, liste « Lots du bien »), la liste reste à gauche, l'adresse est surlignée d'un liseré laiton ; l'URL porte `?sel=bien:…`.
+2. Cliquer un **lot en préparation** → panneau du lot : puce d'état, encadré « N éléments manquants » avec boutons « … → » vers la bonne section, Propriétaire (quote-part), Occupant « libre » ; boutons **Ouvrir la fiche du lot** (page complète) et **Voir le bien**.
+3. Cliquer un **lot loué** → « Lot complet. Bail en cours. », Occupant, ligne **Bail** cliquable (→ fiche bail), Loyer + charges.
+4. « ‹ Vue d'ensemble » (ou « Vue d'ensemble » en tête de liste) → retour à l'aperçu. Le bouton « + Ajouter un bien » reste en tête.
+5. Propriétaire direct (`proprietaire@gerimmo-demo.fr`) : même écran titré **« Mes lots »**, catalogue « Votre liste… ».
+
+**Compte de démo ajouté le 30/08** : `proprietaire@gerimmo-demo.fr` / `Gerimmo-Demo-2026` (Parc de Claire Moreau, essai jusqu'au 13/09) — pour dérouler 30.2, 30.3 et 30.8.5 sans passer par l'inscription.
+
 **Le test le plus important de la livraison** : 30.4 étape 4 — un PDF refusé au contrôle de mise en location **ne laisse rien derrière lui** (bail brouillon, lot disponible, rien en GED) : c'est ce qui rend acceptable la suppression du bouton « Valider ».
 
 ## 2.0 — Livraison du 29/08 : validation du bail + alertes liées à leur événement

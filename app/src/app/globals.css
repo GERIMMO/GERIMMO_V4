@@ -502,6 +502,9 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   background: var(--filet);
 }
 .rang-lot:hover { background: #fcfaf5; border-left-color: var(--encre); }
+/* Sélection ouverte dans le panneau (maquette .actif) : liseré laiton, fond crème */
+.rang.actif, .rang-lot.actif { background: #fcfaf5; border-left-color: var(--or); }
+.tete-groupe.actif { box-shadow: inset 3px 0 0 var(--or); }
 
 /* État vide qui guide (maquette .vide) */
 .vide {

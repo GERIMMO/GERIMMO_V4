@@ -2179,3 +2179,11 @@ par quote-part (indivision, SCI IR) = présentation 2044 → T6 ; LMNP/BIC = V2
 ([[Fiscalité]]). Plus aucun arbitrage en attente. La branche
 `claude/reprise-mobile-docs-x6ku40` (T1+T2 + wiki) est mergée dans `main`
 pour publication Vercel.
+
+## [2026-09-04] recette | Retour de Tahir : le Parc revient à la vue scindée
+
+« Le parc, je préférais avant » : l'accordéon de la maquette v3 est retiré,
+la vue scindée liste + panneau (30/08) est restaurée — enrichie du filtre
+« mon portefeuille » et du bouton « État des lieux en cours » sur le lot.
+L'écart avec la v3 est assumé et tracé ici : sur ce point, l'application
+prime sur la maquette.

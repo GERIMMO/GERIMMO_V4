@@ -517,54 +517,6 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .rang.actif, .rang-lot.actif { background: #fcfaf5; border-left-color: var(--or); }
 .tete-groupe.actif { box-shadow: inset 3px 0 0 var(--or); }
 
-/* Parc en accordéon (maquette v3 .liste-parc / .bloc-bien / .bloc-lot) :
-   biens dépliables, lots dépliables, détail du lot en ligne */
-.liste-parc { display: flex; flex-direction: column; gap: 10px; max-width: 860px; }
-.bloc-bien { border: 1px solid var(--filet); background: var(--ivoire); }
-.bloc-bien.ouvert { border-color: var(--or); }
-.tete-bien {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 13px 16px;
-  text-align: left;
-  color: inherit;
-  transition: background 0.15s;
-}
-.tete-bien:hover { background: var(--ardoise); }
-.bloc-bien.ouvert > .tete-bien { background: var(--ardoise); border-bottom: 1px solid var(--filet); }
-.tete-bien .chevron { color: var(--or); font-size: 12px; width: 14px; flex: none; }
-.lots-bien { display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 8px 20px; }
-.bloc-lot { border: 1px solid var(--filet); background: var(--ivoire); }
-.bloc-lot.ouvert { border-color: var(--bleu); }
-.tete-lot {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  text-align: left;
-  color: inherit;
-  transition: background 0.15s;
-}
-.tete-lot:hover { background: var(--ardoise); }
-.bloc-lot.ouvert > .tete-lot { background: var(--ardoise); border-bottom: 1px solid var(--filet); }
-.tete-lot .chevron { color: var(--bleu); font-size: 11px; width: 12px; flex: none; }
-.detail-lot { padding: 16px; }
-/* Vignette du bien : initiale sur dégradé encre/laiton */
-.vignette {
-  width: 42px;
-  height: 42px;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--sur-encre);
-  font-family: var(--font-titres), Georgia, serif;
-  font-size: 20px;
-}
-
 /* Rappel de l'état d'entrée sur la grille d'EDL de sortie (maquette v3) */
 .edl-rappel {
   background: rgba(20, 48, 79, 0.045);

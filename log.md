@@ -2147,3 +2147,24 @@ auto-inscription + validation super admin, vigilance retirée à l'agence —
 = facilité de maquette), **démarrage par T1 + T2** (visuel & périmètre agent,
 EDL de sortie guidé). Natures de bail et périmètre fiscal PD restent à
 trancher avant T4/T6.
+
+## [2026-09-04] dev | Maquette v3 — tranches T1 + T2 livrées (visuel & périmètre agent, EDL guidé)
+
+Six chantiers sur la branche `claude/reprise-mobile-docs-x6ku40`, build de
+production vert, 96 tests unitaires verts, 3 migrations appliquées en prod :
+- **Parc en accordéon** : biens dépliables → lots → détail complet en ligne
+  (état dans l'URL, rendu serveur conservé), puce « N manquants » par lot.
+- **EDL de sortie guidé** : rappel de l'état et de l'observation d'entrée par
+  ligne, badge « Dégradé depuis l'entrée », « = Entrée » et section conforme,
+  barre d'avancement, signature confirmée en annonçant les écarts.
+- **Quittancement du mois** (comptabilité) : RPC `quittancement_mois`,
+  encaisser le reste en un clic, émettre, envoi groupé des quittances.
+- **Fil « Ce qui vient de se passer »** au tableau de bord (encaissements,
+  EDL signés, rapports envoyés, incidents), pastille Nouveau, temps relatif.
+- **Locataire « Loyer & quittances »** : prochaine échéance détaillée, régime
+  de charges (RPC enrichi charges_mode/jour_echeance), historique quittances.
+- **« Mon portefeuille »** (RM-18.1.3) : `mandats.agent_account_id` +
+  « Confié à » sur la fiche mandant ; parc, tableau de bord et comptabilité
+  filtrés sur les mandats confiés ; nav agent sans Documents, compta
+  « Loyers & rapports ». Reste à modéliser : suppléance RM-18.1.6/7, blocage
+  de désactivation RM-18.1.4.

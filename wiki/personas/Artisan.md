@@ -3,7 +3,7 @@ type: persona
 tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-04
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
 ---
 
@@ -148,3 +148,15 @@ Conséquence : un artisan blacklisté par l'agence A **reste visible** pour l'ag
 >   Reste la **migration du code** : `createArtisanEvaluation` (une seule évaluation
 >   multi-critères sans distinction d'évaluateur) à refondre.
 >
+> [!note] Décision 2026-09-04 — pivot assumé : la conformité artisan porte sur Gerimmo
+> Arbitrage de Tahir à l'ingest de la [[2026-09-04-maquette-v3-prototype|maquette v3]] :
+> le réseau artisan devient un **service de la plateforme**. L'artisan
+> **s'auto-inscrit** (SIRET, métier, mobile), dépose RC pro + décennale, et le
+> [[Super Admin]] **valide l'inscription avant toute première affectation**
+> (purge à 6 mois sans document). En conséquence, la **vigilance de conformité
+> sort de l'agence** : plus d'alerte « décennale expirée » ni de blocage de
+> devis côté agence — seuls des artisans à jour lui sont proposés ; l'échéance
+> de re-collecte d'attestation devient une alerte du périmètre super admin.
+> Cela **remplace** les règles S7 du 21/08 sur la vigilance agence ; le SIRET
+> à trois états (RM-A1.9) reste, mais « vérifié » devient le seul état
+> affectable. Intégration prévue en tranche T5.

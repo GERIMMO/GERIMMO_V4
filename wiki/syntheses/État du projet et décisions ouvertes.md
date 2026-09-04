@@ -3,7 +3,7 @@ type: synthesis
 tags: [etat-projet, decisions, contradictions]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-21
+updated: 2026-09-04
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
 ---
 
@@ -78,6 +78,23 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > [[Cycle de vie d'un incident]].
 
 **Plus aucun arbitrage en attente** (2026-08-21).
+
+> [!note] Décisions 2026-09-04 — ingest de la maquette v3 (3 points tranchés)
+> À l'ingest de la [[2026-09-04-maquette-v3-prototype|maquette v3]] :
+> **pivot artisan assumé** — la conformité (RC pro, décennale) devient un
+> service de la plateforme : auto-inscription, validation par le
+> [[Super Admin]], vigilance retirée à l'agence (remplace les règles S7 du
+> 21/08 sur ce point, détail dans [[Artisan]]) · **exclusivité PD/PM
+> maintenue** (le cumul d'Hélène Rouvier dans la démo v3 n'est qu'une facilité
+> de maquette ; le multi-organisations nom propre + SCI reste prévu côté PD) ·
+> **intégration démarrée par T1 + T2** (visuel & périmètre agent, EDL de
+> sortie guidé) selon le découpage de la page source. Restent ouverts en
+> l'état : natures de bail réduites à 4, fiscalité ventilée SCI/indivision
+> (au-delà de la décision « 2044 en V1 »), Yousign (V1) et WhatsApp (canal
+> non construit) — traités tranche par tranche.
+
+**Arbitrages en attente** : natures de bail (point 3 de la page source v3) et
+périmètre fiscal PD (point 4) — à trancher avant T4 et T6.
 
 ## B. Choix techniques et produits restant à faire (référentiel)
 

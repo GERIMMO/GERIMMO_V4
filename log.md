@@ -2138,3 +2138,12 @@ garanties, fonds mandants enrichis, onglet locataire Loyer & quittances),
 partie déjà couverte par l'app, **6 contradictions référentiel à trancher**
 (artisan, exclusivité PD/PM, natures de bail, fiscalité V2, Yousign, WhatsApp)
 et découpage d'intégration T1 → T8 soumis à arbitrage.
+
+## [2026-09-04] decision | Maquette v3 : trois arbitrages tranchés, intégration lancée par T1+T2
+
+Tahir a tranché : **pivot artisan assumé** (conformité portée par Gerimmo,
+auto-inscription + validation super admin, vigilance retirée à l'agence —
+[[Artisan]] mis à jour), **exclusivité PD/PM maintenue** (cumul de la démo v3
+= facilité de maquette), **démarrage par T1 + T2** (visuel & périmètre agent,
+EDL de sortie guidé). Natures de bail et périmètre fiscal PD restent à
+trancher avant T4/T6.

@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
+import { FilActivite } from "./fil-activite";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -411,6 +412,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </span>
         </Link>
 
+      </div>
+
+      {/* « Ce qui vient de se passer » (maquette v3) : le pouls du portefeuille */}
+      <div className="mb-[1.125rem]">
+        <FilActivite supabase={supabase} orgId={orgId} />
       </div>
 
       {/* Rangée graphique : répartition du parc, encaissements et dépenses sur

@@ -565,6 +565,16 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   font-size: 20px;
 }
 
+/* Rappel de l'état d'entrée sur la grille d'EDL de sortie (maquette v3) */
+.edl-rappel {
+  background: rgba(20, 48, 79, 0.045);
+  border-left: 3px solid rgba(20, 48, 79, 0.18);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  color: var(--texte-secondaire);
+  line-height: 1.5;
+}
+
 /* Infobulle des graphiques (charte : encre sur ivoire, angles vifs, mono discret) */
 .infobulle {
   background: var(--encre);

@@ -26,6 +26,22 @@ export default async function PageEdl(
     .maybeSingle();
   if (!edl) notFound();
 
+  // Saisie comparative (maquette v3) : sur un EDL de sortie en cours, chaque
+  // ligne rappelle l'état et l'observation d'entrée — la sortie se juge par
+  // rapport à eux. On prend l'entrée signée du même bail.
+  const { data: entree } =
+    edl.type === "sortie" && edl.etat !== "signe"
+      ? await supabase
+          .from("etats_des_lieux")
+          .select("id, date_edl, edl_lignes(piece, categorie, libelle, etat, commentaire)")
+          .eq("bail_id", bailId)
+          .eq("type", "entree")
+          .eq("etat", "signe")
+          .order("date_edl", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+
   const [{ data: lignes }, { data: compteurs }, { data: cles }] = await Promise.all([
     supabase
       .from("edl_lignes")
@@ -174,6 +190,20 @@ export default async function PageEdl(
             edlId={edlId}
             signe={signe}
             lignes={lignes ?? []}
+            reference={
+              entree
+                ? {
+                    date: entree.date_edl,
+                    lignes: (entree.edl_lignes ?? []) as {
+                      piece: string | null;
+                      categorie: string;
+                      libelle: string;
+                      etat: string | null;
+                      commentaire: string | null;
+                    }[],
+                  }
+                : null
+            }
           />
         </CardContent>
       </Card>

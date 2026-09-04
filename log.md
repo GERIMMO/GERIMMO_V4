@@ -2124,3 +2124,17 @@ des 16 propositions visuelles « en cours »). Réécrit à la date du jour depu
 journal et les livrables : sprints livrés (S7, S9a, Alertes & documents,
 Documents-0), 104 + 22 tests, charte v2 actée, sujets ouverts (recette D0,
 vagues B→D, reste V0), pointeurs vers les livrables actuels.
+
+## [2026-09-04] ingest | Maquette v3 — prototype cliquable (dépôt de Tahir, à intégrer)
+
+Nouvelle version du prototype déposée (459 Ko, ~1 900 lignes changées contre la
+v2 du 23/08), rangée dans `raw/maquettes/2026-09-04-gerimmo-prototype-v3.html`.
+Demande : intégrer fonctionnalités et visuel à l'application. Page source créée
+(`wiki/sources/2026-09-04-maquette-v3-prototype.md`) : inventaire complet
+(réseau artisan porté par Gerimmo, reprise de portefeuille, dossier de pièces,
+EDL de sortie guidé, page Quittancement, périmètre « mon portefeuille » agent,
+parc accordéon, PD multi-organisations SCI + fiscalité ventilée, préavis/congé/
+garanties, fonds mandants enrichis, onglet locataire Loyer & quittances),
+partie déjà couverte par l'app, **6 contradictions référentiel à trancher**
+(artisan, exclusivité PD/PM, natures de bail, fiscalité V2, Yousign, WhatsApp)
+et découpage d'intégration T1 → T8 soumis à arbitrage.

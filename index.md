@@ -114,6 +114,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-08-05-bailpdf-modele-bail-non-meuble|BailPDF — Modèle bail non meublé (PDF)]] — le formulaire officiel du modèle-type ; base du blueprint 1.16.
 - [[2026-08-05-bailpdf-modele-bail-meuble|BailPDF — Modèle bail meublé (PDF)]] — même squelette que le vide ; variantes durée, forfait, dépôt 2 mois, inventaire mobilier.
 - [[2026-08-08-maquette-prototype-cliquable|Maquette — prototype cliquable (août 2026)]] — référence charte v2 (encre/laiton/crème, Instrument Sans) appliquée à l'app bloc 0 → S3 ; spécifie aussi la refonte des alertes.
+- [[2026-09-04-maquette-v3-prototype|Maquette v3 — prototype cliquable (sept. 2026)]] — ~20 chantiers nouveaux (réseau artisan, reprise de portefeuille, dossier de pièces, EDL de sortie guidé, quittancement, SCI/fiscalité PD, « mon portefeuille » agent…) ; inventaire classé, 6 contradictions à trancher, découpage T1→T8.
 
 ## Synthèses
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).

@@ -3,7 +3,7 @@ type: concept
 tags: [bail, typologie, perimetre, mobilite, saisonnier, commercial]
 status: draft
 created: 2026-08-05
-updated: 2026-08-05
+updated: 2026-09-04
 sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -59,3 +59,14 @@ le bail d'habitation principal et y est simplement mentionné — cas couvert pa
 - Un bail est porté par un [[Lot]] ; les plafonds de dépôt par type : [[Dépôt de garantie]].
 - Mentions et clauses communes aux baux d'habitation : [[Mentions obligatoires du bail]],
   [[Clauses abusives et clauses résolutoires]].
+
+> [!note] Décision 2026-09-04 — périmètre V0 : les natures de la maquette v3
+> Carte blanche de Tahir à l'intégration de la
+> [[2026-09-04-maquette-v3-prototype|maquette v3]] (qui réduit l'offre de
+> création à 4 natures). Arbitrage : la **V0 s'en tient au module 1** — bail
+> **nu**, **meublé**, **colocation à bail unique** (ce que l'application offre
+> déjà). La **colocation à contrats séparés** (4ᵉ nature de la v3) est
+> **différée en V1** : elle contredit la règle « un seul bail actif par lot »
+> (29/08) et exige sa propre modélisation. Mobilité, étudiant, commercial,
+> saisonnier… restent hors périmètre produit (catalogue documentaire
+> seulement), réintroduits à la demande.

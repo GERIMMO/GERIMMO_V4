@@ -93,8 +93,16 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > (au-delà de la décision « 2044 en V1 »), Yousign (V1) et WhatsApp (canal
 > non construit) — traités tranche par tranche.
 
-**Arbitrages en attente** : natures de bail (point 3 de la page source v3) et
-périmètre fiscal PD (point 4) — à trancher avant T4 et T6.
+> [!note] Décision 2026-09-04 (soir) — les deux derniers points v3, sur carte blanche
+> Tahir donne carte blanche « au plus cohérent » : **natures de bail** — la V0
+> s'en tient au module 1 (nu, meublé, colocation bail unique, déjà l'offre de
+> l'application) ; la colocation à contrats séparés attend la V1 (elle
+> contredit « un seul bail actif par lot ») → [[Types de baux]].
+> **Fiscalité PD** — le phasage du 25/07 tient : la ventilation par quote-part
+> (indivision, SCI à l'IR) est une présentation de la 2044 et rejoint T6 ; le
+> simulateur LMNP et le champ BIC restent V2 → [[Fiscalité]].
+
+**Plus aucun arbitrage en attente** (2026-09-04).
 
 ## B. Choix techniques et produits restant à faire (référentiel)
 

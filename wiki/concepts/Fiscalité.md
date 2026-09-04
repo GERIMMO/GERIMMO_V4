@@ -3,7 +3,7 @@ type: concept
 tags: [fiscalite, revenus-fonciers, proprietaire]
 status: draft
 created: 2026-07-22
-updated: 2026-08-30
+updated: 2026-09-04
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]"]
 ---
 
@@ -85,3 +85,14 @@ date de pièce, ALUR à part, intérêts d'emprunt vides) et la page
 `/comptabilite/fiscal`. Pas de table de paramètres fiscaux par année pour
 l'instant (les seuils micro-foncier ne sont qu'un rappel à l'écran) ; meublé,
 LMP et SCI restent en V2. Voir [[Propriétaire bailleur]].
+
+> [!note] Décision 2026-09-04 — la ventilation par quote-part reste de la 2044
+> Carte blanche de Tahir sur le point 4 de la
+> [[2026-09-04-maquette-v3-prototype|maquette v3]]. Arbitrage : le phasage du
+> 25/07 (« 2044 en V1, autres régimes V2 ») **tient**. La **ventilation par
+> quote-part** (indivision, SCI translucide à l'IR — un feuillet par associé)
+> n'est pas un autre régime : c'est une présentation de la 2044 → elle
+> **rejoint la tranche T6** avec le multi-organisations du propriétaire
+> direct. Le **simulateur micro-BIC / réel (LMNP)** et tout le champ BIC
+> restent **V2** ; d'ici là, un lot meublé est simplement signalé « hors
+> récapitulatif (BIC) », la gestion restant complète.

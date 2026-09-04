@@ -2168,3 +2168,14 @@ production vert, 96 tests unitaires verts, 3 migrations appliquées en prod :
   filtrés sur les mandats confiés ; nav agent sans Documents, compta
   « Loyers & rapports ». Reste à modéliser : suppléance RM-18.1.6/7, blocage
   de désactivation RM-18.1.4.
+
+## [2026-09-04] decision | Carte blanche : natures de bail et fiscalité PD tranchées, merge en production
+
+Tahir donne carte blanche sur les deux points restants de la maquette v3 :
+**natures de bail** — V0 = module 1 (nu, meublé, colocation bail unique) ;
+contrats séparés en V1, autres natures hors périmètre produit
+([[Types de baux]]). **Fiscalité** — phasage du 25/07 maintenu : ventilation
+par quote-part (indivision, SCI IR) = présentation 2044 → T6 ; LMNP/BIC = V2
+([[Fiscalité]]). Plus aucun arbitrage en attente. La branche
+`claude/reprise-mobile-docs-x6ku40` (T1+T2 + wiki) est mergée dans `main`
+pour publication Vercel.

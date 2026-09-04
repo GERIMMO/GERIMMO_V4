@@ -14,7 +14,7 @@ export function NavLocataire({ orgId }: { orgId: string }) {
     { href: base, libelle: "Mon logement", exact: true },
     // La page de déclaration (/incident) vit sous « Mes demandes »
     { href: `${base}/demandes`, libelle: "Mes demandes", aussi: `${base}/incident` },
-    { href: `${base}/loyers`, libelle: "Mes loyers" },
+    { href: `${base}/loyers`, libelle: "Loyer & quittances" },
     { href: `${base}/documents`, libelle: "Mes documents" },
   ];
 

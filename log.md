@@ -2116,3 +2116,11 @@ Re-tests demandés par Tahir après la livraison Documents-0 :
 - Optimisation déjà en place confirmée : navigateur Chromium réutilisé
   (~1,1 s par PDF après le premier).
 
+
+## [2026-09-04] maintenance | Fichier de relais reprise-mobile remis à jour
+
+`app/docs/reprise-mobile.md` était figé au 3 août (S7 « non commencé », arbitrage
+des 16 propositions visuelles « en cours »). Réécrit à la date du jour depuis le
+journal et les livrables : sprints livrés (S7, S9a, Alertes & documents,
+Documents-0), 104 + 22 tests, charte v2 actée, sujets ouverts (recette D0,
+vagues B→D, reste V0), pointeurs vers les livrables actuels.

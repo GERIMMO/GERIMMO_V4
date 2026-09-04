@@ -11,6 +11,7 @@ import {
   type MandatCompta,
   type RapportCompta,
 } from "./formulaire-compta";
+import { QuittancementMois, type LigneQuittancement } from "./quittancement-mois";
 
 export const metadata = { title: "Comptabilité — Gerimmo" };
 
@@ -81,6 +82,28 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   // Repère de tête : où en est la comptabilité — clôtures triées du plus récent
   const dernierCloture = [...moisClotures][0];
 
+  // Quittancement du mois (maquette v3) : le mois courant, ou à défaut le
+  // dernier mois qui porte des appels (en début de mois, les échéanciers ne
+  // sont pas toujours régénérés).
+  let moisQuittancement = moisCourant;
+  let { data: lignesQuittancement } = await supabase.rpc("quittancement_mois", {
+    p_org: orgId,
+    p_mois: `${moisCourant}-01`,
+  });
+  if ((lignesQuittancement ?? []).length === 0) {
+    const precedent = new Date(`${moisCourant}-01T00:00:00Z`);
+    precedent.setUTCMonth(precedent.getUTCMonth() - 1);
+    const moisPrecedent = precedent.toISOString().slice(0, 7);
+    const { data: lignesPrecedent } = await supabase.rpc("quittancement_mois", {
+      p_org: orgId,
+      p_mois: `${moisPrecedent}-01`,
+    });
+    if ((lignesPrecedent ?? []).length > 0) {
+      moisQuittancement = moisPrecedent;
+      lignesQuittancement = lignesPrecedent;
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
@@ -121,6 +144,20 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           <span className="chiffre mt-1 block">{eur(recettes - depenses)}</span>
         </div>
       </div>
+
+      {/* Quittancement du mois (maquette v3) : encaisser en un clic, envoi groupé */}
+      {(lignesQuittancement ?? []).length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <QuittancementMois
+              orgId={orgId}
+              mois={moisQuittancement}
+              moisLabel={moisEnFrancais(moisQuittancement)}
+              lignes={(lignesQuittancement ?? []) as LigneQuittancement[]}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

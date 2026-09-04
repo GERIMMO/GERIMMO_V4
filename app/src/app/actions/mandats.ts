@@ -217,3 +217,30 @@ export async function changerEtatMandat(
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return { succes: "État du mandat mis à jour." };
 }
+
+// Confier le mandat à un agent titulaire (RM-18.1.3/18.1.4) — vide : suivi
+// par toute l'agence. La réaffectation est libre pour un gérant ; la
+// suppléance temporaire (RM-18.1.6/7) viendra avec sa propre mécanique.
+export async function changerTitulaireMandat(
+  orgId: string,
+  personId: string,
+  mandatId: string,
+  _etat: EtatMandat,
+  formData: FormData
+): Promise<EtatMandat> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const brut = String(formData.get("agent_account_id") ?? "").trim();
+  const { error } = await supabase
+    .from("mandats")
+    .update({ agent_account_id: brut || null })
+    .eq("id", mandatId)
+    .eq("organization_id", orgId);
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revalidatePath(`/agence/${orgId}/personnes/${personId}`);
+  revalidatePath(`/agence/${orgId}`);
+  revalidatePath(`/agence/${orgId}/parc`);
+  return { succes: brut ? "Mandat confié." : "Mandat suivi par toute l'agence." };
+}

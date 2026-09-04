@@ -24,6 +24,7 @@ import {
   FormulaireMandat,
   FormulaireLigneMandat,
   BoutonsEtatMandat,
+  SelectTitulaireMandat,
   BoutonRetirerLigne,
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
@@ -73,11 +74,19 @@ export default async function PagePersonne(
       .is("date_fin", null),
     supabase
       .from("mandats")
-      .select("id, etat, date_rapport, seuil_delegation")
+      .select("id, etat, date_rapport, seuil_delegation, agent_account_id")
       .eq("organization_id", orgId)
       .eq("person_id", personId)
       .order("created_at"),
   ]);
+
+  // « Confié à » (maquette v3, RM-18.1.3) : la liste des gérants de l'agence
+  const { data: donneesGerants } =
+    !estProprietaire && (mandats ?? []).length > 0
+      ? await supabase.rpc("org_membres_gerants", { org: orgId })
+      : { data: [] };
+  const gerants = ((donneesGerants ?? []) as { account_id: string; email: string; role: string }[])
+    .map(({ account_id, email }) => ({ account_id, email }));
 
   // Perf 30/08 : ce qui ne dépend que de la première vague part en parallèle
   // (documents du dossier, lots détenus avec leur bien, lignes de mandats,
@@ -404,13 +413,22 @@ export default async function PagePersonne(
                       </span>
                     </div>
                     {!historise && (
-                      <BoutonsEtatMandat
-                        orgId={orgId}
-                        personId={personId}
-                        mandatId={m.id}
-                        etat={m.etat}
-                        nbLignesActives={sesLignes.filter((l) => !l.date_fin).length}
-                      />
+                      <span className="flex flex-wrap items-center gap-3">
+                        <SelectTitulaireMandat
+                          orgId={orgId}
+                          personId={personId}
+                          mandatId={m.id}
+                          titulaire={m.agent_account_id}
+                          gerants={gerants}
+                        />
+                        <BoutonsEtatMandat
+                          orgId={orgId}
+                          personId={personId}
+                          mandatId={m.id}
+                          etat={m.etat}
+                          nbLignesActives={sesLignes.filter((l) => !l.date_fin).length}
+                        />
+                      </span>
                     )}
                   </div>
                   {sesLignes.length > 0 && (

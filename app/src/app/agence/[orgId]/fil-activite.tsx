@@ -23,7 +23,7 @@ type PersonneCourte = { nom: string; prenom: string | null };
 type BailEmbed = UnOuPlusieurs<{
   id: string;
   locataire: UnOuPlusieurs<PersonneCourte>;
-  lot: UnOuPlusieurs<{ nom: string }>;
+  lot: UnOuPlusieurs<{ id: string; nom: string }>;
 }>;
 
 const initialesDe = (nom: string) =>
@@ -48,16 +48,24 @@ function tempsRelatif(ts: string): string {
 export async function FilActivite({
   supabase,
   orgId,
+  portefeuille = null,
+  agentId = null,
 }: {
   supabase: SupabaseClient;
   orgId: string;
+  // « Mon portefeuille » (RM-18.1.3) : lots suivis par l'agent — null : tout
+  portefeuille?: Set<string> | null;
+  // Le compte de l'agent, pour rattacher les rapports de ses mandats
+  agentId?: string | null;
 }) {
+  const dansPortefeuille = (lotId: string | null | undefined) =>
+    !portefeuille || (lotId != null && portefeuille.has(lotId));
   const [{ data: encaissements }, { data: edls }, { data: rapports }, { data: incidents }] =
     await Promise.all([
       supabase
         .from("encaissements")
         .select(
-          "id, montant, created_at, bail:baux!encaissements_bail_id_fkey(id, locataire:persons!baux_locataire_meme_org_fk(nom, prenom), lot:lots!baux_lot_meme_org_fk(nom))"
+          "id, montant, created_at, bail:baux!encaissements_bail_id_fkey(id, locataire:persons!baux_locataire_meme_org_fk(nom, prenom), lot:lots!baux_lot_meme_org_fk(id, nom))"
         )
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
@@ -65,7 +73,7 @@ export async function FilActivite({
       supabase
         .from("etats_des_lieux")
         .select(
-          "id, type, signe_le, bail:baux!edl_bail_meme_org_fk(id, locataire:persons!baux_locataire_meme_org_fk(nom, prenom), lot:lots!baux_lot_meme_org_fk(nom))"
+          "id, type, signe_le, bail:baux!edl_bail_meme_org_fk(id, locataire:persons!baux_locataire_meme_org_fk(nom, prenom), lot:lots!baux_lot_meme_org_fk(id, nom))"
         )
         .eq("organization_id", orgId)
         .not("signe_le", "is", null)
@@ -73,14 +81,14 @@ export async function FilActivite({
         .limit(3),
       supabase
         .from("rapports_gestion")
-        .select("id, mois, envoye_le, net, mandat:mandats(person:persons(nom, prenom))")
+        .select("id, mois, envoye_le, net, mandat:mandats(agent_account_id, person:persons(nom, prenom))")
         .eq("organization_id", orgId)
         .not("envoye_le", "is", null)
         .order("envoye_le", { ascending: false })
         .limit(3),
       supabase
         .from("incidents")
-        .select("id, numero, categorie, description, created_at, lot:lots!incidents_lot_meme_org_fk(nom)")
+        .select("id, numero, categorie, description, created_at, lot:lots!incidents_lot_meme_org_fk(id, nom)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(3),
@@ -97,6 +105,7 @@ export async function FilActivite({
     const bail = premier(e.bail);
     const loc = bail ? premier(bail.locataire) : null;
     const lot = bail ? premier(bail.lot) : null;
+    if (!dansPortefeuille(lot?.id)) continue;
     const nom = loc ? nomComplet(loc) : "Un locataire";
     evenements.push({
       cle: `enc-${e.id}`,
@@ -117,6 +126,7 @@ export async function FilActivite({
     const bail = premier(e.bail);
     const loc = bail ? premier(bail.locataire) : null;
     const lot = bail ? premier(bail.lot) : null;
+    if (!dansPortefeuille(lot?.id)) continue;
     const nom = loc ? nomComplet(loc) : "—";
     evenements.push({
       cle: `edl-${e.id}`,
@@ -136,9 +146,12 @@ export async function FilActivite({
     mois: string;
     envoye_le: string;
     net: number | null;
-    mandat: UnOuPlusieurs<{ person: UnOuPlusieurs<PersonneCourte> }>;
+    mandat: UnOuPlusieurs<{ agent_account_id: string | null; person: UnOuPlusieurs<PersonneCourte> }>;
   }[]) {
     const mandat = premier(r.mandat);
+    // Portefeuille : les rapports d'un mandat confié à un autre agent sortent
+    // du fil ; un mandat sans titulaire reste l'affaire de tous.
+    if (portefeuille && mandat?.agent_account_id && mandat.agent_account_id !== agentId) continue;
     const mandant = mandat ? premier(mandat.person) : null;
     const nom = mandant ? nomComplet(mandant) : "un mandant";
     const mois = new Date(r.mois).toLocaleDateString("fr-FR", {
@@ -163,9 +176,10 @@ export async function FilActivite({
     categorie: string;
     description: string;
     created_at: string;
-    lot: UnOuPlusieurs<{ nom: string }>;
+    lot: UnOuPlusieurs<{ id: string; nom: string }>;
   }[]) {
     const lot = premier(i.lot);
+    if (!dansPortefeuille(lot?.id)) continue;
     evenements.push({
       cle: `inc-${i.id}`,
       ts: i.created_at,

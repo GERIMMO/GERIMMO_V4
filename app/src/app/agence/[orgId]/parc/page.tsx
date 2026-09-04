@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { TYPES_BIEN, ETATS_LOT, COULEURS_ETAT_LOT, formaterSurface } from "@/lib/parc";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -46,7 +47,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   const { orgId } = await props.params;
   const sp = (await props.searchParams) as { bien?: string | string[]; lot?: string | string[] };
   const lotOuvert = lireParam(sp.lot);
-  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent ne voit que les
+  // lots des mandats qui lui sont confiés — null : il voit tout.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
   const [{ data: biens }, { data: equipements }, { data: bauxActifs }, { data: blocagesParc }] =
     await Promise.all([
@@ -74,10 +78,14 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     supabase.rpc("lots_blocages_location", { p_org: orgId }),
   ]);
 
-  const biensVisibles = (biens ?? []).map((bien) => ({
-    ...bien,
-    lotsVisibles: (bien.lots as LotResume[]).filter((l) => l.etat !== "archive"),
-  }));
+  const biensVisibles = (biens ?? [])
+    .map((bien) => ({
+      ...bien,
+      lotsVisibles: (bien.lots as LotResume[]).filter(
+        (l) => l.etat !== "archive" && (!portefeuille || portefeuille.has(l.id))
+      ),
+    }))
+    .filter((bien) => bien.lotsVisibles.length > 0);
   const nbLots = biensVisibles.reduce((n, b) => n + b.lotsVisibles.length, 0);
   const nbLoues = biensVisibles.reduce(
     (n, b) => n + b.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length,
@@ -108,6 +116,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         <h1>{estProprietaire ? "Mes lots" : "Parc"}</h1>
         <div className="flex items-center gap-4">
           <span className="mono-discret">
+            {portefeuille ? "Mon portefeuille · " : ""}
             {biensVisibles.length} bien{biensVisibles.length > 1 ? "s" : ""} · {nbLots} lot
             {nbLots > 1 ? "s" : ""} · {nbLoues} loué{nbLoues > 1 ? "s" : ""}
           </span>

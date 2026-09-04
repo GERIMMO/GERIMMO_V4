@@ -5,6 +5,7 @@ import {
   creerMandat,
   ajouterLigneMandat,
   changerEtatMandat,
+  changerTitulaireMandat,
   supprimerLigneMandat,
   type EtatMandat,
 } from "@/app/actions/mandats";
@@ -111,6 +112,50 @@ export function FormulaireLigneMandat({
         {enCours ? "…" : "Ajouter"}
       </Button>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+    </form>
+  );
+}
+
+// Confier le mandat à un agent (maquette v3, RM-18.1.3) : c'est ce champ qui
+// dessine le « portefeuille » de chacun — vide, le mandat est suivi par toute
+// l'agence. Le changement part au choix, sans bouton.
+export function SelectTitulaireMandat({
+  orgId,
+  personId,
+  mandatId,
+  titulaire,
+  gerants,
+}: {
+  orgId: string;
+  personId: string;
+  mandatId: string;
+  titulaire: string | null;
+  gerants: { account_id: string; email: string }[];
+}) {
+  const action = changerTitulaireMandat.bind(null, orgId, personId, mandatId);
+  const [etat, formAction, enCours] = useActionState<EtatMandat, FormData>(action, {});
+
+  return (
+    <form action={formAction} className="flex flex-wrap items-center gap-1.5">
+      <label htmlFor={`m-titulaire-${mandatId}`} className="text-xs text-muted-foreground">
+        Confié à
+      </label>
+      <select
+        id={`m-titulaire-${mandatId}`}
+        name="agent_account_id"
+        defaultValue={titulaire ?? ""}
+        disabled={enCours}
+        onChange={(e) => e.currentTarget.form?.requestSubmit()}
+        className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs"
+      >
+        <option value="">Toute l&apos;agence</option>
+        {gerants.map((g) => (
+          <option key={g.account_id} value={g.account_id}>
+            {g.email}
+          </option>
+        ))}
+      </select>
+      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
 }

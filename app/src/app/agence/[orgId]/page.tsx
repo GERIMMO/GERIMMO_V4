@@ -8,6 +8,7 @@ import {
 } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, ROLES_RESPONSABLES, formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
 import { TraiterAlerte } from "./alertes/traiter-alerte";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -40,6 +41,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const { orgId } = await props.params;
   const { supabase, user, role } = await verifierAccesEspace(orgId);
   const estResponsable = ROLES_RESPONSABLES.includes(role);
+  // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent ne lit que les
+  // lots des mandats qui lui sont confiés — null : il voit tout.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  const dansPortefeuille = (lotId: string | null | undefined) =>
+    !portefeuille || (lotId != null && portefeuille.has(lotId));
 
   // Mois courant (Europe/Paris) : les appels de loyer sont datés au 1er du mois
   const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
@@ -73,25 +79,28 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       .or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`),
     supabase
       .from("rapports_gestion")
-      .select("id, mois, statut, mandat:mandats(date_rapport, person:persons(nom, prenom))")
+      .select(
+        "id, mois, statut, mandat:mandats(date_rapport, agent_account_id, person:persons(nom, prenom))"
+      )
       .eq("organization_id", orgId)
       .eq("statut", "a_valider")
       .order("mois"),
-    // KPI « Encaissé » (maquette) : le quittancement du mois en cours
+    // KPI « Encaissé » (maquette) : le quittancement du mois en cours —
+    // le lot du bail embarqué pour le filtre « mon portefeuille »
     supabase
       .from("appels_loyer")
-      .select("montant_du")
+      .select("montant_du, bail:baux!appels_loyer_bail_id_fkey(lot_id)")
       .eq("organization_id", orgId)
       .eq("periode", moisCourant),
     supabase
       .from("encaissements")
-      .select("montant")
+      .select("montant, bail:baux!encaissements_bail_id_fkey(lot_id)")
       .eq("organization_id", orgId)
       .gte("date_paiement", moisCourant),
     // Carte « Encaissements et dépenses » (maquette) : 6 mois d'écritures
     supabase
       .from("ecritures")
-      .select("sens, montant, date_imputation")
+      .select("sens, montant, date_imputation, lot_id")
       .eq("organization_id", orgId)
       .gte("date_imputation", moisSixMoisAvant),
     // Ce qui bloque chaque lot en préparation — un seul aller-retour (perf 30/08)
@@ -99,7 +108,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // Tuile Incidents : les dossiers en cours et leur imputation
     supabase
       .from("incidents")
-      .select("imputation")
+      .select("imputation, lot_id")
       .eq("organization_id", orgId)
       .neq("etat", "clos"),
     // La pop-up « Traiter » s'ouvre sur place (recette 24/08) : il lui faut
@@ -112,20 +121,32 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     role: string;
   }[];
 
-  const totalAppele = (appelsMois ?? []).reduce((s, a) => s + Number(a.montant_du), 0);
-  const totalEncaisse = (encaissementsMois ?? []).reduce((s, e) => s + Number(e.montant), 0);
+  // Tout se lit à travers le portefeuille : sans mandat confié, rien ne change
+  type LigneAvecBail = { bail: UnOuPlusieurs<{ lot_id: string }> };
+  const lotDuBail = (l: LigneAvecBail) => premier(l.bail)?.lot_id ?? null;
+  const totalAppele = (appelsMois ?? [])
+    .filter((a) => dansPortefeuille(lotDuBail(a as LigneAvecBail)))
+    .reduce((s, a) => s + Number(a.montant_du), 0);
+  const totalEncaisse = (encaissementsMois ?? [])
+    .filter((e) => dansPortefeuille(lotDuBail(e as LigneAvecBail)))
+    .reduce((s, e) => s + Number(e.montant), 0);
   const nomMois = new Date().toLocaleDateString("fr-FR", {
     month: "long",
     timeZone: "Europe/Paris",
   });
 
-  // Six derniers mois : encaissé (crédits) et dépenses (débits) par mois
+  // Six derniers mois : encaissé (crédits) et dépenses (débits) par mois.
+  // Sur un portefeuille, seules les écritures rattachées à un de mes lots
+  // comptent (une écriture sans lot reste une affaire d'agence).
+  const ecrituresLues = (ecrituresSixMois ?? []).filter((e) =>
+    dansPortefeuille(e.lot_id as string | null)
+  );
   const historique: { libelle: string; a: number; b: number }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(`${moisCourant}T12:00:00`);
     d.setMonth(d.getMonth() - i);
     const prefixe = d.toISOString().slice(0, 7);
-    const duMois = (ecrituresSixMois ?? []).filter((e) =>
+    const duMois = ecrituresLues.filter((e) =>
       String(e.date_imputation).startsWith(prefixe)
     );
     historique.push({
@@ -139,7 +160,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
   // Tuile Incidents : l'imputation décide de qui paie (module 7) —
   // « pas encore tranché » est la file d'attente de qualification.
-  const dossiersIncidents = (incidentsEnCours ?? []) as { imputation: string | null }[];
+  const dossiersIncidents = (
+    (incidentsEnCours ?? []) as { imputation: string | null; lot_id: string }[]
+  ).filter((i) => dansPortefeuille(i.lot_id));
   const segmentsIncidents = [
     {
       libelle: "Charge propriétaire",
@@ -171,7 +194,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     depassee?: boolean;
   };
   const rendezVous: RendezVous[] = [];
-  const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
+  const lotsActifs = (lots ?? []).filter(
+    (l) => l.etat !== "archive" && dansPortefeuille(l.id)
+  );
   const nomsLots = new Map(lotsActifs.map((l) => [l.id, { nom: l.nom, bienId: l.bien_id }]));
   const nbLoues = lotsActifs.filter((l) => l.etat === "loue" || l.etat === "preavis").length;
   const enPreparation = lotsActifs.filter((l) => l.etat === "brouillon");
@@ -238,10 +263,14 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     mois: string;
     mandat: UnOuPlusieurs<{
       date_rapport: number;
+      agent_account_id: string | null;
       person: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
     }>;
   }[]) {
     const m = premier(r.mandat);
+    // Portefeuille : les rapports des mandats confiés à un autre agent sortent
+    // de « cette semaine » ; un mandat sans titulaire reste l'affaire de tous.
+    if (portefeuille && m?.agent_account_id && m.agent_account_id !== user.id) continue;
     const p = premier(m?.person);
     // Un rapport n'est pas dû le premier jour du mois qu'il couvre, mais le jour
     // convenu au mandat, le mois suivant. Prendre `mois` tel quel faisait
@@ -281,6 +310,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       <div className="mb-[1.125rem] flex flex-wrap items-baseline justify-between gap-3">
         <h1>Tableau de bord</h1>
         <p className="mono-discret">
+          {portefeuille ? "Mon portefeuille · " : ""}
           {new Date().toLocaleDateString("fr-FR", {
             weekday: "long",
             day: "numeric",
@@ -416,7 +446,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
       {/* « Ce qui vient de se passer » (maquette v3) : le pouls du portefeuille */}
       <div className="mb-[1.125rem]">
-        <FilActivite supabase={supabase} orgId={orgId} />
+        <FilActivite
+          supabase={supabase}
+          orgId={orgId}
+          portefeuille={portefeuille}
+          agentId={user.id}
+        />
       </div>
 
       {/* Rangée graphique : répartition du parc, encaissements et dépenses sur
@@ -441,7 +476,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           <CardContent>
             <div className="entete-carte">
               <h3 className="text-[1.05rem]">Encaissements et dépenses</h3>
-              <span className="mono-discret">6 mois</span>
+              <span className="mono-discret">
+                {portefeuille ? "Mon portefeuille · 6 mois" : "6 mois"}
+              </span>
             </div>
             <BarresDouble donnees={historique} />
             <div className="mt-3 flex gap-4 text-xs text-muted-foreground">

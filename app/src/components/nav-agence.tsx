@@ -13,6 +13,7 @@ export function NavAgence({
   alertesOuvertes,
   incidentsOuverts,
   proprietaire = false,
+  agent = false,
 }: {
   orgId: string;
   alertesOuvertes: number;
@@ -20,6 +21,9 @@ export function NavAgence({
   // S9a : mêmes écrans pour le propriétaire direct, mots de son quotidien —
   // « ses lots » remplacent « ses mandats », son livre remplace la comptabilité.
   proprietaire?: boolean;
+  // Maquette v3 : l'agent n'a pas d'onglet Documents (la GED reste accessible
+  // depuis les fiches) et sa comptabilité se lit « Loyers & rapports ».
+  agent?: boolean;
 }) {
   const pathname = usePathname();
   const base = `/agence/${orgId}`;
@@ -32,8 +36,11 @@ export function NavAgence({
       badge: incidentsOuverts > 0 ? incidentsOuverts : undefined,
     },
     { href: `${base}/personnes`, libelle: proprietaire ? "Locataires" : "Personnes" },
-    { href: `${base}/comptabilite`, libelle: proprietaire ? "Livre" : "Comptabilité" },
-    { href: `${base}/documents`, libelle: "Documents" },
+    {
+      href: `${base}/comptabilite`,
+      libelle: proprietaire ? "Livre" : agent ? "Loyers & rapports" : "Comptabilité",
+    },
+    ...(agent ? [] : [{ href: `${base}/documents`, libelle: "Documents" }]),
     {
       href: `${base}/alertes`,
       libelle: "Alertes",

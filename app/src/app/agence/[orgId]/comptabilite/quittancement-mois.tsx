@@ -18,6 +18,7 @@ import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 export type LigneQuittancement = {
   bail_id: string;
   appel_id: string;
+  lot_id: string;
   lot_nom: string;
   locataire: string | null;
   montant_du: number;

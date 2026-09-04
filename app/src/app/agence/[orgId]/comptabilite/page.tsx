@@ -12,6 +12,7 @@ import {
   type RapportCompta,
 } from "./formulaire-compta";
 import { QuittancementMois, type LigneQuittancement } from "./quittancement-mois";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 
 export const metadata = { title: "Comptabilité — Gerimmo" };
 
@@ -25,11 +26,17 @@ type Ecriture = {
   libelle: string | null;
   systeme: boolean;
   contre_ecriture_de: string | null;
+  lot_id: string | null;
 };
 
 export default async function PageComptabilite(props: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await props.params;
-  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent lit sa
+  // comptabilité à travers ses mandats — null : il voit tout.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  const dansPortefeuille = (lotId: string | null | undefined) =>
+    !portefeuille || (lotId != null && portefeuille.has(lotId));
 
   const [
     { data: ecritures },
@@ -40,7 +47,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   ] = await Promise.all([
     supabase
       .from("ecritures")
-      .select("id, categorie, sens, montant, date_piece, date_imputation, libelle, systeme, contre_ecriture_de")
+      .select("id, categorie, sens, montant, date_piece, date_imputation, libelle, systeme, contre_ecriture_de, lot_id")
       .eq("organization_id", orgId)
       .order("date_imputation", { ascending: false })
       .limit(200),
@@ -58,7 +65,11 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       .order("mois", { ascending: false }),
   ]);
 
-  const lignes = (ecritures ?? []) as Ecriture[];
+  // Portefeuille : seules les écritures rattachées à un de mes lots comptent
+  // (une écriture sans lot reste une affaire d'agence).
+  const lignes = ((ecritures ?? []) as Ecriture[]).filter((e) =>
+    dansPortefeuille(e.lot_id)
+  );
   const recettes = lignes.filter((e) => e.sens === "recette").reduce((s, e) => s + Number(e.montant), 0);
   const depenses = lignes.filter((e) => e.sens === "depense").reduce((s, e) => s + Number(e.montant), 0);
   const moisClotures = new Set(((clotures ?? []) as { mois: string }[]).map((c) => c.mois.slice(0, 7)));
@@ -85,20 +96,30 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   // Quittancement du mois (maquette v3) : le mois courant, ou à défaut le
   // dernier mois qui porte des appels (en début de mois, les échéanciers ne
   // sont pas toujours régénérés).
+  const filtrerQuittancement = (rows: unknown[] | null) =>
+    ((rows ?? []) as LigneQuittancement[]).filter((l) => dansPortefeuille(l.lot_id));
   let moisQuittancement = moisCourant;
-  let { data: lignesQuittancement } = await supabase.rpc("quittancement_mois", {
-    p_org: orgId,
-    p_mois: `${moisCourant}-01`,
-  });
+  let lignesQuittancement = filtrerQuittancement(
+    (
+      await supabase.rpc("quittancement_mois", {
+        p_org: orgId,
+        p_mois: `${moisCourant}-01`,
+      })
+    ).data
+  );
   if ((lignesQuittancement ?? []).length === 0) {
     const precedent = new Date(`${moisCourant}-01T00:00:00Z`);
     precedent.setUTCMonth(precedent.getUTCMonth() - 1);
     const moisPrecedent = precedent.toISOString().slice(0, 7);
-    const { data: lignesPrecedent } = await supabase.rpc("quittancement_mois", {
-      p_org: orgId,
-      p_mois: `${moisPrecedent}-01`,
-    });
-    if ((lignesPrecedent ?? []).length > 0) {
+    const lignesPrecedent = filtrerQuittancement(
+      (
+        await supabase.rpc("quittancement_mois", {
+          p_org: orgId,
+          p_mois: `${moisPrecedent}-01`,
+        })
+      ).data
+    );
+    if (lignesPrecedent.length > 0) {
       moisQuittancement = moisPrecedent;
       lignesQuittancement = lignesPrecedent;
     }
@@ -108,8 +129,15 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
         <div className="entete-page mb-6">
-          <h1>{estProprietaire ? "Livre recettes-dépenses" : "Comptabilité"}</h1>
+          <h1>
+            {estProprietaire
+              ? "Livre recettes-dépenses"
+              : role === "agent"
+                ? "Loyers & rapports"
+                : "Comptabilité"}
+          </h1>
           <span className="mono-discret">
+            {portefeuille ? "Mon portefeuille · " : ""}
             {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
             {moisEnFrancais(moisCourant)} ouvert
           </span>

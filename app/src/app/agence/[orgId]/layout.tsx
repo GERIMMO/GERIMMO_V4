@@ -110,6 +110,7 @@ export default async function LayoutAgence({
               alertesOuvertes={alertesOrg}
               incidentsOuverts={incidentsOuverts ?? 0}
               proprietaire={estProprietaire}
+              agent={role === "agent"}
             />
           </div>
         </div>

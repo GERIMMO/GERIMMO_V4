@@ -2187,3 +2187,21 @@ la vue scindée liste + panneau (30/08) est restaurée — enrichie du filtre
 « mon portefeuille » et du bouton « État des lieux en cours » sur le lot.
 L'écart avec la v3 est assumé et tracé ici : sur ce point, l'application
 prime sur la maquette.
+
+## [2026-09-05] dev | Espace locataire v10 : montée en gamme intégrée (maquette du jour)
+
+Maquette `raw/maquettes/2026-09-05-espace-locataire-v10.html` intégrée en une
+vague, améliorée et uniformisée : navigation latérale encre (rail d'icônes en
+mobile), cartes adoucies (rayon 14, ombre douce) sur les jetons de la charte
+v2, **nouvelle page Accueil** (hero logement, 3 KPI réels, gestionnaire,
+urgence), **Mon logement** (bail en clair, préavis expliqué, dépôt pédagogie,
+**congé donné depuis l'espace** — RPC mon_conge_locataire : préavis 1 mois si
+meublé/zone tendue sinon 3, bail en préavis, alerte gestionnaire), **Mes
+paiements** (12 mois en pastilles), **Mes documents** (assurance en tête),
+**Signaler un problème** (urgence sans WhatsApp, suivi), **Mon gestionnaire**
+(RPC dédié : agence + titulaire du mandat) et **FAQ**. Uniformisations
+assumées : e-mail/espace au lieu de WhatsApp (canal non construit), virement
+au lieu de prélèvement, aucune photo ni donnée fictive ; messagerie,
+notifications, rendez-vous, annonces d'immeuble et relevé de compteur
+attendront leur backend. Au passage, mon_bail_locataire v4 **répare la perte
+de document_signe** introduite le 04/09. 96 tests verts, build vert.

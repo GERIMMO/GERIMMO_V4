@@ -15,7 +15,7 @@ export default async function PageSignalerIncident(
   await verifierAccesEspaceLocataire(orgId);
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7">
+    <div className="space-y-4">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href={`/locataire/${orgId}`} className="hover:underline">
@@ -31,6 +31,6 @@ export default async function PageSignalerIncident(
       </div>
 
       <FormulaireIncidentLocataire orgId={orgId} />
-    </main>
+    </div>
   );
 }

@@ -1,248 +1,195 @@
 import Link from "next/link";
-import { estExpiree, eur, formaterDate } from "@/lib/ged";
-import { TYPES_BAIL } from "@/lib/baux";
+import { estExpiree, eur } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { FormulaireAttestation } from "./formulaire-attestation";
+import { CarteGestionnaire, CarteUrgence } from "./cartes-laterales";
 import type { IncidentLocataire } from "./incidents-locataire";
+import type { BailLocataire } from "./types";
 
-export const metadata = { title: "Mon logement — Gerimmo" };
+export const metadata = { title: "Mon espace — Gerimmo" };
 
-type Piece = {
-  document_id: string;
-  type: string;
-  titre: string | null;
-  expire_le: string | null;
-  depose_le: string;
-  verifie_le: string | null;
-};
-
-function statutAssurance(expire: string | null): { texte: string; classe: string } {
-  if (!expire) return { texte: "sans date d'expiration", classe: "text-muted-foreground" };
-  // Minuit LOCAL des deux côtés (revue 23/08 : la date seule se parse en UTC,
-  // le lendemain de l'expiration affichait encore « expire dans 0 j »)
-  const jours = Math.ceil(
-    (new Date(`${expire}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000
-  );
-  if (jours < 0) return { texte: `expirée depuis ${-jours} j`, classe: "text-destructive" };
-  if (jours <= 30)
-    return {
-      texte: `expire dans ${jours} j (${formaterDate(expire)})`,
-      classe: "text-warning-soft-foreground",
-    };
-  return { texte: `valide jusqu'au ${formaterDate(expire)}`, classe: "text-success-soft-foreground" };
-}
-
-// Écran « Mon logement » — maquette pLocBail : eyebrow avec l'adresse du lot,
-// grille deux colonnes (mon bail en lignes libellé↔valeur | problème +
-// assurance), cartes à liseré gauche porteur de sens.
-export default async function PageLocataire(props: PageProps<"/locataire/[orgId]">) {
+// Accueil de l'espace locataire (maquette v10) : l'essentiel du logement en
+// un regard — le logement, le prochain loyer, les documents, les demandes —
+// et à droite, qui s'occupe de moi.
+export default async function PageAccueilLocataire(props: PageProps<"/locataire/[orgId]">) {
   const { orgId } = await props.params;
   const { supabase, personne } = await verifierAccesEspaceLocataire(orgId);
 
-  // Quatre RPC indépendants : en parallèle plutôt qu'en cascade
-  const [{ data: pieces }, { data: baux }, { data: depotRows }, { data: incidentsBruts }] =
-    await Promise.all([
-      supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
-      supabase.rpc("mon_bail_locataire", { p_org: orgId }),
-      supabase.rpc("mon_depot_locataire", { p_org: orgId }),
-      supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
-    ]);
-  // La DERNIÈRE attestation (recette 21/08 : le tri ascendant faisait
-  // réapparaître la plus ancienne après un renouvellement)
-  const attestations = ((pieces ?? []) as Piece[])
-    .filter((p) => p.type === "attestation_assurance")
-    .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
-  const assurance = attestations[0];
-  // Recette 26/08 : pendant la vérification d'un renouvellement, la dernière
-  // attestation VALIDÉE reste en vigueur — le dire plutôt que la faire
-  // disparaître (mes_pieces_locataire renvoie les deux). Une validée expirée
-  // n'est plus « en vigueur » (revue 26/08).
-  const assuranceValideeEnVigueur =
-    assurance && !assurance.verifie_le
-      ? attestations.find((p) => p.verifie_le && !estExpiree(p.expire_le))
-      : undefined;
-
-  const bail = ((baux ?? []) as {
+  const [
+    { data: baux },
+    { data: echeancier },
+    { data: pieces },
+    { data: incidentsBruts },
+    { data: gestionnaires },
+  ] = await Promise.all([
+    supabase.rpc("mon_bail_locataire", { p_org: orgId }),
+    supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
+    supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
+    supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
+    supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
+  ]);
+  const bail = ((baux ?? []) as BailLocataire[])[0];
+  const lignes = (echeancier ?? []) as {
+    periode: string;
+    montant_du: number;
+    montant_couvert: number;
+    statut: string;
+  }[];
+  const prochaine = lignes.find((l) => l.statut !== "paye");
+  const attestations = ((pieces ?? []) as {
     type: string;
-    etat: string;
-    loyer_hc: number | null;
-    charges: number | null;
-    lot_nom: string;
-    date_debut: string | null;
-    document_signe: string | null;
-  }[])[0];
-
-  const depot = ((depotRows ?? []) as {
-    depot_du: number;
-    encaisse: number;
-    derniere_date: string | null;
-  }[])[0];
-
-  const statut = assurance ? statutAssurance(assurance.expire_le) : null;
-
-  // Statut des signalements visible dès l'accueil (RM-19.2.3) : le compte des
-  // dossiers en cours — la liste complète vit dans l'onglet « Mes demandes ».
+    depose_le: string;
+    expire_le: string | null;
+  }[]).filter((p) => p.type === "attestation_assurance")
+    .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
+  const assuranceOk = Boolean(attestations[0] && !estExpiree(attestations[0].expire_le));
+  const nbDocuments = (pieces ?? []).length;
   const incidentsEnCours = ((incidentsBruts ?? []) as IncidentLocataire[]).filter(
     (i) => i.etat !== "clos"
   );
+  const gestionnaire = ((gestionnaires ?? []) as {
+    agence: string;
+    telephone: string | null;
+    email_contact: string | null;
+    agent_email: string | null;
+  }[])[0];
+
+  const moisLong = (d: string) =>
+    new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+  const aujourdhui = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Paris",
+  });
+  const enRetard = prochaine && (prochaine.statut === "impaye" || prochaine.statut === "partiel");
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7">
-      <div className="entete-page">
-        <div>
-          {bail && <p className="eyebrow">{bail.lot_nom}</p>}
-          <h1 className="mt-0.5">Mon logement</h1>
-        </div>
-        {personne?.prenom && (
-          <p className="text-sm text-muted-foreground">Bonjour {personne.prenom}</p>
-        )}
+    <div className="space-y-4">
+      <div>
+        <p className="mono-discret normal-case">{aujourdhui}</p>
+        <h1 className="mt-0.5">
+          Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""},
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Voici l&apos;essentiel pour votre logement.
+        </p>
       </div>
 
-      <div className="deux-col">
-        {/* Mon bail — lignes libellé ↔ valeur, comme la maquette */}
-        <Card>
-          <CardContent className="pt-5">
-            <div className="entete-carte">
-              <h3 className="text-base font-medium">Mon bail</h3>
-              {bail?.etat === "preavis" && <span className="puce puce-prep">En préavis</span>}
-            </div>
-            {bail ? (
-              <>
-                <div className="ligne-info">
-                  <span>Type</span>
-                  <span>Bail {(TYPES_BAIL[bail.type] ?? bail.type).toLowerCase()}</span>
-                </div>
-                {bail.date_debut && (
-                  <div className="ligne-info">
-                    <span>Depuis le</span>
-                    <span>{formaterDate(bail.date_debut)}</span>
-                  </div>
-                )}
-                <div className="ligne-info">
-                  <span>Loyer + charges</span>
-                  <span>
-                    {bail.loyer_hc != null
-                      ? eur(Number(bail.loyer_hc) + Number(bail.charges ?? 0))
-                      : "—"}
-                  </span>
-                </div>
-                {depot && Number(depot.depot_du) > 0 && (
-                  <div className="ligne-info">
-                    <span>Dépôt de garantie</span>
-                    <span>
-                      {eur(Number(depot.encaisse))} encaissé
-                      {Number(depot.encaisse) < Number(depot.depot_du)
-                        ? ` sur ${eur(Number(depot.depot_du))}`
-                        : ""}
-                    </span>
-                  </div>
-                )}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {bail.document_signe && (
-                    <a
-                      href={`/locataire/${orgId}/bail/fichier`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
-                    >
-                      Consulter mon bail signé
-                    </a>
-                  )}
-                  <Link
-                    href={`/locataire/${orgId}/loyers`}
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
-                  >
-                    Mes quittances
-                  </Link>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Aucun bail actif — votre bail apparaîtra ici dès sa signature.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+      {bail && (
+        <div className="loc-hero">
+          <span className="loc-vignette" aria-hidden>
+            {(bail.ville?.[0] ?? bail.lot_nom[0] ?? "G").toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <p className="font-heading text-xl text-[var(--encre)]">{bail.lot_nom}</p>
+            <p className="text-[13px] text-muted-foreground">{bail.adresse}</p>
+            <p className="mt-1 text-[12.5px] text-muted-foreground">
+              {[
+                bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")} m²` : null,
+                bail.pieces != null ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}` : null,
+                bail.etage ? `étage ${bail.etage}` : null,
+                bail.meuble ? "meublé" : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+            <Link
+              href={`/locataire/${orgId}/logement`}
+              className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-2.5`}
+            >
+              Voir les détails →
+            </Link>
+          </div>
+          <div className="loc-citation">
+            Un chez-vous plus serein,
+            <br />
+            au quotidien.
+          </div>
+        </div>
+      )}
 
-        <div className="space-y-3.5">
-          {/* « Un problème dans le logement ? » — liseré laiton (maquette) */}
-          <Card className="border-l-[3px] border-l-[var(--or)]">
-            <CardContent className="pt-5">
-              <h3 className="text-base font-medium">Un problème dans le logement ?</h3>
-              <p className="mt-1.5 text-sm text-muted-foreground">
-                Décrivez-le, votre gérant est prévenu immédiatement — et vous
-                saurez qui prend la réparation en charge.
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <Link href={`/locataire/${orgId}/incident`} className="btn-or">
-                  Signaler un problème
-                </Link>
-                <Link
-                  href={`/locataire/${orgId}/demandes`}
-                  className="text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
-                >
-                  Mes demandes
-                  {incidentsEnCours.length > 0 ? ` (${incidentsEnCours.length} en cours)` : ""}
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Assurance habitation — obligation annuelle */}
-          <Card>
-            <CardContent className="pt-5">
-              <div className="entete-carte">
-                <h3 className="text-base font-medium">Assurance habitation</h3>
-                {assurance &&
-                  (assurance.verifie_le ? (
-                    // Libellé générique (recette 22/08) : le validateur peut être
-                    // une agence ou un propriétaire bailleur — « Validée » suffit.
-                    <span className="puce puce-loue">Validée</span>
-                  ) : (
-                    <span className="puce puce-prep">En cours de vérification</span>
-                  ))}
-              </div>
-              {assurance ? (
+      <div className="loc-grille">
+        <div className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="loc-carte loc-kpi">
+              <p className="text-[13px] font-semibold text-[var(--encre)]">Prochain loyer</p>
+              {bail && prochaine ? (
                 <>
-                  <div className="ligne-info">
-                    <span>{assurance.titre || "Attestation déposée"}</span>
-                    <span className={statut?.classe}>{statut?.texte}</span>
-                  </div>
-                  {assuranceValideeEnVigueur && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Votre attestation validée reste en vigueur pendant la
-                      vérification —{" "}
-                      <Link
-                        href={`/locataire/${orgId}/documents`}
-                        className="text-[var(--bleu)] underline-offset-2 hover:underline"
-                      >
-                        la consulter dans Mes documents
-                      </Link>
-                      .
-                    </p>
-                  )}
+                  <p className="v">{eur(Number(bail.loyer_hc ?? 0) + Number(bail.charges ?? 0))}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{moisLong(prochaine.periode)}</p>
+                  <span className={`loc-tag mt-2.5 ${enRetard ? "rouge" : "vert"}`}>
+                    {prochaine.statut === "impaye"
+                      ? "En retard — régularisez vite"
+                      : prochaine.statut === "partiel"
+                        ? "Partiellement réglé"
+                        : "✓ À jour"}
+                  </span>
                 </>
               ) : (
-                // Obligation annuelle non tenue : le dire franchement, pas en gris
-                <div className="mb-3 rounded-lg border border-destructive-soft bg-destructive-soft/40 p-3">
-                  <p className="text-sm font-medium text-destructive-soft-foreground">
-                    Aucune attestation déposée
-                  </p>
-                  <p className="mt-0.5 text-sm text-destructive-soft-foreground">
-                    L&apos;assurance habitation est obligatoire pendant toute la durée du
-                    bail. Déposez votre attestation ci-dessous.
-                  </p>
-                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Rien à régler pour l&apos;instant.
+                </p>
               )}
-              <div className="mt-4">
-                <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
-              </div>
-            </CardContent>
-          </Card>
+              <Link href={`/locataire/${orgId}/loyers`} className="lien-discret mt-3 block text-[13px]">
+                Voir mes paiements →
+              </Link>
+            </div>
+            <div className="loc-carte loc-kpi">
+              <p className="text-[13px] font-semibold text-[var(--encre)]">Mes documents</p>
+              <p className="v">{nbDocuments}</p>
+              <p className="text-xs text-muted-foreground">
+                pièce{nbDocuments > 1 ? "s" : ""} à votre disposition
+              </p>
+              <span className={`loc-tag mt-2.5 ${assuranceOk ? "vert" : "ambre"}`}>
+                {assuranceOk ? "✓ Assurance à jour" : "Assurance à déposer"}
+              </span>
+              <Link href={`/locataire/${orgId}/documents`} className="lien-discret mt-3 block text-[13px]">
+                Voir mes documents →
+              </Link>
+            </div>
+            <div className="loc-carte loc-kpi">
+              <p className="text-[13px] font-semibold text-[var(--encre)]">Mon logement</p>
+              {incidentsEnCours.length === 0 ? (
+                <>
+                  <p className="v" style={{ fontSize: 20 }}>Tout est en ordre</p>
+                  <span className="loc-tag vert mt-2.5">✓ Aucun incident en cours</span>
+                </>
+              ) : (
+                <>
+                  <p className="v">{incidentsEnCours.length}</p>
+                  <p className="text-xs text-muted-foreground">
+                    demande{incidentsEnCours.length > 1 ? "s" : ""} en cours de traitement
+                  </p>
+                  <span className="loc-tag ambre mt-2.5">Suivie{incidentsEnCours.length > 1 ? "s" : ""} par votre gestionnaire</span>
+                </>
+              )}
+              <Link href={`/locataire/${orgId}/demandes`} className="lien-discret mt-3 block text-[13px]">
+                {incidentsEnCours.length === 0 ? "Signaler un problème →" : "Suivre mes demandes →"}
+              </Link>
+            </div>
+          </div>
+
+          {enRetard && (
+            <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
+              <p className="text-sm">
+                <b className="font-semibold">Votre loyer de {moisLong(prochaine!.periode)} attend un règlement.</b>{" "}
+                {prochaine!.statut === "partiel"
+                  ? `Il reste ${eur(Number(prochaine!.montant_du) - Number(prochaine!.montant_couvert))} à régler par virement.`
+                  : `Réglez ${eur(Number(prochaine!.montant_du))} par virement à votre gestionnaire.`}{" "}
+                Une difficulté ? Écrivez-lui : une solution se trouve toujours plus
+                tôt que tard.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <CarteGestionnaire orgId={orgId} gestionnaire={gestionnaire} />
+          <CarteUrgence />
         </div>
       </div>
-    </main>
+    </div>
   );
 }

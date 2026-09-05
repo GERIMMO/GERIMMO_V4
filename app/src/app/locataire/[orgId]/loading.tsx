@@ -3,7 +3,7 @@
 // s'annonce au lieu d'un écran figé.
 export default function ChargementLocataire() {
   return (
-    <main
+    <div
       className="mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7"
       aria-busy="true"
       aria-label="Chargement de la page"
@@ -24,6 +24,6 @@ export default function ChargementLocataire() {
           </div>
         ))}
       </div>
-    </main>
+    </div>
   );
 }

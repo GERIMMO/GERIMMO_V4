@@ -2,11 +2,11 @@ import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
 
-export const metadata = { title: "Mes demandes — Gerimmo" };
+export const metadata = { title: "Signaler un problème — Gerimmo" };
 
-// Onglet « Mes demandes » (maquette pLocIncidents) : chaque signalement avec
-// son statut dans les mots du locataire, qui prend en charge, contestation et
-// réouverture pour le déclarant.
+// « Signaler un problème » (maquette v10) : les bons réflexes d'urgence, le
+// signalement en deux gestes, puis le suivi de chaque demande — avec, avant
+// toute intervention, qui prend la réparation en charge.
 export default async function PageDemandesLocataire(
   props: PageProps<"/locataire/[orgId]/demandes">
 ) {
@@ -20,24 +20,40 @@ export default async function PageDemandesLocataire(
   const enCours = incidents.filter((i) => i.etat !== "clos");
 
   return (
-    <main className="mx-auto w-full max-w-6xl space-y-[1.125rem] p-4 sm:p-7">
+    <div className="space-y-4">
       <div className="entete-page">
-        <h1>Mes demandes</h1>
-        <div className="flex items-center gap-3">
-          {incidents.length > 0 && (
-            <span className="mono-discret">
-              {enCours.length} en cours · {incidents.length - enCours.length} clos
-            </span>
-          )}
-          <Link href={`/locataire/${orgId}/incident`} className="btn-or">
-            Signaler un problème
-          </Link>
-        </div>
+        <h1>Signaler un problème</h1>
+        {incidents.length > 0 && (
+          <span className="mono-discret">
+            {enCours.length} en cours · {incidents.length - enCours.length} clos
+          </span>
+        )}
       </div>
 
-      {/* Chaque signalement porte sa propre carte (maquette pLocIncidents) —
-          plus d'enveloppe commune ici */}
+      <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
+        <h3 className="text-base font-medium">En cas d&apos;urgence</h3>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Fuite importante : fermez d&apos;abord le robinet d&apos;arrêt d&apos;eau.
+          Odeur de gaz : aérez, ne touchez aucun interrupteur, appelez Urgence
+          Sécurité Gaz au 0 800 47 33 33. Danger pour les personnes : le 112.
+          Puis signalez ici — votre gestionnaire est prévenu immédiatement.
+        </p>
+      </div>
+
+      <div className="loc-carte">
+        <h3 className="text-base font-medium">Un souci dans le logement ?</h3>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          Décrivez-le en deux gestes, photo à l&apos;appui. Signaler tôt protège le
+          logement — et avant toute intervention, on vous dit qui prend la
+          réparation en charge : jamais de surprise sur la facture.
+        </p>
+        <Link href={`/locataire/${orgId}/incident`} className="btn-or mt-3 inline-block">
+          Signaler un problème →
+        </Link>
+      </div>
+
+      {/* Chaque signalement porte sa propre carte, avec son fil d'étapes */}
       <IncidentsLocataire orgId={orgId} incidents={incidents} />
-    </main>
+    </div>
   );
 }

@@ -517,6 +517,185 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .rang.actif, .rang-lot.actif { background: #fcfaf5; border-left-color: var(--or); }
 .tete-groupe.actif { box-shadow: inset 3px 0 0 var(--or); }
 
+/* ——— Espace locataire — montée en gamme (maquette v10 du 05/09) ———
+   Le locataire est chez lui : navigation latérale encre, cartes adoucies
+   (rayon 14, ombre douce), laiton en signal. Jetons de la charte v2 —
+   seuls les galbes changent, pas les couleurs (marque blanche intacte). */
+.loc-app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100dvh; }
+.loc-late {
+  background: linear-gradient(180deg, var(--encre), #0d2036);
+  color: var(--sur-encre);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+}
+.loc-logo {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 18px 18px 15px;
+  border-bottom: 1px solid rgba(245, 239, 227, 0.08);
+}
+.loc-menu { padding: 14px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; }
+.loc-menu a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 13px;
+  border-radius: 10px;
+  color: rgba(245, 239, 227, 0.78);
+  font-size: 13.5px;
+  position: relative;
+  transition: background 0.15s, color 0.15s;
+}
+.loc-menu a:hover { background: rgba(245, 239, 227, 0.06); }
+.loc-menu a.actif {
+  background: linear-gradient(90deg, #b08d3e, var(--or));
+  color: var(--encre);
+  font-weight: 600;
+}
+.loc-menu svg { width: 17px; height: 17px; flex: none; stroke-width: 1.7; fill: none; stroke: currentColor; }
+.loc-badge {
+  margin-left: auto;
+  background: var(--destructive);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+.loc-late-bas {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(245, 239, 227, 0.08);
+  font-size: 12px;
+  color: rgba(245, 239, 227, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.loc-late-bas a, .loc-late-bas button { color: rgba(245, 239, 227, 0.75); text-align: left; font-size: 12.5px; }
+.loc-late-bas a:hover, .loc-late-bas button:hover { color: var(--sur-encre); }
+.loc-haut {
+  background: var(--carte);
+  border-bottom: 1px solid var(--filet);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding: 9px 26px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.loc-avat {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--encre);
+  color: var(--or);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+.loc-corps { padding: 24px 28px 56px; max-width: 1080px; width: 100%; }
+.loc-carte {
+  background: var(--carte);
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(20, 48, 79, 0.06), 0 6px 18px rgba(20, 48, 79, 0.05);
+  padding: 20px;
+}
+.loc-grille { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+.loc-kpi .v { font-family: var(--font-titres), Georgia, serif; font-weight: 500; font-size: 27px; color: var(--encre); margin-top: 6px; }
+.loc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.loc-tag.vert { background: var(--success-soft); color: var(--success-soft-foreground); }
+.loc-tag.ambre { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+.loc-tag.rouge { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
+.loc-tag.bleu { background: var(--ardoise); color: var(--bleu); }
+.loc-rond {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.loc-hero {
+  border-radius: 14px;
+  background: var(--carte);
+  box-shadow: 0 1px 3px rgba(20, 48, 79, 0.06), 0 6px 18px rgba(20, 48, 79, 0.05);
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.loc-vignette {
+  width: 108px;
+  height: 84px;
+  border-radius: 12px;
+  flex: none;
+  background: linear-gradient(135deg, var(--bleu), var(--encre));
+  color: var(--sur-encre);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-titres), Georgia, serif;
+  font-size: 30px;
+}
+.loc-citation {
+  margin-left: auto;
+  font-family: var(--font-titres), Georgia, serif;
+  font-style: italic;
+  font-size: 17.5px;
+  color: var(--encre);
+  max-width: 200px;
+  text-align: right;
+  line-height: 1.35;
+}
+.loc-citation::after { content: ""; display: block; width: 44px; height: 2px; background: var(--or); margin: 9px 0 0 auto; }
+/* Pastilles des 12 derniers mois de loyer */
+.loc-pts { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+.loc-pts i { width: 14px; height: 14px; border-radius: 50%; background: var(--success-soft); border: 1.5px solid var(--success); }
+.loc-pts i.v { background: var(--success); }
+.loc-pts i.a { background: transparent; border-color: var(--or); }
+.loc-pts i.r { background: var(--destructive-soft); border-color: var(--destructive); }
+/* Étapes du suivi (congé, incident) */
+.loc-etape { display: flex; gap: 11px; padding: 5px 0; font-size: 13.5px; }
+.loc-etape .pt { width: 9px; height: 9px; border-radius: 50%; background: var(--filet); margin-top: 6px; flex: none; }
+.loc-etape.f .pt { background: var(--or); }
+.loc-etape:not(.f) { color: var(--libelle); }
+@media (max-width: 860px) {
+  .loc-app { grid-template-columns: 60px minmax(0, 1fr); }
+  .loc-logo { justify-content: center; padding: 16px 8px 13px; }
+  /* Rail d'icônes : le symbole reste, le mot-marque et les libellés partent */
+  .loc-logo .loc-logo-texte, .loc-logo a > span > span, .loc-menu .lib, .loc-late-bas { display: none; }
+  .loc-menu a { justify-content: center; padding: 12px; }
+  .loc-badge { position: absolute; top: 3px; right: 3px; margin: 0; }
+  .loc-corps { padding: 16px 13px 48px; }
+  .loc-haut { padding: 8px 13px; }
+  .loc-grille { grid-template-columns: 1fr; }
+  .loc-citation { display: none; }
+}
+
 /* Rappel de l'état d'entrée sur la grille d'EDL de sortie (maquette v3) */
 .edl-rappel {
   background: rgba(20, 48, 79, 0.045);

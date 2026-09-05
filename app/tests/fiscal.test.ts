@@ -81,3 +81,46 @@ describe("Récapitulatif fiscal — rubriques 2044", () => {
     expect(recap.revenuNet).toBe(0);
   });
 });
+
+// ——— Ventilation par quote-part et meublé hors récapitulatif (05/09) ———
+describe("recapitulatifFiscal — quote-part et meublé (BIC)", () => {
+  const ecritures = [
+    { categorie: "Loyers", sens: "recette", montant: 1000, date_piece: "2025-03-01", lot_id: "indiv" },
+    { categorie: "Taxe foncière", sens: "depense", montant: 400, date_piece: "2025-10-01", lot_id: "indiv" },
+    { categorie: "Loyers", sens: "recette", montant: 500, date_piece: "2025-04-01", lot_id: "plein" },
+    { categorie: "Loyers", sens: "recette", montant: 900, date_piece: "2025-05-01", lot_id: "meuble" },
+    { categorie: "Entretien", sens: "depense", montant: 100, date_piece: "2025-06-01", lot_id: "meuble" },
+    // Sans lot : compte à 100 %
+    { categorie: "Assurance PNO", sens: "depense", montant: 200, date_piece: "2025-07-01" },
+  ];
+  const options = {
+    quoteParts: new Map([["indiv", 50]]),
+    lotsMeubles: new Set(["meuble"]),
+  };
+  const recap = recapitulatifFiscal(ecritures, 2025, options);
+
+  it("applique la quote-part du déclarant rubrique par rubrique", () => {
+    // Totaux pleins : 1000 + 500 = 1500 de recettes ; quote-part : 500 + 500
+    expect(recap.totalRecettes).toBe(1500);
+    expect(recap.totalRecettesQuotePart).toBe(1000);
+    // Taxe foncière à 50 %, assurance sans lot à 100 %
+    expect(recap.totalCharges).toBe(600);
+    expect(recap.totalChargesQuotePart).toBe(400);
+    expect(recap.revenuNetQuotePart).toBe(600);
+    expect(recap.ventile).toBe(true);
+  });
+
+  it("tient le meublé hors récapitulatif et le totalise à part (BIC)", () => {
+    expect(recap.meuble).toEqual({ recettes: 900, depenses: 100, nbEcritures: 2 });
+    // Aucune écriture du lot meublé dans les rubriques 2044
+    expect(recap.nbEcritures).toBe(4);
+  });
+
+  it("reste inchangé sans options (compatibilité)", () => {
+    const sans = recapitulatifFiscal(ecritures, 2025);
+    expect(sans.ventile).toBe(false);
+    expect(sans.totalRecettes).toBe(2400);
+    expect(sans.totalRecettesQuotePart).toBe(2400);
+    expect(sans.meuble.nbEcritures).toBe(0);
+  });
+});

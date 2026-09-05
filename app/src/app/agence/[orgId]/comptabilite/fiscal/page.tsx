@@ -16,20 +16,46 @@ export default async function PageRecapitulatifFiscal(props: {
 }) {
   const { orgId } = await props.params;
   const { annee: anneeDemandee } = await props.searchParams;
-  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
   if (!estProprietaire) notFound();
 
   const anneeCourante = Number(aujourdhuiParis().slice(0, 4));
   const annee = Number(anneeDemandee) || anneeCourante;
 
-  const { data: ecritures } = await supabase
-    .from("ecritures")
-    .select("categorie, sens, montant, date_piece, contre_ecriture_de")
-    .eq("organization_id", orgId)
-    .gte("date_piece", `${annee}-01-01`)
-    .lte("date_piece", `${annee}-12-31`);
+  const [{ data: ecritures }, { data: detentions }, { data: lotsMeublesRows }] =
+    await Promise.all([
+      supabase
+        .from("ecritures")
+        .select("categorie, sens, montant, date_piece, contre_ecriture_de, lot_id")
+        .eq("organization_id", orgId)
+        .gte("date_piece", `${annee}-01-01`)
+        .lte("date_piece", `${annee}-12-31`),
+      // Quote-part du déclarant par lot (indivision) : ses détentions en cours
+      supabase
+        .from("detentions")
+        .select("lot_id, quote_part, person:persons!detentions_person_id_fkey!inner(account_id)")
+        .eq("organization_id", orgId)
+        .eq("person.account_id", user.id)
+        .is("date_fin", null),
+      // Lots meublés : BIC, hors récapitulatif (décision du 04/09)
+      supabase
+        .from("lots")
+        .select("id, nom")
+        .eq("organization_id", orgId)
+        .eq("meuble", true),
+    ]);
 
-  const recap = recapitulatifFiscal((ecritures ?? []) as EcritureFiscale[], annee);
+  const quoteParts = new Map(
+    ((detentions ?? []) as { lot_id: string; quote_part: number }[]).map((d) => [
+      d.lot_id,
+      Number(d.quote_part),
+    ])
+  );
+  const lotsMeubles = (lotsMeublesRows ?? []) as { id: string; nom: string }[];
+  const recap = recapitulatifFiscal((ecritures ?? []) as EcritureFiscale[], annee, {
+    quoteParts,
+    lotsMeubles: new Set(lotsMeubles.map((l) => l.id)),
+  });
   const recettes = recap.rubriques.filter((r) => r.sens === "recette");
   const charges = recap.rubriques.filter((r) => r.sens === "depense");
 
@@ -67,23 +93,77 @@ export default async function PageRecapitulatifFiscal(props: {
       <div className="grid gap-3.5 sm:grid-cols-3">
         <div className="kpi bleu">
           <span className="eyebrow">Recettes brutes</span>
-          <span className="chiffre mt-1 block">{eur(recap.totalRecettes)}</span>
+          <span className="chiffre mt-1 block">
+            {eur(recap.ventile ? recap.totalRecettesQuotePart : recap.totalRecettes)}
+          </span>
+          {recap.ventile && (
+            <span className="block text-xs text-muted-foreground">votre quote-part</span>
+          )}
         </div>
         <div className="kpi or">
           <span className="eyebrow">Charges déductibles</span>
-          <span className="chiffre mt-1 block">{eur(recap.totalCharges)}</span>
+          <span className="chiffre mt-1 block">
+            {eur(recap.ventile ? recap.totalChargesQuotePart : recap.totalCharges)}
+          </span>
+          {recap.ventile && (
+            <span className="block text-xs text-muted-foreground">votre quote-part</span>
+          )}
         </div>
         <div className="kpi">
           <span className="eyebrow">Revenu foncier net</span>
-          <span className="chiffre mt-1 block">{eur(recap.revenuNet)}</span>
+          <span className="chiffre mt-1 block">
+            {eur(recap.ventile ? recap.revenuNetQuotePart : recap.revenuNet)}
+          </span>
+          {recap.ventile && (
+            <span className="block text-xs text-muted-foreground">votre quote-part</span>
+          )}
         </div>
       </div>
 
-      <TableauRubriques titre="Recettes" description="Lignes 211 à 212 de la 2044." rubriques={recettes} />
+      {/* Indivision : les montants se déclarent à la quote-part de détention
+          (les tantièmes de copropriété restent informatifs, jamais une clé) */}
+      {recap.ventile && (
+        <p className="border-l-[3px] border-l-[var(--or)] bg-[var(--or-clair)]/40 p-3 text-sm">
+          Un ou plusieurs lots sont détenus en indivision : la colonne « votre
+          quote-part » applique votre pourcentage de détention à chaque
+          rubrique — c&apos;est elle qui se recopie sur votre 2044, chaque
+          indivisaire déclarant sa part.
+        </p>
+      )}
+
+      {/* Lot(s) meublé(s) : BIC, hors récapitulatif — gestion complète maintenue */}
+      {recap.meuble.nbEcritures > 0 && (
+        <Card className="border-l-[3px] border-l-[var(--warning)]">
+          <CardHeader>
+            <CardTitle className="text-base">
+              Lot{lotsMeubles.length > 1 ? "s" : ""} meublé{lotsMeubles.length > 1 ? "s" : ""} — hors
+              récapitulatif (BIC)
+            </CardTitle>
+            <CardDescription>
+              {lotsMeubles.map((l) => l.nom).join(", ")} : les revenus d&apos;une
+              location meublée relèvent des BIC, pas des revenus fonciers — ils
+              ne figurent donc pas ci-dessus. Cette année :{" "}
+              {eur(recap.meuble.recettes)} de recettes et {eur(recap.meuble.depenses)} de
+              dépenses ({recap.meuble.nbEcritures} écriture
+              {recap.meuble.nbEcritures > 1 ? "s" : ""}), à reporter dans votre
+              déclaration BIC. La gestion (bail, quittances, incidents, livre)
+              reste complète.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
+      <TableauRubriques
+        titre="Recettes"
+        description="Lignes 211 à 212 de la 2044."
+        rubriques={recettes}
+        ventile={recap.ventile}
+      />
       <TableauRubriques
         titre="Charges déductibles"
-        description="Lignes 221 à 250. Seule la part non récupérable des charges de copropriété est déductible ; les intérêts d'emprunt ne sont pas suivis par Gerimmo."
+        description="Lignes 221 à 250. Copropriété : les provisions versées au syndic se déduisent l'année de leur paiement (ligne 229) ; après le décompte annuel du syndic — seule base admise — la part récupérable et la part non déductible se réintègrent l'année suivante (ligne 230). Les intérêts d'emprunt ne sont pas suivis par Gerimmo."
         rubriques={charges}
+        ventile={recap.ventile}
       />
 
       {recap.fondsTravauxAlur > 0 && (
@@ -112,10 +192,12 @@ function TableauRubriques({
   titre,
   description,
   rubriques,
+  ventile,
 }: {
   titre: string;
   description: string;
   rubriques: ReturnType<typeof recapitulatifFiscal>["rubriques"];
+  ventile: boolean;
 }) {
   return (
     <Card>
@@ -124,30 +206,44 @@ function TableauRubriques({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-left">
-              <th className="libelle-champ py-2 pr-3 font-normal">Ligne</th>
-              <th className="libelle-champ py-2 pr-3 font-normal">Rubrique</th>
-              <th className="libelle-champ py-2 pr-3 font-normal">Catégories du livre</th>
-              <th className="libelle-champ py-2 text-right font-normal">Montant</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rubriques.map((r) => (
-              <tr key={r.code + r.libelle} className="border-b border-border last:border-0">
-                <td className="mono-discret py-2 pr-3">{r.code}</td>
-                <td className="py-2 pr-3">{r.libelle}</td>
-                <td className="py-2 pr-3 text-xs text-muted-foreground">
-                  {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ") || "—"}
-                </td>
-                <td className="py-2 text-right font-medium whitespace-nowrap">
-                  {r.aCompleter ? "…" : eur(r.montant)}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left">
+                <th className="libelle-champ py-2 pr-3 font-normal">Ligne</th>
+                <th className="libelle-champ py-2 pr-3 font-normal">Rubrique</th>
+                <th className="libelle-champ py-2 pr-3 font-normal">Catégories du livre</th>
+                <th className="libelle-champ py-2 text-right font-normal">
+                  {ventile ? "Total" : "Montant"}
+                </th>
+                {ventile && (
+                  <th className="libelle-champ py-2 pl-3 text-right font-normal">
+                    Votre quote-part
+                  </th>
+                )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rubriques.map((r) => (
+                <tr key={r.code + r.libelle} className="border-b border-border last:border-0">
+                  <td className="mono-discret py-2 pr-3">{r.code}</td>
+                  <td className="py-2 pr-3">{r.libelle}</td>
+                  <td className="py-2 pr-3 text-xs text-muted-foreground">
+                    {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ") || "—"}
+                  </td>
+                  <td className="py-2 text-right whitespace-nowrap">
+                    {r.aCompleter ? "…" : eur(r.montant)}
+                  </td>
+                  {ventile && (
+                    <td className="py-2 pl-3 text-right font-medium whitespace-nowrap">
+                      {r.aCompleter ? "…" : eur(r.montantQuotePart)}
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </CardContent>
     </Card>
   );

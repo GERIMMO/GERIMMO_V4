@@ -17,6 +17,18 @@ export type EcritureFiscale = {
   // Une contre-écriture (sens inversé, RM-A6.4) se soustrait de la rubrique
   // de son origine — sans cela, l'annulation d'une dépense gonflerait les loyers.
   contre_ecriture_de?: string | null;
+  // Lot rattaché : porte la quote-part (indivision) et le régime (meublé → BIC)
+  lot_id?: string | null;
+};
+
+export type OptionsFiscales = {
+  // Quote-part de détention du déclarant par lot, en % (absente = 100).
+  // Indivision comme SCI : le récapitulatif se ventile, les tantièmes de
+  // copropriété restent informatifs, jamais une clé de calcul.
+  quoteParts?: Map<string, number>;
+  // Lots meublés : leurs écritures relèvent des BIC, pas de la 2044 —
+  // exclues du récapitulatif et totalisées à part (décision du 2026-09-04).
+  lotsMeubles?: Set<string>;
 };
 
 export type RubriqueFiscale = {
@@ -24,6 +36,8 @@ export type RubriqueFiscale = {
   libelle: string;
   sens: "recette" | "depense";
   montant: number;
+  // La part du déclarant (indivision) — égale au montant hors ventilation
+  montantQuotePart: number;
   // Rubrique non alimentée par le livre : à compléter par le propriétaire
   aCompleter?: boolean;
   categories: string[];
@@ -36,6 +50,14 @@ export type RecapitulatifFiscal = {
   totalRecettes: number;
   totalCharges: number;
   revenuNet: number;
+  // Totaux à la quote-part du déclarant
+  totalRecettesQuotePart: number;
+  totalChargesQuotePart: number;
+  revenuNetQuotePart: number;
+  // Au moins un lot est détenu à moins de 100 % : la colonne quote-part compte
+  ventile: boolean;
+  // Écritures des lots meublés, tenues hors récapitulatif (BIC)
+  meuble: { recettes: number; depenses: number; nbEcritures: number };
   nbEcritures: number;
 };
 
@@ -83,26 +105,46 @@ export function estFondsTravauxAlur(categorie: string): boolean {
 
 export function recapitulatifFiscal(
   ecritures: EcritureFiscale[],
-  annee: number
+  annee: number,
+  options: OptionsFiscales = {}
 ): RecapitulatifFiscal {
   const montants = new Map<string, number>();
+  const montantsQuotePart = new Map<string, number>();
   const categories = new Map<string, Set<string>>();
   let fondsTravauxAlur = 0;
   let nbEcritures = 0;
+  const meuble = { recettes: 0, depenses: 0, nbEcritures: 0 };
+
+  const quotePartDe = (lot: string | null | undefined) => {
+    if (!lot) return 100;
+    return options.quoteParts?.get(lot) ?? 100;
+  };
 
   for (const e of ecritures) {
     if (!e.date_piece?.startsWith(String(annee))) continue;
     if (e.sens !== "recette" && e.sens !== "depense") continue;
-    nbEcritures++;
     const annulation = Boolean(e.contre_ecriture_de);
     const sensOrigine = annulation ? (e.sens === "recette" ? "depense" : "recette") : e.sens;
     const montant = (Number(e.montant) || 0) * (annulation ? -1 : 1);
+    // Lot meublé : BIC, pas revenus fonciers — totalisé à part, jamais dans
+    // les rubriques de la 2044.
+    if (e.lot_id && options.lotsMeubles?.has(e.lot_id)) {
+      meuble.nbEcritures++;
+      if (sensOrigine === "recette") meuble.recettes += montant;
+      else meuble.depenses += montant;
+      continue;
+    }
+    nbEcritures++;
     if (sensOrigine === "depense" && estFondsTravauxAlur(e.categorie)) {
       fondsTravauxAlur += montant;
       continue;
     }
     const code = rubriqueDe(e.categorie, sensOrigine);
     montants.set(code, (montants.get(code) ?? 0) + montant);
+    montantsQuotePart.set(
+      code,
+      (montantsQuotePart.get(code) ?? 0) + (montant * quotePartDe(e.lot_id)) / 100
+    );
     if (!categories.has(code)) categories.set(code, new Set());
     categories.get(code)!.add(e.categorie);
   }
@@ -112,6 +154,7 @@ export function recapitulatifFiscal(
     libelle: r.libelle,
     sens: r.sens,
     montant: arrondir(montants.get(r.code) ?? 0),
+    montantQuotePart: arrondir(montantsQuotePart.get(r.code) ?? 0),
     aCompleter: r.code === "250" && !montants.has("250"),
     categories: [...(categories.get(r.code) ?? [])],
   }));
@@ -121,6 +164,7 @@ export function recapitulatifFiscal(
       libelle: "Autres dépenses non rangées (à qualifier)",
       sens: "depense",
       montant: arrondir(montants.get("autres")!),
+      montantQuotePart: arrondir(montantsQuotePart.get("autres") ?? 0),
       categories: [...(categories.get("autres") ?? [])],
     });
   }
@@ -131,6 +175,13 @@ export function recapitulatifFiscal(
   const totalCharges = arrondir(
     rubriques.filter((r) => r.sens === "depense").reduce((s, r) => s + r.montant, 0)
   );
+  const totalRecettesQuotePart = arrondir(
+    rubriques.filter((r) => r.sens === "recette").reduce((s, r) => s + r.montantQuotePart, 0)
+  );
+  const totalChargesQuotePart = arrondir(
+    rubriques.filter((r) => r.sens === "depense").reduce((s, r) => s + r.montantQuotePart, 0)
+  );
+  const ventile = [...(options.quoteParts?.values() ?? [])].some((q) => q < 100);
   return {
     annee,
     rubriques,
@@ -138,6 +189,15 @@ export function recapitulatifFiscal(
     totalRecettes,
     totalCharges,
     revenuNet: arrondir(totalRecettes - totalCharges),
+    totalRecettesQuotePart,
+    totalChargesQuotePart,
+    revenuNetQuotePart: arrondir(totalRecettesQuotePart - totalChargesQuotePart),
+    ventile,
+    meuble: {
+      recettes: arrondir(meuble.recettes),
+      depenses: arrondir(meuble.depenses),
+      nbEcritures: meuble.nbEcritures,
+    },
     nbEcritures,
   };
 }

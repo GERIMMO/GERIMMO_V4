@@ -2250,3 +2250,26 @@ Migration `portail_locataire_complet` appliquée en prod ; 96 tests
 verts, build vert. Le portail locataire du référentiel est couvert, aux
 chantiers transverses près (interventions/artisans T5, Yousign V1,
 WhatsApp).
+
+## [2026-09-05] dev | Espace propriétaire : montée en gamme intégrée (maquette PC v1)
+
+Maquette `raw/maquettes/2026-09-05-espace-proprietaire-v1.html` intégrée :
+- **Chrome premium** : le propriétaire direct quitte l'habillage agence —
+  barre latérale encre (même langage que l'espace locataire), menu dédié
+  (Accueil, Mes lots, Locataires & baux, Incidents, Livre & fiscalité,
+  Documents, Alertes, Mon abonnement, FAQ) avec badges, **sélecteur
+  d'organisation** (nom propre / SCI) dès qu'il a plusieurs organisations —
+  la bascule change tout : lots, livre, fiscalité (chaque org reste étanche).
+- **Accueil dédié** : hero patrimoine (« aucun honoraire, jamais »), KPI
+  réels (encaissé du mois, récap 2044, lots loués), « À faire » (alertes),
+  **veille réglementaire DPE F/G** (diagnostics.classe_dpe : G interdit,
+  F au 01/01/2028) et résumé d'abonnement.
+- **Fiscal ventilé** : colonne « votre quote-part » quand un lot est détenu
+  en indivision (detentions.quote_part), **lots meublés écartés et totalisés
+  à part (BIC)**, note copropriété 229/230 — +3 tests unitaires (99 verts).
+- **Mon abonnement** : la grille ACTÉE du 25/07 (1ᵉʳ bien offert,
+  2,50 €/bien/mois) — pas le « 12 € » de la maquette — biens décomptés,
+  statut d'essai, mention honnête du paiement à venir (S11). **FAQ** réelle.
+Écarts assumés : devis d'incident à valider → chantier T5 ; recherche ⌘K,
+notifications, bot et « IA lit le bail » → hors vague (canaux/chantiers
+dédiés). Uniformisation : mêmes classes premium que le locataire.

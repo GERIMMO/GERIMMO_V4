@@ -17,6 +17,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 import { FilActivite } from "./fil-activite";
+import { AccueilProprietaire } from "./accueil-proprietaire";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -39,7 +40,15 @@ type Alerte = {
 // est dépassé et ce qui vient.
 export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId]">) {
   const { orgId } = await props.params;
-  const { supabase, user, role } = await verifierAccesEspace(orgId);
+  const { supabase, user, role, organisation, estProprietaire } =
+    await verifierAccesEspace(orgId);
+  // Le propriétaire direct a son propre accueil (maquette PC v1 du 05/09) :
+  // patrimoine, à-faire, veille DPE, abonnement — pas les KPI d'agence.
+  if (estProprietaire) {
+    return (
+      <AccueilProprietaire supabase={supabase} orgId={orgId} organisation={organisation} />
+    );
+  }
   const estResponsable = ROLES_RESPONSABLES.includes(role);
   // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent ne lit que les
   // lots des mandats qui lui sont confiés — null : il voit tout.

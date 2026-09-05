@@ -4,6 +4,7 @@ import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
 import { NavAgence } from "@/components/nav-agence";
+import { SidebarProprietaire } from "@/components/nav-proprietaire";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { Toasteur } from "@/components/ui/toast";
@@ -22,7 +23,7 @@ export default async function LayoutAgence({
   params,
 }: LayoutProps<"/agence/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, organisation, role, estProprietaire } =
+  const { supabase, user, organisation, role, estProprietaire } =
     await verifierAccesEspace(orgId);
 
   // Revue recette 08/08 : la pop-up de connexion et le badge du menu ne
@@ -48,6 +49,86 @@ export default async function LayoutAgence({
     role: string;
   }[];
   const estResponsable = ROLES_RESPONSABLES.includes(role);
+
+  // Espace propriétaire — montée en gamme (maquette PC v1 du 05/09) : le
+  // propriétaire direct est chez lui — barre latérale premium (même langage
+  // que l'espace locataire), sélecteur d'organisation (nom propre / SCI) si
+  // plusieurs, pages inchangées derrière.
+  if (estProprietaire) {
+    const { data: adhesions } = await supabase
+      .from("memberships")
+      .select("organization_id, organisation:organizations(id, name, type)")
+      .eq("account_id", user.id)
+      .eq("role", "proprietaire_direct")
+      .eq("status", "active");
+    const organisations = ((adhesions ?? []) as {
+      organization_id: string;
+      organisation:
+        | { id: string; name: string; type: string }
+        | { id: string; name: string; type: string }[]
+        | null;
+    }[])
+      .map((a) => {
+        const o = Array.isArray(a.organisation) ? a.organisation[0] : a.organisation;
+        return o ? { id: o.id, nom: o.name } : null;
+      })
+      .filter((o): o is { id: string; nom: string } => o !== null);
+
+    return (
+      <div className="loc-app">
+        <aside className="loc-late">
+          <div className="loc-logo">
+            <Link href={`/agence/${orgId}`} aria-label="Accueil de mon espace">
+              <MarqueGerimmo surEncre />
+            </Link>
+            <span className="loc-logo-texte eyebrow text-[var(--sur-encre)]/55">
+              Espace propriétaire
+            </span>
+          </div>
+          <SidebarProprietaire
+            orgId={orgId}
+            badgeIncidents={incidentsOuverts ?? 0}
+            badgeAlertes={alertesOrg}
+            organisations={organisations}
+          />
+          <div className="loc-late-bas">
+            <Link href={`/agence/${orgId}/profil`}>Mon profil</Link>
+            <Link href="/espaces">Mes espaces</Link>
+            <form action={seDeconnecter}>
+              <button type="submit">Se déconnecter</button>
+            </form>
+          </div>
+        </aside>
+        <div className="min-w-0">
+          <header className="loc-haut">
+            <SyntheseAlertes
+              alertes={alertes}
+              membres={membres}
+              estResponsable={estResponsable}
+            />
+            <span className="min-w-0 truncate text-[13px] text-muted-foreground">
+              {organisation.name}
+              <span className="text-[var(--libelle)]"> · Propriétaire bailleur</span>
+            </span>
+            <span className="loc-avat" aria-hidden>
+              {(organisation.name?.[0] ?? "◇").toUpperCase()}
+            </span>
+          </header>
+          {organisation.status === "essai" && organisation.essai_fin && (
+            <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
+              Essai gratuit jusqu&apos;au {formaterDate(organisation.essai_fin)}
+              {joursRestants(organisation.essai_fin) < 0
+                ? " — période d'essai terminée, l'abonnement arrive prochainement"
+                : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
+            </p>
+          )}
+          {/* Les pages gardent leur <main> et leurs marges : seul le chrome change */}
+          <div className="min-w-0">{children}</div>
+        </div>
+        <Toasteur />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-full flex-1 flex-col">

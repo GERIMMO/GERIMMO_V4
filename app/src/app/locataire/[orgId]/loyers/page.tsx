@@ -165,6 +165,12 @@ export default async function PagePaiementsLocataire(
             Vos quittances restent disponibles ici pendant toute la durée du
             bail — utiles pour la CAF ou un futur dossier de location.
           </p>
+          <Link
+            href={`/attestation-loyer/${orgId}`}
+            className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-3`}
+          >
+            Attestation de bon paiement
+          </Link>
         </div>
       </div>
     </div>

@@ -28,6 +28,7 @@ import {
   BoutonRetirerLigne,
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
+import { CarteMessages } from "./carte-messages";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
@@ -85,6 +86,13 @@ export default async function PagePersonne(
     !estProprietaire && (mandats ?? []).length > 0
       ? await supabase.rpc("org_membres_gerants", { org: orgId })
       : { data: [] };
+  // Fil de messages (espace locataire v10) — lire marque lus les messages du
+  // locataire : ouvrir la fiche vaut prise de connaissance.
+  const { data: filMessages } = await supabase.rpc("messages_personne", {
+    p_org: orgId,
+    p_person: personId,
+  });
+  const messages = (filMessages ?? []) as import("./carte-messages").MessagePersonne[];
   const gerants = ((donneesGerants ?? []) as { account_id: string; email: string; role: string }[])
     .map(({ account_id, email }) => ({ account_id, email }));
 
@@ -372,6 +380,28 @@ export default async function PagePersonne(
           <FormulairePiece orgId={orgId} personId={personId} />
         </CardContent>
       </Card>
+
+      {/* Messages avec la personne (espace locataire v10) : visibles dès
+          qu'un échange existe, ou qu'elle a un espace pour les recevoir */}
+      {(messages.length > 0 || personne.account_id) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Messages</CardTitle>
+            <CardDescription>
+              Le fil avec cette personne — vos réponses arrivent dans son
+              espace, ouvrir cette fiche marque ses messages comme lus.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CarteMessages
+              orgId={orgId}
+              personId={personId}
+              prenom={personne.prenom}
+              messages={messages}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Mandats de gestion — un propriétaire direct n'en signe pas (S9a) */}
       {!estProprietaire && (

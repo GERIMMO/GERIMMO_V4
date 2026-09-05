@@ -30,6 +30,7 @@ import { RecapBien } from "./recap-bien";
 import { LignesDiagnostics, type DiagnosticDepose } from "./lignes-diagnostics";
 import { FormulaireDecoupage } from "./formulaire-decoupage";
 import { FormulaireCle } from "./formulaire-cle";
+import { CarteAnnonces, type Annonce as AnnonceBien } from "./carte-annonces";
 import {
   FormulaireInfosPratiques,
   type InfosPratiques,
@@ -50,6 +51,7 @@ export default async function PageBien(
     { data: cle },
     { data: infos },
     { data: detentionsBien },
+    { data: annonces },
   ] = await Promise.all([
     supabase
       .from("biens")
@@ -89,6 +91,14 @@ export default async function PageBien(
       .eq("organization_id", orgId)
       .eq("lot.bien_id", bienId)
       .is("date_fin", null),
+    // Annonces aux locataires du bien (espace locataire v10)
+    supabase
+      .from("annonces")
+      .select("id, texte, visible_jusquau")
+      .eq("organization_id", orgId)
+      .eq("bien_id", bienId)
+      .gte("visible_jusquau", new Date().toISOString().slice(0, 10))
+      .order("visible_jusquau"),
   ]);
   if (!bien) notFound();
 
@@ -462,6 +472,25 @@ export default async function PageBien(
           <p className="text-xs text-muted-foreground">
             La mise en location vérifie une dernière fois qu’il ne manque rien au lot.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Annonce aux locataires (espace locataire v10) : un mot sur leur accueil */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Annonce aux locataires du bien</CardTitle>
+          <CardDescription>
+            Coupure d&apos;eau, travaux, passage du syndic… L&apos;annonce s&apos;affiche
+            sur l&apos;accueil des locataires du bien jusqu&apos;à la date choisie, puis
+            disparaît seule.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CarteAnnonces
+            orgId={orgId}
+            bienId={bienId}
+            annonces={(annonces ?? []) as AnnonceBien[]}
+          />
         </CardContent>
       </Card>
     </main>

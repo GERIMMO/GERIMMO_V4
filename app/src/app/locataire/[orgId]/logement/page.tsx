@@ -16,9 +16,10 @@ export default async function PageLogementLocataire(
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: baux }, { data: depotRows }] = await Promise.all([
+  const [{ data: baux }, { data: depotRows }, { data: infosRows }] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_depot_locataire", { p_org: orgId }),
+    supabase.rpc("mes_infos_pratiques_locataire", { p_org: orgId }),
   ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const depot = ((depotRows ?? []) as {
@@ -135,6 +136,43 @@ export default async function PageLogementLocataire(
           </Link>
         </div>
       </div>
+
+      {(() => {
+        // « Votre logement, mode d'emploi » : les infos pratiques que
+        // l'agence a renseignées sur le bien (backend v10)
+        const infos = ((infosRows ?? []) as {
+          sortie_poubelles: string | null;
+          local_poubelles: string | null;
+          gardien: string | null;
+          travaux: string | null;
+          stationnement: string | null;
+          autres: string | null;
+        }[])[0];
+        const lignes = infos
+          ? ([
+              ["Local poubelles & tri", infos.local_poubelles],
+              ["Sortie des poubelles", infos.sortie_poubelles],
+              ["Gardien", infos.gardien],
+              ["Stationnement", infos.stationnement],
+              ["Travaux en cours", infos.travaux],
+              ["Bon à savoir", infos.autres],
+            ] as const).filter(([, v]) => v)
+          : [];
+        if (lignes.length === 0) return null;
+        return (
+          <div className="loc-carte">
+            <h3 className="text-base font-medium">Votre logement, mode d&apos;emploi</h3>
+            <div className="mt-2">
+              {lignes.map(([titre, valeur]) => (
+                <div key={titre} className="ligne-info">
+                  <span>{titre}</span>
+                  <span className="text-right">{valeur}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <CarteConge
         orgId={orgId}

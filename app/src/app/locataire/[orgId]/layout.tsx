@@ -17,9 +17,10 @@ export default async function LayoutLocataire({
   const { orgId } = await params;
   const { supabase, organisation, personne } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: pieces }, { data: incidents }] = await Promise.all([
+  const [{ data: pieces }, { data: incidents }, { data: nonLus }] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
+    supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
   ]);
   const attestations = ((pieces ?? []) as {
     type: string;
@@ -50,6 +51,7 @@ export default async function LayoutLocataire({
           orgId={orgId}
           badgeDocuments={assuranceOk ? 0 : 1}
           badgeDemandes={demandesEnCours}
+          badgeMessages={Number(nonLus ?? 0)}
         />
         <div className="loc-late-bas">
           <Link href="/espaces">Mes espaces</Link>

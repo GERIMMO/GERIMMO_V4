@@ -32,12 +32,15 @@ export function SidebarLocataire({
   orgId,
   badgeDocuments = 0,
   badgeDemandes = 0,
+  badgeMessages = 0,
 }: {
   orgId: string;
   // Une pièce à déposer ou à renouveler (assurance…) attend dans Documents
   badgeDocuments?: number;
   // Signalements en cours
   badgeDemandes?: number;
+  // Réponses du gestionnaire pas encore lues
+  badgeMessages?: number;
 }) {
   const pathname = usePathname();
   const base = `/locataire/${orgId}`;
@@ -53,7 +56,7 @@ export function SidebarLocataire({
       aussi: `${base}/incident`,
       badge: badgeDemandes,
     },
-    { href: `${base}/contact`, libelle: "Mon gestionnaire", icone: "bulle" },
+    { href: `${base}/contact`, libelle: "Mon gestionnaire", icone: "bulle", badge: badgeMessages },
     { href: `${base}/faq`, libelle: "Questions fréquentes", icone: "quest" },
   ];
 

@@ -21,12 +21,14 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     { data: pieces },
     { data: incidentsBruts },
     { data: gestionnaires },
+    { data: annonces },
   ] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
+    supabase.rpc("mes_annonces_locataire", { p_org: orgId }),
   ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const lignes = (echeancier ?? []) as {
@@ -109,6 +111,19 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
           </div>
         </div>
       )}
+
+      {/* Annonces de l'agence pour l'immeuble (backend v10) */}
+      {((annonces ?? []) as { id: string; texte: string }[]).map((a) => (
+        <div
+          key={a.id}
+          className="loc-carte border border-[var(--or-filet)] !bg-[var(--or-clair)]/40 !shadow-none"
+          style={{ padding: "13px 18px" }}
+        >
+          <p className="text-[13px]">
+            <b className="font-semibold">Dans votre immeuble</b> — {a.texte}
+          </p>
+        </div>
+      ))}
 
       <div className="loc-grille">
         <div className="space-y-4">

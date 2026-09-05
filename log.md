@@ -2205,3 +2205,24 @@ au lieu de prélèvement, aucune photo ni donnée fictive ; messagerie,
 notifications, rendez-vous, annonces d'immeuble et relevé de compteur
 attendront leur backend. Au passage, mon_bail_locataire v4 **répare la perte
 de document_signe** introduite le 04/09. 96 tests verts, build vert.
+
+## [2026-09-05] dev | Espace locataire : la vague backend (messagerie, annonces, attestation, mode d'emploi)
+
+Ce qui manquait de « vrai » derrière la maquette v10 est construit :
+- **Messagerie locataire ↔ gestionnaire** : table `messages` (RLS, accès par
+  RPC definer uniquement), fil sur « Mon gestionnaire » avec suggestions,
+  badge de non-lus au menu, carte Messages sur la fiche personne côté agence
+  (ouvrir la fiche marque lu), alerte « Nouveau message de X » dédoublonnée
+  tant que le fil a une alerte ouverte.
+- **Annonces d'immeuble** : table `annonces`, carte de publication sur la
+  fiche du bien (texte + date de fin, retrait), bandeau « Dans votre
+  immeuble » sur l'accueil des locataires du bien.
+- **Attestation de bon paiement** : page imprimable `/attestation-loyer`,
+  délivrée seulement si le compte est réellement soldé (sinon la page
+  explique), liée depuis Mes paiements.
+- **Mode d'emploi du logement** : les infos pratiques du bien
+  (`bien_infos_pratiques`, déjà saisies côté agence) ouvertes au locataire
+  sur « Mon logement » (RPC dédié).
+Restent volontairement en attente : rendez-vous (chantier interventions T5),
+relevé de compteur (avec la régularisation), attestation CAF officielle
+(vague documents). Migrations appliquées en prod, build et tests verts.

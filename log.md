@@ -2273,3 +2273,16 @@ Maquette `raw/maquettes/2026-09-05-espace-proprietaire-v1.html` intégrée :
 Écarts assumés : devis d'incident à valider → chantier T5 ; recherche ⌘K,
 notifications, bot et « IA lit le bail » → hors vague (canaux/chantiers
 dédiés). Uniformisation : mêmes classes premium que le locataire.
+
+## [2026-09-05] decision | Prix de l'abonnement PD : 5,99 €/bien/mois
+
+Décision de l'humain (session mobile) : « l'abonnement sera a 5e99 par bien ».
+Le prix par bien supplémentaire passe de **2,50 €** (acté le 25/07) à
+**5,99 €/bien/mois**. Inchangés (non revus, hypothèses conservées) : 1ᵉʳ bien
+offert à vie, pas de mise en place ni de redevance pour les PD, essai 14 jours,
+grille agences. Répercuté :
+- app : `abonnement/page.tsx`, `accueil-proprietaire.tsx`, `faq/page.tsx` ;
+- wiki : [[Grille tarifaire]] (callout de révision), [[Onboarding et
+  abonnement]], [[État du projet et décisions ouvertes]].
+Note : le positionnement « moins cher que Rentila » du 25/07 ne tient plus
+(2 biens ≈ 72 €/an vs ~49 €/an) — montée en gamme assumée.

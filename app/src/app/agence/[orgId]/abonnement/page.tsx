@@ -4,8 +4,9 @@ import { eur, formaterDate } from "@/lib/ged";
 
 export const metadata = { title: "Mon abonnement — Gerimmo" };
 
-// « Mon abonnement » (maquette PC v1) — grille tarifaire ACTÉE le 25/07 :
-// 1ᵉʳ bien offert, 2,50 €/bien/mois ensuite, sans frais de mise en place.
+// « Mon abonnement » (maquette PC v1) — grille tarifaire ACTÉE le 05/09
+// (remplace celle du 25/07) : 1ᵉʳ bien offert, 5,99 €/bien/mois ensuite,
+// sans frais de mise en place.
 // Le paiement en ligne (Stripe) arrive au S11 : d'ici là, la page dit ce qui
 // est vrai — la formule, le décompte de biens, le statut d'essai.
 export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/abonnement">) {
@@ -20,7 +21,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
     .order("created_at");
   const liste = (biens ?? []) as { id: string; nom: string }[];
   const payants = Math.max(0, liste.length - 1);
-  const total = payants * 2.5;
+  const total = payants * 5.99;
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
@@ -49,7 +50,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
                     </small>
                   )}
                 </span>
-                <span>{ix === 0 ? "0 €" : "2,50 €/mois"}</span>
+                <span>{ix === 0 ? "0 €" : "5,99 €/mois"}</span>
               </div>
             ))}
             <div className="ligne-info font-medium">

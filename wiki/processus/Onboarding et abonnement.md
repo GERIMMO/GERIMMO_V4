@@ -56,8 +56,8 @@ lacune sur l'arrivée du [[Propriétaire bailleur|propriétaire gestion directe]
 **tranchée le 2026-08-19 : auto-inscription en ligne**. Une page d'inscription
 publique lui permet de créer seul son compte et son organisation
 (`independent_owner`), de démarrer l'**essai 14 jours**, puis de souscrire
-l'**abonnement par bien** via Stripe (1ᵉʳ bien gratuit, 2,50 €/bien/mois —
-[[Grille tarifaire]]). Pas de circuit commercial : il est indépendant de bout en
+l'**abonnement par bien** via Stripe (1ᵉʳ bien gratuit, 5,99 €/bien/mois depuis
+la révision du 2026-09-05 — [[Grille tarifaire]]). Pas de circuit commercial : il est indépendant de bout en
 bout. En complément, le [[Super Admin]] peut **créer manuellement tout profil**,
 PD compris (voie de secours/support — précision du 2026-08-19). **Écran à construire au sprint 9a** (sprint dédié au PD, scission décidée le
 2026-08-19), le paiement Stripe restant au sprint 11 — cohérent avec

@@ -41,7 +41,8 @@ de `raw/assets/` est **écarté** par décision humaine du 2026-07-25 — ne pas
 > pure, **l'audit est intégralement soldé** ([[Propriétaire bailleur]]).
 
 **Plus aucun arbitrage en attente** (2026-07-25). Dernier point clos : grille PD
-validée (1ᵉʳ bien gratuit, 2,50 €/bien/mois, sans mise en place) et grille agences
+validée (1ᵉʳ bien gratuit, prix par bien révisé à **5,99 €/bien/mois** le
+2026-09-05 — remplace les 2,50 € du 25/07, sans mise en place) et grille agences
 actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 
 > [!note] Décision 2026-08-19 — exclusivité PD / PM assumée

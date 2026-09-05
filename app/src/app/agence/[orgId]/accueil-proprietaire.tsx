@@ -59,9 +59,10 @@ export async function AccueilProprietaire({
     classe_dpe: string;
     lot: UnOuPlusieurs<{ nom: string; etat: string }>;
   }[]).map((d) => ({ classe: d.classe_dpe, lot: premier(d.lot) }));
-  // Grille tarifaire actée (25/07) : 1ᵉʳ bien offert, 2,50 €/bien/mois ensuite
+  // Grille tarifaire actée (05/09, remplace celle du 25/07) : 1ᵉʳ bien offert,
+  // 5,99 €/bien/mois ensuite
   const biensPayants = Math.max(0, (nbBiens ?? 0) - 1);
-  const totalMensuel = biensPayants * 2.5;
+  const totalMensuel = biensPayants * 5.99;
   const aujourdhui = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -227,7 +228,7 @@ export async function AccueilProprietaire({
               <div className="ligne-info">
                 <span>
                   {biensPayants} bien{biensPayants > 1 ? "s" : ""} supplémentaire
-                  {biensPayants > 1 ? "s" : ""} × 2,50 €
+                  {biensPayants > 1 ? "s" : ""} × 5,99 €
                 </span>
                 <span>{eur(totalMensuel)}/mois</span>
               </div>

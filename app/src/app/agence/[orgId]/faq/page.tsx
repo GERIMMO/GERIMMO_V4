@@ -28,7 +28,7 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Combien ça coûte ?",
-    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 2,50 € par mois, tout compris, sans engagement — un bien retiré n'est plus compté le mois suivant.",
+    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 5,99 € par mois, tout compris, sans engagement — un bien retiré n'est plus compté le mois suivant.",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",

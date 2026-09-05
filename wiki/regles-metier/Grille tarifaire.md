@@ -3,7 +3,7 @@ type: business-rule
 tags: [tarifs, stripe, abonnement]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-05
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
 ---
 
@@ -58,13 +58,22 @@ suppression**.
 **Propriétaires bailleurs : par bien. Agences : par palier de lots.** Clôt la
 réconciliation RM-18.6.3 — les paliers `owner_*` du code sont à remplacer.
 
-**Grille PD — VALIDÉE (humain, 2026-07-25) :**
-| Élément | Proposition | Justification |
+**Grille PD — VALIDÉE (humain, 2026-07-25), prix RÉVISÉ (humain, 2026-09-05) :**
+| Élément | Décision | Justification |
 |---|---|---|
-| **1ᵉʳ bien** | **Gratuit** | Neutralise le « Rentila gratuit 1 bien » ; porte d'entrée |
-| **Par bien suivant** | **2,50 €/bien/mois** | 2 biens = 30 €/an (vs Rentila ~49 €/an) ; 5 biens = 10 €/mois |
+| **1ᵉʳ bien** | **Gratuit, à vie** | Neutralise le « Rentila gratuit 1 bien » ; porte d'entrée |
+| **Par bien suivant** | **5,99 €/bien/mois** | Décision humain 2026-09-05 — remplace les 2,50 € du 25/07 ; 2 biens ≈ 72 €/an, 5 biens ≈ 24 €/mois |
 | Mise en place / redevance | **Aucune pour les PD** | Friction fatale sur ce segment ; réservées aux agences |
 | Essai | 14 jours sans carte | Inchangé |
+
+> [!info] Révision de prix (2026-09-05)
+> Le tarif par bien supplémentaire passe de 2,50 € à **5,99 €/bien/mois** (décision
+> humain, session mobile). Le 1ᵉʳ bien reste offert à vie et l'absence de mise en
+> place / redevance pour les PD est inchangée (non revues par l'humain — hypothèse
+> conservée). Répercuté dans l'app : pages « Mon abonnement », accueil propriétaire,
+> FAQ propriétaire. La justification « moins cher que Rentila » du 25/07 ne tient
+> plus au même niveau (2 biens ≈ 72 €/an vs Rentila ~49 €/an) — positionnement
+> assumé montée en gamme.
 
 Points d'attention : (1) au-delà de ~20 biens le « par bien » dépasse les anciens
 paliers (20 biens ≈ 47,50 €/mois vs 39 €) — assumable (la valeur suit le parc) ou

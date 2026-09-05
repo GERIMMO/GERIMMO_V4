@@ -23,7 +23,10 @@ export type EtatIncidentAction = {
 const MAX_PHOTOS = 5;
 
 // Contrôles communs aux deux formulaires de déclaration (locataire et agence)
-function lireChampsDeclaration(formData: FormData): {
+// descriptionRequise : l'agence décrit toujours (elle retranscrit un appel) ;
+// le locataire peut s'en passer si une photo parle pour lui (RM-19.2.2,
+// report du 21/08 levé par Tahir le 05/09).
+function lireChampsDeclaration(formData: FormData, descriptionRequise = true): {
   erreur?: string;
   categorie?: string;
   description?: string;
@@ -40,7 +43,7 @@ function lireChampsDeclaration(formData: FormData): {
   if (!categorieIncident(categorie)) {
     return { erreur: "Choisissez la catégorie la plus proche du problème." };
   }
-  if (!description) {
+  if (!description && descriptionRequise) {
     return {
       erreur: "Décrivez le problème en une phrase au moins — cela évite un aller-retour avec l'agence.",
     };
@@ -168,10 +171,18 @@ export async function declarerMonIncident(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
-  const champs = lireChampsDeclaration(formData);
+  // RM-19.2.2 : deux photos et la pièce suffisent — la description devient
+  // facultative… à condition qu'une photo parle à sa place.
+  const champs = lireChampsDeclaration(formData, false);
   if (champs.erreur) return { erreur: champs.erreur, valeurs };
   const photos = lirePhotos(formData);
   if (photos.erreur) return { erreur: photos.erreur, valeurs };
+  if (!champs.description && (photos.fichiers?.length ?? 0) === 0) {
+    return {
+      erreur: "Ajoutez au moins une photo, ou décrivez le problème en une phrase.",
+      valeurs,
+    };
+  }
 
   const { data: incidentId, error } = await supabase.rpc("declarer_mon_incident", {
     p_org: orgId,

@@ -3,6 +3,7 @@ import { TYPES_DOCUMENT, estExpiree, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { FormulaireAttestation } from "../formulaire-attestation";
+import { DepotPiece, type DemandePiece } from "./depot-piece";
 
 export const metadata = { title: "Mes documents — Gerimmo" };
 
@@ -46,10 +47,13 @@ export default async function PageDocumentsLocataire(
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: piecesBrutes }, { data: echeancier }] = await Promise.all([
-    supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
-    supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
-  ]);
+  const [{ data: piecesBrutes }, { data: echeancier }, { data: demandesBrutes }] =
+    await Promise.all([
+      supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
+      supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
+      supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
+    ]);
+  const demandes = (demandesBrutes ?? []) as DemandePiece[];
   const pieces = (piecesBrutes ?? []) as Piece[];
   const quittances = ((echeancier ?? []) as LigneEcheancier[]).filter((l) => l.quittance_id);
   const total = pieces.length + quittances.length;
@@ -86,6 +90,23 @@ export default async function PageDocumentsLocataire(
           </span>
         )}
       </div>
+
+      {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
+      {demandes.length > 0 && (
+        <div className="loc-carte border-l-4 border-l-[var(--or)]">
+          <div className="entete-carte !mb-0">
+            <h3 className="text-base font-medium">
+              {demandes.length > 1 ? "Des pièces vous sont demandées" : "Une pièce vous est demandée"}
+            </h3>
+            <span className="loc-tag ambre">à déposer</span>
+          </div>
+          <div className="divide-y divide-border">
+            {demandes.map((d) => (
+              <DepotPiece key={d.id} orgId={orgId} demande={d} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place */}
       <div

@@ -197,11 +197,17 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="description">Décrivez en quelques mots *</Label>
+              {/* RM-19.2.2 : une photo suffit — la description est facultative
+                  (le serveur exige au moins l'un des deux) */}
+              <Label htmlFor="description">
+                Décrivez en quelques mots{" "}
+                <span className="font-normal text-muted-foreground">
+                  (facultatif si vous joignez une photo)
+                </span>
+              </Label>
               <textarea
                 id="description"
                 name="description"
-                required
                 rows={3}
                 placeholder="Depuis quand, où exactement, est-ce que cela s'aggrave…"
                 defaultValue={etat.valeurs?.description}

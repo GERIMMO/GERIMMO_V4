@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eur } from "@/lib/ged";
+import { eur, formaterDate } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
@@ -15,10 +15,46 @@ export default async function PagePaiementsLocataire(
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: echeancier }, { data: bauxRows }] = await Promise.all([
+  const [
+    { data: echeancier },
+    { data: bauxRows },
+    { data: restitutions },
+    { data: retenuesRows },
+    { data: relancesRows },
+  ] = await Promise.all([
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
+    supabase.rpc("ma_restitution_locataire", { p_org: orgId }),
+    supabase.rpc("mes_retenues_restitution", { p_org: orgId }),
+    supabase.rpc("mes_relances_locataire", { p_org: orgId }),
   ]);
+  const restitution = ((restitutions ?? []) as {
+    statut: string;
+    date_remise_cles: string;
+    delai_mois: number;
+    depot: number;
+    impayes: number | null;
+    solde: number | null;
+    date_emission: string | null;
+  }[])[0];
+  const retenues = (retenuesRows ?? []) as {
+    libelle: string;
+    cout: number;
+    duree_vie_ans: number | null;
+    age_ans: number | null;
+    montant_retenu: number;
+    justificatif_document: string | null;
+  }[];
+  const relances = (relancesRows ?? []) as {
+    niveau: string;
+    date_envoi: string;
+    date_premiere_presentation: string | null;
+  }[];
+  const NIVEAUX_RELANCE: Record<string, string> = {
+    relance_1: "Relance simple",
+    relance_2: "Seconde relance",
+    mise_en_demeure: "Mise en demeure (lettre recommandée)",
+  };
   const lignesLoyer = (echeancier ?? []) as {
     periode: string;
     montant_du: number;
@@ -173,6 +209,111 @@ export default async function PagePaiementsLocataire(
           </Link>
         </div>
       </div>
+
+      {/* Relances reçues (module 3.12) — sans les notes internes de l'agence */}
+      {relances.length > 0 && (
+        <div className="loc-carte border-l-4 border-l-[var(--warning)]">
+          <h3 className="text-base font-medium">Relances reçues</h3>
+          <ul className="mt-2 divide-y divide-border">
+            {relances.map((r, ix) => (
+              <li key={ix} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                <span className="min-w-0 flex-1">
+                  {NIVEAUX_RELANCE[r.niveau] ?? r.niveau}
+                  <small className="block text-muted-foreground">
+                    envoyée le {formaterDate(r.date_envoi)}
+                    {r.date_premiere_presentation
+                      ? ` · présentée le ${formaterDate(r.date_premiere_presentation)}`
+                      : ""}
+                  </small>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2.5 text-xs text-muted-foreground">
+            Une difficulté de paiement ? Écrivez à votre gestionnaire : une
+            solution se trouve toujours plus tôt que tard.
+          </p>
+        </div>
+      )}
+
+      {/* Restitution du dépôt de garantie (module 2.7) : le suivi dès la
+          remise des clés, le décompte détaillé seulement une fois établi */}
+      {restitution && (
+        <div className="loc-carte">
+          <div className="entete-carte !mb-1">
+            <h3 className="text-base font-medium">Votre dépôt de garantie</h3>
+            <span className={`loc-tag ${restitution.statut === "finalise" ? "vert" : "bleu"}`}>
+              {restitution.statut === "finalise" ? "Décompte établi" : "Restitution en cours"}
+            </span>
+          </div>
+          {restitution.statut !== "finalise" ? (
+            <p className="text-sm text-muted-foreground">
+              Clés remises le {formaterDate(restitution.date_remise_cles)} :
+              votre dépôt de {eur(Number(restitution.depot))} doit vous être
+              restitué sous {restitution.delai_mois} mois
+              {restitution.delai_mois === 2
+                ? " (des écarts ont été relevés à l'état des lieux — les retenues seront justifiées, pièces à l'appui)"
+                : " (état des lieux conforme)"}
+              . Le décompte détaillé apparaîtra ici dès qu&apos;il sera établi.
+            </p>
+          ) : (
+            <>
+              <div className="mt-1">
+                <div className="ligne-info">
+                  <span>Dépôt versé</span>
+                  <span>{eur(Number(restitution.depot))}</span>
+                </div>
+                {Number(restitution.impayes ?? 0) > 0 && (
+                  <div className="ligne-info">
+                    <span>Loyers restés dus, imputés d&apos;abord</span>
+                    <span>− {eur(Number(restitution.impayes))}</span>
+                  </div>
+                )}
+                {retenues.map((r, ix) => (
+                  <div key={ix} className="ligne-info">
+                    <span>
+                      {r.libelle}
+                      <small className="block text-muted-foreground">
+                        coût {eur(Number(r.cout))}
+                        {r.age_ans != null && r.duree_vie_ans != null
+                          ? ` · vétusté déduite (${Number(r.age_ans).toLocaleString("fr-FR")} an${Number(r.age_ans) > 1 ? "s" : ""} sur ${Number(r.duree_vie_ans).toLocaleString("fr-FR")})`
+                          : ""}
+                        {r.justificatif_document && (
+                          <>
+                            {" · "}
+                            <a
+                              href={`/locataire/${orgId}/documents/${r.justificatif_document}/fichier`}
+                              target="_blank"
+                              rel="noopener"
+                              className="text-[var(--bleu)] underline-offset-2 hover:underline"
+                            >
+                              justificatif
+                            </a>
+                          </>
+                        )}
+                      </small>
+                    </span>
+                    <span>− {eur(Number(r.montant_retenu))}</span>
+                  </div>
+                ))}
+                <div className="ligne-info font-medium">
+                  <span className="!text-foreground">
+                    {Number(restitution.solde ?? 0) >= 0 ? "À vous restituer" : "Restant dû"}
+                  </span>
+                  <span>{eur(Math.abs(Number(restitution.solde ?? 0)))}</span>
+                </div>
+              </div>
+              <p className="mt-2.5 text-xs text-muted-foreground">
+                Décompte établi le{" "}
+                {restitution.date_emission ? formaterDate(restitution.date_emission) : "—"}. L&apos;usure
+                normale du logement est déduite des retenues (décote de
+                vétusté) : elle ne peut pas vous être facturée. Un désaccord ?
+                Écrivez à votre gestionnaire depuis « Mon gestionnaire ».
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

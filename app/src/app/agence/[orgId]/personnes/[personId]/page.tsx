@@ -29,6 +29,7 @@ import {
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { CarteMessages } from "./carte-messages";
+import { CartePiecesDemandees } from "./carte-pieces-demandees";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
@@ -93,6 +94,15 @@ export default async function PagePersonne(
     p_person: personId,
   });
   const messages = (filMessages ?? []) as import("./carte-messages").MessagePersonne[];
+  // Pièces réclamées (RM-0b.2.5) : en attente + reçues récemment
+  const { data: demandesBrutes } = await supabase
+    .from("pieces_demandees")
+    .select("id, type, libelle, note, demandee_le, relancee_le, satisfaite_le")
+    .eq("organization_id", orgId)
+    .eq("person_id", personId)
+    .order("demandee_le", { ascending: false })
+    .limit(20);
+  const demandesPieces = (demandesBrutes ?? []) as import("./carte-pieces-demandees").PieceDemandee[];
   const gerants = ((donneesGerants ?? []) as { account_id: string; email: string; role: string }[])
     .map(({ account_id, email }) => ({ account_id, email }));
 
@@ -380,6 +390,28 @@ export default async function PagePersonne(
           <FormulairePiece orgId={orgId} personId={personId} />
         </CardContent>
       </Card>
+
+      {/* Pièces réclamées au locataire (RM-0b.2.5) : demande, relance, dépôt
+          depuis son espace — visible dès qu'elle a un espace pour recevoir */}
+      {personne.account_id && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Pièces réclamées</CardTitle>
+            <CardDescription>
+              Demandez une pièce : elle s&apos;affiche dans l&apos;espace de la
+              personne, qui la dépose en un geste — vous êtes alerté à la
+              réception.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CartePiecesDemandees
+              orgId={orgId}
+              personId={personId}
+              demandes={demandesPieces}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Messages avec la personne (espace locataire v10) : visibles dès
           qu'un échange existe, ou qu'elle a un espace pour les recevoir */}

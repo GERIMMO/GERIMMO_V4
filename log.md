@@ -2226,3 +2226,27 @@ Ce qui manquait de « vrai » derrière la maquette v10 est construit :
 Restent volontairement en attente : rendez-vous (chantier interventions T5),
 relevé de compteur (avec la régularisation), attestation CAF officielle
 (vague documents). Migrations appliquées en prod, build et tests verts.
+
+## [2026-09-05] dev | Portail locataire fermé : les manques du référentiel comblés
+
+Suite du croisement wiki ↔ application (« fais ce qui manque ») :
+- **Pièces réclamées** (RM-0b.2.5) : table `pieces_demandees`, carte
+  « Pièces réclamées » sur la fiche personne (demande avec libellés d'un
+  clic, relance, annulation), dépôt en un geste depuis « Mes documents »
+  du locataire (mêmes contrôles de fichier que l'attestation), demande
+  soldée automatiquement, alerte à la réception, badge au menu.
+- **Décompte de restitution** (module 2.7) : carte « Votre dépôt de
+  garantie » sur Mes paiements — suivi du délai dès la remise des clés,
+  puis décompte détaillé UNIQUEMENT une fois finalisé (RM-2.6.2) :
+  impayés imputés, chaque retenue avec coût, vétusté déduite et
+  **justificatif consultable** (mon_document_locataire étendu).
+- **Relances visibles** (module 3.12) : les relances reçues s'affichent
+  au locataire, sans les notes internes (RM-3.12.2).
+- **Description d'incident facultative** (RM-19.2.2) : report du 21/08
+  **levé par Tahir** — la photo était déjà le premier champ ; désormais
+  une photo OU une phrase suffit (l'agence, elle, décrit toujours), et
+  les écrans replient proprement une description absente.
+Migration `portail_locataire_complet` appliquée en prod ; 96 tests
+verts, build vert. Le portail locataire du référentiel est couvert, aux
+chantiers transverses près (interventions/artisans T5, Yousign V1,
+WhatsApp).

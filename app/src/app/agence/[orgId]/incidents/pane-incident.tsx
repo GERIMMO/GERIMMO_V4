@@ -263,7 +263,13 @@ export async function PaneIncident({
               {categorie && <CardDescription>{categorie.libelle}</CardDescription>}
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm">« {incident.description} »</p>
+              {incident.description ? (
+                <p className="text-sm">« {incident.description} »</p>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Signalé sans description — les photos parlent pour lui.
+                </p>
+              )}
               {photos.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {photos.map((p) => (

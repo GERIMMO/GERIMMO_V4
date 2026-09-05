@@ -17,11 +17,13 @@ export default async function LayoutLocataire({
   const { orgId } = await params;
   const { supabase, organisation, personne } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: pieces }, { data: incidents }, { data: nonLus }] = await Promise.all([
-    supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
-    supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
-    supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
-  ]);
+  const [{ data: pieces }, { data: incidents }, { data: nonLus }, { data: demandes }] =
+    await Promise.all([
+      supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
+      supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
+      supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
+      supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
+    ]);
   const attestations = ((pieces ?? []) as {
     type: string;
     depose_le: string;
@@ -49,7 +51,7 @@ export default async function LayoutLocataire({
         </div>
         <SidebarLocataire
           orgId={orgId}
-          badgeDocuments={assuranceOk ? 0 : 1}
+          badgeDocuments={(assuranceOk ? 0 : 1) + ((demandes ?? []) as unknown[]).length}
           badgeDemandes={demandesEnCours}
           badgeMessages={Number(nonLus ?? 0)}
         />

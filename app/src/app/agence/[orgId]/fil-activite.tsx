@@ -180,10 +180,13 @@ export async function FilActivite({
   }[]) {
     const lot = premier(i.lot);
     if (!dansPortefeuille(lot?.id)) continue;
+    // Une déclaration peut arriver sans description (RM-19.2.2 : la photo
+    // suffit) — la catégorie prend alors le relais.
+    const resume = i.description?.trim() || i.categorie;
     evenements.push({
       cle: `inc-${i.id}`,
       ts: i.created_at,
-      titre: `Incident déclaré — ${i.description.length > 60 ? `${i.description.slice(0, 57)}…` : i.description}`,
+      titre: `Incident déclaré — ${resume.length > 60 ? `${resume.slice(0, 57)}…` : resume}`,
       detail: `${i.numero} · ${lot?.nom ?? "lot"}`,
       initiales: "⚠",
       href: `/agence/${orgId}/incidents/${i.id}`,

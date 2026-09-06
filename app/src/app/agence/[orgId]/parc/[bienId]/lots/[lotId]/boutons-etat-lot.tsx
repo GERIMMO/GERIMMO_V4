@@ -22,7 +22,7 @@ const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
   ],
   loue: [],
   preavis: [{ cible: "disponible", libelle: "Le locataire est parti" }],
-  archive: [{ cible: "brouillon", libelle: "Réactiver (admin de l'agence)" }],
+  archive: [{ cible: "brouillon", libelle: "Réactiver (réservé au responsable)" }],
 };
 
 // Ce que l'agent doit faire à la place, quand l'état ne se change pas à la main.

@@ -54,7 +54,7 @@ export default async function PageNouvelIncident(
         </p>
         <h1>Nouvel incident</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Ouvert par l&apos;agence, par exemple après un appel du locataire. S&apos;il y a
+          Ouvert par le gestionnaire, par exemple après un appel du locataire. S&apos;il y a
           un bail actif sur le lot, le locataire suivra l&apos;incident depuis son espace.
         </p>
       </div>

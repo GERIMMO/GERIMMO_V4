@@ -351,7 +351,7 @@ export async function PaneIncident({
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Qualification — qui paie</CardTitle>
-                <CardDescription>Décidée par l&apos;agence, opposable au locataire.</CardDescription>
+                <CardDescription>Décidée par le gestionnaire, opposable au locataire.</CardDescription>
               </CardHeader>
               <CardContent>
                 {incident.imputation ? (

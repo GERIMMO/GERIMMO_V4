@@ -2301,3 +2301,30 @@ storage), déconnexion impossible sur mobile, impasse détention/indivision PD,
 « honoraires » affichés au PD, EDL invisible côté locataire. Rapport complet :
 [[Audit espaces locataire et proprietaire]] — 4 points à trancher soumis à
 l'humain, plan de correction en 3 vagues proposé.
+
+## [2026-09-06] decision | Correctifs de l'audit — carte blanche
+
+L'humain a donné carte blanche sur les 4 points à trancher de
+[[Audit espaces locataire et proprietaire|l'audit]]. Décisions prises :
+1. **Congé locataire = intention de congé** (conforme [[Notification et valeur
+   probante|RM-A3]]) : le portail prévient le gestionnaire (alerte + mot du
+   locataire, visible sur le bail), le congé se donne par LRAR et
+   `enregistrer_conge` (date de première présentation) solde l'intention.
+   Plus de bascule du bail depuis l'espace locataire.
+2. **Tout locataire du bail** (principal ou colocataire) peut transmettre une
+   intention — elle n'engage rien, le gestionnaire arbitre.
+3. **Détention & quotes-parts ouvertes au propriétaire direct** : l'indivision
+   promise (quote-part fiscale) devient saisissable ; l'impasse « détention
+   incomplète » est levée.
+4. **EDL côté locataire différé** (S13 mobile) ; le texte qui promettait des
+   créneaux est corrigé.
+Également corrigés : lot en préavis + échéance d'alerte (rattrapage en prod),
+quittances ouvertes aux colocataires, policy storage des justificatifs de
+retenue et de régularisation, alerte messages fermée à la réponse, préavis
+unifié écran/serveur (colocation meublée = 1 mois), déconnexion mobile
+(les deux espaces), « honoraires » retirés de l'écran PD, vocabulaire
+agence/mandant neutralisé chez le PD, badges et compteurs locataire mis en
+cohérence, `deposer_mon_attestation` re-vérifie l'adhésion, grants `anon`
+révoqués, table héritée `demandes_pieces` supprimée.
+Migrations : `20260906100000_correctifs_audit`, `20260906101000_preavis_colocation_meuble`.
+Vert : 99 tests, 0 erreur TS/lint, build OK.

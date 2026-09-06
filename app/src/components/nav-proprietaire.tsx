@@ -48,7 +48,7 @@ export function SidebarProprietaire({
   const entrees = [
     { href: base, libelle: "Accueil", icone: "maison", exact: true },
     { href: `${base}/parc`, libelle: "Mes lots", icone: "cle" },
-    { href: `${base}/personnes`, libelle: "Locataires & baux", icone: "gens" },
+    { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens" },
     { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: badgeIncidents },
     { href: `${base}/comptabilite`, libelle: "Livre & fiscalité", icone: "livre" },
     { href: `${base}/documents`, libelle: "Documents", icone: "doc" },

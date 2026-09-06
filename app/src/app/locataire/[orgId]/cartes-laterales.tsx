@@ -43,22 +43,20 @@ export function CarteGestionnaire({
           )}
         </span>
       </div>
-      <div className="mt-3.5 grid grid-cols-2 gap-2">
+      <div className={`mt-3.5 grid gap-2 ${gestionnaire.telephone ? "grid-cols-2" : "grid-cols-1"}`}>
         <Link
           href={`/locataire/${orgId}/contact`}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           Contacter
         </Link>
-        {gestionnaire.telephone ? (
+        {gestionnaire.telephone && (
           <a
             href={`tel:${gestionnaire.telephone.replace(/\s/g, "")}`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
             Appeler
           </a>
-        ) : (
-          <span />
         )}
       </div>
     </div>

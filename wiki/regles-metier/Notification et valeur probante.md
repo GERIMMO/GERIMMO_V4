@@ -3,7 +3,7 @@ type: business-rule
 tags: [preuve, notification, lrar, delai, ged, signature]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-06
 sources: ["[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
@@ -100,6 +100,15 @@ prouver ses diligences (même logique que la trace des relances).
 Cas concret (module 0b) : les **alertes d'assurance** envoyées au locataire sont
 **horodatées et conservées** (RM-0b.6.2) — le bailleur ne peut invoquer le défaut
 d'assurance que s'il prouve avoir réclamé le document ([[Dossier locataire]]).
+
+> [!info] Application — intention de congé (2026-09-06)
+> L'audit du 06/09 a révélé que le portail locataire **fabriquait** une date de
+> première présentation (congé « remis par l'espace ») — contraire à RM-A3.1/A3.5.
+> **Corrigé (carte blanche)** : le portail n'enregistre plus qu'une **intention
+> de congé** (table `intentions_conge`, alerte `conge_intention` au gestionnaire,
+> mot du locataire transmis) ; le congé lui-même reste au **LRAR**, enregistré
+> par le gestionnaire avec la date de première présentation (`enregistrer_conge`),
+> qui solde l'intention. La règle est désormais respectée des deux côtés.
 
 > [!warning] Points à trancher / réserves
 > - **Rattachement prioritaire n° 1 de la [[2026-07-24-gerimmo-v3-matrice-tracabilite|matrice de traçabilité]]** :

@@ -15,6 +15,7 @@ import { afficherToast } from "@/components/ui/toast";
 
 export type AlerteRang = {
   id: string;
+  type?: string;
   criticite: string;
   titre: string;
   echeance: string | null;

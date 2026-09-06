@@ -182,6 +182,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
               mois={moisQuittancement}
               moisLabel={moisEnFrancais(moisQuittancement)}
               lignes={(lignesQuittancement ?? []) as LigneQuittancement[]}
+              proprietaire={estProprietaire}
             />
           </CardContent>
         </Card>

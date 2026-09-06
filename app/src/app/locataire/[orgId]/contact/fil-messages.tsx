@@ -90,7 +90,7 @@ export function FilMessages({
               }
             }}
           >
-            {s.length > 44 ? `${s.slice(0, 42)}…` : s}
+            {s.length > 44 ? `${s.slice(0, 42).replace(/\s+\S*$/, "")}…` : s}
           </button>
         ))}
       </div>

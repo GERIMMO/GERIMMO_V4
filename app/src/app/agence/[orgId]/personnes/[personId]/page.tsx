@@ -38,7 +38,7 @@ export default async function PagePersonne(
   props: PageProps<"/agence/[orgId]/personnes/[personId]">
 ) {
   const { orgId, personId } = await props.params;
-  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
 
   const { data: personne } = await supabase
     .from("persons")
@@ -248,7 +248,9 @@ export default async function PagePersonne(
         </Card>
       )}
 
-      {/* Accès locataire : invitation */}
+      {/* Accès locataire : invitation — sans objet sur sa propre fiche
+          (le propriétaire direct se retrouve dans Personnes, audit 06/09) */}
+      {personne.account_id !== user.id && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Accès locataire</CardTitle>
@@ -266,13 +268,14 @@ export default async function PagePersonne(
           />
         </CardContent>
       </Card>
+      )}
 
       {/* Dossier : pièces versionnées */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Pièces justificatives</CardTitle>
           <CardDescription>
-            Les pièces suivent la personne dans l&apos;agence. Chaque nouveau dépôt
+            Les pièces suivent la personne, d&apos;un bail à l&apos;autre. Chaque nouveau dépôt
             d&apos;un même type crée une version — l&apos;ancienne est conservée.
           </CardDescription>
         </CardHeader>

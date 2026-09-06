@@ -122,9 +122,9 @@ export async function AccueilProprietaire({
             </div>
             <div className="loc-carte loc-kpi">
               <p className="text-[13px] font-semibold text-[var(--encre)]">Fiscalité</p>
-              <p className="v" style={{ fontSize: 20 }}>Récap 2044 prêt</p>
+              <p className="v" style={{ fontSize: 20 }}>Récap 2044</p>
               <p className="text-xs text-muted-foreground">
-                rubrique par rubrique, quote-part comprise
+                alimenté par votre livre, rubrique par rubrique, quote-part comprise
               </p>
               <Link
                 href={`/agence/${orgId}/comptabilite/fiscal`}
@@ -178,7 +178,7 @@ export async function AccueilProprietaire({
                       <span className="puce puce-rouge shrink-0">critique</span>
                     )}
                     <Link
-                      href={`/agence/${orgId}/alertes`}
+                      href={`/agence/${orgId}/alertes?traiter=${a.id}`}
                       className={buttonVariants({ variant: "outline", size: "sm" })}
                     >
                       Traiter
@@ -237,7 +237,7 @@ export async function AccueilProprietaire({
               href={`/agence/${orgId}/abonnement`}
               className="lien-discret mt-2.5 block text-[13px]"
             >
-              Gérer mon abonnement →
+              Voir mon abonnement →
             </Link>
           </div>
         </div>

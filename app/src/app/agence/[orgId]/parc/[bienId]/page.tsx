@@ -42,7 +42,7 @@ export default async function PageBien(
   props: PageProps<"/agence/[orgId]/parc/[bienId]">
 ) {
   const { orgId, bienId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
 
   const [
     { data: bien },
@@ -167,7 +167,7 @@ export default async function PageBien(
           href={`/agence/${orgId}/parc`}
           className="text-sm text-muted-foreground hover:underline"
         >
-          ← Parc
+          ← {estProprietaire ? "Mes lots" : "Parc"}
         </Link>
         <p className="eyebrow mt-1">
           {TYPES_BIEN[bien.type] ?? bien.type} · {bien.city}
@@ -226,7 +226,7 @@ export default async function PageBien(
           {/* Propriétaires mandants du bien (recette 21/08) : qui possède
               quoi, sans ouvrir chaque fiche lot */}
           <SectionLot
-            titre="Propriétaires mandants"
+            titre={estProprietaire ? "Détention du bien" : "Propriétaires mandants"}
             resume={
               proprietairesBien.length === 0
                 ? "Aucun"

@@ -55,6 +55,12 @@ export async function deposerMonAttestation(
   if (!expire) {
     return { erreur: "Indiquez la date d'expiration figurant sur l'attestation.", valeurs };
   }
+  if (expire < new Date().toISOString().slice(0, 10)) {
+    return {
+      erreur: "Cette attestation est déjà expirée — déposez l'attestation en cours de validité.",
+      valeurs,
+    };
+  }
 
   const octets = new Uint8Array(await fichier.arrayBuffer());
   const mime = detecterMimeReel(octets);
@@ -92,5 +98,6 @@ export async function deposerMonAttestation(
   if (erreurRpc) return { erreur: sansJargon(erreurRpc.message), valeurs };
 
   revalidatePath(`/locataire/${orgId}`);
-  return { succes: "Attestation déposée. Merci — votre agence est notifiée." };
+  revalidatePath(`/locataire/${orgId}/documents`);
+  return { succes: "Attestation déposée. Merci — votre gestionnaire est notifié." };
 }

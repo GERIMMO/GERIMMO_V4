@@ -16,11 +16,13 @@ export default async function PageLogementLocataire(
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: baux }, { data: depotRows }, { data: infosRows }] = await Promise.all([
-    supabase.rpc("mon_bail_locataire", { p_org: orgId }),
-    supabase.rpc("mon_depot_locataire", { p_org: orgId }),
-    supabase.rpc("mes_infos_pratiques_locataire", { p_org: orgId }),
-  ]);
+  const [{ data: baux }, { data: depotRows }, { data: infosRows }, { data: intentions }] =
+    await Promise.all([
+      supabase.rpc("mon_bail_locataire", { p_org: orgId }),
+      supabase.rpc("mon_depot_locataire", { p_org: orgId }),
+      supabase.rpc("mes_infos_pratiques_locataire", { p_org: orgId }),
+      supabase.rpc("mon_intention_conge", { p_org: orgId }),
+    ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const depot = ((depotRows ?? []) as {
     depot_du: number;
@@ -41,7 +43,11 @@ export default async function PageLogementLocataire(
     );
   }
 
-  const preavisMois = bail.meuble || bail.type === "meuble" || bail.zone_tendue ? 1 : 3;
+  // Le type du bail prime (un bail nu reste à 3 mois hors zone tendue) ; pour
+  // une colocation à bail unique, le meublé du logement fait foi — même règle
+  // que le serveur (enregistrer_conge).
+  const bailMeuble = bail.type === "meuble" || (bail.type === "colocation" && bail.meuble);
+  const preavisMois = bailMeuble || bail.zone_tendue ? 1 : 3;
   const forfait = bail.charges_mode === "forfait";
 
   return (
@@ -84,11 +90,7 @@ export default async function PageLogementLocataire(
             <span>Préavis si vous partez</span>
             <span className="text-right">
               {preavisMois} mois
-              {preavisMois === 1
-                ? bail.meuble || bail.type === "meuble"
-                  ? " (logement meublé)"
-                  : " (zone tendue)"
-                : ""}
+              {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue)") : ""}
             </span>
           </div>
           <div className="ligne-info">
@@ -179,6 +181,11 @@ export default async function PageLogementLocataire(
         enPreavis={bail.etat === "preavis"}
         dateFin={bail.date_fin}
         preavisMois={preavisMois}
+        intentionDu={
+          ((intentions ?? []) as { created_at: string; traitee_le: string | null }[]).find(
+            (i) => !i.traitee_le
+          )?.created_at ?? null
+        }
       />
     </div>
   );

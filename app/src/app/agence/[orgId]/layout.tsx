@@ -5,6 +5,7 @@ import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
 import { NavAgence } from "@/components/nav-agence";
 import { SidebarProprietaire } from "@/components/nav-proprietaire";
+import { SortieMobile } from "@/components/sortie-mobile";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { Toasteur } from "@/components/ui/toast";
@@ -110,6 +111,7 @@ export default async function LayoutAgence({
               {organisation.name}
               <span className="text-[var(--libelle)]"> · Propriétaire bailleur</span>
             </span>
+            <SortieMobile />
             <span className="loc-avat" aria-hidden>
               {(organisation.name?.[0] ?? "◇").toUpperCase()}
             </span>

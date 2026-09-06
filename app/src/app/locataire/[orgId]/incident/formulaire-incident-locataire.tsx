@@ -84,16 +84,16 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
         ) : (
           <>
             <p>
-              <span className="puce puce-grise">À qualifier par votre gérant</span>
+              <span className="puce puce-grise">À qualifier par votre gestionnaire</span>
             </p>
             <p className="text-muted-foreground">
-              La cause ne se déduit pas de la catégorie : votre gérant tranche
+              La cause ne se déduit pas de la catégorie : votre gestionnaire tranche
               et vous êtes informé immédiatement.
             </p>
           </>
         )}
         <p className="text-xs text-muted-foreground">
-          Repère indicatif — la décision (opposable) revient à votre gérant à la
+          Repère indicatif — la décision (opposable) revient à votre gestionnaire à la
           qualification.
         </p>
       </CardContent>

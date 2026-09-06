@@ -83,12 +83,12 @@ export function FormulaireDetention({
     <form ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">
         {premierProprietaire
-          ? "Le propriétaire mandant du lot"
-          : "Ajouter un propriétaire mandant (indivision)"}
+          ? "Le propriétaire du lot"
+          : "Ajouter un propriétaire (indivision)"}
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="detention-personne">Propriétaire mandant</Label>
+          <Label htmlFor="detention-personne">Propriétaire</Label>
           <select
             id="detention-personne"
             name="person_id"
@@ -105,7 +105,7 @@ export function FormulaireDetention({
               — Choisir —
             </option>
             {dejaProprietaires.length > 0 && (
-              <optgroup label="Propriétaires mandants existants">
+              <optgroup label="Propriétaires existants">
                 {dejaProprietaires.map((p) => (
                   <option key={p.id} value={p.id}>
                     {nomComplet(p)}
@@ -164,7 +164,7 @@ export function FormulaireDetention({
             <input type="hidden" name="nouveau_email" value={nouveau.email} />
             {!modaleOuverte && (
               <p className="text-xs text-muted-foreground sm:col-span-2">
-                Nouveau <b>propriétaire mandant</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
+                Nouveau <b>propriétaire</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
                 <button
                   type="button"
                   onClick={() => setModaleOuverte(true)}
@@ -199,7 +199,7 @@ export function FormulaireDetention({
           unique de la charte (recette 22/08). */}
       {modaleOuverte && (
         <Modale
-          titre="Nouveau propriétaire mandant"
+          titre="Nouveau propriétaire"
           surtitre="La fiche complète se retrouve dans Personnes"
           fermer={fermerModale}
         >

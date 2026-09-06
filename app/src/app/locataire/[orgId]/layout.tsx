@@ -3,6 +3,7 @@ import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { seDeconnecter } from "@/app/actions/auth";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { SidebarLocataire } from "@/components/nav-locataire";
+import { SortieMobile } from "@/components/sortie-mobile";
 import { nomComplet } from "@/lib/roles-personnes";
 import { estExpiree } from "@/lib/ged";
 
@@ -17,12 +18,13 @@ export default async function LayoutLocataire({
   const { orgId } = await params;
   const { supabase, organisation, personne } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: pieces }, { data: incidents }, { data: nonLus }, { data: demandes }] =
+  const [{ data: pieces }, { data: incidents }, { data: nonLus }, { data: demandes }, { data: baux }] =
     await Promise.all([
       supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
       supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
       supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
       supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
+      supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     ]);
   const attestations = ((pieces ?? []) as {
     type: string;
@@ -33,7 +35,10 @@ export default async function LayoutLocataire({
     .filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
   const derniere = attestations[0];
-  const assuranceOk = Boolean(derniere && !estExpiree(derniere.expire_le));
+  // L'assurance n'est réclamée qu'à un locataire en place : sans bail actif,
+  // le badge ne réclame rien (audit 06/09 — badge figé à 1 pour un sortant).
+  const bailActif = ((baux ?? []) as unknown[]).length > 0;
+  const assuranceOk = !bailActif || Boolean(derniere && !estExpiree(derniere.expire_le));
   const demandesEnCours = ((incidents ?? []) as { etat: string }[]).filter(
     (i) => i.etat !== "clos"
   ).length;
@@ -69,6 +74,7 @@ export default async function LayoutLocataire({
             {personne ? nomComplet(personne) : organisation.name}
             <span className="text-[var(--libelle)]"> · Locataire</span>
           </span>
+          <SortieMobile />
           <span className="loc-avat" aria-hidden>
             {personne
               ? `${(personne.prenom?.[0] ?? "").toUpperCase()}${(personne.nom?.[0] ?? "").toUpperCase()}` || "◇"

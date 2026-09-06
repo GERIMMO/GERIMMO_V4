@@ -9,6 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// Une attestation déjà expirée ne protège personne : la date plancher est
+// aujourd'hui (le serveur revérifie).
+function aujourdhuiISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function FormulaireAttestation({
   orgId,
   renouvellement,
@@ -38,7 +44,14 @@ export function FormulaireAttestation({
           <Label htmlFor="att-expire">Date d&apos;expiration</Label>
           {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08 —
               le fichier, lui, est à re-choisir). */}
-          <Input id="att-expire" name="expire_le" type="date" required defaultValue={etat.valeurs?.expire_le} />
+          <Input
+            id="att-expire"
+            name="expire_le"
+            type="date"
+            required
+            min={aujourdhuiISO()}
+            defaultValue={etat.valeurs?.expire_le}
+          />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="att-titre">Assureur (facultatif)</Label>

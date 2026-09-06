@@ -42,10 +42,16 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     type: string;
     depose_le: string;
     expire_le: string | null;
+    verifie_le: string | null;
   }[]).filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
-  const assuranceOk = Boolean(attestations[0] && !estExpiree(attestations[0].expire_le));
-  const nbDocuments = (pieces ?? []).length;
+  const derniere = attestations[0];
+  const assuranceOk = Boolean(derniere && !estExpiree(derniere.expire_le));
+  // Même vocabulaire que la page Documents : déposée mais pas encore validée
+  // par le gestionnaire = « en cours de vérification », pas « à jour »
+  const assuranceEnVerification = assuranceOk && !derniere?.verifie_le;
+  const quittancesDispo = lignes.filter((l) => (l as { quittance_id?: string | null }).quittance_id).length;
+  const nbDocuments = (pieces ?? []).length + quittancesDispo;
   const incidentsEnCours = ((incidentsBruts ?? []) as IncidentLocataire[]).filter(
     (i) => i.etat !== "clos"
   );
@@ -132,7 +138,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               <p className="text-[13px] font-semibold text-[var(--encre)]">Prochain loyer</p>
               {bail && prochaine ? (
                 <>
-                  <p className="v">{eur(Number(bail.loyer_hc ?? 0) + Number(bail.charges ?? 0))}</p>
+                  <p className="v">{eur(Number(prochaine.montant_du) - Number(prochaine.montant_couvert))}</p>
                   <p className="text-xs text-muted-foreground capitalize">{moisLong(prochaine.periode)}</p>
                   <span className={`loc-tag mt-2.5 ${enRetard ? "rouge" : "vert"}`}>
                     {prochaine.statut === "impaye"
@@ -157,8 +163,16 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               <p className="text-xs text-muted-foreground">
                 pièce{nbDocuments > 1 ? "s" : ""} à votre disposition
               </p>
-              <span className={`loc-tag mt-2.5 ${assuranceOk ? "vert" : "ambre"}`}>
-                {assuranceOk ? "✓ Assurance à jour" : "Assurance à déposer"}
+              <span
+                className={`loc-tag mt-2.5 ${assuranceOk && !assuranceEnVerification ? "vert" : "ambre"}`}
+              >
+                {assuranceEnVerification
+                  ? "Assurance en cours de vérification"
+                  : assuranceOk
+                    ? "✓ Assurance à jour"
+                    : bail
+                      ? "Assurance à déposer"
+                      : "Aucune pièce attendue"}
               </span>
               <Link href={`/locataire/${orgId}/documents`} className="lien-discret mt-3 block text-[13px]">
                 Voir mes documents →
@@ -180,7 +194,10 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                   <span className="loc-tag ambre mt-2.5">Suivie{incidentsEnCours.length > 1 ? "s" : ""} par votre gestionnaire</span>
                 </>
               )}
-              <Link href={`/locataire/${orgId}/demandes`} className="lien-discret mt-3 block text-[13px]">
+              <Link
+                href={`/locataire/${orgId}/${incidentsEnCours.length === 0 ? "incident" : "demandes"}`}
+                className="lien-discret mt-3 block text-[13px]"
+              >
                 {incidentsEnCours.length === 0 ? "Signaler un problème →" : "Suivre mes demandes →"}
               </Link>
             </div>

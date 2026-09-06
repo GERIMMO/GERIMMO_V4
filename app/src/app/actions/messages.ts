@@ -32,7 +32,7 @@ export async function envoyerMessageLocataire(
     p_texte: texte,
   });
   if (error) return { erreur: sansJargon(error.message) };
-  revalidatePath(`/locataire/${orgId}/contact`);
+  revalidatePath(`/locataire/${orgId}`, "layout");
   return { succes: "Message envoyé — votre gestionnaire est prévenu." };
 }
 

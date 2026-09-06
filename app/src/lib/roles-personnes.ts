@@ -25,16 +25,24 @@ export type RolePersonne = {
 
 // L'ordre est celui de la lecture : d'abord ce que la personne possède, puis
 // ce qu'elle occupe, puis ce qu'elle garantit.
-export function rolesDePersonne(personId: string, liens: LiensPersonnes): RolePersonne[] {
+export function rolesDePersonne(
+  personId: string,
+  liens: LiensPersonnes,
+  estProprietaire = false
+): RolePersonne[] {
   const roles: RolePersonne[] = [];
   if (liens.proprietaires.has(personId) || liens.mandants.has(personId)) {
     roles.push({
       // Recette 21/08 : côté agence, jamais « Propriétaire » nu — le terme est
       // « propriétaire mandant ». Le mandat reste l'information qui compte :
-      // sous mandat = client, sans mandat = prospect.
-      libelle: liens.mandants.has(personId)
-        ? "Propriétaire mandant"
-        : "Propriétaire mandant · sans mandat",
+      // sous mandat = client, sans mandat = prospect. Chez le propriétaire
+      // direct il n'y a ni mandant ni mandat : « Propriétaire », c'est lui
+      // (audit 06/09).
+      libelle: estProprietaire
+        ? "Propriétaire"
+        : liens.mandants.has(personId)
+          ? "Propriétaire mandant"
+          : "Propriétaire mandant · sans mandat",
       classe: "text-foreground",
       puce: "puce-encre",
     });

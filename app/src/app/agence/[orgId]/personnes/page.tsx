@@ -94,7 +94,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
 
   const fiches: PersonneListe[] = (
     (personnes ?? []) as Omit<PersonneListe, "roles">[]
-  ).map((p) => ({ ...p, roles: rolesDePersonne(p.id, liens) }));
+  ).map((p) => ({ ...p, roles: rolesDePersonne(p.id, liens, role === "proprietaire_direct") }));
 
   const bienParId = new Map(
     ((biens ?? []) as { id: string; address_line1: string; city: string }[]).map((b) => [b.id, b])
@@ -112,7 +112,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Personnes</h1>
+        <h1>{role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}</h1>
         <span className="mono-discret">
           {fiches.length} fiche{fiches.length > 1 ? "s" : ""}
         </span>

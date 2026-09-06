@@ -128,7 +128,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           </p>
           <h1>Incidents</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Déclarés par le locataire ou saisis par l&apos;agence — qualifiez
+            Déclarés par le locataire ou saisis par le gestionnaire — qualifiez
             l&apos;imputation, elle décide de qui paie.
           </p>
         </div>

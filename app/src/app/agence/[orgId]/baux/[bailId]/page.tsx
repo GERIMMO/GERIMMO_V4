@@ -60,6 +60,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: inventaire },
     { data: personnes },
     { data: bailPersonnes },
+    { data: intentions },
   ] = await Promise.all([
       supabase.from("lots").select("id, nom, bien_id").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
@@ -77,7 +78,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .order("type"),
       supabase
         .from("conges")
-        .select("par, date_premiere_presentation, preavis_mois, date_effet, annule_le, annulation_motif")
+        .select("par, date_premiere_presentation, preavis_mois, date_effet, motif, annule_le, annulation_motif")
         .eq("bail_id", bailId)
         .order("created_at", { ascending: false }),
       supabase
@@ -95,6 +96,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .from("bail_personnes")
         .select("id, person_id, role, quote_part, surface_privative, garant_de")
         .eq("bail_id", bailId),
+      // Intention de congé transmise depuis l'espace locataire, en attente de
+      // la lettre recommandée (le congé s'enregistre à sa réception)
+      supabase
+        .from("intentions_conge")
+        .select("created_at, motif")
+        .eq("bail_id", bailId)
+        .is("traitee_le", null)
+        .order("created_at", { ascending: false }),
     ]);
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
@@ -470,7 +479,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       </Card>
 
       {bail.etat === "actif" && (
-        <Card>
+        <Card className={(intentions ?? []).length > 0 ? "border-l-4 border-l-[var(--or)]" : undefined}>
           <CardHeader>
             <CardTitle className="text-base">Congé</CardTitle>
             <CardDescription>
@@ -479,6 +488,18 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {((intentions ?? []) as { created_at: string; motif: string | null }[]).map((it) => (
+              <p key={it.created_at} className="mb-3 rounded-lg bg-warning-soft p-3 text-sm">
+                <b className="font-semibold">
+                  Le locataire a annoncé son départ le {formaterDate(it.created_at)}
+                </b>
+                {it.motif ? <> — « {it.motif} »</> : null}
+                <span className="block text-muted-foreground">
+                  À réception de sa lettre recommandée, enregistrez le congé ci-dessous avec la
+                  date de première présentation — le locataire verra sa fin de bail confirmée.
+                </span>
+              </p>
+            ))}
             <FormulaireConge orgId={orgId} bailId={bailId} type={bail.type} />
           </CardContent>
         </Card>
@@ -497,6 +518,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, présentation
                 le {formaterDate(c.date_premiere_presentation)}, préavis {c.preavis_mois} mois
                 → effet le <span className="font-medium">{formaterDate(c.date_effet)}</span>
+                {c.motif && !c.annule_le && (
+                  <span className="block text-muted-foreground">Motif : {c.motif}</span>
+                )}
                 {/* Un congé annulé reste au dossier : il a existé. */}
                 {c.annule_le && (
                   <span className="badge-statut ml-2 text-muted-foreground">

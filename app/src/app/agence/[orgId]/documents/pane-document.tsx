@@ -155,7 +155,7 @@ export async function PaneDocument({
   const libelleLien = (l: Lien): string => {
     switch (l.entite) {
       case "organisation":
-        return "Agence";
+        return "Organisation";
       case "personne":
         return nomsPersonnes.get(l.entite_id) ?? "Personne";
       case "lot":

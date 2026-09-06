@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export const metadata = { title: "Questions fréquentes — Gerimmo" };
 
 // FAQ locataire (maquette v10) : les réponses aux questions qui reviennent,
@@ -18,7 +20,7 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Comment donner mon congé ?",
-    "Depuis « Mon logement », en deux minutes. Votre préavis est d'un mois en logement meublé ou en zone tendue, de trois mois sinon — il court dès la remise de votre congé. L'état des lieux de sortie et la restitution du dépôt s'organisent ensuite pour vous.",
+    "Par lettre recommandée avec accusé de réception adressée à votre gestionnaire — c'est elle qui fait courir le préavis, dès sa première présentation. Prévenez-le d'abord depuis « Mon logement » (deux minutes) : il attendra votre courrier et confirmera votre date de fin de bail. Préavis : 1 mois en meublé ou en zone tendue, 3 mois sinon.",
   ],
   [
     "Mon assurance habitation est-elle obligatoire ?",
@@ -30,7 +32,8 @@ const QUESTIONS: [string, string][] = [
   ],
 ];
 
-export default function PageFaqLocataire() {
+export default async function PageFaqLocataire(props: PageProps<"/locataire/[orgId]/faq">) {
+  const { orgId } = await props.params;
   return (
     <div className="space-y-4">
       <h1>Questions fréquentes</h1>
@@ -45,8 +48,11 @@ export default function PageFaqLocataire() {
         </ul>
       </div>
       <p className="text-xs text-muted-foreground">
-        Une question sans réponse ici ? Écrivez à votre gestionnaire depuis
-        « Mon gestionnaire ».
+        Une question sans réponse ici ?{" "}
+        <Link href={`/locataire/${orgId}/contact`} className="lien-discret">
+          Écrivez à votre gestionnaire
+        </Link>
+        .
       </p>
     </div>
   );

@@ -101,9 +101,9 @@ describe("catégories d'incident", () => {
 
 describe("libellés locataire (traduction maquette)", () => {
   it("parle au locataire dans ses mots, jamais en vocabulaire interne", () => {
-    expect(libelleEtatLocataire("declare", null)).toBe("Reçu — votre gérant l'examine");
+    expect(libelleEtatLocataire("declare", null)).toBe("Reçu — votre gestionnaire l'examine");
     expect(libelleEtatLocataire("rouvert", "locataire")).toBe(
-      "Rouvert — votre gérant le réexamine"
+      "Rouvert — votre gestionnaire le réexamine"
     );
     expect(libelleEtatLocataire("clos", null)).toBe("Clos");
   });
@@ -115,5 +115,7 @@ describe("libellés locataire (traduction maquette)", () => {
     expect(libelleEtatLocataire("qualifie", "locataire")).toBe("À votre charge");
     // La dégradation fautive reste à la charge du locataire
     expect(libelleEtatLocataire("qualifie", "degradation_fautive")).toBe("À votre charge");
+    // Qualifié sans imputation : jamais « à votre charge » par défaut (audit 06/09)
+    expect(libelleEtatLocataire("qualifie", null)).toBe("En cours d'examen");
   });
 });

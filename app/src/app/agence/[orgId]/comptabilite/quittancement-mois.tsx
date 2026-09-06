@@ -71,12 +71,15 @@ export function QuittancementMois({
   mois,
   moisLabel,
   lignes,
+  proprietaire = false,
 }: {
   orgId: string;
   // « YYYY-MM » du mois affiché (celui de l'envoi groupé)
   mois: string;
   moisLabel: string;
   lignes: LigneQuittancement[];
+  // Propriétaire direct : pas de mandat, donc jamais d'honoraires
+  proprietaire?: boolean;
 }) {
   const [etatEnvoi, actionEnvoi, envoiEnCours] = useActionState<EtatLoyers, FormData>(
     async () => envoyerQuittancesMois(orgId, mois),
@@ -180,8 +183,8 @@ export function QuittancementMois({
       </div>
       <p className="text-xs text-muted-foreground">
         L&apos;encaissement déclenche tout : quittance émise (un paiement partiel
-        produit un reçu, promu en quittance au solde), écriture de recette et
-        honoraires au taux du mandat. Le premier loyer d&apos;un bail est quittancé
+        produit un reçu, promu en quittance au solde), écriture de recette
+        {proprietaire ? " au livre — sans honoraires, jamais" : " et honoraires au taux du mandat"}. Le premier loyer d&apos;un bail est quittancé
         au prorata de la date d&apos;entrée. L&apos;encaissement en un clic vaut
         virement du jour — corrigeable depuis la fiche du bail.
       </p>

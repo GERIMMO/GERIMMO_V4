@@ -63,13 +63,15 @@ export function libelleEtatLocataire(
 ): string {
   switch (etat) {
     case "declare":
-      return "Reçu — votre gérant l'examine";
+      return "Reçu — votre gestionnaire l'examine";
     case "rouvert":
-      return "Rouvert — votre gérant le réexamine";
+      return "Rouvert — votre gestionnaire le réexamine";
     case "qualifie":
       return imputation === "proprietaire"
         ? "Pris en charge par le propriétaire"
-        : "À votre charge";
+        : imputation
+          ? "À votre charge"
+          : "En cours d'examen";
     case "affecte":
     case "en_cours":
       return "Un artisan s'en occupe";
@@ -106,7 +108,7 @@ export const COULEURS_IMPUTATION: Record<string, string> = {
 
 export const CANAUX_INCIDENT: Record<string, string> = {
   espace_locataire: "Espace locataire",
-  agence: "Agence",
+  agence: "Gestionnaire",
 };
 
 export const MOTIFS_CLOTURE: Record<string, string> = {

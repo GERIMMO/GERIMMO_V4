@@ -31,7 +31,7 @@ export default async function PageAlertes(
       supabase
         .from("alerts")
         .select(
-          "id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details"
+          "id, type, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details"
         )
         .eq("organization_id", orgId)
         .eq("statut", "ouverte")

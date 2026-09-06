@@ -69,7 +69,7 @@ export function FormulaireDepot({
           defaultValue={etat.valeurs?.personne ?? ""}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
-          <option value="">— Agence seulement —</option>
+          <option value="">— Gestionnaire seulement —</option>
           {personnes.map((p) => (
             <option key={p.id} value={p.id}>
               {p.nom} {p.prenom ?? ""}

@@ -3,18 +3,17 @@
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { formaterDate } from "@/lib/ged";
 
 export type EtatConge = {
   erreur?: string;
   succes?: string;
-  dateFin?: string;
 };
 
-// Le locataire donne son congé depuis son espace (maquette v10). Le RPC
-// vérifie que l'appelant est bien le locataire du bail, calcule le préavis
-// (meublé ou zone tendue : 1 mois ; sinon 3), passe le bail en préavis et
-// alerte le gestionnaire.
+// Le locataire transmet son INTENTION de congé depuis son espace. Le congé
+// lui-même se donne par lettre recommandée (RM-A3 : la mise à disposition en
+// ligne n'a aucune valeur probante) : le gestionnaire l'enregistre à réception
+// du courrier, avec la date de première présentation — c'est elle qui fait
+// courir le préavis. Ici : alerte au gestionnaire, rien d'irréversible.
 export async function donnerMonConge(
   orgId: string,
   _etat: EtatConge,
@@ -27,7 +26,7 @@ export async function donnerMonConge(
   if (!user) return { erreur: "Vous n'êtes pas connecté." };
 
   const motif = String(formData.get("motif") ?? "").trim() || null;
-  const { data, error } = await supabase.rpc("mon_conge_locataire", {
+  const { error } = await supabase.rpc("mon_conge_locataire", {
     p_org: orgId,
     p_motif: motif,
   });
@@ -35,9 +34,8 @@ export async function donnerMonConge(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/logement`);
-  const dateFin = String(data);
   return {
-    succes: `Congé transmis à votre gestionnaire — votre bail prendra fin le ${formaterDate(dateFin)}.`,
-    dateFin,
+    succes:
+      "Votre gestionnaire est prévenu — envoyez maintenant votre lettre recommandée pour faire courir le préavis.",
   };
 }

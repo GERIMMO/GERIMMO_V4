@@ -23,6 +23,24 @@ const NIVEAUX: Record<string, string> = {
 // partout. Le traitement passe par la modale (maquette) — SAUF les alertes
 // incident : un incident se traite dans l'onglet Incidents, « Traiter » y
 // emmène, positionné sur le dossier (recette 24/08).
+// « Traiter » emmène là où le geste se fait : un message se lit sur la fiche
+// de la personne, une intention de congé se confirme sur le bail.
+function cheminFiche(a: AlerteRang, orgId: string): string | null {
+  if (
+    (a.type === "message_locataire" || a.type === "piece_deposee") &&
+    typeof a.details?.person_id === "string"
+  ) {
+    return `/agence/${orgId}/personnes/${a.details.person_id}`;
+  }
+  if (
+    (a.type === "conge_intention" || a.type === "edl_sortie") &&
+    typeof a.details?.bail_id === "string"
+  ) {
+    return `/agence/${orgId}/baux/${a.details.bail_id}`;
+  }
+  return null;
+}
+
 export function ListeAlertes({
   orgId,
   alertes,
@@ -44,6 +62,7 @@ export function ListeAlertes({
   const [ouverte, setOuverte] = useState<AlerteRang | null>(null);
   const incidentDe = (a: AlerteRang) =>
     typeof a.details?.incident_id === "string" ? a.details.incident_id : null;
+  const ficheDe = (a: AlerteRang) => cheminFiche(a, orgId);
   // L'auto-ouverture se consomme UNE fois, puis le paramètre est retiré de
   // l'URL : sans cela, la revalidation qui suit le traitement remontait le
   // composant avec ?traiter= encore présent et rouvrait une modale périmée
@@ -64,12 +83,13 @@ export function ListeAlertes({
     if (
       cible &&
       !incidentDe(cible) &&
+      !cheminFiche(cible, orgId) &&
       (estConfieeAMoi(cible, monCompte) || estResponsable)
     ) {
       setOuverte(cible);
     }
     window.history.replaceState(null, "", window.location.pathname);
-  }, [ouvrirAlerteId, alertes, monCompte, estResponsable]);
+  }, [ouvrirAlerteId, alertes, monCompte, estResponsable, orgId]);
   // Le geste abouti solde l'alerte en base et la revalidation arrive dans le
   // MÊME commit React que le succès : la règle sûre est qu'une alerte qui a
   // quitté la liste ferme sa modale (recette 23/08, constaté en production).
@@ -102,6 +122,7 @@ export function ListeAlertes({
   const rang = (a: AlerteRang, grisee: boolean) => {
     const echeance = afficherEcheance(a.echeance);
     const incidentId = incidentDe(a);
+    const fiche = ficheDe(a);
     return (
       <div
         key={a.id}
@@ -130,9 +151,9 @@ export function ListeAlertes({
             rouvrir pour la réassigner ou la traiter à la place d'un absent.
             Une alerte incident emmène au dossier, dans l'onglet Incidents. */}
         {(!grisee || estResponsable) &&
-          (incidentId && !grisee ? (
+          ((incidentId || fiche) && !grisee ? (
             <Link
-              href={`/agence/${orgId}/incidents?sel=${incidentId}`}
+              href={incidentId ? `/agence/${orgId}/incidents?sel=${incidentId}` : (fiche as string)}
               className={buttonVariants({
                 variant: a.criticite === "critique" ? "destructive" : "outline",
                 size: "sm",

@@ -34,7 +34,7 @@ export type IncidentLocataire = {
 
 // « Qui prend en charge », dans les mots du locataire (maquette)
 function priseEnCharge(i: IncidentLocataire): string | null {
-  if (!i.imputation) return i.etat === "clos" ? null : "Votre gérant l'examine";
+  if (!i.imputation) return i.etat === "clos" ? null : "Votre gestionnaire l'examine";
   if (i.imputation === "proprietaire") return "Le propriétaire — vous n'avancez rien";
   return "Vous — réparation à votre charge";
 }

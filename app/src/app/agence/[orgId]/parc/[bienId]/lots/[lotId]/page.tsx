@@ -262,13 +262,16 @@ export default async function PageLot(
             />
           </div>
 
-          {/* Détention — masquée pour le propriétaire bailleur (recette
-              08/08) : le propriétaire, c'est lui ; la détention existe bien
-              en base (posée à la création du bien), inutile de la montrer. */}
-          {role !== "proprietaire_direct" && (
+          {/* Détention — rouverte au propriétaire bailleur (audit 06/09) :
+              l'indivision et la quote-part fiscale se saisissent ici, et le
+              blocage « détention incomplète » pointe cette section. */}
           <SectionLot
             id="detention"
-            titre="Propriétaires mandants du lot"
+            titre={
+              role === "proprietaire_direct"
+                ? "Détention & quotes-parts"
+                : "Propriétaires mandants du lot"
+            }
             alerte={totalQuoteParts !== 100 ? `${totalQuoteParts} % sur 100 %` : undefined}
             resume={
               detentionsActives.length === 0
@@ -287,7 +290,11 @@ export default async function PageLot(
                 Détention active : {totalQuoteParts} %
               </p>
               {(detentions ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun propriétaire mandant enregistré. Le lot ne pourra pas être mis en location tant que la propriété n&apos;est pas répartie à 100 %.</p>
+                <p className="text-sm text-muted-foreground">
+                  {role === "proprietaire_direct"
+                    ? "Aucune détention enregistrée. Le lot ne pourra pas être mis en location tant que la propriété n'est pas répartie à 100 % — en indivision, chaque quote-part compte pour votre récapitulatif fiscal."
+                    : "Aucun propriétaire mandant enregistré. Le lot ne pourra pas être mis en location tant que la propriété n'est pas répartie à 100 %."}
+                </p>
               ) : (
                 <ul className="divide-y divide-border">
                   {(detentions ?? []).map((d) => (
@@ -340,7 +347,6 @@ export default async function PageLot(
               />
             </div>
           </SectionLot>
-          )}
 
           {/* Diagnostics */}
           <SectionLot
@@ -457,7 +463,7 @@ export default async function PageLot(
               )}
               {detentionsActives.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Ajoutez un propriétaire mandant (détention à 100 %) et une personne locataire avant
+                  Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
                   de créer un bail.
                 </p>
               ) : (

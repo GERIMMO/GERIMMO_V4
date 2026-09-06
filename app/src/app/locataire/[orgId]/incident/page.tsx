@@ -2,7 +2,7 @@ import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { FormulaireIncidentLocataire } from "./formulaire-incident-locataire";
 
-export const metadata = { title: "Signaler un problème — Gerimmo" };
+export const metadata = { title: "Nouveau signalement — Gerimmo" };
 
 // Déclaration d'incident par le locataire (module 7 + module 19) : deux
 // colonnes façon maquette pLocDeclarer — le formulaire à gauche, l'encart
@@ -23,7 +23,7 @@ export default async function PageSignalerIncident(
           </Link>{" "}
           / Signaler un problème
         </p>
-        <h1>Signaler un problème</h1>
+        <h1>Nouveau signalement</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Votre gérant est prévenu immédiatement et vous saurez qui prend la
           réparation en charge après son examen.

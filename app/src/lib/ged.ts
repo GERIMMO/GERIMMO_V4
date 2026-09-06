@@ -32,17 +32,17 @@ export const TYPES_DEPOSABLES = [
 // Le type pilote seul les droits d'accès (module 12) : qui voit la pièce,
 // au-delà de l'agence. Affiché sur la fiche de pièce (maquette pageDocument).
 export const VISIBILITE_DOCUMENT: Record<string, string> = {
-  bail: "Agence et locataire",
-  quittance: "Agence et locataire",
-  etat_des_lieux: "Agence et locataire",
-  reglement_copropriete: "Agence et locataire",
-  attestation_assurance: "Agence et la personne concernée",
-  piece_identite: "Agence et la personne concernée",
-  justificatif: "Agence et la personne concernée",
+  bail: "Gestionnaire et locataire",
+  quittance: "Gestionnaire et locataire",
+  etat_des_lieux: "Gestionnaire et locataire",
+  reglement_copropriete: "Gestionnaire et locataire",
+  attestation_assurance: "Gestionnaire et la personne concernée",
+  piece_identite: "Gestionnaire et la personne concernée",
+  justificatif: "Gestionnaire et la personne concernée",
 };
 
 export function visibiliteDocument(type: string): string {
-  return VISIBILITE_DOCUMENT[type] ?? "Agence seule";
+  return VISIBILITE_DOCUMENT[type] ?? "Gestionnaire seul";
 }
 
 // Une durée de conservation en mois, dite en français (maquette : puce de

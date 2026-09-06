@@ -36,6 +36,7 @@ export default async function PagePaiementsLocataire(
     impayes: number | null;
     solde: number | null;
     date_emission: string | null;
+    sans_edl_entree: boolean | null;
   }[])[0];
   const retenues = (retenuesRows ?? []) as {
     libelle: string;
@@ -80,7 +81,7 @@ export default async function PagePaiementsLocataire(
         <h1>Mes paiements</h1>
         {bail?.jour_echeance != null && (
           <span className="mono-discret">
-            Terme d&apos;avance · le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
+Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
           </span>
         )}
       </div>
@@ -132,7 +133,7 @@ export default async function PagePaiementsLocataire(
                     <p className="mt-1.5 text-xs text-muted-foreground">
                       Vos {douzeDerniers.length} derniers mois — {payes} réglé
                       {payes > 1 ? "s" : ""}
-                      {payes === douzeDerniers.length - (prochaine ? 1 : 0)
+                      {douzeDerniers.every((l) => l.statut === "paye" || l.statut === "attendu")
                         ? ". Un parcours sans faute."
                         : "."}
                     </p>
@@ -252,7 +253,9 @@ export default async function PagePaiementsLocataire(
               votre dépôt de {eur(Number(restitution.depot))} doit vous être
               restitué sous {restitution.delai_mois} mois
               {restitution.delai_mois === 2
-                ? " (des écarts ont été relevés à l'état des lieux — les retenues seront justifiées, pièces à l'appui)"
+                ? restitution.sans_edl_entree
+                  ? " (sans état des lieux d'entrée, la restitution est intégrale)"
+                  : " (des écarts ont été relevés à l'état des lieux — les retenues seront justifiées, pièces à l'appui)"
                 : " (état des lieux conforme)"}
               . Le décompte détaillé apparaîtra ici dès qu&apos;il sera établi.
             </p>
@@ -307,8 +310,11 @@ export default async function PagePaiementsLocataire(
                 Décompte établi le{" "}
                 {restitution.date_emission ? formaterDate(restitution.date_emission) : "—"}. L&apos;usure
                 normale du logement est déduite des retenues (décote de
-                vétusté) : elle ne peut pas vous être facturée. Un désaccord ?
-                Écrivez à votre gestionnaire depuis « Mon gestionnaire ».
+                vétusté) : elle ne peut pas vous être facturée. Un désaccord ?{" "}
+                <Link href={`/locataire/${orgId}/contact`} className="lien-discret">
+                  Écrivez à votre gestionnaire
+                </Link>
+                .
               </p>
             </>
           )}

@@ -9,6 +9,19 @@ sources: ["[[2026-09-05-espace-locataire-v10|Maquette espace locataire v10]]", "
 
 # Audit des espaces locataire et propriétaire (2026-09-06)
 
+> [!success] Corrections appliquées le 2026-09-06 (carte blanche)
+> Les 10 bloquants et l'essentiel des majeures/mineures sont **corrigés et
+> publiés** le jour même (migrations `correctifs_audit` +
+> `preavis_colocation_meuble` + vague UI). Décisions prises (carte blanche de
+> l'humain) : **B1** → le portail enregistre une *intention de congé*, le congé
+> reste au LRAR enregistré par le gestionnaire (conforme RM-A3) ; **B2** → tout
+> locataire du bail peut transmettre l'intention (elle n'engage rien) ; **B8**
+> → la saisie de détention/indivision est **ouverte au propriétaire direct** ;
+> **B10** → surface EDL locataire différée (S13), texte trompeur corrigé.
+> Restent ouverts (chantiers différés) : compteur de messages non lus côté
+> gérant, accès du locataire sorti à sa restitution après désactivation de
+> l'adhésion, dédoublonnage des RPC layout/pages, index des FK.
+
 Audit pré-recette demandé par l'humain avant ses premiers tests : les deux espaces
 livrés (locataire, propriétaire bailleur) passés au crible **contre le référentiel
 du wiki** — chaque bouton, chaque libellé, chaque relation bouton → action → RPC,

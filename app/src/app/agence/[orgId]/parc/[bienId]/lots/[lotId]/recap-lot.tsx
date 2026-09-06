@@ -42,7 +42,7 @@ export function RecapLot({
   }
 
   const lignes: [string, string][] = [
-    ["Propriétaire mandant", proprietaires || "—"],
+    ["Propriétaire", proprietaires || "—"],
     ["Locataire", locataire || "—"],
     ["Surface", lot.surface_m2 !== null ? formaterSurface(lot.surface_m2) : "—"],
     ["Surface Carrez", lot.surface_carrez !== null ? formaterSurface(lot.surface_carrez) : "—"],

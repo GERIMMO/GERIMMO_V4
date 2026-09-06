@@ -110,7 +110,7 @@ export default async function PageDocumentsLocataire(
 
       {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place */}
       <div
-        className={`loc-carte ${assurance && !estExpiree(assurance.expire_le) ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        className={`loc-carte ${assurance && assurance.verifie_le && !estExpiree(assurance.expire_le) ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
           <h3 className="text-base font-medium">Votre assurance habitation</h3>

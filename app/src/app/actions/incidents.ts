@@ -62,7 +62,7 @@ function lireChampsDeclaration(formData: FormData, descriptionRequise = true): {
 // pas l'incident déjà créé — on le dit. Trois temps (revue n°2) : validation
 // et empreintes en parallèle, contrôle anti-doublon AVANT l'upload (sinon
 // l'objet Storage restait orphelin quand la fiche refusait l'empreinte),
-// uploads en parallèle, puis les RPC en séquence (le plafond de dix photos se
+// uploads en parallèle, puis les RPC en séquence (le plafond de cinq photos se
 // compte en base — des appels concurrents le fausseraient).
 async function joindrePhotos(
   supabase: SupabaseClient,

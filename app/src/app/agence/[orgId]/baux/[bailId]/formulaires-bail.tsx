@@ -8,6 +8,7 @@ import {
   deposerReglementCopropriete,
   enregistrerConge,
   annulerConge,
+  terminerBail,
   type EtatBail,
 } from "@/app/actions/baux";
 import { creerEdl, type EtatEdl } from "@/app/actions/edl";
@@ -87,19 +88,28 @@ export function FormulaireConge({
   orgId,
   bailId,
   type,
+  meubleLot = false,
+  zoneTendue = false,
 }: {
   orgId: string;
   bailId: string;
   type: string;
+  // Colocation à bail unique : le meublé du logement fait foi (même règle
+  // que le serveur — audit de vérification 06/09)
+  meubleLot?: boolean;
+  zoneTendue?: boolean;
 }) {
   const action = enregistrerConge.bind(null, orgId, bailId);
   const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
   const [par, setPar] = useState<"locataire" | "bailleur">("locataire");
   const [reduit, setReduit] = useState(false);
-  const meuble = type === "meuble";
+  const meuble = type === "meuble" || (type === "colocation" && meubleLot);
 
-  // Préavis légal dérivé (le contrôle en base fait autorité)
-  const preavis = par === "bailleur" ? (meuble ? 3 : 6) : meuble || reduit ? 1 : 3;
+  // Préavis légal dérivé — MÊME règle que enregistrer_conge (la base fait
+  // autorité) : meublé 1 mois ; zone tendue 1 mois de plein droit ; réduit
+  // sur justificatif ; sinon 3. Bailleur : 3 (meublé) / 6 (nu).
+  const preavis =
+    par === "bailleur" ? (meuble ? 3 : 6) : meuble || zoneTendue || reduit ? 1 : 3;
 
   return (
     <form action={formAction} className="space-y-3">
@@ -150,7 +160,7 @@ export function FormulaireConge({
           </select>
         </div>
       ) : (
-        !meuble && (
+        !meuble && !zoneTendue && (
           <div className="space-y-1.5">
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -186,9 +196,11 @@ export function FormulaireConge({
             : " (bailleur, nu)"
           : meuble
             ? " (locataire, meublé)"
-            : reduit
-              ? " (locataire, réduit)"
-              : " (locataire, nu)"}
+            : zoneTendue
+              ? " (locataire, zone tendue — de plein droit)"
+              : reduit
+                ? " (locataire, réduit)"
+                : " (locataire, nu)"}
         . La date d&apos;effet est calculée depuis la 1ʳᵉ présentation.
       </p>
 
@@ -257,6 +269,28 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
       <p className="text-xs text-muted-foreground">
         Le bail redevient actif, le lot reste loué, et le congé annulé reste au
         dossier. Impossible une fois l&apos;état des lieux de sortie signé.
+      </p>
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+    </form>
+  );
+}
+
+// Clôture du bail (module 3.11) — visible quand le bail est en préavis et que
+// l'EDL de sortie est signé (le RPC revérifie). Le locataire sorti garde son
+// espace en lecture : quittances, décompte, justificatifs.
+export function BoutonTerminerBail({ orgId, bailId }: { orgId: string; bailId: string }) {
+  const action = terminerBail.bind(null, orgId, bailId);
+  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  return (
+    <form action={formAction} className="space-y-2">
+      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
+        {enCours ? "Clôture…" : "Clôturer le bail"}
+      </Button>
+      <p className="text-xs text-muted-foreground">
+        Préavis échu et état des lieux de sortie signé : le bail passe à
+        « terminé », le lot redevient disponible et l&apos;espace du locataire
+        reste consultable (quittances, décompte de restitution).
       </p>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}

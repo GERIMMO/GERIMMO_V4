@@ -43,7 +43,7 @@ export async function GET(
 
   // Défense en profondeur : adhésion 'locataire' active exigée ici, dans les
   // RPC definer ET dans la policy storage (revue 26/08)
-  const { supabase, user } = await verifierLocataire(orgId);
+  const { supabase, user } = await verifierLocataire(orgId, { lecture: true });
   if (!user) {
     return pageErreur(
       403,

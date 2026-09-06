@@ -54,6 +54,10 @@ export async function repondreMessagePersonne(
     p_texte: texte,
   });
   if (error) return { erreur: sansJargon(error.message) };
+  // La réponse ferme l'alerte et solde les non-lus : liste des personnes,
+  // badge de la barre latérale (layout) et fiche se rafraîchissent ensemble
+  revalidatePath(`/agence/${orgId}`, "layout");
+  revalidatePath(`/agence/${orgId}/personnes`);
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   return { succes: "Réponse envoyée — le locataire la verra dans son espace." };
 }

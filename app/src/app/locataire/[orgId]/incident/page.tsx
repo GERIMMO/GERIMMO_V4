@@ -12,7 +12,7 @@ export default async function PageSignalerIncident(
   props: PageProps<"/locataire/[orgId]/incident">
 ) {
   const { orgId } = await props.params;
-  await verifierAccesEspaceLocataire(orgId);
+  const { adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   return (
     <div className="space-y-4">
@@ -25,12 +25,25 @@ export default async function PageSignalerIncident(
         </p>
         <h1>Nouveau signalement</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Votre gérant est prévenu immédiatement et vous saurez qui prend la
+          Votre gestionnaire est prévenu immédiatement et vous saurez qui prend la
           réparation en charge après son examen.
         </p>
       </div>
 
-      <FormulaireIncidentLocataire orgId={orgId} />
+      {adhesionActive ? (
+        <FormulaireIncidentLocataire orgId={orgId} />
+      ) : (
+        <div className="loc-carte">
+          <p className="text-sm text-muted-foreground">
+            Votre bail est terminé : la déclaration d&apos;incident est fermée.
+            Vos anciens signalements restent consultables dans{" "}
+            <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
+              Mes demandes
+            </Link>
+            .
+          </p>
+        </div>
+      )}
     </div>
   );
 }

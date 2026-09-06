@@ -4,6 +4,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate, eur } from "@/lib/ged";
 import { TYPES_BAIL, ETATS_BAIL, COULEURS_ETAT_BAIL, COULEURS_ETAT_EDL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
+import { premier } from "@/lib/postgrest";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "./edl/[edlId]/grille-edl";
@@ -12,6 +13,7 @@ import {
   FormulaireReglementCopropriete,
   FormulaireConge,
   FormulaireAnnulerConge,
+  BoutonTerminerBail,
   FormulaireCreerEdl,
 } from "./formulaires-bail";
 import { FormulaireEditionBail } from "./formulaire-edition-bail";
@@ -62,7 +64,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes },
     { data: intentions },
   ] = await Promise.all([
-      supabase.from("lots").select("id, nom, bien_id").eq("id", bail.lot_id).maybeSingle(),
+      supabase.from("lots").select("id, nom, bien_id, meuble, bien:biens!lots_bien_id_fkey(zone_tendue)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
       supabase
         .from("lot_pieces")
@@ -500,7 +502,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 </span>
               </p>
             ))}
-            <FormulaireConge orgId={orgId} bailId={bailId} type={bail.type} />
+            <FormulaireConge
+              orgId={orgId}
+              bailId={bailId}
+              type={bail.type}
+              meubleLot={Boolean(lot?.meuble)}
+              zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
+            />
           </CardContent>
         </Card>
       )}
@@ -531,7 +539,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               </p>
             ))}
             {bail.etat === "preavis" && (
-              <div className="border-t border-border pt-3">
+              <div className="space-y-3 border-t border-border pt-3">
+                {edlSortieSigne && <BoutonTerminerBail orgId={orgId} bailId={bailId} />}
                 <FormulaireAnnulerConge orgId={orgId} bailId={bailId} />
               </div>
             )}

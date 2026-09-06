@@ -2359,3 +2359,39 @@ Trois livraisons d'un coup (carte blanche de l'humain) :
    commun des comptes de démo) — le bail reste à créer pendant les essais,
    c'est le parcours à tester. Reflet ajouté à `seed.sql`.
 Migrations : `chantiers_differes`, `contexte_espace_locataire`, `demandes_devis`.
+
+## [2026-09-06] lint | Audit de vérification de la vague du soir + corrections
+
+Passe adversariale sur les livraisons du jour (chantiers différés, vitrine,
+démo) : 3 critiques et 8 majeures, toutes corrigées dans la foulée
+(migration `correctifs_verification`) :
+- **Préavis unifié partout** : le formulaire de congé du gérant applique
+  enfin la même règle que le serveur (colocation meublée = 1 mois, zone
+  tendue de plein droit — la case « préavis réduit » disparaît quand le
+  mois est de droit) ; le bailleur d'une colocation meublée est à 3 mois.
+- **terminer_bail** : le geste de clôture qui manquait — préavis + EDL de
+  sortie signé exigés ; bail « terminé », lot disponible, adhésions
+  locataire désactivées (espace en lecture), alertes du bail fermées.
+  Bouton « Clôturer le bail » sur la fiche du bail. Les quittances des baux
+  terminés restent servies par l'échéancier (10 ans).
+- **Fichiers du sorti réellement ouvrables** : la garde applicative des
+  routes fichier acceptait seulement l'adhésion active — mode lecture ajouté.
+- **Alertes gérables** : les alertes à lien (message, pièce, congé, EDL)
+  gardent l'accès à la modale (confier / fermer) via un second bouton, et le
+  lien profond depuis « Mes espaces » navigue vers le bon écran.
+- **Console SA / devis** : page `/admin/devis` (liste, marquer traitée) —
+  la promesse « réponse sous 48 h » a désormais un lecteur.
+- **Vitrine honnête** : mention « révision IRL » retirée des alertes (pas
+  d'alerte IRL en V0), « reprise de portefeuille » retirée (T7 non livré) ;
+  page `/confidentialite`, note RGPD sous le formulaire, champ téléphone ;
+  rétention 24 mois des demandes de devis et intentions traitées
+  (appliquer_retention).
+- Divers : gestionnaire/incidents lisibles par le sorti, dédoublonnage de
+  l'intention par personne (le mot du colocataire compte), EDL du seul
+  dernier bail, badges messages revalidés à la réponse, gestes masqués au
+  sorti (signalement, attestation).
+Vert : 99 tests, 0 erreur TS/lint (14 avertissements de référence), build OK.
+Restent notés (mineurs assumés) : pas de limite de débit sur le formulaire
+public (pot de miel seul), badge messages absent du chrome agence classique
+(vague « agence » à venir), mentions légales complètes à publier quand la
+raison sociale/SIREN seront fournis par l'humain.

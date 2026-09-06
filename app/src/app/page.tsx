@@ -39,7 +39,7 @@ const FONCTIONNALITES: [string, string][] = [
   ],
   [
     "Alertes qui travaillent",
-    "Assurance qui expire, diagnostics, révision IRL, état des lieux à planifier : les échéances vous trouvent — et une alerte se ferme par l'action, pas par oubli.",
+    "Assurance qui expire, diagnostics, état des lieux à planifier, restitution du dépôt : les échéances vous trouvent — et une alerte se ferme par l'action, pas par oubli.",
   ],
 ];
 
@@ -195,7 +195,7 @@ export default function PageVitrine() {
               <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
                 <li>✓ Mandats, honoraires, rapports de gestion</li>
                 <li>✓ Portefeuilles par agent</li>
-                <li>✓ Reprise de votre portefeuille accompagnée</li>
+                <li>✓ Tarification par palier de lots</li>
                 <li>✓ Essai de 14 jours</li>
               </ul>
               <a
@@ -235,8 +235,7 @@ export default function PageVitrine() {
                 <p className="mt-3 max-w-md text-sm leading-relaxed text-[var(--sur-encre)]/75">
                   Dites-nous qui vous êtes et combien de lots vous gérez : nous
                   revenons vers vous sous 48 h ouvrées avec une proposition par
-                  palier de lots — mise en route et reprise de portefeuille
-                  comprises.
+                  palier de lots, mise en route comprise.
                 </p>
               </div>
               <FormulaireDevisVitrine />
@@ -257,6 +256,9 @@ export default function PageVitrine() {
           <a href="#agences" className="hover:text-[var(--encre)]">
             Devis agence
           </a>
+          <Link href="/confidentialite" className="hover:text-[var(--encre)]">
+            Confidentialité
+          </Link>
           <span>© Gerimmo {anneeCourante()}</span>
         </nav>
       </footer>

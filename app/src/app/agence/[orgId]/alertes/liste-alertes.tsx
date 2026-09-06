@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { estConfieeAMoi } from "@/lib/alertes";
 import { afficherEcheance } from "@/lib/echeances";
 import { formaterDateHeure } from "@/lib/ged";
@@ -58,6 +59,7 @@ export function ListeAlertes({
   // d'emblée sur cette alerte.
   ouvrirAlerteId?: string;
 }) {
+  const router = useRouter();
   const [filtre, setFiltre] = useState<string>("toutes");
   const [ouverte, setOuverte] = useState<AlerteRang | null>(null);
   const incidentDe = (a: AlerteRang) =>
@@ -78,18 +80,25 @@ export function ListeAlertes({
     if (consomme.current === ouvrirAlerteId) return;
     consomme.current = ouvrirAlerteId;
     const cible = alertes.find((a) => a.id === ouvrirAlerteId);
-    // On n'ouvre que ce qu'on a le droit de traiter (grisée = intouchable) ;
-    // une alerte incident, elle, se traite dans l'onglet Incidents.
-    if (
-      cible &&
-      !incidentDe(cible) &&
-      !cheminFiche(cible, orgId) &&
-      (estConfieeAMoi(cible, monCompte) || estResponsable)
-    ) {
+    window.history.replaceState(null, "", window.location.pathname);
+    if (!cible) return;
+    // Une alerte qui a un lieu de traitement (incident, fiche, bail) y emmène
+    // — sinon le lien profond depuis « Mes espaces » ne faisait plus rien
+    // (audit de vérification 06/09) ; les autres ouvrent la modale.
+    const incident = incidentDe(cible);
+    const fiche = cheminFiche(cible, orgId);
+    if (incident) {
+      router.push(`/agence/${orgId}/incidents?sel=${incident}`);
+      return;
+    }
+    if (fiche) {
+      router.push(fiche);
+      return;
+    }
+    if (estConfieeAMoi(cible, monCompte) || estResponsable) {
       setOuverte(cible);
     }
-    window.history.replaceState(null, "", window.location.pathname);
-  }, [ouvrirAlerteId, alertes, monCompte, estResponsable, orgId]);
+  }, [ouvrirAlerteId, alertes, monCompte, estResponsable, orgId, router]);
   // Le geste abouti solde l'alerte en base et la revalidation arrive dans le
   // MÊME commit React que le succès : la règle sûre est qu'une alerte qui a
   // quitté la liste ferme sa modale (recette 23/08, constaté en production).
@@ -152,16 +161,31 @@ export function ListeAlertes({
             Une alerte incident emmène au dossier, dans l'onglet Incidents. */}
         {(!grisee || estResponsable) &&
           ((incidentId || fiche) && !grisee ? (
-            <Link
-              href={incidentId ? `/agence/${orgId}/incidents?sel=${incidentId}` : (fiche as string)}
-              className={buttonVariants({
-                variant: a.criticite === "critique" ? "destructive" : "outline",
-                size: "sm",
-              })}
-            >
-              Traiter
-              <IndicateurLien />
-            </Link>
+            <span className="flex shrink-0 items-center gap-1.5">
+              <Link
+                href={incidentId ? `/agence/${orgId}/incidents?sel=${incidentId}` : (fiche as string)}
+                className={buttonVariants({
+                  variant: a.criticite === "critique" ? "destructive" : "outline",
+                  size: "sm",
+                })}
+              >
+                Traiter
+                <IndicateurLien />
+              </Link>
+              {/* La modale reste atteignable : confier à quelqu'un, ou fermer
+                  une alerte dont le geste n'aura jamais lieu (LRAR jamais
+                  envoyée, pièce vérifiée hors ligne…) — audit 06/09 */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label="Assigner ou fermer l'alerte"
+                title="Assigner ou fermer"
+                onClick={() => setOuverte(a)}
+              >
+                …
+              </Button>
+            </span>
           ) : (
             <Button
               type="button"

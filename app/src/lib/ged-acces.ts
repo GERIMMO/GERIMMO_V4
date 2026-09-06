@@ -1,11 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_GERANTS } from "@/lib/ged";
 
-// Garde des actions locataire : session valide + adhésion 'locataire' active
-// dans l'agence — défense en profondeur avant tout chemin Storage, les
-// policies et fonctions definer revérifient en base. Trois actions incidents
-// en avaient chacune une copie partielle (revue S7) ; une seule suffit.
-export async function verifierLocataire(orgId: string) {
+// Garde des actions locataire : session valide + adhésion 'locataire' dans
+// l'agence — défense en profondeur avant tout chemin Storage, les policies et
+// fonctions definer revérifient en base. `lecture: true` (routes fichier)
+// accepte l'adhésion DÉSACTIVÉE : le locataire sorti garde ses documents en
+// consultation (quittances 10 ans, décompte — chantier D2) ; les gestes, eux,
+// restent réservés à l'adhésion active.
+export async function verifierLocataire(orgId: string, options: { lecture?: boolean } = {}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,7 +18,7 @@ export async function verifierLocataire(orgId: string) {
     .select("role")
     .eq("account_id", user.id)
     .eq("organization_id", orgId)
-    .eq("status", "active")
+    .in("status", options.lecture ? ["active", "inactive"] : ["active"])
     .eq("role", "locataire")
     .maybeSingle();
   if (!adhesion) return { supabase, user: null };

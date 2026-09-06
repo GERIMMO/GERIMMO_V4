@@ -49,6 +49,12 @@ export function FormulaireDevisVitrine() {
         <input id="devis-agence" name="agence" maxLength={200} className={champ} />
       </div>
       <div>
+        <label htmlFor="devis-telephone" className="mb-1 block text-xs text-[var(--sur-encre)]/70">
+          Téléphone (facultatif)
+        </label>
+        <input id="devis-telephone" name="telephone" type="tel" maxLength={40} className={champ} />
+      </div>
+      <div>
         <label htmlFor="devis-lots" className="mb-1 block text-xs text-[var(--sur-encre)]/70">
           Lots en gestion (environ)
         </label>
@@ -79,6 +85,14 @@ export function FormulaireDevisVitrine() {
         <button type="submit" disabled={enCours} className="btn-or">
           {enCours ? "Envoi…" : "Demander un devis"}
         </button>
+        <p className="mt-2 text-xs text-[var(--sur-encre)]/55">
+          Ces informations servent uniquement à vous recontacter au sujet de
+          votre demande — jamais transmises, supprimées au plus tard après
+          24 mois.{" "}
+          <a href="/confidentialite" className="underline underline-offset-2">
+            En savoir plus
+          </a>
+        </p>
       </div>
     </form>
   );

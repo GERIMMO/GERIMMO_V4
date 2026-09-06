@@ -5,6 +5,7 @@ import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
 // (réinitialisation…) : il doit rester traversable même connecté.
 const PUBLIC_PATHS = [
+  "/confidentialite",
   "/connexion",
   "/inscription",
   "/mot-de-passe-oublie",

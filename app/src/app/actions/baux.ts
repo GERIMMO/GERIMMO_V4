@@ -371,6 +371,26 @@ export async function annulerConge(
   return { succes: "Congé annulé — le bail reprend son cours." };
 }
 
+// Clôture du bail (module 3.11) : préavis échu, EDL de sortie signé — le
+// bail passe à « terminé », le lot redevient disponible, l'espace du
+// locataire sorti passe en lecture (le RPC exige l'EDL signé).
+export async function terminerBail(
+  orgId: string,
+  bailId: string
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("terminer_bail", { p_bail: bailId });
+  if (error) return { erreur: sansJargon(error.message) };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/agence/${orgId}/parc`);
+  return {
+    succes:
+      "Bail clôturé — le lot est de nouveau disponible et l'espace du locataire passe en consultation.",
+  };
+}
+
 // Inventaire du mobilier (annexe obligatoire du bail meublé, décret 2015-981).
 export async function ajouterInventaireLigne(
   orgId: string,

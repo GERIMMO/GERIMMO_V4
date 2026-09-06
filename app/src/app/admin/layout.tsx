@@ -31,6 +31,12 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           </div>
           <div className="flex shrink-0 items-center gap-4">
             <Link
+              href="/admin/devis"
+              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+            >
+              Demandes de devis
+            </Link>
+            <Link
               href="/admin/journaux"
               className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
             >

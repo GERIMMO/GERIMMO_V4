@@ -18,6 +18,13 @@ sources: ["[[2026-09-05-espace-locataire-v10|Maquette espace locataire v10]]", "
 > locataire du bail peut transmettre l'intention (elle n'engage rien) ; **B8**
 > → la saisie de détention/indivision est **ouverte au propriétaire direct** ;
 > **B10** → surface EDL locataire différée (S13), texte trompeur corrigé.
+> **Passe de vérification (06/09 soir)** : la vague chantiers + vitrine a été
+> elle-même auditée (3 critiques, 8 majeures) et corrigée le jour même —
+> préavis unifié dans le formulaire gérant, `terminer_bail` (la clôture qui
+> manquait au parcours « locataire sorti »), fichiers du sorti ouvrables,
+> alertes à lien toujours gérables, page `/admin/devis`, vitrine sans
+> surpromesse + confidentialité et rétention 24 mois.
+
 > **Chantiers différés soldés le 06/09 au soir** (migration
 > `chantiers_differes`) : compteur de messages non lus côté gestionnaire,
 > espace du locataire sorti en lecture (quittances, décompte, justificatifs),

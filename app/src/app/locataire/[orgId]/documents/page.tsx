@@ -133,11 +133,17 @@ export default async function PageDocumentsLocataire(
               " Votre attestation validée reste en vigueur pendant la vérification de la nouvelle."}
           </p>
         ) : (
-          <p className="text-sm text-destructive-soft-foreground">
-            Aucune attestation déposée. L&apos;assurance habitation est obligatoire
-            pendant toute la durée du bail — déposez la vôtre ci-dessous, une
-            photo lisible suffit.
-          </p>
+          adhesionActive ? (
+            <p className="text-sm text-destructive-soft-foreground">
+              Aucune attestation déposée. L&apos;assurance habitation est obligatoire
+              pendant toute la durée du bail — déposez la vôtre ci-dessous, une
+              photo lisible suffit.
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Bail terminé — plus d&apos;attestation à fournir.
+            </p>
+          )
         )}
         <div className="mt-3.5">
           {adhesionActive && (

@@ -11,7 +11,7 @@ export default async function PageDemandesLocataire(
   props: PageProps<"/locataire/[orgId]/demandes">
 ) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const { data: incidentsBruts } = await supabase.rpc("mes_incidents_locataire", {
     p_org: orgId,
@@ -47,9 +47,11 @@ export default async function PageDemandesLocataire(
           logement — et avant toute intervention, on vous dit qui prend la
           réparation en charge : jamais de surprise sur la facture.
         </p>
+        {adhesionActive && (
         <Link href={`/locataire/${orgId}/incident`} className="btn-or mt-3 inline-block">
           Signaler un problème →
         </Link>
+        )}
       </div>
 
       {/* Chaque signalement porte sa propre carte, avec son fil d'étapes */}

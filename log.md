@@ -2286,3 +2286,18 @@ grille agences. Répercuté :
   abonnement]], [[État du projet et décisions ouvertes]].
 Note : le positionnement « moins cher que Rentila » du 25/07 ne tient plus
 (2 biens ≈ 72 €/an vs ~49 €/an) — montée en gamme assumée.
+
+## [2026-09-06] lint | Audit des espaces locataire et propriétaire
+
+Audit pré-recette demandé par l'humain (avant ses premiers tests) : quatre
+passes exhaustives (espace locataire, espace PD, conformité au référentiel,
+flux croisés locataire↔bailleur) + tests machine (99 tests verts, build OK,
+78/78 RPC présentes en prod, advisors 0 erreur). Câblage sain — aucun bouton
+mort, aucun lien cassé — mais **10 bloquants sémantiques**, dont : congé en
+ligne contraire à RM-A3 (valeur probante), colocataire pouvant résilier seul,
+préavis annoncé ≠ appliqué, lot non passé en préavis, quittances 404 pour les
+colocataires, justificatifs de retenue au téléchargement impossible (policy
+storage), déconnexion impossible sur mobile, impasse détention/indivision PD,
+« honoraires » affichés au PD, EDL invisible côté locataire. Rapport complet :
+[[Audit espaces locataire et proprietaire]] — 4 points à trancher soumis à
+l'humain, plan de correction en 3 vagues proposé.

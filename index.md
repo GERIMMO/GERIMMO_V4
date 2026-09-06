@@ -125,6 +125,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Coherence maquette-application|Cohérence maquette ↔ application]] — audit du 14/08 : conformités des écrans Tableau de bord/Parc/Personnes et **tableau des écarts assumés** (à lire avant toute recette visuelle).
 - [[État du projet et décisions ouvertes]] — arbitrages quasi tous clos (25/07) ; reste les montants PD.
 - [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.
+- [[Audit espaces locataire et proprietaire|Audit des espaces locataire et propriétaire]] — audit pré-recette du 06/09 : 10 bloquants (congé en ligne vs RM-A3, colocataires, préavis, storage des justificatifs, déconnexion mobile, impasse détention PD…), conformités vérifiées, plan de correction en 3 vagues.
 - [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.
 - [[Fonctionnalités par persona]] — matrice qui-fait-quoi (implémenté vs cible).
 - [[Etat des lieux generation de documents]] — les 50 templates PDF croisés avec la base : vagues de couverture, dette de référentiel, ordre de réalisation (Documents-0).

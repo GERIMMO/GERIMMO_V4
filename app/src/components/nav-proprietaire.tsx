@@ -33,11 +33,14 @@ export function SidebarProprietaire({
   orgId,
   badgeIncidents = 0,
   badgeAlertes = 0,
+  badgeMessages = 0,
   organisations = [],
 }: {
   orgId: string;
   badgeIncidents?: number;
   badgeAlertes?: number;
+  // Messages de locataires pas encore lus (chantier D1)
+  badgeMessages?: number;
   // Ses autres organisations (SCI, nom propre…) — le sélecteur n'apparaît
   // qu'à partir de deux
   organisations?: OrganisationProprietaire[];
@@ -48,7 +51,7 @@ export function SidebarProprietaire({
   const entrees = [
     { href: base, libelle: "Accueil", icone: "maison", exact: true },
     { href: `${base}/parc`, libelle: "Mes lots", icone: "cle" },
-    { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens" },
+    { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", badge: badgeMessages },
     { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: badgeIncidents },
     { href: `${base}/comptabilite`, libelle: "Livre & fiscalité", icone: "livre" },
     { href: `${base}/documents`, libelle: "Documents", icone: "doc" },

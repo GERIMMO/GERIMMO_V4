@@ -41,7 +41,9 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  // La racine est le site vitrine : publique pour le visiteur, raccourci vers
+  // les espaces pour le connecté.
+  const isPublic = pathname === "/" || PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (!user) {
     if (isPublic) return response;
@@ -92,8 +94,8 @@ export async function proxy(request: NextRequest) {
     path: "/",
   });
 
-  // Un utilisateur connecté n'a rien à faire sur /connexion
-  if (REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p))) {
+  // Un utilisateur connecté n'a rien à faire sur /connexion ni sur la vitrine
+  if (pathname === "/" || REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/espaces";
     url.search = "";

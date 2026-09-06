@@ -16,12 +16,19 @@ export default async function PageLogementLocataire(
   const { orgId } = await props.params;
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: baux }, { data: depotRows }, { data: infosRows }, { data: intentions }] =
+  const [
+    { data: baux },
+    { data: depotRows },
+    { data: infosRows },
+    { data: intentions },
+    { data: edlRows },
+  ] =
     await Promise.all([
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
       supabase.rpc("mon_depot_locataire", { p_org: orgId }),
       supabase.rpc("mes_infos_pratiques_locataire", { p_org: orgId }),
       supabase.rpc("mon_intention_conge", { p_org: orgId }),
+      supabase.rpc("mes_edl_locataire", { p_org: orgId }),
     ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const depot = ((depotRows ?? []) as {
@@ -172,6 +179,46 @@ export default async function PageLogementLocataire(
                 </div>
               ))}
             </div>
+          </div>
+        );
+      })()}
+
+      {(() => {
+        // États des lieux (chantier D3) : l'EDL est opposable au locataire —
+        // il en suit l'avancement ici ; la signature reste un geste sur place.
+        const edls = ((edlRows ?? []) as {
+          id: string;
+          type: string;
+          etat: string;
+          date_edl: string | null;
+          signe_le: string | null;
+        }[]).filter((e) => e.type === "entree" || e.type === "sortie");
+        if (edls.length === 0) return null;
+        return (
+          <div className="loc-carte">
+            <h3 className="text-base font-medium">Mes états des lieux</h3>
+            <div className="mt-2">
+              {edls.map((e) => (
+                <div key={e.id} className="ligne-info">
+                  <span>État des lieux {e.type === "entree" ? "d'entrée" : "de sortie"}</span>
+                  <span className="text-right">
+                    {e.etat === "signe" ? (
+                      <span className="puce puce-loue">
+                        signé{e.signe_le ? ` le ${formaterDate(e.signe_le)}` : ""}
+                      </span>
+                    ) : (
+                      <span className="puce puce-prep">
+                        en préparation{e.date_edl ? ` — prévu le ${formaterDate(e.date_edl)}` : ""}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-muted-foreground">
+              L&apos;état des lieux se signe sur place, le jour du rendez-vous avec
+              votre gestionnaire — vous en gardez un exemplaire.
+            </p>
           </div>
         );
       })()}

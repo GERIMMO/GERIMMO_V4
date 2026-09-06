@@ -12,6 +12,8 @@ export type PersonneListe = {
   email: string | null;
   telephone: string | null;
   roles: RolePersonne[];
+  // Messages du locataire pas encore lus par un gestionnaire (chantier D1)
+  messagesNonLus?: number;
 };
 
 // La recherche filtre la liste déjà chargée : à l'échelle d'une agence (quelques
@@ -86,6 +88,14 @@ export function ListePersonnes({
               <span aria-hidden className="avatar">
                 {initiales(p.nom, p.prenom)}
               </span>
+              {(p.messagesNonLus ?? 0) > 0 && (
+                <span
+                  className="puce puce-encre shrink-0"
+                  title={`${p.messagesNonLus} message${(p.messagesNonLus ?? 0) > 1 ? "s" : ""} non lu${(p.messagesNonLus ?? 0) > 1 ? "s" : ""}`}
+                >
+                  {p.messagesNonLus} message{(p.messagesNonLus ?? 0) > 1 ? "s" : ""}
+                </span>
+              )}
               <span className="min-w-0 flex-1">
                 <b className="block truncate">
                   {p.nom}

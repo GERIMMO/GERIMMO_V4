@@ -2328,3 +2328,34 @@ cohérence, `deposer_mon_attestation` re-vérifie l'adhésion, grants `anon`
 révoqués, table héritée `demandes_pieces` supprimée.
 Migrations : `20260906100000_correctifs_audit`, `20260906101000_preavis_colocation_meuble`.
 Vert : 99 tests, 0 erreur TS/lint, build OK.
+
+## [2026-09-06] decision | Chantiers différés, site vitrine, jeu de démo (carte blanche)
+
+Trois livraisons d'un coup (carte blanche de l'humain) :
+1. **Chantiers différés de l'audit soldés** — migration `chantiers_differes` :
+   compteur de messages non lus côté gestionnaire (pastilles sur Personnes,
+   badge barre latérale PD) ; **locataire sorti = espace en lecture** (adhésion
+   désactivée : quittances, décompte de restitution, retenues, justificatifs
+   et fil de messages restent consultables ; tout geste reste réservé à
+   l'adhésion active — carte « Ancien espace locataire » sur Mes espaces,
+   bannière « bail terminé ») ; **EDL visibles côté locataire** (carte « Mes
+   états des lieux » sur Mon logement, signature sur place inchangée
+   RM-13.1.6). Au passage : l'échéancier gagne le contrôle d'adhésion qui lui
+   manquait (S-3) et le justificatif de régularisation s'ouvre dans
+   mon_document_locataire.
+2. **Site vitrine public** sur `/` (visiteur non connecté ; un connecté est
+   renvoyé vers ses espaces) : héros, trois personas, six fonctionnalités
+   (toutes réelles — politique « fonctionnalités honnêtes »), tarifs
+   ([[Grille tarifaire]] : 1ᵉʳ bien offert, 5,99 €/bien/mois, agences sur
+   devis), FAQ, **formulaire de demande de devis agences** (table
+   `demandes_devis`, insert public avec pot de miel, lecture super admin —
+   à raccorder à la console SA, module 16).
+3. **Nettoyage des données d'essai + jeu de démo** : baux brouillon
+   « Testeur » purgés (l'EDL signé et son bail conservés — un EDL signé est
+   figé), comptes jetables désactivés (yopmail, example.com) ; le
+   **Parc de Claire Moreau** reçoit un bien (Résidence des Lilas, Lyon,
+   zone tendue) + lot T2 disponible + détention 100 %, et un locataire de
+   démo **Lucas Bernard** (`locataire.pd@gerimmo-demo.fr`, mot de passe
+   commun des comptes de démo) — le bail reste à créer pendant les essais,
+   c'est le parcours à tester. Reflet ajouté à `seed.sql`.
+Migrations : `chantiers_differes`, `contexte_espace_locataire`, `demandes_devis`.

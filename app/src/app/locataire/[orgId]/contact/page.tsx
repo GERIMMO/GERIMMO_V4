@@ -11,7 +11,7 @@ export default async function PageContactLocataire(
   props: PageProps<"/locataire/[orgId]/contact">
 ) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const [{ data: gestionnaires }, { data: fil }] = await Promise.all([
     supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
@@ -25,7 +25,7 @@ export default async function PageContactLocataire(
     <div className="space-y-4">
       <h1>Mon gestionnaire</h1>
       <div className="loc-grille">
-        <FilMessages orgId={orgId} messages={messages} agence={g?.agence ?? "votre gestionnaire"} />
+        <FilMessages orgId={orgId} messages={messages} agence={g?.agence ?? "votre gestionnaire"} lectureSeule={!adhesionActive} />
         <div className="space-y-4">
           {g && (
             <div className="loc-carte">

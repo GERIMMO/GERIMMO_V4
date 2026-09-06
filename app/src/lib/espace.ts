@@ -52,7 +52,11 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
 
 // Garde de l'espace locataire (module 0b). Le locataire n'accède qu'à sa propre
 // fiche et à ses pièces (RLS + fonctions definer) ; ici on vérifie l'adhésion
-// 'locataire' et on récupère sa fiche personne.
+// 'locataire' et on récupère sa fiche personne. Une adhésion DÉSACTIVÉE
+// (locataire sorti) garde l'espace en LECTURE : quittances (10 ans), décompte
+// de restitution, justificatifs — les gestes, eux, exigent l'adhésion active
+// (chantier D2 de l'audit du 06/09). La RLS ne couvrant que les adhésions
+// actives, le contexte passe par une RPC definer.
 export const verifierAccesEspaceLocataire = cache(async function verifierAccesEspaceLocataire(
   orgId: string
 ) {
@@ -62,29 +66,23 @@ export const verifierAccesEspaceLocataire = cache(async function verifierAccesEs
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
 
-  const { data: adhesion } = await supabase
-    .from("memberships")
-    .select("role")
-    .eq("account_id", user.id)
-    .eq("organization_id", orgId)
-    .eq("status", "active")
-    .eq("role", "locataire")
-    .maybeSingle();
-  if (!adhesion) redirect("/espaces");
+  const { data: contexte } = await supabase.rpc("mon_espace_locataire", { p_org: orgId });
+  const espace = ((contexte ?? []) as {
+    organisation_nom: string;
+    person_id: string | null;
+    nom: string | null;
+    prenom: string | null;
+    adhesion_active: boolean;
+  }[])[0];
+  if (!espace) redirect("/espaces");
 
-  const { data: organisation } = await supabase
-    .from("organizations")
-    .select("id, name")
-    .eq("id", orgId)
-    .maybeSingle();
-  if (!organisation) notFound();
-
-  const { data: personne } = await supabase
-    .from("persons")
-    .select("id, nom, prenom")
-    .eq("organization_id", orgId)
-    .eq("account_id", user.id)
-    .maybeSingle();
-
-  return { supabase, user, organisation, personne };
+  return {
+    supabase,
+    user,
+    organisation: { id: orgId, name: espace.organisation_nom },
+    personne: espace.person_id
+      ? { id: espace.person_id, nom: espace.nom ?? "", prenom: espace.prenom }
+      : null,
+    adhesionActive: espace.adhesion_active,
+  };
 });

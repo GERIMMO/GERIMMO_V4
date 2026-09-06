@@ -56,6 +56,13 @@ export default async function LayoutAgence({
   // que l'espace locataire), sélecteur d'organisation (nom propre / SCI) si
   // plusieurs, pages inchangées derrière.
   if (estProprietaire) {
+    const { data: nonLusRows } = await supabase.rpc("messages_non_lus_gerant", {
+      p_org: orgId,
+    });
+    const messagesNonLus = ((nonLusRows ?? []) as { non_lus: number }[]).reduce(
+      (somme, r) => somme + r.non_lus,
+      0
+    );
     const { data: adhesions } = await supabase
       .from("memberships")
       .select("organization_id, organisation:organizations(id, name, type)")
@@ -90,6 +97,7 @@ export default async function LayoutAgence({
             orgId={orgId}
             badgeIncidents={incidentsOuverts ?? 0}
             badgeAlertes={alertesOrg}
+            badgeMessages={messagesNonLus}
             organisations={organisations}
           />
           <div className="loc-late-bas">

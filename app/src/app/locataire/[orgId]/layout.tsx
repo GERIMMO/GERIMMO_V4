@@ -16,7 +16,7 @@ export default async function LayoutLocataire({
   params,
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, organisation, personne } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const [{ data: pieces }, { data: incidents }, { data: nonLus }, { data: demandes }, { data: baux }] =
     await Promise.all([
@@ -81,6 +81,12 @@ export default async function LayoutLocataire({
               : "◇"}
           </span>
         </header>
+        {!adhesionActive && (
+          <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
+            Votre bail est terminé — cet espace reste consultable : quittances,
+            documents et décompte de restitution.
+          </p>
+        )}
         <main className="loc-corps mx-auto">{children}</main>
       </div>
     </div>

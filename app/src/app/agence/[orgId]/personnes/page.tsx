@@ -23,6 +23,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     { data: bailPersonnes },
     { data: lots },
     { data: biens },
+    { data: nonLusRows },
   ] = await Promise.all([
     supabase
       .from("persons")
@@ -61,7 +62,15 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
       .from("biens")
       .select("id, address_line1, city")
       .eq("organization_id", orgId),
+    supabase.rpc("messages_non_lus_gerant", { p_org: orgId }),
   ]);
+
+  const nonLusParPersonne = new Map(
+    ((nonLusRows ?? []) as { person_id: string; non_lus: number }[]).map((r) => [
+      r.person_id,
+      r.non_lus,
+    ])
+  );
 
   // Seuls les liens vivants font un rôle : une détention close ou un bail
   // terminé font une histoire, pas un rôle courant.
@@ -94,7 +103,11 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
 
   const fiches: PersonneListe[] = (
     (personnes ?? []) as Omit<PersonneListe, "roles">[]
-  ).map((p) => ({ ...p, roles: rolesDePersonne(p.id, liens, role === "proprietaire_direct") }));
+  ).map((p) => ({
+    ...p,
+    roles: rolesDePersonne(p.id, liens, role === "proprietaire_direct"),
+    messagesNonLus: nonLusParPersonne.get(p.id) ?? 0,
+  }));
 
   const bienParId = new Map(
     ((biens ?? []) as { id: string; address_line1: string; city: string }[]).map((b) => [b.id, b])

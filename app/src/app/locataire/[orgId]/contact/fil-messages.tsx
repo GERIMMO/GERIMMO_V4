@@ -23,10 +23,13 @@ export function FilMessages({
   orgId,
   messages,
   agence,
+  lectureSeule = false,
 }: {
   orgId: string;
   messages: MessageFil[];
   agence: string;
+  // Bail terminé : l'historique reste lisible, l'envoi est fermé
+  lectureSeule?: boolean;
 }) {
   const [etat, action, enCours] = useActionState<EtatMessage, FormData>(
     envoyerMessageLocataire.bind(null, orgId),
@@ -77,6 +80,14 @@ export function FilMessages({
         </div>
       )}
 
+      {lectureSeule ? (
+        <p className="mt-4 text-xs text-muted-foreground">
+          Votre bail est terminé : le fil reste consultable, mais l&apos;envoi de
+          nouveaux messages est fermé. Besoin de joindre votre ancien
+          gestionnaire ? Ses coordonnées sont à droite.
+        </p>
+      ) : (
+      <>
       <div className="mt-4 flex flex-wrap gap-2">
         {SUGGESTIONS.map((s) => (
           <button
@@ -125,6 +136,8 @@ export function FilMessages({
           dit.
         </p>
       </form>
+      </>
+      )}
     </div>
   );
 }

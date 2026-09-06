@@ -45,7 +45,7 @@ export default async function PageDocumentsLocataire(
   props: PageProps<"/locataire/[orgId]/documents">
 ) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const [{ data: piecesBrutes }, { data: echeancier }, { data: demandesBrutes }] =
     await Promise.all([
@@ -140,7 +140,9 @@ export default async function PageDocumentsLocataire(
           </p>
         )}
         <div className="mt-3.5">
+          {adhesionActive && (
           <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
+          )}
         </div>
       </div>
 

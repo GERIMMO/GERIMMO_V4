@@ -51,6 +51,25 @@ export default async function PageEspaces() {
 
   const adhesions = (data ?? []) as unknown as Adhesion[];
 
+  // Locataire sorti (chantier D2) : l'adhésion désactivée garde un accès en
+  // LECTURE à son espace — quittances, décompte de restitution, justificatifs.
+  // La RLS ne livre pas le nom de l'organisation à une adhésion inactive :
+  // il vient de la RPC de contexte.
+  const { data: inactifsBruts } = await supabase
+    .from("memberships")
+    .select("id, organization_id")
+    .eq("account_id", user.id)
+    .eq("status", "inactive")
+    .eq("role", "locataire");
+  const anciens: { id: string; orgId: string; nom: string }[] = [];
+  for (const m of (inactifsBruts ?? []) as { id: string; organization_id: string }[]) {
+    const { data: ctx } = await supabase.rpc("mon_espace_locataire", {
+      p_org: m.organization_id,
+    });
+    const nom = ((ctx ?? []) as { organisation_nom: string }[])[0]?.organisation_nom;
+    if (nom) anciens.push({ id: m.id, orgId: m.organization_id, nom });
+  }
+
   // S9a — un propriétaire qui vient de s'inscrire (immédiatement, ou via le
   // lien de confirmation reçu par email) n'a pas encore d'espace : on l'ouvre
   // ici, une fois pour toutes (fonction idempotente), puis on y entre.
@@ -62,8 +81,8 @@ export default async function PageEspaces() {
     erreurOuverture = error ? sansJargon(error.message) : null;
   }
 
-  // Une seule adhésion : entrée directe, pas de sélecteur
-  if (adhesions.length === 1) {
+  // Une seule adhésion (et pas d'ancien espace) : entrée directe
+  if (adhesions.length === 1 && anciens.length === 0) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -95,7 +114,7 @@ export default async function PageEspaces() {
         <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
         <h1 className="mb-6">Mes espaces</h1>
 
-        {adhesions.length === 0 && (
+        {adhesions.length === 0 && anciens.length === 0 && (
           <p className="text-muted-foreground">
             {erreurOuverture
               ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
@@ -142,6 +161,26 @@ export default async function PageEspaces() {
               <span key={a.id}>{carte}</span>
             );
           })}
+          {anciens.map((m) => (
+            <Link key={m.id} href={`/locataire/${m.orgId}`}>
+              <span className="flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left opacity-80 transition-all hover:translate-x-[3px] hover:border-[var(--encre)]">
+                <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-muted text-[13px] text-[var(--encre)]">
+                  {m.nom
+                    .split(/\s+/)
+                    .map((x) => x[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">Ancien espace locataire</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {m.nom} — bail terminé, consultation seule (quittances, décompte)
+                  </span>
+                </span>
+              </span>
+            </Link>
+          ))}
         </div>
 
         <p className="mt-4.5 text-xs text-muted-foreground">

@@ -9,6 +9,7 @@ import {
   enTete,
   eur,
   faitA,
+  blocSignatureEmetteur,
   section,
   tableau,
   titre,
@@ -21,6 +22,7 @@ import {
   adresseLogement,
   nomPersonne,
   referenceCourte,
+  signatureOrganisation,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -40,6 +42,8 @@ export type DonneesRecuDepot = {
   referenceBail: string;
   dateBail: string | null;
   exp: ReturnType<typeof expediteur>;
+  // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
+  signatureImg?: string | null;
   f: Fusion;
 };
 
@@ -80,6 +84,7 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
       faite, le cas échéant, des sommes restant dues au bailleur dûment justifiées.</p>
     </div>
     ${faitA(f, d.exp.ville, d.dateVersement)}
+    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
     f,
@@ -130,6 +135,7 @@ export async function assemblerRecuDepot(
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     dateBail: ctx.bail.date_debut,
     exp: expediteur(ctx),
+    signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });
 

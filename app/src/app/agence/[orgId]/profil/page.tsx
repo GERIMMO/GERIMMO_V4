@@ -2,6 +2,8 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormulaireProfilOrganisation } from "./formulaire-profil";
+import { FormulaireSignature } from "./formulaire-signature";
+import { signatureOrganisation } from "@/lib/documents/modeles/communs";
 
 export const metadata = { title: "Profil — Gerimmo" };
 
@@ -18,6 +20,8 @@ export default async function PageProfil(props: { params: Promise<{ orgId: strin
     .eq("id", orgId)
     .maybeSingle();
   if (!organisation) return null;
+  // La signature préenregistrée, prête à prévisualiser (chantier documentaire)
+  const apercuSignature = await signatureOrganisation(supabase, orgId);
 
   const manquants = [
     !organisation.address_line1 && "adresse",
@@ -59,6 +63,23 @@ export default async function PageProfil(props: { params: Promise<{ orgId: strin
             organisation={organisation}
             lectureSeule={!responsable}
             estProprietaire={estProprietaire}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Signature préenregistrée</CardTitle>
+          <CardDescription>
+            Apposée sur les documents que vous émettez seul — quittances, reçus,
+            courriers. Jamais sur un bail ni un état des lieux : là, chacun signe.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormulaireSignature
+            orgId={orgId}
+            apercu={apercuSignature}
+            lectureSeule={!responsable}
           />
         </CardContent>
       </Card>

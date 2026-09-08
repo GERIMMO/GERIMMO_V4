@@ -13,6 +13,8 @@ export type EtatGeneration = {
   documentId?: string;
   // La liste honnête de ce qui est resté en libellé dans le PDF
   manquants?: string[];
+  // Les rattachements du document — le résolveur « où renseigner » s'en sert
+  liens?: { entite: "bail" | "personne" | "lot"; entiteId: string }[];
 };
 
 // Générer un document PDF (sprint « Documents-0 ») : assembler le HTML depuis
@@ -72,6 +74,7 @@ export async function genererDocument(
     return {
       documentId: depot.documentId,
       manquants,
+      liens: assemblage.liens,
       succes:
         manquants.length === 0
           ? `${assemblage.titreGed} généré — rangé dans Documents.`

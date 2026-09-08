@@ -10,6 +10,7 @@ import {
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { formaterTaille } from "@/lib/file-type";
 import { nomComplet } from "@/lib/roles-personnes";
+import { BoutonEnvoyerSignature } from "./bouton-envoyer-signature";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { Card, CardContent } from "@/components/ui/card";
 import { ActionsDocument } from "./actions-document";
@@ -267,6 +268,27 @@ export async function PaneDocument({
               ))}
             </div>
             <FormulaireRattacher orgId={orgId} documentId={doc.id} fiches={fiches} />
+            {(() => {
+              // « Envoyer pour signature » : proposé quand le document est
+              // rattaché à une personne (le signataire) — le circuit est le
+              // dépôt du signé, la signature en ligne arrive avec Yousign.
+              const signataires = doc.liens
+                .filter((l) => l.entite === "personne")
+                .map((l) => ({
+                  id: l.entite_id,
+                  nom: nomsPersonnes.get(l.entite_id) ?? "Personne",
+                }));
+              if (signataires.length === 0 || doc.purged_at) return null;
+              return (
+                <div className="mt-3 border-t border-border pt-3">
+                  <BoutonEnvoyerSignature
+                    orgId={orgId}
+                    documentId={doc.id}
+                    signataires={signataires}
+                  />
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
 

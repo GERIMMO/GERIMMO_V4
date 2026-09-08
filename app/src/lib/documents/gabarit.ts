@@ -156,6 +156,19 @@ export function cadreSignature(titreCadre: string, contenu: string): string {
   return `<div class="signature"><div class="bandeau">${echapper(titreCadre)}</div><div class="zone">${contenu}</div></div>`;
 }
 
+// Signature de l'émetteur (chantier documentaire 08/09) : l'image
+// préenregistrée de l'organisation, apposée sur les documents qu'elle émet
+// SEULE (quittances, reçus, courriers) — jamais sur un bail ni un EDL, où la
+// signature est un acte des parties. Sans image : la zone reste vierge, à
+// signer à la main.
+export function blocSignatureEmetteur(nom: string | null | undefined, img: string | null): string {
+  return `<div class="sig-emetteur">
+    <div class="sig-libelle">Signature</div>
+    ${img ? `<img src="${img}" alt="" class="sig-image"/>` : `<div class="sig-vide"></div>`}
+    ${nom ? `<div class="sig-nom">${echapper(String(nom))}</div>` : ""}
+  </div>`;
+}
+
 export function faitA(f: Fusion, ville: string | null | undefined, dateIso: string, suite = "."): string {
   return `<p>Fait à ${f.champ(ville, "commune")}, le ${f.date(dateIso)}${suite}</p>`;
 }
@@ -270,6 +283,13 @@ const CSS_DOCUMENT = `
   .encadre { border-left:2.25pt solid var(--laiton); background:#faf7ef;
              padding:8pt 12pt; margin:10pt 0; page-break-inside:avoid; }
   .deux-col { display:grid; grid-template-columns:1fr 1fr; gap:0 28pt; }
+  .sig-emetteur { margin-top:14pt; margin-left:auto; width:180pt; text-align:center;
+                  page-break-inside:avoid; }
+  .sig-libelle { color:var(--laiton); font-size:7.5pt; letter-spacing:0.14em;
+                 text-transform:uppercase; margin-bottom:4pt; }
+  .sig-image { max-height:52pt; max-width:170pt; }
+  .sig-vide { height:44pt; border-bottom:0.75pt dotted var(--filet); }
+  .sig-nom { font-size:8.5pt; color:#4a5560; margin-top:3pt; }
   .saut { page-break-before:always; }
   .centre { text-align:center; }
 `;

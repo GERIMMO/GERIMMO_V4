@@ -4,7 +4,9 @@ import { useState, useTransition } from "react";
 import { genererDocument, type EtatGeneration } from "@/app/actions/documents-generes";
 import type { CodeModele } from "@/lib/documents/modeles";
 import { afficherToast } from "@/components/ui/toast";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 
 // Bouton commun du sprint « Documents-0 » : génère le PDF, toast à la
 // résolution (convention 23/08), puis propose d'ouvrir le document et dit
@@ -54,9 +56,26 @@ export function BoutonGenererDocument({
       )}
       {resultat?.erreur && <span className="text-xs text-destructive">{resultat.erreur}</span>}
       {resultat && !resultat.erreur && (resultat.manquants?.length ?? 0) > 0 && (
-        <span className="text-xs text-warning-soft-foreground">
-          Restés en libellé : {resultat.manquants!.slice(0, 4).join(" · ")}
-          {resultat.manquants!.length > 4 ? ` · +${resultat.manquants!.length - 4}` : ""}
+        <span className="block w-full text-xs text-warning-soft-foreground">
+          Restés en libellé :{" "}
+          {resultat.manquants!.slice(0, 5).map((m, i) => {
+            const cible = lienPourManquant(m, orgId, resultat.liens ?? []);
+            return (
+              <span key={m}>
+                {i > 0 && " · "}
+                {m}
+                {cible && (
+                  <>
+                    {" "}
+                    <Link href={cible.href} className="lien-discret">
+                      renseigner ({cible.ecran}) →
+                    </Link>
+                  </>
+                )}
+              </span>
+            );
+          })}
+          {resultat.manquants!.length > 5 ? ` · +${resultat.manquants!.length - 5}` : ""}
         </span>
       )}
     </span>

@@ -8,6 +8,7 @@ import {
   cartouches,
   enTete,
   faitA,
+  blocSignatureEmetteur,
   formaterDateFr,
   section,
   tableau,
@@ -20,6 +21,7 @@ import {
   nomsLocataires,
   adresseLogement,
   referenceCourte,
+  signatureOrganisation,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -37,6 +39,8 @@ export type DonneesAvisEcheance = {
   referenceBail: string;
   dateBail: string | null;
   exp: ReturnType<typeof expediteur>;
+  // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
+  signatureImg?: string | null;
   f: Fusion;
 };
 
@@ -83,6 +87,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
       des solutions amiables existent (délais, aides au logement).</p>
     </div>
     ${faitA(f, d.exp.ville, new Date().toISOString())}
+    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
     f,
@@ -124,6 +129,7 @@ export async function assemblerAvisEcheance(
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     dateBail: ctx.bail.date_debut,
     exp: expediteur(ctx),
+    signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });
 

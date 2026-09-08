@@ -9,6 +9,7 @@ import {
   enTete,
   eur,
   faitA,
+  blocSignatureEmetteur,
   section,
   tableau,
   titre,
@@ -20,6 +21,7 @@ import {
   nomsLocataires,
   adresseLogement,
   referenceCourte,
+  signatureOrganisation,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -37,6 +39,8 @@ export type DonneesRevisionIrl = {
   logementAdresse: string;
   referenceBail: string;
   exp: ReturnType<typeof expediteur>;
+  // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
+  signatureImg?: string | null;
   f: Fusion;
 };
 
@@ -95,6 +99,7 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
       révision est prescrite pour l'année écoulée (loi n° 2014-366 du 24 mars 2014).</p>
     </div>
     ${faitA(f, d.exp.ville, new Date().toISOString())}
+    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
     f,
@@ -136,6 +141,7 @@ export async function assemblerRevisionIrl(
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     exp: expediteur(ctx),
+    signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });
 

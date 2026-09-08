@@ -2419,3 +2419,31 @@ non reprise en l'état. Intégration vague F :
 artisans (T5), agenda (S9b), reprise de portefeuille (T7 — la maquette en
 fournit la spécification), Stripe agence (S11), factures d'honoraires (18.6),
 délégation de portefeuille (S9b).
+
+## [2026-09-08] decision | Chantier documentaire (vague G)
+
+Demande de l'humain : « l'aspect documentaire doit être terminé — savoir où
+trouver les infos, les demander si manquantes, remplir automatiquement,
+présenter en PDF, envoyer pour signature, signature préenregistrée » — pour
+les quatre personas. Livré sur le socle Documents-0 (9 modèles, fusion avec
+manquants, PDF charté, GED) :
+1. **Où renseigner** : chaque champ resté en libellé dans un PDF généré
+   pointe désormais l'écran où la donnée se saisit (profil de l'organisation,
+   fiche personne, fiche bail, fiche lot) — résolveur `ou-renseigner` testé.
+2. **Signature préenregistrée** : l'organisation dépose une image de
+   signature (profil, responsable seul) ; elle s'appose sur les documents
+   émis SEULE — quittances, reçus, avis d'échéance, prorata, révision IRL,
+   rappel d'assurance. **Jamais sur un bail ni un EDL** : là, la signature
+   reste un acte des parties (RM-13).
+3. **« Envoyer pour signature »** : depuis la fiche d'un document rattaché à
+   une personne — le document apparaît dans « À signer » de son espace, elle
+   le télécharge, le signe, dépose le signé ; alerte `signature_retournee`
+   au gestionnaire (table `demandes_signature`, circuit du signé déposé —
+   Yousign S10 prendra le relais en ligne).
+4. **PDF chez le locataire** : ses quittances, reçus et courriers générés
+   (liés à sa fiche) arrivent dans « Mes documents » — plus seulement ses
+   pièces de dossier ; badge Documents inclut les signatures attendues.
+Boutons de génération déjà en place sur les écrans partagés (bail, loyers,
+EDL, personnes, dépôt) — agent, admin et propriétaire direct les partagent.
+Migrations : `signature_documentaire`, `fils_messages_gerant`.
+Vert : 103 tests (+4), 0 erreur TS/lint, build OK.

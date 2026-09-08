@@ -211,3 +211,23 @@ export function nomsLocataires(f: Fusion, locataires: PersonneDocument[]): strin
 export function referenceCourte(prefixe: string, id: string): string {
   return `${prefixe}-${id.slice(0, 8).toUpperCase()}`;
 }
+
+// La signature préenregistrée de l'organisation, en data-URI prête à
+// s'imprimer — null si aucune n'est déposée (profil de l'organisation).
+export async function signatureOrganisation(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<string | null> {
+  const { data: org } = await supabase
+    .from("organizations")
+    .select("signature_path")
+    .eq("id", orgId)
+    .maybeSingle();
+  const chemin = (org as { signature_path?: string | null } | null)?.signature_path;
+  if (!chemin) return null;
+  const { data: fichier } = await supabase.storage.from("documents").download(chemin);
+  if (!fichier) return null;
+  const octets = Buffer.from(await fichier.arrayBuffer());
+  const mime = chemin.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+  return `data:${mime};base64,${octets.toString("base64")}`;
+}

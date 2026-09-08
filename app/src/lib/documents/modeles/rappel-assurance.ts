@@ -2,9 +2,9 @@
 // Cible : le document « attestation d'assurance » qui arrive à expiration.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Fusion, assemblerPage, cartouches, enTete, faitA, formaterDateFr, titre } from "../gabarit";
+import { Fusion, assemblerPage, blocSignatureEmetteur, cartouches, enTete, faitA, formaterDateFr, titre } from "../gabarit";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { adresseOrganisation, nomPersonne, referenceCourte, type PersonneDocument } from "./communs";
+import { adresseOrganisation, nomPersonne, referenceCourte, signatureOrganisation, type PersonneDocument } from "./communs";
 import type { Assemblage } from "./index";
 
 export type DonneesRappelAssurance = {
@@ -16,6 +16,7 @@ export type DonneesRappelAssurance = {
   referenceBail: string | null;
   canalReponse: string | null;
   exp: { nom: string; adresse: string | null; email: string | null; telephone: string | null; ville: string | null };
+  signatureImg?: string | null;
   f: Fusion;
 };
 
@@ -48,6 +49,7 @@ export function construireRappelAssurance(d: DonneesRappelAssurance) {
       pour le compte du locataire, récupérable par douzième avec le loyer.</p>
     </div>
     ${faitA(f, d.exp.ville, new Date().toISOString())}
+    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
     f,
@@ -129,6 +131,7 @@ export async function assemblerRappelAssurance(
       telephone: organisation.telephone,
       ville: organisation.city,
     },
+    signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });
 

@@ -9,6 +9,7 @@ import {
   enTete,
   eur,
   faitA,
+  blocSignatureEmetteur,
   formaterDateFr,
   section,
   tableau,
@@ -21,6 +22,7 @@ import {
   nomsLocataires,
   adresseLogement,
   referenceCourte,
+  signatureOrganisation,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -40,6 +42,8 @@ export type DonneesProrata = {
   logementAdresse: string;
   referenceBail: string;
   exp: ReturnType<typeof expediteur>;
+  // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
+  signatureImg?: string | null;
   f: Fusion;
 };
 
@@ -106,6 +110,7 @@ export function construireProrata(d: DonneesProrata) {
       accompagne l'avis d'échéance ou la quittance du terme concerné.</p>
     </div>
     ${faitA(f, d.exp.ville, new Date().toISOString())}
+    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
   return assemblerPage({
     f,
@@ -153,6 +158,7 @@ export async function assemblerProrata(
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     exp: expediteur(ctx),
+    signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });
 

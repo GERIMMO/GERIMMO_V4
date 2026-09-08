@@ -9,6 +9,7 @@ import {
   enTete,
   eur,
   faitA,
+  blocSignatureEmetteur,
   formaterDateFr,
   section,
   tableau,
@@ -21,6 +22,7 @@ import {
   nomsLocataires,
   adresseLogement,
   referenceCourte,
+  signatureOrganisation,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -41,6 +43,8 @@ export type DonneesQuittance = {
   referenceBail: string;
   dateBail: string | null;
   exp: ReturnType<typeof expediteur>;
+  // Signature préenregistrée de l'émetteur (data-URI) — null : zone vierge
+  signatureImg?: string | null;
   f: Fusion;
 };
 
@@ -113,6 +117,7 @@ export function construireQuittance(d: DonneesQuittance) {
       }
     </div>
     ${faitA(f, d.exp.ville, d.dateEmission)}
+    ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
   `;
 
   return assemblerPage({
@@ -187,6 +192,7 @@ export async function assemblerQuittance(
     referenceBail: referenceCourte("BAIL", ctx.bail.id),
     dateBail: ctx.bail.date_debut,
     exp: expediteur(ctx),
+    signatureImg: await signatureOrganisation(supabase, orgId),
     f,
   });
 

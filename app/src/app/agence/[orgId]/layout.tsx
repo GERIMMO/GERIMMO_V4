@@ -3,7 +3,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
-import { NavAgence } from "@/components/nav-agence";
+import { SidebarAgence } from "@/components/nav-agence-premium";
 import { SidebarProprietaire } from "@/components/nav-proprietaire";
 import { SortieMobile } from "@/components/sortie-mobile";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
@@ -55,14 +55,15 @@ export default async function LayoutAgence({
   // propriétaire direct est chez lui — barre latérale premium (même langage
   // que l'espace locataire), sélecteur d'organisation (nom propre / SCI) si
   // plusieurs, pages inchangées derrière.
+  const { data: nonLusRows } = await supabase.rpc("messages_non_lus_gerant", {
+    p_org: orgId,
+  });
+  const messagesNonLus = ((nonLusRows ?? []) as { non_lus: number }[]).reduce(
+    (somme, r) => somme + r.non_lus,
+    0
+  );
+
   if (estProprietaire) {
-    const { data: nonLusRows } = await supabase.rpc("messages_non_lus_gerant", {
-      p_org: orgId,
-    });
-    const messagesNonLus = ((nonLusRows ?? []) as { non_lus: number }[]).reduce(
-      (somme, r) => somme + r.non_lus,
-      0
-    );
     const { data: adhesions } = await supabase
       .from("memberships")
       .select("organization_id, organisation:organizations(id, name, type)")
@@ -140,86 +141,67 @@ export default async function LayoutAgence({
     );
   }
 
+  // Espace agence — montée en gamme (maquette v6 du 08/09) : agent et admin
+  // passent sur la barre latérale premium (même langage que les espaces
+  // locataire et propriétaire). L'agent voit « Mon portefeuille », l'admin
+  // « Parc de l'agence » + Mandats & rapports + Administration. Les pages
+  // gardent leur <main> : seul le chrome change.
   return (
-    <div className="flex min-h-full flex-1 flex-col">
-      {/* Bandeau encre de la maquette : marque, contexte d'agence, actions ;
-          navigation en onglets sombres sous un filet, liseré laiton actif. */}
-      <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
-        {/* Sur un téléphone, les deux groupes ne tiennent pas sur une ligne : sans
-            `flex-wrap` ils se chevauchaient, marque par-dessus « Mes espaces ». */}
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-7">
-          <div className="flex min-w-0 items-center gap-3 sm:gap-5">
-            <Link href={`/agence/${orgId}`} aria-label="Accueil de l'agence">
-              <MarqueGerimmo surEncre />
-            </Link>
-            <span
-              aria-hidden
-              className="hidden h-7 w-px bg-[var(--sur-encre)]/20 sm:block"
-            />
-            <div className="min-w-0">
-              <p className="eyebrow text-[var(--sur-encre)]/55">
-                {estProprietaire ? "Espace propriétaire" : "Espace agence"}
-              </p>
-              {/* Documents-0 : le nom ouvre le profil (identité des documents) */}
-              <Link
-                href={`/agence/${orgId}/profil`}
-                className="block truncate text-[13px] text-[var(--sur-encre)] underline-offset-2 hover:underline"
-              >
-                {organisation.name}
-              </Link>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-4 sm:gap-5">
-            {/* Pop-up de synthèse à la connexion — sans cloche (30/08) : le
-                menu Alertes en dessous porte déjà le badge. */}
-            <SyntheseAlertes
-              alertes={alertes}
-              surEncre
-              membres={membres}
-              estResponsable={estResponsable}
-            />
-            <Link
-              href="/espaces"
-              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-            >
-              Mes espaces
-            </Link>
-            <form action={seDeconnecter}>
-              <button
-                type="submit"
-                className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-              >
-                Se déconnecter
-              </button>
-            </form>
-          </div>
+    <div className="loc-app">
+      <aside className="loc-late">
+        <div className="loc-logo">
+          <Link href={`/agence/${orgId}`} aria-label="Accueil de l'agence">
+            <MarqueGerimmo surEncre />
+          </Link>
+          <span className="loc-logo-texte eyebrow text-[var(--sur-encre)]/55">
+            Espace agence
+          </span>
         </div>
-        <div className="border-t border-[var(--sur-encre)]/10">
-          <div className="mx-auto w-full max-w-6xl px-4 sm:px-7">
-            <NavAgence
-              orgId={orgId}
-              alertesOuvertes={alertesOrg}
-              incidentsOuverts={incidentsOuverts ?? 0}
-              proprietaire={estProprietaire}
-              agent={role === "agent"}
-            />
-          </div>
+        <SidebarAgence
+          orgId={orgId}
+          admin={role === "admin_agence"}
+          badgeIncidents={incidentsOuverts ?? 0}
+          badgeAlertes={alertesOrg}
+          badgeMessages={messagesNonLus}
+        />
+        <div className="loc-late-bas">
+          <Link href={`/agence/${orgId}/profil`}>Profil de l&apos;agence</Link>
+          <Link href="/espaces">Mes espaces</Link>
+          <form action={seDeconnecter}>
+            <button type="submit">Se déconnecter</button>
+          </form>
+          <span>{organisation.name}</span>
         </div>
-      </header>
-      {/* S9a : l'essai de 14 jours se voit sans gêner ; l'abonnement par bien
-          (Stripe) arrive au S11 — d'ici là, rien ne se ferme. */}
-      {organisation.status === "essai" && organisation.essai_fin && (
-        <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground sm:px-7">
-          Essai gratuit jusqu&apos;au {formaterDate(organisation.essai_fin)}
-          {joursRestants(organisation.essai_fin) < 0
-            ? " — période d'essai terminée, l'abonnement arrive prochainement"
-            : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
-        </p>
-      )}
-
-      <div className="min-w-0 flex-1">{children}</div>
-      {/* Confirmations façon maquette (recette 24/08) : le geste abouti fait
-          disparaître la ligne, le toast dit ce qui vient de se passer. */}
+      </aside>
+      <div className="min-w-0">
+        <header className="loc-haut">
+          <SyntheseAlertes
+            alertes={alertes}
+            membres={membres}
+            estResponsable={estResponsable}
+          />
+          <span className="min-w-0 truncate text-[13px] text-muted-foreground">
+            {organisation.name}
+            <span className="text-[var(--libelle)]">
+              {" "}
+              · {role === "admin_agence" ? "Admin d'agence" : "Agent"}
+            </span>
+          </span>
+          <SortieMobile />
+          <span className="loc-avat" aria-hidden>
+            {(organisation.name?.[0] ?? "◇").toUpperCase()}
+          </span>
+        </header>
+        {organisation.status === "essai" && organisation.essai_fin && (
+          <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
+            Essai gratuit jusqu&apos;au {formaterDate(organisation.essai_fin)}
+            {joursRestants(organisation.essai_fin) < 0
+              ? " — période d'essai terminée, l'abonnement arrive prochainement"
+              : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
+          </p>
+        )}
+        <div className="min-w-0">{children}</div>
+      </div>
       <Toasteur />
     </div>
   );

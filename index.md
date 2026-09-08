@@ -116,6 +116,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-08-08-maquette-prototype-cliquable|Maquette — prototype cliquable (août 2026)]] — référence charte v2 (encre/laiton/crème, Instrument Sans) appliquée à l'app bloc 0 → S3 ; spécifie aussi la refonte des alertes.
 - [[2026-09-04-maquette-v3-prototype|Maquette v3 — prototype cliquable (sept. 2026)]] — ~20 chantiers nouveaux (réseau artisan, reprise de portefeuille, dossier de pièces, EDL de sortie guidé, quittancement, SCI/fiscalité PD, « mon portefeuille » agent…) ; inventaire classé, 6 contradictions à trancher, découpage T1→T8.
 
+- [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
+
 ## Synthèses
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).
 - [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.

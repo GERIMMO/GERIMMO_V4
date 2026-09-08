@@ -2395,3 +2395,27 @@ Restent notés (mineurs assumés) : pas de limite de débit sur le formulaire
 public (pot de miel seul), badge messages absent du chrome agence classique
 (vague « agence » à venir), mentions légales complètes à publier quand la
 raison sociale/SIREN seront fournis par l'humain.
+
+## [2026-09-08] ingest | Maquette espace agence v6 (agent + admin)
+
+Maquette archivée (`raw/maquettes/2026-09-08-espace-agence-v6.html`), page
+source créée ([[2026-09-08-maquette-espace-agence-v6]]) avec inventaire et
+contradictions — la principale : la « Compta & fonds mandants » de la maquette
+contredit RM-A6.1 actée (« journal de gestion, jamais de comptes mandants »),
+non reprise en l'état. Intégration vague F :
+- **Chrome premium agence** : agent et admin passent sur la barre latérale
+  encre (même langage que locataire/propriétaire) — l'agent voit « Mon
+  portefeuille », l'admin « Parc de l'agence », badges incidents/alertes/
+  messages, sortie mobile ; l'onglet Documents s'ouvre aux agents.
+- **Nouvelles pages réelles** : Messages (fils par personne, RPC
+  `fils_messages_gerant`), Mandats & rapports (admin — mandats actifs,
+  dernier CRG, versements attendus), Administration (admin — équipe et
+  portefeuilles réels, abonnement honnête « sur devis », journal d'audit
+  documenté), Statistiques (résolution sous 15 j, délai moyen, imputations,
+  lots les plus signalés — périmètre portefeuille pour l'agent).
+- **Tableau de bord** : salutation + puces (actions, incidents à qualifier,
+  messages) façon v6, le reste (tuiles, fil, donut, semaine) déjà conforme.
+Écarts assumés (chantiers) : cloche (30/08), ⌘K, bot/WhatsApp (S12), devis
+artisans (T5), agenda (S9b), reprise de portefeuille (T7 — la maquette en
+fournit la spécification), Stripe agence (S11), factures d'honoraires (18.6),
+délégation de portefeuille (S9b).

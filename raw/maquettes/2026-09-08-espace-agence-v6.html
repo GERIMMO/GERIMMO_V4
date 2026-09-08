@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GERIMMO — Espace agence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --encre:#122A44; --encre-2:#0D2036; --or:#C9A24B; --or-fonce:#B08D3E; --or-pale:#F3E7CB;
+  --fond:#F4F1EB; --carte:#FFFFFF; --texte:#1E2C3C; --t2:#6B7686; --t3:#9AA4B1; --filet:#E9E4D8;
+  --bleu:#2F6FB0; --vert:#2E7D4F; --vert-pale:#E7F2EB; --rouge:#C0392B; --rouge-pale:#F9E9E6;
+  --ambre:#B07818; --ambre-pale:#F7EFDD; --bleu-pale:#E8F0F8;
+  --serif:'Cormorant Garamond',Georgia,serif; --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --r:14px; --ombre:0 1px 3px rgba(18,42,68,.06),0 6px 18px rgba(18,42,68,.05);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--sans);background:var(--fond);color:var(--texte);font-size:14.5px;line-height:1.55}
+button{font:inherit;border:none;background:none;cursor:pointer;color:inherit}
+a{color:var(--bleu);text-decoration:none}
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+
+/* ---- barre latérale ---- */
+.late{background:linear-gradient(180deg,var(--encre) 0%,var(--encre-2) 100%);color:#EDE9DF;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:11px;padding:20px 18px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo .nom{font-family:var(--serif);font-weight:600;font-size:20px;letter-spacing:.16em}
+.logo .sous-nom{font-size:8.5px;letter-spacing:.22em;color:var(--or);margin-top:1px}
+.menu{padding:14px 12px;display:flex;flex-direction:column;gap:3px;flex:1}
+.menu button{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:10px;color:rgba(237,233,223,.78);font-size:13.5px;text-align:left;position:relative;transition:background .15s,color .15s}
+.menu button:hover{background:rgba(255,255,255,.06)}
+.menu button.actif{background:linear-gradient(90deg,var(--or-fonce),var(--or));color:#132B45;font-weight:600}
+.menu button.actif svg{stroke:#132B45}
+.menu svg{width:17px;height:17px;stroke:rgba(237,233,223,.75);fill:none;stroke-width:1.7;flex:none}
+.badge{margin-left:auto;background:var(--rouge);color:#fff;font-size:10.5px;font-weight:600;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 5px}
+.late-bas{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:11.5px;color:rgba(237,233,223,.45)}
+.aide-bot{display:flex;gap:10px;align-items:center;border:1px solid rgba(255,255,255,.14);border-radius:11px;padding:10px 12px;margin-bottom:12px;color:rgba(237,233,223,.85);font-size:12.5px;width:100%}
+
+/* ---- haut ---- */
+.haut{background:var(--carte);border-bottom:1px solid var(--filet);display:flex;align-items:center;gap:16px;padding:11px 26px;position:sticky;top:0;z-index:20}
+.cherche{flex:1;max-width:320px;display:flex;align-items:center;gap:9px;background:var(--fond);border-radius:10px;padding:9px 14px;color:var(--t3);font-size:13.5px}
+.rondh{position:relative;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--fond)}
+.rondh svg{width:17px;height:17px;stroke-width:1.7;flex:none}
+.cherche svg{width:16px;height:16px;stroke-width:1.7;flex:none;stroke:var(--t3)}
+.aide-bot svg,.b svg{width:15px;height:15px;stroke-width:1.8;flex:none}
+.rondh .pt{position:absolute;top:-3px;right:-3px;background:var(--rouge);color:#fff;font-size:10px;font-weight:600;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.moi{display:flex;align-items:center;gap:10px;margin-left:6px}
+.avat{width:36px;height:36px;border-radius:50%;background:var(--encre);color:var(--or);display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600}
+.moi .l1{font-size:13.5px;font-weight:600;line-height:1.2}
+.moi .l2{font-size:11.5px;color:var(--t2)}
+
+/* ---- contenu ---- */
+.corps{padding:26px 30px 60px}
+.grille{display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start}
+.date-l{font-size:12.5px;color:var(--t2);letter-spacing:.02em}
+h1{font-family:var(--serif);font-weight:600;font-size:37px;color:var(--encre);line-height:1.1;margin-top:4px}
+.st{color:var(--t2);margin-top:5px}
+.carte{background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);padding:20px;margin-top:16px}
+.carte h2{font-size:16px;font-weight:600;color:var(--encre)}
+.tete{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.lien{font-size:13px;color:var(--bleu);font-weight:500;white-space:nowrap}
+.puce-ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.puce-ic svg{width:20px;height:20px;fill:none;stroke-width:1.8}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+.kpi{background:var(--carte);border-radius:var(--r);box-shadow:var(--ombre);padding:18px}
+.kpi .v{font-family:var(--serif);font-weight:600;font-size:29px;color:var(--encre);margin-top:8px}
+.kpi .t{font-size:13px;font-weight:600;color:var(--encre)}
+.kpi .s{font-size:12.5px;color:var(--t2);margin-top:2px}
+.kpi .pied{font-size:13px;color:var(--bleu);font-weight:500;margin-top:12px;display:inline-block}
+.tag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px}
+.tg-vert{background:var(--vert-pale);color:var(--vert)} .tg-ambre{background:var(--ambre-pale);color:var(--ambre)}
+.tg-rouge{background:var(--rouge-pale);color:var(--rouge)} .tg-bleu{background:var(--bleu-pale);color:var(--bleu)}
+.jauge{height:7px;background:var(--filet);border-radius:4px;overflow:hidden;margin:9px 0 5px}
+.jauge i{display:block;height:100%;background:var(--vert);border-radius:4px}
+.rang{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--filet)}
+.rang:last-of-type{border-bottom:none}
+.rang .t{font-size:14px;font-weight:600;color:var(--encre)}
+.rang .s{font-size:12.5px;color:var(--t2);margin-top:1px}
+.rond-p{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px}
+.b{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;padding:10px 16px;font-size:13.5px;font-weight:600;transition:opacity .15s}
+.b:active{opacity:.7}
+.b-encre{background:var(--encre);color:#F2EDE1}
+.b-or{background:linear-gradient(90deg,var(--or-fonce),var(--or));color:#132B45}
+.b-blanc{border:1px solid var(--filet);background:var(--carte);color:var(--encre)}
+.b-pl{width:100%}
+.champ{width:100%;border:1px solid var(--filet);border-radius:10px;padding:11px 13px;font:inherit;font-size:14px;background:var(--carte);margin:5px 0 13px}
+.champ:focus{outline:2px solid var(--or);border-color:var(--or)}
+label{font-size:12.5px;color:var(--t2);font-weight:500}
+.mini-photo{width:118px;height:86px;border-radius:11px;flex:none;background:linear-gradient(135deg,#2F6FB0,#122A44) center/cover no-repeat;background-image:url('https://picsum.photos/seed/immeuble9/240/180');position:relative;overflow:hidden}
+.mini-photo::after{content:'';position:absolute;inset:auto 0 0 0;height:40%;background:linear-gradient(0deg,rgba(201,162,75,.5),transparent)}
+.hero{border-radius:var(--r);background:linear-gradient(100deg,#FFFFFF 0%,#FFFFFF 52%,rgba(255,255,255,.55) 66%,rgba(255,255,255,0) 82%),url('https://picsum.photos/seed/salon22/1100/380') right center/cover no-repeat,linear-gradient(115deg,#D8CCB4,#C9BCA0);box-shadow:var(--ombre);padding:22px;display:flex;align-items:center;gap:18px;margin-top:18px}
+.citation{margin-left:auto;font-family:var(--serif);font-style:italic;font-weight:500;font-size:18.5px;color:var(--encre);max-width:210px;text-align:right;line-height:1.35}
+.citation::after{content:'';display:block;width:44px;height:2px;background:var(--or);margin:10px 0 0 auto}
+.etapes{margin-top:8px}
+.etape{display:flex;gap:11px;padding:6px 0;font-size:13.5px}
+.etape .pt2{width:9px;height:9px;border-radius:50%;background:var(--filet);margin-top:5px;flex:none}
+.etape.f .pt2{background:var(--or)} .etape:not(.f){color:var(--t3)}
+.msgb{max-width:88%;padding:10px 14px;border-radius:13px;font-size:13.5px;margin-top:10px;line-height:1.5;background:var(--fond)}
+.msgb.moi2{background:var(--encre);color:#F2EDE1;margin-left:auto;border-bottom-right-radius:4px}
+.msgb .q{font-size:11px;color:var(--t3);margin-bottom:2px}
+.msgb.moi2 .q{color:rgba(242,237,225,.6)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--encre);color:#F2EDE1;padding:12px 20px;border-radius:11px;font-size:13.5px;display:flex;gap:10px;align-items:center;box-shadow:0 12px 32px rgba(18,42,68,.4);z-index:60;max-width:92vw}
+.toast .o{color:var(--or)}
+.bandeau-bas{border-radius:var(--r);background:linear-gradient(100deg,#EFE9DB,#E4DBC6);padding:24px;margin-top:20px}
+.bandeau-bas b{font-family:var(--serif);font-weight:600;font-size:20px;color:var(--encre);display:block}
+.urg{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:13px;color:var(--t2)}
+.urg .n{color:var(--rouge);font-weight:700;font-size:17px}
+.corps > .page{animation:fondu .3s ease}
+@keyframes fondu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(max-width:1060px){.grille{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:860px){.app{grid-template-columns:64px 1fr}.logo .nom,.logo .sous-nom,.menu .lib,.late-bas,.aide-bot span{display:none}.menu button{justify-content:center;padding:12px}.badge{position:absolute;top:4px;right:4px;margin:0}.moi .l1,.moi .l2{display:none}.kpis{grid-template-columns:1fr}.corps{padding:18px 14px 50px}h1{font-size:30px}.hero{display:none}}
+@media (prefers-reduced-motion:reduce){.corps > .page{animation:none}}
+.depl{position:absolute;top:56px;right:0;width:330px;background:var(--carte);border-radius:12px;box-shadow:0 14px 40px rgba(18,42,68,.18);padding:14px;z-index:40}
+.depl .rang{padding:10px 0}
+.sugg{position:absolute;top:56px;left:0;width:100%;max-width:520px;background:var(--carte);border-radius:12px;box-shadow:0 14px 40px rgba(18,42,68,.18);padding:8px;z-index:40}
+.sugg button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:10px 12px;border-radius:9px;font-size:13.5px}
+.sugg button:hover{background:var(--fond)}
+.pts{display:flex;gap:5px;margin-top:10px}
+.pts i{width:14px;height:14px;border-radius:50%;background:var(--vert-pale);border:1.5px solid var(--vert);position:relative}
+.pts i.v{background:var(--vert)}
+.pts i.a{background:transparent;border-color:var(--or-fonce)}
+.chip{border:1px solid var(--filet);border-radius:999px;padding:7px 13px;font-size:12.5px;color:var(--encre);background:var(--fond)}
+.chip:active{opacity:.7}
+@keyframes surgir{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+.carte,.kpi{animation:surgir .38s ease both}
+.carte:nth-of-type(2),.kpi:nth-child(2){animation-delay:.06s}
+.carte:nth-of-type(3),.kpi:nth-child(3){animation-delay:.12s}
+.carte:nth-of-type(4){animation-delay:.18s}
+@media (prefers-reduced-motion:reduce){.carte,.kpi{animation:none}}
+</style>
+</head>
+<body>
+<div id="racine"></div>
+<script>
+const S={page:'bord',toast:null,notif:false,rech:false,notifLu:false,role:'agent',inc:null,lot:null,fil:null,devisOuvert:false,qual:0,fparc:'tous',fdoc:'tous'};
+const QUI={agent:{nom:'Marie Dubois',ini:'MD',titre:'Agent immobilier'},admin:{nom:'Sophie Renard',ini:'SR',titre:'Admin d’agence'}};
+function moi(){return QUI[S.role]}
+const D={
+  agence:'Agence Alpha',
+  afaire:[
+    {id:'A1',t:'Fuite d’eau — Appartement 12',s:'Incident signalé il y a 38 min · À qualifier',tag:'Urgent',tc:'tg-rouge',b:'Traiter',ic:'outil',c:'rouge',fait:false},
+    {id:'A2',t:'Bail Moreau',s:'Assurance habitation manquante',tag:'À faire',tc:'tg-ambre',b:'Relancer',ic:'doc',c:'ambre',fait:false},
+    {id:'A3',t:'Devis plomberie — 286 €',s:'En attente de votre validation',tag:'À valider',tc:'tg-ambre',b:'Examiner',ic:'euro',c:'or',fait:false},
+    {id:'A4',t:'État des lieux — Dupont',s:'Prévu aujourd’hui à 14h00',tag:'Aujourd’hui',tc:'tg-bleu',b:'Voir le dossier',ic:'agenda',c:'bleu',fait:false}
+  ],
+  afaireAdmin:[
+    {id:'AA1',t:'Versement à Mme Bernard — 1 112,00 €',s:'CRG d’août envoyé il y a 12 j · aucun versement émis',tag:'J+12',tc:'tg-ambre',b:'Verser',ic:'euro',c:'or',fait:false},
+    {id:'AA2',t:'Factures d’honoraires d’août',s:'4 mandants · 386 € HT + TVA — à émettre et joindre aux CRG',tag:'À émettre',tc:'tg-ambre',b:'Émettre',ic:'doc',c:'ambre',fait:false},
+    {id:'AA3',t:'Facture Plomberie Denis — 286,00 €',s:'Reçue le 4 sept. · contrôlée conforme au devis validé',tag:'À régler',tc:'tg-bleu',b:'Régler',ic:'outil',c:'bleu',fait:false},
+    {id:'AA4',t:'RIB modifié — SCI Marchand',s:'Nouveau compte communiqué par e-mail · à vérifier avant tout versement',tag:'Anti-fraude',tc:'tg-rouge',b:'Vérifier',ic:'ok',c:'rouge',fait:false}
+  ],
+  factureDenis:false,
+  activite:[
+    {t:'Camille Fabre a réglé son loyer — quittance partie sur WhatsApp',rel:'IL Y A 2 H',ic:'ok',c:'vert'},
+    {t:'Devis reçu : Plomberie Denis — 286 € (App. 12)',rel:'IL Y A 5 H',ic:'euro',c:'or'},
+    {t:'EDL de sortie signé — Nadia Sellam',rel:'HIER',ic:'doc',c:'bleu'},
+    {t:'Rapport de gestion d’août envoyé à SCI Marchand',rel:'IL Y A 2 J',ic:'ok',c:'bleu'}
+  ],
+  loyers:[
+    {loc:'Camille Fabre',lot:'App. 5',prop:'Mme Bernard',mt:805,etat:'paye'},
+    {loc:'M. Lefèvre',lot:'App. 12',prop:'Mme Bernard',mt:1040,etat:'verif'},
+    {loc:'Yanis Berthier',lot:'24 av. Gambetta',prop:'SCI Marchand',mt:1130,etat:'retard',note:'relance J+5 partie'},
+    {loc:'Mme Petit',lot:'App. 3',prop:'Mme Bernard',mt:980,etat:'retard',note:'mise en demeure préparée'}
+  ],
+  loyersCaches:{n:7,mt:7155},
+  totalAppele:12840,
+  incidents:[
+    {id:'I1',t:'Fuite d’eau — Appartement 12',s:'Signalée il y a 38 min par M. Lefèvre, photo à l’appui (bot WhatsApp)',prop:'Mme Bernard',etat:'a_qualifier'},
+    {id:'I2',t:'Devis plomberie — 286 €',s:'App. 12 · Plomberie Denis · créneau proposé mardi 9 h – 11 h',prop:'Mme Bernard',etat:'devis'},
+    {id:'I3',t:'VMC bruyante',s:'Maison rue des Lilas · visite technique lundi 10h30',prop:'M. Nguyen',etat:'planifie'},
+    {id:'I4',t:'Volet roulant',s:'App. 3 · intervention réalisée, retour locataire attendu',prop:'Mme Bernard',etat:'a_cloturer'},
+    {id:'I5',t:'Infiltration cave',s:'24 av. Gambetta · expert mandaté par l’assurance',prop:'SCI Marchand',etat:'suivi'},
+    {id:'I6',t:'Dégât des eaux — Appartement B',s:'9 bd Jaurès · déclaration transmise, séchage en cours',prop:'Indivision Rousseau',etat:'suivi'}
+  ],
+  mandants:[
+    {id:'P1',nom:'Mme Bernard',info:'3 lots · mandat 6,5 % sur encaissé'},
+    {id:'P2',nom:'SCI Marchand',info:'4 lots · mandat 7 % sur encaissé'},
+    {id:'P3',nom:'M. Nguyen',info:'2 lots · mandat 6 % sur encaissé'},
+    {id:'P4',nom:'Indivision Rousseau',info:'4 lots · mandat 7,5 % · 2 indivisaires signataires'}
+  ],
+  lots:[
+    {id:'L1',p:'P1',t:'12 rue des Lilas — Appartement 5',s:'T3 · 68 m²',statut:'loué',tc:'tg-vert',loc:'Camille Fabre',bail:'Bail nu · 805 € CC · échéance IRL au 1ᵉʳ janv.',dg:'805 € détenu par l’agence'},
+    {id:'L2',p:'P1',t:'12 rue des Lilas — Appartement 12',s:'T2 · 44 m²',statut:'sinistre',tc:'tg-rouge',loc:'M. Lefèvre',bail:'Bail meublé · 1 040 € CC · échéance IRL au 1ᵉʳ mars',dg:'1 000 € détenu par le propriétaire'},
+    {id:'L3',p:'P1',t:'12 rue des Lilas — Appartement 3',s:'T2 · 41 m²',statut:'loué',tc:'tg-vert',loc:'Mme Petit',bail:'Bail nu · 980 € CC · échéance IRL au 1ᵉʳ juin',dg:'930 € détenu par l’agence'},
+    {id:'L4',p:'P2',t:'24 avenue Gambetta — Lot unique',s:'T1 · 31 m²',statut:'sinistre',tc:'tg-rouge',loc:'Yanis Berthier',bail:'Bail nu · 1 130 € CC · échéance IRL au 1ᵉʳ oct.',dg:'1 050 € détenu par l’agence'},
+    {id:'L5',p:'P2',t:'5 rue Voltaire — Appartement 1',s:'T2 · 45 m²',statut:'loué',tc:'tg-vert',loc:'M. Costa',bail:'Bail nu · 890 € CC',dg:'850 € détenu par l’agence'},
+    {id:'L6',p:'P2',t:'5 rue Voltaire — Appartement 2',s:'T2 · 47 m²',statut:'loué',tc:'tg-vert',loc:'Mme Diallo',bail:'Bail nu · 905 € CC',dg:'860 € détenu par l’agence'},
+    {id:'L7',p:'P2',t:'5 rue Voltaire — Studio',s:'Studio · 22 m²',statut:'loué',tc:'tg-vert',loc:'Sofia Moreau',bail:'Bail meublé · 640 € CC',dg:'600 € détenu par l’agence'},
+    {id:'L8',p:'P3',t:'17 rue Pasteur — Lot 2',s:'T4 · 82 m²',statut:'en préparation',tc:'tg-bleu',loc:null,bail:null,dg:null},
+    {id:'L9',p:'P3',t:'Maison rue des Lilas',s:'Maison · 96 m²',statut:'loué',tc:'tg-vert',loc:'Famille Dupont',bail:'Bail nu · 1 480 € CC',dg:'1 400 € détenu par le propriétaire'},
+    {id:'L10',p:'P4',t:'9 bd Jaurès — Appartement A',s:'T2 · 43 m²',statut:'loué',tc:'tg-vert',loc:'S. Adjaoui',bail:'Bail nu · 760 € CC',dg:'720 € détenu par l’agence'},
+    {id:'L11',p:'P4',t:'9 bd Jaurès — Appartement B',s:'T2 · 43 m²',statut:'sinistre',tc:'tg-rouge',loc:'L. Marek',bail:'Bail nu · 755 € CC',dg:'720 € détenu par l’agence'},
+    {id:'L12',p:'P4',t:'9 bd Jaurès — Appartement C',s:'T3 · 58 m²',statut:'loué',tc:'tg-vert',loc:'Fam. Traoré',bail:'Bail nu · 910 € CC',dg:'870 € détenu par l’agence'},
+    {id:'L13',p:'P4',t:'9 bd Jaurès — Appartement D',s:'T3 · 57 m²',statut:'disponible',tc:'tg-ambre',loc:null,bail:null,dg:null}
+  ],
+  msgs:[
+    {id:'M1',qui:'M. Lefèvre (locataire)',ini:'ML',h:'15:42',nl:true,fil:[
+      {q:'M. Lefèvre',t:'Bonjour, l’eau chaude ne fonctionne plus depuis ce matin dans la salle de bain.',moi:false},
+      {q:'GERIMMO (bot)',t:'Bien reçu, photo transmise à votre gestionnaire — un plombier d’astreinte est disponible aujourd’hui.',moi:false}]},
+    {id:'M2',qui:'Mme Bernard (propriétaire)',ini:'MB',h:'11:17',nl:true,fil:[
+      {q:'Mme Bernard',t:'Bonjour Marie, avez-vous des nouvelles du locataire pour la visite de la cave ?',moi:false}]}
+  ],
+  bernardVerse:false
+};
+const $=q=>document.querySelector(q);
+function toast(t){S.toast=t;rendre();clearTimeout(S._t);S._t=setTimeout(()=>{S.toast=null;rendre()},3600)}
+function aller(p){S.page=p;S.notif=false;S.rech=false;S.inc=null;S.lot=null;S.fil=null;S.devisOuvert=false;S.qual=0;rendre();window.scrollTo({top:0})}
+function vivre(t){D.activite.unshift({t:t,rel:'À L’INSTANT',ic:'ok',c:'vert'})}
+function eur(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:2})+' €'}
+
+const IC={
+  maison:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/>',
+  parc:'<path d="M3 21V9l6-4 6 4v12"/><path d="M15 21V11l6-3v13M7 13h2M7 17h2"/>',
+  doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4M9 12h6M9 16h6"/>',
+  outil:'<path d="M14.5 6.5a4 4 0 0 0-5.6 4.9L4 16.3V20h3.7l4.9-4.9a4 4 0 0 0 4.9-5.6L15 12l-3-3z"/>',
+  bulle:'<path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/>',
+  quest:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7M12 17h.01"/>',
+  ok:'<path d="M20 6 9 17l-5-5"/>',
+  euro:'<path d="M17 5.5A7 7 0 0 0 6.5 12 7 7 0 0 0 17 18.5M4 10h9M4 14h9"/>',
+  cloche:'<path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/>',
+  loupe:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  agenda:'<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',
+  gens:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3.5 3.5 0 0 1 0 7M15.5 13.5A6 6 0 0 1 21 20"/>',
+  stats:'<path d="M4 20V10M10 20V4M16 20v-8M21 20H3"/>',
+  livre:'<path d="M4 4h9a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M17 8h3v12h-9"/>',
+  mallette:'<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2M3 13h18"/>',
+  importer:'<path d="M12 3v10M8 9l4 4 4-4"/><path d="M4 17v3h16v-3"/>',
+  roue:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>'
+};
+function svg(n,coul){return `<svg viewBox="0 0 24 24" fill="none" style="stroke:${coul||'currentColor'}" xmlns="http://www.w3.org/2000/svg">${IC[n]}</svg>`}
+function coulFond(c){return c==='rouge'?'var(--rouge-pale)':c==='ambre'?'var(--ambre-pale)':c==='or'?'var(--or-pale)':c==='vert'?'var(--vert-pale)':'var(--bleu-pale)'}
+function coulTrait(c){return c==='rouge'?'var(--rouge)':c==='ambre'?'var(--ambre)':c==='or'?'var(--or-fonce)':c==='vert'?'var(--vert)':'var(--bleu)'}
+
+const MENU_AGENT=[['bord','Tableau de bord','maison'],['parc','Mon portefeuille','parc'],['incidents','Incidents','outil',()=>D.incidents.filter(i=>i.etat!=='clos').length],['personnes','Personnes','gens'],['loyers','Loyers & charges','euro'],['documents','Documents','doc'],['agenda','Agenda','agenda'],['messages','Messages','bulle',()=>D.msgs.filter(m=>m.nl).length],['stats','Mes statistiques','stats'],['parametres','Paramètres','roue']];
+const MENU_ADMIN=[['bord','Tableau de bord','maison'],['parc','Parc de l’agence','parc'],['incidents','Incidents','outil',()=>D.incidents.filter(i=>i.etat!=='clos').length],['personnes','Personnes','gens'],['loyers','Loyers & charges','euro'],['compta','Compta & mandants','livre'],['mandats','Mandats & rapports','mallette',()=>D.bernardVerse?0:1],['reprise','Reprise de portefeuille','importer'],['administration','Administration','roue'],['documents','Documents','doc'],['agenda','Agenda','agenda'],['messages','Messages','bulle',()=>D.msgs.filter(m=>m.nl).length],['stats','Statistiques','stats']];
+function MENU(){return S.role==='admin'?MENU_ADMIN:MENU_AGENT}
+
+/* ---------- calculs loyers agent ---------- */
+function loyersStats(){
+  const payes=D.loyers.filter(l=>l.etat==='paye').length+D.loyersCaches.n;
+  const verif=D.loyers.filter(l=>l.etat==='verif').length;
+  const retard=D.loyers.filter(l=>l.etat==='retard'||l.etat==='relance').length;
+  const enc=D.loyersCaches.mt+D.loyers.filter(l=>l.etat==='paye').reduce((s,l)=>s+l.mt,0);
+  return {payes,verif,retard,enc,pct:Math.round(enc/D.totalAppele*100)};
+}
+
+/* ---------- colonne droite ---------- */
+function colDroite(){
+  const L=loyersStats();
+  return `
+  <div>
+    <div class="carte" style="margin-top:0">
+      <div class="tete"><span style="display:flex;gap:10px;align-items:center"><span class="puce-ic" style="width:36px;height:36px;background:var(--vert-pale)">${svg('parc','var(--vert)')}</span><h2>${S.role==='admin'?'Parc de l’agence':'Mon portefeuille'}</h2></span></div>
+      <div style="display:flex;gap:18px;align-items:center;margin-top:8px">
+        <div style="width:110px;height:110px;border-radius:50%;background:conic-gradient(var(--vert) 0 ${S.role==='admin'?'76%':'85%'},var(--or) ${S.role==='admin'?'76% 88%':'85% 92.5%'},var(--filet) ${S.role==='admin'?'88%':'92.5%'} 100%);display:flex;align-items:center;justify-content:center;flex:none">
+          <div style="width:66px;height:66px;border-radius:50%;background:var(--carte);display:flex;flex-direction:column;align-items:center;justify-content:center"><b class="vnum" style="font-family:var(--serif);font-size:24px;line-height:1">${S.role==='admin'?34:13}</b><span style="font-size:9.5px;color:var(--t2)">lots</span></div>
+        </div>
+        <div style="font-size:12.5px;display:flex;flex-direction:column;gap:5px">
+          <span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--vert)"></i> ${S.role==='admin'?26:11} Loués</span>
+          <span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--or)"></i> ${S.role==='admin'?'4 Disponibles':'1 Disponible'}</span>
+          <span><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--filet)"></i> ${S.role==='admin'?4:1} En préparation</span>
+          <span style="color:var(--rouge)">⚠ ${S.role==='admin'?5:3} sinistres en cours</span>
+        </div>
+      </div>
+      <button class="lien" style="margin-top:14px" onclick="aller('parc')">Voir le parc →</button>
+    </div>
+    <div class="carte">
+      <div class="tete"><span style="display:flex;gap:10px;align-items:center"><span class="puce-ic" style="width:36px;height:36px;background:var(--or-pale)">${svg('euro','var(--or-fonce)')}</span><h2>Loyers de septembre</h2></span></div>
+      <div class="vnum" style="font-family:var(--serif);font-weight:600;font-size:31px;color:var(--encre);margin-top:6px">${S.role==='admin'?'28 430,00 €':eur(L.enc)}</div>
+      <div class="s" style="color:var(--t2)">encaissés sur ${S.role==='admin'?'33 900 €':'12 840 €'}</div>
+      <div class="jauge" style="margin-top:10px"><i style="width:${S.role==='admin'?84:L.pct}%;transition:width .6s ease"></i></div>
+      <div style="text-align:right;font-size:12px;color:var(--t2)">${S.role==='admin'?84:L.pct} %</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;text-align:center;font-size:12px">
+        <span style="background:var(--vert-pale);border-radius:9px;padding:8px 4px"><b style="display:block;font-size:15px;color:var(--vert)">${S.role==='admin'?21:L.payes}</b>payés</span>
+        <span style="background:var(--ambre-pale);border-radius:9px;padding:8px 4px"><b style="display:block;font-size:15px;color:var(--ambre)">${S.role==='admin'?2:L.verif}</b>à vérifier</span>
+        <span style="background:var(--rouge-pale);border-radius:9px;padding:8px 4px"><b style="display:block;font-size:15px;color:var(--rouge)">${S.role==='admin'?3:L.retard}</b>en retard</span>
+      </div>
+      <button class="lien" style="margin-top:14px" onclick="aller('loyers')">Voir le détail →</button>
+    </div>
+    ${S.role==='admin'?`<div class="carte" style="border-left:3px solid var(--or)">
+      <div class="tete"><h2>Fonds mandants</h2><span class="tag tg-bleu">à couvrir</span></div>
+      <div class="vnum" style="font-family:var(--serif);font-weight:600;font-size:26px;color:var(--encre)">5 713,20 €</div>
+      <p class="s" style="color:var(--t2);margin-top:2px">chaque euro attribué — propriétaires, locataires, État</p>
+      ${D.bernardVerse?'':'<p style="font-size:12.5px;color:var(--ambre);margin-top:8px">⚠ Mme Bernard : CRG envoyé, versement à émettre (J+12)</p>'}
+      <button class="lien" style="margin-top:10px" onclick="aller('compta')">Voir la compta →</button>
+    </div>`:''}
+    <div class="carte">
+      <div class="tete"><h2>☀️ À découvrir</h2><span style="color:var(--t3)">‹ ›</span></div>
+      <div style="height:96px;border-radius:11px;background:url('https://picsum.photos/seed/edl4/640/240') center/cover,linear-gradient(120deg,#D9CFBB,#E9E2CE);margin:8px 0 12px;position:relative"><span style="position:absolute;right:8px;bottom:8px;background:rgba(18,42,68,.75);color:#fff;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px">▶ GIF</span></div>
+      <b style="font-family:var(--serif);font-size:17px;color:var(--encre)">Bien préparer un état des lieux</b>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:4px">5 conseils pour éviter les litiges et gagner du temps.</p>
+      <button class="b b-or" style="margin-top:12px" onclick="toast('Article ouvert — 4 min de lecture')">Voir l’article →</button>
+      <div style="margin-top:10px;color:var(--t3);letter-spacing:3px;font-size:11px">● ○ ○ ○</div>
+    </div>
+  </div>`}
+
+/* ---------- actions du tableau de bord ---------- */
+function verserBernard(){D.bernardVerse=true;const a=D.afaireAdmin.find(x=>x.id==='AA1');a.fait=true;a.s='Bordereau de versement BV-2026-121 émis et envoyé avec le CRG';vivre('Versement Bernard — bordereau BV-2026-121 émis et envoyé');rendre();toast('1 112,00 € versés — bordereau émis, envoyé à Mme Bernard, tracé au journal')}
+function reglerDenis(){D.factureDenis=true;const a=D.afaireAdmin.find(x=>x.id==='AA3');a.fait=true;a.s='Réglée depuis le compte mandant · avis de règlement envoyé · imputée au CRG Bernard';vivre('Facture Plomberie Denis réglée — avis de règlement envoyé');rendre();toast('286,00 € réglés — facture classée, avis de règlement envoyé à l’artisan, ligne au CRG de Mme Bernard')}
+function agir(id){
+  if(id==='AA1')return verserBernard();
+  if(id==='AA2'){const a=D.afaireAdmin.find(x=>x.id==='AA2');a.fait=true;a.s='FH-2026-08 émises — jointes au CRG de chaque mandant';vivre('Factures d’honoraires d’août émises pour 4 mandants');rendre();toast('4 factures d’honoraires TTC émises et envoyées avec les rapports de gestion');return}
+  if(id==='AA3')return reglerDenis();
+  if(id==='AA4'){const a=D.afaireAdmin.find(x=>x.id==='AA4');a.fait=true;a.s='RIB contrôlé par rappel téléphonique au gérant — tracé au journal';vivre('RIB SCI Marchand vérifié par rappel téléphonique');rendre();toast('RIB vérifié — aucun versement ne part vers un compte non contrôlé');return}
+  const a=D.afaire.find(x=>x.id===id);
+  if(id==='A1'){S.page='incidents';S.inc='I1';S.qual=1;rendre();window.scrollTo({top:0});return}
+  if(id==='A2'){a.fait=true;a.s='Relance envoyée à l’instant — e-mail + WhatsApp, tracée au dossier';vivre('Relance assurance envoyée à Sofia Moreau');rendre();toast('Moreau : relance partie — prochaine automatique à J+7');return}
+  if(id==='A3'){S.devisOuvert=!S.devisOuvert;rendre();return}
+  if(id==='A4'){aller('agenda');return}
+}
+function validerDevis(){
+  const a=D.afaire.find(x=>x.id==='A3');a.fait=true;a.s='Devis validé — intervention planifiée mardi 9 h – 11 h';
+  const i=D.incidents.find(x=>x.id==='I2');i.etat='planifie';i.s='App. 12 · Plomberie Denis · intervention mardi 9 h – 11 h, locataire prévenu';
+  S.devisOuvert=false;vivre('Devis Plomberie Denis validé (286 €) — intervention planifiée');rendre();
+  toast('Devis validé — bon pour accord écrit envoyé à l’artisan, mandant informé, le règlement attendra la facture');
+}
+
+/* ---------- pages ---------- */
+function pBord(){
+  const liste=S.role==='admin'?D.afaireAdmin:D.afaire;
+  const nb=liste.filter(a=>!a.fait).length, nlMsgs=D.msgs.filter(m=>m.nl).length;
+  return `
+  <p class="date-l">VENDREDI 4 SEPTEMBRE 2026</p>
+  <h1>Bonjour ${moi().nom.split(' ')[0]},</h1>
+  <p class="st">${S.role==='admin'?'Voici l’essentiel de votre agence ce matin.':'Voici l’essentiel pour bien démarrer votre journée.'}</p>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+    <button class="b b-blanc" style="background:var(--or-pale);border-color:var(--or-pale)">☑️&nbsp;${nb} action${nb>1?'s':''} à traiter</button>
+    <button class="b b-blanc" onclick="aller('agenda')">📅&nbsp;2 rendez-vous</button>
+    <button class="b b-blanc" onclick="aller('messages')">💬&nbsp;${nlMsgs} message${nlMsgs>1?'s':''} non lu${nlMsgs>1?'s':''}</button>
+  </div>
+
+  <div class="grille" style="margin-top:6px">
+    <div>
+      <div class="carte" style="border-left:4px solid var(--or);padding:24px">
+        <div class="tete"><h2 style="font-family:var(--serif);font-size:23px">☑️ À faire aujourd’hui (${nb})</h2><button class="lien" onclick="toast('Vue complète des tâches — triables par urgence, module et échéance')">Voir toutes mes tâches →</button></div>
+        ${liste.map(a=>`<div class="rang" style="padding:14px 0;border-left:3px solid ${a.fait?'var(--vert)':coulTrait(a.c)};padding-left:14px;${a.fait?'opacity:.65':''}">
+          <span class="rond-p" style="width:44px;height:44px;background:${a.fait?'var(--vert-pale)':coulFond(a.c)}">${svg(a.fait?'ok':a.ic,a.fait?'var(--vert)':coulTrait(a.c))}</span>
+          <span style="flex:1"><div class="t" style="font-size:15px">${a.t}</div><span class="s">${a.s}</span></span>
+          ${a.fait?'<span class="tag tg-vert">✓ fait</span>':`<span class="tag ${a.tc}">${a.tag}</span>
+          <button class="b b-blanc" onclick="agir('${a.id}')">${a.b} →</button>`}
+        </div>${a.id==='A3'&&S.devisOuvert&&!a.fait?`<div style="background:var(--fond);border-radius:11px;padding:16px;margin:4px 0 10px 14px">
+          <b style="font-size:14px">Plomberie Denis — remplacement mitigeur : 286,00 € TTC</b>
+          <p class="s" style="color:var(--t2);margin-top:4px">Fourniture 148 € + main-d’œuvre 138 € · garantie 2 ans · créneau proposé mardi 9 h – 11 h (compatible locataire) · imputation suggérée : propriétaire</p>
+          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:10px">
+            <button class="b b-or" onclick="validerDevis()">Valider et planifier</button>
+            <button class="b b-blanc" onclick="toast('Second devis demandé au réseau — réponse sous 24 h')">Demander un 2ᵉ devis</button>
+          </div></div>`:''}`).join('')}
+      </div>
+
+      <div class="carte">
+        <div class="tete"><h2>Ce qui vient de se passer</h2><span class="mono" style="font-size:10.5px;letter-spacing:.1em;color:var(--t3)">EN DIRECT</span></div>
+        ${D.activite.slice(0,4).map(a=>`<div class="rang">
+          <span class="rond-p" style="background:${coulFond(a.c)}">${svg(a.ic,coulTrait(a.c))}</span>
+          <span style="flex:1"><span class="t" style="font-weight:500">${a.t}</span></span>
+          <span class="s" style="white-space:nowrap;font-size:11px;letter-spacing:.06em">${a.rel}</span></div>`).join('')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="carte">
+          <div class="tete"><h2>Prochains rendez-vous</h2><button class="lien" onclick="aller('agenda')">Agenda →</button></div>
+          <div class="rang"><span class="rond-p" style="background:var(--bleu-pale)">${svg('agenda','var(--bleu)')}</span>
+            <span style="flex:1"><span class="s">Aujourd’hui · 14h00</span><div class="t">État des lieux — Dupont</div><span class="s">Appartement 5</span></span></div>
+          <div class="rang"><span class="rond-p" style="background:var(--bleu-pale)">${svg('agenda','var(--bleu)')}</span>
+            <span style="flex:1"><span class="s">Lun. 8 sept. · 10h30</span><div class="t">Visite technique — VMC</div><span class="s">Maison rue des Lilas</span></span></div>
+        </div>
+        <div class="carte">
+          <div class="tete"><h2>Messages non lus</h2><button class="lien" onclick="aller('messages')">Messages →</button></div>
+          ${D.msgs.filter(m=>m.nl).map(m=>`<div class="rang" style="cursor:pointer" onclick="S.page='messages';S.fil='${m.id}';m=null;rendre()">
+            <span class="avat" style="width:36px;height:36px;font-size:11px;background:linear-gradient(135deg,#2F6FB0,#122A44)">${m.ini}</span>
+            <span style="flex:1"><span class="t">${m.qui}</span><div class="s">${m.fil[0].t.slice(0,38)}…</div></span><span class="s">${m.h}</span></div>`).join('')||'<p class="s" style="color:var(--t2);padding:8px 0">Tout est lu ✓</p>'}
+        </div>
+      </div>
+      <div class="bandeau-bas"><b>Des biens bien gérés, des relations qui durent.</b>
+        <span style="font-size:13.5px;color:var(--t2)">GERIMMO — L’immobilier en confiance.</span></div>
+    </div>
+    ${colDroite()}
+  </div>`}
+
+function pParc(){
+  if(S.lot){const l=D.lots.find(x=>x.id===S.lot);const p=D.mandants.find(m=>m.id===l.p);return `
+  <div class="grille"><div>
+    <button class="lien" onclick="S.lot=null;rendre()">← Retour au parc</button>
+    <h1 style="font-size:28px;margin-top:8px">${l.t}</h1>
+    <p class="st">${l.s} · <span class="tag ${l.tc}">${l.statut}</span> · propriétaire : <b>${p.nom}</b> (${p.info})</p>
+    ${l.loc?`<div class="carte">
+      <div class="tete"><h2>Bail en cours — ${l.loc}</h2><button class="b b-blanc" onclick="toast('Bail signé téléchargé')">Bail PDF</button></div>
+      <div class="rang"><span style="flex:1"><span class="t">${l.bail}</span><div class="s">dépôt de garantie : ${l.dg}</div></span></div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:10px">
+        <button class="b b-blanc" onclick="toast('Fil ouvert avec ${l.loc}')">Écrire au locataire</button>
+        <button class="b b-blanc" onclick="toast('EDL mobile — pièce par pièce, photos, signature sur place')">Préparer un EDL</button>
+        <button class="b b-blanc" onclick="toast('Révision IRL calculée et prête à appliquer à l’échéance')">Réviser (IRL)</button>
+      </div>
+    </div>`:`<div class="carte">
+      <div class="tete"><h2>Lot sans bail</h2><span class="tag ${l.tc}">${l.statut}</span></div>
+      <p class="s" style="color:var(--t2)">${l.statut==='disponible'?'Prêt à la relocation — invitez le locataire retenu pour générer le bail et lancer la signature.':'Diagnostics et photos à compléter avant mise en location.'}</p>
+      <button class="b b-or" style="margin-top:12px" onclick="toast('${l.statut==='disponible'?'Invitation locataire envoyée — bail pré-rempli':'Liste des pièces manquantes ouverte'}')">${l.statut==='disponible'?'Inviter un locataire':'Compléter le dossier'}</button>
+    </div>`}
+    <div class="carte">
+      <div class="tete"><h2>Incidents de ce lot</h2></div>
+      ${D.incidents.filter(i=>i.t.includes(l.t.split('— ')[1]||'∅')||i.s.includes(l.t.split('— ')[1]||'∅')||i.s.includes(l.t)).map(i=>`<div class="rang">
+        <span class="rond-p" style="background:var(--ambre-pale)">${svg('outil','var(--ambre)')}</span>
+        <span style="flex:1"><span class="t">${i.t}</span><div class="s">${i.s}</div></span></div>`).join('')||'<p class="s" style="color:var(--t2);padding:8px 0">Aucun incident en cours ✓</p>'}
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Documents du lot</h2></div>
+      ${[['Diagnostics','DPE, électricité, plomb'],['État des lieux d’entrée','signé, photos horodatées'],['Taxe foncière 2026','photographiée, écriture passée']].map(([t,s2])=>`<div class="rang">
+        <span class="rond-p" style="background:var(--bleu-pale)">${svg('doc','var(--bleu)')}</span>
+        <span style="flex:1"><span class="t">${t}</span><div class="s">${s2}</div></span>
+        <button class="b b-blanc" onclick="toast('${t} — ouvert')">Ouvrir</button></div>`).join('')}
+    </div>
+  </div>${colDroite()}</div>`}
+  const F=[['tous','Tous',13],['loué','Loués',8],['sinistre','Sinistres',3],['disponible','Vacants',1],['en préparation','En préparation',1]];
+  const filtre=l=>S.fparc==='tous'||l.statut===S.fparc;
+  return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">${S.role==='admin'?'Parc de l’agence':'Mon portefeuille'}</h1>
+    <p class="st">13 lots · <b>4 propriétaires mandants</b> — chaque lot rattaché à son mandat, ses honoraires, son rapport de gestion.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      ${F.map(([v,lib,n])=>`<button class="b b-blanc" style="${S.fparc===v?'background:var(--or-pale);border-color:var(--or-pale)':''}" onclick="S.fparc='${v}';rendre()">${lib} · ${n}</button>`).join('')}
+    </div>
+    ${D.mandants.map(m=>{
+      const ls=D.lots.filter(l=>l.p===m.id&&filtre(l));
+      if(!ls.length)return '';
+      return `<div class="carte">
+      <div class="tete"><span style="display:flex;gap:11px;align-items:center">
+        <span class="avat" style="width:36px;height:36px;font-size:12px;background:linear-gradient(135deg,#2F6FB0,#122A44)">${m.nom.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</span>
+        <span><h2 style="font-size:15px">${m.nom}</h2><span class="s" style="color:var(--t2)">${m.info}</span></span></span>
+        <button class="lien" onclick="toast('${m.nom} : mandat, rapports de gestion, fil de messages')">Fiche mandant →</button></div>
+      ${ls.map(l=>`<div class="rang" style="cursor:pointer" onclick="S.lot='${l.id}';rendre();window.scrollTo({top:0})">
+        <div class="mini-photo" style="width:74px;height:52px;border-radius:9px"></div>
+        <span style="flex:1"><span class="t">${l.t}</span><div class="s">${l.s}${l.loc?' · '+l.loc:''}</div></span>
+        <span class="tag ${l.tc}">${l.statut}</span><span style="color:var(--t3)">›</span></div>`).join('')}
+      </div>`}).join('')}
+  </div>${colDroite()}</div>`}
+function pIncidents(){
+  if(S.inc==='I1'&&S.qual>0){const i=D.incidents.find(x=>x.id==='I1');return `
+  <div class="grille"><div>
+    <button class="lien" onclick="S.inc=null;S.qual=0;rendre()">← Tous les incidents</button>
+    <h1 style="font-size:28px;margin-top:8px">Fuite d’eau — Appartement 12</h1>
+    <div class="carte" style="border-left:4px solid var(--rouge)">
+      ${S.qual===1?`<h2>1 · Qualifier l’incident</h2>
+      <p class="s" style="color:var(--t2);margin-top:6px">Photo du locataire à l’appui. À qui imputer la réparation ?</p>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
+        <button class="b b-encre" onclick="S.qual=2;rendre()">Charge propriétaire</button>
+        <button class="b b-blanc" onclick="S.qual=2;rendre()">Entretien locatif</button>
+        <button class="b b-blanc" onclick="S.qual=2;rendre()">Sinistre assurance</button>
+      </div>`
+      :S.qual===2?`<h2>2 · Demander des devis</h2>
+      <p class="s" style="color:var(--t2);margin-top:6px">Imputation enregistrée. Deux plombiers du réseau sont disponibles cette semaine — le créneau se calera sur les disponibilités du locataire.</p>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:12px">
+        <button class="b b-or" onclick="S.qual=3;const i2=D.incidents.find(x=>x.id==='I1');i2.etat='devis';i2.s='App. 12 · demandes de devis envoyées à 2 plombiers du réseau';D.afaire.find(a=>a.id==='A1').fait=true;D.afaire.find(a=>a.id==='A1').s='Qualifiée · devis demandés à 2 artisans';vivre('Fuite App. 12 qualifiée — devis demandés');rendre()">Envoyer les demandes de devis</button>
+      </div>`
+      :`<h2>✓ C’est fait</h2>
+      <p class="s" style="color:var(--t2);margin-top:6px">Incident qualifié, demandes de devis parties, locataire informé sur WhatsApp. Les devis arriveront ici, prêts à valider — et l’action a quitté votre liste du matin.</p>
+      <button class="b b-blanc" style="margin-top:12px" onclick="aller('bord')">Retour au tableau de bord</button>`}
+    </div>
+  </div>${colDroite()}</div>`}
+  const grp=[['a_qualifier','À qualifier','tg-rouge'],['devis','Devis en attente','tg-ambre'],['planifie','Planifiés','tg-bleu'],['a_cloturer','À clôturer','tg-bleu'],['suivi','Suivi sinistre','tg-ambre']];
+  return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Incidents</h1>
+    ${D.incidents.filter(i=>i.etat==='a_qualifier').length?`<div class="carte" style="border-left:4px solid var(--rouge)">
+      <div class="tete"><h2>Fuite d’eau — Appartement 12</h2><span class="tag tg-rouge">urgent · à qualifier</span></div>
+      <p style="font-size:13px;color:var(--t2)">Signalée il y a 38 min par M. Lefèvre, photo à l’appui (bot WhatsApp) · mandant : Mme Bernard — les 6 incidents en cours couvrent 4 propriétaires.</p>
+      <button class="b b-or" style="margin-top:12px" onclick="S.inc='I1';S.qual=1;rendre();window.scrollTo({top:0})">Traiter maintenant →</button>
+    </div>`:''}
+    <div class="carte">
+      <div class="tete"><h2>En cours (${D.incidents.filter(i=>i.etat!=='clos'&&i.etat!=='a_qualifier').length})</h2><button class="lien" onclick="aller('stats')">Statistiques →</button></div>
+      ${D.incidents.filter(i=>i.etat!=='clos'&&i.etat!=='a_qualifier').map(i=>{const g=grp.find(x=>x[0]===i.etat);return `<div class="rang">
+        <span class="rond-p" style="background:var(--ambre-pale)">${svg('outil','var(--ambre)')}</span>
+        <span style="flex:1"><span class="t">${i.t}</span><div class="s">${i.s} · <b style="font-weight:600">mandant : ${i.prop}</b></div></span><span class="tag ${g[2]}">${g[1].toLowerCase()}</span>
+        ${i.etat==='a_cloturer'?`<button class="b b-blanc" onclick="i2=D.incidents.find(x=>x.id==='${i.id}');i2.etat='clos';vivre('Incident volet roulant clôturé — retour locataire positif');rendre();toast('Clôturé — coût final tracé, retour locataire demandé')">Clôturer</button>`:''}
+      </div>`}).join('')}
+    </div>
+  </div>${colDroite()}</div>`}
+
+function pLoyers(){
+  const L=loyersStats();
+  return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Loyers & charges</h1>${S.role==='admin'?`<p class="st">Tous portefeuilles — démonstration sur celui de Marie. L’admin voit tout, l’agent ne voit que le sien.</p>`:''}
+    <div class="carte" style="border-left:4px solid var(--or)">
+      <div class="tete"><h2>Quittancement de septembre</h2><span class="tag ${L.retard?'tg-ambre':'tg-vert'}">${L.retard?L.retard+' en retard':'tout est en ordre'}</span></div>
+      ${D.loyers.map((l,i)=>`<div class="rang">
+        <span class="rond-p" style="background:${l.etat==='paye'?'var(--vert-pale)':l.etat==='verif'?'var(--ambre-pale)':'var(--rouge-pale)'}">${svg(l.etat==='paye'?'ok':'euro',l.etat==='paye'?'var(--vert)':l.etat==='verif'?'var(--ambre)':'var(--rouge)')}</span>
+        <span style="flex:1"><span class="t">${l.loc} — ${l.lot}</span><div class="s">${eur(l.mt)} · mandant : ${l.prop}${l.note?' · '+l.note:''}</div></span>
+        ${l.etat==='paye'?`<span class="tag tg-vert">✓ payé</span><button class="b b-blanc" onclick="toast('Quittance n° Q-2026-09${String(i).padStart(2,'0')} téléchargée — déjà envoyée sur WhatsApp et par e-mail')">Quittance</button>`
+        :l.etat==='verif'?`<span class="tag tg-ambre">à vérifier</span><button class="b b-or" onclick="D.loyers[${i}].etat='paye';D.loyers[${i}].note='rapproché à l’instant';vivre('Loyer de ${l.loc} rapproché — quittance envoyée');rendre();toast('Encaissement confirmé — quittance n° Q-2026-0912 émise et envoyée, écriture passée')">Confirmer</button>`
+        :l.etat==='relance'?'<span class="tag tg-ambre">relancé à l’instant</span>'
+        :`<span class="tag tg-rouge">en retard</span><button class="b b-blanc" onclick="D.loyers[${i}].etat='relance';D.loyers[${i}].note='relance graduée envoyée — étape suivante armée';rendre();toast('${l.loc} : relance envoyée — chaque étape est tracée sur la créance')">Relancer</button>`}
+      </div>`).join('')}
+      <div class="rang" style="border-bottom:none"><span style="flex:1"><span class="s">+ ${D.loyersCaches.n} autres loyers payés (${eur(D.loyersCaches.mt)})</span></span></div>
+      <div style="display:flex;gap:9px;margin-top:8px;flex-wrap:wrap">
+        <button class="b b-encre" onclick="toast('${L.payes} quittances envoyées en un geste — WhatsApp + e-mail')">Envoyer toutes les quittances</button>
+        <button class="b b-blanc" onclick="D.loyers.forEach(l=>{if(l.etat==='retard'){l.etat='relance';l.note='relance graduée envoyée'}});rendre();toast('Relance groupée partie — chacun au bon stade de sa séquence')">Relancer tous les retards</button>
+      </div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px">Séquence d’impayé : relance J+5 → courrier J+15 → mise en demeure → commandement de payer (huissier). Chaque étape tracée, jamais sautée.</p>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:6px"><b style="font-weight:600">Règle d’or :</b> chaque somme reçue produit son justificatif — quittance si le mois est soldé, <b style="font-weight:600">reçu partiel</b> sinon (jamais de quittance sur un paiement incomplet).</p>
+    </div>
+  </div>${colDroite()}</div>`}
+
+function pPersonnes(){
+  return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Personnes</h1>
+    <div class="carte">
+      <div class="tete"><h2>Propriétaires mandants (4)</h2></div>
+      ${D.mandants.map(m=>`<div class="rang">
+        <span class="avat" style="width:38px;height:38px;font-size:12px;background:linear-gradient(135deg,#B08D3E,#122A44)">${m.nom.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</span>
+        <span style="flex:1"><span class="t">${m.nom}</span><div class="s">${m.info}</div></span>
+        <button class="b b-blanc" onclick="toast('${m.nom} — mandat, lots, rapports de gestion, messages')">Ouvrir</button></div>`).join('')}
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Locataires (11)</h2><span class="s" style="color:var(--t2)">un dossier par personne</span></div>
+      ${[['Camille Fabre','App. 5 Lilas (Mme Bernard) · dossier complet','tg-vert','à jour'],['M. Lefèvre','App. 12 Lilas (Mme Bernard) · incident en cours','tg-bleu','suivi'],['Sofia Moreau','Studio Voltaire (SCI Marchand) · assurance manquante','tg-rouge','1 pièce'],['Yanis Berthier','24 av. Gambetta (SCI Marchand) · loyer en retard','tg-ambre','relancé'],['Famille Dupont','Maison Lilas (M. Nguyen) · EDL sortie vendredi','tg-bleu','départ']].map(([n,s2,tc,tag])=>`<div class="rang">
+        <span class="avat" style="width:38px;height:38px;font-size:12px;background:linear-gradient(135deg,#2F6FB0,#122A44)">${n.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</span>
+        <span style="flex:1"><span class="t">${n}</span><div class="s">${s2}</div></span><span class="tag ${tc}">${tag}</span>
+        <button class="b b-blanc" onclick="toast('Fiche de ${n} — dossier, baux, messages, historique')">Ouvrir</button></div>`).join('')}
+      <p class="s" style="color:var(--t2);margin-top:8px">… et 6 autres locataires à jour.</p>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Artisans du réseau (2)</h2></div>
+      ${[['Plomberie Denis','plomberie · note 4,8 / 5 · assurance décennale à jour','tg-vert','actif'],['Élec Brun','électricité · note 4,6 / 5 · attestation URSSAF reçue','tg-vert','actif']].map(([n,s2,tc,tag])=>`<div class="rang">
+        <span class="avat" style="width:38px;height:38px;font-size:12px;background:linear-gradient(135deg,#3D7A52,#122A44)">${n.split(' ').map(x=>x[0]).join('').slice(0,2).toUpperCase()}</span>
+        <span style="flex:1"><span class="t">${n}</span><div class="s">${s2}</div></span><span class="tag ${tc}">${tag}</span>
+        <button class="b b-blanc" onclick="toast('${n} — documents, interventions, évaluations')">Ouvrir</button></div>`).join('')}
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px">Le dossier suit la personne, pas le bail : une pièce reste valable d’un logement à l’autre.</p>
+    </div>
+  </div>${colDroite()}</div>`}
+function pDocuments(){
+  const T=[['tous','Tous · 7'],['locataire','Locataires · 3'],['lot','Lots · 2'],['mandant','Mandants · 2']];
+  const docs=[
+    {qui:'locataire',t:'Attestation d’assurance habitation',s:'Sofia Moreau — Studio Voltaire (SCI Marchand)',tag:'Manquant',tc:'tg-rouge',b:'Réclamer',msg:'Réclamée — e-mail + WhatsApp, relance auto à J+7'},
+    {qui:'locataire',t:'Pièce du garant illisible',s:'S. Adjaoui — App. A Jaurès (Indivision Rousseau)',tag:'À redemander',tc:'tg-ambre',b:'Redemander',msg:'Nouvelle demande envoyée — la version précédente reste au dossier'},
+    {qui:'locataire',t:'Attestation d’entretien chaudière',s:'Famille Dupont — Maison rue des Lilas (M. Nguyen)',tag:'Reçue — à contrôler',tc:'tg-bleu',b:'Contrôler',msg:'Contrôlée et classée — rappel armé pour l’an prochain'},
+    {qui:'lot',t:'Diagnostic gaz',s:'Appartement 3 (Mme Bernard)',tag:'Expire dans 12 j',tc:'tg-ambre',b:'Faire refaire',msg:'Diagnostiqueur du réseau sollicité — créneau sous 48 h'},
+    {qui:'lot',t:'DPE',s:'17 rue Pasteur — Lot 2 (M. Nguyen) · classe F',tag:'Travaux requis',tc:'tg-rouge',b:'Devis travaux',msg:'Demandes de devis rénovation énergétique envoyées'},
+    {qui:'mandant',t:'Renouvellement de mandat',s:'Mme Bernard — échéance 31 déc. 2026',tag:'À préparer',tc:'tg-ambre',b:'Préparer',msg:'Avenant généré aux conditions actuelles — prêt pour signature Yousign'},
+    {qui:'mandant',t:'RIB modifié',s:'SCI Marchand — nouveau compte communiqué',tag:'À vérifier',tc:'tg-ambre',b:'Vérifier',msg:'RIB contrôlé par rappel téléphonique — anti-fraude, tracé au journal'}
+  ].filter(d=>S.fdoc==='tous'||d.qui===S.fdoc);
+  return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Documents</h1>
+    <p class="st">Les pièces de <b>tout le monde</b> — locataires, lots et propriétaires mandants — au même endroit, chacune avec son échéance.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      ${T.map(([v,lib])=>`<button class="b b-blanc" style="${S.fdoc===v?'background:var(--or-pale);border-color:var(--or-pale)':''}" onclick="S.fdoc='${v}';rendre()">${lib}</button>`).join('')}
+    </div>
+    <div class="carte" style="border-left:3px solid var(--or)">
+      ${docs.map(d=>`<div class="rang">
+        <span class="rond-p" style="background:${d.tc==='tg-rouge'?'var(--rouge-pale)':d.tc==='tg-bleu'?'var(--bleu-pale)':'var(--ambre-pale)'}">${svg('doc',d.tc==='tg-rouge'?'var(--rouge)':d.tc==='tg-bleu'?'var(--bleu)':'var(--ambre)')}</span>
+        <span style="flex:1"><span class="t">${d.t}</span><div class="s">${d.s}</div></span>
+        <span class="tag ${d.tc}">${d.tag}</span>
+        <button class="b b-blanc" onclick="toast('${d.msg}')">${d.b}</button></div>`).join('')}
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px">Le type de chaque pièce pilote ses droits, ses relances et sa conservation. Le dossier suit la personne, pas le bail.</p>
+    </div>
+  </div>${colDroite()}</div>`}
+function pAgenda(){return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Agenda</h1>
+    <div class="carte" style="border-left:4px solid var(--or);padding:24px">
+      ${[['Aujourd’hui · 14h00','État des lieux — Dupont','Appartement 5'],['Lun. 8 sept. · 10h30','Visite technique — VMC','Maison rue des Lilas']].map(([q,t,ou])=>`<div class="rang" style="padding:15px 0">
+        <span class="rond-p" style="width:46px;height:46px;background:var(--bleu-pale)">${svg('agenda','var(--bleu)')}</span>
+        <span style="flex:1"><span class="tag tg-bleu" style="margin-bottom:5px">${q}</span><div class="t" style="font-size:15.5px">${t}</div><span class="s">📍 ${ou}</span></span>
+        <button class="b b-blanc" onclick="toast('${t} — fiche, itinéraire, dossier du lot')">Préparer</button></div>`).join('')}
+      <p style="font-size:12.5px;color:var(--t2);margin-top:8px">Les créneaux d’intervention se calent tout seuls sur les disponibilités des locataires et des artisans.</p>
+    </div>
+  </div>${colDroite()}</div>`}
+
+function pMessages(){
+  if(S.fil){const m=D.msgs.find(x=>x.id===S.fil);m.nl=false;return `
+  <div class="grille"><div>
+    <button class="lien" onclick="S.fil=null;rendre()">← Tous les messages</button>
+    <h1 style="font-size:28px;margin-top:8px">${m.qui}</h1>
+    <div class="carte">
+      ${m.fil.map(x=>`<div class="msgb ${x.moi?'moi2':''}"><div class="q">${x.q}</div>${x.t}</div>`).join('')}
+      <div style="border-top:1px solid var(--filet);margin:16px 0 12px"></div>
+      <label for="mrep">Votre réponse</label>
+      <input class="champ" id="mrep" placeholder="Écrire…">
+      <button class="b b-encre" onclick="repondre('${m.id}')">Envoyer</button>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:8px">WhatsApp et messagerie interne : un seul fil. Le bot a déjà accusé réception à votre place.</p>
+    </div>
+  </div>${colDroite()}</div>`}
+  return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Messages</h1>
+    <div class="carte">
+      ${D.msgs.map(m=>`<div class="rang" style="cursor:pointer" onclick="S.fil='${m.id}';rendre()">
+        <span class="avat" style="width:38px;height:38px;font-size:12px;background:linear-gradient(135deg,#2F6FB0,#122A44)">${m.ini}</span>
+        <span style="flex:1"><span class="t">${m.qui} ${m.nl?'<span class="tag tg-bleu" style="margin-left:6px">nouveau</span>':''}</span><div class="s">${m.fil[m.fil.length-1].t.slice(0,52)}…</div></span>
+        <span class="s">${m.h}</span><span style="color:var(--t3)">›</span></div>`).join('')}
+    </div>
+  </div>${colDroite()}</div>`}
+function repondre(id){
+  const v=($('#mrep')||{}).value||'';
+  if(!v.trim())return toast('Écrivez votre réponse avant d’envoyer');
+  D.msgs.find(x=>x.id===id).fil.push({q:moi().nom,t:v,moi:true});rendre();toast('Réponse envoyée — aussi remise sur WhatsApp');
+}
+
+function pStats(){return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">${S.role==='admin'?'Statistiques de l’agence':'Mes statistiques'}</h1>
+    <div class="kpis">
+      <div class="kpi"><span class="puce-ic" style="background:var(--vert-pale)">${svg('ok','var(--vert)')}</span><div class="t" style="margin-top:10px">Résolution incidents</div><div class="v vnum">92 %</div><div class="s">à 15 jours · objectif 90 %</div></div>
+      <div class="kpi"><span class="puce-ic" style="background:var(--bleu-pale)">${svg('outil','var(--bleu)')}</span><div class="t" style="margin-top:10px">Traitement moyen</div><div class="v vnum">4,2 j</div><div class="s">contre 6,1 j au trimestre dernier</div></div>
+      <div class="kpi"><span class="puce-ic" style="background:var(--or-pale)">${svg('euro','var(--or-fonce)')}</span><div class="t" style="margin-top:10px">Coût moyen</div><div class="v vnum">187 €</div><div class="s">par intervention imputée bailleur</div></div>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Logements les plus signalés</h2><button class="lien" onclick="toast('Rapport trimestriel exporté (PDF)')">Exporter →</button></div>
+      <div class="rang"><span style="flex:1"><span class="t">Appartement 12</span><div class="s">4 incidents · 623 €</div></span><span class="tag tg-ambre">plomberie récurrente</span></div>
+      <div class="rang"><span style="flex:1"><span class="t">Maison rue des Lilas</span><div class="s">2 incidents · 214 €</div></span><span class="tag tg-vert">sous contrôle</span></div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px">Trois plomberies au même lot en un trimestre : le remplacement du réseau coûtera moins cher que la quatrième fuite — l’argument chiffré à présenter au propriétaire.</p>
+    </div>
+  </div>${colDroite()}</div>`}
+
+/* ---------- pages admin ---------- */
+function pCompta(){return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Compta & fonds mandants</h1>
+    <p class="st">Vue administrateur — la ventilation que contrôle le garant financier (loi Hoguet). Les agents n’y ont pas accès. <b style="font-weight:600">Aucun mouvement sans justificatif émis et envoyé.</b></p>
+    <div class="carte" style="border-left:4px solid var(--or)">
+      <div class="tete"><h2>À qui appartient chaque euro</h2><span class="tag tg-bleu">compte mandant</span></div>
+      ${[['Soldes des comptes propriétaires','à reverser aux mandants','3 156,00 €'],['Dépôts de garantie détenus','dus aux locataires','1 640,00 €'],['Provision travaux conservée','SCI Marchand','800,00 €'],['Trop-perçus locataires','à imputer au prochain quittancement','40,00 €'],['TVA collectée sur honoraires','due à l’État — CA3 d’octobre','77,20 €']].map(([t,s2,m])=>`<div class="rang">
+        <span style="flex:1"><span class="t">${t}</span><div class="s">${s2}</div></span><span class="t">${m}</span></div>`).join('')}
+      <div class="rang" style="border-top:2px solid var(--encre);border-bottom:none"><span style="flex:1"><b>Le compte mandant doit couvrir</b></span><b class="vnum" style="font-family:var(--serif);font-size:22px">5 713,20 €</b></div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:8px">Pas un euro anonyme : chaque somme détenue est due à un propriétaire, un locataire ou l’État. Aucun compte mandant ne peut passer en négatif.</p>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Livre de l’agence</h2><span style="display:flex;gap:10px"><button class="b b-blanc" onclick="toast('Saisie : date de pièce, date d’imputation, famille puis catégorie')">+ Écriture</button><button class="lien" onclick="toast('Export CSV généré')">CSV →</button></span></div>
+      ${[['Encaissement loyer — Camille Fabre','justificatif : quittance Q-2026-0904 · imputation sept. 2026','+ 805,00 €','var(--vert)'],['Versement propriétaire — SCI Marchand','justificatif : bordereau BV-2026-118 joint au CRG · sept. 2026','− 1 486,00 €','var(--texte)'],['Honoraires de gestion TTC — août','justificatif : facture FH-2026-08 envoyée au mandant · août 2026','− 463,20 €','var(--texte)']].map(([t,s2,m,c])=>`<div class="rang">
+        <span class="rond-p" style="background:var(--bleu-pale)">${svg('livre','var(--bleu)')}</span>
+        <span style="flex:1"><span class="t">${t}</span><div class="s">${s2}</div></span><span style="color:${c}">${m}</span></div>`).join('')}
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px">Deux dates par écriture. Une écriture validée est immuable — correction par rectificative. Août est clôturé.</p>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Honoraires & TVA — août</h2><button class="lien" onclick="toast('Journal des honoraires exporté (CSV)')">Exporter →</button></div>
+      <div class="rang"><span style="flex:1"><span class="t">Honoraires de gestion HT</span><div class="s">au taux de chaque mandat, sur encaissé</div></span><span class="t">386,00 €</span></div>
+      <div class="rang"><span style="flex:1"><span class="t">TVA 20 %</span></span><span class="t">77,20 €</span></div>
+      <div class="rang" style="border-bottom:none"><span style="flex:1"><b>Facturé TTC aux mandants</b></span><b>463,20 €</b></div>
+      <button class="b b-blanc" style="margin-top:10px" onclick="toast('Facture FH-2026-08 téléchargée — une par mandant, jointe à son CRG')">Facture d’honoraires d’août (PDF)</button>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:8px">Les honoraires sont la seule sortie du compte mandant vers l’agence — toujours contre facture envoyée.</p>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Règlements artisans</h2><span class="tag ${D.factureDenis?'tg-vert':'tg-bleu'}">${D.factureDenis?'à jour':'1 à régler'}</span></div>
+      <div class="rang" style="border-bottom:none"><span class="rond-p" style="background:var(--bleu-pale)">${svg('outil','var(--bleu)')}</span>
+        <span style="flex:1"><span class="t">Plomberie Denis — 286,00 €</span><div class="s">${D.factureDenis?'Réglée · avis de règlement envoyé · imputée au CRG de Mme Bernard':'Facture reçue le 4 sept. · contrôlée conforme au bon pour accord (devis validé)'}</div></span>
+        ${D.factureDenis?'<span class="tag tg-vert">✓ réglée</span>':'<button class="b b-or" onclick="reglerDenis()">Régler et émettre l’avis</button>'}</div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:8px">Jamais de règlement sans facture contrôlée contre le bon pour accord — et chaque règlement émet son avis écrit à l’artisan.</p>
+    </div>
+  </div>${colDroite()}</div>`}
+
+function pMandats(){return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Mandats & rapports</h1>
+    <div class="carte">
+      <div class="tete"><h2>SCI Marchand — mandat M-2026-01</h2><span class="tag tg-vert">à jour</span></div>
+      <div class="rang"><span style="flex:1"><span class="t">Honoraires : 7 % + TVA</span><div class="s">sur sommes encaissées — au choix par mandat : %, forfait, sur appelé</div></span>
+        <button class="b b-blanc" onclick="toast('Mode de calcul modifiable par mandat — tracé au journal')">Modifier</button></div>
+      <div class="rang"><span style="flex:1"><span class="t">Rapport de gestion — août</span><div class="s">feuillet par bien + consolidé · envoyé le 2 sept.</div></span>
+        <button class="b b-blanc" onclick="toast('CRG d’août téléchargé (PDF)')">Ouvrir</button></div>
+      <div class="rang" style="border-bottom:none"><span style="flex:1"><span class="t">Versement de 1 486,00 €</span><div class="s">3 sept. · bordereau BV-2026-118 émis et envoyé avec le CRG — solde à zéro</div></span><span class="tag tg-vert">✓ versé</span></div>
+    </div>
+    <div class="carte" ${D.bernardVerse?'':'style="border-left:3px solid var(--or)"'}>
+      <div class="tete"><h2>Mme Bernard — mandat M-2025-14</h2><span class="tag ${D.bernardVerse?'tg-vert':'tg-ambre'}">${D.bernardVerse?'à jour':'versement attendu'}</span></div>
+      <div class="rang"><span style="flex:1"><span class="t">Rapport de gestion — août</span><div class="s">envoyé le 2 sept.${D.bernardVerse?' · 1 112,00 € versés — bordereau BV-2026-121 émis et envoyé':' · aucun versement émis depuis'}</div></span>
+        ${D.bernardVerse?'<span class="tag tg-vert">✓ versé</span>':`<button class="b b-or" onclick="verserBernard()">Verser et émettre le bordereau</button>`}</div>
+      <p style="font-size:12.5px;color:var(--t2);margin-top:8px">Règle maison : rapport envoyé sans versement sous 15 jours = alerte. Le récapitulatif fiscal annuel, calé sur la 2044 et ventilé par quote-part, est transmis au mandant — qui n’a pas d’accès à l’application.</p>
+    </div>
+  </div>${colDroite()}</div>`}
+
+function pReprise(){return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Reprise de portefeuille</h1>
+    <p class="st">Une agence n’arrive jamais de zéro : baux en cours, dépôts encaissés, dettes et crédits existants — tout se reprend.</p>
+    <div class="carte" style="border-left:4px solid var(--or)">
+      <div class="tete"><h2>1 · Choisissez votre source</h2></div>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:6px">
+        <button class="b b-blanc" onclick="toast('Import du fichier d’export — ICS, Gercop, Even… correspondances automatiques')">Fichier de l’ancien logiciel</button>
+        <button class="b b-blanc" onclick="toast('Déposez vos baux en PDF — l’IA lit et pré-remplit lots, locataires, échéanciers')">Baux PDF lus par l’IA</button>
+        <button class="b b-blanc" onclick="toast('Saisie guidée bail par bail — 3 minutes par bail')">Saisie guidée</button>
+      </div>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>2 · Ce que la bascule reprend</h2></div>
+      ${[['Baux en cours','dates, loyers, IRL — surveillance de révision armée'],['Dépôts de garantie déjà encaissés','avec leur détenteur : agence ou propriétaire'],['Soldes locataires','dettes rouvertes en créances (relances armées) et crédits imputés'],['Provisions de charges','depuis la dernière régularisation de chacun']].map(([t,s2])=>`<div class="rang">
+        <span class="rond-p" style="background:var(--vert-pale)">${svg('ok','var(--vert)')}</span>
+        <span style="flex:1"><span class="t">${t}</span><div class="s">${s2}</div></span></div>`).join('')}
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>3 · Contrôle avant bascule</h2><span class="tag tg-bleu">écart zéro exigé</span></div>
+      <p style="font-size:13px;color:var(--t2)">Balance d’ouverture : chaque euro détenu doit être justifié — soldes propriétaires, DG, provisions. Tant que l’écart n’est pas nul, la bascule est bloquée. Les locataires ne sont invités qu’après votre validation.</p>
+      <button class="b b-or" style="margin-top:12px" onclick="toast('Assistant de reprise lancé — analyse, anomalies à lever, soldes d’ouverture, bascule')">Lancer une reprise</button>
+    </div>
+  </div>${colDroite()}</div>`}
+
+function pAdministration(){return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Administration</h1>
+    <p class="st">Réservé à l’admin d’agence : agents, portefeuilles, abonnement.</p>
+    <div class="carte">
+      <div class="tete"><h2>Agents & portefeuilles</h2><button class="b b-blanc" onclick="toast('Invitation d’agent envoyée — il crée son mot de passe et reçoit son portefeuille')">+ Inviter un agent</button></div>
+      ${[['Marie Dubois','13 lots · 92 % de résolution incidents','tg-vert','active'],['Karim Benali','12 lots · 2 impayés en cours','tg-vert','actif'],['Léa Fontaine','9 lots · en congé jusqu’au 15 sept.','tg-ambre','déléguée → Marie']].map(([n,s2,tc,tag])=>`<div class="rang">
+        <span class="avat" style="width:38px;height:38px;font-size:12px;background:linear-gradient(135deg,#2F6FB0,#122A44)">${n.split(' ').map(x=>x[0]).join('')}</span>
+        <span style="flex:1"><span class="t">${n}</span><div class="s">${s2}</div></span><span class="tag ${tc}">${tag}</span>
+        <button class="b b-blanc" onclick="toast('${n} : réaffectation de lots par glisser-déposer, tracée au journal')">Gérer</button></div>`).join('')}
+      <p style="font-size:12.5px;color:var(--t2);margin-top:10px">Chaque agent ne voit que son portefeuille. Une absence se délègue en un geste — et se retire de même.</p>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Abonnement de l’agence</h2><span class="tag tg-vert">actif · Stripe</span></div>
+      <div class="rang"><span style="flex:1"><span class="t">34 lots gérés</span><div class="s">facturation au lot, ajustée chaque mois</div></span><span class="t">306 €/mois</span></div>
+      <div class="rang" style="border-bottom:none"><span style="flex:1"><span class="t">Moyen de paiement</span><div class="s">géré par Stripe — carte se terminant par 4417</div></span>
+        <button class="b b-blanc" onclick="toast('Factures Stripe téléchargées')">Factures</button></div>
+    </div>
+    <div class="carte">
+      <div class="tete"><h2>Journal d’audit</h2><button class="lien" onclick="toast('Journal complet — chaque action horodatée : qui, quoi, sur quel objet')">Tout voir →</button></div>
+      ${[['Versement SCI Marchand — bordereau BV-2026-118 émis et envoyé','Sophie Renard · aujourd’hui 09:12'],['Portefeuille de Léa délégué à Marie','Sophie Renard · hier 18:40'],['Clôture comptable d’août','automatique · 1ᵉʳ sept. 00:00']].map(([t,s2])=>`<div class="rang">
+        <span class="rond-p" style="background:var(--bleu-pale)">${svg('ok','var(--bleu)')}</span>
+        <span style="flex:1"><span class="t" style="font-weight:500">${t}</span><div class="s">${s2}</div></span></div>`).join('')}
+    </div>
+  </div>${colDroite()}</div>`}
+
+function pParametres(){return `
+  <div class="grille"><div>
+    <h1 style="font-size:30px">Paramètres</h1>
+    <div class="carte">
+      ${[['Mon profil','Marie Dubois · agent immobilier · Agence Alpha'],['Notifications','WhatsApp + e-mail · urgences en temps réel'],['Signature électronique','Yousign connecté · circuits séquentiels'],['Modèles de documents','55 modèles aux couleurs de l’agence']].map(([t,s2])=>`<div class="rang">
+        <span class="rond-p" style="background:var(--bleu-pale)">${svg('roue','var(--bleu)')}</span>
+        <span style="flex:1"><span class="t">${t}</span><div class="s">${s2}</div></span>
+        <button class="b b-blanc" onclick="toast('${t} — réglages ouverts')">Gérer</button></div>`).join('')}
+    </div>
+  </div>${colDroite()}</div>`}
+
+/* ---------- chiffres animés ---------- */
+function animerChiffres(){
+  document.querySelectorAll('.vnum').forEach(el=>{
+    if(el.dataset.anime)return;el.dataset.anime='1';
+    const txt=el.textContent, m=txt.match(/([\d\s\u202f\u00a0]+)(,\d+)?/);
+    if(!m)return;
+    const cible=parseInt(m[1].replace(/[\s\u202f\u00a0]/g,''),10);
+    if(isNaN(cible)||cible===0)return;
+    const avant=txt.slice(0,m.index), apres=txt.slice(m.index+m[0].length), dec=m[2]||'';
+    const debut=performance.now(), duree=520;
+    (function pas(t){
+      const p=Math.min(1,(t-debut)/duree), e=1-Math.pow(1-p,3);
+      el.textContent=avant+Math.round(cible*e).toLocaleString('fr-FR')+(p===1?dec:'')+apres;
+      if(p<1)requestAnimationFrame(pas)})(debut);
+  });
+}
+
+function rendre(){
+  const pages={bord:pBord,parc:pParc,incidents:pIncidents,personnes:pPersonnes,loyers:pLoyers,compta:pCompta,mandats:pMandats,reprise:pReprise,administration:pAdministration,documents:pDocuments,agenda:pAgenda,messages:pMessages,stats:pStats,parametres:pParametres};
+  $('#racine').innerHTML=`
+  <div class="app">
+    <aside class="late">
+      <div class="logo">
+        <svg width="30" height="30" viewBox="0 0 30 30"><path d="M15 4 5 12v13h7v-7h6v7h7V12Z" fill="none" stroke="#C9A24B" stroke-width="1.7"/><circle cx="15" cy="14" r="2" fill="#C9A24B"/></svg>
+        <span><span class="nom">GERIMMO</span><div class="sous-nom">L’IMMOBILIER EN CONFIANCE</div></span>
+      </div>
+      <div style="padding:14px 16px 0;display:flex;gap:11px;align-items:center">
+        <span class="avat" style="width:38px;height:38px;background:rgba(255,255,255,.1);color:var(--or)">🏢</span>
+        <span class="lib"><b style="font-size:13.5px;display:block">${D.agence}</b><button style="font-size:11.5px;color:rgba(237,233,223,.55)" onclick="toast('Multi-agences : votre compte peut porter plusieurs agences')">Changer d’agence ▾</button></span>
+      </div>
+      <div style="padding:10px 16px 0">
+        <label class="lib" style="font-size:10px;letter-spacing:.14em;color:rgba(237,233,223,.5)">VUE DE DÉMONSTRATION</label>
+        <select onchange="S.role=this.value;S.page='bord';rendre()" style="width:100%;margin-top:5px;background:rgba(255,255,255,.07);color:#EDE9DF;border:1px solid rgba(255,255,255,.18);border-radius:9px;padding:8px 9px;font:inherit;font-size:12.5px">
+          <option value="agent" ${S.role==='agent'?'selected':''} style="color:#122A44">Marie Dubois — Agent</option>
+          <option value="admin" ${S.role==='admin'?'selected':''} style="color:#122A44">Sophie Renard — Admin d’agence</option>
+        </select>
+      </div>
+      <nav class="menu">
+        ${MENU().map(([id,lib,ic,bad])=>`<button class="${S.page===id?'actif':''}" onclick="aller('${id}')">${svg(ic)}<span class="lib">${lib}</span>${bad&&bad()?`<span class="badge">${bad()}</span>`:''}</button>`).join('')}
+      </nav>
+      <div style="padding:0 12px">
+        <button class="aide-bot" onclick="toast('GERIMMO — posez votre question, ici ou sur WhatsApp')">💬<span>&nbsp;Une question ?<br><b style="font-weight:600">Discuter avec GERIMMO</b></span></button>
+      </div>
+      <div class="late-bas">GERIMMO v4.2.0<br>L’immobilier, plus simple.</div>
+    </aside>
+    <div>
+      <header class="haut">
+        <span style="position:relative;flex:1;max-width:320px"><button class="cherche" style="width:100%" onclick="S.rech=!S.rech;S.notif=false;rendre()">${svg('loupe')}&nbsp;Rechercher…<span style="margin-left:auto;background:#fff;border:1px solid var(--filet);border-radius:6px;padding:1px 7px;font-size:11px;color:var(--t3)">⌘ K</span></button>
+        ${S.rech?`<div class="sugg">
+          <button onclick="S.rech=false;S.page='parc';S.lot='L2';rendre()">${svg('parc','var(--bleu)')} Appartement 12 <span style="margin-left:auto;color:var(--t3);font-size:12px">Parc</span></button>
+          <button onclick="aller('personnes')">${svg('gens','var(--bleu)')} Sofia Moreau <span style="margin-left:auto;color:var(--t3);font-size:12px">Personnes</span></button>
+          <button onclick="aller('loyers')">${svg('euro','var(--or-fonce)')} Impayés de septembre <span style="margin-left:auto;color:var(--t3);font-size:12px">Loyers</span></button>
+        </div>`:''}</span>
+        <span style="flex:1"></span>
+        <span style="position:relative"><button class="rondh" onclick="S.notif=!S.notif;S.rech=false;rendre()">${svg('cloche')}${S.notifLu?'':'<span class="pt">3</span>'}</button>
+        ${S.notif?`<div class="depl">
+          <div class="tete"><h2 style="font-size:14px">Notifications</h2><button class="lien" onclick="S.notifLu=true;S.notif=false;rendre()">Tout marquer lu</button></div>
+          <button class="rang" style="width:100%;text-align:left" onclick="S.notifLu=true;S.notif=false;S.page='incidents';S.inc='I1';S.qual=1;rendre()"><span class="rond-p" style="background:var(--rouge-pale)">${svg('outil','var(--rouge)')}</span><span style="flex:1"><span class="t">Fuite d’eau — Appartement 12</span><div class="s">urgent · à qualifier</div></span></button>
+          <button class="rang" style="width:100%;text-align:left" onclick="S.notifLu=true;aller('loyers')"><span class="rond-p" style="background:var(--ambre-pale)">${svg('euro','var(--ambre)')}</span><span style="flex:1"><span class="t">2 loyers en retard</span><div class="s">relances graduées prêtes</div></span></button>
+          <button class="rang" style="width:100%;text-align:left" onclick="S.notifLu=true;aller('documents')"><span class="rond-p" style="background:var(--bleu-pale)">${svg('doc','var(--bleu)')}</span><span style="flex:1"><span class="t">Diagnostic gaz expire dans 12 j</span><div class="s">Appartement 3</div></span></button>
+        </div>`:''}</span>
+        <button class="rondh" onclick="toast('Centre d’aide — guides, raccourcis, contact support')">${svg('quest')}</button>
+        <div class="moi"><span class="avat">${moi().ini}</span><span><div class="l1">${moi().nom}</div><div class="l2">${moi().titre}</div></span></div>
+      </header>
+      <main class="corps"><div class="page">${(pages[S.page]||pBord)()}</div><p style="font-size:12px;color:var(--t3);padding:18px 4px 0;display:flex;gap:14px;flex-wrap:wrap"><span>GERIMMO — L’immobilier en confiance.</span><span style="margin-left:auto">Il est 10:24 · Bonne journée ! ☀️</span></p></main>
+    </div>
+  </div>
+  ${S.toast?`<div class="toast"><span class="o">✦</span><span>${S.toast}</span></div>`:''}`;
+  animerChiffres();
+}
+rendre();
+</script>
+</body>
+</html>

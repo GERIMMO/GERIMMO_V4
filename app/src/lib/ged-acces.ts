@@ -51,6 +51,9 @@ export async function verifierGerant(orgId: string) {
         .eq("id", orgId)
         .maybeSingle();
       if (org) {
+        // RM-A1.11 : la traversée est autorisée mais tracée (journal d'audit).
+        // Un échec du log ne bloque pas l'action.
+        await supabase.rpc("log_sa_access", { org: orgId, sa_action: "traversee_action" });
         return {
           supabase,
           user,

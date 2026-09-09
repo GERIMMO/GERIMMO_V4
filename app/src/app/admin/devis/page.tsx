@@ -10,10 +10,22 @@ export const metadata = { title: "Demandes de devis — Gerimmo" };
 export default async function PageDevisAdmin() {
   const supabase = await createClient();
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("demandes_devis")
     .select("id, nom, email, agence, telephone, nb_lots, message, created_at, traitee_le")
     .order("created_at", { ascending: false });
+  // Un échec de lecture ne doit pas se déguiser en liste vide (audit 09/09)
+  if (error) {
+    return (
+      <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
+        <h1>Demandes de devis</h1>
+        <div className="vide mt-4">
+          Impossible de charger la page pour l&apos;instant — rechargez dans un
+          instant.
+        </div>
+      </main>
+    );
+  }
   const demandes = (data ?? []) as {
     id: string;
     nom: string;

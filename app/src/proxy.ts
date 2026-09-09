@@ -9,6 +9,9 @@ const PUBLIC_PATHS = [
   "/connexion",
   "/inscription",
   "/mot-de-passe-oublie",
+  // Publique (et traversable connecté) : la page doit pouvoir expliquer
+  // « Session expirée ou lien invalide » au lieu de rediriger sans un mot.
+  "/nouveau-mot-de-passe",
   "/auth/confirm",
 ];
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];

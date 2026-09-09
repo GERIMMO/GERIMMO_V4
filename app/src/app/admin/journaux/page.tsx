@@ -25,11 +25,11 @@ export default async function PageJournaux() {
   if (!estSuperAdmin) redirect("/espaces");
 
   const [
-    { data: regles },
-    { data: audit },
-    { data: technique },
-    { data: acces },
-    { count: enAttente },
+    { data: regles, error: e1 },
+    { data: audit, error: e2 },
+    { data: technique, error: e3 },
+    { data: acces, error: e4 },
+    { count: enAttente, error: e5 },
   ] = await Promise.all([
     supabase.from("retention_rules").select("*").order("data_type"),
     supabase
@@ -52,6 +52,19 @@ export default async function PageJournaux() {
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null),
   ]);
+  // Écran de conformité RGPD : un échec de lecture ne doit pas se déguiser en
+  // journaux vides (audit 09/09)
+  if (e1 || e2 || e3 || e4 || e5) {
+    return (
+      <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
+        <h1>Journaux et conservation</h1>
+        <div className="vide mt-4">
+          Impossible de charger la page pour l&apos;instant — rechargez dans un
+          instant.
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">

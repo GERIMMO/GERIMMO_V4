@@ -28,7 +28,6 @@ export default async function PageNouvelIncident(
     .eq("organization_id", orgId)
     .neq("etat", "archive")
     .order("nom");
-  if (erreurLots) console.error("incidents/nouveau — lots illisibles :", erreurLots.message);
   const lots = ((lotsBruts ?? []) as unknown as {
     id: string;
     nom: string;
@@ -62,7 +61,15 @@ export default async function PageNouvelIncident(
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card>
           <CardContent>
-            <FormulaireIncident orgId={orgId} lots={lots} />
+            {/* Un échec de lecture ne doit pas se déguiser en sélecteur vide
+                (audit 09/09) */}
+            {erreurLots ? (
+              <div className="vide">
+                Impossible de charger les lots — rechargez dans un instant.
+              </div>
+            ) : (
+              <FormulaireIncident orgId={orgId} lots={lots} />
+            )}
           </CardContent>
         </Card>
 

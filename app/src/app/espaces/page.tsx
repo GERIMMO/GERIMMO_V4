@@ -56,15 +56,17 @@ export default async function PageEspaces() {
   // en plus de sa console.
   const estSuperAdmin = adhesions.some((a) => a.role === "super_admin");
   const idsAdhesions = new Set(adhesions.map((a) => a.organization?.id).filter(Boolean));
-  let supervision: { id: string; name: string; type: string }[] = [];
+  let supervision: { id: string; name: string; type: string; status: string }[] = [];
+  let erreurSupervision = false;
   if (estSuperAdmin) {
-    const { data: orgs } = await supabase
+    const { data: orgs, error } = await supabase
       .from("organizations")
-      .select("id, name, type")
+      .select("id, name, type, status")
       .order("name");
-    supervision = ((orgs ?? []) as { id: string; name: string; type: string }[]).filter(
-      (o) => !idsAdhesions.has(o.id)
-    );
+    erreurSupervision = Boolean(error);
+    supervision = (
+      (orgs ?? []) as { id: string; name: string; type: string; status: string }[]
+    ).filter((o) => !idsAdhesions.has(o.id));
   }
 
   // Locataire sorti (chantier D2) : l'adhésion désactivée garde un accès en
@@ -139,6 +141,13 @@ export default async function PageEspaces() {
           </p>
         )}
 
+        {erreurSupervision && (
+          <p className="mb-2.5 text-sm text-muted-foreground">
+            Impossible de charger les espaces supervisés — rechargez dans un
+            instant.
+          </p>
+        )}
+
         <div className="grid gap-2.5">
           {adhesions.map((a) => {
             const chemin = cheminEspace(a);
@@ -195,7 +204,11 @@ export default async function PageEspaces() {
                       ? "Espace propriétaire (supervision)"
                       : "Espace agence (supervision)"}
                   </span>
-                  <span className="block text-xs text-muted-foreground">{o.name}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {o.name}
+                    {o.status === "suspendue" && " · suspendue"}
+                    {o.status === "archivee" && " · archivée"}
+                  </span>
                 </span>
               </span>
             </Link>

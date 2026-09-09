@@ -99,6 +99,7 @@ export default async function LayoutAgence({
             <form action={seDeconnecter}>
               <button type="submit">Se déconnecter</button>
             </form>
+            <span>{organisation.name}</span>
           </div>
         </aside>
         <div className="min-w-0">

@@ -7,7 +7,7 @@ import {
   annulerPieceDemandee,
   type EtatPieceDemandee,
 } from "@/app/actions/pieces-demandees";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { formaterDate } from "@/lib/ged";
 
 export type PieceDemandee = {
@@ -37,25 +37,25 @@ function BoutonsDemande({
   personId: string;
   demandeId: string;
 }) {
-  const [etatRel, actionRel, relEnCours] = useActionState<EtatPieceDemandee, FormData>(
+  const [etatRel, actionRel] = useActionState<EtatPieceDemandee, FormData>(
     async () => relancerPieceDemandee(orgId, personId, demandeId),
     {}
   );
-  const [etatAnn, actionAnn, annEnCours] = useActionState<EtatPieceDemandee, FormData>(
+  const [etatAnn, actionAnn] = useActionState<EtatPieceDemandee, FormData>(
     async () => annulerPieceDemandee(orgId, personId, demandeId),
     {}
   );
   return (
     <span className="flex shrink-0 items-center gap-1">
       <form action={actionRel}>
-        <Button type="submit" variant="outline" size="sm" disabled={relEnCours}>
-          {relEnCours ? "…" : "Relancer"}
-        </Button>
+        <BoutonEnvoi variant="outline" size="sm">
+          Relancer
+        </BoutonEnvoi>
       </form>
       <form action={actionAnn}>
-        <Button type="submit" variant="ghost" size="sm" disabled={annEnCours}>
-          {annEnCours ? "…" : "Annuler"}
-        </Button>
+        <BoutonEnvoi variant="ghost" size="sm">
+          Annuler
+        </BoutonEnvoi>
       </form>
       {(etatRel.erreur || etatAnn.erreur) && (
         <span className="text-xs text-destructive">{etatRel.erreur ?? etatAnn.erreur}</span>
@@ -75,7 +75,7 @@ export function CartePiecesDemandees({
   personId: string;
   demandes: PieceDemandee[];
 }) {
-  const [etat, action, enCours] = useActionState<EtatPieceDemandee, FormData>(
+  const [etat, action] = useActionState<EtatPieceDemandee, FormData>(
     demanderPieceLocataire.bind(null, orgId, personId),
     {}
   );

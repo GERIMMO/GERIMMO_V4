@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { definirEquipementsLot, type EtatParc } from "@/app/actions/parc";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 type Equipement = { id: string; nom: string };
 
@@ -20,7 +20,7 @@ export function FormulaireEquipementsLot({
   selection: string[];
 }) {
   const actionLiee = definirEquipementsLot.bind(null, orgId, bienId, lotId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const coches = new Set(selection);
 
   if (catalogue.length === 0) {
@@ -52,9 +52,9 @@ export function FormulaireEquipementsLot({
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Enregistrement…" : "Enregistrer les équipements"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
+        Enregistrer les équipements
+      </BoutonEnvoi>
     </form>
   );
 }

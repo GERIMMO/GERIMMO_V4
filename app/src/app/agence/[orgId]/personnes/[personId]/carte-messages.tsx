@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { repondreMessagePersonne, type EtatMessage } from "@/app/actions/messages";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 export type MessagePersonne = {
   id: string;
@@ -25,7 +25,7 @@ export function CarteMessages({
   prenom: string | null;
   messages: MessagePersonne[];
 }) {
-  const [etat, action, enCours] = useActionState<EtatMessage, FormData>(
+  const [etat, action] = useActionState<EtatMessage, FormData>(
     repondreMessagePersonne.bind(null, orgId, personId),
     {}
   );
@@ -76,9 +76,9 @@ export function CarteMessages({
           placeholder={`Répondre${prenom ? ` à ${prenom}` : ""}…`}
           className="min-w-52 flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
         />
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "Envoi…" : "Envoyer"}
-        </Button>
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Envoi…">
+          Envoyer
+        </BoutonEnvoi>
         {etat.succes && (
           <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>
         )}

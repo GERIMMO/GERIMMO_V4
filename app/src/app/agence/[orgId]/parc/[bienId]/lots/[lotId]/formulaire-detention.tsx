@@ -9,6 +9,7 @@ import {
   rouvrirDetention,
   type EtatParc,
 } from "@/app/actions/parc";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ export function FormulaireDetention({
   premierProprietaire: boolean;
 }) {
   const actionLiee = ajouterDetention.bind(null, orgId, bienId, lotId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
   const [choix, setChoix] = useState("");
   // L'agent déclare l'indivision → la quote-part s'ouvre dès le 1er propriétaire.
@@ -189,9 +190,9 @@ export function FormulaireDetention({
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Enregistrement…" : "Enregistrer la détention"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
+        Enregistrer la détention
+      </BoutonEnvoi>
 
       {/* Pop-up « nouveau propriétaire » (recette 13/08) : fiche créée à la
           volée avec le rôle propriétaire mandant — mêmes règles que
@@ -290,12 +291,12 @@ export function BoutonCloreDetention({
   detentionId: string;
 }) {
   const actionLiee = cloreDetention.bind(null, orgId, bienId, lotId, detentionId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   return (
     <form action={action} className="shrink-0">
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours}>
-        {enCours ? "…" : "Fermer"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
+        Fermer
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
     </form>
   );
@@ -314,12 +315,12 @@ export function BoutonSupprimerDetention({
   detentionId: string;
 }) {
   const actionLiee = supprimerDetention.bind(null, orgId, bienId, lotId, detentionId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   return (
     <form action={action} className="shrink-0">
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours}>
-        {enCours ? "…" : "Corriger"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
+        Corriger
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
     </form>
   );
@@ -338,12 +339,12 @@ export function BoutonRouvrirDetention({
   detentionId: string;
 }) {
   const actionLiee = rouvrirDetention.bind(null, orgId, bienId, lotId, detentionId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   return (
     <form action={action} className="shrink-0">
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours}>
-        {enCours ? "…" : "Rouvrir"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
+        Rouvrir
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
     </form>
   );

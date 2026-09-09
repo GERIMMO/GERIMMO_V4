@@ -7,7 +7,7 @@ import {
   proposerPiecesLot,
   type EtatParc,
 } from "@/app/actions/parc";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 
 export type PieceLot = { id: string; nom: string };
@@ -21,9 +21,9 @@ function BoutonRetirer({ orgId, bienId, lotId, pieceId }: { orgId: string; bienI
         await supprimerPieceLot(orgId, bienId, lotId, pieceId);
       }}
     >
-      <Button type="submit" variant="ghost" size="sm">
+      <BoutonEnvoi variant="ghost" size="sm">
         Retirer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -37,15 +37,15 @@ function FormProposition({
   bienId: string;
   lotId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(
+  const [etat, action] = useActionState<EtatParc, FormData>(
     async () => proposerPiecesLot(orgId, bienId, lotId),
     {}
   );
   return (
     <form action={action} className="space-y-1">
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "…" : "Proposer les pièces de ce logement"}
-      </Button>
+      <BoutonEnvoi size="sm" enCoursTexte="…">
+        Proposer les pièces de ce logement
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
@@ -66,7 +66,7 @@ export function FormulairePiecesLot({
   pieces: PieceLot[];
 }) {
   const action = ajouterPieceLot.bind(null, orgId, bienId, lotId);
-  const [etat, formAction, enCours] = useActionState<EtatParc, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatParc, FormData>(action, {});
 
   return (
     <div className="space-y-3">
@@ -108,9 +108,9 @@ export function FormulairePiecesLot({
               await ajouterPieceLot(orgId, bienId, lotId, {}, fd);
             }}
           >
-            <Button type="submit" variant="outline" size="sm">
+            <BoutonEnvoi variant="outline" size="sm">
               + {nom}
-            </Button>
+            </BoutonEnvoi>
           </form>
         ))}
       </div>
@@ -119,9 +119,9 @@ export function FormulairePiecesLot({
       <form action={formAction} className="flex items-end gap-2">
         {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
         <Input name="nom" maxLength={60} placeholder="Autre pièce (ex. Bureau, Dressing)…" className="max-w-xs" defaultValue={etat.valeurs?.nom} />
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "Ajout…" : "Ajouter"}
-        </Button>
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Ajout…">
+          Ajouter
+        </BoutonEnvoi>
       </form>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </div>

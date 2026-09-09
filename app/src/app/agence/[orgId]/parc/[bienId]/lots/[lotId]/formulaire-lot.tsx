@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { modifierLot, type EtatParc } from "@/app/actions/parc";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -31,7 +31,7 @@ export function FormulaireLot({
   verrouille: boolean;
 }) {
   const actionLiee = modifierLot.bind(null, orgId, bienId, lot.id);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
 
   return (
     <form action={action} className="space-y-4">
@@ -132,9 +132,9 @@ export function FormulaireLot({
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <Button type="submit" disabled={enCours}>
-        {enCours ? "Enregistrement…" : "Enregistrer"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Enregistrement…">
+        Enregistrer
+      </BoutonEnvoi>
     </form>
   );
 }

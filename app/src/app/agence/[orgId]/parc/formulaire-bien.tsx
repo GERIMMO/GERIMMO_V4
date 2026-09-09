@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { creerBien, modifierBien, type EtatParc } from "@/app/actions/parc";
 import { TYPES_BIEN, TYPES_NON_DECOUPABLES } from "@/lib/parc";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,7 +39,7 @@ export function FormulaireBien({
   const actionLiee = bien
     ? modifierBien.bind(null, orgId, bien.id)
     : creerBien.bind(null, orgId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
 
   // Autocomplétion d'adresse via la Base Adresse Nationale (retour recette S2) :
   // la sélection remplit la voie, le code postal et la ville
@@ -355,15 +356,13 @@ export function FormulaireBien({
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <Button type="submit" disabled={enCours}>
-        {enCours
-          ? "Enregistrement…"
-          : bien
-            ? "Enregistrer"
-            : multiLots
-              ? `Créer le bien et ses ${lots.length} lot${lots.length > 1 ? "s" : ""}`
-              : "Créer le bien et son lot unique"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Enregistrement…">
+        {bien
+          ? "Enregistrer"
+          : multiLots
+            ? `Créer le bien et ses ${lots.length} lot${lots.length > 1 ? "s" : ""}`
+            : "Créer le bien et son lot unique"}
+      </BoutonEnvoi>
     </form>
   );
 }

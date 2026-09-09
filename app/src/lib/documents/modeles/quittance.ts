@@ -23,6 +23,7 @@ import {
   adresseLogement,
   referenceCourte,
   signatureOrganisation,
+  liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -206,9 +207,7 @@ export async function assemblerQuittance(
     nomFichier: `${q.est_quittance ? "quittance" : "recu"}-${appel.periode.slice(0, 7)}`,
     liens: [
       { entite: "bail", entiteId: q.bail_id },
-      ...(ctx.bail.locataire_principal
-        ? [{ entite: "personne" as const, entiteId: ctx.bail.locataire_principal }]
-        : []),
+      ...liensLocataires(ctx),
     ],
   };
 }

@@ -133,7 +133,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             {estProprietaire
               ? "Livre recettes-dépenses"
               : role === "agent"
-                ? "Loyers & rapports"
+                ? "Loyers & charges"
                 : "Comptabilité"}
           </h1>
           <span className="mono-discret">

@@ -3,7 +3,7 @@ type: concept
 tags: [signature, yousign, demande-de-signature]
 status: draft
 created: 2026-07-24
-updated: 2026-07-25
+updated: 2026-09-09
 sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]"]
 ---
 
@@ -65,3 +65,21 @@ Bail/avenants, cautionnement, mandat — **pas les [[État des lieux|états des 
 Consomme les documents générés ([[Document]], module 12 — état « en signature » à
 ajouter) ; déclenche les chaînes critiques ([[Machines à états et événements]] —
 webhooks Yousign) ; alertes au module 14 ([[Agenda et échéances]]).
+
+## Circuit de transition V0 — le signé déposé (2026-09-09)
+
+En attendant Yousign (S10), l'application porte un circuit minimal honnête :
+« Envoyer pour signature » (fiche de la pièce) place le document dans
+« À signer » de l'espace du locataire ; il le télécharge, le signe hors ligne
+et dépose le PDF signé ; le gestionnaire est alerté (`signature_retournee`,
+routée vers la fiche GED) et le signé hérite des rattachements du document
+d'origine. Gardes (audit 09/09) : types signables `bail`, `courrier`,
+`quittance` seulement — **jamais un EDL** (RM-13.1.6) ni une pièce de dossier ;
+signataire rattaché au document ; **espace locataire actif obligatoire** (pas
+d'envoi dans le vide) ; une seule demande en attente par document et personne ;
+demandes visibles et annulables sur la fiche de la pièce. Limites assumées vs
+RM-13 : pas de dossier de preuve, pas de séquencement ni « bailleur en
+dernier », pas de relances ni d'expiration — Yousign les apportera. La
+**signature préenregistrée** de l'organisation ([[Organisation]]) est un tampon
+d'émetteur (Famille 3, aucune valeur probante) apposé sur quittances, reçus et
+courriers générés — jamais sur un bail ni un EDL.

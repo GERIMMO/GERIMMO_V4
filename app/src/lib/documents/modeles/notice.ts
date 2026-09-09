@@ -12,6 +12,7 @@ import {
   nomsLocataires,
   adresseLogement,
   referenceCourte,
+  liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -110,9 +111,7 @@ export async function assemblerNotice(
     nomFichier: "notice-information",
     liens: [
       { entite: "bail", entiteId: ctx.bail.id },
-      ...(ctx.bail.locataire_principal
-        ? [{ entite: "personne" as const, entiteId: ctx.bail.locataire_principal }]
-        : []),
+      ...liensLocataires(ctx),
     ],
   };
 }

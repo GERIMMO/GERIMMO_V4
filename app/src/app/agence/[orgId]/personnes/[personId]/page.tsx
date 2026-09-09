@@ -419,7 +419,7 @@ export default async function PagePersonne(
       {/* Messages avec la personne (espace locataire v10) : visibles dès
           qu'un échange existe, ou qu'elle a un espace pour les recevoir */}
       {(messages.length > 0 || personne.account_id) && (
-        <Card>
+        <Card id="messages">
           <CardHeader>
             <CardTitle className="text-base">Messages</CardTitle>
             <CardDescription>

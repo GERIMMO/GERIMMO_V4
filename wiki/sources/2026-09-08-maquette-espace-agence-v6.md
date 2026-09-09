@@ -3,7 +3,7 @@ type: source
 tags: [maquette, agence, agent, admin-agence, ui]
 status: stable
 created: 2026-09-08
-updated: 2026-09-08
+updated: 2026-09-09
 source-file: raw/maquettes/2026-09-08-espace-agence-v6.html
 source-type: maquette HTML interactive
 source-date: 2026-09-08
@@ -82,3 +82,11 @@ bordereaux de versement, reprise de portefeuille en 3 étapes, administration
   les alertes réelles (liens directs), fil d'activité conservé, colonne droite
   (donut du parc + jauge des loyers réels).
 - Reporté : cf. contradictions ci-dessus.
+
+## Suites de l'audit du 09/09
+
+Le découpage F1 avait ouvert Documents (et Messages) aux agents sans périmètre
+de portefeuille : corrigé — voir [[Agent immobilier]]. Le libellé du menu
+Comptabilité suit désormais le rôle (admin « Comptabilité », agent « Loyers &
+charges »), les titres de pages sont alignés sur le menu, et l'ancienne
+`NavAgence` (code mort depuis ce commit) est supprimée.

@@ -33,7 +33,8 @@ export const TYPES_DEPOSABLES = [
 // au-delà de l'agence. Affiché sur la fiche de pièce (maquette pageDocument).
 export const VISIBILITE_DOCUMENT: Record<string, string> = {
   bail: "Gestionnaire et locataire",
-  quittance: "Gestionnaire et locataire",
+  quittance: "Gestionnaire — et locataire une fois mise à disposition",
+  courrier: "Gestionnaire — et locataire une fois mis à disposition",
   etat_des_lieux: "Gestionnaire et locataire",
   reglement_copropriete: "Gestionnaire et locataire",
   attestation_assurance: "Gestionnaire et la personne concernée",
@@ -100,12 +101,15 @@ export const ROLES_GERANTS = ["admin_agence", "agent", "proprietaire_direct"];
 // suffit — la liste SQL (attribuer_incident) doit lui rester alignée.
 export const ROLES_RESPONSABLES = ["admin_agence", "proprietaire_direct"];
 
+// Horloge de Paris (audit 09/09) : Vercel tourne en UTC — sans fuseau, un
+// horodatage de 23 h s'affichait daté de la veille.
 export function formaterDate(iso: string | null | undefined): string {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: "Europe/Paris",
   });
 }
 
@@ -155,5 +159,6 @@ export function formaterDateHeure(iso: string | null | undefined): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Paris",
   });
 }

@@ -9,6 +9,7 @@ import {
 import { cibleBlocage } from "@/lib/parc";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
+import { totalMessagesNonLus } from "@/lib/messagerie";
 import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, ROLES_RESPONSABLES, formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
 import { TraiterAlerte } from "./alertes/traiter-alerte";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -73,7 +74,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: blocagesParc },
     { data: incidentsEnCours },
     { data: donneesMembres },
-    { data: nonLusRows },
+    messagesNonLus,
   ] = await Promise.all([
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
@@ -124,7 +125,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // La pop-up « Traiter » s'ouvre sur place (recette 24/08) : il lui faut
     // la liste des gérants pour « Confier à »
     supabase.rpc("org_membres_gerants", { org: orgId }),
-    supabase.rpc("messages_non_lus_gerant", { p_org: orgId }),
+    // Même appel (mis en cache) que le badge du layout — un seul aller-retour
+    totalMessagesNonLus(supabase, orgId),
   ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;
@@ -317,17 +319,13 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   };
 
   // Puces de tête (maquette v6) : le résumé de la journée en trois gestes
-  const messagesNonLus = ((nonLusRows ?? []) as { non_lus: number }[]).reduce(
-    (somme, r) => somme + r.non_lus,
-    0
-  );
   const aQualifier =
     segmentsIncidents.find((s) => s.libelle === "Pas encore tranché")?.valeur ?? 0;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
       <div className="mb-1">
-        <p className="mono-discret normal-case">
+        <p className="mono-discret sans-majuscules">
           {portefeuille ? "Mon portefeuille · " : ""}
           {new Date().toLocaleDateString("fr-FR", {
             weekday: "long",
@@ -340,22 +338,24 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         <h1 className="mt-0.5">Bonjour,</h1>
         <p className="text-sm text-muted-foreground">
           {role === "agent"
-            ? "Voici l'essentiel pour bien démarrer votre journée."
-            : "Voici l'essentiel de votre agence ce matin."}
+            ? "Voici l'essentiel de votre portefeuille."
+            : "Voici l'essentiel de votre agence."}
         </p>
       </div>
       <div className="mb-[1.125rem] mt-3 flex flex-wrap gap-2">
         <Link href={`/agence/${orgId}/alertes`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          ☑️ {alertes.length} action{alertes.length > 1 ? "s" : ""} à traiter
+          {alertes.length} action{alertes.length > 1 ? "s" : ""} à traiter
         </Link>
         {aQualifier > 0 && (
           <Link href={`/agence/${orgId}/incidents`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            🔧 {aQualifier} incident{aQualifier > 1 ? "s" : ""} à qualifier
+            {aQualifier} incident{aQualifier > 1 ? "s" : ""} à qualifier
           </Link>
         )}
-        <Link href={`/agence/${orgId}/messages`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          💬 {messagesNonLus} message{messagesNonLus > 1 ? "s" : ""} non lu{messagesNonLus > 1 ? "s" : ""}
-        </Link>
+        {messagesNonLus > 0 && (
+          <Link href={`/agence/${orgId}/messages`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            {messagesNonLus} message{messagesNonLus > 1 ? "s" : ""} non lu{messagesNonLus > 1 ? "s" : ""}
+          </Link>
+        )}
       </div>
 
       {/* Quatre chiffres clés — tuiles KPI de la maquette : liseré de couleur à

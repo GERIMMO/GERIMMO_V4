@@ -3,7 +3,7 @@ type: business-rule
 tags: [rgpd, conformite, donnees-personnelles]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-09
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
 ---
 
@@ -130,3 +130,12 @@ Voir [[Architecture du socle V3]].
 ## Implications pour l'application
 - Workflow de demande RGPD avec référence, échéance 30 j, double validation, sauvegarde.
 - Cohérent avec [[Archivage plutôt que suppression]] et [[Plan de reprise d'activité]].
+
+## Compléments (2026-09-09)
+
+- `demandes_signature` : purgées avec le document demandé, et au plus 24 mois
+  après le retour du signé (`appliquer_retention`) — la demande est un journal
+  de circuit, pas une archive.
+- Image de signature de l'organisation : remplacée ou retirée, l'ancien
+  fichier est mis en file de purge (sans ligne `documents`, la rétention
+  documentaire ne la voyait pas). Voir [[Organisation]].

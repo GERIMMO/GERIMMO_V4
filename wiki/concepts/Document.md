@@ -3,7 +3,7 @@ type: concept
 tags: [document, ged]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-30
+updated: 2026-09-09
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -100,3 +100,19 @@ partage désormais un seul prédicat, `pieces_bail_locataire` : les pièces des
 colocataire — **bail signé** et **règlement de copropriété**. Un bail terminé
 retire ces pièces de « Mes documents ». Le type `reglement_copropriete` est
 déclaré « Agence et locataire ». Voir [[Bail]].
+
+## Mise à disposition du locataire (2026-09-09)
+
+Un `courrier` ou une `quittance` PDF rattaché à la fiche du locataire n'est
+**plus** visible de lui par simple rattachement : audit du 09/09 — la vague
+documentaire du 08/09 rendait tout courrier (y compris une mise en demeure en
+préparation) instantanément lisible, en contradiction avec RM-12 (« mise à
+disposition ≠ envoi : l'envoi est un geste »). La colonne `documents.partage_le`
+porte désormais le geste « Mettre à disposition du locataire » (fiche de la
+pièce, réversible, RPC `partager_document_locataire`). Les pièces du dossier
+(identité, justificatifs, attestations) gardent leurs règles. Le document
+demandé en signature et le PDF signé retourné restent visibles via la demande
+([[Signature électronique]]). La trace d'accès (`log_document_access`) délègue
+au même prédicat que la route fichier (`mon_document_locataire`) — la liste de
+droits ne vit plus en double, et le locataire **sorti** (adhésion inactive)
+conserve la lecture.

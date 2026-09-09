@@ -207,6 +207,18 @@ export function nomsLocataires(f: Fusion, locataires: PersonneDocument[]): strin
   );
 }
 
+// Les liens « personne » d'un document adressé aux locataires du bail : le
+// principal ET les colocataires (audit 09/09 — un colocataire ne voyait
+// jamais les PDF de son bail, seul le principal était rattaché).
+export function liensLocataires(
+  ctx: Pick<ContexteBail, "bail" | "locataires">
+): { entite: "personne"; entiteId: string }[] {
+  const ids = new Set<string>();
+  if (ctx.bail.locataire_principal) ids.add(ctx.bail.locataire_principal);
+  for (const l of ctx.locataires) if (l.id) ids.add(l.id);
+  return [...ids].map((id) => ({ entite: "personne" as const, entiteId: id }));
+}
+
 // Référence courte et stable d'un objet (les épreuves montrent « référence »)
 export function referenceCourte(prefixe: string, id: string): string {
   return `${prefixe}-${id.slice(0, 8).toUpperCase()}`;

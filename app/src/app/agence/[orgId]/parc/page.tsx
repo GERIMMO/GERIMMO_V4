@@ -115,7 +115,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>{estProprietaire ? "Mes lots" : "Parc"}</h1>
+        <h1>
+          {estProprietaire
+            ? "Mes lots"
+            : role === "agent"
+              ? "Mon portefeuille"
+              : "Parc de l'agence"}
+        </h1>
         <div className="flex items-center gap-4">
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}

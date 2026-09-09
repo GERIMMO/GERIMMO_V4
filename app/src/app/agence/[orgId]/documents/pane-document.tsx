@@ -10,7 +10,7 @@ import {
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { formaterTaille } from "@/lib/file-type";
 import { nomComplet } from "@/lib/roles-personnes";
-import { BoutonEnvoyerSignature } from "./bouton-envoyer-signature";
+import { CircuitDocument, type DemandeDuDocument } from "./circuit-document";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { Card, CardContent } from "@/components/ui/card";
 import { ActionsDocument } from "./actions-document";
@@ -30,6 +30,7 @@ type Doc = {
   verifie_le: string | null;
   purged_at: string | null;
   remplace_id: string | null;
+  partage_le: string | null;
   liens: Lien[];
 };
 
@@ -50,7 +51,7 @@ export async function PaneDocument({
   const { data: docBrut } = await supabase
     .from("documents")
     .select(
-      "id, type, titre, mime_type, taille_octets, created_at, expire_le, verifie_le, purged_at, remplace_id, liens:document_liens(entite, entite_id)"
+      "id, type, titre, mime_type, taille_octets, created_at, expire_le, verifie_le, purged_at, remplace_id, partage_le, liens:document_liens(entite, entite_id)"
     )
     .eq("id", documentId)
     .eq("organization_id", orgId)
@@ -74,8 +75,14 @@ export async function PaneDocument({
   // La version qui remplace celle-ci (si la pièce n'est plus courante), la
   // chaîne des versions antérieures, la règle de conservation, et les fiches
   // rattachables pour le formulaire — en parallèle.
-  const [{ data: remplaceePar }, { data: regle }, { data: personnes }, { data: lots }, { data: bauxBruts }] =
-    await Promise.all([
+  const [
+    { data: remplaceePar },
+    { data: regle },
+    { data: personnes },
+    { data: lots },
+    { data: bauxBruts },
+    { data: demandesBrutes },
+  ] = await Promise.all([
       supabase
         .from("documents")
         .select("id, titre, created_at")
@@ -104,6 +111,7 @@ export async function PaneDocument({
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
         .limit(100),
+      supabase.rpc("demandes_signature_document", { p_org: orgId, p_doc: doc.id }),
     ]);
 
   // Versions antérieures : remonter la chaîne remplace_id (bornée — une pièce
@@ -124,6 +132,21 @@ export async function PaneDocument({
 
   const nomsPersonnes = new Map((personnes ?? []).map((p) => [p.id, nomComplet(p)]));
   const nomsLots = new Map((lots ?? []).map((l) => [l.id, l.nom]));
+  const demandes: DemandeDuDocument[] = (
+    (demandesBrutes ?? []) as {
+      id: string;
+      person_id: string;
+      demandee_le: string;
+      signee_le: string | null;
+      document_retour_id: string | null;
+    }[]
+  ).map((d) => ({
+    id: d.id,
+    personNom: nomsPersonnes.get(d.person_id) ?? "Personne",
+    demandee_le: d.demandee_le,
+    signee_le: d.signee_le,
+    document_retour_id: d.document_retour_id,
+  }));
   const baux = (bauxBruts ?? []) as {
     id: string;
     etat: string;
@@ -268,27 +291,25 @@ export async function PaneDocument({
               ))}
             </div>
             <FormulaireRattacher orgId={orgId} documentId={doc.id} fiches={fiches} />
-            {(() => {
-              // « Envoyer pour signature » : proposé quand le document est
-              // rattaché à une personne (le signataire) — le circuit est le
-              // dépôt du signé, la signature en ligne arrive avec Yousign.
-              const signataires = doc.liens
+            {/* Le circuit du document : mise à disposition, envoi pour
+                signature, suivi des demandes. key : la sélection du signataire
+                repart de zéro quand on change de document (audit 09/09 —
+                l'état client survivait au ?sel= et visait l'ancien document) */}
+            <CircuitDocument
+              key={doc.id}
+              orgId={orgId}
+              documentId={doc.id}
+              type={doc.type}
+              partageLe={doc.partage_le}
+              signataires={doc.liens
                 .filter((l) => l.entite === "personne")
                 .map((l) => ({
                   id: l.entite_id,
                   nom: nomsPersonnes.get(l.entite_id) ?? "Personne",
-                }));
-              if (signataires.length === 0 || doc.purged_at) return null;
-              return (
-                <div className="mt-3 border-t border-border pt-3">
-                  <BoutonEnvoyerSignature
-                    orgId={orgId}
-                    documentId={doc.id}
-                    signataires={signataires}
-                  />
-                </div>
-              );
-            })()}
+                }))}
+              demandes={demandes}
+              lienFermer={lienFermer}
+            />
           </CardContent>
         </Card>
 

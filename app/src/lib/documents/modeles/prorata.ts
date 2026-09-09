@@ -23,6 +23,7 @@ import {
   adresseLogement,
   referenceCourte,
   signatureOrganisation,
+  liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -168,9 +169,7 @@ export async function assemblerProrata(
     nomFichier: `prorata-${appel.periode.slice(0, 7)}`,
     liens: [
       { entite: "bail", entiteId: appel.bail_id },
-      ...(ctx.bail.locataire_principal
-        ? [{ entite: "personne" as const, entiteId: ctx.bail.locataire_principal }]
-        : []),
+      ...liensLocataires(ctx),
     ],
   };
 }

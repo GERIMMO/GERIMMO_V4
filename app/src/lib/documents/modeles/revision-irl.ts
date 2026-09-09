@@ -22,6 +22,7 @@ import {
   adresseLogement,
   referenceCourte,
   signatureOrganisation,
+  liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -151,9 +152,7 @@ export async function assemblerRevisionIrl(
     nomFichier: `revision-irl-${r.date_effet}`,
     liens: [
       { entite: "bail", entiteId: r.bail_id },
-      ...(ctx.bail.locataire_principal
-        ? [{ entite: "personne" as const, entiteId: ctx.bail.locataire_principal }]
-        : []),
+      ...liensLocataires(ctx),
     ],
   };
 }

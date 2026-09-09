@@ -16,29 +16,45 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
   if (estProprietaire || role !== "admin_agence") notFound();
 
-  const [{ data: mandats }, { data: lignes }, { data: rapports }, { data: personnes }] =
-    await Promise.all([
-      supabase
-        .from("mandats")
-        .select("id, person_id, etat, date_debut, date_fin, date_rapport, agent_account_id")
-        .eq("organization_id", orgId)
-        .in("etat", ["actif", "preavis", "a_signer"])
-        .order("created_at"),
-      supabase
-        .from("mandat_lignes")
-        .select("mandat_id, lot_id, date_fin")
-        .eq("organization_id", orgId)
-        .is("date_fin", null),
-      supabase
-        .from("rapports_gestion")
-        .select("mandat_id, mois, statut, net, envoye_le, versement_montant, versement_date")
-        .eq("organization_id", orgId)
-        .order("mois", { ascending: false }),
-      supabase
-        .from("persons")
-        .select("id, nom, prenom")
-        .eq("organization_id", orgId),
-    ]);
+  const [
+    { data: mandats, error: e1 },
+    { data: lignes, error: e2 },
+    { data: rapports, error: e3 },
+    { data: personnes, error: e4 },
+  ] = await Promise.all([
+    supabase
+      .from("mandats")
+      .select("id, person_id, etat, date_debut")
+      .eq("organization_id", orgId)
+      .in("etat", ["actif", "preavis", "a_signer"])
+      .order("created_at"),
+    supabase
+      .from("mandat_lignes")
+      .select("mandat_id")
+      .eq("organization_id", orgId)
+      .is("date_fin", null),
+    supabase
+      .from("rapports_gestion")
+      .select("mandat_id, mois, net, envoye_le, versement_montant, versement_date")
+      .eq("organization_id", orgId)
+      .order("mois", { ascending: false }),
+    supabase
+      .from("persons")
+      .select("id, nom, prenom")
+      .eq("organization_id", orgId),
+  ]);
+  // Un échec de lecture ne doit pas se déguiser en « aucun mandat » (audit 09/09)
+  if (e1 || e2 || e3 || e4) {
+    return (
+      <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
+        <h1>Mandats &amp; rapports</h1>
+        <div className="vide mt-4">
+          Impossible de charger les mandats pour l&apos;instant — rechargez dans
+          un instant.
+        </div>
+      </main>
+    );
+  }
 
   const noms = new Map(
     ((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map((p) => [
@@ -52,18 +68,22 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   }
   const dernierRapport = new Map<
     string,
-    { mois: string; statut: string; net: number | null; envoye_le: string | null;
+    { mois: string; net: number | null; envoye_le: string | null;
       versement_montant: number | null; versement_date: string | null }
   >();
   for (const r of (rapports ?? []) as {
-    mandat_id: string; mois: string; statut: string; net: number | null;
+    mandat_id: string; mois: string; net: number | null;
     envoye_le: string | null; versement_montant: number | null; versement_date: string | null;
   }[]) {
     if (!dernierRapport.has(r.mandat_id)) dernierRapport.set(r.mandat_id, r);
   }
+  // Les états s'affichent en français, jamais en valeur d'enum (audit 09/09)
+  const ETATS_MANDAT: Record<string, string> = {
+    a_signer: "à signer",
+    preavis: "préavis",
+  };
   const liste = ((mandats ?? []) as {
     id: string; person_id: string; etat: string; date_debut: string | null;
-    date_fin: string | null; date_rapport: number | null;
   }[]);
   // Rapport envoyé sans versement : c'est l'attente qui coûte la confiance
   const enAttenteVersement = liste.filter((m) => {
@@ -135,7 +155,9 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
                       : "Aucun rapport de gestion encore généré"}
                   </span>
                 </span>
-                {m.etat !== "actif" && <span className="puce puce-prep shrink-0">{m.etat}</span>}
+                {m.etat !== "actif" && (
+                  <span className="puce puce-prep shrink-0">{ETATS_MANDAT[m.etat] ?? m.etat}</span>
+                )}
                 {r && r.envoye_le && !r.versement_date && (
                   <span className="puce puce-encre shrink-0">versement attendu</span>
                 )}

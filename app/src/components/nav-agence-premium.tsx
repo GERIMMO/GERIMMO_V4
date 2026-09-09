@@ -56,7 +56,9 @@ export function SidebarAgence({
     },
     { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: badgeIncidents },
     { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
-    { href: `${base}/comptabilite`, libelle: "Loyers & charges", icone: "euro" },
+    // Le libellé colle au titre de la page (audit 09/09) : l'admin ouvre la
+    // comptabilité complète, l'agent ses loyers & charges
+    { href: `${base}/comptabilite`, libelle: admin ? "Comptabilité" : "Loyers & charges", icone: "euro" },
     ...(admin
       ? [{ href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" }]
       : []),
@@ -77,7 +79,11 @@ export function SidebarAgence({
           <Link key={e.href} href={e.href} className={cn(active && "actif")} title={e.libelle}>
             <Icone nom={e.icone} />
             <span className="lib">{e.libelle}</span>
-            {(e.badge ?? 0) > 0 && <span className="loc-badge">{e.badge}</span>}
+            {(e.badge ?? 0) > 0 && (
+              <span className="loc-badge" aria-label={`${e.badge} à traiter`}>
+                {e.badge}
+              </span>
+            )}
           </Link>
         );
       })}

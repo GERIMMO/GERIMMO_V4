@@ -26,6 +26,7 @@ import {
   referenceCourte,
   type ContexteBail,
   type PersonneDocument,
+  liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -289,9 +290,7 @@ export async function assemblerBailNu(
     liens: [
       { entite: "bail", entiteId: ctx.bail.id },
       { entite: "lot", entiteId: ctx.lot.id },
-      ...(ctx.bail.locataire_principal
-        ? [{ entite: "personne" as const, entiteId: ctx.bail.locataire_principal }]
-        : []),
+      ...liensLocataires(ctx),
     ],
   };
 }

@@ -8,11 +8,24 @@ export const metadata = { title: "Messages — Gerimmo" };
 // Messages (maquette v6) : tous les fils en un endroit — une personne, son
 // dernier message, ses non-lus. Le fil se lit et se répond sur la fiche de la
 // personne (c'est là que la lecture marque « lu » et ferme l'alerte).
+// Le périmètre portefeuille (RM-18.1.3) est appliqué EN SQL par la RPC :
+// l'agent ne voit que les fils des locataires de ses mandats.
 export default async function PageMessages(props: PageProps<"/agence/[orgId]/messages">) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, role } = await verifierAccesEspace(orgId);
 
-  const { data } = await supabase.rpc("fils_messages_gerant", { p_org: orgId });
+  const { data, error } = await supabase.rpc("fils_messages_gerant", { p_org: orgId });
+  if (error) {
+    return (
+      <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
+        <h1>Messages</h1>
+        <div className="vide mt-4">
+          Impossible de charger les fils pour l&apos;instant — rechargez dans un
+          instant.
+        </div>
+      </main>
+    );
+  }
   const fils = (data ?? []) as {
     person_id: string;
     nom: string;
@@ -29,6 +42,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
       <div className="entete-page mb-6">
         <h1>Messages</h1>
         <span className="mono-discret">
+          {role === "agent" ? "Mon portefeuille · " : ""}
           {nonLus > 0 ? `${nonLus} non lu${nonLus > 1 ? "s" : ""}` : "tout est lu"}
         </span>
       </div>
@@ -43,7 +57,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
           {fils.map((f) => (
             <Link
               key={f.person_id}
-              href={`/agence/${orgId}/personnes/${f.person_id}`}
+              href={`/agence/${orgId}/personnes/${f.person_id}#messages`}
               className="rang"
             >
               <span aria-hidden className="avatar">

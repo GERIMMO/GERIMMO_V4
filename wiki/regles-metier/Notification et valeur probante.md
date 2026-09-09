@@ -3,7 +3,7 @@ type: business-rule
 tags: [preuve, notification, lrar, delai, ged, signature]
 status: draft
 created: 2026-07-24
-updated: 2026-09-06
+updated: 2026-09-09
 sources: ["[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
@@ -119,3 +119,14 @@ d'assurance que s'il prouve avoir réclamé le document ([[Dossier locataire]]).
 >   certains actes — vérification juridique préalable requise.
 > - La trace GED du module 12 (« fonde les délais ») est **à reformuler** dans le
 >   référentiel — voir [[Document]].
+
+## Précisions (2026-09-09)
+
+- La **signature préenregistrée** apposée sur les documents émis seuls
+  (quittance, reçu, courrier — [[Signature électronique]]) n'ajoute **aucune**
+  valeur probante : ces documents relèvent de la Famille 3 (« aucune preuve
+  requise », RM-A3.8) et la loi n'exige pas de signature sur une quittance
+  ([[Quittance conforme]]).
+- La **mise à disposition** d'un courrier dans l'espace locataire
+  ([[Document]]) n'est **pas** une notification : Gerimmo génère et suit, il ne
+  notifie jamais (RM-A3.1) — la LRAR reste le canal des actes.

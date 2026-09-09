@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { totalMessagesNonLus } from "@/lib/messagerie";
 import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
 import { SidebarAgence } from "@/components/nav-agence-premium";
@@ -30,7 +31,7 @@ export default async function LayoutAgence({
   // Revue recette 08/08 : la pop-up de connexion et le badge du menu ne
   // montrent que les alertes qui me sont confiées, dans l'agence où je me
   // trouve — l'acteur multi-agences navigue d'une agence à l'autre.
-  const [alertes, { count: incidentsOuverts }, { data: donneesMembres }] =
+  const [alertes, { count: incidentsOuverts }, { data: donneesMembres }, messagesNonLus] =
     await Promise.all([
       chargerSyntheseAlertes(supabase, { orgId }),
       // Badge maquette : les incidents encore ouverts (tout sauf clos)
@@ -39,9 +40,11 @@ export default async function LayoutAgence({
         .select("*", { count: "exact", head: true })
         .eq("organization_id", orgId)
         .neq("etat", "clos"),
-        // « Traiter » depuis la synthèse ouvre la pop-up sur place (recette
+      // « Traiter » depuis la synthèse ouvre la pop-up sur place (recette
       // 24/08) : il lui faut la liste des gérants pour « Confier à »
       supabase.rpc("org_membres_gerants", { org: orgId }),
+      // Badge Messages — même appel (mis en cache) que le tableau de bord
+      totalMessagesNonLus(supabase, orgId),
     ]);
   const alertesOrg = alertes.length;
   const membres = (donneesMembres ?? []) as {
@@ -55,14 +58,6 @@ export default async function LayoutAgence({
   // propriétaire direct est chez lui — barre latérale premium (même langage
   // que l'espace locataire), sélecteur d'organisation (nom propre / SCI) si
   // plusieurs, pages inchangées derrière.
-  const { data: nonLusRows } = await supabase.rpc("messages_non_lus_gerant", {
-    p_org: orgId,
-  });
-  const messagesNonLus = ((nonLusRows ?? []) as { non_lus: number }[]).reduce(
-    (somme, r) => somme + r.non_lus,
-    0
-  );
-
   if (estProprietaire) {
     const { data: adhesions } = await supabase
       .from("memberships")
@@ -120,7 +115,7 @@ export default async function LayoutAgence({
               {organisation.name}
               <span className="text-[var(--libelle)]"> · Propriétaire bailleur</span>
             </span>
-            <SortieMobile />
+            <SortieMobile profilHref={`/agence/${orgId}/profil`} />
             <span className="loc-avat" aria-hidden>
               {(organisation.name?.[0] ?? "◇").toUpperCase()}
             </span>
@@ -187,7 +182,7 @@ export default async function LayoutAgence({
               · {role === "admin_agence" ? "Admin d'agence" : "Agent"}
             </span>
           </span>
-          <SortieMobile />
+          <SortieMobile profilHref={`/agence/${orgId}/profil`} />
           <span className="loc-avat" aria-hidden>
             {(organisation.name?.[0] ?? "◇").toUpperCase()}
           </span>

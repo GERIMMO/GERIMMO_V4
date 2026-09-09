@@ -3,7 +3,7 @@ type: concept
 tags: [multi-tenant, organisation, socle]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-09
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
 ---
 
@@ -52,3 +52,13 @@ voir [[RGPD]].
 
 ## Implications pour l'application
 - `organization_id` partout + RLS activée ; slug unique ; statut pilotant l'accès.
+
+## Signature préenregistrée (2026-09-09)
+
+`organizations.signature_path` : l'image de signature (PNG/JPEG ≤ 1 Mo) que le
+**responsable** (admin d'agence ou propriétaire direct) dépose au profil de
+l'organisation, apposée sur les documents émis seuls ([[Signature
+électronique]]). Lecture Storage par policy dédiée (le fichier n'a pas de ligne
+`documents`) ; au remplacement ou au retrait, l'ancien fichier part en file de
+purge (`purge_fichiers`) — une signature manuscrite est une donnée personnelle,
+rien ne traîne ([[RGPD]]).

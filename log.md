@@ -2447,3 +2447,57 @@ Boutons de génération déjà en place sur les écrans partagés (bail, loyers,
 EDL, personnes, dépôt) — agent, admin et propriétaire direct les partagent.
 Migrations : `signature_documentaire`, `fils_messages_gerant`.
 Vert : 103 tests (+4), 0 erreur TS/lint, build OK.
+
+## [2026-09-09] lint | Audit multi-agents des vagues agence v6 + documentaire, corrections
+
+Trois agents d'audit en parallèle (espace agence, chantier documentaire,
+transversal/régressions), constats croisés puis corrections en une vague
+(migration `20260909100000_correctifs_audit_documentaire` appliquée en prod +
+UI) :
+
+- **Bloquants corrigés** : l'image de signature était illisible (la policy
+  Storage `ged_select` exige une ligne `documents` — policy dédiée, et l'ancien
+  fichier part en purge au remplacement/retrait) ; la route fichier locataire
+  refusait quittances, courriers, retours signés et même le locataire sorti
+  (`log_document_access` délègue désormais à `mon_document_locataire` — la
+  liste de droits ne vit plus en double).
+- **Fuite refermée** : tout `courrier` rattaché à une fiche devenait visible du
+  locataire (mise en demeure en préparation comprise). La mise à disposition
+  redevient un GESTE (RM-12) : colonne `partage_le`, bouton « Mettre à
+  disposition du locataire » sur la fiche de la pièce, réversible. Le test
+  « Courrier interne » redevient la règle.
+- **« Envoyer pour signature » durci** : RPC unique avec gardes — types
+  signables (bail/courrier/quittance, jamais un EDL, RM-13.1.6), signataire
+  rattaché au document, espace locataire actif obligatoire, une demande en
+  attente par document+personne (index partiel), FK composites même-org ;
+  demandes visibles et annulables sur la fiche ; le signé retourné hérite des
+  rattachements du document d'origine ; redépôt du fichier non signé → message
+  métier ; alerte `signature_retournee` routée vers la fiche GED ; `key` sur le
+  circuit (en vue scindée, l'état client visait l'ancien document).
+- **Périmètre agent (RM-18.1.3)** : Messages et son badge au portefeuille EN
+  SQL (`perimetre_persons_gerant`) ; GED filtrable par lots (`p_lots` sur les
+  trois fonctions), page Documents cadrée « Mon portefeuille ».
+- **Espace agence** : profil atteignable sous 860 px (icône dans l'en-tête,
+  agence ET propriétaire), date de salutation en casse naturelle (l'utilitaire
+  `normal-case` perdait contre `.mono-discret`, hors cascade layer),
+  Administration honnête (comptage sous mandat actif, portefeuilles alignés sur
+  lib/portefeuille, « suspendue » plus jamais en pastille verte, phrase « sans
+  titulaire » corrigée), erreurs Supabase affichées au lieu d'écrans faussement
+  vides (Messages, Mandats, Administration, Statistiques), libellés menu/pages
+  alignés, `nav-agence.tsx` (mort) supprimé, émojis retirés, RPC non-lus mise
+  en cache (un aller-retour au lieu de deux par page), états de mandat en
+  français, ancre #messages depuis la liste des fils.
+- **Où-renseigner refondu** sur les libellés RÉELS des 9 modèles (« commune de
+  naissance » ne part plus au profil de l'organisation ; l'identité du bailleur
+  part vers les détentions) ; le modèle départage les libellés ambigus ; tests
+  réécrits sur ces libellés (105 verts).
+- **Colocataires** : les PDF générés se rattachent à tous les locataires du
+  bail (`liensLocataires`), plus seulement au principal.
+- **Rétention** : `demandes_signature` purgées avec le document ou 24 mois
+  après signature ; dates affichées sur l'horloge de Paris (formaterDate).
+
+Pages mises à jour : [[Document]], [[Signature électronique]],
+[[Notification et valeur probante]], [[Organisation]], [[RGPD]],
+[[Agent immobilier]], [[2026-09-08-maquette-espace-agence-v6]].
+Portes : tsc 0 erreur, lint 14 warnings (base), 105 tests, build OK, advisors
+sans nouveau signalement.

@@ -25,6 +25,7 @@ import {
   adresseLogement,
   referenceCourte,
   type ContexteBail,
+  liensLocataires,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -272,9 +273,7 @@ export async function assemblerEdl(
     liens: [
       { entite: "bail", entiteId: edl.bail_id },
       { entite: "lot", entiteId: ctx.lot.id },
-      ...(ctx.bail.locataire_principal
-        ? [{ entite: "personne" as const, entiteId: ctx.bail.locataire_principal }]
-        : []),
+      ...liensLocataires(ctx),
     ],
   };
 }

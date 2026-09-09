@@ -9,6 +9,7 @@ import {
   motifLitteral,
 } from "@/lib/ged";
 import { formaterTaille } from "@/lib/file-type";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
   Card,
@@ -66,14 +67,20 @@ export default async function PageDocuments(
     au: uneValeur(brut.au),
   };
   const sel = uneValeur(brut.sel) ?? null;
-  const { supabase, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, organisation, role, user } = await verifierAccesEspace(orgId);
+  // Périmètre portefeuille (RM-18.1.3, audit 09/09) : l'agent ne voit que les
+  // pièces rattachées à ses lots, baux, incidents et locataires — les pièces
+  // d'organisation (sans rattachement) restent visibles de tous. Le filtre
+  // s'applique EN SQL, aux listes comme aux agrégats.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  const lotsPerimetre = portefeuille ? Array.from(portefeuille) : null;
 
   const filtresActifs = Boolean(recherche.type || recherche.q || recherche.du || recherche.au);
   // Navigation par filtres, jamais par dossiers (RM-12.5.1). La fonction
   // documents_courants (security invoker : la RLS s'applique) écarte les
   // versions remplacées EN SQL — pas de fenêtre applicative faussée.
   let requete = supabase
-    .rpc("documents_courants", { p_org: orgId })
+    .rpc("documents_courants", { p_org: orgId, p_lots: lotsPerimetre })
     .select(
       "id, type, titre, mime_type, taille_octets, expire_le, purged_at, created_at, liens:document_liens(entite, entite_id)"
     )
@@ -95,12 +102,17 @@ export default async function PageDocuments(
     requete,
     // La vue d'ensemble se calcule sur TOUTES les pièces courantes, agrégées
     // EN SQL — jamais sur une fenêtre plafonnée (revue 26/08, passes 1 et 2)
-    supabase.rpc("documents_stats_par_type", { p_org: orgId }),
+    supabase.rpc("documents_stats_par_type", { p_org: orgId, p_lots: lotsPerimetre }),
     supabase.rpc("documents_a_renouveler", {
       p_org: orgId,
       p_limite: limiteRenouvellement(),
+      p_lots: lotsPerimetre,
     }),
-    supabase.rpc("documents_courants", { p_org: orgId }, { count: "exact", head: true }),
+    supabase.rpc(
+      "documents_courants",
+      { p_org: orgId, p_lots: lotsPerimetre },
+      { count: "exact", head: true }
+    ),
     supabase
       .from("persons")
       .select("id, nom, prenom")
@@ -161,6 +173,7 @@ export default async function PageDocuments(
         </div>
         <div className="flex items-center gap-3">
           <span className="mono-discret">
+            {portefeuille ? "Mon portefeuille · " : ""}
             {totalCourants ?? docs.length} pièce{(totalCourants ?? docs.length) > 1 ? "s" : ""}
           </span>
           <Link href={lien("depot")} className="btn-or">

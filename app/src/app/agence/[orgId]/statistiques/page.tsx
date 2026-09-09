@@ -14,16 +14,27 @@ export default async function PageStatistiques(
   const { orgId } = await props.params;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
 
-  const [{ data: incidentsBruts }, { data: lots }] = await Promise.all([
+  const [{ data: incidentsBruts, error: e1 }, { data: lots, error: e2 }] = await Promise.all([
     supabase
       .from("incidents")
       .select("id, lot_id, etat, imputation, created_at, clos_le")
       .eq("organization_id", orgId),
     supabase.from("lots").select("id, nom").eq("organization_id", orgId),
   ]);
-  const perimetre = estProprietaire
-    ? null
-    : await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  // Un échec de lecture ne doit pas devenir « 0 incident » (audit 09/09)
+  if (e1 || e2) {
+    return (
+      <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
+        <h1>Statistiques</h1>
+        <div className="vide mt-4">
+          Impossible de calculer les métriques pour l&apos;instant — rechargez
+          dans un instant.
+        </div>
+      </main>
+    );
+  }
+  // lotsDuPortefeuille renvoie déjà null pour tout rôle autre qu'agent
+  const perimetre = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const nomLot = new Map(((lots ?? []) as { id: string; nom: string }[]).map((l) => [l.id, l.nom]));
   const incidents = ((incidentsBruts ?? []) as {
     id: string;
@@ -58,8 +69,9 @@ export default async function PageStatistiques(
   return (
     <main className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-7">
       <div className="entete-page">
-        <h1>{role === "agent" ? "Mes statistiques" : "Statistiques"}</h1>
+        <h1>{perimetre ? "Mes statistiques" : "Statistiques"}</h1>
         <span className="mono-discret">
+          {perimetre ? "Mon portefeuille · " : ""}
           {incidents.length} incident{incidents.length > 1 ? "s" : ""} au total
         </span>
       </div>
@@ -128,8 +140,10 @@ export default async function PageStatistiques(
         )}
         <p className="mt-3 text-xs text-muted-foreground">
           Un même lot signalé plusieurs fois pour la même famille de panne :
-          l&apos;argument chiffré à présenter au propriétaire pour des travaux de
-          fond. Les coûts par intervention arriveront avec les devis d&apos;artisans.
+          {estProprietaire
+            ? " le signe chiffré qu'un travail de fond s'impose."
+            : " l'argument chiffré à présenter au propriétaire pour des travaux de fond."}{" "}
+          Les coûts par intervention arriveront avec les devis d&apos;artisans.
         </p>
       </div>
     </main>

@@ -39,6 +39,10 @@ function cheminFiche(a: AlerteRang, orgId: string): string | null {
   ) {
     return `/agence/${orgId}/baux/${a.details.bail_id}`;
   }
+  // Un document signé retourné se contrôle puis se classe sur sa fiche GED
+  if (a.type === "signature_retournee" && typeof a.details?.document_id === "string") {
+    return `/agence/${orgId}/documents?sel=${a.details.document_id}`;
+  }
   return null;
 }
 

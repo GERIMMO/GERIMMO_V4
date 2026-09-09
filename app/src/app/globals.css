@@ -303,6 +303,11 @@ a:hover > [data-slot="card"] {
   text-transform: uppercase;
   color: var(--libelle);
 }
+/* Variante en casse naturelle — l'utilitaire Tailwind `normal-case` vit dans
+   un cascade layer et perd contre .mono-discret, hors layer (audit 09/09) */
+.mono-discret.sans-majuscules {
+  text-transform: none;
+}
 
 /* Tuile KPI : carte à liseré gauche, chiffre serif, jauge (maquette .kpi) */
 .kpi {

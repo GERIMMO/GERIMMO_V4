@@ -3,7 +3,7 @@ type: persona
 tags: [role, agence]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-09
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
 ---
 
@@ -63,3 +63,15 @@ portefeuille restent à spécifier (point P1.1, phase B —
 > [!warning] Points à trancher / contradictions
 > - Rôle le moins documenté ; ses limites exactes sur les loyers restent à confirmer.
 >
+
+## Périmètre portefeuille — Documents et Messages (2026-09-09)
+
+La maquette v6 ouvrait Documents et Messages à l'agent **sans** filtre de
+portefeuille (contradiction avec RM-18.1.3, relevée à l'audit du 09/09).
+Corrigé : `fils_messages_gerant` et `messages_non_lus_gerant` appliquent le
+périmètre EN SQL (les locataires des baux de ses lots sous mandat ; sans mandat
+confié, il voit tout — état de reprise, même règle que le parc) ; la GED
+accepte une liste de lots (`p_lots`) et la page Documents la lui passe (pièces
+de ses lots, baux, incidents et locataires ; les pièces d'organisation restent
+communes). La RLS `documents` reste org-entière : le périmètre est un cadrage
+d'écran, pas une cloison — à trancher si l'isolement dur devient une exigence.

@@ -59,7 +59,7 @@ export function BoutonGenererDocument({
         <span className="block w-full text-xs text-warning-soft-foreground">
           Restés en libellé :{" "}
           {resultat.manquants!.slice(0, 5).map((m, i) => {
-            const cible = lienPourManquant(m, orgId, resultat.liens ?? []);
+            const cible = lienPourManquant(m, orgId, resultat.liens ?? [], code);
             return (
               <span key={m}>
                 {i > 0 && " · "}

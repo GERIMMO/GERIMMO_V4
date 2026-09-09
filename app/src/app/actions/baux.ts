@@ -68,9 +68,27 @@ function lireChampsBail(
   const charges = String(formData.get("charges") ?? "").trim();
   const depot = String(formData.get("depot_garantie") ?? "").trim();
   const jour = String(formData.get("jour_echeance") ?? "1").trim();
+  const type = String(formData.get("type") ?? "nu");
+
+  // Plafond légal du dépôt de garantie (audit 09/09, RM-2.1.1 / RM-2.1.2 —
+  // wiki « Dépôt de garantie ») : 1 mois de loyer HORS CHARGES en nu et en
+  // colocation, 2 mois en meublé. Refus dès la saisie — le contrôle
+  // n'attendait que l'activation, un bail nu acceptait n'importe quel dépôt.
+  if (loyer && depot) {
+    const mois = type === "meuble" ? 2 : 1;
+    const plafond = mois * Number(loyer);
+    if (Number(depot) > plafond) {
+      return {
+        erreur: `Dépôt de garantie trop élevé : le plafond légal d'un bail ${
+          (TYPES_BAIL[type] ?? type).toLowerCase()
+        } est de ${mois} mois de loyer hors charges, soit ${eur(plafond)}.`,
+      };
+    }
+  }
+
   return {
     valeurs: {
-      type: String(formData.get("type") ?? "nu"),
+      type,
       locataire_principal: locataire,
       date_debut: String(formData.get("date_debut") ?? "").trim() || null,
       loyer_hc: loyer ? Number(loyer) : null,

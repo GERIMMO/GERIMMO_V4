@@ -2692,3 +2692,16 @@ Rapport d'audit manuel reçu (13 anomalies + secondaires). Corrigé le jour mêm
 Restes à faire notés : page Bail en onglets (ergonomie), regroupement des
 mandats résiliés, squelettes avec limite de temps, ratio encaissé/appelé
 explicité, section « Pièces à renouveler » sous filtre.
+
+## [2026-09-09] ingest | Fin de la vague M — tableau de bord aligné, plafond du dépôt, compteurs diagnostics
+Dernier volet des corrections d'audit : source commune `actionsAttendues`
+(impayés, EDL d'entrée non signé, diagnostics en défaut, pièces expirées)
+partagée entre l'accueil propriétaire, le tableau de bord agence et la fiche
+bail — « Rien ne vous attend » ne peut plus contredire un bail bloqué. Plafond
+du dépôt de garantie appliqué à la saisie et en base (trigger, migration
+`20260909240000`) — voir [[Dépôt de garantie]] (colocation et bail mobilité à
+trancher). Compteurs de diagnostics unifiés et étiquetés de leur niveau
+(« au lot » / « à l'immeuble ») sur Parc, fiche bien, fiche lot. Fenêtre de
+synthèse des alertes redessinée (cartes-rangées cliquables, liseré de
+criticité, titres complets) sur demande de Tahir. Donnée de démo corrigée :
+dépôt de la colocation Alpha ramené à 300 € (plafond). Publication sur main.

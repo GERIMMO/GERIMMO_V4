@@ -11,6 +11,7 @@ import {
   diagnosticsExigibles,
   diagnosticsManquants,
   alerteDiagnosticsNiveau,
+  etiqueterNiveau,
   LIBELLES_NIVEAU_DIAGNOSTIC,
 } from "@/lib/diagnostics";
 import { formaterDate, eur } from "@/lib/ged";
@@ -233,7 +234,10 @@ export default async function PageLot(
                   const memePage = cible.href.includes(`/lots/${lotId}#`);
                   return (
                     <li key={b} className="flex items-center justify-between gap-2">
-                      <span className="min-w-0 flex-1 text-muted-foreground">{b}</span>
+                      {/* Un diagnostic porte son niveau (« au lot » / « à l'immeuble ») */}
+                      <span className="min-w-0 flex-1 text-muted-foreground">
+                        {etiqueterNiveau(b, b)}
+                      </span>
                       {memePage ? (
                         <a href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
                           {cible.libelle} →

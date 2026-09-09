@@ -14,6 +14,7 @@ import {
   diagnosticsExigibles,
   diagnosticsManquants,
   alerteDiagnosticsNiveau,
+  etiqueterNiveau,
   LIBELLES_NIVEAU_DIAGNOSTIC,
 } from "@/lib/diagnostics";
 import { formaterDate } from "@/lib/ged";
@@ -384,7 +385,8 @@ export default async function PageBien(
                   const classe = `shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`;
                   return (
                     <li key={b} className="flex flex-wrap items-center gap-2 text-sm">
-                      <span className="min-w-0 flex-1">{b}</span>
+                      {/* Un diagnostic porte son niveau (« au lot » / « à l'immeuble ») */}
+                      <span className="min-w-0 flex-1">{etiqueterNiveau(b, b)}</span>
                       {memePage ? (
                         <a href={cible.href} className={classe}>{cible.libelle}</a>
                       ) : (
@@ -444,7 +446,9 @@ export default async function PageBien(
                               key={b}
                               className="flex flex-wrap items-center gap-2 text-sm"
                             >
-                              <span className="min-w-0 flex-1 text-muted-foreground">{b}</span>
+                              <span className="min-w-0 flex-1 text-muted-foreground">
+                                {etiqueterNiveau(b, b)}
+                              </span>
                               <Link
                                 href={cible.href}
                                 className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}

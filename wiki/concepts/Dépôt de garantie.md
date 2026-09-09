@@ -71,3 +71,19 @@ injustifiée et une source de contestation — le locataire voit le décompte qu
   décompte envoyé au locataire (2.7).
 - Alimente le solde de tout compte (module 3.11) et la [[Comptabilité]] (4.1/4.2).
 - Délai de restitution alerté par le module 14 ([[Agenda et échéances]]).
+
+## Application dans le produit (2026-09-09)
+
+Le plafond est désormais **bloquant à la saisie ET en base** (audit fonctionnel
+du 09/09, P2) : l'action serveur du bail refuse un dépôt qui dépasse, et un
+trigger sur `baux` (migration `20260909240000`) le refuse aussi sur toute
+insertion ou modification de type/loyer/dépôt — les baux déjà en place ne sont
+pas re-vérifiés tant qu'on n'y touche pas. Base retenue : **loyer hors
+charges** ; nu → 1 mois, meublé → 2 mois.
+
+> [!warning] Points à trancher / contradictions
+> - **Colocation** : traitée comme un bail nu (1 mois de loyer HC du bail
+>   entier). Aucune source ne tranche le cas d'un dépôt par colocataire —
+>   à confirmer.
+> - **Bail mobilité** : dépôt interdit par la loi ELAN ; le type n'existe pas
+>   encore dans l'application — à couvrir quand il arrivera.

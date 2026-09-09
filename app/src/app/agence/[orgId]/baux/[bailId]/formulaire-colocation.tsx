@@ -43,12 +43,17 @@ export function FormulaireColocation({
   personnes,
   lignes,
   principal,
+  colocation,
 }: {
   orgId: string;
   bailId: string;
   personnes: Personne[];
   lignes: LigneColoc[];
   principal: Personne;
+  // Hors colocation (bail nu/meublé), seule la partie Garants est rendue :
+  // tout bail peut porter des garants, seuls les colocataires sont propres
+  // au bail unique de colocation.
+  colocation: boolean;
 }) {
   const colocataires = lignes.filter((l) => l.role === "colocataire");
   const garants = lignes.filter((l) => l.role === "garant");
@@ -71,13 +76,16 @@ export function FormulaireColocation({
 
   return (
     <div className="space-y-5">
-      <p className="text-xs text-muted-foreground">
-        Bail unique : un seul appel de loyer, jamais fractionné. Les
-        quotes-parts servent à la répartition interne et aux attestations CAF.
-        Locataire principal (référent) : <span className="font-medium">{principal.nom}</span>.
-      </p>
+      {colocation && (
+        <p className="text-xs text-muted-foreground">
+          Bail unique : un seul appel de loyer, jamais fractionné. Les
+          quotes-parts servent à la répartition interne et aux attestations CAF.
+          Locataire principal (référent) : <span className="font-medium">{principal.nom}</span>.
+        </p>
+      )}
 
-      {/* Colocataires */}
+      {/* Colocataires — propres au bail unique de colocation */}
+      {colocation && (
       <div className="space-y-2">
         <p className="text-sm font-medium">
           Colocataires{" "}
@@ -150,9 +158,10 @@ export function FormulaireColocation({
           </div>
         </form>
       </div>
+      )}
 
       {/* Garants */}
-      <div className="space-y-2 border-t border-border pt-4">
+      <div className={colocation ? "space-y-2 border-t border-border pt-4" : "space-y-2"}>
         <p className="text-sm font-medium">Garants</p>
         {garants.length === 0 ? (
           <p className="text-sm text-muted-foreground">Aucun garant.</p>
@@ -196,7 +205,7 @@ export function FormulaireColocation({
           </div>
           <div className="space-y-1">
             <Label htmlFor="garant-de" className="text-xs">
-              Couvre le colocataire
+              {colocation ? "Couvre le colocataire" : "Couvre le locataire"}
             </Label>
             <select
               id="garant-de"
@@ -221,11 +230,18 @@ export function FormulaireColocation({
             {etatG.erreur && <p className="mt-1 text-sm text-destructive">{etatG.erreur}</p>}
           </div>
         </form>
-        <p className="text-xs text-muted-foreground">
-          Garant nominatif (couvre un colocataire) ; avec clause de solidarité, il
-          peut être appelé au-delà de sa part. Engagement plafonné à 6 mois après le
-          départ du colocataire couvert (loi ALUR).
-        </p>
+        {colocation ? (
+          <p className="text-xs text-muted-foreground">
+            Garant nominatif (couvre un colocataire) ; avec clause de solidarité, il
+            peut être appelé au-delà de sa part. Engagement plafonné à 6 mois après le
+            départ du colocataire couvert (loi ALUR).
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Le garant s&apos;engage par un acte de cautionnement, à générer depuis la
+            carte « Cautionnement » une fois le garant rattaché au bail.
+          </p>
+        )}
       </div>
     </div>
   );

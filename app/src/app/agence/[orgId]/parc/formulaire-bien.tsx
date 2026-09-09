@@ -26,6 +26,8 @@ export type BienFormulaire = {
   annee_construction: number | null;
   copropriete: boolean;
   zone_tendue: boolean;
+  parties_communes: string | null;
+  acces_tic: string | null;
 };
 
 // Création (avec surface/pièces du lot unique) ou édition d'un bien existant.
@@ -247,6 +249,34 @@ export function FormulaireBien({
           </Label>
         </div>
       </div>
+
+      {bien && (
+        // Repris tels quels dans la désignation du bail (parties communes et
+        // accès aux technologies de l'information — art. 3 loi 89-462).
+        // En édition seulement, comme le type : la création reste courte.
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="bien-parties-communes">Parties communes</Label>
+            <Input
+              id="bien-parties-communes"
+              name="parties_communes"
+              maxLength={300}
+              defaultValue={etat.valeurs?.parties_communes ?? bien.parties_communes ?? ""}
+              placeholder="Hall, ascenseur, local vélos…"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="bien-acces-tic">Accès TIC</Label>
+            <Input
+              id="bien-acces-tic"
+              name="acces_tic"
+              maxLength={200}
+              defaultValue={etat.valeurs?.acces_tic ?? bien.acces_tic ?? ""}
+              placeholder="Fibre optique, TNT…"
+            />
+          </div>
+        </div>
+      )}
 
       {!bien && (
         <div className="space-y-4 border-t border-border pt-4">

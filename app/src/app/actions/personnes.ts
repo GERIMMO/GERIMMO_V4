@@ -238,6 +238,8 @@ export async function archiverPersonne(
 
 // Modifier l'identité et les coordonnées d'une personne (recette 13/08 : une
 // fiche créée doit rester corrigeable — nom, prénom, email, date de naissance).
+// Étendu à l'état civil et l'adresse du contrat : commune de naissance, adresse
+// postale, qualité (bail) — champs facultatifs, vide → null.
 export async function modifierPersonne(
   orgId: string,
   personId: string,
@@ -253,6 +255,11 @@ export async function modifierPersonne(
   const email = String(formData.get("email") ?? "").trim();
   const telephone = String(formData.get("telephone") ?? "").trim();
   const dateNaissance = String(formData.get("date_naissance") ?? "").trim();
+  const communeNaissance = String(formData.get("commune_naissance") ?? "").trim();
+  const adresse = String(formData.get("address_line1") ?? "").trim();
+  const codePostal = String(formData.get("postal_code") ?? "").trim();
+  const ville = String(formData.get("city") ?? "").trim();
+  const qualite = String(formData.get("qualite") ?? "").trim();
 
   if (!nom) return { erreur: "Le nom (ou la raison sociale) est obligatoire.", valeurs };
   // Une personne physique (fiche avec prénom) garde un prénom — même règle
@@ -283,6 +290,11 @@ export async function modifierPersonne(
       email,
       telephone: telephone || null,
       date_naissance: dateNaissance || null,
+      commune_naissance: communeNaissance || null,
+      address_line1: adresse || null,
+      postal_code: codePostal || null,
+      city: ville || null,
+      qualite: qualite || null,
     })
     .eq("id", personId)
     .eq("organization_id", orgId);

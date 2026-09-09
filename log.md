@@ -2531,3 +2531,37 @@ balayage par 10 agents + contrôle) :
   superadmin@gerimmo-demo.fr est désactivé.
 
 Portes : tsc 0 erreur, lint 14 warnings (base), 105 tests, build OK.
+
+## [2026-09-09] ingest | Documents de base terminés (carte blanche) — bail 100 % rempli + 6 nouveaux modèles
+
+Demande : « finir les documents de base — tout se remplit et se change de
+manière automatique et structurée ». Une vague en trois temps (reconnaissance
+3 agents, construction 10 agents en parallèle, intégration) :
+
+- **Bail 100 % rempli** : migration `20260909140000_bail_complet_champs`
+  (appliquée en prod) — 28 nouveaux champs à leur bon niveau : organisation
+  (carte professionnelle, garantie financière, IBAN), personne (commune de
+  naissance, adresse, qualité), lot (chauffage, eau chaude, locaux
+  privatifs), bien (parties communes, accès TIC), bail (fixation et paiement
+  du loyer, encadré zone tendue complet, valeur IRL, durée réduite, travaux,
+  honoraires, clauses particulières, variante étudiant). Chaque champ a son
+  écran : profil, fiche personne, fiche lot/bien, et la nouvelle carte
+  « Compléments du contrat » sur le bail (modifiable en brouillon, figée
+  ensuite). Les équipements structurés du lot alimentent enfin le contrat ;
+  première échéance (avec prorata) et plafond d'honoraires se calculent ;
+  les champs facultatifs vides s'impriment « — »/« Néant. » sans compter
+  manquants. Un bail aux fiches remplies sort SANS manquant (testé).
+- **Six nouveaux modèles** au registre (15 générables au total) : bail
+  meublé (inventaire annexé, étudiant 9 mois), acte de cautionnement (par
+  garant — et les garants se rattachent désormais à TOUT bail, plus
+  seulement en colocation), décompte de restitution, congé du bailleur
+  (vente/reprise/motif légitime, préavis 6/3 mois, encadré LRAR RM-A3.1),
+  avenant, mandat de gestion (loi Hoguet). La génération accepte des
+  « options de geste » (motif, garant, objet) ; boutons posés sur la fiche
+  du bail (contrat nu/meublé selon le type, congé bailleur dans la carte
+  Congé, avenant, cautionnement) et la fiche du mandant (« Mandat PDF »).
+- Où-renseigner étendu (carte pro, garantie financière, inventaire…).
+
+Pages wiki : [[Document]], [[Structure du modèle-type de bail]],
+[[Mandat de gestion]]. Portes : tsc 0 erreur, lint 14 warnings (base),
+107 tests (+2), build OK.

@@ -161,6 +161,66 @@ export async function modifierBail(
   return { succes: "Brouillon corrigé." };
 }
 
+// Compléments du contrat (bail 100 % rempli, 09/09) : les conditions
+// détaillées que le contrat type imprime — fixation et paiement du loyer,
+// travaux, honoraires, encadrement en zone tendue, clauses particulières.
+// Tous facultatifs : un champ vide s'écrit NULL, le modèle PDF imprime alors
+// son libellé d'épreuve ou « — ». Même garde que modifierBail : seul un
+// brouillon se corrige.
+export async function modifierComplementsBail(
+  orgId: string,
+  bailId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const texte = (nom: string) => String(formData.get(nom) ?? "").trim() || null;
+  const nombre = (nom: string) => {
+    const brut = String(formData.get(nom) ?? "").trim();
+    return brut ? Number(brut) : null;
+  };
+
+  const { data: modifies, error } = await supabase
+    .from("baux")
+    .update({
+      fixation_loyer: texte("fixation_loyer"),
+      paiement_echeance: formData.get("paiement_echeance") === "echu" ? "echu" : "echoir",
+      lieu_paiement: texte("lieu_paiement"),
+      irl_valeur: nombre("irl_valeur"),
+      duree_reduite_evenement: texte("duree_reduite_evenement"),
+      travaux_recents: texte("travaux_recents"),
+      travaux_recents_montant: nombre("travaux_recents_montant"),
+      travaux_locataire: texte("travaux_locataire"),
+      honoraires_bailleur: nombre("honoraires_bailleur"),
+      honoraires_locataire: nombre("honoraires_locataire"),
+      clauses_particulieres: texte("clauses_particulieres"),
+      // Zone tendue : le formulaire n'envoie ces champs que si le bien y est —
+      // absents, ils s'écrivent NULL (l'encadrement ne s'applique pas).
+      loyer_reference: nombre("loyer_reference"),
+      loyer_reference_majore: nombre("loyer_reference_majore"),
+      complement_loyer: nombre("complement_loyer"),
+      complement_justification: texte("complement_justification"),
+      dernier_loyer: nombre("dernier_loyer"),
+      dernier_loyer_versement: texte("dernier_loyer_versement"),
+      dernier_loyer_revision: texte("dernier_loyer_revision"),
+      meuble_etudiant: formData.get("meuble_etudiant") === "on",
+    })
+    .eq("id", bailId)
+    .eq("organization_id", orgId)
+    .eq("etat", "brouillon")
+    .select("id");
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if ((modifies ?? []).length === 0) {
+    return { erreur: "Seul un bail en brouillon se corrige — celui-ci a déjà avancé.", valeurs };
+  }
+
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: "Compléments enregistrés." };
+}
+
 // Blocages de mise en location, chacun transformé en action cliquable
 // (bouton « Corriger » vers la bonne section de la fiche lot / bien).
 async function blocagesActionables(

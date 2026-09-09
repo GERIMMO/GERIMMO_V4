@@ -220,6 +220,9 @@ export async function modifierBien(
       annee_construction: annee ? Number(annee) : null,
       copropriete: formData.get("copropriete") === "on",
       zone_tendue: formData.get("zone_tendue") === "on",
+      // Désignation du bail (art. 3 loi 89-462) — saisis en édition seulement
+      parties_communes: String(formData.get("parties_communes") ?? "").trim() || null,
+      acces_tic: String(formData.get("acces_tic") ?? "").trim() || null,
     })
     .eq("id", bienId)
     .eq("organization_id", orgId);
@@ -255,6 +258,10 @@ export async function modifierLot(
     description: String(formData.get("description") ?? "").trim() || null,
     tantieme: tantieme ? Number(tantieme) : null,
     identifiant_fiscal: String(formData.get("identifiant_fiscal") ?? "").trim() || null,
+    // Désignation du bail (art. 3 loi 89-462) : chauffage, eau chaude, accessoires
+    chauffage: String(formData.get("chauffage") ?? "").trim() || null,
+    eau_chaude: String(formData.get("eau_chaude") ?? "").trim() || null,
+    locaux_privatifs: String(formData.get("locaux_privatifs") ?? "").trim() || null,
   };
   for (const champ of ["surface_m2", "surface_carrez", "pieces"]) {
     if (formData.has(champ)) {

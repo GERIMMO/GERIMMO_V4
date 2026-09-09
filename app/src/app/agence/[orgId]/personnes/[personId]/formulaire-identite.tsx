@@ -49,6 +49,8 @@ export function BoutonArchiverPersonne({
 
 // Modifier l'identité d'une fiche (recette 13/08) : replié par défaut, le
 // formulaire reprend les valeurs actuelles — l'email reste unique par agence.
+// État civil et adresse alimentent les contrats (bail nu) : commune de
+// naissance, adresse postale et qualité du signataire.
 export function FormulaireIdentite({
   orgId,
   personId,
@@ -57,6 +59,11 @@ export function FormulaireIdentite({
   email,
   telephone,
   dateNaissance,
+  communeNaissance,
+  adresse,
+  codePostal,
+  ville,
+  qualite,
 }: {
   orgId: string;
   personId: string;
@@ -65,6 +72,11 @@ export function FormulaireIdentite({
   email: string | null;
   telephone: string | null;
   dateNaissance: string | null;
+  communeNaissance: string | null;
+  adresse: string | null;
+  codePostal: string | null;
+  ville: string | null;
+  qualite: string | null;
 }) {
   const action = modifierPersonne.bind(null, orgId, personId);
   const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
@@ -135,6 +147,52 @@ export function FormulaireIdentite({
             name="date_naissance"
             type="date"
             defaultValue={etat.valeurs?.date_naissance ?? dateNaissance ?? ""}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ident-commune-naissance">Commune de naissance</Label>
+          <Input
+            id="ident-commune-naissance"
+            name="commune_naissance"
+            maxLength={120}
+            defaultValue={etat.valeurs?.commune_naissance ?? communeNaissance ?? ""}
+          />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="ident-adresse">Adresse</Label>
+          <Input
+            id="ident-adresse"
+            name="address_line1"
+            maxLength={200}
+            defaultValue={etat.valeurs?.address_line1 ?? adresse ?? ""}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ident-cp">Code postal</Label>
+          <Input
+            id="ident-cp"
+            name="postal_code"
+            maxLength={12}
+            defaultValue={etat.valeurs?.postal_code ?? codePostal ?? ""}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="ident-ville">Ville</Label>
+          <Input
+            id="ident-ville"
+            name="city"
+            maxLength={120}
+            defaultValue={etat.valeurs?.city ?? ville ?? ""}
+          />
+        </div>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="ident-qualite">Qualité (bail)</Label>
+          <Input
+            id="ident-qualite"
+            name="qualite"
+            maxLength={120}
+            placeholder="Personne physique, SCI, indivision…"
+            defaultValue={etat.valeurs?.qualite ?? qualite ?? ""}
           />
         </div>
       </div>

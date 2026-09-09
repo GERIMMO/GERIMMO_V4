@@ -3,7 +3,7 @@ type: concept
 tags: [bail, modele-type, template, generation, decret-2015-587, bail-nu]
 status: draft
 created: 2026-08-05
-updated: 2026-08-05
+updated: 2026-09-09
 sources: ["[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -88,3 +88,16 @@ Gabarit du parcours 1.16 ([[Bail]]) · cadre légal : [[Mentions obligatoires du
 clauses : [[Clauses abusives et clauses résolutoires]] · panorama des régimes :
 [[Types de baux]] · données sources : [[Bien]], [[Lot]], [[Dossier locataire]],
 [[Mandat de gestion]], [[Diagnostic]].
+
+## Alimentation complète (2026-09-09)
+
+Chaque rubrique du modèle-type est désormais adossée à une donnée de
+l'application (voir [[Document]]) : équipements du logement (liste fermée du
+catalogue), chauffage/eau chaude, locaux privatifs et communs, TIC, fixation
+du loyer et encadré zone tendue (références, complément « néant », dernier
+loyer), valeur de l'IRL, paiement (à échoir/échu, lieu, IBAN de
+l'organisation), première échéance calculée avec prorata, travaux, honoraires
+(plafond 10 €/m² en zone tendue, 8 €/m² sinon — « sans objet » en location
+directe), clauses particulières, carte professionnelle du mandataire, commune
+de naissance du locataire. La « durée réduite » n'imprime plus un champ vide :
+sans événement déclaré, la clause devient « Sans objet ».

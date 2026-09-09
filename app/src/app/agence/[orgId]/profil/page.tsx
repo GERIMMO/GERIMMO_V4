@@ -16,7 +16,9 @@ export default async function PageProfil(props: { params: Promise<{ orgId: strin
 
   const { data: organisation } = await supabase
     .from("organizations")
-    .select("name, address_line1, postal_code, city, telephone, email_contact, siret")
+    .select(
+      "name, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, iban"
+    )
     .eq("id", orgId)
     .maybeSingle();
   if (!organisation) return null;

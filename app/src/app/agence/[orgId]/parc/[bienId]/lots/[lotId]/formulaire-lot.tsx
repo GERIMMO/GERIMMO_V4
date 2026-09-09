@@ -17,6 +17,9 @@ export type LotFormulaire = {
   description: string | null;
   tantieme: number | null;
   identifiant_fiscal: string | null;
+  chauffage: string | null;
+  eau_chaude: string | null;
+  locaux_privatifs: string | null;
 };
 
 export function FormulaireLot({
@@ -104,6 +107,38 @@ export function FormulaireLot({
             step="0.01"
             min="0.01"
             defaultValue={etat.valeurs?.tantieme ?? lot.tantieme ?? ""}
+          />
+        </div>
+        {/* Régimes de chauffage/eau chaude et accessoires : repris tels quels
+            dans la désignation du bail (art. 3 loi 89-462) */}
+        <div className="space-y-2">
+          <Label htmlFor="lot-chauffage">Chauffage</Label>
+          <Input
+            id="lot-chauffage"
+            name="chauffage"
+            maxLength={200}
+            defaultValue={etat.valeurs?.chauffage ?? lot.chauffage ?? ""}
+            placeholder="Individuel — électricité"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="lot-eau-chaude">Eau chaude</Label>
+          <Input
+            id="lot-eau-chaude"
+            name="eau_chaude"
+            maxLength={200}
+            defaultValue={etat.valeurs?.eau_chaude ?? lot.eau_chaude ?? ""}
+            placeholder="Individuelle — ballon électrique"
+          />
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <Label htmlFor="lot-locaux-privatifs">Locaux privatifs</Label>
+          <Input
+            id="lot-locaux-privatifs"
+            name="locaux_privatifs"
+            maxLength={300}
+            defaultValue={etat.valeurs?.locaux_privatifs ?? lot.locaux_privatifs ?? ""}
+            placeholder="Cave n° 4, parking n° 12…"
           />
         </div>
         <div className="flex items-center gap-2 pt-2">

@@ -17,6 +17,9 @@ type Organisation = {
   telephone: string | null;
   email_contact: string | null;
   siret: string | null;
+  carte_pro: string | null;
+  garantie_financiere: string | null;
+  iban: string | null;
 };
 
 export function FormulaireProfilOrganisation({
@@ -82,6 +85,46 @@ export function FormulaireProfilOrganisation({
       <div className="space-y-2">
         <Label htmlFor="pr-siret">SIRET (facultatif)</Label>
         <Input id="pr-siret" name="siret" disabled={lectureSeule} defaultValue={valeur("siret")} />
+      </div>
+      {!estProprietaire && (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="pr-carte-pro">Carte professionnelle (n° et CCI)</Label>
+            <Input
+              id="pr-carte-pro"
+              name="carte_pro"
+              disabled={lectureSeule}
+              defaultValue={valeur("carte_pro")}
+              placeholder="CPI 7501 2026 000 000 000 — CCI de Paris"
+            />
+            <p className="text-xs text-muted-foreground">
+              Reportée sur le bail et le mandat de gestion.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pr-garantie">Garantie financière (organisme, montant)</Label>
+            <Input
+              id="pr-garantie"
+              name="garantie_financiere"
+              disabled={lectureSeule}
+              defaultValue={valeur("garantie_financiere")}
+              placeholder="Galian, 120 000 €"
+            />
+          </div>
+        </>
+      )}
+      <div className="space-y-2">
+        <Label htmlFor="pr-iban">IBAN (modalités de paiement des documents)</Label>
+        <Input
+          id="pr-iban"
+          name="iban"
+          disabled={lectureSeule}
+          defaultValue={valeur("iban")}
+          placeholder="FR76 …"
+        />
+        <p className="text-xs text-muted-foreground">
+          Reporté sur les avis d&apos;échéance.
+        </p>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}

@@ -157,18 +157,91 @@ describe("Modèle 01 — bail nu", () => {
     expect(simple.html).not.toContain("règlement de copropriété");
   });
 
-  it("laisse en libellé ce que la base n'a pas — et le compte honnêtement", () => {
+  it("imprime les données du bail 100 % rempli — zéro manquant sur la fixture complète", () => {
     const f = new Fusion();
     const doc = construireBailNu(contexte(), { dpeClasse: null, f });
-    // Jamais demandés au sprint Documents-0 : chauffage, TIC, honoraires…
+    // Câblage du contrat type (décret 2015-587) : chaque rubrique porte la donnée réelle
+    expect(doc.html).toContain("Villeurbanne"); // commune de naissance du locataire
+    expect(doc.html).toContain("Cuisine équipée, Placards"); // équipements du lot
+    expect(doc.html).toContain("Individuel — électricité"); // chauffage
+    expect(doc.html).toContain("Hall, ascenseur, local vélos"); // parties communes
+    expect(doc.html).toContain("Fibre optique"); // accès TIC
+    expect(doc.html).toContain("Sans objet — le contrat est conclu pour la durée de droit commun.");
+    expect(doc.html).toContain("à échoir");
+    expect(doc.html).toContain("Virement bancaire");
+    expect(doc.html).toContain("FR76 3000 4000 0500 0012 3456 789"); // IBAN facultatif imprimé
+    expect(doc.html).toMatch(/740,00\s€/); // 650 + 90, bail au 1er du mois : pas de prorata
+    expect(doc.html).not.toContain("premier mois au prorata");
+    expect(doc.html).toContain("145,17"); // valeur de l'indice IRL
+    expect(doc.html).toMatch(/640,00\s€/); // dernier loyer du précédent locataire
+    expect(doc.html).toContain("Complément de loyer : néant.");
+    expect(doc.html).toContain("Sans objet — location conclue sans intermédiaire."); // pas une agence
+    expect(doc.html).toContain("Néant."); // travaux et clauses particulières vides
+    // Le bail complet ne laisse AUCUN champ en libellé d'épreuve
+    expect(doc.manquants).toEqual([]);
+  });
+
+  it("laisse en libellé ce que la base n'a pas — et le compte honnêtement", () => {
+    const f = new Fusion();
+    const base = contexte();
+    const doc = construireBailNu(
+      contexte({
+        organisation: { ...base.organisation, iban: null },
+        bail: { ...base.bail, fixation_loyer: null, lieu_paiement: null, irl_valeur: null, date_debut: null },
+        lot: { ...base.lot, chauffage: null, eau_chaude: null, equipements: [], locaux_privatifs: null },
+        bien: { ...base.bien, parties_communes: null, acces_tic: null },
+        locataires: [personne({ commune_naissance: null, telephone: null })],
+      }),
+      { dpeClasse: null, f }
+    );
     expect(doc.html).toContain("individuel ou collectif, énergie");
     expect(doc.html).toContain("fibre, câble, TNT…");
     expect(doc.manquants).toContain("commune de naissance");
-    expect(doc.manquants).toContain("IBAN, facultatif");
-    expect(doc.manquants.length).toBeGreaterThan(5);
-    // Mais ce que la base a ne doit PAS être compté manquant
+    expect(doc.manquants).toContain("cuisine équipée, sanitaires, placards…");
+    expect(doc.manquants).toContain("libre, plafonnement, réévaluation après travaux…");
+    expect(doc.manquants).toContain("valeur de l'indice");
+    // Sans date de début, le prorata de la première échéance est incalculable
+    expect(doc.manquants).toContain("loyer + charges, montant au prorata");
+    // FACULTATIFS (téléphone du locataire, IBAN) : un tiret, jamais un manquant
+    expect(doc.manquants).not.toContain("IBAN, facultatif");
+    expect(doc.manquants).not.toContain("facultatif");
+    // Et ce que la base a ne doit PAS être compté manquant
     expect(doc.manquants).not.toContain("adresse complète, étage, porte");
     expect(doc.manquants).not.toContain("montant mensuel");
+  });
+
+  it("calcule le prorata du premier mois et sert le cas agence : carte pro, honoraires, plafond", () => {
+    const f = new Fusion();
+    const base = contexte();
+    const doc = construireBailNu(
+      contexte({
+        organisation: {
+          ...base.organisation,
+          type: "agence",
+          carte_pro: "CPI 6901 2018 000 025 — CCI de Lyon",
+        },
+        bail: {
+          ...base.bail,
+          date_debut: "2026-09-15",
+          duree_reduite_evenement: "Reprise du logement pour retraite du bailleur en 2028",
+          complement_loyer: 50,
+          complement_justification: "Terrasse de 20 m² avec vue dégagée",
+        },
+      }),
+      { dpeClasse: null, f }
+    );
+    // 15 → 30 septembre : 16 jours sur 30 → (650 + 90) × 16/30 = 394,67 €
+    expect(doc.html).toMatch(/394,67\s€/);
+    expect(doc.html).toContain("(premier mois au prorata)");
+    // Agence : mandataire avec carte pro, honoraires chiffrés, plafond zone tendue calculé
+    expect(doc.html).toContain("CPI 6901 2018 000 025 — CCI de Lyon");
+    expect(doc.html).toMatch(/300,00\s€/);
+    expect(doc.html).toContain("10 €/m²");
+    // Durée réduite justifiée, complément de loyer motivé : plus aucun « Sans objet »
+    expect(doc.html).toContain("Reprise du logement pour retraite du bailleur en 2028");
+    expect(doc.html).toContain("Terrasse de 20 m² avec vue dégagée");
+    expect(doc.html).not.toContain("Sans objet");
+    expect(doc.manquants).toEqual([]);
   });
 });
 

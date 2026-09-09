@@ -71,6 +71,13 @@ const REGLES: Regle[] = [
     ],
     cible: "lot",
   },
+  // L'identité professionnelle de l'émetteur (bail, mandat de gestion)
+  {
+    motifs: ["carte et cci", "garantie financière", "siret", "adresse du mandataire"],
+    cible: "organisation",
+  },
+  // Les annexes et échéances du bail (meublé, congé)
+  { motifs: ["inventaire du mobilier", "date d'échéance du bail"], cible: "bail" },
   // L'en-tête de l'émetteur — sur un bail, « adresse électronique » et
   // « facultatif » (téléphone) désignent surtout les parties
   { motifs: ["siège social"], cible: "organisation" },

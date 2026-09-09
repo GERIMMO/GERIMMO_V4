@@ -17,6 +17,10 @@ import {
   FormulaireCreerEdl,
 } from "./formulaires-bail";
 import { FormulaireEditionBail } from "./formulaire-edition-bail";
+import { FormulaireComplementsBail } from "./formulaire-complements-bail";
+import { GenererCongeBailleur } from "./generer-conge-bailleur";
+import { GenererAvenant } from "./generer-avenant";
+import { CarteCautionnement } from "./carte-cautionnement";
 import { CarteBailSigne } from "./carte-bail-signe";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { FormulaireInventaire, type LigneInventaire } from "./formulaire-inventaire";
@@ -41,12 +45,14 @@ export const metadata = { title: "Bail — Gerimmo" };
 
 export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[bailId]">) {
   const { orgId, bailId } = await props.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, organisation } = await verifierAccesEspace(orgId);
+  const agence = organisation.type === "agence";
 
   const { data: bail } = await supabase
     .from("baux")
+    // Colonnes du cycle de vie + « Compléments du contrat » (bail 100 % rempli, 09/09)
     .select(
-      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre"
+      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -134,6 +140,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     garant_de: l.garant_de,
     garant_de_nom: l.garant_de ? nomsPersonnes.get(l.garant_de) ?? null : null,
   }));
+  // Les garants du bail (id = PERSONNE, pas la ligne) — pour le cautionnement
+  const garantsDuBail = lignesColoc
+    .filter((l) => l.role === "garant")
+    .map((l) => ({ id: l.person_id, nom: l.person_nom }));
 
   const edlSignes = (edls ?? []).filter((e) => e.etat === "signe");
   const comparatifPossible =
@@ -367,24 +377,25 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
-      {/* Documents-0 : générer le bail nu (01) depuis le brouillon — le PDF
-          sert à imprimer et faire signer ; le dépôt du signé reste le seul
-          déclencheur d'activation. */}
+      {/* Documents-0 : générer le contrat (nu 01 / meublé 02) depuis le
+          brouillon — le PDF sert à imprimer et faire signer ; le dépôt du
+          signé reste le seul déclencheur d'activation. */}
       {bail.etat === "brouillon" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Générer le bail</CardTitle>
             <CardDescription>
-              Le contrat type (logement nu) rempli avec ce que Gerimmo sait déjà —
-              les champs sans donnée restent en libellé, la liste vous est donnée.
-              À imprimer, faire signer, puis déposer ci-dessous.
+              Le contrat type ({bail.type === "meuble" ? "logement meublé, inventaire du mobilier annexé" : "logement nu"})
+              rempli avec ce que Gerimmo sait déjà — les champs sans donnée
+              restent en libellé, la liste vous est donnée. À imprimer, faire
+              signer, puis déposer ci-dessous.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {bail.locataire_principal ? (
               <BoutonGenererDocument
                 orgId={orgId}
-                code="bail_nu"
+                code={bail.type === "meuble" ? "bail_meuble" : "bail_nu"}
                 cibleId={bailId}
                 cheminRetour={`/agence/${orgId}/baux/${bailId}`}
                 libelle="Générer le bail (PDF)"
@@ -399,6 +410,52 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </CardContent>
         </Card>
       )}
+
+      {/* Compléments du contrat (bail 100 % rempli, 09/09) : les conditions
+          détaillées que le contrat type imprime — modifiables en brouillon,
+          figées ensuite (le composant gère la lecture seule). */}
+      <Card id="complements" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle className="text-base">Compléments du contrat</CardTitle>
+          <CardDescription>
+            Les conditions détaillées que le contrat type imprime : fixation et
+            paiement du loyer, travaux, honoraires, encadrement en zone tendue.
+            Facultatives — un champ vide s&apos;imprime en libellé d&apos;épreuve
+            ou en « — ».
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FormulaireComplementsBail
+            orgId={orgId}
+            bailId={bailId}
+            defauts={{
+              fixation_loyer: bail.fixation_loyer,
+              paiement_echeance: bail.paiement_echeance,
+              lieu_paiement: bail.lieu_paiement,
+              irl_valeur: bail.irl_valeur,
+              duree_reduite_evenement: bail.duree_reduite_evenement,
+              travaux_recents: bail.travaux_recents,
+              travaux_recents_montant: bail.travaux_recents_montant,
+              travaux_locataire: bail.travaux_locataire,
+              honoraires_bailleur: bail.honoraires_bailleur,
+              honoraires_locataire: bail.honoraires_locataire,
+              clauses_particulieres: bail.clauses_particulieres,
+              loyer_reference: bail.loyer_reference,
+              loyer_reference_majore: bail.loyer_reference_majore,
+              complement_loyer: bail.complement_loyer,
+              complement_justification: bail.complement_justification,
+              dernier_loyer: bail.dernier_loyer,
+              dernier_loyer_versement: bail.dernier_loyer_versement,
+              dernier_loyer_revision: bail.dernier_loyer_revision,
+              meuble_etudiant: Boolean(bail.meuble_etudiant),
+            }}
+            zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
+            meuble={bail.type === "meuble"}
+            agence={agence}
+            modifiable={bail.etat === "brouillon"}
+          />
+        </CardContent>
+      </Card>
 
       {/* Cycle du bail */}
       {(bail.etat === "brouillon" || bail.document_signe) && (
@@ -490,6 +547,15 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Le congé ÉMIS par le bailleur (vente, reprise, motif légitime) se
+                génère ici ; le formulaire en dessous enregistre un congé REÇU. */}
+            <div className="mb-4 border-b border-border pb-4">
+              <GenererCongeBailleur
+                orgId={orgId}
+                bailId={bailId}
+                cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+              />
+            </div>
             {((intentions ?? []) as { created_at: string; motif: string | null }[]).map((it) => (
               <p key={it.created_at} className="mb-3 rounded-lg bg-warning-soft p-3 text-sm">
                 <b className="font-semibold">
@@ -508,6 +574,27 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               type={bail.type}
               meubleLot={Boolean(lot?.meuble)}
               zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Avenant au bail : modification du contrat en cours, actée par les parties */}
+      {(bail.etat === "actif" || bail.etat === "preavis") && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Avenant au bail</CardTitle>
+            <CardDescription>
+              Modifie le contrat en cours (charges, occupants, clauses…) sans le
+              refaire — toutes les autres clauses demeurent inchangées ; à faire
+              signer par les parties.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GenererAvenant
+              orgId={orgId}
+              bailId={bailId}
+              cheminRetour={`/agence/${orgId}/baux/${bailId}`}
             />
           </CardContent>
         </Card>
@@ -622,7 +709,54 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 id: bail.locataire_principal ?? "",
                 nom: locataire ? nomComplet(locataire) : "—",
               }}
+              colocation
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Garants d'un bail nu ou meublé (hors colocation, qui a sa carte) —
+          l'acte de cautionnement se génère dans la carte suivante. */}
+      {bail.type !== "colocation" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Garants</CardTitle>
+            <CardDescription>
+              Rattachez le ou les garants du bail — l&apos;acte de cautionnement
+              se génère dans la carte « Cautionnement ».
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireColocation
+              orgId={orgId}
+              bailId={bailId}
+              personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(
+                (p) => ({ id: p.id, nom: nomComplet(p) })
+              )}
+              lignes={lignesColoc}
+              principal={{
+                id: bail.locataire_principal ?? "",
+                nom: locataire ? nomComplet(locataire) : "—",
+              }}
+              colocation={false}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cautionnement : un acte par garant (réforme 2021 — mention type à
+          apposer par la caution), forme solidaire par défaut. */}
+      {garantsDuBail.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cautionnement</CardTitle>
+            <CardDescription>
+              Un acte par garant : forme (solidaire par défaut ou simple),
+              plafond garanti, mention type à apposer par la caution.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CarteCautionnement orgId={orgId} bailId={bailId} garants={garantsDuBail} />
           </CardContent>
         </Card>
       )}

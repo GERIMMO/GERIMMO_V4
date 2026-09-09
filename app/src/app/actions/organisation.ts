@@ -40,6 +40,9 @@ export async function modifierProfilOrganisation(
       telephone: champ("telephone"),
       email_contact: champ("email_contact"),
       siret: champ("siret"),
+      carte_pro: champ("carte_pro"),
+      garantie_financiere: champ("garantie_financiere"),
+      iban: champ("iban"),
     })
     .eq("id", orgId)
     .select("id");

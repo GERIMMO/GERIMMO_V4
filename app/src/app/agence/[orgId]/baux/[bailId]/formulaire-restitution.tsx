@@ -14,6 +14,7 @@ import {
   type EtatRestit,
 } from "@/app/actions/restitution";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -133,6 +134,14 @@ export function FormulaireRestitution({
             Solde de tout compte :{" "}
             <span className="font-semibold">{eur(restitution.solde ?? 0)}</span>.
           </p>
+          {/* Le décompte PDF (art. 22 loi 89) : à générer puis envoyer au locataire */}
+          <BoutonGenererDocument
+            orgId={orgId}
+            code="decompte_restitution"
+            cibleId={bailId}
+            cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+            libelle="Générer le décompte PDF"
+          />
           {restitution.envoye_le ? (
             <p className="text-sm text-success-soft-foreground">
               Décompte envoyé au locataire le {formaterDate(restitution.envoye_le)}.

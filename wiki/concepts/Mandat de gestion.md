@@ -3,7 +3,7 @@ type: concept
 tags: [mandat, honoraires, seuil-delegation, agence]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-09
 sources: ["[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -55,3 +55,13 @@ le [[Bail]] (alerte si mandat non actif) ; pilote la [[Comptabilité]] (taux, da
 rapport) et le rapport propriétaire (module 6) ; borne la sollicitation sur
 [[Devis]] (seuil) ; signé via le module 13 ; alertes au module 14
 ([[Agenda et échéances]]).
+
+## Document généré (2026-09-09)
+
+Le mandat de gestion se génère en PDF depuis la fiche du mandant (« Mandat
+PDF ») : parties avec SIRET, carte professionnelle et garantie financière de
+l'agence (profil de l'organisation), lots confiés et taux d'honoraires
+(`mandat_lignes`), jour de compte rendu, seuil de délégation, durée et
+préavis, reddition de comptes mensuelle — signatures des parties (aucun
+tampon d'émetteur : c'est un acte). Numéro au registre : référence courte
+MAND-. Voir [[Document]].

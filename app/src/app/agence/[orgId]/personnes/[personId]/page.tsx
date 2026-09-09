@@ -42,7 +42,9 @@ export default async function PagePersonne(
 
   const { data: personne } = await supabase
     .from("persons")
-    .select("id, nom, prenom, email, telephone, date_naissance, account_id")
+    .select(
+      "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, account_id"
+    )
     .eq("id", personId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -218,6 +220,11 @@ export default async function PagePersonne(
             email={personne.email}
             telephone={personne.telephone}
             dateNaissance={personne.date_naissance}
+            communeNaissance={personne.commune_naissance}
+            adresse={personne.address_line1}
+            codePostal={personne.postal_code}
+            ville={personne.city}
+            qualite={personne.qualite}
           />
           <BoutonArchiverPersonne orgId={orgId} personId={personId} />
         </div>
@@ -492,6 +499,15 @@ export default async function PagePersonne(
                           mandatId={m.id}
                           etat={m.etat}
                           nbLignesActives={sesLignes.filter((l) => !l.date_fin).length}
+                        />
+                        {/* Le mandat de gestion en PDF (loi Hoguet) — champs
+                            absents en libellé d'épreuve, comme le bail */}
+                        <BoutonGenererDocument
+                          orgId={orgId}
+                          code="mandat_gestion"
+                          cibleId={m.id}
+                          cheminRetour={`/agence/${orgId}/personnes/${personId}`}
+                          libelle="Mandat PDF"
                         />
                       </span>
                     )}

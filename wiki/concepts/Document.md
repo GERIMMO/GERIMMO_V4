@@ -116,3 +116,27 @@ demandé en signature et le PDF signé retourné restent visibles via la demande
 au même prédicat que la route fichier (`mon_document_locataire`) — la liste de
 droits ne vit plus en double, et le locataire **sorti** (adhésion inactive)
 conserve la lecture.
+
+## Catalogue complet et bail 100 % rempli (2026-09-09, carte blanche)
+
+Le catalogue passe de 9 à **15 modèles générables** : s'ajoutent le **bail
+meublé** (annexe 2 du décret 2015-587, inventaire du mobilier annexé depuis
+`inventaire_lignes`, variante étudiant 9 mois), l'**acte de cautionnement**
+(un acte par garant, forme solidaire/simple, mention type à apposer par la
+caution — réforme 2021), le **décompte de restitution** du dépôt (retenues,
+vétusté, solde en lettres), le **congé du bailleur** (vente avec droit de
+préemption, reprise, motif légitime — préavis 6 mois nu / 3 mois meublé,
+encadré « à notifier par LRAR », RM-A3.1), l'**avenant au bail** et le
+**mandat de gestion** (loi Hoguet : carte pro, garantie financière, lots et
+taux, reddition de comptes). La génération accepte des **options de geste**
+(motif du congé, garant, objet d'avenant) distinctes des données de fiche.
+Surtout : les **28 champs du contrat type qui restaient en pointillés ont
+désormais leur écran** — profil (carte pro, garantie financière, IBAN), fiche
+personne (commune de naissance, adresse, qualité), lot (chauffage, eau
+chaude, locaux privatifs — les équipements structurés du lot alimentent enfin
+le bail), bien (parties communes, accès TIC) et carte « Compléments du
+contrat » sur le bail (fixation et paiement du loyer, encadrement zone
+tendue, travaux, honoraires, clauses). Les champs facultatifs vides
+s'impriment « — »/« Néant. » sans compter manquants ; la première échéance et
+le plafond d'honoraires se **calculent**. Un bail dont les fiches sont
+remplies sort **sans aucun manquant** (testé).

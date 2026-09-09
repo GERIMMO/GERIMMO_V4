@@ -8,7 +8,7 @@ import {
   envoyerQuittancesMois,
 } from "@/app/actions/quittancement";
 import type { EtatLoyers } from "@/app/actions/loyers";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { eur } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 
@@ -36,31 +36,31 @@ function BoutonEncaisser({
   orgId: string;
   ligne: LigneQuittancement;
 }) {
-  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+  const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => encaisserReste(orgId, ligne.bail_id, ligne.appel_id),
     {}
   );
   const reste = Number(ligne.montant_du) - Number(ligne.montant_couvert);
   return (
     <form action={action} className="inline-flex items-center gap-1.5">
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : `Encaisser ${eur(reste)}`}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline">
+        {`Encaisser ${eur(reste)}`}
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
 }
 
 function BoutonEmettre({ orgId, bailId }: { orgId: string; bailId: string }) {
-  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+  const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => emettreQuittanceBail(orgId, bailId),
     {}
   );
   return (
     <form action={action} className="inline-flex items-center gap-1.5">
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours}>
-        {enCours ? "…" : "Émettre la quittance"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="ghost">
+        Émettre la quittance
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
@@ -81,7 +81,7 @@ export function QuittancementMois({
   // Propriétaire direct : pas de mandat, donc jamais d'honoraires
   proprietaire?: boolean;
 }) {
-  const [etatEnvoi, actionEnvoi, envoiEnCours] = useActionState<EtatLoyers, FormData>(
+  const [etatEnvoi, actionEnvoi] = useActionState<EtatLoyers, FormData>(
     async () => envoyerQuittancesMois(orgId, mois),
     {}
   );
@@ -95,9 +95,9 @@ export function QuittancementMois({
         <span className="flex items-center gap-3">
           {aEnvoyer > 0 && (
             <form action={actionEnvoi}>
-              <Button type="submit" size="sm" variant="outline" disabled={envoiEnCours}>
-                {envoiEnCours ? "Envoi…" : `Envoyer les quittances (${aEnvoyer})`}
-              </Button>
+              <BoutonEnvoi enCoursTexte="Envoi…" size="sm" variant="outline">
+                {`Envoyer les quittances (${aEnvoyer})`}
+              </BoutonEnvoi>
             </form>
           )}
           <span className="mono-discret">

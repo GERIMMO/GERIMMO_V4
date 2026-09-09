@@ -6,7 +6,7 @@ import {
   supprimerInventaireLigne,
   type EtatBail,
 } from "@/app/actions/baux";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -49,9 +49,9 @@ function BoutonSupprimer({ orgId, bailId, ligneId }: { orgId: string; bailId: st
         await supprimerInventaireLigne(orgId, bailId, ligneId);
       }}
     >
-      <Button type="submit" variant="ghost" size="sm">
+      <BoutonEnvoi variant="ghost" size="sm">
         Retirer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -66,7 +66,7 @@ export function FormulaireInventaire({
   lignes: LigneInventaire[];
 }) {
   const action = ajouterInventaireLigne.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
 
   return (
     <div className="space-y-4">
@@ -149,9 +149,9 @@ export function FormulaireInventaire({
         </div>
         {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
         {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "Ajout…" : "Ajouter au mobilier"}
-        </Button>
+        <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
+          Ajouter au mobilier
+        </BoutonEnvoi>
       </form>
     </div>
   );

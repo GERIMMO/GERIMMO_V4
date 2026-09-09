@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { remplacerDocument, type EtatDocumentGed } from "@/app/actions/documents-ged";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +22,7 @@ export function FormulaireRemplacer({
 }) {
   const [ouvert, setOuvert] = useState(false);
   const actionLiee = remplacerDocument.bind(null, orgId, documentId);
-  const [etat, action, enCours] = useActionState<EtatDocumentGed, FormData>(
+  const [etat, action] = useActionState<EtatDocumentGed, FormData>(
     actionLiee,
     {}
   );
@@ -73,9 +74,9 @@ export function FormulaireRemplacer({
       )}
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={enCours}>
-          {enCours ? "Remplacement…" : "Déposer la nouvelle version"}
-        </Button>
+        <BoutonEnvoi size="sm" enCoursTexte="Remplacement…">
+          Déposer la nouvelle version
+        </BoutonEnvoi>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
           Annuler
         </Button>

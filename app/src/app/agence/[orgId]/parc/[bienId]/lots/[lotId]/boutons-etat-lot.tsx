@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { changerEtatLot, type EtatParc } from "@/app/actions/parc";
 import { ETATS_LOT } from "@/lib/parc";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 // Transitions autorisées par la machine à états (module 0) — la base fait foi.
 //
@@ -53,7 +53,7 @@ export function BoutonsEtatLot({
   compact?: boolean;
 }) {
   const actionLiee = changerEtatLot.bind(null, orgId, bienId, lotId);
-  const [retour, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [retour, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const transitions = TRANSITIONS[etat] ?? [];
 
   return (
@@ -62,14 +62,12 @@ export function BoutonsEtatLot({
         {transitions.map((t) => (
           <form key={t.cible} action={action}>
             <input type="hidden" name="etat" value={t.cible} />
-            <Button
-              type="submit"
+            <BoutonEnvoi
               size="sm"
               variant={t.cible === "disponible" && !bloque ? "default" : "outline"}
-              disabled={enCours}
             >
               {t.libelle}
-            </Button>
+            </BoutonEnvoi>
           </form>
         ))}
       </div>

@@ -8,7 +8,7 @@ import {
   supprimerCle,
   type EtatEdl,
 } from "@/app/actions/edl";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 
 export type Compteur = {
@@ -38,9 +38,9 @@ const TYPES_CLE = [
 function BoutonRetirer({ onAction }: { onAction: () => Promise<void> }) {
   return (
     <form action={onAction}>
-      <Button type="submit" variant="ghost" size="sm">
+      <BoutonEnvoi variant="ghost" size="sm">
         Retirer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -61,9 +61,9 @@ export function EdlAnnexes({
   signe: boolean;
 }) {
   const actionCompteur = ajouterCompteur.bind(null, orgId, bailId, edlId);
-  const [etatC, formCompteur, enCoursC] = useActionState<EtatEdl, FormData>(actionCompteur, {});
+  const [etatC, formCompteur] = useActionState<EtatEdl, FormData>(actionCompteur, {});
   const actionCle = ajouterCle.bind(null, orgId, bailId, edlId);
-  const [etatK, formCle, enCoursK] = useActionState<EtatEdl, FormData>(actionCle, {});
+  const [etatK, formCle] = useActionState<EtatEdl, FormData>(actionCle, {});
 
   return (
     <div className="space-y-6">
@@ -107,9 +107,9 @@ export function EdlAnnexes({
             </select>
             <Input name="numero" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-36" />
             <Input name="releve" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-28" />
-            <Button type="submit" size="sm" variant="outline" disabled={enCoursC}>
-              {enCoursC ? "Ajout…" : "Ajouter"}
-            </Button>
+            <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
+              Ajouter
+            </BoutonEnvoi>
             {etatC.erreur && <p className="w-full text-sm text-destructive">{etatC.erreur}</p>}
           </form>
         )}
@@ -154,9 +154,9 @@ export function EdlAnnexes({
             </select>
             <Input name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-20" />
             <Input name="reference" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-36" />
-            <Button type="submit" size="sm" variant="outline" disabled={enCoursK}>
-              {enCoursK ? "Ajout…" : "Ajouter"}
-            </Button>
+            <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
+              Ajouter
+            </BoutonEnvoi>
             {etatK.erreur && <p className="w-full text-sm text-destructive">{etatK.erreur}</p>}
           </form>
         )}

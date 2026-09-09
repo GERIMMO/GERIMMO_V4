@@ -3,7 +3,7 @@
 import { useActionState, useRef, useEffect } from "react";
 import { deposerDocument, type EtatDepot } from "@/app/actions/ged";
 import { TYPES_DEPOSABLES, TYPES_DOCUMENT } from "@/lib/ged";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -17,7 +17,7 @@ export function FormulaireDepot({
   personnes: Personne[];
 }) {
   const actionLiee = deposerDocument.bind(null, orgId);
-  const [etat, action, enCours] = useActionState<EtatDepot, FormData>(
+  const [etat, action] = useActionState<EtatDepot, FormData>(
     actionLiee,
     {}
   );
@@ -83,9 +83,9 @@ export function FormulaireDepot({
           {etat.succes}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={enCours}>
-        {enCours ? "Dépôt…" : "Déposer"}
-      </Button>
+      <BoutonEnvoi className="w-full" enCoursTexte="Dépôt…">
+        Déposer
+      </BoutonEnvoi>
     </form>
   );
 }

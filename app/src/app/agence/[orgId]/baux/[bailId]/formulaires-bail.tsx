@@ -12,7 +12,8 @@ import {
   type EtatBail,
 } from "@/app/actions/baux";
 import { creerEdl, type EtatEdl } from "@/app/actions/edl";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -29,7 +30,7 @@ function FormulairePieceBail({
   bouton: string;
   action: (etat: EtatBail, formData: FormData) => Promise<EtatBail>;
 }) {
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
@@ -38,9 +39,9 @@ function FormulairePieceBail({
         </Label>
         <Input id={id} name="fichier" type="file" accept=".pdf" required />
       </div>
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Dépôt…" : bouton}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Dépôt…" size="sm" variant="outline">
+        {bouton}
+      </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
       {etat.blocages && etat.blocages.length > 0 && (
         <ul className="w-full space-y-1.5">
@@ -100,7 +101,7 @@ export function FormulaireConge({
   zoneTendue?: boolean;
 }) {
   const action = enregistrerConge.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   const [par, setPar] = useState<"locataire" | "bailleur">("locataire");
   const [reduit, setReduit] = useState(false);
   const meuble = type === "meuble" || (type === "colocation" && meubleLot);
@@ -204,9 +205,9 @@ export function FormulaireConge({
         . La date d&apos;effet est calculée depuis la 1ʳᵉ présentation.
       </p>
 
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Enregistrement…" : "Enregistrer le congé"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
+        Enregistrer le congé
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>
@@ -215,7 +216,7 @@ export function FormulaireConge({
 
 export function FormulaireCreerEdl({ orgId, bailId }: { orgId: string; bailId: string }) {
   const action = creerEdl.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatEdl, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatEdl, FormData>(action, {});
   return (
     <form action={formAction} className="flex items-end gap-2">
       <div className="space-y-1.5">
@@ -232,9 +233,9 @@ export function FormulaireCreerEdl({ orgId, bailId }: { orgId: string; bailId: s
           <option value="sortie">Sortie</option>
         </select>
       </div>
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Création…" : "Créer + générer la grille"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Création…" size="sm" variant="outline">
+        Créer + générer la grille
+      </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );
@@ -244,7 +245,7 @@ export function FormulaireCreerEdl({ orgId, bailId }: { orgId: string; bailId: s
 // n'a pas eu lieu — la base refuse sinon, avec la raison.
 export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailId: string }) {
   const action = annulerConge.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   return (
     <form action={formAction} className="space-y-2">
       <div className="flex flex-wrap items-end gap-2">
@@ -262,9 +263,9 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
             defaultValue={etat.valeurs?.motif}
           />
         </div>
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "…" : "Annuler le congé"}
-        </Button>
+        <BoutonEnvoi size="sm" variant="outline">
+          Annuler le congé
+        </BoutonEnvoi>
       </div>
       <p className="text-xs text-muted-foreground">
         Le bail redevient actif, le lot reste loué, et le congé annulé reste au
@@ -281,12 +282,12 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
 // espace en lecture : quittances, décompte, justificatifs.
 export function BoutonTerminerBail({ orgId, bailId }: { orgId: string; bailId: string }) {
   const action = terminerBail.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   return (
     <form action={formAction} className="space-y-2">
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Clôture…" : "Clôturer le bail"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Clôture…" size="sm" variant="outline">
+        Clôturer le bail
+      </BoutonEnvoi>
       <p className="text-xs text-muted-foreground">
         Préavis échu et état des lieux de sortie signé : le bail passe à
         « terminé », le lot redevient disponible et l&apos;espace du locataire

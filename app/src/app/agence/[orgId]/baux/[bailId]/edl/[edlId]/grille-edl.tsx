@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from "react";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { formaterDate } from "@/lib/ged";
 import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Modale } from "@/components/ui/modale";
 
@@ -298,9 +299,9 @@ export function GrilleEdl({
               ? ` · ${degradees} dégradé${degradees > 1 ? "s" : ""}`
               : ""}
           </span>
-          <Button type="submit" size="sm" variant="outline" disabled={enCoursMaj}>
-            {enCoursMaj ? "Enregistrement…" : "Enregistrer la grille"}
-          </Button>
+          <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
+            Enregistrer la grille
+          </BoutonEnvoi>
           {/* Un seul geste : la signature enregistre la grille puis la fige.
               En sortie comparée, une confirmation annonce d'abord ce que les
               écarts déclencheront (maquette v3). */}
@@ -317,15 +318,15 @@ export function GrilleEdl({
               <button type="submit" name="signer" value="1" ref={boutonSigner} hidden />
             </>
           ) : (
-            <Button
-              type="submit"
+            <BoutonEnvoi
+              enCoursTexte="…"
               name="signer"
               value="1"
               size="sm"
-              disabled={enCoursMaj || manquantes > 0}
+              disabled={manquantes > 0}
             >
-              {enCoursMaj ? "…" : "Enregistrer et signer"}
-            </Button>
+              Enregistrer et signer
+            </BoutonEnvoi>
           )}
           {manquantes > 0 && (
             <span className="text-sm text-warning-soft-foreground">

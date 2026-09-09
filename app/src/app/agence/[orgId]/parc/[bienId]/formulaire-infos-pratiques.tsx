@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { enregistrerInfosPratiques, type EtatParc } from "@/app/actions/parc";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
 
 export type InfosPratiques = {
@@ -41,7 +41,7 @@ export function FormulaireInfosPratiques({
   infos: InfosPratiques | null;
 }) {
   const action = enregistrerInfosPratiques.bind(null, orgId, bienId);
-  const [etat, formAction, enCours] = useActionState<EtatParc, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatParc, FormData>(action, {});
 
   return (
     <div className="space-y-4">
@@ -76,9 +76,9 @@ export function FormulaireInfosPratiques({
         {etat.succes && (
           <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
         )}
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "Enregistrement…" : "Enregistrer les informations pratiques"}
-        </Button>
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
+          Enregistrer les informations pratiques
+        </BoutonEnvoi>
       </form>
     </div>
   );

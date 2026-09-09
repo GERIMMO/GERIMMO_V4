@@ -8,6 +8,7 @@ import {
   partagerDocument,
 } from "@/app/actions/signature";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { afficherToast } from "@/components/ui/toast";
 import { formaterDate } from "@/lib/ged";
 
@@ -81,6 +82,7 @@ export function CircuitDocument({
                 disabled={enCours}
                 onClick={() => agir(() => partagerDocument(orgId, documentId, false))}
               >
+                {enCours && <Spinner />}
                 Retirer de son espace
               </Button>
             </>
@@ -92,6 +94,7 @@ export function CircuitDocument({
               disabled={enCours}
               onClick={() => agir(() => partagerDocument(orgId, documentId, true))}
             >
+              {enCours && <Spinner />}
               Mettre à disposition du locataire
             </Button>
           )}
@@ -127,6 +130,7 @@ export function CircuitDocument({
                 disabled={enCours}
                 onClick={() => agir(() => annulerDemandeSignature(orgId, d.id))}
               >
+                {enCours && <Spinner />}
                 Annuler
               </Button>
             </>
@@ -157,7 +161,7 @@ export function CircuitDocument({
             disabled={enCours || !choix}
             onClick={() => agir(() => envoyerPourSignature(orgId, documentId, choix))}
           >
-            {enCours ? "Envoi…" : "Envoyer pour signature"}
+            {enCours ? <><Spinner /> Envoi…</> : "Envoyer pour signature"}
           </Button>
         </div>
       )}

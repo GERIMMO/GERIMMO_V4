@@ -15,7 +15,7 @@ import {
   regulariserCharges,
   type EtatLoyers,
 } from "@/app/actions/loyers";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,15 +88,15 @@ const NIVEAU_RELANCE: Record<string, string> = {
 };
 
 function BoutonEnvoiQuittance({ orgId, bailId, quittanceId }: { orgId: string; bailId: string; quittanceId: string }) {
-  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+  const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => envoyerQuittance(orgId, bailId, quittanceId),
     {}
   );
   return (
     <form action={action} className="flex items-center gap-1">
-      <Button type="submit" variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={enCours}>
-        {enCours ? "…" : "Envoyer"}
-      </Button>
+      <BoutonEnvoi variant="ghost" size="sm" className="h-6 px-2 text-xs">
+        Envoyer
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
@@ -116,15 +116,15 @@ function BoutonRetirerEncaissement({
   bailId: string;
   encaissementId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+  const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => supprimerEncaissement(orgId, bailId, encaissementId),
     {}
   );
   return (
     <form action={action} className="flex items-center gap-1">
-      <Button type="submit" variant="ghost" size="sm" disabled={enCours}>
-        {enCours ? "…" : "Retirer"}
-      </Button>
+      <BoutonEnvoi variant="ghost" size="sm">
+        Retirer
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
@@ -139,15 +139,15 @@ function BoutonRetirerRelance({
   bailId: string;
   relanceId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+  const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => supprimerRelance(orgId, bailId, relanceId),
     {}
   );
   return (
     <form action={action} className="flex items-center gap-1">
-      <Button type="submit" variant="ghost" size="sm" disabled={enCours}>
-        {enCours ? "…" : "Retirer"}
-      </Button>
+      <BoutonEnvoi variant="ghost" size="sm">
+        Retirer
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
@@ -176,19 +176,19 @@ export function FormulaireLoyers({
   regularisations: RegulLigne[];
   chargesForfait: boolean;
 }) {
-  const [etatEnc, formEnc, enCoursEnc] = useActionState<EtatLoyers, FormData>(
+  const [etatEnc, formEnc] = useActionState<EtatLoyers, FormData>(
     ajouterEncaissement.bind(null, orgId, bailId),
     {}
   );
-  const [etatRev, formRev, enCoursRev] = useActionState<EtatLoyers, FormData>(
+  const [etatRev, formRev] = useActionState<EtatLoyers, FormData>(
     reviserLoyer.bind(null, orgId, bailId),
     {}
   );
-  const [etatRel, formRel, enCoursRel] = useActionState<EtatLoyers, FormData>(
+  const [etatRel, formRel] = useActionState<EtatLoyers, FormData>(
     ajouterRelance.bind(null, orgId, bailId),
     {}
   );
-  const [etatReg, formReg, enCoursReg] = useActionState<EtatLoyers, FormData>(
+  const [etatReg, formReg] = useActionState<EtatLoyers, FormData>(
     regulariserCharges.bind(null, orgId, bailId),
     {}
   );
@@ -344,9 +344,9 @@ export function FormulaireLoyers({
               ))}
             </select>
           </div>
-          <Button type="submit" size="sm" variant="outline" disabled={enCoursEnc}>
-            {enCoursEnc ? "…" : "Encaisser"}
-          </Button>
+          <BoutonEnvoi size="sm" variant="outline">
+            Encaisser
+          </BoutonEnvoi>
           {etatEnc.erreur && <p className="w-full text-sm text-destructive">{etatEnc.erreur}</p>}
         </form>
       </div>
@@ -388,9 +388,9 @@ export function FormulaireLoyers({
               <Label htmlFor="irl-date" className="text-xs">Date d&apos;effet</Label>
               <Input id="irl-date" name="date_effet" type="date" defaultValue={etatRev.valeurs?.date_effet} className="h-9" />
             </div>
-            <Button type="submit" size="sm" variant="outline" disabled={enCoursRev}>
-              {enCoursRev ? "…" : "Réviser le loyer"}
-            </Button>
+            <BoutonEnvoi size="sm" variant="outline">
+              Réviser le loyer
+            </BoutonEnvoi>
             {etatRev.erreur && <p className="w-full text-sm text-destructive">{etatRev.erreur}</p>}
             {etatRev.succes && <p className="w-full text-sm text-success-soft-foreground">{etatRev.succes}</p>}
           </form>
@@ -437,9 +437,9 @@ export function FormulaireLoyers({
             <InputDateJour id="rel-pres"   className="h-9" name="date_premiere_presentation" />
           </div>
           <Input name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-32" />
-          <Button type="submit" size="sm" variant="outline" disabled={enCoursRel}>
-            {enCoursRel ? "…" : "Enregistrer la relance"}
-          </Button>
+          <BoutonEnvoi size="sm" variant="outline">
+            Enregistrer la relance
+          </BoutonEnvoi>
           {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
         </form>
         <p className="text-xs text-muted-foreground">
@@ -484,9 +484,9 @@ export function FormulaireLoyers({
             <Label htmlFor="reg-just" className="text-xs">Justificatif</Label>
             <Input id="reg-just" name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9" />
           </div>
-          <Button type="submit" size="sm" variant="outline" disabled={enCoursReg}>
-            {enCoursReg ? "…" : "Régulariser"}
-          </Button>
+          <BoutonEnvoi size="sm" variant="outline">
+            Régulariser
+          </BoutonEnvoi>
           {etatReg.erreur && <p className="w-full text-sm text-destructive">{etatReg.erreur}</p>}
           {etatReg.succes && <p className="w-full text-sm text-success-soft-foreground">{etatReg.succes}</p>}
         </form>
@@ -504,15 +504,15 @@ export function FormulaireLoyers({
 
 
 function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) {
-  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+  const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => genererAppels(orgId, bailId),
     {}
   );
   return (
     <form action={action} className="flex items-center gap-2">
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : "Générer l'échéancier"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline">
+        {"Générer l'échéancier"}
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
     </form>
@@ -520,15 +520,15 @@ function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) 
 }
 
 function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) {
-  const [etat, action, enCours] = useActionState<EtatLoyers, FormData>(
+  const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => emettreQuittances(orgId, bailId),
     {}
   );
   return (
     <form action={action} className="flex items-center gap-2">
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : "Émettre les quittances"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline">
+        Émettre les quittances
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
     </form>

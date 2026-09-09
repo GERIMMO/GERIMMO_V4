@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { deposerDiagnostic, type EtatParc } from "@/app/actions/parc";
 import { TYPES_DIAGNOSTIC, type NiveauDiagnostic } from "@/lib/parc";
 import { aujourdhuiParis } from "@/lib/ged";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -29,7 +29,7 @@ export function FormulaireDiagnostic({
     ([, t]) => t.niveau === niveau
   );
   const actionLiee = deposerDiagnostic.bind(null, orgId, bienId, lotId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
   const [type, setType] = useState(typeInitial ?? types[0]?.[0] ?? "");
   const [realisation, setRealisation] = useState("");
@@ -193,9 +193,9 @@ export function FormulaireDiagnostic({
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Dépôt…" : "Déposer"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Dépôt…">
+        Déposer
+      </BoutonEnvoi>
     </form>
   );
 }

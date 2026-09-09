@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { modifierBail, type EtatBail } from "@/app/actions/baux";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampsBail, type BailDefauts } from "@/components/champs-bail";
 
 type Personne = { id: string; nom: string; prenom: string | null };
@@ -21,7 +21,7 @@ export function FormulaireEditionBail({
   defauts: BailDefauts;
 }) {
   const action = modifierBail.bind(null, orgId, bailId);
-  const [etat, formAction, enCours] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
 
   return (
     <form action={formAction} className="space-y-3">
@@ -30,9 +30,9 @@ export function FormulaireEditionBail({
       <ChampsBail personnes={personnes} defauts={defauts} prefixe="edition" valeurs={etat.valeurs} />
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Enregistrement…" : "Enregistrer les corrections"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
+        Enregistrer les corrections
+      </BoutonEnvoi>
     </form>
   );
 }

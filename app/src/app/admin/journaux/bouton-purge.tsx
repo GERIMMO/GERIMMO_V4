@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { lancerPurge, type ResultatPurge } from "@/app/actions/retention";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 export function BoutonPurge({ fichiersEnAttente }: { fichiersEnAttente: number }) {
   const [resultat, setResultat] = useState<ResultatPurge | null>(null);
@@ -18,7 +19,7 @@ export function BoutonPurge({ fichiersEnAttente }: { fichiersEnAttente: number }
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-lg border p-4">
       <Button onClick={purger} disabled={enCours}>
-        {enCours ? "Purge en cours…" : "Lancer la purge maintenant"}
+        {enCours ? <><Spinner /> Purge en cours…</> : "Lancer la purge maintenant"}
       </Button>
       <p className="text-sm text-muted-foreground">
         Applique les règles de conservation (documents échus, journaux,

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { decouperBien, type EtatParc } from "@/app/actions/parc";
 import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 
 type LigneSaisie = { nom: string; surface: string };
@@ -19,7 +20,7 @@ export function FormulaireDecoupage({
   bienId: string;
 }) {
   const actionLiee = decouperBien.bind(null, orgId, bienId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const [lignes, setLignes] = useState<LigneSaisie[]>([{ nom: "", surface: "" }]);
 
   useEffect(() => {
@@ -67,9 +68,9 @@ export function FormulaireDecoupage({
         >
           + Ajouter une ligne
         </Button>
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "Découpage…" : "Créer les lots"}
-        </Button>
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Découpage…">
+          Créer les lots
+        </BoutonEnvoi>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (

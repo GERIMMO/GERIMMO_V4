@@ -9,6 +9,7 @@ import {
 import { ASSIGNATION_TOUS } from "@/lib/alertes";
 import { afficherEcheance } from "@/lib/echeances";
 import { CRITICITES } from "@/lib/ged";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { afficherToast } from "@/components/ui/toast";
@@ -61,11 +62,11 @@ export function ModaleAlerte({
     if (res.succes) afficherToast(res.succes);
     return res;
   };
-  const [etatConfier, actionConfier, confierEnCours] = useActionState<
+  const [etatConfier, actionConfier] = useActionState<
     EtatAlerte,
     FormData
   >(confierLiee, {});
-  const [etatTraiter, actionTraiter, traiterEnCours] = useActionState<
+  const [etatTraiter, actionTraiter] = useActionState<
     EtatAlerte,
     FormData
   >(traiterLiee, {});
@@ -139,9 +140,9 @@ export function ModaleAlerte({
               defaultValue={etatConfier.valeurs?.message}
               className="w-full flex-1 rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
             />
-            <Button variant="outline" size="sm" type="submit" disabled={confierEnCours}>
-              {confierEnCours ? "…" : "Confier"}
-            </Button>
+            <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
+              Confier
+            </BoutonEnvoi>
           </div>
           {etatConfier.erreur && (
             <p className="text-sm text-destructive">{etatConfier.erreur}</p>
@@ -169,9 +170,9 @@ export function ModaleAlerte({
           <Button type="button" variant="ghost" size="sm" onClick={fermer}>
             Annuler
           </Button>
-          <Button type="submit" size="sm" disabled={traiterEnCours}>
-            {traiterEnCours ? "Validation…" : "Valider"}
-          </Button>
+          <BoutonEnvoi size="sm" enCoursTexte="Validation…">
+            Valider
+          </BoutonEnvoi>
         </div>
       </form>
     </Modale>

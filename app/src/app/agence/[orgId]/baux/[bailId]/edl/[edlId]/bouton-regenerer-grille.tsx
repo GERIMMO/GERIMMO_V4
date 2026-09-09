@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { regenererGrilleEdl, type EtatEdl } from "@/app/actions/edl";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 // Le lot a des pièces mais la grille de cet EDL est restée générique (elle a
 // été générée avant leur déclaration) : un clic suffit pour la reconstruire —
@@ -19,13 +19,13 @@ export function BoutonRegenererGrille({
   libelle?: string;
 }) {
   const action = regenererGrilleEdl.bind(null, orgId, bailId, edlId);
-  const [etat, formAction, enCours] = useActionState<EtatEdl, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatEdl, FormData>(action, {});
 
   return (
     <form action={formAction} className="mt-2 space-y-1">
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "Régénération…" : libelle}
-      </Button>
+      <BoutonEnvoi size="sm" enCoursTexte="Régénération…">
+        {libelle}
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>

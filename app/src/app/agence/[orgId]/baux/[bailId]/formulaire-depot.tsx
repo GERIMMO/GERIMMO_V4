@@ -5,7 +5,7 @@ import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState } from "react";
 import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/app/actions/depot";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,7 +121,7 @@ function FormEncaisser({
   reste: number;
   personnes: { id: string; nom: string }[];
 }) {
-  const [etat, action, enCours] = useActionState<EtatDepot, FormData>(
+  const [etat, action] = useActionState<EtatDepot, FormData>(
     encaisserDepot.bind(null, orgId, bailId),
     {}
   );
@@ -167,9 +167,9 @@ function FormEncaisser({
           </select>
         </div>
         <Input name="versant_libelle" placeholder="ou tiers hors fiche" defaultValue={etat.valeurs?.versant_libelle} className="h-9 w-44" />
-        <Button type="submit" size="sm" disabled={enCours}>
-          {enCours ? "…" : "Encaisser"}
-        </Button>
+        <BoutonEnvoi enCoursTexte="…" size="sm">
+          Encaisser
+        </BoutonEnvoi>
       </div>
       <p className="text-xs text-muted-foreground">
         Le montant total est plafonné au dépôt du bail ; le dépôt n&apos;est jamais
@@ -189,15 +189,15 @@ function BoutonSupprimer({
   bailId: string;
   encId: string;
 }) {
-  const [, action, enCours] = useActionState(
+  const [, action] = useActionState(
     async () => supprimerEncaissementDepot(orgId, bailId, encId),
     {}
   );
   return (
     <form action={action}>
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
         Retirer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }

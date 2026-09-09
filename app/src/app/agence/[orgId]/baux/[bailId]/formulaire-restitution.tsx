@@ -13,7 +13,7 @@ import {
   marquerDecompteEnvoye,
   type EtatRestit,
 } from "@/app/actions/restitution";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -149,7 +149,7 @@ export function FormulaireRestitution({
 }
 
 function FormDemarrer({ orgId, bailId }: { orgId: string; bailId: string }) {
-  const [etat, action, enCours] = useActionState<EtatRestit, FormData>(
+  const [etat, action] = useActionState<EtatRestit, FormData>(
     demarrerRestitution.bind(null, orgId, bailId),
     {}
   );
@@ -169,9 +169,9 @@ function FormDemarrer({ orgId, bailId }: { orgId: string; bailId: string }) {
           <input type="checkbox" name="conforme" defaultChecked={etat.valeurs ? etat.valeurs.conforme === "on" : false} className="size-4" />
           Sortie conforme à l&apos;entrée (délai 1 mois)
         </label>
-        <Button type="submit" size="sm" disabled={enCours}>
-          {enCours ? "…" : "Démarrer la restitution"}
-        </Button>
+        <BoutonEnvoi size="sm">
+          Démarrer la restitution
+        </BoutonEnvoi>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </form>
@@ -187,7 +187,7 @@ function FormRetenue({
   bailId: string;
   restitutionId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatRestit, FormData>(
+  const [etat, action] = useActionState<EtatRestit, FormData>(
     ajouterRetenue.bind(null, orgId, bailId, restitutionId),
     {}
   );
@@ -217,9 +217,9 @@ function FormRetenue({
       </datalist>
       <div className="flex flex-wrap items-center gap-2">
         <Input name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "…" : "Ajouter la retenue"}
-        </Button>
+        <BoutonEnvoi size="sm" variant="outline">
+          Ajouter la retenue
+        </BoutonEnvoi>
       </div>
       <p className="text-xs text-muted-foreground">
         Retenue = coût × (durée de vie − âge) / durée de vie. Laisser durée de vie
@@ -239,15 +239,15 @@ function BoutonSupprimerRetenue({
   bailId: string;
   retenueId: string;
 }) {
-  const [, action, enCours] = useActionState(
+  const [, action] = useActionState(
     async () => supprimerRetenue(orgId, bailId, retenueId),
     { }
   );
   return (
     <form action={action}>
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
         Retirer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -263,7 +263,7 @@ function FormJustifierRetenue({
   bailId: string;
   retenue: Retenue;
 }) {
-  const [etat, action, enCours] = useActionState<EtatRestit, FormData>(
+  const [etat, action] = useActionState<EtatRestit, FormData>(
     justifierRetenue.bind(null, orgId, bailId, retenue.id, retenue.libelle),
     {}
   );
@@ -278,9 +278,9 @@ function FormJustifierRetenue({
         className="h-8 max-w-xs text-xs"
         aria-label={`Justificatif pour ${retenue.libelle}`}
       />
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : "Joindre le devis / la facture"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline">
+        Joindre le devis / la facture
+      </BoutonEnvoi>
       {etat.erreur && <span className="w-full text-xs text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="w-full text-xs text-success-soft-foreground">{etat.succes}</span>}
     </form>
@@ -297,7 +297,7 @@ function FormDecompteEnvoye({
   bailId: string;
   restitutionId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatRestit, FormData>(
+  const [etat, action] = useActionState<EtatRestit, FormData>(
     marquerDecompteEnvoye.bind(null, orgId, bailId, restitutionId),
     {}
   );
@@ -309,9 +309,9 @@ function FormDecompteEnvoye({
         </Label>
         <InputDateJour id="decompte-envoye-date" name="date" required />
       </div>
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : "Décompte envoyé"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline">
+        Décompte envoyé
+      </BoutonEnvoi>
       {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="w-full text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
@@ -327,15 +327,15 @@ function BoutonFinaliser({
   bailId: string;
   restitutionId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatRestit, FormData>(
+  const [etat, action] = useActionState<EtatRestit, FormData>(
     async () => finaliserDecompte(orgId, bailId, restitutionId),
     {}
   );
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "…" : "Finaliser le décompte"}
-      </Button>
+      <BoutonEnvoi size="sm">
+        Finaliser le décompte
+      </BoutonEnvoi>
       <span className="text-xs text-muted-foreground">
         Fige le solde de tout compte et crée l&apos;alerte d&apos;envoi.
       </span>

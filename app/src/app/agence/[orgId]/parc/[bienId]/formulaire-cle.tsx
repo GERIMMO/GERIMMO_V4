@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { validerCle, type EtatParc } from "@/app/actions/parc";
 import { MODES_CLE, proposerCle } from "@/lib/parc";
 import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -36,7 +37,7 @@ export function FormulaireCle({
   lots: LotCle[];
 }) {
   const actionLiee = validerCle.bind(null, orgId, bienId);
-  const [etat, action, enCours] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const [mode, setMode] = useState<"surface" | "tantiemes" | "parts_egales">("surface");
   const [modifier, setModifier] = useState(false);
   const [parts, setParts] = useState<Record<string, string>>(() =>
@@ -153,13 +154,9 @@ export function FormulaireCle({
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours
-          ? "Validation…"
-          : modifier
-            ? "Valider la clé ajustée"
-            : LIBELLE_BOUTON[mode]}
-      </Button>
+      <BoutonEnvoi size="sm" enCoursTexte="Validation…">
+        {modifier ? "Valider la clé ajustée" : LIBELLE_BOUTON[mode]}
+      </BoutonEnvoi>
     </form>
   );
 }

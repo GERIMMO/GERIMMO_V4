@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { creerAlerte, type EtatAlerte } from "@/app/actions/alertes";
 import { ASSIGNATION_TOUS } from "@/lib/alertes";
 import { CRITICITES } from "@/lib/ged";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -21,7 +21,7 @@ export function FormulaireAlerte({
   estResponsable: boolean;
 }) {
   const actionLiee = creerAlerte.bind(null, orgId);
-  const [etat, action, enCours] = useActionState<EtatAlerte, FormData>(
+  const [etat, action] = useActionState<EtatAlerte, FormData>(
     actionLiee,
     {}
   );
@@ -95,9 +95,9 @@ export function FormulaireAlerte({
           {etat.succes}
         </p>
       )}
-      <Button type="submit" className="w-full" disabled={enCours}>
-        {enCours ? "Création…" : "Créer l'alerte"}
-      </Button>
+      <BoutonEnvoi className="w-full" enCoursTexte="Création…">
+        Créer l&apos;alerte
+      </BoutonEnvoi>
     </form>
   );
 }

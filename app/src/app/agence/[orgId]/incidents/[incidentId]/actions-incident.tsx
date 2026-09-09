@@ -11,7 +11,7 @@ import {
 } from "@/app/actions/incidents";
 import { RepereJuridique } from "../nouveau/formulaire-incident";
 import { IMPUTATIONS_INCIDENT, MOTIFS_CLOTURE } from "@/lib/incidents";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -45,7 +45,7 @@ export function FormulaireQualification({
   apresSucces?: () => void;
 }) {
   const actionLiee = qualifierIncident.bind(null, orgId, incidentId);
-  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   useEffect(() => {
     if (etat.succes) apresSucces?.();
   }, [etat.succes, apresSucces]);
@@ -81,9 +81,9 @@ export function FormulaireQualification({
         />
       </div>
       <Retour etat={etat} />
-      <Button type="submit" disabled={enCours}>
-        {enCours ? "Qualification…" : "Qualifier l'incident"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Qualification…">
+        Qualifier l&apos;incident
+      </BoutonEnvoi>
       <p className="text-xs text-muted-foreground">
         Le locataire est informé immédiatement — avant toute intervention, pas à la
         facture.
@@ -104,7 +104,7 @@ export function FormulaireCloture({
   apresSucces?: () => void;
 }) {
   const actionLiee = cloturerIncident.bind(null, orgId, incidentId);
-  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   useEffect(() => {
     if (etat.succes) apresSucces?.();
   }, [etat.succes, apresSucces]);
@@ -142,9 +142,9 @@ export function FormulaireCloture({
         />
       </div>
       <Retour etat={etat} />
-      <Button type="submit" variant="outline" disabled={enCours}>
-        {enCours ? "Clôture…" : "Clôturer l'incident"}
-      </Button>
+      <BoutonEnvoi variant="outline" enCoursTexte="Clôture…">
+        Clôturer l&apos;incident
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -157,7 +157,7 @@ export function FormulaireReouverture({
   incidentId: string;
 }) {
   const actionLiee = rouvrirIncident.bind(null, orgId, incidentId);
-  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
 
   return (
     <form action={action} className="space-y-3">
@@ -172,9 +172,9 @@ export function FormulaireReouverture({
         />
       </div>
       <Retour etat={etat} />
-      <Button type="submit" variant="outline" disabled={enCours}>
-        {enCours ? "Réouverture…" : "Rouvrir l'incident"}
-      </Button>
+      <BoutonEnvoi variant="outline" enCoursTexte="Réouverture…">
+        Rouvrir l&apos;incident
+      </BoutonEnvoi>
       <p className="text-xs text-muted-foreground">
         L&apos;incident repasse par la qualification ; l&apos;historique de clôture est
         conservé dans la chronologie.
@@ -201,7 +201,7 @@ export function FormulaireAttribution({
   estResponsable: boolean;
 }) {
   const actionLiee = attribuerIncident.bind(null, orgId, incidentId);
-  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
 
   if (!estResponsable) {
     // Agent : se saisir d'un dossier libre, ou rendre le sien
@@ -210,9 +210,9 @@ export function FormulaireAttribution({
       <form action={action} className="space-y-2">
         <input type="hidden" name="responsable" value={responsable ? "" : monCompte} />
         <Retour etat={etat} />
-        <Button type="submit" variant="outline" size="sm" disabled={enCours}>
+        <BoutonEnvoi variant="outline" size="sm">
           {responsable ? "Remettre au pot commun" : "Je le prends en charge"}
-        </Button>
+        </BoutonEnvoi>
       </form>
     );
   }
@@ -233,9 +233,9 @@ export function FormulaireAttribution({
             </option>
           ))}
         </select>
-        <Button type="submit" variant="outline" size="sm" disabled={enCours}>
-          {enCours ? "…" : "Attribuer"}
-        </Button>
+        <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
+          Attribuer
+        </BoutonEnvoi>
       </div>
       <Retour etat={etat} />
     </form>
@@ -250,7 +250,7 @@ export function FormulairePhotoIncident({
   incidentId: string;
 }) {
   const actionLiee = joindrePhotoIncident.bind(null, orgId, incidentId);
-  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (etat.succes) formulaire.current?.reset();
@@ -260,9 +260,9 @@ export function FormulairePhotoIncident({
     <form ref={formulaire} action={action} className="space-y-2">
       <div className="flex items-center gap-2">
         <Input name="photos" type="file" accept="image/jpeg,image/png" multiple required />
-        <Button type="submit" variant="outline" size="sm" disabled={enCours}>
-          {enCours ? "…" : "Joindre"}
-        </Button>
+        <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
+          Joindre
+        </BoutonEnvoi>
       </div>
       <Retour etat={etat} />
     </form>

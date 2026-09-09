@@ -6,7 +6,7 @@ import {
   supprimerBailPersonne,
   type EtatBail,
 } from "@/app/actions/baux";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -30,9 +30,9 @@ function BoutonRetirer({ orgId, bailId, ligneId }: { orgId: string; bailId: stri
         await supprimerBailPersonne(orgId, bailId, ligneId);
       }}
     >
-      <Button type="submit" variant="ghost" size="sm">
+      <BoutonEnvoi variant="ghost" size="sm">
         Retirer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -62,9 +62,9 @@ export function FormulaireColocation({
   ];
 
   const actionColoc = ajouterBailPersonne.bind(null, orgId, bailId);
-  const [etatC, formColoc, enCoursC] = useActionState<EtatBail, FormData>(actionColoc, {});
+  const [etatC, formColoc] = useActionState<EtatBail, FormData>(actionColoc, {});
   const actionGarant = ajouterBailPersonne.bind(null, orgId, bailId);
-  const [etatG, formGarant, enCoursG] = useActionState<EtatBail, FormData>(actionGarant, {});
+  const [etatG, formGarant] = useActionState<EtatBail, FormData>(actionGarant, {});
 
   const totalQp =
     colocataires.reduce((s, c) => s + (c.quote_part ?? 0), 0);
@@ -143,9 +143,9 @@ export function FormulaireColocation({
             <Input id="coloc-surf" name="surface_privative" type="number" min="0" step="0.01" defaultValue={etatC.valeurs?.surface_privative} />
           </div>
           <div className="sm:col-span-4">
-            <Button type="submit" size="sm" variant="outline" disabled={enCoursC}>
-              {enCoursC ? "Ajout…" : "Ajouter le colocataire"}
-            </Button>
+            <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
+              Ajouter le colocataire
+            </BoutonEnvoi>
             {etatC.erreur && <p className="mt-1 text-sm text-destructive">{etatC.erreur}</p>}
           </div>
         </form>
@@ -215,9 +215,9 @@ export function FormulaireColocation({
             </select>
           </div>
           <div className="sm:col-span-2">
-            <Button type="submit" size="sm" variant="outline" disabled={enCoursG}>
-              {enCoursG ? "Ajout…" : "Ajouter le garant"}
-            </Button>
+            <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
+              Ajouter le garant
+            </BoutonEnvoi>
             {etatG.erreur && <p className="mt-1 text-sm text-destructive">{etatG.erreur}</p>}
           </div>
         </form>

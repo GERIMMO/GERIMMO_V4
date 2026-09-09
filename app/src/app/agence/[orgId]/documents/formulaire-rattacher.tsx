@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { rattacherDocument, type EtatDocumentGed } from "@/app/actions/documents-ged";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { afficherToast } from "@/components/ui/toast";
@@ -39,7 +40,7 @@ export function FormulaireRattacher({
   const [famille, setFamille] = useState<keyof FichesRattachables>("personnes");
   const actionLiee = rattacherDocument.bind(null, orgId, documentId);
   // Toast à la résolution de l'action (convention 24/08), jamais dans un effet
-  const [etat, action, enCours] = useActionState<EtatDocumentGed, FormData>(
+  const [etat, action] = useActionState<EtatDocumentGed, FormData>(
     async (precedent, formData) => {
       const res = await actionLiee(precedent, formData);
       if (res.succes) {
@@ -97,9 +98,9 @@ export function FormulaireRattacher({
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={enCours}>
-          {enCours ? "Rattachement…" : "Rattacher"}
-        </Button>
+        <BoutonEnvoi size="sm" enCoursTexte="Rattachement…">
+          Rattacher
+        </BoutonEnvoi>
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
           Fermer
         </Button>

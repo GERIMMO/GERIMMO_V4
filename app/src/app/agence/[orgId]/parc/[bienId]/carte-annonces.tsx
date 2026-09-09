@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { creerAnnonce, supprimerAnnonce, type EtatAnnonce } from "@/app/actions/annonces";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { formaterDate } from "@/lib/ged";
 
 export type Annonce = {
@@ -20,15 +20,15 @@ function BoutonRetirerAnnonce({
   bienId: string;
   annonceId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatAnnonce, FormData>(
+  const [etat, action] = useActionState<EtatAnnonce, FormData>(
     async () => supprimerAnnonce(orgId, bienId, annonceId),
     {}
   );
   return (
     <form action={action} className="inline-flex items-center gap-1.5">
-      <Button type="submit" variant="ghost" size="sm" disabled={enCours}>
-        {enCours ? "…" : "Retirer"}
-      </Button>
+      <BoutonEnvoi variant="ghost" size="sm" enCoursTexte="…">
+        Retirer
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
@@ -49,7 +49,7 @@ export function CarteAnnonces({
   bienId: string;
   annonces: Annonce[];
 }) {
-  const [etat, action, enCours] = useActionState<EtatAnnonce, FormData>(
+  const [etat, action] = useActionState<EtatAnnonce, FormData>(
     creerAnnonce.bind(null, orgId, bienId),
     {}
   );
@@ -90,9 +90,9 @@ export function CarteAnnonces({
               className="mt-1 block h-9 rounded-md border border-input bg-transparent px-2 text-sm text-foreground"
             />
           </label>
-          <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-            {enCours ? "Publication…" : "Publier l'annonce"}
-          </Button>
+          <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Publication…">
+            Publier l&apos;annonce
+          </BoutonEnvoi>
         </div>
         {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
         {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

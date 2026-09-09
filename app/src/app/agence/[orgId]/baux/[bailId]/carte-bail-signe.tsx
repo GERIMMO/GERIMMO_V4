@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { corrigerBail, envoyerBailSigne } from "@/app/actions/baux";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
+import { Spinner } from "@/components/ui/spinner";
 import { afficherToast } from "@/components/ui/toast";
 import { formaterDateHeure } from "@/lib/ged";
 
@@ -94,6 +95,7 @@ export function CarteBailSigne({
                       Le bail revient en brouillon, le lot redevient disponible, le PDF est détaché.
                     </span>
                     <Button type="button" size="sm" variant="destructive" disabled={enCours} onClick={corriger}>
+                      {enCours && <Spinner />}
                       Confirmer la correction
                     </Button>
                   </>
@@ -109,7 +111,7 @@ export function CarteBailSigne({
                   </Button>
                 ))}
               <Button type="button" size="sm" disabled={enCours || !locataireEmail} onClick={envoyer}>
-                {enCours ? "…" : envoyeLe ? "Renvoyer" : "Envoyer au locataire"}
+                {enCours ? <><Spinner /> …</> : envoyeLe ? "Renvoyer" : "Envoyer au locataire"}
               </Button>
             </div>
           }

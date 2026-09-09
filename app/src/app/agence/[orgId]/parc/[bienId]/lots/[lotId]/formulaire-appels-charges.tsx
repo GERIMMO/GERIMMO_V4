@@ -13,7 +13,7 @@ import {
 } from "@/app/actions/appels-charges";
 import { LIBELLES_NATURE, type NatureCharge } from "@/lib/charges";
 import { eur } from "@/lib/ged";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -170,7 +170,7 @@ function FormCreerAppel({
   lotId: string;
   anneeCourante: number;
 }) {
-  const [etat, action, enCours] = useActionState<EtatAppel, FormData>(
+  const [etat, action] = useActionState<EtatAppel, FormData>(
     creerAppelCharges.bind(null, orgId, bienId, lotId),
     {}
   );
@@ -194,9 +194,9 @@ function FormCreerAppel({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
-        <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-          {enCours ? "…" : "Créer l'appel"}
-        </Button>
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
+          {"Créer l'appel"}
+        </BoutonEnvoi>
       </div>
       <p className="text-xs text-muted-foreground">
         Puis saisissez chaque poste : la grille (décret 87-713) propose la nature, vous corrigez.
@@ -217,7 +217,7 @@ function FormAjouterPoste({
   lotId: string;
   appelId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatAppel, FormData>(
+  const [etat, action] = useActionState<EtatAppel, FormData>(
     ajouterPosteCharge.bind(null, orgId, bienId, lotId, appelId),
     {}
   );
@@ -226,9 +226,9 @@ function FormAjouterPoste({
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <Input name="libelle" placeholder="Poste (ex. ascenseur — entretien)" defaultValue={etat.valeurs?.libelle} className="h-9 w-64" />
       <Input name="montant" type="number" step="0.01" min="0.01" placeholder="€" defaultValue={etat.valeurs?.montant} className="h-9 w-24" />
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : "Ajouter le poste"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
+        Ajouter le poste
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
@@ -245,7 +245,7 @@ function FormQualifierPoste({
   lotId: string;
   poste: PosteCharge;
 }) {
-  const [etat, action, enCours] = useActionState<EtatAppel, FormData>(
+  const [etat, action] = useActionState<EtatAppel, FormData>(
     modifierPosteCharge.bind(null, orgId, bienId, lotId, poste.id),
     {}
   );
@@ -265,9 +265,9 @@ function FormQualifierPoste({
         <input type="checkbox" name="fonds_alur" defaultChecked={etat.valeurs ? etat.valeurs.fonds_alur === "on" : poste.fonds_alur} className="size-3.5" />
         fonds ALUR
       </label>
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="h-7 text-xs">
+      <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-xs">
         Qualifier
-      </Button>
+      </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
@@ -284,15 +284,15 @@ function BoutonValider({
   lotId: string;
   appelId: string;
 }) {
-  const [etat, action, enCours] = useActionState<EtatAppel, FormData>(
+  const [etat, action] = useActionState<EtatAppel, FormData>(
     async () => validerVentilation(orgId, bienId, lotId, appelId),
     {}
   );
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "…" : "Valider la ventilation"}
-      </Button>
+      <BoutonEnvoi size="sm" enCoursTexte="…">
+        Valider la ventilation
+      </BoutonEnvoi>
       <span className="text-xs text-muted-foreground">
         Total des postes = total de l&apos;appel, aucun poste à qualifier.
       </span>
@@ -312,15 +312,15 @@ function BoutonSupprimerPoste({
   lotId: string;
   posteId: string;
 }) {
-  const [, action, enCours] = useActionState(
+  const [, action] = useActionState(
     async () => supprimerPosteCharge(orgId, bienId, lotId, posteId),
     {}
   );
   return (
     <form action={action}>
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="h-7 text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-xs text-destructive">
         Retirer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -336,15 +336,15 @@ function BoutonSupprimerAppel({
   lotId: string;
   appelId: string;
 }) {
-  const [, action, enCours] = useActionState(
+  const [, action] = useActionState(
     async () => supprimerAppelCharges(orgId, bienId, lotId, appelId),
     {}
   );
   return (
     <form action={action}>
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours} className="text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
         Supprimer
-      </Button>
+      </BoutonEnvoi>
     </form>
   );
 }

@@ -8,7 +8,7 @@ import {
   IMPUTATIONS_INCIDENT,
   PIECES_INCIDENT,
 } from "@/lib/incidents";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -39,7 +39,7 @@ export function FormulaireIncident({
   lots: { id: string; libelle: string }[];
 }) {
   const actionLiee = ouvrirIncident.bind(null, orgId);
-  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const [categorie, setCategorie] = useState("");
 
   return (
@@ -148,9 +148,9 @@ export function FormulaireIncident({
         <p className="text-sm text-warning-soft-foreground">{etat.avertissement}</p>
       )}
       <div className="flex items-center gap-3">
-        <Button type="submit" disabled={enCours}>
-          {enCours ? "Ouverture…" : "Ouvrir l'incident"}
-        </Button>
+        <BoutonEnvoi enCoursTexte="Ouverture…">
+          Ouvrir l&apos;incident
+        </BoutonEnvoi>
         <span className="text-xs text-muted-foreground">* champs obligatoires</span>
       </div>
     </form>

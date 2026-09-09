@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
 
 // Accueil de l'espace propriétaire (maquette PC v1 du 05/09) : son patrimoine
 // en un regard — lots, encaissé, fiscalité — la liste de ce qui l'attend, et
@@ -25,8 +26,13 @@ export async function AccueilProprietaire({
     { data: lots },
     { count: nbBiens },
     { data: encaissements },
-    { data: alertes },
+    { data: alertesBrutes },
     { data: dpe },
+    // « À faire » ne repose plus sur les seules alertes (audit 09/09) : la
+    // même source que la fiche bail — impayés, EDL d'entrée, diagnostics
+    // obligatoires, pièces expirées — sinon l'accueil disait « tout est en
+    // ordre » pendant que le bail affichait trois blocages.
+    aFaireBaux,
   ] = await Promise.all([
     supabase.from("lots").select("id, etat").eq("organization_id", orgId).neq("etat", "archive"),
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
@@ -37,7 +43,7 @@ export async function AccueilProprietaire({
       .gte("date_paiement", moisCourant),
     supabase
       .from("alerts")
-      .select("id, titre, criticite, echeance")
+      .select("id, titre, criticite, echeance, type, details")
       .eq("organization_id", orgId)
       .eq("statut", "ouverte")
       .order("echeance", { ascending: true, nullsFirst: false })
@@ -51,7 +57,21 @@ export async function AccueilProprietaire({
       .eq("type", "dpe")
       .in("classe_dpe", ["F", "G"])
       .is("archived_at", null),
+    actionsAttendues(supabase, orgId),
   ]);
+
+  // Une alerte qui répète un item calculé (EDL d'entrée) ne s'affiche pas deux fois
+  const alertes = sansAlertesDoublonnees(
+    ((alertesBrutes ?? []) as {
+      id: string;
+      titre: string;
+      criticite: string;
+      echeance: string | null;
+      type: string;
+      details: Record<string, unknown> | null;
+    }[]),
+    aFaireBaux
+  );
 
   const nbLots = (lots ?? []).length;
   const loues = (lots ?? []).filter((l) => l.etat === "loue" || l.etat === "preavis").length;
@@ -161,13 +181,35 @@ export async function AccueilProprietaire({
                 Toutes mes alertes →
               </Link>
             </div>
-            {(alertes ?? []).length === 0 ? (
+            {aFaireBaux.length === 0 && alertes.length === 0 ? (
               <p className="text-sm text-success-soft-foreground">
                 Rien ne vous attend — tout est en ordre.
               </p>
             ) : (
               <ul className="divide-y divide-border">
-                {(alertes ?? []).map((a) => (
+                {/* Ce que la fiche de chaque bail affiche comme blocage —
+                    même calcul, même liste (source commune) */}
+                {aFaireBaux.map((a) => (
+                  <li
+                    key={a.cle}
+                    className="flex flex-wrap items-center gap-2 py-2.5 text-sm"
+                  >
+                    <span className="min-w-0 flex-1">
+                      {a.titre}
+                      {a.detail && (
+                        <small className="block text-muted-foreground">{a.detail}</small>
+                      )}
+                    </span>
+                    {a.critique && <span className="puce puce-rouge shrink-0">critique</span>}
+                    <Link
+                      href={a.href}
+                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                    >
+                      Résoudre
+                    </Link>
+                  </li>
+                ))}
+                {alertes.map((a) => (
                   <li key={a.id} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
                     <span className="min-w-0 flex-1">
                       {a.titre}

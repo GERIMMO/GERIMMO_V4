@@ -5,6 +5,7 @@ import { formaterDate, eur } from "@/lib/ged";
 import { TYPES_BAIL, ETATS_BAIL, COULEURS_ETAT_BAIL, COULEURS_ETAT_EDL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier } from "@/lib/postgrest";
+import { actionsAttendues } from "@/lib/actions-attendues";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ETATS_ELEMENT, COULEURS_ETAT_ELEMENT } from "./edl/[edlId]/grille-edl";
@@ -158,6 +159,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // vague, les retenues embarquées dans la restitution.
   const vide = { data: [] as never[] };
   const [
+    // Blocages du bail en cours (source commune avec l'accueil, audit 09/09) :
+    // impayés, EDL d'entrée non signé, diagnostics obligatoires en défaut.
+    attendues,
     { data: comparatif },
     [
       { data: echeancier },
@@ -171,6 +175,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     ],
     { data: restitutionBrute },
   ] = await Promise.all([
+    loyersActif
+      ? actionsAttendues(supabase, orgId, { bailId })
+      : Promise.resolve([]),
     comparatifPossible
       ? supabase.rpc("comparatif_edl", { p_bail: bailId })
       : Promise.resolve({ data: null }),
@@ -269,11 +276,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
         href: `/agence/${orgId}/parc/${lot?.bien_id}/lots/${bail.lot_id}#pieces`,
       });
-    if (!edlEntreeSigne)
+    // Les blocages calculés par la source commune (impayés, EDL d'entrée,
+    // diagnostics obligatoires) — les mêmes items que l'accueil affiche.
+    for (const a of attendues) {
       aFaire.push({
-        texte: "Faire signer l'état des lieux d'entrée — sans lui, aucune retenue possible à la sortie",
-        href: "#edl",
+        texte: a.detail ? `${a.titre} (${a.detail})` : a.titre,
+        href: a.href,
       });
+    }
     if (resteDepot > 0)
       aFaire.push({
         texte: `Encaisser le dépôt de garantie (reste ${eur(resteDepot)})`,

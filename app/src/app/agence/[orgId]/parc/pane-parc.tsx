@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ETATS_LOT, COULEURS_ETAT_LOT, TYPES_BIEN, formaterSurface, cibleBlocage } from "@/lib/parc";
+import { etiqueterNiveau } from "@/lib/diagnostics";
 import { TYPES_BAIL } from "@/lib/baux";
 import { eur } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -217,7 +218,8 @@ export async function PaneParc({
                 const cible = bien ? cibleBlocage(m, { orgId, bienId: bien.id, lotId: lot.id }) : null;
                 return (
                   <li key={m} className="flex items-center justify-between gap-2 text-sm">
-                    <span className="min-w-0 flex-1">— {m}</span>
+                    {/* Un diagnostic porte son niveau (« au lot » / « à l'immeuble ») */}
+                    <span className="min-w-0 flex-1">— {etiqueterNiveau(m, m)}</span>
                     {cible && (
                       <Link href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
                         {cible.libelle} →

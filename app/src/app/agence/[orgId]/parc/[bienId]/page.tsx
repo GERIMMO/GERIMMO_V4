@@ -3,16 +3,19 @@ import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
   TYPES_BIEN,
-  TYPES_DIAGNOSTIC,
   TYPES_NON_DECOUPABLES,
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   MODES_CLE,
-  diagnosticsAttendus,
   formaterSurface,
   cibleBlocage,
-  alerteDiagnostics,
 } from "@/lib/parc";
+import {
+  diagnosticsExigibles,
+  diagnosticsManquants,
+  alerteDiagnosticsNiveau,
+  LIBELLES_NIVEAU_DIAGNOSTIC,
+} from "@/lib/diagnostics";
 import { formaterDate } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
@@ -126,12 +129,10 @@ export default async function PageBien(
     listesBlocages.length > 1
       ? listesBlocages[0].filter((b) => listesBlocages.every((l) => l.includes(b)))
       : [];
-  // Diagnostics attendus au niveau bien uniquement — ceux du lot sont sur sa fiche
-  const attendusBien = diagnosticsAttendus(bien).filter(
-    (t) => TYPES_DIAGNOSTIC[t].niveau === "bien"
-  );
-  const deposes = new Set((diagnostics ?? []).map((d) => d.type));
-  const manquants = attendusBien.filter((t) => !deposes.has(t));
+  // Diagnostics exigibles au niveau bien uniquement — calcul centralisé
+  // (lib/diagnostics, audit 09/09) ; ceux du lot sont sur sa fiche.
+  const exigiblesBien = diagnosticsExigibles(bien, "bien");
+  const manquants = diagnosticsManquants(bien, diagnostics ?? [], "bien");
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
 
   // Une ligne par propriétaire mandant : ses lots et quote-parts agrégés
@@ -199,11 +200,11 @@ export default async function PageBien(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du bien"
-            alerte={alerteDiagnostics(manquants, diagnostics ?? [])}
+            alerte={alerteDiagnosticsNiveau(bien, diagnostics ?? [], "bien")}
             resume={
-              `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""}` +
+              `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""} ${LIBELLES_NIVEAU_DIAGNOSTIC.bien}` +
               (manquants.length > 0
-                ? ` · manque ${manquants.map((t) => TYPES_DIAGNOSTIC[t].libelle).join(", ")}`
+                ? ` · manque ${manquants.map((m) => m.libelle).join(", ")}`
                 : "")
             }
           >
@@ -217,7 +218,7 @@ export default async function PageBien(
                 bienId={bienId}
                 lotId={null}
                 niveau="bien"
-                attendus={attendusBien}
+                attendus={exigiblesBien.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
               />
             </div>

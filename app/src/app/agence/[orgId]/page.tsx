@@ -7,6 +7,7 @@ import {
   resumerBlocage,
 } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
+import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { totalMessagesNonLus } from "@/lib/messagerie";
@@ -86,6 +87,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: incidentsEnCours },
     { data: donneesMembres },
     messagesNonLus,
+    // Ce que la fiche de chaque bail affiche comme blocage (audit 09/09) :
+    // impayés, EDL d'entrée non signé, diagnostics obligatoires, pièces
+    // expirées — même source que la fiche, pour que le tableau de bord ne
+    // dise jamais « tout est à jour » quand un bail est bloqué.
+    attendues,
   ] = await Promise.all([
     supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
@@ -138,6 +144,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     supabase.rpc("org_membres_gerants", { org: orgId }),
     // Même appel (mis en cache) que le badge du layout — un seul aller-retour
     totalMessagesNonLus(supabase, orgId),
+    actionsAttendues(supabase, orgId, { portefeuille }),
   ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;
@@ -180,7 +187,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     });
   }
 
-  const alertes = (alertesBrutes ?? []) as Alerte[];
+  // Une alerte qui répète un item calculé (EDL d'entrée posée à l'activation)
+  // ne s'affiche pas deux fois : l'item calculé fait foi.
+  const alertes = sansAlertesDoublonnees((alertesBrutes ?? []) as Alerte[], attendues);
 
   // Tuile Incidents : l'imputation décide de qui paie (module 7) —
   // « pas encore tranché » est la file d'attente de qualification.
@@ -405,6 +414,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               </>
             ) : alertes.length > 0 ? (
               "Aucune n'est en retard"
+            ) : attendues.length > 0 ? (
+              // Jamais « rien en attente » quand un bail affiche un blocage
+              `${attendues.length} action${attendues.length > 1 ? "s" : ""} attendue${attendues.length > 1 ? "s" : ""} sur les baux`
             ) : (
               "Rien en attente"
             )}
@@ -551,14 +563,57 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               </Link>
             </div>
 
-            {alertes.length === 0 ? (
+            {alertes.length === 0 && attendues.length === 0 ? (
               <p className="py-4 text-sm text-muted-foreground">Rien à traiter — tout est à jour.</p>
             ) : (
               <>
-                <div className="flex items-baseline justify-between gap-3 border-b border-border pb-1.5">
-                  <span className="libelle-champ">Alerte</span>
-                  <span className="libelle-champ">Échéance</span>
-                </div>
+                {/* Les blocages que la fiche de chaque bail affiche (source
+                    commune, audit 09/09) : impayés, EDL d'entrée, diagnostics,
+                    pièces expirées — chaque ligne mène à l'écran qui résout. */}
+                {attendues.length > 0 && (
+                  <div>
+                    <p className="flex items-center justify-end gap-2 border-b border-border bg-[var(--filet-leger)] px-3 py-1.5">
+                      <span className="libelle-champ">Attendu sur les baux</span>
+                      <span className="libelle-champ">· {attendues.length}</span>
+                    </p>
+                    <ul>
+                      {attendues.map((a) => (
+                        <li
+                          key={a.cle}
+                          className={`flex flex-wrap items-center justify-between gap-3 border-b border-border py-3 ${
+                            a.critique ? "border-l-2 border-l-destructive pl-3" : ""
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium">{a.titre}</p>
+                            {a.detail && (
+                              <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
+                                {a.detail}
+                              </p>
+                            )}
+                          </div>
+                          <Link
+                            href={a.href}
+                            className={buttonVariants({
+                              size: "sm",
+                              variant: a.critique ? "destructive" : "outline",
+                            })}
+                          >
+                            Résoudre
+                            <IndicateurLien />
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {alertes.length > 0 && (
+                  <div className="flex items-baseline justify-between gap-3 border-b border-border pb-1.5">
+                    <span className="libelle-champ">Alerte</span>
+                    <span className="libelle-champ">Échéance</span>
+                  </div>
+                )}
 
                 {[
                   { titre: "Échéance dépassée", liste: depassees, retard: true },

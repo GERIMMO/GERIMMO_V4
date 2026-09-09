@@ -2,6 +2,7 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { resumerBlocage } from "@/lib/echeances";
+import { etiqueterNiveau } from "@/lib/diagnostics";
 import { TYPES_BIEN, ETATS_LOT, COULEURS_ETAT_LOT, formaterSurface } from "@/lib/parc";
 import { Donut, LegendeDonut } from "@/components/graphes";
 import { buttonVariants } from "@/components/ui/button";
@@ -104,7 +105,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   const parMotif = new Map<string, number>();
   for (const motifs of listesBlocages) {
     for (const motif of motifs) {
-      const cle = resumerBlocage(motif);
+      // Un diagnostic est compté avec son niveau de rattachement (« au lot » /
+      // « à l'immeuble ») — même étiquette que les fiches bien et lot.
+      const cle = etiqueterNiveau(resumerBlocage(motif), motif);
       parMotif.set(cle, (parMotif.get(cle) ?? 0) + 1);
     }
   }
@@ -245,8 +248,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 <span className="eyebrow">À finaliser</span>
                 <span className="chiffre block">{enPreparation.length}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {totalBlocages} élément{totalBlocages > 1 ? "s" : ""} manquant
-                  {totalBlocages > 1 ? "s" : ""}
+                  {/* Ce compteur agrège les BLOCAGES de mise en location (dont
+                      les diagnostics, chacun à son niveau) — pas les compteurs
+                      « manquants » des fiches, qui couvrent aussi le non bloquant. */}
+                  {totalBlocages} blocage{totalBlocages > 1 ? "s" : ""} de mise en location
                 </span>
               </div>
               <div className="kpi bleu">

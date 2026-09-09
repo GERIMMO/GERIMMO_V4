@@ -2,14 +2,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
-  TYPES_DIAGNOSTIC,
   ETATS_LOT,
   COULEURS_ETAT_LOT,
-  diagnosticsAttendus,
   alertesDecence,
   cibleBlocage,
-  alerteDiagnostics,
 } from "@/lib/parc";
+import {
+  diagnosticsExigibles,
+  diagnosticsManquants,
+  alerteDiagnosticsNiveau,
+  LIBELLES_NIVEAU_DIAGNOSTIC,
+} from "@/lib/diagnostics";
 import { formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -138,11 +141,10 @@ export default async function PageLot(
     (s, d) => s + Number(d.quote_part),
     0
   );
-  const attendusLot = diagnosticsAttendus(bien).filter(
-    (t) => TYPES_DIAGNOSTIC[t].niveau === "lot"
-  );
-  const deposes = new Set((diagnostics ?? []).map((d) => d.type));
-  const manquants = attendusLot.filter((t) => !deposes.has(t));
+  // Diagnostics exigibles au niveau lot uniquement — calcul centralisé
+  // (lib/diagnostics, audit 09/09) ; ceux de l'immeuble sont sur la fiche bien.
+  const exigiblesLot = diagnosticsExigibles(bien, "lot");
+  const manquants = diagnosticsManquants(bien, diagnostics ?? [], "lot");
   const decence = alertesDecence(lot);
   const verrouille = ["loue", "preavis"].includes(lot.etat);
 
@@ -352,11 +354,11 @@ export default async function PageLot(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du lot"
-            alerte={alerteDiagnostics(manquants, diagnostics ?? [])}
+            alerte={alerteDiagnosticsNiveau(bien, diagnostics ?? [], "lot")}
             resume={
               nbDiag === 0
-                ? "Aucun diagnostic"
-                : `${nbDiag} déposé${nbDiag > 1 ? "s" : ""}${manquants.length ? ` · manque : ${manquants.map((t) => TYPES_DIAGNOSTIC[t].libelle).join(", ")}` : ""}`
+                ? `Aucun diagnostic ${LIBELLES_NIVEAU_DIAGNOSTIC.lot}`
+                : `${nbDiag} déposé${nbDiag > 1 ? "s" : ""} ${LIBELLES_NIVEAU_DIAGNOSTIC.lot}${manquants.length ? ` · manque : ${manquants.map((m) => m.libelle).join(", ")}` : ""}`
             }
           >
             <div className="space-y-3">
@@ -370,7 +372,7 @@ export default async function PageLot(
                 bienId={bienId}
                 lotId={lotId}
                 niveau="lot"
-                attendus={attendusLot}
+                attendus={exigiblesLot.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
               />
             </div>

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { inviterLocataire, type EtatInvitation } from "@/app/actions/invitations";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 export function FormulaireInvitation({
   orgId,
@@ -16,7 +16,7 @@ export function FormulaireInvitation({
   dejaInvite: boolean;
 }) {
   const action = inviterLocataire.bind(null, orgId, personId);
-  const [etat, formAction, enCours] = useActionState<EtatInvitation, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatInvitation, FormData>(action, {});
 
   if (dejaInvite) {
     return (
@@ -39,9 +39,9 @@ export function FormulaireInvitation({
         Créer un accès locataire pour {email} — un email lui permettra de définir
         son mot de passe.
       </p>
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Invitation…" : "Inviter comme locataire"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Invitation…">
+        Inviter comme locataire
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </form>

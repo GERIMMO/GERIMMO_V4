@@ -6,6 +6,7 @@ import {
   modifierPersonne,
   type EtatPersonne,
 } from "@/app/actions/personnes";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,7 @@ export function BoutonArchiverPersonne({
   personId: string;
 }) {
   const action = archiverPersonne.bind(null, orgId, personId);
-  const [etat, formAction, enCours] = useActionState<EtatPersonne, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
   const [confirmation, setConfirmation] = useState(false);
 
   if (!confirmation) {
@@ -38,9 +39,9 @@ export function BoutonArchiverPersonne({
       <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmation(false)}>
         Annuler
       </Button>
-      <Button type="submit" variant="outline" size="sm" disabled={enCours}>
-        {enCours ? "Archivage…" : "Confirmer l'archivage"}
-      </Button>
+      <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Archivage…">
+        Confirmer l&apos;archivage
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );
@@ -66,7 +67,7 @@ export function FormulaireIdentite({
   dateNaissance: string | null;
 }) {
   const action = modifierPersonne.bind(null, orgId, personId);
-  const [etat, formAction, enCours] = useActionState<EtatPersonne, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
   const [ouvert, setOuvert] = useState(false);
 
   // Fiche mise à jour : le formulaire se replie, la page se recharge d'elle-même.
@@ -142,9 +143,9 @@ export function FormulaireIdentite({
         <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
           Annuler
         </Button>
-        <Button type="submit" size="sm" disabled={enCours}>
-          {enCours ? "Enregistrement…" : "Enregistrer"}
-        </Button>
+        <BoutonEnvoi size="sm" enCoursTexte="Enregistrement…">
+          Enregistrer
+        </BoutonEnvoi>
       </div>
     </form>
   );

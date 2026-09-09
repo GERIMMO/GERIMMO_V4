@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { creerPersonne, type EtatPersonne } from "@/app/actions/personnes";
 import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ComboboxLot } from "@/components/combobox-lot";
@@ -50,7 +51,7 @@ export function FormulairePersonne({
   estBailleurDirect?: boolean;
 }) {
   const action = creerPersonne.bind(null, orgId);
-  const [etat, formAction, enCours] = useActionState<EtatPersonne, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
   const formulaire = useRef<HTMLFormElement>(null);
 
   const [role, setRole] = useState<string | null>(null);
@@ -249,9 +250,9 @@ export function FormulairePersonne({
             >
               Retour
             </Button>
-            <Button type="submit" size="sm" disabled={enCours} className="flex-1">
-              {enCours ? "Création…" : "Créer la fiche"}
-            </Button>
+            <BoutonEnvoi size="sm" className="flex-1" enCoursTexte="Création…">
+              Créer la fiche
+            </BoutonEnvoi>
           </div>
         </form>
       )}

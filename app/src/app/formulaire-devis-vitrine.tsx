@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { demanderDevis, type EtatDevis } from "@/app/actions/devis";
+import { Spinner } from "@/components/ui/spinner";
 
 // Formulaire de devis du site vitrine (agences). Champs libres volontairement
 // courts — le circuit commercial (module 16) prend le relais par email.
@@ -83,7 +84,7 @@ export function FormulaireDevisVitrine() {
       )}
       <div className="sm:col-span-2">
         <button type="submit" disabled={enCours} className="btn-or">
-          {enCours ? "Envoi…" : "Demander un devis"}
+          {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Demander un devis"}
         </button>
         <p className="mt-2 text-xs text-[var(--sur-encre)]/55">
           Ces informations servent uniquement à vous recontacter au sujet de

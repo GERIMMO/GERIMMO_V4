@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { deposerMaPiece, type EtatPieceDemandee } from "@/app/actions/pieces-demandees";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { formaterDate } from "@/lib/ged";
 
 export type DemandePiece = {
@@ -17,7 +17,7 @@ export type DemandePiece = {
 // Une pièce réclamée par le gestionnaire : la ligne porte son dépôt —
 // choisir le fichier, envoyer, c'est réglé (RM-0b.2.5).
 export function DepotPiece({ orgId, demande }: { orgId: string; demande: DemandePiece }) {
-  const [etat, action, enCours] = useActionState<EtatPieceDemandee, FormData>(
+  const [etat, action] = useActionState<EtatPieceDemandee, FormData>(
     deposerMaPiece.bind(null, orgId, demande.id),
     {}
   );
@@ -51,9 +51,9 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
         aria-label={`Fichier pour ${demande.libelle}`}
         className="max-w-48 text-xs"
       />
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "Envoi…" : "Déposer"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
+        Déposer
+      </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );

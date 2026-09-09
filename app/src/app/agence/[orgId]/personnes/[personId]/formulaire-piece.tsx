@@ -7,13 +7,13 @@ import {
   type EtatDossier,
 } from "@/app/actions/dossier";
 import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export function FormulairePiece({ orgId, personId }: { orgId: string; personId: string }) {
   const action = deposerPieceDossier.bind(null, orgId, personId);
-  const [etat, formAction, enCours] = useActionState<EtatDossier, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatDossier, FormData>(action, {});
   const formulaire = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -64,9 +64,9 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         </Label>
         <Input id="piece-fichier" name="fichier" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "Dépôt…" : "Déposer"}
-      </Button>
+      <BoutonEnvoi size="sm" enCoursTexte="Dépôt…">
+        Déposer
+      </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (
         <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>
@@ -87,15 +87,15 @@ export function BoutonValiderAttestation({
   personId: string;
   documentId: string;
 }) {
-  const [etat, formAction, enCours] = useActionState<EtatDossier, FormData>(
+  const [etat, formAction] = useActionState<EtatDossier, FormData>(
     () => validerAttestation(orgId, personId, documentId),
     {}
   );
   return (
     <form action={formAction} className="inline">
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : "Valider"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
+        Valider
+      </BoutonEnvoi>
       {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
     </form>
   );
@@ -117,7 +117,7 @@ export function FormulaireNouvelleVersion({
   titre: string | null;
 }) {
   const action = deposerPieceDossier.bind(null, orgId, personId);
-  const [etat, formAction, enCours] = useActionState<EtatDossier, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatDossier, FormData>(action, {});
 
   return (
     <form action={formAction} className="mt-1 flex flex-wrap items-end gap-2">
@@ -154,9 +154,9 @@ export function FormulaireNouvelleVersion({
           required
         />
       </div>
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Dépôt…" : "Déposer la nouvelle version"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Dépôt…">
+        Déposer la nouvelle version
+      </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );

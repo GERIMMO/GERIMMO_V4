@@ -13,7 +13,7 @@ import {
   libelleEtatLocataire,
   titreIncident,
 } from "@/lib/incidents";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Card, CardContent } from "@/components/ui/card";
 
 export type IncidentLocataire = {

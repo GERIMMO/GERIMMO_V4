@@ -153,9 +153,9 @@ export function CartePiecesDemandees({
             <option value="justificatif">Justificatif</option>
             <option value="piece_identite">Pièce d&apos;identité</option>
           </select>
-          <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-            {enCours ? "…" : "Demander"}
-          </Button>
+          <BoutonEnvoi size="sm" variant="outline">
+            Demander
+          </BoutonEnvoi>
         </div>
         {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
         {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

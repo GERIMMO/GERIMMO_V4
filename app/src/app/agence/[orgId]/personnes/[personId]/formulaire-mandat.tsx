@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 import {
   creerMandat,
   ajouterLigneMandat,
@@ -9,9 +10,10 @@ import {
   supprimerLigneMandat,
   type EtatMandat,
 } from "@/app/actions/mandats";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { ComboboxLot } from "@/components/combobox-lot";
 
 type LotOption = { id: string; libelle: string };
@@ -19,7 +21,7 @@ type LotOption = { id: string; libelle: string };
 // Créer un mandat (brouillon)
 export function FormulaireMandat({ orgId, personId }: { orgId: string; personId: string }) {
   const action = creerMandat.bind(null, orgId, personId);
-  const [etat, formAction, enCours] = useActionState<EtatMandat, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatMandat, FormData>(action, {});
 
   return (
     <form action={formAction} className="space-y-3 border-t border-border pt-4">
@@ -45,9 +47,9 @@ export function FormulaireMandat({ orgId, personId }: { orgId: string; personId:
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "Création…" : "Créer le mandat"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Création…">
+        Créer le mandat
+      </BoutonEnvoi>
     </form>
   );
 }
@@ -67,7 +69,7 @@ export function FormulaireLigneMandat({
   nbLotsDetenus: number;
 }) {
   const action = ajouterLigneMandat.bind(null, orgId, personId, mandatId);
-  const [etat, formAction, enCours] = useActionState<EtatMandat, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatMandat, FormData>(action, {});
 
   // Recette 22/08 : la liste ne propose plus les lots déjà couverts par un
   // mandat actif — proposer un lot pour le voir refusé alourdissait l'écran.
@@ -108,9 +110,9 @@ export function FormulaireLigneMandat({
           defaultValue={etat.valeurs?.taux_honoraires}
         />
       </div>
-      <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-        {enCours ? "…" : "Ajouter"}
-      </Button>
+      <BoutonEnvoi size="sm" variant="outline">
+        Ajouter
+      </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );
@@ -178,14 +180,22 @@ export function BoutonRetirerLigne({
   };
   return (
     <form action={action} className="inline">
-      <button
-        type="submit"
-        className="text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
-        aria-label="Retirer ce lot du mandat"
-      >
-        Retirer
-      </button>
+      <BoutonRetirer />
     </form>
+  );
+}
+
+function BoutonRetirer() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
+      aria-label="Retirer ce lot du mandat"
+    >
+      {pending && <Spinner className="size-3" />} Retirer
+    </button>
   );
 }
 
@@ -222,14 +232,14 @@ export function BoutonsEtatMandat({
     mandatId,
     transition?.vers ?? etat
   );
-  const [etatAction, formAction, enCours] = useActionState<EtatMandat, FormData>(action, {});
+  const [etatAction, formAction] = useActionState<EtatMandat, FormData>(action, {});
 
   if (!transition) return null;
   return (
     <form action={formAction}>
-      <Button type="submit" size="sm" variant="ghost" disabled={enCours}>
-        {enCours ? "…" : transition.libelle}
-      </Button>
+      <BoutonEnvoi size="sm" variant="ghost">
+        {transition.libelle}
+      </BoutonEnvoi>
       {etatAction.erreur && (
         <p className="text-xs text-destructive">{etatAction.erreur}</p>
       )}

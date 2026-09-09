@@ -6,7 +6,7 @@ import {
   type EtatRetourSignature,
 } from "@/app/actions/signature-locataire";
 import { formaterDate } from "@/lib/ged";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 // Une demande de signature : télécharger le document, le signer, déposer le
 // signé — la demande se solde toute seule et le gestionnaire est prévenu.
@@ -17,7 +17,7 @@ export function DepotSignature({
   orgId: string;
   demande: { id: string; document_id: string; titre: string | null; demandee_le: string };
 }) {
-  const [etat, action, enCours] = useActionState<EtatRetourSignature, FormData>(
+  const [etat, action] = useActionState<EtatRetourSignature, FormData>(
     retournerDocumentSigne.bind(null, orgId, demande.id),
     {}
   );
@@ -59,9 +59,9 @@ export function DepotSignature({
           aria-label={`Document signé — ${demande.titre ?? "document"}`}
           className="text-sm"
         />
-        <Button type="submit" size="sm" disabled={enCours}>
-          {enCours ? "Envoi…" : "Déposer le signé"}
-        </Button>
+        <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
+          Déposer le signé
+        </BoutonEnvoi>
       </form>
       {etat.erreur && <p className="mt-1.5 text-sm text-destructive">{etat.erreur}</p>}
     </div>

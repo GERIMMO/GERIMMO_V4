@@ -8,6 +8,7 @@ import { CLE_SESSION_ALERTES } from "@/components/synthese-alertes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
 
 const MESSAGES: Record<string, { texte: string; ton: "info" | "succes" }> = {
@@ -101,7 +102,7 @@ export function FormulaireConnexion() {
           </div>
           {erreur && <p className="text-sm text-destructive">{erreur}</p>}
           <Button type="submit" className="w-full" disabled={enCours}>
-            {enCours ? "Connexion…" : "Se connecter"}
+            {enCours ? <><Spinner /> Connexion…</> : "Se connecter"}
           </Button>
           <p className="text-center text-sm">
             <Link

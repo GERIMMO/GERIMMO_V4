@@ -2,7 +2,7 @@
 
 import { useActionState, useRef } from "react";
 import { envoyerMessageLocataire, type EtatMessage } from "@/app/actions/messages";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 export type MessageFil = {
   id: string;
@@ -31,7 +31,7 @@ export function FilMessages({
   // Bail terminé : l'historique reste lisible, l'envoi est fermé
   lectureSeule?: boolean;
 }) {
-  const [etat, action, enCours] = useActionState<EtatMessage, FormData>(
+  const [etat, action] = useActionState<EtatMessage, FormData>(
     envoyerMessageLocataire.bind(null, orgId),
     {}
   );
@@ -123,9 +123,9 @@ export function FilMessages({
           placeholder="Écrire à votre gestionnaire…"
         />
         <div className="mt-2 flex items-center gap-3">
-          <Button type="submit" size="sm" disabled={enCours}>
-            {enCours ? "Envoi…" : "Envoyer le message"}
-          </Button>
+          <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
+            Envoyer le message
+          </BoutonEnvoi>
           {etat.succes && (
             <span className="text-sm text-success-soft-foreground">{etat.succes}</span>
           )}

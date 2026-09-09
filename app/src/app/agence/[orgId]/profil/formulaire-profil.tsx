@@ -5,7 +5,7 @@ import {
   modifierProfilOrganisation,
   type EtatProfilOrganisation,
 } from "@/app/actions/organisation";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -30,7 +30,7 @@ export function FormulaireProfilOrganisation({
   lectureSeule: boolean;
   estProprietaire: boolean;
 }) {
-  const [etat, action, enCours] = useActionState<EtatProfilOrganisation, FormData>(
+  const [etat, action] = useActionState<EtatProfilOrganisation, FormData>(
     modifierProfilOrganisation.bind(null, orgId),
     {}
   );
@@ -86,9 +86,7 @@ export function FormulaireProfilOrganisation({
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
       {!lectureSeule && (
-        <Button type="submit" disabled={enCours}>
-          {enCours ? "Enregistrement…" : "Enregistrer"}
-        </Button>
+        <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer</BoutonEnvoi>
       )}
     </form>
   );

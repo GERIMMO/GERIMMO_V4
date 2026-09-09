@@ -4,12 +4,13 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { inscrireProprietaire, type EtatInscription } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function FormulaireInscription() {
-  const [etat, action, enCours] = useActionState<EtatInscription, FormData>(
+  const [etat, action] = useActionState<EtatInscription, FormData>(
     inscrireProprietaire,
     {}
   );
@@ -143,9 +144,9 @@ export function FormulaireInscription() {
             </span>
           </label>
           {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-          <Button type="submit" className="w-full" disabled={enCours}>
-            {enCours ? "Ouverture…" : "Ouvrir mon espace"}
-          </Button>
+          <BoutonEnvoi enCoursTexte="Ouverture…" className="w-full">
+            Ouvrir mon espace
+          </BoutonEnvoi>
           <p className="text-center text-sm">
             <Link
               href="/connexion"

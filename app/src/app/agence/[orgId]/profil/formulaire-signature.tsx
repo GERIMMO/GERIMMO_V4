@@ -7,6 +7,8 @@ import {
   type EtatSignature,
 } from "@/app/actions/signature";
 import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { afficherToast } from "@/components/ui/toast";
@@ -21,7 +23,7 @@ export function FormulaireSignature({
   apercu: string | null;
   lectureSeule: boolean;
 }) {
-  const [etat, action, enCours] = useActionState<EtatSignature, FormData>(
+  const [etat, action] = useActionState<EtatSignature, FormData>(
     enregistrerSignature.bind(null, orgId),
     {}
   );
@@ -50,7 +52,7 @@ export function FormulaireSignature({
                 })
               }
             >
-              {retraitEnCours ? "…" : "Retirer"}
+              {retraitEnCours ? <><Spinner /> …</> : "Retirer"}
             </Button>
           )}
         </div>
@@ -69,9 +71,9 @@ export function FormulaireSignature({
             </Label>
             <Input id="sig-fichier" name="fichier" type="file" accept=".png,.jpg,.jpeg" required />
           </div>
-          <Button type="submit" size="sm" variant="outline" disabled={enCours}>
-            {enCours ? "Enregistrement…" : "Enregistrer"}
-          </Button>
+          <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
+            Enregistrer
+          </BoutonEnvoi>
           {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
           {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
         </form>

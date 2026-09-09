@@ -3,7 +3,7 @@ import { afficherEcheance } from "@/lib/echeances";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE } from "@/lib/ged";
+import { CRITICITES, ORDRE_CRITICITE } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { Modale } from "@/components/ui/modale";
 import { ModaleAlerte } from "@/app/agence/[orgId]/alertes/modale-alerte";
@@ -28,6 +28,19 @@ export type AlerteSynthese = {
   assigned_all: boolean;
   escalades: unknown;
   details: Record<string, unknown> | null;
+};
+
+// Revue visuelle 09/09 : chaque alerte est une carte-rangée — liseré de
+// criticité à gauche, pastille douce (plus de mono brut), titre complet.
+const ACCENTS_CRITICITE: Record<string, string> = {
+  critique: "var(--destructive)",
+  normale: "var(--or)",
+  informative: "var(--filet-leger)",
+};
+const PUCES_CRITICITE: Record<string, string> = {
+  critique: "puce-rouge",
+  normale: "puce-prep",
+  informative: "puce-grise",
 };
 
 // Le drapeau « déjà vue » vit dans le sessionStorage, qui survit à la
@@ -139,13 +152,28 @@ export function SyntheseAlertes({
           large
           fermer={fermer}
           pied={
-            <button
-              type="button"
-              onClick={fermer}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              Fermer
-            </button>
+            <div className="flex w-full items-center justify-between gap-3">
+              {/* Une seule agence concernée : raccourci vers sa page Alertes
+                  (historique et alertes fermées comprises) */}
+              {!modeAdmin && parAgence.size === 1 && alertes.length > 0 ? (
+                <Link
+                  href={`/agence/${[...parAgence.keys()][0]}/alertes`}
+                  onClick={fermer}
+                  className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                >
+                  Toutes les alertes&nbsp;→
+                </Link>
+              ) : (
+                <span />
+              )}
+              <button
+                type="button"
+                onClick={fermer}
+                className={buttonVariants({ variant: "outline", size: "sm" })}
+              >
+                Fermer
+              </button>
+            </div>
           }
         >
             <div className="max-h-[55vh] overflow-y-auto">
@@ -159,22 +187,41 @@ export function SyntheseAlertes({
                     {multiAgences && (
                       <p className="eyebrow pb-1">{groupe.nom}</p>
                     )}
-                    <ul className="divide-y divide-border">
+                    <ul className="space-y-1.5">
                       {groupe.liste.map((a) => {
                         const echeance = afficherEcheance(a.echeance);
-                        return (
-                        <li key={a.id} className="flex items-center gap-2 py-2 text-sm">
-                          <span
-                            className={`badge-statut shrink-0 ${COULEURS_CRITICITE[a.criticite] ?? ""}`}
-                          >
-                            {CRITICITES[a.criticite] ?? a.criticite}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate">{a.titre}</span>
-                          {echeance && (
-                            <span className={`shrink-0 text-xs ${echeance.classe}`}>
-                              {echeance.texte}
+                        // Carte-rangée de la charte (revue visuelle 09/09) :
+                        // liseré de criticité, pastille douce, titre complet
+                        // sans troncature — TOUTE la rangée mène au traitement.
+                        const contenu = (
+                          <>
+                            <span
+                              aria-hidden
+                              className="w-[3px] shrink-0 self-stretch"
+                              style={{ background: ACCENTS_CRITICITE[a.criticite] ?? "var(--filet-leger)" }}
+                            />
+                            <span className="min-w-0 flex-1 py-2.5">
+                              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pb-1">
+                                <span className={`puce ${PUCES_CRITICITE[a.criticite] ?? "puce-grise"}`}>
+                                  {CRITICITES[a.criticite] ?? a.criticite}
+                                </span>
+                                {echeance && (
+                                  <span className={`text-xs ${echeance.classe}`}>
+                                    {echeance.texte}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="block text-sm leading-snug">{a.titre}</span>
                             </span>
-                          )}
+                            <span className="shrink-0 self-center pr-3.5 text-xs text-[var(--bleu)] underline-offset-2 group-hover:underline">
+                              Traiter&nbsp;→
+                            </span>
+                          </>
+                        );
+                        const classeRangee =
+                          "group flex w-full items-stretch gap-3 border border-border bg-card text-left transition-all hover:translate-x-[3px] hover:border-[var(--encre)]";
+                        return (
+                        <li key={a.id}>
                           {/* Recette 24/08 : « Traiter » ouvre la pop-up SUR
                               L'ÉCRAN COURANT ; une alerte incident emmène au
                               dossier, dans l'onglet Incidents. */}
@@ -182,17 +229,17 @@ export function SyntheseAlertes({
                             <Link
                               href={`/admin/organisations/${a.organization_id}`}
                               onClick={fermer}
-                              className="shrink-0 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                              className={classeRangee}
                             >
-                              Traiter
+                              {contenu}
                             </Link>
                           ) : typeof a.details?.incident_id === "string" ? (
                             <Link
                               href={`/agence/${a.organization_id}/incidents?sel=${a.details.incident_id}`}
                               onClick={fermer}
-                              className="shrink-0 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                              className={classeRangee}
                             >
-                              Traiter
+                              {contenu}
                             </Link>
                           ) : membres ? (
                             <button
@@ -201,17 +248,17 @@ export function SyntheseAlertes({
                                 fermer();
                                 setTraitement(a);
                               }}
-                              className="shrink-0 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                              className={classeRangee}
                             >
-                              Traiter
+                              {contenu}
                             </button>
                           ) : (
                             <Link
                               href={`/agence/${a.organization_id}/alertes?traiter=${a.id}`}
                               onClick={fermer}
-                              className="shrink-0 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                              className={classeRangee}
                             >
-                              Traiter
+                              {contenu}
                             </Link>
                           )}
                         </li>

@@ -5,6 +5,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant } from "@/lib/ged-acces";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { eur } from "@/lib/ged";
+import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { envoyerQuittance, type EtatLoyers } from "./loyers";
 
 // Vue « Quittancement du mois » (maquette v3) : les gestes en un clic depuis
@@ -43,20 +44,18 @@ export async function encaisserReste(
   // foulée (paiement partiel → reçu, promu en quittance au solde). Mais le
   // montant s'impute d'abord aux échéances les plus anciennes : le terme visé
   // peut rester non soldé — le message suit ce que la base a réellement fait.
-  const { data: nbQuittances, error: erreurQuittance } = await supabase.rpc("emettre_quittances", {
-    p_bail: bailId,
-  });
+  const emission = await emettreRecusQuittances(supabase, bailId);
   revalidatePath(`/agence/${orgId}/comptabilite`);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  if (erreurQuittance)
+  if (emission.erreur)
     return {
-      succes: `${eur(reste)} encaissés — mais la quittance n'a pas pu être émise : ${sansJargon(erreurQuittance.message)}`,
+      succes: `${eur(reste)} encaissés — mais le reçu ou la quittance n'a pas pu être émis : ${emission.erreur}`,
     };
-  const nb = Number(nbQuittances ?? 0);
   return {
-    succes: `${eur(reste)} encaissés (imputés à l'échéance la plus ancienne) · ${
-      nb > 0 ? `${nb} quittance(s) émise(s)` : "aucune quittance émise (terme non soldé)"
-    }.`,
+    succes: `${eur(reste)} encaissés (imputés à l'échéance la plus ancienne) · ${libelleEmission(
+      emission.quittances,
+      emission.recus
+    )}.`,
   };
 }
 
@@ -64,11 +63,11 @@ export async function encaisserReste(
 export async function emettreQuittanceBail(orgId: string, bailId: string): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { data, error } = await supabase.rpc("emettre_quittances", { p_bail: bailId });
-  if (error) return { erreur: sansJargon(error.message) };
+  const emission = await emettreRecusQuittances(supabase, bailId);
+  if (emission.erreur) return { erreur: emission.erreur };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: `${data ?? 0} quittance(s) émise(s).` };
+  return { succes: `${libelleEmission(emission.quittances, emission.recus)}.` };
 }
 
 // Envoi groupé : toutes les quittances du mois pas encore parties, chacune au

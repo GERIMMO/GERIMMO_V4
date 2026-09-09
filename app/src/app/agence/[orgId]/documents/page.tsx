@@ -171,7 +171,7 @@ export default async function PageDocuments(
             apparaît sur chacune.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {totalCourants ?? docs.length} pièce{(totalCourants ?? docs.length) > 1 ? "s" : ""}
@@ -182,9 +182,11 @@ export default async function PageDocuments(
         </div>
       </div>
 
-      {/* Filtres — la recherche traite % et _ comme des caractères normaux */}
+      {/* Filtres — la recherche traite % et _ comme des caractères normaux.
+          Sous 640 px (audit 09/09), chaque champ prend sa propre ligne :
+          aucun débordement horizontal au niveau page. */}
       <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
-        <div>
+        <div className="w-full sm:w-auto">
           <label htmlFor="type" className="libelle-champ mb-1 block">
             Type
           </label>
@@ -192,7 +194,7 @@ export default async function PageDocuments(
             id="type"
             name="type"
             defaultValue={recherche.type ?? ""}
-            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
           >
             <option value="">Tous</option>
             {Object.entries(TYPES_DOCUMENT).map(([valeur, libelle]) => (
@@ -202,7 +204,7 @@ export default async function PageDocuments(
             ))}
           </select>
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <label htmlFor="du" className="libelle-champ mb-1 block">
             Du
           </label>
@@ -211,10 +213,10 @@ export default async function PageDocuments(
             name="du"
             type="date"
             defaultValue={recherche.du ?? ""}
-            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
           />
         </div>
-        <div>
+        <div className="w-full sm:w-auto">
           <label htmlFor="au" className="libelle-champ mb-1 block">
             Au
           </label>
@@ -223,10 +225,10 @@ export default async function PageDocuments(
             name="au"
             type="date"
             defaultValue={recherche.au ?? ""}
-            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
           />
         </div>
-        <div className="min-w-40 flex-1">
+        <div className="w-full flex-1 sm:min-w-40 sm:w-auto">
           <label htmlFor="q" className="libelle-champ mb-1 block">
             Recherche
           </label>

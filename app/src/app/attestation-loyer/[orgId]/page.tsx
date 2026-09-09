@@ -30,6 +30,15 @@ export default async function PageAttestationLoyer(
   const agence = ((gestionnaires ?? []) as { agence: string }[])[0]?.agence ?? "Votre agence";
 
   const aujourdhui = aujourdhuiParis();
+  // « de juillet 2026 à septembre 2026 » — avec l'élision devant voyelle
+  // (« d'août », « d'avril », « d'octobre »), audit 09/09
+  const moisLong = (periode: string) =>
+    new Date(periode).toLocaleDateString("fr-FR", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  const deMois = (mois: string) => (/^[aeiouyàâéèêëîï]/i.test(mois) ? `d'${mois}` : `de ${mois}`);
   // À jour = aucun mois échu impayé ou partiel (le mois « à échoir » ne compte pas)
   const moisEchus = lignes.filter((l) => l.statut !== "attendu");
   const enSouffrance = moisEchus.filter((l) => l.statut === "impaye" || l.statut === "partiel");
@@ -99,7 +108,7 @@ export default async function PageAttestationLoyer(
           <span>
             {moisPayes.length} mois
             {moisPayes.length > 0
-              ? ` (du ${new Date(moisPayes[0].periode).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" })} au ${new Date(moisPayes[moisPayes.length - 1].periode).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" })})`
+              ? ` (${deMois(moisLong(moisPayes[0].periode))} à ${moisLong(moisPayes[moisPayes.length - 1].periode)})`
               : ""}
           </span>
         </div>

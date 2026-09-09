@@ -7,7 +7,9 @@
 // d'emprunt ne sont pas suivis (rubrique vide, à compléter) ; le fonds travaux
 // ALUR est signalé à part (déductible l'année des travaux, pas du versement).
 // Les catégories du livre sont libres : le rangement se fait par mots-clés,
-// le reste tombe dans « autres » pour que rien ne disparaisse.
+// le reste tombe dans « autres » pour que rien ne disparaisse. Les
+// encaissements de loyer (écrits au montant total au livre) sont ventilés
+// entre 211 et 212 au prorata loyer/charges du bail — voir ventilerLoyer.
 
 export type EcritureFiscale = {
   categorie: string;
@@ -19,6 +21,8 @@ export type EcritureFiscale = {
   contre_ecriture_de?: string | null;
   // Lot rattaché : porte la quote-part (indivision) et le régime (meublé → BIC)
   lot_id?: string | null;
+  // Bail rattaché : porte la clé de ventilation loyer/charges (lignes 211/212)
+  bail_id?: string | null;
 };
 
 export type OptionsFiscales = {
@@ -29,6 +33,11 @@ export type OptionsFiscales = {
   // Lots meublés : leurs écritures relèvent des BIC, pas de la 2044 —
   // exclues du récapitulatif et totalisées à part (décision du 2026-09-04).
   lotsMeubles?: Set<string>;
+  // Clé de ventilation 211/212 par bail : loyer HC et provision de charges du
+  // bail. L'écriture d'encaissement du livre porte le TOTAL (catégorie
+  // « loyer », trigger ecrire_encaissement) : la part charges n'est pas
+  // récupérable depuis les écritures, elle se reconstitue au prorata du bail.
+  ventilationLoyers?: Map<string, { loyerHc: number; charges: number }>;
 };
 
 export type RubriqueFiscale = {
@@ -103,6 +112,28 @@ export function estFondsTravauxAlur(categorie: string): boolean {
   return MOTS_ALUR.some((m) => c.includes(normaliser(m)));
 }
 
+// Ventilation d'un encaissement de loyer entre part loyer (211) et part
+// charges (212), au prorata du bail : charges / (loyer HC + charges) au
+// moment de l'appel. Règle retenue (anomalie P1 de l'audit du 09/09) : le
+// livre n'enregistre qu'une écriture « loyer » au montant total ; la 2044
+// distingue pourtant loyers bruts (211) et charges récupérées (212), comme
+// le bail et les reçus. La part 212 est arrondie au centime, le reliquat va
+// en 211 : 211 + 212 se réconcilie exactement avec l'encaissé, y compris
+// pour les paiements partiels (imputés au prorata, faute de mieux).
+export function ventilerLoyer(
+  montant: number,
+  loyerHc: number,
+  charges: number
+): { part211: number; part212: number } {
+  const total = loyerHc + charges;
+  if (!(charges > 0) || !(total > 0)) return { part211: montant, part212: 0 };
+  // Arrondi symétrique (valeur absolue) : une contre-écriture (montant
+  // négatif) se ventile exactement comme son origine et s'annule au centime.
+  const brut = (montant * charges) / total;
+  const part212 = (Math.sign(brut) * Math.round(Math.abs(brut) * 100)) / 100;
+  return { part211: montant - part212, part212 };
+}
+
 export function recapitulatifFiscal(
   ecritures: EcritureFiscale[],
   annee: number,
@@ -143,13 +174,27 @@ export function recapitulatifFiscal(
       continue;
     }
     const code = rubriqueDe(e.categorie, sensOrigine);
-    montants.set(code, (montants.get(code) ?? 0) + montant);
-    montantsQuotePart.set(
-      code,
-      (montantsQuotePart.get(code) ?? 0) + (montant * quotePartDe(e.lot_id)) / 100
-    );
-    if (!categories.has(code)) categories.set(code, new Set());
-    categories.get(code)!.add(e.categorie);
+    // Encaissement de loyer (écriture au montant total, provision comprise) :
+    // ventilé entre 211 et 212 au prorata du bail — les contre-écritures
+    // (montant négatif) se ventilent avec la même clé et s'annulent donc bien.
+    const parts: [string, number][] = [[code, montant]];
+    const cle = e.bail_id ? options.ventilationLoyers?.get(e.bail_id) : undefined;
+    if (code === "211" && cle && normaliser(e.categorie).includes("loyer")) {
+      const { part211, part212 } = ventilerLoyer(montant, cle.loyerHc, cle.charges);
+      if (part212 !== 0) {
+        parts[0] = ["211", part211];
+        parts.push(["212", part212]);
+      }
+    }
+    for (const [c, m] of parts) {
+      montants.set(c, (montants.get(c) ?? 0) + m);
+      montantsQuotePart.set(
+        c,
+        (montantsQuotePart.get(c) ?? 0) + (m * quotePartDe(e.lot_id)) / 100
+      );
+      if (!categories.has(c)) categories.set(c, new Set());
+      categories.get(c)!.add(e.categorie);
+    }
   }
 
   const rubriques: RubriqueFiscale[] = REGLES.map((r) => ({

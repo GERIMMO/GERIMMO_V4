@@ -22,11 +22,11 @@ export default async function PageRecapitulatifFiscal(props: {
   const anneeCourante = Number(aujourdhuiParis().slice(0, 4));
   const annee = Number(anneeDemandee) || anneeCourante;
 
-  const [{ data: ecritures }, { data: detentions }, { data: lotsMeublesRows }] =
+  const [{ data: ecritures }, { data: detentions }, { data: lotsMeublesRows }, { data: baux }] =
     await Promise.all([
       supabase
         .from("ecritures")
-        .select("categorie, sens, montant, date_piece, contre_ecriture_de, lot_id")
+        .select("categorie, sens, montant, date_piece, contre_ecriture_de, lot_id, bail_id")
         .eq("organization_id", orgId)
         .gte("date_piece", `${annee}-01-01`)
         .lte("date_piece", `${annee}-12-31`),
@@ -43,6 +43,12 @@ export default async function PageRecapitulatifFiscal(props: {
         .select("id, nom")
         .eq("organization_id", orgId)
         .eq("meuble", true),
+      // Clé de ventilation 211/212 : l'écriture d'encaissement porte le total
+      // (loyer + provision) — la part charges se reconstitue au prorata du bail
+      supabase
+        .from("baux")
+        .select("id, loyer_hc, charges")
+        .eq("organization_id", orgId),
     ]);
 
   const quoteParts = new Map(
@@ -52,9 +58,15 @@ export default async function PageRecapitulatifFiscal(props: {
     ])
   );
   const lotsMeubles = (lotsMeublesRows ?? []) as { id: string; nom: string }[];
+  const ventilationLoyers = new Map(
+    ((baux ?? []) as { id: string; loyer_hc: number | null; charges: number | null }[]).map(
+      (b) => [b.id, { loyerHc: Number(b.loyer_hc) || 0, charges: Number(b.charges) || 0 }]
+    )
+  );
   const recap = recapitulatifFiscal((ecritures ?? []) as EcritureFiscale[], annee, {
     quoteParts,
     lotsMeubles: new Set(lotsMeubles.map((l) => l.id)),
+    ventilationLoyers,
   });
   const recettes = recap.rubriques.filter((r) => r.sens === "recette");
   const charges = recap.rubriques.filter((r) => r.sens === "depense");
@@ -155,7 +167,7 @@ export default async function PageRecapitulatifFiscal(props: {
 
       <TableauRubriques
         titre="Recettes"
-        description="Lignes 211 à 212 de la 2044."
+        description="Lignes 211 à 212 de la 2044. Chaque encaissement de loyer est ventilé au prorata du bail : la ligne 212 est la part des encaissements correspondant aux provisions de charges du bail, la ligne 211 le reste (loyers hors charges) — leur somme égale le total encaissé."
         rubriques={recettes}
         ventile={recap.ventile}
       />

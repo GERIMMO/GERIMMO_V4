@@ -519,6 +519,8 @@ function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) 
   );
 }
 
+// Rattrapage manuel : l'encaissement émet normalement les documents tout seul,
+// ce bouton ne sert qu'à resynchroniser un bail dont l'historique a dérivé.
 function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) {
   const [etat, action] = useActionState<EtatLoyers, FormData>(
     async () => emettreQuittances(orgId, bailId),
@@ -527,7 +529,7 @@ function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) 
   return (
     <form action={action} className="flex items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline">
-        Émettre les quittances
+        Régénérer les reçus/quittances
       </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}

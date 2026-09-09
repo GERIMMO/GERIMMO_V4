@@ -13,13 +13,18 @@ export default async function PageContactLocataire(
   const { orgId } = await props.params;
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: gestionnaires }, { data: fil }] = await Promise.all([
+  const [{ data: gestionnaires }, { data: fil }, { data: org }] = await Promise.all([
     supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
     // Lire marque lu : les réponses du gérant cessent de compter au badge
     supabase.rpc("mes_messages_locataire", { p_org: orgId }),
+    // Le type de l'organisation ajuste le libellé du bailleur (audit 09/09) :
+    // chez un propriétaire direct, il n'y a pas d'« agence de gestion »
+    supabase.from("organizations").select("type").eq("id", orgId).maybeSingle(),
   ]);
   const g = ((gestionnaires ?? []) as Gestionnaire[])[0];
   const messages = (fil ?? []) as MessageFil[];
+  const libelleBailleur =
+    org?.type === "proprietaire_direct" ? "Votre gestionnaire" : "Votre agence de gestion";
 
   return (
     <div className="space-y-4">
@@ -31,7 +36,7 @@ export default async function PageContactLocataire(
             <div className="loc-carte">
               <h3 className="text-base font-medium">{g.agence}</h3>
               <p className="mt-1 text-[13px] text-muted-foreground">
-                Votre agence de gestion
+                {libelleBailleur}
                 {g.agent_email ? ` · interlocuteur : ${g.agent_email}` : ""}
               </p>
               <div className="mt-2">

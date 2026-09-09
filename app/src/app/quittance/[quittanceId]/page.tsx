@@ -1,26 +1,43 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { eur, formaterDate } from "@/lib/ged";
 
-export const metadata = { title: "Quittance — Gerimmo" };
+type DetailQuittance = {
+  emetteur: string;
+  proprietaire: string | null;
+  locataire: string;
+  adresse: string;
+  lot_nom: string;
+  periode: string;
+  loyer_hc: number;
+  charges: number;
+  montant: number;
+  est_quittance: boolean;
+  date_emission: string;
+};
+
+// Un seul appel base pour la page et son titre (React déduplique via cache).
+const chargerQuittance = cache(async (quittanceId: string): Promise<DetailQuittance | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("quittance_detail", { p_quittance: quittanceId });
+  return ((data ?? []) as DetailQuittance[])[0] ?? null;
+});
+
+// Le titre de l'onglet suit la nature du document : un reçu partiel n'est pas
+// une quittance (audit 09/09).
+export async function generateMetadata(props: {
+  params: Promise<{ quittanceId: string }>;
+}): Promise<Metadata> {
+  const { quittanceId } = await props.params;
+  const q = await chargerQuittance(quittanceId);
+  return { title: q && !q.est_quittance ? "Reçu — Gerimmo" : "Quittance — Gerimmo" };
+}
 
 export default async function PageQuittance(props: { params: Promise<{ quittanceId: string }> }) {
   const { quittanceId } = await props.params;
-  const supabase = await createClient();
-  const { data } = await supabase.rpc("quittance_detail", { p_quittance: quittanceId });
-  const q = ((data ?? []) as {
-    emetteur: string;
-    proprietaire: string | null;
-    locataire: string;
-    adresse: string;
-    lot_nom: string;
-    periode: string;
-    loyer_hc: number;
-    charges: number;
-    montant: number;
-    est_quittance: boolean;
-    date_emission: string;
-  }[])[0];
+  const q = await chargerQuittance(quittanceId);
   if (!q) notFound();
 
   const mois = new Date(q.periode).toLocaleDateString("fr-FR", {
@@ -29,6 +46,8 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
     timeZone: "UTC",
   });
   const titre = q.est_quittance ? "Quittance de loyer" : "Reçu de paiement partiel";
+  // Reçu partiel : le solde restant dû, chiffré (montant appelé − encaissé)
+  const solde = Math.round((Number(q.loyer_hc) + Number(q.charges) - Number(q.montant)) * 100) / 100;
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8">
@@ -72,13 +91,19 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
             <td className="py-2">Total {q.est_quittance ? "acquitté" : "reçu"}</td>
             <td className="py-2 text-right">{eur(q.montant)}</td>
           </tr>
+          {!q.est_quittance && (
+            <tr className="border-t border-border">
+              <td className="py-2">Solde restant dû</td>
+              <td className="py-2 text-right">{eur(solde)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
       <p className="text-sm text-muted-foreground">
         {q.est_quittance
           ? `Le bailleur reconnaît avoir reçu du locataire la somme ci-dessus au titre du loyer et des charges de ${mois}, et lui en donne quittance.`
-          : `Ce reçu constate un paiement partiel de ${mois}. Il ne vaut pas quittance : le solde reste dû.`}
+          : `Ce reçu constate un paiement partiel de ${mois}. Il ne vaut pas quittance : un solde de ${eur(solde)} reste dû.`}
       </p>
 
       <p className="text-xs text-muted-foreground print:hidden">

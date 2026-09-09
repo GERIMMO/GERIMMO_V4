@@ -3,7 +3,12 @@
  * rubrique, agrégé sur la date de pièce. Test unitaire pur.
  */
 import { describe, expect, it } from "vitest";
-import { estFondsTravauxAlur, recapitulatifFiscal, rubriqueDe } from "../src/lib/fiscal";
+import {
+  estFondsTravauxAlur,
+  recapitulatifFiscal,
+  rubriqueDe,
+  ventilerLoyer,
+} from "../src/lib/fiscal";
 
 describe("Récapitulatif fiscal — rubriques 2044", () => {
   it("range les catégories libres du livre dans les lignes de la 2044", () => {
@@ -122,5 +127,79 @@ describe("recapitulatifFiscal — quote-part et meublé (BIC)", () => {
     expect(sans.totalRecettes).toBe(2400);
     expect(sans.totalRecettesQuotePart).toBe(2400);
     expect(sans.meuble.nbEcritures).toBe(0);
+  });
+});
+
+// ——— Ventilation 211/212 des encaissements de loyer (audit du 09/09, P1) ———
+// L'écriture d'encaissement porte le montant total (loyer + provision) : la
+// part charges se reconstitue au prorata du bail, reliquat de centime en 211.
+describe("recapitulatifFiscal — ventilation loyers/charges (211/212)", () => {
+  const cle = new Map([["bail-1", { loyerHc: 780, charges: 60 }]]);
+  const ligne = (recap: ReturnType<typeof recapitulatifFiscal>, code: string) =>
+    recap.rubriques.find((r) => r.code === code)?.montant;
+
+  it("ventile les mensualités soldées au prorata du bail (780 + 60)", () => {
+    const mois = ["2026-01-05", "2026-02-05", "2026-03-05"].map((d) => ({
+      categorie: "loyer",
+      sens: "recette",
+      montant: 840,
+      date_piece: d,
+      bail_id: "bail-1",
+    }));
+    const recap = recapitulatifFiscal(mois, 2026, { ventilationLoyers: cle });
+    expect(ligne(recap, "211")).toBe(2340);
+    expect(ligne(recap, "212")).toBe(180);
+    // 211 + 212 se réconcilie exactement avec le total encaissé
+    expect(recap.totalRecettes).toBe(2520);
+  });
+
+  it("ventile un paiement partiel, reliquat de centime en 211", () => {
+    // 100 × 60/840 = 7,142857… → 7,14 en 212, 92,86 en 211 (somme = 100)
+    expect(ventilerLoyer(100, 780, 60)).toEqual({ part211: 92.86, part212: 7.14 });
+    const recap = recapitulatifFiscal(
+      [{ categorie: "loyer", sens: "recette", montant: 100, date_piece: "2026-04-10", bail_id: "bail-1" }],
+      2026,
+      { ventilationLoyers: cle }
+    );
+    expect(ligne(recap, "211")).toBe(92.86);
+    expect(ligne(recap, "212")).toBe(7.14);
+    expect(recap.totalRecettes).toBe(100);
+  });
+
+  it("sans clé de ventilation, ou sans charges au bail, tout reste en 211", () => {
+    const recap = recapitulatifFiscal(
+      [
+        { categorie: "loyer", sens: "recette", montant: 840, date_piece: "2026-05-05", bail_id: "inconnu" },
+        { categorie: "loyer", sens: "recette", montant: 500, date_piece: "2026-05-06", bail_id: "bail-hc" },
+      ],
+      2026,
+      { ventilationLoyers: new Map([["bail-hc", { loyerHc: 500, charges: 0 }]]) }
+    );
+    expect(ligne(recap, "211")).toBe(1340);
+    expect(ligne(recap, "212")).toBe(0);
+  });
+
+  it("l'annulation d'un encaissement se ventile comme son origine et s'annule", () => {
+    const recap = recapitulatifFiscal(
+      [
+        { categorie: "loyer", sens: "recette", montant: 100, date_piece: "2026-06-05", bail_id: "bail-1" },
+        { categorie: "loyer", sens: "depense", montant: 100, date_piece: "2026-06-06", bail_id: "bail-1", contre_ecriture_de: "x" },
+      ],
+      2026,
+      { ventilationLoyers: cle }
+    );
+    expect(ligne(recap, "211")).toBe(0);
+    expect(ligne(recap, "212")).toBe(0);
+    expect(recap.totalRecettes).toBe(0);
+  });
+
+  it("applique la quote-part du déclarant aux deux parts ventilées", () => {
+    const recap = recapitulatifFiscal(
+      [{ categorie: "loyer", sens: "recette", montant: 840, date_piece: "2026-07-05", bail_id: "bail-1", lot_id: "indiv" }],
+      2026,
+      { ventilationLoyers: cle, quoteParts: new Map([["indiv", 50]]) }
+    );
+    expect(recap.rubriques.find((r) => r.code === "211")?.montantQuotePart).toBe(390);
+    expect(recap.rubriques.find((r) => r.code === "212")?.montantQuotePart).toBe(30);
   });
 });

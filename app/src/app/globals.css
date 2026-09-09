@@ -715,6 +715,19 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   .loc-citation { display: none; }
 }
 
+/* Audit 09/09 : sous 640 px, le rail vertical mangeait 60 px d'une largeur
+   déjà rare (débordement sur la page Documents). La barre latérale passe en
+   barre horizontale ; si le menu déborde, le défilement reste interne. */
+@media (max-width: 640px) {
+  .loc-app { grid-template-columns: minmax(0, 1fr); }
+  .loc-late { position: static; height: auto; flex-flow: row wrap; align-items: center; }
+  .loc-logo { border-bottom: none; padding: 10px 6px 10px 14px; }
+  .loc-menu { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 10px 10px; }
+  .loc-menu a { flex: none; }
+  /* Sélecteur d'organisation du propriétaire : sa propre rangée */
+  .loc-org { flex: 1 1 100%; padding: 0 14px 4px; }
+}
+
 /* Rappel de l'état d'entrée sur la grille d'EDL de sortie (maquette v3) */
 .edl-rappel {
   background: rgba(20, 48, 79, 0.045);

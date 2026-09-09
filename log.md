@@ -2641,3 +2641,54 @@ messages avec un non-lu (robinet qui goutte). Chez Agence Alpha, un message
 non lu de Julie Leblanc (locataire.alpha). Le mode opératoire du test
 multi-personas : deux fenêtres de navigation (une normale, une privée),
 un persona par fenêtre.
+
+## [2026-09-09] ingest | Environnement de test complet — « toutes les situations »
+Jeu de démo enrichi en production pour couvrir tous les scénarios de recette
+(demande Tahir). Côté Parc de Claire Moreau (PD) : profil bailleur complété
+(adresse, IBAN, qualité), état civil de Claire/Lucas, candidate **Nadia
+Rousseau** (fiche complète, sans compte) avec **bail brouillon 100 % rempli**
+sur Appart1 (publié avec DPE C + ERP valides), **ERP expiré** sur la Résidence
+des Lilas et **DPE classe G** sur Appart2 (situations bloquantes). Côté Agence
+Alpha : **colocation activée** au 2025-09-01 (révision IRL due, dépôt encaissé,
+juillet quittancé, **août + septembre impayés**, relance 1 envoyée), **meublé
+brouillon avec inventaire** (8 lignes), **dossier locataire sorti complet**
+pour Julien Testeur (compte activé, bail terminé mars→août, 6 quittances, EDL
+entrée/sortie signés, **restitution finalisée** 780 − 120 de vétusté = 660),
+**intention de congé** de Sofia (+ alerte), appel de septembre à encaisser, et
+un **mandat actif confié à agent.alpha** sur le lot de Sofia (recette « deux
+portefeuilles »). Guide des situations remis en réponse de chat.
+
+## [2026-09-09] ingest | Audit fonctionnel externe — corrections P0/P1/P2 (vague M)
+Rapport d'audit manuel reçu (13 anomalies + secondaires). Corrigé le jour même :
+- **P0 périmètre agent appliqué en base** : suppression du repli « 0 mandat →
+  tout voir », policies RLS restrictives sur ~25 tables, trigger générique
+  `garde_portefeuille_agent` sur les mutations, RPC de lecture durcies —
+  vérifié par impersonation (agent sans mandat : 0 partout ; admin/PD/locataire
+  inchangés). Voir [[Agent immobilier]]. Migration `20260909230000`.
+- **P1 PDF Vercel** : `@sparticuz/chromium` externalisé + binaires tracés
+  (`serverExternalPackages`, `outputFileTracingIncludes`) ; les erreurs
+  techniques de génération sont journalisées sous référence, plus jamais de
+  chemin serveur à l'écran.
+- **P1 grille EDL** : cast de l'enum `etat_element` dans
+  `enregistrer_grille_edl` (la saisie ne se perd plus ; grille déjà pilotée
+  côté client). Migration `20260909210000`.
+- **P1 fiscal 2044** : ventilation loyers (211) / charges récupérées (212) au
+  prorata du bail, réconciliée au centime, 13 tests. Deux choix à valider :
+  clé de ventilation au bail actuel (pas historisée par appel) et prorata sur
+  paiement partiel.
+- **P2 quittances automatiques** : l'encaissement émet/promeut le reçu ou la
+  quittance de façon idempotente (unique sur `appel_id`) ; bouton requalifié en
+  rattrapage ; solde restant chiffré sur le reçu partiel ; accords sing./pluriel.
+- **P2 a11y & mobile** : aria-label complets sur les liens à badge, rail
+  repliable + une colonne sous 640 px (page Documents), « Bonjour {prénom} »,
+  « Votre gestionnaire » chez le PD, « de juillet à septembre » (élision),
+  état vide « Mes paiements » honnête.
+- **Nettoyage** : artefacts AUDIT CODEX supprimés (bien/lot/bail/EDL/personne),
+  attestation fictive rejetée et retirée (le fichier Storage orphelin
+  `21b6ebba….pdf` reste — API Storage requise), typo « rdc cenntre » corrigée.
+  Les écritures de test annulées restent au livre (immutabilité).
+- Chantier « tableau de bord/alertes = blocages du bail » + plafond du dépôt
+  de garantie + compteurs diagnostics unifiés : en cours (même vague).
+Restes à faire notés : page Bail en onglets (ergonomie), regroupement des
+mandats résiliés, squelettes avec limite de temps, ratio encaissé/appelé
+explicité, section « Pièces à renouveler » sous filtre.

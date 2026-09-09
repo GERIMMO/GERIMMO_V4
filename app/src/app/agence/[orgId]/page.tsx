@@ -43,11 +43,22 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const { orgId } = await props.params;
   const { supabase, user, role, organisation, estProprietaire } =
     await verifierAccesEspace(orgId);
+  // « Bonjour » nominatif (audit 09/09) : le prénom vit dans les métadonnées
+  // du compte (inscription) — comme l'espace locataire salue par la fiche.
+  // Sans prénom connu, la salutation reste sobre.
+  const meta = user.user_metadata as { prenom?: unknown } | null;
+  const prenom =
+    typeof meta?.prenom === "string" && meta.prenom.trim() ? meta.prenom.trim() : null;
   // Le propriétaire direct a son propre accueil (maquette PC v1 du 05/09) :
   // patrimoine, à-faire, veille DPE, abonnement — pas les KPI d'agence.
   if (estProprietaire) {
     return (
-      <AccueilProprietaire supabase={supabase} orgId={orgId} organisation={organisation} />
+      <AccueilProprietaire
+        supabase={supabase}
+        orgId={orgId}
+        organisation={organisation}
+        prenom={prenom}
+      />
     );
   }
   const estResponsable = ROLES_RESPONSABLES.includes(role);
@@ -335,7 +346,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             timeZone: "Europe/Paris",
           })}
         </p>
-        <h1 className="mt-0.5">Bonjour,</h1>
+        <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""},</h1>
         <p className="text-sm text-muted-foreground">
           {role === "agent"
             ? "Voici l'essentiel de votre portefeuille."

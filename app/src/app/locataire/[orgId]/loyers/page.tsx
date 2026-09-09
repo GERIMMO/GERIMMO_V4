@@ -74,6 +74,33 @@ export default async function PagePaiementsLocataire(
   // impayé rouge — le « parcours » du locataire en un regard.
   const douzeDerniers = lignesLoyer.slice(-12);
   const payes = douzeDerniers.filter((l) => l.statut === "paye").length;
+  // Bail actif et tout soldé (audit 09/09) : la prochaine échéance réelle —
+  // le jour d'échéance du bail, au mois suivant
+  const dateActuelle = new Date();
+  const moisSuivant = new Date(
+    Date.UTC(dateActuelle.getFullYear(), dateActuelle.getMonth() + 1, 1)
+  ).toISOString();
+
+  const pastilles = douzeDerniers.length > 1 && (
+    <>
+      <div className="loc-pts" aria-hidden>
+        {douzeDerniers.map((l) => (
+          <i
+            key={l.periode}
+            className={l.statut === "paye" ? "v" : l.statut === "attendu" ? "a" : "r"}
+            title={`${moisLong(l.periode)} — ${STATUTS_APPEL_LOYER[l.statut] ?? l.statut}`}
+          />
+        ))}
+      </div>
+      <p className="mt-1.5 text-xs text-muted-foreground">
+        Vos {douzeDerniers.length} derniers mois — {payes} réglé
+        {payes > 1 ? "s" : ""}
+        {douzeDerniers.every((l) => l.statut === "paye" || l.statut === "attendu")
+          ? ". Un parcours sans faute."
+          : "."}
+      </p>
+    </>
+  );
 
   return (
     <div className="space-y-4">
@@ -91,9 +118,11 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
               <h3 className="text-base font-medium">Prochain loyer</h3>
-              {prochaine && (
+              {prochaine ? (
                 <span className="loc-tag bleu capitalize">{moisLong(prochaine.periode)}</span>
-              )}
+              ) : bail ? (
+                <span className="loc-tag vert">À jour</span>
+              ) : null}
             </div>
             {prochaine && bail ? (
               <>
@@ -117,28 +146,23 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
                   ici — rien à demander. Le premier loyer d&apos;un bail est
                   quittancé au prorata de la date d&apos;entrée.
                 </p>
-                {douzeDerniers.length > 1 && (
-                  <>
-                    <div className="loc-pts" aria-hidden>
-                      {douzeDerniers.map((l) => (
-                        <i
-                          key={l.periode}
-                          className={
-                            l.statut === "paye" ? "v" : l.statut === "attendu" ? "a" : "r"
-                          }
-                          title={`${moisLong(l.periode)} — ${STATUTS_APPEL_LOYER[l.statut] ?? l.statut}`}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      Vos {douzeDerniers.length} derniers mois — {payes} réglé
-                      {payes > 1 ? "s" : ""}
-                      {douzeDerniers.every((l) => l.statut === "paye" || l.statut === "attendu")
-                        ? ". Un parcours sans faute."
-                        : "."}
-                    </p>
-                  </>
-                )}
+                {pastilles}
+              </>
+            ) : bail ? (
+              // Bail actif, aucun impayé (audit 09/09) : dire « à jour »
+              // plutôt que renvoyer à une activation déjà faite
+              <>
+                <p className="text-sm text-success-soft-foreground">
+                  Tous vos loyers sont à jour — rien à régler pour l&apos;instant.
+                </p>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  Prochaine échéance{" "}
+                  {bail.jour_echeance != null
+                    ? `le ${bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} ${moisLong(moisSuivant)}`
+                    : `en ${moisLong(moisSuivant)}`}
+                  .
+                </p>
+                {pastilles}
               </>
             ) : (
               <p className="text-sm text-muted-foreground">

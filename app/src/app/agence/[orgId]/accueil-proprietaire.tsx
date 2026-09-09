@@ -12,10 +12,13 @@ export async function AccueilProprietaire({
   supabase,
   orgId,
   organisation,
+  prenom = null,
 }: {
   supabase: SupabaseClient;
   orgId: string;
   organisation: { name: string; status: string; essai_fin: string | null };
+  // Prénom du compte connecté (métadonnées d'inscription) — audit 09/09
+  prenom?: string | null;
 }) {
   const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
   const [
@@ -75,7 +78,7 @@ export async function AccueilProprietaire({
     <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7">
       <div>
         <p className="mono-discret normal-case">{aujourdhui}</p>
-        <h1 className="mt-0.5">Bonjour,</h1>
+        <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""},</h1>
         <p className="text-sm text-muted-foreground">
           Voici l&apos;essentiel de votre patrimoine — {organisation.name}.
         </p>

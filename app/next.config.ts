@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Audit 09/09 (P1) : sur Vercel, le bundler embarquait @sparticuz/chromium
+  // et son dossier bin/ (le navigateur compressé) était perdu au déploiement —
+  // toute génération PDF échouait. On externalise le moteur et on force le
+  // traçage de ses binaires pour chaque route.
+  serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  outputFileTracingIncludes: {
+    "/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+    "/": ["./node_modules/@sparticuz/chromium/bin/**/*"],
+  },
   experimental: {
     // Perf 30/08 : cache client des pages dynamiques pendant 30 s — un retour
     // sur un onglet déjà visité ne repasse pas par le serveur ; les actions

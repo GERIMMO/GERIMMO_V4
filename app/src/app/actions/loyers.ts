@@ -8,6 +8,7 @@ import { deposerFichierGed } from "@/lib/ged-depot";
 import { envoyerEmail } from "@/lib/email";
 import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 
 export type EtatLoyers = {
   erreur?: string;
@@ -203,10 +204,19 @@ export async function ajouterEncaissement(
     note,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+  // L'encaissement déclenche tout : reçu du montant réglé sur un paiement
+  // partiel, promu en quittance quand le mois se solde — sans clic de plus.
+  const emission = await emettreRecusQuittances(supabase, bailId);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // L'encaissement écrit au journal (loyer + honoraires) : la compta suit.
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: "Encaissement enregistré." };
+  if (emission.erreur)
+    return {
+      succes: `Encaissement enregistré — mais le reçu ou la quittance n'a pas pu être émis : ${emission.erreur}`,
+    };
+  return {
+    succes: `Encaissement enregistré · ${libelleEmission(emission.quittances, emission.recus)}.`,
+  };
 }
 
 export async function supprimerEncaissement(
@@ -252,13 +262,16 @@ export async function reviserLoyer(
   return { succes: `Loyer révisé à ${data} € HC.` };
 }
 
-// Émettre les quittances des mois intégralement soldés.
+// Rattrapage manuel : régénérer les reçus (paiements partiels) et quittances
+// (mois soldés) du bail — l'encaissement les émet normalement tout seul.
 export async function emettreQuittances(orgId: string, bailId: string): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { data, error } = await supabase.rpc("emettre_quittances", { p_bail: bailId });
-  if (error) return { erreur: sansJargon(error.message) };
+  const emission = await emettreRecusQuittances(supabase, bailId);
+  if (emission.erreur) return { erreur: emission.erreur };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: `${data ?? 0} quittance(s) émise(s).` };
+  if (emission.quittances + emission.recus === 0)
+    return { succes: "Rien à régénérer : reçus et quittances sont à jour." };
+  return { succes: `${libelleEmission(emission.quittances, emission.recus)}.` };
 }

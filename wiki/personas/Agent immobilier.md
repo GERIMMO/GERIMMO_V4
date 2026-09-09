@@ -64,14 +64,36 @@ portefeuille restent à spécifier (point P1.1, phase B —
 > - Rôle le moins documenté ; ses limites exactes sur les loyers restent à confirmer.
 >
 
-## Périmètre portefeuille — Documents et Messages (2026-09-09)
+## Périmètre portefeuille appliqué en base (2026-09-09, durci le soir même)
 
-La maquette v6 ouvrait Documents et Messages à l'agent **sans** filtre de
-portefeuille (contradiction avec RM-18.1.3, relevée à l'audit du 09/09).
-Corrigé : `fils_messages_gerant` et `messages_non_lus_gerant` appliquent le
-périmètre EN SQL (les locataires des baux de ses lots sous mandat ; sans mandat
-confié, il voit tout — état de reprise, même règle que le parc) ; la GED
-accepte une liste de lots (`p_lots`) et la page Documents la lui passe (pièces
-de ses lots, baux, incidents et locataires ; les pièces d'organisation restent
-communes). La RLS `documents` reste org-entière : le périmètre est un cadrage
-d'écran, pas une cloison — à trancher si l'isolement dur devient une exigence.
+Deux temps dans la journée :
+1. **Matin** — le périmètre était un cadrage d'écran (RPC messages + `p_lots`
+   GED), avec un repli « sans mandat confié, il voit tout » et une RLS
+   org-entière.
+2. **Soir** — l'audit fonctionnel externe (P0) a montré qu'un agent à zéro
+   mandat voyait toute l'agence et pouvait préparer des opérations financières
+   globales. **Décision : le périmètre est désormais une cloison, appliquée en
+   base**, et le repli est supprimé.
+
+Règle : **portefeuille = lots des lignes ouvertes des mandats dont l'agent est
+titulaire** (`mandats.agent_account_id`, états brouillon/à signer/actif/préavis).
+**Zéro mandat → listes vides** (l'admin doit confier les mandats). Trois étages :
+- **policies RLS restrictives** (lecture) sur ~25 tables métier — lots, biens,
+  baux, appels, encaissements, écritures, quittances, EDL, restitutions,
+  personnes, messages, documents (liens), mandats, alertes… — qui ne mordent
+  que si l'appelant n'est QU'agent dans l'organisation ;
+- **trigger générique `garde_portefeuille_agent`** sur les mutations : toute
+  écriture (même via RPC definer ou requête forgée) sur un objet hors
+  portefeuille est refusée ; les mandats eux-mêmes restent à l'admin ;
+- **RPC de lecture durcies** (`quittancement_mois`, `etat_loyers_bail`,
+  `totaux_ecritures`, `quittance_detail`, `messages_personne`…) : plus jamais
+  l'agence entière, même avec des paramètres forgés.
+
+Le périmètre « personnes » couvre les locataires/garants des baux de ses lots,
+les mandants de ses mandats et les propriétaires (détentions) de ses lots.
+L'agent conserve les documents qu'il a lui-même déposés. Un agent peut créer
+une fiche personne (création rapide de locataire) : elle entre dans son
+périmètre dès son rattachement à un bail du portefeuille. Vérifié par
+impersonation SQL : agent sans mandat = 0 partout ; agent avec un mandat =
+exactement son lot ; admin, PD, [[Super Admin]] et locataires inchangés.
+Migration : `20260909230000_perimetre_agent_serveur_et_base.sql`.

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
@@ -86,6 +85,14 @@ export async function genererDocument(
           : `${assemblage.titreGed} généré (${manquants.length} champ${manquants.length > 1 ? "s" : ""} resté${manquants.length > 1 ? "s" : ""} en libellé) — rangé dans Documents.`,
     };
   } catch (e) {
-    return { erreur: sansJargon(e instanceof Error ? e.message : "Génération impossible.") };
+    // Les refus métier sont retournés avant ce catch ; ce qui l'atteint est
+    // technique (moteur PDF, stockage, réseau). Audit 09/09 : l'écran ne doit
+    // jamais montrer un chemin serveur ni un message de dépendance — on
+    // journalise tout sous une référence et on parle métier.
+    const ref = `DOC-${Date.now().toString(36).toUpperCase()}`;
+    console.error(`[documents] génération ${code} en échec (${ref})`, e);
+    return {
+      erreur: `La génération du document a échoué (réf. ${ref}). Réessayez dans un instant ; si cela persiste, transmettez la référence au support.`,
+    };
   }
 }

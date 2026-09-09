@@ -26,6 +26,27 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
     .eq("status", "active")
     .maybeSingle();
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
+    // Le SUPER ADMIN entre partout (décision Tahir 09/09 : « toutes les
+    // autorisations ») : sans adhésion locale, il porte le rôle plein de
+    // l'organisation visitée — la base le reconnaît de son côté
+    // (org_ids_avec_roles), la traçabilité reste au compte.
+    const { data: superAdmin } = await supabase.rpc("is_super_admin");
+    if (superAdmin) {
+      const { data: org } = await supabase
+        .from("organizations")
+        .select("id, name, status, type, essai_fin")
+        .eq("id", orgId)
+        .maybeSingle();
+      if (org) {
+        return {
+          supabase,
+          user,
+          role: org.type === "proprietaire_direct" ? "proprietaire_direct" : "admin_agence",
+          organisation: org,
+          estProprietaire: org.type === "proprietaire_direct",
+        };
+      }
+    }
     redirect("/espaces");
   }
   const organisation = (Array.isArray(adhesion.organisation)

@@ -2565,3 +2565,17 @@ manière automatique et structurée ». Une vague en trois temps (reconnaissance
 Pages wiki : [[Document]], [[Structure du modèle-type de bail]],
 [[Mandat de gestion]]. Portes : tsc 0 erreur, lint 14 warnings (base),
 107 tests (+2), build OK.
+
+## [2026-09-09] decision | Super admin transverse (Tahir seul super admin, toutes les autorisations)
+
+Décision de Tahir : son compte est UNIQUEMENT super admin, avec toutes les
+autorisations. Mise en œuvre : `org_ids_avec_roles` (le point de passage de
+presque toutes les policies RLS et RPC gérants) reconnaît désormais le super
+admin — il est réputé porter tous les rôles gérants dans toutes les
+organisations (migration `20260909160000_super_admin_acces_transverse`).
+Côté application : les gardes (`verifierAccesEspace`, `verifierGerant`) lui
+donnent le rôle plein de l'organisation visitée (admin d'agence, ou
+propriétaire direct), et « Mes espaces » lui liste toutes les organisations
+en supervision, en plus de sa console `/admin`. Son adhésion admin de
+l'Agence Alpha est désactivée ; la traçabilité (audit_log, accès aux pièces)
+reste au compte. [[Super Admin]]

@@ -41,6 +41,23 @@ export async function verifierGerant(orgId: string) {
     .eq("status", "active")
     .maybeSingle();
   if (!adhesion || !ROLES_GERANTS.includes(adhesion.role)) {
+    // Le super admin agit partout avec le rôle plein de l'organisation
+    // (décision Tahir 09/09) — la base revérifie via org_ids_avec_roles.
+    const { data: superAdmin } = await supabase.rpc("is_super_admin");
+    if (superAdmin) {
+      const { data: org } = await supabase
+        .from("organizations")
+        .select("type")
+        .eq("id", orgId)
+        .maybeSingle();
+      if (org) {
+        return {
+          supabase,
+          user,
+          role: org.type === "proprietaire_direct" ? "proprietaire_direct" : "admin_agence",
+        };
+      }
+    }
     return { supabase, user: null, role: null };
   }
   return { supabase, user, role: adhesion.role as string };

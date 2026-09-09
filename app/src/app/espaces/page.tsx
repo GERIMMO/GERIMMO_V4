@@ -51,6 +51,22 @@ export default async function PageEspaces() {
 
   const adhesions = (data ?? []) as unknown as Adhesion[];
 
+  // Le super admin voit TOUTES les organisations (décision Tahir 09/09 :
+  // « toutes les autorisations ») — une carte de supervision par espace,
+  // en plus de sa console.
+  const estSuperAdmin = adhesions.some((a) => a.role === "super_admin");
+  const idsAdhesions = new Set(adhesions.map((a) => a.organization?.id).filter(Boolean));
+  let supervision: { id: string; name: string; type: string }[] = [];
+  if (estSuperAdmin) {
+    const { data: orgs } = await supabase
+      .from("organizations")
+      .select("id, name, type")
+      .order("name");
+    supervision = ((orgs ?? []) as { id: string; name: string; type: string }[]).filter(
+      (o) => !idsAdhesions.has(o.id)
+    );
+  }
+
   // Locataire sorti (chantier D2) : l'adhésion désactivée garde un accès en
   // LECTURE à son espace — quittances, décompte de restitution, justificatifs.
   // La RLS ne livre pas le nom de l'organisation à une adhésion inactive :
@@ -81,8 +97,9 @@ export default async function PageEspaces() {
     erreurOuverture = error ? sansJargon(error.message) : null;
   }
 
-  // Une seule adhésion (et pas d'ancien espace) : entrée directe
-  if (adhesions.length === 1 && anciens.length === 0) {
+  // Une seule adhésion (et pas d'ancien espace) : entrée directe — sauf le
+  // super admin, qui choisit entre sa console et les espaces supervisés
+  if (adhesions.length === 1 && anciens.length === 0 && !estSuperAdmin) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -161,6 +178,28 @@ export default async function PageEspaces() {
               <span key={a.id}>{carte}</span>
             );
           })}
+          {supervision.map((o) => (
+            <Link key={o.id} href={`/agence/${o.id}`}>
+              <span className="flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left transition-all hover:translate-x-[3px] hover:border-[var(--encre)]">
+                <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[var(--encre)] text-[13px] text-[var(--or)]">
+                  {o.name
+                    .split(/\s+/)
+                    .map((x) => x[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">
+                    {o.type === "proprietaire_direct"
+                      ? "Espace propriétaire (supervision)"
+                      : "Espace agence (supervision)"}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">{o.name}</span>
+                </span>
+              </span>
+            </Link>
+          ))}
           {anciens.map((m) => (
             <Link key={m.id} href={`/locataire/${m.orgId}`}>
               <span className="flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left opacity-80 transition-all hover:translate-x-[3px] hover:border-[var(--encre)]">

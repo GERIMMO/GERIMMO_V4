@@ -360,6 +360,11 @@ export default async function PageLot(
             }
           >
             <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                DPE, électricité, gaz, plomb, amiante privatif… Les diagnostics
+                de l&apos;immeuble (ERP, termites, amiante des parties communes)
+                vivent sur la fiche du bien.
+              </p>
               <LignesDiagnostics
                 orgId={orgId}
                 bienId={bienId}

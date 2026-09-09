@@ -34,6 +34,9 @@ export async function creerBail(
   const valeurs = valeursDuFormulaire(formData);
   const champs = lireChampsBail(formData);
   if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
+  const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData);
+  if ("erreur" in locataire) return { erreur: locataire.erreur, valeurs };
+  champs.valeurs.locataire_principal = locataire.id;
 
   const { data, error } = await supabase
     .from("baux")
@@ -80,6 +83,49 @@ function lireChampsBail(
   };
 }
 
+// Création rapide d'un locataire (recette Tahir 09/09) : le select du bail
+// propose « + Nouveau locataire… » comme la détention propose un nouveau
+// propriétaire — la fiche est créée AVEC le bail, mêmes règles que la
+// détention (email obligatoire et unique dans l'agence, fiche complétable
+// ensuite dans Personnes).
+async function resoudreLocatairePrincipal(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  formData: FormData
+): Promise<{ id: string } | { erreur: string }> {
+  const choix = String(formData.get("locataire_principal") ?? "");
+  if (choix !== "nouvelle") return { id: choix };
+  const nom = String(formData.get("nouveau_locataire_nom") ?? "").trim();
+  const prenom = String(formData.get("nouveau_locataire_prenom") ?? "").trim();
+  const email = String(formData.get("nouveau_locataire_email") ?? "").trim();
+  if (!nom || !email) {
+    return { erreur: "Nouveau locataire : le nom et l'adresse email sont obligatoires." };
+  }
+  const { data: existante } = await supabase
+    .from("persons")
+    .select("id")
+    .eq("organization_id", orgId)
+    .ilike("email", email)
+    .is("archived_at", null)
+    .limit(1);
+  if ((existante ?? []).length > 0) {
+    return {
+      erreur:
+        "Cette adresse email appartient déjà à une fiche de l'agence — choisissez la personne dans la liste.",
+    };
+  }
+  const { data: personne, error } = await supabase
+    .from("persons")
+    .insert({ organization_id: orgId, nom, prenom: prenom || null, email })
+    .select("id")
+    .single();
+  if (error || !personne) {
+    return { erreur: `Création du locataire impossible : ${sansJargon(error?.message ?? "")}` };
+  }
+  revalidatePath(`/agence/${orgId}/personnes`);
+  return { id: personne.id };
+}
+
 // Corriger un brouillon (recette 21/08 : la saisie initiale était figée dès
 // la création — il fallait recréer un bail pour changer un montant).
 export async function modifierBail(
@@ -94,6 +140,9 @@ export async function modifierBail(
   const valeurs = valeursDuFormulaire(formData);
   const champs = lireChampsBail(formData);
   if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
+  const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData);
+  if ("erreur" in locataire) return { erreur: locataire.erreur, valeurs };
+  champs.valeurs.locataire_principal = locataire.id;
 
   // Seul un brouillon se corrige : signé, le bail est le contrat
   const { data: modifies, error } = await supabase

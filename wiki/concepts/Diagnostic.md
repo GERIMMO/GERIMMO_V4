@@ -3,7 +3,7 @@ type: concept
 tags: [diagnostic, dpe, obligation-legale, bien, lot]
 status: draft
 created: 2026-07-24
-updated: 2026-08-05
+updated: 2026-09-09
 sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]"]
 ---
 
@@ -92,3 +92,38 @@ Conditionne l'état du [[Lot]] et la génération du [[Bail]] · alertes via
 > **G interdite** (2025), **F** à venir (2028). À ajouter : Gerimmo devrait **bloquer
 > la génération / l'activation d'un bail** si DPE = G (alerte si F) — cohérent avec la
 > révision IRL déjà bloquée en F/G. Voir [[Documents a generer et automatisation WhatsApp]].
+
+## Niveau de rattachement — question de recette (2026-09-09)
+
+Question de Tahir : « ERP — état des risques & termites, c'est au niveau de
+l'immeuble ou du bien (appart) ? » Réponse : **au niveau de l'immeuble** — le
+tableau de répartition ci-dessus le prévoit et l'application le modélise déjà
+(contrainte `diagnostics_un_seul_niveau` : exactement bien_id OU lot_id ;
+niveaux codés dans `TYPES_DIAGNOSTIC`).
+
+- L'**ERP** s'établit d'après le zonage réglementaire de l'adresse (état des
+  risques par formulaire préfectoral) : le même état vaut pour tous les
+  logements de l'immeuble — rattachement au bien, validité 6 mois.
+- L'état **termites** porte sur le bâtiment, dans les zones déclarées par
+  arrêté préfectoral — rattachement au bien. À noter : en **location**, il
+  n'entre pas dans le dossier de diagnostic technique annexé au bail (il est
+  exigé pour une **vente**) — cohérent avec la section XI du
+  [[Structure du modèle-type de bail|modèle-type]], qui ne le liste pas ;
+  Gerimmo le suit à titre de veille du bâtiment.
+- Les diagnostics du **logement** (DPE, plomb, électricité, gaz, amiante
+  privatif) restent au **lot** — ils se déposent sur la fiche du lot.
+
+Depuis le 09/09, les deux fiches (bien et lot) rappellent cette répartition en
+tête de leur section Diagnostics.
+
+> [!warning] Points à trancher / à sourcer
+> - Références légales citées de mémoire (état des risques : code de
+>   l'environnement art. L.125-5, renuméroté ; DDT locatif : art. 3-3 de la
+>   loi du 6 juillet 1989 ; termites : CCH, loi du 8 juin 1999) — à confirmer
+>   par une source déposée dans `raw/`.
+> - Effet d'un diagnostic NIVEAU BIEN expiré sur un bien multi-lots
+>   (l'ERP expiré bloque-t-il tous les lots ?) : non traité par
+>   RM-0.6.3/RM-0.7.3.
+> - « Zone termites déclarée par arrêté » : qui la renseigne dans
+>   l'application ? Non déterminé (la zone tendue, elle, se déduit du code
+>   postal — RM-0.1.6/7).

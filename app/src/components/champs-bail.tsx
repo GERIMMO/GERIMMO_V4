@@ -1,7 +1,10 @@
 "use client";
 
+import { useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modale } from "@/components/ui/modale";
 import { nomComplet } from "@/lib/roles-personnes";
 
 type Personne = { id: string; nom: string; prenom: string | null };
@@ -40,6 +43,36 @@ export function ChampsBail({
   prefixe?: string;
   valeurs?: Record<string, string>;
 }) {
+  // Création rapide d'un locataire (recette Tahir 09/09) : même patron que le
+  // « + Nouvelle personne… » de la détention — saisie en pop-up, valeurs
+  // reportées en champs cachés, la fiche est créée avec le bail.
+  const [locataire, setLocataire] = useState(
+    valeurs?.locataire_principal ?? defauts.locataire_principal ?? ""
+  );
+  const [modaleOuverte, setModaleOuverte] = useState(false);
+  const [nouveau, setNouveau] = useState({
+    nom: valeurs?.nouveau_locataire_nom ?? "",
+    prenom: valeurs?.nouveau_locataire_prenom ?? "",
+    email: valeurs?.nouveau_locataire_email ?? "",
+  });
+  const refNom = useRef<HTMLInputElement>(null);
+  const refEmail = useRef<HTMLInputElement>(null);
+
+  const annulerNouveau = () => {
+    setModaleOuverte(false);
+    setNouveau({ nom: "", prenom: "", email: "" });
+    setLocataire("");
+  };
+  // Clic sur le fond : on referme sans perdre une saisie déjà commencée —
+  // seule une pop-up vide vaut annulation (même règle que la détention).
+  const fermerModale = () => {
+    if (!nouveau.nom && !nouveau.email) {
+      annulerNouveau();
+      return;
+    }
+    setModaleOuverte(false);
+  };
+
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="space-y-1.5">
@@ -61,7 +94,12 @@ export function ChampsBail({
           id={`${prefixe}-locataire`}
           name="locataire_principal"
           required
-          defaultValue={valeurs?.locataire_principal ?? defauts.locataire_principal ?? ""}
+          value={locataire}
+          onChange={(e) => {
+            setLocataire(e.target.value);
+            // « Nouveau locataire » : la saisie se fait dans une pop-up
+            if (e.target.value === "nouvelle") setModaleOuverte(true);
+          }}
           className={classeSelect}
         >
           <option value="" disabled>
@@ -72,8 +110,108 @@ export function ChampsBail({
               {nomComplet(p)}
             </option>
           ))}
+          <option value="nouvelle">+ Nouveau locataire…</option>
         </select>
+        {locataire === "nouvelle" && (
+          <>
+            {/* Valeurs saisies dans la pop-up, reportées ici pour l'envoi */}
+            <input type="hidden" name="nouveau_locataire_nom" value={nouveau.nom} />
+            <input type="hidden" name="nouveau_locataire_prenom" value={nouveau.prenom} />
+            <input type="hidden" name="nouveau_locataire_email" value={nouveau.email} />
+            {!modaleOuverte && (
+              <p className="text-xs text-muted-foreground">
+                Nouveau <b>locataire</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
+                <button
+                  type="button"
+                  onClick={() => setModaleOuverte(true)}
+                  className="text-[var(--bleu)] underline-offset-2 hover:underline"
+                >
+                  modifier
+                </button>
+              </p>
+            )}
+          </>
+        )}
       </div>
+      {/* Pop-up « nouveau locataire » : fiche créée à la volée avec le bail —
+          mêmes règles que la détention (email obligatoire et unique dans
+          l'agence), fiche complétable ensuite dans Personnes. */}
+      {modaleOuverte && (
+        <Modale
+          titre="Nouveau locataire"
+          surtitre="La fiche complète se retrouve dans Personnes"
+          fermer={fermerModale}
+        >
+          <div
+            className="space-y-3"
+            onKeyDown={(e) => {
+              // Entrée dans un champ valide la pop-up (sans soumettre le
+              // bail) — sur un bouton, elle garde son sens.
+              if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
+                e.preventDefault();
+                if (refNom.current?.reportValidity() && refEmail.current?.reportValidity()) {
+                  setModaleOuverte(false);
+                }
+              }
+            }}
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor={`${prefixe}-nouveau-nom`}>Nom *</Label>
+              <Input
+                id={`${prefixe}-nouveau-nom`}
+                ref={refNom}
+                required
+                maxLength={120}
+                value={nouveau.nom}
+                onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`${prefixe}-nouveau-prenom`}>Prénom</Label>
+              <Input
+                id={`${prefixe}-nouveau-prenom`}
+                maxLength={120}
+                value={nouveau.prenom}
+                onChange={(e) => setNouveau({ ...nouveau, prenom: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`${prefixe}-nouveau-email`}>Adresse email *</Label>
+              <Input
+                id={`${prefixe}-nouveau-email`}
+                ref={refEmail}
+                type="email"
+                required
+                maxLength={200}
+                value={nouveau.email}
+                onChange={(e) => setNouveau({ ...nouveau, email: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Une adresse ne peut appartenir qu&apos;à une seule fiche de
+                l&apos;agence.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={annulerNouveau}>
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  // Validation native des deux champs obligatoires avant de
+                  // refermer — la création réelle part avec le bail.
+                  if (!refNom.current?.reportValidity()) return;
+                  if (!refEmail.current?.reportValidity()) return;
+                  setModaleOuverte(false);
+                }}
+              >
+                Valider
+              </Button>
+            </div>
+          </div>
+        </Modale>
+      )}
       {/* Recette 21/08 : la date d'entrée n'avait aucun champ — elle tombait
           au jour du clic « Activer », faussant l'échéancier. */}
       <div className="space-y-1.5">

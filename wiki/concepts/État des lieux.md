@@ -3,7 +3,7 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-08-05
+updated: 2026-09-09
 sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -106,3 +106,18 @@ au congé ([[Agenda et échéances]]) ; grille issue du [[Lot]] ; écarts consom
 > sortie : **nouvelle adresse** du locataire + **chiffrage des dégradations**
 > (devis/factures). Pré-requis : modéliser les **pièces du lot** (aujourd'hui `pieces`
 > n'est qu'un nombre).
+
+## Mise à jour d'implémentation (2026-09-09)
+
+- L'échelle d'état effective compte **cinq** valeurs : neuf, bon, usagé,
+  mauvais, **absent** (le wiki en listait quatre).
+- Les compteurs, les clés et les pièces du lot sont **implémentés** depuis
+  les migrations d'août (l'encadré « ce qui manque » ci-dessus est en
+  retard) ; restent réellement absents : photos par ligne, détecteur de
+  fumée structuré, nouvelle adresse du locataire et chiffrage en sortie —
+  et l'ajout d'une pièce « découverte sur place » à une grille en cours
+  (régénérer remplace toute la grille).
+- Garde d'audit 09/09 : un EDL de **sortie** ne se crée et ne se signe que
+  pendant le préavis — signé trop tôt, il rendait le congé inannulable ; la
+  grille s'enregistre désormais en une seule transaction
+  (`enregistrer_grille_edl`).

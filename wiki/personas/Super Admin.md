@@ -3,7 +3,7 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-19
+updated: 2026-09-09
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -95,3 +95,17 @@ agence/une table sur demande — [[Plan de reprise d'activité]]).
 > - `docs/02-roles-permissions.md` liste des rôles fictifs (Gestionnaire, Collaborateur,
 >   Lecteur…) absents du code. La vérité = 6 rôles du `seed.sql`.
 >
+
+## Décision — super admin transverse (2026-09-09)
+
+Décision de Tahir : son compte est le seul super admin et porte **toutes les
+autorisations** — le super admin est réputé porter tous les rôles gérants
+dans toutes les organisations (fonction `org_ids_avec_roles`), il entre dans
+chaque espace avec les pleins pouvoirs du lieu et « Mes espaces » lui liste
+toutes les organisations en supervision. Cette écriture totale déroge au
+« régime le plus strict » du référentiel ; la compensation est la
+**journalisation systématique** de la traversée (RM-A1.11) : chaque entrée
+d'espace (`traversee_espace`) et chaque action de gérance hors adhésion
+(`traversee_action`) écrit une ligne `audit_log` via `log_sa_access`, et la
+consultation de pièces reste tracée (`acces_pieces_log`). Il figure aussi
+dans les listes de gérants (alertes, incidents) sous le rôle « super_admin ».

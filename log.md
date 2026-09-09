@@ -2579,3 +2579,53 @@ propriétaire direct), et « Mes espaces » lui liste toutes les organisations
 en supervision, en plus de sa console `/admin`. Son adhésion admin de
 l'Agence Alpha est désactivée ; la traçabilité (audit_log, accès aux pièces)
 reste au compte. [[Super Admin]]
+
+## [2026-09-09] lint | Audit hors documents (3 agents) + corrections
+
+Trois agents (finances, vie du bail, transverse), puis corrections en une
+vague : migration `20260909190000_correctifs_audit_hors_documents` (appliquée
+en prod, chaque fonction recréée depuis sa définition de production) + trois
+volets applicatifs.
+
+**Critiques corrigées :**
+- Finances : la ventilation SANS clé de répartition dupliquait la dépense sur
+  chaque lot (désormais refusée ; avec clé, la dernière quote-part rattrape
+  l'arrondi) ; la restitution rendait le dépôt CONTRACTUEL au lieu du dépôt
+  ENCAISSÉ ; supprimer un encaissement de dépôt ne laissait aucune
+  contre-écriture (RM-A6.4 — trigger ajouté, écritures liées à leur
+  encaissement) ; la régularisation comparait des provisions proratisées à
+  des charges réelles d'exercice entier (RM-3.9.1 — prorata aux jours
+  d'occupation) et s'écrasait en silence une fois émise (RM-3.9.7 — refus) ;
+  un agent pouvait s'attribuer les mandats ou faire sauter son périmètre
+  (trigger : le titulaire ne se change que par le responsable, RM-18.1.4).
+- Vie du bail : un EDL de sortie signé avant tout congé rendait le congé
+  définitivement inannulable — la sortie ne se crée et ne se signe que
+  pendant le préavis ; la grille EDL s'enregistre en une transaction.
+- Transverse : la traversée super admin n'était pas journalisée (RM-A1.11) —
+  chaque entrée d'espace et chaque action hors adhésion écrit l'audit_log
+  (`log_sa_access`) ; décision consignée dans [[Super Admin]] : l'écriture
+  totale est voulue (Tahir), la trace est la compensation.
+
+**Majeures corrigées :** périmètre agent sur l'envoi groupé de quittances,
+l'export CSV et les rapports de gestion (+ rapports des mandats clos non
+versés de nouveau soldables) ; KPI comptables agrégés en base
+(`totaux_ecritures`, hors dépôt et contre-passations — ils se calculaient
+sur 200 écritures) ; dépôt de garantie sorti du récapitulatif fiscal 2044 ;
+lot sélectionnable sur l'écriture manuelle (sinon invisible des rapports) ;
+messages honnêtes (encaissement imputé au plus ancien, N quittances émises ;
+échec d'envoi de rapport affiché) ; erreurs Supabase visibles (comptabilité,
+console admin, supervision, incidents) ; création rapide de locataire durcie
+(garde brouillon d'abord, email échappé) ; garants verrouillés sur bail
+terminé ; message/motif du locataire conservés en cas d'échec d'envoi ;
+équipements du lot transactionnels ; super admin présent dans les listes de
+gérants et acceptable comme responsable d'incident ; nom du parc rétabli au
+pied de la barre latérale propriétaire ; /nouveau-mot-de-passe accessible.
+
+**Différé (consigné, non corrigé)** : historisation du loyer pour la révision
+IRL rétroactive ; circuit de régularisation rectificative ; motif du préavis
+réduit structuré ; nom du colocataire dans le bandeau d'intention ;
+limitation de débit sur le formulaire public de devis ; arrondis flottants
+d'affichage ; refonte de [[Incident]] (callout posé) et compléments
+[[État des lieux]] (posés).
+
+Portes : tsc 0 erreur, lint 12 warnings (−2), 107 tests, build OK.

@@ -3,7 +3,7 @@ type: concept
 tags: [incident, sinistre]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-09-09
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]"]
 ---
 
@@ -51,3 +51,12 @@ possible **sans artisan** (RM-7.6.1) ; réouverture avec historique ; le
 
 ## Implications pour l'application
 - Statuts + événements tracés ; peut être déclaré via **bot** ([[Canaux de communication]]).
+
+> [!warning] Page en retard sur l'implémentation (constat d'audit 2026-09-09)
+> Cette page décrit encore le modèle V3 : `bien_id` obligatoire (le code
+> cible un **lot**), priorités basse/normale/haute/urgente (le code n'a que
+> normale/urgente), statuts nouveau/en_cours/cloture/archive (le code a 7
+> états, de `declare` à `rouvert`), colonnes anglaises. La source de vérité
+> actuelle est `app/src/lib/incidents.ts` (machine à états
+> TRANSITIONS_INCIDENT) et les migrations S7. Page à réécrire lors du
+> prochain passage sur le module incidents.

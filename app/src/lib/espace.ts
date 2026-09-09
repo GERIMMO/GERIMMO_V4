@@ -38,6 +38,10 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
         .eq("id", orgId)
         .maybeSingle();
       if (org) {
+        // RM-A1.11 : la traversée est autorisée mais tracée (journal d'audit).
+        // Un échec du log ne bloque pas la page. cache() par requête : un log
+        // par page visitée, c'est voulu.
+        await supabase.rpc("log_sa_access", { org: orgId, sa_action: "traversee_espace" });
         return {
           supabase,
           user,

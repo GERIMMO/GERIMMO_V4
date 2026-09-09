@@ -85,9 +85,6 @@ export default async function LayoutAgence({
             <Link href={`/agence/${orgId}`} aria-label="Accueil de mon espace">
               <MarqueGerimmo surEncre />
             </Link>
-            <span className="loc-logo-texte eyebrow text-[var(--sur-encre)]/55">
-              Espace propriétaire
-            </span>
           </div>
           <SidebarProprietaire
             orgId={orgId}
@@ -111,9 +108,11 @@ export default async function LayoutAgence({
               membres={membres}
               estResponsable={estResponsable}
             />
+            {/* Recette Tahir 09/09 : « Espace propriétaire » vit dans la barre
+                blanche, sans le nom du propriétaire (le sélecteur de la barre
+                latérale dit déjà où l'on est) */}
             <span className="min-w-0 truncate text-[13px] text-muted-foreground">
-              {organisation.name}
-              <span className="text-[var(--libelle)]"> · Propriétaire bailleur</span>
+              Espace propriétaire
             </span>
             <SortieMobile profilHref={`/agence/${orgId}/profil`} />
             <span className="loc-avat" aria-hidden>

@@ -5,7 +5,7 @@ import {
   deposerMonAttestation,
   type EtatAttestation,
 } from "@/app/actions/attestation-locataire";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -23,7 +23,7 @@ export function FormulaireAttestation({
   renouvellement: boolean;
 }) {
   const action = deposerMonAttestation.bind(null, orgId);
-  const [etat, formAction, enCours] = useActionState<EtatAttestation, FormData>(action, {});
+  const [etat, formAction] = useActionState<EtatAttestation, FormData>(action, {});
   const formulaire = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -60,9 +60,9 @@ export function FormulaireAttestation({
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
-      <Button type="submit" size="sm" disabled={enCours}>
-        {enCours ? "Dépôt…" : "Déposer"}
-      </Button>
+      <BoutonEnvoi enCoursTexte="Dépôt…" size="sm">
+        Déposer
+      </BoutonEnvoi>
     </form>
   );
 }

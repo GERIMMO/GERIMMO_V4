@@ -2501,3 +2501,33 @@ Pages mises à jour : [[Document]], [[Signature électronique]],
 [[Agent immobilier]], [[2026-09-08-maquette-espace-agence-v6]].
 Portes : tsc 0 erreur, lint 14 warnings (base), 105 tests, build OK, advisors
 sans nouveau signalement.
+
+## [2026-09-09] ingest | Recette Tahir — espace propriétaire (5 retours) + super admin
+
+Cinq retours de recette, traités en une vague (reconnaissance par 4 agents,
+balayage par 10 agents + contrôle) :
+
+- **Bandeau propriétaire** : « Espace propriétaire » vit dans la barre
+  blanche ; le nom du propriétaire (« Parc de Prénom Nom · Propriétaire
+  bailleur ») disparaît — le sélecteur de la barre latérale dit déjà où l'on
+  est.
+- **Spinner généralisé** : nouveaux composants partagés `Spinner` et
+  `BoutonEnvoi` (useFormStatus — le bouton se désactive et affiche la roue
+  tout seul dans un formulaire). Balayage des 59 composants de formulaire du
+  dépôt : tous les boutons d'envoi (création de bien en tête) montrent la roue
+  pendant l'envoi ; les boutons à ellipse nue « … » la remplacent par la roue.
+- **ERP & termites** (question) : l'immeuble est le BON niveau — conforme au
+  tableau de [[Diagnostic]] et au modèle (contrainte un-seul-niveau ; ERP par
+  zonage d'adresse, termites par bâtiment/arrêté préfectoral ; en location le
+  termites n'entre pas dans le DDT — veille seulement). Les fiches bien et lot
+  rappellent désormais la répartition ; réponse et points à sourcer consignés
+  dans [[Diagnostic]].
+- **Création rapide d'un locataire** : le select « Locataire principal » du
+  bail propose « + Nouveau locataire… » — pop-up (nom, prénom, email unique
+  par agence), fiche créée AVEC le bail, même patron que le nouveau
+  propriétaire de la détention.
+- **Super admin** : le compte de Tahir porte désormais le rôle (adhésion
+  super_admin active, sans organisation) ; le compte de démo
+  superadmin@gerimmo-demo.fr est désactivé.
+
+Portes : tsc 0 erreur, lint 14 warnings (base), 105 tests, build OK.

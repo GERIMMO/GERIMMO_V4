@@ -5,7 +5,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { declarerMonIncident, type EtatIncidentAction } from "@/app/actions/incidents";
 import { categorieIncident, CATEGORIES_INCIDENT, PIECES_INCIDENT } from "@/lib/incidents";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import {
   Card,
   CardContent,
@@ -106,7 +106,7 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
 // (retour de recette 24/08, alignement maquette pLocDeclarer).
 export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
   const actionLiee = declarerMonIncident.bind(null, orgId);
-  const [etat, action, enCours] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
+  const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const [categorie, setCategorie] = useState(etat.valeurs?.categorie ?? "");
   const router = useRouter();
 
@@ -238,9 +238,9 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
               </select>
             </div>
 
-            <Button type="submit" disabled={enCours} className="w-full">
-              {enCours ? "Envoi…" : "Envoyer le signalement"}
-            </Button>
+            <BoutonEnvoi enCoursTexte="Envoi…" className="w-full">
+              Envoyer le signalement
+            </BoutonEnvoi>
           </form>
         </CardContent>
       </Card>

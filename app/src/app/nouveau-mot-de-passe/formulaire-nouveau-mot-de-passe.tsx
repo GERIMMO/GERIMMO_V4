@@ -5,13 +5,13 @@ import {
   definirNouveauMotDePasse,
   type EtatNouveauMotDePasse,
 } from "@/app/actions/auth";
-import { Button } from "@/components/ui/button";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function FormulaireNouveauMotDePasse() {
-  const [etat, action, enCours] = useActionState<EtatNouveauMotDePasse, FormData>(
+  const [etat, action] = useActionState<EtatNouveauMotDePasse, FormData>(
     definirNouveauMotDePasse,
     {}
   );
@@ -57,9 +57,9 @@ export function FormulaireNouveauMotDePasse() {
           {etat.erreur && (
             <p className="text-sm text-destructive">{etat.erreur}</p>
           )}
-          <Button type="submit" className="w-full" disabled={enCours}>
-            {enCours ? "Enregistrement…" : "Changer le mot de passe"}
-          </Button>
+          <BoutonEnvoi enCoursTexte="Enregistrement…" className="w-full">
+            Changer le mot de passe
+          </BoutonEnvoi>
         </form>
       </CardContent>
     </Card>

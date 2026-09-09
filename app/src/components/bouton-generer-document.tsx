@@ -6,6 +6,7 @@ import type { CodeModele } from "@/lib/documents/modeles";
 import { afficherToast } from "@/components/ui/toast";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 
 // Bouton commun du sprint « Documents-0 » : génère le PDF, toast à la
@@ -42,7 +43,7 @@ export function BoutonGenererDocument({
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       <Button type="button" size={size} variant={variant} disabled={enCours} onClick={generer}>
-        {enCours ? "Génération…" : libelle}
+        {enCours ? <><Spinner /> Génération…</> : libelle}
       </Button>
       {resultat?.documentId && (
         <a

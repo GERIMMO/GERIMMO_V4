@@ -44,14 +44,12 @@ function PetitFormulaire({
   nomChamp,
   placeholder,
   bouton,
-  enCours,
   valeurInitiale,
 }: {
   action: (formData: FormData) => void;
   nomChamp: string;
   placeholder: string;
   bouton: string;
-  enCours: boolean;
   // Saisie reposée après un refus (conservation des saisies, recette 22/08)
   valeurInitiale?: string;
 }) {
@@ -65,20 +63,20 @@ function PetitFormulaire({
         defaultValue={valeurInitiale}
         className="w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm"
       />
-      <Button type="submit" variant="outline" size="sm" disabled={enCours}>
-        {enCours ? "…" : bouton}
-      </Button>
+      <BoutonEnvoi enCoursTexte="…" variant="outline" size="sm">
+        {bouton}
+      </BoutonEnvoi>
     </form>
   );
 }
 
 function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentLocataire }) {
   const [ouvert, setOuvert] = useState<"contester" | "persiste" | null>(null);
-  const [etatContestation, actionContestation, contestationEnCours] = useActionState<
+  const [etatContestation, actionContestation] = useActionState<
     EtatIncidentAction,
     FormData
   >(contesterImputation.bind(null, orgId, incident.id), {});
-  const [etatPersiste, actionPersiste, persisteEnCours] = useActionState<
+  const [etatPersiste, actionPersiste] = useActionState<
     EtatIncidentAction,
     FormData
   >(signalerProblemePersiste.bind(null, orgId, incident.id), {});
@@ -182,7 +180,6 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
           nomChamp="message"
           placeholder="Expliquez pourquoi — votre message est transmis à l'agence."
           bouton="Envoyer"
-          enCours={contestationEnCours}
           valeurInitiale={etatContestation.valeurs?.message}
         />
       )}
@@ -192,7 +189,6 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
           nomChamp="motif"
           placeholder="Qu'est-ce qui ne va toujours pas ?"
           bouton="Rouvrir"
-          enCours={persisteEnCours}
           valeurInitiale={etatPersiste.valeurs?.motif}
         />
       )}

@@ -2,6 +2,7 @@
 
 import { useState, useActionState } from "react";
 import { donnerMonConge, type EtatConge } from "@/app/actions/conge-locataire";
+import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { formaterDate } from "@/lib/ged";
 
@@ -25,7 +26,7 @@ export function CarteConge({
   intentionDu: string | null;
 }) {
   const [ouvert, setOuvert] = useState(false);
-  const [etat, action, enCours] = useActionState<EtatConge, FormData>(
+  const [etat, action] = useActionState<EtatConge, FormData>(
     donnerMonConge.bind(null, orgId),
     {}
   );
@@ -138,9 +139,9 @@ export function CarteConge({
             className="mt-1 h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
           />
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Button type="submit" size="sm" disabled={enCours}>
-              {enCours ? "Envoi…" : "Prévenir mon gestionnaire"}
-            </Button>
+            <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
+              Prévenir mon gestionnaire
+            </BoutonEnvoi>
             <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(false)}>
               Annuler
             </Button>

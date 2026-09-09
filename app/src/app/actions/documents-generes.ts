@@ -5,7 +5,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
-import { MODELES, type CodeModele } from "@/lib/documents/modeles";
+import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
 
 export type EtatGeneration = {
   erreur?: string;
@@ -14,27 +14,32 @@ export type EtatGeneration = {
   // La liste honnête de ce qui est resté en libellé dans le PDF
   manquants?: string[];
   // Les rattachements du document — le résolveur « où renseigner » s'en sert
-  liens?: { entite: "bail" | "personne" | "lot"; entiteId: string }[];
+  liens?: { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
 };
 
 // Générer un document PDF (sprint « Documents-0 ») : assembler le HTML depuis
 // la base, le rendre en PDF, le ranger en GED (empreinte, liens) — il devient
 // visible dans l'onglet Documents. Une donnée absente ne bloque jamais : elle
 // reste en libellé dans le PDF et remonte dans `manquants`.
+// `options` : les choix du geste qui ne sont pas des données de fiche —
+// le motif d'un congé, l'objet d'un avenant, le garant d'un cautionnement.
 export async function genererDocument(
   orgId: string,
   code: CodeModele,
   cibleId: string,
-  cheminRetour: string
+  cheminRetour: string,
+  options?: Record<string, string>
 ): Promise<EtatGeneration> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  const modele = MODELES[code];
+  // Typé Modele : un assembleur peut déclarer moins de paramètres (les
+  // options sont facultatives), l'appel à 4 arguments reste valide
+  const modele: Modele = MODELES[code];
   if (!modele) return { erreur: "Modèle de document inconnu." };
 
   try {
-    const assemblage = await modele.assembler(supabase, orgId, cibleId);
+    const assemblage = await modele.assembler(supabase, orgId, cibleId, options);
     if ("erreur" in assemblage) return { erreur: assemblage.erreur };
 
     const octets = await rendrePdf(assemblage.document);

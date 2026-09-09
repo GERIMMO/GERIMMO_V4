@@ -14,7 +14,10 @@ import { assemblerNotice } from "./notice";
 import { assemblerBailNu } from "./bail-nu";
 import { assemblerEdl } from "./edl";
 
-export type LienDocument = { entite: "bail" | "personne" | "lot"; entiteId: string };
+export type LienDocument = {
+  entite: "bail" | "personne" | "lot" | "mandat";
+  entiteId: string;
+};
 
 export type Assemblage =
   | {
@@ -27,7 +30,14 @@ export type Assemblage =
 
 export type Modele = {
   typeGed: string;
-  assembler(supabase: SupabaseClient, orgId: string, cibleId: string): Promise<Assemblage>;
+  assembler(
+    supabase: SupabaseClient,
+    orgId: string,
+    cibleId: string,
+    // Les choix du geste (motif d'un congé, garant d'un cautionnement…) —
+    // les modèles qui n'en ont pas besoin l'ignorent
+    options?: Record<string, string>
+  ): Promise<Assemblage>;
 };
 
 export const MODELES = {

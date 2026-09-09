@@ -13,6 +13,7 @@ export type PersonneDocument = {
   email: string | null;
   telephone: string | null;
   date_naissance: string | null;
+  commune_naissance: string | null;
   address_line1: string | null;
   postal_code: string | null;
   city: string | null;
@@ -28,6 +29,10 @@ export type ContexteBail = {
     city: string | null;
     telephone: string | null;
     email_contact: string | null;
+    siret: string | null;
+    carte_pro: string | null;
+    garantie_financiere: string | null;
+    iban: string | null;
   };
   bail: {
     id: string;
@@ -43,6 +48,26 @@ export type ContexteBail = {
     irl_trimestre: string | null;
     revision_irl: boolean | null;
     locataire_principal: string | null;
+    // Compléments du contrat (bail 100 % rempli, 09/09)
+    fixation_loyer: string | null;
+    paiement_echeance: string;
+    lieu_paiement: string | null;
+    irl_valeur: number | null;
+    duree_reduite_evenement: string | null;
+    travaux_recents: string | null;
+    travaux_recents_montant: number | null;
+    travaux_locataire: string | null;
+    honoraires_bailleur: number | null;
+    honoraires_locataire: number | null;
+    clauses_particulieres: string | null;
+    loyer_reference: number | null;
+    loyer_reference_majore: number | null;
+    complement_loyer: number | null;
+    complement_justification: string | null;
+    dernier_loyer: number | null;
+    dernier_loyer_versement: string | null;
+    dernier_loyer_revision: string | null;
+    meuble_etudiant: boolean;
   };
   lot: {
     id: string;
@@ -53,6 +78,11 @@ export type ContexteBail = {
     meuble: boolean;
     identifiant_fiscal: string | null;
     description: string | null;
+    chauffage: string | null;
+    eau_chaude: string | null;
+    locaux_privatifs: string | null;
+    // Les équipements structurés du lot (catalogue de l'agence)
+    equipements: string[];
   };
   bien: {
     id: string;
@@ -65,6 +95,8 @@ export type ContexteBail = {
     copropriete: boolean;
     zone_tendue: boolean;
     syndic_nom: string | null;
+    parties_communes: string | null;
+    acces_tic: string | null;
   };
   bailleurs: (PersonneDocument & { quote_part: number })[];
   locataires: PersonneDocument[]; // principal en premier, puis colocataires
@@ -77,12 +109,14 @@ export async function chargerContexteBail(
   bailId: string
 ): Promise<ContexteBail | { erreur: string }> {
   const CHAMPS_PERSONNE =
-    "id, nom, prenom, email, telephone, date_naissance, address_line1, postal_code, city, qualite";
+    "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite";
 
   const [{ data: organisation }, { data: bail }] = await Promise.all([
     supabase
       .from("organizations")
-      .select("name, type, address_line1, postal_code, city, telephone, email_contact")
+      .select(
+        "name, type, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, iban"
+      )
       .eq("id", orgId)
       .maybeSingle(),
     supabase
@@ -90,10 +124,17 @@ export async function chargerContexteBail(
       .select(
         `id, type, etat, date_debut, date_fin, loyer_hc, charges, charges_mode,
          depot_garantie, jour_echeance, irl_trimestre, revision_irl, locataire_principal,
+         fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur,
+         duree_reduite_evenement, travaux_recents, travaux_recents_montant,
+         travaux_locataire, honoraires_bailleur, honoraires_locataire,
+         clauses_particulieres, loyer_reference, loyer_reference_majore,
+         complement_loyer, complement_justification, dernier_loyer,
+         dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant,
          lot:lots!baux_lot_meme_org_fk(id, nom, surface_m2, pieces, etage, meuble,
-           identifiant_fiscal, description,
+           identifiant_fiscal, description, chauffage, eau_chaude, locaux_privatifs,
            bien:biens!lots_bien_id_fkey(id, nom, type, address_line1, postal_code, city,
-             annee_construction, copropriete, zone_tendue, syndic_nom))`
+             annee_construction, copropriete, zone_tendue, syndic_nom,
+             parties_communes, acces_tic))`
       )
       .eq("id", bailId)
       .eq("organization_id", orgId)
@@ -102,9 +143,24 @@ export async function chargerContexteBail(
   if (!organisation) return { erreur: "Organisation introuvable." };
   if (!bail) return { erreur: "Bail introuvable." };
 
-  const lot = premier(bail.lot as UnOuPlusieurs<ContexteBail["lot"] & { bien: UnOuPlusieurs<ContexteBail["bien"]> }>);
+  const lot = premier(
+    bail.lot as UnOuPlusieurs<
+      Omit<ContexteBail["lot"], "equipements"> & { bien: UnOuPlusieurs<ContexteBail["bien"]> }
+    >
+  );
   const bien = lot ? premier(lot.bien) : null;
   if (!lot || !bien) return { erreur: "Lot introuvable pour ce bail." };
+
+  // Les équipements du lot (liste fermée du catalogue de l'agence) — ils
+  // remplissent « Éléments d'équipement du logement » du contrat type
+  const { data: lignesEquipements } = await supabase
+    .from("lot_equipements")
+    .select("equipement:equipements_catalogue(nom)")
+    .eq("lot_id", lot.id);
+  const equipements = ((lignesEquipements ?? []) as { equipement: UnOuPlusieurs<{ nom: string }> }[])
+    .map((l) => premier(l.equipement)?.nom)
+    .filter((n): n is string => Boolean(n))
+    .sort((a, b) => a.localeCompare(b, "fr"));
 
   const [{ data: detentions }, { data: bailPersonnes }, { data: principal }] = await Promise.all([
     supabase
@@ -141,7 +197,7 @@ export async function chargerContexteBail(
   return {
     organisation,
     bail: { ...bail, id: bail.id },
-    lot,
+    lot: { ...lot, equipements },
     bien,
     bailleurs,
     locataires,
@@ -164,7 +220,11 @@ export function adressePersonne(p: PersonneDocument | null | undefined): string 
     .join(", ");
 }
 
-export function adresseOrganisation(o: ContexteBail["organisation"]): string | null {
+export function adresseOrganisation(o: {
+  address_line1: string | null;
+  postal_code: string | null;
+  city: string | null;
+}): string | null {
   if (!o.address_line1) return null;
   return [o.address_line1, [o.postal_code, o.city].filter(Boolean).join(" ")]
     .filter(Boolean)
@@ -181,8 +241,18 @@ export function adresseLogement(lot: ContexteBail["lot"], bien: ContexteBail["bi
 }
 
 // L'expéditeur de l'en-tête : l'organisation qui génère (agence ou parc du
-// propriétaire) — le « Fait à » vient de sa ville.
-export function expediteur(ctx: Pick<ContexteBail, "organisation">): EnTeteExpediteur & { ville: string | null } {
+// propriétaire) — le « Fait à » vient de sa ville. Type structurel minimal :
+// certains modèles chargent l'organisation avec leurs propres colonnes.
+export function expediteur(ctx: {
+  organisation: {
+    name: string;
+    address_line1: string | null;
+    postal_code: string | null;
+    city: string | null;
+    telephone: string | null;
+    email_contact: string | null;
+  };
+}): EnTeteExpediteur & { ville: string | null } {
   return {
     nom: ctx.organisation.name,
     adresse: adresseOrganisation(ctx.organisation),

@@ -105,6 +105,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
             email: null,
             telephone: null,
             date_naissance: null,
+            commune_naissance: null,
             address_line1: null,
             postal_code: null,
             city: null,

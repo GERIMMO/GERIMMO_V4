@@ -10,7 +10,7 @@
 // départage.
 
 export type LienManquant = { href: string; ecran: string };
-type Liens = { entite: "bail" | "personne" | "lot"; entiteId: string }[];
+type Liens = { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
 type Cible = "organisation" | "personne" | "lot" | "bail";
 
 type Regle = { motifs: string[]; cible: Cible; cibleBail?: Cible };

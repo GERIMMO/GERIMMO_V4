@@ -20,6 +20,8 @@ export function BoutonGenererDocument({
   libelle,
   variant = "outline",
   size = "sm",
+  // Les choix du geste (motif d'un congé, garant d'un cautionnement…)
+  options,
 }: {
   orgId: string;
   code: CodeModele;
@@ -28,13 +30,14 @@ export function BoutonGenererDocument({
   libelle: string;
   variant?: "outline" | "ghost" | "default";
   size?: "sm" | "default";
+  options?: Record<string, string>;
 }) {
   const [enCours, demarrer] = useTransition();
   const [resultat, setResultat] = useState<EtatGeneration | null>(null);
 
   function generer() {
     demarrer(async () => {
-      const res = await genererDocument(orgId, code, cibleId, cheminRetour);
+      const res = await genererDocument(orgId, code, cibleId, cheminRetour, options);
       setResultat(res);
       if (res.succes) afficherToast(res.succes);
     });

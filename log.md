@@ -2629,3 +2629,15 @@ d'affichage ; refonte de [[Incident]] (callout posé) et compléments
 [[État des lieux]] (posés).
 
 Portes : tsc 0 erreur, lint 12 warnings (−2), 107 tests, build OK.
+
+## [2026-09-09] decision | Environnement de test inter-personas (demande Tahir)
+
+Semé en production (données de démo) pour tester les allers-retours entre
+espaces : chez « Parc de Claire Moreau », Lucas Bernard a un bail ACTIF
+depuis le 01/07 (T2 des Lilas, 780 € + 60 €), trois appels de loyer,
+juillet et août encaissés et quittancés (écritures au journal via trigger),
+septembre impayé à ce jour, le dépôt de 780 € encaissé, et un fil de
+messages avec un non-lu (robinet qui goutte). Chez Agence Alpha, un message
+non lu de Julie Leblanc (locataire.alpha). Le mode opératoire du test
+multi-personas : deux fenêtres de navigation (une normale, une privée),
+un persona par fenêtre.

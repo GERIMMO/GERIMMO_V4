@@ -164,6 +164,8 @@ export async function regulariserCharges(
         ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // La régularisation passe au journal : la page comptabilité suit.
+  revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: msg };
 }
 
@@ -202,6 +204,8 @@ export async function ajouterEncaissement(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // L'encaissement écrit au journal (loyer + honoraires) : la compta suit.
+  revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Encaissement enregistré." };
 }
 
@@ -219,6 +223,7 @@ export async function supprimerEncaissement(
     .eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Encaissement supprimé." };
 }
 
@@ -254,5 +259,6 @@ export async function emettreQuittances(orgId: string, bailId: string): Promise<
   const { data, error } = await supabase.rpc("emettre_quittances", { p_bail: bailId });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: `${data ?? 0} quittance(s) émise(s).` };
 }

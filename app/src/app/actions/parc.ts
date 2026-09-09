@@ -788,19 +788,13 @@ export async function definirEquipementsLot(
   if (!user) return { erreur: "Accès refusé." };
 
   const retenus = formData.getAll("equipement_id").map(String);
-  // lot_equipements n'a pas de colonne organization_id : l'isolation par
-  // agence est assurée par RLS + trigger (migration 2026-07-30).
-  const { error: erreurPurge } = await supabase
-    .from("lot_equipements")
-    .delete()
-    .eq("lot_id", lotId);
-  if (erreurPurge) return { erreur: sansJargon(erreurPurge.message) };
-  if (retenus.length > 0) {
-    const { error } = await supabase
-      .from("lot_equipements")
-      .insert(retenus.map((id) => ({ lot_id: lotId, equipement_id: id })));
-    if (error) return { erreur: sansJargon(error.message) };
-  }
+  // Purge + réinsertion dans une seule transaction côté base : un insert
+  // refusé ne laisse plus le lot sans équipements (audit vie du bail 09/09).
+  const { error } = await supabase.rpc("definir_equipements_lot", {
+    p_lot: lotId,
+    p_equipements: retenus,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
   return { succes: "Équipements du lot enregistrés." };

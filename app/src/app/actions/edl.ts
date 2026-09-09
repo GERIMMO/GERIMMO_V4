@@ -24,6 +24,22 @@ export async function creerEdl(
   if (!user) return { erreur: "Accès refusé." };
 
   const type = String(formData.get("type") ?? "entree");
+  // Un EDL de sortie se prépare pendant le préavis (audit vie du bail 09/09) :
+  // avant, il figeait un bail encore actif.
+  if (type === "sortie") {
+    const { data: bail } = await supabase
+      .from("baux")
+      .select("etat")
+      .eq("id", bailId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (bail?.etat !== "preavis") {
+      return {
+        erreur:
+          "Un état des lieux de sortie se prépare pendant le préavis — enregistrez d'abord le congé.",
+      };
+    }
+  }
   const { data, error } = await supabase
     .from("etats_des_lieux")
     .insert({ organization_id: orgId, bail_id: bailId, type })
@@ -78,23 +94,21 @@ export async function majGrilleEdl(
     .eq("edl_id", edlId)
     .eq("organization_id", orgId);
 
-  for (const l of lignes ?? []) {
+  const p_lignes = (lignes ?? []).map((l) => {
     const etat = String(formData.get(`etat_${l.id}`) ?? "");
     const commentaire = String(formData.get(`commentaire_${l.id}`) ?? "").trim();
-    const { error } = await supabase
-      .from("edl_lignes")
-      .update({ etat: etat || null, commentaire: commentaire || null })
-      .eq("id", l.id)
-      .eq("organization_id", orgId);
-    if (error) return { erreur: sansJargon(error.message) };
-  }
+    return { id: l.id, etat: etat || null, commentaire: commentaire || null };
+  });
+  const signer = Boolean(formData.get("signer"));
 
-  if (formData.get("signer")) {
-    const { error } = await supabase.rpc("signer_edl", { p_edl: edlId });
-    if (error) {
-      revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
-      return { erreur: `Grille enregistrée, mais signature refusée : ${sansJargon(error.message)}` };
-    }
+  const { error } = await supabase.rpc("enregistrer_grille_edl", {
+    p_edl: edlId,
+    p_lignes,
+    p_signer: signer,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  if (signer) {
     revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
     revalidatePath(`/agence/${orgId}/baux/${bailId}`);
     return { succes: "État des lieux signé — il est figé." };
@@ -216,18 +230,3 @@ export async function supprimerCle(
   return { succes: "Clé retirée." };
 }
 
-// Signer l'EDL (aucune ligne sans état ; fige ensuite).
-export async function signerEdl(
-  orgId: string,
-  bailId: string,
-  edlId: string,
-  _etat: EtatEdl,
-  _formData: FormData
-): Promise<EtatEdl> {
-  const { supabase, user } = await verifierGerant(orgId);
-  if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase.rpc("signer_edl", { p_edl: edlId });
-  if (error) return { erreur: sansJargon(error.message) };
-  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
-  return { succes: "État des lieux signé et figé." };
-}

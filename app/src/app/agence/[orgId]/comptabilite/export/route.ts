@@ -1,4 +1,5 @@
 import { verifierAccesEspace } from "@/lib/espace";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { formaterDate } from "@/lib/ged";
 
@@ -39,7 +40,11 @@ function champ(v: unknown): string {
 
 export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }> }) {
   const { orgId } = await ctx.params;
-  const { supabase } = await verifierAccesEspace(orgId);
+  const { supabase, user, role } = await verifierAccesEspace(orgId);
+  // « Mon portefeuille » : l'agent n'exporte que le journal de ses lots —
+  // même règle que la page comptabilité (une écriture sans lot reste une
+  // affaire d'agence, hors de son périmètre).
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
   // Période facultative : ?du=2026-01-01&au=2026-12-31. Sans elle, tout le journal.
   const url = new URL(req.url);
@@ -113,9 +118,14 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // trente-six caractères illisibles pour un comptable. On lui donne de quoi
   // retrouver la ligne d'origine — sa catégorie et sa date.
   const lignesBrutes = (data ?? []) as unknown as LigneBrute[];
+  // Le repère se construit sur tout le journal : une contre-écriture du
+  // portefeuille peut annuler une ligne qui n'y est plus.
   const repereParId = new Map(
     lignesBrutes.map((e) => [e.id, `${e.categorie} du ${formaterDate(e.date_piece)}`])
   );
+  const lignesExportees = portefeuille
+    ? lignesBrutes.filter((e) => e.lot_id != null && portefeuille.has(e.lot_id))
+    : lignesBrutes;
 
   const entete = [
     "date_piece",
@@ -131,7 +141,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
     "annule",
   ].join(";");
 
-  const lignes = lignesBrutes.map((e) => {
+  const lignes = lignesExportees.map((e) => {
     const lot = premier(e.lot);
     const surLEcriture = premier(premier(e.mandat)?.person);
     const mandant = surLEcriture

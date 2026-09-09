@@ -7,6 +7,7 @@ import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
+import { motifLitteral } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { envoyerEmail } from "@/lib/email";
 import { headers } from "next/headers";
@@ -105,7 +106,7 @@ async function resoudreLocatairePrincipal(
     .from("persons")
     .select("id")
     .eq("organization_id", orgId)
-    .ilike("email", email)
+    .ilike("email", motifLitteral(email))
     .is("archived_at", null)
     .limit(1);
   if ((existante ?? []).length > 0) {
@@ -140,6 +141,20 @@ export async function modifierBail(
   const valeurs = valeursDuFormulaire(formData);
   const champs = lireChampsBail(formData);
   if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
+
+  // Seul un brouillon se corrige — vérifié AVANT de résoudre le locataire :
+  // sinon « + Nouveau locataire… » créait une fiche personne orpheline alors
+  // que la modification allait être refusée (audit vie du bail 09/09).
+  const { data: bailActuel } = await supabase
+    .from("baux")
+    .select("etat")
+    .eq("id", bailId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (bailActuel?.etat !== "brouillon") {
+    return { erreur: "Seul un bail en brouillon se corrige — celui-ci a déjà avancé.", valeurs };
+  }
+
   const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData);
   if ("erreur" in locataire) return { erreur: locataire.erreur, valeurs };
   champs.valeurs.locataire_principal = locataire.id;
@@ -561,6 +576,18 @@ export async function ajouterBailPersonne(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
+
+  // Un bail terminé ne se complète plus (audit vie du bail 09/09)
+  const { data: bail } = await supabase
+    .from("baux")
+    .select("etat")
+    .eq("id", bailId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (bail?.etat === "termine") {
+    return { erreur: "Le bail est terminé — plus d'ajout possible.", valeurs };
+  }
+
   const personId = String(formData.get("person_id") ?? "");
   const role = String(formData.get("role") ?? "colocataire");
   if (!personId) return { erreur: "Choisissez la personne.", valeurs };

@@ -4,10 +4,13 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { verifierGerant } from "@/lib/ged-acces";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
 export type EtatMessage = {
   erreur?: string;
   succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
 };
 
 // Messagerie locataire ↔ gestionnaire (espace locataire v10). Les RPC
@@ -25,13 +28,14 @@ export async function envoyerMessageLocataire(
   } = await supabase.auth.getUser();
   if (!user) return { erreur: "Vous n'êtes pas connecté." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const texte = String(formData.get("texte") ?? "").trim();
-  if (!texte) return { erreur: "Écrivez votre message avant d'envoyer." };
+  if (!texte) return { erreur: "Écrivez votre message avant d'envoyer.", valeurs };
   const { error } = await supabase.rpc("envoyer_message_locataire", {
     p_org: orgId,
     p_texte: texte,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/locataire/${orgId}`, "layout");
   return { succes: "Message envoyé — votre gestionnaire est prévenu." };
 }
@@ -46,14 +50,15 @@ export async function repondreMessagePersonne(
   if (!user) return { erreur: "Accès refusé." };
   const supabase = await createClient();
 
+  const valeurs = valeursDuFormulaire(formData);
   const texte = String(formData.get("texte") ?? "").trim();
-  if (!texte) return { erreur: "Écrivez votre réponse avant d'envoyer." };
+  if (!texte) return { erreur: "Écrivez votre réponse avant d'envoyer.", valeurs };
   const { error } = await supabase.rpc("repondre_message_personne", {
     p_org: orgId,
     p_person: personId,
     p_texte: texte,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
   // La réponse ferme l'alerte et solde les non-lus : liste des personnes,
   // badge de la barre latérale (layout) et fiche se rafraîchissent ensemble
   revalidatePath(`/agence/${orgId}`, "layout");

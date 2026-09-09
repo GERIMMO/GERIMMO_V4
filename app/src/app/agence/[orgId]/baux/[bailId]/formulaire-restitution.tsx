@@ -71,7 +71,8 @@ export function FormulaireRestitution({
     <div className="space-y-4">
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-4">
         <div>
-          <dt className="text-xs text-muted-foreground">Dépôt de garantie</dt>
+          {/* Le total réellement reçu, pas le montant prévu au bail */}
+          <dt className="text-xs text-muted-foreground">Dépôt encaissé</dt>
           <dd className="font-medium">{eur(restitution.depot)}</dd>
         </div>
         <div>
@@ -248,15 +249,16 @@ function BoutonSupprimerRetenue({
   bailId: string;
   retenueId: string;
 }) {
-  const [, action] = useActionState(
+  const [etat, action] = useActionState<EtatRestit, FormData>(
     async () => supprimerRetenue(orgId, bailId, retenueId),
-    { }
+    {}
   );
   return (
     <form action={action}>
       <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
         Retirer
       </BoutonEnvoi>
+      {etat.erreur && <span className="block text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
 }

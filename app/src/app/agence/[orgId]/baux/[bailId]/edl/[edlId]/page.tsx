@@ -28,9 +28,10 @@ export default async function PageEdl(
 
   // Saisie comparative (maquette v3) : sur un EDL de sortie en cours, chaque
   // ligne rappelle l'état et l'observation d'entrée — la sortie se juge par
-  // rapport à eux. On prend l'entrée signée du même bail.
+  // rapport à eux. On prend l'entrée signée du même bail. (L'entrée signée
+  // sert aussi à expliquer d'où vient la grille de sortie — RM-1.13.1.)
   const { data: entree } =
-    edl.type === "sortie" && edl.etat !== "signe"
+    edl.type === "sortie"
       ? await supabase
           .from("etats_des_lieux")
           .select("id, date_edl, edl_lignes(piece, categorie, libelle, etat, commentaire)")
@@ -72,6 +73,10 @@ export default async function PageEdl(
   const grilleGenerique = !toutesLignes.some((l) => l.categorie === "piece");
   const lignesRemplies = toutesLignes.filter((l) => l.etat).length;
   const signe = edl.etat === "signe";
+  // Sortie dont l'entrée est signée : la grille est la copie conforme de
+  // l'entrée (RM-1.13.1) — le bandeau « grille générique » et la régénération
+  // depuis les pièces du lot n'ont pas de sens ici (audit vie du bail 09/09).
+  const sortieDepuisEntree = edl.type === "sortie" && Boolean(entree) && toutesLignes.length > 0;
 
   const { data: bail } = grilleGenerique
     ? await supabase
@@ -145,7 +150,13 @@ export default async function PageEdl(
               déclarées. Rien ne le signalait : l'agent signait un document qui
               ne distingue pas la cuisine de la chambre, et découvrait le
               problème à la sortie, au moment de justifier une retenue. */}
-          {grilleGenerique && (
+          {sortieDepuisEntree && (
+            <p className="mb-4 text-sm text-muted-foreground">
+              La grille de sortie reprend exactement celle de l&apos;état des lieux
+              d&apos;entrée signé — élément par élément (RM-1.13.1).
+            </p>
+          )}
+          {grilleGenerique && !sortieDepuisEntree && (
             <div className="mb-4 border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm">
               <p className="font-medium">
                 {toutesLignes.length === 0
@@ -155,7 +166,9 @@ export default async function PageEdl(
               <p className="mt-1 text-muted-foreground">
                 {toutesLignes.length === 0
                   ? "Sa génération n'a pas abouti — régénérez-la avant toute saisie."
-                  : "Le lot n'a pas de pièces déclarées : la grille se limite aux éléments généraux. À la sortie, il sera difficile de rattacher une dégradation à un endroit précis — et donc de justifier une retenue sur le dépôt de garantie."}
+                  : lotAPieces
+                    ? "La grille a été générée avant la déclaration des pièces du lot : elle se limite aux éléments généraux. Régénérez-la pour détailler chaque pièce — sinon, à la sortie, il sera difficile de rattacher une dégradation à un endroit précis."
+                    : "Le lot n'a pas de pièces déclarées : la grille se limite aux éléments généraux. À la sortie, il sera difficile de rattacher une dégradation à un endroit précis — et donc de justifier une retenue sur le dépôt de garantie."}
               </p>
               {/* Revue 23/08 : régénérer remplace la grille — le dire quand
                   des états ont déjà été saisis, plutôt que les perdre muet. */}
@@ -191,7 +204,7 @@ export default async function PageEdl(
             signe={signe}
             lignes={lignes ?? []}
             reference={
-              entree
+              !signe && entree
                 ? {
                     date: entree.date_edl,
                     lignes: (entree.edl_lignes ?? []) as {

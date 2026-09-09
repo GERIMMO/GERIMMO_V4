@@ -132,9 +132,11 @@ export function CarteConge({
           <label htmlFor="conge-motif" className="mt-3 block text-xs text-muted-foreground">
             Un mot pour votre gestionnaire (facultatif)
           </label>
+          {/* En erreur, la saisie est reposée via etat.valeurs (audit 09/09) */}
           <input
             id="conge-motif"
             name="motif"
+            defaultValue={etat.valeurs?.motif}
             placeholder="Mutation, achat, déménagement…"
             className="mt-1 h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
           />

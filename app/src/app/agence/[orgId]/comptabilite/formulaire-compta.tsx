@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, moisEnFrancais } from "@/lib/ged";
 
-export type MandatCompta = { id: string; mandant_nom: string };
+export type MandatCompta = { id: string; etat: string; mandant_nom: string };
 export type RapportCompta = {
   id: string;
   mandat_id: string;
@@ -38,15 +38,32 @@ export function RapportsGestion({
   rapports: RapportCompta[];
   moisCourant: string;
 }) {
-  if (mandats.length === 0)
+  // Un mandat en préavis ou résilié ne génère plus de rapport, mais ses
+  // rapports non versés restent visibles jusqu'au solde.
+  const visibles = mandats
+    .map((m) => {
+      const actif = m.etat === "actif";
+      const rs = rapports.filter(
+        (r) => r.mandat_id === m.id && (actif || r.versement_montant == null)
+      );
+      return { m, actif, rs };
+    })
+    .filter(({ actif, rs }) => actif || rs.length > 0);
+  if (visibles.length === 0)
     return <p className="text-sm text-muted-foreground">Aucun mandat de gestion actif. Un rapport se génère par mandat : créez-en un depuis la fiche du propriétaire.</p>;
   return (
     <div className="space-y-4">
-      {mandats.map((m) => {
-        const rs = rapports.filter((r) => r.mandat_id === m.id);
+      {visibles.map(({ m, actif, rs }) => {
         return (
           <div key={m.id} className="space-y-2 border border-border p-3">
-            <p className="text-sm font-medium">{m.mandant_nom}</p>
+            <p className="text-sm font-medium">
+              {m.mandant_nom}
+              {!actif && (
+                <span className="ml-2 puce puce-prep font-normal">
+                  {m.etat === "preavis" ? "préavis" : "résilié"}
+                </span>
+              )}
+            </p>
             {rs.length > 0 && (
               <ul className="space-y-1 text-sm">
                 {rs.map((r) => (
@@ -80,7 +97,9 @@ export function RapportsGestion({
                 ))}
               </ul>
             )}
-            <BoutonGenererRapport orgId={orgId} mandatId={m.id} moisCourant={moisCourant} />
+            {actif && (
+              <BoutonGenererRapport orgId={orgId} mandatId={m.id} moisCourant={moisCourant} />
+            )}
           </div>
         );
       })}
@@ -110,6 +129,8 @@ function BoutonEnvoyerRapport({ orgId, rapportId }: { orgId: string; rapportId: 
       <Input name="commentaire" placeholder="commentaire" defaultValue={etat.valeurs?.commentaire} className="h-7 w-32 text-xs" />
       <BoutonEnvoi size="sm" variant="ghost">Valider & envoyer</BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {/* Le succès peut porter une réserve (mandant sans email, envoi manqué) */}
+      {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
     </form>
   );
 }
@@ -126,7 +147,13 @@ function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string 
   );
 }
 
-export function FormulaireEcriture({ orgId }: { orgId: string }) {
+export function FormulaireEcriture({
+  orgId,
+  lots,
+}: {
+  orgId: string;
+  lots: { id: string; nom: string }[];
+}) {
   const [etat, action] = useActionState<EtatCompta, FormData>(
     ajouterEcriture.bind(null, orgId),
     {}
@@ -139,6 +166,15 @@ export function FormulaireEcriture({ orgId }: { orgId: string }) {
         <select id="ec-sens" name="sens" defaultValue={etat.valeurs?.sens ?? "depense"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
           <option value="recette">Recette</option>
           <option value="depense">Dépense</option>
+        </select>
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor="ec-lot" className="text-xs">Lot (recommandé)</Label>
+        <select id="ec-lot" name="lot_id" defaultValue={etat.valeurs?.lot_id ?? ""} className="h-9 max-w-48 rounded-md border border-input bg-transparent px-2 text-sm">
+          <option value="">— Aucun lot —</option>
+          {lots.map((l) => (
+            <option key={l.id} value={l.id}>{l.nom}</option>
+          ))}
         </select>
       </div>
       <div className="space-y-1">
@@ -161,6 +197,10 @@ export function FormulaireEcriture({ orgId }: { orgId: string }) {
       <BoutonEnvoi size="sm" variant="outline">
         {"Ajouter l'écriture"}
       </BoutonEnvoi>
+      <p className="w-full text-xs text-muted-foreground">
+        Sans lot, l&apos;écriture n&apos;entre dans aucun rapport de gestion ni
+        dans le périmètre d&apos;un agent.
+      </p>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );

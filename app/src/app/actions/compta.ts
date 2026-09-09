@@ -29,6 +29,7 @@ export async function genererRapport(
   const { error } = await supabase.rpc("generer_rapport", { p_mandat: mandatId, p_mois: `${mois}-01` });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/mandats`);
   return { succes: "Rapport généré (à valider)." };
 }
 
@@ -47,14 +48,17 @@ export async function envoyerRapport(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   // Email au mandant (best-effort : le rapport est figé quoi qu'il arrive)
-  const { data: rap } = await supabase
+  const { data: rap, error: erreurMandant } = await supabase
     .from("rapports_gestion")
     .select("net, mois, mandat:mandats(person:persons(email, nom, prenom))")
     .eq("id", rapportId)
     .maybeSingle();
   const mandant = (rap as { mandat?: { person?: { email?: string; nom?: string; prenom?: string } } } | null)?.mandat?.person;
   let noteEmail = "";
-  if (mandant?.email) {
+  // Un échec de lecture n'est pas un mandant sans email : on le dit tel quel.
+  if (erreurMandant) {
+    noteEmail = " (email non envoyé : le mandant n'a pas pu être lu — réessayez.)";
+  } else if (mandant?.email) {
     const net = Number((rap as { net: number }).net);
     const html = `<div style="font-family:sans-serif"><h2>Rapport de gestion</h2>
       <p>Bonjour${mandant.prenom ? " " + mandant.prenom : ""},</p>
@@ -66,6 +70,7 @@ export async function envoyerRapport(
     noteEmail = " (mandant sans email — remise hors plateforme.)";
   }
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/mandats`);
   return { succes: `Rapport envoyé et figé.${noteEmail}` };
 }
 
@@ -88,6 +93,7 @@ export async function enregistrerVersement(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/mandats`);
   return { succes: "Versement enregistré." };
 }
 
@@ -117,6 +123,8 @@ export async function ajouterEcriture(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  // Le journal alimente aussi le récapitulatif fiscal du propriétaire direct.
+  revalidatePath(`/agence/${orgId}/comptabilite/fiscal`);
   return { succes: "Écriture enregistrée." };
 }
 
@@ -133,6 +141,7 @@ export async function passerContreEcriture(
   const { error } = await supabase.rpc("contre_ecriture", { p_ecriture: ecritureId, p_motif: motif });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/comptabilite/fiscal`);
   return { succes: "Contre-écriture passée." };
 }
 
@@ -161,6 +170,7 @@ export async function ventilerDepense(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
+  revalidatePath(`/agence/${orgId}/comptabilite/fiscal`);
   return { succes: `Dépense ventilée en ${data ?? 0} écriture(s).` };
 }
 

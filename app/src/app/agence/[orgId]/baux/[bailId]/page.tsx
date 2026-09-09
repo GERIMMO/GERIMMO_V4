@@ -687,8 +687,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
-      {/* Colocation (bail unique) : colocataires + garants */}
-      {bail.type === "colocation" && (
+      {/* Colocation (bail unique) : colocataires + garants — un bail terminé
+          ne se complète plus (audit vie du bail 09/09) */}
+      {bail.type === "colocation" && bail.etat !== "termine" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Colocataires & garants</CardTitle>
@@ -717,7 +718,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Garants d'un bail nu ou meublé (hors colocation, qui a sa carte) —
           l'acte de cautionnement se génère dans la carte suivante. */}
-      {bail.type !== "colocation" && (
+      {bail.type !== "colocation" && bail.etat !== "termine" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Garants</CardTitle>
@@ -832,7 +833,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               ))}
             </ul>
           )}
-          {(edls ?? []).length < 2 && <FormulaireCreerEdl orgId={orgId} bailId={bailId} />}
+          {(edls ?? []).length < 2 && (
+            <FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} />
+          )}
         </CardContent>
       </Card>
 

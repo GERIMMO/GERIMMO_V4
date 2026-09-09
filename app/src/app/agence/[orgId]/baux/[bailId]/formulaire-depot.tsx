@@ -189,7 +189,7 @@ function BoutonSupprimer({
   bailId: string;
   encId: string;
 }) {
-  const [, action] = useActionState(
+  const [etat, action] = useActionState<EtatDepot, FormData>(
     async () => supprimerEncaissementDepot(orgId, bailId, encId),
     {}
   );
@@ -198,6 +198,7 @@ function BoutonSupprimer({
       <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
         Retirer
       </BoutonEnvoi>
+      {etat.erreur && <span className="block text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
 }

@@ -23,17 +23,22 @@ export type LigneColoc = {
 
 type Personne = { id: string; nom: string };
 
+// L'erreur de l'action s'affiche sous la ligne — avant, elle était jetée
+// (audit vie du bail 09/09).
 function BoutonRetirer({ orgId, bailId, ligneId }: { orgId: string; bailId: string; ligneId: string }) {
+  const [etat, formAction] = useActionState<EtatBail, FormData>(
+    () => supprimerBailPersonne(orgId, bailId, ligneId),
+    {}
+  );
   return (
-    <form
-      action={async () => {
-        await supprimerBailPersonne(orgId, bailId, ligneId);
-      }}
-    >
-      <BoutonEnvoi variant="ghost" size="sm">
-        Retirer
-      </BoutonEnvoi>
-    </form>
+    <>
+      <form action={formAction}>
+        <BoutonEnvoi variant="ghost" size="sm">
+          Retirer
+        </BoutonEnvoi>
+      </form>
+      {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+    </>
   );
 }
 
@@ -100,7 +105,7 @@ export function FormulaireColocation({
         ) : (
           <ul className="divide-y divide-border">
             {colocataires.map((c) => (
-              <li key={c.id} className="flex items-center gap-2 py-2 text-sm">
+              <li key={c.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="min-w-0 flex-1 truncate">{c.person_nom}</span>
                 {c.quote_part != null && (
                   <span className="shrink-0 text-xs text-muted-foreground">{c.quote_part} %</span>
@@ -142,13 +147,13 @@ export function FormulaireColocation({
             <Label htmlFor="coloc-qp" className="text-xs">
               Quote-part %
             </Label>
-            <Input id="coloc-qp" name="quote_part" type="number" min="0" max="100" step="0.01" defaultValue={etatC.valeurs?.quote_part} />
+            <Input id="coloc-qp" name="quote_part" type="number" min="0.01" max="100" step="0.01" defaultValue={etatC.valeurs?.quote_part} />
           </div>
           <div className="space-y-1">
             <Label htmlFor="coloc-surf" className="text-xs">
               Surface privée (m²)
             </Label>
-            <Input id="coloc-surf" name="surface_privative" type="number" min="0" step="0.01" defaultValue={etatC.valeurs?.surface_privative} />
+            <Input id="coloc-surf" name="surface_privative" type="number" min="0.01" step="0.01" defaultValue={etatC.valeurs?.surface_privative} />
           </div>
           <div className="sm:col-span-4">
             <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
@@ -168,7 +173,7 @@ export function FormulaireColocation({
         ) : (
           <ul className="divide-y divide-border">
             {garants.map((g) => (
-              <li key={g.id} className="flex items-center gap-2 py-2 text-sm">
+              <li key={g.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="min-w-0 flex-1 truncate">
                   {g.person_nom}
                   {g.garant_de_nom && (
@@ -207,10 +212,15 @@ export function FormulaireColocation({
             <Label htmlFor="garant-de" className="text-xs">
               {colocation ? "Couvre le colocataire" : "Couvre le locataire"}
             </Label>
+            {/* Hors colocation, un seul couvrable (le locataire principal) :
+                pré-sélectionné plutôt que de forcer un choix évident */}
             <select
               id="garant-de"
               name="garant_de"
-              defaultValue={etatG.valeurs?.garant_de ?? ""}
+              defaultValue={
+                etatG.valeurs?.garant_de ??
+                (!colocation && couvrables.length === 1 ? couvrables[0].id : "")
+              }
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
               <option value="" disabled>

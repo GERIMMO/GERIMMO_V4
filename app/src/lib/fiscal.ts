@@ -123,6 +123,9 @@ export function recapitulatifFiscal(
   for (const e of ecritures) {
     if (!e.date_piece?.startsWith(String(annee))) continue;
     if (e.sens !== "recette" && e.sens !== "depense") continue;
+    // Le dépôt de garantie n'est pas un revenu : il transite (encaissement
+    // comme restitution) — ses mouvements sortent du récapitulatif 2044.
+    if (e.categorie === "depot_garantie") continue;
     const annulation = Boolean(e.contre_ecriture_de);
     const sensOrigine = annulation ? (e.sens === "recette" ? "depense" : "recette") : e.sens;
     const montant = (Number(e.montant) || 0) * (annulation ? -1 : 1);

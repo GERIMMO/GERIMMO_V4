@@ -149,6 +149,8 @@ export async function finaliserDecompte(
   if (error) return { erreur: sansJargon(error.message) };
   const solde = Number(data);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // La restitution écrit au journal : la page comptabilité suit.
+  revalidatePath(`/agence/${orgId}/comptabilite`);
   return {
     succes:
       solde < 0

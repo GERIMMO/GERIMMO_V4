@@ -35,13 +35,19 @@ const TYPES_CLE = [
   "Autre",
 ];
 
-function BoutonRetirer({ onAction }: { onAction: () => Promise<void> }) {
+// L'erreur de l'action (« EDL signé : figé »…) s'affiche sous la ligne —
+// avant, elle était jetée (audit vie du bail 09/09).
+function BoutonRetirer({ onAction }: { onAction: () => Promise<EtatEdl> }) {
+  const [etat, formAction] = useActionState<EtatEdl, FormData>(() => onAction(), {});
   return (
-    <form action={onAction}>
-      <BoutonEnvoi variant="ghost" size="sm">
-        Retirer
-      </BoutonEnvoi>
-    </form>
+    <>
+      <form action={formAction}>
+        <BoutonEnvoi variant="ghost" size="sm">
+          Retirer
+        </BoutonEnvoi>
+      </form>
+      {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+    </>
   );
 }
 
@@ -75,14 +81,14 @@ export function EdlAnnexes({
         ) : (
           <ul className="divide-y divide-border">
             {compteurs.map((c) => (
-              <li key={c.id} className="flex items-center gap-2 py-2 text-sm">
+              <li key={c.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="min-w-0 flex-1 truncate">
                   {c.type}
                   {c.numero && <span className="text-muted-foreground"> · n° {c.numero}</span>}
                 </span>
                 <span className="shrink-0 font-medium">{c.releve ?? "—"}</span>
                 {!signe && (
-                  <BoutonRetirer onAction={async () => { await supprimerCompteur(orgId, bailId, edlId, c.id); }} />
+                  <BoutonRetirer onAction={() => supprimerCompteur(orgId, bailId, edlId, c.id)} />
                 )}
               </li>
             ))}
@@ -123,13 +129,13 @@ export function EdlAnnexes({
         ) : (
           <ul className="divide-y divide-border">
             {cles.map((k) => (
-              <li key={k.id} className="flex items-center gap-2 py-2 text-sm">
+              <li key={k.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="min-w-0 flex-1 truncate">
                   {k.nombre}× {k.libelle}
                   {k.reference && <span className="text-muted-foreground"> · {k.reference}</span>}
                 </span>
                 {!signe && (
-                  <BoutonRetirer onAction={async () => { await supprimerCle(orgId, bailId, edlId, k.id); }} />
+                  <BoutonRetirer onAction={() => supprimerCle(orgId, bailId, edlId, k.id)} />
                 )}
               </li>
             ))}

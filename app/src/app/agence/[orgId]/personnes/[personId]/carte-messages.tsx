@@ -69,8 +69,10 @@ export function CarteMessages({
         </div>
       )}
       <form action={action} className="flex flex-wrap items-end gap-2">
+        {/* En erreur, la saisie est reposée via etat.valeurs (audit 09/09) */}
         <textarea
           name="texte"
+          defaultValue={etat.valeurs?.texte}
           rows={2}
           maxLength={4000}
           placeholder={`Répondre${prenom ? ` à ${prenom}` : ""}…`}

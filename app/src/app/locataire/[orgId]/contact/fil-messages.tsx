@@ -111,12 +111,14 @@ export function FilMessages({
           Votre message
         </label>
         {/* Non contrôlé, re-monté à chaque nouveau message : le champ se vide
-            quand l'envoi aboutit, sans état React */}
+            quand l'envoi aboutit, sans état React. En erreur, la saisie est
+            reposée via etat.valeurs (audit vie du bail 09/09). */}
         <textarea
           id="msg-texte"
           name="texte"
           ref={champ}
           key={messages.length}
+          defaultValue={etat.valeurs?.texte}
           rows={3}
           maxLength={4000}
           className="mt-1 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"

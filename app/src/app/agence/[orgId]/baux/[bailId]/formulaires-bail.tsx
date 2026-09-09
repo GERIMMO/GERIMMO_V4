@@ -214,9 +214,21 @@ export function FormulaireConge({
   );
 }
 
-export function FormulaireCreerEdl({ orgId, bailId }: { orgId: string; bailId: string }) {
+export function FormulaireCreerEdl({
+  orgId,
+  bailId,
+  bailEtat,
+}: {
+  orgId: string;
+  bailId: string;
+  // L'EDL de sortie se prépare pendant le préavis (audit vie du bail 09/09) :
+  // hors préavis, l'option n'est pas proposée. Sans la prop, comportement
+  // d'avant (les deux options) — le serveur revérifie de toute façon.
+  bailEtat?: string;
+}) {
   const action = creerEdl.bind(null, orgId, bailId);
   const [etat, formAction] = useActionState<EtatEdl, FormData>(action, {});
+  const sortiePossible = bailEtat === undefined || bailEtat === "preavis";
   return (
     <form action={formAction} className="flex items-end gap-2">
       <div className="space-y-1.5">
@@ -230,7 +242,7 @@ export function FormulaireCreerEdl({ orgId, bailId }: { orgId: string; bailId: s
           className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
         >
           <option value="entree">Entrée</option>
-          <option value="sortie">Sortie</option>
+          {sortiePossible && <option value="sortie">Sortie</option>}
         </select>
       </div>
       <BoutonEnvoi enCoursTexte="Création…" size="sm" variant="outline">

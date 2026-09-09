@@ -39,11 +39,13 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
     !portefeuille || (lotId != null && portefeuille.has(lotId));
 
   const [
-    { data: ecritures },
-    { data: clotures },
-    { data: biens },
-    { data: mandatsRaw },
-    { data: rapports },
+    { data: ecritures, error: erreurEcritures },
+    { data: clotures, error: erreurClotures },
+    { data: biens, error: erreurBiens },
+    { data: lots, error: erreurLots },
+    { data: mandatsRaw, error: erreurMandats },
+    { data: rapports, error: erreurRapports },
+    { data: totaux, error: erreurTotaux },
   ] = await Promise.all([
     supabase
       .from("ecritures")
@@ -54,41 +56,99 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
     supabase.from("clotures_comptables").select("mois").eq("organization_id", orgId).order("mois", { ascending: false }),
     supabase.from("biens").select("id, nom").eq("organization_id", orgId).order("nom"),
     supabase
-      .from("mandats")
-      .select("id, mandant:persons(nom, prenom)")
+      .from("lots")
+      .select("id, nom, bien:biens!lots_bien_id_fkey(nom)")
       .eq("organization_id", orgId)
-      .eq("etat", "actif"),
+      .order("nom"),
+    // Préavis et résilié restent listés : leurs rapports envoyés attendent
+    // parfois encore leur versement.
+    supabase
+      .from("mandats")
+      .select("id, etat, agent_account_id, mandant:persons(nom, prenom)")
+      .eq("organization_id", orgId)
+      .in("etat", ["actif", "preavis", "resilie"]),
     supabase
       .from("rapports_gestion")
       .select("id, mandat_id, mois, statut, net, versement_montant")
       .eq("organization_id", orgId)
       .order("mois", { ascending: false }),
+    // Les totaux se calculent en base sur tout le journal (hors dépôt de
+    // garantie et paires contre-passées) — le journal affiché, lui, reste
+    // paginé à 200 lignes.
+    supabase.rpc("totaux_ecritures", {
+      p_org: orgId,
+      p_lots: portefeuille ? Array.from(portefeuille) : null,
+    }),
   ]);
+
+  // Un échec de lecture ne doit pas se déguiser en journal vide (audit 09/09)
+  if (
+    erreurEcritures ||
+    erreurClotures ||
+    erreurBiens ||
+    erreurLots ||
+    erreurMandats ||
+    erreurRapports ||
+    erreurTotaux
+  ) {
+    return (
+      <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
+        <h1>Comptabilité</h1>
+        <div className="vide mt-4">
+          Impossible de charger la comptabilité pour l&apos;instant — rechargez
+          dans un instant.
+        </div>
+      </main>
+    );
+  }
 
   // Portefeuille : seules les écritures rattachées à un de mes lots comptent
   // (une écriture sans lot reste une affaire d'agence).
   const lignes = ((ecritures ?? []) as Ecriture[]).filter((e) =>
     dansPortefeuille(e.lot_id)
   );
-  const recettes = lignes.filter((e) => e.sens === "recette").reduce((s, e) => s + Number(e.montant), 0);
-  const depenses = lignes.filter((e) => e.sens === "depense").reduce((s, e) => s + Number(e.montant), 0);
+  const t = (Array.isArray(totaux) ? totaux[0] : totaux) as
+    | { recettes: number | string; depenses: number | string }
+    | null;
+  const recettes = Number(t?.recettes ?? 0);
+  const depenses = Number(t?.depenses ?? 0);
   const moisClotures = new Set(((clotures ?? []) as { mois: string }[]).map((c) => c.mois.slice(0, 7)));
   const moisCourant = aujourdhuiParis().slice(0, 7);
   const anneeCourante = moisCourant.slice(0, 4);
   const mandats: MandatCompta[] = (
     (mandatsRaw ?? []) as {
       id: string;
+      etat: string;
+      agent_account_id: string | null;
       mandant:
         | { nom: string; prenom: string | null }
         | { nom: string; prenom: string | null }[]
         | null;
     }[]
-  ).map((m) => {
-    // Jointure to-one : PostgREST renvoie un objet (le typage générait un
-    // tableau — le nom du mandant s'affichait « — »). On accepte les deux.
-    const p = Array.isArray(m.mandant) ? m.mandant[0] : m.mandant;
-    return { id: m.id, mandant_nom: p ? nomComplet(p) : "—" };
-  });
+  )
+    // Agent avec portefeuille : uniquement les mandats qui lui sont confiés.
+    .filter((m) => !portefeuille || m.agent_account_id === user.id)
+    .map((m) => {
+      // Jointure to-one : PostgREST renvoie un objet (le typage générait un
+      // tableau — le nom du mandant s'affichait « — »). On accepte les deux.
+      const p = Array.isArray(m.mandant) ? m.mandant[0] : m.mandant;
+      return { id: m.id, etat: m.etat, mandant_nom: p ? nomComplet(p) : "—" };
+    });
+
+  // Le lot d'une écriture, choisi par son nom complet (bien — lot) ; un agent
+  // ne saisit que dans son portefeuille.
+  const lotsEcriture = (
+    (lots ?? []) as {
+      id: string;
+      nom: string;
+      bien: { nom: string | null } | { nom: string | null }[] | null;
+    }[]
+  )
+    .filter((l) => dansPortefeuille(l.id))
+    .map((l) => {
+      const b = Array.isArray(l.bien) ? l.bien[0] : l.bien;
+      return { id: l.id, nom: b?.nom ? `${b.nom} — ${l.nom}` : l.nom };
+    });
 
   // Repère de tête : où en est la comptabilité — clôtures triées du plus récent
   const dernierCloture = [...moisClotures][0];
@@ -200,7 +260,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <FormulaireEcriture orgId={orgId} />
+          <FormulaireEcriture orgId={orgId} lots={lotsEcriture} />
           <div className="border-t border-border pt-4">
             <p className="mb-2 text-sm font-medium">
               Dépense sur tout le bien, répartie entre ses lots
@@ -210,14 +270,17 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
               biens={(biens ?? []) as { id: string; nom: string }[]}
             />
           </div>
-          <div className="border-t border-border pt-4">
-            <FormulaireCloture orgId={orgId} moisCourant={moisCourant} />
-            {moisClotures.size > 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Mois déjà clôturés : {[...moisClotures].map(moisEnFrancais).join(", ")}
-              </p>
-            )}
-          </div>
+          {/* La clôture est un geste d'admin — la base la refuse à l'agent */}
+          {role !== "agent" && (
+            <div className="border-t border-border pt-4">
+              <FormulaireCloture orgId={orgId} moisCourant={moisCourant} />
+              {moisClotures.size > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Mois déjà clôturés : {[...moisClotures].map(moisEnFrancais).join(", ")}
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -3,10 +3,13 @@
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { valeursDuFormulaire } from "@/lib/formulaires";
 
 export type EtatConge = {
   erreur?: string;
   succes?: string;
+  // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
+  valeurs?: Record<string, string>;
 };
 
 // Le locataire transmet son INTENTION de congé depuis son espace. Le congé
@@ -25,12 +28,13 @@ export async function donnerMonConge(
   } = await supabase.auth.getUser();
   if (!user) return { erreur: "Vous n'êtes pas connecté." };
 
+  const valeurs = valeursDuFormulaire(formData);
   const motif = String(formData.get("motif") ?? "").trim() || null;
   const { error } = await supabase.rpc("mon_conge_locataire", {
     p_org: orgId,
     p_motif: motif,
   });
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/logement`);

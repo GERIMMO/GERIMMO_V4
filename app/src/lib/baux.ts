@@ -38,10 +38,11 @@ export const COULEURS_ETAT_MANDAT: Record<string, string> = {
   resilie: "puce puce-grise",
 };
 
-// EDL : signé = acquis (vert doux), en cours = préparation
+// EDL : signé = acquis (vert doux), brouillon = préparation (enum base :
+// brouillon | signe — la clé « en_cours » ne correspondait à rien)
 export const COULEURS_ETAT_EDL: Record<string, string> = {
   signe: "puce puce-loue",
-  en_cours: "puce puce-prep",
+  brouillon: "puce puce-prep",
 };
 
 // Statuts d'un appel de loyer (échéancier agence et espace locataire)

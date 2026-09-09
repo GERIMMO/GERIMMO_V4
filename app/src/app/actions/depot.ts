@@ -37,6 +37,8 @@ export async function encaisserDepot(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // Le dépôt passe au journal : la page comptabilité suit.
+  revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Encaissement enregistré." };
 }
 
@@ -54,5 +56,6 @@ export async function supprimerEncaissementDepot(
     .eq("organization_id", orgId);
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  revalidatePath(`/agence/${orgId}/comptabilite`);
   return { succes: "Encaissement retiré." };
 }

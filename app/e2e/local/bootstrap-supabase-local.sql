@@ -138,10 +138,13 @@ $$;
 grant all on storage.buckets, storage.objects to authenticated, service_role;
 grant select on storage.buckets, storage.objects to anon;
 
--- ── Confort : privilèges par défaut du schéma public ───────────────────────
+-- ── Privilèges par défaut du schéma public ─────────────────────────────────
+-- Fidèles à Supabase : anon reçoit AUSSI les privilèges de table — en prod la
+-- seule barrière est le qual RLS, le banc local doit reproduire ce risque
+-- (constat de l'audit du 10/09), pas le masquer.
 alter default privileges in schema public
-  grant select, insert, update, delete on tables to authenticated, service_role;
+  grant select, insert, update, delete on tables to anon, authenticated, service_role;
 alter default privileges in schema public
-  grant execute on functions to authenticated, service_role;
+  grant execute on functions to anon, authenticated, service_role;
 alter default privileges in schema public
-  grant usage, select on sequences to authenticated, service_role;
+  grant usage, select on sequences to anon, authenticated, service_role;

@@ -29,24 +29,39 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
     await db?.end();
   });
 
-  it("RLS est actif, avec au moins une politique, sur toute table publique", async () => {
+  it("RLS est actif partout, et toute table atteignable porte une politique", async () => {
+    // Deux états sûrs, un seul défaut. Une table est conforme si le RLS est
+    // actif ET qu'elle porte une politique (table câblée), OU qu'elle
+    // n'accorde AUCUN privilège à anon/authenticated (chantier fermé —
+    // migration 20260910150000). Le défaut, c'est la table atteignable dont
+    // l'accès ne repose sur aucune politique écrite.
     const { rows } = await db.query(`
-      select c.relname as table_en_defaut
+      select c.relname as table_en_defaut,
+             case when not c.relrowsecurity then 'RLS inactif'
+                  else 'atteignable sans politique' end as motif
       from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public'
         and c.relkind = 'r'
         and (
           not c.relrowsecurity
-          or not exists (
-            select 1 from pg_policies p
-            where p.schemaname = 'public' and p.tablename = c.relname
+          or (
+            not exists (
+              select 1 from pg_policies p
+              where p.schemaname = 'public' and p.tablename = c.relname
+            )
+            and exists (
+              select 1 from information_schema.role_table_grants g
+              where g.table_schema = 'public' and g.table_name = c.relname
+                and g.grantee in ('anon', 'authenticated')
+                and g.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+            )
           )
         )
     `);
     expect(
       rows,
-      `Tables sans RLS ou sans politique : ${rows.map((r) => r.table_en_defaut).join(", ")}`
+      `Tables en défaut : ${rows.map((r) => `${r.table_en_defaut} (${r.motif})`).join(", ")}`
     ).toHaveLength(0);
   });
 

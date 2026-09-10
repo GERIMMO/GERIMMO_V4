@@ -722,7 +722,13 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   .loc-app { grid-template-columns: minmax(0, 1fr); }
   .loc-late { position: static; height: auto; flex-flow: row wrap; align-items: center; }
   .loc-logo { border-bottom: none; padding: 10px 6px 10px 14px; }
-  .loc-menu { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 10px 10px; }
+  /* min-width: 0 est INDISPENSABLE ici (constat de rendu du 11/09) : sans lui,
+     un élément flex garde min-width:auto et s'élargit à la taille de son
+     contenu — l'`overflow-x: auto` ne défile alors jamais, la barre pousse le
+     document au-delà du viewport, et TOUT ce qui s'aligne sur la largeur du
+     document (à commencer par la modale d'alertes, dont le bouton Fermer
+     sortait de l'écran) devient inatteignable au doigt. */
+  .loc-menu { flex-direction: row; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 4px 10px 10px; }
   .loc-menu a { flex: none; }
   /* Sélecteur d'organisation du propriétaire : sa propre rangée */
   .loc-org { flex: 1 1 100%; padding: 0 14px 4px; }

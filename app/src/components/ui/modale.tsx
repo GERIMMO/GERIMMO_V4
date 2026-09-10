@@ -45,7 +45,15 @@ export function Modale({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-[var(--encre)]/35 p-4 ${
+      // max-w-[100vw] n'est pas une ceinture de sécurité décorative (constat de
+      // rendu du 11/09, à 390 px) : quand le document est plus large que la
+      // fenêtre, le bloc conteneur d'un `fixed inset-0` s'étire à la largeur du
+      // DOCUMENT, pas à celle de la fenêtre. La modale mesurait alors 470 px de
+      // large sur un écran de 390, et ses DEUX boutons « Fermer » tombaient
+      // hors champ — clipés par `body{overflow-x:hidden}`, donc impossibles à
+      // toucher. Comme la synthèse d'alertes s'ouvre d'elle-même à chaque
+      // connexion, un utilisateur sur téléphone se retrouvait enfermé dedans.
+      className={`fixed inset-0 z-50 flex max-w-[100vw] justify-center overflow-x-hidden overflow-y-auto bg-[var(--encre)]/35 p-4 ${
         haut ? "items-start pt-[10vh]" : "items-center"
       }`}
       onClick={fermer}
@@ -56,7 +64,7 @@ export function Modale({
         aria-label={titre}
         className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col border border-border bg-background text-foreground ${
           haut ? "" : "my-auto"
-        } ${large ? "max-w-xl" : "max-w-md"}`}
+        } ${large ? "max-w-xl" : "max-w-md"} max-w-[calc(100vw-2rem)]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div

@@ -633,7 +633,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-tag.vert { background: var(--success-soft); color: var(--success-soft-foreground); }
 .loc-tag.ambre { background: var(--warning-soft); color: var(--warning-soft-foreground); }
 .loc-tag.rouge { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
-.loc-tag.bleu { background: var(--ardoise); color: var(--bleu); }
+.loc-tag.bleu { background: var(--ardoise); color: color-mix(in oklab, var(--bleu) 80%, var(--encre)); } /* contraste AA sur ardoise */
 .loc-rond {
   width: 40px;
   height: 40px;

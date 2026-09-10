@@ -396,6 +396,7 @@ export function GrilleEdl({
                   <div className="flex flex-wrap items-center gap-2">
                     <select
                       name={`etat_${l.id}`}
+                      aria-label={`État — ${l.libelle}`}
                       value={etats[l.id] ?? ""}
                       onChange={(e) =>
                         setEtats((prev) => ({ ...prev, [l.id]: e.target.value }))
@@ -411,6 +412,7 @@ export function GrilleEdl({
                     </select>
                     <Input
                       name={`commentaire_${l.id}`}
+                      aria-label={`Observation — ${l.libelle}`}
                       value={commentaires[l.id] ?? ""}
                       onChange={(e) =>
                         setCommentaires((prev) => ({ ...prev, [l.id]: e.target.value }))

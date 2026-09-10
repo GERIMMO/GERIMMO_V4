@@ -114,7 +114,7 @@ export function FormulaireConnexion() {
           </p>
           <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
             Propriétaire bailleur ?{" "}
-            <Link href="/inscription" className="text-foreground underline-offset-4 hover:underline">
+            <Link href="/inscription" className="text-foreground underline underline-offset-4">
               Ouvrir mon espace
             </Link>
           </p>

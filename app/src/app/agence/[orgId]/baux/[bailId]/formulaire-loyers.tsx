@@ -426,7 +426,7 @@ export function FormulaireLoyers({
         )}
         {/* En erreur, la saisie est reposée via etatRel.valeurs (recette 22/08) */}
         <form action={formRel} className="flex flex-wrap items-end gap-2">
-          <select name="niveau" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+          <select name="niveau" aria-label="Niveau de relance" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
             <option value="relance_1">Relance 1</option>
             <option value="relance_2">Relance 2</option>
             <option value="mise_en_demeure">Mise en demeure (recommandé)</option>

@@ -111,8 +111,8 @@ export function EdlAnnexes({
                 </option>
               ))}
             </select>
-            <Input name="numero" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-36" />
-            <Input name="releve" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-28" />
+            <Input name="numero" aria-label="Numéro du compteur" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-36" />
+            <Input name="releve" aria-label="Relevé du compteur" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-28" />
             <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
               Ajouter
             </BoutonEnvoi>
@@ -159,7 +159,7 @@ export function EdlAnnexes({
               ))}
             </select>
             <Input name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-20" />
-            <Input name="reference" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-36" />
+            <Input name="reference" aria-label="Référence de la clé" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-36" />
             <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
               Ajouter
             </BoutonEnvoi>

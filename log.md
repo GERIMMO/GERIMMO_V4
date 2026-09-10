@@ -2837,3 +2837,49 @@ Le déclencheur étant le plus strict, la règle effective reste 1 mois, conform
 au wiki, et aucune fuite d'argent n'est possible — mais la question est
 juridique et revient à Tahir. Test laissé rouge exprès, avec le diagnostic en
 commentaire, pour qu'elle ne s'oublie pas.
+
+## [2026-09-10] dev | Second tour de durcissement : les 8 lots restants de l'audit, appliqués en production
+Huit défauts P1/P2, un correcteur et un **vérificateur adversarial** par lot.
+Le vérificateur a pris le correcteur en défaut **5 fois sur 8** — contournement
+par bornes infinies, garde annuelle qui ne bornait rien, correction non durable,
+lot quitté par un bail déménagé, quatrième producteur de contre-écritures. Tout
+a été rejoué en base avant ET après correction, jamais raisonné sur le code.
+
+**Ce que l'audit avait sous-estimé.** L'advisor disait « non exploitable » pour
+trois fonctions déclencheur exécutables par `anon`. Faux : `execute` est aussi
+le droit qui autorise à ACCROCHER la fonction à une table à soi, et `anon` a
+`temporary`. Rejoué — une contre-écriture de 1 200 € forgée dans l'organisation
+d'une victime, RLS hors-jeu puisque la fonction est `SECURITY DEFINER`. Fermé
+sur les 31 fonctions déclencheur, pas seulement les trois signalées.
+Même famille : `anon` portait `TRUNCATE` sur `encaissements`, `quittances`,
+`ecritures`, `clotures_comptables`, `messages` — **la RLS ne couvre pas
+TRUNCATE, seul le privilège compte**. Vérifié en production avant correction.
+Portée honnête : ces deux voies exigent un accès SQL direct, elles ne passent
+pas par PostgREST.
+
+**Appliqué en production**, les 8 migrations, après mesure d'impact préalable :
+0 doublon d'espace propriétaire, **1 lot incohérent** (Agence Alpha, bail en
+préavis jusqu'au 01/11 sur un lot resté « disponible ») corrigé par la
+migration, 0 clôture prématurée. Vérifié après coup : 0 fonction déclencheur
+exécutable par anon, `anon` ne garde qu'un seul droit d'écriture
+(`demandes_devis/INSERT`, le formulaire de la vitrine), 0 lot incohérent.
+Advisors de sécurité : il ne reste que le WARN attendu (l'API applicative est
+faite de fonctions `SECURITY DEFINER`) et l'INFO des 8 tables de chantiers non
+câblés, fermées sans aucun privilège.
+
+**Une limite, dite franchement.** La révocation faite à `anon` n'est pas
+durable : les privilèges par défaut appartiennent à `supabase_admin`, que le
+rôle des migrations ne peut pas modifier — la migration a donc échoué là-dessus,
+et a été reprise pour AVERTIR au lieu d'échouer. Chaque nouvelle table rouvrira
+la brèche. Le garde-fou a été déplacé là où le projet le maîtrise : un test de
+socle « anon n'écrit nulle part », prouvé non vacueux (il détecte et nomme la
+table fautive). Toute migration créant une table doit révoquer explicitement.
+
+**À savoir côté exploitation** : 4 des 5 baux vivants n'ont pas d'indice IRL
+figé et ne seront révisables qu'une fois celui-ci renseigné (RM-3.8.2). Le
+formulaire de compléments du bail le permet ; l'écran de révision affiche
+désormais l'indice au lieu de le demander, et dit « à renseigner sur le bail ».
+
+**État** : 272 verts / 1 rouge assumé (colocation meublée, arbitrage juridique)
+/ 2 ignorés — 275. typecheck et lint à 0 erreur. Les arbitrages soulevés et non
+tranchés sont listés dans [[Audit du 10 septembre 2026]].

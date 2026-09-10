@@ -156,8 +156,16 @@ begin
       raise notice 'anon retiré des privilèges par défaut des tables de public (rôle %)',
         r.proprio;
     exception when insufficient_privilege then
-      raise exception 'impossible de retirer anon des privilèges par défaut du rôle % : '
-        'appliquer cette migration sous un rôle membre de %', r.proprio, r.proprio;
+      -- CAS RÉEL EN PRODUCTION (constaté le 2026-09-10) : les privilèges par
+      -- défaut appartiennent à `supabase_admin`, dont le rôle des migrations
+      -- (`postgres`) n'est pas membre. On ne peut PAS les modifier, et ce n'est
+      -- pas une raison pour renoncer au nettoyage de l'existant ci-dessus.
+      -- La durabilité est donc portée ailleurs, là où le projet la maîtrise :
+      -- par le test de socle « anon n'écrit nulle part », qui échoue dès qu'une
+      -- table nouvellement créée hérite d'un privilège d'écriture pour anon.
+      -- Toute migration qui crée une table doit révoquer explicitement.
+      raise warning 'Privilèges par défaut du rôle % non modifiables ici : la récidive est surveillée par le test de socle « anon n''écrit nulle part » (app/tests/socle.test.ts).',
+        r.proprio;
     end;
   end loop;
 end $$;
@@ -185,9 +193,11 @@ begin
   end if;
 end $$;
 
--- Second garde-fou, celui de la DURABILITÉ : plus aucun privilège par défaut de
--- `public` ne doit accorder d'écriture à `anon`, sans quoi la prochaine table
--- créée rouvrirait la brèche en silence.
+-- Second contrôle, celui de la DURABILITÉ. En production il ne peut pas passer :
+-- les privilèges par défaut appartiennent à `supabase_admin` (voir ci-dessus).
+-- Il AVERTIT donc au lieu d'échouer, et nomme le vrai garde-fou : le test de
+-- socle, qui échoue dès qu'une table accorde une écriture à anon. C'est lui qui
+-- empêche la récidive à chaque livraison — pas cette migration.
 do $$
 declare restes text;
 begin
@@ -204,7 +214,7 @@ begin
      and a.privilege_type in
          ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER');
   if restes is not null then
-    raise exception 'les privilèges par défaut de public accordent encore des écritures à anon : %',
+    raise warning 'Les privilèges par défaut de public accordent encore des écritures à anon (%) : toute NOUVELLE table héritera de ces droits. Le test de socle « anon n''écrit nulle part » le détectera ; chaque migration créant une table doit révoquer explicitement.',
       restes;
   end if;
 end $$;

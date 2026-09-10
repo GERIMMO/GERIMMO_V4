@@ -107,6 +107,38 @@ retour du réseau, conflit multi-appareils signalé et non verrouillé) et
 **photos compressées à la prise**. Vérifié : 44/44 écrans sans débordement ni
 erreur, sur build de production.
 
+## Second tour de durcissement — 8 lots, dont 5 repris par leur vérificateur
+
+Les P1/P2 restants ont été traités un par un, chacun avec un **vérificateur
+adversarial** chargé de casser la correction. Il a pris le correcteur en défaut
+**5 fois sur 8** : la première version d'un correctif est rarement la bonne.
+
+| Ce qui était possible | Ce qui le rend impossible |
+|---|---|
+| Accrocher une fonction déclencheur `SECURITY DEFINER` à sa propre table temporaire, et forger une écriture chez autrui | `execute` révoqué sur les 31 fonctions déclencheur |
+| `TRUNCATE` sur `encaissements`, `quittances`, `ecritures`… en tant qu'`anon` | Toute écriture révoquée à `anon`, sauf le formulaire de devis |
+| Encaisser un dépôt sur un bail terminé, ou après un décompte finalisé | Bornes d'état dans `encaisser_depot` (RM-2.1.3, RM-2.7.3) |
+| Ouvrir deux espaces propriétaire par double-clic | Index unique + second appel idempotent |
+| Clôturer un mois en cours ou futur | Mois révolu seulement (RM-4.4.1) |
+| Choisir librement l'indice de référence d'une révision | Indice **lu sur le bail**, où RM-3.8.2 le fige |
+| Enchaîner 5 révisions le même jour (750 € → 2 755 €) | Révision anticipée refusée + une par an (RM-3.8.5) |
+| Désaccorder l'état d'un lot de son bail, ou déménager le bail | Déclencheurs de contrainte différés sur les deux tables |
+| Contre-passer sans dire pourquoi | Motif porté jusqu'à l'écriture (RM-A6.6) |
+
+**Deux limites assumées.** La révocation faite à `anon` n'est pas durable en
+base : les privilèges par défaut appartiennent à `supabase_admin`, que le rôle
+des migrations ne peut pas modifier — **chaque nouvelle table rouvrira la
+brèche**. Le garde-fou vit donc dans la suite de tests (« anon n'écrit nulle
+part »), qui échoue à la livraison suivante ; toute migration créant une table
+doit révoquer explicitement. Et l'exploitation de ces privilèges suppose un
+**accès SQL direct** : elle n'est pas atteignable via PostgREST, qui n'émet
+pas de DDL.
+
+**Conséquence opérationnelle à connaître** : 4 des 5 baux vivants n'ont pas
+d'indice IRL figé. Ils ne seront révisables qu'une fois cet indice renseigné —
+le formulaire de compléments du bail le permet, et l'écran de révision affiche
+« à renseigner sur le bail » plutôt que d'échouer obscurément.
+
 ## La suite de tests réapprend le monde (65 échecs → 1)
 
 L'audit a réveillé 65 échecs d'intégration **antérieurs à lui** : ils dormaient

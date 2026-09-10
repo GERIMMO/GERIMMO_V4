@@ -120,6 +120,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Synthèses
 - [[Proposition de valeur]] — **l'énoncé fondateur (2026-09-10)** : faire le travail d'une agence, en mieux, plus vite, moins cher ; conséquences sur les priorités.
+- [[Audit du 10 septembre 2026]] — **audit complet** : 2 failles d'étanchéité inter-agences et 1 P0 documentaire corrigés, durcissement du journal, 89 défauts mobiles ; 4 points à trancher.
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).
 - [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.
 - [[Modèle de données]] — schéma du code + cible socle V3.

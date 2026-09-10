@@ -2770,3 +2770,35 @@ contradiction n°1 de la maquette v6 close (les écrans « fonds mandants »
 s'intègrent dans les limites du journal de gestion, tranche T8).
 [[Proposition de valeur]] passée en stable ; [[État du projet et décisions
 ouvertes]] mis à jour — plus aucun arbitrage en attente (2026-09-10).
+
+## [2026-09-10] ingest | Carte blanche : mobile, tests et audit de tout
+Tahir donne carte blanche (« je veux une appli mobile qui fonctionne. Fais un
+tests et audit de tout par la suite »). Journée en quatre temps.
+
+**1. Une pile de recette hors ligne** (`app/e2e/local/`, mode d'emploi
+`app/docs/recette-hors-ligne.md`) : le cloud n'atteignant ni Supabase ni
+Vercel, montage d'un Postgres local portant les 128 migrations **dans l'ordre
+réel de la production** (l'ordre alphabétique des fichiers est faux) et d'un
+émulateur de l'API Supabase où chaque requête passe par le **vrai RLS**.
+Au passage : **14 migrations appliquées en prod n'étaient pas dans le dépôt**
+— rapatriées.
+
+**2. Mobile** : audit à 390×844 (code + rendu réel), **89 défauts** corrigés
+en trois étages (socle transverse, composants partagés, chaque zone), et le
+cœur du module 19 livré — brouillon local de la grille d'EDL (RM-19.1.1/2/6/7/9)
+et photos compressées à la prise. **44/44 écrans** sans débordement ni erreur.
+
+**3. Tests** : suite Playwright mobile par persona (parcours agence,
+locataire, brouillon EDL, audit d'écrans, axe-core) — 16/16 verte ; 48 nœuds
+d'accessibilité corrigés ; 21 tests d'intégration ajoutés.
+
+**4. Audit de tout** (4 dimensions en parallèle + vérification adversariale) :
+18 trouvailles confirmées, 4 réfutées. **Deux P0 d'étanchéité inter-agences**
+(lecture d'un échéancier par un compte sans adhésion ; écriture d'un
+encaissement sur le bail d'une autre agence) et **un P0 documentaire** (une
+quittance libératoire survivait à la suppression de son encaissement —
+4 350 € attestés jamais perçus) : rejoués, corrigés, testés, **appliqués en
+production**. Durcissement P1 : encaissement immuable, quittance non
+forgeable, contre-écriture et révision IRL non rejouables, un seul bail vivant
+par lot, signature d'agence enfin lisible. Synthèse complète et 4 points à
+trancher : [[Audit du 10 septembre 2026]].

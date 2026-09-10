@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [vision, proposition-de-valeur, strategie]
-status: draft
+status: stable
 created: 2026-09-10
 updated: 2026-09-10
 sources: ["[[Analyse concurrentielle]]", "[[2026-09-04-maquette-v3-prototype]]", "[[2026-09-08-maquette-espace-agence-v6]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]"]
@@ -76,15 +76,14 @@ travail elle-même ; les bots conversationnels de la note produit v0.
    mois** — c'est elle que « mieux, plus vite, moins cher » engage.
 
 > [!warning] Points à trancher / contradictions
-> - **Jusqu'où « faire le travail d'une agence » ?** Deux lectures : Gerimmo
->   reste l'**outil** qui exécute (frontière actuelle : « journal de gestion,
->   jamais comptabilité de gérance », RM-A6.1, pas de fonds mandants ni
->   séquestre — [[Comptabilité]]) ; ou Gerimmo a vocation à **devenir
->   l'agence** (gérance en ligne opérée, mandats, encaissement pour compte de
->   tiers → loi Hoguet, carte G, garantie financière) — la
->   [[2026-09-08-maquette-espace-agence-v6|maquette v6]] (contradiction n°1)
->   réserve explicitement ce choix à l'humain : « une révision majeure du
->   référentiel, pas un écran à copier ». **Question posée à Tahir le
->   2026-09-10 — réponse attendue.**
+> - ~~**Jusqu'où « faire le travail d'une agence » ?**~~ → **tranché par Tahir
+>   le 2026-09-10 : Gerimmo reste l'outil qui exécute le travail** — il n'a pas
+>   vocation à devenir l'agence (pas de gérance en ligne opérée, pas
+>   d'encaissement pour compte de tiers). La frontière RM-A6.1 (« journal de
+>   gestion, jamais comptabilité de gérance », pas de fonds mandants ni
+>   séquestre — [[Comptabilité]]) est **confirmée**, et la contradiction n°1 de
+>   la [[2026-09-08-maquette-espace-agence-v6|maquette v6]] est **close** : les
+>   écrans « fonds mandants » de la maquette s'intègrent dans les limites du
+>   journal de gestion (T8), sans révision du référentiel.
 > - Les honoraires réels du marché (taux d'une gérance classique) ne sont
 >   documentés dans aucune source : à sourcer pour chiffrer « moins cher ».

@@ -3,7 +3,7 @@ type: synthesis
 tags: [etat-projet, decisions, contradictions]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-04
+updated: 2026-09-10
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
 ---
 
@@ -103,7 +103,15 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > (indivision, SCI à l'IR) est une présentation de la 2044 et rejoint T6 ; le
 > simulateur LMNP et le champ BIC restent V2 → [[Fiscalité]].
 
-**Plus aucun arbitrage en attente** (2026-09-04).
+> [!note] Décision 2026-09-10 — périmètre de la vision
+> L'énoncé fondateur ([[Proposition de valeur]]) est tranché : Gerimmo reste
+> **l'outil qui exécute le travail** d'une agence — pas une gérance opérée en
+> ligne. La frontière RM-A6.1 (pas de fonds mandants ni séquestre) est
+> confirmée ; la **contradiction n°1** de la
+> [[2026-09-08-maquette-espace-agence-v6|maquette v6]] est close — ses écrans
+> « fonds mandants » s'intègrent dans les limites du journal de gestion (T8).
+
+**Plus aucun arbitrage en attente** (2026-09-10).
 
 ## B. Choix techniques et produits restant à faire (référentiel)
 

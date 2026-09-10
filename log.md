@@ -2761,3 +2761,12 @@ de la maquette v3. Point à trancher posé à Tahir : outil qui exécute
 (RM-A6.1 conservée) ou vocation à devenir l'agence (loi Hoguet, carte G,
 fonds mandants — contradiction n°1 de la maquette v6). Index et Accueil
 mis à jour.
+
+## [2026-09-10] decision | Périmètre de la vision : l'outil fait le travail, pas l'agence
+Tahir tranche la question ouverte par l'énoncé fondateur : Gerimmo reste
+**l'outil qui exécute le travail** d'une agence — pas de gérance opérée en
+ligne, pas d'encaissement pour compte de tiers. Frontière RM-A6.1 confirmée,
+contradiction n°1 de la maquette v6 close (les écrans « fonds mandants »
+s'intègrent dans les limites du journal de gestion, tranche T8).
+[[Proposition de valeur]] passée en stable ; [[État du projet et décisions
+ouvertes]] mis à jour — plus aucun arbitrage en attente (2026-09-10).

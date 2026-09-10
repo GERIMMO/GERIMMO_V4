@@ -316,12 +316,49 @@ export function BoutonSupprimerDetention({
 }) {
   const actionLiee = supprimerDetention.bind(null, orgId, bienId, lotId, detentionId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  // « Corriger » SUPPRIME la ligne (à la différence de « Fermer » qui la
+  // clôt en gardant l'historique) : au doigt, un tap raté ne doit pas
+  // effacer une détention — confirmation d'abord (audit mobile 10/09).
+  const [confirme, setConfirme] = useState(false);
+  const formulaire = useRef<HTMLFormElement>(null);
   return (
-    <form action={action} className="shrink-0">
-      <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
+    <form ref={formulaire} action={action} className="shrink-0">
+      <Button type="button" size="sm" variant="ghost" onClick={() => setConfirme(true)}>
         Corriger
-      </BoutonEnvoi>
+      </Button>
       {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
+      {confirme && (
+        <Modale
+          titre="Supprimer cette ligne de détention"
+          surtitre="Correction de saisie"
+          variante="critique"
+          fermer={() => setConfirme(false)}
+          pied={
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setConfirme(false)}>
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  setConfirme(false);
+                  formulaire.current?.requestSubmit();
+                }}
+              >
+                Supprimer
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-sm">
+            « Corriger » efface la ligne comme si elle n&apos;avait jamais existé —
+            réservé aux erreurs de saisie. Pour une détention réelle qui prend
+            fin, utilisez « Fermer » : l&apos;historique reste juste.
+          </p>
+        </Modale>
+      )}
     </form>
   );
 }

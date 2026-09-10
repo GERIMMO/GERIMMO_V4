@@ -970,3 +970,127 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   align-items: center;
   flex-wrap: wrap;
 }
+/* ============================================================
+   Socle mobile (audit 2026-09-10) — corrections transverses.
+   Référence : téléphone 390 px, tactile. Chaque bloc règle une
+   famille entière de défauts relevés par l'audit mobile.
+   ============================================================ */
+
+/* iOS Safari zoome toute page dont un champ focalisé est sous 16 px : sur
+   petit écran, tous les contrôles passent à 16 px, quel que soit
+   l'utilitaire text-sm/text-xs posé localement. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Cibles tactiles : au doigt, les contrôles h-6/h-7/h-8 (24-32 px) montent
+   à 40 px minimum — boutons, entrées, sélecteurs, pastilles de filtre.
+   `.cible-libre` permet à un contrôle décoratif d'y échapper. */
+@media (pointer: coarse) {
+  button:not(.cible-libre),
+  [role="button"],
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 40px;
+  }
+  .filtre { padding: 8px 14px; }
+  .loc-sortie-mobile a,
+  .loc-sortie-mobile button { width: 40px; height: 40px; }
+}
+
+/* Rangées et en-têtes : autoriser le retour à la ligne sur petit écran
+   plutôt que tronquer le titre ou pousser l'action hors cadre. */
+@media (max-width: 640px) {
+  .rang { flex-wrap: wrap; row-gap: 2px; }
+  .entete-carte { flex-wrap: wrap; }
+  /* Les libellés mono 9 px de la charte sont illisibles à bout de bras */
+  .libelle-champ { font-size: 0.65rem; letter-spacing: 0.14em; }
+}
+
+/* Navigation horizontale du petit écran : les libellés reviennent sous les
+   icônes (une icône seule ne se devine pas au doigt), chaque entrée garde
+   une cible confortable, et le défilement interne reste visible. */
+@media (max-width: 640px) {
+  .loc-menu a {
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 9px 6px;
+    min-width: 56px;
+  }
+  .loc-menu .lib {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.01em;
+  }
+  .loc-menu { scrollbar-width: thin; }
+}
+
+/* Vue scindée en mobile : quand un élément est sélectionné, le détail
+   REMPLACE la liste (au lieu d'être rendu des centaines de rangs plus bas,
+   sans aucun retour visuel au tap). Chaque page pose `detail-actif` sur le
+   .split quand une sélection existe, `volet-liste` sur la colonne de liste,
+   et un lien `.retour-liste` en tête de détail. */
+@media (max-width: 900px) {
+  .split.detail-actif > .volet-liste { display: none; }
+}
+.retour-liste { display: none; }
+@media (max-width: 900px) {
+  .retour-liste {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    font-size: 13px;
+    color: var(--bleu);
+  }
+}
+
+/* Tuiles KPI : le chiffre serif 29 px nowrap déborde des colonnes de
+   tablette étroite (640-820 px, grille en 3 colonnes). */
+@media (min-width: 640px) and (max-width: 820px) {
+  .chiffre-cle { font-size: 24px; }
+}
+
+/* Résidus de l'audit mobile sur les éléments transverses (10/09) */
+
+/* Sous 900 px la colonne de liste n'a plus de défilement interne : son
+   en-tête sticky passerait SOUS l'en-tête d'app opaque — on le laisse
+   défiler avec le contenu. */
+@media (max-width: 900px) {
+  .tete-liste { position: static; }
+}
+
+/* Badges de statut 9,5 px : illisibles à bout de bras sur téléphone. */
+@media (max-width: 640px) {
+  .badge-statut { font-size: 0.66rem; }
+}
+
+/* Bande tablette 641-860 px : le rail vertical passait en icônes seules —
+   on l'élargit un peu et on garde les libellés sous les icônes. */
+@media (min-width: 641px) and (max-width: 860px) {
+  .loc-app { grid-template-columns: 78px minmax(0, 1fr); }
+  .loc-menu a { flex-direction: column; gap: 3px; padding: 9px 4px; }
+  .loc-menu .lib {
+    display: block;
+    font-size: 9.5px;
+    letter-spacing: 0.01em;
+    text-align: center;
+  }
+}
+
+/* Demandes transverses des correcteurs de zone (10/09) : les LIENS stylés en
+   bouton (buttonVariants pose la classe littérale group/button, la vitrine
+   utilise .btn-or) échappaient au filet tactile qui ne visait que les
+   contrôles natifs ; .lien-discret gagne une zone de tap décente. */
+@media (pointer: coarse) {
+  a.group\/button,
+  .btn-or {
+    min-height: 40px;
+    align-items: center;
+  }
+  .lien-discret { padding-block: 8px; display: inline-block; }
+}

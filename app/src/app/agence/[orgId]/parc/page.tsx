@@ -162,8 +162,11 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         // par bien à gauche (adresse en en-tête de groupe, lots indentés) ; à
         // droite la sélection (recette 30/08 : comme la maquette, on ne quitte
         // plus le Parc pour lire un bien ou un lot), sinon la vue d'ensemble.
-        <div className="split">
-          <div className="colonne-liste-split">
+        // Vue scindée mobile (socle 10/09) : `detail-actif` masque la liste
+        // sous 900px quand une sélection existe — le détail remplace la liste
+        // au lieu d'être rendu dessous, avec un lien retour en tête.
+        <div className={`split${selection ? " detail-actif" : ""}`}>
+          <div className="colonne-liste-split volet-liste">
             <div className="tete-liste">
               <span className="mono-discret">Lots</span>
               {selection ? (
@@ -228,7 +231,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           </div>
 
           {selection ? (
-            <PaneParc supabase={supabase} orgId={orgId} selection={selection} />
+            <div className="min-w-0">
+              {/* Visible sous 900px seulement (.retour-liste) : la liste est masquée */}
+              <Link href={`/agence/${orgId}/parc`} className="retour-liste mb-2">
+                ← Tous les lots
+              </Link>
+              <PaneParc supabase={supabase} orgId={orgId} selection={selection} />
+            </div>
           ) : (
           /* Aperçu du parc (maquette apercuParc) : KPI, répartition, blocages */
           <div className="min-w-0 space-y-3.5">

@@ -42,7 +42,7 @@ function BoutonEncaisser({
   );
   const reste = Number(ligne.montant_du) - Number(ligne.montant_couvert);
   return (
-    <form action={action} className="inline-flex items-center gap-1.5">
+    <form action={action} className="inline-flex flex-wrap items-center gap-1.5">
       <BoutonEnvoi size="sm" variant="outline">
         {`Encaisser ${eur(reste)}`}
       </BoutonEnvoi>
@@ -57,12 +57,54 @@ function BoutonEmettre({ orgId, bailId }: { orgId: string; bailId: string }) {
     {}
   );
   return (
-    <form action={action} className="inline-flex items-center gap-1.5">
+    <form action={action} className="inline-flex flex-wrap items-center gap-1.5">
       <BoutonEnvoi size="sm" variant="ghost">
         Émettre la quittance
       </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
     </form>
+  );
+}
+
+// Statut et actions d'une ligne (encaisser, relancer, quittance) — partagés
+// entre le tableau (≥ sm) et les cartes empilées du mobile.
+function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittancement }) {
+  return (
+    <>
+      <span className={COULEURS_STATUT_APPEL_LOYER[l.statut] ?? "puce puce-grise"}>
+        {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
+      </span>
+      {l.statut === "paye" ? (
+        l.quittance_id ? (
+          <>
+            <Link
+              href={`/quittance/${l.quittance_id}`}
+              target="_blank"
+              className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+            >
+              {l.est_quittance ? "quittance" : "reçu"}
+            </Link>
+            {l.email_envoye_at && (
+              <span className="text-xs text-muted-foreground">✉ envoyée</span>
+            )}
+          </>
+        ) : (
+          <BoutonEmettre orgId={orgId} bailId={l.bail_id} />
+        )
+      ) : (
+        <>
+          <BoutonEncaisser orgId={orgId} ligne={l} />
+          {l.statut === "impaye" && (
+            <Link
+              href={`/agence/${orgId}/baux/${l.bail_id}`}
+              className="text-xs text-destructive underline-offset-2 hover:underline"
+            >
+              Relancer ›
+            </Link>
+          )}
+        </>
+      )}
+    </>
   );
 }
 
@@ -92,7 +134,7 @@ export function QuittancementMois({
     <div className="space-y-3">
       <div className="entete-carte !mb-0">
         <h3 className="text-base font-medium">Quittancement de {moisLabel}</h3>
-        <span className="flex items-center gap-3">
+        <span className="flex flex-wrap items-center gap-3">
           {aEnvoyer > 0 && (
             <form action={actionEnvoi}>
               <BoutonEnvoi enCoursTexte="Envoi…" size="sm" variant="outline">
@@ -110,7 +152,38 @@ export function QuittancementMois({
           {etatEnvoi.succes ?? etatEnvoi.erreur}
         </p>
       )}
-      <div className="overflow-x-auto">
+      {/* Sous sm, le tableau devient des cartes empilées : « Encaisser » reste
+          atteignable sans défilement horizontal. */}
+      <ul className="space-y-3 sm:hidden">
+        {lignes.map((l) => (
+          <li
+            key={l.appel_id}
+            className="space-y-1.5 border-b border-border pb-3 last:border-0 last:pb-0"
+          >
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+              <Link
+                href={`/agence/${orgId}/baux/${l.bail_id}`}
+                className="font-medium hover:underline"
+              >
+                {l.locataire ?? "—"}
+              </Link>
+              <span className="whitespace-nowrap">
+                {eur(l.montant_du)}
+                {l.statut === "partiel" && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    réglé {eur(l.montant_couvert)}
+                  </span>
+                )}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">{l.lot_nom}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <ActionsLigne orgId={orgId} ligne={l} />
+            </div>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border text-left">
@@ -139,41 +212,7 @@ export function QuittancementMois({
                 </td>
                 <td className="py-2 text-right">
                   <span className="inline-flex flex-wrap items-center justify-end gap-2">
-                    <span
-                      className={COULEURS_STATUT_APPEL_LOYER[l.statut] ?? "puce puce-grise"}
-                    >
-                      {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
-                    </span>
-                    {l.statut === "paye" ? (
-                      l.quittance_id ? (
-                        <>
-                          <Link
-                            href={`/quittance/${l.quittance_id}`}
-                            target="_blank"
-                            className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
-                          >
-                            {l.est_quittance ? "quittance" : "reçu"}
-                          </Link>
-                          {l.email_envoye_at && (
-                            <span className="text-xs text-muted-foreground">✉ envoyée</span>
-                          )}
-                        </>
-                      ) : (
-                        <BoutonEmettre orgId={orgId} bailId={l.bail_id} />
-                      )
-                    ) : (
-                      <>
-                        <BoutonEncaisser orgId={orgId} ligne={l} />
-                        {l.statut === "impaye" && (
-                          <Link
-                            href={`/agence/${orgId}/baux/${l.bail_id}`}
-                            className="text-xs text-destructive underline-offset-2 hover:underline"
-                          >
-                            Relancer ›
-                          </Link>
-                        )}
-                      </>
-                    )}
+                    <ActionsLigne orgId={orgId} ligne={l} />
                   </span>
                 </td>
               </tr>

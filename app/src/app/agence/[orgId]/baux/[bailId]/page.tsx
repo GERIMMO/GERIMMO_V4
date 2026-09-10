@@ -891,7 +891,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                     key={`${c.piece ?? ""}-${c.libelle}`}
                     className="flex flex-wrap items-center gap-2"
                   >
-                    <span className="w-44 shrink-0 truncate">
+                    {/* En étroit, l'élément dégradé se lit en entier sur sa ligne */}
+                    <span className="min-w-0 basis-full sm:w-44 sm:basis-auto sm:shrink-0 sm:truncate">
                       {c.piece ? <span className="text-muted-foreground">{c.piece} · </span> : null}
                       {c.libelle}
                     </span>

@@ -68,8 +68,8 @@ export function RapportsGestion({
               <ul className="space-y-1 text-sm">
                 {rs.map((r) => (
                   <li key={r.id} className="flex flex-wrap items-center gap-2">
-                    <span className="w-28 shrink-0">{moisEnFrancais(r.mois)}</span>
-                    <span className="w-28 shrink-0">net {eur(r.net)}</span>
+                    <span className="sm:w-28 sm:shrink-0">{moisEnFrancais(r.mois)}</span>
+                    <span className="sm:w-28 sm:shrink-0">net {eur(r.net)}</span>
                     {/* Cycle du rapport : à valider → envoyé → versé */}
                     <span
                       className={
@@ -110,7 +110,7 @@ export function RapportsGestion({
 function BoutonGenererRapport({ orgId, mandatId, moisCourant }: { orgId: string; mandatId: string; moisCourant: string }) {
   const [etat, action] = useActionState<EtatCompta, FormData>(genererRapport.bind(null, orgId, mandatId), {});
   return (
-    <form action={action} className="flex items-end gap-2">
+    <form action={action} className="flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <Input name="mois" type="month" defaultValue={etat.valeurs?.mois ?? moisCourant} className="h-8 text-sm" />
       <BoutonEnvoi size="sm" variant="outline">
@@ -125,7 +125,7 @@ function BoutonGenererRapport({ orgId, mandatId, moisCourant }: { orgId: string;
 function BoutonEnvoyerRapport({ orgId, rapportId }: { orgId: string; rapportId: string }) {
   const [etat, action] = useActionState<EtatCompta, FormData>(envoyerRapport.bind(null, orgId, rapportId), {});
   return (
-    <form action={action} className="flex items-center gap-1">
+    <form action={action} className="flex flex-wrap items-center gap-1">
       <Input name="commentaire" placeholder="commentaire" defaultValue={etat.valeurs?.commentaire} className="h-7 w-32 text-xs" />
       <BoutonEnvoi size="sm" variant="ghost">Valider & envoyer</BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
@@ -138,8 +138,8 @@ function BoutonEnvoyerRapport({ orgId, rapportId }: { orgId: string; rapportId: 
 function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string }) {
   const [etat, action] = useActionState<EtatCompta, FormData>(enregistrerVersement.bind(null, orgId, rapportId), {});
   return (
-    <form action={action} className="flex items-center gap-1">
-      <Input name="montant" type="number" step="0.01" placeholder="versé €" defaultValue={etat.valeurs?.montant} className="h-7 w-24 text-xs" />
+    <form action={action} className="flex flex-wrap items-center gap-1">
+      <Input name="montant" type="number" inputMode="decimal" step="0.01" placeholder="versé €" defaultValue={etat.valeurs?.montant} className="h-7 w-24 text-xs" />
       <InputDateJour   className="h-7 text-xs" name="date" />
       <BoutonEnvoi size="sm" variant="ghost">Versement</BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
@@ -160,40 +160,42 @@ export function FormulaireEcriture({
   );
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
-      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
-      <div className="space-y-1">
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
+          Sous sm, chaque champ prend sa pleine largeur : une colonne lisible
+          plutôt que des rangées irrégulières. */}
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="ec-sens" className="text-xs">Sens</Label>
-        <select id="ec-sens" name="sens" defaultValue={etat.valeurs?.sens ?? "depense"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+        <select id="ec-sens" name="sens" defaultValue={etat.valeurs?.sens ?? "depense"} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto">
           <option value="recette">Recette</option>
           <option value="depense">Dépense</option>
         </select>
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="ec-lot" className="text-xs">Lot (recommandé)</Label>
-        <select id="ec-lot" name="lot_id" defaultValue={etat.valeurs?.lot_id ?? ""} className="h-9 max-w-48 rounded-md border border-input bg-transparent px-2 text-sm">
+        <select id="ec-lot" name="lot_id" defaultValue={etat.valeurs?.lot_id ?? ""} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto sm:max-w-48">
           <option value="">— Aucun lot —</option>
           {lots.map((l) => (
             <option key={l.id} value={l.id}>{l.nom}</option>
           ))}
         </select>
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="ec-cat" className="text-xs">Catégorie</Label>
-        <Input id="ec-cat" name="categorie" placeholder="travaux, charges…" defaultValue={etat.valeurs?.categorie} className="h-9 w-36" />
+        <Input id="ec-cat" name="categorie" placeholder="travaux, charges…" defaultValue={etat.valeurs?.categorie} className="h-9 w-full sm:w-36" />
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="ec-montant" className="text-xs">Montant (€)</Label>
-        <Input id="ec-montant" name="montant" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-28" />
+        <Input id="ec-montant" name="montant" type="number" inputMode="decimal" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-full sm:w-28" />
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="ec-piece" className="text-xs">Date pièce</Label>
-        <InputDateJour id="ec-piece"   className="h-9" name="date_piece" />
+        <InputDateJour id="ec-piece"   className="h-9 w-full sm:w-auto" name="date_piece" />
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="ec-imput" className="text-xs">Imputation</Label>
-        <InputDateJour id="ec-imput"   className="h-9" name="date_imputation" />
+        <InputDateJour id="ec-imput"   className="h-9 w-full sm:w-auto" name="date_imputation" />
       </div>
-      <Input name="libelle" placeholder="Libellé (facultatif)" defaultValue={etat.valeurs?.libelle} className="h-9 w-40" />
+      <Input name="libelle" placeholder="Libellé (facultatif)" defaultValue={etat.valeurs?.libelle} className="h-9 w-full sm:w-40" />
       <BoutonEnvoi size="sm" variant="outline">
         {"Ajouter l'écriture"}
       </BoutonEnvoi>
@@ -222,7 +224,9 @@ export function FormulaireVentilation({
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <div className="space-y-1">
         <Label htmlFor="v-bien" className="text-xs">Bien</Label>
-        <select id="v-bien" name="bien_id" defaultValue={etat.valeurs?.bien_id ?? ""} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+        {/* max-w : un nom de bien long ne doit pas élargir la page (le select
+            natif prend sinon la largeur de sa plus longue option) */}
+        <select id="v-bien" name="bien_id" defaultValue={etat.valeurs?.bien_id ?? ""} className="h-9 max-w-48 rounded-md border border-input bg-transparent px-2 text-sm">
           <option value="" disabled>Choisir…</option>
           {biens.map((b) => (
             <option key={b.id} value={b.id}>{b.nom}</option>
@@ -230,7 +234,7 @@ export function FormulaireVentilation({
         </select>
       </div>
       <Input name="categorie" placeholder="Catégorie (travaux…)" defaultValue={etat.valeurs?.categorie} className="h-9 w-36" />
-      <Input name="montant" type="number" step="0.01" min="0.01" placeholder="Montant €" defaultValue={etat.valeurs?.montant} className="h-9 w-28" />
+      <Input name="montant" type="number" inputMode="decimal" step="0.01" min="0.01" placeholder="Montant €" defaultValue={etat.valeurs?.montant} className="h-9 w-28" />
       <div className="space-y-1">
         <Label htmlFor="v-piece" className="text-xs">Date pièce</Label>
         <InputDateJour id="v-piece"   className="h-9" name="date_piece" />
@@ -274,7 +278,7 @@ export function BoutonContre({ orgId, ecritureId }: { orgId: string; ecritureId:
     // « Contre-écriture » côtoyait des lignes elles-mêmes étiquetées
     // « contre-écriture » : le même mot pour l'action et pour son résultat.
     // Le bouton dit ce qu'il fait, l'étiquette dit ce que la ligne est.
-    <form action={action} className="flex items-center gap-1">
+    <form action={action} className="flex flex-wrap items-center gap-1">
       <Input name="motif" placeholder="motif" defaultValue={etat.valeurs?.motif} className="h-7 w-28 text-xs" />
       <BoutonEnvoi size="sm" variant="ghost">
         Annuler

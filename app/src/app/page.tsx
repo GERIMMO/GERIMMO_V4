@@ -70,9 +70,11 @@ export default function PageVitrine() {
         <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4 px-4 py-3.5 sm:px-7">
           <MarqueGerimmo surEncre />
           <nav className="flex items-center gap-3">
+            {/* Padding tactile compensé par des marges négatives : la zone de
+                touche grandit sans changer le rendu */}
             <Link
               href="/connexion"
-              className="text-[13px] text-[var(--sur-encre)]/80 hover:text-[var(--sur-encre)]"
+              className="-mx-2 -my-3 px-2 py-3 text-[13px] text-[var(--sur-encre)]/80 hover:text-[var(--sur-encre)]"
             >
               Se connecter
             </Link>
@@ -246,17 +248,18 @@ export default function PageVitrine() {
 
       <footer className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-6 sm:px-7">
         <MarqueGerimmo />
+        {/* Même recette : zone de touche élargie, rendu inchangé */}
         <nav className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-          <Link href="/connexion" className="hover:text-[var(--encre)]">
+          <Link href="/connexion" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
             Se connecter
           </Link>
-          <Link href="/inscription" className="hover:text-[var(--encre)]">
+          <Link href="/inscription" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
             Créer mon compte
           </Link>
-          <a href="#agences" className="hover:text-[var(--encre)]">
+          <a href="#agences" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
             Devis agence
           </a>
-          <Link href="/confidentialite" className="hover:text-[var(--encre)]">
+          <Link href="/confidentialite" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
             Confidentialité
           </Link>
           <span>© Gerimmo {anneeCourante()}</span>

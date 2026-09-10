@@ -49,7 +49,7 @@ export function FormulaireDepot({
 
   return (
     <div className="space-y-4">
-      <dl className="grid grid-cols-3 gap-x-4 text-sm">
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-xs text-muted-foreground">Dépôt dû</dt>
           <dd className="font-medium">{eur(depotDu)}</dd>

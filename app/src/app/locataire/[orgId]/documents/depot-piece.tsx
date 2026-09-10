@@ -49,7 +49,7 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
         accept=".pdf,.jpg,.jpeg,.png"
         required
         aria-label={`Fichier pour ${demande.libelle}`}
-        className="max-w-48 text-xs"
+        className="w-full text-xs sm:w-auto sm:max-w-48"
       />
       <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
         Déposer

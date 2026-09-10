@@ -51,7 +51,7 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
         <div>
           <h1>{titre}</h1>
           <p className="text-sm text-muted-foreground capitalize">{mois}</p>

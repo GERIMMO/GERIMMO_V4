@@ -251,9 +251,13 @@ export default async function PageDocuments(
       </form>
 
       {/* Vue scindée maquette : les pièces à gauche, la fiche ou la vue
-          d'ensemble à droite (?sel=…) */}
-      <div className="split">
-        <div className="colonne-liste-split">
+          d'ensemble à droite (?sel=…).
+          Vue scindée mobile (socle 10/09) : `detail-actif` masque la liste
+          sous 900px quand une sélection existe — la fiche (ou le formulaire
+          de dépôt) remplace la liste au lieu d'être rendue dessous, avec un
+          lien retour en tête. */}
+      <div className={`split${sel ? " detail-actif" : ""}`}>
+        <div className="colonne-liste-split volet-liste">
           <div className="tete-liste">
             <span className="mono-discret">TOUTES LES PIÈCES</span>
             {sel && (
@@ -359,22 +363,30 @@ export default async function PageDocuments(
           )}
         </div>
 
-        {sel === "depot" ? (
-          <Card className="h-fit">
-            <CardHeader>
-              <CardTitle className="text-base">Déposer une pièce</CardTitle>
-              <CardDescription>
-                PDF, JPEG ou PNG · 10 Mo max · contenu réel vérifié · doublons
-                refusés. Le type pilote seul les droits d&apos;accès et la durée
-                de conservation.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormulaireDepot orgId={orgId} personnes={personnes ?? []} />
-            </CardContent>
-          </Card>
-        ) : sel ? (
-          <PaneDocument orgId={orgId} documentId={sel} lienFermer={lien(null)} />
+        {sel ? (
+          <div className="min-w-0">
+            {/* Visible sous 900px seulement (.retour-liste) : la liste est masquée */}
+            <Link href={lien(null)} className="retour-liste mb-2">
+              ← Toutes les pièces
+            </Link>
+            {sel === "depot" ? (
+              <Card className="h-fit">
+                <CardHeader>
+                  <CardTitle className="text-base">Déposer une pièce</CardTitle>
+                  <CardDescription>
+                    PDF, JPEG ou PNG · 10 Mo max · contenu réel vérifié · doublons
+                    refusés. Le type pilote seul les droits d&apos;accès et la durée
+                    de conservation.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <FormulaireDepot orgId={orgId} personnes={personnes ?? []} />
+                </CardContent>
+              </Card>
+            ) : (
+              <PaneDocument orgId={orgId} documentId={sel} lienFermer={lien(null)} />
+            )}
+          </div>
         ) : (
           <div className="space-y-3.5">
             {aRenouveler.length > 0 && (

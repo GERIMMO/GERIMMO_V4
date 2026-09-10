@@ -139,7 +139,7 @@ export function BarresDouble({
         >
           <span
             role="tooltip"
-            className="infobulle pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap group-hover:block group-focus-visible:block"
+            className="infobulle pointer-events-none absolute bottom-full left-1/2 z-10 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap group-hover:block group-focus-visible:block group-focus-within:block group-active:block"
           >
             <b className="block">{d.libelle}</b>
             <span className="flex items-center gap-1.5">

@@ -74,6 +74,11 @@ export default async function PagePaiementsLocataire(
   // impayé rouge — le « parcours » du locataire en un regard.
   const douzeDerniers = lignesLoyer.slice(-12);
   const payes = douzeDerniers.filter((l) => l.statut === "paye").length;
+  // Les pastilles ne parlent qu'au survol (title) : au tactile, les mois
+  // restant à régler sont nommés en clair sous la frise.
+  const aRegler = douzeDerniers.filter(
+    (l) => l.statut !== "paye" && l.statut !== "attendu"
+  );
   // Bail actif et tout soldé (audit 09/09) : la prochaine échéance réelle —
   // le jour d'échéance du bail, au mois suivant
   const dateActuelle = new Date();
@@ -95,9 +100,14 @@ export default async function PagePaiementsLocataire(
       <p className="mt-1.5 text-xs text-muted-foreground">
         Vos {douzeDerniers.length} derniers mois — {payes} réglé
         {payes > 1 ? "s" : ""}
-        {douzeDerniers.every((l) => l.statut === "paye" || l.statut === "attendu")
-          ? ". Un parcours sans faute."
-          : "."}
+        {aRegler.length === 0 ? ". Un parcours sans faute." : "."}
+        {aRegler.length > 0 &&
+          ` Reste à régler : ${aRegler
+            .map(
+              (l) =>
+                `${moisLong(l.periode)} (${(STATUTS_APPEL_LOYER[l.statut] ?? l.statut).toLowerCase()})`
+            )
+            .join(", ")}.`}
       </p>
     </>
   );
@@ -113,7 +123,10 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
         )}
       </div>
 
-      <div className="loc-grille" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}>
+      {/* Deux colonnes égales en large. En classe (pas en style inline) pour
+          que la media query 860 px de .loc-grille garde la main sur mobile ;
+          le ! est requis, .loc-grille étant du CSS hors layer. */}
+      <div className="loc-grille min-[861px]:!grid-cols-2">
         <div className="space-y-4">
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
@@ -210,10 +223,12 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
                     {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
                   </span>
                   {l.quittance_id && (
+                    // Lien stylé en bouton : hors du filet tactile du socle
+                    // (button/select), d'où le min-h au pointeur grossier
                     <Link
                       href={`/quittance/${l.quittance_id}`}
                       target="_blank"
-                      className={`shrink-0 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
+                      className={`shrink-0 pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                     >
                       Ouvrir
                     </Link>
@@ -228,7 +243,7 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
           </p>
           <Link
             href={`/attestation-loyer/${orgId}`}
-            className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-3`}
+            className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-3 pointer-coarse:min-h-10`}
           >
             Attestation de bon paiement
           </Link>

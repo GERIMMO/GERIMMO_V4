@@ -126,15 +126,25 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>{role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}</h1>
-        <span className="mono-discret">
-          {fiches.length} fiche{fiches.length > 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="mono-discret">
+            {fiches.length} fiche{fiches.length > 1 ? "s" : ""}
+          </span>
+          {/* Sous md, la carte de création est empilée après toute la liste
+              (des centaines de fiches) : ce raccourci y mène directement.
+              md:hidden sur un span : .btn-or est hors layer et gagnerait. */}
+          <span className="md:hidden">
+            <a href="#creer-fiche" className="btn-or">
+              + Créer une fiche
+            </a>
+          </span>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
         <ListePersonnes orgId={orgId} personnes={fiches} />
 
-        <aside>
+        <aside id="creer-fiche" className="scroll-mt-20">
           <Card>
             <CardContent className="pt-6">
               <p className="mb-3 text-sm font-medium">Créer une fiche</p>

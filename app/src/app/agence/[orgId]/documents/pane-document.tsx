@@ -268,11 +268,24 @@ export async function PaneDocument({
           className="max-h-96 w-full border border-border bg-[var(--ardoise)] object-contain"
         />
       ) : (
-        <iframe
-          src={fichier}
-          title={`Aperçu — ${doc.titre ?? "pièce"}`}
-          className="h-96 w-full border border-border bg-[var(--ardoise)]"
-        />
+        <>
+          {/* iOS Safari ne fait pas défiler un PDF dans une iframe : sur petit
+              écran, un lien remplace les 384px d'aperçu mort */}
+          <a
+            href={fichier}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between gap-3 border border-border bg-[var(--ardoise)] p-4 text-sm text-[var(--bleu)] md:hidden"
+          >
+            Consulter le PDF (nouvel onglet)
+            <IndicateurLien />
+          </a>
+          <iframe
+            src={fichier}
+            title={`Aperçu — ${doc.titre ?? "pièce"}`}
+            className="hidden h-96 w-full border border-border bg-[var(--ardoise)] md:block"
+          />
+        </>
       )}
 
       <div className="deux-col">
@@ -382,7 +395,7 @@ export async function PaneDocument({
                     <Link
                       href={`${lienFermer}${lienFermer.includes("?") ? "&" : "?"}sel=${v.id}`}
                       aria-label={`Ouvrir la version « ${v.titre ?? "sans titre"} » du ${formaterDate(v.created_at)}`}
-                      className="inline-flex shrink-0 items-center gap-1.5 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                      className="-my-2 inline-flex shrink-0 items-center gap-1.5 py-2 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
                     >
                       Ouvrir
                       <IndicateurLien />

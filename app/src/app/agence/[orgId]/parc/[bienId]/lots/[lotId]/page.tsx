@@ -304,7 +304,7 @@ export default async function PageLot(
               ) : (
                 <ul className="divide-y divide-border">
                   {(detentions ?? []).map((d) => (
-                    <li key={d.id} className="flex items-center gap-2 py-2 text-sm">
+                    <li key={d.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                       <span
                         className={`min-w-0 flex-1 truncate ${d.date_fin ? "text-muted-foreground line-through" : ""}`}
                       >
@@ -324,12 +324,16 @@ export default async function PageLot(
                         />
                       )}
                       {!d.date_fin && (baux ?? []).length === 0 && (
-                        <BoutonSupprimerDetention
-                          orgId={orgId}
-                          bienId={bienId}
-                          lotId={lotId}
-                          detentionId={d.id}
-                        />
+                        /* « Corriger » SUPPRIME : au doigt, on l'écarte de
+                           « Fermer » pour éviter le tap voisin. */
+                        <span className="pointer-coarse:ml-2">
+                          <BoutonSupprimerDetention
+                            orgId={orgId}
+                            bienId={bienId}
+                            lotId={lotId}
+                            detentionId={d.id}
+                          />
+                        </span>
                       )}
                       {d.date_fin && (
                         <BoutonRouvrirDetention

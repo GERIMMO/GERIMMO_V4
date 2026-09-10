@@ -357,7 +357,7 @@ export default async function PagePersonne(
                       </div>
                       {anciennes.length > 0 && (
                         <details className="mt-1 pl-1 text-xs text-muted-foreground">
-                          <summary className="cursor-pointer">
+                          <summary className="cursor-pointer py-2">
                             Historique — {anciennes.length} version
                             {anciennes.length > 1 ? "s" : ""} antérieure
                             {anciennes.length > 1 ? "s" : ""} (conservée
@@ -380,7 +380,7 @@ export default async function PagePersonne(
                         </details>
                       )}
                       <details className="mt-1 pl-1 text-xs text-muted-foreground">
-                        <summary className="cursor-pointer">
+                        <summary className="cursor-pointer py-2 text-sm">
                           Déposer une nouvelle version
                         </summary>
                         <FormulaireNouvelleVersion

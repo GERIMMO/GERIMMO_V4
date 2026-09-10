@@ -261,8 +261,10 @@ function FormQualifierPoste({
         <option value="non_recuperable">Non récupérable</option>
         <option value="a_qualifier">À qualifier</option>
       </select>
-      <label className="flex items-center gap-1 text-xs">
-        <input type="checkbox" name="fonds_alur" defaultChecked={etat.valeurs ? etat.valeurs.fonds_alur === "on" : poste.fonds_alur} className="size-3.5" />
+      {/* Au tactile, c'est le label entier qui sert de cible (la case seule
+          fait 14px — le socle n'agrandit pas les checkboxes) */}
+      <label className="flex items-center gap-1 text-xs pointer-coarse:gap-2 pointer-coarse:py-3">
+        <input type="checkbox" name="fonds_alur" defaultChecked={etat.valeurs ? etat.valeurs.fonds_alur === "on" : poste.fonds_alur} className="size-3.5 pointer-coarse:size-5" />
         fonds ALUR
       </label>
       <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-xs">

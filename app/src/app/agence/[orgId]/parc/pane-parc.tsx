@@ -33,7 +33,8 @@ export async function PaneParc({
   selection: Selection;
 }) {
   const retour = (
-    <Link href={`/agence/${orgId}/parc`} className="lien-discret text-sm">
+    // Sous 900px, le lien .retour-liste de la page fait le même travail
+    <Link href={`/agence/${orgId}/parc`} className="lien-discret text-sm max-[900px]:hidden">
       ‹ Vue d&apos;ensemble
     </Link>
   );

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { ouvrirIncident, type EtatIncidentAction } from "@/app/actions/incidents";
+import { compresserChampFichiers } from "@/lib/compresser-image";
 import {
   categorieIncident,
   CATEGORIES_INCIDENT,
@@ -139,7 +140,7 @@ export function FormulaireIncident({
 
       <div className="space-y-1.5">
         <Label htmlFor="photos">Photos (5 max, JPEG ou PNG)</Label>
-        <Input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple />
+        <Input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple onChange={(e) => void compresserChampFichiers(e.currentTarget)} />
       </div>
 
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

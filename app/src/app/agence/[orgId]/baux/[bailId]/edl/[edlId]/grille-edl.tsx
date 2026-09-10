@@ -1,8 +1,17 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
-import { formaterDate } from "@/lib/ged";
+import { formaterDate, formaterDateHeure } from "@/lib/ged";
+import {
+  chargerBrouillon,
+  effacerBrouillon,
+  empreinteGrille,
+  lignesEnAttente,
+  sauverBrouillon,
+  type BrouillonEdl,
+  type SaisieGrille,
+} from "@/lib/edl-brouillon";
 import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -103,6 +112,91 @@ export function GrilleEdl({
   const boutonSigner = useRef<HTMLButtonElement>(null);
   const manquantes = lignes.filter((l) => !etats[l.id]).length;
 
+  // ── Brouillon local (module 19 — l'EDL se saisit debout, réseau incertain) ──
+  const formulaire = useRef<HTMLFormElement>(null);
+  // La dernière version SYNCHRONISÉE : ce qui est en base au chargement, puis
+  // ce qui vient d'être soumis avec succès. L'écart saisie ↔ référence nourrit
+  // l'indicateur permanent (RM-19.1.6, bloquant).
+  const synchronise = useRef<SaisieGrille>({
+    etats: Object.fromEntries(lignes.map((l) => [l.id, l.etat ?? ""])),
+    commentaires: Object.fromEntries(lignes.map((l) => [l.id, l.commentaire ?? ""])),
+  });
+  const enVol = useRef<SaisieGrille | null>(null);
+  const [enLigne, setEnLigne] = useState(true);
+  const [conflit, setConflit] = useState<BrouillonEdl | null>(null);
+  const empreinte = empreinteGrille(lignes);
+  const attente = signe ? 0 : lignesEnAttente({ etats, commentaires }, synchronise.current);
+
+  // Reprise du brouillon au montage : silencieuse si le serveur n'a pas bougé
+  // depuis (le brouillon est strictement plus récent) ; signalée sinon — un
+  // EDL ouvert ailleurs se signale, ne se verrouille pas (RM-19.1.9).
+  useEffect(() => {
+    if (signe) return;
+    setEnLigne(navigator.onLine);
+    const b = chargerBrouillon(edlId);
+    if (!b) return;
+    if (b.empreinteServeur === empreinteGrille(lignes)) {
+      setEtats((prev) => ({ ...prev, ...b.etats }));
+      setCommentaires((prev) => ({ ...prev, ...b.commentaires }));
+    } else {
+      setConflit(b);
+    }
+    // Volontairement au seul montage : la grille contrôlée reprend la main ensuite.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // RM-19.1.1 : chaque saisie part sur l'appareil, sans action de l'agent.
+  useEffect(() => {
+    if (signe || attente === 0) return;
+    const minuteur = setTimeout(() => {
+      sauverBrouillon(edlId, {
+        etats,
+        commentaires,
+        enregistreLe: new Date().toISOString(),
+        empreinteServeur: empreinte,
+      });
+    }, 400);
+    return () => clearTimeout(minuteur);
+  }, [signe, edlId, etats, commentaires, empreinte, attente]);
+
+  // RM-19.1.7 : fermer l'onglet avec des lignes non synchronisées se confirme.
+  useEffect(() => {
+    if (signe || attente === 0) return;
+    const garde = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", garde);
+    return () => window.removeEventListener("beforeunload", garde);
+  }, [signe, attente]);
+
+  // RM-19.1.2 : la synchronisation repart d'elle-même au retour du réseau.
+  useEffect(() => {
+    if (signe) return;
+    const revenu = () => {
+      setEnLigne(true);
+      if (lignesEnAttente({ etats, commentaires }, synchronise.current) > 0) {
+        formulaire.current?.requestSubmit();
+      }
+    };
+    const coupe = () => setEnLigne(false);
+    window.addEventListener("online", revenu);
+    window.addEventListener("offline", coupe);
+    return () => {
+      window.removeEventListener("online", revenu);
+      window.removeEventListener("offline", coupe);
+    };
+  }, [signe, etats, commentaires]);
+
+  // Une action aboutie fait de la saisie soumise la nouvelle référence, et le
+  // brouillon local n'a plus de raison d'être.
+  useEffect(() => {
+    if (etatMaj.succes && enVol.current) {
+      synchronise.current = enVol.current;
+      enVol.current = null;
+      effacerBrouillon(edlId);
+    }
+  }, [etatMaj, edlId]);
+
   const refParCle = new Map<string, LigneReference>(
     (reference?.lignes ?? []).map((l) => [cleLigne(l), l])
   );
@@ -123,13 +217,15 @@ export function GrilleEdl({
           <div key={g.titre} className="space-y-1">
             <p className="mono-discret">{g.titre}</p>
             {g.lignes.map((l) => (
-              <div key={l.id} className="flex items-center gap-3 border-b border-border py-1.5 text-sm">
-                <span className="w-40 shrink-0 truncate">{l.libelle}</span>
+              <div key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border py-1.5 text-sm">
+                <span className="min-w-0 flex-1 sm:w-40 sm:flex-none sm:truncate">{l.libelle}</span>
                 <span className={(l.etat && COULEURS_ETAT_ELEMENT[l.etat]) || "puce puce-grise"}>
                   {l.etat ? ETATS_ELEMENT[l.etat] ?? l.etat : "—"}
                 </span>
+                {/* L'observation se consulte sur place à la sortie : en étroit,
+                    elle passe en pleine largeur au lieu d'être tronquée */}
                 {l.commentaire && (
-                  <span className="min-w-0 flex-1 truncate text-muted-foreground">{l.commentaire}</span>
+                  <span className="w-full text-muted-foreground sm:w-auto sm:min-w-0 sm:flex-1 sm:truncate">{l.commentaire}</span>
                 )}
               </div>
             ))}
@@ -160,7 +256,56 @@ export function GrilleEdl({
           se juge par rapport à lui.
         </p>
       )}
-      <form action={formMaj} className="space-y-3">
+      {conflit && (
+        <div className="space-y-2 border border-warning-soft bg-warning-soft/40 p-3 text-sm">
+          <p>
+            Cet état des lieux a été modifié depuis un autre appareil après votre
+            dernière saisie ici (brouillon local du{" "}
+            {formaterDateHeure(conflit.enregistreLe)}). Un état des lieux ne se saisit
+            pas à deux : choisissez la version qui fait foi.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEtats((prev) => ({ ...prev, ...conflit.etats }));
+                setCommentaires((prev) => ({ ...prev, ...conflit.commentaires }));
+                setConflit(null);
+              }}
+            >
+              Reprendre ma saisie locale
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                effacerBrouillon(edlId);
+                setConflit(null);
+              }}
+            >
+              Garder la version synchronisée
+            </Button>
+          </div>
+        </div>
+      )}
+      <form
+        ref={formulaire}
+        action={formMaj}
+        onSubmit={(e) => {
+          if (!navigator.onLine) {
+            // Hors ligne, l'envoi échouerait : la saisie est déjà sur
+            // l'appareil, elle repartira seule au retour du réseau (RM-19.1.2)
+            e.preventDefault();
+            setEnLigne(false);
+            return;
+          }
+          enVol.current = { etats: { ...etats }, commentaires: { ...commentaires } };
+        }}
+        className="space-y-3"
+      >
         {grouper(lignes).map((g) => {
           const reprenables = reference
             ? g.lignes.filter((l) => referenceDe(l)?.etat)
@@ -272,7 +417,7 @@ export function GrilleEdl({
                         title="Reprendre l'état et l'observation d'entrée"
                         onClick={() => reprendreEntree(l)}
                       >
-                        = Entrée
+                        Reprendre l&apos;entrée
                       </Button>
                     )}
                   </div>
@@ -282,7 +427,9 @@ export function GrilleEdl({
           </div>
           );
         })}
-        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+        {/* La grille se remplit debout, téléphone en main : en étroit, la barre
+            Enregistrer/avancement reste collée en bas du viewport */}
+        <div className="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-border bg-card py-3 sm:static sm:bg-transparent sm:pb-0">
           {/* Compteur d'avancement (maquette v3) : où on en est avant de signer */}
           <span className="barre" style={{ width: 120, height: 7 }}>
             <i
@@ -328,6 +475,30 @@ export function GrilleEdl({
               Enregistrer et signer
             </BoutonEnvoi>
           )}
+          {/* Indicateur permanent de synchronisation (RM-19.1.6, bloquant) :
+              l'agent sait toujours si sa saisie a quitté l'appareil */}
+          <span
+            className="mono-discret flex items-center gap-1.5"
+            role="status"
+            aria-live="polite"
+          >
+            <i
+              aria-hidden="true"
+              className="inline-block size-2 rounded-full"
+              style={{
+                background: !enLigne
+                  ? "var(--destructive)"
+                  : attente > 0
+                    ? "var(--or)"
+                    : "var(--success)",
+              }}
+            />
+            {!enLigne
+              ? "Hors ligne — saisie gardée sur l'appareil"
+              : attente > 0
+                ? `${attente} ligne${attente > 1 ? "s" : ""} à synchroniser`
+                : "Synchronisé"}
+          </span>
           {manquantes > 0 && (
             <span className="text-sm text-warning-soft-foreground">
               {manquantes} ligne{manquantes > 1 ? "s" : ""} sans état (en rouge) —

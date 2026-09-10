@@ -86,17 +86,18 @@ export default async function PageRecapitulatifFiscal(props: {
           aide pour recopier, pas une déclaration : vérifiez chaque montant et
           complétez ce que le livre ne suit pas.
         </p>
-        <p className="mt-2 flex flex-wrap gap-3 text-sm">
+        <p className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+          {/* py-2 mobile : cible tactile ≈ 36 px sur ces liens de navigation */}
           {[anneeCourante - 2, anneeCourante - 1, anneeCourante].map((a) => (
             <Link
               key={a}
               href={`/agence/${orgId}/comptabilite/fiscal?annee=${a}`}
-              className={a === annee ? "font-medium underline underline-offset-4" : "lien-discret"}
+              className={`py-2 sm:py-0 ${a === annee ? "font-medium underline underline-offset-4" : "lien-discret"}`}
             >
               {a}
             </Link>
           ))}
-          <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret ml-auto">
+          <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret ml-auto py-2 sm:py-0">
             ← Retour au livre
           </Link>
         </p>
@@ -218,7 +219,35 @@ function TableauRubriques({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        {/* Sous sm, chaque rubrique devient une carte empilée : le montant à
+            recopier sur la 2044 se lit sans défilement horizontal. */}
+        <ul className="space-y-3 sm:hidden">
+          {rubriques.map((r) => (
+            <li
+              key={r.code + r.libelle}
+              className="space-y-1 border-b border-border pb-3 last:border-0 last:pb-0"
+            >
+              <p className="text-sm">
+                <span className="mono-discret mr-2">{r.code}</span>
+                {r.libelle}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ") || "—"}
+              </p>
+              <p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
+                <span className={ventile ? "" : "font-medium"}>
+                  {ventile ? "Total" : "Montant"} : {r.aCompleter ? "…" : eur(r.montant)}
+                </span>
+                {ventile && (
+                  <span className="font-medium">
+                    Votre quote-part : {r.aCompleter ? "…" : eur(r.montantQuotePart)}
+                  </span>
+                )}
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left">

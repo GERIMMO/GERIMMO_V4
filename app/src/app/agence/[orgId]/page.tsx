@@ -362,17 +362,19 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             : "Voici l'essentiel de votre agence."}
         </p>
       </div>
+      {/* Un <a> échappe au min-height tactile posé sur button/select : on le
+          rétablit ici sur les liens-boutons */}
       <div className="mb-[1.125rem] mt-3 flex flex-wrap gap-2">
-        <Link href={`/agence/${orgId}/alertes`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+        <Link href={`/agence/${orgId}/alertes`} className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}>
           {alertes.length} action{alertes.length > 1 ? "s" : ""} à traiter
         </Link>
         {aQualifier > 0 && (
-          <Link href={`/agence/${orgId}/incidents`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Link href={`/agence/${orgId}/incidents`} className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}>
             {aQualifier} incident{aQualifier > 1 ? "s" : ""} à qualifier
           </Link>
         )}
         {messagesNonLus > 0 && (
-          <Link href={`/agence/${orgId}/messages`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Link href={`/agence/${orgId}/messages`} className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}>
             {messagesNonLus} message{messagesNonLus > 1 ? "s" : ""} non lu{messagesNonLus > 1 ? "s" : ""}
           </Link>
         )}
@@ -467,8 +469,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         <Link href={`/agence/${orgId}/comptabilite`} className="kpi bleu h-full">
           <span className="eyebrow">Encaissé en {nomMois}</span>
           <span className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            {/* Le montant ne casse jamais avant son « € » (conformité 24/08) */}
-            <span className="chiffre whitespace-nowrap">{eur(totalEncaisse)}</span>
+            {/* Le montant ne casse jamais avant son « € » (conformité 24/08) ;
+                en colonnes étroites (640-820 px, grille 3 colonnes) le corps
+                descend à 24 px comme .chiffre-cle pour ne pas déborder */}
+            <span className="chiffre whitespace-nowrap sm:max-[820px]:!text-[24px]">{eur(totalEncaisse)}</span>
             {totalAppele > 0 && (
               <span className="text-sm whitespace-nowrap text-muted-foreground">
                 / {eur(totalAppele)} appelés
@@ -597,6 +601,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                             className={buttonVariants({
                               size: "sm",
                               variant: a.critique ? "destructive" : "outline",
+                              className: "pointer-coarse:min-h-10",
                             })}
                           >
                             Résoudre
@@ -694,6 +699,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                                           size: "sm",
                                           variant:
                                             a.criticite === "critique" ? "destructive" : "outline",
+                                          className: "pointer-coarse:min-h-10",
                                         })}
                                       >
                                         Traiter

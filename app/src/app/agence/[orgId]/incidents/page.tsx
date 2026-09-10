@@ -143,9 +143,12 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       </div>
 
       {/* Vue scindée maquette : la liste à gauche, le dossier sélectionné à
-          droite (?sel=…) — les alertes « Traiter » pointent déjà ici. */}
-      <div className="split">
-        <div className="colonne-liste-split">
+          droite (?sel=…) — les alertes « Traiter » pointent déjà ici.
+          Vue scindée mobile (socle 10/09) : `detail-actif` masque la liste
+          sous 900px quand un dossier est ouvert — le dossier remplace la
+          liste au lieu d'être rendu dessous, avec un lien retour en tête. */}
+      <div className={`split${sel ? " detail-actif" : ""}`}>
+        <div className="colonne-liste-split volet-liste">
           <div className="tete-liste">
             <span className="mono-discret">{enCours.length} EN COURS</span>
             {sel && (
@@ -247,7 +250,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                         {ETATS_INCIDENT[i.etat] ?? i.etat}
                       </span>
                     </span>
-                    <span className="mono-discret" style={{ fontSize: "10px" }}>
+                    <span className="mono-discret">
                       {i.responsable_account_id
                         ? (emails.get(i.responsable_account_id) ?? "—").toUpperCase()
                         : "NON ATTRIBUÉ"}
@@ -260,15 +263,22 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
         </div>
 
         {sel ? (
-          <PaneIncident
-            orgId={orgId}
-            incidentId={sel}
-            monCompte={user.id}
-            estResponsable={ROLES_RESPONSABLES.includes(role)}
-            membres={membres}
-          />
+          <div className="min-w-0">
+            {/* Visible sous 900px seulement (.retour-liste) : la liste est masquée */}
+            <Link href={lien(vue, null)} className="retour-liste mb-2">
+              ← Tous les incidents
+            </Link>
+            <PaneIncident
+              orgId={orgId}
+              incidentId={sel}
+              monCompte={user.id}
+              estResponsable={ROLES_RESPONSABLES.includes(role)}
+              membres={membres}
+            />
+          </div>
         ) : (
-          <div className="flex min-h-[340px] flex-col items-center justify-center text-center text-muted-foreground">
+          /* Sous 900px l'invite n'a pas de sens : la liste occupe tout l'écran */
+          <div className="flex min-h-[340px] flex-col items-center justify-center text-center text-muted-foreground max-[900px]:hidden">
             <svg
               width="52"
               height="52"

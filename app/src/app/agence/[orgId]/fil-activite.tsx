@@ -209,14 +209,22 @@ export async function FilActivite({
           {recents.map((e) => (
             <Link key={e.cle} href={e.href} className="rang !border-l-0 !px-0">
               <span className="avatar shrink-0">{e.initiales}</span>
+              {/* En étroit, deux lignes plutôt qu'un titre amputé du montant */}
               <span className="min-w-0 flex-1">
-                <b className="block truncate text-[13.5px] font-medium">{e.titre}</b>
-                <span className="block truncate text-xs text-muted-foreground">{e.detail}</span>
+                <b className="line-clamp-2 text-[13.5px] font-medium sm:line-clamp-1">{e.titre}</b>
+                <span className="line-clamp-2 text-xs text-muted-foreground sm:line-clamp-1">{e.detail}</span>
               </span>
               {estRecent(e.ts) && (
-                <span className="puce puce-rouge shrink-0">Nouveau</span>
+                <>
+                  <span className="puce puce-rouge shrink-0 max-sm:hidden">Nouveau</span>
+                  <span className="size-2 shrink-0 rounded-full bg-destructive sm:hidden">
+                    <span className="sr-only">Nouveau</span>
+                  </span>
+                </>
               )}
-              <span className="mono-discret shrink-0 whitespace-nowrap">
+              {/* Horodatage sous le titre en étroit (le .rang wrappe ≤ 640 px) ;
+                  46 px = avatar 34 px + écart 12 px, pour l'aligner sur le texte */}
+              <span className="mono-discret shrink-0 whitespace-nowrap max-sm:order-last max-sm:basis-full max-sm:pl-[46px]">
                 {tempsRelatif(e.ts).toUpperCase()}
               </span>
               <IndicateurLien />

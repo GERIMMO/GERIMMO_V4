@@ -138,7 +138,7 @@ export function FormulaireIdentite({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ident-tel">Téléphone</Label>
-          <Input id="ident-tel" name="telephone" maxLength={40} defaultValue={etat.valeurs?.telephone ?? telephone ?? ""} />
+          <Input id="ident-tel" name="telephone" type="tel" autoComplete="tel" maxLength={40} defaultValue={etat.valeurs?.telephone ?? telephone ?? ""} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ident-naissance">Date de naissance</Label>
@@ -173,6 +173,8 @@ export function FormulaireIdentite({
             id="ident-cp"
             name="postal_code"
             maxLength={12}
+            inputMode="numeric"
+            autoComplete="postal-code"
             defaultValue={etat.valeurs?.postal_code ?? codePostal ?? ""}
           />
         </div>

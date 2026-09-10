@@ -210,7 +210,10 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         {/* S9a : seul le propriétaire direct bénéficie de l'aide fiscale */}
         {estProprietaire && (
           <p className="mt-2 text-sm">
-            <a href={`/agence/${orgId}/comptabilite/fiscal`} className="lien-discret">
+            <a
+              href={`/agence/${orgId}/comptabilite/fiscal`}
+              className="lien-discret inline-block py-2 sm:py-0"
+            >
               Récapitulatif fiscal {anneeCourante} (déclaration 2044) →
             </a>
           </p>
@@ -315,13 +318,13 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             <div className="flex items-center gap-3">
               <a
                 href={`/agence/${orgId}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
-                className="lien-discret"
+                className="lien-discret py-2 sm:py-0"
               >
                 Exporter {anneeCourante}
               </a>
               <a
                 href={`/agence/${orgId}/comptabilite/export`}
-                className="lien-discret"
+                className="lien-discret py-2 sm:py-0"
               >
                 Tout exporter
               </a>
@@ -337,7 +340,45 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                 : "Les honoraires se créent tout seuls à chaque encaissement de loyer ; saisissez ci-dessus une dépense ou une recette."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Sous sm, le journal passe en lignes empilées : montant et
+                annulation restent à portée sans défilement horizontal. */}
+            <ul className="space-y-3 sm:hidden">
+              {lignes.map((e) => {
+                const clot = moisClotures.has(e.date_imputation.slice(0, 7));
+                return (
+                  <li
+                    key={e.id}
+                    className="space-y-1 border-b border-border pb-3 last:border-0 last:pb-0"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <span className="mono-discret">{formaterDate(e.date_imputation)}</span>
+                      <span
+                        className={`font-medium whitespace-nowrap ${e.sens === "recette" ? "text-success" : ""}`}
+                      >
+                        {e.sens === "recette" ? "+" : "−"}
+                        {eur(e.montant)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="puce puce-grise">{e.categorie}</span>
+                      {e.contre_ecriture_de && (
+                        <span className="text-xs text-muted-foreground">contre-écriture</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {e.libelle ? `${e.libelle} · ` : ""}
+                      pièce {formaterDate(e.date_piece)}
+                      {e.systeme ? " · créée automatiquement" : ""}
+                    </p>
+                    {!e.contre_ecriture_de && !clot && (
+                      <BoutonContre orgId={orgId} ecritureId={e.id} />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left">
@@ -385,6 +426,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>

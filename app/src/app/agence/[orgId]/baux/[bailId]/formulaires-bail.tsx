@@ -230,7 +230,7 @@ export function FormulaireCreerEdl({
   const [etat, formAction] = useActionState<EtatEdl, FormData>(action, {});
   const sortiePossible = bailEtat === undefined || bailEtat === "preavis";
   return (
-    <form action={formAction} className="flex items-end gap-2">
+    <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor="edl-type" className="text-xs">
           Nouvel état des lieux

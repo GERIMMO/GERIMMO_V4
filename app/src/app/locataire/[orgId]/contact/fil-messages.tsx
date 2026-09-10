@@ -84,7 +84,8 @@ export function FilMessages({
         <p className="mt-4 text-xs text-muted-foreground">
           Votre bail est terminé : le fil reste consultable, mais l&apos;envoi de
           nouveaux messages est fermé. Besoin de joindre votre ancien
-          gestionnaire ? Ses coordonnées sont à droite.
+          gestionnaire ? Ses coordonnées figurent sur cette page, dans la carte
+          «&nbsp;{agence}&nbsp;».
         </p>
       ) : (
       <>

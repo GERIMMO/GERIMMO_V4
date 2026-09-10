@@ -212,7 +212,7 @@ export function FormulairePersonne({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="p-tel">Téléphone</Label>
-            <Input id="p-tel" name="telephone" maxLength={40} defaultValue={etat.valeurs?.telephone} />
+            <Input id="p-tel" name="telephone" type="tel" autoComplete="tel" maxLength={40} defaultValue={etat.valeurs?.telephone} />
           </div>
           {!morale && (
             <div className="space-y-1.5">

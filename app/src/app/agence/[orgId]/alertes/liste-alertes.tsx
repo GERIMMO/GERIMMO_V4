@@ -165,12 +165,14 @@ export function ListeAlertes({
             Une alerte incident emmène au dossier, dans l'onglet Incidents. */}
         {(!grisee || estResponsable) &&
           ((incidentId || fiche) && !grisee ? (
-            <span className="flex shrink-0 items-center gap-1.5">
+            <span className="flex shrink-0 items-center gap-2.5">
               <Link
                 href={incidentId ? `/agence/${orgId}/incidents?sel=${incidentId}` : (fiche as string)}
                 className={buttonVariants({
                   variant: a.criticite === "critique" ? "destructive" : "outline",
                   size: "sm",
+                  // Un <a> échappe au min-height tactile posé sur button/select
+                  className: "pointer-coarse:min-h-10",
                 })}
               >
                 Traiter
@@ -178,7 +180,8 @@ export function ListeAlertes({
               </Link>
               {/* La modale reste atteignable : confier à quelqu'un, ou fermer
                   une alerte dont le geste n'aura jamais lieu (LRAR jamais
-                  envoyée, pièce vérifiée hors ligne…) — audit 06/09 */}
+                  envoyée, pièce vérifiée hors ligne…) — audit 06/09.
+                  Libellé visible : le title ne se découvre pas au tactile. */}
               <Button
                 type="button"
                 variant="ghost"
@@ -187,7 +190,7 @@ export function ListeAlertes({
                 title="Assigner ou fermer"
                 onClick={() => setOuverte(a)}
               >
-                …
+                Assigner
               </Button>
             </span>
           ) : (

@@ -185,11 +185,14 @@ export function FormulaireBien({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="bien-cp">Code postal</Label>
+          {/* inputMode et non type=number : tolère les CP étrangers */}
           <Input
             id="bien-cp"
             name="postal_code"
             required
             maxLength={12}
+            inputMode="numeric"
+            autoComplete="postal-code"
             value={codePostal}
             onChange={(e) => setCodePostal(e.target.value)}
           />

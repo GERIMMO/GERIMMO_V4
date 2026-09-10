@@ -237,7 +237,8 @@ export async function PaneIncident({
                   <span
                     className="mono-discret block"
                     style={{
-                      fontSize: "8.5px",
+                      // 8.5px de la maquette : illisible sur téléphone (audit 09/09)
+                      fontSize: "11px",
                       marginTop: "5px",
                       color: courant ? "var(--encre)" : undefined,
                     }}
@@ -274,14 +275,22 @@ export async function PaneIncident({
                 <div className="flex flex-wrap gap-2">
                   {photos.map((p) => (
                     // La route documents journalise chaque consultation
-                    // (RM-A4 : pas de trace, pas d'accès)
-                    /* eslint-disable-next-line @next/next/no-img-element */
-                    <img
+                    // (RM-A4 : pas de trace, pas d'accès). Le lien ouvre la
+                    // photo en grand — la vignette 80px ne se zoome pas au doigt.
+                    <a
                       key={p.id}
-                      src={`/agence/${orgId}/documents/${p.id}/fichier`}
-                      alt={p.titre ?? "Photo de l'incident"}
-                      className="h-20 w-20 rounded-[3px] border border-border object-cover"
-                    />
+                      href={`/agence/${orgId}/documents/${p.id}/fichier`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`/agence/${orgId}/documents/${p.id}/fichier`}
+                        alt={p.titre ?? "Photo de l'incident"}
+                        className="h-20 w-20 rounded-[3px] border border-border object-cover"
+                      />
+                    </a>
                   ))}
                 </div>
               )}

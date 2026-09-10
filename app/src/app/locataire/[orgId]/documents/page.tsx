@@ -203,13 +203,15 @@ export default async function PageDocumentsLocataire(
                     <b className="block truncate font-medium">{nom}</b>
                     <small className="block text-muted-foreground">{sousTitre(p)}</small>
                   </span>
+                  {/* Liens stylés en bouton : hors du filet tactile du socle
+                      (button/select), d'où le min-h au pointeur grossier */}
                   <span className="flex shrink-0 items-center gap-2">
                     <a
                       href={`/locataire/${orgId}/documents/${p.document_id}/fichier`}
                       target="_blank"
                       rel="noopener"
                       aria-label={`Ouvrir ${nom}`}
-                      className={buttonVariants({ variant: "ghost", size: "sm" })}
+                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                     >
                       Ouvrir
                     </a>
@@ -218,7 +220,7 @@ export default async function PageDocumentsLocataire(
                       target="_blank"
                       rel="noopener"
                       aria-label={`Télécharger ${nom}`}
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                     >
                       Télécharger
                     </a>
@@ -240,7 +242,7 @@ export default async function PageDocumentsLocataire(
                   target="_blank"
                   rel="noopener"
                   aria-label={`Ouvrir la quittance de ${moisLong(q.periode)}`}
-                  className={`shrink-0 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
+                  className={`shrink-0 pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                 >
                   Ouvrir
                 </Link>

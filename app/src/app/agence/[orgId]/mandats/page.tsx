@@ -155,18 +155,23 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
                       : "Aucun rapport de gestion encore généré"}
                   </span>
                 </span>
-                {m.etat !== "actif" && (
-                  <span className="puce puce-prep shrink-0">{ETATS_MANDAT[m.etat] ?? m.etat}</span>
-                )}
-                {r && r.envoye_le && !r.versement_date && (
-                  <span className="puce puce-encre shrink-0">versement attendu</span>
-                )}
-                <Link
-                  href={`/agence/${orgId}/personnes/${m.person_id}`}
-                  className={buttonVariants({ variant: "outline", size: "sm" })}
-                >
-                  Fiche mandant
-                </Link>
+                {/* Puces et action groupées : sous 640px le .rang wrappe (socle
+                    10/09) et le groupe passe entier sous le nom au lieu
+                    d'écraser celui-ci ou de déborder de l'écran */}
+                <span className="flex shrink-0 flex-wrap items-center gap-2">
+                  {m.etat !== "actif" && (
+                    <span className="puce puce-prep">{ETATS_MANDAT[m.etat] ?? m.etat}</span>
+                  )}
+                  {r && r.envoye_le && !r.versement_date && (
+                    <span className="puce puce-encre">versement attendu</span>
+                  )}
+                  <Link
+                    href={`/agence/${orgId}/personnes/${m.person_id}`}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                  >
+                    Fiche mandant
+                  </Link>
+                </span>
               </div>
             );
           })}

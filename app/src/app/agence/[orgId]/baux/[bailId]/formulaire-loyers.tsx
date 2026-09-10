@@ -211,7 +211,7 @@ export function FormulaireLoyers({
             {eur(solde)}
           </span>
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <BoutonEcheancier orgId={orgId} bailId={bailId} />
           <BoutonQuittances orgId={orgId} bailId={bailId} />
         </div>
@@ -245,10 +245,12 @@ export function FormulaireLoyers({
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {q && (
                         <>
+                          {/* Au tactile, le lien texte garde une cible ~40px
+                              (le socle ne couvre que boutons/inputs/selects) */}
                           <Link
                             href={`/quittance/${q.id}`}
                             target="_blank"
-                            className={`text-xs underline-offset-2 hover:underline ${
+                            className={`text-xs underline-offset-2 hover:underline pointer-coarse:py-3 ${
                               q.est_quittance ? "text-success" : "text-muted-foreground"
                             }`}
                           >
@@ -304,10 +306,11 @@ export function FormulaireLoyers({
         {encaissements.length > 0 && (
           <ul className="divide-y divide-border">
             {encaissements.map((e) => (
-              <li key={e.id} className="flex items-center gap-2 py-1.5 text-sm">
+              <li key={e.id} className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
                 <span className="w-24 shrink-0 font-medium">{eur(e.montant)}</span>
                 <span className="text-xs text-muted-foreground">{formaterDate(e.date_paiement)}</span>
-                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                {/* En étroit, mode + note passent en pleine largeur sous la ligne */}
+                <span className="order-last w-full text-xs text-muted-foreground sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:truncate">
                   {[e.mode ? (MODES_PAIEMENT[e.mode] ?? e.mode) : null, e.note]
                     .filter(Boolean)
                     .join(" · ")}
@@ -509,7 +512,7 @@ function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) 
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-2">
+    <form action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline">
         {"Générer l'échéancier"}
       </BoutonEnvoi>
@@ -527,7 +530,7 @@ function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) 
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-2">
+    <form action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline">
         Régénérer les reçus/quittances
       </BoutonEnvoi>

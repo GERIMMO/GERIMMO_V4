@@ -116,11 +116,20 @@ export function CarteBailSigne({
             </div>
           }
         >
-          {/* Le PDF déposé, tel que le locataire le verra dans « Mes documents » */}
+          {/* Le PDF déposé, tel que le locataire le verra dans « Mes documents ».
+              Sur mobile, un PDF en iframe ne défile pas (iOS) : lien plein écran. */}
+          <a
+            href={fichier}
+            target="_blank"
+            rel="noreferrer"
+            className={`${buttonVariants({ variant: "outline", size: "sm" })} w-full min-h-10 sm:hidden`}
+          >
+            Ouvrir le PDF
+          </a>
           <iframe
             src={fichier}
             title="Aperçu du bail signé"
-            className="h-[60vh] w-full border border-border bg-muted"
+            className="hidden h-[60vh] w-full border border-border bg-muted sm:block"
           />
         </Modale>
       )}

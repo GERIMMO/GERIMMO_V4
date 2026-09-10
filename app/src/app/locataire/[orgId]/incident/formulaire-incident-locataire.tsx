@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { declarerMonIncident, type EtatIncidentAction } from "@/app/actions/incidents";
+import { compresserChampFichiers } from "@/lib/compresser-image";
 import { categorieIncident, CATEGORIES_INCIDENT, PIECES_INCIDENT } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import {
@@ -157,7 +158,16 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
 
             <div className="space-y-1.5">
               <Label htmlFor="photos">Photos (jusqu&apos;à 5)</Label>
-              <Input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple />
+              {/* Compressées à la prise (RM-19.1.3) : une photo de téléphone
+                  pèse 8-15 Mo, le réseau d'un logement rarement autant */}
+              <Input
+                id="photos"
+                name="photos"
+                type="file"
+                accept="image/jpeg,image/png"
+                multiple
+                onChange={(e) => void compresserChampFichiers(e.currentTarget)}
+              />
             </div>
 
             {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
@@ -182,6 +192,13 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Sous 861 px (.deux-col empilée), l'encart de droite passerait
+                sous le bouton d'envoi : on le montre ici, juste sous le choix
+                qui le pilote. */}
+            <div className="min-[861px]:hidden">
+              <EncartQuiPaiera slug={categorie} />
             </div>
 
             <div className="space-y-1.5">
@@ -245,7 +262,9 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
         </CardContent>
       </Card>
 
-      <EncartQuiPaiera slug={categorie} />
+      <div className="max-[860px]:hidden">
+        <EncartQuiPaiera slug={categorie} />
+      </div>
     </div>
   );
 }

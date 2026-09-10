@@ -72,13 +72,17 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
                   {f.dernier ?? ""}
                 </span>
               </span>
-              {f.non_lus > 0 && (
-                <span className="puce puce-encre shrink-0">
-                  {f.non_lus} nouveau{f.non_lus > 1 ? "x" : ""}
+              {/* Puce et date empilées (même motif que la liste incidents) :
+                  côte à côte, elles ne laissaient que ~65px au nom sur 390px */}
+              <span className="flex shrink-0 flex-col items-end gap-1">
+                {f.non_lus > 0 && (
+                  <span className="puce puce-encre">
+                    {f.non_lus} nouveau{f.non_lus > 1 ? "x" : ""}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  {f.dernier_le ? formaterDateHeure(f.dernier_le) : ""}
                 </span>
-              )}
-              <span className="shrink-0 text-xs text-muted-foreground">
-                {f.dernier_le ? formaterDateHeure(f.dernier_le) : ""}
               </span>
             </Link>
           ))}

@@ -2746,3 +2746,18 @@ que le plan nomme S13 le mobile ; la maquette v6 le route vers « T5/S9b »
 (contradiction n°4). Correction de l'ordre d'attaque carte blanche :
 bloc dédié « Artisans-devis-interventions » ajouté — c'est le
 différenciateur produit ([[Analyse concurrentielle]]).
+
+## [2026-09-10] ingest | Énoncé fondateur : « faire le travail d'une agence, en mieux, plus vite, moins cher »
+Déclaration de vision de Tahir, recueillie en séance — elle comble la lacune
+« proposition de valeur » notée à l'[[Accueil]]. Nouvelle page
+[[Proposition de valeur]] : le critère de « terminé » devient le travail
+exécuté (pas l'écran livré) ; les trois promesses adossées aux pages
+existantes ; conséquences sur l'ordre des travaux (artisans-devis-
+interventions = cœur, automatisation avant présentation, V1 = fermeture des
+boucles sans humain, métrique « temps de gérant par lot/mois »).
+Convergence documentée avec [[Analyse concurrentielle]] (« gérer les
+problèmes là où les autres gèrent les papiers ») et le pivot réseau artisan
+de la maquette v3. Point à trancher posé à Tahir : outil qui exécute
+(RM-A6.1 conservée) ou vocation à devenir l'agence (loi Hoguet, carte G,
+fonds mandants — contradiction n°1 de la maquette v6). Index et Accueil
+mis à jour.

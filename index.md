@@ -119,6 +119,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
 
 ## Synthèses
+- [[Proposition de valeur]] — **l'énoncé fondateur (2026-09-10)** : faire le travail d'une agence, en mieux, plus vite, moins cher ; conséquences sur les priorités.
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).
 - [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.
 - [[Modèle de données]] — schéma du code + cible socle V3.

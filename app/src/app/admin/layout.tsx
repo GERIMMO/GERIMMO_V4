@@ -32,6 +32,12 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           {/* En étroit, les liens passent sous la marque au lieu de déborder */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <Link
+              href="/admin/publications"
+              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+            >
+              Journal
+            </Link>
+            <Link
               href="/admin/devis"
               className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
             >

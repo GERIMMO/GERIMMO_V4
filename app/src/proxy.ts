@@ -6,6 +6,9 @@ import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
 // (réinitialisation…) : il doit rester traversable même connecté.
 const PUBLIC_PATHS = [
   "/confidentialite",
+  // Le journal est public ET traversable connecté : un client qui lit un
+  // article depuis un lien reçu ne doit pas être renvoyé vers ses espaces.
+  "/journal",
   "/connexion",
   "/inscription",
   "/mot-de-passe-oublie",

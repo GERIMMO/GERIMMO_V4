@@ -52,20 +52,27 @@ describe.skipIf(!DB_URL)("Prorata du premier loyer", () => {
     await db.query(`select set_config('request.jwt.claims',
       json_build_object('sub',$1::text,'role','authenticated')::text, true)`, [gerant]);
     await db.query("set local role authenticated");
-    const { rows: [{ id: bien }] } = await db.query(
-      `select public.creer_bien_avec_lot($1,'P','appartement'::public.bien_type,'1 rue P',null,'75001','Paris',2010,false,40,2) as id`,
-      [orgA]);
-    const { rows: [l] } = await db.query(`select id from public.lots where bien_id=$1`, [bien]);
-    lot = l.id;
+    lot = await nouveauLot("P");
   });
 
   afterEach(async () => { await db.query("rollback"); });
 
-  async function appelDuPremierMois(debut: string, loyer: number, charges: number) {
+  const centimes = (v: unknown) => Math.round(Number(v) * 100);
+
+  /** Le parc est créé par l'admin d'agence (identité posée en beforeEach). */
+  async function nouveauLot(nom: string) {
+    const { rows: [{ id: bien }] } = await db.query(
+      `select public.creer_bien_avec_lot($1,$2,'appartement'::public.bien_type,'1 rue '||$2,null,'75001','Paris',2010,false,40,2) as id`,
+      [orgA, nom]);
+    const { rows: [l] } = await db.query(`select id from public.lots where bien_id=$1`, [bien]);
+    return l.id as string;
+  }
+
+  async function appelDuPremierMois(debut: string, loyer: number, charges: number, lotId = lot) {
     const { rows: [b] } = await db.query(
       `insert into public.baux (organization_id, lot_id, locataire_principal, loyer_hc, charges, date_debut, etat)
        values ($1,$2,$3,$4,$5,$6,'actif') returning id`,
-      [orgA, lot, locataire, loyer, charges, debut]);
+      [orgA, lotId, locataire, loyer, charges, debut]);
     await db.query(`select public.generer_appels_loyer($1)`, [b.id]);
     const { rows } = await db.query(
       `select loyer_hc, charges, montant_du, prorata from public.appels_loyer
@@ -84,11 +91,14 @@ describe.skipIf(!DB_URL)("Prorata du premier loyer", () => {
   it("le montant dû est toujours la somme des lignes affichées", async () => {
     // La quittance détaille loyer et charges : leur somme doit faire le total,
     // sinon le document se contredit lui-même.
+    // Un bail vivant par lot (baux_un_seul_vivant_par_lot) et un bail ne se
+    // supprime pas : chaque date d'entrée est donc testée sur son propre lot.
     for (const debut of ["2026-03-12", "2026-01-07", "2026-02-23", "2026-04-15"]) {
-      const a = await appelDuPremierMois(debut, 780, 90);
-      expect(Number(a.montant_du)).toBe(Number(a.loyer_hc) + Number(a.charges));
-      await db.query(`delete from public.appels_loyer`);
-      await db.query(`delete from public.baux`);
+      const lotDuCas = await nouveauLot(`P ${debut}`);
+      const a = await appelDuPremierMois(debut, 780, 90, lotDuCas);
+      // Comparaison en centimes : la base stocke des numeric(10,2) exacts, alors
+      // qu'une addition de flottants JS (167,14 + 19,29) dérive au 14e chiffre.
+      expect(centimes(a.montant_du)).toBe(centimes(a.loyer_hc) + centimes(a.charges));
     }
   });
 

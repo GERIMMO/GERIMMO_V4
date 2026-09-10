@@ -181,6 +181,12 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
       [edls[1]]
     );
     await db.query(`select public.signer_edl($1)`, [edls[0]]);
+    // Un EDL de SORTIE ne se signe que pendant le préavis : le congé du
+    // locataire d'abord (bail nu hors zone tendue → 3 mois, sans justificatif).
+    await db.query(
+      `select public.enregistrer_conge($1,'locataire',current_date,3::smallint,null,null)`,
+      [bail]
+    );
     await db.query(`select public.signer_edl($1)`, [edls[1]]);
 
     const lignes = await db.query(`select piece, libelle, ecart from public.comparatif_edl($1)`, [bail]);
@@ -251,6 +257,22 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     expect(al.rows[0].n).toBe(1);
   });
 
+  // ⚠ ROUGE ASSUMÉ — arbitrage humain en attente, ce n'est PAS une régression.
+  // Le produit se contredit lui-même sur cette règle :
+  //   • encaisser_depot (20260909190000) lit lots.meuble : colocation d'un lot
+  //     meublé → 2 mois. C'est ce que ce test affirme.
+  //   • le déclencheur controler_plafond_depot_garantie (20260909240000) ne lit
+  //     que baux.type : 'colocation' → 1 mois, et refuse le bail dès l'insert.
+  // Le déclencheur étant le plus strict, la règle EFFECTIVE aujourd'hui est
+  // 1 mois — conforme à wiki/concepts/Dépôt de garantie.md, qui tranche
+  // « colocation = bail nu, 1 mois ». La branche « or v_meuble »
+  // d'encaisser_depot est donc du code mort (le cumul encaissé est de toute
+  // façon borné par baux.depot_garantie : aucune fuite d'argent).
+  // La question est juridique, pas technique — la colocation d'un logement
+  // MEUBLÉ relève-t-elle des 2 mois du meublé ? — donc elle revient à l'humain.
+  // Voir wiki/syntheses/Audit du 10 septembre 2026.md § « Points à trancher ».
+  // Quand l'arbitrage tombera : soit le déclencheur apprend lots.meuble (et ce
+  // test passe au vert), soit le « or v_meuble » saute (et ce test est réécrit).
   it("plafond du dépôt : une colocation d'un lot MEUBLÉ ouvre 2 mois (RM-2.1.2)", async () => {
     const l = await lot(true); // lot meublé
     const {

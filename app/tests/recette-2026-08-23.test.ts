@@ -66,6 +66,7 @@ async function simuler(db: Client, accountId: string | null, role = "authenticat
 describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalification, mandat vide", () => {
   let db: Client;
   let orgA: string;
+  let adminA: string;
   let agentA: string;
   let colocUser: string;
   let proprietaire: string;
@@ -89,12 +90,13 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
       `insert into public.organizations (name, status) values ('R2308 Alpha', 'active') returning id`
     );
     orgA = org;
+    adminA = await creerUtilisateur(db);
     agentA = await creerUtilisateur(db);
     colocUser = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role)
-       values ($1, $2, 'agent'), ($3, $2, 'locataire')`,
-      [agentA, orgA, colocUser]
+       values ($1, $2, 'admin_agence'), ($3, $2, 'agent'), ($4, $2, 'locataire')`,
+      [adminA, orgA, agentA, colocUser]
     );
     const personnes = await db.query(
       `insert into public.persons (organization_id, nom, prenom)
@@ -117,9 +119,30 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
     await db.query("rollback");
   });
 
-  // Bien + lot + bail actif avec colocataire
+  // Le mandat confié à l'agent met le lot dans SON portefeuille (RM-18.1.3) ;
+  // seul l'admin d'agence désigne le titulaire (RM-18.1.4) — écriture faite
+  // sous l'identité admin.
+  async function confierAuPortefeuille(lot: string): Promise<string> {
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1, $2, 'actif', $3) returning id`,
+      [orgA, proprietaire, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1, $2, $3, 7)`,
+      [orgA, mandat, lot]
+    );
+    return mandat;
+  }
+
+  // Bien + lot + bail actif avec colocataire. C'est l'ADMIN d'agence qui
+  // constitue le parc et confie le mandat ; la session repart ensuite en
+  // agent, qui travaille sur SON portefeuille.
   async function bailActif(): Promise<{ lot: string; bail: string }> {
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -150,6 +173,8 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
     await db.query(`update public.baux set etat='actif', date_debut=current_date where id=$1`, [
       bail,
     ]);
+    await confierAuPortefeuille(lot);
+    await simuler(db, agentA);
     return { lot, bail };
   }
 
@@ -262,9 +287,9 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
     );
     const { rows } = await db.query(
       `select i.imputation::text, i.imputation_contestee_le,
-         (select count(*)::int from public.alerts a where a.organization_id=$1
-            and a.statut='ouverte' and a.details->>'incident_id'=$2::text) as alertes
-       from public.incidents i where i.id=$2`,
+         (select count(*)::int from public.alerts a where a.organization_id=$1::uuid
+            and a.statut='ouverte' and a.details->>'incident_id'=$2::uuid::text) as alertes
+       from public.incidents i where i.id=$2::uuid`,
       [orgA, incident]
     );
     expect(rows[0].imputation).toBe("proprietaire");
@@ -273,7 +298,9 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
   });
 
   it("mandat vide hors brouillon : l'avancée est refusée, le retour en brouillon passe", async () => {
-    await simuler(db, agentA);
+    // Les mandats sont tenus par l'admin d'agence (RM-18.1.4) : c'est lui qui
+    // fait vivre l'état du mandat, l'agent n'y touche pas.
+    await simuler(db, adminA);
     const {
       rows: [{ id: mandat }],
     } = await db.query(

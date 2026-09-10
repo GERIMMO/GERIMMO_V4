@@ -123,9 +123,12 @@ describe.skipIf(!DB_URL)("Sprint 3 — dépôt LO (attestation)", () => {
     );
     await simuler(db, autre);
     await db.query("savepoint e");
+    // Chemin valide (<org>/…) pour que le refus vienne bien de l'absence de fiche
+    // et non du garde-fou sur le chemin de stockage.
     await expect(
       db.query(
-        `select public.deposer_mon_attestation($1, 'x/y.pdf','application/pdf',1,'e',null,current_date+1)`,
+        `select public.deposer_mon_attestation(
+           $1, $1::uuid::text || '/y.pdf','application/pdf',1,'e',null,current_date+1)`,
         [orgA]
       )
     ).rejects.toThrow(/Aucune fiche/);

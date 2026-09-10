@@ -62,6 +62,7 @@ async function simuler(db: Client, accountId: string | null, role = "authenticat
 describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL régénérable", () => {
   let db: Client;
   let orgA: string;
+  let adminA: string;
   let agentA: string;
   let proprietaire: string;
   let locataire: string;
@@ -83,10 +84,12 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
       `insert into public.organizations (name, status) values ('R2208 Alpha', 'active') returning id`
     );
     orgA = org;
+    adminA = await creerUtilisateur(db);
     agentA = await creerUtilisateur(db);
     await db.query(
-      `insert into public.memberships (account_id, organization_id, role) values ($1, $2, 'agent')`,
-      [agentA, orgA]
+      `insert into public.memberships (account_id, organization_id, role) values
+       ($1, $3, 'admin_agence'), ($2, $3, 'agent')`,
+      [adminA, agentA, orgA]
     );
     const personnes = await db.query(
       `insert into public.persons (organization_id, nom, prenom)
@@ -101,9 +104,12 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
     await db.query("rollback");
   });
 
-  // Bien + lot unique détenu à 100 % par `person`
+  // Bien + lot unique détenu à 100 % par `person`, constitué par l'ADMIN d'agence.
+  // Depuis le périmètre du portefeuille (2026-09-09), c'est l'admin qui monte le
+  // parc : un agent sans mandat ne voit ni ne crée aucun bien (policy restrictive
+  // `biens_agent_portefeuille`).
   async function lotDetenuPar(person: string): Promise<string> {
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -123,8 +129,32 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
     return lot;
   }
 
+  // L'admin confie le lot à l'agent : mandat actif dont il est TITULAIRE
+  // (`agent_account_id`) + ligne ouverte sur le lot. C'est ce couple qui met le
+  // lot dans le portefeuille de l'agent. Écriture sous identité admin : la garde
+  // `garde_portefeuille_agent` interdit à un agent toute écriture sur
+  // mandats/mandat_lignes, et le titulaire ne se pose que par l'admin (RM-18.1.4).
+  async function confierAuGerant(lot: string, person: string): Promise<string> {
+    await simuler(db, adminA);
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1, $2, 'actif', $3) returning id`,
+      [orgA, person, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1, $2, $3, 7)`,
+      [orgA, mandat, lot]
+    );
+    return mandat;
+  }
+
   it("un mandat sans lot ni taux ne change plus d'état — quel que soit son état de départ", async () => {
-    await simuler(db, agentA);
+    // Les mandats sont la main de l'administrateur d'agence : c'est lui qui les
+    // ouvre et les fait avancer (garde `garde_portefeuille_agent`).
+    await simuler(db, adminA);
     // Mandat vide hérité, dans chaque état encore vivant de la chaîne
     const suivants: Record<string, string> = {
       brouillon: "a_signer",
@@ -151,13 +181,13 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
 
   it("un mandat composé (lot + taux) avance normalement jusqu'à la résiliation", async () => {
     const lot = await lotDetenuPar(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id: mandat }],
     } = await db.query(
-      `insert into public.mandats (organization_id, person_id, etat)
-       values ($1, $2, 'brouillon') returning id`,
-      [orgA, proprietaire]
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1, $2, 'brouillon', $3) returning id`,
+      [orgA, proprietaire, agentA]
     );
     await db.query(
       `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
@@ -173,6 +203,8 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
 
   it("4.5.3 — un EDL créé avant les pièces se régénère depuis les pièces déclarées après coup", async () => {
     const lot = await lotDetenuPar(proprietaire);
+    await confierAuGerant(lot, proprietaire);
+    // Le lot est désormais dans le portefeuille de l'agent : il travaille dessus.
     await simuler(db, agentA);
 
     // Bail brouillon puis EDL d'entrée AVANT toute déclaration de pièces
@@ -222,6 +254,7 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
 
   it("la régénération reste interdite sur un EDL signé", async () => {
     const lot = await lotDetenuPar(proprietaire);
+    await confierAuGerant(lot, proprietaire);
     await simuler(db, agentA);
     const {
       rows: [{ id: bail }],

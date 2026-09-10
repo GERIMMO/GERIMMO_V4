@@ -57,6 +57,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
   let db: Client;
   let orgA: string;
   let orgB: string;
+  let adminA: string;
   let agentA: string;
   let adminB: string;
   let proprietaire: string;
@@ -81,12 +82,13 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
     orgA = orgs.rows.find((o) => o.name === "S3 Alpha")!.id;
     orgB = orgs.rows.find((o) => o.name === "S3 Beta")!.id;
 
+    adminA = await creerUtilisateur(db);
     agentA = await creerUtilisateur(db);
     adminB = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role) values
-       ($1, $2, 'agent'), ($3, $4, 'admin_agence')`,
-      [agentA, orgA, adminB, orgB]
+       ($1, $2, 'admin_agence'), ($3, $2, 'agent'), ($4, $5, 'admin_agence')`,
+      [adminA, orgA, agentA, adminB, orgB]
     );
     const personnes = await db.query(
       `insert into public.persons (organization_id, nom, prenom)
@@ -101,9 +103,12 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
     await db.query("rollback");
   });
 
-  // Crée un bien + son lot unique, détenu à 100 % par `person`, en tant qu'agent A.
+  // Crée un bien + son lot unique, détenu à 100 % par `person`, en tant qu'ADMIN d'Alpha.
+  // Depuis le périmètre du portefeuille (2026-09-09), c'est l'admin d'agence qui
+  // constitue le parc puis confie les mandats ; un agent sans mandat ne peut ni
+  // voir ni créer de bien (policy restrictive `biens_agent_portefeuille`).
   async function lotDetenuPar(person: string): Promise<string> {
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -123,14 +128,18 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
     return lot;
   }
 
+  // Le mandat est signé par l'ADMIN d'agence, qui en confie le portefeuille à
+  // l'agent (`agent_account_id`) : la garde `garde_portefeuille_agent` interdit
+  // toute écriture sur mandats/mandat_lignes à un agent, et le titulaire ne se
+  // pose que sous une identité d'administrateur (RM-18.1.4).
   async function creerMandat(person: string): Promise<string> {
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id }],
     } = await db.query(
-      `insert into public.mandats (organization_id, person_id, etat)
-       values ($1, $2, 'actif') returning id`,
-      [orgA, person]
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1, $2, 'actif', $3) returning id`,
+      [orgA, person, agentA]
     );
     return id;
   }
@@ -142,7 +151,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
       await lotDetenuPar(proprietaire),
     ];
     const mandat = await creerMandat(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     await db.query(
       `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
        values ($1, $2, $3, 7), ($1, $2, $4, 6.5), ($1, $2, $5, 8)`,
@@ -159,7 +168,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
   it("taux par défaut 7 % et date de rapport le 10 (RM-5.3)", async () => {
     const lot = await lotDetenuPar(proprietaire);
     const mandat = await creerMandat(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id }],
     } = await db.query(
@@ -179,7 +188,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
   it("seuls les lots du mandant sont intégrables (RM-5.1.1)", async () => {
     const lotAutrui = await lotDetenuPar(autrePersonne);
     const mandat = await creerMandat(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     await attendreEchec(
       db,
       /non détenu/,
@@ -192,7 +201,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
     const lot = await lotDetenuPar(proprietaire);
     const mandat1 = await creerMandat(proprietaire);
     const mandat2 = await creerMandat(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     await db.query(
       `insert into public.mandat_lignes (organization_id, mandat_id, lot_id) values ($1, $2, $3)`,
       [orgA, mandat1, lot]
@@ -209,7 +218,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
     const lot = await lotDetenuPar(proprietaire);
     const autreLot = await lotDetenuPar(proprietaire);
     const mandat = await creerMandat(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     await db.query(
       `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
        values ($1, $2, $3, 7)`,
@@ -242,7 +251,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
     );
     // Ni re-parentage d'une ligne vers un autre mandat (revue 13/08)
     const mandatActif = await creerMandat(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     await attendreEchec(
       db,
       /historisé/,
@@ -262,7 +271,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
   it("les mandats sont isolés par agence (RM-A1.7)", async () => {
     const lot = await lotDetenuPar(proprietaire);
     const mandat = await creerMandat(proprietaire);
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     await db.query(
       `insert into public.mandat_lignes (organization_id, mandat_id, lot_id) values ($1, $2, $3)`,
       [orgA, mandat, lot]

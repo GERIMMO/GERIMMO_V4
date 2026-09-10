@@ -49,7 +49,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Garantie]] — caution solidaire (acte Yousign) et garanties externes.
 - [[Comptabilité]] — déclarative de caisse ; écritures 2 dates, clôture verrouillante.
 - [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher.
-- [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent.
+- [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent, **requalifiable** depuis le 23/08 pour répondre à une contestation sans clôturer (contredit RM-7.5.3, à trancher).
 - [[Devis]] — 2 max, validité 30 j, accord du mandant au-delà du seuil.
 - [[Intervention]] — mission de l'artisan ; compte rendu + photo obligatoires.
 - [[Document]] — GED sans arborescence ; le type pilote droits et conservation.

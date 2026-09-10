@@ -2802,3 +2802,38 @@ production**. Durcissement P1 : encaissement immuable, quittance non
 forgeable, contre-écriture et révision IRL non rejouables, un seul bail vivant
 par lot, signature d'agence enfin lisible. Synthèse complète et 4 points à
 trancher : [[Audit du 10 septembre 2026]].
+
+## [2026-09-10] dev | La suite de tests réapprend le monde du périmètre agent (65 → 1)
+L'audit avait réveillé **65 échecs d'intégration antérieurs à lui**, endormis
+depuis le 09/09 faute de base de test accessible. Cause unique : la migration
+du périmètre du portefeuille (un agent ne touche que les lots des mandats dont
+il est titulaire) contre des setups qui montaient tout le parc « en tant
+qu'agent ». **Défauts de test, pas de produit.** Réparés par 18 agents (un par
+fichier) : c'est un `admin_agence` qui constitue le parc puis confie le mandat
+(RM-18.1.3/18.1.4), la session ne repassant en agent que pour le geste testé.
+Aucune assertion métier assouplie, aucun test neutralisé, aucune migration
+touchée. Trois causes secondaires corrigées au passage (plafond du dépôt,
+EDL de sortie signé pendant le préavis seulement, état du lot adossé au bail)
+et deux bugs latents des tests eux-mêmes, jusque-là masqués par l'échec du
+setup.
+
+**Deux tests encodaient une règle périmée** — le produit avait tranché après
+eux : l'activation sans EDL d'entrée (règle du 29/08 **révisée le 30/08**,
+[[Bail]]) et la non-requalification d'un incident qualifié (**autorisée le
+23/08**, [[Incident]]). Réalignés sur la règle en vigueur, qu'ils vérifient
+désormais dans les deux sens.
+
+**Lacune documentaire trouvée** : la règle de requalification du 23/08 n'avait
+jamais été écrite au wiki. Écrite ce jour dans [[Incident]] — et elle rend
+**RM-7.5.3 inapplicable** en l'état (l'imputation est dite « révisable après
+diagnostic », or le diagnostic a lieu à un état où le code refuse désormais
+toute requalification). Contradiction signalée, non tranchée.
+
+**État : 261 verts / 1 rouge assumé / 2 ignorés (264)**, typecheck et lint à
+0 erreur. Le rouge est la colocation meublée : le produit s'y contredit
+lui-même (`encaisser_depot` lit `lots.meuble` et ouvre 2 mois, le déclencheur
+`controler_plafond_depot_garantie` ne lit que `baux.type` et refuse à 1 mois).
+Le déclencheur étant le plus strict, la règle effective reste 1 mois, conforme
+au wiki, et aucune fuite d'argent n'est possible — mais la question est
+juridique et revient à Tahir. Test laissé rouge exprès, avec le diagnostic en
+commentaire, pour qu'elle ne s'oublie pas.

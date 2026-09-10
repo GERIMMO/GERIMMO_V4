@@ -107,14 +107,48 @@ retour du réseau, conflit multi-appareils signalé et non verrouillé) et
 **photos compressées à la prise**. Vérifié : 44/44 écrans sans débordement ni
 erreur, sur build de production.
 
+## La suite de tests réapprend le monde (65 échecs → 1)
+
+L'audit a réveillé 65 échecs d'intégration **antérieurs à lui** : ils dormaient
+depuis le 09/09, faute de base de test accessible. Cause unique — la migration
+du **périmètre du portefeuille** a fait des politiques RESTRICTIVE la règle
+(un agent ne touche que les lots des mandats dont il est titulaire), alors que
+tous les setups montaient le parc « en tant qu'agent ». **Des défauts de test,
+pas de produit** : les tests décrivaient un monde que le produit avait quitté.
+Réparés en confiant le parc à un `admin_agence` qui crée puis délègue le mandat
+(RM-18.1.3/18.1.4), la session ne repassant en agent que pour le geste testé.
+Aucune assertion métier assouplie, aucun test neutralisé.
+
+Deux tests, eux, encodaient une **règle périmée** — le produit avait tranché
+après eux, et personne n'était revenu les corriger :
+- l'activation de bail sans EDL d'entrée signé (règle du 29/08, **révisée le
+  30/08** : l'EDL devient une alerte, pas un prérequis — [[Bail]]) ;
+- la requalification d'un incident déjà qualifié (**autorisée le 23/08** pour
+  pouvoir répondre à une contestation sans clôturer — [[Incident]]).
+Tous deux réalignés sur la règle en vigueur, qu'ils vérifient désormais dans
+les deux sens. Le second cas a révélé une lacune documentaire : cette décision
+du 23/08 **n'avait jamais été écrite au wiki**, et elle rend RM-7.5.3
+inapplicable en l'état (voir [[Incident]]).
+
+**État final : 261 verts, 1 rouge assumé, 2 ignorés (264).** Le rouge est la
+colocation meublée ci-dessous.
+
 ## Points à trancher (humain)
 
 > [!warning] Ce que l'audit a soulevé et que l'agent n'a pas tranché
-> - **Colocation meublée et dépôt de garantie** : le code plafonne à 1 mois
+> - **Colocation meublée et dépôt de garantie** : le wiki tranche pour 1 mois
 >   (colocation = bail nu, [[Dépôt de garantie]]) ; l'audit soutient que la
->   colocation *meublée* relève juridiquement des 2 mois. Le wiki tranche
->   aujourd'hui pour 1 mois — **le code est conforme au wiki**, la question
->   est de savoir si le wiki doit changer.
+>   colocation *meublée* relève juridiquement des 2 mois. La question est
+>   juridique, donc humaine. Mais l'audit a mesuré au passage que **le code
+>   se contredit lui-même** : `encaisser_depot` lit `lots.meuble` et ouvre
+>   2 mois, tandis que le déclencheur `controler_plafond_depot_garantie` ne
+>   lit que `baux.type` et refuse le bail dès l'insert à 1 mois. Le
+>   déclencheur étant le plus strict, la règle **effective** est 1 mois
+>   (conforme au wiki) et la branche `or v_meuble` est du **code mort** — le
+>   cumul encaissé restant borné par `baux.depot_garantie`, il n'y a aucune
+>   fuite d'argent (vérifié). Quel que soit l'arbitrage, **l'un des deux
+>   chemins devra changer** : c'est aujourd'hui le seul test rouge de la
+>   suite, laissé rouge exprès pour que la question ne s'oublie pas.
 > - **Congé du bailleur** : accepté à toute date, alors que le congé ne vaut
 >   qu'au terme du bail. Corriger suppose de calculer l'échéance avec ses
 >   reconductions — règle à écrire avant de coder.

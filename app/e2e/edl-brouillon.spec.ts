@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
+import fs from "node:fs";
 import path from "node:path";
+import { sansSyntheseAlertes } from "./aides";
 
 // Cœur du module 19 (mobile) : la grille d'EDL garde la saisie sur l'appareil
 // (RM-19.1.1), l'affiche via l'indicateur permanent (RM-19.1.6), survit à un
@@ -8,19 +10,30 @@ import path from "node:path";
 // (seed-parcours), en brouillon, grille générée.
 test.use({ storageState: path.join(__dirname, ".auth", "admin.json") });
 
+test.beforeEach(async ({ page }) => {
+  await sansSyntheseAlertes(page);
+});
+
+// Aller droit à la grille : son chemin est dans la matrice générée depuis la
+// base locale (npm run e2e:matrice) — le sujet du spec est la grille, la
+// navigation est couverte par les parcours.
+function cheminGrille(): string {
+  const matrice = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "matrice-ecrans.json"), "utf8"),
+  ) as { path: string }[];
+  const edl = matrice.find((e) => /\/edl\//.test(e.path));
+  if (!edl) throw new Error("Pas d'écran EDL dans la matrice — lancer seed-parcours puis e2e:matrice");
+  return edl.path;
+}
+
 async function ouvrirGrille(page: import("@playwright/test").Page) {
-  await page.goto("/espaces");
-  await page.locator('a[href*="/agence/"]').first().click();
-  await page.waitForURL(/\/agence\/([0-9a-f-]+)/);
-  const orgId = page.url().match(/agence\/([0-9a-f-]+)/)![1];
-  // Le bail E2E est le plus récent : sa fiche liste l'EDL d'entrée
-  await page.goto(`/agence/${orgId}/parc`);
-  await page.getByRole("link", { name: /E2E Résidence des Tests/ }).first().click();
-  await page.getByRole("link", { name: /bail/i }).first().click();
-  await page.waitForURL(/\/baux\//);
-  await page.getByRole("link", { name: /état des lieux|EDL/i }).first().click();
-  await page.waitForURL(/\/edl\//);
-  await expect(page.getByRole("status")).toBeVisible();
+  await page.goto(cheminGrille());
+  await expect(page.getByRole("status")).toBeVisible({ timeout: 20_000 });
+  // La synthèse d'alertes peut recouvrir la grille à la connexion : on la ferme
+  const fermer = page.getByRole("button", { name: "Fermer" });
+  if (await fermer.count()) {
+    await fermer.first().click().catch(() => {});
+  }
 }
 
 test("saisie → brouillon local → rechargement → la saisie est toujours là", async ({ page }) => {

@@ -15,16 +15,22 @@ const un = async (sql, params = []) => (await pool.query(sql, params)).rows[0] ?
 const agence = await un("select id from organizations where type = 'agence' order by created_at limit 1");
 const pd = await un("select id from organizations where type <> 'agence' order by created_at limit 1");
 const ORG = agence?.id;
+// Préférer le dossier E2E (seed-parcours) : il porte un mandat dont l'agent
+// est titulaire, donc ses écrans profonds sont dans le « portefeuille » de
+// l'agent — un bien sans mandat rendrait un 404 légitime sous ce persona.
 const ids = {
   ORG,
   ORG_PD: pd?.id,
-  BIEN: (await un("select id from biens where organization_id = $1 limit 1", [ORG]))?.id,
-  PERSONNE: (await un("select id from persons where organization_id = $1 limit 1", [ORG]))?.id,
+  BIEN: (await un("select id from biens where organization_id = $1 order by (nom like 'E2E%') desc, created_at limit 1", [ORG]))?.id,
+  PERSONNE: (await un("select id from persons where organization_id = $1 order by (nom like 'E2E%') desc, created_at limit 1", [ORG]))?.id,
   BAIL: (await un("select id from baux where organization_id = $1 order by created_at desc limit 1", [ORG]))?.id,
   INCIDENT: (await un("select id from incidents where organization_id = $1 limit 1", [ORG]))?.id,
   QUITTANCE: (await un("select id from quittances where organization_id = $1 limit 1", [ORG]))?.id,
 };
-const lot = await un("select id, bien_id from lots where organization_id = $1 limit 1", [ORG]);
+const lot = await un(
+  "select l.id, l.bien_id from lots l join biens b on b.id = l.bien_id where l.organization_id = $1 order by (b.nom like 'E2E%') desc, l.created_at limit 1",
+  [ORG]
+);
 ids.LOT = lot?.id;
 if (lot) ids.BIEN = lot.bien_id;
 const edl = ids.BAIL ? await un("select id from etats_des_lieux where bail_id = $1 limit 1", [ids.BAIL]) : null;

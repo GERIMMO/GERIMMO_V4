@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { formaterDate, formaterDateHeure } from "@/lib/ged";
 import {
@@ -117,30 +117,45 @@ export function GrilleEdl({
   // La dernière version SYNCHRONISÉE : ce qui est en base au chargement, puis
   // ce qui vient d'être soumis avec succès. L'écart saisie ↔ référence nourrit
   // l'indicateur permanent (RM-19.1.6, bloquant).
-  const synchronise = useRef<SaisieGrille>({
+  const [synchronise, setSynchronise] = useState<SaisieGrille>(() => ({
     etats: Object.fromEntries(lignes.map((l) => [l.id, l.etat ?? ""])),
     commentaires: Object.fromEntries(lignes.map((l) => [l.id, l.commentaire ?? ""])),
-  });
+  }));
   const enVol = useRef<SaisieGrille | null>(null);
-  const [enLigne, setEnLigne] = useState(true);
+  // navigator.onLine est un magasin externe ; côté serveur on suppose en ligne.
+  const enLigne = useSyncExternalStore(
+    (notifier) => {
+      window.addEventListener("online", notifier);
+      window.addEventListener("offline", notifier);
+      return () => {
+        window.removeEventListener("online", notifier);
+        window.removeEventListener("offline", notifier);
+      };
+    },
+    () => navigator.onLine,
+    () => true
+  );
   const [conflit, setConflit] = useState<BrouillonEdl | null>(null);
   const empreinte = empreinteGrille(lignes);
-  const attente = signe ? 0 : lignesEnAttente({ etats, commentaires }, synchronise.current);
+  const attente = signe ? 0 : lignesEnAttente({ etats, commentaires }, synchronise);
 
   // Reprise du brouillon au montage : silencieuse si le serveur n'a pas bougé
   // depuis (le brouillon est strictement plus récent) ; signalée sinon — un
   // EDL ouvert ailleurs se signale, ne se verrouille pas (RM-19.1.9).
   useEffect(() => {
     if (signe) return;
-    setEnLigne(navigator.onLine);
     const b = chargerBrouillon(edlId);
     if (!b) return;
-    if (b.empreinteServeur === empreinteGrille(lignes)) {
-      setEtats((prev) => ({ ...prev, ...b.etats }));
-      setCommentaires((prev) => ({ ...prev, ...b.commentaires }));
-    } else {
-      setConflit(b);
-    }
+    // Restauration APRÈS l'hydratation : le HTML serveur ne connaît pas le
+    // brouillon de l'appareil, le report d'un rendu est structurel ici.
+    queueMicrotask(() => {
+      if (b.empreinteServeur === empreinteGrille(lignes)) {
+        setEtats((prev) => ({ ...prev, ...b.etats }));
+        setCommentaires((prev) => ({ ...prev, ...b.commentaires }));
+      } else {
+        setConflit(b);
+      }
+    });
     // Volontairement au seul montage : la grille contrôlée reprend la main ensuite.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -169,31 +184,26 @@ export function GrilleEdl({
     return () => window.removeEventListener("beforeunload", garde);
   }, [signe, attente]);
 
-  // RM-19.1.2 : la synchronisation repart d'elle-même au retour du réseau.
+  // RM-19.1.2 : la synchronisation repart d'elle-même au RETOUR du réseau
+  // (front montant de enLigne, jamais au premier rendu).
+  const enLignePrecedent = useRef(true);
   useEffect(() => {
-    if (signe) return;
-    const revenu = () => {
-      setEnLigne(true);
-      if (lignesEnAttente({ etats, commentaires }, synchronise.current) > 0) {
-        formulaire.current?.requestSubmit();
-      }
-    };
-    const coupe = () => setEnLigne(false);
-    window.addEventListener("online", revenu);
-    window.addEventListener("offline", coupe);
-    return () => {
-      window.removeEventListener("online", revenu);
-      window.removeEventListener("offline", coupe);
-    };
-  }, [signe, etats, commentaires]);
+    const revenu = !enLignePrecedent.current && enLigne;
+    enLignePrecedent.current = enLigne;
+    if (signe || !revenu) return;
+    if (lignesEnAttente({ etats, commentaires }, synchronise) > 0) {
+      formulaire.current?.requestSubmit();
+    }
+  }, [signe, enLigne, etats, commentaires, synchronise]);
 
   // Une action aboutie fait de la saisie soumise la nouvelle référence, et le
   // brouillon local n'a plus de raison d'être.
   useEffect(() => {
     if (etatMaj.succes && enVol.current) {
-      synchronise.current = enVol.current;
+      const soumis = enVol.current;
       enVol.current = null;
       effacerBrouillon(edlId);
+      queueMicrotask(() => setSynchronise(soumis));
     }
   }, [etatMaj, edlId]);
 
@@ -299,7 +309,6 @@ export function GrilleEdl({
             // Hors ligne, l'envoi échouerait : la saisie est déjà sur
             // l'appareil, elle repartira seule au retour du réseau (RM-19.1.2)
             e.preventDefault();
-            setEnLigne(false);
             return;
           }
           enVol.current = { etats: { ...etats }, commentaires: { ...commentaires } };

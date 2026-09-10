@@ -1,37 +1,39 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
+import { debordementHorizontal, entrerDansEspace, sansSyntheseAlertes } from "./aides";
 
 // Parcours locataire au téléphone : le geste qui compte est la déclaration
 // d'incident — photo d'abord (RM-19.2.2), trois écrans max (RM-19.2.1),
 // statut visible depuis l'accueil (RM-19.2.3).
 test.use({ storageState: path.join(__dirname, ".auth", "locataire.json") });
 
+test.beforeEach(async ({ page }) => {
+  await sansSyntheseAlertes(page);
+});
+
 async function ouvrirEspace(page: import("@playwright/test").Page) {
-  await page.goto("/espaces");
-  const lien = page.locator('a[href*="/locataire/"]').first();
-  if (await lien.count()) {
-    await lien.click();
-  }
-  await page.waitForURL(/\/locataire\//);
-  return page.url().match(/locataire\/([0-9a-f-]+)/)![1];
+  return entrerDansEspace(page, "locataire");
 }
 
 test("l'accueil locataire montre le statut de l'incident déclaré", async ({ page }) => {
   await ouvrirEspace(page);
-  // L'incident E2E du seed (fuite sous l'évier) est visible dès l'accueil
-  await expect(page.locator("body")).toContainText(/incident/i);
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow).toBe(0);
+  // L'incident E2E du seed est visible dès l'accueil — l'espace locataire
+  // parle de « problème » (directive sans-jargon), pas d'« incident »
+  await expect(page.locator("body")).toContainText(/problème|incident/i);
+  expect(await debordementHorizontal(page)).toBe(0);
 });
 
 test("déclarer un incident : la photo est le premier champ, l'envoi aboutit", async ({ page }) => {
   const orgId = await ouvrirEspace(page);
   await page.goto(`/locataire/${orgId}/incident`);
 
-  // RM-19.2.2 : le champ photos précède la description dans le document
+  // RM-19.2.2 : DANS le formulaire de déclaration, le champ photos précède
+  // la description (le repère juridique adaptatif, hors formulaire, peut
+  // contenir d'autres éléments avant)
   const ordre = await page.evaluate(() => {
     const photos = document.getElementById("photos");
-    const description = document.querySelector('textarea, [name="description"]');
+    const formulaire = photos?.closest("form");
+    const description = formulaire?.querySelector("textarea");
     if (!photos || !description) return null;
     return photos.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING
       ? "photo-d-abord"
@@ -67,6 +69,5 @@ test("mes loyers : échéancier lisible à 390px, quittance/reçu accessible", a
   const orgId = await ouvrirEspace(page);
   await page.goto(`/locataire/${orgId}/loyers`);
   await expect(page.locator("h1, h2").first()).toBeVisible();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  expect(overflow).toBe(0);
+  expect(await debordementHorizontal(page)).toBe(0);
 });

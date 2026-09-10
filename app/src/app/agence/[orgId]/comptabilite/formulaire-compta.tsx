@@ -17,6 +17,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, moisEnFrancais } from "@/lib/ged";
 
+// Le dernier mois RÉVOLU, à partir d'un « AAAA-MM ». C'est le mois que la base
+// accepte de clôturer (RM-4.4.1) et donc le seul dont un rapport de gestion
+// puisse être généré, puisque la génération est bloquée tant que la période
+// n'est pas close (RM-6.1.2). Les deux formulaires de l'écran doivent viser le
+// même mois : proposer le mois en cours au rapport menait tout droit au refus
+// « Mois non clôturé » dès lors que le mois en cours ne se clôture plus.
+function dernierMoisRevolu(moisCourant: string): string {
+  const [an, mois] = moisCourant.split("-").map(Number);
+  const anPrecedent = mois === 1 ? an - 1 : an;
+  const moisPrecedent = mois === 1 ? 12 : mois - 1;
+  return `${anPrecedent}-${String(moisPrecedent).padStart(2, "0")}`;
+}
+
 export type MandatCompta = { id: string; etat: string; mandant_nom: string };
 export type RapportCompta = {
   id: string;
@@ -112,7 +125,12 @@ function BoutonGenererRapport({ orgId, mandatId, moisCourant }: { orgId: string;
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
-      <Input name="mois" type="month" defaultValue={etat.valeurs?.mois ?? moisCourant} className="h-8 text-sm" />
+      <Input
+        name="mois"
+        type="month"
+        defaultValue={etat.valeurs?.mois ?? dernierMoisRevolu(moisCourant)}
+        className="h-8 text-sm"
+      />
       <BoutonEnvoi size="sm" variant="outline">
         Générer le rapport
       </BoutonEnvoi>
@@ -254,11 +272,22 @@ export function FormulaireCloture({ orgId, moisCourant }: { orgId: string; moisC
     cloturerMois.bind(null, orgId),
     {}
   );
+  // On ne clôture qu'un mois révolu (RM-4.4.1) : le champ propose — et n'accepte
+  // pas au-delà de — le dernier mois terminé. Proposer le mois en cours menait
+  // droit au refus de la base, et surtout invitait à figer un mois incomplet.
+  const dernierRevolu = dernierMoisRevolu(moisCourant);
   return (
     <form action={action} className="flex items-end gap-2">
       <div className="space-y-1">
         <Label htmlFor="clot-mois" className="text-xs">Mois</Label>
-        <Input id="clot-mois" name="mois" type="month" defaultValue={etat.valeurs?.mois ?? moisCourant} className="h-9" />
+        <Input
+          id="clot-mois"
+          name="mois"
+          type="month"
+          max={dernierRevolu}
+          defaultValue={etat.valeurs?.mois ?? dernierRevolu}
+          className="h-9"
+        />
       </div>
       <BoutonEnvoi size="sm" variant="outline">
         Clôturer le mois

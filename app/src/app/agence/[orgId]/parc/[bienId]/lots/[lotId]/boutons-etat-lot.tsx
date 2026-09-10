@@ -11,6 +11,13 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 // bail. Activer un bail passe le lot en loué, enregistrer un congé le passe en
 // préavis. Les boutons manuels d'avant le module bail laissaient marquer un lot
 // loué sans locataire, ou en préavis sans congé.
+//
+// La LIBÉRATION non plus ne se décrète pas depuis le lot : « Le locataire est
+// parti » remettait le lot sur le marché alors que son bail courait encore
+// jusqu'au terme du préavis (parc annonçant vacant un logement occupé). Le
+// départ se constate sur le bail — état des lieux de sortie signé puis
+// « Clôturer le bail » (RM-3.11.2) — et le lot repasse en disponible tout seul.
+// La base refuse désormais l'incohérence (20260910176000).
 const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
   brouillon: [
     { cible: "disponible", libelle: "Mettre en location" },
@@ -21,7 +28,7 @@ const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
     { cible: "archive", libelle: "Archiver" },
   ],
   loue: [],
-  preavis: [{ cible: "disponible", libelle: "Le locataire est parti" }],
+  preavis: [],
   archive: [{ cible: "brouillon", libelle: "Réactiver (réservé au responsable)" }],
 };
 
@@ -29,7 +36,7 @@ const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
 const AILLEURS: Record<string, string> = {
   loue: "Ce lot est loué. Pour enregistrer un départ, passez par le bail et son congé.",
   preavis:
-    "Le locataire a donné congé. Quand il aura rendu les clés et que l'état des lieux de sortie sera fait, marquez son départ.",
+    "Le locataire a donné congé : son bail court jusqu'au terme du préavis. Quand il aura rendu les clés et que l'état des lieux de sortie sera signé, clôturez le bail depuis sa fiche — le lot redeviendra disponible tout seul.",
 };
 
 export function BoutonsEtatLot({

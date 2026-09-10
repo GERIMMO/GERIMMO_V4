@@ -389,7 +389,26 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
     );
     const preavis = await db.query(`select etat from public.lots where id = $1`, [lot]);
     expect(preavis.rows[0].etat).toBe("preavis");
-    await db.query(`update public.lots set etat = 'disponible' where id = $1`, [lot]);
+    // Le départ ne se décrète pas non plus depuis le lot : tant que le bail
+    // court, le lot ne se libère pas à la main (cohérence lot/bail,
+    // 20260910176000). Il se libère quand le bail se clôture — état des lieux
+    // de sortie signé (RM-3.11.2).
+    const {
+      rows: [{ id: edlSortie }],
+    } = await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type)
+       values ($1, $2, 'sortie') returning id`,
+      [orgA, bail]
+    );
+    await db.query(`select public.generer_grille_edl($1)`, [edlSortie]);
+    await db.query(
+      `update public.edl_lignes set etat = 'bon'::public.etat_element where edl_id = $1`,
+      [edlSortie]
+    );
+    await db.query(`select public.signer_edl($1)`, [edlSortie]);
+    await db.query(`select public.terminer_bail($1)`, [bail]);
+    const libere = await db.query(`select etat from public.lots where id = $1`, [lot]);
+    expect(libere.rows[0].etat).toBe("disponible");
     await db.query(`update public.lots set etat = 'archive' where id = $1`, [lot]);
 
     // Réactivation : refusée à l'agent, réservée à l'admin de l'agence

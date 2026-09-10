@@ -344,8 +344,12 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       [org, lot]
     );
 
-    // Il clôture le mois lui-même (recommandé, jamais imposé)
-    await db.query(`select public.cloturer_mois($1, current_date)`, [org]);
+    // Il clôture lui-même (recommandé, jamais imposé) le dernier mois écoulé :
+    // la clôture ne porte que sur un mois révolu (RM-4.4.1).
+    await db.query(
+      `select public.cloturer_mois($1, (date_trunc('month', current_date) - interval '1 month')::date)`,
+      [org]
+    );
     const {
       rows: [{ n }],
     } = await db.query(`select count(*)::int as n from public.clotures_comptables where organization_id=$1`, [org]);
@@ -355,10 +359,13 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       db,
       /Mois clôturé/,
       `insert into public.ecritures (organization_id, categorie, sens, montant, date_piece, date_imputation)
-       values ($1,'travaux','depense',10,current_date,current_date)`,
+       values ($1,'travaux','depense',10,current_date,(date_trunc('month', current_date) - interval '1 month')::date)`,
       [org]
     );
-    await db.query(`select public.rouvrir_mois($1, current_date, 'oubli d''une facture')`, [org]);
+    await db.query(
+      `select public.rouvrir_mois($1, (date_trunc('month', current_date) - interval '1 month')::date, 'oubli d''une facture')`,
+      [org]
+    );
 
     // Le récapitulatif fiscal lit son livre : loyers en 211, assurance en 223
     const { rows: livre } = await db.query(

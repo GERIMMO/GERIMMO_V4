@@ -250,6 +250,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     0
   );
   const resteDepot = Number(bail.depot_garantie ?? 0) - depotEncaisse;
+  // Le dépôt s'encaisse à l'entrée et se restitue à la sortie (RM-2.1.3) : une
+  // fois le bail terminé ou le décompte arrêté (figé, RM-2.7.3), plus rien ne
+  // rentre — la base le refuse (encaisser_depot), l'écran ne le propose plus.
+  const depotEncaissable = bail.etat !== "termine" && restitution?.statut !== "finalise";
   const aFaire: { texte: string; href: string }[] = [];
   // Sprint « Alertes & documents » : plus de bouton « Valider » — le dépôt du
   // bail signé active le bail et loue le lot ; l'état des lieux d'entrée se
@@ -284,7 +288,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         href: a.href,
       });
     }
-    if (resteDepot > 0)
+    if (resteDepot > 0 && depotEncaissable)
       aFaire.push({
         texte: `Encaisser le dépôt de garantie (reste ${eur(resteDepot)})`,
         href: "#depot",
@@ -663,6 +667,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               encaissements={(encaissements ?? []) as Encaissement[]}
               quittances={(quittances ?? []) as Quittance[]}
               revisionIrl={Boolean(bail.revision_irl)}
+              irlReference={bail.irl_valeur === null ? null : Number(bail.irl_valeur)}
+              irlTrimestre={bail.irl_trimestre}
               revisions={(revisions ?? []) as Revision[]}
               relances={(relances ?? []) as RelanceLigne[]}
               regularisations={(regularisations ?? []) as RegulLigne[]}
@@ -686,6 +692,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <FormulaireDepot
               orgId={orgId}
               bailId={bailId}
+              encaissementOuvert={depotEncaissable}
               depotDu={Number(bail.depot_garantie ?? 0)}
               encaissements={(depotEncaissements ?? []) as EncaissementDepot[]}
               personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(

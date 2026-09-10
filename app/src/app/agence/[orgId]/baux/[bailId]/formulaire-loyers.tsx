@@ -117,11 +117,20 @@ function BoutonRetirerEncaissement({
   encaissementId: string;
 }) {
   const [etat, action] = useActionState<EtatLoyers, FormData>(
-    async () => supprimerEncaissement(orgId, bailId, encaissementId),
+    async (_etat, formData) => supprimerEncaissement(orgId, bailId, encaissementId, formData),
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-1">
+    // Retirer un encaissement contre-passe le journal : la correction porte le
+    // motif de son auteur (RM-A6.6). Même patron que la contre-écriture
+    // manuelle de la comptabilité — un champ « motif » à côté du bouton.
+    <form action={action} className="flex flex-wrap items-center gap-1">
+      <Input
+        name="motif"
+        placeholder="motif"
+        aria-label="Motif du retrait"
+        className="h-7 w-28 text-xs"
+      />
       <BoutonEnvoi variant="ghost" size="sm">
         Retirer
       </BoutonEnvoi>
@@ -160,6 +169,8 @@ export function FormulaireLoyers({
   encaissements,
   quittances,
   revisionIrl,
+  irlReference,
+  irlTrimestre,
   revisions,
   relances,
   regularisations,
@@ -171,6 +182,9 @@ export function FormulaireLoyers({
   encaissements: Encaissement[];
   quittances: Quittance[];
   revisionIrl: boolean;
+  // Indice de référence figé au bail à sa signature (RM-3.8.2) : affiché, jamais saisi ici
+  irlReference: number | null;
+  irlTrimestre: string | null;
   revisions: Revision[];
   relances: RelanceLigne[];
   regularisations: RegulLigne[];
@@ -380,8 +394,15 @@ export function FormulaireLoyers({
           {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
           <form action={formRev} className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
-              <Label htmlFor="irl-ref" className="text-xs">IRL de référence</Label>
-              <Input id="irl-ref" name="irl_reference" type="number" step="0.01" defaultValue={etatRev.valeurs?.irl_reference} className="h-9 w-28" />
+              <p className="text-xs">IRL de référence (figé au bail)</p>
+              <p className="flex h-9 items-center text-sm font-medium">
+                {irlReference ?? "à renseigner sur le bail"}
+                {irlTrimestre && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    ({irlTrimestre})
+                  </span>
+                )}
+              </p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-nouv" className="text-xs">IRL nouveau</Label>
@@ -398,8 +419,10 @@ export function FormulaireLoyers({
             {etatRev.succes && <p className="w-full text-sm text-success-soft-foreground">{etatRev.succes}</p>}
           </form>
           <p className="text-xs text-muted-foreground">
-            Nouveau loyer = loyer × IRL nouveau / IRL de référence. Interdit si DPE F/G ;
-            le dépôt et les provisions ne changent pas.
+            Nouveau loyer = loyer × IRL nouveau / IRL de référence. L&apos;indice de
+            référence est celui figé au bail à sa signature (RM-3.8.2) et ne se saisit
+            pas ici. Une seule révision par année de bail ; interdit si DPE F/G ; le
+            dépôt et les provisions ne changent pas.
           </p>
         </div>
       )}

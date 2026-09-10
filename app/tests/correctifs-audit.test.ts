@@ -351,11 +351,15 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
 
   it("le dépôt de garantie produit une écriture au journal (encaissement et restitution)", async () => {
     const l = await lot();
+    // Bail en PRÉAVIS, l'état réel d'une restitution qui démarre (la remise
+    // des clés précède la clôture) : depuis le durcissement du 10/09, le dépôt
+    // ne s'encaisse plus sur un bail terminé (RM-2.1.3, migration
+    // 20260910171000). Les assertions du test sont inchangées.
     const {
       rows: [{ id: bail }],
     } = await db.query(
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, depot_garantie)
-       values ($1,$2,$3,'termine',700,700) returning id`,
+       values ($1,$2,$3,'preavis',700,700) returning id`,
       [orgA, l, locataire]
     );
     await db.query(`select public.encaisser_depot($1,700,current_date,'virement',null,null)`, [bail]);

@@ -219,25 +219,40 @@ export async function ajouterEncaissement(
   };
 }
 
+// Supprimer un encaissement, c'est CORRIGER le journal : la suppression
+// contre-passe automatiquement les écritures déjà écrites (RM-A6.3 —
+// l'écriture ne se modifie pas, on supprime et on ressaisit). Une correction
+// comptable porte le motif de son auteur (RM-A6.6, règle bloquante du
+// livrable A6) : on le collecte ici, comme la justification d'imputation d'un
+// incident, et on le passe à la base, qui l'inscrit sur la contre-écriture.
 export async function supprimerEncaissement(
   orgId: string,
   bailId: string,
-  encId: string
+  encId: string,
+  formData?: FormData
 ): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase
-    .from("encaissements")
-    .delete()
-    .eq("id", encId)
-    .eq("organization_id", orgId);
+  const motif = String(formData?.get("motif") ?? "").trim();
+  if (!motif) {
+    return {
+      erreur: "Dites pourquoi vous retirez cet encaissement : le motif reste au journal.",
+    };
+  }
+  const { error } = await supabase.rpc("supprimer_encaissement", {
+    p_encaissement: encId,
+    p_motif: motif,
+  });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: "Encaissement supprimé." };
+  return { succes: "Encaissement supprimé — le motif est inscrit au journal." };
 }
 
 // Réviser le loyer selon l'IRL (clause requise, DPE F/G bloqué, prescription 1 an).
+// L'indice de RÉFÉRENCE n'est pas saisi ici : il est figé au bail à sa signature
+// (RM-3.8.2) et la base le lit elle-même. Seul l'indice du trimestre de révision,
+// saisi par l'admin d'agence (RM-3.8.3), est fourni.
 export async function reviserLoyer(
   orgId: string,
   bailId: string,
@@ -247,13 +262,12 @@ export async function reviserLoyer(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const ref = Number(String(formData.get("irl_reference") ?? "").trim());
   const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim());
   const dateEffet = String(formData.get("date_effet") ?? "").trim();
-  if (!ref || !nouv || !dateEffet) return { erreur: "Indices IRL et date d'effet obligatoires.", valeurs };
+  if (!nouv || !dateEffet)
+    return { erreur: "Indice IRL du trimestre et date d'effet obligatoires.", valeurs };
   const { data, error } = await supabase.rpc("reviser_loyer", {
     p_bail: bailId,
-    p_irl_reference: ref,
     p_irl_nouveau: nouv,
     p_date_effet: dateEffet,
   });

@@ -26,6 +26,9 @@ export function FormulaireDepot({
   encaissements,
   personnes,
   locataireNom,
+  // Le dépôt s'encaisse à l'entrée et se restitue à la sortie (RM-2.1.3) :
+  // fermé sur un bail terminé ou après l'arrêté du décompte (RM-2.7.3).
+  encaissementOuvert = true,
 }: {
   orgId: string;
   bailId: string;
@@ -33,6 +36,7 @@ export function FormulaireDepot({
   encaissements: EncaissementDepot[];
   personnes: { id: string; nom: string }[];
   locataireNom: string;
+  encaissementOuvert?: boolean;
 }) {
   const encaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const reste = depotDu - encaisse;
@@ -98,14 +102,20 @@ export function FormulaireDepot({
         </ul>
       )}
 
-      {reste > 0 && (
-        <FormEncaisser
-          orgId={orgId}
-          bailId={bailId}
-          reste={reste}
-          personnes={personnes}
-        />
-      )}
+      {reste > 0 &&
+        (encaissementOuvert ? (
+          <FormEncaisser
+            orgId={orgId}
+            bailId={bailId}
+            reste={reste}
+            personnes={personnes}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            La location est soldée : le dépôt ne s&apos;encaisse plus, il se restitue.
+            Le reste dû se règle au décompte de restitution.
+          </p>
+        ))}
     </div>
   );
 }
@@ -190,11 +200,19 @@ function BoutonSupprimer({
   encId: string;
 }) {
   const [etat, action] = useActionState<EtatDepot, FormData>(
-    async () => supprimerEncaissementDepot(orgId, bailId, encId),
+    async (_etat, formData) => supprimerEncaissementDepot(orgId, bailId, encId, formData),
     {}
   );
   return (
-    <form action={action}>
+    // La contre-passation du dépôt est une correction comptable : elle porte le
+    // motif de son auteur (RM-A6.6), saisi ici et inscrit au journal.
+    <form action={action} className="flex flex-wrap items-center justify-end gap-1">
+      <Input
+        name="motif"
+        placeholder="motif"
+        aria-label="Motif du retrait"
+        className="h-7 w-28 text-xs"
+      />
       <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
         Retirer
       </BoutonEnvoi>

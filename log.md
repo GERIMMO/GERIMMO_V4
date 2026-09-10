@@ -2705,3 +2705,15 @@ trancher). Compteurs de diagnostics unifiés et étiquetés de leur niveau
 synthèse des alertes redessinée (cartes-rangées cliquables, liseré de
 criticité, titres complets) sur demande de Tahir. Donnée de démo corrigée :
 dépôt de la colocation Alpha ramené à 300 € (plafond). Publication sur main.
+
+## [2026-09-10] query | Quels spécialistes pour un projet comme Gerimmo ?
+Réponse en chat, ancrée sur les réserves déjà documentées dans le wiki :
+quatre profils à consulter ponctuellement — praticien de la gestion locative
+(entretiens personas, [[Accueil]]), avocat droit des baux / loi Hoguet
+(matrice canaux-preuve A3, CGU, [[Notification et valeur probante]]),
+expert-comptable immobilier (doctrine A6 « préalable à la commercialisation »,
+export SCI-IS, [[Comptabilité]], [[Fiscalité]]), conseil RGPD/DPO (matrice A2,
+AIPD score artisan, [[RGPD]]) — plus un audit sécurité avant production
+([[Socle de sécurité]]). Rappel du contexte : validations externes **écartées
+le 2026-07-25** (revue interne), donc la liste vaut surtout comme jalons
+d'avant-commercialisation, pas comme recrutements.

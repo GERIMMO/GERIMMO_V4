@@ -2717,3 +2717,15 @@ AIPD score artisan, [[RGPD]]) — plus un audit sécurité avant production
 ([[Socle de sécurité]]). Rappel du contexte : validations externes **écartées
 le 2026-07-25** (revue interne), donc la liste vaut surtout comme jalons
 d'avant-commercialisation, pas comme recrutements.
+
+## [2026-09-10] query | Carte blanche pour terminer Gerimmo ?
+Tahir, fatigué, demande si l'agent peut finir le projet seul avec carte
+blanche. Réponse : oui pour ~90-95 % du restant mesuré (fin S8, S9b,
+chantiers maquette T1→T8 et vague F, recette Partie 2, puis V1 S10→S15) —
+en tranchant seul les contradictions (documentées, réversibles) et en
+convertissant la recette humaine en tests E2E automatisés (Playwright)
+pour supprimer le goulot « Tahir testeur ». Résidu incompressible côté
+humain : comptes et contrats tiers (Yousign, Stripe KYC, Meta/WhatsApp,
+Supabase/Vercel Pro UE, antivirus), go de commercialisation, clients.
+Proposition d'un « mode pilote automatique » : l'agent déroule, Tahir ne
+lit qu'un digest court avec démos. En attente du « go ».

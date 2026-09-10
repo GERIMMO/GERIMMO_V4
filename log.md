@@ -2729,3 +2729,20 @@ humain : comptes et contrats tiers (Yousign, Stripe KYC, Meta/WhatsApp,
 Supabase/Vercel Pro UE, antivirus), go de commercialisation, clients.
 Proposition d'un « mode pilote automatique » : l'agent déroule, Tahir ne
 lit qu'un digest court avec démos. En attente du « go ».
+
+## [2026-09-10] query | Correction (Tahir) : le module devis-artisans manquait à l'ordre d'attaque
+Vérification croisée git + wiki. Fait (S7 incrément 1, validé 24-26/08) :
+le cycle de l'incident seul — déclaration, qualification/imputation,
+contestation, clôture, réouverture, photos, historique, alertes
+([[Cycle de vie d'un incident]] §Implémentation ; tables `incidents`,
+`incident_evenements`). Manquant : toute la suite — états artisans
+(affecté → en cours → terminé), fiches/réseau artisan (pivot maquette v3),
+[[Demande et sélection de devis]], [[Planification d'intervention]] (3+3),
+[[Intervention et clôture]] (compte rendu + photo), facture → écriture,
+espace artisan (« sans devis ni planning, écran mort » — recette 2.C).
+`demandes_devis` en base = formulaire vitrine, pas les devis artisans.
+Ambiguïté relevée : les notes du dépôt appellent ce module « S13 » alors
+que le plan nomme S13 le mobile ; la maquette v6 le route vers « T5/S9b »
+(contradiction n°4). Correction de l'ordre d'attaque carte blanche :
+bloc dédié « Artisans-devis-interventions » ajouté — c'est le
+différenciateur produit ([[Analyse concurrentielle]]).

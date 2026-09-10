@@ -51,6 +51,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
   let orgA: string;
   let orgB: string;
   let agentA: string;
+  let adminA: string;
   let adminB: string;
   let compteLocataire: string;
   let personneLocataire: string;
@@ -73,16 +74,20 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     orgA = orgs.rows.find((o) => o.name === "S7 Alpha")!.id;
     orgB = orgs.rows.find((o) => o.name === "S7 Beta")!.id;
     agentA = await creerUtilisateur(db);
+    adminA = await creerUtilisateur(db);
     adminB = await creerUtilisateur(db);
     compteLocataire = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role)
-       values ($1,$2,'agent'), ($3,$4,'admin_agence'), ($5,$2,'locataire')`,
-      [agentA, orgA, adminB, orgB, compteLocataire]
+       values ($1,$2,'agent'), ($3,$2,'admin_agence'), ($4,$5,'admin_agence'), ($6,$2,'locataire')`,
+      [agentA, orgA, adminA, adminB, orgB, compteLocataire]
     );
 
-    // Un lot loué par un bail actif : le terrain de jeu de la déclaration
-    await simuler(db, agentA);
+    // Un lot loué par un bail actif : le terrain de jeu de la déclaration.
+    // C'est l'administrateur d'agence qui monte le parc — l'agent, lui,
+    // travaille sur le portefeuille qu'on lui confie (persona « Agent
+    // immobilier »).
+    await simuler(db, adminA);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -94,6 +99,34 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
       rows: [{ id: lot }],
     } = await db.query(`select id from public.lots where bien_id = $1`, [bien]);
     lotA = lot;
+
+    // Le mandat confié à l'agent fait entrer le lot dans son portefeuille
+    // (RM-18.1.3) ; le titulaire n'est posé que par l'admin (RM-18.1.4).
+    const {
+      rows: [{ id: mandant }],
+    } = await db.query(
+      `insert into public.persons (organization_id, nom, prenom)
+       values ($1,'Bailleur','Martin') returning id`,
+      [orgA]
+    );
+    // Le mandant détient le lot : un mandat n'intègre que ses lots (RM-5.1.1)
+    await db.query(
+      `insert into public.detentions (organization_id, lot_id, person_id, quote_part)
+       values ($1,$2,$3,100)`,
+      [orgA, lotA, mandant]
+    );
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1,$2,'actif',$3) returning id`,
+      [orgA, mandant, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1,$2,$3,7)`,
+      [orgA, mandat, lotA]
+    );
 
     await db.query("reset role");
     const {

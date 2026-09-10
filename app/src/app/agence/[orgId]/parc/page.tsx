@@ -132,8 +132,11 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             {nbLots > 1 ? "s" : ""}
           </span>
           {/* Charte 04 : un seul bouton principal par écran. Sur un parc vide,
-              c'est celui de l'état vide qui porte l'appel à l'action. */}
-          {biensVisibles.length > 0 && (
+              c'est celui de l'état vide qui porte l'appel à l'action.
+              Un agent au périmètre restreint ne crée pas de bien : depuis le
+              périmètre du 09/09, la base le refuse (le bien naîtrait hors de
+              son portefeuille). Mieux vaut ne pas le proposer que d'échouer. */}
+          {biensVisibles.length > 0 && !portefeuille && (
             <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
               + Ajouter un bien
             </Link>
@@ -144,17 +147,31 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       {biensVisibles.length === 0 ? (
         <div className="colonne-liste">
           <div className="vide">
-            <p className="font-medium text-foreground">Votre parc est vide</p>
-            <p className="mx-auto mt-1 max-w-sm">
-              Commencez par un bien : son lot naît avec lui, et c&apos;est le lot
-              qui portera le bail.
-            </p>
-            <Link
-              href={`/agence/${orgId}/parc/nouveau`}
-              className={`${buttonVariants({ size: "sm" })} mt-3`}
-            >
-              Créer mon premier bien
-            </Link>
+            {portefeuille ? (
+              <>
+                <p className="font-medium text-foreground">
+                  Aucun lot ne vous est confié
+                </p>
+                <p className="mx-auto mt-1 max-w-sm">
+                  Votre portefeuille se remplit quand l&apos;administrateur de
+                  l&apos;agence vous confie un mandat.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-medium text-foreground">Votre parc est vide</p>
+                <p className="mx-auto mt-1 max-w-sm">
+                  Commencez par un bien : son lot naît avec lui, et c&apos;est le lot
+                  qui portera le bail.
+                </p>
+                <Link
+                  href={`/agence/${orgId}/parc/nouveau`}
+                  className={`${buttonVariants({ size: "sm" })} mt-3`}
+                >
+                  Créer mon premier bien
+                </Link>
+              </>
+            )}
           </div>
         </div>
       ) : (

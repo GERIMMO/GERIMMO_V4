@@ -3,7 +3,18 @@
 // SMTP Resend configuré dans Supabase — pas par ce helper.
 // Nécessite RESEND_API_KEY dans l'environnement (.env.local) et un domaine vérifié.
 
-const EXPEDITEUR = "Gerimmo <no-reply@gerimmo.app>";
+/**
+ * L'adresse d'expédition.
+ *
+ * Elle était en dur sur `no-reply@gerimmo.app` — une adresse dont le domaine
+ * doit être VÉRIFIÉ chez Resend pour qu'un seul message parte. Tant qu'il ne
+ * l'est pas (ou tant que le domaine n'est pas à nous), tout est refusé, clé
+ * valide comprise : le produit était bloqué par une constante.
+ *
+ * Elle se règle donc par l'environnement. Sans réglage, on garde l'adresse de
+ * la marque — c'est la cible, pas un repli.
+ */
+const EXPEDITEUR = process.env.RESEND_EXPEDITEUR?.trim() || "Gerimmo <no-reply@gerimmo.app>";
 
 export async function envoyerEmail(params: {
   to: string;
@@ -28,6 +39,14 @@ export async function envoyerEmail(params: {
     });
     if (!reponse.ok) {
       const txt = await reponse.text();
+      // Le refus le plus fréquent, et le plus opaque : le domaine de
+      // l'expéditeur n'est pas vérifié chez Resend. Le message brut parle de
+      // « domain », jamais de ce qu'il faut faire. On le traduit.
+      if (/domain/i.test(txt) && reponse.status === 403) {
+        return {
+          erreur: `Le domaine de l'adresse d'expédition (${EXPEDITEUR}) n'est pas vérifié chez Resend : aucun message ne peut partir tant qu'il ne l'est pas. Vérifiez le domaine, ou réglez RESEND_EXPEDITEUR sur une adresse de test.`,
+        };
+      }
       return { erreur: `Resend a refusé l'envoi (${reponse.status}) : ${txt.slice(0, 200)}` };
     }
     return {};

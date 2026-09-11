@@ -24,6 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EchecLecture } from "../documents/echec-lecture";
 import {
   FormulaireAttribution,
   FormulaireCloture,
@@ -61,8 +62,11 @@ export async function PaneIncident({
 }) {
   const supabase = await createClient();
 
-  const [{ data: incident }, { data: evenements }, { data: liens }] =
-    await Promise.all([
+  const [
+    { data: incident, error: erreurIncident },
+    { data: evenements, error: erreurEvenements },
+    { data: liens, error: erreurLiens },
+  ] = await Promise.all([
       supabase
         .from("incidents")
         .select(
@@ -84,8 +88,21 @@ export async function PaneIncident({
         .eq("entite", "incident")
         .eq("entite_id", incidentId),
     ]);
+  // Lecture refusée ≠ dossier absent. « Introuvable » ferait croire le dossier
+  // supprimé alors que la base n'a pas répondu (relevé du 11/09).
+  if (erreurIncident) {
+    return <EchecLecture quoi={["ce dossier d'incident"]} />;
+  }
   if (!incident) {
-    return <div className="vide">Dossier introuvable.</div>;
+    return (
+      <div className="vide-guide">
+        <p className="titre">Dossier introuvable</p>
+        <p className="explication">
+          Ce numéro d&apos;incident n&apos;existe pas dans cette agence.
+          Choisissez un dossier dans la liste.
+        </p>
+      </div>
+    );
   }
 
   const lot = premier(incident.lot as UnOuPlusieurs<{ id: string; nom: string; bien_id: string }>);
@@ -149,8 +166,18 @@ export async function PaneIncident({
     }
   };
 
+  // Les deux lectures d'appoint : sans elles, la chronologie et les photos
+  // disparaissent du dossier sans que rien ne le dise — un dossier qui a l'air
+  // de n'avoir jamais rien vécu.
+  const lecturesManquees = [
+    erreurEvenements && "la chronologie du dossier",
+    erreurLiens && "les photos jointes",
+  ].filter((q): q is string => Boolean(q));
+
   return (
     <div className="min-w-0 space-y-4">
+      <EchecLecture quoi={lecturesManquees} />
+
       {/* En-tête du dossier (maquette pageIncident) : eyebrow mono, titre
           court, sous-ligne lot · pièce · déclarant ; les puces à droite. */}
       <div className="entete-page">
@@ -442,6 +469,12 @@ export async function PaneIncident({
               <CardTitle className="text-base">Chronologie</CardTitle>
             </CardHeader>
             <CardContent>
+              {!erreurEvenements && (evenements ?? []).length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Aucun événement enregistré — le dossier vient d&apos;être
+                  ouvert.
+                </p>
+              )}
               <div className="chrono">
                 {((evenements ?? []) as Evenement[]).map((e) => {
                   const detail = detailEvenement(e);

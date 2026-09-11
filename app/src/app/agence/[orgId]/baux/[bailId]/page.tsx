@@ -47,6 +47,7 @@ import {
   type Retenue,
 } from "./formulaire-restitution";
 import { FormulaireDepot, type EncaissementDepot } from "./formulaire-depot";
+import { EchecLecture, PageEchecLecture } from "../../parc/echec-lecture";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
@@ -55,7 +56,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const { supabase, organisation } = await verifierAccesEspace(orgId);
   const agence = organisation.type === "agence";
 
-  const { data: bail } = await supabase
+  const { data: bail, error: erreurBail } = await supabase
     .from("baux")
     // Colonnes du cycle de vie + « Compléments du contrat » (bail 100 % rempli, 09/09)
     .select(
@@ -64,18 +65,28 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     .eq("id", bailId)
     .eq("organization_id", orgId)
     .maybeSingle();
+  // Un échec de lecture n'est pas un bail supprimé : `notFound()` ferait
+  // chercher un dossier qui existe (relevé du 11/09).
+  if (erreurBail)
+    return (
+      <PageEchecLecture
+        titre="Bail"
+        quoi={["le bail"]}
+        retour={{ href: `/agence/${orgId}/parc`, libelle: "Parc" }}
+      />
+    );
   if (!bail) notFound();
 
   const [
-    { data: lot },
+    { data: lot, error: erreurLot },
     { count: piecesDuLot },
-    { data: locataire },
-    { data: edls },
-    { data: conges },
-    { data: inventaire },
-    { data: personnes },
-    { data: bailPersonnes },
-    { data: intentions },
+    { data: locataire, error: erreurLocataire },
+    { data: edls, error: erreurEdls },
+    { data: conges, error: erreurConges },
+    { data: inventaire, error: erreurInventaire },
+    { data: personnes, error: erreurPersonnes },
+    { data: bailPersonnes, error: erreurBailPersonnes },
+    { data: intentions, error: erreurIntentions },
   ] = await Promise.all([
       supabase.from("lots").select("id, nom, bien_id, meuble, bien:biens!lots_bien_id_fkey(zone_tendue)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
@@ -85,7 +96,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .eq("lot_id", bail.lot_id),
       bail.locataire_principal
         ? supabase.from("persons").select("nom, prenom, email").eq("id", bail.locataire_principal).maybeSingle()
-        : Promise.resolve({ data: null }),
+        : Promise.resolve({ data: null, error: null }),
       supabase
         .from("etats_des_lieux")
         .select("id, type, etat")
@@ -168,35 +179,37 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // Perf 30/08 : trois lectures qui ne dépendent que du bail partaient l'une
   // après l'autre (comparatif, loyers, restitution puis retenues) — une seule
   // vague, les retenues embarquées dans la restitution.
-  const vide = { data: [] as never[] };
+  // Même forme que les vraies réponses (data + error) : sans `error`, le
+  // repli ne se destructure plus une fois les échecs relevés.
+  const vide = { data: [] as never[], error: null };
   const [
     // Blocages du bail en cours (source commune avec l'accueil, audit 09/09) :
     // impayés, EDL d'entrée non signé, diagnostics obligatoires en défaut.
     attendues,
-    { data: comparatif },
+    { data: comparatif, error: erreurComparatif },
     [
-      { data: echeancier },
-      { data: encaissements },
-      { data: quittances },
-      { data: revisions },
-      { data: relances },
-      { data: regularisations },
+      { data: echeancier, error: erreurEcheancier },
+      { data: encaissements, error: erreurEncaissements },
+      { data: quittances, error: erreurQuittances },
+      { data: revisions, error: erreurRevisions },
+      { data: relances, error: erreurRelances },
+      { data: regularisations, error: erreurRegul },
       // Encaissement du dépôt : même condition, même aller-retour
-      { data: depotEncaissements },
+      { data: depotEncaissements, error: erreurDepot },
     ],
-    { data: restitutionBrute },
+    { data: restitutionBrute, error: erreurRestitution },
     // Le décompte travaille sur un INSTANTANÉ des montants (dépôt encaissé,
     // impayés) pris au démarrage. On relit la réalité du moment pour que
     // l'écran puisse dire si elle a bougé depuis — il n'en change rien tout
     // seul : la date d'arrêté appartient au gérant.
-    { data: montantsAJour },
+    { data: montantsAJour, error: erreurMontants },
   ] = await Promise.all([
     loyersActif
       ? actionsAttendues(supabase, orgId, { bailId })
       : Promise.resolve([]),
     comparatifPossible
       ? supabase.rpc("comparatif_edl", { p_bail: bailId })
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     loyersActif
       ? Promise.all([
         supabase.rpc("etat_loyers_bail", { p_bail: bailId }),
@@ -239,10 +252,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           )
           .eq("bail_id", bailId)
           .maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
     restitutionActif
       ? supabase.rpc("montants_restitution_a_jour", { p_bail: bailId })
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
   ]);
   const ecarts = ((comparatif ?? []) as {
     piece: string | null;
@@ -260,6 +273,43 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // La RPC renvoie une ligne par bail (aucune si le bail sort du portefeuille)
   const montantsReels =
     ((montantsAJour ?? []) as { depot: number; impayes: number }[])[0] ?? null;
+
+  // La fiche suivait le cycle du bail, mais les cartes de la SORTIE (congé,
+  // historique des congés, restitution, comparatif) étaient dispersées entre
+  // celles de l'entrée — relevé du 11/09. Elles sont regroupées sous leur
+  // propre titre, qui ne s'affiche que si l'une d'elles a quelque chose à dire
+  // (sur un brouillon, aucune : le titre resterait vide).
+  const sectionSortie =
+    bail.etat === "actif" ||
+    (conges ?? []).length > 0 ||
+    restitutionActif ||
+    Boolean(comparatif);
+
+  // Ce que la base n'a pas su rendre. Sans ce relevé, un échéancier illisible
+  // se présente comme un bail sans loyers appelés, et l'écran propose de les
+  // regénérer — sur un bail qui en a déjà.
+  const echecs: string[] = [];
+  const noter = (libelle: string, erreur: unknown) => {
+    if (erreur) echecs.push(libelle);
+  };
+  noter("le lot", erreurLot);
+  noter("le locataire", erreurLocataire);
+  noter("les états des lieux", erreurEdls);
+  noter("les congés", erreurConges);
+  noter("l’inventaire du mobilier", erreurInventaire);
+  noter("les personnes de l’agence", erreurPersonnes);
+  noter("les colocataires et garants", erreurBailPersonnes);
+  noter("les départs annoncés par le locataire", erreurIntentions);
+  noter("le comparatif entrée / sortie", erreurComparatif);
+  noter("l’échéancier des loyers", erreurEcheancier);
+  noter("les encaissements", erreurEncaissements);
+  noter("les quittances", erreurQuittances);
+  noter("les révisions de loyer", erreurRevisions);
+  noter("les relances", erreurRelances);
+  noter("les régularisations de charges", erreurRegul);
+  noter("les encaissements du dépôt de garantie", erreurDepot);
+  noter("la restitution du dépôt", erreurRestitution);
+  noter("les montants de restitution à jour", erreurMontants);
 
   // « À faire maintenant » : la page suit le cycle de vie du bail, mais un
   // agent qui débute ne connaît pas l'ordre — on le déduit des données et on
@@ -369,11 +419,21 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </p>
       </div>
 
+      <EchecLecture quoi={echecs} />
+
       {/* La prochaine action évidente, dérivée de l'état du bail */}
       {aFaire.length > 0 && (
         <div className="border-l-[3px] border-l-[var(--or)] bg-accent p-4">
-          <p className="text-sm font-semibold">À faire maintenant</p>
-          <ol className="mt-2 space-y-1.5">
+          <div className="entete-carte">
+            <p className="text-sm font-semibold">À faire maintenant</p>
+            {/* La liste s'arrête à 3 — le dire, plutôt que d'escamoter le reste */}
+            {aFaire.length > 3 && (
+              <span className="mono-discret">
+                {aFaire.length - 3} autre{aFaire.length - 3 > 1 ? "s" : ""} ensuite
+              </span>
+            )}
+          </div>
+          <ol className="space-y-1.5">
             {aFaire.slice(0, 3).map((a, i) => (
               <li key={a.href + i} className="flex items-center gap-2 text-sm">
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
@@ -387,6 +447,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </ol>
         </div>
       )}
+
+      <h2 className="eyebrow pt-2">Le contrat</h2>
 
       {/* Brouillon corrigeable (recette 21/08) : la saisie de création se
           reprend ici tant que le bail n'est pas signé. */}
@@ -614,159 +676,6 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </CardContent>
       </Card>
 
-      {bail.etat === "actif" && (
-        <Card className={(intentions ?? []).length > 0 ? "border-l-4 border-l-[var(--or)]" : undefined}>
-          <CardHeader>
-            <CardTitle className="text-base">Congé</CardTitle>
-            <CardDescription>
-              La lettre recommandée part hors de la plateforme : saisissez la date de première présentation. Le
-              préavis réduit exige un justificatif.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Le congé ÉMIS par le bailleur (vente, reprise, motif légitime) se
-                génère ici ; le formulaire en dessous enregistre un congé REÇU. */}
-            <div className="mb-4 border-b border-border pb-4">
-              <GenererCongeBailleur
-                orgId={orgId}
-                bailId={bailId}
-                cheminRetour={`/agence/${orgId}/baux/${bailId}`}
-              />
-            </div>
-            {((intentions ?? []) as { created_at: string; motif: string | null }[]).map((it) => (
-              <p key={it.created_at} className="mb-3 rounded-lg bg-warning-soft p-3 text-sm">
-                <b className="font-semibold">
-                  Le locataire a annoncé son départ le {formaterDate(it.created_at)}
-                </b>
-                {it.motif ? <> — « {it.motif} »</> : null}
-                <span className="block text-muted-foreground">
-                  À réception de sa lettre recommandée, enregistrez le congé ci-dessous avec la
-                  date de première présentation — le locataire verra sa fin de bail confirmée.
-                </span>
-              </p>
-            ))}
-            <FormulaireConge
-              orgId={orgId}
-              bailId={bailId}
-              type={bail.type}
-              meubleLot={Boolean(lot?.meuble)}
-              zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Avenant au bail : modification du contrat en cours, actée par les parties */}
-      {(bail.etat === "actif" || bail.etat === "preavis") && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Avenant au bail</CardTitle>
-            <CardDescription>
-              Modifie le contrat en cours (charges, occupants, clauses…) sans le
-              refaire — toutes les autres clauses demeurent inchangées ; à faire
-              signer par les parties.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <GenererAvenant
-              orgId={orgId}
-              bailId={bailId}
-              cheminRetour={`/agence/${orgId}/baux/${bailId}`}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {(conges ?? []).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              {bail.etat === "preavis" ? "Congé en cours" : "Congés"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            {(conges ?? []).map((c, i) => (
-              <p key={i} className={c.annule_le ? "text-muted-foreground" : undefined}>
-                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, présentation
-                le {formaterDate(c.date_premiere_presentation)}, préavis {c.preavis_mois} mois
-                → effet le <span className="font-medium">{formaterDate(c.date_effet)}</span>
-                {c.motif && !c.annule_le && (
-                  <span className="block text-muted-foreground">Motif : {c.motif}</span>
-                )}
-                {/* Un congé annulé reste au dossier : il a existé. */}
-                {c.annule_le && (
-                  <span className="badge-statut ml-2 text-muted-foreground">
-                    annulé le {formaterDate(c.annule_le)}
-                    {c.annulation_motif ? ` — ${c.annulation_motif}` : ""}
-                  </span>
-                )}
-              </p>
-            ))}
-            {bail.etat === "preavis" && (
-              <div className="space-y-3 border-t border-border pt-3">
-                {edlSortieSigne && <BoutonTerminerBail orgId={orgId} bailId={bailId} />}
-                <FormulaireAnnulerConge orgId={orgId} bailId={bailId} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Loyers & quittances */}
-      {loyersActif && (
-        <Card id="loyers" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle className="text-base">Loyers & quittances</CardTitle>
-            <CardDescription>
-              Échéancier, encaissements (imputés du plus ancien au plus récent) et
-              quittances (émises après paiement intégral ; un partiel reste un reçu).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormulaireLoyers
-              orgId={orgId}
-              bailId={bailId}
-              echeancier={(echeancier ?? []) as LigneEcheance[]}
-              encaissements={(encaissements ?? []) as Encaissement[]}
-              quittances={(quittances ?? []) as Quittance[]}
-              revisionIrl={Boolean(bail.revision_irl)}
-              irlReference={bail.irl_valeur === null ? null : Number(bail.irl_valeur)}
-              irlTrimestre={bail.irl_trimestre}
-              revisions={(revisions ?? []) as Revision[]}
-              relances={(relances ?? []) as RelanceLigne[]}
-              regularisations={(regularisations ?? []) as RegulLigne[]}
-              chargesForfait={bail.charges_mode === "forfait"}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Dépôt de garantie — encaissement */}
-      {loyersActif && (
-        <Card id="depot" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle className="text-base">Dépôt de garantie</CardTitle>
-            <CardDescription>
-              Encaissement à l&apos;entrée : plafond légal contrôlé, versant tiers tracé,
-              encaissement partiel possible. Restitué en fin de bail.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormulaireDepot
-              orgId={orgId}
-              bailId={bailId}
-              encaissementOuvert={depotEncaissable}
-              depotDu={Number(bail.depot_garantie ?? 0)}
-              encaissements={(depotEncaissements ?? []) as EncaissementDepot[]}
-              personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(
-                (p) => ({ id: p.id, nom: nomComplet(p) })
-              )}
-              locataireNom={locataire ? nomComplet(locataire) : "Le locataire"}
-            />
-          </CardContent>
-        </Card>
-      )}
-
       {/* Colocation (bail unique) : colocataires + garants — un bail terminé
           ne se complète plus (audit vie du bail 09/09) */}
       {bail.type === "colocation" && bail.etat !== "termine" && (
@@ -862,6 +771,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
+      <h2 className="eyebrow pt-2">La vie du bail</h2>
+
       {/* États des lieux */}
       <Card id="edl" className="scroll-mt-20">
         <CardHeader>
@@ -918,6 +829,163 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           )}
         </CardContent>
       </Card>
+
+      {/* Loyers & quittances */}
+      {loyersActif && (
+        <Card id="loyers" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle className="text-base">Loyers & quittances</CardTitle>
+            <CardDescription>
+              Échéancier, encaissements (imputés du plus ancien au plus récent) et
+              quittances (émises après paiement intégral ; un partiel reste un reçu).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireLoyers
+              orgId={orgId}
+              bailId={bailId}
+              echeancier={(echeancier ?? []) as LigneEcheance[]}
+              encaissements={(encaissements ?? []) as Encaissement[]}
+              quittances={(quittances ?? []) as Quittance[]}
+              revisionIrl={Boolean(bail.revision_irl)}
+              irlReference={bail.irl_valeur === null ? null : Number(bail.irl_valeur)}
+              irlTrimestre={bail.irl_trimestre}
+              revisions={(revisions ?? []) as Revision[]}
+              relances={(relances ?? []) as RelanceLigne[]}
+              regularisations={(regularisations ?? []) as RegulLigne[]}
+              chargesForfait={bail.charges_mode === "forfait"}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Dépôt de garantie — encaissement */}
+      {loyersActif && (
+        <Card id="depot" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle className="text-base">Dépôt de garantie</CardTitle>
+            <CardDescription>
+              Encaissement à l&apos;entrée : plafond légal contrôlé, versant tiers tracé,
+              encaissement partiel possible. Restitué en fin de bail.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireDepot
+              orgId={orgId}
+              bailId={bailId}
+              encaissementOuvert={depotEncaissable}
+              depotDu={Number(bail.depot_garantie ?? 0)}
+              encaissements={(depotEncaissements ?? []) as EncaissementDepot[]}
+              personnes={((personnes ?? []) as { id: string; nom: string; prenom: string | null }[]).map(
+                (p) => ({ id: p.id, nom: nomComplet(p) })
+              )}
+              locataireNom={locataire ? nomComplet(locataire) : "Le locataire"}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Avenant au bail : modification du contrat en cours, actée par les parties */}
+      {(bail.etat === "actif" || bail.etat === "preavis") && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Avenant au bail</CardTitle>
+            <CardDescription>
+              Modifie le contrat en cours (charges, occupants, clauses…) sans le
+              refaire — toutes les autres clauses demeurent inchangées ; à faire
+              signer par les parties.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <GenererAvenant
+              orgId={orgId}
+              bailId={bailId}
+              cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {sectionSortie && (
+        <h2 className="eyebrow pt-2">La sortie du locataire</h2>
+      )}
+
+      {bail.etat === "actif" && (
+        <Card className={(intentions ?? []).length > 0 ? "border-l-4 border-l-[var(--or)]" : undefined}>
+          <CardHeader>
+            <CardTitle className="text-base">Congé</CardTitle>
+            <CardDescription>
+              La lettre recommandée part hors de la plateforme : saisissez la date de première présentation. Le
+              préavis réduit exige un justificatif.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Le congé ÉMIS par le bailleur (vente, reprise, motif légitime) se
+                génère ici ; le formulaire en dessous enregistre un congé REÇU. */}
+            <div className="mb-4 border-b border-border pb-4">
+              <GenererCongeBailleur
+                orgId={orgId}
+                bailId={bailId}
+                cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+              />
+            </div>
+            {((intentions ?? []) as { created_at: string; motif: string | null }[]).map((it) => (
+              <p key={it.created_at} className="mb-3 rounded-lg bg-warning-soft p-3 text-sm">
+                <b className="font-semibold">
+                  Le locataire a annoncé son départ le {formaterDate(it.created_at)}
+                </b>
+                {it.motif ? <> — « {it.motif} »</> : null}
+                <span className="block text-muted-foreground">
+                  À réception de sa lettre recommandée, enregistrez le congé ci-dessous avec la
+                  date de première présentation — le locataire verra sa fin de bail confirmée.
+                </span>
+              </p>
+            ))}
+            <FormulaireConge
+              orgId={orgId}
+              bailId={bailId}
+              type={bail.type}
+              meubleLot={Boolean(lot?.meuble)}
+              zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {(conges ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">
+              {bail.etat === "preavis" ? "Congé en cours" : "Congés"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {(conges ?? []).map((c, i) => (
+              <p key={i} className={c.annule_le ? "text-muted-foreground" : undefined}>
+                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, présentation
+                le {formaterDate(c.date_premiere_presentation)}, préavis {c.preavis_mois} mois
+                → effet le <span className="font-medium">{formaterDate(c.date_effet)}</span>
+                {c.motif && !c.annule_le && (
+                  <span className="block text-muted-foreground">Motif : {c.motif}</span>
+                )}
+                {/* Un congé annulé reste au dossier : il a existé. */}
+                {c.annule_le && (
+                  <span className="badge-statut ml-2 text-muted-foreground">
+                    annulé le {formaterDate(c.annule_le)}
+                    {c.annulation_motif ? ` — ${c.annulation_motif}` : ""}
+                  </span>
+                )}
+              </p>
+            ))}
+            {bail.etat === "preavis" && (
+              <div className="space-y-3 border-t border-border pt-3">
+                {edlSortieSigne && <BoutonTerminerBail orgId={orgId} bailId={bailId} />}
+                <FormulaireAnnulerConge orgId={orgId} bailId={bailId} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Restitution du dépôt de garantie */}
       {restitutionActif && (

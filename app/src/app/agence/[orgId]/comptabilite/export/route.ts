@@ -84,10 +84,22 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
   // On garde toutes les lignes, y compris closes : le journal est historique, et
   // une écriture de mars doit porter le mandant de mars même si le mandat s'est
   // terminé depuis.
-  const { data: lignesMandat } = await supabase
+  const { data: lignesMandat, error: erreurLignesMandat } = await supabase
     .from("mandat_lignes")
     .select("lot_id, date_debut, date_fin, mandat:mandats(person:persons(nom, prenom))")
     .eq("organization_id", orgId);
+
+  // Cette lecture n'était pas contrôlée : en cas d'échec, le fichier sortait
+  // complet en apparence, avec une colonne « mandant » VIDE sur la quasi-
+  // totalité des lignes — un journal comptable inexploitable qui ne dit pas
+  // qu'il lui manque quelque chose. Mieux vaut refuser l'export.
+  if (erreurLignesMandat) {
+    return new Response(
+      `Export impossible : la colonne « mandant » n'a pas pu être reconstituée (${erreurLignesMandat.message}).` +
+        " Le fichier n'est pas produit — un journal sans mandant ne se ventile pas. Réessayez dans un instant.",
+      { status: 500, headers: { "Content-Type": "text/plain; charset=utf-8" } }
+    );
+  }
 
   const mandatsDuLot = new Map<string, { debut: string; fin: string | null; nom: string }[]>();
   for (const l of (lignesMandat ?? []) as unknown as {
@@ -168,11 +180,21 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
     du || au
       ? `Journal de gestion du ${du ? formaterDate(du) : "début"} au ${au ? formaterDate(au) : "ce jour"}`
       : "Journal de gestion";
+  // Les deux liens de l'écran (« Exporter 2026 » et « Tout exporter »)
+  // rendaient le MÊME nom de fichier : deux exports de portées différentes se
+  // ressemblaient trait pour trait dans un dossier de téléchargements. La
+  // portée passe désormais dans le nom — mais `du` et `au` viennent de l'URL
+  // et finissent dans un en-tête HTTP, où un retour chariot injecté ouvrirait
+  // un en-tête arbitraire : on n'en garde que chiffres et tirets.
+  const jourSur = (v: string | null, defaut: string) =>
+    v ? (v.replace(/[^0-9-]/g, "").slice(0, 10) || defaut) : defaut;
+  const suffixe =
+    du || au ? `-${jourSur(du, "debut")}-au-${jourSur(au, "ce-jour")}` : "-complet";
   const csv = [periode, entete, ...lignes].join("\r\n");
   return new Response("﻿" + csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="journal-de-gestion.csv"',
+      "Content-Disposition": `attachment; filename="journal-de-gestion${suffixe}.csv"`,
     },
   });
 }

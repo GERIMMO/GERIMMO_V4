@@ -3,6 +3,8 @@ import { eur, formaterDate } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
+import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
+import { tagLocataire } from "../pastille-locataire";
 import type { BailLocataire } from "../types";
 
 export const metadata = { title: "Mes paiements — Gerimmo" };
@@ -16,11 +18,11 @@ export default async function PagePaiementsLocataire(
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
 
   const [
-    { data: echeancier },
-    { data: bauxRows },
-    { data: restitutions },
-    { data: retenuesRows },
-    { data: relancesRows },
+    { data: echeancier, error: eEcheancier },
+    { data: bauxRows, error: eBaux },
+    { data: restitutions, error: eRestitution },
+    { data: retenuesRows, error: eRetenues },
+    { data: relancesRows, error: eRelances },
   ] = await Promise.all([
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
@@ -118,10 +120,14 @@ export default async function PagePaiementsLocataire(
         <h1>Mes paiements</h1>
         {bail?.jour_echeance != null && (
           <span className="mono-discret">
-Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
+            Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
           </span>
         )}
       </div>
+
+      {aEchoue(eEcheancier, eBaux, eRestitution, eRetenues, eRelances) && (
+        <PanneLecture quoi="vos paiements" />
+      )}
 
       {/* Deux colonnes égales en large. En classe (pas en style inline) pour
           que la media query 860 px de .loc-grille garde la main sur mobile ;
@@ -131,20 +137,21 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
               <h3 className="text-base font-medium">Prochain loyer</h3>
-              {prochaine ? (
+              {aEchoue(eEcheancier, eBaux) ? null : prochaine ? (
                 <span className="loc-tag bleu capitalize">{moisLong(prochaine.periode)}</span>
               ) : bail ? (
                 <span className="loc-tag vert">À jour</span>
               ) : null}
             </div>
-            {prochaine && bail ? (
+            {aEchoue(eEcheancier, eBaux) ? (
+              <LectureImpossible quoi="votre échéancier" />
+            ) : prochaine && bail ? (
               <>
-                <p className="font-heading text-3xl text-[var(--encre)]">
-                  {eur(
-                    prochaine.statut === "partiel"
-                      ? Number(prochaine.montant_du) - Number(prochaine.montant_couvert)
-                      : Number(prochaine.montant_du)
-                  )}
+                {/* Le RESTE dû, comme sur l'accueil : les deux écrans
+                    affichaient deux montants différents dès qu'un mois était
+                    partiellement couvert. */}
+                <p className="montant font-heading text-3xl text-[var(--encre)]">
+                  {eur(Number(prochaine.montant_du) - Number(prochaine.montant_couvert))}
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   {eur(Number(bail.loyer_hc ?? 0))} de loyer + {eur(Number(bail.charges ?? 0))} de{" "}
@@ -202,11 +209,18 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
         <div className="loc-carte">
           <div className="entete-carte">
             <h3 className="text-base font-medium">Mes quittances</h3>
-            <span className="mono-discret">
-              {quittances.length} émise{quittances.length > 1 ? "s" : ""}
-            </span>
+            {/* La liste montre TOUS les mois de l'échéancier : dire seulement
+                « N émises » laissait croire à un compte tronqué. */}
+            {!aEchoue(eEcheancier) && lignesLoyer.length > 0 && (
+              <span className="mono-discret">
+                {quittances.length} émise{quittances.length > 1 ? "s" : ""} sur{" "}
+                {lignesLoyer.length} mois
+              </span>
+            )}
           </div>
-          {lignesLoyer.length === 0 ? (
+          {aEchoue(eEcheancier) ? (
+            <LectureImpossible quoi="vos quittances" />
+          ) : lignesLoyer.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               Vos quittances apparaîtront ici après votre premier loyer réglé.
             </p>
@@ -215,10 +229,10 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
               {[...lignesLoyer].reverse().map((l) => (
                 <li key={l.periode} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                   <span className="w-32 shrink-0 capitalize">{moisLong(l.periode)}</span>
-                  <span className="w-24 shrink-0 text-right">{eur(l.montant_du)}</span>
+                  <span className="montant w-24 shrink-0 text-right">{eur(l.montant_du)}</span>
                   <span className="min-w-0 flex-1" />
                   <span
-                    className={`shrink-0 ${COULEURS_STATUT_APPEL_LOYER[l.statut] ?? "puce puce-grise"}`}
+                    className={`shrink-0 ${tagLocataire(COULEURS_STATUT_APPEL_LOYER[l.statut])}`}
                   >
                     {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
                   </span>
@@ -303,12 +317,23 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
               <div className="mt-1">
                 <div className="ligne-info">
                   <span>Dépôt versé</span>
-                  <span>{eur(Number(restitution.depot))}</span>
+                  <span className="montant">{eur(Number(restitution.depot))}</span>
                 </div>
                 {Number(restitution.impayes ?? 0) > 0 && (
                   <div className="ligne-info">
                     <span>Loyers restés dus, imputés d&apos;abord</span>
-                    <span>− {eur(Number(restitution.impayes))}</span>
+                    <span className="montant">− {eur(Number(restitution.impayes))}</span>
+                  </div>
+                )}
+                {/* Sans les retenues, le solde ne se déduit plus des lignes
+                    affichées : mieux vaut le dire que laisser un décompte qui
+                    ne tombe pas juste. */}
+                {aEchoue(eRetenues) && (
+                  <div className="ligne-info">
+                    <span className="text-destructive-soft-foreground">
+                      Le détail des retenues n&apos;a pas pu être lu — le solde
+                      ci-dessous ne se déduit donc pas des lignes affichées.
+                    </span>
                   </div>
                 )}
                 {retenues.map((r, ix) => (
@@ -327,7 +352,7 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
                               href={`/locataire/${orgId}/documents/${r.justificatif_document}/fichier`}
                               target="_blank"
                               rel="noopener"
-                              className="text-[var(--bleu)] underline-offset-2 hover:underline"
+                              className="lien-discret"
                             >
                               justificatif
                             </a>
@@ -335,14 +360,14 @@ Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois
                         )}
                       </small>
                     </span>
-                    <span>− {eur(Number(r.montant_retenu))}</span>
+                    <span className="montant">− {eur(Number(r.montant_retenu))}</span>
                   </div>
                 ))}
                 <div className="ligne-info font-medium">
                   <span className="!text-foreground">
                     {Number(restitution.solde ?? 0) >= 0 ? "À vous restituer" : "Restant dû"}
                   </span>
-                  <span>{eur(Math.abs(Number(restitution.solde ?? 0)))}</span>
+                  <span className="montant">{eur(Math.abs(Number(restitution.solde ?? 0)))}</span>
                 </div>
               </div>
               <p className="mt-2.5 text-xs text-muted-foreground">

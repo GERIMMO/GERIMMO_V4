@@ -59,7 +59,14 @@ export function FormulaireProfilOrganisation({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="pr-cp">Code postal</Label>
-          <Input id="pr-cp" name="postal_code" disabled={lectureSeule} defaultValue={valeur("postal_code")} />
+          <Input
+            id="pr-cp"
+            name="postal_code"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            disabled={lectureSeule}
+            defaultValue={valeur("postal_code")}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="pr-ville">Ville</Label>
@@ -69,7 +76,16 @@ export function FormulaireProfilOrganisation({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="pr-tel">Téléphone</Label>
-          <Input id="pr-tel" name="telephone" disabled={lectureSeule} defaultValue={valeur("telephone")} />
+          {/* Au doigt, `tel` ouvre le pavé numérique plutôt que le clavier
+              complet — acquis mobile du 10/09, les contrôles restent à 16 px */}
+          <Input
+            id="pr-tel"
+            name="telephone"
+            type="tel"
+            autoComplete="tel"
+            disabled={lectureSeule}
+            defaultValue={valeur("telephone")}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="pr-email">Email de contact</Label>
@@ -126,8 +142,16 @@ export function FormulaireProfilOrganisation({
           Reporté sur les avis d&apos;échéance.
         </p>
       </div>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+      {etat.erreur && (
+        <p role="alert" className="text-sm text-destructive">
+          {etat.erreur}
+        </p>
+      )}
+      {etat.succes && (
+        <p role="status" className="text-sm text-success-soft-foreground">
+          {etat.succes}
+        </p>
+      )}
       {!lectureSeule && (
         <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer</BoutonEnvoi>
       )}

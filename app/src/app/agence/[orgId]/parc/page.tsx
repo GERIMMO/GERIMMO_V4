@@ -5,7 +5,6 @@ import { resumerBlocage } from "@/lib/echeances";
 import { etiqueterNiveau } from "@/lib/diagnostics";
 import { TYPES_BIEN, ETATS_LOT, COULEURS_ETAT_LOT, formaterSurface } from "@/lib/parc";
 import { Donut, LegendeDonut } from "@/components/graphes";
-import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,6 +15,7 @@ import {
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireEquipementCatalogue } from "./formulaire-equipement-catalogue";
 import { PaneParc, lireSelection } from "./pane-parc";
+import { EchecLecture } from "./echec-lecture";
 
 export const metadata = { title: "Parc — Gerimmo" };
 
@@ -40,8 +40,12 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   // mandats qui lui sont confiés — null : il voit tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
-  const [{ data: biens }, { data: equipements }, { data: bauxActifs }, { data: blocagesParc }] =
-    await Promise.all([
+  const [
+    { data: biens, error: erreurBiens },
+    { data: equipements, error: erreurEquipements },
+    { data: bauxActifs, error: erreurBaux },
+    { data: blocagesParc, error: erreurBlocages },
+  ] = await Promise.all([
     supabase
       .from("biens")
       // !lots_bien_id_fkey : depuis les FK composites (revue 2), deux relations
@@ -115,6 +119,18 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   const totalBlocages = motifsTries.reduce((s, [, n]) => s + n, 0);
   const maxMotif = Math.max(1, ...motifsTries.map(([, n]) => n));
 
+  // Un parc illisible ressemble trait pour trait à un parc vide : sans ce
+  // relevé, l'écran invitait à « créer votre premier bien » à une agence qui
+  // en a trente (relevé du 11/09).
+  const echecs: string[] = [];
+  const noter = (libelle: string, erreur: unknown) => {
+    if (erreur) echecs.push(libelle);
+  };
+  noter("les biens et leurs lots", erreurBiens);
+  noter("le catalogue d’équipements", erreurEquipements);
+  noter("les baux en cours", erreurBaux);
+  noter("les éléments qui bloquent la mise en location", erreurBlocages);
+
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
@@ -144,35 +160,36 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         </div>
       </div>
 
-      {biensVisibles.length === 0 ? (
-        <div className="colonne-liste">
-          <div className="vide">
-            {portefeuille ? (
-              <>
-                <p className="font-medium text-foreground">
-                  Aucun lot ne vous est confié
-                </p>
-                <p className="mx-auto mt-1 max-w-sm">
-                  Votre portefeuille se remplit quand l&apos;administrateur de
-                  l&apos;agence vous confie un mandat.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="font-medium text-foreground">Votre parc est vide</p>
-                <p className="mx-auto mt-1 max-w-sm">
-                  Commencez par un bien : son lot naît avec lui, et c&apos;est le lot
-                  qui portera le bail.
-                </p>
-                <Link
-                  href={`/agence/${orgId}/parc/nouveau`}
-                  className={`${buttonVariants({ size: "sm" })} mt-3`}
-                >
+      <EchecLecture quoi={echecs} />
+
+      {/* Parc illisible : ni liste ni état vide — l'encart ci-dessus a déjà dit
+          pourquoi, et proposer « créer mon premier bien » serait un mensonge. */}
+      {erreurBiens ? null : biensVisibles.length === 0 ? (
+        // État vide de la charte (.vide-guide) : ce qu'il n'y a pas, pourquoi,
+        // et le geste qui le remplit — à la place d'un .vide remonté à la main.
+        <div className="vide-guide">
+          {portefeuille ? (
+            <>
+              <p className="titre">Aucun lot ne vous est confié</p>
+              <p className="explication">
+                Votre portefeuille se remplit quand l&apos;administrateur de
+                l&apos;agence vous confie un mandat.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="titre">Votre parc est vide</p>
+              <p className="explication">
+                Commencez par un bien : son lot naît avec lui, et c&apos;est le lot
+                qui portera le bail.
+              </p>
+              <div className="geste">
+                <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
                   Créer mon premier bien
                 </Link>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         // Maquette (charte v2) : maître-détail — la liste des lots regroupés
@@ -277,7 +294,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   {/* Ce compteur agrège les BLOCAGES de mise en location (dont
                       les diagnostics, chacun à son niveau) — pas les compteurs
                       « manquants » des fiches, qui couvrent aussi le non bloquant. */}
-                  {totalBlocages} blocage{totalBlocages > 1 ? "s" : ""} de mise en location
+                  {erreurBlocages
+                    ? "blocages non lus"
+                    : `${totalBlocages} blocage${totalBlocages > 1 ? "s" : ""} de mise en location`}
                 </span>
               </div>
               <div className="kpi bleu">
@@ -310,9 +329,17 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 <CardContent>
                   <div className="entete-carte">
                     <h3 className="text-[1.05rem]">Éléments à compléter</h3>
-                    <span className="mono-discret">{totalBlocages} au total</span>
+                    {!erreurBlocages && (
+                      <span className="mono-discret">{totalBlocages} au total</span>
+                    )}
                   </div>
-                  {motifsTries.length === 0 ? (
+                  {erreurBlocages ? (
+                    // « Rien à compléter » est un verdict : on ne le rend pas
+                    // sur une lecture qui a échoué.
+                    <p className="text-sm text-muted-foreground">
+                      Liste indisponible — voir le message en haut de page.
+                    </p>
+                  ) : motifsTries.length === 0 ? (
                     <p className="text-sm text-success-soft-foreground">
                       Tous vos lots sont prêts à la location. Rien à compléter.
                     </p>
@@ -353,7 +380,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {(equipements ?? []).length === 0 ? (
+          {erreurEquipements ? null : (equipements ?? []).length === 0 ? (
             // Un état vide doit dire quoi faire, ou à qui s'adresser quand on ne
             // peut pas le faire soi-même.
             <p className="text-sm text-muted-foreground">

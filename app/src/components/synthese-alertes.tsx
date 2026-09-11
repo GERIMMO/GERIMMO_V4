@@ -30,18 +30,11 @@ export type AlerteSynthese = {
   details: Record<string, unknown> | null;
 };
 
-// Revue visuelle 09/09 : chaque alerte est une carte-rangée — liseré de
-// criticité à gauche, pastille douce (plus de mono brut), titre complet.
-const ACCENTS_CRITICITE: Record<string, string> = {
-  critique: "var(--destructive)",
-  normale: "var(--or)",
-  informative: "var(--filet-leger)",
-};
-const PUCES_CRITICITE: Record<string, string> = {
-  critique: "puce-rouge",
-  normale: "puce-prep",
-  informative: "puce-grise",
-};
+// Une alerte se rendait de trois façons à un clic d'écart (relevé 11/09) :
+// carte-rangée maison ici, liste sur la page Alertes, rangée à part sur le
+// tableau de bord. Une seule subsiste — la .rang-alerte de la charte.
+const CLASSE_CRITICITE = (c: string) =>
+  c === "critique" ? "critique" : c === "normale" ? "normale" : "";
 
 // Le drapeau « déjà vue » vit dans le sessionStorage, qui survit à la
 // déconnexion tant que l'onglet reste ouvert : la page de connexion le remet
@@ -123,11 +116,7 @@ export function SyntheseAlertes({
         >
           Alertes
           {alertes.length > 0 && (
-            <span
-              className={`ml-1.5 rounded-full px-[7px] py-px font-[family-name:var(--font-libelles)] text-[10px] text-white ${
-                nbCritiques > 0 ? "bg-[var(--destructive)]" : "bg-[var(--or)]"
-              }`}
-            >
+            <span className={`puce ml-1.5 ${nbCritiques > 0 ? "puce-rouge" : "puce-prep"}`}>
               {alertes.length}
             </span>
           )}
@@ -159,7 +148,7 @@ export function SyntheseAlertes({
                 <Link
                   href={`/agence/${[...parAgence.keys()][0]}/alertes`}
                   onClick={fermer}
-                  className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                  className="lien-discret"
                 >
                   Toutes les alertes&nbsp;→
                 </Link>
@@ -183,88 +172,74 @@ export function SyntheseAlertes({
                 </p>
               ) : (
                 [...parAgence.entries()].map(([agenceId, groupe]) => (
-                  <div key={agenceId} className="py-2">
+                  <div key={agenceId} className="colonne-liste mb-2">
                     {multiAgences && (
-                      <p className="eyebrow pb-1">{groupe.nom}</p>
+                      <div className="tete-groupe">
+                        <span className="libelle-champ">{groupe.nom}</span>
+                        <span className="libelle-champ">{groupe.liste.length}</span>
+                      </div>
                     )}
-                    <ul className="space-y-1.5">
-                      {groupe.liste.map((a) => {
+                    {groupe.liste.map((a) => {
                         const echeance = afficherEcheance(a.echeance);
-                        // Carte-rangée de la charte (revue visuelle 09/09) :
-                        // liseré de criticité, pastille douce, titre complet
-                        // sans troncature — TOUTE la rangée mène au traitement.
+                        // Rangée de la charte : liseré de criticité, niveau en
+                        // mono, titre complet sans troncature — TOUTE la
+                        // rangée mène au traitement.
                         const contenu = (
                           <>
-                            <span
-                              aria-hidden
-                              className="w-[3px] shrink-0 self-stretch"
-                              style={{ background: ACCENTS_CRITICITE[a.criticite] ?? "var(--filet-leger)" }}
-                            />
-                            <span className="min-w-0 flex-1 py-2.5">
-                              <span className="flex flex-wrap items-center gap-x-2 gap-y-1 pb-1">
-                                <span className={`puce ${PUCES_CRITICITE[a.criticite] ?? "puce-grise"}`}>
-                                  {CRITICITES[a.criticite] ?? a.criticite}
-                                </span>
-                                {echeance && (
-                                  <span className={`text-xs ${echeance.classe}`}>
-                                    {echeance.texte}
-                                  </span>
-                                )}
+                            <span className="min-w-0 flex-1">
+                              <span className="niveau block">
+                                {CRITICITES[a.criticite] ?? a.criticite}
                               </span>
-                              <span className="block text-sm leading-snug">{a.titre}</span>
+                              <span className="mt-0.5 block text-sm leading-snug">
+                                {a.titre}
+                              </span>
                             </span>
-                            <span className="shrink-0 self-center pr-3.5 text-xs text-[var(--bleu)] underline-offset-2 group-hover:underline">
-                              Traiter&nbsp;→
+                            <span className="flex shrink-0 items-center gap-3">
+                              {echeance && (
+                                <span className={`text-[length:var(--pas-appui)] ${echeance.classe}`}>
+                                  {echeance.texte}
+                                </span>
+                              )}
+                              <span className="lien-discret group-hover:underline">
+                                Traiter&nbsp;→
+                              </span>
                             </span>
                           </>
                         );
-                        const classeRangee =
-                          "group flex w-full items-stretch gap-3 border border-border bg-card text-left transition-all hover:translate-x-[3px] hover:border-[var(--encre)]";
-                        return (
-                        <li key={a.id}>
-                          {/* Recette 24/08 : « Traiter » ouvre la pop-up SUR
-                              L'ÉCRAN COURANT ; une alerte incident emmène au
-                              dossier, dans l'onglet Incidents. */}
-                          {modeAdmin ? (
-                            <Link
-                              href={`/admin/organisations/${a.organization_id}`}
-                              onClick={fermer}
-                              className={classeRangee}
-                            >
-                              {contenu}
-                            </Link>
-                          ) : typeof a.details?.incident_id === "string" ? (
-                            <Link
-                              href={`/agence/${a.organization_id}/incidents?sel=${a.details.incident_id}`}
-                              onClick={fermer}
-                              className={classeRangee}
-                            >
-                              {contenu}
-                            </Link>
-                          ) : membres ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                fermer();
-                                setTraitement(a);
-                              }}
-                              className={classeRangee}
-                            >
-                              {contenu}
-                            </button>
-                          ) : (
-                            <Link
-                              href={`/agence/${a.organization_id}/alertes?traiter=${a.id}`}
-                              onClick={fermer}
-                              className={classeRangee}
-                            >
-                              {contenu}
-                            </Link>
-                          )}
-                        </li>
+                        const classeRangee = `rang-alerte group w-full flex-wrap gap-y-2 text-left ${CLASSE_CRITICITE(a.criticite)}`;
+                        // Recette 24/08 : « Traiter » ouvre la pop-up SUR
+                        // L'ÉCRAN COURANT ; une alerte incident emmène au
+                        // dossier, dans l'onglet Incidents.
+                        const cible = modeAdmin
+                          ? `/admin/organisations/${a.organization_id}`
+                          : typeof a.details?.incident_id === "string"
+                            ? `/agence/${a.organization_id}/incidents?sel=${a.details.incident_id}`
+                            : membres
+                              ? null
+                              : `/agence/${a.organization_id}/alertes?traiter=${a.id}`;
+                        return cible ? (
+                          <Link
+                            key={a.id}
+                            href={cible}
+                            onClick={fermer}
+                            className={classeRangee}
+                          >
+                            {contenu}
+                          </Link>
+                        ) : (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => {
+                              fermer();
+                              setTraitement(a);
+                            }}
+                            className={classeRangee}
+                          >
+                            {contenu}
+                          </button>
                         );
                       })}
-                    </ul>
                   </div>
                 ))
               )}
@@ -278,12 +253,6 @@ export function SyntheseAlertes({
           alerte={traitement}
           membres={membres}
           estResponsable={estResponsable}
-          nomAssignation={
-            traitement.assigned_all
-              ? "tout le monde"
-              : (membres.find((m) => m.account_id === traitement.assignee_account_id)
-                  ?.email ?? "—")
-          }
           fermer={() => setTraitement(null)}
         />
       )}

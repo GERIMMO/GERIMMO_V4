@@ -58,7 +58,11 @@ export function FormulaireAttestation({
           <Input id="att-titre" name="titre" maxLength={200} placeholder="ex. MAIF, contrat n°…" defaultValue={etat.valeurs?.titre} />
         </div>
       </div>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && (
+        <p className="err !mb-0" role="alert">
+          {etat.erreur}
+        </p>
+      )}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
       <BoutonEnvoi enCoursTexte="Dépôt…" size="sm">
         Déposer

@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EchecLecture } from "../../documents/echec-lecture";
 import { FormulaireIncident } from "./formulaire-incident";
 
 export const metadata = { title: "Nouvel incident — Gerimmo" };
@@ -62,11 +63,11 @@ export default async function PageNouvelIncident(
         <Card>
           <CardContent>
             {/* Un échec de lecture ne doit pas se déguiser en sélecteur vide
-                (audit 09/09) */}
+                (audit 09/09). `.vide` disait « rien à afficher » là où il
+                fallait dire « je n'ai pas pu lire » : c'est l'encart d'échec
+                de la zone, le même que partout ailleurs. */}
             {erreurLots ? (
-              <div className="vide">
-                Impossible de charger les lots — rechargez dans un instant.
-              </div>
+              <EchecLecture quoi={["les lots du parc"]} />
             ) : (
               <FormulaireIncident orgId={orgId} lots={lots} />
             )}

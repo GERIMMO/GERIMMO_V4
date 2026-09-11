@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { FormulaireAttestation } from "../formulaire-attestation";
 import { DepotSignature } from "./depot-signature";
 import { DepotPiece, type DemandePiece } from "./depot-piece";
+import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 
 export const metadata = { title: "Mes documents — Gerimmo" };
 
@@ -49,10 +50,10 @@ export default async function PageDocumentsLocataire(
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const [
-    { data: piecesBrutes },
-    { data: echeancier },
-    { data: demandesBrutes },
-    { data: signaturesBrutes },
+    { data: piecesBrutes, error: ePieces },
+    { data: echeancier, error: eEcheancier },
+    { data: demandesBrutes, error: eDemandes },
+    { data: signaturesBrutes, error: eSignatures },
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
@@ -92,6 +93,10 @@ export default async function PageDocumentsLocataire(
       .filter(Boolean)
       .join(" · ");
 
+  // Sans cette lecture, la carte d'assurance GRONDAIT le locataire pour une
+  // attestation qu'il avait déposée — la requête seule avait échoué.
+  const lecturePiecesKO = aEchoue(ePieces);
+
   return (
     <div className="space-y-4">
       <div className="entete-page">
@@ -102,6 +107,10 @@ export default async function PageDocumentsLocataire(
           </span>
         )}
       </div>
+
+      {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures) && (
+        <PanneLecture quoi="vos documents" />
+      )}
 
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
       {aSigner.length > 0 && adhesionActive && (
@@ -138,11 +147,12 @@ export default async function PageDocumentsLocataire(
 
       {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place */}
       <div
-        className={`loc-carte ${assurance && assurance.verifie_le && !estExpiree(assurance.expire_le) ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        className={`loc-carte ${lecturePiecesKO || (assurance && assurance.verifie_le && !estExpiree(assurance.expire_le)) ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
           <h3 className="text-base font-medium">Votre assurance habitation</h3>
-          {assurance &&
+          {!lecturePiecesKO &&
+            assurance &&
             (assurance.verifie_le ? (
               estExpiree(assurance.expire_le) ? (
                 <span className="loc-tag rouge">Expirée</span>
@@ -153,7 +163,9 @@ export default async function PageDocumentsLocataire(
               <span className="loc-tag ambre">En cours de vérification</span>
             ))}
         </div>
-        {assurance ? (
+        {lecturePiecesKO ? (
+          <LectureImpossible quoi="l'état de votre assurance" />
+        ) : assurance ? (
           <p className="text-sm text-muted-foreground">
             {assurance.titre || "Attestation déposée"} —{" "}
             <span className={statut?.classe}>{statut?.texte}</span>.
@@ -173,19 +185,25 @@ export default async function PageDocumentsLocataire(
             </p>
           )
         )}
-        <div className="mt-3.5">
-          {adhesionActive && (
-          <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
-          )}
-        </div>
+        {adhesionActive && (
+          <div className="mt-3.5">
+            <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
+          </div>
+        )}
       </div>
 
       <div className="loc-carte">
         <div className="entete-carte">
           <h3 className="text-base font-medium">Conservés pour vous</h3>
-          <span className="mono-discret">{total} document{total > 1 ? "s" : ""}</span>
+          {!aEchoue(ePieces, eEcheancier) && (
+            <span className="mono-discret">
+              {total} document{total > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
-        {total === 0 ? (
+        {aEchoue(ePieces, eEcheancier) ? (
+          <LectureImpossible quoi="les pièces conservées pour vous" />
+        ) : total === 0 ? (
           <p className="text-sm text-muted-foreground">
             Aucune pièce pour l&apos;instant — votre bail signé, le règlement de
             copropriété, vos quittances et vos attestations apparaîtront ici.

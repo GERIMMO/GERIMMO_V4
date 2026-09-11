@@ -82,7 +82,7 @@ export function SidebarLocataire({
             <span className="lib">{e.libelle}</span>
             {nb > 0 && (
               <span className="loc-badge" aria-hidden="true">
-                {nb}
+                {nb > 99 ? "99+" : nb}
               </span>
             )}
           </Link>

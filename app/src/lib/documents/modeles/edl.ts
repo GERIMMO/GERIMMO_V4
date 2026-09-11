@@ -57,6 +57,8 @@ export type DonneesEdl = {
   f: Fusion;
 };
 
+// Les pièces de la grille : un h3 par pièce, au rythme du gabarit (une marge
+// en ligne refaisait à la main ce que la feuille du document dit déjà).
 function groupesDeLignes(lignes: LigneEdl[]): Map<string, LigneEdl[]> {
   const groupes = new Map<string, LigneEdl[]>();
   for (const l of lignes) {
@@ -75,7 +77,7 @@ export function construireEdl(d: DonneesEdl) {
   const grilles = [...groupesDeLignes(d.lignes).entries()]
     .map(
       ([piece, lignes]) => `
-      <h3 style="margin-top:14pt">${echapper(piece)}</h3>
+      <h3>${echapper(piece)}</h3>
       ${tableau(
         [{ libelle: "Élément" }, { libelle: "État" }, { libelle: "Observations" }],
         lignes.map((l) => [
@@ -92,7 +94,7 @@ export function construireEdl(d: DonneesEdl) {
 
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: d.dateEdl ?? new Date().toISOString() })}
-    ${titre(titreDoc, d.logementAdresse, [
+    ${titre(titreDoc, echapper(d.logementAdresse), [
       "Article 3-2 de la loi n° 89-462 du 6 juillet 1989 · décret n° 2016-382 du 30 mars 2016",
     ])}
     ${cartouches([

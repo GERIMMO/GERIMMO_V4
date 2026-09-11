@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import {
   enregistrerSignature,
   retirerSignature,
@@ -11,6 +11,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modale } from "@/components/ui/modale";
 import { afficherToast } from "@/components/ui/toast";
 
 export function FormulaireSignature({
@@ -28,6 +29,22 @@ export function FormulaireSignature({
     {}
   );
   const [retraitEnCours, demarrerRetrait] = useTransition();
+  // Relevé 11/09 : « Retirer » partait au premier tap — un geste qui vide la
+  // zone de signature de TOUS les documents à venir — et son `res.erreur`
+  // était jeté : quand le retrait échouait, l'écran ne bougeait pas et la
+  // signature semblait retirée. Confirmation d'abord, échec dit ensuite.
+  const [confirmeRetrait, setConfirmeRetrait] = useState(false);
+  const [erreurRetrait, setErreurRetrait] = useState<string | null>(null);
+
+  const retirer = () => {
+    setConfirmeRetrait(false);
+    setErreurRetrait(null);
+    demarrerRetrait(async () => {
+      const res = await retirerSignature(orgId);
+      if (res.erreur) setErreurRetrait(res.erreur);
+      else if (res.succes) afficherToast(res.succes);
+    });
+  };
 
   return (
     <div className="space-y-3">
@@ -37,7 +54,7 @@ export function FormulaireSignature({
           <img
             src={apercu}
             alt="Signature enregistrée"
-            className="max-h-16 rounded border border-border bg-white p-2"
+            className="max-h-16 rounded border border-border bg-[var(--ivoire)] p-2"
           />
           {!lectureSeule && (
             <Button
@@ -45,14 +62,15 @@ export function FormulaireSignature({
               variant="outline"
               size="sm"
               disabled={retraitEnCours}
-              onClick={() =>
-                demarrerRetrait(async () => {
-                  const res = await retirerSignature(orgId);
-                  if (res.succes) afficherToast(res.succes);
-                })
-              }
+              onClick={() => setConfirmeRetrait(true)}
             >
-              {retraitEnCours ? <><Spinner /> …</> : "Retirer"}
+              {retraitEnCours ? (
+                <>
+                  <Spinner /> Retrait…
+                </>
+              ) : (
+                "Retirer"
+              )}
             </Button>
           )}
         </div>
@@ -61,6 +79,43 @@ export function FormulaireSignature({
           Aucune signature enregistrée — la zone de signature reste vierge sur
           les documents générés.
         </p>
+      )}
+
+      {erreurRetrait && (
+        <p role="alert" className="text-sm text-destructive">
+          {erreurRetrait}
+        </p>
+      )}
+
+      {confirmeRetrait && (
+        <Modale
+          titre="Retirer la signature"
+          surtitre="Tous les documents à venir"
+          variante="critique"
+          fermer={() => setConfirmeRetrait(false)}
+          pied={
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmeRetrait(false)}
+              >
+                Annuler
+              </Button>
+              <Button type="button" variant="destructive" size="sm" onClick={retirer}>
+                Retirer
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-sm">
+            La zone de signature restera vierge sur TOUS les documents émis
+            ensuite — quittances, reçus, courriers. Les documents déjà générés
+            ne changent pas, et vous pourrez déposer une nouvelle signature à
+            tout moment.
+          </p>
+        </Modale>
       )}
 
       {!lectureSeule && (
@@ -74,8 +129,16 @@ export function FormulaireSignature({
           <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
             Enregistrer
           </BoutonEnvoi>
-          {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-          {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+          {etat.erreur && (
+            <p role="alert" className="text-sm text-destructive">
+              {etat.erreur}
+            </p>
+          )}
+          {etat.succes && (
+            <p role="status" className="text-sm text-success-soft-foreground">
+              {etat.succes}
+            </p>
+          )}
         </form>
       )}
     </div>

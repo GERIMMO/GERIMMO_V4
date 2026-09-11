@@ -70,10 +70,14 @@ export function CartePiecesDemandees({
   orgId,
   personId,
   demandes,
+  // La fiche ne charge que les demandes les plus récentes : la carte le dit
+  // plutôt que de laisser croire à un historique complet.
+  tronquees = false,
 }: {
   orgId: string;
   personId: string;
   demandes: PieceDemandee[];
+  tronquees?: boolean;
 }) {
   const [etat, action] = useActionState<EtatPieceDemandee, FormData>(
     demanderPieceLocataire.bind(null, orgId, personId),
@@ -118,6 +122,12 @@ export function CartePiecesDemandees({
         </ul>
       )}
 
+      {tronquees && (
+        <p className="text-xs text-muted-foreground">
+          Les {demandes.length} demandes les plus récentes — les plus anciennes
+          ne sont pas listées ici.
+        </p>
+      )}
       <form action={action} className="space-y-2 border-t border-border pt-3">
         <div className="flex flex-wrap gap-1.5">
           {LIBELLES_COURANTS.map(([libelle]) => (

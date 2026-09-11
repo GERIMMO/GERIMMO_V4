@@ -30,9 +30,15 @@ import {
 import { FormulaireInvitation } from "./formulaire-invitation";
 import { CarteMessages } from "./carte-messages";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
+import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
+
+// Les pièces réclamées affichées sur la fiche sont bornées aux plus récentes.
+// La carte le DIT quand elle atteint le plafond : une demande en attente qui
+// disparaît en silence est une relance qu'on ne fera jamais.
+const PLAFOND_DEMANDES = 20;
 
 export default async function PagePersonne(
   props: PageProps<"/agence/[orgId]/personnes/[personId]">
@@ -40,7 +46,7 @@ export default async function PagePersonne(
   const { orgId, personId } = await props.params;
   const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
 
-  const { data: personne } = await supabase
+  const { data: personne, error: erreurPersonne } = await supabase
     .from("persons")
     .select(
       "id, nom, prenom, email, telephone, date_naissance, commune_naissance, address_line1, postal_code, city, qualite, account_id"
@@ -48,20 +54,31 @@ export default async function PagePersonne(
     .eq("id", personId)
     .eq("organization_id", orgId)
     .maybeSingle();
+  // Lecture refusée ≠ fiche supprimée : un 404 enverrait le gestionnaire
+  // recréer une fiche qui existe (relevé du 11/09).
+  if (erreurPersonne) {
+    return (
+      <PageEchecLecture
+        titre="Fiche personne"
+        quoi={["cette fiche"]}
+        retour={{ href: `/agence/${orgId}/personnes`, libelle: "Personnes" }}
+      />
+    );
+  }
   if (!personne) notFound();
 
   // Quatre lectures indépendantes — un seul aller-retour
   const [
     // Pièces courantes du dossier (versioning : seules les non remplacées)
-    { data: pieces },
+    { data: pieces, error: erreurPieces },
     // Versions antérieures (recette 13/08) : l'historique reste consultable —
     // on remonte la chaîne remplace_id de chaque pièce courante.
-    { data: liensDossier },
+    { data: liensDossier, error: erreurLiensDossier },
     // Lots détenus par la personne (affichés sur la fiche, recette 14/08 —
     // et base des mandats)
-    { data: detentions },
+    { data: detentions, error: erreurDetentions },
     // Mandats de la personne
-    { data: mandats },
+    { data: mandats, error: erreurMandats },
   ] = await Promise.all([
     supabase.rpc("dossier_personne", { p_person: personId }),
     supabase
@@ -85,26 +102,27 @@ export default async function PagePersonne(
   ]);
 
   // « Confié à » (maquette v3, RM-18.1.3) : la liste des gérants de l'agence
-  const { data: donneesGerants } =
+  const { data: donneesGerants, error: erreurGerants } =
     !estProprietaire && (mandats ?? []).length > 0
       ? await supabase.rpc("org_membres_gerants", { org: orgId })
-      : { data: [] };
+      : { data: [], error: null };
   // Fil de messages (espace locataire v10) — lire marque lus les messages du
   // locataire : ouvrir la fiche vaut prise de connaissance.
-  const { data: filMessages } = await supabase.rpc("messages_personne", {
-    p_org: orgId,
-    p_person: personId,
-  });
+  const { data: filMessages, error: erreurMessages } = await supabase.rpc(
+    "messages_personne",
+    { p_org: orgId, p_person: personId }
+  );
   const messages = (filMessages ?? []) as import("./carte-messages").MessagePersonne[];
   // Pièces réclamées (RM-0b.2.5) : en attente + reçues récemment
-  const { data: demandesBrutes } = await supabase
+  const { data: demandesBrutes, error: erreurDemandes } = await supabase
     .from("pieces_demandees")
     .select("id, type, libelle, note, demandee_le, relancee_le, satisfaite_le")
     .eq("organization_id", orgId)
     .eq("person_id", personId)
     .order("demandee_le", { ascending: false })
-    .limit(20);
+    .limit(PLAFOND_DEMANDES);
   const demandesPieces = (demandesBrutes ?? []) as import("./carte-pieces-demandees").PieceDemandee[];
+  const demandesTronquees = demandesPieces.length >= PLAFOND_DEMANDES;
   const gerants = ((donneesGerants ?? []) as { account_id: string; email: string; role: string }[])
     .map(({ account_id, email }) => ({ account_id, email }));
 
@@ -115,17 +133,21 @@ export default async function PagePersonne(
   const lotIds = [...new Set((detentions ?? []).map((d) => d.lot_id))];
   const mandatIds = (mandats ?? []).map((m) => m.id);
   type LotAvecBien = { id: string; nom: string; bien_id: string; bien: UnOuPlusieurs<{ nom: string }> };
-  const [{ data: tousDocs }, { data: lots }, { data: lignesCouvrantes }, { data: lignes }] =
-    await Promise.all([
+  const [
+    { data: tousDocs, error: erreurDocs },
+    { data: lots, error: erreurLots },
+    { data: lignesCouvrantes, error: erreurCouvrantes },
+    { data: lignes, error: erreurLignes },
+  ] = await Promise.all([
       idsDossier.length
         ? supabase.from("documents").select("id, titre, remplace_id, created_at").in("id", idsDossier)
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [], error: null }),
       lotIds.length
         ? supabase
             .from("lots")
             .select("id, nom, bien_id, bien:biens!lots_bien_id_fkey(nom)")
             .in("id", lotIds)
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [], error: null }),
       // Lots déjà couverts par un mandat non résilié (le sien ou celui d'un
       // co-détenteur) : inutile de les proposer, la base les refuserait (RM-5.1.3).
       lotIds.length
@@ -135,14 +157,14 @@ export default async function PagePersonne(
             .eq("organization_id", orgId)
             .in("lot_id", lotIds)
             .is("date_fin", null)
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [], error: null }),
       // Lignes des mandats
       mandatIds.length
         ? supabase
             .from("mandat_lignes")
             .select("id, mandat_id, lot_id, taux_honoraires, date_fin")
             .in("mandat_id", mandatIds)
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: [], error: null }),
     ]);
   type DocVersion = { id: string; titre: string | null; remplace_id: string | null; created_at: string };
   const docParId = new Map(((tousDocs ?? []) as DocVersion[]).map((d) => [d.id, d]));
@@ -175,12 +197,12 @@ export default async function PagePersonne(
   const lotsManquantsIds = [...new Set((lignes ?? []).map((l) => l.lot_id))].filter(
     (id) => !lotsOptions.some((o) => o.id === id)
   );
-  const { data: lotsManquantsBrut } = lotsManquantsIds.length
+  const { data: lotsManquantsBrut, error: erreurLotsManquants } = lotsManquantsIds.length
     ? await supabase
         .from("lots")
         .select("id, nom, bien_id, bien:biens!lots_bien_id_fkey(nom)")
         .in("id", lotsManquantsIds)
-    : { data: [] };
+    : { data: [], error: null };
   const lotsManquants = ((lotsManquantsBrut ?? []) as unknown as LotAvecBien[]);
   const libelleLot = (id: string) => {
     const option = lotsOptions.find((l) => l.id === id);
@@ -188,6 +210,21 @@ export default async function PagePersonne(
     const lot = lotsManquants.find((l) => l.id === id);
     return lot ? `${premier(lot.bien)?.nom ?? ""} · ${lot.nom}` : id.slice(0, 8);
   };
+
+  // Une fiche personne est faite de dix lectures. Chacune qui échoue enlève
+  // en silence une carte entière — dossier vide, aucun mandat, aucun message —
+  // et l'écran devient rassurant au lieu d'être exact.
+  const lecturesManquees = [
+    erreurPieces && "les pièces du dossier",
+    (erreurLiensDossier || erreurDocs) && "l'historique des versions",
+    erreurDetentions && "les lots détenus",
+    (erreurMandats || erreurLignes) && "les mandats de gestion",
+    erreurGerants && "les gestionnaires de l'agence",
+    erreurMessages && "le fil de messages",
+    erreurDemandes && "les pièces réclamées",
+    (erreurLots || erreurLotsManquants || erreurCouvrantes) &&
+      "les lots rattachables à un mandat",
+  ].filter((q): q is string => Boolean(q));
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
@@ -229,6 +266,8 @@ export default async function PagePersonne(
           <BoutonArchiverPersonne orgId={orgId} personId={personId} />
         </div>
       </div>
+
+      <EchecLecture quoi={lecturesManquees} />
 
       {/* Détentions en cours : la fiche montre ce que la personne possède
           (recette 14/08 — l'assistant crée la détention, la fiche l'affiche) */}
@@ -418,6 +457,7 @@ export default async function PagePersonne(
               orgId={orgId}
               personId={personId}
               demandes={demandesPieces}
+              tronquees={demandesTronquees}
             />
           </CardContent>
         </Card>

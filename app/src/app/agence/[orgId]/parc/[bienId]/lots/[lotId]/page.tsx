@@ -5,13 +5,11 @@ import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   alertesDecence,
-  cibleBlocage,
 } from "@/lib/parc";
 import {
   diagnosticsExigibles,
   diagnosticsManquants,
   alerteDiagnosticsNiveau,
-  etiqueterNiveau,
   LIBELLES_NIVEAU_DIAGNOSTIC,
 } from "@/lib/diagnostics";
 import { formaterDate, eur } from "@/lib/ged";
@@ -39,6 +37,8 @@ import { FormulairePiecesLot, type PieceLot } from "./formulaire-pieces-lot";
 import { FormulaireBailLot } from "./formulaire-bail-lot";
 import { AppelsCharges, type AppelCharge } from "./formulaire-appels-charges";
 import { buttonVariants } from "@/components/ui/button";
+import { EchecLecture, PageEchecLecture } from "../../../echec-lecture";
+import { BlocagesLocation } from "../../../blocages-location";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
 
@@ -49,17 +49,17 @@ export default async function PageLot(
   const { supabase, role } = await verifierAccesEspace(orgId);
 
   const [
-    { data: lot },
-    { data: bien },
-    { data: detentions },
-    { data: diagnostics },
-    { data: catalogue },
-    { data: equipesLot },
-    { data: personnes },
-    { data: blocages },
-    { data: baux },
-    { data: proprietaires },
-    { data: piecesLot },
+    { data: lot, error: erreurLot },
+    { data: bien, error: erreurBien },
+    { data: detentions, error: erreurDetentions },
+    { data: diagnostics, error: erreurDiagnostics },
+    { data: catalogue, error: erreurCatalogue },
+    { data: equipesLot, error: erreurEquipesLot },
+    { data: personnes, error: erreurPersonnes },
+    { data: blocages, error: erreurBlocages },
+    { data: baux, error: erreurBaux },
+    { data: proprietaires, error: erreurProprietaires },
+    { data: piecesLot, error: erreurPieces },
   ] = await Promise.all([
     supabase
       .from("lots")
@@ -120,10 +120,19 @@ export default async function PageLot(
       .order("ordre")
       .order("created_at"),
   ]);
+  // Lecture refusée : ni le lot ni le bien n'ont disparu (relevé du 11/09).
+  if (erreurLot || erreurBien)
+    return (
+      <PageEchecLecture
+        titre="Fiche lot"
+        quoi={[erreurLot ? "le lot" : "", erreurBien ? "le bien" : ""].filter(Boolean)}
+        retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: "Fiche bien" }}
+      />
+    );
   if (!lot || !bien) notFound();
 
   // Appels de charges de copropriété (module 0c) — uniquement si le bien est en copropriété
-  const { data: appelsRaw } = bien.copropriete
+  const { data: appelsRaw, error: erreurAppels } = bien.copropriete
     ? await supabase
         .from("appels_charges")
         .select(
@@ -131,7 +140,7 @@ export default async function PageLot(
         )
         .eq("lot_id", lotId)
         .order("exercice", { ascending: false })
-    : { data: [] };
+    : { data: [], error: null };
   const appelsCharges = ((appelsRaw ?? []) as AppelCharge[]).map((a) => ({
     ...a,
     postes: [...(a.postes ?? [])].sort((x, y) => x.libelle.localeCompare(y.libelle)),
@@ -171,6 +180,23 @@ export default async function PageLot(
     ? nomsParId.get(bailEnCours.locataire_principal)
     : undefined;
 
+  // Ce que la base n'a pas rendu : « aucun diagnostic », « aucun bail »,
+  // « 0 % de détention » sont des verdicts — pas quand la lecture a échoué.
+  const echecs: string[] = [];
+  const noter = (libelle: string, erreur: unknown) => {
+    if (erreur) echecs.push(libelle);
+  };
+  noter("les propriétaires du lot", erreurDetentions);
+  noter("les diagnostics", erreurDiagnostics);
+  noter("le catalogue d’équipements", erreurCatalogue);
+  noter("les équipements du lot", erreurEquipesLot);
+  noter("les personnes de l’agence", erreurPersonnes);
+  noter("ce qui bloque la mise en location", erreurBlocages);
+  noter("les baux", erreurBaux);
+  noter("les propriétaires déjà connus de l’agence", erreurProprietaires);
+  noter("les pièces du lot", erreurPieces);
+  noter("les appels de charges", erreurAppels);
+
   const nbEquip = (equipesLot ?? []).length;
   const nbDiag = (diagnostics ?? []).length;
   const nbBaux = (baux ?? []).length;
@@ -200,6 +226,8 @@ export default async function PageLot(
         </div>
       </div>
 
+      <EchecLecture quoi={echecs} />
+
       {decence.length > 0 && (
         <div className="border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
           {decence.map((a) => (
@@ -221,37 +249,16 @@ export default async function PageLot(
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {(blocages ?? []).length > 0 && lot.etat === "brouillon" && (
-            <div className="rounded-lg bg-muted p-3 text-sm">
-              <p className="mb-1 font-medium">
-                Ce qui empêche la mise en location :
-              </p>
-              <ul className="space-y-1.5">
-                {(blocages as string[]).map((b) => {
-                  const cible = cibleBlocage(b, { orgId, bienId, lotId });
-                  // Ancre native pour les cibles de cette page (voir fiche bien) :
-                  // Link/pushState ne déclenche pas hashchange, la section restait fermée.
-                  const memePage = cible.href.includes(`/lots/${lotId}#`);
-                  return (
-                    <li key={b} className="flex items-center justify-between gap-2">
-                      {/* Un diagnostic porte son niveau (« au lot » / « à l'immeuble ») */}
-                      <span className="min-w-0 flex-1 text-muted-foreground">
-                        {etiqueterNiveau(b, b)}
-                      </span>
-                      {memePage ? (
-                        <a href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                          {cible.libelle} →
-                        </a>
-                      ) : (
-                        <Link href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                          {cible.libelle} →
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+          {/* Ce qui empêche la mise en location. C'était ici un bloc GRIS neutre,
+              alors que le parc et la fiche bien en font une alerte ambre — même
+              RPC, trois rendus (relevé du 11/09). Un seul, désormais. */}
+          {lot.etat === "brouillon" && (
+            <BlocagesLocation
+              motifs={(blocages ?? []) as string[]}
+              ctx={{ orgId, bienId, lotId }}
+              pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`}
+              titre="Ce qui empêche la mise en location"
+            />
           )}
           <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} />
 
@@ -431,7 +438,7 @@ export default async function PageLot(
             resume={
               nbBaux === 0
                 ? "Aucun bail"
-                : `${nbBaux} bail${nbBaux > 1 ? "s" : ""} · ${(baux ?? [])
+                : `${nbBaux > 1 ? `${nbBaux} baux` : "1 bail"} · ${(baux ?? [])
                     .map((b) => ETATS_BAIL[b.etat] ?? b.etat)
                     .join(", ")}`
             }
@@ -501,7 +508,7 @@ export default async function PageLot(
               resume={
                 appelsCharges.length === 0
                   ? "Aucun appel de charges saisi"
-                  : `${appelsCharges.length} appel(s) · ${
+                  : `${appelsCharges.length} appel${appelsCharges.length > 1 ? "s" : ""} · ${
                       appelsCharges.filter((a) => a.statut === "brouillon").length
                     } en cours`
               }

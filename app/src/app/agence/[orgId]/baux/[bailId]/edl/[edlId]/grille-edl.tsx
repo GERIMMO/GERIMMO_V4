@@ -111,6 +111,11 @@ export function GrilleEdl({
   const [confirmeSignature, setConfirmeSignature] = useState(false);
   const boutonSigner = useRef<HTMLButtonElement>(null);
   const manquantes = lignes.filter((l) => !etats[l.id]).length;
+  // Une grille SANS ligne n'a rien à signer, et la base le refuse déjà
+  // (`signer_edl` : « Grille vide : générez la grille avant de signer »).
+  // L'écran, lui, comptait 0 ligne manquante et proposait de signer — il
+  // promettait ce que la base refuse (relevé du 11/09).
+  const grilleVide = lignes.length === 0;
 
   // ── Brouillon local (module 19 — l'EDL se saisit debout, réseau incertain) ──
   const formulaire = useRef<HTMLFormElement>(null);
@@ -468,7 +473,7 @@ export function GrilleEdl({
               <Button
                 type="button"
                 size="sm"
-                disabled={enCoursMaj || manquantes > 0}
+                disabled={enCoursMaj || manquantes > 0 || grilleVide}
                 onClick={() => setConfirmeSignature(true)}
               >
                 Enregistrer et signer
@@ -481,7 +486,7 @@ export function GrilleEdl({
               name="signer"
               value="1"
               size="sm"
-              disabled={manquantes > 0}
+              disabled={manquantes > 0 || grilleVide}
             >
               Enregistrer et signer
             </BoutonEnvoi>
@@ -510,11 +515,17 @@ export function GrilleEdl({
                 ? `${attente} ligne${attente > 1 ? "s" : ""} à synchroniser`
                 : "Synchronisé"}
           </span>
-          {manquantes > 0 && (
+          {grilleVide ? (
             <span className="text-sm text-warning-soft-foreground">
-              {manquantes} ligne{manquantes > 1 ? "s" : ""} sans état (en rouge) —
-              la signature attendra.
+              Grille vide : il n&apos;y a rien à signer — générez-la d&apos;abord.
             </span>
+          ) : (
+            manquantes > 0 && (
+              <span className="text-sm text-warning-soft-foreground">
+                {manquantes} ligne{manquantes > 1 ? "s" : ""} sans état (en rouge) —
+                la signature attendra.
+              </span>
+            )
           )}
           {etatMaj.succes && (
             <span className="text-sm text-success-soft-foreground">{etatMaj.succes}</span>

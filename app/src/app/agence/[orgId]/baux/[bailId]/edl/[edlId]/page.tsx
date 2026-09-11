@@ -9,6 +9,7 @@ import { GrilleEdl } from "./grille-edl";
 import { BoutonRegenererGrille } from "./bouton-regenerer-grille";
 import { EdlAnnexes, type Compteur, type Cle } from "./edl-annexes";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { EchecLecture, PageEchecLecture } from "../../../../parc/echec-lecture";
 
 export const metadata = { title: "État des lieux — Gerimmo" };
 
@@ -18,19 +19,28 @@ export default async function PageEdl(
   const { orgId, bailId, edlId } = await props.params;
   const { supabase } = await verifierAccesEspace(orgId);
 
-  const { data: edl } = await supabase
+  const { data: edl, error: erreurEdl } = await supabase
     .from("etats_des_lieux")
     .select("id, type, etat, date_edl")
     .eq("id", edlId)
     .eq("organization_id", orgId)
     .maybeSingle();
+  // Lecture refusée : ce n'est pas un état des lieux supprimé.
+  if (erreurEdl)
+    return (
+      <PageEchecLecture
+        titre="État des lieux"
+        quoi={["l’état des lieux"]}
+        retour={{ href: `/agence/${orgId}/baux/${bailId}`, libelle: "Bail" }}
+      />
+    );
   if (!edl) notFound();
 
   // Saisie comparative (maquette v3) : sur un EDL de sortie en cours, chaque
   // ligne rappelle l'état et l'observation d'entrée — la sortie se juge par
   // rapport à eux. On prend l'entrée signée du même bail. (L'entrée signée
   // sert aussi à expliquer d'où vient la grille de sortie — RM-1.13.1.)
-  const { data: entree } =
+  const { data: entree, error: erreurEntree } =
     edl.type === "sortie"
       ? await supabase
           .from("etats_des_lieux")
@@ -41,9 +51,13 @@ export default async function PageEdl(
           .order("date_edl", { ascending: false })
           .limit(1)
           .maybeSingle()
-      : { data: null };
+      : { data: null, error: null };
 
-  const [{ data: lignes }, { data: compteurs }, { data: cles }] = await Promise.all([
+  const [
+    { data: lignes, error: erreurLignes },
+    { data: compteurs, error: erreurCompteurs },
+    { data: cles, error: erreurCles },
+  ] = await Promise.all([
     supabase
       .from("edl_lignes")
       .select("id, categorie, piece, libelle, etat, commentaire")
@@ -70,7 +84,11 @@ export default async function PageEdl(
     piece: string | null;
     etat: string | null;
   }[];
-  const grilleGenerique = !toutesLignes.some((l) => l.categorie === "piece");
+  // Une grille ILLISIBLE (lecture refusée) n'est pas une grille absente : sans
+  // cette garde, l'écran annonçait « sa génération n'a pas abouti » et
+  // proposait de REMPLACER une grille peut-être pleine (relevé du 11/09).
+  const grilleGenerique =
+    !erreurLignes && !toutesLignes.some((l) => l.categorie === "piece");
   const lignesRemplies = toutesLignes.filter((l) => l.etat).length;
   const signe = edl.etat === "signe";
   // Sortie dont l'entrée est signée : la grille est la copie conforme de
@@ -78,13 +96,13 @@ export default async function PageEdl(
   // depuis les pièces du lot n'ont pas de sens ici (audit vie du bail 09/09).
   const sortieDepuisEntree = edl.type === "sortie" && Boolean(entree) && toutesLignes.length > 0;
 
-  const { data: bail } = grilleGenerique
+  const { data: bail, error: erreurBailLot } = grilleGenerique
     ? await supabase
         .from("baux")
         .select("lot:lots(id, bien_id)")
         .eq("id", bailId)
         .maybeSingle()
-    : { data: null };
+    : { data: null, error: null };
   const lotDuBail = premier(
     (bail as { lot: UnOuPlusieurs<{ id: string; bien_id: string }> } | null)?.lot
   );
@@ -103,6 +121,18 @@ export default async function PageEdl(
       .eq("organization_id", orgId);
     lotAPieces = (count ?? 0) > 0;
   }
+
+  // Ce que la base n'a pas rendu : une grille vide parce qu'illisible ne doit
+  // pas se lire comme une grille jamais générée.
+  const echecs: string[] = [];
+  const noter = (libelle: string, erreur: unknown) => {
+    if (erreur) echecs.push(libelle);
+  };
+  noter("la grille pièce par pièce", erreurLignes);
+  noter("les relevés de compteurs", erreurCompteurs);
+  noter("les clés remises", erreurCles);
+  noter("l’état des lieux d’entrée de référence", erreurEntree);
+  noter("le lot rattaché au bail", erreurBailLot);
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-4 sm:p-7">
@@ -136,6 +166,8 @@ export default async function PageEdl(
           </span>
         </div>
       </div>
+
+      <EchecLecture quoi={echecs} />
 
       <Card>
         <CardHeader>

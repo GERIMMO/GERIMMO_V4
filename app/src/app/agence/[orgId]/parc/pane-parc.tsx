@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ETATS_LOT, COULEURS_ETAT_LOT, TYPES_BIEN, formaterSurface, cibleBlocage } from "@/lib/parc";
-import { etiqueterNiveau } from "@/lib/diagnostics";
+import { ETATS_LOT, COULEURS_ETAT_LOT, TYPES_BIEN, formaterSurface } from "@/lib/parc";
 import { TYPES_BAIL } from "@/lib/baux";
 import { eur } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
+import { EchecLecture } from "./echec-lecture";
+import { BlocagesLocation } from "./blocages-location";
 
 // Panneau de droite du Parc (maquette `paneDe` / `paneLot` / `pageBien`) :
 // la sélection dans la liste s'ouvre ICI, sans quitter le Parc — la fiche
@@ -40,7 +41,7 @@ export async function PaneParc({
   );
 
   if (selection.type === "bien") {
-    const { data: bien } = await supabase
+    const { data: bien, error: erreurBien } = await supabase
       .from("biens")
       .select(
         "id, nom, type, address_line1, postal_code, city, copropriete, lots!lots_bien_id_fkey(id, nom, etat, surface_m2, pieces)"
@@ -48,11 +49,14 @@ export async function PaneParc({
       .eq("id", selection.id)
       .eq("organization_id", orgId)
       .maybeSingle();
+    // Lecture refusée : dire « cet élément n'existe plus » enverrait chercher
+    // un bien qui existe (relevé du 11/09).
+    if (erreurBien) return <Echec retour={retour} quoi={["le bien"]} />;
     if (!bien) return <Introuvable retour={retour} />;
     const lots = (bien.lots as { id: string; nom: string; etat: string; surface_m2: number | null; pieces: number | null }[])
       .filter((l) => l.etat !== "archive");
     const loues = lots.filter((l) => l.etat === "loue" || l.etat === "preavis").length;
-    const { data: baux } = await supabase
+    const { data: baux, error: erreurBaux } = await supabase
       .from("baux")
       .select("lot_id, loyer_hc, charges, locataire:persons!baux_locataire_meme_org_fk(nom, prenom)")
       .eq("organization_id", orgId)
@@ -72,12 +76,14 @@ export async function PaneParc({
     return (
       <div className="min-w-0 space-y-3.5">
         {retour}
+        <EchecLecture quoi={erreurBaux ? ["les baux en cours de ce bien"] : []} />
         <div className="entete-page">
           <div>
             <span className="eyebrow">
               {TYPES_BIEN[bien.type] ?? bien.type} · {bien.city}
             </span>
-            <h1 className="mt-0.5">{bien.nom}</h1>
+            {/* h2 : le <h1> du document est le titre de la page Parc */}
+            <h2 className="mt-0.5 text-3xl">{bien.nom}</h2>
             <p className="text-sm text-muted-foreground">
               {bien.address_line1}, {bien.postal_code} {bien.city}
               {bien.copropriete ? " · en copropriété" : ""}
@@ -133,35 +139,40 @@ export async function PaneParc({
     );
   }
 
-  const [{ data: lot }, { data: blocages }, { data: detentions }, { data: baux }] =
-    await Promise.all([
-      supabase
-        .from("lots")
-        .select("id, nom, etat, surface_m2, pieces, etage, meuble, bien:biens!lots_bien_id_fkey(id, nom, type, city)")
-        .eq("id", selection.id)
-        .eq("organization_id", orgId)
-        .maybeSingle(),
-      supabase.rpc("lot_blocages_location", { p_lot: selection.id }),
-      supabase
-        .from("detentions")
-        .select("quote_part, person:persons!detentions_person_id_fkey(nom, prenom)")
-        .eq("lot_id", selection.id)
-        .is("date_fin", null),
-      supabase
-        .from("baux")
-        .select(
-          "id, type, etat, loyer_hc, charges, date_debut, date_fin, locataire:persons!baux_locataire_meme_org_fk(nom, prenom)"
-        )
-        .eq("lot_id", selection.id)
-        .in("etat", ["actif", "preavis"])
-        .limit(1),
-    ]);
+  const [
+    { data: lot, error: erreurLot },
+    { data: blocages, error: erreurBlocages },
+    { data: detentions, error: erreurDetentions },
+    { data: baux, error: erreurBaux },
+  ] = await Promise.all([
+    supabase
+      .from("lots")
+      .select("id, nom, etat, surface_m2, pieces, etage, meuble, bien:biens!lots_bien_id_fkey(id, nom, type, city)")
+      .eq("id", selection.id)
+      .eq("organization_id", orgId)
+      .maybeSingle(),
+    supabase.rpc("lot_blocages_location", { p_lot: selection.id }),
+    supabase
+      .from("detentions")
+      .select("quote_part, person:persons!detentions_person_id_fkey(nom, prenom)")
+      .eq("lot_id", selection.id)
+      .is("date_fin", null),
+    supabase
+      .from("baux")
+      .select(
+        "id, type, etat, loyer_hc, charges, date_debut, date_fin, locataire:persons!baux_locataire_meme_org_fk(nom, prenom)"
+      )
+      .eq("lot_id", selection.id)
+      .in("etat", ["actif", "preavis"])
+      .limit(1),
+  ]);
+  if (erreurLot) return <Echec retour={retour} quoi={["le lot"]} />;
   if (!lot) return <Introuvable retour={retour} />;
   const bien = premier(lot.bien as UnOuPlusieurs<{ id: string; nom: string; type: string; city: string }>);
   const bail = (baux ?? [])[0];
   // Maquette v3 : un EDL en cours de saisie remonte sur le lot, avec le
   // bouton qui mène directement à la grille.
-  const { data: edlEnCours } = bail
+  const { data: edlEnCours, error: erreurEdl } = bail
     ? await supabase
         .from("etats_des_lieux")
         .select("id, type")
@@ -169,7 +180,7 @@ export async function PaneParc({
         .is("signe_le", null)
         .limit(1)
         .maybeSingle()
-    : { data: null };
+    : { data: null, error: null };
   const occupant = bail ? premier(bail.locataire as UnOuPlusieurs<{ nom: string; prenom: string | null }>) : null;
   const proprietaires = (detentions ?? [])
     .map((d) => {
@@ -180,10 +191,16 @@ export async function PaneParc({
     .join(", ");
   const causes = Array.isArray(blocages) ? (blocages as string[]) : [];
   const ficheLot = bien ? `/agence/${orgId}/parc/${bien.id}/lots/${lot.id}` : `/agence/${orgId}/parc`;
+  const echecs: string[] = [];
+  if (erreurBlocages) echecs.push("ce qui bloque la mise en location");
+  if (erreurDetentions) echecs.push("les propriétaires");
+  if (erreurBaux) echecs.push("le bail en cours");
+  if (erreurEdl) echecs.push("l’état des lieux en cours");
 
   return (
     <div className="min-w-0 space-y-3.5">
       {retour}
+      <EchecLecture quoi={echecs} />
       <div className="entete-page">
         <div>
           {bien && (
@@ -191,7 +208,8 @@ export async function PaneParc({
               {bien.nom} · {bien.city}
             </span>
           )}
-          <h1 className="mt-0.5">{lot.nom}</h1>
+          {/* h2 : le <h1> du document est le titre de la page Parc */}
+          <h2 className="mt-0.5 text-3xl">{lot.nom}</h2>
           <p className="text-sm text-muted-foreground">
             {[
               lot.surface_m2 !== null ? formaterSurface(lot.surface_m2) : null,
@@ -208,37 +226,19 @@ export async function PaneParc({
         </span>
       </div>
 
-      {lot.etat === "brouillon" || causes.length > 0 ? (
-        causes.length > 0 ? (
-          <div className="border-l-[3px] border-l-warning bg-warning-soft p-3.5">
-            <p className="mono-discret mb-1.5 text-warning-soft-foreground">
-              {causes.length} élément{causes.length > 1 ? "s" : ""} manquant{causes.length > 1 ? "s" : ""}
-            </p>
-            <ul className="space-y-1.5">
-              {causes.map((m) => {
-                const cible = bien ? cibleBlocage(m, { orgId, bienId: bien.id, lotId: lot.id }) : null;
-                return (
-                  <li key={m} className="flex items-center justify-between gap-2 text-sm">
-                    {/* Un diagnostic porte son niveau (« au lot » / « à l'immeuble ») */}
-                    <span className="min-w-0 flex-1">— {etiqueterNiveau(m, m)}</span>
-                    {cible && (
-                      <Link href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                        {cible.libelle} →
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : (
-          <div className="border-l-[3px] border-l-success bg-success-soft p-3.5 text-sm text-success-soft-foreground">
-            Lot complet — prêt à passer disponible.
-          </div>
-        )
+      {/* Ce qui bloque la mise en location : même encart que les fiches bien et
+          lot (composant BlocagesLocation) — c'est le même RPC. Lecture
+          refusée : aucun verdict, l'encart d'échec ci-dessus fait foi. */}
+      {erreurBlocages ? null : causes.length > 0 ? (
+        <BlocagesLocation
+          motifs={causes}
+          ctx={bien ? { orgId, bienId: bien.id, lotId: lot.id } : null}
+        />
       ) : (
         <div className="border-l-[3px] border-l-success bg-success-soft p-3.5 text-sm text-success-soft-foreground">
-          Lot complet. {bail ? "Bail en cours." : "Prêt à recevoir un bail."}
+          {lot.etat === "brouillon"
+            ? "Lot complet — prêt à passer disponible."
+            : `Lot complet. ${bail ? "Bail en cours." : "Prêt à recevoir un bail."}`}
         </div>
       )}
 
@@ -288,6 +288,15 @@ export async function PaneParc({
           </Link>
         )}
       </div>
+    </div>
+  );
+}
+
+function Echec({ retour, quoi }: { retour: React.ReactNode; quoi: string[] }) {
+  return (
+    <div className="min-w-0 space-y-3">
+      {retour}
+      <EchecLecture quoi={quoi} />
     </div>
   );
 }

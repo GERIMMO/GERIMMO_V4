@@ -5,18 +5,17 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { estConfieeAMoi } from "@/lib/alertes";
 import { afficherEcheance } from "@/lib/echeances";
-import { formaterDateHeure } from "@/lib/ged";
+import { CRITICITES, formaterDateHeure } from "@/lib/ged";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
-import { ModaleAlerte, type AlerteRang, type Membre } from "./modale-alerte";
+import {
+  ModaleAlerte,
+  nomAssignation,
+  type AlerteRang,
+  type Membre,
+} from "./modale-alerte";
 
 export type { AlerteRang } from "./modale-alerte";
-
-const NIVEAUX: Record<string, string> = {
-  critique: "CRITIQUE",
-  normale: "NORMALE",
-  informative: "INFORMATIVE",
-};
 
 // Liste des alertes ouvertes (revue recette 08/08) : les miennes (nominatives
 // ou « tout le monde ») actives en haut ; celles confiées à quelqu'un d'autre
@@ -111,26 +110,27 @@ export function ListeAlertes({
   }, [alertes, ouverte]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const emailParCompte = new Map(membres.map((m) => [m.account_id, m.email]));
-  const nomAssignation = (a: AlerteRang) =>
-    a.assigned_all
-      ? "tout le monde"
-      : (emailParCompte.get(a.assignee_account_id ?? "") ?? "—");
-
   const filtrees =
     filtre === "toutes" ? alertes : alertes.filter((a) => a.criticite === filtre);
   const miennes = filtrees.filter((a) => estConfieeAMoi(a, monCompte));
   const autres = filtrees.filter((a) => !estConfieeAMoi(a, monCompte));
 
-  const pastille = (cle: string, libelle: string) => (
-    <button
-      type="button"
-      className={`filtre ${filtre === cle ? "actif" : ""}`}
-      onClick={() => setFiltre(cle)}
-    >
-      {libelle}
-    </button>
-  );
+  // Le compte vit sur la pastille : on n'ouvre pas un filtre pour découvrir
+  // qu'il ne contient rien.
+  const pastille = (cle: string, libelle: string) => {
+    const nb =
+      cle === "toutes" ? alertes.length : alertes.filter((a) => a.criticite === cle).length;
+    return (
+      <button
+        type="button"
+        className={`filtre ${filtre === cle ? "actif" : ""}`}
+        aria-pressed={filtre === cle}
+        onClick={() => setFiltre(cle)}
+      >
+        {libelle} <span className="mono-discret">{nb}</span>
+      </button>
+    );
+  };
 
   const rang = (a: AlerteRang, grisee: boolean) => {
     const echeance = afficherEcheance(a.echeance);
@@ -139,11 +139,12 @@ export function ListeAlertes({
     return (
       <div
         key={a.id}
-        className={`rang-alerte ${grisee ? "grisee" : a.criticite === "critique" ? "critique" : a.criticite === "normale" ? "normale" : ""}`}
+        className={`rang-alerte flex-wrap gap-y-2 ${grisee ? "grisee" : a.criticite === "critique" ? "critique" : a.criticite === "normale" ? "normale" : ""}`}
       >
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="niveau">
-            {NIVEAUX[a.criticite] ?? a.criticite} · confiée à {nomAssignation(a)}
+            {CRITICITES[a.criticite] ?? a.criticite} · confiée à{" "}
+            {nomAssignation(a, membres)}
           </div>
           <div className="mt-0.5 text-sm">{a.titre}</div>
           {/* Le contexte que l'alerte transporte (recette 21/08 : treize
@@ -216,23 +217,38 @@ export function ListeAlertes({
         {pastille("informative", "Informatives")}
       </div>
 
-      <div className="border border-border bg-card">
-        {miennes.length === 0 && autres.length === 0 ? (
-          <div className="vide">
-            Aucune alerte à ce niveau. Rien ne vous attend ici.
-          </div>
-        ) : (
-          <>
-            {miennes.map((a) => rang(a, false))}
-            {autres.length > 0 && (
-              <div className="border-t border-border bg-muted px-4 py-2">
-                <p className="eyebrow">Confiées à d&apos;autres</p>
-              </div>
-            )}
-            {autres.map((a) => rang(a, true))}
-          </>
-        )}
-      </div>
+      {miennes.length === 0 && autres.length === 0 ? (
+        <div className="vide-guide">
+          <p className="titre">
+            {filtre === "toutes"
+              ? "Aucune alerte ouverte"
+              : "Aucune alerte à ce niveau"}
+          </p>
+          <p className="explication">
+            {filtre === "toutes"
+              ? "Gerimmo pose les alertes tout seul : diagnostic périmé, état des lieux à faire, rapport à valider. Celles que vous créez à la main servent à ce qui ne rentre pas dans ces cases."
+              : "Le filtre est peut-être trop étroit — les autres niveaux, eux, ont peut-être de quoi faire."}
+          </p>
+          {filtre !== "toutes" && (
+            <span className="geste">
+              <Button type="button" variant="outline" size="sm" onClick={() => setFiltre("toutes")}>
+                Voir toutes les alertes
+              </Button>
+            </span>
+          )}
+        </div>
+      ) : (
+        <div className="colonne-liste">
+          {miennes.map((a) => rang(a, false))}
+          {autres.length > 0 && (
+            <div className="tete-groupe">
+              <span className="libelle-champ">Confiées à d&apos;autres</span>
+              <span className="libelle-champ">{autres.length}</span>
+            </div>
+          )}
+          {autres.map((a) => rang(a, true))}
+        </div>
+      )}
 
       <p className="mt-3.5 text-xs text-muted-foreground">
         Une alerte critique non traitée sous 7 jours remonte au responsable de
@@ -246,7 +262,6 @@ export function ListeAlertes({
           alerte={ouverte}
           membres={membres}
           estResponsable={estResponsable}
-          nomAssignation={nomAssignation(ouverte)}
           fermer={() => setOuverte(null)}
         />
       )}

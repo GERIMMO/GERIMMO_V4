@@ -66,10 +66,12 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
       {l.statut === "paye" ? (
         l.quittance_id ? (
           <>
+            {/* .lien-discret EST ce lien bleu 12 px : il était refait à la
+                main à côté de deux autres recettes de lien dans la zone. */}
             <Link
               href={`/quittance/${l.quittance_id}`}
               target="_blank"
-              className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+              className="lien-discret"
             >
               {l.est_quittance ? "quittance" : "reçu"}
             </Link>
@@ -94,7 +96,7 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
             </BoutonEnvoi>
           </form>
           {termeServiDAbord && (
-            <span className="text-xs text-muted-foreground">
+            <span className="montant text-xs text-muted-foreground">
               {eur(detteAnterieure)} de dette antérieure
             </span>
           )}
@@ -141,7 +143,10 @@ export function QuittancementMois({
   return (
     <div className="space-y-3">
       <div className="entete-carte !mb-0">
-        <h3 className="text-base font-medium">Quittancement de {moisLabel}</h3>
+        {/* h2 : la page ne porte qu'un h1 — un h3 y sautait un niveau. */}
+        <h2 className="font-heading text-base leading-snug font-medium">
+          Quittancement de {moisLabel}
+        </h2>
         <span className="flex flex-wrap items-center gap-3">
           {aEnvoyer > 0 && (
             <form action={actionEnvoi}>
@@ -175,7 +180,7 @@ export function QuittancementMois({
               >
                 {l.locataire ?? "—"}
               </Link>
-              <span className="whitespace-nowrap">
+              <span className="montant whitespace-nowrap">
                 {eur(l.montant_du)}
                 {l.statut === "partiel" && (
                   <span className="ml-2 text-xs text-muted-foreground">
@@ -191,26 +196,31 @@ export function QuittancementMois({
           </li>
         ))}
       </ul>
-      <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full text-sm">
+      {/* .tableau : une seule mise en forme de tableau dans toute la zone, et
+          des montants en chiffres de même chasse (.nombre) — sans quoi une
+          colonne d'euros ne se compare pas d'un rang à l'autre. */}
+      <div className="tableau-defilant hidden sm:block">
+        <table className="tableau">
           <thead>
-            <tr className="border-b border-border text-left">
-              <th className="libelle-champ py-2 pr-3 font-normal">Locataire</th>
-              <th className="libelle-champ py-2 pr-3 font-normal">Lot</th>
-              <th className="libelle-champ py-2 pr-3 text-right font-normal">Montant</th>
-              <th className="libelle-champ py-2 text-right font-normal" />
+            <tr>
+              <th>Locataire</th>
+              <th>Lot</th>
+              <th className="nombre">Montant</th>
+              <th>
+                <span className="sr-only">Statut et actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {lignes.map((l) => (
-              <tr key={l.appel_id} className="border-b border-border last:border-0">
-                <td className="py-2 pr-3">
+              <tr key={l.appel_id}>
+                <td>
                   <Link href={`/agence/${orgId}/baux/${l.bail_id}`} className="font-medium hover:underline">
                     {l.locataire ?? "—"}
                   </Link>
                 </td>
-                <td className="py-2 pr-3 text-muted-foreground">{l.lot_nom}</td>
-                <td className="py-2 pr-3 text-right whitespace-nowrap">
+                <td className="text-muted-foreground">{l.lot_nom}</td>
+                <td className="nombre montant">
                   {eur(l.montant_du)}
                   {l.statut === "partiel" && (
                     <span className="block text-xs text-muted-foreground">
@@ -218,7 +228,7 @@ export function QuittancementMois({
                     </span>
                   )}
                 </td>
-                <td className="py-2 text-right">
+                <td className="text-right">
                   <span className="inline-flex flex-wrap items-center justify-end gap-2">
                     <ActionsLigne orgId={orgId} ligne={l} />
                   </span>

@@ -20,6 +20,11 @@ type Role = {
   icone: string;
 };
 
+// Marque blanche (module 17) : aucune couleur en dur ici — la carte de rôle
+// sélectionnée était peinte en #FCFAF5, la valeur littérale de --survol, et le
+// ✓ de l'étape franchie en text-white. Une agence qui repeint ses jetons les
+// aurait vus rester (relevé du 11/09).
+//
 // Assistant « Créer une fiche » (maquette, retour recette 08/08) — deux
 // étapes : le rôle d'abord (le choix avance tout seul, on peut revenir),
 // l'identité ensuite. Une seule fiche par personne, quel que soit son rôle.
@@ -85,7 +90,7 @@ export function FormulairePersonne({
           etape === n
             ? "bg-[var(--encre)] text-[var(--or)] ring-4 ring-[var(--ardoise)]"
             : etape > n
-              ? "bg-[var(--success)] text-white"
+              ? "bg-[var(--success)] text-[var(--sur-encre)]"
               : "border border-border bg-card text-muted-foreground"
         }`}
       >
@@ -129,7 +134,7 @@ export function FormulairePersonne({
               }}
               className={`flex w-full items-start gap-3.5 border bg-card px-4 py-3.5 text-left transition-all hover:-translate-y-px hover:border-[var(--encre)] ${
                 role === r.cle
-                  ? "border-l-[3px] border-[var(--encre)] bg-[#FCFAF5]"
+                  ? "border-l-[3px] border-[var(--encre)] bg-[var(--survol)]"
                   : "border-border"
               }`}
             >
@@ -163,7 +168,7 @@ export function FormulairePersonne({
             <button
               type="button"
               onClick={() => setEtape(1)}
-              className="text-[var(--bleu)] underline-offset-2 hover:underline"
+              className="lien-discret"
             >
               changer de rôle
             </button>

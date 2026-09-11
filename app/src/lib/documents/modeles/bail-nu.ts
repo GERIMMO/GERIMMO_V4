@@ -14,7 +14,9 @@ import {
   echapper,
   enTete,
   eur,
+  facultatif,
   montantEnLettres,
+  ouNeant,
   section,
   sousSection,
   titre,
@@ -38,20 +40,6 @@ function periodeConstruction(annee: number | null): string | null {
   if (annee <= 1974) return "1949-1974";
   if (annee <= 1997) return "1975-1997";
   return "après 1997";
-}
-
-// Champ FACULTATIF au sens du contrat type : la valeur si elle existe, sinon
-// un tiret — jamais compté manquant.
-function facultatif(valeur: string | null | undefined): string {
-  const v = valeur?.trim();
-  return v ? `<span class="v">${echapper(v)}</span>` : "—";
-}
-
-// Clause vide au sens du contrat : la valeur si elle existe, sinon « Néant. »
-// — une clause volontairement vide n'est pas une donnée manquante.
-function ouNeant(valeur: string | null | undefined): string {
-  const v = valeur?.trim();
-  return v ? `<span class="v">${echapper(v)}</span>` : "Néant.";
 }
 
 // Montant total dû à la première échéance : loyer + charges, proratisés quand
@@ -111,7 +99,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, SCI, indivision…")}<br/>
     Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
     Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
-    téléphone portable : ${f.champ(bailleurPrincipal?.telephone, "facultatif")}</p>
+    téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>
     ${
       indivision
         ? `<p>Le logement étant détenu en indivision, sont également parties au présent contrat :

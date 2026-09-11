@@ -1,5 +1,6 @@
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { CarteUrgence, type Gestionnaire } from "../cartes-laterales";
+import { aEchoue, PanneLecture } from "../panne-lecture";
 import { FilMessages, type MessageFil } from "./fil-messages";
 
 export const metadata = { title: "Mon gestionnaire — Gerimmo" };
@@ -13,7 +14,11 @@ export default async function PageContactLocataire(
   const { orgId } = await props.params;
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
-  const [{ data: gestionnaires }, { data: fil }, { data: org }] = await Promise.all([
+  const [
+    { data: gestionnaires, error: eGestionnaire },
+    { data: fil, error: eFil },
+    { data: org, error: eOrg },
+  ] = await Promise.all([
     supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
     // Lire marque lu : les réponses du gérant cessent de compter au badge
     supabase.rpc("mes_messages_locataire", { p_org: orgId }),
@@ -23,14 +28,30 @@ export default async function PageContactLocataire(
   ]);
   const g = ((gestionnaires ?? []) as Gestionnaire[])[0];
   const messages = (fil ?? []) as MessageFil[];
+  // Faute d'avoir pu lire le type de l'organisation, on s'en tient au terme
+  // générique plutôt que d'affirmer une « agence de gestion » qui n'existe
+  // peut-être pas (lecture non consultée jusqu'ici).
   const libelleBailleur =
-    org?.type === "proprietaire_direct" ? "Votre gestionnaire" : "Votre agence de gestion";
+    eOrg || org?.type === "proprietaire_direct"
+      ? "Votre gestionnaire"
+      : "Votre agence de gestion";
 
   return (
     <div className="space-y-4">
       <h1>Mon gestionnaire</h1>
+
+      {aEchoue(eGestionnaire, eFil) && (
+        <PanneLecture quoi="votre fil de messages" />
+      )}
+
       <div className="loc-grille">
-        <FilMessages orgId={orgId} messages={messages} agence={g?.agence ?? "votre gestionnaire"} lectureSeule={!adhesionActive} />
+        <FilMessages
+          orgId={orgId}
+          messages={messages}
+          agence={g?.agence ?? "votre gestionnaire"}
+          lectureSeule={!adhesionActive}
+          lectureEnEchec={aEchoue(eFil)}
+        />
         <div className="space-y-4">
           {g && (
             <div className="loc-carte">
@@ -43,7 +64,7 @@ export default async function PageContactLocataire(
                 {g.email_contact && (
                   <div className="ligne-info">
                     <span>E-mail</span>
-                    <a href={`mailto:${g.email_contact}`} className="lien-discret text-sm">
+                    <a href={`mailto:${g.email_contact}`} className="lien-discret">
                       {g.email_contact}
                     </a>
                   </div>
@@ -53,7 +74,7 @@ export default async function PageContactLocataire(
                     <span>Téléphone</span>
                     <a
                       href={`tel:${g.telephone.replace(/\s/g, "")}`}
-                      className="lien-discret text-sm"
+                      className="lien-discret"
                     >
                       {g.telephone}
                     </a>

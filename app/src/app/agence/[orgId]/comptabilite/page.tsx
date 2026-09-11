@@ -16,6 +16,10 @@ import { lotsDuPortefeuille } from "@/lib/portefeuille";
 
 export const metadata = { title: "Comptabilité — Gerimmo" };
 
+// Le journal affiché est paginé ; les totaux, eux, se calculent en base sur
+// TOUT le journal. L'écran doit dire lequel des deux il montre.
+const LIGNES_JOURNAL = 200;
+
 type Ecriture = {
   id: string;
   categorie: string;
@@ -52,7 +56,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       .select("id, categorie, sens, montant, date_piece, date_imputation, libelle, systeme, contre_ecriture_de, lot_id")
       .eq("organization_id", orgId)
       .order("date_imputation", { ascending: false })
-      .limit(200),
+      .limit(LIGNES_JOURNAL),
     supabase.from("clotures_comptables").select("mois").eq("organization_id", orgId).order("mois", { ascending: false }),
     supabase.from("biens").select("id, nom").eq("organization_id", orgId).order("nom"),
     supabase
@@ -74,29 +78,47 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       .order("mois", { ascending: false }),
     // Les totaux se calculent en base sur tout le journal (hors dépôt de
     // garantie et paires contre-passées) — le journal affiché, lui, reste
-    // paginé à 200 lignes.
+    // paginé à LIGNES_JOURNAL lignes.
     supabase.rpc("totaux_ecritures", {
       p_org: orgId,
       p_lots: portefeuille ? Array.from(portefeuille) : null,
     }),
   ]);
 
-  // Un échec de lecture ne doit pas se déguiser en journal vide (audit 09/09)
-  if (
-    erreurEcritures ||
-    erreurClotures ||
-    erreurBiens ||
-    erreurLots ||
-    erreurMandats ||
-    erreurRapports ||
-    erreurTotaux
-  ) {
+  // Un échec de lecture ne doit pas se déguiser en journal vide (audit 09/09).
+  // Ici, aucune des sept lectures n'est décorative : sans les totaux, les
+  // tuiles afficheraient 0 € ; sans les clôtures, un mois figé se laisserait
+  // annuler ; sans les lots, une écriture se saisirait hors de tout rapport de
+  // gestion. On nomme ce qui a échoué plutôt que de montrer un livre neuf.
+  const lecturesEnEchec = [
+    erreurEcritures && "le journal des écritures",
+    erreurTotaux && "les totaux du livre",
+    erreurClotures && "les mois déjà clôturés",
+    erreurLots && "la liste des lots",
+    erreurBiens && "la liste des biens",
+    erreurMandats && "les mandats de gestion",
+    erreurRapports && "les rapports de gestion",
+  ].filter((x): x is string => Boolean(x));
+
+  if (lecturesEnEchec.length > 0) {
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-        <h1>Comptabilité</h1>
-        <div className="vide mt-4">
-          Impossible de charger la comptabilité pour l&apos;instant — rechargez
-          dans un instant.
+        <div className="entete-page mb-4">
+          <h1>Comptabilité</h1>
+        </div>
+        <div className="err" role="alert">
+          <p className="font-medium">
+            {lecturesEnEchec.length > 1
+              ? "Plusieurs lectures ont échoué"
+              : "Une lecture a échoué"}{" "}
+            : {lecturesEnEchec.join(", ")}.
+          </p>
+          <p className="mt-1">
+            Ce n’est pas un livre vide : c’est la lecture qui n’a pas abouti. Les
+            montants ne sont donc pas affichés — un total calculé sur une lecture
+            incomplète serait faux. Rechargez la page dans un instant, et ne
+            saisissez rien sur la foi de cet écran.
+          </p>
         </div>
       </main>
     );
@@ -104,9 +126,11 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
 
   // Portefeuille : seules les écritures rattachées à un de mes lots comptent
   // (une écriture sans lot reste une affaire d'agence).
-  const lignes = ((ecritures ?? []) as Ecriture[]).filter((e) =>
-    dansPortefeuille(e.lot_id)
-  );
+  const toutesLesLignes = (ecritures ?? []) as Ecriture[];
+  const lignes = toutesLesLignes.filter((e) => dansPortefeuille(e.lot_id));
+  // La base a rendu une page pleine : il y a (très probablement) plus ancien
+  // derrière. Le dire, sinon le journal passe pour complet.
+  const journalTronque = toutesLesLignes.length >= LIGNES_JOURNAL;
   const t = (Array.isArray(totaux) ? totaux[0] : totaux) as
     | { recettes: number | string; depenses: number | string }
     | null;
@@ -156,32 +180,33 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   // Quittancement du mois (maquette v3) : le mois courant, ou à défaut le
   // dernier mois qui porte des appels (en début de mois, les échéanciers ne
   // sont pas toujours régénérés).
-  const filtrerQuittancement = (rows: unknown[] | null) =>
-    ((rows ?? []) as LigneQuittancement[]).filter((l) => dansPortefeuille(l.lot_id));
+  //
+  // Le repli sur le mois précédent ne vaut QUE pour un mois vraiment vide : si
+  // la lecture échoue, replier afficherait le mois d'avant comme s'il était
+  // l'actualité. L'échec se dit, il ne se contourne pas.
+  const lireQuittancement = async (mois: string) => {
+    const { data, error } = await supabase.rpc("quittancement_mois", {
+      p_org: orgId,
+      p_mois: `${mois}-01`,
+    });
+    return {
+      lignes: ((data ?? []) as LigneQuittancement[]).filter((l) => dansPortefeuille(l.lot_id)),
+      error,
+    };
+  };
   let moisQuittancement = moisCourant;
-  let lignesQuittancement = filtrerQuittancement(
-    (
-      await supabase.rpc("quittancement_mois", {
-        p_org: orgId,
-        p_mois: `${moisCourant}-01`,
-      })
-    ).data
-  );
-  if ((lignesQuittancement ?? []).length === 0) {
+  const courant = await lireQuittancement(moisCourant);
+  let lignesQuittancement = courant.lignes;
+  let erreurQuittancement = courant.error;
+  if (!erreurQuittancement && lignesQuittancement.length === 0) {
     const precedent = new Date(`${moisCourant}-01T00:00:00Z`);
     precedent.setUTCMonth(precedent.getUTCMonth() - 1);
     const moisPrecedent = precedent.toISOString().slice(0, 7);
-    const lignesPrecedent = filtrerQuittancement(
-      (
-        await supabase.rpc("quittancement_mois", {
-          p_org: orgId,
-          p_mois: `${moisPrecedent}-01`,
-        })
-      ).data
-    );
-    if (lignesPrecedent.length > 0) {
+    const veille = await lireQuittancement(moisPrecedent);
+    erreurQuittancement = veille.error;
+    if (!veille.error && veille.lignes.length > 0) {
       moisQuittancement = moisPrecedent;
-      lignesQuittancement = lignesPrecedent;
+      lignesQuittancement = veille.lignes;
     }
   }
 
@@ -220,40 +245,64 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         )}
       </div>
 
-      {/* Solde en tuiles KPI (maquette) — même motif que le tableau de bord */}
+      {/* Solde en tuiles KPI (maquette) — même motif que le tableau de bord.
+          Ces trois chiffres portent TOUT le livre depuis son ouverture : lus
+          comme le mois en cours, ils faisaient croire à un mois énorme. La
+          portée se lit maintenant sous chaque chiffre. */}
       <div className="grid gap-3.5 sm:grid-cols-3">
         <div className="kpi bleu">
           <span className="eyebrow">Recettes</span>
-          <span className="chiffre mt-1 block">{eur(recettes)}</span>
+          <span className="chiffre montant mt-1 block">{eur(recettes)}</span>
+          <span className="block text-xs text-muted-foreground">depuis l&apos;origine</span>
         </div>
         <div className="kpi or">
           <span className="eyebrow">Dépenses</span>
-          <span className="chiffre mt-1 block">{eur(depenses)}</span>
+          <span className="chiffre montant mt-1 block">{eur(depenses)}</span>
+          <span className="block text-xs text-muted-foreground">depuis l&apos;origine</span>
         </div>
         <div className="kpi">
           <span className="eyebrow">Net</span>
-          <span className="chiffre mt-1 block">{eur(recettes - depenses)}</span>
+          <span className="chiffre montant mt-1 block">{eur(recettes - depenses)}</span>
+          <span className="block text-xs text-muted-foreground">recettes moins dépenses</span>
         </div>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Totaux de tout le livre depuis son ouverture — hors dépôt de garantie
+        (qui ne fait que transiter) et hors écritures annulées par contre-écriture.
+        Ils ne se limitent pas au mois en cours, ni aux lignes du journal
+        ci-dessous.
+      </p>
 
       {/* Quittancement du mois (maquette v3) : encaisser en un clic, envoi groupé */}
-      {(lignesQuittancement ?? []).length > 0 && (
+      {erreurQuittancement ? (
         <Card>
           <CardContent className="pt-5">
-            <QuittancementMois
-              orgId={orgId}
-              mois={moisQuittancement}
-              moisLabel={moisEnFrancais(moisQuittancement)}
-              lignes={(lignesQuittancement ?? []) as LigneQuittancement[]}
-              proprietaire={estProprietaire}
-            />
+            <p className="err mb-0" role="alert">
+              Impossible de lire le quittancement du mois — ce n’est pas un mois
+              sans appels de loyer, c’est une lecture qui a échoué. Les
+              encaissements du mois restent accessibles depuis chaque bail.
+            </p>
           </CardContent>
         </Card>
+      ) : (
+        lignesQuittancement.length > 0 && (
+          <Card>
+            <CardContent className="pt-5">
+              <QuittancementMois
+                orgId={orgId}
+                mois={moisQuittancement}
+                moisLabel={moisEnFrancais(moisQuittancement)}
+                lignes={lignesQuittancement}
+                proprietaire={estProprietaire}
+              />
+            </CardContent>
+          </Card>
+        )
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Saisir une écriture</CardTitle>
+          <CardTitle>Saisir une écriture</CardTitle>
           <CardDescription>
             Deux dates : celle de la pièce justificative, et le mois sur lequel
             l&apos;écriture compte.
@@ -291,7 +340,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       {!estProprietaire && (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Rapports de gestion</CardTitle>
+          <CardTitle>Rapports de gestion</CardTitle>
           <CardDescription>
             Un rapport par mandant et par mois, une fois le mois clôturé. Une fois
             envoyé, il ne bouge plus ;
@@ -311,11 +360,11 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">Journal</CardTitle>
+          <div className="entete-carte !mb-0">
+            <CardTitle>Journal</CardTitle>
             {/* Deux portées : l'année en cours, celle que l'agent demande neuf
                 fois sur dix, et la totalité pour l'expert-comptable. */}
-            <div className="flex items-center gap-3">
+            <span className="flex items-center gap-3">
               <a
                 href={`/agence/${orgId}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
                 className="lien-discret py-2 sm:py-0"
@@ -328,16 +377,31 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
               >
                 Tout exporter
               </a>
-            </div>
+            </span>
           </div>
+          {/* Le journal s'arrêtait à 200 lignes sans le dire : un livre de
+              trois ans passait pour complet. Et pour un agent, le plafond
+              s'applique AVANT son portefeuille — sa page en montre encore
+              moins. Les deux se disent. */}
+          <CardDescription>
+            {journalTronque
+              ? portefeuille
+                ? `Les écritures de votre portefeuille parmi les ${LIGNES_JOURNAL} plus récentes de l'agence. Le livre en contient davantage : l'export porte tout votre portefeuille.`
+                : `Les ${LIGNES_JOURNAL} écritures les plus récentes, de la plus récente à la plus ancienne. Le livre en contient davantage : l'export les porte toutes.`
+              : portefeuille
+                ? "Les écritures de votre portefeuille, de la plus récente à la plus ancienne."
+                : "Toutes les écritures, de la plus récente à la plus ancienne."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {lignes.length === 0 ? (
-            <div className="vide">
-              Aucune écriture pour l&apos;instant.{" "}
-              {estProprietaire
-                ? "Les loyers encaissés s'inscrivent tout seuls ; saisissez ci-dessus une dépense ou une recette."
-                : "Les honoraires se créent tout seuls à chaque encaissement de loyer ; saisissez ci-dessus une dépense ou une recette."}
+            <div className="vide-guide">
+              <p className="titre">Aucune écriture pour l&apos;instant</p>
+              <p className="explication">
+                {estProprietaire
+                  ? "Les loyers encaissés s'inscrivent tout seuls, à mesure que vous les encaissez. Une dépense (travaux, charges, assurance) se saisit à la main, ci-dessus."
+                  : "Les honoraires se créent tout seuls à chaque encaissement de loyer. Une dépense ou une recette d'agence se saisit à la main, ci-dessus."}
+              </p>
             </div>
           ) : (
             <>
@@ -354,7 +418,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                       <span className="mono-discret">{formaterDate(e.date_imputation)}</span>
                       <span
-                        className={`font-medium whitespace-nowrap ${e.sens === "recette" ? "text-success" : ""}`}
+                        className={`montant font-medium whitespace-nowrap ${e.sens === "recette" ? "text-success" : ""}`}
                       >
                         {e.sens === "recette" ? "+" : "−"}
                         {eur(e.montant)}
@@ -378,41 +442,43 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                 );
               })}
             </ul>
-            <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full text-sm">
+            <div className="tableau-defilant hidden sm:block">
+              <table className="tableau">
                 <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="libelle-champ py-2 pr-3 font-normal">Date</th>
-                    <th className="libelle-champ py-2 pr-3 font-normal">Catégorie</th>
-                    <th className="libelle-champ py-2 pr-3 font-normal">Libellé</th>
-                    <th className="libelle-champ py-2 text-right font-normal">Montant</th>
-                    <th aria-hidden />
+                  <tr>
+                    <th>Date</th>
+                    <th>Catégorie</th>
+                    <th>Libellé</th>
+                    <th className="nombre">Montant</th>
+                    <th>
+                      <span className="sr-only">Annulation</span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {lignes.map((e) => {
                     const clot = moisClotures.has(e.date_imputation.slice(0, 7));
                     return (
-                      <tr key={e.id} className="border-b border-border last:border-0">
-                        <td className="mono-discret py-2 pr-3 whitespace-nowrap">
+                      <tr key={e.id}>
+                        <td className="mono-discret whitespace-nowrap">
                           {formaterDate(e.date_imputation)}
                         </td>
-                        <td className="py-2 pr-3">
+                        <td>
                           <span className="puce puce-grise">{e.categorie}</span>
                         </td>
-                        <td className="py-2 pr-3 text-xs text-muted-foreground">
+                        <td className="text-xs text-muted-foreground">
                           {/* Sans libellé, la ligne commençait par un point médian orphelin. */}
                           {e.libelle ? `${e.libelle} · ` : ""}
                           pièce {formaterDate(e.date_piece)}
                           {e.systeme ? " · créée automatiquement" : ""}
                         </td>
                         <td
-                          className={`py-2 text-right font-medium whitespace-nowrap ${e.sens === "recette" ? "text-success" : ""}`}
+                          className={`nombre montant font-medium ${e.sens === "recette" ? "text-success" : ""}`}
                         >
                           {e.sens === "recette" ? "+" : "−"}
                           {eur(e.montant)}
                         </td>
-                        <td className="py-2 pl-3 text-right">
+                        <td className="text-right">
                           {!e.contre_ecriture_de && !clot && (
                             <BoutonContre orgId={orgId} ecritureId={e.id} />
                           )}

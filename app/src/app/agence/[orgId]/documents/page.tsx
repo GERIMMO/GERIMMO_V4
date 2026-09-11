@@ -21,9 +21,16 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireDepot } from "./formulaire-depot";
+import { EchecLecture } from "./echec-lecture";
 import { PaneDocument } from "./pane-document";
 
 export const metadata = { title: "Documents — Gerimmo" };
+
+// La colonne ne descend pas indéfiniment : au-delà, c'est la recherche qui
+// sert, pas le défilement. Le plafond est NOMMÉ et DIT à l'écran — annoncer
+// 340 pièces et n'en montrer que 100 sans le signaler est un mensonge (relevé
+// du 11/09).
+const PLAFOND_LISTE = 100;
 
 type LienRang = { entite: string; entite_id: string };
 
@@ -79,25 +86,28 @@ export default async function PageDocuments(
   // Navigation par filtres, jamais par dossiers (RM-12.5.1). La fonction
   // documents_courants (security invoker : la RLS s'applique) écarte les
   // versions remplacées EN SQL — pas de fenêtre applicative faussée.
+  // `count: exact` sur la requête MÊME : le total rendu décrit exactement ce
+  // que les filtres retiennent, plafond compris. Sans lui, la seule façon de
+  // savoir combien de pièces la liste tait serait de ne pas le savoir.
   let requete = supabase
-    .rpc("documents_courants", { p_org: orgId, p_lots: lotsPerimetre })
+    .rpc("documents_courants", { p_org: orgId, p_lots: lotsPerimetre }, { count: "exact" })
     .select(
       "id, type, titre, mime_type, taille_octets, expire_le, purged_at, created_at, liens:document_liens(entite, entite_id)"
     )
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(PLAFOND_LISTE);
   if (recherche.type) requete = requete.eq("type", recherche.type);
   if (recherche.q) requete = requete.ilike("titre", `%${motifLitteral(recherche.q)}%`);
   if (recherche.du) requete = requete.gte("created_at", recherche.du);
   if (recherche.au) requete = requete.lte("created_at", `${recherche.au}T23:59:59`);
 
   const [
-    { data: documents },
-    { data: statsTypes },
-    { data: aRenouvelerBrut },
-    { count: totalCourants },
-    { data: personnes },
-    { data: regles },
+    { data: documents, error: erreurDocuments, count: totalFiltre },
+    { data: statsTypes, error: erreurStats },
+    { data: aRenouvelerBrut, error: erreurRenouveler },
+    { count: totalCourants, error: erreurTotal },
+    { data: personnes, error: erreurPersonnes },
+    { data: regles, error: erreurRegles },
   ] = await Promise.all([
     requete,
     // La vue d'ensemble se calcule sur TOUTES les pièces courantes, agrégées
@@ -108,11 +118,16 @@ export default async function PageDocuments(
       p_limite: limiteRenouvellement(),
       p_lots: lotsPerimetre,
     }),
-    supabase.rpc(
-      "documents_courants",
-      { p_org: orgId, p_lots: lotsPerimetre },
-      { count: "exact", head: true }
-    ),
+    // Le total du PARC, utile au seul cas où il diffère de la liste : sous
+    // filtre. Sans filtre, le compte exact de la requête ci-dessus est déjà
+    // celui-là — pas deux COUNT(*) pour le même nombre.
+    filtresActifs
+      ? supabase.rpc(
+          "documents_courants",
+          { p_org: orgId, p_lots: lotsPerimetre },
+          { count: "exact", head: true }
+        )
+      : Promise.resolve({ count: null, error: null }),
     supabase
       .from("persons")
       .select("id, nom, prenom")
@@ -138,6 +153,24 @@ export default async function PageDocuments(
     (s) => [s.type, Number(s.total)] as [string, number]
   );
   const totalVivants = entreesTypes.reduce((somme, [, n]) => somme + n, 0);
+
+  // Les lectures d'appoint : si l'une échoue, la page reste utile mais elle le
+  // DIT — sinon une répartition absente passerait pour un parc sans pièces et
+  // un rattachement manquant pour une pièce sans personne.
+  const lecturesManquees = [
+    erreurStats && "la répartition par type",
+    erreurRenouveler && "les pièces à renouveler",
+    erreurTotal && "le nombre total de pièces",
+    erreurPersonnes && "les personnes rattachées",
+    erreurRegles && "les durées de conservation",
+  ].filter((q): q is string => Boolean(q));
+
+  // Ce que le compteur d'en-tête a le droit d'affirmer. Avec un filtre actif,
+  // le total du parc et le total filtré ne sont PAS le même nombre : les deux
+  // s'affichent, sinon l'en-tête décrit une liste qui n'est pas celle du dessous.
+  const compteListe = totalFiltre ?? docs.length;
+  const totalTronque =
+    !erreurDocuments && totalFiltre !== null && docs.length < totalFiltre;
 
   // Les liens préservent filtres et sélection (même motif que les incidents) ;
   // typeCible permet aux types cliquables de garder les autres filtres
@@ -174,13 +207,24 @@ export default async function PageDocuments(
         <div className="flex flex-wrap items-center gap-3">
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
-            {totalCourants ?? docs.length} pièce{(totalCourants ?? docs.length) > 1 ? "s" : ""}
+            {erreurDocuments ? (
+              "nombre indisponible"
+            ) : (
+              <>
+                {compteListe} pièce{compteListe > 1 ? "s" : ""}
+                {filtresActifs && totalCourants != null && totalCourants !== compteListe
+                  ? ` sur ${totalCourants}`
+                  : ""}
+              </>
+            )}
           </span>
           <Link href={lien("depot")} className="btn-or">
             + Déposer une pièce
           </Link>
         </div>
       </div>
+
+      <EchecLecture quoi={lecturesManquees} />
 
       {/* Filtres — la recherche traite % et _ comme des caractères normaux.
           Sous 640 px (audit 09/09), chaque champ prend sa propre ligne :
@@ -259,39 +303,60 @@ export default async function PageDocuments(
       <div className={`split${sel ? " detail-actif" : ""}`}>
         <div className="colonne-liste-split volet-liste">
           <div className="tete-liste">
-            <span className="mono-discret">TOUTES LES PIÈCES</span>
+            {/* L'intitulé de la colonne dit ce qu'elle CONTIENT : « toutes les
+                pièces » sous un filtre actif était faux. */}
+            <span className="mono-discret">
+              {filtresActifs ? "Pièces filtrées" : "Toutes les pièces"}
+              {!erreurDocuments && totalFiltre !== null ? ` · ${totalFiltre}` : ""}
+            </span>
             {sel && (
               <Link
                 href={lien(null)}
-                className="inline-flex items-center gap-1.5 text-xs text-[var(--bleu)] hover:underline"
+                className="lien-discret inline-flex items-center gap-1.5"
               >
                 Vue d&apos;ensemble
                 <IndicateurLien />
               </Link>
             )}
           </div>
-          {docs.length === 0 ? (
-            <div className="vide space-y-2">
+          {erreurDocuments ? (
+            /* Ni liste ni état vide : proposer « déposez la première pièce »
+               alors que la lecture a échoué serait un mensonge de plus. */
+            <div className="p-3.5">
+              <EchecLecture quoi={["la liste des pièces"]} />
+            </div>
+          ) : docs.length === 0 ? (
+            <div className="vide-guide">
               {filtresActifs ? (
                 <>
-                  <p className="font-medium">Aucun document ne correspond</p>
-                  <p>Élargissez la recherche ou repartez de la liste complète.</p>
-                  <Link
-                    href={`/agence/${orgId}/documents`}
-                    className={`inline-flex items-center gap-1.5 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                  >
-                    Effacer les filtres
-                    <IndicateurLien />
-                  </Link>
+                  <p className="titre">Aucune pièce ne correspond</p>
+                  <p className="explication">
+                    Le type, la période ou le titre cherché ne retiennent rien.
+                    Repartez de la liste complète, puis resserrez d&apos;un cran.
+                  </p>
+                  <span className="geste">
+                    <Link
+                      href={`/agence/${orgId}/documents`}
+                      className={`inline-flex items-center gap-1.5 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+                    >
+                      Effacer les filtres
+                      <IndicateurLien />
+                    </Link>
+                  </span>
                 </>
               ) : (
                 <>
-                  <p className="font-medium">Aucun document pour l&apos;instant</p>
-                  <p>
+                  <p className="titre">Aucune pièce pour l&apos;instant</p>
+                  <p className="explication">
                     Baux, diagnostics et justificatifs déposés ailleurs dans
-                    l&apos;application se retrouvent ici. Vous pouvez aussi en
-                    déposer un directement.
+                    l&apos;application se retrouvent ici tout seuls. Vous pouvez
+                    aussi en déposer une directement.
                   </p>
+                  <span className="geste">
+                    <Link href={lien("depot")} className="btn-or">
+                      + Déposer une pièce
+                    </Link>
+                  </span>
                 </>
               )}
             </div>
@@ -304,13 +369,8 @@ export default async function PageDocuments(
                   <Link
                     key={d.id}
                     href={lien(d.id)}
-                    className="rang"
+                    className={`rang${actif ? " actif" : ""}`}
                     aria-current={actif ? "true" : undefined}
-                    style={
-                      actif
-                        ? { background: "var(--ardoise)", borderLeftColor: "var(--encre)" }
-                        : undefined
-                    }
                   >
                     <small className="min-w-0 flex-1 italic">
                       Document purgé le {formaterDate(d.purged_at)} —{" "}
@@ -329,13 +389,8 @@ export default async function PageDocuments(
                 <Link
                   key={d.id}
                   href={lien(d.id)}
-                  className="rang"
+                  className={`rang${actif ? " actif" : ""}`}
                   aria-current={actif ? "true" : undefined}
-                  style={
-                    actif
-                      ? { background: "var(--ardoise)", borderLeftColor: "var(--encre)" }
-                      : undefined
-                  }
                 >
                   <span className="min-w-0 flex-1">
                     <b className="block truncate">{d.titre ?? "Sans titre"}</b>
@@ -360,6 +415,15 @@ export default async function PageDocuments(
                 </Link>
               );
             })
+          )}
+          {/* La colonne dit ce qu'elle ne montre pas. Sans cette ligne, 100
+              pièces sur 340 se lisaient comme 340 pièces (relevé du 11/09). */}
+          {totalTronque && (
+            <p className="border-t border-border px-3.5 py-2.5 text-[length:var(--pas-appui)] text-[var(--texte-secondaire)]">
+              Les {docs.length} pièces les plus récentes, sur {totalFiltre}.
+              Affinez par type, par période ou par titre pour atteindre les
+              autres.
+            </p>
           )}
         </div>
 

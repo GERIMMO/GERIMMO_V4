@@ -54,7 +54,11 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
       <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
         Déposer
       </BoutonEnvoi>
-      {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && (
+        <p className="err !mb-0 w-full" role="alert">
+          {etat.erreur}
+        </p>
+      )}
     </form>
   );
 }

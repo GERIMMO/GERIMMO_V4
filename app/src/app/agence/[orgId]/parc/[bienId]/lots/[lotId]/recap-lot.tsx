@@ -56,11 +56,13 @@ export function RecapLot({
 
   return (
     <div className="space-y-3">
-      <dl className="grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2">
+      {/* .ligne-info : la rangée « libellé ↔ valeur » de la charte, au lieu
+          du flex + border-b remonté à la main sur chaque fiche. */}
+      <dl className="grid gap-x-6 sm:grid-cols-2">
         {lignes.map(([label, valeur]) => (
-          <div key={label} className="flex justify-between gap-4 border-b border-border/60 py-1">
+          <div key={label} className="ligne-info">
             <dt className="text-muted-foreground">{label}</dt>
-            <dd className="font-medium">{valeur}</dd>
+            <dd className="text-right font-medium">{valeur}</dd>
           </div>
         ))}
       </dl>

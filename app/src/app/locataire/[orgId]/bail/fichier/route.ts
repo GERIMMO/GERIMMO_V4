@@ -32,7 +32,20 @@ export async function GET(
     , "depuis votre espace");
   }
 
-  const { data } = await supabase.rpc("mon_bail_document_locataire", { p_org: orgId });
+  const { data, error: erreurLecture } = await supabase.rpc("mon_bail_document_locataire", {
+    p_org: orgId,
+  });
+  // Sans cette lecture, une requête tombée rendait « Bail introuvable » : on
+  // annonçait au locataire qu'aucun bail signé n'existait alors qu'on n'avait
+  // simplement pas pu le chercher (relevé 11/09).
+  if (erreurLecture) {
+    return pageErreurFichier(
+      503,
+      "Consultation momentanément impossible",
+      "Votre bail n'a pas pu être consulté à l'instant : la lecture a échoué. Il n'est pas perdu — réessayez dans un instant.",
+      "depuis votre espace"
+    );
+  }
   const doc = ((data ?? []) as {
     document_id: string;
     titre: string | null;

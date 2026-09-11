@@ -1,3 +1,5 @@
+import { eur } from "@/lib/ged";
+
 // Graphiques de la maquette (charte v2) en SVG pur, rendus côté serveur —
 // donut de répartition et barres doubles. Pas de bibliothèque : la maquette
 // les dessine de la même façon, et il n'y a rien d'interactif.
@@ -120,8 +122,6 @@ export function BarresDouble({
   hauteur?: number;
 }) {
   const max = Math.max(1, ...donnees.flatMap((d) => [d.a, d.b]));
-  const eur = (n: number) =>
-    `${n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
   return (
     // Marge haute réservée à l'infobulle : elle ne dépasse jamais de la carte
     <div className="flex items-end gap-3 pt-16" style={{ height: hauteur + 18 + 64 }}>
@@ -135,6 +135,9 @@ export function BarresDouble({
           // sortirait de la carte.
           className="group relative flex min-w-0 flex-1 flex-col items-center gap-1 [&:nth-last-child(-n+2)>[role=tooltip]]:left-auto [&:nth-last-child(-n+2)>[role=tooltip]]:right-0 [&:nth-last-child(-n+2)>[role=tooltip]]:translate-x-0 [&:nth-last-child(-n+2)>[role=tooltip]]:after:left-auto [&:nth-last-child(-n+2)>[role=tooltip]]:after:right-3"
           tabIndex={0}
+          // La colonne EST l'information : sans rôle, un div focalisable ne
+          // s'annonce pas et son libellé n'est jamais lu (relevé 11/09).
+          role="img"
           aria-label={`${d.libelle} — encaissé ${eur(d.a)}, dépenses ${eur(d.b)}`}
         >
           <span
@@ -144,11 +147,11 @@ export function BarresDouble({
             <b className="block">{d.libelle}</b>
             <span className="flex items-center gap-1.5">
               <span aria-hidden className="size-2" style={{ background: couleurA }} />
-              Encaissé {eur(d.a)}
+              <span className="montant">Encaissé {eur(d.a)}</span>
             </span>
             <span className="flex items-center gap-1.5">
               <span aria-hidden className="size-2" style={{ background: couleurB }} />
-              Dépenses {eur(d.b)}
+              <span className="montant">Dépenses {eur(d.b)}</span>
             </span>
           </span>
           <div className="flex w-full items-end justify-center gap-[3px]" style={{ height: hauteur }}>

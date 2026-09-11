@@ -11,11 +11,17 @@ import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { formaterTaille } from "@/lib/file-type";
 import { nomComplet } from "@/lib/roles-personnes";
 import { CircuitDocument, type DemandeDuDocument } from "./circuit-document";
+import { EchecLecture, PanneauEchecLecture } from "./echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { Card, CardContent } from "@/components/ui/card";
 import { ActionsDocument } from "./actions-document";
 import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
+
+// Les baux proposés au rattachement sont bornés — le sélecteur le DIT quand
+// il atteint le plafond, au lieu de laisser croire que l'agence n'en a pas
+// davantage.
+const PLAFOND_BAUX = 100;
 
 type Lien = { entite: string; entite_id: string };
 
@@ -48,7 +54,7 @@ export async function PaneDocument({
 }) {
   const supabase = await createClient();
 
-  const { data: docBrut } = await supabase
+  const { data: docBrut, error: erreurDoc } = await supabase
     .from("documents")
     .select(
       "id, type, titre, mime_type, taille_octets, created_at, expire_le, verifie_le, purged_at, remplace_id, partage_le, liens:document_liens(entite, entite_id)"
@@ -58,16 +64,30 @@ export async function PaneDocument({
     .maybeSingle();
   const doc = docBrut as Doc | null;
 
+  // Lecture refusée ≠ pièce absente : « introuvable » enverrait l'agent
+  // chercher ailleurs une pièce qui est bien là (relevé du 11/09).
+  if (erreurDoc) {
+    return (
+      <PanneauEchecLecture
+        quoi={["cette pièce"]}
+        lienFermer={lienFermer}
+        libelleFermer="Revenir à la vue d'ensemble"
+      />
+    );
+  }
   if (!doc) {
     return (
-      <div className="vide">
-        <p className="font-medium">Pièce introuvable.</p>
-        <Link
-          href={lienFermer}
-          className="mt-1 inline-block text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
-        >
-          Revenir à la vue d&apos;ensemble
-        </Link>
+      <div className="vide-guide">
+        <p className="titre">Pièce introuvable</p>
+        <p className="explication">
+          Elle a peut-être été remplacée par une version plus récente, ou
+          purgée en application de sa règle de conservation.
+        </p>
+        <span className="geste">
+          <Link href={lienFermer} className="lien-discret">
+            Revenir à la vue d&apos;ensemble
+          </Link>
+        </span>
       </div>
     );
   }
@@ -76,12 +96,12 @@ export async function PaneDocument({
   // chaîne des versions antérieures, la règle de conservation, et les fiches
   // rattachables pour le formulaire — en parallèle.
   const [
-    { data: remplaceePar },
-    { data: regle },
-    { data: personnes },
-    { data: lots },
-    { data: bauxBruts },
-    { data: demandesBrutes },
+    { data: remplaceePar, error: erreurRemplacee },
+    { data: regle, error: erreurRegle },
+    { data: personnes, error: erreurPersonnes },
+    { data: lots, error: erreurLots },
+    { data: bauxBruts, error: erreurBaux },
+    { data: demandesBrutes, error: erreurDemandes },
   ] = await Promise.all([
       supabase
         .from("documents")
@@ -110,21 +130,28 @@ export async function PaneDocument({
         .select("id, etat, date_debut, locataire_principal, lot:lots(nom)")
         .eq("organization_id", orgId)
         .order("created_at", { ascending: false })
-        .limit(100),
+        .limit(PLAFOND_BAUX),
       supabase.rpc("demandes_signature_document", { p_org: orgId, p_doc: doc.id }),
     ]);
 
   // Versions antérieures : remonter la chaîne remplace_id (bornée — une pièce
   // se remplace rarement plus de quelques fois)
   const anterieures: { id: string; titre: string | null; created_at: string; purged_at: string | null }[] = [];
+  let erreurAnterieures = false;
   let curseur = doc.remplace_id;
   for (let i = 0; curseur && i < 5; i++) {
-    const { data: version } = await supabase
+    const { data: version, error: erreurVersion } = await supabase
       .from("documents")
       .select("id, titre, created_at, purged_at, remplace_id")
       .eq("id", curseur)
       .eq("organization_id", orgId)
       .maybeSingle();
+    // Une chaîne de versions interrompue par un refus se lit comme une pièce
+    // jamais remplacée : on s'arrête, mais on le dit.
+    if (erreurVersion) {
+      erreurAnterieures = true;
+      break;
+    }
     if (!version) break;
     anterieures.push(version);
     curseur = version.remplace_id;
@@ -168,13 +195,29 @@ export async function PaneDocument({
   // Les numéros des incidents rattachés, seulement s'il y en a
   const idsIncidents = doc.liens.filter((l) => l.entite === "incident").map((l) => l.entite_id);
   const nomsIncidents = new Map<string, string>();
+  let erreurIncidents = false;
   if (idsIncidents.length > 0) {
-    const { data: incidents } = await supabase
+    const { data: incidents, error: erreurNumeros } = await supabase
       .from("incidents")
       .select("id, numero")
       .in("id", idsIncidents);
+    erreurIncidents = Boolean(erreurNumeros);
     for (const i of incidents ?? []) nomsIncidents.set(i.id, `Incident ${i.numero}`);
   }
+
+  // Chaque lecture d'appoint manquante retire quelque chose de la fiche sans
+  // le dire : un rattachement sans nom, une durée de conservation à « — », un
+  // circuit de signature vide. L'encart le nomme.
+  const lecturesManquees = [
+    erreurRemplacee && "la version qui remplace celle-ci",
+    erreurAnterieures && "les versions antérieures",
+    erreurRegle && "la règle de conservation",
+    erreurPersonnes && "les personnes de l'agence",
+    erreurLots && "les lots de l'agence",
+    erreurBaux && "les baux de l'agence",
+    erreurDemandes && "les demandes de signature",
+    erreurIncidents && "les incidents rattachés",
+  ].filter((q): q is string => Boolean(q));
 
   const libelleLien = (l: Lien): string => {
     switch (l.entite) {
@@ -200,10 +243,12 @@ export async function PaneDocument({
     lots: (lots ?? []).map((l) => ({ id: l.id, libelle: l.nom })),
     baux: baux.map((b) => ({ id: b.id, libelle: libelleBail(b) })),
   };
+  const bauxTronques = baux.length >= PLAFOND_BAUX;
 
   if (doc.purged_at) {
     return (
       <div className="space-y-3.5">
+        <EchecLecture quoi={lecturesManquees} />
         <div className="entete-page">
           <div>
             <span className="eyebrow">
@@ -231,12 +276,13 @@ export async function PaneDocument({
 
   return (
     <div className="space-y-3.5">
+      <EchecLecture quoi={lecturesManquees} />
       {remplaceePar && (
         <div className="rounded-lg border border-warning-soft bg-warning-soft/40 p-3 text-sm">
           Cette version a été remplacée le {formaterDate(remplaceePar.created_at)}.{" "}
           <Link
             href={`${lienFermer}${lienFermer.includes("?") ? "&" : "?"}sel=${remplaceePar.id}`}
-            className="inline-flex items-center gap-1.5 text-[var(--bleu)] underline-offset-2 hover:underline"
+            className="lien-discret inline-flex items-center gap-1.5"
           >
             Ouvrir la version courante
             <IndicateurLien />
@@ -303,7 +349,12 @@ export async function PaneDocument({
                 </span>
               ))}
             </div>
-            <FormulaireRattacher orgId={orgId} documentId={doc.id} fiches={fiches} />
+            <FormulaireRattacher
+              orgId={orgId}
+              documentId={doc.id}
+              fiches={fiches}
+              bauxTronques={bauxTronques}
+            />
             {/* Le circuit du document : mise à disposition, envoi pour
                 signature, suivi des demandes. key : la sélection du signataire
                 repart de zéro quand on change de document (audit 09/09 —
@@ -395,7 +446,7 @@ export async function PaneDocument({
                     <Link
                       href={`${lienFermer}${lienFermer.includes("?") ? "&" : "?"}sel=${v.id}`}
                       aria-label={`Ouvrir la version « ${v.titre ?? "sans titre"} » du ${formaterDate(v.created_at)}`}
-                      className="-my-2 inline-flex shrink-0 items-center gap-1.5 py-2 text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+                      className="lien-discret -my-2 inline-flex shrink-0 items-center gap-1.5 py-2"
                     >
                       Ouvrir
                       <IndicateurLien />

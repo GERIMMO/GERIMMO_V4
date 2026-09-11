@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
+import { EnteteReglages } from "../profil/famille-reglages";
 
 export const metadata = { title: "Questions fréquentes — Gerimmo" };
 
@@ -38,21 +39,30 @@ const QUESTIONS: [string, string][] = [
 
 export default async function PageFaqProprietaire(props: PageProps<"/agence/[orgId]/faq">) {
   const { orgId } = await props.params;
-  const { estProprietaire } = await verifierAccesEspace(orgId);
+  const { estProprietaire, organisation } = await verifierAccesEspace(orgId);
   if (!estProprietaire) notFound();
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-      <h1>Questions fréquentes</h1>
+      <EnteteReglages titre="Questions fréquentes" mention={organisation.name}>
+        Ce que Gerimmo fait seul, ce qu&apos;il ne fait pas, et ce que coûte
+        votre abonnement — chaque réponse vérifiée contre le comportement réel
+        de l&apos;application.
+      </EnteteReglages>
+
       <div className="loc-carte">
-        <ul className="divide-y divide-border">
+        {/* Une question et sa réponse : une liste de définitions, pas des
+            paragraphes en gras — le lecteur d'écran annonce la paire. */}
+        <dl className="divide-y divide-border">
           {QUESTIONS.map(([q, r]) => (
-            <li key={q} className="py-3.5 first:pt-0 last:pb-0">
-              <p className="text-sm font-semibold text-[var(--encre)]">{q}</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{r}</p>
-            </li>
+            <div key={q} className="py-3.5 first:pt-0 last:pb-0">
+              <dt className="text-sm font-semibold text-[var(--encre)]">{q}</dt>
+              <dd className="mesure-lecture mt-1 text-sm leading-relaxed text-muted-foreground">
+                {r}
+              </dd>
+            </div>
           ))}
-        </ul>
+        </dl>
       </div>
     </main>
   );

@@ -36,13 +36,18 @@ export default async function PageFaqLocataire(props: PageProps<"/locataire/[org
   const { orgId } = await props.params;
   return (
     <div className="space-y-4">
-      <h1>Questions fréquentes</h1>
+      <div className="entete-page">
+        <h1>Questions fréquentes</h1>
+        <span className="mono-discret">{QUESTIONS.length} réponses</span>
+      </div>
       <div className="loc-carte">
         <ul className="divide-y divide-border">
           {QUESTIONS.map(([q, r]) => (
             <li key={q} className="py-3.5 first:pt-0 last:pb-0">
-              <p className="text-sm font-semibold text-[var(--encre)]">{q}</p>
-              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{r}</p>
+              <p className="mesure-lecture text-sm font-semibold text-[var(--encre)]">{q}</p>
+              <p className="mesure-lecture mt-1 text-sm leading-relaxed text-muted-foreground">
+                {r}
+              </p>
             </li>
           ))}
         </ul>

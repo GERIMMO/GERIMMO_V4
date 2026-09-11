@@ -29,12 +29,22 @@ export async function GET(
     , "depuis la page Documents");
   }
 
-  const { data: doc } = await supabase
+  const { data: doc, error: erreurDoc } = await supabase
     .from("documents")
     .select("storage_path, titre, mime_type, purged_at")
     .eq("id", documentId)
     .eq("organization_id", orgId)
     .maybeSingle();
+  // Une lecture refusée n'est pas un document absent : répondre 404
+  // « introuvable » ferait croire la pièce supprimée (relevé du 11/09).
+  if (erreurDoc) {
+    return pageErreurFichier(
+      503,
+      "Document momentanément illisible",
+      "La fiche de ce document n'a pas pu être lue — ce n'est pas qu'il n'existe plus. Réessayez dans un instant ; si le problème persiste, signalez-le.",
+      "depuis la page Documents"
+    );
+  }
   if (!doc) {
     return pageErreurFichier(404, "Document introuvable", "Ce document n'existe pas ou n'appartient pas à cette agence.", "depuis la page Documents");
   }

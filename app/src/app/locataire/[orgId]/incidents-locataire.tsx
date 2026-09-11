@@ -14,7 +14,8 @@ import {
   titreIncident,
 } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
-import { Card, CardContent } from "@/components/ui/card";
+import { LectureImpossible } from "./panne-lecture";
+import { tagLocataire } from "./pastille-locataire";
 
 export type IncidentLocataire = {
   id: string;
@@ -93,7 +94,8 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
 
   // Liseré gauche façon maquette pLocIncidents : vert = clos, ambre = une
   // décision ou une action côté locataire (à sa charge, intervention
-  // terminée), encre = le dossier avance côté agence.
+  // terminée), encre = le dossier avance côté agence. Même épaisseur que les
+  // autres cartes à liseré de la zone (4 px).
   const liser =
     incident.etat === "clos"
       ? "border-l-[var(--success)]"
@@ -103,35 +105,34 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
         : "border-l-[var(--encre)]";
 
   return (
-    <Card className={`border-l-[3px] ${liser}`}>
-      <CardContent className="space-y-1.5 text-sm">
-        <div className="entete-carte !mb-0">
-          <h3>{titreIncident(incident.categorie)}</h3>
-          <span className={COULEURS_ETAT_LOCATAIRE[incident.etat] ?? "puce puce-grise"}>
-            {libelleEtatLocataire(incident.etat, incident.imputation)}
+    <div className={`loc-carte space-y-1.5 border-l-4 text-sm ${liser}`}>
+      <div className="entete-carte !mb-0">
+        <h3 className="text-base font-medium">{titreIncident(incident.categorie)}</h3>
+        <span className={tagLocataire(COULEURS_ETAT_LOCATAIRE[incident.etat])}>
+          {libelleEtatLocataire(incident.etat, incident.imputation)}
+        </span>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {incident.numero} · déclaré le {formaterDate(incident.declare_le)}
+        {incident.piece ? ` · ${incident.piece}` : ""}
+        {incident.nb_photos > 0
+          ? ` · ${incident.nb_photos} photo${incident.nb_photos > 1 ? "s" : ""}`
+          : ""}
+      </p>
+
+      {charge && (
+        <div className="ligne-info">
+          <span>Qui prend en charge</span>
+          <span className="text-right">
+            {charge}
+            {incident.imputation_justification
+              ? ` (${incident.imputation_justification})`
+              : ""}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          {incident.numero} · déclaré le {formaterDate(incident.declare_le)}
-          {incident.piece ? ` · ${incident.piece}` : ""}
-          {incident.nb_photos > 0
-            ? ` · ${incident.nb_photos} photo${incident.nb_photos > 1 ? "s" : ""}`
-            : ""}
-        </p>
+      )}
 
-        {charge && (
-          <div className="ligne-info">
-            <span>Qui prend en charge</span>
-            <span className="text-right">
-              {charge}
-              {incident.imputation_justification
-                ? ` (${incident.imputation_justification})`
-                : ""}
-            </span>
-          </div>
-        )}
-
-        {incident.imputation_contestee_le && (
+      {incident.imputation_contestee_le && (
         <p className="text-xs text-muted-foreground">
           Votre contestation du {formaterDate(incident.imputation_contestee_le)} est
           transmise — elle ne suspend pas la réparation.
@@ -139,12 +140,18 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
       )}
 
       {etatContestation.erreur && (
-        <p className="text-destructive">{etatContestation.erreur}</p>
+        <p className="err !mb-0" role="alert">
+          {etatContestation.erreur}
+        </p>
       )}
       {etatContestation.succes && (
         <p className="text-success-soft-foreground">{etatContestation.succes}</p>
       )}
-      {etatPersiste.erreur && <p className="text-destructive">{etatPersiste.erreur}</p>}
+      {etatPersiste.erreur && (
+        <p className="err !mb-0" role="alert">
+          {etatPersiste.erreur}
+        </p>
+      )}
       {etatPersiste.succes && (
         <p className="text-success-soft-foreground">{etatPersiste.succes}</p>
       )}
@@ -156,7 +163,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
             <button
               type="button"
               onClick={() => setOuvert("contester")}
-              className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+              className="lien-discret"
             >
               Contester cette imputation
             </button>
@@ -167,7 +174,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
             <button
               type="button"
               onClick={() => setOuvert("persiste")}
-              className="text-xs text-[var(--bleu)] underline-offset-2 hover:underline"
+              className="lien-discret"
             >
               Le problème persiste
             </button>
@@ -192,8 +199,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
           valeurInitiale={etatPersiste.valeurs?.motif}
         />
       )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -203,29 +209,35 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
 export function IncidentsLocataire({
   orgId,
   incidents,
+  lectureEnEchec = false,
 }: {
   orgId: string;
   incidents: IncidentLocataire[];
+  // La lecture a échoué : « Rien en cours » serait un mensonge rassurant
+  lectureEnEchec?: boolean;
 }) {
+  if (lectureEnEchec) {
+    return (
+      <div className="loc-carte">
+        <LectureImpossible quoi="vos demandes" />
+      </div>
+    );
+  }
   if (incidents.length === 0) {
     return (
-      <Card>
-        <CardContent>
-          <div className="vide">
-            <p className="font-medium">Rien en cours.</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Un problème dans le logement ? Signalez-le — vous saurez qui prend
-              la réparation en charge.
-            </p>
-            <Link
-              href={`/locataire/${orgId}/incident`}
-              className="mt-3 inline-block text-sm text-[var(--bleu)] underline-offset-2 hover:underline"
-            >
-              Signaler un problème
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="vide-guide rounded-[14px]">
+        <p className="titre">Rien en cours.</p>
+        <p className="explication">
+          Un problème dans le logement ? Signalez-le : vous saurez qui prend la
+          réparation en charge avant toute intervention, et vous suivrez chaque
+          étape ici.
+        </p>
+        <span className="geste">
+          <Link href={`/locataire/${orgId}/incident`} className="btn-or">
+            Signaler un problème
+          </Link>
+        </span>
+      </div>
     );
   }
   return (

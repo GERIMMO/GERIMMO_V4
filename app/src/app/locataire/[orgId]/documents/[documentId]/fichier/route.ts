@@ -31,10 +31,21 @@ export async function GET(
     , "depuis « Mes documents »");
   }
 
-  const { data } = await supabase.rpc("mon_document_locataire", {
+  const { data, error: erreurLecture } = await supabase.rpc("mon_document_locataire", {
     p_org: orgId,
     p_doc: documentId,
   });
+  // Sans cette lecture, une requête tombée rendait « Pièce introuvable » : on
+  // annonçait au locataire que sa pièce n'existait pas alors qu'on n'avait
+  // simplement pas pu la chercher (relevé 11/09).
+  if (erreurLecture) {
+    return pageErreurFichier(
+      503,
+      "Consultation momentanément impossible",
+      "Vos pièces n'ont pas pu être consultées à l'instant : la lecture a échoué. Cette pièce n'est pas perdue — réessayez dans un instant.",
+      "depuis « Mes documents »"
+    );
+  }
   const doc = ((data ?? []) as {
     document_id: string;
     titre: string | null;

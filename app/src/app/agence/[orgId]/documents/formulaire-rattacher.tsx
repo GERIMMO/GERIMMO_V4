@@ -31,10 +31,14 @@ export function FormulaireRattacher({
   orgId,
   documentId,
   fiches,
+  // La liste des baux s'arrête à un plafond : un sélecteur qui tait les baux
+  // les plus anciens ferait croire qu'ils n'existent pas.
+  bauxTronques = false,
 }: {
   orgId: string;
   documentId: string;
   fiches: FichesRattachables;
+  bauxTronques?: boolean;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [famille, setFamille] = useState<keyof FichesRattachables>("personnes");
@@ -96,6 +100,12 @@ export function FormulaireRattacher({
           ))}
         </select>
       </div>
+      {famille === "baux" && bauxTronques && (
+        <p className="text-xs text-muted-foreground">
+          Les {fiches.baux.length} baux les plus récents. Un bail plus ancien se
+          rattache depuis sa propre fiche.
+        </p>
+      )}
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       <div className="flex gap-2">
         <BoutonEnvoi size="sm" enCoursTexte="Rattachement…">

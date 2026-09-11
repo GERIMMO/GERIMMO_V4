@@ -13,8 +13,11 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// min-w-0 : en flex, un select natif refuse sinon de descendre sous sa plus
+// longue option et fait déborder la ligne (audit mobile 09/09). Même chaîne
+// que actions-incident.tsx — un seul sélecteur pour tout l'écran incident.
 const classeSelect =
-  "h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm";
+  "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2 text-sm";
 
 // Repère juridique de la catégorie choisie : une information pour l'agent,
 // jamais une pré-sélection (RM-7.2.1)

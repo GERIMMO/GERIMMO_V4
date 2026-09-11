@@ -89,9 +89,14 @@ export function FormulaireAlerte({
           Une alerte est toujours assignée à au moins une personne.
         </p>
       </div>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {/* Bloc d'erreur de la charte (.err), comme partout ailleurs */}
+      {etat.erreur && (
+        <p className="err mb-0" role="alert">
+          {etat.erreur}
+        </p>
+      )}
       {etat.succes && (
-        <p className="text-sm text-success-soft-foreground">
+        <p className="text-sm text-success-soft-foreground" role="status">
           {etat.succes}
         </p>
       )}

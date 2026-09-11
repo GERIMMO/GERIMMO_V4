@@ -1,0 +1,129 @@
+# Appliquer les migrations à la base de production, depuis les FICHIERS du dépôt.
+#
+# POURQUOI CE CHANTIER EXISTE. Les migrations étaient jusqu'ici passées à la
+# main, en recopiant leur contenu dans un outil. Ça marche pour vingt lignes ;
+# pas pour un module de 151 Ko, où une dérive d'un caractère est silencieuse et
+# corrompt la base. Ici, c'est GitHub qui lit les fichiers — personne ne les
+# retape, donc personne ne les abîme.
+#
+# DÉCLENCHEMENT MANUEL, ET SEULEMENT MANUEL. Une migration n'est pas un
+# déploiement : elle change la forme des données, et l'ordre par rapport à la
+# mise en ligne du code compte. On la lance quand on a décidé de la lancer.
+#
+# LE POOLER, PAS LA CONNEXION DIRECTE. `db.<ref>.supabase.co` ne répond qu'en
+# IPv6 ; les machines de GitHub n'ont que de l'IPv4. Le pooler en mode session
+# (port 5432) accepte le DDL, contrairement au mode transaction (6543).
+#
+# LA LISTE EST EXPLICITE, ET CE N'EST PAS UNE PARESSE. On pourrait croire qu'il
+# suffit d'appliquer « tout fichier dont la version manque à l'historique ».
+# C'est faux ICI : les fichiers du dépôt ont été renommés au fil du temps et
+# leurs horodatages ne correspondent plus à ceux enregistrés en base. Exemple
+# constaté le 11/09 : le dépôt porte 20260911124500_restitution_rearrete…,
+# la base a enregistré la même migration sous 20260911014814. Une détection
+# automatique la croirait absente et la REJOUERAIT. On nomme donc ce qu'on
+# applique — le chantier affiche l'historique pour aider à choisir.
+
+name: Migrations Supabase
+
+on:
+  workflow_dispatch:
+    inputs:
+      fichiers:
+        description: >-
+          Fichiers à appliquer, séparés par des espaces, DANS L'ORDRE. Noms
+          seuls (pas de chemin). Obligatoire — voir le commentaire en tête.
+        required: true
+      simulation:
+        description: "Simulation : jouer puis TOUT annuler (rien n'est conservé)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: migrations-production
+  cancel-in-progress: false
+
+jobs:
+  appliquer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Client PostgreSQL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Appliquer
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          REF: rddlxunppddzpsaatdaz
+          REGION: eu-west-3
+          FICHIERS: ${{ inputs.fichiers }}
+          SIMULATION: ${{ inputs.simulation }}
+        run: |
+          set -euo pipefail
+          URL="postgresql://postgres.${REF}@aws-0-${REGION}.pooler.supabase.com:5432/postgres"
+          cd app/supabase/migrations
+
+          echo "— historique déjà en base"
+          psql "$URL" -Atc \
+            "select version from supabase_migrations.schema_migrations order by version" \
+            > /tmp/deja.txt
+          echo "  $(wc -l < /tmp/deja.txt) migrations enregistrées"
+
+          echo "— dix dernières versions enregistrées"
+          tail -10 /tmp/deja.txt | sed 's/^/   /'
+
+          LISTE="${FICHIERS}"
+          if [ -z "$(echo "$LISTE" | tr -d ' ')" ]; then
+            echo "✗ Aucun fichier nommé. La liste est obligatoire : les horodatages" >&2
+            echo "  des fichiers du dépôt ne correspondent pas à ceux de la base," >&2
+            echo "  une détection automatique rejouerait des migrations déjà passées." >&2
+            exit 1
+          fi
+
+          # Garde-fou : refuser une version DÉJÀ enregistrée. Si elle est là,
+          # la migration a déjà été appliquée — la rejouer, au mieux ne fait
+          # rien, au pire écrase une correction posée depuis.
+          for f in $LISTE; do
+            v="${f%%_*}"
+            if grep -qx "$v" /tmp/deja.txt; then
+              echo "✗ $f : la version $v est déjà enregistrée en base." >&2
+              exit 1
+            fi
+          done
+          echo "— à appliquer, dans cet ordre :"
+          for f in $LISTE; do
+            [ -f "$f" ] || { echo "✗ fichier introuvable : $f" >&2; exit 1; }
+            echo "   · $f"
+          done
+
+          # TOUT LE LOT DANS UNE SEULE TRANSACTION. Deux raisons :
+          #  — la simulation n'a de sens qu'ainsi. Annuler fichier par fichier
+          #    ferait échouer le second faute des tables créées par le premier,
+          #    et on croirait à un défaut qui n'existe pas ;
+          #  — ces fichiers forment un ensemble. Une moitié appliquée est pire
+          #    qu'un échec net : le code trouve des tables et pas les fonctions.
+          {
+            echo "begin;"
+            for f in $LISTE; do
+              v="${f%%_*}"
+              nom="${f#*_}"; nom="${nom%.sql}"
+              echo "\\echo '── $f'"
+              cat "$f"
+              echo ";"
+              echo "insert into supabase_migrations.schema_migrations (version, name, statements)"
+              echo "values ('$v', '$nom', array[\$gerimmo\$appliquée par le chantier GitHub\$gerimmo\$])"
+              echo "on conflict do nothing;"
+            done
+            if [ "$SIMULATION" = "true" ]; then echo "rollback;"; else echo "commit;"; fi
+          } > /tmp/lot.sql
+
+          echo "— $(wc -l < /tmp/lot.sql) lignes de SQL à jouer"
+          psql "$URL" -v ON_ERROR_STOP=1 -f /tmp/lot.sql
+
+          if [ "$SIMULATION" = "true" ]; then
+            echo
+            echo "SIMULATION : tout a été joué puis annulé. Rien n'est conservé."
+            echo "Relancez avec « simulation » décoché pour appliquer pour de bon."
+          fi

@@ -27,7 +27,7 @@ export async function AccueilProprietaire({
     { count: nbBiens },
     { data: encaissements },
     { data: alertesBrutes },
-    { data: dpe },
+    { data: dpe, error: erreurDpe },
     // « À faire » ne repose plus sur les seules alertes (audit 09/09) : la
     // même source que la fiche bail — impayés, EDL d'entrée, diagnostics
     // obligatoires, pièces expirées — sinon l'accueil disait « tout est en
@@ -52,7 +52,7 @@ export async function AccueilProprietaire({
     // 2025, F au 1ᵉʳ janvier 2028, loi Climat et résilience)
     supabase
       .from("diagnostics")
-      .select("classe_dpe, lot:lots(nom, etat)")
+      .select("classe_dpe, lot:lots!diagnostics_lot_id_fkey(nom, etat)")
       .eq("organization_id", orgId)
       .eq("type", "dpe")
       .in("classe_dpe", ["F", "G"])
@@ -78,6 +78,11 @@ export async function AccueilProprietaire({
   const vacants = nbLots - loues;
   const encaisse = (encaissements ?? []).reduce((s, e) => s + Number(e.montant), 0);
   const nomMois = new Date().toLocaleDateString("fr-FR", { month: "long", timeZone: "Europe/Paris" });
+  // Le bloc « Veille réglementaire » ne s'affiche que s'il a quelque chose à
+  // dire : sans distinction, une LECTURE EN ÉCHEC se lisait exactement comme
+  // « aucune passoire » (constat du 11/09 : la requête échouait à chaque
+  // chargement et le propriétaire d'un lot classé G ne voyait rien). Une
+  // interdiction de louer ne se déduit pas d'une absence : on l'énonce.
   const passoires = ((dpe ?? []) as {
     classe_dpe: string;
     lot: UnOuPlusieurs<{ nom: string; etat: string }>;
@@ -236,6 +241,18 @@ export async function AccueilProprietaire({
         </div>
 
         <div className="space-y-4">
+          {erreurDpe && (
+            <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
+              <div className="entete-carte !mb-1">
+                <h3 className="text-base font-medium">Veille réglementaire</h3>
+              </div>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Les diagnostics de performance énergétique n&apos;ont pas pu être lus.
+                Cet encadré ne dit donc rien de vos lots : rechargez la page, et si
+                l&apos;échec persiste, vérifiez les DPE depuis chaque fiche de bien.
+              </p>
+            </div>
+          )}
           {passoires.length > 0 && (
             <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
               <div className="entete-carte !mb-1">

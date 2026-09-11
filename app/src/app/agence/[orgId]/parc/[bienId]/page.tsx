@@ -87,11 +87,15 @@ export default async function PageBien(
       .eq("bien_id", bienId)
       .maybeSingle(),
     // Recette 21/08 : la fiche bien dit qui possède quoi — détentions en
-    // cours de tous les lots du bien (jointure explicite : deux FK vers persons)
+    // cours de tous les lots du bien. Jointures explicites : detentions a
+    // DEUX clés étrangères vers persons ET deux vers lots (la clé simple et
+    // la clé composite qui garde l'agence cohérente). `!inner` ne choisit que
+    // le type de jointure, jamais la clé : sans `!fk` des deux côtés,
+    // PostgREST refuse la requête (PGRST201) et le bloc reste vide.
     supabase
       .from("detentions")
       .select(
-        "lot_id, quote_part, person:persons!detentions_person_id_fkey(id, nom, prenom), lot:lots!inner(bien_id)"
+        "lot_id, quote_part, person:persons!detentions_person_id_fkey(id, nom, prenom), lot:lots!detentions_lot_id_fkey!inner(bien_id)"
       )
       .eq("organization_id", orgId)
       .eq("lot.bien_id", bienId)

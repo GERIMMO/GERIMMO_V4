@@ -58,7 +58,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
         " contre_ecriture_de," +
         // Deux clés étrangères relient lots à biens (dont une composite qui garde
         // l'agence cohérente) : il faut nommer celle qu'on suit.
-        " lot:lots(nom, bien:biens!lots_bien_id_fkey(nom))," +
+        " lot:lots!ecritures_lot_id_fkey(nom, bien:biens!lots_bien_id_fkey(nom))," +
         " mandat:mandats(person:persons(nom, prenom))"
     )
     .eq("organization_id", orgId)

@@ -54,9 +54,15 @@ export async function proxy(request: NextRequest) {
 
   if (!user) {
     if (isPublic) return response;
+    // La destination demandée est MÉMORISÉE, pas jetée. Sans cela, un
+    // locataire qui ouvre la quittance reçue par email après expiration de sa
+    // session se reconnecte… et atterrit sur l'accueil de son espace, sans
+    // jamais voir le document qu'on lui avait envoyé (constat de l'état des
+    // lieux du 11/09). Elle n'est relue qu'à travers destinationSure().
     const url = request.nextUrl.clone();
+    const demandee = pathname + request.nextUrl.search;
     url.pathname = "/connexion";
-    url.search = "";
+    url.search = demandee && demandee !== "/" ? `?suite=${encodeURIComponent(demandee)}` : "";
     return NextResponse.redirect(url);
   }
 

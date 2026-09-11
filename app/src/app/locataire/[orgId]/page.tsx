@@ -166,7 +166,20 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // en clair et avec le geste à côté. Le loyer en retard y prend sa place —
   // il avait sa propre carte plus bas, qui répétait la même chose.
   const aFaire: { cle: string; titre: string; detail: string; href: string; action: string }[] = [];
-  if (interventionsAPlanifier > 0) {
+  if (eCreneaux) {
+    // La lecture des rendez-vous a échoué. Ne rien dire ferait croire au
+    // locataire qu'on n'attend rien de lui — et le dossier s'arrêterait là,
+    // sans que personne ne sache pourquoi. On ne prétend pas non plus qu'un
+    // rendez-vous attend : on dit qu'on n'a pas pu vérifier.
+    aFaire.push({
+      cle: "creneau-illisible",
+      titre: "Un rendez-vous attend peut-être votre choix",
+      detail:
+        "Nous n'avons pas pu le vérifier à l'instant. Ouvrez « Mes demandes » : s'il y a des dates à choisir, elles s'y trouvent.",
+      href: `/locataire/${orgId}/demandes`,
+      action: "Vérifier",
+    });
+  } else if (interventionsAPlanifier > 0) {
     aFaire.push({
       cle: "creneau",
       titre:
@@ -275,8 +288,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eGestionnaire,
         eAnnonces,
         eDemandes,
-        eSignatures,
-        eCreneaux
+        eSignatures
       ) && <PanneLecture quoi="l'essentiel de votre logement" />}
 
       {bail && (

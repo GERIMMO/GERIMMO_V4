@@ -5,7 +5,7 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { SidebarLocataire } from "@/components/nav-locataire";
 import { SortieMobile } from "@/components/sortie-mobile";
 import { nomComplet } from "@/lib/roles-personnes";
-import { estExpiree } from "@/lib/ged";
+import { estARenouveler } from "@/lib/ged";
 import { aEchoue } from "./panne-lecture";
 
 // Espace locataire — montée en gamme (maquette v10 du 05/09) : navigation
@@ -47,7 +47,11 @@ export default async function LayoutLocataire({
   // L'assurance n'est réclamée qu'à un locataire en place : sans bail actif,
   // le badge ne réclame rien (audit 06/09 — badge figé à 1 pour un sortant).
   const bailActif = ((baux ?? []) as unknown[]).length > 0;
-  const assuranceOk = !bailActif || Boolean(derniere && !estExpiree(derniere.expire_le));
+  // Le badge se déclenche à J-30, pas à l'expiration : c'est le seuil que
+  // RM-0b.5.1 rend dû AU LOCATAIRE, et celui que l'accueil et la page
+  // Documents affichent désormais (revue 11/09 — le menu restait muet
+  // pendant que « Ce qui vous attend » réclamait le renouvellement).
+  const assuranceOk = !bailActif || Boolean(derniere && !estARenouveler(derniere.expire_le));
   const demandesEnCours = ((incidents ?? []) as { etat: string }[]).filter(
     (i) => i.etat !== "clos"
   ).length;
@@ -83,6 +87,7 @@ export default async function LayoutLocataire({
           }
           badgeDemandes={demandesEnCours}
           badgeMessages={Number(nonLus ?? 0)}
+          declarationOuverte={adhesionActive}
         />
         <div className="loc-late-bas">
           <Link href="/espaces">Mes espaces</Link>

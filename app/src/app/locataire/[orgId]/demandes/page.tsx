@@ -2,12 +2,16 @@ import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locataire";
 import { aEchoue, PanneLecture } from "../panne-lecture";
+import { ReflexesUrgence } from "../reflexes-urgence";
 
-export const metadata = { title: "Signaler un problème — Gerimmo" };
+export const metadata = { title: "Mes demandes — Gerimmo" };
 
-// « Signaler un problème » (maquette v10) : les bons réflexes d'urgence, le
-// signalement en deux gestes, puis le suivi de chaque demande — avec, avant
-// toute intervention, qui prend la réparation en charge.
+// « Mes demandes » (maquette v10) : le suivi de chaque signalement — avec,
+// avant toute intervention, qui prend la réparation en charge. La page
+// s'appelait « Signaler un problème » comme l'entrée de menu ET comme son
+// propre bouton (relevé 11/09) : le locataire touchait deux fois les mêmes
+// mots et croyait que le premier clic n'avait pas pris. La déclaration a sa
+// page, /incident ; celle-ci porte ce qu'elle montre.
 export default async function PageDemandesLocataire(
   props: PageProps<"/locataire/[orgId]/demandes">
 ) {
@@ -24,7 +28,7 @@ export default async function PageDemandesLocataire(
   return (
     <div className="space-y-4">
       <div className="entete-page">
-        <h1>Signaler un problème</h1>
+        <h1>Mes demandes</h1>
         {!aEchoue(eIncidents) && incidents.length > 0 && (
           <span className="mono-discret">
             {enCours.length} en cours · {incidents.length - enCours.length} clos
@@ -34,15 +38,10 @@ export default async function PageDemandesLocataire(
 
       {aEchoue(eIncidents) && <PanneLecture quoi="vos demandes" />}
 
-      <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
-        <h3 className="text-base font-medium">En cas d&apos;urgence</h3>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Fuite importante : fermez d&apos;abord le robinet d&apos;arrêt d&apos;eau.
-          Odeur de gaz : aérez, ne touchez aucun interrupteur, appelez Urgence
-          Sécurité Gaz au 0 800 47 33 33. Danger pour les personnes : le 112.
-          Puis signalez ici — votre gestionnaire est prévenu immédiatement.
-        </p>
-      </div>
+      {/* La consigne de sécurité reste ici ET accompagne désormais le
+          formulaire sur /incident : une consigne d'urgence ne se déménage
+          pas, elle se trouve là où le locataire atterrit. */}
+      <ReflexesUrgence />
 
       <div className="loc-carte">
         <h3 className="text-base font-medium">Un souci dans le logement ?</h3>
@@ -51,7 +50,12 @@ export default async function PageDemandesLocataire(
           logement — et avant toute intervention, on vous dit qui prend la
           réparation en charge : jamais de surprise sur la facture.
         </p>
-        {adhesionActive && (
+        {/* Liste vide, l'état vide de IncidentsLocataire porte déjà son
+            propre bouton or vers /incident : deux boutons identiques l'un
+            sous l'autre (relevé 11/09). Celui-ci ne sort que s'il y a une
+            liste à dépasser — ou si la lecture est tombée, auquel cas
+            l'état vide n'est pas affiché du tout. */}
+        {adhesionActive && (incidents.length > 0 || aEchoue(eIncidents)) && (
           <Link href={`/locataire/${orgId}/incident`} className="btn-or mt-3">
             Signaler un problème →
           </Link>

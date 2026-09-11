@@ -52,6 +52,10 @@ function LectureImpossible({ quoi }: { quoi: string }) {
 // (.rang-alerte), quelle que soit la source de l'action.
 type ActionDuJour = {
   cle: string;
+  // Le type de l'alerte dont la rangée vient, quand elle vient d'une alerte :
+  // c'est lui qui décide de ce qui a le droit de passer sous la coupe de
+  // « À venir » (voir PLAFOND_A_VENIR).
+  type?: string;
   nature: string;
   criticite: "critique" | "normale" | "informative";
   titre: string;
@@ -382,6 +386,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
   const datees: ActionDuJour[] = alertes.map((a) => ({
     cle: `a-${a.id}`,
+    type: a.type,
     nature: `Alerte ${(CRITICITES[a.criticite] ?? a.criticite).toLowerCase()}`,
     criticite: niveau(a.criticite),
     titre: a.titre,
@@ -488,6 +493,22 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const nbActions = surLesBaux.length + enRetard.length + aVenir.length;
   // « À venir » se coupe à six rangs — et le dit, avec l'endroit où voir le reste.
   const PLAFOND_A_VENIR = 6;
+  // … sauf l'incident à qualifier. Relevé du 11/09 : `incident_creer` insère son
+  // alerte SANS échéance (migration 20260821093624, l.174-183), les rangées sans
+  // date passent après les datées (`parUrgence`, ci-dessus), et la coupe à six
+  // faisait disparaître de l'accueil la déclaration la plus fraîche : il fallait
+  // « Tout voir → » puis re-cliquer « Traiter », deux clics au lieu d'un.
+  // Ne remonter que les CRITIQUES sans date ne suffirait pas : l'alerte n'est
+  // critique que si l'urgence l'est (même migration, l.176-179) — une
+  // déclaration normale, le cas courant, resterait au fond de la liste.
+  // Elle reste visible, elle ne prend pas de date : aucune page de
+  // wiki/regles-metier/ ne fixe de délai de qualification, et lui en inventer un
+  // en base créerait un délai opposable que personne n'a tranché (RM-7.2.7 dit
+  // que rien ne part sans imputation, pas sous combien de temps).
+  const TYPES_HORS_PLAFOND = new Set(["incident_a_qualifier"]);
+  const aVenirVisibles = aVenir.filter(
+    (a, rang) => rang < PLAFOND_A_VENIR || TYPES_HORS_PLAFOND.has(a.type ?? "")
+  );
   // Rien à montrer ET une lecture en échec : c'est l'échec qu'on dit, jamais
   // « rien ne vous attend » — le mensonge le plus tranquille du produit.
   const planVide = nbActions === 0 && messagesNonLus === 0;
@@ -583,14 +604,14 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             <GroupeActions titre="En retard" actions={enRetard} total={enRetard.length} />
             <GroupeActions
               titre="À venir"
-              actions={aVenir.slice(0, PLAFOND_A_VENIR)}
+              actions={aVenirVisibles}
               total={aVenir.length}
               reste={
-                aVenir.length > PLAFOND_A_VENIR ? (
+                aVenir.length > aVenirVisibles.length ? (
                   <Link href={`/agence/${orgId}/alertes`} className="rang">
                     <span className="min-w-0 flex-1 text-sm">
-                      {aVenir.length - PLAFOND_A_VENIR} autre
-                      {aVenir.length - PLAFOND_A_VENIR > 1 ? "s" : ""} à venir
+                      {aVenir.length - aVenirVisibles.length} autre
+                      {aVenir.length - aVenirVisibles.length > 1 ? "s" : ""} à venir
                     </span>
                     <span className="lien-discret">
                       Tout voir&nbsp;→
@@ -631,8 +652,16 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       {/* 2. Les chiffres du jour — ce qui se passe, pas ce qu'on doit faire. */}
       <section className="section-ecran grid gap-[var(--rythme-4)] sm:grid-cols-2">
         {/* Tuile Incidents de la maquette (conformité 24/08) : dossiers en
-            cours, jauge par payeur, la file à qualifier en sous-ligne. */}
-        <Link href={`/agence/${orgId}/incidents`} className="kpi or h-full">
+            cours, jauge par payeur, la file à qualifier en sous-ligne — et,
+            depuis le relevé du 11/09, un lien vers cette file. La sous-ligne
+            promettait « N à qualifier » et le href atterrissait sur « En
+            cours », où les dossiers déjà tranchés sont mêlés aux autres. La vue
+            n'est qu'un filtre d'affichage : elle ne franchit aucune transition
+            de la machine A5. */}
+        <Link
+          href={`/agence/${orgId}/incidents${aQualifier > 0 ? "?vue=a-traiter" : ""}`}
+          className="kpi or h-full"
+        >
           <span className="eyebrow">Incidents</span>
           <span className="mt-1 flex items-baseline gap-2">
             <span className="chiffre">{erreurIncidents ? "—" : dossiersIncidents.length}</span>

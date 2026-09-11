@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonImprimer } from "@/components/bouton-imprimer";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { eur, formaterDate } from "@/lib/ged";
 
 type DetailQuittance = {
@@ -58,6 +59,12 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8">
+      {/* Route racine, hors de tout espace : sans cela, le document est un
+          cul-de-sac. Masqué à l'impression — une quittation papier n'a pas de
+          bouton « Retour ». */}
+      <div className="print:hidden">
+        <BoutonRetour libelle="Retour" />
+      </div>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
         <div>
           <h1>{titre}</h1>

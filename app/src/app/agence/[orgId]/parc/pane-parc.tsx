@@ -157,19 +157,24 @@ export async function PaneParc({
       .select("quote_part, person:persons!detentions_person_id_fkey(nom, prenom)")
       .eq("lot_id", selection.id)
       .is("date_fin", null),
+    // Les brouillons sont lus AVEC les baux vivants : sans eux, le panneau
+    // proposait de créer un bail par-dessus celui qu'on avait commencé la
+    // veille — un second brouillon sur le même lot, alors que l'activation
+    // n'en tolère qu'un vivant (RM-1.1.3, controler_mise_en_location).
     supabase
       .from("baux")
       .select(
         "id, type, etat, loyer_hc, charges, date_debut, date_fin, locataire:persons!baux_locataire_meme_org_fk(nom, prenom)"
       )
       .eq("lot_id", selection.id)
-      .in("etat", ["actif", "preavis"])
-      .limit(1),
+      .in("etat", ["actif", "preavis", "brouillon"])
+      .order("created_at", { ascending: false }),
   ]);
   if (erreurLot) return <Echec retour={retour} quoi={["le lot"]} />;
   if (!lot) return <Introuvable retour={retour} />;
   const bien = premier(lot.bien as UnOuPlusieurs<{ id: string; nom: string; type: string; city: string }>);
-  const bail = (baux ?? [])[0];
+  const bail = (baux ?? []).find((b) => b.etat === "actif" || b.etat === "preavis");
+  const bailEnPreparation = (baux ?? []).find((b) => b.etat === "brouillon");
   // Maquette v3 : un EDL en cours de saisie remonte sur le lot, avec le
   // bouton qui mène directement à la grille.
   const { data: edlEnCours, error: erreurEdl } = bail
@@ -191,6 +196,22 @@ export async function PaneParc({
     .join(", ");
   const causes = Array.isArray(blocages) ? (blocages as string[]) : [];
   const ficheLot = bien ? `/agence/${orgId}/parc/${bien.id}/lots/${lot.id}` : `/agence/${orgId}/parc`;
+  // Relevé du 11/09 : ce panneau rendait le verdict « Prêt à recevoir un bail »
+  // puis n'offrait que « Ouvrir la fiche du lot » — il fallait encore y déplier
+  // « Baux & état des lieux ». L'ancre #baux ouvre la section d'elle-même.
+  // Rien n'est proposé si la lecture des blocages ou celle des baux a échoué :
+  // « prêt », comme « aucun bail », se déduirait alors d'une absence de
+  // réponse et non d'un constat. Ni sur un lot en préparation : le bail s'y
+  // créerait mais ne s'activerait pas (controler_mise_en_location exige un lot
+  // « disponible »).
+  const pretPourBail =
+    Boolean(bien) &&
+    !erreurBlocages &&
+    !erreurBaux &&
+    lot.etat === "disponible" &&
+    causes.length === 0 &&
+    !bail &&
+    !bailEnPreparation;
   const echecs: string[] = [];
   if (erreurBlocages) echecs.push("ce qui bloque la mise en location");
   if (erreurDetentions) echecs.push("les propriétaires");
@@ -238,7 +259,13 @@ export async function PaneParc({
         <div className="border-l-[3px] border-l-success bg-success-soft p-3.5 text-sm text-success-soft-foreground">
           {lot.etat === "brouillon"
             ? "Lot complet — prêt à passer disponible."
-            : `Lot complet. ${bail ? "Bail en cours." : "Prêt à recevoir un bail."}`}
+            : `Lot complet. ${
+                bail
+                  ? "Bail en cours."
+                  : bailEnPreparation
+                    ? "Un bail est en préparation."
+                    : "Prêt à recevoir un bail."
+              }`}
         </div>
       )}
 
@@ -271,7 +298,27 @@ export async function PaneParc({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Link href={ficheLot} className="btn-or">
+        {/* Charte 04, un seul bouton principal par écran : quand le bail est la
+            suite attendue, c'est lui qui porte l'or et la fiche du lot passe
+            en second. */}
+        {pretPourBail && (
+          <Link href={`${ficheLot}#baux`} className="btn-or">
+            Créer le bail
+          </Link>
+        )}
+        {!bail && bailEnPreparation && (
+          <Link href={`/agence/${orgId}/baux/${bailEnPreparation.id}`} className="btn-or">
+            Reprendre le bail en préparation
+          </Link>
+        )}
+        <Link
+          href={ficheLot}
+          className={
+            pretPourBail || (!bail && bailEnPreparation)
+              ? buttonVariants({ variant: "outline", size: "sm" })
+              : "btn-or"
+          }
+        >
           Ouvrir la fiche du lot
         </Link>
         {bail && edlEnCours && (

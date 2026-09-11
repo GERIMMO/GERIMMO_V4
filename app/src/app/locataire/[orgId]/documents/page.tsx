@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { TYPES_DOCUMENT, estExpiree, formaterDate } from "@/lib/ged";
+import {
+  TYPES_DOCUMENT,
+  aujourdhuiParis,
+  estARenouveler,
+  estExpiree,
+  formaterDate,
+} from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { FormulaireAttestation } from "../formulaire-attestation";
@@ -28,12 +34,18 @@ type LigneEcheancier = {
 function statutAssurance(expire: string | null): { texte: string; classe: string } {
   if (!expire) return { texte: "sans date d'expiration", classe: "text-muted-foreground" };
   // Minuit LOCAL des deux côtés (revue 23/08 : la date seule se parse en UTC,
-  // le lendemain de l'expiration affichait encore « expire dans 0 j »)
-  const jours = Math.ceil(
-    (new Date(`${expire}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000
+  // le lendemain de l'expiration affichait encore « expire dans 0 j »), mais
+  // sur l'horloge de PARIS depuis la revue du 11/09 : le compte partait de
+  // minuit serveur (UTC sur Vercel) et basculait un jour trop tôt entre
+  // minuit et 2 h. Les SEUILS, eux, ne se recalculent plus ici — estExpiree
+  // et estARenouveler sont la définition unique que lisent aussi l'accueil du
+  // locataire, l'espace agence et la fonction SQL documents_a_renouveler.
+  const jours = Math.round(
+    (new Date(`${expire}T00:00:00`).getTime() -
+      new Date(`${aujourdhuiParis()}T00:00:00`).getTime()) / 86400000
   );
-  if (jours < 0) return { texte: `expirée depuis ${-jours} j`, classe: "text-destructive" };
-  if (jours <= 30)
+  if (estExpiree(expire)) return { texte: `expirée depuis ${-jours} j`, classe: "text-destructive" };
+  if (estARenouveler(expire))
     return {
       texte: `expire dans ${jours} j (${formaterDate(expire)})`,
       classe: "text-warning-soft-foreground",
@@ -145,9 +157,15 @@ export default async function PageDocumentsLocataire(
         </div>
       )}
 
-      {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place */}
+      {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place.
+          id="assurance" : les lignes d'assurance de l'accueil pointent sur
+          /documents#assurance — sur 390 px cette carte est le 3ᵉ bloc, sous
+          « Documents à signer » et « Des pièces vous sont demandées », c'est-
+          à-dire précisément quand il y a le plus à faire (relevé 11/09).
+          scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div
-        className={`loc-carte ${lecturePiecesKO || (assurance && assurance.verifie_le && !estExpiree(assurance.expire_le)) ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        id="assurance"
+        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || (assurance && assurance.verifie_le && !estExpiree(assurance.expire_le)) ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
           <h3 className="text-base font-medium">Votre assurance habitation</h3>

@@ -33,6 +33,7 @@ export function SidebarLocataire({
   badgeDocuments = 0,
   badgeDemandes = 0,
   badgeMessages = 0,
+  declarationOuverte = true,
 }: {
   orgId: string;
   // Une pièce à déposer ou à renouveler (assurance…) attend dans Documents
@@ -41,19 +42,35 @@ export function SidebarLocataire({
   badgeDemandes?: number;
   // Réponses du gestionnaire pas encore lues
   badgeMessages?: number;
+  // Bail en cours : la déclaration d'incident lui est ouverte. Bail terminé,
+  // /incident n'est qu'un cul-de-sac qui le renvoie à /demandes — l'entrée
+  // doit alors mener directement à son historique (revue 11/09).
+  declarationOuverte?: boolean;
 }) {
   const pathname = usePathname();
   const base = `/locataire/${orgId}`;
+  // « Signaler un problème » menait à la LISTE, où il fallait toucher un
+  // bouton portant les mêmes mots (relevé 11/09) : l'entrée mène maintenant
+  // au formulaire.
+  //
+  // Elle nomme la SECTION, pas l'une de ses deux pages. Étiquetée « Signaler
+  // un problème », elle restait surlignée sur « Mes demandes » : le rail
+  // désignait alors une page qui ne portait pas ce nom — le défaut d'origine
+  // retourné, pas supprimé. « Mes signalements » couvre les deux, et suit la
+  // famille des autres entrées (Mes documents, Mes paiements).
+  //
+  // Le badge revient avec elle : la page d'arrivée affiche « Suivre mes
+  // demandes (2 en cours) → » en tête, le compte ne se perd donc pas.
   const entrees = [
     { href: base, libelle: "Accueil", icone: "maison", exact: true },
     { href: `${base}/logement`, libelle: "Mon logement", icone: "cle" },
     { href: `${base}/documents`, libelle: "Mes documents", icone: "doc", badge: badgeDocuments },
     { href: `${base}/loyers`, libelle: "Mes paiements", icone: "carte" },
     {
-      href: `${base}/demandes`,
-      libelle: "Signaler un problème",
+      href: declarationOuverte ? `${base}/incident` : `${base}/demandes`,
+      libelle: "Mes signalements",
       icone: "outil",
-      aussi: `${base}/incident`,
+      aussi: declarationOuverte ? `${base}/demandes` : `${base}/incident`,
       badge: badgeDemandes,
     },
     { href: `${base}/contact`, libelle: "Mon gestionnaire", icone: "bulle", badge: badgeMessages },

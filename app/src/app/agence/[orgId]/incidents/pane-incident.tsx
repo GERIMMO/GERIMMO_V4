@@ -70,7 +70,7 @@ export async function PaneIncident({
       supabase
         .from("incidents")
         .select(
-          "*, lot:lots(id, nom, bien_id), declarant:persons(id, nom, prenom)"
+          "*, lot:lots(id, nom, bien_id), declarant:persons(id, nom, prenom, telephone)"
         )
         .eq("id", incidentId)
         .eq("organization_id", orgId)
@@ -107,8 +107,22 @@ export async function PaneIncident({
 
   const lot = premier(incident.lot as UnOuPlusieurs<{ id: string; nom: string; bien_id: string }>);
   const declarant = premier(
-    incident.declarant as UnOuPlusieurs<{ id: string; nom: string; prenom: string | null }>
+    incident.declarant as UnOuPlusieurs<{
+      id: string;
+      nom: string;
+      prenom: string | null;
+      telephone: string | null;
+    }>
   );
+  // Un `declarant` nul veut dire DEUX choses, et l'écran ne doit pas les
+  // confondre : soit l'incident n'a pas de déclarant (aucun bail actif sur le
+  // lot lors d'une saisie agence), soit il en a un que CET agent n'a pas le
+  // droit de lire — `persons` est borné au portefeuille par RLS
+  // (20260909230000, persons_agent_portefeuille) alors que la liste des
+  // incidents ne filtre rien par portefeuille. Relevé du 11/09 : le volet
+  // affirmait « aucun bail actif sur le lot » dans le second cas — un fait
+  // faux, là où tout le reste de l'écran sépare « vide » et « lecture refusée ».
+  const declarantIllisible = !declarant && Boolean(incident.declarant_person_id);
   const emails = new Map(membres.map((m) => [m.account_id, m.email]));
   const photos = ((liens ?? []) as unknown as {
     document: UnOuPlusieurs<{ id: string; titre: string | null; purged_at: string | null }>;
@@ -202,7 +216,38 @@ export async function PaneIncident({
             )}
             {incident.piece ? ` · ${incident.piece}` : ""}
             {" · déclaré par "}
-            {declarant ? nomComplet(declarant) : "— (aucun bail actif sur le lot)"}
+            {declarant ? (
+              <>
+                {/* Vers le fil de messages de la fiche (#messages), pas vers son
+                    sommet : rappeler le locataire avant de trancher qui paie est
+                    le geste courant (RM-7.2.1 — « la cause ne se déduit pas de
+                    la catégorie ») et la carte Messages vit en bas d'une fiche
+                    longue. Même cible que la liste des messages. Le lien n'est
+                    posé que si la fiche est lisible : hors portefeuille elle
+                    répondrait 404, pas un refus gracieux. */}
+                <Link
+                  href={`/agence/${orgId}/personnes/${declarant.id}#messages`}
+                  className="hover:underline"
+                >
+                  {nomComplet(declarant)}
+                </Link>
+                {declarant.telephone && (
+                  <>
+                    {" · "}
+                    {/* Le numéro est de la saisie libre : les espaces cassent `tel:` sur
+                        certains combinés. Même nettoyage que les deux autres liens
+                        d'appel du produit (espace locataire). */}
+                    <a href={`tel:${declarant.telephone.replace(/\s/g, "")}`} className="hover:underline">
+                      {declarant.telephone}
+                    </a>
+                  </>
+                )}
+              </>
+            ) : declarantIllisible ? (
+              "— (déclarant hors de votre portefeuille)"
+            ) : (
+              "— (aucun bail actif sur le lot)"
+            )}
           </p>
         </div>
         <span className="flex flex-wrap items-center gap-2">
@@ -381,6 +426,17 @@ export async function PaneIncident({
                   incidentId={incidentId}
                   categorie={incident.categorie}
                 />
+                {/* Une fois l'imputation tranchée, le geste suivant est la
+                    clôture — sa carte est au bas de la même colonne et l'agent
+                    la cherchait au défilement (relevé du 11/09). Un ancrage,
+                    pas une fusion : les deux formulaires restent distincts, la
+                    clôture garde son motif et son commentaire (RM-7.6.1) et la
+                    base refuse de toute façon les motifs de l'autre état. */}
+                {incident.imputation && motifsCloture.length > 0 && (
+                  <a href="#cloture" className="lien-discret">
+                    Passer à la clôture ↓
+                  </a>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -423,7 +479,7 @@ export async function PaneIncident({
             </Card>
           )}
 
-          <Card>
+          <Card id="cloture">
             <CardHeader>
               <CardTitle className="text-base">
                 {incident.etat === "clos" ? "Incident clos" : "Clôture"}

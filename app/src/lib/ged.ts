@@ -58,6 +58,10 @@ export function dureeConservation(mois: number | null | undefined): string {
 // « À renouveler » : échéance passée ou à moins de 30 jours — sur l'horloge
 // de Paris (revue 26/08 : la règle vivait en double, sur l'horloge UTC).
 // La date seuil sert aussi de paramètre à documents_a_renouveler (SQL).
+// C'est AUSSI le seuil J-30 de RM-0b.5.1 côté locataire (wiki/concepts/
+// Dossier locataire.md, tableau des seuils) : revue du 11/09 — l'accueil et
+// la page Documents de l'espace locataire lisaient chacun leur propre calcul
+// et se contredisaient. Réutiliser celui-ci ; ne pas en écrire un quatrième.
 export function limiteRenouvellement(): string {
   const limite = new Date(`${aujourdhuiParis()}T00:00:00`);
   limite.setDate(limite.getDate() + 30);

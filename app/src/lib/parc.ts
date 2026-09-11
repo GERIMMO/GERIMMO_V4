@@ -203,8 +203,8 @@ export function formaterSurface(m2: number | string | null): string {
 
 // Rend un blocage de mise en location « actionnable » : à partir de son message
 // (issu de lot_blocages_location), renvoie où aller pour le lever. Les ancres
-// (#detention, #diagnostics, #caracteristiques) ouvrent la bonne section de la
-// fiche lot ; l'ERP se traite sur la fiche bien (diagnostic de parties communes).
+// (#detention, #diagnostics, #diagnostics-immeuble, #caracteristiques) ouvrent
+// la bonne section de la fiche visée.
 export type CibleBlocage = { href: string; libelle: string };
 
 // Pastille d'alerte d'une section « Diagnostics » : ce qui manque, ce qui est
@@ -232,7 +232,16 @@ export function alerteDiagnostics(
 
 export function cibleBlocage(
   message: string,
-  ctx: { orgId: string; bienId: string; lotId: string }
+  ctx: { orgId: string; bienId: string; lotId: string },
+  // Chemin (sans ancre) de la page qui affiche la liste, quand on le connaît.
+  // L'ERP est rattaché au BIEN, mais `deposerDiagnostic` range lui-même le
+  // dépôt d'après le référentiel : la fiche LOT sait donc le recevoir aussi
+  // (section « Diagnostics de l'immeuble »). Relevé du 11/09 : sans cela, le
+  // seul chemin pour lever ce blocage quittait la fiche lot — 2 clics d'aller
+  // et retour sur le parcours nominal, sur le lot unique de 90 % du parc.
+  // On reste donc sur la fiche où l'on se trouve déjà ; à défaut, la fiche lot,
+  // où se règle tout le reste (surface, DPE, mise en location, bail).
+  pageCourante?: string
 ): CibleBlocage {
   const bien = `/agence/${ctx.orgId}/parc/${ctx.bienId}`;
   const lot = `${bien}/lots/${ctx.lotId}`;
@@ -240,7 +249,10 @@ export function cibleBlocage(
   if (m.includes("surface")) return { href: `${lot}#caracteristiques`, libelle: "Renseigner la surface" };
   if (m.includes("détention") || m.includes("detention"))
     return { href: `${lot}#detention`, libelle: "Compléter la détention" };
-  if (m.includes("erp")) return { href: `${bien}#diagnostics`, libelle: "Déposer l'ERP (fiche bien)" };
+  if (m.includes("erp"))
+    return pageCourante === bien
+      ? { href: `${bien}#diagnostics`, libelle: "Déposer l'ERP" }
+      : { href: `${lot}#diagnostics-immeuble`, libelle: "Déposer l'ERP" };
   // La clé se valide sur la fiche bien : sans ce cas, on retomberait sur les
   // diagnostics du lot, qui n'ont rien à voir avec le blocage.
   if (m.includes("clé de répartition") || m.includes("cle de repartition"))

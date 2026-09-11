@@ -50,15 +50,63 @@ export type Retenue = {
   sans_justificatif: boolean;
 };
 
-// Durées de vie indicatives (barème de vétusté usuel) — aide à la saisie.
+// Durées de vie indicatives — aide à la saisie, recopiée de la grille par
+// défaut de wiki/regles-metier/Vétusté et décote.md (modifiable par l'agence
+// au module 18, sans effet rétroactif — RM-2.4.9).
+// Quatre des six postes divergeaient du wiki (robinetterie 10 au lieu de 15,
+// électroménager 5 au lieu de 8, parquet 10 au lieu de 25) et « Moquette /
+// sol souple » FUSIONNAIT deux postes distincts à 7 ans : la durée
+// réglementaire d'un lino (10 ans) était inatteignable depuis la liste
+// (relevé du 11/09). Trois postes manquaient.
 const BAREME: { poste: string; ans: number }[] = [
   { poste: "Peinture / papier peint", ans: 7 },
-  { poste: "Moquette / sol souple", ans: 7 },
-  { poste: "Parquet vitrifié", ans: 10 },
-  { poste: "Électroménager", ans: 5 },
-  { poste: "Robinetterie", ans: 10 },
+  { poste: "Moquette", ans: 7 },
+  { poste: "Revêtement de sol souple (lino, vinyle)", ans: 10 },
+  { poste: "Parquet (hors ponçage)", ans: 25 },
+  { poste: "Robinetterie", ans: 15 },
+  { poste: "Appareils sanitaires", ans: 25 },
+  { poste: "Électroménager (meublé)", ans: 8 },
   { poste: "Volets / stores", ans: 15 },
+  { poste: "Serrurerie", ans: 20 },
+  { poste: "Chaudière individuelle", ans: 15 },
 ];
+
+// Un écart du comparatif d'état des lieux, tel que `comparatif_edl` le rend.
+// La RPC ne porte NI le commentaire de sortie NI la nature des travaux : le
+// report ne peut donc poser qu'un emplacement — « Séjour · Murs ». L'objet de
+// la retenue reste à écrire.
+export type EcartEdl = { piece: string | null; libelle: string };
+const emplacement = (e: EcartEdl) => (e.piece ? `${e.piece} · ${e.libelle}` : e.libelle);
+
+// Miroir du calcul d'`ajouter_retenue` (20260909190000:335-342) : sans durée de
+// vie ou sans âge, le coût est retenu en entier ; élément amorti, la base
+// REFUSE (RM-2.4.5). Le calcul client est en flottant là où la base calcule en
+// `numeric` : c'est un APERÇU, le montant retenu au locataire est celui que la
+// base arrête — l'interface ne dit jamais autre chose.
+// Seul l'ORDRE diffère : la base refuse d'abord un coût invalide, ici
+// l'amortissement se dit dès que l'âge et la durée sont saisis. Le refus ne
+// dépend pas du coût, autant le dire tout de suite.
+function apercuRetenue(
+  cout: number,
+  dureeVie: number | null,
+  age: number | null
+): { montant: number | null; amorti: boolean } {
+  if (dureeVie != null && dureeVie > 0 && age != null && age >= dureeVie) {
+    return { montant: null, amorti: true };
+  }
+  if (!Number.isFinite(cout) || cout <= 0) return { montant: null, amorti: false };
+  if (dureeVie == null || dureeVie <= 0 || age == null) {
+    return { montant: Math.round(cout * 100) / 100, amorti: false };
+  }
+  return { montant: Math.round(cout * ((dureeVie - age) / dureeVie) * 100) / 100, amorti: false };
+}
+
+const nombreOuNull = (brut: string): number | null => {
+  const t = brut.trim();
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+};
 
 export function FormulaireRestitution({
   orgId,
@@ -66,14 +114,30 @@ export function FormulaireRestitution({
   restitution,
   retenues,
   montantsReels,
+  ecarts,
+  comparatifDisponible,
 }: {
   orgId: string;
   bailId: string;
   restitution: Restitution | null;
   retenues: Retenue[];
   montantsReels: MontantsReels | null;
+  // Les écarts du comparatif d'état des lieux, déjà calculés par la page.
+  ecarts: EcartEdl[];
+  // Le comparatif existe-t-il ? « Aucun écart » et « pas encore de sortie
+  // signée » ne se disent pas de la même façon devant une case qui engage
+  // un délai légal.
+  comparatifDisponible: boolean;
 }) {
-  if (!restitution) return <FormDemarrer orgId={orgId} bailId={bailId} />;
+  if (!restitution)
+    return (
+      <FormDemarrer
+        orgId={orgId}
+        bailId={bailId}
+        nbEcarts={ecarts.length}
+        comparatifDisponible={comparatifDisponible}
+      />
+    );
 
   const totalRetenues = retenues.reduce((s, r) => s + Number(r.montant_retenu), 0);
   const soldeProjete = Number(restitution.depot) - Number(restitution.impayes) - totalRetenues;
@@ -170,7 +234,13 @@ export function FormulaireRestitution({
       )}
 
       {!finalise && !restitution.sans_edl_entree && (
-        <FormRetenue orgId={orgId} bailId={bailId} restitutionId={restitution.id} />
+        <FormRetenue
+          orgId={orgId}
+          bailId={bailId}
+          restitutionId={restitution.id}
+          nbRetenues={retenues.length}
+          ecarts={ecarts}
+        />
       )}
 
       {finalise ? (
@@ -193,7 +263,12 @@ export function FormulaireRestitution({
               Décompte envoyé au locataire le {formaterDate(restitution.envoye_le)}.
             </p>
           ) : (
-            <FormDecompteEnvoye orgId={orgId} bailId={bailId} restitutionId={restitution.id} />
+            <FormDecompteEnvoye
+              orgId={orgId}
+              bailId={bailId}
+              restitutionId={restitution.id}
+              avecRetenues={retenues.length > 0}
+            />
           )}
         </div>
       ) : (
@@ -212,7 +287,17 @@ export function FormulaireRestitution({
   );
 }
 
-function FormDemarrer({ orgId, bailId }: { orgId: string; bailId: string }) {
+function FormDemarrer({
+  orgId,
+  bailId,
+  nbEcarts,
+  comparatifDisponible,
+}: {
+  orgId: string;
+  bailId: string;
+  nbEcarts: number;
+  comparatifDisponible: boolean;
+}) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
     demarrerRestitution.bind(null, orgId, bailId),
     {}
@@ -222,6 +307,19 @@ function FormDemarrer({ orgId, bailId }: { orgId: string; bailId: string }) {
       <p className="text-sm text-muted-foreground">
         Le délai de restitution court à compter de la remise des clés : 1 mois si
         l&apos;état des lieux de sortie est conforme à l&apos;entrée, 2 mois sinon.
+      </p>
+      {/* Ce que le comparatif a relevé, DIT AVANT la case — la carte qui le
+          détaille vivait sous le formulaire qui la consomme (relevé du 11/09).
+          On affiche, on ne coche pas : un délai d'un mois choisi par défaut
+          alors que deux s'imposent est une exposition directe (majoration de
+          retard, RM-2.4.10). `demarrer_restitution` accepte p_conforme sans
+          jamais le vérifier : le délai reste une décision de l'agent. */}
+      <p className="text-sm">
+        {!comparatifDisponible
+          ? "L’état des lieux de sortie n’est pas encore signé : aucun comparatif ne peut confirmer la conformité."
+          : nbEcarts === 0
+            ? "Le comparatif d’état des lieux ne relève aucun écart entre l’entrée et la sortie."
+            : `Le comparatif d’état des lieux relève ${nbEcarts} écart${nbEcarts > 1 ? "s" : ""} entre l’entrée et la sortie — le délai est alors de 2 mois (RM-2.4.2).`}
       </p>
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
@@ -246,37 +344,125 @@ function FormRetenue({
   orgId,
   bailId,
   restitutionId,
+  nbRetenues,
+  ecarts,
 }: {
   orgId: string;
   bailId: string;
   restitutionId: string;
+  nbRetenues: number;
+  ecarts: EcartEdl[];
 }) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
     ajouterRetenue.bind(null, orgId, bailId, restitutionId),
     {}
   );
-  const idLibelle = useId();
-  const idJustificatif = useId();
   return (
     <form action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Ajouter une retenue (décote de vétusté)</p>
+      {/* La clé remonte les CHAMPS — pas le formulaire — dès qu'une retenue est
+          enregistrée : React remet alors les champs non contrôlés à leur
+          défaut, l'aperçu de décote doit repartir avec eux. L'état de l'action
+          (erreur, succès, avertissement) vit au-dessus et survit au remontage. */}
+      <ChampsRetenue key={`retenue-${nbRetenues}`} valeurs={etat.valeurs} ecarts={ecarts} />
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {/* L'action rend un avertissement AVEC son succès (« ce fichier est en
+          réalité un PDF malgré son extension ») : il était jeté, seul l'échec
+          s'affichait (relevé du 11/09). */}
+      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+    </form>
+  );
+}
+
+// Les champs de la retenue et l'aperçu de sa décote. Champs laissés NON
+// contrôlés — c'est ce qui fait marcher la repose de etat.valeurs (React remet
+// le formulaire à ses valeurs par défaut après l'action) ; l'aperçu se nourrit
+// donc d'une copie tenue à jour à la frappe.
+function ChampsRetenue({
+  valeurs,
+  ecarts,
+}: {
+  valeurs?: Record<string, string>;
+  ecarts: EcartEdl[];
+}) {
+  const idLibelle = useId();
+  const idJustificatif = useId();
+  const champLibelle = useRef<HTMLInputElement>(null);
+  const [saisie, setSaisie] = useState({
+    cout: valeurs?.cout ?? "",
+    duree_vie: valeurs?.duree_vie ?? "",
+    age: valeurs?.age ?? "",
+  });
+  // L'événement `input` remonte : un seul écouteur pour les trois champs.
+  const relire = (e: React.FormEvent<HTMLDivElement>) => {
+    const champ = e.target as HTMLInputElement;
+    const nom = champ?.name;
+    if (nom !== "cout" && nom !== "duree_vie" && nom !== "age") return;
+    setSaisie((p) => ({ ...p, [nom]: champ.value }));
+  };
+
+  const cout = Number(saisie.cout.trim());
+  const dureeVie = nombreOuNull(saisie.duree_vie);
+  const age = nombreOuNull(saisie.age);
+  const { montant: apercu, amorti } = apercuRetenue(cout, dureeVie, age);
+
+  // Le report ne crée RIEN et ne décide RIEN : il pose l'emplacement dans
+  // l'objet, curseur en fin de champ, pour que l'agent écrive la nature des
+  // travaux derrière. L'imputabilité, le coût, la vétusté et le justificatif
+  // restent entiers — « le module 1 constate, il ne juge pas » (RM-1.13.3) ;
+  // l'imputabilité se juge ici, à la main (parcours 2.4, étape 3).
+  const reporter = (texte: string) => {
+    const champ = champLibelle.current;
+    if (!champ) return;
+    champ.value = texte;
+    champ.focus();
+    champ.setSelectionRange(texte.length, texte.length);
+  };
+
+  return (
+    <div className="space-y-2" onInput={relire}>
+      {ecarts.length > 0 && (
+        // Sans ce report, l'agent descendait lire « Séjour · Murs » dans le
+        // comparatif, remontait, et le retapait de mémoire dans l'objet : un
+        // aller-retour de défilement et une saisie par écart (relevé 11/09).
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">
+            Préparer une retenue depuis un écart du comparatif — le bouton reporte
+            l&apos;emplacement dans l&apos;objet ci-dessous ; la nature des travaux
+            reste à écrire.
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {ecarts.map((e, i) => (
+              <Button
+                key={`${emplacement(e)}-${i}`}
+                type="button"
+                size="xs"
+                variant="outline"
+                onClick={() => reporter(emplacement(e))}
+              >
+                {emplacement(e)}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
           <Label htmlFor={idLibelle} className="text-xs">Objet de la retenue</Label>
-          <Input id={idLibelle} name="libelle" placeholder="Ex. remise en peinture séjour" defaultValue={etat.valeurs?.libelle} className="h-9 w-56" />
+          <Input ref={champLibelle} id={idLibelle} name="libelle" placeholder="Ex. remise en peinture séjour" defaultValue={valeurs?.libelle} className="h-9 w-56" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-cout" className="text-xs">Coût (€)</Label>
-          <Input id="ret-cout" name="cout" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.cout} className="h-9 w-24" />
+          <Input id="ret-cout" name="cout" type="number" step="0.01" min="0.01" defaultValue={valeurs?.cout} className="h-9 w-24" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-duree" className="text-xs">Durée de vie (ans)</Label>
-          <Input id="ret-duree" name="duree_vie" type="number" step="1" min="1" list="bareme-vetuste" defaultValue={etat.valeurs?.duree_vie} className="h-9 w-28" />
+          <Input id="ret-duree" name="duree_vie" type="number" step="1" min="1" list="bareme-vetuste" defaultValue={valeurs?.duree_vie} className="h-9 w-28" />
         </div>
         <div className="space-y-1">
           <Label htmlFor="ret-age" className="text-xs">Âge (ans)</Label>
-          <Input id="ret-age" name="age" type="number" step="1" min="0" defaultValue={etat.valeurs?.age} className="h-9 w-20" />
+          <Input id="ret-age" name="age" type="number" step="1" min="0" defaultValue={valeurs?.age} className="h-9 w-20" />
         </div>
       </div>
       <datalist id="bareme-vetuste">
@@ -284,6 +470,31 @@ function FormRetenue({
           <option key={b.poste} value={b.ans}>{b.poste}</option>
         ))}
       </datalist>
+
+      {/* Le refus doit se lire AVANT le geste : la base refuse l'élément amorti
+          (RM-2.4.5) et refusait jusqu'ici au RETOUR de l'envoi — le justificatif
+          était déjà monté au Storage, puis purgé. Le montant, lui, n'apparaissait
+          nulle part avant l'enregistrement : la formule était écrite, le nombre
+          jamais (relevé du 11/09). */}
+      {amorti && dureeVie != null && age != null && (
+        <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+          Élément entièrement amorti ({age} ans sur {dureeVie} ans) : aucune retenue
+          possible (RM-2.4.5). Corrigez l&apos;âge ou la durée de vie.
+        </p>
+      )}
+      {!amorti && apercu != null && (
+        <p className="text-sm">
+          Aperçu de la retenue : <span className="font-semibold">{eur(apercu)}</span>
+          {dureeVie != null && age != null
+            ? ` — vétusté ${age}/${dureeVie} ans déduite.`
+            : " — coût intégral, aucune vétusté déduite."}{" "}
+          <span className="text-muted-foreground">
+            Le montant retenu au locataire est celui que la base arrête à
+            l&apos;enregistrement.
+          </span>
+        </p>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         {/* Champ et bouton sur la même ligne : le libellé ne s'adresse qu'à la
             synthèse vocale, pour ne pas décaler le bouton. */}
@@ -291,7 +502,7 @@ function FormRetenue({
           Justificatif de la retenue
         </Label>
         <Input id={idJustificatif} name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
-        <BoutonEnvoi size="sm" variant="outline">
+        <BoutonEnvoi size="sm" variant="outline" disabled={amorti}>
           Ajouter la retenue
         </BoutonEnvoi>
       </div>
@@ -299,8 +510,7 @@ function FormRetenue({
         Retenue = coût × (durée de vie − âge) / durée de vie. Laisser durée de vie
         vide pour retenir le coût intégral (dégradation, non-vétusté).
       </p>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-    </form>
+    </div>
   );
 }
 
@@ -394,16 +604,31 @@ function FormDecompteEnvoye({
   orgId,
   bailId,
   restitutionId,
+  avecRetenues,
 }: {
   orgId: string;
   bailId: string;
   restitutionId: string;
+  avecRetenues: boolean;
 }) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
     marquerDecompteEnvoye.bind(null, orgId, bailId, restitutionId),
     {}
   );
   return (
+    <>
+      {/* Le canal dépend des retenues et se décidait hors de l'écran : décision
+          du 25/07 (wiki/processus/Restitution du dépôt de garantie.md, « Canal
+          du décompte — tranché »). Dit ici, à l'instant où l'on déclare
+          l'envoi, plutôt que nulle part. */}
+      {avecRetenues && (
+        <p className="mb-2 border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+          Décompte AVEC retenues : il part en lettre recommandée avec accusé de
+          réception, hors plateforme. Déposez le justificatif LRAR en GED,
+          rattaché au bail, avec sa date de première présentation — l&apos;email et
+          l&apos;espace locataire restent en parallèle pour la consultation.
+        </p>
+      )}
     <form action={action} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor="decompte-envoye-date" className="text-xs">
@@ -417,6 +642,7 @@ function FormDecompteEnvoye({
       {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="w-full text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
+    </>
   );
 }
 

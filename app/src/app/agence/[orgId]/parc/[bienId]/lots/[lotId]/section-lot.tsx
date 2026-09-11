@@ -10,6 +10,12 @@ import { BadgeStatut } from "@/components/badge-statut";
 // force, ce qui rendait la page illisible dès qu'il manquait quelque chose.
 // Si l'URL cible son ancre (#id, depuis un bouton « Corriger »), la section
 // s'ouvre et défile à l'écran — y compris lors d'un changement de hash sur place.
+//
+// `ouvertParDefaut` est l'exception, à n'employer que là où l'écran n'a plus
+// qu'une seule suite possible (relevé du 11/09 : un lot disponible et sans
+// aucun bail affichait « Aucun bail » au-dessus du seul formulaire de création
+// de bail de l'application, replié). Une section qui s'ouvre « parce qu'il
+// manque quelque chose » reste proscrite.
 export function SectionLot({
   id,
   titre,

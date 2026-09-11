@@ -12,7 +12,7 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Qui paie les réparations ?",
-    "Avant toute intervention, votre demande est qualifiée : on vous dit si la réparation relève du propriétaire ou de l'entretien locatif — jamais de surprise sur la facture. Vous suivez chaque étape dans « Signaler un problème ».",
+    "Avant toute intervention, votre demande est qualifiée : on vous dit si la réparation relève du propriétaire ou de l'entretien locatif — jamais de surprise sur la facture. Vous suivez chaque étape dans « Mes demandes ».",
   ],
   [
     "Comment récupérer mon dépôt de garantie ?",

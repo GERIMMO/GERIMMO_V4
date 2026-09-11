@@ -191,7 +191,28 @@ export async function creerBien(
   }
 
   revalidatePath(`/agence/${orgId}/parc`);
-  redirect(`/agence/${orgId}/parc/${bienId}`);
+
+  // Relevé du 11/09 : on atterrissait sur la fiche BIEN, qui n'est qu'un écran
+  // de passage — c'est la fiche du LOT qui porte tout le reste du parcours
+  // (surface, DPE, ERP, mise en location, et l'unique formulaire de création de
+  // bail), et qui rend l'encart des blocages DÉJÀ OUVERT avec ses liens
+  // d'action. Sur un bien à lot unique — RM-0.3.4 : « l'interface masque la
+  // notion de lot tant qu'il est unique » (wiki concepts/Lot.md) — on y va
+  // directement. Un bien créé d'emblée en plusieurs lots garde sa fiche bien :
+  // il n'y a alors pas de « le » lot où aller.
+  const { data: lotsCrees } = await supabase
+    .from("lots")
+    .select("id")
+    .eq("bien_id", bienId)
+    .eq("organization_id", orgId)
+    .neq("etat", "archive")
+    .limit(2);
+  const lotUniqueId = (lotsCrees ?? []).length === 1 ? (lotsCrees ?? [])[0].id : null;
+  redirect(
+    lotUniqueId
+      ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}`
+      : `/agence/${orgId}/parc/${bienId}`
+  );
 }
 
 export async function modifierBien(

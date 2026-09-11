@@ -198,6 +198,14 @@ export async function declarerMonIncident(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
+  // `avertissement` porte la seule mauvaise nouvelle de l'écran de succès : la
+  // photo — la saisie que RM-19.2.2 tient pour essentielle — n'est pas partie.
+  // Qui consomme ce retour doit donc LAISSER LIRE : le jumeau agence
+  // (`ouvrirIncident`, plus bas) refuse pour cette raison de rediriger quand il
+  // est posé. Relevé du 11/09 : l'écran locataire, lui, arme une minuterie de
+  // 2,5 s sur `succes` seul et emporte l'avertissement avant qu'il ait été lu —
+  // le correctif est dans le composant client, le serveur ne peut pas désarmer
+  // une minuterie.
   return {
     succes: "Signalement envoyé — votre gérant est prévenu. Suivez-le depuis votre espace.",
     avertissement,
@@ -302,7 +310,9 @@ export async function ouvrirIncident(
     // rediriger en avalant l'avertissement le ferait disparaître.
     return { succes: "Incident ouvert — retrouvez-le en tête de liste.", avertissement };
   }
-  redirect(`/agence/${orgId}/incidents/${incidentId}`);
+  // Relevé du 11/09 : on renvoyait sur /incidents/<id>, une route qui ne fait
+  // plus que rediriger vers ?sel= — deux navigations serveur pour un seul clic.
+  redirect(`/agence/${orgId}/incidents?sel=${incidentId}`);
 }
 
 // Qualification / imputation (RM-7.2) : l'agent tranche et justifie ; le
@@ -338,7 +348,9 @@ export async function qualifierIncident(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
-  revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
+  // Depuis la recette du 24/08 le dossier est rendu DANS la liste (?sel=) :
+  // revalider /incidents/<id>, qui ne fait plus que rediriger, ne rafraîchit
+  // plus rien. C'est la liste qui porte le volet.
   revalidatePath(`/agence/${orgId}/incidents`);
   // La qualification solde l'alerte « à qualifier » : la page Alertes (d'où la
   // pop-up de traitement peut être ouverte, recette 22/08) doit se rafraîchir.
@@ -370,7 +382,6 @@ export async function cloturerIncident(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
-  revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
   revalidatePath(`/agence/${orgId}/alertes`);
   revalidatePath(`/agence/${orgId}`);
@@ -399,7 +410,6 @@ export async function rouvrirIncident(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
-  revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
   revalidatePath(`/agence/${orgId}/alertes`);
   revalidatePath(`/agence/${orgId}`);
@@ -426,7 +436,6 @@ export async function attribuerIncident(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
-  revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
   revalidatePath(`/agence/${orgId}/incidents`);
   revalidatePath(`/agence/${orgId}`);
   return { succes: responsable ? "Dossier attribué." : "Dossier remis au pot commun." };
@@ -451,6 +460,6 @@ export async function joindrePhotoIncident(
   const avertissement = await joindrePhotos(supabase, orgId, incidentId, photos.fichiers);
   if (avertissement) return { erreur: avertissement };
 
-  revalidatePath(`/agence/${orgId}/incidents/${incidentId}`);
+  revalidatePath(`/agence/${orgId}/incidents`);
   return { succes: "Photo jointe à l'incident." };
 }

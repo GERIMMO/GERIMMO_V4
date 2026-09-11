@@ -426,12 +426,6 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <div className="border-l-[3px] border-l-[var(--or)] bg-accent p-4">
           <div className="entete-carte">
             <p className="text-sm font-semibold">À faire maintenant</p>
-            {/* La liste s'arrête à 3 — le dire, plutôt que d'escamoter le reste */}
-            {aFaire.length > 3 && (
-              <span className="mono-discret">
-                {aFaire.length - 3} autre{aFaire.length - 3 > 1 ? "s" : ""} ensuite
-              </span>
-            )}
           </div>
           <ol className="space-y-1.5">
             {aFaire.slice(0, 3).map((a, i) => (
@@ -445,6 +439,31 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               </li>
             ))}
           </ol>
+          {/* Le reste de la liste était un compteur MUET : sur un bail qui sort
+              avec un impayé, un dépôt partiel et un diagnostic expiré, les
+              blocages occupaient les trois places et « Démarrer la restitution
+              du dépôt de garantie » disparaissait derrière « 2 autres ensuite »
+              — retour au défilement (relevé du 11/09). Le compteur s'ouvre
+              maintenant sur ce qu'il compte, sans JavaScript. */}
+          {aFaire.length > 3 && (
+            <details className="mt-2">
+              <summary className="mono-discret cursor-pointer py-1">
+                {aFaire.length - 3} autre{aFaire.length - 3 > 1 ? "s" : ""} ensuite
+              </summary>
+              <ol className="mt-1.5 space-y-1.5">
+                {aFaire.slice(3).map((a, i) => (
+                  <li key={a.href + (i + 3)} className="flex items-center gap-2 text-sm">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
+                      {i + 4}
+                    </span>
+                    <a href={a.href} className="min-w-0 flex-1 underline-offset-2 hover:underline">
+                      {a.texte}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </details>
+          )}
         </div>
       )}
 
@@ -987,29 +1006,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
-      {/* Restitution du dépôt de garantie */}
-      {restitutionActif && (
-        <Card id="restitution" className="scroll-mt-20">
-          <CardHeader>
-            <CardTitle className="text-base">Restitution du dépôt de garantie</CardTitle>
-            <CardDescription>
-              Après la remise des clés : impayés imputés d&apos;abord, retenues avec
-              décote de vétusté justifiées, solde de tout compte dans le délai légal.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormulaireRestitution
-              orgId={orgId}
-              bailId={bailId}
-              restitution={(restitution ?? null) as Restitution | null}
-              retenues={(retenues ?? []) as Retenue[]}
-              montantsReels={montantsReels}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Comparatif entrée/sortie */}
+      {/* Comparatif entrée/sortie — AVANT la restitution : c'est lui qui
+          fonde les retenues. Affiché sous le formulaire qui le consomme,
+          il obligeait à descendre lire chaque écart puis à remonter le
+          saisir (relevé du 11/09). */}
       {comparatif && (
         <Card>
           <CardHeader>
@@ -1054,6 +1054,30 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 ))}
               </ul>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Restitution du dépôt de garantie */}
+      {restitutionActif && (
+        <Card id="restitution" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle className="text-base">Restitution du dépôt de garantie</CardTitle>
+            <CardDescription>
+              Après la remise des clés : impayés imputés d&apos;abord, retenues avec
+              décote de vétusté justifiées, solde de tout compte dans le délai légal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FormulaireRestitution
+              orgId={orgId}
+              bailId={bailId}
+              restitution={(restitution ?? null) as Restitution | null}
+              retenues={(retenues ?? []) as Retenue[]}
+              montantsReels={montantsReels}
+              ecarts={ecarts.map((c) => ({ piece: c.piece, libelle: c.libelle }))}
+              comparatifDisponible={Boolean(comparatif)}
+            />
           </CardContent>
         </Card>
       )}

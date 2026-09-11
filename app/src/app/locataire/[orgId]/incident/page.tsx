@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
+import { ReflexesUrgence } from "../reflexes-urgence";
 import { FormulaireIncidentLocataire } from "./formulaire-incident-locataire";
 
 export const metadata = { title: "Nouveau signalement — Gerimmo" };
@@ -12,7 +13,17 @@ export default async function PageSignalerIncident(
   props: PageProps<"/locataire/[orgId]/incident">
 ) {
   const { orgId } = await props.params;
-  const { adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+
+  // Depuis la revue du 11/09 l'entrée de menu « Signaler un problème » mène
+  // ici et non plus à la liste : le suivi doit rester à un clic, avec son
+  // compte — sinon le raccourci ferait perdre l'accès à ce qu'on a déclaré.
+  const { data: incidentsBruts } = await supabase.rpc("mes_incidents_locataire", {
+    p_org: orgId,
+  });
+  const enCours = ((incidentsBruts ?? []) as { etat: string }[]).filter(
+    (i) => i.etat !== "clos"
+  ).length;
 
   return (
     <div className="space-y-4">
@@ -28,10 +39,19 @@ export default async function PageSignalerIncident(
           Votre gestionnaire est prévenu immédiatement et vous saurez qui prend la
           réparation en charge après son examen.
         </p>
+        <Link
+          href={`/locataire/${orgId}/demandes`}
+          className="lien-discret mt-2 inline-block"
+        >
+          Suivre mes demandes{enCours > 0 ? ` (${enCours} en cours)` : ""} →
+        </Link>
       </div>
 
       {adhesionActive ? (
-        <FormulaireIncidentLocataire orgId={orgId} />
+        <>
+          <ReflexesUrgence />
+          <FormulaireIncidentLocataire orgId={orgId} />
+        </>
       ) : (
         <div className="loc-carte">
           <p className="text-sm text-muted-foreground">

@@ -561,6 +561,13 @@ export function GrilleEdl({
                 : "Aucun élément dégradé par rapport à l'entrée : sauf sommes restant dues, le dépôt de garantie devra être restitué en totalité."}{" "}
               La signature des deux parties clôt la saisie et fige la grille.
             </p>
+            {/* Cette fenêtre annonçait la suite sans jamais l'offrir : l'agent
+                repassait par « ← Bail » puis défilait jusqu'à la carte
+                (relevé du 11/09). */}
+            <p className="text-sm text-muted-foreground">
+              Une fois signé, cet écran proposera de démarrer la restitution du
+              dépôt de garantie.
+            </p>
           </Modale>
         )}
       </form>

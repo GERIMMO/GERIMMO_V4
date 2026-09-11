@@ -115,29 +115,43 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
     return brancherConservationDesPhotos(champ, photos);
   }, [photos]);
 
-  // Succès : le message reste lisible ~2,5 s puis on rejoint « Mes demandes »
+  // Succès : le message reste lisible ~2,5 s puis on rejoint « Mes demandes ».
+  // Sauf si le serveur a posé un `avertissement` — la photo, la saisie que
+  // RM-19.2.2 tient pour essentielle, n'est pas partie. Relevé du 11/09 : la
+  // minuterie emportait cette mauvaise nouvelle avant qu'elle soit lue. Le
+  // jumeau agence refuse de rediriger pour la même raison (ouvrirIncident,
+  // app/actions/incidents.ts) ; ici c'est au composant client de désarmer.
   useEffect(() => {
-    if (!etat.succes) return;
+    if (!etat.succes || etat.avertissement) return;
     const minuterie = setTimeout(() => {
       router.push(`/locataire/${orgId}/demandes`);
     }, 2500);
     return () => clearTimeout(minuterie);
-  }, [etat.succes, orgId, router]);
+  }, [etat.succes, etat.avertissement, orgId, router]);
 
   if (etat.succes) {
     return (
       <div className="loc-carte space-y-3">
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
         {etat.avertissement && (
-          <p className="text-sm text-warning-soft-foreground">{etat.avertissement}</p>
+          <p className="text-sm text-warning-soft-foreground" role="alert">
+            {etat.avertissement}
+          </p>
         )}
         <p className="text-sm text-muted-foreground">
-          Vous allez être redirigé vers vos demandes…{" "}
+          {/* Aucune promesse de rattrapage ici : le locataire n'a aucun
+              dépôt de photo sur un incident déjà ouvert — joindrePhotoIncident
+              (app/actions/incidents.ts) passe par verifierGerant. */}
+          {etat.avertissement ? (
+            <>Votre signalement, lui, est bien enregistré. </>
+          ) : (
+            <>Vous allez être redirigé vers vos demandes… </>
+          )}
           <Link
             href={`/locataire/${orgId}/demandes`}
             className="lien-discret"
           >
-            Voir mes demandes maintenant
+            {etat.avertissement ? "Voir mes demandes" : "Voir mes demandes maintenant"}
           </Link>
         </p>
       </div>

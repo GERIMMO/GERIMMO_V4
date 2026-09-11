@@ -3,7 +3,13 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { resumerBlocage } from "@/lib/echeances";
 import { etiqueterNiveau } from "@/lib/diagnostics";
-import { TYPES_BIEN, ETATS_LOT, COULEURS_ETAT_LOT, formaterSurface } from "@/lib/parc";
+import {
+  TYPES_BIEN,
+  ETATS_LOT,
+  COULEURS_ETAT_LOT,
+  formaterSurface,
+  cibleBlocage,
+} from "@/lib/parc";
 import { Donut, LegendeDonut } from "@/components/graphes";
 import {
   Card,
@@ -24,6 +30,15 @@ type LotResume = {
   nom: string;
   etat: string;
   surface_m2: number | null;
+};
+
+// Un lot concerné par un motif de blocage, avec de quoi construire son lien :
+// le message d'ORIGINE de la base, pas l'étiquette raccourcie de l'affichage.
+type LotBloque = {
+  lotId: string;
+  bienId: string;
+  nom: string;
+  message: string;
 };
 
 // Le parc de l'agence : chaque bien et ses lots (RM-0.1.2 : tout bien a au
@@ -103,21 +118,42 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
   // « Éléments à compléter » (maquette) : les motifs de blocage de mise en
   // location, agrégés sur les lots en préparation, triés du plus fréquent.
-  const listesBlocages = ((blocagesParc ?? []) as { lot_id: string; blocages: string[] | null }[]).map(
-    (b) => b.blocages ?? []
-  );
-  const parMotif = new Map<string, number>();
-  for (const motifs of listesBlocages) {
-    for (const motif of motifs) {
+  //
+  // Relevé du 11/09 : la carte annonçait « traitez ce qui bloque ci-dessous »
+  // puis n'offrait pas un seul lien, alors que la RPC renvoie déjà le lot_id —
+  // que l'agrégation jetait. Chaque motif garde désormais ses lots ET le
+  // message d'origine de la base : `cibleBlocage` teste ce texte brut
+  // (« erp », « surface », « détention »…), jamais l'étiquette raccourcie —
+  // agréger sur la seule étiquette renverrait tous les liens sur le cas par
+  // défaut « Mettre à jour les diagnostics ».
+  const lotsConnus = new Map(tousLots.map((l) => [l.id, l]));
+  const parMotif = new Map<string, LotBloque[]>();
+  for (const ligne of (blocagesParc ?? []) as {
+    lot_id: string;
+    blocages: string[] | null;
+  }[]) {
+    // Un lot hors du portefeuille de l'agent n'est ni listé à gauche ni
+    // ouvrable : le compter ici gonflait « X au total » de lignes invisibles,
+    // et la carte ne pourrait de toute façon pas y mener (RM-18.1.3).
+    const lot = lotsConnus.get(ligne.lot_id);
+    if (!lot) continue;
+    for (const message of ligne.blocages ?? []) {
       // Un diagnostic est compté avec son niveau de rattachement (« au lot » /
       // « à l'immeuble ») — même étiquette que les fiches bien et lot.
-      const cle = etiqueterNiveau(resumerBlocage(motif), motif);
-      parMotif.set(cle, (parMotif.get(cle) ?? 0) + 1);
+      const cle = etiqueterNiveau(resumerBlocage(message), message);
+      const lots = parMotif.get(cle) ?? [];
+      // `resumerBlocage` ramène plusieurs messages de la base à une même
+      // étiquette : un DPE à la fois classe G ET périmé en produit deux, qui se
+      // lisent tous deux « DPE absent ». Un lot n'est retenu qu'une fois par
+      // motif — sinon la carte alignait deux pastilles identiques pour lui.
+      if (lots.some((x) => x.lotId === lot.id)) continue;
+      lots.push({ lotId: lot.id, bienId: lot.bien_id, nom: lot.nom, message });
+      parMotif.set(cle, lots);
     }
   }
-  const motifsTries = [...parMotif.entries()].sort((a, b) => b[1] - a[1]);
-  const totalBlocages = motifsTries.reduce((s, [, n]) => s + n, 0);
-  const maxMotif = Math.max(1, ...motifsTries.map(([, n]) => n));
+  const motifsTries = [...parMotif.entries()].sort((a, b) => b[1].length - a[1].length);
+  const totalBlocages = motifsTries.reduce((s, [, lots]) => s + lots.length, 0);
+  const maxMotif = Math.max(1, ...motifsTries.map(([, lots]) => lots.length));
 
   // Un parc illisible ressemble trait pour trait à un parc vide : sans ce
   // relevé, l'écran invitait à « créer votre premier bien » à une agence qui
@@ -345,20 +381,21 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     </p>
                   ) : (
                     <div className="space-y-3">
-                      {motifsTries.map(([motif, n]) => (
+                      {motifsTries.map(([motif, lots]) => (
                         <div key={motif}>
                           <div className="mb-1 flex items-baseline justify-between gap-3 text-[13px]">
                             <span className="min-w-0 truncate">{motif}</span>
-                            <span className="mono-discret">{n}</span>
+                            <span className="mono-discret">{lots.length}</span>
                           </div>
                           <span className="barre block" style={{ height: 7 }}>
                             <i
                               style={{
-                                width: `${Math.round((n / maxMotif) * 100)}%`,
+                                width: `${Math.round((lots.length / maxMotif) * 100)}%`,
                                 background: "var(--warning)",
                               }}
                             />
                           </span>
+                          <LotsDuMotif orgId={orgId} lots={lots} />
                         </div>
                       ))}
                     </div>
@@ -406,5 +443,46 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+// Les lots concernés par un motif, chacun menant à l'endroit qui le lève
+// (`cibleBlocage`). Repliés au-delà de trois : la carte doit rester une carte.
+// Le libellé de l'action vit dans l'aria-label — la pastille, elle, n'affiche
+// que le nom du lot, seul élément qui distingue les liens entre eux.
+function LotsDuMotif({ orgId, lots }: { orgId: string; lots: LotBloque[] }) {
+  const lien = (l: LotBloque) => {
+    const cible = cibleBlocage(l.message, {
+      orgId,
+      bienId: l.bienId,
+      lotId: l.lotId,
+    });
+    return (
+      <Link
+        key={l.lotId}
+        href={cible.href}
+        aria-label={`${cible.libelle} — ${l.nom}`}
+        className="puce puce-grise max-w-full hover:underline"
+      >
+        <span className="min-w-0 truncate">{l.nom}</span>
+        <span aria-hidden>→</span>
+      </Link>
+    );
+  };
+  const visibles = lots.slice(0, 3);
+  const reste = lots.slice(3);
+  return (
+    <div className="mt-1.5 space-y-1.5">
+      <div className="flex flex-wrap gap-1.5">{visibles.map(lien)}</div>
+      {reste.length > 0 && (
+        <details>
+          <summary className="mono-discret cursor-pointer list-none normal-case">
+            + {reste.length} autre{reste.length > 1 ? "s" : ""} lot
+            {reste.length > 1 ? "s" : ""}
+          </summary>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">{reste.map(lien)}</div>
+        </details>
+      )}
+    </div>
   );
 }

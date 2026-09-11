@@ -22,17 +22,18 @@ function Motifs({
   motifs: string[];
   // null : on ne sait pas à quel lot rattacher l'action (bien introuvable)
   ctx: CibleLot | null;
-  // Chemin de la page qui affiche la liste, sans ancre. Une cible qui tombe
-  // sur cette page même doit être une ancre NATIVE : un <Link> passe par
-  // pushState, qui ne déclenche pas le `hashchange` qu'écoute SectionLot — la
-  // section restait fermée.
+  // Chemin de la page qui affiche la liste, sans ancre. Deux usages : une cible
+  // qui tombe sur cette page même doit être une ancre NATIVE (un <Link> passe
+  // par pushState, qui ne déclenche pas le `hashchange` qu'écoute SectionLot —
+  // la section restait fermée) ; et `cibleBlocage` s'en sert pour garder sur
+  // place ce qui peut se régler ici (l'ERP, déposable des deux fiches).
   pageCourante?: string;
 }) {
   const classe = `shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`;
   return (
     <ul className="mt-1.5 space-y-1.5">
       {motifs.map((motif) => {
-        const cible = ctx ? cibleBlocage(motif, ctx) : null;
+        const cible = ctx ? cibleBlocage(motif, ctx, pageCourante) : null;
         const memePage = Boolean(
           cible && pageCourante && cible.href.split("#")[0] === pageCourante
         );

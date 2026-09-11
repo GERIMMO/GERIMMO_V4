@@ -63,6 +63,37 @@ plus silencieux.
 Le geste le plus **fréquent** est déjà court (3 clics). Ce sont les parcours
 **rares et tendus** qui coûtent — précisément ceux où l'on se trompe.
 
+> [!warning] Ces nombres sont contredits par une seconde mesure du même jour
+> Un second relevé du 2026-09-11 a refait les quatre parcours lourds **dans le
+> code**, étape par étape, chacun ancré sur un `fichier:ligne` portant le lien
+> ou le bouton, puis un **critique a rouvert chaque ancrage** et recompté.
+>
+> | Parcours | Table ci-dessus | Marche dans le code | Recompte du critique |
+> |---|---:|---:|---:|
+> | Inscription → premier bail actif | 50 | **19** | 19 (compte jugé crédible) |
+> | EDL de sortie → restitution | 60 | **37** | 35 |
+> | Incident : signalement → clôture | 18 | **7** | 5 à 6 |
+> | Les quatre gestes du locataire | 13 | **8** | 6 |
+>
+> **L'écart va du simple au triple ; il ne se moyenne pas, il s'explique.** Les
+> deux relevés ne comptent pas la même chose. Le second a reçu une définition
+> explicite — *un clic = une action de pointage ou de frappe décisive ; remplir
+> dix champs d'un même formulaire compte pour UN geste de validation* — et le
+> parcours « premier bail » traverse trois formulaires longs (11, 11 et 12
+> contrôles). Le premier relevé n'énonce pas sa règle de comptage. La
+> différence, à elle seule, suffirait à expliquer l'essentiel.
+>
+> **Ce qui n'est pas tranché** : aucune des deux mesures n'a été faite au
+> navigateur, sur l'application, une main sur la souris. Tant que ce relevé-là
+> n'existe pas, **aucun des deux nombres n'est le bon** — et c'est le second
+> qu'il faut retenir pour décider, parce qu'il porte ses ancrages et qu'un
+> tiers les a vérifiés.
+>
+> À retenir quand même, et indépendant du désaccord : **le classement des
+> parcours ne change pas**. La restitution reste, de loin, le chemin le plus
+> long ; l'encaissement reste le plus court. C'est sur ce classement que les
+> corrections ont été priorisées.
+
 ## Les écrans qui mentent
 
 La catégorie la plus grave n'est pas une catégorie du relevé : ce sont les

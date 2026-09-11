@@ -3006,3 +3006,48 @@ Cinq arbitrages remontés et NON codés faute de règle tranchée, dont : l'IRL 
 référence comme mention exigible à l'activation, et surtout **RM-A6.7 « la
 précision du débiteur prime »** sur l'ordre d'ancienneté — aucune colonne du
 modèle ne permet aujourd'hui au locataire de désigner le terme qu'il règle.
+
+## [2026-09-11] audit  | Audit et point santé de fin de chantier
+
+**Mesuré, pas estimé.** 107 pages parcourues au navigateur dans les quatre
+espaces, 65 passées à axe-core, 7 551 éléments relevés en style calculé avant
+et après chaque changement de CSS, base de production interrogée directement.
+
+**Six défauts corrigés.**
+1. Trois requêtes que PostgREST refusait d'arbitrer (deux clés étrangères vers
+   la même cible, 28 paires concernées) : l'export CSV du journal rendait un
+   500, les détentions de la fiche bien échouaient, et **la veille DPE de
+   l'accueil propriétaire échouait EN SILENCE** — le propriétaire d'un lot
+   classé G ne voyait rien de son interdiction de louer. Test d'intégration qui
+   relit les paires ambiguës dans la base.
+2. Les classes de la charte, écrites hors couche CSS, battaient **60
+   utilitaires Tailwind** — `hidden` qui ne cachait rien, `text-[var(--or)]` qui
+   rendait du gris à 2,39:1. Les 12 défauts de contraste venaient tous de là.
+3. 29 contrôles sans nom accessible, ou nommés par leur seul placeholder.
+4. 12 liens en texte suivi distingués par la seule couleur.
+5. 22 tables dont toutes les politiques RLS filtrent sur `organization_id` sans
+   index sur cette colonne (les 49 concernées en ont un).
+6. 14 variables d'environnement non documentées ; un échafaudage mort retiré.
+
+**Parcours recomptés dans le code**, chaque étape ancrée sur un fichier:ligne,
+puis vérifiés par un critique : 19 / 37 / 7 / 8 clics là où le relevé du matin
+comptait 50 / 60 / 18 / 13. **La contradiction est consignée, pas moyennée** —
+les deux mesures ne comptent pas la même chose, et aucune n'a été faite au
+navigateur.
+
+**Cinq défauts bloquants arrêtés par les vérificateurs**, dont la copie des
+clés à `nombre = 0` : le document que les deux parties signent l'imprimait
+comme un fait — « aucune clé rendue », celui-là même qui fonde une retenue de
+serrurerie. La colonne devient nullable.
+
+**Santé** : 370 tests (367 verts, 1 rouge assumé, 2 ignorés), 20 E2E verts,
+typecheck et build sans erreur, 0 défaut d'accessibilité sur 107 pages, 0
+violation axe-core sérieuse ou critique, 0 avis de sécurité ERROR. Les 123
+fonctions `SECURITY DEFINER` exposées atteignent toutes `auth.uid()` — ce qui
+prouve qu'elles consultent l'appelant, pas qu'elles le font bien sur chaque
+branche.
+
+**Dix points attendent un arbitrage humain**, en tête desquels les conditions
+d'utilisation qui n'existent pas alors que l'inscription les fait accepter.
+
+→ [[Audit et point santé du 11 septembre 2026]]

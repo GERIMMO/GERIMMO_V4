@@ -3443,3 +3443,59 @@ placé en bas, ne sert personne — une assertion de présence aurait laissé pa
 exactement ce qu'on vient de corriger.
 
 507 tests (504 passent, 1 rouge délibéré, 2 ignorés), 43 E2E verts, build vert.
+
+## [2026-09-11] dev   | Encaisser : le paiement en ligne, de bout en bout
+
+Gerimmo comptait ses biens sans jamais pouvoir encaisser. « Mon abonnement »
+savait dire combien le client devait — 1ᵉʳ bien offert à vie, 5,99 €/bien/mois
+ensuite (décision humain du 05/09) — mais aucun moyen de payer n'existait. Le
+produit savait fermer la porte, pas la rouvrir.
+
+**Le partage des rôles.** Gerimmo compte, Stripe encaisse (RM-18.6.9). La
+quantité facturée se calcule dans la base qui tient le parc ; l'état du paiement
+vient de Stripe, seule autorité sur « la carte est-elle passée ». Chaque fait a
+une source, et une seule.
+
+**La traduction est le cœur métier**, et elle est écrite en clair dans la
+migration plutôt que dispersée dans du code : c'est elle qui décide quand un
+client perd l'usage de son outil de travail.
+
+| Stripe dit | Le compte |
+|---|---|
+| `active`, `trialing` | ouvert |
+| `past_due` | **inchangé** — Stripe relance des semaines ; une carte expirée n'est pas un impayé |
+| `incomplete` | inchangé — la première carte n'est pas confirmée |
+| `canceled`, `unpaid`, `incomplete_expired`, `paused` | lecture seule, **sauf si l'essai court encore** : il retombe alors en essai |
+| n'importe quoi, sur une organisation archivée | inchangé — l'archivage est un geste humain |
+
+**L'impasse évitée.** Toute table portant `organization_id` est gardée par le
+refus d'écriture des comptes fermés. Appliquée à `abonnements`, cette garde fait
+une boucle parfaite : le compte est fermé faute de paiement, et il ne peut pas
+payer parce qu'il est fermé. Les deux tables d'abonnement en sont exclues — le
+défaut ne se serait vu qu'en production, au premier encaissement, et se serait
+lu comme un problème de Stripe.
+
+**Le webhook enregistre avant de traiter** (Stripe réessaie trois jours, parfois
+deux fois en même temps) et **efface la trace si le traitement échoue** : sans
+cela, la relance passerait pour un doublon et le compte resterait fermé alors
+que le client a payé. La signature est le seul verrou de cette adresse, qui est
+publique et doit l'être.
+
+**La quantité suit le parc avec une nuit de retard, assumée.** La pousser à la
+création d'un bien lierait la saisie du parc à la disponibilité d'un tiers ;
+Stripe facture en fin de période, le retard ne coûte rien.
+
+**Rien ne marche à moitié.** Sans les trois variables, aucun appel n'est tenté,
+l'écran ne propose pas de payer, et les deux routes répondent 503 plutôt que
+200 — un 200 les ferait passer pour saines dans le tableau de bord.
+
+557 tests (554 passent, 1 rouge délibéré, 2 ignorés), 49 E2E verts, ESLint à
+**zéro avertissement** (18 auparavant), build vert.
+
+> [!warning] Points à trancher
+> Cet écran ne s'adresse qu'aux **propriétaires bailleurs**, pour qui la grille
+> est actée. Les **agences** relèvent d'une grille par paliers (79/149/249/399
+> €/mois + mise en route + redevance annuelle, validée le 25/07) qui n'est
+> implémentée nulle part : `etat_abonnement` applique 5,99 €/bien à tout le
+> monde. Il n'existe aujourd'hui **aucun chemin d'encaissement pour une
+> agence** — voir [[Grille tarifaire]].

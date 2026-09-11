@@ -2950,3 +2950,59 @@ s'ouvre à chaque page » (non : une fois par session).
 6 parcours) : **47 P1, 145 P2, 62 P3**. Parcours les plus coûteux : inscription
 → premier bail actif, 50 clics pour 31 au mieux ; état des lieux de sortie →
 restitution, 60 pour 51. Correction en cours.
+
+## [2026-09-11] dev | Les écrans qui mentaient : cinq lots corrigés, appliqués en production
+Cinq défauts où l'écran promettait ce que la base refusait, ou perdait le
+travail de l'utilisateur. Un correcteur et un vérificateur adversarial par lot.
+**Le vérificateur a pris le correcteur en défaut sur les CINQ** — ce qui porte
+le compte de la session à 13 reprises sur 18 lots. C'est le motif du
+dispositif, pas un accident.
+
+1. **Un bail devenait actif sans loyer ni date d'entrée**, deux mentions
+   obligatoires du contrat ([[Mentions obligatoires du bail]]). Mesuré :
+   `generer_appels_loyer` produisait un premier appel à **0,00 €**,
+   quittançable et comptabilisable. Trouvé en chemin, plus grave encore :
+   `activer_bail` posait `date_debut = coalesce(date_debut, current_date)` — la
+   **date de prise d'effet du contrat devenait le jour du clic**. Ce repli
+   datait du 02/08, quand le formulaire n'avait pas de champ de date ; le champ
+   existe depuis le 21/08. Supprimé.
+   Le vérificateur a trouvé TROIS contournements par écriture directe : la
+   policy `baux_update` laissait faire `update baux set etat='actif'` sans
+   passer par aucune fonction, et un détour par « préavis » ou « terminé »
+   blanchissait un brouillon — deux transitions que [[Machines à états et
+   événements]] interdit déjà (RM-A5.1/A5.2) sans que rien ne les contrôle.
+
+2. **Encaisser ne disait jamais ce qu'il venait de faire** — le geste le plus
+   répété du produit. Et le libellé promettait un terme que la base n'imputait
+   pas : l'imputation va du plus ancien au plus récent (RM-3.3.2, règle légale).
+   L'écran ne se trompait pas de calcul : il **taisait une règle juste**.
+   Le vérificateur a trouvé que le test du correcteur ne prouvait RIEN sur la
+   moitié titre du défaut, et que sa réécriture de `quittancement_mois` avait
+   **silencieusement retiré d'un WHERE une garde** qu'une migration antérieure
+   y avait posée.
+
+3. **La déclaration d'incident photo seule** était promise à l'écran et refusée
+   par la base — sur le parcours mobile phare (RM-19.2.2). La base apprend la
+   règle. Et tout échec **effaçait les photos** : au pire endroit possible.
+
+4. **Le justificatif d'une retenue** partait en GED avant que la retenue soit
+   acceptée : un refus légitime (élément amorti, [[Vétusté et décote]]) laissait
+   une pièce orpheline portant des données du locataire.
+
+5. **Les impayés de la restitution** étaient figés au démarrage. Le wiki ne dit
+   PAS à quelle date les arrêter — l'agent ne l'a donc pas décidé à sa place.
+   Ce qui est indiscutable est fait : l'écran dit à quelle date les montants ont
+   été arrêtés et propose de les réarrêter ; « Finaliser » se confirme.
+   Le vérificateur a trouvé une **course** : le réarrêté lisait le statut sans
+   verrou et pouvait donc s'appliquer à un décompte finalisé entre-temps.
+
+**Appliqué en production** (7 migrations), impact mesuré d'abord : 0 bail sans
+loyer ni date, 0 restitution en cours, rien à rattraper. Huit contrôles verts
+après coup.
+
+**Tests : 365, dont 57 ajoutés — 362 verts, 1 rouge assumé, 2 ignorés.**
+
+Cinq arbitrages remontés et NON codés faute de règle tranchée, dont : l'IRL de
+référence comme mention exigible à l'activation, et surtout **RM-A6.7 « la
+précision du débiteur prime »** sur l'ordre d'ancienneté — aucune colonne du
+modèle ne permet aujourd'hui au locataire de désigner le terme qu'il règle.

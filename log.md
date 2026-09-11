@@ -3176,3 +3176,59 @@ eslint 0 erreur, build vert. Migration appliquée en production.
 > Renseigner `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` et `NEXT_PUBLIC_SITE_URL`
 > dans l'environnement Vercel. Sans elles, la route répond 503 et rien ne part.
 
+## [2026-09-11] dev   | Module 8 (artisans) : les huit impasses de la vérification
+
+Le module artisan a été construit par une équipe d'agents, puis relu par des
+vérificateurs adversariaux dont c'était le seul travail : **23 constats, dont
+huit bloquants**, tous reproduits en SQL ou au navigateur avant d'être écrits.
+Aucun n'était cosmétique. Ils avaient tous la même forme — un écran qui propose
+un geste que la base refuse ensuite, ou qui laisse le dossier dans un état d'où
+l'on ne sort plus.
+
+**Les quatre impasses de base** (migrations 240000 et 250000) :
+- Le **locataire fixait le rendez-vous tout seul** : `choisir_creneau`
+  vérifiait que le créneau portait sur SON incident, jamais qui l'avait
+  proposé. Il pouvait retenir sa propre contre-proposition, plaçant la mission
+  à une heure que l'artisan n'a jamais acceptée — et son absence lui aurait été
+  comptée comme un rendez-vous manqué (RM-10.5.3).
+- **Reproposer des dates tuait le rendez-vous pour toujours** : l'ancien
+  créneau restait « retenu » et l'unicité faisait échouer tout choix ultérieur.
+- **« Retirer la mission » rendait l'incident inaffectable définitivement** :
+  `annuler_mission` laissait le devis « retenu ».
+- **La file « interventions à noter » ne pouvait plus se vider** : une note
+  retirée après contestation y réinscrivait l'intervention, que l'unicité
+  interdit pourtant de remplacer.
+
+**Quatre écrans qui mentaient** : l'heure du rendez-vous rendue dans le fuseau
+du SERVEUR côté artisan (UTC) contre Europe/Paris côté locataire — deux heures
+d'écart sur le même rendez-vous ; la carte rouge de révision d'imputation qui
+ne se fermait jamais quand l'agent tranchait en maintenant son imputation,
+c'est-à-dire dans le cas que RM-7.5.3 décrit ; le conseil « laissez vide pour
+ne poser aucune limite de zone », alors qu'un artisan sans code postal n'est
+proposé nulle part ; et « un rappel vous parviendra la veille », alors
+qu'aucun rappel n'existe dans le produit.
+
+**Un défaut trouvé à l'écran, en jouant le parcours** : l'agenda disait
+« Proposez trois créneaux au locataire » à un artisan qui venait de les
+proposer. Suivre la consigne rendait caduques les dates que le locataire
+s'apprêtait à choisir, et faisait avancer le compteur de tours vers l'arbitrage
+du gérant sans que personne n'ait rien refusé.
+
+**Ce qui rend la suite vérifiable.** Le parcours artisan complet est désormais
+semé par `seed-parcours.mjs` (incident → qualification → consultation →
+sollicitation → devis → mission → créneaux), un compte `artisan.alpha` existe
+dans le seed de démonstration, `e2e/parcours-artisan.spec.ts` couvre onze cas à
+390 px, l'espace artisan entre dans le parcours d'accessibilité, et
+`tests/module8-correctifs.test.ts` garde les quatre corrections de base.
+
+**Au passage** : l'émulateur Supabase local ne savait pas passer un tableau à
+une RPC (il le sérialisait en JSON) — trois RPC du module étaient intestables
+hors ligne.
+
+**Vérifié.** 474 tests (471 passent, 1 rouge délibéré, 2 ignorés), typecheck 0,
+eslint 0 erreur, build vert, E2E 30 cas.
+
+> [!warning] Les migrations du module 8 ne sont PAS en production
+> Le module attend sa recette complète (le parcours a été joué de bout en bout
+> sur le banc local, pas encore en conditions réelles avec un vrai artisan).
+

@@ -3,7 +3,7 @@ type: process
 tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-21
+updated: 2026-09-11
 sources: ["[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -36,3 +36,23 @@ retenir un [[Devis]].
 
 ## Règles et contraintes
 - `allow_single_private_artisan = false` par défaut (mise en concurrence par défaut).
+
+## État dans l'application au 11/09/2026
+
+La mise en concurrence est en place : consultation ouverte sur un incident
+**qualifié** (aucune affectation sans imputation, RM-7.2.7), **deux artisans au
+maximum en parallèle** (RM-9.1.1), devis daté avec sa **validité** (caduc passé
+l'échéance, RM-9.2.3), et un seul devis retenu par incident.
+
+La liste des artisans proposables est calculée **par la base** — métier
+(RM-8.3), zone par code postal exact, décennale selon la **nature des travaux**
+(RM-8.2.9, sans interrupteur), validation plateforme et listes noires locale et
+globale. L'écran n'en refait aucun morceau.
+
+> [!warning] Deux pièges constatés le 11/09
+> - Un artisan **sans aucun code postal n'est proposé nulle part** : la
+>   comparaison est exacte et le bien en porte toujours un. Le formulaire
+>   conseillait l'inverse ; il exige désormais la zone.
+> - **Retirer une mission** laissait le devis « retenu » et rendait l'incident
+>   inaffectable définitivement. L'annulation libère maintenant le devis, comme
+>   le fait le refus de l'artisan.

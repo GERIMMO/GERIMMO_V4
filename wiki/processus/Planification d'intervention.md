@@ -3,7 +3,7 @@ type: process
 tags: [planification, creneaux, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-09-11
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]"]
 ---
 
@@ -58,3 +58,28 @@ le RDV) · **confirmé** → honoré, reporté ou manqué · **reporté** / **ma
 >   `demande_disponibilites`/`creneaux_proposes`/`transmis_locataire`/`valide`, le
 >   registre V3 de proposé/contre-proposé/arbitrage/confirmé/honoré/reporté/manqué.
 >   L'« arbitrage » du gérant correspond au round d'escalade — correspondance à formaliser.
+
+## État dans l'application au 11/09/2026
+
+Le rendez-vous se négocie en deux tours, et la base tient les règles :
+
+- **L'artisan propose en premier**, trois dates au minimum (RM-10.1.1) ; le
+  locataire en retient une, ou les refuse toutes et **contre-propose** à son
+  tour (RM-10.2.2). Au-delà de **six refus**, l'arbitrage revient au gérant
+  (RM-10.4.1) et les écrans le disent des deux côtés. Les créneaux refusés sont
+  **conservés** : le refus persistant est opposable (RM-10.4.4).
+- **On ne retient pas sa propre proposition.** Corrigé le 11/09 : le locataire
+  pouvait retenir l'une de SES dates, ce qui plaçait la mission à une heure que
+  l'artisan n'avait pas acceptée — et lui faisait porter le rendez-vous manqué
+  (RM-10.5.3).
+- **Déplacer un rendez-vous défait le rendez-vous en cours**, et l'écran le
+  dit. Auparavant, reproposer laissait l'ancienne date « retenue » et rendait
+  tout choix suivant impossible pour toujours.
+- Les heures s'affichent en **Europe/Paris** des deux côtés. Avant correction,
+  le portail artisan rendait l'heure du serveur (UTC) : deux heures d'écart sur
+  le même rendez-vous.
+
+> [!warning] Ce qui manque encore
+> **Le rappel de la veille** (RM-10.5) n'existe pas : aucune tâche, aucune
+> table ne le porte. L'écran du locataire l'annonçait ; la phrase a été retirée
+> plutôt que laissée à mentir. À construire avec les autres tâches planifiées.

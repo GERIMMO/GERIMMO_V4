@@ -59,6 +59,12 @@ export function PiedPublic() {
           <Link href="/#agences" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
             Devis agence
           </Link>
+          <Link href="/mentions-legales" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
+            Mentions légales
+          </Link>
+          <Link href="/conditions" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
+            Conditions générales
+          </Link>
           <Link href="/confidentialite" className="-my-2.5 py-2.5 hover:text-[var(--encre)]">
             Confidentialité
           </Link>

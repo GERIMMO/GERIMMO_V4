@@ -5,7 +5,12 @@ import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
 // (réinitialisation…) : il doit rester traversable même connecté.
 const PUBLIC_PATHS = [
+  // Les trois pages légales sont publiques ET traversables connecté : le
+  // contrat qu'on fait accepter à l'inscription doit être lisible AVANT de
+  // s'inscrire, et relisible après.
   "/confidentialite",
+  "/conditions",
+  "/mentions-legales",
   // Le journal est public ET traversable connecté : un client qui lit un
   // article depuis un lien reçu ne doit pas être renvoyé vers ses espaces.
   "/journal",

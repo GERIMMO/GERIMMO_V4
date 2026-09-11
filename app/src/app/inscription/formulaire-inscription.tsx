@@ -137,10 +137,22 @@ export function FormulaireInscription() {
               className="mt-1"
               defaultChecked={etat.valeurs?.cgu === "1"}
             />
+            {/* Le lien manquait : on faisait cocher « j'accepte » sans que
+                rien ne permette de lire ce qu'on acceptait — et, jusqu'au
+                11/09, sans que le document existe. Nouvel onglet : un clic ne
+                doit pas coûter la saisie en cours. */}
             <span>
-              J&apos;accepte les conditions d&apos;utilisation. Gerimmo tient un
-              journal de gestion, pas une comptabilité : en cas d&apos;écart, le
-              relevé bancaire fait foi.
+              J&apos;accepte les{" "}
+              <Link
+                href="/conditions"
+                target="_blank"
+                rel="noopener"
+                className="lien-discret"
+              >
+                conditions d&apos;utilisation
+              </Link>
+              . Gerimmo tient un journal de gestion, pas une comptabilité : en
+              cas d&apos;écart, le relevé bancaire fait foi.
             </span>
           </label>
           {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

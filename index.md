@@ -142,7 +142,9 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 ## Livrables (dossier `livrables/` — projets de documents)
 - [[Contrat de sous-traitance RGPD (modele)|Contrat de sous-traitance RGPD]] — annexe art. 28 des contrats d'agence (matrice A2, mesures A4, sous-traitants).
 - [[Politique de confidentialite (projet)|Politique de confidentialité]] — traitements plateforme, droits, transfert Meta.
-- [[Article CGU - journal de gestion (projet)|Article CGU « journal de gestion »]] — traduit la doctrine A6 en clause contractuelle.
+- [[Conditions generales d'utilisation (projet)|Conditions générales d'utilisation]] — **le contrat que l'inscription fait accepter depuis toujours, et qui n'existait pas** (11/09) : 17 articles, alignés sur ce que le produit fait réellement. Non publiable en l'état.
+- [[Mentions legales (projet)|Mentions légales]] — **obligation légale non remplie** (11/09) : éditeur, hébergeurs, médiation. Les faits d'entreprise restent à fournir.
+- [[Article CGU - journal de gestion (projet)|Article CGU « journal de gestion »]] — traduit la doctrine A6 en clause contractuelle ; repris à l'article 4 des CGU.
 - [[AIPD - Score artisan (projet)|AIPD — Score artisan]] — analyse d'impact du profilage artisan (art. 35 RGPD).
 - [[Plan de livraison et sprints]] — **le plan de référence** : 16 sprints, V0 mi-décembre 2026, V1 fin mars 2027.
 - [[Reste a faire V0 - sprints et ecarts maquette|Reste à faire V0]] — détail fin S8/S9b + inventaire des écarts maquette ↔ app du 26/08 ; S9a et « Alertes & documents » livrés le 30/08 (§3, §5 bis).

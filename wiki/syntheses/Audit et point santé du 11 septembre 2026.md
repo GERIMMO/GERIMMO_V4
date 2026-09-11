@@ -218,10 +218,18 @@ encore. À revoir sous trafic réel, pas avant.
 
 Ces points ne se codent pas : ils se décident.
 
-1. **Les conditions d'utilisation n'existent pas**, alors que la case
+1. **Les conditions d'utilisation n'existaient pas**, alors que la case
    d'inscription les fait accepter et que l'action serveur refuse
-   l'inscription sans elle. Un site marchand français doit publier ses
-   mentions légales. Ce sont des documents juridiques : ils se rédigent.
+   l'inscription sans elle. Deux projets ont été rédigés le jour même —
+   [[Conditions generales d'utilisation (projet)]] et
+   [[Mentions legales (projet)]] — **non publiables en l'état** : ils portent
+   des faits d'entreprise que l'agent n'invente pas, et des choix juridiques
+   (rétractation, médiation, plafond de responsabilité) qui se décident.
+   La rédaction a elle-même révélé un défaut : le projet de 2025 engageait
+   l'Éditeur sur **trois exports dont deux n'existent pas**, et sur une
+   suspension « en lecture seule » qu'aucun code n'applique — le statut
+   d'organisation n'est qu'une étiquette d'affichage. Voir l'article 9 du
+   projet.
 2. **Plafond du dépôt en colocation meublée** (RM-2.1.2) — le test rouge.
 3. **RM-2.4.8 : la provision de 20 %** conservable après une régularisation de
    charges n'existe nulle part dans le code.

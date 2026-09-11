@@ -3051,3 +3051,48 @@ branche.
 d'utilisation qui n'existent pas alors que l'inscription les fait accepter.
 
 → [[Audit et point santé du 11 septembre 2026]]
+
+## [2026-09-11] dev   | Conditions d'utilisation et mentions légales : les deux projets
+
+L'audit du jour posait en tête de ses arbitrages que **la case d'inscription
+fait accepter des « conditions d'utilisation » qui n'existent nulle part**, et
+que le site, marchand et français, ne publie aucune mention légale. Les deux
+projets sont écrits.
+
+- [[Conditions generales d'utilisation (projet)]] — 17 articles. Nature du
+  service (le journal de gestion, repris du projet du 25/07), rôles et
+  habilitations, espaces des locataires, prix et essai, réversibilité,
+  responsabilité, résiliation, droit applicable.
+- [[Mentions legales (projet)]] — éditeur, directeur de la publication,
+  hébergeurs (Supabase eu-west-3, Vercel, Resend), médiation, signalement.
+
+**Aucun des deux n'est publiable en l'état**, et c'est dit en tête de chacun :
+ils portent des faits d'entreprise que l'agent n'invente pas (dénomination,
+immatriculation, siège, contact) et des choix juridiques qui se décident —
+qualification au regard de la loi Hoguet, droit de rétractation du client
+particulier, adhésion à un médiateur de la consommation, plafond de
+responsabilité.
+
+**La rédaction a révélé un défaut que personne ne cherchait.** Le projet de
+CGU du 25/07 engageait l'Éditeur sur l'export « des écritures, des documents
+et du référentiel », et sur une suspension qui bascule le compte « en lecture
+seule ». Vérification code en main :
+
+| Promesse | Réalité |
+|---|---|
+| Export du journal | existe (CSV) |
+| Archive documentaire indexée | **n'existe pas** |
+| Export du référentiel | **n'existe pas** |
+| Suspension en lecture seule | **n'existe pas** — le statut d'organisation est une étiquette d'affichage, aucun code ne restreint rien |
+
+Le texte a été corrigé pour n'engager que ce qui existe, et l'écart est posé
+comme une décision à prendre : écrire les deux exports manquants (ce que
+recommande l'agent — la réversibilité est un argument de la page d'accueil
+autant qu'une attente du RGPD), ou cesser d'en promettre davantage. **Signer
+la première version et livrer la seconde n'est pas une option.**
+
+Trois autres manques côté produit sont notés dans les projets : la case
+d'inscription ne renvoie vers aucun lien, la version acceptée des conditions
+n'est pas conservée (la base note que la case a été cochée, pas ce qui a été
+accepté), et le locataire n'accepte aujourd'hui aucune condition alors qu'il
+dépose des pièces.

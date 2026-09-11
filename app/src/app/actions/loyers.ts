@@ -6,6 +6,7 @@ import { headers } from "next/headers";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { envoyerEmail } from "@/lib/email";
+import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
 import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
@@ -49,25 +50,23 @@ export async function envoyerQuittance(
   }[])[0];
   if (!q) return { erreur: "Quittance introuvable." };
 
-  const mois = new Date(q.periode).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const origine = (await headers()).get("origin") ?? "";
-  const lien = `${origine}/quittance/${quittanceId}`;
-  const titre = q.est_quittance ? "Quittance de loyer" : "Reçu de paiement";
-  const html = `
-    <div style="font-family:sans-serif;font-size:14px;color:#111">
-      <h2>${titre} — ${mois}</h2>
-      <p>Bonjour${loc.prenom ? " " + loc.prenom : ""},</p>
-      <p>Veuillez trouver votre ${titre.toLowerCase()} de <strong>${mois}</strong> :</p>
-      <ul>
-        <li>Loyer hors charges : ${eur(q.loyer_hc)}</li>
-        <li>Provision pour charges : ${eur(q.charges)}</li>
-        <li><strong>Total : ${eur(q.montant)}</strong></li>
-      </ul>
-      <p><a href="${lien}">Consulter / imprimer le document</a></p>
-      <p>— ${q.emetteur}</p>
-    </div>`;
+  // Le corps vit dans lib/quittance-email : la tâche planifiée envoie le même
+  // document, et deux mises en forme pour une même quittance ne s'expliquent
+  // pas au locataire qui la conserve.
+  const message = {
+    estQuittance: q.est_quittance,
+    periode: q.periode,
+    loyerHc: q.loyer_hc,
+    charges: q.charges,
+    montant: q.montant,
+    emetteur: q.emetteur,
+    prenom: loc.prenom,
+    lien: `${origine}/quittance/${quittanceId}`,
+  };
+  const html = corpsQuittance(message);
 
-  const envoi = await envoyerEmail({ to: loc.email, subject: `${titre} — ${mois}`, html });
+  const envoi = await envoyerEmail({ to: loc.email, subject: sujetQuittance(message), html });
   if (envoi.erreur) {
     console.error("[quittance email] échec:", envoi.erreur);
     return { erreur: envoi.erreur };

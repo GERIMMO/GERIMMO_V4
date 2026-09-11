@@ -25,6 +25,15 @@ const PUBLIC_PATHS = [
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
 export async function proxy(request: NextRequest) {
+  // Les tâches planifiées n'ont pas de session : les faire passer par le
+  // contrôle d'authentification les renverrait vers /connexion. Elles portent
+  // leur propre verrou (CRON_SECRET, vérifié dans la route) — et elles sont
+  // les SEULES routes /api du produit, tout le reste passant par des actions
+  // serveur.
+  if (request.nextUrl.pathname.startsWith("/api/cron/")) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

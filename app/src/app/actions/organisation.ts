@@ -43,6 +43,9 @@ export async function modifierProfilOrganisation(
       carte_pro: champ("carte_pro"),
       garantie_financiere: champ("garantie_financiere"),
       iban: champ("iban"),
+      // Accord permanent d'envoi des quittances : une case décochée n'apparaît
+      // pas dans le formulaire, d'où la lecture par présence et non par valeur.
+      quittances_envoi_auto: formData.get("quittances_envoi_auto") !== null,
     })
     .eq("id", orgId)
     .select("id");

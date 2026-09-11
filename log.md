@@ -3142,3 +3142,37 @@ typecheck 0, eslint 0 erreur. Migrations appliquées en production ; rattrapage
 joué sur les données réelles : 12 appels créés, 1 quittance, 5 alertes
 d'impayé, 0 échec.
 
+## [2026-09-11] dev   | Les quittances partent seules, pour qui l'a demandé
+
+Suite du cycle mensuel : les appels se créaient seuls, les quittances
+s'émettaient à l'encaissement — et attendaient qu'un gérant ouvre la
+comptabilité et clique pour partir. Un client qui oublie a des quittances
+émises que personne n'a reçues, alors que la quittance est due au locataire.
+
+**Ce qui a été posé.** Une tâche quotidienne (Vercel Cron → `/api/cron/quittances`,
+7 h UTC) envoie les quittances et reçus jamais partis, avec le même corps de
+message que le bouton du gérant (`lib/quittance-email.ts`, écrit une fois).
+
+**Ce qui n'est PAS automatique par défaut, et pourquoi.** Le référentiel veut la
+quittance « validée par l'agence ou le propriétaire ». L'envoyer d'office
+contredirait cette règle. L'option `quittances_envoi_auto` vaut donc **faux** à
+l'installation, se coche dans le profil de l'agence, et cocher la case EST la
+validation permanente. Les quittances de plus de 45 jours ne partent jamais :
+sans cette borne, cocher une case enverrait d'un coup l'arriéré à des
+locataires parfois partis depuis.
+
+**Les verrous de la route**, seule du produit à porter la clé `service_role`
+(qui contourne la RLS et voit toutes les organisations) : `CRON_SECRET` comparé
+à temps constant ; absence d'un des trois réglages = 503, jamais de bascule en
+mode ouvert ; côté base, `quittances_a_envoyer` et `marquer_quittance_envoyee`
+révoquées de `anon`/`authenticated` et accordées au seul `service_role`, chacune
+ne rendant que le nécessaire. On envoie PUIS on marque : dans l'autre sens, un
+échec réseau perdrait définitivement une quittance.
+
+**Vérifié.** 469 tests (466 passent, 1 rouge délibéré, 2 ignorés), typecheck 0,
+eslint 0 erreur, build vert. Migration appliquée en production.
+
+> [!warning] À faire avant le 1er octobre
+> Renseigner `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` et `NEXT_PUBLIC_SITE_URL`
+> dans l'environnement Vercel. Sans elles, la route répond 503 et rien ne part.
+

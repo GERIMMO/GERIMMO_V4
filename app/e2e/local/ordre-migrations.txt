@@ -157,3 +157,4 @@
 20260911190000_gardes_abonnement_rejouables.sql
 20260911200000_cycle_mensuel_automatique.sql
 20260911210000_tache_systeme_chemin_fige.sql
+20260911220000_quittances_partent_seules.sql

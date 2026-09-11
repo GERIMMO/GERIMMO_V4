@@ -2883,3 +2883,70 @@ désormais l'indice au lieu de le demander, et dit « à renseigner sur le bail 
 **État** : 272 verts / 1 rouge assumé (colocation meublée, arbitrage juridique)
 / 2 ignorés — 275. typecheck et lint à 0 erreur. Les arbitrages soulevés et non
 tranchés sont listés dans [[Audit du 10 septembre 2026]].
+
+## [2026-09-11] dev | Design de tout le site, journal éditorial, et deux défauts trouvés à l'écran
+Carte blanche sur le design (vitrine comprise), un système de proposition de
+publication pour le [[Super Admin]], puis la revue des clics et cheminements.
+
+**1. Socle de design (charte v2.1).** La charte v2 — encre, laiton, crèmes,
+Cormorant / Instrument / Plex Mono — ne bouge pas : elle est de bon goût et
+documentée. Il lui manquait ce qui l'empêchait de tenir d'un écran à l'autre :
+une **échelle typographique nommée** (sept degrés, les tailles de la maquette
+conservées à l'identique), un **rythme vertical** unique, un anneau de focus
+commun au clavier, et trois primitives que chaque écran refaisait à sa façon —
+`.tableau` (cinq variantes de padding recensées), `.vide-guide` (l'état vide
+*guide* au lieu de constater), `.section-vitrine` / `.mesure-lecture`.
+
+**2. Marque blanche : plus aucune couleur en dur.** 20 valeurs vivaient en dur
+dans `globals.css`. Toutes promues en jetons — quatre nuances nommées
+(`--survol`, `--survol-critique`, `--encre-profond`, `--or-sombre`), les
+variantes d'opacité passées à `color-mix()` sur le jeton source. Le module 17
+fait des variables le SEUL point de personnalisation d'une agence : une valeur
+en dur y échappe, et personne ne pense à aller la chercher. Les trois pages
+d'erreur des routes de fichier, qui servaient du `system-ui` sur fond gris,
+rentrent dans la charte et vivent désormais en un seul exemplaire.
+
+**3. Vitrine.** Le diagnostic tenait en une phrase : elle **ne montrait jamais
+le produit**. Trois aperçus — tableau de bord, quittance, espace locataire sur
+téléphone — construits avec les VRAIES classes de l'application : ils partagent
+sa feuille de style, donc ils ne peuvent pas mentir sur son allure, et ils
+suivent la marque blanche. Plus une bande « ce que Gerimmo remplace » qui met
+les honoraires d'agence face aux 5,99 €. **Aucun témoignage, aucun chiffre
+d'usage, aucun logo client** : nous n'en avons pas, et la politique
+« fonctionnalités honnêtes » interdit d'en inventer. Les quatre portes d'entrée,
+qui se répartissaient en deux gabarits, partagent une coquille unique.
+
+**4. [[Journal éditorial]]** — la demande « dynamiser le site ». Huit veines
+ancrées sur des pages réelles du wiki, file hebdomadaire, et la garantie qui en
+fait l'intérêt : une proposition apporte un angle, un plan et sa source, jamais
+un chiffre. Les faits datés restent en trou explicite et la base **refuse la
+parution** tant qu'il en reste un. En production avec le journal public.
+
+**5. Console de supervision.** L'espace [[Super Admin]] « n'était pas un espace,
+c'était six pages posées côte à côte ». Il porte désormais les indicateurs et
+les files que le référentiel prescrit — celles qui existent. Les quatre autres
+sont annoncées, pas simulées.
+
+**Deux défauts trouvés en REGARDANT, pas en lisant.**
+- Sur téléphone, la **modale d'alertes qui s'ouvre à chaque connexion mesurait
+  470 px pour un écran de 390** : ses deux boutons « Fermer » tombaient hors
+  champ. L'utilisateur arrivait dans une modale dont il ne pouvait pas sortir.
+  L'audit mobile du 10/09 l'avait manquée parce que **toute la suite E2E
+  désactive cette modale avant chaque test** : on auditait des écrans, jamais
+  l'arrivée. Un fichier de test qui ne la neutralise pas verrouille désormais
+  cet état.
+- Le **reçu de paiement partiel** calculait le solde sur `loyer + charges` là où
+  le PDF utilisait le terme dû. Sur un mois au prorata il réclamait **550 € au
+  lieu de 116,67 €** — 433 € de dette de trop, sur un document qui écrit « un
+  solde de X reste dû » (RM-3.4.2). La cause : la RPC ne renvoyait pas
+  `montant_du`, la page ne POUVAIT pas calculer juste. Corrigé en production.
+
+**Deux alertes de l'état des lieux ÉCARTÉES après vérification** plutôt que
+corrigées sur parole : la quittance « non publique » (c'est juste — elle porte
+des données personnelles, et son destinataire a un compte) et la modale « qui
+s'ouvre à chaque page » (non : une fois par session).
+
+**État des lieux complet** (14 lecteurs en parallèle : 8 zones de design,
+6 parcours) : **47 P1, 145 P2, 62 P3**. Parcours les plus coûteux : inscription
+→ premier bail actif, 50 clics pour 31 au mieux ; état des lieux de sortie →
+restitution, 60 pour 51. Correction en cours.

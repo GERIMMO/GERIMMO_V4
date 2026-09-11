@@ -342,7 +342,15 @@ export function FormulaireLoyers({
           </div>
           <div className="space-y-1">
             <Label htmlFor="enc-date" className="text-xs">Date</Label>
-            <InputDateJour id="enc-date"   className="h-9" name="date_paiement" />
+            {/* La date lue sur le relevé revient après un refus : la banque fait
+                foi sur les montants ET les dates (RM-A6.7), et un champ vide se
+                fait dater du jour par la base. */}
+            <InputDateJour
+              id="enc-date"
+              className="h-9"
+              name="date_paiement"
+              valeurSoumise={etatEnc.valeurs?.date_paiement}
+            />
           </div>
           {/* Champ libre auparavant : chacun écrivait « cheque », « Chèque »,
               « CHQ ». Une liste courte suffit et rend le journal lisible. */}
@@ -365,6 +373,12 @@ export function FormulaireLoyers({
             Encaisser
           </BoutonEnvoi>
           {etatEnc.erreur && <p className="w-full text-sm text-destructive">{etatEnc.erreur}</p>}
+          {/* Le compte rendu : sur quel terme l'argent est allé (le plus ancien
+              d'abord, RM-3.3.2) et ce que chacun a produit — quittance au solde,
+              reçu sur un partiel (RM-3.4.1/3.4.2). */}
+          {!etatEnc.erreur && etatEnc.succes && (
+            <p className="w-full text-sm text-success-soft-foreground">{etatEnc.succes}</p>
+          )}
         </form>
       </div>
 

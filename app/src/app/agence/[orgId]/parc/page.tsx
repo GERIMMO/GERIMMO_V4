@@ -189,9 +189,17 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               périmètre du 09/09, la base le refuse (le bien naîtrait hors de
               son portefeuille). Mieux vaut ne pas le proposer que d'échouer. */}
           {biensVisibles.length > 0 && !portefeuille && (
-            <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
-              + Ajouter un bien
-            </Link>
+            <>
+              <Link
+                href={`/agence/${orgId}/parc/import`}
+                className="lien-discret text-[13px]"
+              >
+                Reprendre un parc
+              </Link>
+              <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
+                + Ajouter un bien
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -224,6 +232,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   Créer mon premier bien
                 </Link>
               </div>
+              <p className="mt-3 text-[13px] text-muted-foreground">
+                Vous arrivez avec un parc déjà constitué ?{" "}
+                <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">
+                  Reprenez-le depuis un tableur
+                </Link>{" "}
+                — une ligne par lot, en une fois.
+              </p>
             </>
           )}
         </div>

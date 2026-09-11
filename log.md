@@ -3271,3 +3271,41 @@ démentent.
 **Vérifié.** 484 tests (481 passent, 1 rouge délibéré, 2 ignorés), E2E 33 cas,
 typecheck 0, eslint 0 erreur, build vert.
 
+## [2026-09-11] dev   | Reprendre un parc depuis un tableur
+
+**Le vrai frein.** Une agence qui arrive avec cinquante lots les saisit
+aujourd'hui un par un : le bien, son lot, le propriétaire, sa détention, le
+locataire, le bail. Six écrans, cinquante fois. Aucun essai de quatorze jours
+ne survit à ça, et c'est le seul obstacle qui sépare une démonstration réussie
+d'un client qui reste. Le module 16.3 le décrit depuis le 24/07 ; il n'existait
+pas.
+
+**Une ligne = un lot** — l'unité dans laquelle une agence pense son parc, et
+celle de sa facturation. Le fichier est celui du client, pas un format imposé :
+séparateur détecté, guillemets honorés, en-têtes reconnus sans accents ni
+casse, colonnes inconnues ignorées plutôt que refusées. Le gabarit se
+télécharge depuis l'écran et **se relit lui-même** — un test le vérifie, sinon
+on livrerait un modèle que l'import refuse.
+
+**Deux passes, délibérément.** Le contrôle n'écrit rien et rend ligne par ligne
+ce qui passera ; l'import ne devient possible qu'ensuite. Une ligne qui tombe
+est rapportée avec le motif que la base a donné, et les autres passent.
+Réimporter un fichier corrigé ne fabrique pas un second parc : bien, lot,
+personne et bail sont retrouvés avant d'être créés.
+
+**Les baux arrivent en brouillon, et c'est la règle.** Activer un bail passe
+par `controler_mise_en_location` — diagnostics, état des lieux, mentions
+obligatoires. Un import qui créerait des baux ACTIFS contournerait ces
+contrôles en masse, c'est-à-dire exactement ce qu'ils existent pour empêcher.
+L'import pose les montants et les dates ; ce qui manque pour activer est dit
+lot par lot par la fonction qui en décide déjà.
+
+**Vérifié.** 497 tests (494 passent, 1 rouge délibéré, 2 ignorés), E2E 35 cas,
+typecheck 0, eslint 0 erreur, build vert.
+
+> [!warning] Ce qui reste
+> La reprise **comptable** (dépôts de garantie détenus, avances, fonds
+> mandants) n'est pas faite : les tables existent depuis le 03/09, aucun code
+> ne les utilise. Une agence qui bascule en cours d'exercice saisit encore ses
+> soldes à la main.
+

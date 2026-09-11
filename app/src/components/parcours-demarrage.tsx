@@ -111,9 +111,23 @@ export async function ParcoursDemarrage({
                   <span className="mt-0.5 block text-xs text-muted-foreground">{e.detail}</span>
                 )}
                 {courante && (
-                  <Link href={lien(orgId, e)} className="btn-or mt-2.5">
-                    {libelle?.geste ?? "Continuer"}
-                  </Link>
+                  <>
+                    <Link href={lien(orgId, e)} className="btn-or mt-2.5">
+                      {libelle?.geste ?? "Continuer"}
+                    </Link>
+                    {/* Celui qui arrive avec cinquante lots ne les saisira pas
+                        un par un : la porte de l'import est ici, à côté du
+                        geste unitaire et pas à sa place. */}
+                    {e.etape === "bien" && (
+                      <span className="mt-2 block text-xs text-muted-foreground">
+                        Un parc déjà constitué ?{" "}
+                        <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">
+                          Reprenez-le depuis un tableur
+                        </Link>
+                        .
+                      </span>
+                    )}
+                  </>
                 )}
               </span>
             </li>

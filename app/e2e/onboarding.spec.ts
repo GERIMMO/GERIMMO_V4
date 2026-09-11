@@ -62,3 +62,58 @@ test.describe("côté client", () => {
     expect(await debordementHorizontal(page)).toBe(0);
   });
 });
+
+test.describe("reprendre un parc", () => {
+  test.use({ storageState: path.join(__dirname, ".auth", "admin.json") });
+
+  test("le gabarit se télécharge et se relit", async ({ request }) => {
+    // Le gabarit et le lecteur vivent dans le même fichier ; cette requête
+    // vérifie qu'il sort bien de l'application, en CSV, avec ses en-têtes.
+    const r = await request.get("/agence/" + (await orgIdDeLaSession(request)) + "/parc/import/modele");
+    expect(r.status()).toBe(200);
+    expect(r.headers()["content-type"]).toContain("text/csv");
+    const texte = await r.text();
+    expect(texte).toContain("Nom du bien");
+    expect(texte).toContain("Résidence des Tilleuls");
+  });
+
+  test("le contrôle lit le fichier déposé et rend le verdict ligne par ligne", async ({ page }) => {
+    await sansSyntheseAlertes(page);
+    await page.goto("/espaces");
+    await page.waitForURL(/\/agence\//);
+    const orgId = page.url().match(/\/agence\/([0-9a-f-]+)/)![1];
+
+    await page.goto(`/agence/${orgId}/parc/import`);
+    await page.waitForSelector("h1");
+    await expect(page.getByRole("link", { name: "Télécharger le gabarit" })).toBeVisible();
+
+    // Une ligne juste, une ligne fausse : le contrôle doit trancher les deux.
+    const csv =
+      "Nom du bien;Type;Adresse;Code postal;Ville;Nom du lot;Nom du propriétaire\n" +
+      "E2E Import;appartement;3 rue du Test;75011;Paris;Z1;Durand\n" +
+      "E2E Import;chalet;3 rue du Test;75011;Paris;Z2;Durand\n";
+    await page.setInputFiles('input[type="file"]', {
+      name: "parc.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(csv, "utf8"),
+    });
+    await page.getByRole("button", { name: "Contrôler le fichier" }).click();
+
+    // Le verdict s'affiche, ligne par ligne, sans rien écrire.
+    await expect(page.getByRole("cell", { name: "prête" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "à corriger" })).toBeVisible();
+    await expect(page.getByText(/Type de bien inconnu/)).toBeVisible();
+    // Et l'import ne devient possible qu'après ce contrôle.
+    await expect(page.getByRole("button", { name: /^Importer/ })).toBeVisible();
+    expect(await debordementHorizontal(page)).toBe(0);
+  });
+});
+
+/** L'organisation de la session courante, lue comme l'application le fait. */
+async function orgIdDeLaSession(request: import("@playwright/test").APIRequestContext) {
+  const r = await request.get("/espaces");
+  const m = r.url().match(/\/agence\/([0-9a-f-]+)/);
+  if (m) return m[1];
+  const corps = await r.text();
+  return corps.match(/\/agence\/([0-9a-f-]+)/)![1];
+}

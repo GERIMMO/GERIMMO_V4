@@ -102,10 +102,38 @@ une seule liste de conditions dans le produit, et elle dit CE QUI bloque
 (détention incomplète, DPE absent…). Le bloc n'ouvre qu'une porte à la fois —
 la suivante — et **disparaît** une fois le premier bail actif.
 
+### L'import courant (16.3) — livré le même jour
+
+Une agence qui arrive avec cinquante lots les saisissait un par un : six
+écrans, cinquante fois. `/agence/<org>/parc/import` reprend le parc depuis un
+tableur, **une ligne par lot** — le bien, son lot, son propriétaire et sa
+quote-part, le locataire en place s'il y en a un.
+
+- **Deux passes.** Le contrôle n'écrit rien et rend, ligne par ligne, ce qui
+  passera ; l'import ne devient possible qu'ensuite. On ne fait pas basculer un
+  parc sur un fichier que personne n'a regardé.
+- **Le fichier du client, pas un format.** Séparateur détecté (le
+  point-virgule d'Excel francophone comme la virgule des exports), guillemets
+  honorés, en-têtes reconnus sans accents ni casse, colonnes inconnues ignorées
+  et non refusées. Le gabarit se télécharge depuis l'écran et **se relit
+  lui-même** (un test le vérifie).
+- **Rien n'est dupliqué** : deux lignes du même nom de bien vont dans le même
+  immeuble, un propriétaire nommé deux fois n'a qu'une fiche, et rejouer un
+  fichier corrigé ne fabrique pas un second parc.
+- **Une ligne qui tombe n'emporte pas les autres** : elle est rapportée avec le
+  motif que la base a donné, les autres passent.
+
+> [!warning] Les baux arrivent en BROUILLON — et c'est la règle, pas une limite
+> Activer un bail passe par `controler_mise_en_location` : diagnostics, état
+> des lieux d'entrée, mentions obligatoires. Un import qui créerait des baux
+> **actifs** contournerait ces contrôles en masse — exactement ce qu'ils
+> existent pour empêcher. L'import pose les montants et les dates ; ce qui
+> manque pour activer est dit lot par lot par `lot_blocages_location`.
+
 > [!warning] Ce qui manque encore
-> **L'import courant (16.3)** — « dizaines de lots, ligne par ligne, sans
-> reprise du passé » — n'existe pas : une agence qui arrive avec cinquante lots
-> les saisit à la main. Les tables de **reprise de portefeuille**
-> (`reprises_portefeuille`, `reprise_soldes`, avec balance d'ouverture à écart
-> zéro) existent depuis le 03/09 mais **aucun code ne les utilise**.
+> La **reprise de portefeuille comptable** (`reprises_portefeuille`,
+> `reprise_soldes`, balance d'ouverture à écart zéro) existe en base depuis le
+> 03/09 mais **aucun code ne l'utilise** : l'import courant reprend le parc,
+> pas les soldes (dépôts de garantie détenus, avances, fonds mandants). Une
+> agence qui bascule en cours d'exercice les saisit encore à la main.
 

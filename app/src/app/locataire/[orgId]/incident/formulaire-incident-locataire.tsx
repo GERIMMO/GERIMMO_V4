@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { declarerMonIncident, type EtatIncidentAction } from "@/app/actions/incidents";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import { categorieIncident, CATEGORIES_INCIDENT, PIECES_INCIDENT } from "@/lib/incidents";
+import {
+  brancherConservationDesPhotos,
+  fichiersDuChamp,
+} from "@/lib/photos-declaration";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import {
   Card,
@@ -109,7 +113,19 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
   const actionLiee = declarerMonIncident.bind(null, orgId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const [categorie, setCategorie] = useState(etat.valeurs?.categorie ?? "");
+  const [photos, setPhotos] = useState<File[]>([]);
+  const champPhotos = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // Les photos survivent au refus (RM-19.2.2 : elles sont souvent la seule
+  // saisie du locataire). Le mécanisme — et pourquoi il passe par l'événement
+  // « reset » du formulaire — est dans lib/photos-declaration.ts, où il est
+  // aussi mis à l'épreuve par les tests.
+  useEffect(() => {
+    const champ = champPhotos.current;
+    if (!champ) return;
+    return brancherConservationDesPhotos(champ, photos);
+  }, [photos]);
 
   // Succès : le message reste lisible ~2,5 s puis on rejoint « Mes demandes »
   useEffect(() => {
@@ -154,20 +170,32 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
         </CardHeader>
         <CardContent>
           <form action={action} className="space-y-4">
-            {etat.erreur && <div className="err">{etat.erreur}</div>}
-
             <div className="space-y-1.5">
               <Label htmlFor="photos">Photos (jusqu&apos;à 5)</Label>
               {/* Compressées à la prise (RM-19.1.3) : une photo de téléphone
                   pèse 8-15 Mo, le réseau d'un logement rarement autant */}
               <Input
+                ref={champPhotos}
                 id="photos"
                 name="photos"
                 type="file"
                 accept="image/jpeg,image/png"
                 multiple
-                onChange={(e) => void compresserChampFichiers(e.currentTarget)}
+                onChange={(e) => {
+                  const champ = e.currentTarget;
+                  void compresserChampFichiers(champ).then(() =>
+                    setPhotos(fichiersDuChamp(champ))
+                  );
+                }}
               />
+              {/* Après un refus, dire NOIR SUR BLANC que les photos sont
+                  toujours là : c'est ce qui évite de les reprendre. */}
+              {photos.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  {photos.length === 1 ? "1 photo jointe" : `${photos.length} photos jointes`} :{" "}
+                  {photos.map((p) => p.name).join(", ")}
+                </p>
+              )}
             </div>
 
             {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
@@ -254,6 +282,17 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
                 <option value="urgente">Oui, dégât en cours ou logement inutilisable</option>
               </select>
             </div>
+
+            {/* Le refus s'affiche AU PIED du formulaire, contre le bouton qui
+                vient d'échouer : six champs plus haut, sur un écran de 390 px,
+                le locataire ne voyait rien et croyait l'envoi parti.
+                role="alert" pour que le lecteur d'écran l'annonce sans avoir à
+                remonter. */}
+            {etat.erreur && (
+              <div className="err" role="alert">
+                {etat.erreur}
+              </div>
+            )}
 
             <BoutonEnvoi enCoursTexte="Envoi…" className="w-full">
               Envoyer le signalement

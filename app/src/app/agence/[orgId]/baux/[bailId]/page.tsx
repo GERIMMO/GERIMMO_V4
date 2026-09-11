@@ -185,6 +185,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       { data: depotEncaissements },
     ],
     { data: restitutionBrute },
+    // Le décompte travaille sur un INSTANTANÉ des montants (dépôt encaissé,
+    // impayés) pris au démarrage. On relit la réalité du moment pour que
+    // l'écran puisse dire si elle a bougé depuis — il n'en change rien tout
+    // seul : la date d'arrêté appartient au gérant.
+    { data: montantsAJour },
   ] = await Promise.all([
     loyersActif
       ? actionsAttendues(supabase, orgId, { bailId })
@@ -230,10 +235,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? supabase
           .from("restitutions")
           .select(
-            "id, date_remise_cles, delai_mois, depot, impayes, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, created_at)"
+            "id, date_remise_cles, delai_mois, depot, impayes, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, created_at)"
           )
           .eq("bail_id", bailId)
           .maybeSingle()
+      : Promise.resolve({ data: null }),
+    restitutionActif
+      ? supabase.rpc("montants_restitution_a_jour", { p_bail: bailId })
       : Promise.resolve({ data: null }),
   ]);
   const ecarts = ((comparatif ?? []) as {
@@ -249,6 +257,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   const retenues: Retenue[] = [...(restitution?.retenues ?? [])].sort((a, b) =>
     a.created_at.localeCompare(b.created_at)
   );
+  // La RPC renvoie une ligne par bail (aucune si le bail sort du portefeuille)
+  const montantsReels =
+    ((montantsAJour ?? []) as { depot: number; impayes: number }[])[0] ?? null;
 
   // « À faire maintenant » : la page suit le cycle de vie du bail, mais un
   // agent qui débute ne connaît pas l'ordre — on le déduit des données et on
@@ -924,6 +935,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               bailId={bailId}
               restitution={(restitution ?? null) as Restitution | null}
               retenues={(retenues ?? []) as Retenue[]}
+              montantsReels={montantsReels}
             />
           </CardContent>
         </Card>

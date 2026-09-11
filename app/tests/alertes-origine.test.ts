@@ -151,8 +151,11 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc)
-       values ($1,$2,$3,$4,700) returning id`,
+      // Bail VIVANT : l'EDL d'entrée est signé et la restitution se prépare —
+      // un brouillon ne prend pas de congé (RM-A5.1, wiki « Machines à états »).
+      `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc,
+                                etat, date_debut)
+       values ($1,$2,$3,$4,700,'actif', current_date - 200) returning id`,
       [org, l, locataire, depot]
     );
     const {

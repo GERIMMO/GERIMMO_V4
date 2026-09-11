@@ -1,9 +1,9 @@
 "use client";
 
-import { eur, formaterDate } from "@/lib/ged";
+import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 import {
   demarrerRestitution,
   ajouterRetenue,
@@ -11,12 +11,15 @@ import {
   finaliserDecompte,
   justifierRetenue,
   marquerDecompteEnvoye,
+  rafraichirMontantsRestitution,
   type EtatRestit,
 } from "@/app/actions/restitution";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Modale } from "@/components/ui/modale";
 
 export type Restitution = {
   id: string;
@@ -24,12 +27,19 @@ export type Restitution = {
   delai_mois: number;
   depot: number;
   impayes: number;
+  // Date à laquelle depot et impayes ont été lus dans la réalité : ce sont des
+  // instantanés, pas des calculs permanents.
+  montants_arretes_le: string;
   sans_edl_entree: boolean;
   statut: string;
   solde: number | null;
   date_emission: string | null;
   envoye_le: string | null;
 };
+
+// Dépôt encaissé et impayés tels qu'ils sont AUJOURD'HUI, pour les confronter à
+// l'instantané du décompte. Absent si le bail sort du portefeuille de l'agent.
+export type MontantsReels = { depot: number; impayes: number };
 export type Retenue = {
   id: string;
   libelle: string;
@@ -55,17 +65,27 @@ export function FormulaireRestitution({
   bailId,
   restitution,
   retenues,
+  montantsReels,
 }: {
   orgId: string;
   bailId: string;
   restitution: Restitution | null;
   retenues: Retenue[];
+  montantsReels: MontantsReels | null;
 }) {
   if (!restitution) return <FormDemarrer orgId={orgId} bailId={bailId} />;
 
   const totalRetenues = retenues.reduce((s, r) => s + Number(r.montant_retenu), 0);
   const soldeProjete = Number(restitution.depot) - Number(restitution.impayes) - totalRetenues;
   const finalise = restitution.statut === "finalise";
+  // Le décompte travaille sur l'instantané, jamais sur la réalité du moment :
+  // si le locataire règle son arriéré entre le démarrage et la finalisation, on
+  // lui imputerait une dette soldée. On ne corrige pas dans son dos — on montre
+  // l'écart, le gérant décide.
+  const ecartMontants =
+    montantsReels != null &&
+    (Number(montantsReels.impayes) !== Number(restitution.impayes) ||
+      Number(montantsReels.depot) !== Number(restitution.depot));
 
   return (
     <div className="space-y-4">
@@ -95,6 +115,31 @@ export function FormulaireRestitution({
           </dd>
         </div>
       </dl>
+
+      {/* Un chiffre figé qu'on ne sait pas figé est un piège : la date d'arrêté
+          se dit, toujours — y compris sur un décompte déjà finalisé. */}
+      <p className="mono-discret">
+        Dépôt et impayés arrêtés le {formaterDateHeure(restitution.montants_arretes_le)}
+        {finalise ? "." : " — ils ne suivent pas la réalité tant qu'ils ne sont pas réarrêtés."}
+      </p>
+
+      {ecartMontants && montantsReels && !finalise && (
+        <div className="space-y-2 border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+          <p>
+            Les comptes ont bougé depuis cet arrêté : aujourd&apos;hui{" "}
+            <span className="font-medium">{eur(montantsReels.impayes)}</span> d&apos;impayés
+            {Number(montantsReels.depot) !== Number(restitution.depot) && (
+              <> et <span className="font-medium">{eur(montantsReels.depot)}</span> de dépôt encaissé</>
+            )}
+            . Le décompte, lui, retient toujours les montants ci-dessus.
+          </p>
+          <FormRafraichirMontants
+            orgId={orgId}
+            bailId={bailId}
+            restitutionId={restitution.id}
+          />
+        </div>
+      )}
 
       {restitution.sans_edl_entree && (
         <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
@@ -152,7 +197,16 @@ export function FormulaireRestitution({
           )}
         </div>
       ) : (
-        <BoutonFinaliser orgId={orgId} bailId={bailId} restitutionId={restitution.id} />
+        <BoutonFinaliser
+          orgId={orgId}
+          bailId={bailId}
+          restitutionId={restitution.id}
+          solde={soldeProjete}
+          impayes={Number(restitution.impayes)}
+          arretesLe={restitution.montants_arretes_le}
+          nbRetenues={retenues.length}
+          ecartMontants={ecartMontants}
+        />
       )}
     </div>
   );
@@ -263,6 +317,33 @@ function BoutonSupprimerRetenue({
   );
 }
 
+// Réarrêter le dépôt et les impayés sur la réalité du jour. Geste explicite du
+// gérant : à quelle date les impayés doivent être arrêtés n'est tranché par
+// aucune règle, l'application ne le décide donc pas toute seule.
+function FormRafraichirMontants({
+  orgId,
+  bailId,
+  restitutionId,
+}: {
+  orgId: string;
+  bailId: string;
+  restitutionId: string;
+}) {
+  const [etat, action] = useActionState<EtatRestit, FormData>(
+    async () => rafraichirMontantsRestitution(orgId, bailId, restitutionId),
+    {}
+  );
+  return (
+    <form action={action} className="flex flex-wrap items-center gap-2">
+      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Mise à jour…">
+        Réarrêter les montants à aujourd&apos;hui
+      </BoutonEnvoi>
+      {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="w-full text-sm">{etat.succes}</span>}
+    </form>
+  );
+}
+
 // Sans justificatif, la retenue est difficilement défendable : on peut en
 // joindre un après coup — l'alerte liée se ferme d'elle-même.
 function FormJustifierRetenue({
@@ -275,7 +356,7 @@ function FormJustifierRetenue({
   retenue: Retenue;
 }) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
-    justifierRetenue.bind(null, orgId, bailId, retenue.id, retenue.libelle),
+    justifierRetenue.bind(null, orgId, bailId, retenue.id),
     {}
   );
   return (
@@ -329,29 +410,95 @@ function FormDecompteEnvoye({
   );
 }
 
+// Finaliser FIGE le décompte : plus aucune retenue ne s'ajoute ni ne se retire,
+// et toute correction ultérieure passe par un décompte rectificatif (RM-2.7.3).
+// Un geste irréversible se confirme — même patron que la signature d'un EDL de
+// sortie ou la suppression d'une détention : le bouton ouvre une modale qui
+// annonce ce qui va être figé, puis déclenche l'envoi réel.
 function BoutonFinaliser({
   orgId,
   bailId,
   restitutionId,
+  solde,
+  impayes,
+  arretesLe,
+  nbRetenues,
+  ecartMontants,
 }: {
   orgId: string;
   bailId: string;
   restitutionId: string;
+  solde: number;
+  impayes: number;
+  arretesLe: string;
+  nbRetenues: number;
+  ecartMontants: boolean;
 }) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
     async () => finaliserDecompte(orgId, bailId, restitutionId),
     {}
   );
+  const [confirme, setConfirme] = useState(false);
+  const boutonEnvoyer = useRef<HTMLButtonElement>(null);
   return (
     <form action={action} className="flex flex-wrap items-center gap-2">
-      <BoutonEnvoi size="sm">
+      <Button type="button" size="sm" onClick={() => setConfirme(true)}>
         Finaliser le décompte
-      </BoutonEnvoi>
+      </Button>
+      <button type="submit" ref={boutonEnvoyer} hidden />
       <span className="text-xs text-muted-foreground">
         Fige le solde de tout compte et crée l&apos;alerte d&apos;envoi.
       </span>
       {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="text-sm text-success-soft-foreground">{etat.succes}</span>}
+
+      {confirme && (
+        <Modale
+          titre="Finaliser le décompte de restitution"
+          surtitre="Solde de tout compte"
+          fermer={() => setConfirme(false)}
+          pied={
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setConfirme(false)}>
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  setConfirme(false);
+                  boutonEnvoyer.current?.click();
+                }}
+              >
+                Finaliser
+              </Button>
+            </div>
+          }
+        >
+          <p className="text-sm">
+            Solde arrêté :{" "}
+            <span className="font-semibold">{eur(solde)}</span>{" "}
+            {solde < 0 ? "de créance sur le locataire" : "à restituer au locataire"}, après
+            imputation de {eur(impayes)} d&apos;impayés arrêtés le{" "}
+            {formaterDateHeure(arretesLe)}
+            {nbRetenues > 0
+              ? `, et ${nbRetenues} retenue${nbRetenues > 1 ? "s" : ""} pour dégradation.`
+              : ", sans aucune retenue pour dégradation."}
+          </p>
+          {ecartMontants && (
+            <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+              Les comptes du bail ont bougé depuis cet arrêté. Fermez cette fenêtre
+              pour réarrêter les montants d&apos;abord si le décompte doit en tenir
+              compte.
+            </p>
+          )}
+          <p className="text-sm">
+            Une fois finalisé, le décompte est figé : aucune retenue ne peut plus
+            être ajoutée ni retirée, et toute correction passera par un décompte
+            rectificatif envoyé au locataire.
+          </p>
+        </Modale>
+      )}
     </form>
   );
 }

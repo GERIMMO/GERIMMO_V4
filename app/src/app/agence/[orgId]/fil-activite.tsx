@@ -174,7 +174,11 @@ export async function FilActivite({
     id: string;
     numero: string;
     categorie: string;
-    description: string;
+    // Nullable depuis l'assouplissement RM-19.2.2 (la photo seule suffit au
+    // locataire) : le type doit le dire, sinon le prochain lecteur écrira
+    // description.trim() et le fil d'activité tombera sur la première
+    // déclaration muette.
+    description: string | null;
     created_at: string;
     lot: UnOuPlusieurs<{ id: string; nom: string }>;
   }[]) {

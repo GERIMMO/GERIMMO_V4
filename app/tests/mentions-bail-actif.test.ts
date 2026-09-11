@@ -315,4 +315,134 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     const { rows } = await db.query(`select etat, loyer_hc from public.baux where id=$1`, [bail]);
     expect(rows[0]).toMatchObject({ etat: "actif", loyer_hc: null });
   });
+  // ───────────────────────────────────────────────────────────────────────
+  // Vérification adversariale du 2026-09-11 : la garde ci-dessus ne regardait
+  // que l'état PRÉCÉDENT. Un saut de plus le lui faisait oublier — deux
+  // requêtes PostgREST suffisaient à rendre actif un brouillon sans mentions.
+  // ───────────────────────────────────────────────────────────────────────
+
+  it("le détour par le préavis ne blanchit pas un brouillon", async () => {
+    const lot = await lotLouable();
+    const bail = await creerBrouillon(lot, { loyer: null, dateDebut: null });
+    // RM-A5.1 (wiki « Machines à états et événements ») : « brouillon → préavis »
+    // n'est pas une transition listée — et `enregistrer_conge` refuse déjà un
+    // congé sur autre chose qu'un bail actif.
+    await attendreEchec(
+      db,
+      /Un brouillon ne passe pas en préavis/,
+      `update public.baux set etat='preavis' where id=$1`,
+      [bail]
+    );
+    const { rows } = await db.query(`select etat from public.baux where id=$1`, [bail]);
+    expect(rows[0].etat).toBe("brouillon");
+  });
+
+  it("le détour par la clôture ne blanchit pas un brouillon : un bail terminé ne revit pas", async () => {
+    const lot = await lotLouable();
+    const bail = await creerBrouillon(lot, { loyer: null, dateDebut: null });
+    // L'entrée en « terminé » reste possible (reprise d'historique) ; c'est la
+    // SORTIE qui est fermée — RM-A5.2 « un état terminal n'a aucune sortie »,
+    // wiki « Bail » : « terminé → actif (nouveau bail requis) ».
+    await db.query(`update public.baux set etat='termine' where id=$1`, [bail]);
+    await attendreEchec(
+      db,
+      /Un bail terminé ne revit pas/,
+      `update public.baux set etat='actif' where id=$1`,
+      [bail]
+    );
+    await attendreEchec(
+      db,
+      /Un bail terminé ne revit pas/,
+      `update public.baux set etat='preavis' where id=$1`,
+      [bail]
+    );
+    const { rows } = await db.query(`select etat, loyer_hc from public.baux where id=$1`, [bail]);
+    expect(rows[0]).toMatchObject({ etat: "termine", loyer_hc: null });
+  });
+
+  it("un bail en cours ne perd pas les mentions qu'il porte", async () => {
+    const lot = await lotLouable();
+    const bail = await creerBrouillon(lot, { loyer: 700, dateDebut: null });
+    await db.query(`update public.baux set date_debut = current_date where id=$1`, [bail]);
+    await db.query(`select public.activer_bail($1)`, [bail]);
+
+    // Le vidage après coup ramenait l'appel de loyer à 0,00 € — l'état de fin
+    // que la garde visait, atteint par l'autre bout.
+    await attendreEchec(
+      db,
+      /un bail en cours ne les perd pas/,
+      `update public.baux set loyer_hc = null where id=$1`,
+      [bail]
+    );
+    await attendreEchec(
+      db,
+      /un bail en cours ne les perd pas/,
+      `update public.baux set date_debut = null where id=$1`,
+      [bail]
+    );
+
+    await db.query(`select public.generer_appels_loyer($1)`, [bail]);
+    const { rows } = await db.query(
+      `select loyer_hc from public.appels_loyer where bail_id=$1 order by periode limit 1`,
+      [bail]
+    );
+    expect(Number(rows[0].loyer_hc)).toBeGreaterThan(0);
+  });
+
+  it("LE GESTE LÉGITIME : un bail ancien et incomplet se COMPLÈTE toujours", async () => {
+    const lot = await lotLouable();
+    // Donnée d'avant la règle : vivante, sans loyer. Le pilote doit pouvoir la
+    // réparer — la garde n'interdit que le retrait, jamais l'ajout.
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal, etat, date_debut, jour_echeance)
+       values ($1,$2,$3,'actif', current_date - 300, 5) returning id`,
+      [org, lot, locataire]
+    );
+    await db.query(`update public.lots set etat='loue' where id=$1`, [lot]);
+    await db.query(`update public.baux set loyer_hc = 620 where id=$1`, [bail]);
+    const { rows } = await db.query(`select etat, loyer_hc from public.baux where id=$1`, [bail]);
+    expect(rows[0].etat).toBe("actif");
+    expect(Number(rows[0].loyer_hc)).toBe(620);
+  });
+
+  it("LE GESTE LÉGITIME : le cycle complet du bail passe toujours, verrou compris", async () => {
+    const lot = await lotLouable();
+    const bail = await creerBrouillon(lot, { loyer: 700, dateDebut: null });
+    await db.query(`update public.baux set date_debut = current_date + 30 where id=$1`, [bail]);
+    await db.query(`select public.activer_bail($1)`, [bail]);
+
+    // Corriger : retour en brouillon, puis réactivation (le PDF est détaché)
+    await db.query(`select public.devalider_bail($1)`, [bail]);
+    await db.query(`update public.baux set document_signe = $2 where id=$1`, [bail, await docBail()]);
+    await db.query(`select public.activer_bail($1)`, [bail]);
+
+    // Congé, rétractation, congé de nouveau, puis clôture sur EDL de sortie
+    await db.query(
+      `select public.enregistrer_conge($1,'locataire'::public.conge_par, current_date, 3::smallint)`,
+      [bail]
+    );
+    await db.query(`select public.annuler_conge($1, 'rétractation')`, [bail]);
+    await db.query(
+      `select public.enregistrer_conge($1,'locataire'::public.conge_par, current_date, 3::smallint)`,
+      [bail]
+    );
+    await db.query("reset role");
+    await db.query(`select set_config('request.jwt.claims','',true)`);
+    await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type, etat, date_edl)
+       values ($1,$2,'sortie','signe', current_date)`,
+      [org, bail]
+    );
+    await db.query(`update public.baux set date_fin = current_date where id=$1`, [bail]);
+    await simuler(db, admin);
+    await db.query(`select public.terminer_bail($1)`, [bail]);
+
+    const { rows } = await db.query(
+      `select b.etat, l.etat as lot from public.baux b join public.lots l on l.id=b.lot_id where b.id=$1`,
+      [bail]
+    );
+    expect(rows[0]).toMatchObject({ etat: "termine", lot: "disponible" });
+  });
 });

@@ -26,7 +26,7 @@ import { config } from "dotenv";
 import { Client } from "pg";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   compteRenduEncaissement,
   imputationsRealisees,
@@ -34,6 +34,86 @@ import {
 } from "../src/lib/imputation";
 import { moisEnFrancais } from "../src/lib/ged";
 import { InputDateJour } from "../src/components/input-date-jour";
+import {
+  QuittancementMois,
+  type LigneQuittancement,
+} from "@/app/agence/[orgId]/comptabilite/quittancement-mois";
+
+// ── Deux bancs d'essai, pour tenir les DEUX moitiés du défaut ──────────────
+//
+// Le compte rendu ne vaut que s'il remonte jusqu'à l'œil de l'agent. Or les
+// tests purs ne prouvent que la fabrication du message : la fonction
+// quittancement_mois et le composant peuvent revenir en arrière sans qu'un
+// seul d'entre eux tombe. D'où ces deux bancs.
+//
+// 1. L'ÉCRAN. En rendu serveur, useActionState rend toujours l'état INITIAL :
+//    on ne peut donc pas observer le succès d'une action sans poser cet état
+//    soi-même. C'est tout ce que ce doublage fait — le reste de React est le
+//    vrai (react-dom/server continue de s'appuyer dessus).
+const etatSimule = vi.hoisted(() => ({
+  valeur: {} as { succes?: string; erreur?: string },
+}));
+vi.mock("react", async (importOriginal) => {
+  const reel = await importOriginal<typeof import("react")>();
+  return { ...reel, useActionState: () => [etatSimule.valeur, () => {}, false] };
+});
+
+// 2. L'ACTION, jouée pour de vrai contre la base locale : seuls
+//    l'authentification (déjà posée dans la transaction par set_config) et le
+//    cache Next sont remplacés. Le reste — l'état d'avant, l'INSERT, le
+//    déclencheur, l'état d'après — est celui de la production.
+const banc = vi.hoisted(() => ({ db: null as unknown }));
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+vi.mock("@/lib/ged-acces", () => ({
+  verifierGerant: async () => ({
+    supabase: supabaseSurLaBase(),
+    user: { id: "gerant-simule" },
+    role: "admin_agence",
+  }),
+}));
+
+// Le client que l'action croit être PostgREST : les mêmes appels, exécutés sur
+// la connexion pg du test — donc dans SA transaction et sous SON rôle.
+function supabaseSurLaBase() {
+  const db = banc.db as Client;
+  return {
+    rpc: async (nom: string, args: Record<string, string>) => {
+      if (nom === "etat_loyers_bail")
+        return {
+          data: (
+            await db.query(
+              `select appel_id, to_char(periode,'YYYY-MM-DD') as periode, montant_du,
+                      montant_couvert, statut
+                 from public.etat_loyers_bail($1)`,
+              [args.p_bail]
+            )
+          ).rows,
+          error: null,
+        };
+      if (nom === "emettre_quittances")
+        return {
+          data: (await db.query(`select * from public.emettre_quittances($1)`, [args.p_bail])).rows,
+          error: null,
+        };
+      throw new Error(`Appel non prévu par le banc d'essai : ${nom}`);
+    },
+    from: (table: string) => ({
+      insert: async (v: Record<string, unknown>) => {
+        // Fidélité au vrai client : PostgREST sérialise en JSON, donc une clé
+        // `undefined` n'est PAS transmise et la colonne garde son défaut — ce
+        // qui est précisément le piège de date_paiement (CURRENT_DATE).
+        const champs = JSON.parse(JSON.stringify(v)) as Record<string, unknown>;
+        const colonnes = Object.keys(champs);
+        await db.query(
+          `insert into public.${table} (${colonnes.join(", ")})
+           values (${colonnes.map((_, i) => `$${i + 1}`).join(", ")})`,
+          colonnes.map((c) => champs[c])
+        );
+        return { error: null };
+      },
+    }),
+  };
+}
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -148,6 +228,9 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
   beforeAll(async () => {
     db = new Client({ connectionString: DB_URL });
     await db.connect();
+    // L'action jouée plus bas écrit dans CETTE transaction, donc sous le même
+    // rôle et le même rollback que les tests SQL voisins.
+    banc.db = db;
   });
   afterAll(async () => {
     await db?.end();
@@ -324,6 +407,118 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     expect(apresPaiement.est_quittance).toBe(true);
   });
 
+  const appelDuMois = async (mois: string): Promise<string> =>
+    (
+      await db.query(
+        `select id from public.appels_loyer where bail_id = $1 and periode = $2::date`,
+        [bail, mois]
+      )
+    ).rows[0].id;
+
+  it("L'ACTION nomme le terme antérieur — et ne dit plus « aucun reçu ni quittance à émettre »", async () => {
+    // Le geste complet, pas seulement sa règle : c'est encaisserReste qui
+    // rendait le message, et c'est lui qui mentait. Le compteur de documents
+    // dont il tirait sa phrase vaut 0 (le déclencheur a déjà tout fait), si
+    // bien qu'il annonçait l'inverse de ce qui venait de se produire.
+    const { encaisserReste } = await import("@/app/actions/quittancement");
+    const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche));
+
+    expect(resultat.erreur).toBeUndefined();
+    expect(resultat.succes).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00 € → quittance`);
+    expect(resultat.succes).not.toContain(moisEnFrancais(moisAffiche));
+    expect(resultat.succes).not.toContain("aucun reçu ni quittance à émettre");
+  });
+
+  it("GESTE LÉGITIME par l'action : sans dette antérieure, le terme cliqué est soldé et quittancé", async () => {
+    const { encaisserReste } = await import("@/app/actions/quittancement");
+    await db.query(
+      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement, mode)
+       values ($1,$2,500,current_date,'virement')`,
+      [org, bail]
+    );
+    const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche));
+
+    expect(resultat.succes).toContain(`${moisEnFrancais(moisAffiche)} soldé, 500,00 € → quittance`);
+    const [ligne] = await lire(moisAffiche);
+    expect(ligne.statut).toBe("paye");
+    expect(ligne.est_quittance).toBe(true);
+  });
+
+  it("L'AUTRE porte d'entrée — la saisie détaillée rend le même compte rendu, à la date du relevé", async () => {
+    // Deux écrans encaissent : le quittancement (un clic) et la fiche du bail
+    // (saisie détaillée). Le second passe une date ; elle doit entrer telle
+    // quelle — « la banque fait foi sur les montants et les dates » (RM-A6.7).
+    const { ajouterEncaissement } = await import("@/app/actions/loyers");
+    const dateReleve = `${moisAnterieur.slice(0, 8)}15`;
+    const saisie = new FormData();
+    saisie.set("montant", "500");
+    saisie.set("date_paiement", dateReleve);
+    saisie.set("mode", "virement");
+    const resultat = await ajouterEncaissement(org, bail, {}, saisie);
+
+    expect(resultat.erreur).toBeUndefined();
+    expect(resultat.succes).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00 € → quittance`);
+    expect(resultat.succes).not.toContain("aucun reçu ni quittance à émettre");
+
+    const {
+      rows: [ecrit],
+    } = await db.query(
+      `select to_char(date_paiement,'YYYY-MM-DD') as date_paiement,
+              date_paiement = current_date as date_du_jour
+         from public.encaissements where bail_id = $1`,
+      [bail]
+    );
+    expect(ecrit.date_paiement).toBe(dateReleve);
+    expect(ecrit.date_du_jour).toBe(false);
+  });
+
+  it("REFUSÉE, la saisie détaillée rend la date pour que le champ la repose (RM-A6.7)", async () => {
+    // Le maillon que le rendu du champ ne prouve pas : sans `valeurs` renvoyées
+    // par l'action, InputDateJour n'a rien à reposer et la base redate du jour.
+    const { ajouterEncaissement } = await import("@/app/actions/loyers");
+    const saisie = new FormData();
+    saisie.set("montant", "0");
+    saisie.set("date_paiement", "2026-08-15");
+    const resultat = await ajouterEncaissement(org, bail, {}, saisie);
+
+    expect(resultat.erreur).toBe("Montant invalide.");
+    expect(resultat.valeurs?.date_paiement).toBe("2026-08-15");
+  });
+
+  it("quittancement_mois reste borné au portefeuille de l'agent restreint", async () => {
+    // La fonction a été réécrite : sa garde de portefeuille explicite a disparu
+    // du WHERE et ne tient plus que par celle d'etat_loyers_bail, appelée dans
+    // le lateral. Rien ne l'empêcherait de repartir — sauf ce test.
+    expect(await lire(moisAffiche)).toHaveLength(1);
+
+    // Créer un compte demande les droits de l'installateur, pas ceux du gérant.
+    await db.query("reset role");
+    const {
+      rows: [{ id: agent }],
+    } = await db.query(
+      `insert into auth.users (instance_id, id, aud, role, email, encrypted_password,
+         email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+         confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)
+       values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(),'authenticated','authenticated',
+         'ecr-agent-'||gen_random_uuid()||'@test.local','x', now(),'{}'::jsonb,'{}'::jsonb, now(), now(),'','','','','')
+       returning id`
+    );
+    // Agent sans aucun mandat : portefeuille vide, donc tout bail lui est étranger.
+    await db.query(
+      `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'agent')`,
+      [agent, org]
+    );
+    await db.query(
+      `select set_config('request.jwt.claims',
+         json_build_object('sub',$1::text,'role','authenticated')::text, true)`,
+      [agent]
+    );
+    await db.query("set local role authenticated");
+
+    expect((await db.query(`select public.bail_hors_portefeuille($1,$2) as hors`, [org, bail])).rows[0].hors).toBe(true);
+    expect(await lire(moisAffiche)).toHaveLength(0);
+  });
+
   it("une date d'encaissement absente est silencieusement datée du jour (RM-A6.7)", async () => {
     // Pourquoi la conservation de la saisie compte : le champ vide ne laisse
     // pas un trou, il fait entrer la date du jour à la place de celle du relevé.
@@ -361,5 +556,97 @@ describe("Date d'un encaissement refusé — la saisie revient dans le champ (RM
     // Le pré-remplissage à « aujourd'hui » est volontairement différé après
     // l'hydratation : inchangé par la correction.
     expect(rendre()).toContain('value=""');
+  });
+});
+
+describe("L'écran de quittancement — il dit ce qu'il vient de faire, et ne promet rien d'autre", () => {
+  // Une ligne d'août dont la dette est ailleurs : le cas du défaut.
+  const ligneAvecDetteAnterieure: LigneQuittancement = {
+    bail_id: "b-1",
+    appel_id: "a-aout",
+    lot_id: "l-1",
+    lot_nom: "Lot 1",
+    locataire: "Anne Dubois",
+    montant_du: 500,
+    montant_couvert: 0,
+    statut: "impaye",
+    quittance_id: null,
+    est_quittance: null,
+    email_envoye_at: null,
+    dette_anterieure_periode: JUILLET,
+    dette_anterieure_reste: 500,
+  };
+
+  const rendre = (ligne: LigneQuittancement) =>
+    renderToStaticMarkup(
+      createElement(QuittancementMois, {
+        orgId: "o-1",
+        mois: "2026-08",
+        moisLabel: "août 2026",
+        lignes: [ligne],
+      })
+    );
+
+  // Le libellé du bouton, découpé dans le rendu : c'est la promesse faite à
+  // l'agent avant le clic.
+  const libelleDuBouton = (html: string) => /Encaisser[^<]*/.exec(html)?.[0] ?? "";
+
+  // Le doublage de useActionState sert le MÊME état à toutes les actions de la
+  // carte, envoi groupé compris — dont le bandeau est rendu en tête. Chercher
+  // le compte rendu dans la carte entière le trouverait donc là, et passerait
+  // même si la LIGNE le jetait : on ne regarde que les lignes.
+  const corpsDesLignes = (html: string) => html.slice(html.indexOf("<ul"));
+
+  it("promet le terme que la base servira VRAIMENT, et chiffre la dette antérieure", () => {
+    const html = rendre(ligneAvecDetteAnterieure);
+    expect(libelleDuBouton(html)).toContain("500,00 €");
+    expect(libelleDuBouton(html)).toContain("juillet 2026");
+    expect(html).toContain("500,00 € de dette antérieure");
+  });
+
+  it("GESTE LÉGITIME : sans dette antérieure, le bouton garde son libellé simple", () => {
+    const html = rendre({
+      ...ligneAvecDetteAnterieure,
+      dette_anterieure_periode: null,
+      dette_anterieure_reste: null,
+    });
+    expect(libelleDuBouton(html)).toBe("Encaisser 500,00 €");
+    expect(html).not.toContain("de dette antérieure");
+  });
+
+  it("AFFICHE le compte rendu que l'action lui rend — il n'est plus jeté", () => {
+    etatSimule.valeur = {
+      succes: "500,00 € encaissés · imputés du terme le plus ancien au plus récent (RM-3.3.2) : juillet 2026 soldé, 500,00 € → quittance.",
+    };
+    try {
+      expect(corpsDesLignes(rendre(ligneAvecDetteAnterieure))).toContain(
+        "juillet 2026 soldé, 500,00 € → quittance"
+      );
+    } finally {
+      etatSimule.valeur = {};
+    }
+  });
+
+  it("le compte rendu SURVIT au basculement de la ligne en « payé »", () => {
+    // C'est là que le message disparaissait : l'encaissement réussi retire le
+    // bouton de l'arbre, et l'état qu'il portait partait avec lui.
+    etatSimule.valeur = { succes: "500,00 € encaissés · juillet 2026 soldé, 500,00 € → quittance." };
+    try {
+      const lignes = corpsDesLignes(
+        rendre({
+          ...ligneAvecDetteAnterieure,
+          statut: "paye",
+          montant_couvert: 500,
+          quittance_id: "q-1",
+          est_quittance: true,
+          dette_anterieure_periode: null,
+          dette_anterieure_reste: null,
+        })
+      );
+      expect(lignes).not.toContain("Encaisser");
+      expect(lignes).toContain("juillet 2026 soldé, 500,00 € → quittance");
+    } finally {
+      etatSimule.valeur = {};
+    }
   });
 });

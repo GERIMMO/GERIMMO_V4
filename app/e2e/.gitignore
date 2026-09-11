@@ -1,0 +1,5 @@
+# Artefacts locaux de la suite E2E
+.auth/
+.results/
+.audit/
+matrice-ecrans.json

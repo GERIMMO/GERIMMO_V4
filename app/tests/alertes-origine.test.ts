@@ -144,13 +144,18 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     return id;
   }
 
-  async function bailAvecEdlEntree(depot = 900): Promise<string> {
+  // Dépôt plafonné à 1 mois de loyer hors charges pour un bail nu (RM-2.1.1,
+  // trigger plafond_depot_garantie) : loyer_hc 700 → dépôt 700 au maximum.
+  async function bailAvecEdlEntree(depot = 700): Promise<string> {
     const l = await lot();
     const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc)
-       values ($1,$2,$3,$4,700) returning id`,
+      // Bail VIVANT : l'EDL d'entrée est signé et la restitution se prépare —
+      // un brouillon ne prend pas de congé (RM-A5.1, wiki « Machines à états »).
+      `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc,
+                                etat, date_debut)
+       values ($1,$2,$3,$4,700,'actif', current_date - 200) returning id`,
       [org, l, locataire, depot]
     );
     const {
@@ -338,6 +343,8 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
   it("état des lieux de sortie signé : l'alerte de sortie se ferme", async () => {
     const bail = await bailAvecEdlEntree();
     const sortie = await insererAlerte("edl_sortie", { bail_id: bail, date_effet: "2026-09-30" });
+    // Un EDL de sortie ne se signe que pendant le préavis : le congé est posé d'abord.
+    await db.query(`update public.baux set etat='preavis' where id=$1`, [bail]);
     await simuler(db, gerant);
     const {
       rows: [{ id: edl }],

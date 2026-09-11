@@ -51,6 +51,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
   let orgA: string;
   let orgB: string;
   let agentA: string;
+  let adminA: string;
   let adminB: string;
   let compteLocataire: string;
   let personneLocataire: string;
@@ -73,16 +74,20 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     orgA = orgs.rows.find((o) => o.name === "S7 Alpha")!.id;
     orgB = orgs.rows.find((o) => o.name === "S7 Beta")!.id;
     agentA = await creerUtilisateur(db);
+    adminA = await creerUtilisateur(db);
     adminB = await creerUtilisateur(db);
     compteLocataire = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role)
-       values ($1,$2,'agent'), ($3,$4,'admin_agence'), ($5,$2,'locataire')`,
-      [agentA, orgA, adminB, orgB, compteLocataire]
+       values ($1,$2,'agent'), ($3,$2,'admin_agence'), ($4,$5,'admin_agence'), ($6,$2,'locataire')`,
+      [agentA, orgA, adminA, adminB, orgB, compteLocataire]
     );
 
-    // Un lot loué par un bail actif : le terrain de jeu de la déclaration
-    await simuler(db, agentA);
+    // Un lot loué par un bail actif : le terrain de jeu de la déclaration.
+    // C'est l'administrateur d'agence qui monte le parc — l'agent, lui,
+    // travaille sur le portefeuille qu'on lui confie (persona « Agent
+    // immobilier »).
+    await simuler(db, adminA);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -94,6 +99,34 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
       rows: [{ id: lot }],
     } = await db.query(`select id from public.lots where bien_id = $1`, [bien]);
     lotA = lot;
+
+    // Le mandat confié à l'agent fait entrer le lot dans son portefeuille
+    // (RM-18.1.3) ; le titulaire n'est posé que par l'admin (RM-18.1.4).
+    const {
+      rows: [{ id: mandant }],
+    } = await db.query(
+      `insert into public.persons (organization_id, nom, prenom)
+       values ($1,'Bailleur','Martin') returning id`,
+      [orgA]
+    );
+    // Le mandant détient le lot : un mandat n'intègre que ses lots (RM-5.1.1)
+    await db.query(
+      `insert into public.detentions (organization_id, lot_id, person_id, quote_part)
+       values ($1,$2,$3,100)`,
+      [orgA, lotA, mandant]
+    );
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1,$2,'actif',$3) returning id`,
+      [orgA, mandant, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1,$2,$3,7)`,
+      [orgA, mandat, lotA]
+    );
 
     await db.query("reset role");
     const {
@@ -280,25 +313,41 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     expect(miens[0].imputation_justification).toMatch(/87-712/);
   });
 
-  it("machine A5 : un incident qualifié ne se requalifie pas, un incident en cours ne se clôture pas (RM-7.5.1)", async () => {
+  // Règle en vigueur : celle de la revue n°2 du 2026-08-23 (migration
+  // 20260823113000, section 3). Un incident QUALIFIÉ se requalifie — c'est la
+  // seule façon de solder l'alerte « imputation contestée » sans clôturer
+  // l'incident. Ce qui ferme la qualification, c'est le départ en intervention :
+  // en_cours / termine / clos ne se qualifient plus.
+  it("machine A5 : un incident qualifié se requalifie, un incident parti en intervention ne se qualifie plus ni ne se clôture sans compte rendu (RM-7.5.1)", async () => {
     const incident = await declarer();
     await simuler(db, agentA);
     await db.query(`select public.qualifier_incident($1,$2,'locataire','Décret 87-712')`, [
       orgA,
       incident,
     ]);
-    await attendreEchec(
-      db,
-      /déclaré ou rouvert/,
-      `select public.qualifier_incident($1,$2,'proprietaire','Changement d''avis')`,
+    // Contestation du locataire : l'imputation est reprise, justification à l'appui.
+    await db.query(
+      `select public.qualifier_incident($1,$2,'proprietaire','Contestation fondée : vétusté')`,
       [orgA, incident]
     );
+    await db.query("reset role");
+    const requalifie = await db.query(
+      `select etat, imputation from public.incidents where id = $1`,
+      [incident]
+    );
+    expect(requalifie.rows[0].etat).toBe("qualifie");
+    expect(requalifie.rows[0].imputation).toBe("proprietaire");
 
     // Fixture : on pousse l'incident en intervention (états servis par les
     // incréments artisans à venir)
-    await db.query("reset role");
     await db.query(`update public.incidents set etat = 'en_cours' where id = $1`, [incident]);
     await simuler(db, agentA);
+    await attendreEchec(
+      db,
+      /ne se qualifie plus/,
+      `select public.qualifier_incident($1,$2,'locataire','Trop tard')`,
+      [orgA, incident]
+    );
     await attendreEchec(
       db,
       /compte rendu/,
@@ -501,7 +550,9 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
   it("confidentialité : le nouveau locataire du lot ne voit pas les incidents de l'ancien bail (revue n°2)", async () => {
     const incident = await declarer();
 
-    // Fin du premier bail, nouveau locataire sur le même lot
+    // Fin du premier bail, nouveau locataire sur le même lot : fixture posée
+    // hors session locataire (elle ne verrait ni le bail ni auth.users)
+    await db.query("reset role");
     await db.query(
       `update public.baux set etat = 'termine', date_fin = current_date where organization_id = $1`,
       [orgA]
@@ -569,14 +620,14 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     // Dix photos au plus par incident, quel que soit le nombre de requêtes
     for (let i = 0; i < 10; i++) {
       await db.query(
-        `select public.joindre_photo_incident($1,$2,$1::text||'/photo-'||$3||'.jpg','image/jpeg',100,'empreinte-cap-'||$3)`,
+        `select public.joindre_photo_incident($1,$2,($1::uuid)::text||'/photo-'||$3||'.jpg','image/jpeg',100,'empreinte-cap-'||$3)`,
         [orgA, incident, String(i)]
       );
     }
     await attendreEchec(
       db,
       /Dix photos au maximum/,
-      `select public.joindre_photo_incident($1,$2,$1::text||'/photo-11.jpg','image/jpeg',100,'empreinte-cap-11')`,
+      `select public.joindre_photo_incident($1,$2,($1::uuid)::text||'/photo-11.jpg','image/jpeg',100,'empreinte-cap-11')`,
       [orgA, incident]
     );
 

@@ -65,14 +65,20 @@ export function CarteGestionnaire({
 
 export function CarteUrgence() {
   return (
-    <div className="loc-carte" style={{ padding: "16px 18px" }}>
+    <div className="loc-carte">
       <p className="text-xs text-muted-foreground">
         Une urgence vitale ? En cas de danger, contactez d&apos;abord les secours :
       </p>
       <div className="mt-2 flex items-center gap-2.5">
         <span
           className="loc-rond"
-          style={{ width: 34, height: 34, background: "var(--destructive)", color: "#fff", fontSize: 14 }}
+          style={{
+            width: 34,
+            height: 34,
+            background: "var(--destructive)",
+            color: "var(--sur-encre)",
+            fontSize: 14,
+          }}
           aria-hidden
         >
           ☎

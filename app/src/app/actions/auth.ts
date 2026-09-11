@@ -1,5 +1,6 @@
 "use server";
 
+import { CONDITIONS_VERSION } from "@/lib/editeur";
 import { sansJargon } from "@/lib/erreurs";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -157,6 +158,15 @@ export async function inscrireProprietaire(
         code_postal: String(formData.get("code_postal") ?? "").trim(),
         ville: String(formData.get("ville") ?? "").trim(),
         qualite: String(formData.get("qualite") ?? "").trim(),
+        // Ce qui a été accepté, et quand. La base ne notait jusqu'ici QUE le
+        // fait que la case avait été cochée : l'éditeur ne pouvait donc pas
+        // prouver le contenu du contrat le jour de sa formation, alors même
+        // que l'article 16 se réserve de le modifier (relevé du 11/09).
+        // Les métadonnées du compte suffisent : elles sont posées à la
+        // création, jamais réécrites par l'application, et voyagent avec
+        // l'utilisateur.
+        cgu_version: CONDITIONS_VERSION,
+        cgu_acceptee_le: new Date().toISOString(),
       },
       emailRedirectTo: `${origine}/auth/confirm?next=/espaces`,
     },

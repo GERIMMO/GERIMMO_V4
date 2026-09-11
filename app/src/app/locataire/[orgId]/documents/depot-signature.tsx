@@ -45,7 +45,7 @@ export function DepotSignature({
           href={`/locataire/${orgId}/documents/${demande.document_id}/fichier`}
           target="_blank"
           rel="noreferrer"
-          className="lien-discret text-sm"
+          className="lien-discret"
         >
           Télécharger
         </a>
@@ -63,7 +63,11 @@ export function DepotSignature({
           Déposer le signé
         </BoutonEnvoi>
       </form>
-      {etat.erreur && <p className="mt-1.5 text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && (
+        <p className="err mt-1.5 !mb-0" role="alert">
+          {etat.erreur}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,8 +1,8 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
   afficherEcheance,
-  dateRendezVous,
   echeanceRapport,
   resumerBlocage,
 } from "@/lib/echeances";
@@ -11,7 +11,7 @@ import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendue
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { totalMessagesNonLus } from "@/lib/messagerie";
-import { CRITICITES, ORDRE_CRITICITE, COULEURS_CRITICITE, ROLES_RESPONSABLES, formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
+import { CRITICITES, ORDRE_CRITICITE, ROLES_RESPONSABLES, eur, aujourdhuiParis } from "@/lib/ged";
 import { TraiterAlerte } from "./alertes/traiter-alerte";
 import { nomComplet } from "@/lib/roles-personnes";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,10 +36,85 @@ type Alerte = {
   escalades: unknown;
 };
 
+// Une lecture qui échoue ne doit JAMAIS ressembler à du vide : un parc sans
+// biens rassure, une connexion perdue non. Chaque bloc dit lequel des deux
+// il montre (correctif transverse du relevé 11/09).
+function LectureImpossible({ quoi }: { quoi: string }) {
+  return (
+    <p className="err mb-0" role="alert">
+      Impossible de lire {quoi} — ce n&apos;est pas un écran vide, c&apos;est une
+      lecture qui a échoué. Rechargez dans un instant.
+    </p>
+  );
+}
+
+// Les rangées du plan du jour : une seule et même rangée de la charte
+// (.rang-alerte), quelle que soit la source de l'action.
+type ActionDuJour = {
+  cle: string;
+  // Le type de l'alerte dont la rangée vient, quand elle vient d'une alerte :
+  // c'est lui qui décide de ce qui a le droit de passer sous la coupe de
+  // « À venir » (voir PLAFOND_A_VENIR).
+  type?: string;
+  nature: string;
+  criticite: "critique" | "normale" | "informative";
+  titre: string;
+  detail: string | null;
+  echeance: string | null;
+  action: ReactNode;
+};
+
+function GroupeActions({
+  titre,
+  actions,
+  total,
+  reste,
+}: {
+  titre: string;
+  actions: ActionDuJour[];
+  total: number;
+  // Ce qui n'est pas affiché se dit : une liste tronquée en silence ment.
+  reste?: ReactNode;
+}) {
+  if (actions.length === 0) return null;
+  return (
+    <>
+      <div className="tete-groupe">
+        <span className="libelle-champ">{titre}</span>
+        <span className="libelle-champ">{total}</span>
+      </div>
+      {actions.map((a) => {
+        const ech = afficherEcheance(a.echeance);
+        return (
+          <div key={a.cle} className={`rang-alerte flex-wrap gap-y-2 ${a.criticite}`}>
+            <div className="min-w-0 flex-1">
+              <div className="niveau">{a.nature}</div>
+              <div className="mt-0.5 text-sm">{a.titre}</div>
+              {a.detail && (
+                <div className="truncate text-[length:var(--pas-appui)] text-muted-foreground">
+                  {a.detail}
+                </div>
+              )}
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <span
+                className={`text-[length:var(--pas-appui)] ${ech ? ech.classe : "text-muted-foreground"}`}
+              >
+                {ech ? ech.texte : "Sans échéance"}
+              </span>
+              {a.action}
+            </div>
+          </div>
+        );
+      })}
+      {reste}
+    </>
+  );
+}
+
 // Tableau de bord de l'espace agence. Il répond à une seule question : « que
-// dois-je faire, et qu'est-ce qui est déjà en retard ? » — d'où le tri par
-// échéance plutôt que par date de création, et la séparation nette entre ce qui
-// est dépassé et ce qui vient.
+// dois-je faire aujourd'hui ? » — d'où le plan du jour EN PREMIER (les quatre
+// sources d'action fondues en une seule liste), les chiffres ensuite.
 export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId]">) {
   const { orgId } = await props.params;
   const { supabase, user, role, organisation, estProprietaire } =
@@ -76,16 +151,15 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const moisSixMoisAvant = `${dateSixMois.toISOString().slice(0, 7)}-01`;
 
   const [
-    { count: nbBiens },
-    { data: lots },
-    { data: alertesBrutes },
-    { data: rapports },
-    { data: appelsMois },
-    { data: encaissementsMois },
-    { data: ecrituresSixMois },
-    { data: blocagesParc },
-    { data: incidentsEnCours },
-    { data: donneesMembres },
+    { data: lots, error: erreurLots },
+    { data: alertesBrutes, error: erreurAlertes },
+    { data: rapports, error: erreurRapports },
+    { data: appelsMois, error: erreurAppels },
+    { data: encaissementsMois, error: erreurEncaissements },
+    { data: ecrituresSixMois, error: erreurEcritures },
+    { data: blocagesParc, error: erreurBlocages },
+    { data: incidentsEnCours, error: erreurIncidents },
+    { data: donneesMembres, error: erreurMembres },
     messagesNonLus,
     // Ce que la fiche de chaque bail affiche comme blocage (audit 09/09) :
     // impayés, EDL d'entrée non signé, diagnostics obligatoires, pièces
@@ -93,7 +167,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // dise jamais « tout est à jour » quand un bail est bloqué.
     attendues,
   ] = await Promise.all([
-    supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
     // « À traiter » se calcule sur MES alertes (revue recette 08/08) : celles
     // qui me sont confiées nominativement, plus celles à tout le monde.
@@ -151,6 +224,18 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     email: string;
     role: string;
   }[];
+  // Le bandeau nomme ce qui manque : un écran incomplet le dit en tête, puis
+  // chaque bloc concerné le répète là où le vide se verrait.
+  const lecturesEnEchec = [
+    erreurLots && "le parc",
+    erreurAlertes && "les alertes",
+    erreurRapports && "les rapports de gestion",
+    (erreurAppels || erreurEncaissements) && "le quittancement du mois",
+    erreurEcritures && "les écritures des six derniers mois",
+    erreurBlocages && "les blocages de mise en location",
+    erreurIncidents && "les incidents",
+    erreurMembres && "la liste des gérants",
+  ].filter((x): x is string => typeof x === "string");
 
   // Tout se lit à travers le portefeuille : sans mandat confié, rien ne change
   type LigneAvecBail = { bail: UnOuPlusieurs<{ lot_id: string }> };
@@ -186,6 +271,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       b: duMois.filter((e) => e.sens === "depense").reduce((s, e) => s + Number(e.montant), 0),
     });
   }
+  const historiqueVide = historique.every((m) => m.a === 0 && m.b === 0);
 
   // Une alerte qui répète un item calculé (EDL d'entrée posée à l'activation)
   // ne s'affiche pas deux fois : l'item calculé fait foi.
@@ -196,6 +282,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const dossiersIncidents = (
     (incidentsEnCours ?? []) as { imputation: string | null; lot_id: string }[]
   ).filter((i) => dansPortefeuille(i.lot_id));
+  const aQualifier = dossiersIncidents.filter((i) => !i.imputation).length;
   const segmentsIncidents = [
     {
       libelle: "Charge propriétaire",
@@ -211,22 +298,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     },
     {
       libelle: "Pas encore tranché",
-      valeur: dossiersIncidents.filter((i) => !i.imputation).length,
+      valeur: aQualifier,
       couleur: "var(--destructive)",
     },
   ];
 
-  // « Cette semaine » : les rendez-vous datés des quinze prochains jours, quelle
-  // que soit leur origine — une alerte qui arrive à terme, un rapport à valider.
-  // Le jour de la semaine en tête : on repère « jeudi » plus vite qu'une date.
-  type RendezVous = {
-    cle: string;
-    date: string;
-    titre: string;
-    detail: string;
-    depassee?: boolean;
-  };
-  const rendezVous: RendezVous[] = [];
   const lotsActifs = (lots ?? []).filter(
     (l) => l.etat !== "archive" && dansPortefeuille(l.id)
   );
@@ -255,42 +331,98 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     ])
   );
 
-  // Tri par urgence réelle : l'échéance d'abord (les sans-date en fin), puis la
-  // criticité, puis l'ancienneté.
-  const triees = [...alertes].sort((a, b) => {
-    if (a.echeance && b.echeance) {
-      const parDate = a.echeance.localeCompare(b.echeance);
-      if (parDate !== 0) return parDate;
-    } else if (a.echeance !== b.echeance) {
-      return a.echeance ? -1 : 1;
-    }
-    return (
-      (ORDRE_CRITICITE[a.criticite] ?? 9) - (ORDRE_CRITICITE[b.criticite] ?? 9) ||
-      a.created_at.localeCompare(b.created_at)
-    );
-  });
+  // ---------------------------------------------------------------- Plan du jour
+  // Quatre sources d'action vivaient côte à côte sur cet écran — une tuile, une
+  // liste « à traiter », un agenda « cette semaine », des puces de raccourci —
+  // et la même alerte s'y lisait deux fois, rendue de deux façons. Elles sont
+  // toutes calculées ici : une seule liste, une seule rangée, l'urgence en tête.
   const aujourdhui = aujourdhuiParis();
-  const depassees = triees.filter((a) => a.echeance && a.echeance < aujourdhui);
-  const aVenir = triees.filter((a) => !a.echeance || a.echeance >= aujourdhui);
-  const plusUrgente = depassees[0]
-    ? afficherEcheance(depassees[0].echeance, new Date(), "long")
-    : null;
+  const niveau = (c: string): ActionDuJour["criticite"] =>
+    c === "critique" ? "critique" : c === "normale" ? "normale" : "informative";
 
   // Contexte d'une alerte : le lot concerné et le montant en jeu, tirés du
   // détail que chaque alerte transporte.
-  for (const a of alertes) {
-    const e = afficherEcheance(a.echeance);
-    if (e && !e.depassee && e.jours <= 15) {
-      const d = (a.details ?? {}) as Record<string, unknown>;
-      const lot = typeof d.lot_id === "string" ? nomsLots.get(d.lot_id) : undefined;
-      rendezVous.push({
-        cle: `a-${a.id}`,
-        date: a.echeance!,
-        titre: a.titre,
-        detail: lot ? lot.nom : (CRITICITES[a.criticite] ?? a.criticite),
-      });
-    }
-  }
+  const detailAlerte = (a: Alerte) => {
+    const d = (a.details ?? {}) as Record<string, unknown>;
+    const lot = typeof d.lot_id === "string" ? nomsLots.get(d.lot_id) : undefined;
+    const montant =
+      typeof d.solde === "number"
+        ? d.solde
+        : typeof d.montant === "number"
+          ? d.montant
+          : typeof d.net === "number"
+            ? d.net
+            : null;
+    const libelle = typeof d.libelle === "string" ? d.libelle : null;
+    return (
+      [lot?.nom, libelle, montant !== null ? eur(montant) : null]
+        .filter(Boolean)
+        .join(" · ") || null
+    );
+  };
+
+  const surLesBaux: ActionDuJour[] = attendues.map((a) => ({
+    cle: a.cle,
+    nature: a.critique ? "Bail bloqué" : "Sur un bail",
+    criticite: a.critique ? "critique" : "normale",
+    titre: a.titre,
+    detail: a.detail,
+    echeance: null,
+    action: (
+      <Link
+        href={a.href}
+        className={buttonVariants({
+          size: "sm",
+          variant: a.critique ? "destructive" : "outline",
+          // Un <a> échappe au min-height tactile posé sur button/select
+          className: "pointer-coarse:min-h-10",
+        })}
+      >
+        Résoudre
+        <IndicateurLien />
+      </Link>
+    ),
+  }));
+
+  const datees: ActionDuJour[] = alertes.map((a) => ({
+    cle: `a-${a.id}`,
+    type: a.type,
+    nature: `Alerte ${(CRITICITES[a.criticite] ?? a.criticite).toLowerCase()}`,
+    criticite: niveau(a.criticite),
+    titre: a.titre,
+    detail: detailAlerte(a),
+    echeance: a.echeance,
+    // Recette 24/08 : la pop-up s'ouvre SUR le tableau de bord ; une alerte
+    // incident, elle, emmène au dossier dans l'onglet Incidents.
+    action:
+      typeof a.details?.incident_id === "string" ? (
+        <Link
+          href={`/agence/${orgId}/incidents?sel=${a.details.incident_id}`}
+          className={buttonVariants({
+            size: "sm",
+            variant: a.criticite === "critique" ? "destructive" : "outline",
+            className: "pointer-coarse:min-h-10",
+          })}
+        >
+          Traiter
+          <IndicateurLien />
+        </Link>
+      ) : (
+        <TraiterAlerte
+          orgId={orgId}
+          alerte={a}
+          membres={membres}
+          estResponsable={estResponsable}
+          className={buttonVariants({
+            size: "sm",
+            variant: a.criticite === "critique" ? "destructive" : "outline",
+          })}
+        >
+          Traiter
+        </TraiterAlerte>
+      ),
+  }));
+
   for (const r of (rapports ?? []) as unknown as {
     id: string;
     mois: string;
@@ -302,7 +434,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   }[]) {
     const m = premier(r.mandat);
     // Portefeuille : les rapports des mandats confiés à un autre agent sortent
-    // de « cette semaine » ; un mandat sans titulaire reste l'affaire de tous.
+    // du plan ; un mandat sans titulaire reste l'affaire de tous.
     if (portefeuille && m?.agent_account_id && m.agent_account_id !== user.id) continue;
     const p = premier(m?.person);
     // Un rapport n'est pas dû le premier jour du mois qu'il couvre, mais le jour
@@ -313,505 +445,409 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // Les rapports en retard restent affichés : les masquer reviendrait à faire
     // disparaître du travail qui reste à faire.
     if (!e || (!e.depassee && e.jours > 15)) continue;
-    const qui = p ? nomComplet(p) : "Mandant";
-    rendezVous.push({
+    datees.push({
       cle: `r-${r.id}`,
-      date: echeance,
-      titre: `Rapport de gestion de ${new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" })}`,
-      detail: e.depassee ? `${qui} · ${e.texte.toLowerCase()}` : `${qui} · à valider avant envoi`,
-      depassee: e.depassee,
+      nature: "Rapport de gestion",
+      // Le retard se lit à l'échéance et au groupe, pas au fond de la rangée :
+      // le rouge reste réservé à ce qui est critique, sinon il n'alerte plus.
+      criticite: "normale",
+      titre: `Rapport de ${new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" })}`,
+      detail: `${p ? nomComplet(p) : "Mandant"} · à valider avant envoi`,
+      echeance,
+      action: (
+        <Link
+          href={`/agence/${orgId}/comptabilite`}
+          className={buttonVariants({
+            size: "sm",
+            variant: "outline",
+            className: "pointer-coarse:min-h-10",
+          })}
+        >
+          Valider
+          <IndicateurLien />
+        </Link>
+      ),
     });
   }
-  rendezVous.sort((a, b) => a.date.localeCompare(b.date));
 
-  const contexte = (a: Alerte) => {
-    const d = (a.details ?? {}) as Record<string, unknown>;
-    const lot = typeof d.lot_id === "string" ? nomsLots.get(d.lot_id) : undefined;
-    const montant =
-      typeof d.solde === "number"
-        ? d.solde
-        : typeof d.montant === "number"
-          ? d.montant
-          : typeof d.net === "number"
-            ? d.net
-            : null;
-    return { lot, montant, libelle: typeof d.libelle === "string" ? d.libelle : null };
+  // Tri par urgence réelle : l'échéance d'abord (les sans-date en fin), puis la
+  // criticité, puis le titre pour que l'ordre ne bouge pas d'un rendu à l'autre.
+  const parUrgence = (a: ActionDuJour, b: ActionDuJour) => {
+    if (a.echeance && b.echeance) {
+      const parDate = a.echeance.localeCompare(b.echeance);
+      if (parDate !== 0) return parDate;
+    } else if (a.echeance !== b.echeance) {
+      return a.echeance ? -1 : 1;
+    }
+    return (
+      (ORDRE_CRITICITE[a.criticite] ?? 9) - (ORDRE_CRITICITE[b.criticite] ?? 9) ||
+      a.titre.localeCompare(b.titre)
+    );
   };
-
-  // Puces de tête (maquette v6) : le résumé de la journée en trois gestes
-  const aQualifier =
-    segmentsIncidents.find((s) => s.libelle === "Pas encore tranché")?.valeur ?? 0;
+  const enRetard = datees
+    .filter((x) => x.echeance && x.echeance < aujourdhui)
+    .sort(parUrgence);
+  const aVenir = datees
+    .filter((x) => !x.echeance || x.echeance >= aujourdhui)
+    .sort(parUrgence);
+  const nbActions = surLesBaux.length + enRetard.length + aVenir.length;
+  // « À venir » se coupe à six rangs — et le dit, avec l'endroit où voir le reste.
+  const PLAFOND_A_VENIR = 6;
+  // … sauf l'incident à qualifier. Relevé du 11/09 : `incident_creer` insère son
+  // alerte SANS échéance (migration 20260821093624, l.174-183), les rangées sans
+  // date passent après les datées (`parUrgence`, ci-dessus), et la coupe à six
+  // faisait disparaître de l'accueil la déclaration la plus fraîche : il fallait
+  // « Tout voir → » puis re-cliquer « Traiter », deux clics au lieu d'un.
+  // Ne remonter que les CRITIQUES sans date ne suffirait pas : l'alerte n'est
+  // critique que si l'urgence l'est (même migration, l.176-179) — une
+  // déclaration normale, le cas courant, resterait au fond de la liste.
+  // Elle reste visible, elle ne prend pas de date : aucune page de
+  // wiki/regles-metier/ ne fixe de délai de qualification, et lui en inventer un
+  // en base créerait un délai opposable que personne n'a tranché (RM-7.2.7 dit
+  // que rien ne part sans imputation, pas sous combien de temps).
+  const TYPES_HORS_PLAFOND = new Set(["incident_a_qualifier"]);
+  const aVenirVisibles = aVenir.filter(
+    (a, rang) => rang < PLAFOND_A_VENIR || TYPES_HORS_PLAFOND.has(a.type ?? "")
+  );
+  // Rien à montrer ET une lecture en échec : c'est l'échec qu'on dit, jamais
+  // « rien ne vous attend » — le mensonge le plus tranquille du produit.
+  const planVide = nbActions === 0 && messagesNonLus === 0;
+  const planIllisible = planVide && Boolean(erreurAlertes || erreurRapports);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
-      <div className="mb-1">
-        <p className="mono-discret sans-majuscules">
-          {portefeuille ? "Mon portefeuille · " : ""}
-          {new Date().toLocaleDateString("fr-FR", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-            timeZone: "Europe/Paris",
-          })}
-        </p>
-        <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""},</h1>
-        <p className="text-sm text-muted-foreground">
-          {role === "agent"
-            ? "Voici l'essentiel de votre portefeuille."
-            : "Voici l'essentiel de votre agence."}
-        </p>
-      </div>
-      <div className="mb-[1.125rem] mt-3 flex flex-wrap gap-2">
-        <Link href={`/agence/${orgId}/alertes`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-          {alertes.length} action{alertes.length > 1 ? "s" : ""} à traiter
-        </Link>
-        {aQualifier > 0 && (
-          <Link href={`/agence/${orgId}/incidents`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {aQualifier} incident{aQualifier > 1 ? "s" : ""} à qualifier
-          </Link>
-        )}
-        {messagesNonLus > 0 && (
-          <Link href={`/agence/${orgId}/messages`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-            {messagesNonLus} message{messagesNonLus > 1 ? "s" : ""} non lu{messagesNonLus > 1 ? "s" : ""}
-          </Link>
-        )}
+      <div className="entete-page">
+        <div>
+          <p className="mono-discret sans-majuscules">
+            {portefeuille ? "Mon portefeuille · " : ""}
+            {new Date().toLocaleDateString("fr-FR", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              timeZone: "Europe/Paris",
+            })}
+          </p>
+          <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""},</h1>
+          <p className="text-sm text-muted-foreground">
+            {role === "agent"
+              ? "Voici ce que votre portefeuille attend de vous."
+              : "Voici ce que votre agence attend de vous."}
+          </p>
+        </div>
+        <span className="mono-discret">
+          {/* Un compte tiré d'une lecture en échec ne s'affiche pas : il
+              vaudrait moins que rien, il rassurerait à tort. */}
+          {erreurAlertes || erreurRapports
+            ? "compte indisponible"
+            : `${nbActions} action${nbActions > 1 ? "s" : ""}${
+                enRetard.length > 0 ? ` · ${enRetard.length} en retard` : ""
+              }`}
+        </span>
       </div>
 
-      {/* Quatre chiffres clés — tuiles KPI de la maquette : liseré de couleur à
-          gauche, chiffre serif, jauge en segments. */}
-      <div className="mb-[1.125rem] grid gap-3.5 sm:grid-cols-3">
-        <Link href={`/agence/${orgId}/alertes`} className="kpi rouge h-full">
-          <span className="eyebrow">À traiter</span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{alertes.length}</span>
-            <span className="text-sm text-muted-foreground">
-              alerte{alertes.length > 1 ? "s" : ""} qui{" "}
-              {alertes.length > 1 ? "vous sont confiées" : "vous est confiée"}
+      {lecturesEnEchec.length > 0 && (
+        <div className="err mt-4" role="alert">
+          Une partie de cet écran n&apos;a pas pu être lue —{" "}
+          {lecturesEnEchec.join(", ")}. Ce qui manque ici n&apos;est pas
+          forcément absent de votre agence : rechargez dans un instant.
+        </div>
+      )}
+
+      {/* 1. Ce qu'il y a à faire. L'écran du matin commence par là : les
+          chiffres viennent après, ils racontent, ils ne demandent rien. */}
+      <section className="section-ecran mt-6">
+        <div className="entete-carte">
+          <h2 className="text-[length:var(--pas-section)]">Votre plan du jour</h2>
+          <Link href={`/agence/${orgId}/alertes`} className="lien-discret">
+            Toutes les alertes&nbsp;→
+          </Link>
+        </div>
+
+        {planIllisible ? (
+          <LectureImpossible quoi="ce que vous avez à traiter" />
+        ) : planVide ? (
+          <div className="vide-guide">
+            <p className="titre">Rien ne vous attend ce matin</p>
+            <p className="explication">
+              Aucun bail bloqué, aucune alerte confiée, aucun rapport à valider.
+              Gerimmo pose les alertes tout seul — diagnostic périmé, état des
+              lieux à faire, loyer impayé : elles arriveront ici.
+            </p>
+            <span className="geste">
+              <Link
+                href={`/agence/${orgId}/parc`}
+                className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
+              >
+                Ouvrir le parc
+                <IndicateurLien />
+              </Link>
+              <Link
+                href={`/agence/${orgId}/alertes`}
+                className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
+              >
+                Toutes les alertes
+                <IndicateurLien />
+              </Link>
             </span>
-          </span>
-          <span className="jauge" aria-hidden>
-            <span
-              style={{
-                flex: alertes.filter((a) => a.criticite === "critique").length || 0.01,
-                background: "var(--destructive)",
-              }}
+          </div>
+        ) : (
+          <div className="colonne-liste">
+            {/* Les blocages que la fiche de chaque bail affiche (source
+                commune, audit 09/09) : impayés, EDL d'entrée, diagnostics,
+                pièces expirées — chaque ligne mène à l'écran qui résout. */}
+            <GroupeActions
+              titre="À débloquer sur les baux"
+              actions={surLesBaux}
+              total={surLesBaux.length}
             />
-            <span
-              style={{
-                flex:
-                  alertes.length -
-                    alertes.filter((a) => a.criticite === "critique").length || 0.01,
-                background: "var(--warning)",
-              }}
+            <GroupeActions titre="En retard" actions={enRetard} total={enRetard.length} />
+            <GroupeActions
+              titre="À venir"
+              actions={aVenirVisibles}
+              total={aVenir.length}
+              reste={
+                aVenir.length > aVenirVisibles.length ? (
+                  <Link href={`/agence/${orgId}/alertes`} className="rang">
+                    <span className="min-w-0 flex-1 text-sm">
+                      {aVenir.length - aVenirVisibles.length} autre
+                      {aVenir.length - aVenirVisibles.length > 1 ? "s" : ""} à venir
+                    </span>
+                    <span className="lien-discret">
+                      Tout voir&nbsp;→
+                      <IndicateurLien />
+                    </span>
+                  </Link>
+                ) : undefined
+              }
             />
+            {erreurAlertes && !erreurRapports && (
+              <div className="p-[var(--rythme-3)]">
+                <LectureImpossible quoi="les alertes qui vous sont confiées" />
+              </div>
+            )}
+            {erreurRapports && !erreurAlertes && (
+              <div className="p-[var(--rythme-3)]">
+                <LectureImpossible quoi="les rapports de gestion à valider" />
+              </div>
+            )}
+            {/* Les messages non lus sont une action, pas un chiffre de plus :
+                ils tiennent en un rang, au bas du plan. */}
+            {messagesNonLus > 0 && (
+              <Link href={`/agence/${orgId}/messages`} className="rang">
+                <span className="min-w-0 flex-1 text-sm">
+                  {messagesNonLus} message{messagesNonLus > 1 ? "s" : ""} non lu
+                  {messagesNonLus > 1 ? "s" : ""} de vos locataires
+                </span>
+                <span className="lien-discret">
+                  Lire&nbsp;→
+                  <IndicateurLien />
+                </span>
+              </Link>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* 2. Les chiffres du jour — ce qui se passe, pas ce qu'on doit faire. */}
+      <section className="section-ecran grid gap-[var(--rythme-4)] sm:grid-cols-2">
+        {/* Tuile Incidents de la maquette (conformité 24/08) : dossiers en
+            cours, jauge par payeur, la file à qualifier en sous-ligne — et,
+            depuis le relevé du 11/09, un lien vers cette file. La sous-ligne
+            promettait « N à qualifier » et le href atterrissait sur « En
+            cours », où les dossiers déjà tranchés sont mêlés aux autres. La vue
+            n'est qu'un filtre d'affichage : elle ne franchit aucune transition
+            de la machine A5. */}
+        <Link
+          href={`/agence/${orgId}/incidents${aQualifier > 0 ? "?vue=a-traiter" : ""}`}
+          className="kpi or h-full"
+        >
+          <span className="eyebrow">Incidents</span>
+          <span className="mt-1 flex items-baseline gap-2">
+            <span className="chiffre">{erreurIncidents ? "—" : dossiersIncidents.length}</span>
+            <span className="text-sm text-muted-foreground">en cours</span>
           </span>
+          {/* Pas de jauge sur une lecture en échec : une barre à zéro dessine
+              une répartition qu'on n'a pas lue. */}
+          {!erreurIncidents && (
+            <span className="jauge" aria-hidden>
+              {segmentsIncidents.map((s) => (
+                <span
+                  key={s.libelle}
+                  style={{ flex: s.valeur || 0.01, background: s.couleur }}
+                />
+              ))}
+            </span>
+          )}
           <span className="block text-xs text-muted-foreground">
-            {plusUrgente ? (
-              <>
-                La plus urgente est{" "}
-                <span className={plusUrgente.classe}>{plusUrgente.texte}</span>
-              </>
-            ) : alertes.length > 0 ? (
-              "Aucune n'est en retard"
-            ) : attendues.length > 0 ? (
-              // Jamais « rien en attente » quand un bail affiche un blocage
-              `${attendues.length} action${attendues.length > 1 ? "s" : ""} attendue${attendues.length > 1 ? "s" : ""} sur les baux`
+            {erreurIncidents ? (
+              <span className="text-destructive">Lecture impossible — rechargez</span>
+            ) : aQualifier > 0 ? (
+              <span className="text-warning-soft-foreground">
+                {aQualifier} à qualifier — votre décision lance la suite
+              </span>
+            ) : dossiersIncidents.length > 0 ? (
+              "Tous qualifiés — rien à trancher"
             ) : (
-              "Rien en attente"
+              "Aucun dossier en cours"
             )}
           </span>
         </Link>
 
-        {/* Tuile Incidents de la maquette (conformité 24/08) : dossiers en
-            cours, jauge par payeur, la file à qualifier en sous-ligne. */}
-        <Link
-          href={`/agence/${orgId}/incidents`}
-          className="kpi h-full"
-          style={{ borderLeftColor: "var(--warning)" }}
-        >
-          <span className="eyebrow">Incidents</span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{dossiersIncidents.length}</span>
-            <span className="text-sm text-muted-foreground">en cours</span>
-          </span>
-          <span className="jauge" aria-hidden>
-            {segmentsIncidents.map((s) => (
-              <span
-                key={s.libelle}
-                style={{ flex: s.valeur || 0.01, background: s.couleur }}
-              />
-            ))}
-          </span>
-          <span className="block text-xs text-muted-foreground">
-            {(() => {
-              const aTrancher =
-                segmentsIncidents.find((s) => s.libelle === "Pas encore tranché")?.valeur ?? 0;
-              return aTrancher > 0 ? (
-                <span className="text-warning-soft-foreground">
-                  {aTrancher} à qualifier — votre décision lance la suite
-                </span>
-              ) : dossiersIncidents.length > 0 ? (
-                "Tous qualifiés — rien à trancher"
-              ) : (
-                "Aucun dossier en cours"
-              );
-            })()}
-          </span>
-        </Link>
-
-        {/* Tuile « Occupation » retirée le 30/08 : doublon du donut
-            « Répartition du parc » juste en dessous (même taux, même détail). */}
-
-        {/* Maquette : l'encaissé du mois en bleu, jauge de quittancement */}
+        {/* Maquette : l'encaissé du mois, jauge de quittancement */}
         <Link href={`/agence/${orgId}/comptabilite`} className="kpi bleu h-full">
           <span className="eyebrow">Encaissé en {nomMois}</span>
           <span className="mt-1 flex flex-wrap items-baseline gap-x-2">
             {/* Le montant ne casse jamais avant son « € » (conformité 24/08) */}
-            <span className="chiffre whitespace-nowrap">{eur(totalEncaisse)}</span>
-            {totalAppele > 0 && (
-              <span className="text-sm whitespace-nowrap text-muted-foreground">
+            <span className="chiffre montant whitespace-nowrap">
+              {erreurEncaissements ? "—" : eur(totalEncaisse)}
+            </span>
+            {!erreurAppels && totalAppele > 0 && (
+              <span className="montant text-sm whitespace-nowrap text-muted-foreground">
                 / {eur(totalAppele)} appelés
               </span>
             )}
           </span>
-          <span className="jauge" aria-hidden>
-            <span
-              style={{
-                flex: Math.min(totalEncaisse, totalAppele) || 0.01,
-                background: "var(--bleu)",
-              }}
-            />
-            <span
-              style={{
-                flex: Math.max(totalAppele - totalEncaisse, 0) || 0.01,
-                background: "var(--or-clair)",
-              }}
-            />
-          </span>
+          {!erreurAppels && !erreurEncaissements && (
+            <span className="jauge" aria-hidden>
+              <span
+                style={{
+                  flex: Math.min(totalEncaisse, totalAppele) || 0.01,
+                  background: "var(--bleu)",
+                }}
+              />
+              <span
+                style={{
+                  flex: Math.max(totalAppele - totalEncaisse, 0) || 0.01,
+                  background: "var(--or-clair)",
+                }}
+              />
+            </span>
+          )}
           <span className="block text-xs text-muted-foreground">
-            {totalAppele > 0
-              ? `${Math.round((totalEncaisse / totalAppele) * 100)} % du quittancement du mois`
-              : "Aucun appel de loyer émis ce mois"}
+            {erreurAppels || erreurEncaissements ? (
+              <span className="text-destructive">Lecture impossible — rechargez</span>
+            ) : totalAppele > 0 ? (
+              `${Math.round((totalEncaisse / totalAppele) * 100)} % du quittancement du mois`
+            ) : (
+              "Aucun appel de loyer émis ce mois"
+            )}
           </span>
         </Link>
+      </section>
 
-      </div>
+      {/* 3. Rangée graphique : répartition du parc, encaissements et dépenses
+          sur 6 mois. « Incidents par payeur » retiré le 30/08 : un incident
+          est une alerte, il vit déjà dans le plan du jour. */}
+      <section className="section-ecran grid gap-[var(--rythme-4)] md:grid-cols-2">
+        <Card>
+          <CardContent>
+            <div className="entete-carte">
+              <h3 className="text-[length:var(--pas-sous-titre)]">Répartition du parc</h3>
+              <span className="mono-discret">
+                {erreurLots ? "—" : `${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
+              </span>
+            </div>
+            {erreurLots ? (
+              <LectureImpossible quoi="les lots du parc" />
+            ) : lotsActifs.length === 0 ? (
+              <p className="vide">
+                Aucun lot suivi pour l&apos;instant — le parc se remplit depuis
+                l&apos;onglet Parc.
+              </p>
+            ) : (
+              <div className="bloc-graph">
+                <Donut segments={segmentsParc} centre={`${tauxOccupation} %`} sous="LOUÉS" />
+                <LegendeDonut segments={segmentsParc} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <div className="entete-carte">
+              <h3 className="text-[length:var(--pas-sous-titre)]">Encaissements et dépenses</h3>
+              <span className="mono-discret">
+                {portefeuille ? "Mon portefeuille · 6 mois" : "6 mois"}
+              </span>
+            </div>
+            {erreurEcritures ? (
+              <LectureImpossible quoi="les écritures des six derniers mois" />
+            ) : historiqueVide ? (
+              <p className="vide">
+                Aucune écriture sur les six derniers mois — rien à comparer
+                encore.
+              </p>
+            ) : (
+              <>
+                <BarresDouble donnees={historique} />
+                <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span aria-hidden className="size-2.5" style={{ background: "var(--success)" }} />
+                    Encaissé
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span aria-hidden className="size-2.5" style={{ background: "var(--warning)" }} />
+                    Dépenses
+                  </span>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
-      {/* « Ce qui vient de se passer » (maquette v3) : le pouls du portefeuille */}
-      <div className="mb-[1.125rem]">
+      {/* 4. Le pouls du portefeuille, et ce qui se prépare. */}
+      <section className="section-ecran grid gap-[var(--rythme-4)] lg:grid-cols-[1.6fr_1fr]">
         <FilActivite
           supabase={supabase}
           orgId={orgId}
           portefeuille={portefeuille}
           agentId={user.id}
         />
-      </div>
-
-      {/* Rangée graphique : répartition du parc, encaissements et dépenses sur
-          6 mois. « Incidents par payeur » retiré le 30/08 : un incident est une
-          alerte, il vit déjà dans « À traiter » et dans l'onglet Incidents. */}
-      <div className="mb-[1.125rem] grid gap-3.5 md:grid-cols-2">
         <Card>
           <CardContent>
             <div className="entete-carte">
-              <h3 className="text-[1.05rem]">Répartition du parc</h3>
-              <span className="mono-discret">
-                {lotsActifs.length} lot{lotsActifs.length > 1 ? "s" : ""}
-              </span>
+              <h3 className="text-[length:var(--pas-sous-titre)]">Lots en préparation</h3>
+              {enPreparation.length > 6 && (
+                <Link href={`/agence/${orgId}/parc`} className="lien-discret">
+                  Voir les {enPreparation.length}
+                  <IndicateurLien />
+                </Link>
+              )}
             </div>
-            <div className="bloc-graph">
-              <Donut segments={segmentsParc} centre={`${tauxOccupation} %`} sous="LOUÉS" />
-              <LegendeDonut segments={segmentsParc} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <div className="entete-carte">
-              <h3 className="text-[1.05rem]">Encaissements et dépenses</h3>
-              <span className="mono-discret">
-                {portefeuille ? "Mon portefeuille · 6 mois" : "6 mois"}
-              </span>
-            </div>
-            <BarresDouble donnees={historique} />
-            <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden className="size-2.5" style={{ background: "var(--success)" }} />
-                Encaissé
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span aria-hidden className="size-2.5" style={{ background: "var(--warning)" }} />
-                Dépenses
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-[1.125rem] lg:grid-cols-[1.6fr_1fr]">
-        {/* À traiter en priorité */}
-        <Card>
-          <CardContent>
-            <div className="flex items-baseline justify-between gap-3 pb-3">
-              <h2 className="text-[1.1rem]">À traiter en priorité</h2>
-              <Link
-                href={`/agence/${orgId}/alertes`}
-                className="text-[0.8125rem] text-muted-foreground hover:text-foreground"
-              >
-                Toutes les alertes
-              </Link>
-            </div>
-
-            {alertes.length === 0 && attendues.length === 0 ? (
-              <p className="py-4 text-sm text-muted-foreground">Rien à traiter — tout est à jour.</p>
+            {erreurLots ? (
+              <LectureImpossible quoi="les lots en préparation" />
+            ) : enPreparation.length === 0 ? (
+              <p className="vide">Aucun lot en préparation.</p>
             ) : (
-              <>
-                {/* Les blocages que la fiche de chaque bail affiche (source
-                    commune, audit 09/09) : impayés, EDL d'entrée, diagnostics,
-                    pièces expirées — chaque ligne mène à l'écran qui résout. */}
-                {attendues.length > 0 && (
-                  <div>
-                    <p className="flex items-center justify-end gap-2 border-b border-border bg-[var(--filet-leger)] px-3 py-1.5">
-                      <span className="libelle-champ">Attendu sur les baux</span>
-                      <span className="libelle-champ">· {attendues.length}</span>
-                    </p>
-                    <ul>
-                      {attendues.map((a) => (
-                        <li
-                          key={a.cle}
-                          className={`flex flex-wrap items-center justify-between gap-3 border-b border-border py-3 ${
-                            a.critique ? "border-l-2 border-l-destructive pl-3" : ""
-                          }`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{a.titre}</p>
-                            {a.detail && (
-                              <p className="mt-0.5 text-[0.8125rem] text-muted-foreground">
-                                {a.detail}
-                              </p>
-                            )}
-                          </div>
-                          <Link
-                            href={a.href}
-                            className={buttonVariants({
-                              size: "sm",
-                              variant: a.critique ? "destructive" : "outline",
-                            })}
-                          >
-                            Résoudre
-                            <IndicateurLien />
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {alertes.length > 0 && (
-                  <div className="flex items-baseline justify-between gap-3 border-b border-border pb-1.5">
-                    <span className="libelle-champ">Alerte</span>
-                    <span className="libelle-champ">Échéance</span>
-                  </div>
-                )}
-
-                {[
-                  { titre: "Échéance dépassée", liste: depassees, retard: true },
-                  { titre: "À venir", liste: aVenir, retard: false },
-                ].map(
-                  (groupe) =>
-                    groupe.liste.length > 0 && (
-                      <div key={groupe.titre}>
-                        <p className="flex items-center justify-end gap-2 border-b border-border bg-[var(--filet-leger)] px-3 py-1.5">
-                          {groupe.retard && (
-                            <span aria-hidden className="size-1.5 rounded-full bg-destructive" />
-                          )}
-                          <span className="libelle-champ">{groupe.titre}</span>
-                          <span className="libelle-champ">· {groupe.liste.length}</span>
-                        </p>
-                        <ul>
-                          {groupe.liste.slice(0, groupe.retard ? 99 : 4).map((a) => {
-                            const ech = afficherEcheance(a.echeance);
-                            const { lot, montant, libelle } = contexte(a);
-                            return (
-                              <li
-                                key={a.id}
-                                className={`flex flex-wrap items-center justify-between gap-3 border-b border-border py-3 ${
-                                  a.criticite === "critique"
-                                    ? "border-l-2 border-l-destructive pl-3"
-                                    : groupe.retard
-                                      ? "border-l-2 border-l-[var(--or)] pl-3"
-                                      : ""
-                                }`}
-                              >
-                                <div className="min-w-0 flex-1">
-                                  {a.criticite !== "normale" && (
-                                    <p className={`badge-statut ${COULEURS_CRITICITE[a.criticite] ?? ""}`}>
-                                      {CRITICITES[a.criticite] ?? a.criticite}
-                                    </p>
-                                  )}
-                                  <p className="truncate font-medium">{a.titre}</p>
-                                  {(lot || montant !== null || libelle) && (
-                                    <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[0.8125rem] text-muted-foreground">
-                                      {lot && (
-                                        <span className="badge-statut rounded-[3px] border border-border px-1.5 py-0.5 text-muted-foreground">
-                                          {lot.nom}
-                                        </span>
-                                      )}
-                                      {libelle && <span className="truncate">{libelle}</span>}
-                                      {montant !== null && <span>{eur(montant)}</span>}
-                                    </p>
-                                  )}
-                                </div>
-                                <div className="flex shrink-0 items-center gap-3">
-                                  <div className="text-right">
-                                    {ech ? (
-                                      <>
-                                        <p className={`text-[0.8125rem] ${ech.classe}`}>{ech.texte}</p>
-                                        {/* Au-delà de quinze jours, le texte relatif est déjà la
-                                            date : la répéter dessous ne dit rien de plus. */}
-                                        {ech.texte !== formaterDate(a.echeance) && (
-                                          <p className="text-[0.8125rem] text-muted-foreground">
-                                            {formaterDate(a.echeance)}
-                                          </p>
-                                        )}
-                                      </>
-                                    ) : (
-                                      <p className="text-[0.8125rem] text-muted-foreground">
-                                        sans échéance
-                                      </p>
-                                    )}
-                                  </div>
-                                  <span className="relative">
-                                    {/* Recette 24/08 : la pop-up s'ouvre SUR le
-                                        tableau de bord ; une alerte incident,
-                                        elle, emmène au dossier dans l'onglet
-                                        Incidents, positionné dessus. */}
-                                    {typeof a.details?.incident_id === "string" ? (
-                                      <Link
-                                        href={`/agence/${orgId}/incidents?sel=${a.details.incident_id}`}
-                                        className={buttonVariants({
-                                          size: "sm",
-                                          variant:
-                                            a.criticite === "critique" ? "destructive" : "outline",
-                                        })}
-                                      >
-                                        Traiter
-                                        <IndicateurLien />
-                                      </Link>
-                                    ) : (
-                                      <TraiterAlerte
-                                        orgId={orgId}
-                                        alerte={a}
-                                        membres={membres}
-                                        estResponsable={estResponsable}
-                                        className={buttonVariants({
-                                          size: "sm",
-                                          variant:
-                                            a.criticite === "critique" ? "destructive" : "outline",
-                                        })}
-                                      >
-                                        Traiter
-                                      </TraiterAlerte>
-                                    )}
-                                    {/* Le repère et le rouge vont ensemble, et
-                                        seulement au critique : deux signaux pour une
-                                        seule idée, sinon ni l'un ni l'autre n'alerte. */}
-                                    {a.criticite === "critique" && (
-                                      <span
-                                        aria-hidden
-                                        className="absolute -top-1.5 -right-1.5 flex size-4 items-center justify-center rounded-full bg-[var(--or)] text-[0.625rem] font-medium text-[var(--encre)]"
-                                      >
-                                        !
-                                      </span>
-                                    )}
-                                  </span>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    )
-                )}
-              </>
+              <ul className="divide-y divide-border">
+                {enPreparation.slice(0, 6).map((l) => {
+                  const motif = blocages.get(l.id);
+                  const cible = motif
+                    ? cibleBlocage(motif, { orgId, bienId: l.bien_id, lotId: l.id })
+                    : null;
+                  return (
+                    <li key={l.id} className="flex items-center gap-3 py-2.5">
+                      <span className="puce puce-grise shrink-0">{l.nom}</span>
+                      <Link
+                        href={cible?.href ?? `/agence/${orgId}/parc/${l.bien_id}/lots/${l.id}`}
+                        className="min-w-0 flex-1 truncate text-sm hover:underline"
+                      >
+                        {erreurBlocages
+                          ? "Blocages illisibles — ouvrir la fiche du lot"
+                          : motif
+                            ? resumerBlocage(motif)
+                            : "Prêt à publier"}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
           </CardContent>
         </Card>
-
-        {/* Colonne de droite */}
-        <div className="space-y-[1.125rem]">
-          <Card>
-            <CardContent>
-              <h2 className="pb-2 text-[1.1rem]">Cette semaine</h2>
-              {rendezVous.length === 0 ? (
-                <p className="py-2 text-sm text-muted-foreground">
-                  Rien de programmé dans les quinze jours.
-                </p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {rendezVous.slice(0, 5).map((r) => (
-                    <li key={r.cle} className="flex gap-3 py-2.5">
-                      <span
-                        className={`libelle-champ w-14 shrink-0 pt-0.5${r.depassee ? " text-destructive" : ""}`}
-                      >
-                        {dateRendezVous(r.date)}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-sm">{r.titre}</span>
-                        <span className="block text-[0.8125rem] text-muted-foreground">
-                          {r.detail}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent>
-              <div className="flex items-baseline justify-between gap-3 pb-2">
-                <h2 className="text-[1.1rem]">Lots en préparation</h2>
-                {enPreparation.length > 6 && (
-                  <Link
-                    href={`/agence/${orgId}/parc`}
-                    className="text-[0.8125rem] text-muted-foreground hover:text-foreground"
-                  >
-                    Voir les {enPreparation.length}
-                  </Link>
-                )}
-              </div>
-              {enPreparation.length === 0 ? (
-                <p className="py-2 text-sm text-muted-foreground">Aucun lot en préparation.</p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {enPreparation.slice(0, 6).map((l) => {
-                    const motif = blocages.get(l.id);
-                    const cible = motif
-                      ? cibleBlocage(motif, { orgId, bienId: l.bien_id, lotId: l.id })
-                      : null;
-                    return (
-                      <li key={l.id} className="flex items-center gap-3 py-2.5">
-                        <span className="badge-statut shrink-0 rounded-[3px] border border-border px-1.5 py-0.5 text-muted-foreground">
-                          {l.nom}
-                        </span>
-                        <Link
-                          href={cible?.href ?? `/agence/${orgId}/parc/${l.bien_id}/lots/${l.id}`}
-                          className="min-w-0 flex-1 truncate text-sm hover:underline"
-                        >
-                          {motif ? resumerBlocage(motif) : "Prêt à publier"}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      </section>
     </main>
   );
 }

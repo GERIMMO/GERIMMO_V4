@@ -1,10 +1,17 @@
 import Link from "next/link";
-import { TYPES_DOCUMENT, estExpiree, formaterDate } from "@/lib/ged";
+import {
+  TYPES_DOCUMENT,
+  aujourdhuiParis,
+  estARenouveler,
+  estExpiree,
+  formaterDate,
+} from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { FormulaireAttestation } from "../formulaire-attestation";
 import { DepotSignature } from "./depot-signature";
 import { DepotPiece, type DemandePiece } from "./depot-piece";
+import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 
 export const metadata = { title: "Mes documents — Gerimmo" };
 
@@ -27,12 +34,18 @@ type LigneEcheancier = {
 function statutAssurance(expire: string | null): { texte: string; classe: string } {
   if (!expire) return { texte: "sans date d'expiration", classe: "text-muted-foreground" };
   // Minuit LOCAL des deux côtés (revue 23/08 : la date seule se parse en UTC,
-  // le lendemain de l'expiration affichait encore « expire dans 0 j »)
-  const jours = Math.ceil(
-    (new Date(`${expire}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000
+  // le lendemain de l'expiration affichait encore « expire dans 0 j »), mais
+  // sur l'horloge de PARIS depuis la revue du 11/09 : le compte partait de
+  // minuit serveur (UTC sur Vercel) et basculait un jour trop tôt entre
+  // minuit et 2 h. Les SEUILS, eux, ne se recalculent plus ici — estExpiree
+  // et estARenouveler sont la définition unique que lisent aussi l'accueil du
+  // locataire, l'espace agence et la fonction SQL documents_a_renouveler.
+  const jours = Math.round(
+    (new Date(`${expire}T00:00:00`).getTime() -
+      new Date(`${aujourdhuiParis()}T00:00:00`).getTime()) / 86400000
   );
-  if (jours < 0) return { texte: `expirée depuis ${-jours} j`, classe: "text-destructive" };
-  if (jours <= 30)
+  if (estExpiree(expire)) return { texte: `expirée depuis ${-jours} j`, classe: "text-destructive" };
+  if (estARenouveler(expire))
     return {
       texte: `expire dans ${jours} j (${formaterDate(expire)})`,
       classe: "text-warning-soft-foreground",
@@ -49,10 +62,10 @@ export default async function PageDocumentsLocataire(
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const [
-    { data: piecesBrutes },
-    { data: echeancier },
-    { data: demandesBrutes },
-    { data: signaturesBrutes },
+    { data: piecesBrutes, error: ePieces },
+    { data: echeancier, error: eEcheancier },
+    { data: demandesBrutes, error: eDemandes },
+    { data: signaturesBrutes, error: eSignatures },
   ] = await Promise.all([
     supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
@@ -92,6 +105,10 @@ export default async function PageDocumentsLocataire(
       .filter(Boolean)
       .join(" · ");
 
+  // Sans cette lecture, la carte d'assurance GRONDAIT le locataire pour une
+  // attestation qu'il avait déposée — la requête seule avait échoué.
+  const lecturePiecesKO = aEchoue(ePieces);
+
   return (
     <div className="space-y-4">
       <div className="entete-page">
@@ -102,6 +119,10 @@ export default async function PageDocumentsLocataire(
           </span>
         )}
       </div>
+
+      {aEchoue(ePieces, eEcheancier, eDemandes, eSignatures) && (
+        <PanneLecture quoi="vos documents" />
+      )}
 
       {/* Les pièces que votre gestionnaire attend (RM-0b.2.5) */}
       {aSigner.length > 0 && adhesionActive && (
@@ -136,13 +157,20 @@ export default async function PageDocumentsLocataire(
         </div>
       )}
 
-      {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place */}
+      {/* L'obligation annuelle d'abord : l'assurance, avec le dépôt sur place.
+          id="assurance" : les lignes d'assurance de l'accueil pointent sur
+          /documents#assurance — sur 390 px cette carte est le 3ᵉ bloc, sous
+          « Documents à signer » et « Des pièces vous sont demandées », c'est-
+          à-dire précisément quand il y a le plus à faire (relevé 11/09).
+          scroll-mt : l'en-tête .loc-haut est collant (globals.css:627). */}
       <div
-        className={`loc-carte ${assurance && assurance.verifie_le && !estExpiree(assurance.expire_le) ? "" : "border-l-4 border-l-[var(--or)]"}`}
+        id="assurance"
+        className={`loc-carte scroll-mt-24 ${lecturePiecesKO || (assurance && assurance.verifie_le && !estExpiree(assurance.expire_le)) ? "" : "border-l-4 border-l-[var(--or)]"}`}
       >
         <div className="entete-carte !mb-1">
           <h3 className="text-base font-medium">Votre assurance habitation</h3>
-          {assurance &&
+          {!lecturePiecesKO &&
+            assurance &&
             (assurance.verifie_le ? (
               estExpiree(assurance.expire_le) ? (
                 <span className="loc-tag rouge">Expirée</span>
@@ -153,7 +181,9 @@ export default async function PageDocumentsLocataire(
               <span className="loc-tag ambre">En cours de vérification</span>
             ))}
         </div>
-        {assurance ? (
+        {lecturePiecesKO ? (
+          <LectureImpossible quoi="l'état de votre assurance" />
+        ) : assurance ? (
           <p className="text-sm text-muted-foreground">
             {assurance.titre || "Attestation déposée"} —{" "}
             <span className={statut?.classe}>{statut?.texte}</span>.
@@ -173,19 +203,25 @@ export default async function PageDocumentsLocataire(
             </p>
           )
         )}
-        <div className="mt-3.5">
-          {adhesionActive && (
-          <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
-          )}
-        </div>
+        {adhesionActive && (
+          <div className="mt-3.5">
+            <FormulaireAttestation orgId={orgId} renouvellement={Boolean(assurance)} />
+          </div>
+        )}
       </div>
 
       <div className="loc-carte">
         <div className="entete-carte">
           <h3 className="text-base font-medium">Conservés pour vous</h3>
-          <span className="mono-discret">{total} document{total > 1 ? "s" : ""}</span>
+          {!aEchoue(ePieces, eEcheancier) && (
+            <span className="mono-discret">
+              {total} document{total > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
-        {total === 0 ? (
+        {aEchoue(ePieces, eEcheancier) ? (
+          <LectureImpossible quoi="les pièces conservées pour vous" />
+        ) : total === 0 ? (
           <p className="text-sm text-muted-foreground">
             Aucune pièce pour l&apos;instant — votre bail signé, le règlement de
             copropriété, vos quittances et vos attestations apparaîtront ici.
@@ -203,13 +239,15 @@ export default async function PageDocumentsLocataire(
                     <b className="block truncate font-medium">{nom}</b>
                     <small className="block text-muted-foreground">{sousTitre(p)}</small>
                   </span>
+                  {/* Liens stylés en bouton : hors du filet tactile du socle
+                      (button/select), d'où le min-h au pointeur grossier */}
                   <span className="flex shrink-0 items-center gap-2">
                     <a
                       href={`/locataire/${orgId}/documents/${p.document_id}/fichier`}
                       target="_blank"
                       rel="noopener"
                       aria-label={`Ouvrir ${nom}`}
-                      className={buttonVariants({ variant: "ghost", size: "sm" })}
+                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                     >
                       Ouvrir
                     </a>
@@ -218,7 +256,7 @@ export default async function PageDocumentsLocataire(
                       target="_blank"
                       rel="noopener"
                       aria-label={`Télécharger ${nom}`}
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                      className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                     >
                       Télécharger
                     </a>
@@ -240,7 +278,7 @@ export default async function PageDocumentsLocataire(
                   target="_blank"
                   rel="noopener"
                   aria-label={`Ouvrir la quittance de ${moisLong(q.periode)}`}
-                  className={`shrink-0 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
+                  className={`shrink-0 pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                 >
                   Ouvrir
                 </Link>

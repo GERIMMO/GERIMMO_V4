@@ -112,9 +112,16 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     const encore = await ouvrirEspace(compte);
     expect(encore).toBe(org);
     await db.query("reset role");
+    // Compté sur le compte, pas sur le nom : la base de démo contient déjà un parc
+    // homonyme (seed.sql) — ce qui compte, c'est qu'un compte n'ait qu'un espace.
     const {
       rows: [{ n }],
-    } = await db.query(`select count(*)::int as n from public.organizations where type='proprietaire_direct' and name=$1`, [o.name]);
+    } = await db.query(
+      `select count(*)::int as n from public.organizations o
+         join public.memberships m on m.organization_id = o.id
+        where m.account_id = $1 and o.type = 'proprietaire_direct'`,
+      [compte.id]
+    );
     expect(n).toBe(1);
   });
 
@@ -182,6 +189,8 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     await attendreEchec(db, /exclusivité PD\/PM/, `select public.initialiser_espace_proprietaire()`);
 
     // 2. Un propriétaire direct existant → l'agence ne peut pas lui faire signer un mandat
+    // (on redevient superutilisateur : la création du compte auth se fait hors session applicative)
+    await db.query("reset role");
     const pd = await creerCompte(db, { nom: "Direct" });
     await ouvrirEspace(pd);
     await db.query("reset role");
@@ -204,6 +213,29 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       `insert into public.mandats (organization_id, person_id, etat) values ($1,$2,'brouillon') returning id`,
       [agence, fichePd]
     );
+    // Le brouillon doit être composé (lot + taux) pour qu'un changement d'état soit
+    // même envisageable — sinon c'est la garde « mandat sans lot ni taux » qui parle.
+    // Le parc de l'agence est créé par son administrateur, qui confie ensuite les mandats.
+    await simuler(db, admin.id);
+    const {
+      rows: [{ id: bienAgence }],
+    } = await db.query(
+      `select public.creer_bien_avec_lot($1,'8 rue des Mandats','appartement'::public.bien_type,
+         '8 rue des Mandats', null, '69002','Lyon',1990,false,40,2) as id`,
+      [agence]
+    );
+    const {
+      rows: [{ id: lotAgence }],
+    } = await db.query(`select id from public.lots where bien_id=$1`, [bienAgence]);
+    await db.query(
+      `insert into public.detentions (lot_id, organization_id, person_id, quote_part) values ($1,$2,$3,100)`,
+      [lotAgence, agence, fichePd]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires) values ($1,$2,$3,7)`,
+      [agence, brouillon, lotAgence]
+    );
+    await db.query("reset role");
     await attendreEchec(db, /exclusivité PD\/PM/, `update public.mandats set etat='actif' where id=$1`, [brouillon]);
   });
 
@@ -312,8 +344,12 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       [org, lot]
     );
 
-    // Il clôture le mois lui-même (recommandé, jamais imposé)
-    await db.query(`select public.cloturer_mois($1, current_date)`, [org]);
+    // Il clôture lui-même (recommandé, jamais imposé) le dernier mois écoulé :
+    // la clôture ne porte que sur un mois révolu (RM-4.4.1).
+    await db.query(
+      `select public.cloturer_mois($1, (date_trunc('month', current_date) - interval '1 month')::date)`,
+      [org]
+    );
     const {
       rows: [{ n }],
     } = await db.query(`select count(*)::int as n from public.clotures_comptables where organization_id=$1`, [org]);
@@ -323,10 +359,13 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       db,
       /Mois clôturé/,
       `insert into public.ecritures (organization_id, categorie, sens, montant, date_piece, date_imputation)
-       values ($1,'travaux','depense',10,current_date,current_date)`,
+       values ($1,'travaux','depense',10,current_date,(date_trunc('month', current_date) - interval '1 month')::date)`,
       [org]
     );
-    await db.query(`select public.rouvrir_mois($1, current_date, 'oubli d''une facture')`, [org]);
+    await db.query(
+      `select public.rouvrir_mois($1, (date_trunc('month', current_date) - interval '1 month')::date, 'oubli d''une facture')`,
+      [org]
+    );
 
     // Le récapitulatif fiscal lit son livre : loyers en 211, assurance en 223
     const { rows: livre } = await db.query(

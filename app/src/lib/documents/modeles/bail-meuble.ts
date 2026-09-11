@@ -15,7 +15,9 @@ import {
   echapper,
   enTete,
   eur,
+  facultatif,
   montantEnLettres,
+  ouNeant,
   section,
   sousSection,
   tableau,
@@ -60,11 +62,11 @@ function periodeConstruction(annee: number | null): string | null {
 
 function blocLocataire(f: Fusion, p: PersonneDocument): string {
   // Le téléphone est expressément facultatif dans le contrat type : absent,
-  // il s'imprime « — » sans alimenter les manquants.
+  // il s'imprime « — » sans alimenter les manquants (brique `facultatif`).
   return `<p>${f.champ(nomPersonne(p), "nom et prénom(s)")}, né(e) le ${f.date(p.date_naissance)}
   à ${f.champ(p.commune_naissance, "commune de naissance")}, demeurant ${f.champ(adressePersonne(p), "adresse actuelle")}.<br/>
   Adresse électronique : ${f.champ(p.email, "adresse électronique")} — Numéro de téléphone portable :
-  ${p.telephone ? f.champ(p.telephone, "facultatif") : "—"}.</p>`;
+  ${facultatif(p.telephone)}.</p>`;
 }
 
 // Montant dû à la première échéance : loyer + charges, proratisés lorsque le
@@ -144,7 +146,7 @@ export function construireBailMeuble(
     — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, SCI, indivision…")}<br/>
     Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
     Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
-    téléphone portable : ${f.champ(bailleurPrincipal?.telephone, "facultatif")}</p>
+    téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>
     ${
       indivision
         ? `<p>Le logement étant détenu en indivision, sont également parties au présent contrat :
@@ -270,18 +272,16 @@ export function construireBailMeuble(
     <p>Périodicité : ${f.champ("mensuelle", "mensuelle, trimestrielle…")} — paiement ${f.champ(echeanceLibelle, "à échoir ou échu")}
     le ${f.champ(ctx.bail.jour_echeance, "jour du mois")} de chaque mois.<br/>
     Lieu de paiement : ${f.champ(ctx.bail.lieu_paiement, "domicile du bailleur, virement…")} — Coordonnées bancaires :
-    ${ctx.organisation.iban ? f.champ(ctx.organisation.iban, "IBAN, facultatif") : "—"}.<br/>
+    ${facultatif(ctx.organisation.iban)}.<br/>
     Montant total dû à la première échéance : ${montantPremiereEcheance(f, ctx.bail)}.</p>
 
     ${section("V — Travaux")}
     <p>Travaux d'amélioration ou de mise en conformité effectués depuis la fin du dernier contrat :
-    ${ctx.bail.travaux_recents ? f.champ(ctx.bail.travaux_recents, "nature des travaux") : "Néant."} — montant :
+    ${ouNeant(ctx.bail.travaux_recents)} — montant :
     ${ctx.bail.travaux_recents ? f.montant(ctx.bail.travaux_recents_montant, "montant") : "—"}.<br/>
-    Travaux que le locataire est autorisé à réaliser et contreparties : ${
+    Travaux que le locataire est autorisé à réaliser et contreparties : ${ouNeant(
       ctx.bail.travaux_locataire
-        ? f.champ(ctx.bail.travaux_locataire, "nature des travaux, contrepartie financière")
-        : "Néant."
-    }</p>
+    )}</p>
 
     ${section("VI — Garanties")}
     <p>Dépôt de garantie : ${
@@ -313,11 +313,7 @@ export function construireBailMeuble(
     }
 
     ${section(`${plusieursLocataires ? "X" : "IX"} — Autres conditions particulières`)}
-    <p>${
-      ctx.bail.clauses_particulieres
-        ? f.champ(ctx.bail.clauses_particulieres, "clauses librement convenues entre les parties")
-        : "Néant."
-    }</p>
+    <p>${ouNeant(ctx.bail.clauses_particulieres)}</p>
 
     ${section(`${plusieursLocataires ? "XI" : "X"} — Annexes`)}
     <p>Sont annexées et jointes au contrat les pièces suivantes :</p>

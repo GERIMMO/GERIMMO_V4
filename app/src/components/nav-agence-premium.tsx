@@ -82,6 +82,9 @@ export function SidebarAgence({
             href={e.href}
             className={cn(active && "actif")}
             title={e.libelle}
+            // L'entrée courante s'annonce comme telle : le liseré laiton ne se
+            // lit pas au lecteur d'écran (relevé 11/09)
+            aria-current={active ? "page" : undefined}
             // Accessibilité (audit 09/09) : le lien s'annonce en entier, le
             // badge est décoratif — sinon les lecteurs d'écran ne lisent
             // que le nombre
@@ -90,8 +93,10 @@ export function SidebarAgence({
             <Icone nom={e.icone} />
             <span className="lib">{e.libelle}</span>
             {nb > 0 && (
+              // Au-delà de 99, la pastille déborderait : elle le dit (« 99+ »)
+              // et le compte exact reste dans l'aria-label du lien.
               <span className="loc-badge" aria-hidden="true">
-                {nb}
+                {nb > 99 ? "99+" : nb}
               </span>
             )}
           </Link>

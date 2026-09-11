@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { EchecLecture } from "../documents/echec-lecture";
 import { correspond, initiales, type RolePersonne } from "@/lib/roles-personnes";
 
 export type PersonneListe = {
@@ -23,11 +25,16 @@ export type PersonneListe = {
 export function ListePersonnes({
   orgId,
   personnes,
+  // La lecture des fiches a échoué : ni liste ni état vide — proposer « créez
+  // la première fiche » à une agence qui en a trois cents serait un mensonge.
+  listeIllisible = false,
 }: {
   orgId: string;
   personnes: PersonneListe[];
+  listeIllisible?: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
+  const idRecherche = useId();
   const visibles = personnes.filter((p) =>
     correspond(
       recherche,
@@ -41,40 +48,72 @@ export function ListePersonnes({
 
   return (
     <div className="space-y-3">
-      <Input
-        type="search"
-        value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
-        placeholder="Chercher un nom, un email, un rôle…"
-        aria-label="Chercher une personne"
-      />
+      {/* Le libellé enveloppé avec le champ : posé en frère direct, il
+          décalerait le champ d'un cran de space-y-3. */}
+      <div>
+        <Label htmlFor={idRecherche} className="sr-only">
+          Chercher une personne
+        </Label>
+        <Input
+          id={idRecherche}
+          type="search"
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          placeholder="Chercher un nom, un email, un rôle…"
+        />
+      </div>
 
       <div className="colonne-liste">
         <div className="tete-liste">
-          <span className="mono-discret">Toutes les fiches</span>
           <span className="mono-discret">
-            {visibles.length === personnes.length
-              ? `${personnes.length}`
-              : `${visibles.length} / ${personnes.length}`}
+            {recherche ? "Fiches filtrées" : "Toutes les fiches"}
+          </span>
+          <span className="mono-discret">
+            {listeIllisible
+              ? "—"
+              : visibles.length === personnes.length
+                ? `${personnes.length}`
+                : `${visibles.length} / ${personnes.length}`}
           </span>
         </div>
-        {visibles.length === 0 ? (
-          <div className="vide">
+        {listeIllisible ? (
+          /* L'échec se dit LÀ où la liste aurait été : un cadre vide sous une
+             tête de colonne se lit comme une agence sans personne. */
+          <div className="p-3.5">
+            <EchecLecture quoi={["les fiches de l'agence"]} />
+          </div>
+        ) : visibles.length === 0 ? (
+          <div className="vide-guide">
             {personnes.length === 0 ? (
-              <p>
-                Aucune personne. Créez la première fiche à droite — propriétaire,
-                locataire ou garant, la fiche est la même.
-              </p>
+              <>
+                <p className="titre">Aucune personne</p>
+                <p className="explication">
+                  Propriétaire, locataire ou garant : la fiche est la même, et
+                  le rôle se déduit tout seul des baux, mandats et détentions.
+                </p>
+                <span className="geste">
+                  <a href="#creer-fiche" className="btn-or">
+                    + Créer une fiche
+                  </a>
+                </span>
+              </>
             ) : (
               <>
-                <p>Personne ne correspond à « {recherche} ».</p>
-                <button
-                  type="button"
-                  onClick={() => setRecherche("")}
-                  className="mt-2 text-[var(--bleu)] underline-offset-2 hover:underline"
-                >
-                  Réinitialiser la recherche
-                </button>
+                <p className="titre">Personne ne correspond</p>
+                <p className="explication">
+                  Aucune des {personnes.length} fiches ne répond à «{" "}
+                  {recherche} ». La recherche accepte aussi un rôle —
+                  « garant », « propriétaire ».
+                </p>
+                <span className="geste">
+                  <button
+                    type="button"
+                    onClick={() => setRecherche("")}
+                    className="lien-discret"
+                  >
+                    Réinitialiser la recherche
+                  </button>
+                </span>
               </>
             )}
           </div>
@@ -89,11 +128,11 @@ export function ListePersonnes({
                 {initiales(p.nom, p.prenom)}
               </span>
               {(p.messagesNonLus ?? 0) > 0 && (
-                <span
-                  className="puce puce-encre shrink-0"
-                  title={`${p.messagesNonLus} message${(p.messagesNonLus ?? 0) > 1 ? "s" : ""} non lu${(p.messagesNonLus ?? 0) > 1 ? "s" : ""}`}
-                >
-                  {p.messagesNonLus} message{(p.messagesNonLus ?? 0) > 1 ? "s" : ""}
+                /* « non lu(s) » partout : la liste des personnes disait
+                   « messages », l'écran Messages disait « nouveaux » — même
+                   compteur, trois mots (relevé du 11/09). */
+                <span className="puce puce-encre shrink-0">
+                  {p.messagesNonLus} non lu{(p.messagesNonLus ?? 0) > 1 ? "s" : ""}
                 </span>
               )}
               <span className="min-w-0 flex-1">

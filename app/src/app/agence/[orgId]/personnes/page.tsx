@@ -2,6 +2,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { aujourdhuiParis } from "@/lib/ged";
 import { Card, CardContent } from "@/components/ui/card";
 import { rolesDePersonne } from "@/lib/roles-personnes";
+import { EchecLecture } from "../documents/echec-lecture";
 import { FormulairePersonne } from "./formulaire-personne";
 import { ListePersonnes, type PersonneListe } from "./liste-personnes";
 
@@ -16,14 +17,14 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
 
   const aujourdhui = aujourdhuiParis();
   const [
-    { data: personnes },
-    { data: detentions },
-    { data: mandats },
-    { data: baux },
-    { data: bailPersonnes },
-    { data: lots },
-    { data: biens },
-    { data: nonLusRows },
+    { data: personnes, error: erreurPersonnes },
+    { data: detentions, error: erreurDetentions },
+    { data: mandats, error: erreurMandats },
+    { data: baux, error: erreurBaux },
+    { data: bailPersonnes, error: erreurBailPersonnes },
+    { data: lots, error: erreurLots },
+    { data: biens, error: erreurBiens },
+    { data: nonLusRows, error: erreurNonLus },
   ] = await Promise.all([
     supabase
       .from("persons")
@@ -122,19 +123,51 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
     }
   );
 
+  // Un rôle est DÉDUIT de quatre lectures (détentions, mandats, baux, liens de
+  // bail). Si l'une échoue, la fiche s'affiche sans rôle — un propriétaire
+  // mandant devient une fiche anonyme, sans rien pour le signaler.
+  // `erreurPersonnes` n'est pas de la partie : la colonne le dit elle-même, à
+  // la place exacte de la liste.
+  const lecturesManquees = [
+    erreurDetentions && "les détentions (rôle propriétaire)",
+    erreurMandats && "les mandats (rôle mandant)",
+    (erreurBaux || erreurBailPersonnes) &&
+      "les baux (rôles locataire et garant)",
+    (erreurLots || erreurBiens) && "les lots rattachables",
+    erreurNonLus && "les messages non lus",
+  ].filter((q): q is string => Boolean(q));
+
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>{role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}</h1>
-        <span className="mono-discret">
-          {fiches.length} fiche{fiches.length > 1 ? "s" : ""}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className="mono-discret">
+            {erreurPersonnes
+              ? "nombre indisponible"
+              : `${fiches.length} fiche${fiches.length > 1 ? "s" : ""}`}
+          </span>
+          {/* Sous md, la carte de création est empilée après toute la liste
+              (des centaines de fiches) : ce raccourci y mène directement.
+              md:hidden sur un span : .btn-or est hors layer et gagnerait. */}
+          <span className="md:hidden">
+            <a href="#creer-fiche" className="btn-or">
+              + Créer une fiche
+            </a>
+          </span>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
-        <ListePersonnes orgId={orgId} personnes={fiches} />
+      <EchecLecture quoi={lecturesManquees} />
 
-        <aside>
+      <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
+        <ListePersonnes
+          orgId={orgId}
+          personnes={fiches}
+          listeIllisible={Boolean(erreurPersonnes)}
+        />
+
+        <aside id="creer-fiche" className="scroll-mt-20">
           <Card>
             <CardContent className="pt-6">
               <p className="mb-3 text-sm font-medium">Créer une fiche</p>

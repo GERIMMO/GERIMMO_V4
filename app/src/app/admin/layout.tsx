@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NavAdmin } from "./nav-admin";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
@@ -18,7 +19,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex min-h-full flex-1 flex-col">
       <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
-        <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 py-3 sm:px-7">
+        <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-7">
           <div className="flex min-w-0 items-center gap-3">
             <MarqueGerimmo surEncre />
             <span aria-hidden className="h-4 w-px shrink-0 bg-[var(--sur-encre)]/25" />
@@ -29,19 +30,9 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
               Console d&apos;administration
             </Link>
           </div>
-          <div className="flex shrink-0 items-center gap-4">
-            <Link
-              href="/admin/devis"
-              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-            >
-              Demandes de devis
-            </Link>
-            <Link
-              href="/admin/journaux"
-              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-            >
-              Journaux et conservation
-            </Link>
+          {/* En étroit, les liens passent sous la marque au lieu de déborder */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <NavAdmin />
             <SyntheseAlertes alertes={alertes} modeAdmin surEncre rappel />
             <form action={seDeconnecter}>
               <button

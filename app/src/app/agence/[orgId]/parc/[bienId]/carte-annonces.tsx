@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { creerAnnonce, supprimerAnnonce, type EtatAnnonce } from "@/app/actions/annonces";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Label } from "@/components/ui/label";
 import { formaterDate } from "@/lib/ged";
 
 export type Annonce = {
@@ -53,6 +54,7 @@ export function CarteAnnonces({
     creerAnnonce.bind(null, orgId, bienId),
     {}
   );
+  const idTexte = useId();
 
   return (
     <div className="space-y-3">
@@ -72,7 +74,14 @@ export function CarteAnnonces({
         </ul>
       )}
       <form action={action} className="space-y-2">
+        {/* Le placeholder n'est qu'un exemple et s'efface à la 1re frappe :
+            le champ porte son propre libellé, dans le style de « Visible
+            jusqu'au » juste dessous. */}
+        <Label htmlFor={idTexte} className="text-xs font-normal text-muted-foreground">
+          Texte de l&apos;annonce
+        </Label>
         <textarea
+          id={idTexte}
           name="texte"
           rows={2}
           maxLength={500}

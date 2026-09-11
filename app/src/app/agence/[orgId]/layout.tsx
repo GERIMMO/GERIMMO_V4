@@ -2,6 +2,7 @@ import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { totalMessagesNonLus } from "@/lib/messagerie";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { seDeconnecter } from "@/app/actions/auth";
 import { SidebarAgence } from "@/components/nav-agence-premium";
@@ -31,21 +32,35 @@ export default async function LayoutAgence({
   // Revue recette 08/08 : la pop-up de connexion et le badge du menu ne
   // montrent que les alertes qui me sont confiées, dans l'agence où je me
   // trouve — l'acteur multi-agences navigue d'une agence à l'autre.
-  const [alertes, { count: incidentsOuverts }, { data: donneesMembres }, messagesNonLus] =
-    await Promise.all([
-      chargerSyntheseAlertes(supabase, { orgId }),
-      // Badge maquette : les incidents encore ouverts (tout sauf clos)
-      supabase
-        .from("incidents")
-        .select("*", { count: "exact", head: true })
-        .eq("organization_id", orgId)
-        .neq("etat", "clos"),
-      // « Traiter » depuis la synthèse ouvre la pop-up sur place (recette
-      // 24/08) : il lui faut la liste des gérants pour « Confier à »
-      supabase.rpc("org_membres_gerants", { org: orgId }),
-      // Badge Messages — même appel (mis en cache) que le tableau de bord
-      totalMessagesNonLus(supabase, orgId),
-    ]);
+  const [
+    alertes,
+    { data: incidentsOuverts },
+    { data: donneesMembres },
+    messagesNonLus,
+    portefeuille,
+  ] = await Promise.all([
+    chargerSyntheseAlertes(supabase, { orgId }),
+    // Badge maquette : les incidents encore ouverts (tout sauf clos).
+    // Les lignes plutôt que le compte : le badge doit compter la MÊME chose
+    // que la tuile du tableau de bord, à 200 px de là — c'est-à-dire les
+    // incidents de MON portefeuille (RM-18.1.3). La RLS des incidents, elle,
+    // n'est pas restreinte au portefeuille : le compte brut montrait à
+    // l'agent des dossiers qu'aucun de ses écrans ne lui listait.
+    supabase
+      .from("incidents")
+      .select("lot_id")
+      .eq("organization_id", orgId)
+      .neq("etat", "clos"),
+    // « Traiter » depuis la synthèse ouvre la pop-up sur place (recette
+    // 24/08) : il lui faut la liste des gérants pour « Confier à »
+    supabase.rpc("org_membres_gerants", { org: orgId }),
+    // Badge Messages — même appel (mis en cache) que le tableau de bord
+    totalMessagesNonLus(supabase, orgId),
+    lotsDuPortefeuille(supabase, orgId, role, user.id),
+  ]);
+  const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
+    (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
+  ).length;
   const alertesOrg = alertes.length;
   const membres = (donneesMembres ?? []) as {
     account_id: string;
@@ -88,7 +103,7 @@ export default async function LayoutAgence({
           </div>
           <SidebarProprietaire
             orgId={orgId}
-            badgeIncidents={incidentsOuverts ?? 0}
+            badgeIncidents={badgeIncidents}
             badgeAlertes={alertesOrg}
             badgeMessages={messagesNonLus}
             organisations={organisations}
@@ -155,7 +170,7 @@ export default async function LayoutAgence({
         <SidebarAgence
           orgId={orgId}
           admin={role === "admin_agence"}
-          badgeIncidents={incidentsOuverts ?? 0}
+          badgeIncidents={badgeIncidents}
           badgeAlertes={alertesOrg}
           badgeMessages={messagesNonLus}
         />

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { destinationSure } from "@/lib/destination-sure";
 
 // Point d'entrée des liens envoyés par email (réinitialisation de mot de
 // passe aujourd'hui, invitation/première connexion au sprint 11).
@@ -13,9 +14,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
   // Garde anti « open redirect » : seuls les chemins internes sont suivis
-  const nextBrut = searchParams.get("next") ?? "/espaces";
-  const next =
-    nextBrut.startsWith("/") && !nextBrut.startsWith("//") ? nextBrut : "/espaces";
+  const next = destinationSure(searchParams.get("next"));
 
   const supabase = await createClient();
 

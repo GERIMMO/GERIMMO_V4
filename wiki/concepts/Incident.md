@@ -3,7 +3,7 @@ type: concept
 tags: [incident, sinistre]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-09
+updated: 2026-09-10
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]"]
 ---
 
@@ -48,6 +48,43 @@ travail réalisé obligatoire** pour terminer une intervention (RM-7.5.2) ; clô
 possible **sans artisan** (RM-7.6.1) ; réouverture avec historique ; le
 [[Propriétaire bailleur|mandant]] n'est informé que par le [[Rapport de gestion]]
 (RM-7.8.1). Urgence hors horaires : V2 (numéro d'astreinte en V1).
+
+## La REqualification — règle livrée le 2026-08-23, jamais écrite jusqu'ici
+Constat de l'audit du 10/09 : le produit a changé de règle sans que le wiki
+l'enregistre. La revue n°2 du 23/08 (migration `20260823113000`, section 3)
+autorise désormais la **requalification d'un incident déjà qualifié** —
+maintien ou changement d'imputation, justification toujours opposable.
+
+**Le motif de ce changement est métier, pas technique** : l'alerte
+« imputation contestée » (RM-7.2.5, la contestation du locataire est tracée
+sans bloquer) n'était soldable **qu'en clôturant l'incident**. Autrement dit,
+répondre à une contestation obligeait à fermer le dossier. La requalification
+est la réponse : elle solde à la fois l'alerte « à qualifier » et l'alerte
+« contestée », sans clôturer.
+
+Ce qui ferme la qualification, ce n'est donc plus le fait d'avoir qualifié une
+fois — c'est le **départ en intervention**. Sur les 7 états (`declare`,
+`qualifie`, `affecte`, `en_cours`, `termine`, `clos`, `rouvert`), la
+qualification reste ouverte sur `declare`, `rouvert` et `qualifie`, et est
+refusée au-delà (« Cet incident ne se qualifie plus (état actuel : …) »).
+Vérifié en base le 10/09 et couvert par `tests/sprint7-incidents.test.ts`
+(« machine A5 »), dont l'assertion était restée sur la règle d'avant le 23/08.
+
+> [!warning] À confirmer par l'humain — et une contradiction avec RM-7.5.3
+> **1. Règle non sourcée.** Elle est **constatée dans le code**, pas tirée
+> d'une source métier : livrée le 23/08, documentée ici le 10/09 après coup.
+> Reste à confirmer qu'elle est bien voulue et à lui donner un identifiant RM
+> (elle amende de fait RM-A5.1).
+>
+> **2. Contradiction ouverte.** RM-7.5.3 pose que l'imputation est
+> **révisable après diagnostic**, l'[[Artisan]] pouvant signaler une cause
+> différente. Or un diagnostic a lieu **après** l'affectation de l'artisan —
+> donc aux états `affecte` ou `en_cours`, précisément ceux où le code refuse
+> désormais toute (re)qualification. **En l'état, RM-7.5.3 n'est pas
+> applicable dans le produit.** Soit la borne doit reculer jusqu'à
+> `en_cours`, soit RM-7.5.3 doit décrire un autre geste (une demande de
+> requalification par l'artisan, tracée, que l'agent arbitre). À trancher
+> avec le module [[Devis]]/[[Intervention]], non câblé à ce jour.
 
 ## Implications pour l'application
 - Statuts + événements tracés ; peut être déclaré via **bot** ([[Canaux de communication]]).

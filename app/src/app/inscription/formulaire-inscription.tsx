@@ -69,7 +69,7 @@ export function FormulaireInscription() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ins-cp">Code postal</Label>
-              <Input id="ins-cp" name="code_postal" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
+              <Input id="ins-cp" name="code_postal" inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ins-ville">Ville</Label>
@@ -79,7 +79,7 @@ export function FormulaireInscription() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="ins-tel">Téléphone</Label>
-              <Input id="ins-tel" name="telephone" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
+              <Input id="ins-tel" name="telephone" type="tel" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ins-qualite">Vous louez en tant que</Label>
@@ -137,10 +137,22 @@ export function FormulaireInscription() {
               className="mt-1"
               defaultChecked={etat.valeurs?.cgu === "1"}
             />
+            {/* Le lien manquait : on faisait cocher « j'accepte » sans que
+                rien ne permette de lire ce qu'on acceptait — et, jusqu'au
+                11/09, sans que le document existe. Nouvel onglet : un clic ne
+                doit pas coûter la saisie en cours. */}
             <span>
-              J&apos;accepte les conditions d&apos;utilisation. Gerimmo tient un
-              journal de gestion, pas une comptabilité : en cas d&apos;écart, le
-              relevé bancaire fait foi.
+              J&apos;accepte les{" "}
+              <Link
+                href="/conditions"
+                target="_blank"
+                rel="noopener"
+                className="lien-discret"
+              >
+                conditions d&apos;utilisation
+              </Link>
+              . Gerimmo tient un journal de gestion, pas une comptabilité : en
+              cas d&apos;écart, le relevé bancaire fait foi.
             </span>
           </label>
           {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

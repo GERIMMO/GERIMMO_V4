@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { creerBien, modifierBien, type EtatParc } from "@/app/actions/parc";
 import { TYPES_BIEN, TYPES_NON_DECOUPABLES } from "@/lib/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -42,6 +42,13 @@ export function FormulaireBien({
     ? modifierBien.bind(null, orgId, bien.id)
     : creerBien.bind(null, orgId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+
+  // Identifiants tirés de useId() — jamais une chaîne en dur : la page peut
+  // rendre deux fois le même formulaire, et des id identiques décrocheraient
+  // les libellés de leurs champs.
+  const idType = useId();
+  const idComplement = useId();
+  const idLot = useId();
 
   // Autocomplétion d'adresse via la Base Adresse Nationale (retour recette S2) :
   // la sélection remplit la voie, le code postal et la ville
@@ -126,13 +133,13 @@ export function FormulaireBien({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bien-type">Type</Label>
+          <Label htmlFor={idType}>Type</Label>
           {bien ? (
             // Le type conditionne les diagnostics attendus : figé après création
-            <Input disabled value={TYPES_BIEN[bien.type] ?? bien.type} />
+            <Input id={idType} disabled value={TYPES_BIEN[bien.type] ?? bien.type} />
           ) : (
             <select
-              id="bien-type"
+              id={idType}
               name="type"
               value={type}
               onChange={(e) => changerType(e.target.value)}
@@ -175,7 +182,11 @@ export function FormulaireBien({
             ))}
           </ul>
         )}
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor={idComplement}>Complément d&apos;adresse</Label>
         <Input
+          id={idComplement}
           name="address_line2"
           maxLength={200}
           defaultValue={etat.valeurs?.address_line2 ?? bien?.address_line2 ?? ""}
@@ -185,11 +196,14 @@ export function FormulaireBien({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="bien-cp">Code postal</Label>
+          {/* inputMode et non type=number : tolère les CP étrangers */}
           <Input
             id="bien-cp"
             name="postal_code"
             required
             maxLength={12}
+            inputMode="numeric"
+            autoComplete="postal-code"
             value={codePostal}
             onChange={(e) => setCodePostal(e.target.value)}
           />
@@ -310,8 +324,11 @@ export function FormulaireBien({
               {lots.map((lot, i) => (
                 <div key={i} className="flex flex-wrap items-end gap-2">
                   <div className="space-y-1">
-                    <Label className="text-xs">Nom du lot</Label>
+                    <Label htmlFor={`${idLot}-nom-${i}`} className="text-xs">
+                      Nom du lot
+                    </Label>
                     <Input
+                      id={`${idLot}-nom-${i}`}
                       value={lot.nom}
                       onChange={(e) => majLot(i, "nom", e.target.value)}
                       placeholder={`Lot ${i + 1}`}
@@ -319,8 +336,11 @@ export function FormulaireBien({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Surface (m²)</Label>
+                    <Label htmlFor={`${idLot}-surface-${i}`} className="text-xs">
+                      Surface (m²)
+                    </Label>
                     <Input
+                      id={`${idLot}-surface-${i}`}
                       value={lot.surface}
                       onChange={(e) => majLot(i, "surface", e.target.value)}
                       type="number"
@@ -330,8 +350,11 @@ export function FormulaireBien({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Pièces</Label>
+                    <Label htmlFor={`${idLot}-pieces-${i}`} className="text-xs">
+                      Pièces
+                    </Label>
                     <Input
+                      id={`${idLot}-pieces-${i}`}
                       value={lot.pieces}
                       onChange={(e) => majLot(i, "pieces", e.target.value)}
                       type="number"

@@ -5,7 +5,8 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { SidebarLocataire } from "@/components/nav-locataire";
 import { SortieMobile } from "@/components/sortie-mobile";
 import { nomComplet } from "@/lib/roles-personnes";
-import { estExpiree } from "@/lib/ged";
+import { estARenouveler } from "@/lib/ged";
+import { aEchoue } from "./panne-lecture";
 
 // Espace locataire — montée en gamme (maquette v10 du 05/09) : navigation
 // latérale encre (le locataire est chez lui), fil de pages sur fond crème,
@@ -19,12 +20,12 @@ export default async function LayoutLocataire({
   const { supabase, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const [
-    { data: pieces },
-    { data: incidents },
-    { data: nonLus },
-    { data: demandes },
-    { data: baux },
-    { data: signatures },
+    { data: pieces, error: ePieces },
+    { data: incidents, error: eIncidents },
+    { data: nonLus, error: eNonLus },
+    { data: demandes, error: eDemandes },
+    { data: baux, error: eBaux },
+    { data: signatures, error: eSignatures },
   ] =
     await Promise.all([
       supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
@@ -46,10 +47,25 @@ export default async function LayoutLocataire({
   // L'assurance n'est réclamée qu'à un locataire en place : sans bail actif,
   // le badge ne réclame rien (audit 06/09 — badge figé à 1 pour un sortant).
   const bailActif = ((baux ?? []) as unknown[]).length > 0;
-  const assuranceOk = !bailActif || Boolean(derniere && !estExpiree(derniere.expire_le));
+  // Le badge se déclenche à J-30, pas à l'expiration : c'est le seuil que
+  // RM-0b.5.1 rend dû AU LOCATAIRE, et celui que l'accueil et la page
+  // Documents affichent désormais (revue 11/09 — le menu restait muet
+  // pendant que « Ce qui vous attend » réclamait le renouvellement).
+  const assuranceOk = !bailActif || Boolean(derniere && !estARenouveler(derniere.expire_le));
   const demandesEnCours = ((incidents ?? []) as { etat: string }[]).filter(
     (i) => i.etat !== "clos"
   ).length;
+  // Une lecture tombée éteint silencieusement un badge : le locataire ne voit
+  // plus la pièce qu'on lui réclame et croit être en règle. On ne peut pas
+  // corriger le compte, on peut dire qu'il n'est pas fiable (relevé 11/09).
+  const comptesIncertains = aEchoue(
+    ePieces,
+    eIncidents,
+    eNonLus,
+    eDemandes,
+    eBaux,
+    eSignatures
+  );
 
   return (
     <div className="loc-app">
@@ -71,6 +87,7 @@ export default async function LayoutLocataire({
           }
           badgeDemandes={demandesEnCours}
           badgeMessages={Number(nonLus ?? 0)}
+          declarationOuverte={adhesionActive}
         />
         <div className="loc-late-bas">
           <Link href="/espaces">Mes espaces</Link>
@@ -93,6 +110,15 @@ export default async function LayoutLocataire({
               : "◇"}
           </span>
         </header>
+        {comptesIncertains && (
+          <p
+            role="alert"
+            className="border-b border-border bg-[var(--destructive-soft)] px-4 py-1.5 text-center text-xs text-destructive-soft-foreground"
+          >
+            Connexion instable : les compteurs du menu peuvent être incomplets.
+            Rechargez la page dans un instant.
+          </p>
+        )}
         {!adhesionActive && (
           <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
             Votre bail est terminé — cet espace reste consultable : quittances,

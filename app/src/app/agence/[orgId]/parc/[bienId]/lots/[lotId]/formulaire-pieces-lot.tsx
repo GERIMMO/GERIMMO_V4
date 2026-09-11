@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import {
   ajouterPieceLot,
   supprimerPieceLot,
@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export type PieceLot = { id: string; nom: string };
 
@@ -72,6 +73,10 @@ export function FormulairePiecesLot({
 }) {
   const action = ajouterPieceLot.bind(null, orgId, bienId, lotId);
   const [etat, formAction] = useActionState<EtatParc, FormData>(action, {});
+  // Champ et bouton sur la même ligne : un libellé visible casserait la rangée,
+  // celui-ci ne s'adresse donc qu'à la synthèse vocale. Identifiant tiré de
+  // useId() — plusieurs lots peuvent cohabiter sur un même écran.
+  const idNom = useId();
 
   return (
     <div className="space-y-3">
@@ -123,7 +128,10 @@ export function FormulairePiecesLot({
       {/* Ajout libre */}
       <form action={formAction} className="flex items-end gap-2">
         {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
-        <Input name="nom" maxLength={60} placeholder="Autre pièce (ex. Bureau, Dressing)…" className="max-w-xs" defaultValue={etat.valeurs?.nom} />
+        <Label htmlFor={idNom} className="sr-only">
+          Nom de la pièce à ajouter
+        </Label>
+        <Input id={idNom} name="nom" maxLength={60} placeholder="Autre pièce (ex. Bureau, Dressing)…" className="max-w-xs" defaultValue={etat.valeurs?.nom} />
         <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Ajout…">
           Ajouter
         </BoutonEnvoi>

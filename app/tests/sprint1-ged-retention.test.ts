@@ -56,6 +56,7 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
   let agentA: string;
   let locataireA: string;
   let adminB: string;
+  let mandatA: string;
 
   beforeAll(async () => {
     db = new Client({ connectionString: DB_URL });
@@ -84,6 +85,26 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
        ($1, $2, 'agent'), ($3, $2, 'locataire'), ($4, $5, 'admin_agence')`,
       [agentA, orgA, locataireA, adminB, orgB]
     );
+
+    // Périmètre du portefeuille : un agent ne voit que ce qui relève des
+    // mandats DONT IL EST TITULAIRE. Le parc et les mandats sont l'affaire de
+    // l'administrateur d'agence (RM-18.1.4) ; on confie donc ici un mandat à
+    // agentA avant toute bascule d'identité — sans mandat, il ne verrait rien.
+    const {
+      rows: [{ id: mandantA }],
+    } = await db.query(
+      `insert into public.persons (organization_id, nom, prenom)
+       values ($1, 'Mandant', 'Alpha') returning id`,
+      [orgA]
+    );
+    const {
+      rows: [{ id: idMandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1, $2, 'actif', $3) returning id`,
+      [orgA, mandantA, agentA]
+    );
+    mandatA = idMandat;
   });
 
   afterEach(async () => {
@@ -112,6 +133,13 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
   it("un gérant ne voit que les documents et alertes de son agence ; un locataire, aucun", async () => {
     const docA = await insererDocument(orgA, "courrier", "Doc Alpha");
     const docB = await insererDocument(orgB, "courrier", "Doc Beta");
+    // Le courrier Alpha est rattaché au mandat d'agentA : il relève donc de
+    // son portefeuille, ce qui le rend visible malgré la garde RESTRICTIVE.
+    await db.query(
+      `insert into public.document_liens (document_id, organization_id, entite, entite_id)
+       values ($1, $2, 'mandat', $3)`,
+      [docA, orgA, mandatA]
+    );
     await db.query(
       `insert into public.alerts (organization_id, titre) values ($1, 'Alerte Alpha'), ($2, 'Alerte Beta')`,
       [orgA, orgB]

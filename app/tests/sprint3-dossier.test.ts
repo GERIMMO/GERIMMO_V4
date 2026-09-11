@@ -48,7 +48,9 @@ async function simuler(db: Client, accountId: string | null, role = "authenticat
 describe.skipIf(!DB_URL)("Sprint 3 — dossier locataire versionné", () => {
   let db: Client;
   let orgA: string;
+  let adminA: string;
   let agentA: string;
+  let proprietaire: string;
   let locataire: string;
 
   beforeAll(async () => {
@@ -67,24 +69,73 @@ describe.skipIf(!DB_URL)("Sprint 3 — dossier locataire versionné", () => {
       `insert into public.organizations (name, status) values ('S3D Alpha', 'active') returning id`
     );
     orgA = org;
+    adminA = await creerUtilisateur(db);
     agentA = await creerUtilisateur(db);
     await db.query(
-      `insert into public.memberships (account_id, organization_id, role) values ($1, $2, 'agent')`,
-      [agentA, orgA]
+      `insert into public.memberships (account_id, organization_id, role) values
+       ($1, $2, 'admin_agence'), ($3, $2, 'agent')`,
+      [adminA, orgA, agentA]
     );
-    const {
-      rows: [{ id }],
-    } = await db.query(
-      `insert into public.persons (organization_id, nom, prenom) values ($1, 'Nguyen', 'Lea') returning id`,
+    const pers = await db.query(
+      `insert into public.persons (organization_id, nom, prenom)
+       values ($1, 'Nguyen', 'Lea'), ($1, 'Martin', 'Paul') returning id, nom`,
       [orgA]
     );
-    locataire = id;
+    locataire = pers.rows.find((p) => p.nom === "Nguyen")!.id;
+    proprietaire = pers.rows.find((p) => p.nom === "Martin")!.id;
+
+    // Depuis le périmètre du portefeuille (2026-09-09), l'agent ne voit que
+    // les lots des mandats dont il est TITULAIRE. C'est donc l'ADMIN d'agence
+    // qui constitue le parc puis confie le mandat (RM-18.1.4) : Léa n'entre
+    // dans le périmètre de l'agent que parce qu'elle est la locataire d'un
+    // bail portant sur un lot de son portefeuille.
+    await simuler(db, adminA);
+    const {
+      rows: [{ id: bien }],
+    } = await db.query(
+      `select public.creer_bien_avec_lot(
+         $1, '8 rue du Dossier', 'appartement'::public.bien_type,
+         '8 rue du Dossier', null, '75011', 'Paris', 1985, false, 38.0, 2) as id`,
+      [orgA]
+    );
+    const {
+      rows: [{ id: lot }],
+    } = await db.query(`select id from public.lots where bien_id = $1`, [bien]);
+    await db.query(
+      `insert into public.detentions (lot_id, organization_id, person_id, quote_part)
+       values ($1, $2, $3, 100)`,
+      [lot, orgA, proprietaire]
+    );
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1, $2, 'actif', $3) returning id`,
+      [orgA, proprietaire, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1, $2, $3, 7.0)`,
+      [orgA, mandat, lot]
+    );
+    await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal,
+                                loyer_hc, charges, jour_echeance)
+       values ($1, $2, $3, 750, 50, 5)`,
+      [orgA, lot, locataire]
+    );
+    await simuler(db, null, "postgres");
   });
 
   afterEach(async () => {
     await db.query("rollback");
   });
 
+  // L'agent dépose la pièce puis la rattache au dossier de Léa. `deposited_by`
+  // n'est pas décoratif : le `returning` traverse la policy de lecture
+  // `documents_agent_portefeuille`, or à cet instant le document n'a pas
+  // encore de lien — il n'est du portefeuille que parce que c'est l'agent
+  // lui-même qui vient de le déposer.
   async function deposerPiece(
     type: string,
     titre: string,
@@ -94,12 +145,13 @@ describe.skipIf(!DB_URL)("Sprint 3 — dossier locataire versionné", () => {
       rows: [{ id }],
     } = await db.query(
       `insert into public.documents
-         (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte, remplace_id)
+         (organization_id, type, titre, storage_path, mime_type, taille_octets,
+          empreinte, remplace_id, deposited_by)
        values ($1, $2::public.document_type, $3,
                $1::uuid::text || '/' || gen_random_uuid() || '.pdf',
-               'application/pdf', 1000, 'e-' || gen_random_uuid(), $4)
+               'application/pdf', 1000, 'e-' || gen_random_uuid(), $4, $5)
        returning id`,
-      [orgA, type, titre, remplaceId]
+      [orgA, type, titre, remplaceId, agentA]
     );
     await db.query(
       `insert into public.document_liens (document_id, organization_id, entite, entite_id)

@@ -79,6 +79,7 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
   let orgA: string;
   let compteLo: string;
   let compteAgent: string;
+  let compteAdmin: string;
 
   beforeAll(async () => {
     db = new Client({ connectionString: DB_URL });
@@ -98,6 +99,9 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
     orgA = org;
     ({ compte: compteLo } = await creerCompte(db, orgA, "locataire", "Occupant"));
     ({ compte: compteAgent } = await creerCompte(db, orgA, "agent", "Agent"));
+    // C'est l'admin d'agence qui constitue le parc (wiki : « Agent immobilier » —
+    // l'agent travaille sur son portefeuille, il ne crée pas les biens).
+    ({ compte: compteAdmin } = await creerCompte(db, orgA, "admin_agence", "Admin"));
   });
 
   afterEach(async () => {
@@ -168,8 +172,9 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
   });
 
   it("le bail signé apparaît dans mes pièces et se consulte (non-régression 26/08)", async () => {
-    // Un lot, un bail actif porté par le locataire, un bail signé déposé
-    await simuler(db, compteAgent);
+    // Un lot, un bail actif porté par le locataire, un bail signé déposé.
+    // Le parc est créé par l'admin d'agence (périmètre du portefeuille agent).
+    await simuler(db, compteAdmin);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -315,7 +320,8 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
   });
 
   it("le règlement de copropriété du bail est une pièce du locataire (sprint « Alertes & documents »)", async () => {
-    await simuler(db, compteAgent);
+    // Parc constitué par l'admin d'agence (périmètre du portefeuille agent).
+    await simuler(db, compteAdmin);
     const {
       rows: [{ id: bien }],
     } = await db.query(

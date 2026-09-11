@@ -2705,3 +2705,545 @@ trancher). Compteurs de diagnostics unifiés et étiquetés de leur niveau
 synthèse des alertes redessinée (cartes-rangées cliquables, liseré de
 criticité, titres complets) sur demande de Tahir. Donnée de démo corrigée :
 dépôt de la colocation Alpha ramené à 300 € (plafond). Publication sur main.
+
+## [2026-09-10] query | Quels spécialistes pour un projet comme Gerimmo ?
+Réponse en chat, ancrée sur les réserves déjà documentées dans le wiki :
+quatre profils à consulter ponctuellement — praticien de la gestion locative
+(entretiens personas, [[Accueil]]), avocat droit des baux / loi Hoguet
+(matrice canaux-preuve A3, CGU, [[Notification et valeur probante]]),
+expert-comptable immobilier (doctrine A6 « préalable à la commercialisation »,
+export SCI-IS, [[Comptabilité]], [[Fiscalité]]), conseil RGPD/DPO (matrice A2,
+AIPD score artisan, [[RGPD]]) — plus un audit sécurité avant production
+([[Socle de sécurité]]). Rappel du contexte : validations externes **écartées
+le 2026-07-25** (revue interne), donc la liste vaut surtout comme jalons
+d'avant-commercialisation, pas comme recrutements.
+
+## [2026-09-10] query | Carte blanche pour terminer Gerimmo ?
+Tahir, fatigué, demande si l'agent peut finir le projet seul avec carte
+blanche. Réponse : oui pour ~90-95 % du restant mesuré (fin S8, S9b,
+chantiers maquette T1→T8 et vague F, recette Partie 2, puis V1 S10→S15) —
+en tranchant seul les contradictions (documentées, réversibles) et en
+convertissant la recette humaine en tests E2E automatisés (Playwright)
+pour supprimer le goulot « Tahir testeur ». Résidu incompressible côté
+humain : comptes et contrats tiers (Yousign, Stripe KYC, Meta/WhatsApp,
+Supabase/Vercel Pro UE, antivirus), go de commercialisation, clients.
+Proposition d'un « mode pilote automatique » : l'agent déroule, Tahir ne
+lit qu'un digest court avec démos. En attente du « go ».
+
+## [2026-09-10] query | Correction (Tahir) : le module devis-artisans manquait à l'ordre d'attaque
+Vérification croisée git + wiki. Fait (S7 incrément 1, validé 24-26/08) :
+le cycle de l'incident seul — déclaration, qualification/imputation,
+contestation, clôture, réouverture, photos, historique, alertes
+([[Cycle de vie d'un incident]] §Implémentation ; tables `incidents`,
+`incident_evenements`). Manquant : toute la suite — états artisans
+(affecté → en cours → terminé), fiches/réseau artisan (pivot maquette v3),
+[[Demande et sélection de devis]], [[Planification d'intervention]] (3+3),
+[[Intervention et clôture]] (compte rendu + photo), facture → écriture,
+espace artisan (« sans devis ni planning, écran mort » — recette 2.C).
+`demandes_devis` en base = formulaire vitrine, pas les devis artisans.
+Ambiguïté relevée : les notes du dépôt appellent ce module « S13 » alors
+que le plan nomme S13 le mobile ; la maquette v6 le route vers « T5/S9b »
+(contradiction n°4). Correction de l'ordre d'attaque carte blanche :
+bloc dédié « Artisans-devis-interventions » ajouté — c'est le
+différenciateur produit ([[Analyse concurrentielle]]).
+
+## [2026-09-10] ingest | Énoncé fondateur : « faire le travail d'une agence, en mieux, plus vite, moins cher »
+Déclaration de vision de Tahir, recueillie en séance — elle comble la lacune
+« proposition de valeur » notée à l'[[Accueil]]. Nouvelle page
+[[Proposition de valeur]] : le critère de « terminé » devient le travail
+exécuté (pas l'écran livré) ; les trois promesses adossées aux pages
+existantes ; conséquences sur l'ordre des travaux (artisans-devis-
+interventions = cœur, automatisation avant présentation, V1 = fermeture des
+boucles sans humain, métrique « temps de gérant par lot/mois »).
+Convergence documentée avec [[Analyse concurrentielle]] (« gérer les
+problèmes là où les autres gèrent les papiers ») et le pivot réseau artisan
+de la maquette v3. Point à trancher posé à Tahir : outil qui exécute
+(RM-A6.1 conservée) ou vocation à devenir l'agence (loi Hoguet, carte G,
+fonds mandants — contradiction n°1 de la maquette v6). Index et Accueil
+mis à jour.
+
+## [2026-09-10] decision | Périmètre de la vision : l'outil fait le travail, pas l'agence
+Tahir tranche la question ouverte par l'énoncé fondateur : Gerimmo reste
+**l'outil qui exécute le travail** d'une agence — pas de gérance opérée en
+ligne, pas d'encaissement pour compte de tiers. Frontière RM-A6.1 confirmée,
+contradiction n°1 de la maquette v6 close (les écrans « fonds mandants »
+s'intègrent dans les limites du journal de gestion, tranche T8).
+[[Proposition de valeur]] passée en stable ; [[État du projet et décisions
+ouvertes]] mis à jour — plus aucun arbitrage en attente (2026-09-10).
+
+## [2026-09-10] ingest | Carte blanche : mobile, tests et audit de tout
+Tahir donne carte blanche (« je veux une appli mobile qui fonctionne. Fais un
+tests et audit de tout par la suite »). Journée en quatre temps.
+
+**1. Une pile de recette hors ligne** (`app/e2e/local/`, mode d'emploi
+`app/docs/recette-hors-ligne.md`) : le cloud n'atteignant ni Supabase ni
+Vercel, montage d'un Postgres local portant les 128 migrations **dans l'ordre
+réel de la production** (l'ordre alphabétique des fichiers est faux) et d'un
+émulateur de l'API Supabase où chaque requête passe par le **vrai RLS**.
+Au passage : **14 migrations appliquées en prod n'étaient pas dans le dépôt**
+— rapatriées.
+
+**2. Mobile** : audit à 390×844 (code + rendu réel), **89 défauts** corrigés
+en trois étages (socle transverse, composants partagés, chaque zone), et le
+cœur du module 19 livré — brouillon local de la grille d'EDL (RM-19.1.1/2/6/7/9)
+et photos compressées à la prise. **44/44 écrans** sans débordement ni erreur.
+
+**3. Tests** : suite Playwright mobile par persona (parcours agence,
+locataire, brouillon EDL, audit d'écrans, axe-core) — 16/16 verte ; 48 nœuds
+d'accessibilité corrigés ; 21 tests d'intégration ajoutés.
+
+**4. Audit de tout** (4 dimensions en parallèle + vérification adversariale) :
+18 trouvailles confirmées, 4 réfutées. **Deux P0 d'étanchéité inter-agences**
+(lecture d'un échéancier par un compte sans adhésion ; écriture d'un
+encaissement sur le bail d'une autre agence) et **un P0 documentaire** (une
+quittance libératoire survivait à la suppression de son encaissement —
+4 350 € attestés jamais perçus) : rejoués, corrigés, testés, **appliqués en
+production**. Durcissement P1 : encaissement immuable, quittance non
+forgeable, contre-écriture et révision IRL non rejouables, un seul bail vivant
+par lot, signature d'agence enfin lisible. Synthèse complète et 4 points à
+trancher : [[Audit du 10 septembre 2026]].
+
+## [2026-09-10] dev | La suite de tests réapprend le monde du périmètre agent (65 → 1)
+L'audit avait réveillé **65 échecs d'intégration antérieurs à lui**, endormis
+depuis le 09/09 faute de base de test accessible. Cause unique : la migration
+du périmètre du portefeuille (un agent ne touche que les lots des mandats dont
+il est titulaire) contre des setups qui montaient tout le parc « en tant
+qu'agent ». **Défauts de test, pas de produit.** Réparés par 18 agents (un par
+fichier) : c'est un `admin_agence` qui constitue le parc puis confie le mandat
+(RM-18.1.3/18.1.4), la session ne repassant en agent que pour le geste testé.
+Aucune assertion métier assouplie, aucun test neutralisé, aucune migration
+touchée. Trois causes secondaires corrigées au passage (plafond du dépôt,
+EDL de sortie signé pendant le préavis seulement, état du lot adossé au bail)
+et deux bugs latents des tests eux-mêmes, jusque-là masqués par l'échec du
+setup.
+
+**Deux tests encodaient une règle périmée** — le produit avait tranché après
+eux : l'activation sans EDL d'entrée (règle du 29/08 **révisée le 30/08**,
+[[Bail]]) et la non-requalification d'un incident qualifié (**autorisée le
+23/08**, [[Incident]]). Réalignés sur la règle en vigueur, qu'ils vérifient
+désormais dans les deux sens.
+
+**Lacune documentaire trouvée** : la règle de requalification du 23/08 n'avait
+jamais été écrite au wiki. Écrite ce jour dans [[Incident]] — et elle rend
+**RM-7.5.3 inapplicable** en l'état (l'imputation est dite « révisable après
+diagnostic », or le diagnostic a lieu à un état où le code refuse désormais
+toute requalification). Contradiction signalée, non tranchée.
+
+**État : 261 verts / 1 rouge assumé / 2 ignorés (264)**, typecheck et lint à
+0 erreur. Le rouge est la colocation meublée : le produit s'y contredit
+lui-même (`encaisser_depot` lit `lots.meuble` et ouvre 2 mois, le déclencheur
+`controler_plafond_depot_garantie` ne lit que `baux.type` et refuse à 1 mois).
+Le déclencheur étant le plus strict, la règle effective reste 1 mois, conforme
+au wiki, et aucune fuite d'argent n'est possible — mais la question est
+juridique et revient à Tahir. Test laissé rouge exprès, avec le diagnostic en
+commentaire, pour qu'elle ne s'oublie pas.
+
+## [2026-09-10] dev | Second tour de durcissement : les 8 lots restants de l'audit, appliqués en production
+Huit défauts P1/P2, un correcteur et un **vérificateur adversarial** par lot.
+Le vérificateur a pris le correcteur en défaut **5 fois sur 8** — contournement
+par bornes infinies, garde annuelle qui ne bornait rien, correction non durable,
+lot quitté par un bail déménagé, quatrième producteur de contre-écritures. Tout
+a été rejoué en base avant ET après correction, jamais raisonné sur le code.
+
+**Ce que l'audit avait sous-estimé.** L'advisor disait « non exploitable » pour
+trois fonctions déclencheur exécutables par `anon`. Faux : `execute` est aussi
+le droit qui autorise à ACCROCHER la fonction à une table à soi, et `anon` a
+`temporary`. Rejoué — une contre-écriture de 1 200 € forgée dans l'organisation
+d'une victime, RLS hors-jeu puisque la fonction est `SECURITY DEFINER`. Fermé
+sur les 31 fonctions déclencheur, pas seulement les trois signalées.
+Même famille : `anon` portait `TRUNCATE` sur `encaissements`, `quittances`,
+`ecritures`, `clotures_comptables`, `messages` — **la RLS ne couvre pas
+TRUNCATE, seul le privilège compte**. Vérifié en production avant correction.
+Portée honnête : ces deux voies exigent un accès SQL direct, elles ne passent
+pas par PostgREST.
+
+**Appliqué en production**, les 8 migrations, après mesure d'impact préalable :
+0 doublon d'espace propriétaire, **1 lot incohérent** (Agence Alpha, bail en
+préavis jusqu'au 01/11 sur un lot resté « disponible ») corrigé par la
+migration, 0 clôture prématurée. Vérifié après coup : 0 fonction déclencheur
+exécutable par anon, `anon` ne garde qu'un seul droit d'écriture
+(`demandes_devis/INSERT`, le formulaire de la vitrine), 0 lot incohérent.
+Advisors de sécurité : il ne reste que le WARN attendu (l'API applicative est
+faite de fonctions `SECURITY DEFINER`) et l'INFO des 8 tables de chantiers non
+câblés, fermées sans aucun privilège.
+
+**Une limite, dite franchement.** La révocation faite à `anon` n'est pas
+durable : les privilèges par défaut appartiennent à `supabase_admin`, que le
+rôle des migrations ne peut pas modifier — la migration a donc échoué là-dessus,
+et a été reprise pour AVERTIR au lieu d'échouer. Chaque nouvelle table rouvrira
+la brèche. Le garde-fou a été déplacé là où le projet le maîtrise : un test de
+socle « anon n'écrit nulle part », prouvé non vacueux (il détecte et nomme la
+table fautive). Toute migration créant une table doit révoquer explicitement.
+
+**À savoir côté exploitation** : 4 des 5 baux vivants n'ont pas d'indice IRL
+figé et ne seront révisables qu'une fois celui-ci renseigné (RM-3.8.2). Le
+formulaire de compléments du bail le permet ; l'écran de révision affiche
+désormais l'indice au lieu de le demander, et dit « à renseigner sur le bail ».
+
+**État** : 272 verts / 1 rouge assumé (colocation meublée, arbitrage juridique)
+/ 2 ignorés — 275. typecheck et lint à 0 erreur. Les arbitrages soulevés et non
+tranchés sont listés dans [[Audit du 10 septembre 2026]].
+
+## [2026-09-11] dev | Design de tout le site, journal éditorial, et deux défauts trouvés à l'écran
+Carte blanche sur le design (vitrine comprise), un système de proposition de
+publication pour le [[Super Admin]], puis la revue des clics et cheminements.
+
+**1. Socle de design (charte v2.1).** La charte v2 — encre, laiton, crèmes,
+Cormorant / Instrument / Plex Mono — ne bouge pas : elle est de bon goût et
+documentée. Il lui manquait ce qui l'empêchait de tenir d'un écran à l'autre :
+une **échelle typographique nommée** (sept degrés, les tailles de la maquette
+conservées à l'identique), un **rythme vertical** unique, un anneau de focus
+commun au clavier, et trois primitives que chaque écran refaisait à sa façon —
+`.tableau` (cinq variantes de padding recensées), `.vide-guide` (l'état vide
+*guide* au lieu de constater), `.section-vitrine` / `.mesure-lecture`.
+
+**2. Marque blanche : plus aucune couleur en dur.** 20 valeurs vivaient en dur
+dans `globals.css`. Toutes promues en jetons — quatre nuances nommées
+(`--survol`, `--survol-critique`, `--encre-profond`, `--or-sombre`), les
+variantes d'opacité passées à `color-mix()` sur le jeton source. Le module 17
+fait des variables le SEUL point de personnalisation d'une agence : une valeur
+en dur y échappe, et personne ne pense à aller la chercher. Les trois pages
+d'erreur des routes de fichier, qui servaient du `system-ui` sur fond gris,
+rentrent dans la charte et vivent désormais en un seul exemplaire.
+
+**3. Vitrine.** Le diagnostic tenait en une phrase : elle **ne montrait jamais
+le produit**. Trois aperçus — tableau de bord, quittance, espace locataire sur
+téléphone — construits avec les VRAIES classes de l'application : ils partagent
+sa feuille de style, donc ils ne peuvent pas mentir sur son allure, et ils
+suivent la marque blanche. Plus une bande « ce que Gerimmo remplace » qui met
+les honoraires d'agence face aux 5,99 €. **Aucun témoignage, aucun chiffre
+d'usage, aucun logo client** : nous n'en avons pas, et la politique
+« fonctionnalités honnêtes » interdit d'en inventer. Les quatre portes d'entrée,
+qui se répartissaient en deux gabarits, partagent une coquille unique.
+
+**4. [[Journal éditorial]]** — la demande « dynamiser le site ». Huit veines
+ancrées sur des pages réelles du wiki, file hebdomadaire, et la garantie qui en
+fait l'intérêt : une proposition apporte un angle, un plan et sa source, jamais
+un chiffre. Les faits datés restent en trou explicite et la base **refuse la
+parution** tant qu'il en reste un. En production avec le journal public.
+
+**5. Console de supervision.** L'espace [[Super Admin]] « n'était pas un espace,
+c'était six pages posées côte à côte ». Il porte désormais les indicateurs et
+les files que le référentiel prescrit — celles qui existent. Les quatre autres
+sont annoncées, pas simulées.
+
+**Deux défauts trouvés en REGARDANT, pas en lisant.**
+- Sur téléphone, la **modale d'alertes qui s'ouvre à chaque connexion mesurait
+  470 px pour un écran de 390** : ses deux boutons « Fermer » tombaient hors
+  champ. L'utilisateur arrivait dans une modale dont il ne pouvait pas sortir.
+  L'audit mobile du 10/09 l'avait manquée parce que **toute la suite E2E
+  désactive cette modale avant chaque test** : on auditait des écrans, jamais
+  l'arrivée. Un fichier de test qui ne la neutralise pas verrouille désormais
+  cet état.
+- Le **reçu de paiement partiel** calculait le solde sur `loyer + charges` là où
+  le PDF utilisait le terme dû. Sur un mois au prorata il réclamait **550 € au
+  lieu de 116,67 €** — 433 € de dette de trop, sur un document qui écrit « un
+  solde de X reste dû » (RM-3.4.2). La cause : la RPC ne renvoyait pas
+  `montant_du`, la page ne POUVAIT pas calculer juste. Corrigé en production.
+
+**Deux alertes de l'état des lieux ÉCARTÉES après vérification** plutôt que
+corrigées sur parole : la quittance « non publique » (c'est juste — elle porte
+des données personnelles, et son destinataire a un compte) et la modale « qui
+s'ouvre à chaque page » (non : une fois par session).
+
+**État des lieux complet** (14 lecteurs en parallèle : 8 zones de design,
+6 parcours) : **47 P1, 145 P2, 62 P3**. Parcours les plus coûteux : inscription
+→ premier bail actif, 50 clics pour 31 au mieux ; état des lieux de sortie →
+restitution, 60 pour 51. Correction en cours.
+
+## [2026-09-11] dev | Les écrans qui mentaient : cinq lots corrigés, appliqués en production
+Cinq défauts où l'écran promettait ce que la base refusait, ou perdait le
+travail de l'utilisateur. Un correcteur et un vérificateur adversarial par lot.
+**Le vérificateur a pris le correcteur en défaut sur les CINQ** — ce qui porte
+le compte de la session à 13 reprises sur 18 lots. C'est le motif du
+dispositif, pas un accident.
+
+1. **Un bail devenait actif sans loyer ni date d'entrée**, deux mentions
+   obligatoires du contrat ([[Mentions obligatoires du bail]]). Mesuré :
+   `generer_appels_loyer` produisait un premier appel à **0,00 €**,
+   quittançable et comptabilisable. Trouvé en chemin, plus grave encore :
+   `activer_bail` posait `date_debut = coalesce(date_debut, current_date)` — la
+   **date de prise d'effet du contrat devenait le jour du clic**. Ce repli
+   datait du 02/08, quand le formulaire n'avait pas de champ de date ; le champ
+   existe depuis le 21/08. Supprimé.
+   Le vérificateur a trouvé TROIS contournements par écriture directe : la
+   policy `baux_update` laissait faire `update baux set etat='actif'` sans
+   passer par aucune fonction, et un détour par « préavis » ou « terminé »
+   blanchissait un brouillon — deux transitions que [[Machines à états et
+   événements]] interdit déjà (RM-A5.1/A5.2) sans que rien ne les contrôle.
+
+2. **Encaisser ne disait jamais ce qu'il venait de faire** — le geste le plus
+   répété du produit. Et le libellé promettait un terme que la base n'imputait
+   pas : l'imputation va du plus ancien au plus récent (RM-3.3.2, règle légale).
+   L'écran ne se trompait pas de calcul : il **taisait une règle juste**.
+   Le vérificateur a trouvé que le test du correcteur ne prouvait RIEN sur la
+   moitié titre du défaut, et que sa réécriture de `quittancement_mois` avait
+   **silencieusement retiré d'un WHERE une garde** qu'une migration antérieure
+   y avait posée.
+
+3. **La déclaration d'incident photo seule** était promise à l'écran et refusée
+   par la base — sur le parcours mobile phare (RM-19.2.2). La base apprend la
+   règle. Et tout échec **effaçait les photos** : au pire endroit possible.
+
+4. **Le justificatif d'une retenue** partait en GED avant que la retenue soit
+   acceptée : un refus légitime (élément amorti, [[Vétusté et décote]]) laissait
+   une pièce orpheline portant des données du locataire.
+
+5. **Les impayés de la restitution** étaient figés au démarrage. Le wiki ne dit
+   PAS à quelle date les arrêter — l'agent ne l'a donc pas décidé à sa place.
+   Ce qui est indiscutable est fait : l'écran dit à quelle date les montants ont
+   été arrêtés et propose de les réarrêter ; « Finaliser » se confirme.
+   Le vérificateur a trouvé une **course** : le réarrêté lisait le statut sans
+   verrou et pouvait donc s'appliquer à un décompte finalisé entre-temps.
+
+**Appliqué en production** (7 migrations), impact mesuré d'abord : 0 bail sans
+loyer ni date, 0 restitution en cours, rien à rattraper. Huit contrôles verts
+après coup.
+
+**Tests : 365, dont 57 ajoutés — 362 verts, 1 rouge assumé, 2 ignorés.**
+
+Cinq arbitrages remontés et NON codés faute de règle tranchée, dont : l'IRL de
+référence comme mention exigible à l'activation, et surtout **RM-A6.7 « la
+précision du débiteur prime »** sur l'ordre d'ancienneté — aucune colonne du
+modèle ne permet aujourd'hui au locataire de désigner le terme qu'il règle.
+
+## [2026-09-11] audit  | Audit et point santé de fin de chantier
+
+**Mesuré, pas estimé.** 107 pages parcourues au navigateur dans les quatre
+espaces, 65 passées à axe-core, 7 551 éléments relevés en style calculé avant
+et après chaque changement de CSS, base de production interrogée directement.
+
+**Six défauts corrigés.**
+1. Trois requêtes que PostgREST refusait d'arbitrer (deux clés étrangères vers
+   la même cible, 28 paires concernées) : l'export CSV du journal rendait un
+   500, les détentions de la fiche bien échouaient, et **la veille DPE de
+   l'accueil propriétaire échouait EN SILENCE** — le propriétaire d'un lot
+   classé G ne voyait rien de son interdiction de louer. Test d'intégration qui
+   relit les paires ambiguës dans la base.
+2. Les classes de la charte, écrites hors couche CSS, battaient **60
+   utilitaires Tailwind** — `hidden` qui ne cachait rien, `text-[var(--or)]` qui
+   rendait du gris à 2,39:1. Les 12 défauts de contraste venaient tous de là.
+3. 29 contrôles sans nom accessible, ou nommés par leur seul placeholder.
+4. 12 liens en texte suivi distingués par la seule couleur.
+5. 22 tables dont toutes les politiques RLS filtrent sur `organization_id` sans
+   index sur cette colonne (les 49 concernées en ont un).
+6. 14 variables d'environnement non documentées ; un échafaudage mort retiré.
+
+**Parcours recomptés dans le code**, chaque étape ancrée sur un fichier:ligne,
+puis vérifiés par un critique : 19 / 37 / 7 / 8 clics là où le relevé du matin
+comptait 50 / 60 / 18 / 13. **La contradiction est consignée, pas moyennée** —
+les deux mesures ne comptent pas la même chose, et aucune n'a été faite au
+navigateur.
+
+**Cinq défauts bloquants arrêtés par les vérificateurs**, dont la copie des
+clés à `nombre = 0` : le document que les deux parties signent l'imprimait
+comme un fait — « aucune clé rendue », celui-là même qui fonde une retenue de
+serrurerie. La colonne devient nullable.
+
+**Santé** : 370 tests (367 verts, 1 rouge assumé, 2 ignorés), 20 E2E verts,
+typecheck et build sans erreur, 0 défaut d'accessibilité sur 107 pages, 0
+violation axe-core sérieuse ou critique, 0 avis de sécurité ERROR. Les 123
+fonctions `SECURITY DEFINER` exposées atteignent toutes `auth.uid()` — ce qui
+prouve qu'elles consultent l'appelant, pas qu'elles le font bien sur chaque
+branche.
+
+**Dix points attendent un arbitrage humain**, en tête desquels les conditions
+d'utilisation qui n'existent pas alors que l'inscription les fait accepter.
+
+→ [[Audit et point santé du 11 septembre 2026]]
+
+## [2026-09-11] dev   | Conditions d'utilisation et mentions légales : les deux projets
+
+L'audit du jour posait en tête de ses arbitrages que **la case d'inscription
+fait accepter des « conditions d'utilisation » qui n'existent nulle part**, et
+que le site, marchand et français, ne publie aucune mention légale. Les deux
+projets sont écrits.
+
+- [[Conditions generales d'utilisation (projet)]] — 17 articles. Nature du
+  service (le journal de gestion, repris du projet du 25/07), rôles et
+  habilitations, espaces des locataires, prix et essai, réversibilité,
+  responsabilité, résiliation, droit applicable.
+- [[Mentions legales (projet)]] — éditeur, directeur de la publication,
+  hébergeurs (Supabase eu-west-3, Vercel, Resend), médiation, signalement.
+
+**Aucun des deux n'est publiable en l'état**, et c'est dit en tête de chacun :
+ils portent des faits d'entreprise que l'agent n'invente pas (dénomination,
+immatriculation, siège, contact) et des choix juridiques qui se décident —
+qualification au regard de la loi Hoguet, droit de rétractation du client
+particulier, adhésion à un médiateur de la consommation, plafond de
+responsabilité.
+
+**La rédaction a révélé un défaut que personne ne cherchait.** Le projet de
+CGU du 25/07 engageait l'Éditeur sur l'export « des écritures, des documents
+et du référentiel », et sur une suspension qui bascule le compte « en lecture
+seule ». Vérification code en main :
+
+| Promesse | Réalité |
+|---|---|
+| Export du journal | existe (CSV) |
+| Archive documentaire indexée | **n'existe pas** |
+| Export du référentiel | **n'existe pas** |
+| Suspension en lecture seule | **n'existe pas** — le statut d'organisation est une étiquette d'affichage, aucun code ne restreint rien |
+
+Le texte a été corrigé pour n'engager que ce qui existe, et l'écart est posé
+comme une décision à prendre : écrire les deux exports manquants (ce que
+recommande l'agent — la réversibilité est un argument de la page d'accueil
+autant qu'une attente du RGPD), ou cesser d'en promettre davantage. **Signer
+la première version et livrer la seconde n'est pas une option.**
+
+Trois autres manques côté produit sont notés dans les projets : la case
+d'inscription ne renvoie vers aucun lien, la version acceptée des conditions
+n'est pas conservée (la base note que la case a été cochée, pas ce qui a été
+accepté), et le locataire n'accepte aujourd'hui aucune condition alors qu'il
+dépose des pièces.
+
+## [2026-09-11] dev   | Le cycle mensuel tourne seul, et la garde d'abonnement ne s'oublie plus
+
+**Ce qui ne tournait pas.** Les appels de loyer d'un mois n'existaient que si un
+gérant ouvrait le bail et cliquait « Générer l'échéancier » — alors que le wiki
+décrit une tâche planifiée depuis le 24/07. Constat chiffré sur la base de
+production : **12 appels manquants sur 6 baux**, donc pas de quittance, donc
+aucun impayé détectable. On ne vend pas « ça se gère presque tout seul » sur un
+échéancier à la main.
+
+**Ce qui a été posé.**
+- `cycle_mensuel_interne()` — pg_cron, le 1er du mois à 5 h UTC : appels
+  manquants puis resynchronisation des quittances et reçus, bail par bail, un
+  échec n'emportant pas le mois des autres, trace au journal technique.
+- `generer_alertes_impayes()` — quotidienne à 5 h 30 : une alerte par bail,
+  rattachée au bail, qui se ferme au paiement. Elle **constate** et ne relance
+  pas : plancher et délais sont paramétrables par agence (module 18) et ne
+  s'inventent pas ici.
+- `generer_appels_loyer` scindée : le calcul descend dans une fonction interne
+  (le cron n'est personne, la garde de rôle l'aurait refusé), la fonction
+  publique n'est plus que sa garde. Toutes les internes révoquées de
+  `authenticated` et `anon`.
+
+**Deux trous trouvés en chemin.**
+1. *La garde d'abonnement ne couvrait pas le module artisan.* Posée le matin par
+   un bloc anonyme qui énumère les tables au moment où il s'exécute, elle avait
+   raté les **neuf tables** arrivées l'après-midi : une agence suspendue pouvait
+   consulter des artisans, faire chiffrer et faire intervenir gratuitement. La
+   pose devient une fonction rejouable, et un **test** échoue désormais si une
+   table d'organisation échappe au verrou.
+2. *Le banc de test local était 26 migrations en retard sur la production.* Le
+   manifeste `ordre-migrations.txt` s'arrêtait au 09/09 : tout ce qui a été
+   appliqué depuis tournait sur une base qui ne le contenait pas. Manifeste
+   reconstruit depuis l'historique de production (157 migrations), base
+   reconstruite de zéro.
+
+**Au passage.** Le refus d'écriture ne parle plus d'abonnement aux tiers : un
+locataire ou un artisan qui écrit chez une agence suspendue reçoit un message
+neutre, pas « Réactivez l'abonnement ». `tache_systeme()` — la seule fonction
+qui désarme un garde-fou — a désormais son chemin de recherche figé.
+
+**Vérifié.** 456 tests (453 passent, 1 rouge délibéré RM-2.1.2, 2 ignorés),
+typecheck 0, eslint 0 erreur. Migrations appliquées en production ; rattrapage
+joué sur les données réelles : 12 appels créés, 1 quittance, 5 alertes
+d'impayé, 0 échec.
+
+## [2026-09-11] dev   | Les quittances partent seules, pour qui l'a demandé
+
+Suite du cycle mensuel : les appels se créaient seuls, les quittances
+s'émettaient à l'encaissement — et attendaient qu'un gérant ouvre la
+comptabilité et clique pour partir. Un client qui oublie a des quittances
+émises que personne n'a reçues, alors que la quittance est due au locataire.
+
+**Ce qui a été posé.** Une tâche quotidienne (Vercel Cron → `/api/cron/quittances`,
+7 h UTC) envoie les quittances et reçus jamais partis, avec le même corps de
+message que le bouton du gérant (`lib/quittance-email.ts`, écrit une fois).
+
+**Ce qui n'est PAS automatique par défaut, et pourquoi.** Le référentiel veut la
+quittance « validée par l'agence ou le propriétaire ». L'envoyer d'office
+contredirait cette règle. L'option `quittances_envoi_auto` vaut donc **faux** à
+l'installation, se coche dans le profil de l'agence, et cocher la case EST la
+validation permanente. Les quittances de plus de 45 jours ne partent jamais :
+sans cette borne, cocher une case enverrait d'un coup l'arriéré à des
+locataires parfois partis depuis.
+
+**Les verrous de la route**, seule du produit à porter la clé `service_role`
+(qui contourne la RLS et voit toutes les organisations) : `CRON_SECRET` comparé
+à temps constant ; absence d'un des trois réglages = 503, jamais de bascule en
+mode ouvert ; côté base, `quittances_a_envoyer` et `marquer_quittance_envoyee`
+révoquées de `anon`/`authenticated` et accordées au seul `service_role`, chacune
+ne rendant que le nécessaire. On envoie PUIS on marque : dans l'autre sens, un
+échec réseau perdrait définitivement une quittance.
+
+**Vérifié.** 469 tests (466 passent, 1 rouge délibéré, 2 ignorés), typecheck 0,
+eslint 0 erreur, build vert. Migration appliquée en production.
+
+> [!warning] À faire avant le 1er octobre
+> Renseigner `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY` et `NEXT_PUBLIC_SITE_URL`
+> dans l'environnement Vercel. Sans elles, la route répond 503 et rien ne part.
+
+## [2026-09-11] dev   | Module 8 (artisans) : les huit impasses de la vérification
+
+Le module artisan a été construit par une équipe d'agents, puis relu par des
+vérificateurs adversariaux dont c'était le seul travail : **23 constats, dont
+huit bloquants**, tous reproduits en SQL ou au navigateur avant d'être écrits.
+Aucun n'était cosmétique. Ils avaient tous la même forme — un écran qui propose
+un geste que la base refuse ensuite, ou qui laisse le dossier dans un état d'où
+l'on ne sort plus.
+
+**Les quatre impasses de base** (migrations 240000 et 250000) :
+- Le **locataire fixait le rendez-vous tout seul** : `choisir_creneau`
+  vérifiait que le créneau portait sur SON incident, jamais qui l'avait
+  proposé. Il pouvait retenir sa propre contre-proposition, plaçant la mission
+  à une heure que l'artisan n'a jamais acceptée — et son absence lui aurait été
+  comptée comme un rendez-vous manqué (RM-10.5.3).
+- **Reproposer des dates tuait le rendez-vous pour toujours** : l'ancien
+  créneau restait « retenu » et l'unicité faisait échouer tout choix ultérieur.
+- **« Retirer la mission » rendait l'incident inaffectable définitivement** :
+  `annuler_mission` laissait le devis « retenu ».
+- **La file « interventions à noter » ne pouvait plus se vider** : une note
+  retirée après contestation y réinscrivait l'intervention, que l'unicité
+  interdit pourtant de remplacer.
+
+**Quatre écrans qui mentaient** : l'heure du rendez-vous rendue dans le fuseau
+du SERVEUR côté artisan (UTC) contre Europe/Paris côté locataire — deux heures
+d'écart sur le même rendez-vous ; la carte rouge de révision d'imputation qui
+ne se fermait jamais quand l'agent tranchait en maintenant son imputation,
+c'est-à-dire dans le cas que RM-7.5.3 décrit ; le conseil « laissez vide pour
+ne poser aucune limite de zone », alors qu'un artisan sans code postal n'est
+proposé nulle part ; et « un rappel vous parviendra la veille », alors
+qu'aucun rappel n'existe dans le produit.
+
+**Un défaut trouvé à l'écran, en jouant le parcours** : l'agenda disait
+« Proposez trois créneaux au locataire » à un artisan qui venait de les
+proposer. Suivre la consigne rendait caduques les dates que le locataire
+s'apprêtait à choisir, et faisait avancer le compteur de tours vers l'arbitrage
+du gérant sans que personne n'ait rien refusé.
+
+**Ce qui rend la suite vérifiable.** Le parcours artisan complet est désormais
+semé par `seed-parcours.mjs` (incident → qualification → consultation →
+sollicitation → devis → mission → créneaux), un compte `artisan.alpha` existe
+dans le seed de démonstration, `e2e/parcours-artisan.spec.ts` couvre onze cas à
+390 px, l'espace artisan entre dans le parcours d'accessibilité, et
+`tests/module8-correctifs.test.ts` garde les quatre corrections de base.
+
+**Au passage** : l'émulateur Supabase local ne savait pas passer un tableau à
+une RPC (il le sérialisait en JSON) — trois RPC du module étaient intestables
+hors ligne.
+
+**Vérifié.** 474 tests (471 passent, 1 rouge délibéré, 2 ignorés), typecheck 0,
+eslint 0 erreur, build vert, E2E 30 cas.
+
+> [!warning] Les migrations du module 8 ne sont PAS en production
+> Le module attend sa recette complète (le parcours a été joué de bout en bout
+> sur le banc local, pas encore en conditions réelles avec un vrai artisan).
+
+## [2026-09-11] dev   | « Mon abonnement » cesse de rassurer à tort
+
+La page promettait « rien ne se ferme sans vous prévenir ». Depuis le matin
+même, c'est faux : un essai expiré ferme l'écriture LE JOUR MÊME — la date
+suffit, aucun traitement de nuit n'intervient. Elle refaisait par ailleurs le
+calcul du montant de son côté (`max(0, n-1) × 5,99`), en parallèle de
+`etat_abonnement` : deux additions du même montant finissent toujours par
+diverger.
+
+La page lit désormais `etat_abonnement`, annonce ce qui arrive AVANT que ça
+n'arrive (« passé cette date, le compte passe en lecture seule »), décompte les
+derniers jours quand il en reste sept ou moins, et, une fois le compte fermé,
+dit ce qui reste possible : tout consulter, tout exporter, y compris le journal
+de gestion. Un test garde la phrase retirée.
+

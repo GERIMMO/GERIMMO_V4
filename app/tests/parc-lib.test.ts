@@ -112,8 +112,19 @@ describe("cibleBlocage", () => {
     expect(c.libelle).toMatch(/clé/i);
   });
 
-  it("renvoie l'ERP vers la fiche bien et le DPE vers la fiche lot", () => {
-    expect(cibleBlocage("ERP absent ou expiré", ctx).href).toBe(`${bien}#diagnostics`);
+  // L'ERP est rattaché au BIEN, mais il se dépose depuis les deux fiches :
+  // `deposerDiagnostic` range le dépôt d'après le référentiel, pas d'après la
+  // page. Depuis le 11/09 la cible suit donc la page où l'on se trouve, pour
+  // ne pas faire quitter la fiche lot — le seul écran du lot unique de 90 % du
+  // parc — le temps d'un dépôt qu'elle sait recevoir.
+  it("l'ERP se dépose sans quitter la page ; le DPE reste au lot", () => {
+    // sur la fiche bien : sa propre section diagnostics
+    expect(cibleBlocage("ERP absent ou expiré", ctx, bien).href).toBe(`${bien}#diagnostics`);
+    // sur la fiche lot : la section « Diagnostics de l'immeuble »
+    expect(cibleBlocage("ERP absent ou expiré", ctx, lot).href).toBe(`${lot}#diagnostics-immeuble`);
+    // sans page connue (tableau de bord, action serveur) : la fiche lot, où se
+    // règle tout le reste
+    expect(cibleBlocage("ERP absent ou expiré", ctx).href).toBe(`${lot}#diagnostics-immeuble`);
     expect(cibleBlocage("DPE absent ou expiré", ctx).href).toBe(`${lot}#diagnostics`);
   });
 

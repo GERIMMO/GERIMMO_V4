@@ -70,7 +70,9 @@ export function LignesDiagnostics({
         return (
           <li key={type} className="py-2.5">
             <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="min-w-0 flex-1 truncate font-medium">
+              {/* min-w-[9rem] : sur écran étroit, les badges passent à la ligne
+                  au lieu de compresser le libellé (seule identification) */}
+              <span className="min-w-[9rem] flex-1 font-medium">
                 {TYPES_DIAGNOSTIC[type]?.libelle ?? type}
                 {!obligatoire && (
                   <span className="ml-1.5 text-xs font-normal text-muted-foreground">

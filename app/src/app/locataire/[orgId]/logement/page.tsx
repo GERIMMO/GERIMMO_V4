@@ -4,6 +4,7 @@ import { TYPES_BAIL } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { CarteConge } from "./carte-conge";
+import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import type { BailLocataire } from "../types";
 
 export const metadata = { title: "Mon logement — Gerimmo" };
@@ -17,11 +18,11 @@ export default async function PageLogementLocataire(
   const { supabase } = await verifierAccesEspaceLocataire(orgId);
 
   const [
-    { data: baux },
-    { data: depotRows },
-    { data: infosRows },
-    { data: intentions },
-    { data: edlRows },
+    { data: baux, error: eBaux },
+    { data: depotRows, error: eDepot },
+    { data: infosRows, error: eInfos },
+    { data: intentions, error: eIntentions },
+    { data: edlRows, error: eEdl },
   ] =
     await Promise.all([
       supabase.rpc("mon_bail_locataire", { p_org: orgId }),
@@ -36,15 +37,21 @@ export default async function PageLogementLocataire(
     encaisse: number;
   }[])[0];
 
+  // « Aucun bail actif » est la phrase la plus lourde de l'espace : elle ne
+  // doit jamais tomber sur une simple lecture ratée (relevé 11/09).
   if (!bail) {
     return (
       <div className="space-y-4">
         <h1>Mon logement</h1>
         <div className="loc-carte">
-          <p className="text-sm text-muted-foreground">
-            Aucun bail actif — votre logement apparaîtra ici dès la signature de
-            votre bail.
-          </p>
+          {aEchoue(eBaux) ? (
+            <LectureImpossible quoi="votre logement" />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Aucun bail actif — votre logement apparaîtra ici dès la signature
+              de votre bail.
+            </p>
+          )}
         </div>
       </div>
     );
@@ -59,7 +66,18 @@ export default async function PageLogementLocataire(
 
   return (
     <div className="space-y-4">
-      <h1>Mon logement</h1>
+      <div className="entete-page">
+        <h1>Mon logement</h1>
+        {bail.etat === "preavis" && (
+          // La date de fin est déjà dite deux fois plus bas (ligne « Bail » et
+          // carte de congé) : le bandeau n'en rajoute pas une troisième.
+          <span className="loc-tag ambre">Préavis en cours</span>
+        )}
+      </div>
+
+      {aEchoue(eDepot, eInfos, eIntentions, eEdl) && (
+        <PanneLecture quoi="le détail de votre logement" />
+      )}
 
       <div className="loc-carte">
         <div className="flex flex-wrap items-center gap-4">
@@ -102,7 +120,7 @@ export default async function PageLogementLocataire(
           </div>
           <div className="ligne-info">
             <span>Loyer</span>
-            <span className="text-right">
+            <span className="montant text-right">
               {eur(Number(bail.loyer_hc ?? 0))} + {eur(Number(bail.charges ?? 0))} de{" "}
               {forfait ? "forfait" : "provision"} de charges
             </span>
@@ -110,7 +128,7 @@ export default async function PageLogementLocataire(
           {depot && Number(depot.depot_du) > 0 && (
             <div className="ligne-info">
               <span>Dépôt de garantie</span>
-              <span className="text-right">
+              <span className="montant text-right">
                 {eur(Number(depot.encaisse))}
                 {Number(depot.encaisse) < Number(depot.depot_du)
                   ? ` versé sur ${eur(Number(depot.depot_du))}`
@@ -203,11 +221,11 @@ export default async function PageLogementLocataire(
                   <span>État des lieux {e.type === "entree" ? "d'entrée" : "de sortie"}</span>
                   <span className="text-right">
                     {e.etat === "signe" ? (
-                      <span className="puce puce-loue">
+                      <span className="loc-tag vert">
                         signé{e.signe_le ? ` le ${formaterDate(e.signe_le)}` : ""}
                       </span>
                     ) : (
-                      <span className="puce puce-prep">
+                      <span className="loc-tag ambre">
                         en préparation{e.date_edl ? ` — prévu le ${formaterDate(e.date_edl)}` : ""}
                       </span>
                     )}

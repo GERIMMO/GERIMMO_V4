@@ -1,7 +1,7 @@
 "use client";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import {
   creerAppelCharges,
   ajouterPosteCharge,
@@ -174,6 +174,7 @@ function FormCreerAppel({
     creerAppelCharges.bind(null, orgId, bienId, lotId),
     {}
   );
+  const idDocument = useId();
   return (
     <form action={action} className="space-y-2 rounded-lg border border-dashed border-border p-3">
       <p className="text-sm font-medium">Saisir un appel de charges</p>
@@ -192,8 +193,16 @@ function FormCreerAppel({
           <Input id="ac-total" name="total" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.total} className="h-9 w-32" />
         </div>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
+      <div className="flex flex-wrap items-end gap-2">
+        {/* Les trois champs de la rangée du dessus portent un libellé visible :
+            celui-ci fait de même, sur sa propre ligne, au-dessus du champ — le
+            bouton reste à sa place. */}
+        <div className="space-y-1">
+          <Label htmlFor={idDocument} className="text-xs">
+            Appel du syndic à joindre
+          </Label>
+          <Input id={idDocument} name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
+        </div>
         <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
           {"Créer l'appel"}
         </BoutonEnvoi>
@@ -221,11 +230,22 @@ function FormAjouterPoste({
     ajouterPosteCharge.bind(null, orgId, bienId, lotId, appelId),
     {}
   );
+  // Rangée compacte (deux champs + bouton) : un libellé visible la casserait,
+  // les libellés n'existent donc que pour la synthèse vocale. Identifiants
+  // tirés de useId() — la page aligne un formulaire par appel de charges.
+  const idLibelle = useId();
+  const idMontant = useId();
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
-      <Input name="libelle" placeholder="Poste (ex. ascenseur — entretien)" defaultValue={etat.valeurs?.libelle} className="h-9 w-64" />
-      <Input name="montant" type="number" step="0.01" min="0.01" placeholder="€" defaultValue={etat.valeurs?.montant} className="h-9 w-24" />
+      <Label htmlFor={idLibelle} className="sr-only">
+        Intitulé du poste de charge
+      </Label>
+      <Input id={idLibelle} name="libelle" placeholder="Poste (ex. ascenseur — entretien)" defaultValue={etat.valeurs?.libelle} className="h-9 w-64" />
+      <Label htmlFor={idMontant} className="sr-only">
+        Montant du poste, en euros
+      </Label>
+      <Input id={idMontant} name="montant" type="number" step="0.01" min="0.01" placeholder="€" defaultValue={etat.valeurs?.montant} className="h-9 w-24" />
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
         Ajouter le poste
       </BoutonEnvoi>
@@ -249,10 +269,19 @@ function FormQualifierPoste({
     modifierPosteCharge.bind(null, orgId, bienId, lotId, poste.id),
     {}
   );
+  // Identifiant tiré de useId() : cette ligne se répète une fois par poste.
+  const idNature = useId();
   return (
     <form action={action} className="mt-1 flex flex-wrap items-center gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
+      {/* Le poste entre dans le libellé : la page en aligne une par ligne, et
+          la liste des contrôles d'un lecteur d'écran répétait « Nature de la
+          charge » à l'identique, sans rien qui dise de quel poste il s'agit. */}
+      <Label htmlFor={idNature} className="sr-only">
+        Nature de la charge — {poste.libelle}
+      </Label>
       <select
+        id={idNature}
         name="nature"
         defaultValue={etat.valeurs?.nature ?? poste.nature}
         className="h-7 rounded-md border border-input bg-transparent px-1 text-xs"
@@ -261,8 +290,10 @@ function FormQualifierPoste({
         <option value="non_recuperable">Non récupérable</option>
         <option value="a_qualifier">À qualifier</option>
       </select>
-      <label className="flex items-center gap-1 text-xs">
-        <input type="checkbox" name="fonds_alur" defaultChecked={etat.valeurs ? etat.valeurs.fonds_alur === "on" : poste.fonds_alur} className="size-3.5" />
+      {/* Au tactile, c'est le label entier qui sert de cible (la case seule
+          fait 14px — le socle n'agrandit pas les checkboxes) */}
+      <label className="flex items-center gap-1 text-xs pointer-coarse:gap-2 pointer-coarse:py-3">
+        <input type="checkbox" name="fonds_alur" defaultChecked={etat.valeurs ? etat.valeurs.fonds_alur === "on" : poste.fonds_alur} className="size-3.5 pointer-coarse:size-5" />
         fonds ALUR
       </label>
       <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-xs">

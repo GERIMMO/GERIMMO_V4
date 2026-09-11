@@ -213,9 +213,15 @@ export function ChampsBail({
         </Modale>
       )}
       {/* Recette 21/08 : la date d'entrée n'avait aucun champ — elle tombait
-          au jour du clic « Activer », faussant l'échéancier. */}
+          au jour du clic « Activer », faussant l'échéancier.
+          Audit 11/09 : c'est une MENTION OBLIGATOIRE du contrat (date de prise
+          d'effet, rubriques 1 et 4 du modèle-type — wiki « Mentions
+          obligatoires du bail »). Pas d'attribut `required` pour autant : un
+          brouillon incomplet est le geste normal, c'est le bail qu'on prépare.
+          L'exigence vit à l'activation, en base — l'étoile prévient, la fiche
+          nomme ce qui manque, le dépôt du PDF signé refuse. */}
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-debut`}>Date d&apos;entrée</Label>
+        <Label htmlFor={`${prefixe}-debut`}>Date d&apos;entrée *</Label>
         <Input
           id={`${prefixe}-debut`}
           name="date_debut"
@@ -234,8 +240,11 @@ export function ChampsBail({
           defaultValue={valeurs?.jour_echeance ?? defauts.jour_echeance ?? 1}
         />
       </div>
+      {/* Mention obligatoire elle aussi (rubrique 5 : « montant HC ») — même
+          traitement que la date d'entrée. Sans loyer, tout ce qui suit est
+          faux : les appels de loyer sortaient à 0,00 € (audit 11/09). */}
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-loyer`}>Loyer HC (€)</Label>
+        <Label htmlFor={`${prefixe}-loyer`}>Loyer HC (€) *</Label>
         <Input
           id={`${prefixe}-loyer`}
           name="loyer_hc"
@@ -306,6 +315,11 @@ export function ChampsBail({
         />
         <Label htmlFor={`${prefixe}-revision`}>Clause de révision annuelle (IRL)</Label>
       </div>
+      <p className="text-xs text-muted-foreground sm:col-span-2">
+        * Mentions obligatoires du contrat. Le brouillon s&apos;enregistre sans
+        elles, mais le bail ne s&apos;activera pas au dépôt du PDF signé tant
+        qu&apos;elles manquent.
+      </p>
     </div>
   );
 }

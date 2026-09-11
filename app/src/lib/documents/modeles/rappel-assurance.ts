@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, blocSignatureEmetteur, cartouches, enTete, faitA, formaterDateFr, titre } from "../gabarit";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { adresseOrganisation, nomPersonne, referenceCourte, signatureOrganisation, type PersonneDocument } from "./communs";
+import { adresseOrganisation, nomPersonne, referenceCourte, signatureOrganisation } from "./communs";
 import type { Assemblage } from "./index";
 
 export type DonneesRappelAssurance = {

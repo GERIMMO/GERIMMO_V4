@@ -6,9 +6,11 @@ import { headers } from "next/headers";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { envoyerEmail } from "@/lib/email";
+import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
 import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
+import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 
 export type EtatLoyers = {
   erreur?: string;
@@ -48,25 +50,23 @@ export async function envoyerQuittance(
   }[])[0];
   if (!q) return { erreur: "Quittance introuvable." };
 
-  const mois = new Date(q.periode).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const origine = (await headers()).get("origin") ?? "";
-  const lien = `${origine}/quittance/${quittanceId}`;
-  const titre = q.est_quittance ? "Quittance de loyer" : "Reçu de paiement";
-  const html = `
-    <div style="font-family:sans-serif;font-size:14px;color:#111">
-      <h2>${titre} — ${mois}</h2>
-      <p>Bonjour${loc.prenom ? " " + loc.prenom : ""},</p>
-      <p>Veuillez trouver votre ${titre.toLowerCase()} de <strong>${mois}</strong> :</p>
-      <ul>
-        <li>Loyer hors charges : ${eur(q.loyer_hc)}</li>
-        <li>Provision pour charges : ${eur(q.charges)}</li>
-        <li><strong>Total : ${eur(q.montant)}</strong></li>
-      </ul>
-      <p><a href="${lien}">Consulter / imprimer le document</a></p>
-      <p>— ${q.emetteur}</p>
-    </div>`;
+  // Le corps vit dans lib/quittance-email : la tâche planifiée envoie le même
+  // document, et deux mises en forme pour une même quittance ne s'expliquent
+  // pas au locataire qui la conserve.
+  const message = {
+    estQuittance: q.est_quittance,
+    periode: q.periode,
+    loyerHc: q.loyer_hc,
+    charges: q.charges,
+    montant: q.montant,
+    emetteur: q.emetteur,
+    prenom: loc.prenom,
+    lien: `${origine}/quittance/${quittanceId}`,
+  };
+  const html = corpsQuittance(message);
 
-  const envoi = await envoyerEmail({ to: loc.email, subject: `${titre} — ${mois}`, html });
+  const envoi = await envoyerEmail({ to: loc.email, subject: sujetQuittance(message), html });
   if (envoi.erreur) {
     console.error("[quittance email] échec:", envoi.erreur);
     return { erreur: envoi.erreur };
@@ -195,6 +195,15 @@ export async function ajouterEncaissement(
   const date = String(formData.get("date_paiement") ?? "").trim() || null;
   const mode = String(formData.get("mode") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
+
+  // L'état d'AVANT, lu avant l'écriture : la couverture des termes n'est
+  // stockée nulle part (etat_loyers_bail la recalcule depuis le total
+  // encaissé), donc seul l'écart avant/après dit où l'argent est allé.
+  const { data: lignesAvant, error: erreurAvant } = await supabase.rpc("etat_loyers_bail", {
+    p_bail: bailId,
+  });
+  if (erreurAvant) return { erreur: sansJargon(erreurAvant.message), valeurs };
+
   const { error } = await supabase.from("encaissements").insert({
     organization_id: orgId,
     bail_id: bailId,
@@ -206,38 +215,63 @@ export async function ajouterEncaissement(
   if (error) return { erreur: sansJargon(error.message), valeurs };
   // L'encaissement déclenche tout : reçu du montant réglé sur un paiement
   // partiel, promu en quittance quand le mois se solde — sans clic de plus.
+  // (Le déclencheur en base l'a déjà fait pendant l'INSERT : cet appel est un
+  // filet, ses compteurs valent 0 et ne peuvent pas servir de compte rendu.)
   const emission = await emettreRecusQuittances(supabase, bailId);
+  const { data: lignesApres, error: erreurApres } = await supabase.rpc("etat_loyers_bail", {
+    p_bail: bailId,
+  });
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // L'encaissement écrit au journal (loyer + honoraires) : la compta suit.
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  if (emission.erreur)
+  if (erreurApres)
     return {
-      succes: `Encaissement enregistré — mais le reçu ou la quittance n'a pas pu être émis : ${emission.erreur}`,
+      succes: `Encaissement enregistré — l'imputation n'a pas pu être relue : ${sansJargon(erreurApres.message)}`,
     };
-  return {
-    succes: `Encaissement enregistré · ${libelleEmission(emission.quittances, emission.recus)}.`,
-  };
+  const compteRendu = compteRenduEncaissement(
+    montant,
+    (lignesAvant ?? []) as EtatAppel[],
+    (lignesApres ?? []) as EtatAppel[]
+  );
+  if (emission.erreur)
+    return { succes: `${compteRendu} Rattrapage des documents en échec : ${emission.erreur}` };
+  return { succes: compteRendu };
 }
 
+// Supprimer un encaissement, c'est CORRIGER le journal : la suppression
+// contre-passe automatiquement les écritures déjà écrites (RM-A6.3 —
+// l'écriture ne se modifie pas, on supprime et on ressaisit). Une correction
+// comptable porte le motif de son auteur (RM-A6.6, règle bloquante du
+// livrable A6) : on le collecte ici, comme la justification d'imputation d'un
+// incident, et on le passe à la base, qui l'inscrit sur la contre-écriture.
 export async function supprimerEncaissement(
   orgId: string,
   bailId: string,
-  encId: string
+  encId: string,
+  formData?: FormData
 ): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase
-    .from("encaissements")
-    .delete()
-    .eq("id", encId)
-    .eq("organization_id", orgId);
+  const motif = String(formData?.get("motif") ?? "").trim();
+  if (!motif) {
+    return {
+      erreur: "Dites pourquoi vous retirez cet encaissement : le motif reste au journal.",
+    };
+  }
+  const { error } = await supabase.rpc("supprimer_encaissement", {
+    p_encaissement: encId,
+    p_motif: motif,
+  });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: "Encaissement supprimé." };
+  return { succes: "Encaissement supprimé — le motif est inscrit au journal." };
 }
 
 // Réviser le loyer selon l'IRL (clause requise, DPE F/G bloqué, prescription 1 an).
+// L'indice de RÉFÉRENCE n'est pas saisi ici : il est figé au bail à sa signature
+// (RM-3.8.2) et la base le lit elle-même. Seul l'indice du trimestre de révision,
+// saisi par l'admin d'agence (RM-3.8.3), est fourni.
 export async function reviserLoyer(
   orgId: string,
   bailId: string,
@@ -247,13 +281,12 @@ export async function reviserLoyer(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const ref = Number(String(formData.get("irl_reference") ?? "").trim());
   const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim());
   const dateEffet = String(formData.get("date_effet") ?? "").trim();
-  if (!ref || !nouv || !dateEffet) return { erreur: "Indices IRL et date d'effet obligatoires.", valeurs };
+  if (!nouv || !dateEffet)
+    return { erreur: "Indice IRL du trimestre et date d'effet obligatoires.", valeurs };
   const { data, error } = await supabase.rpc("reviser_loyer", {
     p_bail: bailId,
-    p_irl_reference: ref,
     p_irl_nouveau: nouv,
     p_date_effet: dateEffet,
   });

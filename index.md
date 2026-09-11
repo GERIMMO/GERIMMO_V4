@@ -49,7 +49,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Garantie]] — caution solidaire (acte Yousign) et garanties externes.
 - [[Comptabilité]] — déclarative de caisse ; écritures 2 dates, clôture verrouillante.
 - [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher.
-- [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent.
+- [[Journal éditorial]] — le journal public et son **moteur de propositions** : huit veines ancrées sur le wiki, un angle et un plan, jamais un chiffre inventé.
+- [[Incident]] — désordre signalé ; l'imputation (qui paie) tranchée par l'agent, **requalifiable** depuis le 23/08 pour répondre à une contestation sans clôturer (contredit RM-7.5.3, à trancher).
 - [[Devis]] — 2 max, validité 30 j, accord du mandant au-delà du seuil.
 - [[Intervention]] — mission de l'artisan ; compte rendu + photo obligatoires.
 - [[Document]] — GED sans arborescence ; le type pilote droits et conservation.
@@ -119,6 +120,10 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
 
 ## Synthèses
+- [[Audit et point santé du 11 septembre 2026]] — **le point de fin de chantier** : 107 pages mesurées au navigateur, 3 requêtes que PostgREST refusait (dont la veille DPE, en silence), la charte qui battait 60 utilitaires, les 4 parcours recomptés dans le code ; 10 points à trancher par un humain.
+- [[Proposition de valeur]] — **l'énoncé fondateur (2026-09-10)** : faire le travail d'une agence, en mieux, plus vite, moins cher ; conséquences sur les priorités.
+- [[État des lieux du design et des parcours]] — **relevé du 11/09** : 254 trouvailles, l'incohérence domine ; les parcours chiffrés en clics ; les écrans qui promettent ce que la base refuse. ⚠ Ses nombres de clics sont **contredits** par la marche dans le code du même jour (callout en tête de section).
+- [[Audit du 10 septembre 2026]] — **audit complet** : 2 failles d'étanchéité inter-agences et 1 P0 documentaire corrigés, durcissement du journal, 89 défauts mobiles ; 4 points à trancher.
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).
 - [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.
 - [[Modèle de données]] — schéma du code + cible socle V3.
@@ -137,7 +142,9 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 ## Livrables (dossier `livrables/` — projets de documents)
 - [[Contrat de sous-traitance RGPD (modele)|Contrat de sous-traitance RGPD]] — annexe art. 28 des contrats d'agence (matrice A2, mesures A4, sous-traitants).
 - [[Politique de confidentialite (projet)|Politique de confidentialité]] — traitements plateforme, droits, transfert Meta.
-- [[Article CGU - journal de gestion (projet)|Article CGU « journal de gestion »]] — traduit la doctrine A6 en clause contractuelle.
+- [[Conditions generales d'utilisation (projet)|Conditions générales d'utilisation]] — **le contrat que l'inscription fait accepter depuis toujours, et qui n'existait pas** (11/09) : 17 articles, alignés sur ce que le produit fait réellement. Non publiable en l'état.
+- [[Mentions legales (projet)|Mentions légales]] — **obligation légale non remplie** (11/09) : éditeur, hébergeurs, médiation. Les faits d'entreprise restent à fournir.
+- [[Article CGU - journal de gestion (projet)|Article CGU « journal de gestion »]] — traduit la doctrine A6 en clause contractuelle ; repris à l'article 4 des CGU.
 - [[AIPD - Score artisan (projet)|AIPD — Score artisan]] — analyse d'impact du profilage artisan (art. 35 RGPD).
 - [[Plan de livraison et sprints]] — **le plan de référence** : 16 sprints, V0 mi-décembre 2026, V1 fin mars 2027.
 - [[Reste a faire V0 - sprints et ecarts maquette|Reste à faire V0]] — détail fin S8/S9b + inventaire des écarts maquette ↔ app du 26/08 ; S9a et « Alertes & documents » livrés le 30/08 (§3, §5 bis).

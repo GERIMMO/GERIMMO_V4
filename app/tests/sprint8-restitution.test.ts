@@ -104,16 +104,25 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
     return lot;
   }
 
-  async function bailAvecDepot(depot: number): Promise<string> {
+  // Le dépôt d'un bail nu est plafonné à 1 mois de loyer hors charges
+  // (RM-2.1.1, trigger plafond_depot_garantie sur public.baux) : le loyer HC
+  // du bail de test suit donc le dépôt voulu, sauf mention contraire.
+  async function bailAvecDepot(depot: number, loyerHc: number = depot): Promise<string> {
     const lot = await lotLouable();
     const {
       rows: [{ id: bail }],
     } = await db.query(
       `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc)
-       values ($1,$2,$3,$4,700) returning id`,
-      [orgA, lot, locataire, depot]
+       values ($1,$2,$3,$4,$5) returning id`,
+      [orgA, lot, locataire, depot, loyerHc]
     );
     return bail;
+  }
+
+  // Le décompte de restitution part du dépôt RÉELLEMENT ENCAISSÉ
+  // (demarrer_restitution, audit 09/09) : un dépôt jamais versé ne se rend pas.
+  async function encaisserDepot(bail: string, montant: number): Promise<void> {
+    await db.query(`select public.encaisser_depot($1,$2,current_date,'virement',null,null)`, [bail, montant]);
   }
 
   async function edlEntreeSignee(bail: string): Promise<void> {
@@ -129,7 +138,9 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
   }
 
   it("décote linéaire, impayés imputés d'abord, solde et alerte à la finalisation", async () => {
+    // Loyer HC de 900 → un dépôt d'1 mois à 900 respecte le plafond (RM-2.1.1)
     const bail = await bailAvecDepot(900);
+    await encaisserDepot(bail, 900);
     await edlEntreeSignee(bail);
     // 800 dus, 500 payés → 300 d'impayés (appels générés hors RLS)
     await db.query("reset role");
@@ -180,6 +191,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
 
   it("sans état des lieux d'entrée : aucune retenue possible (restitution intégrale)", async () => {
     const bail = await bailAvecDepot(700);
+    await encaisserDepot(bail, 700);
     const {
       rows: [{ id: rst }],
     } = await db.query(`select public.demarrer_restitution($1,current_date,false) as id`, [bail]);
@@ -202,12 +214,45 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
   });
 
   it("encaissement du dépôt : plafond légal bloquant (bail nu = 1 mois)", async () => {
-    // loyer_hc 700, bail nu → plafond 700 ; dépôt de 900 refusé
-    const bail = await bailAvecDepot(900);
+    // loyer_hc 700, bail nu → plafond 700 ; dépôt de 900 refusé. Le plafond est
+    // gardé au plus près de la donnée (trigger plafond_depot_garantie) : le bail
+    // hors plafond ne s'écrit pas, donc rien d'hors plafond ne s'encaisse.
+    const lot = await lotLouable();
     await attendreEchec(
       db,
-      /plafond légal/,
+      /maximum 1 mois de loyer hors charges/,
+      `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc)
+       values ($1,$2,$3,900,700)`,
+      [orgA, lot, locataire]
+    );
+
+    // Au plafond, le bail existe — et l'encaissement reste borné à ce plafond
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc)
+       values ($1,$2,$3,700,700) returning id`,
+      [orgA, lot, locataire]
+    );
+    await attendreEchec(
+      db,
+      /dépasse le dépôt dû restant/,
       `select public.encaisser_depot($1,900,current_date,'virement',null,null)`,
+      [bail]
+    );
+    const {
+      rows: [{ cumul }],
+    } = await db.query(
+      `select public.encaisser_depot($1,700,current_date,'virement',null,null) as cumul`,
+      [bail]
+    );
+    expect(Number(cumul)).toBe(700);
+
+    // Et le plafond tient aussi après coup : le dépôt ne peut pas être relevé
+    await attendreEchec(
+      db,
+      /maximum 1 mois de loyer hors charges/,
+      `update public.baux set depot_garantie=900 where id=$1`,
       [bail]
     );
   });

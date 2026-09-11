@@ -83,6 +83,16 @@
   --texte-secondaire: #4a4844;
   --libelle: #6e675a;
 
+  /* Nuances dérivées — promues en jetons le 2026-09-11.
+     Elles vivaient en dur dans les règles ci-dessous (20 occurrences). La
+     marque blanche (module 17) veut que TOUTE couleur soit personnalisable :
+     une valeur écrite en dur dans une règle échappe à la personnalisation
+     d'agence, et personne ne pense à aller la chercher. */
+  --survol: #fcfaf5;          /* fond d'un rang survolé ou actif */
+  --survol-critique: #f9e0e0; /* le même, sur un rang critique */
+  --encre-profond: #0d2036;   /* bas du dégradé de la barre latérale */
+  --or-sombre: #b08d3e;       /* début du dégradé de l'entrée active */
+
   /* Crèmes et fonds */
   --creme: #faf7f0;           /* fond de page */
   --ivoire: #ffffff;          /* fond des cartes */
@@ -245,6 +255,44 @@
 }
 
 /* Charte — libellé de champ : Plex Mono, capitales, interlettrage 0.18em */
+/* ------------------------------------------------------------------ */
+/* Hors couche, à dessein : ces deux règles corrigent un composant      */
+/* tiers (la carte shadcn, qui embarque `rounded-xl` dans son propre    */
+/* className). Placées dans `components`, l'utilitaire du composant     */
+/* l'emportait et les 38 cartes de l'application reprenaient un arrondi */
+/* de 8,4 px — la maquette les veut presque vives (relevé du 11/09).    */
+/* C'est le seul cas où rester hors couche se justifie : on ne corrige  */
+/* pas ici un défaut de charte, on rattrape un style qu'on ne peut pas  */
+/* éditer.                                                             */
+/* ------------------------------------------------------------------ */
+/* Charte 04 — mouvement : aucune ombre au repos ; au survol d'un élément
+   cliquable, translation de 2 px et ombre très douce. Jamais de rebond. */
+a:hover > [data-slot="card"] {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 10px oklch(0% 0 0 / 0.05);
+}
+[data-slot="card"] {
+  transition: transform 0.17s ease, box-shadow 0.17s ease;
+  /* Maquette : cartes presque vives, l'arrondi reste aux boutons */
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Les classes de la charte vivent dans la couche `components`.        */
+/*                                                                     */
+/* Écrites hors couche, elles battaient TOUTES les utilitaires         */
+/* Tailwind — une règle sans couche l'emporte sur n'importe quelle     */
+/* règle en couche, quelle que soit sa spécificité. Le relevé du 11/09 */
+/* a compté 60 utilitaires ainsi rendus muets : `hidden` sur .barre    */
+/* (l'élément restait visible), `px-4` sur .section-vitrine, et        */
+/* `text-[var(--or)]` sur .eyebrow — d'où un sur-titre gris ardoise    */
+/* sur fond encre, à 2,39:1, là où le laiton était demandé.            */
+/*                                                                     */
+/* Dans la couche, l'ordre voulu revient : la charte pose le défaut,   */
+/* l'utilitaire décide au cas par cas. Toute classe ajoutée ici doit   */
+/* rester DANS la couche.                                             */
+/* ------------------------------------------------------------------ */
+@layer components {
 .libelle-champ {
   font-family: var(--font-libelles), ui-monospace, monospace;
   font-size: 0.5625rem; /* 9 px */
@@ -261,17 +309,6 @@
   text-transform: uppercase;
 }
 
-/* Charte 04 — mouvement : aucune ombre au repos ; au survol d'un élément
-   cliquable, translation de 2 px et ombre très douce. Jamais de rebond. */
-a:hover > [data-slot="card"] {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 10px oklch(0% 0 0 / 0.05);
-}
-[data-slot="card"] {
-  transition: transform 0.17s ease, box-shadow 0.17s ease;
-  /* Maquette : cartes presque vives, l'arrondi reste aux boutons */
-  border-radius: 2px;
-}
 
 /* Charte — chiffre clé : Cormorant ~29 px (maquette .kpi .chiffre) */
 .chiffre-cle {
@@ -377,9 +414,9 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   transition: background 0.15s;
 }
 .rang-alerte:last-child { border-bottom: none; }
-.rang-alerte:hover { background: #fcfaf5; }
+.rang-alerte:hover { background: var(--survol); }
 .rang-alerte.critique { border-left-color: var(--destructive); background: var(--destructive-soft); }
-.rang-alerte.critique:hover { background: #f9e0e0; }
+.rang-alerte.critique:hover { background: var(--survol-critique); }
 .rang-alerte.normale { border-left-color: var(--warning); }
 .rang-alerte .niveau {
   font-family: var(--font-libelles), ui-monospace, monospace;
@@ -438,7 +475,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   align-items: center;
   gap: 6px;
   background: var(--or);
-  color: #412402;
+  color: var(--sur-or);
   font-size: 13px;
   font-weight: 500;
   padding: 7px 14px;
@@ -465,7 +502,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   transition: background 0.15s, border-color 0.15s;
 }
 .rang:last-child { border-bottom: none; }
-.rang:hover { background: #fcfaf5; border-left-color: var(--encre); }
+.rang:hover { background: var(--survol); border-left-color: var(--encre); }
 .rang b { font-size: 13.5px; font-weight: 500; }
 .rang small { font-size: 11.5px; color: var(--texte-secondaire); }
 
@@ -517,9 +554,9 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   width: 1px;
   background: var(--filet);
 }
-.rang-lot:hover { background: #fcfaf5; border-left-color: var(--encre); }
+.rang-lot:hover { background: var(--survol); border-left-color: var(--encre); }
 /* Sélection ouverte dans le panneau (maquette .actif) : liseré laiton, fond crème */
-.rang.actif, .rang-lot.actif { background: #fcfaf5; border-left-color: var(--or); }
+.rang.actif, .rang-lot.actif { background: var(--survol); border-left-color: var(--or); }
 .tete-groupe.actif { box-shadow: inset 3px 0 0 var(--or); }
 
 /* ——— Espace locataire — montée en gamme (maquette v10 du 05/09) ———
@@ -528,7 +565,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
    seuls les galbes changent, pas les couleurs (marque blanche intacte). */
 .loc-app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100dvh; }
 .loc-late {
-  background: linear-gradient(180deg, var(--encre), #0d2036);
+  background: linear-gradient(180deg, var(--encre), var(--encre-profond));
   color: var(--sur-encre);
   display: flex;
   flex-direction: column;
@@ -541,7 +578,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   align-items: center;
   gap: 11px;
   padding: 18px 18px 15px;
-  border-bottom: 1px solid rgba(245, 239, 227, 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--sur-encre) 8%, transparent);
 }
 .loc-menu { padding: 14px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; }
 .loc-menu a {
@@ -550,14 +587,14 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   gap: 12px;
   padding: 10px 13px;
   border-radius: 10px;
-  color: rgba(245, 239, 227, 0.78);
+  color: color-mix(in srgb, var(--sur-encre) 78%, transparent);
   font-size: 13.5px;
   position: relative;
   transition: background 0.15s, color 0.15s;
 }
-.loc-menu a:hover { background: rgba(245, 239, 227, 0.06); }
+.loc-menu a:hover { background: color-mix(in srgb, var(--sur-encre) 6%, transparent); }
 .loc-menu a.actif {
-  background: linear-gradient(90deg, #b08d3e, var(--or));
+  background: linear-gradient(90deg, var(--or-sombre), var(--or));
   color: var(--encre);
   font-weight: 600;
 }
@@ -565,7 +602,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-badge {
   margin-left: auto;
   background: var(--destructive);
-  color: #fff;
+  color: var(--ivoire);
   font-size: 10.5px;
   font-weight: 600;
   min-width: 18px;
@@ -578,14 +615,14 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 }
 .loc-late-bas {
   padding: 14px 16px;
-  border-top: 1px solid rgba(245, 239, 227, 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--sur-encre) 8%, transparent);
   font-size: 12px;
-  color: rgba(245, 239, 227, 0.55);
+  color: color-mix(in srgb, var(--sur-encre) 55%, transparent);
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
-.loc-late-bas a, .loc-late-bas button { color: rgba(245, 239, 227, 0.75); text-align: left; font-size: 12.5px; }
+.loc-late-bas a, .loc-late-bas button { color: color-mix(in srgb, var(--sur-encre) 75%, transparent); text-align: left; font-size: 12.5px; }
 .loc-late-bas a:hover, .loc-late-bas button:hover { color: var(--sur-encre); }
 .loc-haut {
   background: var(--carte);
@@ -616,7 +653,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-carte {
   background: var(--carte);
   border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(20, 48, 79, 0.06), 0 6px 18px rgba(20, 48, 79, 0.05);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 6%, transparent), 0 6px 18px color-mix(in srgb, var(--encre) 5%, transparent);
   padding: 20px;
 }
 .loc-grille { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
@@ -633,7 +670,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-tag.vert { background: var(--success-soft); color: var(--success-soft-foreground); }
 .loc-tag.ambre { background: var(--warning-soft); color: var(--warning-soft-foreground); }
 .loc-tag.rouge { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
-.loc-tag.bleu { background: var(--ardoise); color: var(--bleu); }
+.loc-tag.bleu { background: var(--ardoise); color: color-mix(in oklab, var(--bleu) 80%, var(--encre)); } /* contraste AA sur ardoise */
 .loc-rond {
   width: 40px;
   height: 40px;
@@ -646,7 +683,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-hero {
   border-radius: 14px;
   background: var(--carte);
-  box-shadow: 0 1px 3px rgba(20, 48, 79, 0.06), 0 6px 18px rgba(20, 48, 79, 0.05);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 6%, transparent), 0 6px 18px color-mix(in srgb, var(--encre) 5%, transparent);
   padding: 22px 24px;
   display: flex;
   align-items: center;
@@ -722,7 +759,13 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   .loc-app { grid-template-columns: minmax(0, 1fr); }
   .loc-late { position: static; height: auto; flex-flow: row wrap; align-items: center; }
   .loc-logo { border-bottom: none; padding: 10px 6px 10px 14px; }
-  .loc-menu { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 4px 10px 10px; }
+  /* min-width: 0 est INDISPENSABLE ici (constat de rendu du 11/09) : sans lui,
+     un élément flex garde min-width:auto et s'élargit à la taille de son
+     contenu — l'`overflow-x: auto` ne défile alors jamais, la barre pousse le
+     document au-delà du viewport, et TOUT ce qui s'aligne sur la largeur du
+     document (à commencer par la modale d'alertes, dont le bouton Fermer
+     sortait de l'écran) devient inatteignable au doigt. */
+  .loc-menu { flex-direction: row; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 4px 10px 10px; }
   .loc-menu a { flex: none; }
   /* Sélecteur d'organisation du propriétaire : sa propre rangée */
   .loc-org { flex: 1 1 100%; padding: 0 14px 4px; }
@@ -730,8 +773,8 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 
 /* Rappel de l'état d'entrée sur la grille d'EDL de sortie (maquette v3) */
 .edl-rappel {
-  background: rgba(20, 48, 79, 0.045);
-  border-left: 3px solid rgba(20, 48, 79, 0.18);
+  background: color-mix(in srgb, var(--encre) 4.5%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--encre) 18%, transparent);
   padding: 8px 12px;
   font-size: 12.5px;
   color: var(--texte-secondaire);
@@ -745,7 +788,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   padding: 6px 9px;
   font-size: 11.5px;
   line-height: 1.5;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 14px oklch(0% 0 0 / 0.18);
 }
 .infobulle::after {
   content: "";
@@ -772,6 +815,20 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+/* WCAG 1.4.1 — un lien NOYÉ DANS UN PARAGRAPHE ne peut pas se signaler par
+   la seule couleur : bleu sur gris, l'écart n'est que de 1,74:1 alors qu'il
+   en faut 3 (relevé du 11/09 : « Écrivez à votre gestionnaire » dans la FAQ
+   locataire, « Console d'administration » dans les journaux). Dans un texte
+   suivi, le lien se souligne. Ailleurs — barres, listes, cartes — un lien
+   isolé n'a pas ce besoin et garde son allure. Un cas particulier se lève
+   avec `no-underline` : depuis que la charte est en couche, l'utilitaire
+   l'emporte. */
+p a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: from-font;
 }
 
 /* Lien discret bleu (maquette .lien-discret) */
@@ -969,4 +1026,269 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   gap: 18px;
   align-items: center;
   flex-wrap: wrap;
+}
+/* ============================================================
+   Socle mobile (audit 2026-09-10) — corrections transverses.
+   Référence : téléphone 390 px, tactile. Chaque bloc règle une
+   famille entière de défauts relevés par l'audit mobile.
+   ============================================================ */
+
+/* iOS Safari zoome toute page dont un champ focalisé est sous 16 px : sur
+   petit écran, tous les contrôles passent à 16 px, quel que soit
+   l'utilitaire text-sm/text-xs posé localement. */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Cibles tactiles : au doigt, les contrôles h-6/h-7/h-8 (24-32 px) montent
+   à 40 px minimum — boutons, entrées, sélecteurs, pastilles de filtre.
+   `.cible-libre` permet à un contrôle décoratif d'y échapper. */
+@media (pointer: coarse) {
+  button:not(.cible-libre),
+  [role="button"],
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 40px;
+  }
+  .filtre { padding: 8px 14px; }
+  .loc-sortie-mobile a,
+  .loc-sortie-mobile button { width: 40px; height: 40px; }
+}
+
+/* Rangées et en-têtes : autoriser le retour à la ligne sur petit écran
+   plutôt que tronquer le titre ou pousser l'action hors cadre. */
+@media (max-width: 640px) {
+  .rang { flex-wrap: wrap; row-gap: 2px; }
+  .entete-carte { flex-wrap: wrap; }
+  /* Les libellés mono 9 px de la charte sont illisibles à bout de bras */
+  .libelle-champ { font-size: 0.65rem; letter-spacing: 0.14em; }
+}
+
+/* Navigation horizontale du petit écran : les libellés reviennent sous les
+   icônes (une icône seule ne se devine pas au doigt), chaque entrée garde
+   une cible confortable, et le défilement interne reste visible. */
+@media (max-width: 640px) {
+  .loc-menu a {
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 9px 6px;
+    min-width: 56px;
+  }
+  .loc-menu .lib {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.01em;
+  }
+  .loc-menu { scrollbar-width: thin; }
+}
+
+/* Vue scindée en mobile : quand un élément est sélectionné, le détail
+   REMPLACE la liste (au lieu d'être rendu des centaines de rangs plus bas,
+   sans aucun retour visuel au tap). Chaque page pose `detail-actif` sur le
+   .split quand une sélection existe, `volet-liste` sur la colonne de liste,
+   et un lien `.retour-liste` en tête de détail. */
+@media (max-width: 900px) {
+  .split.detail-actif > .volet-liste { display: none; }
+}
+.retour-liste { display: none; }
+@media (max-width: 900px) {
+  .retour-liste {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    font-size: 13px;
+    color: var(--bleu);
+  }
+}
+
+/* Tuiles KPI : le chiffre serif 29 px nowrap déborde des colonnes de
+   tablette étroite (640-820 px, grille en 3 colonnes). */
+@media (min-width: 640px) and (max-width: 820px) {
+  .chiffre-cle { font-size: 24px; }
+}
+
+/* Résidus de l'audit mobile sur les éléments transverses (10/09) */
+
+/* Sous 900 px la colonne de liste n'a plus de défilement interne : son
+   en-tête sticky passerait SOUS l'en-tête d'app opaque — on le laisse
+   défiler avec le contenu. */
+@media (max-width: 900px) {
+  .tete-liste { position: static; }
+}
+
+/* Badges de statut 9,5 px : illisibles à bout de bras sur téléphone. */
+@media (max-width: 640px) {
+  .badge-statut { font-size: 0.66rem; }
+}
+
+/* Bande tablette 641-860 px : le rail vertical passait en icônes seules —
+   on l'élargit un peu et on garde les libellés sous les icônes. */
+@media (min-width: 641px) and (max-width: 860px) {
+  .loc-app { grid-template-columns: 78px minmax(0, 1fr); }
+  .loc-menu a { flex-direction: column; gap: 3px; padding: 9px 4px; }
+  .loc-menu .lib {
+    display: block;
+    font-size: 9.5px;
+    letter-spacing: 0.01em;
+    text-align: center;
+  }
+}
+
+/* Demandes transverses des correcteurs de zone (10/09) : les LIENS stylés en
+   bouton (buttonVariants pose la classe littérale group/button, la vitrine
+   utilise .btn-or) échappaient au filet tactile qui ne visait que les
+   contrôles natifs ; .lien-discret gagne une zone de tap décente. */
+@media (pointer: coarse) {
+  a.group\/button,
+  .btn-or {
+    min-height: 40px;
+    align-items: center;
+  }
+  .lien-discret { padding-block: 8px; display: inline-block; }
+}
+}
+
+/* ==================================================================== */
+/* Charte v2.1 — socle ajouté le 2026-09-11                             */
+/* La charte v2 (encre / laiton / crèmes, Cormorant / Instrument /      */
+/* Plex Mono) ne bouge pas. Ce bloc lui donne ce qui lui manquait :     */
+/* une ÉCHELLE nommée, un RYTHME vertical, et trois primitives que      */
+/* chaque écran refaisait à sa façon (tableau, état vide, section).     */
+/* Marque blanche (module 17) : toujours aucune couleur en dur.         */
+/* ==================================================================== */
+
+:root {
+  /* --- Échelle typographique -------------------------------------- */
+  /* Sept degrés, un seul par intention. Les tailles existantes de la
+     maquette sont conservées à l'identique (29 px pour le chiffre clé,
+     11 px pour l'eyebrow) : l'échelle les NOMME au lieu de les répéter
+     en dur d'un écran à l'autre. */
+  --pas-affiche: 2.75rem;   /* 44 px — héros de la vitrine, une fois par page */
+  --pas-titre: 1.8125rem;   /* 29 px — titre de page, chiffre clé */
+  --pas-section: 1.25rem;   /* 20 px — titre de section */
+  --pas-sous-titre: 1rem;   /* 16 px — titre de carte */
+  --pas-corps: 0.875rem;    /* 14 px — corps de texte de l'application */
+  --pas-appui: 0.8125rem;   /* 13 px — mention secondaire */
+  --pas-mention: 0.6875rem; /* 11 px — eyebrow, mono discret */
+
+  /* --- Rythme vertical --------------------------------------------- */
+  /* Une seule suite, multiples de 4. Les écrans piochent dedans au lieu
+     d'inventer un py-11 isolé. */
+  --rythme-1: 0.25rem;  /* 4 px  — dans un rang */
+  --rythme-2: 0.5rem;   /* 8 px  — entre libellé et valeur */
+  --rythme-3: 0.875rem; /* 14 px — dans une carte (padding maquette) */
+  --rythme-4: 1.5rem;   /* 24 px — entre cartes */
+  --rythme-5: 2.5rem;   /* 40 px — entre sections d'un écran */
+  --rythme-6: 4.5rem;   /* 72 px — entre sections de la vitrine */
+
+  /* --- Surfaces ----------------------------------------------------- */
+  /* La charte n'a pas d'ombres au repos : une surface se distingue par
+     son fond et son filet, jamais par une élévation décorative. */
+  --surface-basse: var(--filet-leger);  /* fond en creux, sous une carte */
+  --surface-carte: var(--ivoire);
+  --surface-haute: var(--ivoire);       /* modale, popover */
+  --ombre-portee: 0 2px 10px oklch(0% 0 0 / 0.05);
+  --ombre-flottante: 0 8px 30px oklch(0% 0 0 / 0.10);
+}
+
+/* --- Focus : une seule façon d'être visible au clavier -------------- */
+/* Un anneau laiton décollé de l'élément, identique partout. Il ne
+   s'affiche qu'au clavier (:focus-visible) pour ne pas cerner un bouton
+   qu'on vient de cliquer à la souris. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--or);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* --- Section : le rythme d'un écran --------------------------------- */
+@layer components {
+.section-ecran + .section-ecran { margin-top: var(--rythme-5); }
+.section-vitrine {
+  padding-block: var(--rythme-6);
+}
+/* Un écran ne dépasse jamais cette largeur : au-delà, l'œil perd la
+   ligne. Les tableaux larges défilent dans leur propre conteneur. */
+.mesure-lecture { max-width: 68ch; }
+
+/* --- Tableau : une seule mise en forme --------------------------------- */
+/* Cinq écrans portaient chacun leur variante (py-2 pr-3, pr-4, pl-3…).
+   Le conteneur .tableau-defilant porte le débordement horizontal : la
+   PAGE ne défile jamais latéralement, le tableau si (acquis mobile). */
+.tableau-defilant {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.tableau {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--pas-corps);
+}
+.tableau th {
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 0.5625rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--libelle);
+  font-weight: 400;
+  text-align: left;
+  padding: var(--rythme-2) var(--rythme-3) var(--rythme-2) 0;
+  border-bottom: 1px solid var(--filet);
+  white-space: nowrap;
+}
+.tableau td {
+  padding: var(--rythme-2) var(--rythme-3) var(--rythme-2) 0;
+  border-bottom: 1px solid var(--filet-leger);
+  vertical-align: baseline;
+}
+.tableau tr:last-child td { border-bottom: none; }
+.tableau th:last-child, .tableau td:last-child { padding-right: 0; }
+/* Les montants se lisent alignés à droite et en chiffres de même chasse,
+   sinon les colonnes de nombres ne se comparent pas d'un rang à l'autre. */
+.tableau .nombre, .tableau th.nombre {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tableau tbody tr:hover { background: var(--filet-leger); }
+.tableau .total td {
+  border-top: 1px solid var(--filet);
+  border-bottom: none;
+  font-weight: 500;
+  color: var(--encre);
+}
+
+/* Tout montant, partout, se lit en chasse fixe — y compris hors tableau. */
+.montant { font-variant-numeric: tabular-nums; }
+
+/* --- État vide : il guide, il ne constate pas ----------------------- */
+/* .vide seule reste ce qu'elle était (20 usages en texte simple, intacts).
+   Avec .vide-guide, elle devient un vrai état vide : ce qu'il n'y a pas,
+   pourquoi, et le geste qui le remplit. */
+.vide-guide {
+  padding: var(--rythme-5) var(--rythme-4);
+  text-align: center;
+  border: 1px dashed var(--filet);
+  background: var(--ivoire);
+}
+.vide-guide .titre {
+  font-family: var(--font-titres), Georgia, serif;
+  font-size: var(--pas-sous-titre);
+  color: var(--encre);
+  margin-bottom: var(--rythme-2);
+}
+.vide-guide .explication {
+  font-size: var(--pas-appui);
+  color: var(--texte-secondaire);
+  max-width: 46ch;
+  margin: 0 auto var(--rythme-4);
+  line-height: 1.55;
+}
+.vide-guide .geste { display: inline-flex; gap: var(--rythme-2); flex-wrap: wrap; justify-content: center; }
+
 }

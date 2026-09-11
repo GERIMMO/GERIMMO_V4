@@ -78,10 +78,12 @@ const REGLES: Regle[] = [
   },
   // Les annexes et échéances du bail (meublé, congé)
   { motifs: ["inventaire du mobilier", "date d'échéance du bail"], cible: "bail" },
-  // L'en-tête de l'émetteur — sur un bail, « adresse électronique » et
-  // « facultatif » (téléphone) désignent surtout les parties
+  // L'en-tête de l'émetteur — sur un bail, « adresse électronique » désigne
+  // surtout les parties. Le téléphone, lui, ne remonte plus : expressément
+  // facultatif au contrat type, il s'imprime « — » (brique `facultatif`) au
+  // lieu d'envoyer l'utilisateur renseigner un champ nommé « facultatif ».
   { motifs: ["siège social"], cible: "organisation" },
-  { motifs: ["adresse électronique", "facultatif"], cible: "organisation", cibleBail: "personne" },
+  { motifs: ["adresse électronique"], cible: "organisation", cibleBail: "personne" },
   { motifs: ["commune"], cible: "organisation" },
   // La date par défaut : sur un bail, c'est la date de naissance du locataire
   { motifs: ["jj/mm/aaaa"], cible: "bail", cibleBail: "personne" },

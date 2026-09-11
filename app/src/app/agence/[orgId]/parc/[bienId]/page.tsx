@@ -8,13 +8,11 @@ import {
   COULEURS_ETAT_LOT,
   MODES_CLE,
   formaterSurface,
-  cibleBlocage,
 } from "@/lib/parc";
 import {
   diagnosticsExigibles,
   diagnosticsManquants,
   alerteDiagnosticsNiveau,
-  etiqueterNiveau,
   LIBELLES_NIVEAU_DIAGNOSTIC,
 } from "@/lib/diagnostics";
 import { formaterDate } from "@/lib/ged";
@@ -27,6 +25,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { BadgeStatut } from "@/components/badge-statut";
+import { EchecLecture, PageEchecLecture } from "../echec-lecture";
+import { BlocagesLocation, ListeBlocages } from "../blocages-location";
 import type { BienFormulaire } from "../formulaire-bien";
 import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
 import { SectionLot } from "./lots/[lotId]/section-lot";
@@ -49,13 +50,13 @@ export default async function PageBien(
   const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
 
   const [
-    { data: bien },
-    { data: lots },
-    { data: diagnostics },
-    { data: cle },
-    { data: infos },
-    { data: detentionsBien },
-    { data: annonces },
+    { data: bien, error: erreurBien },
+    { data: lots, error: erreurLots },
+    { data: diagnostics, error: erreurDiagnostics },
+    { data: cle, error: erreurCle },
+    { data: infos, error: erreurInfos },
+    { data: detentionsBien, error: erreurDetentions },
+    { data: annonces, error: erreurAnnonces },
   ] = await Promise.all([
     supabase
       .from("biens")
@@ -86,11 +87,15 @@ export default async function PageBien(
       .eq("bien_id", bienId)
       .maybeSingle(),
     // Recette 21/08 : la fiche bien dit qui possède quoi — détentions en
-    // cours de tous les lots du bien (jointure explicite : deux FK vers persons)
+    // cours de tous les lots du bien. Jointures explicites : detentions a
+    // DEUX clés étrangères vers persons ET deux vers lots (la clé simple et
+    // la clé composite qui garde l'agence cohérente). `!inner` ne choisit que
+    // le type de jointure, jamais la clé : sans `!fk` des deux côtés,
+    // PostgREST refuse la requête (PGRST201) et le bloc reste vide.
     supabase
       .from("detentions")
       .select(
-        "lot_id, quote_part, person:persons!detentions_person_id_fkey(id, nom, prenom), lot:lots!inner(bien_id)"
+        "lot_id, quote_part, person:persons!detentions_person_id_fkey(id, nom, prenom), lot:lots!detentions_lot_id_fkey!inner(bien_id)"
       )
       .eq("organization_id", orgId)
       .eq("lot.bien_id", bienId)
@@ -104,11 +109,20 @@ export default async function PageBien(
       .gte("visible_jusquau", new Date().toISOString().slice(0, 10))
       .order("visible_jusquau"),
   ]);
+  // Lecture refusée : ce n'est pas un bien supprimé (relevé du 11/09).
+  if (erreurBien)
+    return (
+      <PageEchecLecture
+        titre="Fiche bien"
+        quoi={["le bien"]}
+        retour={{ href: `/agence/${orgId}/parc`, libelle: "Parc" }}
+      />
+    );
   if (!bien) notFound();
 
   // Blocages de mise en location, affichés directement sur la fiche bien :
   // en mono-lot personne n'ouvre la fiche lot pour y trouver le bouton
-  const { data: blocagesBien } = await supabase.rpc("lots_blocages_location", {
+  const { data: blocagesBien, error: erreurBlocages } = await supabase.rpc("lots_blocages_location", {
     p_org: orgId,
     p_bien: bienId,
   });
@@ -120,6 +134,12 @@ export default async function PageBien(
   );
 
   const lotsActifs = (lots ?? []).filter((l) => l.etat !== "archive");
+  // Les lots ARCHIVÉS restent listés (la fiche bien est le seul chemin vers le
+  // bouton de réactivation), mais ils étaient comptés nulle part : le titre
+  // annonçait « 2 lots » au-dessus d'une liste de trois (relevé du 11/09).
+  // Ils passent désormais en fin de liste et le titre les nomme.
+  const lotsArchives = (lots ?? []).filter((l) => l.etat === "archive");
+  const lotsAffiches = [...lotsActifs, ...lotsArchives];
   const multiLots = lotsActifs.length > 1;
 
   // Sur un bien multi-lots, l'ERP et la clé de répartition se règlent au niveau
@@ -135,6 +155,19 @@ export default async function PageBien(
   const exigiblesBien = diagnosticsExigibles(bien, "bien");
   const manquants = diagnosticsManquants(bien, diagnostics ?? [], "bien");
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
+
+  // Ce que la base n'a pas rendu — un manque affiché n'est alors pas un manque.
+  const echecs: string[] = [];
+  const noter = (libelle: string, erreur: unknown) => {
+    if (erreur) echecs.push(libelle);
+  };
+  noter("les lots du bien", erreurLots);
+  noter("les diagnostics", erreurDiagnostics);
+  noter("la clé de répartition", erreurCle);
+  noter("les informations pratiques", erreurInfos);
+  noter("les propriétaires", erreurDetentions);
+  noter("les annonces aux locataires", erreurAnnonces);
+  noter("ce qui bloque la mise en location", erreurBlocages);
 
   // Une ligne par propriétaire mandant : ses lots et quote-parts agrégés
   const nomsLots = new Map((lots ?? []).map((l) => [l.id, l.nom]));
@@ -184,6 +217,8 @@ export default async function PageBien(
           {bien.copropriete ? " · copropriété" : ""}
         </p>
       </div>
+
+      <EchecLecture quoi={echecs} />
 
       {/* Le bien : condensé + sections repliables (consulter d'abord, éditer sur clic) */}
       <Card>
@@ -307,10 +342,7 @@ export default async function PageBien(
                       (ligne) => {
                         const lot = (lots ?? []).find((l) => l.id === ligne.lot_id);
                         return (
-                          <li
-                            key={ligne.lot_id}
-                            className="rounded-full border border-border px-2 py-0.5 text-xs"
-                          >
+                          <li key={ligne.lot_id} className="puce puce-grise">
                             {lot?.nom ?? "Lot"} : {ligne.pourcentage} %
                           </li>
                         );
@@ -358,6 +390,9 @@ export default async function PageBien(
         <CardHeader>
           <CardTitle className="text-base">
             {multiLots ? `${lotsActifs.length} lots` : "Lot unique"}
+            {lotsArchives.length > 0
+              ? ` · ${lotsArchives.length} archivé${lotsArchives.length > 1 ? "s" : ""}`
+              : ""}
           </CardTitle>
           <CardDescription>
             Le bail porte toujours sur un lot, jamais sur le bien.
@@ -366,41 +401,15 @@ export default async function PageBien(
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Ce qui bloque TOUS les lots : affiché une fois, pas sous chacun */}
-          {blocagesCommuns.length > 0 && (
-            <div className="border-l-[3px] border-l-warning bg-warning-soft p-3">
-              <p className="text-sm font-medium text-warning-soft-foreground">
-                À régler pour l&apos;ensemble des lots
-              </p>
-              <ul className="mt-1.5 space-y-1">
-                {blocagesCommuns.map((b) => {
-                  const cible = cibleBlocage(b, {
-                    orgId,
-                    bienId,
-                    lotId: lotsActifs[0]?.id ?? "",
-                  });
-                  // Cible sur cette page même : ancre native — un <Link> passe par
-                  // pushState, qui ne déclenche pas le hashchange qu'écoute SectionLot,
-                  // et la section ne s'ouvrait pas.
-                  const memePage = !cible.href.includes("/lots/");
-                  const classe = `shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`;
-                  return (
-                    <li key={b} className="flex flex-wrap items-center gap-2 text-sm">
-                      {/* Un diagnostic porte son niveau (« au lot » / « à l'immeuble ») */}
-                      <span className="min-w-0 flex-1">{etiqueterNiveau(b, b)}</span>
-                      {memePage ? (
-                        <a href={cible.href} className={classe}>{cible.libelle}</a>
-                      ) : (
-                        <Link href={cible.href} className={classe}>{cible.libelle}</Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+          <BlocagesLocation
+            motifs={blocagesCommuns}
+            ctx={{ orgId, bienId, lotId: lotsActifs[0]?.id ?? "" }}
+            pageCourante={`/agence/${orgId}/parc/${bienId}`}
+            titre="À régler pour l’ensemble des lots"
+          />
 
           <ul className="divide-y divide-border">
-            {(lots ?? []).map((lot) => {
+            {lotsAffiches.map((lot) => {
               const blocages = blocagesParLot.get(lot.id) ?? [];
               const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
               return (
@@ -417,9 +426,7 @@ export default async function PageBien(
                       {lot.pieces ? ` · ${lot.pieces} pièce${lot.pieces > 1 ? "s" : ""}` : ""}
                     </span>
                     {blocages.length > 0 && (
-                      <span className="badge-statut shrink-0 text-warning-soft-foreground">
-                        {blocages.length} à régler
-                      </span>
+                      <BadgeStatut ton="attente">{blocages.length} à régler</BadgeStatut>
                     )}
                     <Link
                       href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
@@ -438,27 +445,13 @@ export default async function PageBien(
                         </span>
                         <span className="hidden group-open:inline">Masquer le détail</span>
                       </summary>
-                      <ul className="mt-1.5 space-y-1 pl-3">
-                        {propres.map((b) => {
-                          const cible = cibleBlocage(b, { orgId, bienId, lotId: lot.id });
-                          return (
-                            <li
-                              key={b}
-                              className="flex flex-wrap items-center gap-2 text-sm"
-                            >
-                              <span className="min-w-0 flex-1 text-muted-foreground">
-                                {etiqueterNiveau(b, b)}
-                              </span>
-                              <Link
-                                href={cible.href}
-                                className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                              >
-                                {cible.libelle}
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                      <div className="pl-3">
+                        <ListeBlocages
+                          motifs={propres}
+                          ctx={{ orgId, bienId, lotId: lot.id }}
+                          pageCourante={`/agence/${orgId}/parc/${bienId}`}
+                        />
+                      </div>
                     </details>
                   )}
 

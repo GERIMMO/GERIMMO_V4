@@ -14,6 +14,10 @@ import { ListeAlertes, type AlerteRang } from "./liste-alertes";
 
 export const metadata = { title: "Alertes — Gerimmo" };
 
+// L'historique n'est pas paginé : on en montre les plus récentes, et la carte
+// le dit plutôt que de laisser croire qu'il n'y a que celles-là.
+const FERMEES_AFFICHEES = 30;
+
 export default async function PageAlertes(
   props: PageProps<"/agence/[orgId]/alertes">
 ) {
@@ -26,8 +30,11 @@ export default async function PageAlertes(
   const estResponsable = ROLES_RESPONSABLES.includes(role);
 
   // Trois lectures indépendantes : en parallèle plutôt qu'en cascade
-  const [{ data: ouvertes }, { data: fermees }, { data: donneesMembres }] =
-    await Promise.all([
+  const [
+    { data: ouvertes, error: erreurOuvertes },
+    { data: fermees, error: erreurFermees },
+    { data: donneesMembres, error: erreurMembres },
+  ] = await Promise.all([
       supabase
         .from("alerts")
         .select(
@@ -43,7 +50,7 @@ export default async function PageAlertes(
         .eq("organization_id", orgId)
         .eq("statut", "fermee")
         .order("closed_at", { ascending: false })
-        .limit(30),
+        .limit(FERMEES_AFFICHEES),
       supabase.rpc("org_membres_gerants", { org: orgId }),
     ]);
   const membres = (donneesMembres ?? []) as {
@@ -68,32 +75,51 @@ export default async function PageAlertes(
           <h1>Alertes</h1>
         </div>
         <span className="mono-discret">
-          {`${nbMiennes} à traiter · ${rangs.length - nbMiennes} confiée${rangs.length - nbMiennes > 1 ? "s" : ""} à d'autres`}
+          {erreurOuvertes
+            ? "lecture impossible"
+            : `${nbMiennes} à traiter · ${rangs.length - nbMiennes} confiée${rangs.length - nbMiennes > 1 ? "s" : ""} à d'autres`}
         </span>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
-          <ListeAlertes
-            orgId={orgId}
-            alertes={rangs}
-            membres={membres}
-            monCompte={user.id}
-            estResponsable={estResponsable}
-            ouvrirAlerteId={traiterId}
-          />
+          {/* Une lecture en échec ne se déguise pas en « aucune alerte » :
+              l'écran vide et l'écran illisible ne disent pas la même chose. */}
+          {erreurOuvertes ? (
+            <p className="err" role="alert">
+              Impossible de lire les alertes ouvertes — ce n&apos;est pas une
+              liste vide, c&apos;est une lecture qui a échoué. Rechargez dans un
+              instant.
+            </p>
+          ) : (
+            <ListeAlertes
+              orgId={orgId}
+              alertes={rangs}
+              membres={membres}
+              monCompte={user.id}
+              estResponsable={estResponsable}
+              ouvrirAlerteId={traiterId}
+            />
+          )}
 
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Fermées récemment</CardTitle>
               <CardDescription>
-                Conservées 1 an après fermeture (règle de conservation), puis
-                purgées.
+                Les {FERMEES_AFFICHEES} dernières. Conservées 1 an après
+                fermeture (règle de conservation), puis purgées.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {(fermees ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune.</p>
+              {erreurFermees ? (
+                <p className="err mb-0" role="alert">
+                  Impossible de lire l&apos;historique des alertes fermées —
+                  rechargez dans un instant.
+                </p>
+              ) : (fermees ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Aucune alerte fermée pour l&apos;instant.
+                </p>
               ) : (
                 <ul className="divide-y">
                   {(fermees ?? []).map((a) => (
@@ -133,6 +159,14 @@ export default async function PageAlertes(
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Sans la liste des gérants, « Assigné à » serait vide et le
+                formulaire refuserait l'envoi sans jamais dire pourquoi. */}
+            {erreurMembres && (
+              <p className="err" role="alert">
+                Impossible de lire la liste des gérants — la création d&apos;une
+                alerte est indisponible le temps que la lecture repasse.
+              </p>
+            )}
             <FormulaireAlerte
               orgId={orgId}
               membres={membres}

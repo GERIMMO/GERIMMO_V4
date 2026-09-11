@@ -48,6 +48,7 @@ async function attendreEchec(db: Client, motif: RegExp, sql: string, params: unk
 describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail signé", () => {
   let db: Client;
   let orgA: string;
+  let adminA: string;
   let agentA: string;
   let adminB: string;
   let proprietaire: string;
@@ -69,12 +70,13 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
     );
     orgA = orgs.rows.find((o) => o.name === "S4 Alpha")!.id;
     const orgB = orgs.rows.find((o) => o.name === "S4 Beta")!.id;
+    adminA = await creerUtilisateur(db);
     agentA = await creerUtilisateur(db);
     adminB = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role)
-       values ($1,$2,'agent'), ($3,$4,'admin_agence')`,
-      [agentA, orgA, adminB, orgB]
+       values ($1,$2,'admin_agence'), ($3,$2,'agent'), ($4,$5,'admin_agence')`,
+      [adminA, orgA, agentA, adminB, orgB]
     );
     const pers = await db.query(
       `insert into public.persons (organization_id, nom) values ($1,'Bailleur'),($1,'Locataire') returning id, nom`,
@@ -88,9 +90,30 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
     await db.query("rollback");
   });
 
-  // Un lot prêt à louer : bien + lot, détention 100 %, diagnostics valides, disponible
+  // Le mandat confié à l'agent met le lot dans SON portefeuille (RM-18.1.3) ;
+  // seul l'admin d'agence désigne le titulaire (RM-18.1.4) — écriture faite ici
+  // sous l'identité admin.
+  async function confierAuPortefeuille(lot: string): Promise<string> {
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1,$2,'actif',$3) returning id`,
+      [orgA, proprietaire, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1,$2,$3,7)`,
+      [orgA, mandat, lot]
+    );
+    return mandat;
+  }
+
+  // Un lot prêt à louer : bien + lot, détention 100 %, diagnostics valides,
+  // disponible. C'est l'ADMIN d'agence qui constitue le parc, puis confie le
+  // mandat à l'agent ; la session repart en agent, qui gère son portefeuille.
   async function lotLouable(): Promise<string> {
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -116,6 +139,8 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
       [orgA, bien]
     );
     await db.query(`update public.lots set etat='disponible' where id=$1`, [lot]);
+    await confierAuPortefeuille(lot);
+    await simuler(db, agentA);
     return lot;
   }
 
@@ -123,10 +148,10 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
     const {
       rows: [{ id }],
     } = await db.query(
-      `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
-       values ($1,'bail','Bail signé', $1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',1000,'e-'||gen_random_uuid())
+      `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte, deposited_by)
+       values ($1,'bail','Bail signé', $1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',1000,'e-'||gen_random_uuid(),$2)
        returning id`,
-      [orgA]
+      [orgA, agentA]
     );
     return id;
   }
@@ -135,8 +160,8 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
     const {
       rows: [{ id }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, charges, jour_echeance)
-       values ($1,$2,$3,$4,750,50,5) returning id`,
+      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, charges, jour_echeance, date_debut)
+       values ($1,$2,$3,$4,750,50,5,current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
     return id;

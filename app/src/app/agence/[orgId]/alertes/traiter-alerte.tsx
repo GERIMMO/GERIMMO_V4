@@ -25,10 +25,6 @@ export function TraiterAlerte({
   avantOuverture?: () => void;
 }) {
   const [ouverte, setOuverte] = useState(false);
-  const emailParCompte = new Map(membres.map((m) => [m.account_id, m.email]));
-  const nomAssignation = alerte.assigned_all
-    ? "tout le monde"
-    : (emailParCompte.get(alerte.assignee_account_id ?? "") ?? "—");
 
   return (
     <>
@@ -48,7 +44,6 @@ export function TraiterAlerte({
           alerte={alerte}
           membres={membres}
           estResponsable={estResponsable}
-          nomAssignation={nomAssignation}
           fermer={() => setOuverte(false)}
         />
       )}

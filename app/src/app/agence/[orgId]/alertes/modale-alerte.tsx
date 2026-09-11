@@ -29,6 +29,18 @@ export type AlerteRang = {
 
 export type Membre = { account_id: string; email: string; role: string };
 
+// À qui l'alerte est confiée. Trois écrans en avaient chacun leur copie
+// (liste, tableau de bord, synthèse de connexion) : une seule suffit.
+export function nomAssignation(
+  alerte: { assigned_all: boolean; assignee_account_id: string | null },
+  membres: Membre[]
+): string {
+  if (alerte.assigned_all) return "tout le monde";
+  return (
+    membres.find((m) => m.account_id === alerte.assignee_account_id)?.email ?? "—"
+  );
+}
+
 // Modale de traitement (maquette « Traiter l'alerte ») : tête colorée par la
 // criticité, deux gestes — confier à quelqu'un, ou marquer traitée en disant
 // ce qui a été fait (obligatoire), puis valider. Partagée : page Alertes,
@@ -39,14 +51,12 @@ export function ModaleAlerte({
   alerte,
   membres,
   estResponsable,
-  nomAssignation,
   fermer,
 }: {
   orgId: string;
   alerte: AlerteRang;
   membres: Membre[];
   estResponsable: boolean;
-  nomAssignation: string;
   fermer: () => void;
 }) {
   // Le toast se déclenche ICI, à la résolution de l'action — pas dans un
@@ -84,7 +94,7 @@ export function ModaleAlerte({
   return (
     <Modale
       titre={alerte.titre}
-      surtitre={`${CRITICITES[alerte.criticite] ?? alerte.criticite} · confiée à ${nomAssignation}`}
+      surtitre={`${CRITICITES[alerte.criticite] ?? alerte.criticite} · confiée à ${nomAssignation(alerte, membres)}`}
       variante={alerte.criticite === "critique" ? "critique" : "encre"}
       fermer={fermer}
     >
@@ -145,7 +155,9 @@ export function ModaleAlerte({
             </BoutonEnvoi>
           </div>
           {etatConfier.erreur && (
-            <p className="text-sm text-destructive">{etatConfier.erreur}</p>
+            <p className="err mt-1.5 mb-0" role="alert">
+              {etatConfier.erreur}
+            </p>
           )}
         </form>
       )}
@@ -164,7 +176,9 @@ export function ModaleAlerte({
           className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
         />
         {etatTraiter.erreur && (
-          <p className="text-sm text-destructive">{etatTraiter.erreur}</p>
+          <p className="err mt-1.5 mb-0" role="alert">
+            {etatTraiter.erreur}
+          </p>
         )}
         <div className="flex items-center justify-end gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={fermer}>

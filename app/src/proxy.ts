@@ -5,7 +5,15 @@ import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
 // (réinitialisation…) : il doit rester traversable même connecté.
 const PUBLIC_PATHS = [
+  // Les trois pages légales sont publiques ET traversables connecté : le
+  // contrat qu'on fait accepter à l'inscription doit être lisible AVANT de
+  // s'inscrire, et relisible après.
   "/confidentialite",
+  "/conditions",
+  "/mentions-legales",
+  // Le journal est public ET traversable connecté : un client qui lit un
+  // article depuis un lien reçu ne doit pas être renvoyé vers ses espaces.
+  "/journal",
   "/connexion",
   "/inscription",
   "/mot-de-passe-oublie",
@@ -17,6 +25,15 @@ const PUBLIC_PATHS = [
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
 export async function proxy(request: NextRequest) {
+  // Les tâches planifiées n'ont pas de session : les faire passer par le
+  // contrôle d'authentification les renverrait vers /connexion. Elles portent
+  // leur propre verrou (CRON_SECRET, vérifié dans la route) — et elles sont
+  // les SEULES routes /api du produit, tout le reste passant par des actions
+  // serveur.
+  if (request.nextUrl.pathname.startsWith("/api/cron/")) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -51,9 +68,15 @@ export async function proxy(request: NextRequest) {
 
   if (!user) {
     if (isPublic) return response;
+    // La destination demandée est MÉMORISÉE, pas jetée. Sans cela, un
+    // locataire qui ouvre la quittance reçue par email après expiration de sa
+    // session se reconnecte… et atterrit sur l'accueil de son espace, sans
+    // jamais voir le document qu'on lui avait envoyé (constat de l'état des
+    // lieux du 11/09). Elle n'est relue qu'à travers destinationSure().
     const url = request.nextUrl.clone();
+    const demandee = pathname + request.nextUrl.search;
     url.pathname = "/connexion";
-    url.search = "";
+    url.search = demandee && demandee !== "/" ? `?suite=${encodeURIComponent(demandee)}` : "";
     return NextResponse.redirect(url);
   }
 

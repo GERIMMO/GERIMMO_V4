@@ -42,20 +42,28 @@ export async function encaisserDepot(
   return { succes: "Encaissement enregistré." };
 }
 
+// Retirer un encaissement de dépôt contre-passe l'écriture de dépôt déjà
+// portée au journal (RM-A6.3). Comme toute correction comptable, elle porte le
+// motif de son auteur (RM-A6.6) : il est saisi à l'écran et inscrit sur la
+// contre-écriture par la base.
 export async function supprimerEncaissementDepot(
   orgId: string,
   bailId: string,
-  encId: string
+  encId: string,
+  formData?: FormData
 ): Promise<EtatDepot> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase
-    .from("depot_encaissements")
-    .delete()
-    .eq("id", encId)
-    .eq("organization_id", orgId);
+  const motif = String(formData?.get("motif") ?? "").trim();
+  if (!motif) {
+    return { erreur: "Dites pourquoi vous retirez cet encaissement : le motif reste au journal." };
+  }
+  const { error } = await supabase.rpc("supprimer_encaissement_depot", {
+    p_encaissement: encId,
+    p_motif: motif,
+  });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: "Encaissement retiré." };
+  return { succes: "Encaissement retiré — le motif est inscrit au journal." };
 }

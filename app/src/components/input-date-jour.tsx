@@ -16,13 +16,28 @@ export function InputDateJour({
   id,
   className,
   required,
+  valeurSoumise,
 }: {
   name: string;
   id?: string;
   className?: string;
   required?: boolean;
+  // Date renvoyée par une action REFUSÉE (lib/formulaires.ts). Elle prime sur
+  // « aujourd'hui » : sans elle, le champ repart vide et la base date
+  // l'encaissement du jour (encaissements.date_paiement vaut CURRENT_DATE par
+  // défaut). Une date ressaisie de mémoire est une date fausse, alors que « la
+  // banque fait foi sur les montants et les dates » (RM-A6.7).
+  valeurSoumise?: string;
 }) {
-  const [valeur, setValeur] = useState("");
+  const [valeur, setValeur] = useState(valeurSoumise ?? "");
+  const [derniereSoumise, setDerniereSoumise] = useState(valeurSoumise);
+
+  // Reposer la saisie refusée pendant le rendu, pas dans un effet : le champ ne
+  // doit jamais s'afficher vide, même une image, avant de se remplir.
+  if (valeurSoumise !== undefined && valeurSoumise !== derniereSoumise) {
+    setDerniereSoumise(valeurSoumise);
+    setValeur(valeurSoumise);
+  }
 
   useEffect(() => {
     // Différé d'un tick : poser l'état dans le corps de l'effet déclenche un

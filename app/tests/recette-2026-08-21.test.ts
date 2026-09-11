@@ -49,6 +49,7 @@ async function attendreEchec(db: Client, motif: RegExp, sql: string, params: unk
 describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
   let db: Client;
   let orgA: string;
+  let adminA: string;
   let agentA: string;
   let compteLocataire: string;
   let personne: string;
@@ -69,12 +70,13 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
       `insert into public.organizations (name, status) values ('R21 Alpha','active') returning id`
     );
     orgA = id;
+    adminA = await creerUtilisateur(db);
     agentA = await creerUtilisateur(db);
     compteLocataire = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role)
-       values ($1,$2,'agent'), ($3,$2,'locataire')`,
-      [agentA, orgA, compteLocataire]
+       values ($1,$2,'admin_agence'), ($3,$2,'agent'), ($4,$2,'locataire')`,
+      [adminA, orgA, agentA, compteLocataire]
     );
     const {
       rows: [{ id: pid }],
@@ -100,6 +102,51 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
       [orgA, `${orgA}/${chemin}`, empreinte]
     );
     return id;
+  }
+
+  // Le parc est constitué par l'ADMIN d'agence, qui confie ensuite le mandat à
+  // l'agent : le lot entre dans SON portefeuille (RM-18.1.3), et avec lui le
+  // bail et le locataire qui l'occupe. Le titulaire n'est posé que par le
+  // responsable de l'agence (RM-18.1.4) — d'où l'écriture sous identité admin.
+  async function confierLocataireAuPortefeuille(): Promise<void> {
+    await simuler(db, adminA);
+    const {
+      rows: [{ id: proprietaire }],
+    } = await db.query(
+      `insert into public.persons (organization_id, nom) values ($1,'Bailleur') returning id`,
+      [orgA]
+    );
+    const {
+      rows: [{ id: bien }],
+    } = await db.query(
+      `select public.creer_bien_avec_lot($1,'7 rue Recette','appartement'::public.bien_type,
+         '7 rue Recette', null, '75001','Paris',1990,false,50,3) as id`,
+      [orgA]
+    );
+    const {
+      rows: [{ id: lot }],
+    } = await db.query(`select id from public.lots where bien_id = $1`, [bien]);
+    await db.query(
+      `insert into public.detentions (lot_id, organization_id, person_id, quote_part) values ($1,$2,$3,100)`,
+      [lot, orgA, proprietaire]
+    );
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1,$2,'actif',$3) returning id`,
+      [orgA, proprietaire, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1,$2,$3,7)`,
+      [orgA, mandat, lot]
+    );
+    await db.query(
+      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, loyer_hc, date_debut)
+       values ($1,$2,'brouillon',$3,800,current_date)`,
+      [orgA, lot, personne]
+    );
   }
 
   it("le dépôt notifie l'agence, versionne, et la validation solde l'alerte", async () => {
@@ -156,6 +203,9 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
   });
 
   it("le dossier expose l'échéance et la vérification, côté agence comme côté locataire", async () => {
+    // Côté agence, le dossier est celui d'une personne du portefeuille de
+    // l'agent : le locataire occupe un lot d'un mandat dont il est titulaire.
+    await confierLocataireAuPortefeuille();
     const doc = await deposerAttestation("att-3.pdf", "r21-e3");
 
     await simuler(db, compteLocataire);
@@ -185,7 +235,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
   });
 });
 
-describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08)", () => {
+describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08, puis le 30/08)", () => {
   let db: Client;
 
   beforeAll(async () => {
@@ -205,16 +255,25 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
   // 21/08 : l'alerte EDL d'entrée devait nommer le lot et le locataire.
   // 29/08 : l'alerte est retirée — l'EDL d'entrée signé conditionne la
   // validation du bail. Le scénario vérifie la nouvelle règle.
-  it("sans EDL d'entrée signé le bail ne se valide pas ; signé, il se valide sans alerte", async () => {
+  // Règle en vigueur : celle du 2026-08-30 (migration 20260830120000), qui a
+  // REVU celle du 29/08. L'EDL d'entrée n'est plus un prérequis d'activation :
+  // sans lui le bail s'active quand même et une alerte « edl_entree » liée au
+  // bail le rappelle, fermée d'elle-même à la signature. Voir le callout
+  // « Activation du bail — tranché et livré le 2026-08-30 » de wiki/concepts/Bail.md.
+  // (La règle de restitution, elle, ne bouge pas : sans EDL d'entrée signé,
+  // aucune retenue possible à la sortie — RM-2.4.3.)
+  it("sans EDL d'entrée signé le bail s'active mais porte une alerte ; signé, il s'active sans alerte", async () => {
     const {
       rows: [{ id: org }],
     } = await db.query(
       `insert into public.organizations (name, status) values ('R21 EDL','active') returning id`
     );
+    const admin = await creerUtilisateur(db);
     const agent = await creerUtilisateur(db);
     await db.query(
-      `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'agent')`,
-      [agent, org]
+      `insert into public.memberships (account_id, organization_id, role)
+       values ($1,$2,'admin_agence'), ($3,$2,'agent')`,
+      [admin, org, agent]
     );
     const {
       rows: [{ id: locataire }],
@@ -229,7 +288,10 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
       [org]
     );
 
-    await simuler(db, agent);
+    // Le parc est constitué par l'ADMIN d'agence, qui confie le mandat à
+    // l'agent (RM-18.1.3/4) : le lot entre alors dans SON portefeuille et
+    // l'agent peut y mener la mise en location.
+    await simuler(db, admin);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -240,7 +302,6 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
     const {
       rows: [{ id: lot }],
     } = await db.query(`select id, nom from public.lots where bien_id = $1`, [bien]);
-    await db.query("reset role");
     await db.query(
       `insert into public.detentions (lot_id, organization_id, person_id, quote_part) values ($1,$2,$3,100)`,
       [lot, org, proprietaire]
@@ -257,6 +318,18 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
     );
     await db.query(`update public.lots set etat='disponible' where id=$1`, [lot]);
     const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1,$2,'actif',$3) returning id`,
+      [org, proprietaire, agent]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1,$2,$3,7)`,
+      [org, mandat, lot]
+    );
+    const {
       rows: [{ id: doc }],
     } = await db.query(
       `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
@@ -267,16 +340,27 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
     const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, document_signe, loyer_hc)
-       values ($1,$2,'brouillon',$3,$4,800) returning id`,
+      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, document_signe, loyer_hc, date_debut)
+       values ($1,$2,'brouillon',$3,$4,800,current_date) returning id`,
       [org, lot, locataire, doc]
     );
 
     await simuler(db, agent);
+    // Sans EDL d'entrée signé : l'activation passe, mais elle laisse une trace
+    // — l'alerte edl_entree rattachée au bail. On annule ensuite ce chemin pour
+    // rejouer le nominal (EDL signé d'abord) sur le même bail.
     await db.query("savepoint edl");
-    await expect(db.query(`select public.activer_bail($1)`, [bail])).rejects.toThrow(
-      /état des lieux d'entrée/
+    await db.query(`select public.activer_bail($1)`, [bail]);
+    const sansEdl = await db.query(
+      `select b.etat,
+              (select count(*)::int from public.alerts a
+                where a.organization_id = $1 and a.type = 'edl_entree'
+                  and a.details->>'bail_id' = $2::uuid::text) as alertes
+         from public.baux b where b.id = $2::uuid`,
+      [org, bail]
     );
+    expect(sansEdl.rows[0].etat).toBe("actif");
+    expect(sansEdl.rows[0].alertes).toBe(1);
     await db.query("rollback to savepoint edl");
 
     const {

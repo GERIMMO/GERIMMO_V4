@@ -24,7 +24,12 @@ begin
       ('admin.beta@gerimmo-demo.fr'),
       ('multi@gerimmo-demo.fr'),
       ('locataire.alpha@gerimmo-demo.fr'),
-      ('proprietaire@gerimmo-demo.fr')
+      ('proprietaire@gerimmo-demo.fr'),
+      -- Artisan de démo (module 8). Il n'a PAS d'adhésion posée ici : elle est
+      -- créée par `solliciter_artisan` au moment où une agence le sollicite —
+      -- c'est ainsi que le portail artisan apparaît dans « Mes espaces », et
+      -- ainsi que l'artisan n'existe pour une agence qu'après un vrai geste.
+      ('artisan.alpha@gerimmo-demo.fr')
     ) as t(email)
   loop
     insert into auth.users (

@@ -71,6 +71,7 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
   let agentA: string;
   let adminB: string;
   let proprietaire: string;
+  let locataire: string;
 
   beforeAll(async () => {
     db = new Client({ connectionString: DB_URL });
@@ -99,23 +100,25 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
        ($1, $2, 'admin_agence'), ($3, $2, 'agent'), ($4, $5, 'admin_agence')`,
       [adminA, orgA, agentA, adminB, orgB]
     );
-    const {
-      rows: [{ id }],
-    } = await db.query(
+    const pers = await db.query(
       `insert into public.persons (organization_id, nom, prenom)
-       values ($1, 'Martin', 'Paul') returning id`,
+       values ($1, 'Martin', 'Paul'), ($1, 'Leroy', 'Anne') returning id, nom`,
       [orgA]
     );
-    proprietaire = id;
+    proprietaire = pers.rows.find((p) => p.nom === "Martin")!.id;
+    locataire = pers.rows.find((p) => p.nom === "Leroy")!.id;
   });
 
   afterEach(async () => {
     await db.query("rollback");
   });
 
-  // Crée un bien complet (via le RPC, comme l'app) en tant qu'agent d'Alpha
+  // Crée un bien complet (via le RPC, comme l'app) en tant qu'ADMIN d'Alpha.
+  // Depuis le périmètre du portefeuille (2026-09-09), c'est l'admin d'agence qui
+  // constitue le parc puis confie les mandats ; un agent sans mandat ne peut ni
+  // voir ni créer de bien (policy restrictive `biens_agent_portefeuille`).
   async function creerBien(type = "appartement"): Promise<{ bien: string; lot: string }> {
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     const {
       rows: [{ id: bien }],
     } = await db.query(
@@ -130,12 +133,60 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
     return { bien, lot };
   }
 
+  // Met un lot dans le portefeuille de l'agent : un mandat dont il est TITULAIRE
+  // (mandats.agent_account_id) + une ligne ouverte sur le lot. L'écriture est
+  // faite sous l'identité admin — le titulaire est posé par l'admin (RM-18.1.4)
+  // et la garde `garde_portefeuille_agent` interdit les mandats à l'agent.
+  async function confierAuPortefeuille(lot: string): Promise<string> {
+    await simuler(db, adminA);
+    const {
+      rows: [{ id: mandat }],
+    } = await db.query(
+      `insert into public.mandats (organization_id, person_id, etat, agent_account_id)
+       values ($1, $2, 'actif', $3) returning id`,
+      [orgA, proprietaire, agentA]
+    );
+    await db.query(
+      `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires)
+       values ($1, $2, $3, 7.0)`,
+      [orgA, mandat, lot]
+    );
+    return mandat;
+  }
+
   async function detenirA100(lot: string) {
     await db.query(
       `insert into public.detentions (lot_id, organization_id, person_id, quote_part)
        values ($1, $2, $3, 100)`,
       [lot, orgA, proprietaire]
     );
+  }
+
+  // « Loué » ne se décrète pas : depuis « l'état du lot adossé au bail »
+  // (20260803), le lot suit le bail. On crée donc un vrai bail (PDF signé +
+  // locataire) et on l'active — le lot passe en loué tout seul.
+  async function louerLeLot(lot: string, acteur: string): Promise<string> {
+    const {
+      rows: [{ id: doc }],
+    } = await db.query(
+      `insert into public.documents (organization_id, type, titre, storage_path,
+                                     mime_type, taille_octets, empreinte, deposited_by)
+       values ($1, 'bail', 'Bail signé',
+               $1::uuid::text || '/' || gen_random_uuid() || '.pdf',
+               'application/pdf', 1000, 'e-' || gen_random_uuid(), $2)
+       returning id`,
+      [orgA, acteur]
+    );
+    const {
+      rows: [{ id: bail }],
+    } = await db.query(
+      `insert into public.baux (organization_id, lot_id, locataire_principal,
+                                document_signe, loyer_hc, charges, jour_echeance, date_debut)
+       values ($1, $2, $3, $4, 750, 50, 5, current_date) returning id`,
+      [orgA, lot, locataire, doc]
+    );
+    await db.query(`select public.activer_bail($1)`, [bail]);
+    return bail;
   }
 
   async function deposerDiagnosticsValides(bien: string, lot: string) {
@@ -217,7 +268,7 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
 
   it("la somme des quote-parts actives ne dépasse jamais 100 % (RM-0.2.1) et ne se supprime pas (RM-0.2.3)", async () => {
     const { lot } = await creerBien();
-    await simuler(db, agentA);
+    await simuler(db, adminA);
     await db.query(
       `insert into public.detentions (lot_id, organization_id, person_id, quote_part)
        values ($1, $2, $3, 60)`,
@@ -296,6 +347,10 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
     const { bien, lot } = await creerBien();
     await detenirA100(lot);
     await deposerDiagnosticsValides(bien, lot);
+    // Le test porte sur les gestes de l'AGENT (dont le refus de réactivation) :
+    // l'admin lui confie donc le lot avant de lui passer la main.
+    await confierAuPortefeuille(lot);
+    await simuler(db, agentA);
 
     // brouillon → loué : interdit (il faut passer par disponible)
     await attendreEchec(
@@ -306,7 +361,10 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
     );
 
     await db.query(`update public.lots set etat = 'disponible' where id = $1`, [lot]);
-    await db.query(`update public.lots set etat = 'loue' where id = $1`, [lot]);
+    // disponible → loué passe par le bail : c'est son activation qui bascule le lot
+    const bail = await louerLeLot(lot, agentA);
+    const loue = await db.query(`select etat from public.lots where id = $1`, [lot]);
+    expect(loue.rows[0].etat).toBe("loue");
 
     // Lot loué : surface verrouillée (avenant au bail requis)
     await attendreEchec(
@@ -323,9 +381,34 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
       [bien]
     );
 
-    // loué → préavis → disponible, puis archivage
-    await db.query(`update public.lots set etat = 'preavis' where id = $1`, [lot]);
-    await db.query(`update public.lots set etat = 'disponible' where id = $1`, [lot]);
+    // loué → préavis → disponible, puis archivage. Le préavis non plus ne se
+    // décrète pas : il naît du congé, et le lot suit le bail.
+    await db.query(
+      `select public.enregistrer_conge($1, 'locataire'::public.conge_par, current_date, 3::smallint)`,
+      [bail]
+    );
+    const preavis = await db.query(`select etat from public.lots where id = $1`, [lot]);
+    expect(preavis.rows[0].etat).toBe("preavis");
+    // Le départ ne se décrète pas non plus depuis le lot : tant que le bail
+    // court, le lot ne se libère pas à la main (cohérence lot/bail,
+    // 20260910176000). Il se libère quand le bail se clôture — état des lieux
+    // de sortie signé (RM-3.11.2).
+    const {
+      rows: [{ id: edlSortie }],
+    } = await db.query(
+      `insert into public.etats_des_lieux (organization_id, bail_id, type)
+       values ($1, $2, 'sortie') returning id`,
+      [orgA, bail]
+    );
+    await db.query(`select public.generer_grille_edl($1)`, [edlSortie]);
+    await db.query(
+      `update public.edl_lignes set etat = 'bon'::public.etat_element where edl_id = $1`,
+      [edlSortie]
+    );
+    await db.query(`select public.signer_edl($1)`, [edlSortie]);
+    await db.query(`select public.terminer_bail($1)`, [bail]);
+    const libere = await db.query(`select etat from public.lots where id = $1`, [lot]);
+    expect(libere.rows[0].etat).toBe("disponible");
     await db.query(`update public.lots set etat = 'archive' where id = $1`, [lot]);
 
     // Réactivation : refusée à l'agent, réservée à l'admin de l'agence
@@ -415,7 +498,7 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
     // interdite (RM-0.3.8), ce que decouper_bien ne fait jamais.
     await deposerDiagnosticsValides(bien, lot);
     await db.query(`update public.lots set etat = 'disponible' where id = $1`, [lot]);
-    await db.query(`update public.lots set etat = 'loue' where id = $1`, [lot]);
+    await louerLeLot(lot, adminA);
     const {
       rows: [{ decouper_bien: lot3 }],
     } = await db.query(`select public.decouper_bien($1, $2::jsonb) as decouper_bien`, [

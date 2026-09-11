@@ -33,12 +33,27 @@ export function Modale({
       if (e.key === "Escape") fermer();
     };
     window.addEventListener("keydown", surTouche);
-    return () => window.removeEventListener("keydown", surTouche);
+    // Sur tactile, le défilement dans la modale se propage sinon à la page
+    // en arrière-plan (scroll chaining)
+    const debordement = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", surTouche);
+      document.body.style.overflow = debordement;
+    };
   }, [fermer]);
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-[var(--encre)]/35 p-4 ${
+      // max-w-[100vw] n'est pas une ceinture de sécurité décorative (constat de
+      // rendu du 11/09, à 390 px) : quand le document est plus large que la
+      // fenêtre, le bloc conteneur d'un `fixed inset-0` s'étire à la largeur du
+      // DOCUMENT, pas à celle de la fenêtre. La modale mesurait alors 470 px de
+      // large sur un écran de 390, et ses DEUX boutons « Fermer » tombaient
+      // hors champ — clipés par `body{overflow-x:hidden}`, donc impossibles à
+      // toucher. Comme la synthèse d'alertes s'ouvre d'elle-même à chaque
+      // connexion, un utilisateur sur téléphone se retrouvait enfermé dedans.
+      className={`fixed inset-0 z-50 flex max-w-[100vw] justify-center overflow-x-hidden overflow-y-auto bg-[var(--encre)]/35 p-4 ${
         haut ? "items-start pt-[10vh]" : "items-center"
       }`}
       onClick={fermer}
@@ -47,22 +62,36 @@ export function Modale({
         role="dialog"
         aria-modal="true"
         aria-label={titre}
-        className={`w-full border border-border bg-background text-foreground ${
+        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col border border-border bg-background text-foreground ${
           haut ? "" : "my-auto"
-        } ${large ? "max-w-xl" : "max-w-md"}`}
+        } ${large ? "max-w-xl" : "max-w-md"} max-w-[calc(100vw-2rem)]`}
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className={`px-5 py-3.5 text-[var(--sur-encre)] ${
+          className={`flex items-start justify-between gap-3 px-5 py-3.5 text-[var(--sur-encre)] ${
             variante === "critique" ? "bg-[var(--destructive)]" : "bg-[var(--encre)]"
           }`}
         >
-          {surtitre && (
-            <p className="mono-discret text-[var(--sur-encre)]/75">{surtitre}</p>
-          )}
-          <h3 className="mt-0.5 text-[var(--sur-encre)]">{titre}</h3>
+          <div>
+            {surtitre && (
+              <p className="mono-discret text-[var(--sur-encre)]/75">{surtitre}</p>
+            )}
+            <h3 className="mt-0.5 text-[var(--sur-encre)]">{titre}</h3>
+          </div>
+          {/* Fermeture au doigt : Escape n'existe pas sur mobile et le tap
+              sur le voile n'est pas découvrable (audit mobile 10/09) */}
+          <button
+            type="button"
+            onClick={fermer}
+            aria-label="Fermer"
+            className="-mr-2 -mt-1 flex size-10 shrink-0 items-center justify-center text-[var(--sur-encre)]/80 transition-colors hover:text-[var(--sur-encre)]"
+          >
+            <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
+              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
         </div>
-        <div className="space-y-4 p-5">{children}</div>
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">{children}</div>
         {pied && <div className="border-t border-border px-5 py-2.5 text-right">{pied}</div>}
       </div>
     </div>

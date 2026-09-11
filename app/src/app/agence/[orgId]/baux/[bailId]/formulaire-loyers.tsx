@@ -2,7 +2,7 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import {
   genererAppels,
   ajouterEncaissement,
@@ -117,11 +117,20 @@ function BoutonRetirerEncaissement({
   encaissementId: string;
 }) {
   const [etat, action] = useActionState<EtatLoyers, FormData>(
-    async () => supprimerEncaissement(orgId, bailId, encaissementId),
+    async (_etat, formData) => supprimerEncaissement(orgId, bailId, encaissementId, formData),
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-1">
+    // Retirer un encaissement contre-passe le journal : la correction porte le
+    // motif de son auteur (RM-A6.6). Même patron que la contre-écriture
+    // manuelle de la comptabilité — un champ « motif » à côté du bouton.
+    <form action={action} className="flex flex-wrap items-center gap-1">
+      <Input
+        name="motif"
+        placeholder="motif"
+        aria-label="Motif du retrait"
+        className="h-7 w-28 text-xs"
+      />
       <BoutonEnvoi variant="ghost" size="sm">
         Retirer
       </BoutonEnvoi>
@@ -160,6 +169,8 @@ export function FormulaireLoyers({
   encaissements,
   quittances,
   revisionIrl,
+  irlReference,
+  irlTrimestre,
   revisions,
   relances,
   regularisations,
@@ -171,6 +182,9 @@ export function FormulaireLoyers({
   encaissements: Encaissement[];
   quittances: Quittance[];
   revisionIrl: boolean;
+  // Indice de référence figé au bail à sa signature (RM-3.8.2) : affiché, jamais saisi ici
+  irlReference: number | null;
+  irlTrimestre: string | null;
   revisions: Revision[];
   relances: RelanceLigne[];
   regularisations: RegulLigne[];
@@ -192,6 +206,7 @@ export function FormulaireLoyers({
     regulariserCharges.bind(null, orgId, bailId),
     {}
   );
+  const idNumeroRecommande = useId();
   const impaye = echeancier.some((l) => l.statut === "impaye");
   const anneeDefaut = new Date().getUTCFullYear() - 1;
 
@@ -211,7 +226,7 @@ export function FormulaireLoyers({
             {eur(solde)}
           </span>
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <BoutonEcheancier orgId={orgId} bailId={bailId} />
           <BoutonQuittances orgId={orgId} bailId={bailId} />
         </div>
@@ -245,10 +260,12 @@ export function FormulaireLoyers({
                     <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       {q && (
                         <>
+                          {/* Au tactile, le lien texte garde une cible ~40px
+                              (le socle ne couvre que boutons/inputs/selects) */}
                           <Link
                             href={`/quittance/${q.id}`}
                             target="_blank"
-                            className={`text-xs underline-offset-2 hover:underline ${
+                            className={`text-xs underline-offset-2 hover:underline pointer-coarse:py-3 ${
                               q.est_quittance ? "text-success" : "text-muted-foreground"
                             }`}
                           >
@@ -304,10 +321,11 @@ export function FormulaireLoyers({
         {encaissements.length > 0 && (
           <ul className="divide-y divide-border">
             {encaissements.map((e) => (
-              <li key={e.id} className="flex items-center gap-2 py-1.5 text-sm">
+              <li key={e.id} className="flex flex-wrap items-center gap-2 py-1.5 text-sm">
                 <span className="w-24 shrink-0 font-medium">{eur(e.montant)}</span>
                 <span className="text-xs text-muted-foreground">{formaterDate(e.date_paiement)}</span>
-                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                {/* En étroit, mode + note passent en pleine largeur sous la ligne */}
+                <span className="order-last w-full text-xs text-muted-foreground sm:order-none sm:w-auto sm:min-w-0 sm:flex-1 sm:truncate">
                   {[e.mode ? (MODES_PAIEMENT[e.mode] ?? e.mode) : null, e.note]
                     .filter(Boolean)
                     .join(" · ")}
@@ -325,7 +343,15 @@ export function FormulaireLoyers({
           </div>
           <div className="space-y-1">
             <Label htmlFor="enc-date" className="text-xs">Date</Label>
-            <InputDateJour id="enc-date"   className="h-9" name="date_paiement" />
+            {/* La date lue sur le relevé revient après un refus : la banque fait
+                foi sur les montants ET les dates (RM-A6.7), et un champ vide se
+                fait dater du jour par la base. */}
+            <InputDateJour
+              id="enc-date"
+              className="h-9"
+              name="date_paiement"
+              valeurSoumise={etatEnc.valeurs?.date_paiement}
+            />
           </div>
           {/* Champ libre auparavant : chacun écrivait « cheque », « Chèque »,
               « CHQ ». Une liste courte suffit et rend le journal lisible. */}
@@ -348,6 +374,12 @@ export function FormulaireLoyers({
             Encaisser
           </BoutonEnvoi>
           {etatEnc.erreur && <p className="w-full text-sm text-destructive">{etatEnc.erreur}</p>}
+          {/* Le compte rendu : sur quel terme l'argent est allé (le plus ancien
+              d'abord, RM-3.3.2) et ce que chacun a produit — quittance au solde,
+              reçu sur un partiel (RM-3.4.1/3.4.2). */}
+          {!etatEnc.erreur && etatEnc.succes && (
+            <p className="w-full text-sm text-success-soft-foreground">{etatEnc.succes}</p>
+          )}
         </form>
       </div>
 
@@ -377,8 +409,15 @@ export function FormulaireLoyers({
           {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
           <form action={formRev} className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
-              <Label htmlFor="irl-ref" className="text-xs">IRL de référence</Label>
-              <Input id="irl-ref" name="irl_reference" type="number" step="0.01" defaultValue={etatRev.valeurs?.irl_reference} className="h-9 w-28" />
+              <p className="text-xs">IRL de référence (figé au bail)</p>
+              <p className="flex h-9 items-center text-sm font-medium">
+                {irlReference ?? "à renseigner sur le bail"}
+                {irlTrimestre && (
+                  <span className="ml-1 text-xs font-normal text-muted-foreground">
+                    ({irlTrimestre})
+                  </span>
+                )}
+              </p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-nouv" className="text-xs">IRL nouveau</Label>
@@ -395,8 +434,10 @@ export function FormulaireLoyers({
             {etatRev.succes && <p className="w-full text-sm text-success-soft-foreground">{etatRev.succes}</p>}
           </form>
           <p className="text-xs text-muted-foreground">
-            Nouveau loyer = loyer × IRL nouveau / IRL de référence. Interdit si DPE F/G ;
-            le dépôt et les provisions ne changent pas.
+            Nouveau loyer = loyer × IRL nouveau / IRL de référence. L&apos;indice de
+            référence est celui figé au bail à sa signature (RM-3.8.2) et ne se saisit
+            pas ici. Une seule révision par année de bail ; interdit si DPE F/G ; le
+            dépôt et les provisions ne changent pas.
           </p>
         </div>
       )}
@@ -423,7 +464,7 @@ export function FormulaireLoyers({
         )}
         {/* En erreur, la saisie est reposée via etatRel.valeurs (recette 22/08) */}
         <form action={formRel} className="flex flex-wrap items-end gap-2">
-          <select name="niveau" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
+          <select name="niveau" aria-label="Niveau de relance" defaultValue={etatRel.valeurs?.niveau ?? "relance_1"} className="h-9 rounded-md border border-input bg-transparent px-2 text-sm">
             <option value="relance_1">Relance 1</option>
             <option value="relance_2">Relance 2</option>
             <option value="mise_en_demeure">Mise en demeure (recommandé)</option>
@@ -436,7 +477,10 @@ export function FormulaireLoyers({
             <Label htmlFor="rel-pres" className="text-xs">1re présentation</Label>
             <InputDateJour id="rel-pres"   className="h-9" name="date_premiere_presentation" />
           </div>
-          <Input name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-32" />
+          <div className="space-y-1">
+            <Label htmlFor={idNumeroRecommande} className="text-xs">Numéro de suivi</Label>
+            <Input id={idNumeroRecommande} name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-32" />
+          </div>
           <BoutonEnvoi size="sm" variant="outline">
             Enregistrer la relance
           </BoutonEnvoi>
@@ -509,7 +553,7 @@ function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) 
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-2">
+    <form action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline">
         {"Générer l'échéancier"}
       </BoutonEnvoi>
@@ -527,7 +571,7 @@ function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) 
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-2">
+    <form action={action} className="flex flex-wrap items-center gap-2">
       <BoutonEnvoi size="sm" variant="outline">
         Régénérer les reçus/quittances
       </BoutonEnvoi>

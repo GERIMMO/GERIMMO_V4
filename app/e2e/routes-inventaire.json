@@ -1,0 +1,266 @@
+[
+ {
+  "path": "/",
+  "persona": "public",
+  "label": "Site vitrine (accueil marketing)",
+  "dynamic": ""
+ },
+ {
+  "path": "/connexion",
+  "persona": "public",
+  "label": "Connexion",
+  "dynamic": ""
+ },
+ {
+  "path": "/inscription",
+  "persona": "public",
+  "label": "Inscription (création de compte)",
+  "dynamic": ""
+ },
+ {
+  "path": "/mot-de-passe-oublie",
+  "persona": "public",
+  "label": "Mot de passe oublié",
+  "dynamic": ""
+ },
+ {
+  "path": "/nouveau-mot-de-passe",
+  "persona": "public",
+  "label": "Réinitialisation du mot de passe",
+  "dynamic": ""
+ },
+ {
+  "path": "/confidentialite",
+  "persona": "public",
+  "label": "Politique de confidentialité",
+  "dynamic": ""
+ },
+ {
+  "path": "/espaces",
+  "persona": "public",
+  "label": "Sélecteur d'espaces (tout utilisateur connecté)",
+  "dynamic": ""
+ },
+ {
+  "path": "/admin",
+  "persona": "superadmin",
+  "label": "Console d'administration (accueil)",
+  "dynamic": ""
+ },
+ {
+  "path": "/admin/devis",
+  "persona": "superadmin",
+  "label": "Demandes de devis du site vitrine",
+  "dynamic": ""
+ },
+ {
+  "path": "/admin/journaux",
+  "persona": "superadmin",
+  "label": "Journaux d'audit",
+  "dynamic": ""
+ },
+ {
+  "path": "/admin/organisations/ORG",
+  "persona": "superadmin",
+  "label": "Détail d'une organisation",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG",
+  "persona": "agent",
+  "label": "Tableau de bord agence (partagé propriétaire)",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/parc",
+  "persona": "agent",
+  "label": "Parc / portefeuille de biens",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/parc/nouveau",
+  "persona": "agent",
+  "label": "Ajout d'un bien",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/parc/BIEN",
+  "persona": "agent",
+  "label": "Fiche d'un bien",
+  "dynamic": "orgId, bienId"
+ },
+ {
+  "path": "/agence/ORG/parc/BIEN/lots/LOT",
+  "persona": "agent",
+  "label": "Fiche d'un lot",
+  "dynamic": "orgId, bienId, lotId"
+ },
+ {
+  "path": "/agence/ORG/baux/BAIL",
+  "persona": "agent",
+  "label": "Fiche d'un bail",
+  "dynamic": "orgId, bailId"
+ },
+ {
+  "path": "/agence/ORG/baux/BAIL/edl/EDL",
+  "persona": "agent",
+  "label": "État des lieux d'un bail",
+  "dynamic": "orgId, bailId, edlId"
+ },
+ {
+  "path": "/agence/ORG/personnes",
+  "persona": "agent",
+  "label": "Annuaire des personnes",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/personnes/PERSONNE",
+  "persona": "agent",
+  "label": "Fiche personne",
+  "dynamic": "orgId, personId"
+ },
+ {
+  "path": "/agence/ORG/incidents",
+  "persona": "agent",
+  "label": "Liste des incidents",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/incidents/nouveau",
+  "persona": "agent",
+  "label": "Déclaration d'un incident",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/incidents/INCIDENT",
+  "persona": "agent",
+  "label": "Détail d'un incident",
+  "dynamic": "orgId, incidentId"
+ },
+ {
+  "path": "/agence/ORG/comptabilite",
+  "persona": "agent",
+  "label": "Comptabilité (quittancement, encaissements)",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/comptabilite/fiscal",
+  "persona": "proprietaire",
+  "label": "Aide fiscale (revenus fonciers)",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/documents",
+  "persona": "agent",
+  "label": "GED — documents de l'organisation",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/messages",
+  "persona": "agent",
+  "label": "Messagerie",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/alertes",
+  "persona": "agent",
+  "label": "Alertes",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/statistiques",
+  "persona": "agent",
+  "label": "Statistiques",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/profil",
+  "persona": "agent",
+  "label": "Profil de l'agence / du propriétaire",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/mandats",
+  "persona": "admin-agence",
+  "label": "Mandats & rapports",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/administration",
+  "persona": "admin-agence",
+  "label": "Administration (équipe, portefeuilles)",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/abonnement",
+  "persona": "proprietaire",
+  "label": "Abonnement (propriétaire direct)",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/agence/ORG/faq",
+  "persona": "proprietaire",
+  "label": "FAQ du propriétaire direct",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG",
+  "persona": "locataire",
+  "label": "Tableau de bord locataire",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG/logement",
+  "persona": "locataire",
+  "label": "Mon logement",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG/loyers",
+  "persona": "locataire",
+  "label": "Mes loyers & quittances",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG/documents",
+  "persona": "locataire",
+  "label": "Mes documents",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG/incident",
+  "persona": "locataire",
+  "label": "Signaler un incident",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG/demandes",
+  "persona": "locataire",
+  "label": "Mes demandes",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG/contact",
+  "persona": "locataire",
+  "label": "Contacter la gérance",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/locataire/ORG/faq",
+  "persona": "locataire",
+  "label": "FAQ locataire",
+  "dynamic": "orgId"
+ },
+ {
+  "path": "/quittance/QUITTANCE",
+  "persona": "locataire",
+  "label": "Quittance / reçu imprimable (aussi vue côté agence)",
+  "dynamic": "quittanceId"
+ },
+ {
+  "path": "/attestation-loyer/ORG",
+  "persona": "locataire",
+  "label": "Attestation de bon paiement",
+  "dynamic": "orgId"
+ }
+]

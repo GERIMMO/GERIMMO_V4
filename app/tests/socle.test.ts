@@ -29,24 +29,76 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
     await db?.end();
   });
 
-  it("RLS est actif, avec au moins une politique, sur toute table publique", async () => {
+  it("RLS est actif partout, et toute table atteignable porte une politique", async () => {
+    // Deux états sûrs, un seul défaut. Une table est conforme si le RLS est
+    // actif ET qu'elle porte une politique (table câblée), OU qu'elle
+    // n'accorde AUCUN privilège à anon/authenticated (chantier fermé —
+    // migration 20260910150000). Le défaut, c'est la table atteignable dont
+    // l'accès ne repose sur aucune politique écrite.
     const { rows } = await db.query(`
-      select c.relname as table_en_defaut
+      select c.relname as table_en_defaut,
+             case when not c.relrowsecurity then 'RLS inactif'
+                  else 'atteignable sans politique' end as motif
       from pg_class c
       join pg_namespace n on n.oid = c.relnamespace
       where n.nspname = 'public'
         and c.relkind = 'r'
         and (
           not c.relrowsecurity
-          or not exists (
-            select 1 from pg_policies p
-            where p.schemaname = 'public' and p.tablename = c.relname
+          or (
+            not exists (
+              select 1 from pg_policies p
+              where p.schemaname = 'public' and p.tablename = c.relname
+            )
+            and exists (
+              select 1 from information_schema.role_table_grants g
+              where g.table_schema = 'public' and g.table_name = c.relname
+                and g.grantee in ('anon', 'authenticated')
+                and g.privilege_type in ('SELECT', 'INSERT', 'UPDATE', 'DELETE')
+            )
           )
         )
     `);
     expect(
       rows,
-      `Tables sans RLS ou sans politique : ${rows.map((r) => r.table_en_defaut).join(", ")}`
+      `Tables en défaut : ${rows.map((r) => `${r.table_en_defaut} (${r.motif})`).join(", ")}`
+    ).toHaveLength(0);
+  });
+
+  it("anon n'écrit nulle part, sauf le formulaire de devis de la vitrine", async () => {
+    // Ce test est le VRAI garde-fou de la migration 20260910174000. En
+    // production, les privilèges par défaut du schéma appartiennent à
+    // `supabase_admin` : ni la migration ni personne d'autre que Supabase ne
+    // peut les modifier, si bien que CHAQUE table nouvellement créée hérite
+    // d'un droit d'écriture pour `anon`. La révocation ne tient donc que si
+    // quelqu'un la refait à chaque nouvelle table — c'est ce test qui le
+    // rappelle, en échouant.
+    //
+    // Pourquoi cela compte : la RLS ne s'applique pas au TRUNCATE, seul le
+    // privilège compte. Un `anon` qui garde TRUNCATE sur `encaissements` peut
+    // vider le journal des encaissements sans qu'aucune politique s'y oppose.
+    //
+    // La seule écriture anonyme légitime de l'application est l'INSERT du
+    // formulaire de devis du site vitrine (`demandes_devis`), qui s'exécute
+    // sans session. Toute autre survivance est un oubli de révocation.
+    const { rows } = await db.query(`
+      select c.relname as table_en_defaut, p.priv as privilege
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      cross join lateral (
+        values ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')
+      ) as p(priv)
+      where n.nspname = 'public'
+        and c.relkind in ('r', 'p')
+        and has_table_privilege('anon', c.oid, p.priv)
+        and not (c.relname = 'demandes_devis' and p.priv = 'INSERT')
+      order by c.relname, p.priv
+    `);
+    expect(
+      rows,
+      "anon garde des droits d'écriture — une migration a créé une table sans " +
+        "révoquer (les privilèges par défaut Supabase les accordent tout seuls) : " +
+        rows.map((r) => `${r.table_en_defaut}/${r.privilege}`).join(", ")
     ).toHaveLength(0);
   });
 

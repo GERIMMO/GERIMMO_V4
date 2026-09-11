@@ -3,8 +3,21 @@
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
-import { deposerFichierGed } from "@/lib/ged-depot";
+import { preparerFichierGed, type FichierPrepareGed } from "@/lib/ged-depot";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+
+// Le Storage n'est pas transactionnel : quand la règle métier refuse la
+// retenue, l'octet est déjà monté. Sans fiche il est déjà illisible (la policy
+// du bucket exige un document vivant), mais il porte des données du locataire :
+// il part dans la file de purge physique, vidée par le Super Admin. Échec
+// éventuel ignoré — l'agent doit lire le refus métier, pas un incident de
+// ménage.
+async function abandonnerPiece(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  piece: FichierPrepareGed
+): Promise<void> {
+  await supabase.rpc("purger_fichier_sans_fiche", { p_storage_path: piece.chemin });
+}
 
 export type EtatRestit = {
   erreur?: string;
@@ -52,25 +65,47 @@ export async function ajouterRetenue(
   const dureeStr = String(formData.get("duree_vie") ?? "").trim();
   const ageStr = String(formData.get("age") ?? "").trim();
 
-  let justificatif: string | null = null;
+  // Le justificatif ne doit exister en GED que si la retenue existe. Refuser
+  // une retenue est courant et légitime — « Élément entièrement amorti »
+  // (RM-2.4.5), « Sans EDL d'entrée » (RM-2.4.3) : à l'ancien ordre (dépôt
+  // puis RPC), chaque refus laissait derrière lui une pièce rattachée à rien
+  // qui, par son empreinte, interdisait ensuite de redéposer le même devis.
+  // L'octet monte au Storage (non transactionnel, il précède forcément), la
+  // fiche naît dans la transaction de la retenue — ou n'existe jamais.
+  let piece: FichierPrepareGed | null = null;
   let avertissement: string | undefined;
   const fichier = formData.get("justificatif");
   if (fichier instanceof File && fichier.size > 0) {
-    const dep = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", `Devis/facture — ${libelle}`);
-    if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du justificatif.", valeurs };
-    justificatif = dep.documentId;
-    avertissement = dep.avertissement;
+    const prep = await preparerFichierGed(supabase, orgId, fichier);
+    if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt du justificatif.", valeurs };
+    piece = prep.fichier;
+    avertissement = prep.avertissement;
   }
 
-  const { error } = await supabase.rpc("ajouter_retenue", {
-    p_restitution: restitutionId,
-    p_libelle: libelle,
-    p_cout: cout,
-    p_duree_vie: dureeStr ? Number(dureeStr) : null,
-    p_age: ageStr ? Number(ageStr) : null,
-    p_justificatif: justificatif,
-  });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  const { error } = piece
+    ? await supabase.rpc("ajouter_retenue_avec_justificatif", {
+        p_restitution: restitutionId,
+        p_libelle: libelle,
+        p_cout: cout,
+        p_duree_vie: dureeStr ? Number(dureeStr) : null,
+        p_age: ageStr ? Number(ageStr) : null,
+        p_storage_path: piece.chemin,
+        p_mime: piece.mime,
+        p_taille: piece.taille,
+        p_empreinte: piece.empreinte,
+      })
+    : await supabase.rpc("ajouter_retenue", {
+        p_restitution: restitutionId,
+        p_libelle: libelle,
+        p_cout: cout,
+        p_duree_vie: dureeStr ? Number(dureeStr) : null,
+        p_age: ageStr ? Number(ageStr) : null,
+        p_justificatif: null,
+      });
+  if (error) {
+    if (piece) await abandonnerPiece(supabase, piece);
+    return { erreur: sansJargon(error.message), valeurs };
+  }
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: avertissement ? `Retenue ajoutée. ${avertissement}` : "Retenue ajoutée." };
 }
@@ -97,7 +132,6 @@ export async function justifierRetenue(
   orgId: string,
   bailId: string,
   retenueId: string,
-  libelle: string,
   _etat: EtatRestit,
   formData: FormData
 ): Promise<EtatRestit> {
@@ -105,15 +139,49 @@ export async function justifierRetenue(
   if (!user) return { erreur: "Accès refusé." };
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0) return { erreur: "Choisissez le devis ou la facture." };
-  const dep = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", `Devis/facture — ${libelle}`);
-  if (dep.erreur || !dep.documentId) return { erreur: dep.erreur ?? "Échec du dépôt du justificatif." };
-  const { error } = await supabase.rpc("justifier_retenue", {
+  // Même indivisibilité qu'à l'ajout : « Cette retenue a déjà un justificatif »
+  // (double-clic, deux agents sur le même dossier) ne doit pas laisser la
+  // seconde pièce derrière lui.
+  const prep = await preparerFichierGed(supabase, orgId, fichier);
+  if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt du justificatif." };
+  const piece = prep.fichier;
+  const { error } = await supabase.rpc("justifier_retenue_avec_piece", {
     p_retenue: retenueId,
-    p_document: dep.documentId,
+    p_storage_path: piece.chemin,
+    p_mime: piece.mime,
+    p_taille: piece.taille,
+    p_empreinte: piece.empreinte,
+  });
+  if (error) {
+    await abandonnerPiece(supabase, piece);
+    return { erreur: sansJargon(error.message) };
+  }
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  return { succes: prep.avertissement ? `Justificatif joint. ${prep.avertissement}` : "Justificatif joint." };
+}
+
+// Le dépôt et les impayés du décompte sont un INSTANTANÉ pris au démarrage, pas
+// un calcul permanent. Entre le démarrage et la finalisation, le locataire
+// règle souvent son arriéré — précisément parce qu'on le lui réclame pour qu'il
+// récupère son dépôt. À quelle date les impayés DOIVENT être arrêtés n'est
+// tranché nulle part (le wiki porte la question en « point à trancher ») : on
+// ne décide donc pas à la place du gérant, on lui donne le geste. Refusé en
+// base une fois le décompte figé (RM-2.7.3).
+export async function rafraichirMontantsRestitution(
+  orgId: string,
+  bailId: string,
+  restitutionId: string
+): Promise<EtatRestit> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { data, error } = await supabase.rpc("rafraichir_montants_restitution", {
+    p_restitution: restitutionId,
   });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: dep.avertissement ? `Justificatif joint. ${dep.avertissement}` : "Justificatif joint." };
+  return {
+    succes: `Montants réarrêtés à aujourd'hui — impayés imputés : ${Number(data)} €.`,
+  };
 }
 
 // Décompte envoyé au locataire : l'événement qui ferme l'alerte d'envoi.

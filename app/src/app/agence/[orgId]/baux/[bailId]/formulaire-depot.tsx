@@ -3,7 +3,7 @@
 import { eur, formaterDate } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/app/actions/depot";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
@@ -26,6 +26,9 @@ export function FormulaireDepot({
   encaissements,
   personnes,
   locataireNom,
+  // Le dépôt s'encaisse à l'entrée et se restitue à la sortie (RM-2.1.3) :
+  // fermé sur un bail terminé ou après l'arrêté du décompte (RM-2.7.3).
+  encaissementOuvert = true,
 }: {
   orgId: string;
   bailId: string;
@@ -33,6 +36,7 @@ export function FormulaireDepot({
   encaissements: EncaissementDepot[];
   personnes: { id: string; nom: string }[];
   locataireNom: string;
+  encaissementOuvert?: boolean;
 }) {
   const encaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
   const reste = depotDu - encaisse;
@@ -49,7 +53,7 @@ export function FormulaireDepot({
 
   return (
     <div className="space-y-4">
-      <dl className="grid grid-cols-3 gap-x-4 text-sm">
+      <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-xs text-muted-foreground">Dépôt dû</dt>
           <dd className="font-medium">{eur(depotDu)}</dd>
@@ -98,14 +102,20 @@ export function FormulaireDepot({
         </ul>
       )}
 
-      {reste > 0 && (
-        <FormEncaisser
-          orgId={orgId}
-          bailId={bailId}
-          reste={reste}
-          personnes={personnes}
-        />
-      )}
+      {reste > 0 &&
+        (encaissementOuvert ? (
+          <FormEncaisser
+            orgId={orgId}
+            bailId={bailId}
+            reste={reste}
+            personnes={personnes}
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            La location est soldée : le dépôt ne s&apos;encaisse plus, il se restitue.
+            Le reste dû se règle au décompte de restitution.
+          </p>
+        ))}
     </div>
   );
 }
@@ -125,6 +135,7 @@ function FormEncaisser({
     encaisserDepot.bind(null, orgId, bailId),
     {}
   );
+  const idVersantLibelle = useId();
   return (
     <form action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Enregistrer un encaissement</p>
@@ -166,7 +177,10 @@ function FormEncaisser({
             ))}
           </select>
         </div>
-        <Input name="versant_libelle" placeholder="ou tiers hors fiche" defaultValue={etat.valeurs?.versant_libelle} className="h-9 w-44" />
+        <div className="space-y-1">
+          <Label htmlFor={idVersantLibelle} className="text-xs">Nom du tiers versant</Label>
+          <Input id={idVersantLibelle} name="versant_libelle" placeholder="ou tiers hors fiche" defaultValue={etat.valeurs?.versant_libelle} className="h-9 w-44" />
+        </div>
         <BoutonEnvoi enCoursTexte="…" size="sm">
           Encaisser
         </BoutonEnvoi>
@@ -190,11 +204,19 @@ function BoutonSupprimer({
   encId: string;
 }) {
   const [etat, action] = useActionState<EtatDepot, FormData>(
-    async () => supprimerEncaissementDepot(orgId, bailId, encId),
+    async (_etat, formData) => supprimerEncaissementDepot(orgId, bailId, encId, formData),
     {}
   );
   return (
-    <form action={action}>
+    // La contre-passation du dépôt est une correction comptable : elle porte le
+    // motif de son auteur (RM-A6.6), saisi ici et inscrit au journal.
+    <form action={action} className="flex flex-wrap items-center justify-end gap-1">
+      <Input
+        name="motif"
+        placeholder="motif"
+        aria-label="Motif du retrait"
+        className="h-7 w-28 text-xs"
+      />
       <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
         Retirer
       </BoutonEnvoi>

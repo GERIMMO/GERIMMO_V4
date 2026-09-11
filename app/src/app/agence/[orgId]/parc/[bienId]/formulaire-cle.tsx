@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import { validerCle, type EtatParc } from "@/app/actions/parc";
 import { MODES_CLE, proposerCle } from "@/lib/parc";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,10 @@ export function FormulaireCle({
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const [mode, setMode] = useState<"surface" | "tantiemes" | "parts_egales">("surface");
   const [modifier, setModifier] = useState(false);
+  // Rangée compacte (nom du lot · champ · « % ») : un libellé visible la
+  // casserait, il n'existe donc que pour la synthèse vocale. Identifiants
+  // tirés de useId(), un par lot — jamais de chaîne en dur.
+  const idPart = useId();
   const [parts, setParts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       proposerCle("surface", lots).map((l) => [l.lot_id, String(l.pourcentage)])
@@ -118,7 +122,11 @@ export function FormulaireCle({
             </span>
             {modifier ? (
               <>
+                <Label htmlFor={`${idPart}-${lot.id}`} className="sr-only">
+                  Pourcentage attribué à {lot.nom}
+                </Label>
                 <Input
+                  id={`${idPart}-${lot.id}`}
                   name="ligne_pourcentage"
                   type="number"
                   step="0.01"

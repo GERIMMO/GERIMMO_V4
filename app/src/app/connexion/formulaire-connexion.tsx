@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { destinationSure } from "@/lib/destination-sure";
 import { CLE_SESSION_ALERTES } from "@/components/synthese-alertes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,9 @@ export function FormulaireConnexion() {
       setEnCours(false);
       return;
     }
-    router.push("/espaces");
+    // Retour à la destination demandée avant la connexion, s'il y en avait
+    // une — filtrée par destinationSure (aucune URL externe ne peut passer).
+    router.push(destinationSure(searchParams.get("suite")));
     router.refresh();
   }
 
@@ -114,7 +117,7 @@ export function FormulaireConnexion() {
           </p>
           <p className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
             Propriétaire bailleur ?{" "}
-            <Link href="/inscription" className="text-foreground underline-offset-4 hover:underline">
+            <Link href="/inscription" className="text-foreground underline underline-offset-4">
               Ouvrir mon espace
             </Link>
           </p>

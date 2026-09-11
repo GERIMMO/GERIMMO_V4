@@ -1,9 +1,11 @@
 // Socle de rendu des documents (sprint « Documents-0 »).
 //
-// L'ADN vient des épreuves `pdf-vierges/` (version 2026.11) : A4, encre
-// #14304f, laiton #9a7b3f, corps Caladea 10,5 pt, titres en capitales très
-// espacées entre deux filets, cartouches méta en deux colonnes, tableaux à
-// filets fins, pied « Réf · Modèle · Empreinte · Généré avec Gerimmo ».
+// L'ADN vient des épreuves `pdf-vierges/` (version 2026.11) : A4, corps
+// Caladea 10,5 pt, titres en capitales très espacées entre deux filets,
+// cartouches méta en deux colonnes, tableaux à filets fins, pied
+// « Réf · Modèle · Empreinte · Généré avec Gerimmo ». Les COULEURS, elles,
+// ne viennent plus des épreuves mais de la charte de l'application — voir
+// le bloc CHARTE ci-dessous.
 //
 // Règle de fusion (décision Tahir 31/08) : une donnée absente n'arrête jamais
 // la génération — le champ s'imprime comme dans l'épreuve, libellé en italique
@@ -14,6 +16,38 @@ import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 
 export const VERSION_MODELES = "2026.11-g1";
+
+// ------------------------------------------------------------------
+// La charte, en valeurs imprimables
+// ------------------------------------------------------------------
+// Un PDF n'a ni feuille de style ni jetons CSS : la valeur doit bien être
+// écrite quelque part. Elle l'est ICI, UNE FOIS — même patron que
+// `src/lib/page-erreur-fichier.ts`, qui a résolu le 2026-09-11 le même
+// problème pour les routes qui servent un fichier.
+//
+// Jusqu'ici, gabarit.ts portait une charte PARALLÈLE : un laiton #9a7b3f
+// quand l'application dit #854f0b, des filets, des gris et une crème tous
+// décalés d'un cran. Un mandant recevait donc des documents qui ne
+// ressemblaient pas au produit, et la marque blanche (module 17) ne les
+// atteignait pas : une agence qui changeait ses couleurs ne changeait pas
+// ses PDF. C'était le plus gros trou restant du module.
+//
+// Chaque entrée nomme le jeton de src/app/globals.css qu'elle reflète. Si
+// la charte bouge, ce bloc est le SEUL à suivre — la feuille du document
+// comme le pied de page puppeteer (qui vit hors de cette feuille) s'y
+// alimentent tous les deux.
+const CHARTE = {
+  encre: "#14304f",           // --encre : titres, filets de titre, bandeaux
+  surEncre: "#f5efe3",        // --sur-encre : texte posé sur un aplat encre
+  laiton: "#854f0b",          // --or-texte : le laiton LISIBLE sur fond clair
+  laitonFilet: "#c9a227",     // --or : liseré et pastille — jamais du texte
+  corps: "#1c2024",           // --corps : corps de texte
+  texteSecondaire: "#4a4844", // --texte-secondaire : mentions légales
+  libelle: "#6e675a",         // --libelle : étiquettes, pied, champs à remplir
+  creme: "#faf7f0",           // --creme : fond d'un encadré
+  filet: "#e4dcca",           // --filet
+  filetLeger: "#f1efe8",      // --filet-leger
+} as const;
 
 // ------------------------------------------------------------------
 // Collecte des champs : valeur ou libellé d'épreuve
@@ -38,6 +72,24 @@ export class Fusion {
     if (n === null || n === undefined || n === "") return this.champ(null, libelle);
     return this.champ(eur(Number(n)), libelle);
   }
+}
+
+// Un champ EXPRESSÉMENT FACULTATIF au sens du contrat type (téléphone, IBAN) :
+// la valeur si elle existe, un tiret sinon — jamais compté manquant. Sans ça,
+// une organisation sans téléphone imprimait le mot « facultatif » sur des
+// pointillés, puis s'entendait dire d'aller renseigner « facultatif » sur son
+// profil. La règle vivait dans bail-nu.ts ; deux autres endroits y
+// répondaient autrement — elle est désormais commune (11/09).
+export function facultatif(valeur: string | number | null | undefined): string {
+  const v = valeur === null || valeur === undefined ? "" : String(valeur).trim();
+  return v ? `<span class="v">${echapper(v)}</span>` : "—";
+}
+
+// Une clause laissée vide au sens du contrat : « Néant. » — une clause
+// volontairement vide n'est pas une donnée manquante.
+export function ouNeant(valeur: string | null | undefined): string {
+  const v = valeur?.trim();
+  return v ? `<span class="v">${echapper(v)}</span>` : "Néant.";
 }
 
 export function echapper(s: string): string {
@@ -106,7 +158,7 @@ export function enTete(
     <div class="exp">
       <div class="exp-nom">${f.champ(exp.nom, "nom et prénom(s), ou dénomination")}</div>
       <div>${f.champ(exp.adresse, "domicile ou siège social")}</div>
-      <div>${f.champ(exp.email, "adresse électronique")}&nbsp;&nbsp;·&nbsp;&nbsp;${f.champ(exp.telephone, "facultatif")}</div>
+      <div>${f.champ(exp.email, "adresse électronique")}&nbsp;&nbsp;·&nbsp;&nbsp;${facultatif(exp.telephone)}</div>
     </div>
     <div class="cartouche-ref">
       <div>${echapper(cartouche.libelle)} <span class="mini">n°</span></div>
@@ -116,7 +168,10 @@ export function enTete(
   </header>`;
 }
 
-// Titre du document entre deux filets encre + sous-titre laiton + base légale
+// Titre du document entre deux filets encre + sous-titre laiton + base légale.
+// `sousTitre` est du HTML DÉJÀ ASSEMBLÉ (la plupart des modèles y glissent un
+// `f.date(...)`) : au contraire de `titrePrincipal` et des bases légales, il
+// n'est pas échappé ici — c'est à l'appelant d'échapper toute valeur brute.
 export function titre(titrePrincipal: string, sousTitre: string, basesLegales: string[]): string {
   return `<div class="bloc-titre">
     <h1>${echapper(titrePrincipal)}</h1>
@@ -210,44 +265,53 @@ export function assemblerPage(params: {
 }
 
 // Pied fidèle à l'épreuve : nom du doc · Réf/Modèle/Empreinte · pagination,
-// puis la ligne de marque. Police système serif (les gabarits de pied
-// puppeteer ne chargent pas de fonte embarquée).
+// puis la ligne de marque. Le pied est un document À PART, rendu par le
+// moteur d'impression : il n'a ni la feuille ci-dessous ni les fontes
+// embarquées — d'où le serif système et les styles en ligne. Ses couleurs,
+// elles, viennent du même CHARTE que la feuille : c'était le seul endroit du
+// produit où le laiton du pied (#9a7b3f) ne ressemblait à celui de nulle part.
+// La gouttière est en POINTS, comme le corps (`padding:44pt 56pt`) : en
+// pixels, le filet du pied débordait le bloc de texte de ~28 px de chaque côté.
 function piedDePage(nom: string, reference: string, empreinte: string): string {
-  return `<div style="width:100%;font-family:Georgia,'Times New Roman',serif;color:#77828e;font-size:6.5px;padding:0 56px;">
-    <div style="border-top:0.5px solid #d8d2c4;padding-top:4px;display:flex;justify-content:space-between;align-items:baseline;">
+  return `<div style="width:100%;font-family:Georgia,'Times New Roman',serif;color:${CHARTE.libelle};font-size:6.5px;padding:0 56pt;">
+    <div style="border-top:0.5px solid ${CHARTE.filet};padding-top:4px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;">
       <span>${echapper(nom)}</span>
       <span>Réf. ${echapper(reference)} · Modèle ${VERSION_MODELES} · Empreinte ${empreinte}</span>
-      <span>Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
+      <span style="white-space:nowrap;">Page <span class="pageNumber"></span> / <span class="totalPages"></span></span>
     </div>
     <div style="text-align:center;padding-top:3px;">
-      <span style="color:#14304f;letter-spacing:3px;font-size:7.5px;">G E R I M M O</span>
-      <span style="color:#8b96a2;">&nbsp;&nbsp;Document généré avec Gerimmo&nbsp;&nbsp;</span>
-      <span style="color:#9a7b3f;">gerimmo.app</span>
+      <span style="color:${CHARTE.encre};letter-spacing:3px;font-size:7.5px;">G E R I M M O</span>
+      <span>&nbsp;&nbsp;Document généré avec Gerimmo&nbsp;&nbsp;</span>
+      <span style="color:${CHARTE.laiton};">gerimmo.app</span>
     </div>
   </div>`;
 }
 
-// La charte de l'épreuve, en CSS d'impression
+// La charte de l'application, en CSS d'impression. Une seule source de
+// valeurs : CHARTE, tout en haut du fichier.
 const CSS_DOCUMENT = `
-  :root { --encre:#14304f; --laiton:#9a7b3f; --texte:#1a1a1a; --gris:#77828e;
-          --fusion:#93a0ae; --filet:#d8d2c4; --filet-leger:#e7e2d6; }
+  :root { --encre:${CHARTE.encre}; --sur-encre:${CHARTE.surEncre};
+          --laiton:${CHARTE.laiton}; --laiton-filet:${CHARTE.laitonFilet};
+          --texte:${CHARTE.corps}; --texte-secondaire:${CHARTE.texteSecondaire};
+          --libelle:${CHARTE.libelle}; --creme:${CHARTE.creme};
+          --filet:${CHARTE.filet}; --filet-leger:${CHARTE.filetLeger}; }
   * { margin:0; padding:0; box-sizing:border-box; }
   html { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body { font-family:'Caladea', Georgia, serif; font-size:10.5pt; color:var(--texte);
          line-height:1.55; padding:44pt 56pt 0; }
   .entete { display:flex; justify-content:space-between; align-items:flex-end;
             border-bottom:0.75pt solid var(--encre); padding-bottom:8pt; margin-bottom:18pt;
-            font-size:8pt; color:#6b7580; }
+            font-size:8pt; color:var(--libelle); }
   .entete .exp-nom { font-weight:700; }
   .cartouche-ref { text-align:right; }
-  .mini { font-size:6.5pt; color:var(--gris); }
+  .mini { font-size:6.5pt; color:var(--libelle); }
   .bloc-titre { border-top:0.75pt solid var(--encre); border-bottom:0.75pt solid var(--encre);
                 text-align:center; padding:16pt 0 14pt; margin-bottom:10pt; }
   h1 { font-size:23pt; color:var(--encre); letter-spacing:0.32em; font-weight:700;
        text-transform:uppercase; }
   .sous-titre { color:var(--laiton); font-size:11pt; letter-spacing:0.22em;
                 text-transform:uppercase; margin-top:6pt; }
-  .base-legale { text-align:center; font-style:italic; font-size:7pt; color:var(--gris);
+  .base-legale { text-align:center; font-style:italic; font-size:7pt; color:var(--libelle);
                  margin:4pt 0 16pt; }
   h2 { font-size:13pt; color:var(--encre); letter-spacing:0.14em; text-transform:uppercase;
        font-weight:700; border-bottom:0.75pt solid var(--encre); padding-bottom:4pt;
@@ -255,8 +319,8 @@ const CSS_DOCUMENT = `
   h3 { color:var(--laiton); font-size:10.5pt; font-weight:700; margin:12pt 0 6pt;
        page-break-after:avoid; }
   p { margin:6pt 0; text-align:justify; }
-  .fusion { font-style:italic; font-size:8pt; color:var(--fusion);
-            border-bottom:0.75pt dotted var(--fusion); padding:0 14pt; white-space:nowrap; }
+  .fusion { font-style:italic; font-size:8pt; color:var(--libelle);
+            border-bottom:0.75pt dotted var(--libelle); padding:0 14pt; white-space:nowrap; }
   .v { border-bottom:0.75pt dotted var(--filet); padding:0 2pt; }
   .cartouches { display:grid; grid-template-columns:1fr 1fr; gap:0 28pt;
                 border-top:0.5pt solid var(--filet); margin:14pt 0; }
@@ -274,13 +338,13 @@ const CSS_DOCUMENT = `
   .total { font-weight:700; color:var(--encre); border-top:0.75pt solid var(--encre); }
   .signatures { display:grid; grid-template-columns:1fr 1fr; gap:16pt; margin-top:12pt; }
   .signature { page-break-inside:avoid; }
-  .signature .bandeau { background:var(--encre); color:#fdfbf5; font-weight:700;
+  .signature .bandeau { background:var(--encre); color:var(--sur-encre); font-weight:700;
                         padding:5pt 10pt; font-size:10pt; }
   .signature .zone { border:0.5pt solid var(--filet); border-top:none; min-height:70pt;
-                     padding:8pt 10pt; font-size:8pt; color:#6b7580; }
-  .mentions { font-size:8.5pt; color:#4a5560; }
+                     padding:8pt 10pt; font-size:8pt; color:var(--libelle); }
+  .mentions { font-size:8.5pt; color:var(--texte-secondaire); }
   .mentions p { margin:4pt 0; }
-  .encadre { border-left:2.25pt solid var(--laiton); background:#faf7ef;
+  .encadre { border-left:2.25pt solid var(--laiton-filet); background:var(--creme);
              padding:8pt 12pt; margin:10pt 0; page-break-inside:avoid; }
   .deux-col { display:grid; grid-template-columns:1fr 1fr; gap:0 28pt; }
   .sig-emetteur { margin-top:14pt; margin-left:auto; width:180pt; text-align:center;
@@ -289,7 +353,7 @@ const CSS_DOCUMENT = `
                  text-transform:uppercase; margin-bottom:4pt; }
   .sig-image { max-height:52pt; max-width:170pt; }
   .sig-vide { height:44pt; border-bottom:0.75pt dotted var(--filet); }
-  .sig-nom { font-size:8.5pt; color:#4a5560; margin-top:3pt; }
+  .sig-nom { font-size:8.5pt; color:var(--texte-secondaire); margin-top:3pt; }
   .saut { page-break-before:always; }
   .centre { text-align:center; }
 `;

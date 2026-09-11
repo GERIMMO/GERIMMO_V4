@@ -30,7 +30,8 @@ soutient le projet.
   [[Archivage plutôt que suppression]], [[RGPD]], [[Socle de sécurité]],
   [[Plan de reprise d'activité]], [[Vétusté et décote]],
   [[Machines à états et événements]], [[Notification et valeur probante]].
-- **Synthèses** — analyses transverses : [[État du projet et décisions ouvertes]]
+- **Synthèses** — analyses transverses : [[Proposition de valeur]]
+  (**l'énoncé fondateur du projet**), [[État du projet et décisions ouvertes]]
   (**les arbitrages en attente — à lire en premier**),
   [[Divergences code et référentiel V3]], [[Modèle de rôles et permissions]],
   [[Modèle de données]], [[Architecture du socle V3]], [[Canaux de communication]],

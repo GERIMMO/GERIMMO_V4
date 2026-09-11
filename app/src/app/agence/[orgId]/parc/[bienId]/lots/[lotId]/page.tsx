@@ -5,13 +5,11 @@ import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   alertesDecence,
-  cibleBlocage,
 } from "@/lib/parc";
 import {
   diagnosticsExigibles,
   diagnosticsManquants,
   alerteDiagnosticsNiveau,
-  etiqueterNiveau,
   LIBELLES_NIVEAU_DIAGNOSTIC,
 } from "@/lib/diagnostics";
 import { formaterDate, eur } from "@/lib/ged";
@@ -39,6 +37,8 @@ import { FormulairePiecesLot, type PieceLot } from "./formulaire-pieces-lot";
 import { FormulaireBailLot } from "./formulaire-bail-lot";
 import { AppelsCharges, type AppelCharge } from "./formulaire-appels-charges";
 import { buttonVariants } from "@/components/ui/button";
+import { EchecLecture, PageEchecLecture } from "../../../echec-lecture";
+import { BlocagesLocation } from "../../../blocages-location";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
 
@@ -49,17 +49,18 @@ export default async function PageLot(
   const { supabase, role } = await verifierAccesEspace(orgId);
 
   const [
-    { data: lot },
-    { data: bien },
-    { data: detentions },
-    { data: diagnostics },
-    { data: catalogue },
-    { data: equipesLot },
-    { data: personnes },
-    { data: blocages },
-    { data: baux },
-    { data: proprietaires },
-    { data: piecesLot },
+    { data: lot, error: erreurLot },
+    { data: bien, error: erreurBien },
+    { data: detentions, error: erreurDetentions },
+    { data: diagnostics, error: erreurDiagnostics },
+    { data: diagnosticsBien, error: erreurDiagnosticsBien },
+    { data: catalogue, error: erreurCatalogue },
+    { data: equipesLot, error: erreurEquipesLot },
+    { data: personnes, error: erreurPersonnes },
+    { data: blocages, error: erreurBlocages },
+    { data: baux, error: erreurBaux },
+    { data: proprietaires, error: erreurProprietaires },
+    { data: piecesLot, error: erreurPieces },
   ] = await Promise.all([
     supabase
       .from("lots")
@@ -87,6 +88,19 @@ export default async function PageLot(
       .from("diagnostics")
       .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id")
       .eq("lot_id", lotId)
+      .is("archived_at", null)
+      .order("type"),
+    // Les diagnostics rattachés au BIEN (ERP, termites, amiante des parties
+    // communes). Relevé du 11/09 : l'ERP est un blocage de mise en location du
+    // LOT (lot_blocages_location) qui ne se déposait que depuis la fiche bien —
+    // aller-retour obligatoire entre deux fiches au milieu du parcours, alors
+    // que `deposerDiagnostic` range lui-même le dépôt d'après le référentiel
+    // (RM-0.6.2). Une requête de plus ici, et la préparation du lot ne quitte
+    // plus sa fiche.
+    supabase
+      .from("diagnostics")
+      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id")
+      .eq("bien_id", bienId)
       .is("archived_at", null)
       .order("type"),
     supabase
@@ -120,10 +134,19 @@ export default async function PageLot(
       .order("ordre")
       .order("created_at"),
   ]);
+  // Lecture refusée : ni le lot ni le bien n'ont disparu (relevé du 11/09).
+  if (erreurLot || erreurBien)
+    return (
+      <PageEchecLecture
+        titre="Fiche lot"
+        quoi={[erreurLot ? "le lot" : "", erreurBien ? "le bien" : ""].filter(Boolean)}
+        retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: "Fiche bien" }}
+      />
+    );
   if (!lot || !bien) notFound();
 
   // Appels de charges de copropriété (module 0c) — uniquement si le bien est en copropriété
-  const { data: appelsRaw } = bien.copropriete
+  const { data: appelsRaw, error: erreurAppels } = bien.copropriete
     ? await supabase
         .from("appels_charges")
         .select(
@@ -131,7 +154,7 @@ export default async function PageLot(
         )
         .eq("lot_id", lotId)
         .order("exercice", { ascending: false })
-    : { data: [] };
+    : { data: [], error: null };
   const appelsCharges = ((appelsRaw ?? []) as AppelCharge[]).map((a) => ({
     ...a,
     postes: [...(a.postes ?? [])].sort((x, y) => x.libelle.localeCompare(y.libelle)),
@@ -142,10 +165,13 @@ export default async function PageLot(
     (s, d) => s + Number(d.quote_part),
     0
   );
-  // Diagnostics exigibles au niveau lot uniquement — calcul centralisé
-  // (lib/diagnostics, audit 09/09) ; ceux de l'immeuble sont sur la fiche bien.
+  // Diagnostics exigibles, par niveau de rattachement — calcul centralisé
+  // (lib/diagnostics, audit 09/09). Les deux niveaux sont rendus ici : ceux du
+  // lot, et ceux de l'immeuble (ils restent portés par le bien en base).
   const exigiblesLot = diagnosticsExigibles(bien, "lot");
   const manquants = diagnosticsManquants(bien, diagnostics ?? [], "lot");
+  const exigiblesBien = diagnosticsExigibles(bien, "bien");
+  const manquantsBien = diagnosticsManquants(bien, diagnosticsBien ?? [], "bien");
   const decence = alertesDecence(lot);
   const verrouille = ["loue", "preavis"].includes(lot.etat);
 
@@ -171,8 +197,27 @@ export default async function PageLot(
     ? nomsParId.get(bailEnCours.locataire_principal)
     : undefined;
 
+  // Ce que la base n'a pas rendu : « aucun diagnostic », « aucun bail »,
+  // « 0 % de détention » sont des verdicts — pas quand la lecture a échoué.
+  const echecs: string[] = [];
+  const noter = (libelle: string, erreur: unknown) => {
+    if (erreur) echecs.push(libelle);
+  };
+  noter("les propriétaires du lot", erreurDetentions);
+  noter("les diagnostics", erreurDiagnostics);
+  noter("les diagnostics de l’immeuble", erreurDiagnosticsBien);
+  noter("le catalogue d’équipements", erreurCatalogue);
+  noter("les équipements du lot", erreurEquipesLot);
+  noter("les personnes de l’agence", erreurPersonnes);
+  noter("ce qui bloque la mise en location", erreurBlocages);
+  noter("les baux", erreurBaux);
+  noter("les propriétaires déjà connus de l’agence", erreurProprietaires);
+  noter("les pièces du lot", erreurPieces);
+  noter("les appels de charges", erreurAppels);
+
   const nbEquip = (equipesLot ?? []).length;
   const nbDiag = (diagnostics ?? []).length;
+  const nbDiagBien = (diagnosticsBien ?? []).length;
   const nbBaux = (baux ?? []).length;
 
   return (
@@ -200,6 +245,8 @@ export default async function PageLot(
         </div>
       </div>
 
+      <EchecLecture quoi={echecs} />
+
       {decence.length > 0 && (
         <div className="border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
           {decence.map((a) => (
@@ -221,37 +268,16 @@ export default async function PageLot(
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
-          {(blocages ?? []).length > 0 && lot.etat === "brouillon" && (
-            <div className="rounded-lg bg-muted p-3 text-sm">
-              <p className="mb-1 font-medium">
-                Ce qui empêche la mise en location :
-              </p>
-              <ul className="space-y-1.5">
-                {(blocages as string[]).map((b) => {
-                  const cible = cibleBlocage(b, { orgId, bienId, lotId });
-                  // Ancre native pour les cibles de cette page (voir fiche bien) :
-                  // Link/pushState ne déclenche pas hashchange, la section restait fermée.
-                  const memePage = cible.href.includes(`/lots/${lotId}#`);
-                  return (
-                    <li key={b} className="flex items-center justify-between gap-2">
-                      {/* Un diagnostic porte son niveau (« au lot » / « à l'immeuble ») */}
-                      <span className="min-w-0 flex-1 text-muted-foreground">
-                        {etiqueterNiveau(b, b)}
-                      </span>
-                      {memePage ? (
-                        <a href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                          {cible.libelle} →
-                        </a>
-                      ) : (
-                        <Link href={cible.href} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                          {cible.libelle} →
-                        </Link>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
+          {/* Ce qui empêche la mise en location. C'était ici un bloc GRIS neutre,
+              alors que le parc et la fiche bien en font une alerte ambre — même
+              RPC, trois rendus (relevé du 11/09). Un seul, désormais. */}
+          {lot.etat === "brouillon" && (
+            <BlocagesLocation
+              motifs={(blocages ?? []) as string[]}
+              ctx={{ orgId, bienId, lotId }}
+              pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`}
+              titre="Ce qui empêche la mise en location"
+            />
           )}
           <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} />
 
@@ -304,7 +330,7 @@ export default async function PageLot(
               ) : (
                 <ul className="divide-y divide-border">
                   {(detentions ?? []).map((d) => (
-                    <li key={d.id} className="flex items-center gap-2 py-2 text-sm">
+                    <li key={d.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                       <span
                         className={`min-w-0 flex-1 truncate ${d.date_fin ? "text-muted-foreground line-through" : ""}`}
                       >
@@ -324,12 +350,16 @@ export default async function PageLot(
                         />
                       )}
                       {!d.date_fin && (baux ?? []).length === 0 && (
-                        <BoutonSupprimerDetention
-                          orgId={orgId}
-                          bienId={bienId}
-                          lotId={lotId}
-                          detentionId={d.id}
-                        />
+                        /* « Corriger » SUPPRIME : au doigt, on l'écarte de
+                           « Fermer » pour éviter le tap voisin. */
+                        <span className="pointer-coarse:ml-2">
+                          <BoutonSupprimerDetention
+                            orgId={orgId}
+                            bienId={bienId}
+                            lotId={lotId}
+                            detentionId={d.id}
+                          />
+                        </span>
                       )}
                       {d.date_fin && (
                         <BoutonRouvrirDetention
@@ -367,9 +397,8 @@ export default async function PageLot(
           >
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                DPE, électricité, gaz, plomb, amiante privatif… Les diagnostics
-                de l&apos;immeuble (ERP, termites, amiante des parties communes)
-                vivent sur la fiche du bien.
+                DPE, électricité, gaz, plomb, amiante privatif… Ceux de
+                l&apos;immeuble se déposent juste en dessous.
               </p>
               <LignesDiagnostics
                 orgId={orgId}
@@ -378,6 +407,42 @@ export default async function PageLot(
                 niveau="lot"
                 attendus={exigiblesLot.map((e) => e.type)}
                 diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
+              />
+            </div>
+          </SectionLot>
+
+          {/* Diagnostics de l'immeuble, DEPUIS la fiche lot (relevé du 11/09).
+              Le rattachement ne se décide PAS ici : `deposerDiagnostic` le lit
+              dans le référentiel (`TYPES_DIAGNOSTIC[type].niveau`) et écrit
+              `bien_id` pour un diagnostic d'immeuble, quel que soit le lot d'où
+              part le dépôt (RM-0.6.2) ; l'archivage de l'ancien du même type
+              est inchangé (RM-0.8.5). On lui passe quand même `lotId` : c'est
+              ce qui lui fait revalider CETTE page, sans quoi le blocage « ERP
+              absent ou expiré » resterait affiché après le dépôt. Ce qui change
+              pour l'utilisateur : il ne quitte plus le lot pour le lever. */}
+          <SectionLot
+            id="diagnostics-immeuble"
+            titre="Diagnostics de l’immeuble"
+            alerte={alerteDiagnosticsNiveau(bien, diagnosticsBien ?? [], "bien")}
+            resume={
+              nbDiagBien === 0
+                ? `Aucun diagnostic ${LIBELLES_NIVEAU_DIAGNOSTIC.bien}`
+                : `${nbDiagBien} déposé${nbDiagBien > 1 ? "s" : ""} ${LIBELLES_NIVEAU_DIAGNOSTIC.bien}${manquantsBien.length ? ` · manque : ${manquantsBien.map((m) => m.libelle).join(", ")}` : ""}`
+            }
+          >
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                ERP, termites, amiante des parties communes… Ils valent pour
+                tout le bien « {bien.nom} » : un dépôt fait ici sert à chacun de
+                ses lots, et se retrouve sur la fiche du bien.
+              </p>
+              <LignesDiagnostics
+                orgId={orgId}
+                bienId={bienId}
+                lotId={lotId}
+                niveau="bien"
+                attendus={exigiblesBien.map((e) => e.type)}
+                diagnostics={(diagnosticsBien ?? []) as DiagnosticDepose[]}
               />
             </div>
           </SectionLot>
@@ -424,10 +489,18 @@ export default async function PageLot(
           <SectionLot
             id="baux"
             titre="Baux & état des lieux"
+            // Seule exception au principe « toutes les sections repliées »
+            // (voir section-lot.tsx) : un lot DISPONIBLE et SANS AUCUN BAIL n'a
+            // qu'une suite possible, et c'est ce formulaire — l'unique porte
+            // d'entrée de la création d'un bail dans toute l'application
+            // (relevé du 11/09 : ni route /baux, ni bouton « Nouveau bail »).
+            // La création reste un simple brouillon : tous les contrôles de
+            // mise en location vivent à l'activation (controler_mise_en_location).
+            ouvertParDefaut={lot.etat === "disponible" && (baux ?? []).length === 0}
             resume={
               nbBaux === 0
                 ? "Aucun bail"
-                : `${nbBaux} bail${nbBaux > 1 ? "s" : ""} · ${(baux ?? [])
+                : `${nbBaux > 1 ? `${nbBaux} baux` : "1 bail"} · ${(baux ?? [])
                     .map((b) => ETATS_BAIL[b.etat] ?? b.etat)
                     .join(", ")}`
             }
@@ -497,7 +570,7 @@ export default async function PageLot(
               resume={
                 appelsCharges.length === 0
                   ? "Aucun appel de charges saisi"
-                  : `${appelsCharges.length} appel(s) · ${
+                  : `${appelsCharges.length} appel${appelsCharges.length > 1 ? "s" : ""} · ${
                       appelsCharges.filter((a) => a.statut === "brouillon").length
                     } en cours`
               }

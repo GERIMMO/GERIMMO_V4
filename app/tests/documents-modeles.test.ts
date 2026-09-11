@@ -286,6 +286,43 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.manquants).toContain("neuf, bon, usagé, mauvais");
   });
 
+  // Le 11/09, l'état des lieux de sortie s'est mis à reprendre les clés de
+  // l'entrée pour éviter de les retaper. Elles arrivaient avec `nombre = 0`.
+  // Or les deux parties SIGNENT ce document : « 0 » y atteste que le locataire
+  // n'a rendu aucune clé — le fait même qui fonde une retenue de serrurerie.
+  // Une clé non comptée s'imprime donc en libellé, et remonte dans la liste
+  // des champs restés à remplir, comme le fait déjà l'index de compteur.
+  it("une clé non comptée ne s'imprime pas « 0 » et se signale comme manquante", () => {
+    const doc = construireEdl(
+      donnees({
+        type: "sortie",
+        cles: [{ libelle: "Clé porte d'entrée", nombre: null, reference: "A-12" }],
+      })
+    );
+    expect(doc.html).toContain("Clé porte d&#39;entrée".replace("&#39;", "'"));
+    expect(doc.manquants).toContain("nombre rendu");
+    // La cellule « Nombre » de CETTE ligne porte le libellé de l'épreuve, pas
+    // un chiffre : c'est ce que l'ancien code (`String(c.nombre)`) ne pouvait
+    // pas produire — il aurait imprimé « 0 », ou « null ».
+    const i = doc.html.indexOf("A-12");
+    const ligne = doc.html.slice(i, i + 300);
+    expect(ligne).toContain("nombre rendu");
+    expect(ligne).not.toMatch(/>\s*(0|null)\s*</);
+  });
+
+  // Zéro clé RENDUE est un constat, et il s'imprime : la distinction entre
+  // « pas encore compté » et « compté, rien rendu » est tout l'objet du null.
+  it("zéro clé rendue s'imprime, et ne compte pas parmi les manquants", () => {
+    const doc = construireEdl(
+      donnees({
+        type: "sortie",
+        cles: [{ libelle: "Clé porte d'entrée", nombre: 0, reference: "A-12" }],
+      })
+    );
+    expect(doc.html).toContain(">0<");
+    expect(doc.manquants).not.toContain("nombre rendu");
+  });
+
   it("la sortie affiche le comparatif, les retenues avec vétusté et leur total", () => {
     const doc = construireEdl(
       donnees({

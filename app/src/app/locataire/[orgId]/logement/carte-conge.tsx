@@ -4,6 +4,7 @@ import { useState, useActionState } from "react";
 import { donnerMonConge, type EtatConge } from "@/app/actions/conge-locataire";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { formaterDate } from "@/lib/ged";
 
 // « Vous quittez le logement ? » — le congé se donne par lettre recommandée
@@ -129,9 +130,9 @@ export function CarteConge({
             faite ici prévient votre gestionnaire, elle ne remplace pas le
             courrier.
           </p>
-          <label htmlFor="conge-motif" className="mt-3 block text-xs text-muted-foreground">
+          <Label htmlFor="conge-motif" className="mt-3">
             Un mot pour votre gestionnaire (facultatif)
-          </label>
+          </Label>
           {/* En erreur, la saisie est reposée via etat.valeurs (audit 09/09) */}
           <input
             id="conge-motif"
@@ -148,7 +149,11 @@ export function CarteConge({
               Annuler
             </Button>
           </div>
-          {etat.erreur && <p className="mt-2 text-sm text-destructive">{etat.erreur}</p>}
+          {etat.erreur && (
+            <p className="err mt-2 !mb-0" role="alert">
+              {etat.erreur}
+            </p>
+          )}
         </form>
       )}
     </div>

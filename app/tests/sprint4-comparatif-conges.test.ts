@@ -128,19 +128,36 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
   it("le comparatif entrée/sortie met les écarts en évidence", async () => {
     const lot = await lotLouable();
     const {
+      rows: [{ id: doc }],
+    } = await db.query(
+      `insert into public.documents (organization_id, type, titre, storage_path, mime_type, taille_octets, empreinte)
+       values ($1,'bail','B',$1::uuid::text||'/'||gen_random_uuid()||'.pdf','application/pdf',10,'e-'||gen_random_uuid()) returning id`,
+      [orgA]
+    );
+    const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal) values ($1,$2,$3) returning id`,
-      [orgA, lot, locataire]
+      // Mentions obligatoires exigées à l'activation (audit 11/09) : loyer et date d'effet
+      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, date_debut)
+       values ($1,$2,$3,$4,700,current_date) returning id`,
+      [orgA, lot, locataire, doc]
     );
+    // Cycle de vie réel : EDL d'entrée signé → bail actif → congé (préavis) →
+    // EDL de sortie. Un EDL de sortie ne se signe que pendant le préavis.
     const entree = await edlSigne(bail, "entree", "bon");
+    await db.query(`select public.signer_edl($1)`, [entree]);
+    await db.query(`select public.activer_bail($1)`, [bail]);
+    await db.query(
+      `select public.enregistrer_conge($1,'locataire',current_date,3::smallint,null,null)`,
+      [bail]
+    );
+
     const sortie = await edlSigne(bail, "sortie", "bon");
     // Une dégradation sur "Sols" à la sortie
     await db.query(
       `update public.edl_lignes set etat='mauvais' where edl_id=$1 and libelle='Sols'`,
       [sortie]
     );
-    await db.query(`select public.signer_edl($1)`, [entree]);
     await db.query(`select public.signer_edl($1)`, [sortie]);
 
     const comp = await db.query(
@@ -165,7 +182,9 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
     const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe) values ($1,$2,$3,$4) returning id`,
+      // Mentions obligatoires exigées à l'activation (audit 11/09) : loyer et date d'effet
+      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, date_debut)
+       values ($1,$2,$3,$4,700,current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
     // EDL d'entrée signé : prérequis de la validation (29/08)

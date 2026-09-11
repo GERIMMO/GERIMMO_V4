@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useActionState, useRef, useEffect, useId } from "react";
 import {
   attribuerIncident,
   cloturerIncident,
@@ -9,14 +9,17 @@ import {
   rouvrirIncident,
   type EtatIncidentAction,
 } from "@/app/actions/incidents";
+import { compresserChampFichiers } from "@/lib/compresser-image";
 import { RepereJuridique } from "../nouveau/formulaire-incident";
 import { IMPUTATIONS_INCIDENT, MOTIFS_CLOTURE } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+// min-w-0 : en flex, un select natif refuse sinon de descendre sous sa plus
+// longue option et fait déborder la ligne (audit mobile 09/09)
 const classeSelect =
-  "h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm";
+  "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2 text-sm";
 const classeTextarea =
   "w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm";
 
@@ -55,14 +58,17 @@ export function FormulaireQualification({
       <RepereJuridique slug={categorie} />
       <fieldset className="space-y-1.5">
         <legend className="libelle-champ">Qui prend en charge *</legend>
+        {/* Décision opposable : rangées pleine largeur avec du padding — les
+            radios natives de 13px se cochent mal au pouce */}
         {Object.entries(IMPUTATIONS_INCIDENT).map(([valeur, libelle]) => (
-          <label key={valeur} className="flex items-center gap-2 text-sm">
+          <label key={valeur} className="flex items-center gap-2.5 py-2 text-sm">
             <input
               type="radio"
               name="imputation"
               value={valeur}
               required
               defaultChecked={etat.valeurs?.imputation === valeur}
+              className="size-4 shrink-0 accent-[var(--encre)]"
             />
             {libelle}
           </label>
@@ -219,7 +225,7 @@ export function FormulaireAttribution({
 
   return (
     <form action={action} className="space-y-2">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <select
           name="responsable"
           defaultValue={responsable ?? ""}
@@ -252,6 +258,7 @@ export function FormulairePhotoIncident({
   const actionLiee = joindrePhotoIncident.bind(null, orgId, incidentId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
+  const idPhotos = useId();
   useEffect(() => {
     if (etat.succes) formulaire.current?.reset();
   }, [etat]);
@@ -259,7 +266,11 @@ export function FormulairePhotoIncident({
   return (
     <form ref={formulaire} action={action} className="space-y-2">
       <div className="flex items-center gap-2">
-        <Input name="photos" type="file" accept="image/jpeg,image/png" multiple required />
+        {/* Ligne compacte (champ + bouton) : libellé pour la seule synthèse vocale */}
+        <Label htmlFor={idPhotos} className="sr-only">
+          Photos à joindre
+        </Label>
+        <Input id={idPhotos} name="photos" type="file" accept="image/jpeg,image/png" multiple onChange={(e) => void compresserChampFichiers(e.currentTarget)} required />
         <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
           Joindre
         </BoutonEnvoi>

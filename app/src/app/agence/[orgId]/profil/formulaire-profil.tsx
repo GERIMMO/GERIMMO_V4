@@ -20,6 +20,7 @@ type Organisation = {
   carte_pro: string | null;
   garantie_financiere: string | null;
   iban: string | null;
+  quittances_envoi_auto: boolean;
 };
 
 export function FormulaireProfilOrganisation({
@@ -38,7 +39,8 @@ export function FormulaireProfilOrganisation({
     {}
   );
   // En erreur, la saisie est reposée via etat.valeurs (convention React 19)
-  const valeur = (nom: keyof Organisation) => etat.valeurs?.[nom] ?? organisation[nom] ?? "";
+  const valeur = (nom: Exclude<keyof Organisation, "quittances_envoi_auto">) =>
+    etat.valeurs?.[nom] ?? organisation[nom] ?? "";
 
   return (
     <form action={action} className="space-y-4">
@@ -59,7 +61,14 @@ export function FormulaireProfilOrganisation({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="pr-cp">Code postal</Label>
-          <Input id="pr-cp" name="postal_code" disabled={lectureSeule} defaultValue={valeur("postal_code")} />
+          <Input
+            id="pr-cp"
+            name="postal_code"
+            inputMode="numeric"
+            autoComplete="postal-code"
+            disabled={lectureSeule}
+            defaultValue={valeur("postal_code")}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="pr-ville">Ville</Label>
@@ -69,7 +78,16 @@ export function FormulaireProfilOrganisation({
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="pr-tel">Téléphone</Label>
-          <Input id="pr-tel" name="telephone" disabled={lectureSeule} defaultValue={valeur("telephone")} />
+          {/* Au doigt, `tel` ouvre le pavé numérique plutôt que le clavier
+              complet — acquis mobile du 10/09, les contrôles restent à 16 px */}
+          <Input
+            id="pr-tel"
+            name="telephone"
+            type="tel"
+            autoComplete="tel"
+            disabled={lectureSeule}
+            defaultValue={valeur("telephone")}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="pr-email">Email de contact</Label>
@@ -126,8 +144,40 @@ export function FormulaireProfilOrganisation({
           Reporté sur les avis d&apos;échéance.
         </p>
       </div>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+      <fieldset className="space-y-2 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-medium">Envoi des quittances</legend>
+        <label
+          htmlFor="pr-envoi-auto"
+          className="flex min-h-12 items-center gap-3 text-sm"
+        >
+          <input
+            id="pr-envoi-auto"
+            type="checkbox"
+            name="quittances_envoi_auto"
+            disabled={lectureSeule}
+            defaultChecked={organisation.quittances_envoi_auto}
+            className="size-5 shrink-0 accent-[var(--encre)]"
+          />
+          Envoyer automatiquement les quittances et reçus aux locataires
+        </label>
+        <p className="text-xs text-muted-foreground">
+          Une fois par jour, les quittances émises depuis moins de 45 jours et
+          jamais envoyées partent au locataire, sans qu&apos;il y ait à cliquer.
+          Cocher cette case vaut validation permanente de leur envoi. Décochée,
+          rien ne part sans votre geste — l&apos;envoi groupé reste disponible
+          depuis la comptabilité.
+        </p>
+      </fieldset>
+      {etat.erreur && (
+        <p role="alert" className="text-sm text-destructive">
+          {etat.erreur}
+        </p>
+      )}
+      {etat.succes && (
+        <p role="status" className="text-sm text-success-soft-foreground">
+          {etat.succes}
+        </p>
+      )}
       {!lectureSeule && (
         <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer</BoutonEnvoi>
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   annulerDemandeSignature,
@@ -8,6 +8,7 @@ import {
   partagerDocument,
 } from "@/app/actions/signature";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { afficherToast } from "@/components/ui/toast";
 import { formaterDate } from "@/lib/ged";
@@ -51,6 +52,7 @@ export function CircuitDocument({
   const [enCours, demarrer] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
   const [choix, setChoix] = useState(signataires[0]?.id ?? "");
+  const idSignataire = useId();
 
   const partageable = TYPES_PARTAGEABLES.includes(type) && signataires.length > 0;
   const enAttente = demandes.filter((d) => !d.signee_le);
@@ -141,18 +143,24 @@ export function CircuitDocument({
       {signable && (
         <div className="flex flex-wrap items-center gap-2">
           {signataires.length > 1 && (
-            <select
-              value={choix}
-              onChange={(e) => setChoix(e.target.value)}
-              aria-label="Signataire"
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-sm"
-            >
-              {signataires.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nom}
-                </option>
-              ))}
-            </select>
+            <>
+              {/* Ligne compacte : libellé réservé à la synthèse vocale */}
+              <Label htmlFor={idSignataire} className="sr-only">
+                Signataire
+              </Label>
+              <select
+                id={idSignataire}
+                value={choix}
+                onChange={(e) => setChoix(e.target.value)}
+                className="h-8 rounded-md border border-input bg-transparent px-2 text-sm"
+              >
+                {signataires.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nom}
+                  </option>
+                ))}
+              </select>
+            </>
           )}
           <Button
             type="button"

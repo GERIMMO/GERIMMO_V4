@@ -6,6 +6,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { eur } from "@/lib/ged";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
+import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 import { envoyerQuittance, type EtatLoyers } from "./loyers";
 
 // Vue « Quittancement du mois » (maquette v3) : les gestes en un clic depuis
@@ -26,37 +27,39 @@ export async function encaisserReste(
     p_bail: bailId,
   });
   if (erreurEtat) return { erreur: sansJargon(erreurEtat.message) };
-  const appel = ((lignes ?? []) as { appel_id: string; montant_du: number; montant_couvert: number }[])
-    .find((l) => l.appel_id === appelId);
+  const avant = (lignes ?? []) as EtatAppel[];
+  const appel = avant.find((l) => l.appel_id === appelId);
   if (!appel) return { erreur: "Appel de loyer introuvable." };
   const reste = Number(appel.montant_du) - Number(appel.montant_couvert);
   if (reste <= 0) return { erreur: "Cet appel est déjà couvert." };
+  const montant = Math.round(reste * 100) / 100;
 
   const { error } = await supabase.from("encaissements").insert({
     organization_id: orgId,
     bail_id: bailId,
-    montant: Math.round(reste * 100) / 100,
+    montant,
     mode: "virement",
     note: "Encaissé depuis le quittancement",
   });
   if (error) return { erreur: sansJargon(error.message) };
-  // L'encaissement déclenche tout : la quittance du mois soldé s'émet dans la
-  // foulée (paiement partiel → reçu, promu en quittance au solde). Mais le
-  // montant s'impute d'abord aux échéances les plus anciennes : le terme visé
-  // peut rester non soldé — le message suit ce que la base a réellement fait.
+  // Filet de rattrapage : le déclencheur encaissement_quittances a déjà
+  // resynchronisé les documents pendant l'INSERT. Cet appel ne sert plus qu'à
+  // un historique dérivé — et ses compteurs valent donc 0 : le compte rendu ne
+  // peut pas en venir, il se lit dans l'état des loyers d'après.
   const emission = await emettreRecusQuittances(supabase, bailId);
+  const { data: lignesApres, error: erreurApres } = await supabase.rpc("etat_loyers_bail", {
+    p_bail: bailId,
+  });
   revalidatePath(`/agence/${orgId}/comptabilite`);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  if (emission.erreur)
+  if (erreurApres)
     return {
-      succes: `${eur(reste)} encaissés — mais le reçu ou la quittance n'a pas pu être émis : ${emission.erreur}`,
+      succes: `${eur(montant)} encaissés — l'imputation n'a pas pu être relue : ${sansJargon(erreurApres.message)}`,
     };
-  return {
-    succes: `${eur(reste)} encaissés (imputés à l'échéance la plus ancienne) · ${libelleEmission(
-      emission.quittances,
-      emission.recus
-    )}.`,
-  };
+  const compteRendu = compteRenduEncaissement(montant, avant, (lignesApres ?? []) as EtatAppel[]);
+  if (emission.erreur)
+    return { succes: `${compteRendu} Rattrapage des documents en échec : ${emission.erreur}` };
+  return { succes: compteRendu };
 }
 
 // Émettre la quittance d'un bail dont le mois est soldé (payé sans quittance).
@@ -67,6 +70,11 @@ export async function emettreQuittanceBail(orgId: string, bailId: string): Promi
   if (emission.erreur) return { erreur: emission.erreur };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  // Le déclencheur d'encaissement tient normalement les documents à jour : ne
+  // rien avoir à émettre est le cas NORMAL, et « aucun reçu ni quittance à
+  // émettre » se lirait comme un échec.
+  if (emission.quittances + emission.recus === 0)
+    return { succes: "Reçus et quittances étaient déjà à jour." };
   return { succes: `${libelleEmission(emission.quittances, emission.recus)}.` };
 }
 

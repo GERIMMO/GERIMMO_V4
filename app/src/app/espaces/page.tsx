@@ -32,6 +32,11 @@ function cheminEspace(a: Adhesion): string | null {
     return a.organization ? `/agence/${a.organization.id}` : null;
   if (a.role === "locataire")
     return a.organization ? `/locataire/${a.organization.id}` : null;
+  // L'artisan est le seul rôle SANS organisation dans son adresse : il
+  // travaille pour plusieurs agences et son portail les réunit (RM-19.3.3 —
+  // « agenda toutes agences confondues »). Une adhésion d'artisan ne sert
+  // qu'à faire apparaître l'agence ici ; elle n'ouvre aucune donnée.
+  if (a.role === "artisan") return "/artisan";
   return null; // espaces des sprints suivants
 
 }
@@ -43,13 +48,28 @@ export default async function PageEspaces() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/connexion");
 
-  const { data } = await supabase
-    .from("memberships")
-    .select("id, role, organization:organizations(id, name)")
-    .eq("account_id", user.id)
-    .eq("status", "active");
+  // La fiche artisan se lit EN PARALLÈLE des adhésions, pas après : l'artisan
+  // qui s'est inscrit lui-même (pivot du 2026-09-04) n'a AUCUNE adhésion tant
+  // qu'aucune agence ne l'a sollicité — son adhésion de navigation naît avec la
+  // première demande de devis. Sans cette lecture, il arrivait sur « Aucun
+  // accès actif » alors que sa fiche existe et attend d'être validée.
+  const [{ data }, { data: artisan }] = await Promise.all([
+    supabase
+      .from("memberships")
+      .select("id, role, organization:organizations(id, name)")
+      .eq("account_id", user.id)
+      .eq("status", "active"),
+    supabase.rpc("mon_artisan"),
+  ]);
 
   const adhesions = (data ?? []) as unknown as Adhesion[];
+  // Une seule carte pour l'artisan, quel que soit le nombre d'agences : son
+  // portail ne se décline pas par organisation, il les réunit. Autant de
+  // cartes que d'agences mènerait trois fois à la même page.
+  const adhesionsArtisan = adhesions.filter((a) => a.role === "artisan");
+  const autresAdhesions = adhesions.filter((a) => a.role !== "artisan");
+  const estArtisan =
+    adhesionsArtisan.length > 0 || ((artisan ?? []) as unknown[]).length > 0;
 
   // Le super admin voit TOUTES les organisations (décision Tahir 09/09 :
   // « toutes les autorisations ») — une carte de supervision par espace,
@@ -92,16 +112,29 @@ export default async function PageEspaces() {
   // lien de confirmation reçu par email) n'a pas encore d'espace : on l'ouvre
   // ici, une fois pour toutes (fonction idempotente), puis on y entre.
   let erreurOuverture: string | null = null;
-  if (adhesions.length === 0 && user.user_metadata?.espace === "proprietaire_direct") {
+  if (
+    adhesions.length === 0 &&
+    !estArtisan &&
+    user.user_metadata?.espace === "proprietaire_direct"
+  ) {
     const { data: orgId, error } = await supabase.rpc("initialiser_espace_proprietaire");
     if (orgId) redirect(`/agence/${orgId}`);
     // Refus métier (ex. : adresse d'un mandant — exclusivité PD/PM) : dit tel quel
     erreurOuverture = error ? sansJargon(error.message) : null;
   }
 
+  // L'artisan n'a qu'UNE destination, même avec trois adhésions : elles mènent
+  // toutes à son portail, qui réunit les agences. Une page à une seule carte
+  // n'apporterait rien — on y entre directement.
+  if (estArtisan && autresAdhesions.length === 0 && anciens.length === 0 && !estSuperAdmin) {
+    redirect("/artisan");
+  }
+
   // Une seule adhésion (et pas d'ancien espace) : entrée directe — sauf le
-  // super admin, qui choisit entre sa console et les espaces supervisés
-  if (adhesions.length === 1 && anciens.length === 0 && !estSuperAdmin) {
+  // super admin, qui choisit entre sa console et les espaces supervisés.
+  // `!estArtisan` : un gérant qui est aussi artisan a deux destinations, même
+  // si l'une d'elles ne tient pas encore à une adhésion.
+  if (adhesions.length === 1 && !estArtisan && anciens.length === 0 && !estSuperAdmin) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -133,7 +166,7 @@ export default async function PageEspaces() {
         <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
         <h1 className="mb-6">Mes espaces</h1>
 
-        {adhesions.length === 0 && anciens.length === 0 && (
+        {adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
           <p className="text-muted-foreground">
             {erreurOuverture
               ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
@@ -149,7 +182,30 @@ export default async function PageEspaces() {
         )}
 
         <div className="grid gap-2.5">
-          {adhesions.map((a) => {
+          {/* L'artisan, en une carte : son portail est inter-agences, et les
+              adhésions qu'il porte (une par agence qui l'a sollicité) mènent
+              toutes au même endroit. Le nom d'une agence n'aurait pas de sens
+              sur cette carte — elles y sont toutes. */}
+          {estArtisan && (
+            <Link href="/artisan">
+              <span className="flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left transition-all hover:translate-x-[3px] hover:border-[var(--encre)]">
+                <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[var(--encre)] text-[13px] text-[var(--or)]">
+                  AR
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">{LIBELLES.artisan}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {adhesionsArtisan.length > 0
+                      ? `Mes missions et mes devis — ${adhesionsArtisan.length} agence${
+                          adhesionsArtisan.length > 1 ? "s" : ""
+                        }`
+                      : "Mes missions et mes devis, toutes agences confondues"}
+                  </span>
+                </span>
+              </span>
+            </Link>
+          )}
+          {autresAdhesions.map((a) => {
             const chemin = cheminEspace(a);
             const initiales = (a.organization?.name ?? "Gerimmo")
               .split(/\s+/)

@@ -12,10 +12,19 @@ import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { Toasteur } from "@/components/ui/toast";
 
-// Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée
+// Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
+//
+// `slice(0, 10)` n'est pas de la superstition : la valeur arrive de la base
+// tantôt en « 2026-09-25 », tantôt en « 2026-09-25T00:00:00.000Z » selon la
+// couche qui la sert. Concaténer « T00:00:00 » sur la seconde forme donne une
+// date invalide, et le bandeau annonçait « NaN jour restants » (relevé du
+// 11/09). On ne garde donc que le jour, qui est tout ce que la question demande.
 function joursRestants(iso: string): number {
-  const ms = new Date(`${iso}T00:00:00`).getTime() - new Date(`${aujourdhuiParis()}T00:00:00`).getTime();
-  return Math.round(ms / 86_400_000);
+  const jour = String(iso).slice(0, 10);
+  const ms =
+    new Date(`${jour}T00:00:00`).getTime() -
+    new Date(`${aujourdhuiParis()}T00:00:00`).getTime();
+  return Number.isFinite(ms) ? Math.round(ms / 86_400_000) : 0;
 }
 
 // Layout de l'espace agence — charte : marque à gauche, contexte d'agence

@@ -338,11 +338,43 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
                     where a.attrelid = c.oid and a.attname = 'organization_id'
                       and a.attnum > 0 and not a.attisdropped)
         -- Les journaux n'en portent jamais : les bloquer bloquerait la lecture.
-        and c.relname not in ('acces_pieces_log', 'audit_log')
+        -- Les tables d'abonnement non plus, et pour la raison INVERSE : c'est
+        -- par elles qu'un compte fermé se rouvre. Les garder, ce serait exiger
+        -- d'un client qu'il paie avec un compte qu'on lui a fermé faute de
+        -- paiement — une impasse parfaite, invisible jusqu'au premier client
+        -- qui paie (migration 20260911300000).
+        and c.relname not in ('acces_pieces_log', 'audit_log',
+                              'abonnements', 'abonnement_evenements')
         and not exists (select 1 from pg_trigger t
                         where t.tgrelid = c.oid and t.tgname like 'abonnement\\_%')
       order by c.relname`);
     expect(rows.map((r) => r.relname)).toEqual([]);
+  });
+
+  it("les tables d'abonnement restent hors garde, sinon le compte fermé ne se rouvre jamais", async () => {
+    // Le sens inverse du test précédent. Si quelqu'un « corrigeait » l'oubli
+    // apparent en gardant aussi `abonnements`, l'enregistrement du paiement
+    // serait refusé chez le client suspendu — celui-là même qui vient de payer
+    // pour ne plus l'être. Le défaut ne se verrait qu'en production, au premier
+    // encaissement, et se lirait comme un problème de Stripe.
+    const { rows } = await db.query<{ n: string }>(`
+      select count(*)::text as n from pg_trigger t
+      where t.tgname in ('abonnement_abonnements', 'abonnement_abonnement_evenements')`);
+    expect(rows[0].n).toBe("0");
+  });
+
+  it("les tables d'abonnement n'accordent rien à anon ni à authenticated", async () => {
+    // Elles portent l'identifiant client Stripe. Il n'a rien à faire dans une
+    // réponse d'API : « Mon abonnement » lit `mon_abonnement()`, qui ne le rend
+    // pas. RLS active SANS politique ne suffirait pas — il suffirait qu'on
+    // écrive une politique « pour dépanner » pour que la table s'ouvre.
+    const { rows } = await db.query<{ grantee: string }>(`
+      select distinct g.grantee
+      from information_schema.role_table_grants g
+      where g.table_schema = 'public'
+        and g.table_name in ('abonnements', 'abonnement_evenements')
+        and g.grantee in ('anon', 'authenticated')`);
+    expect(rows.map((r) => r.grantee)).toEqual([]);
   });
 
   it("les journaux restent délibérément hors garde", async () => {

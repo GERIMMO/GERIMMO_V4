@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { TYPES_BIEN } from "@/lib/parc";
+import { FaitsFiche, type Fait } from "@/components/fiche-parc";
 import { FormulaireBien, type BienFormulaire } from "../formulaire-bien";
 
 // Condensé du bien (consultation) + bascule vers l'édition (« Modifier le bien »).
@@ -10,11 +10,9 @@ import { FormulaireBien, type BienFormulaire } from "../formulaire-bien";
 export function RecapBien({
   orgId,
   bien,
-  nbLots,
 }: {
   orgId: string;
   bien: BienFormulaire;
-  nbLots: number;
 }) {
   const [modifier, setModifier] = useState(false);
 
@@ -37,27 +35,23 @@ export function RecapBien({
     .filter(Boolean)
     .join(", ");
 
-  const lignes: [string, string][] = [
-    ["Type", TYPES_BIEN[bien.type] ?? bien.type],
-    ["Adresse", adresse],
-    ["Année de construction", bien.annee_construction ? String(bien.annee_construction) : "—"],
-    ["Copropriété", bien.copropriete ? "Oui" : "Non"],
-    ["Zone tendue", bien.zone_tendue ? "Oui" : "Non"],
-    ["Nombre de lots", String(nbLots)],
+  // Le type, l'adresse et le nombre de lots sont déjà dans l'en-tête de la
+  // fiche : les répéter ici ne fait que trois lignes de plus à traverser.
+  // `null` = non renseigné : FaitsFiche réunit ces champs en une phrase au lieu
+  // d'une colonne de tirets (relevé du 11/09).
+  const faits: Fait[] = [
+    { libelle: "Adresse", valeur: adresse },
+    {
+      libelle: "Année de construction",
+      valeur: bien.annee_construction ? String(bien.annee_construction) : null,
+    },
+    { libelle: "Copropriété", valeur: bien.copropriete ? "Oui" : "Non" },
+    { libelle: "Zone tendue", valeur: bien.zone_tendue ? "Oui" : "Non" },
   ];
 
   return (
     <div className="space-y-3">
-      {/* .ligne-info : la rangée « libellé ↔ valeur » de la charte, au lieu
-          du flex + border-b remonté à la main sur chaque fiche. */}
-      <dl className="grid gap-x-6 sm:grid-cols-2">
-        {lignes.map(([label, valeur]) => (
-          <div key={label} className="ligne-info">
-            <dt className="text-muted-foreground">{label}</dt>
-            <dd className="text-right font-medium">{valeur}</dd>
-          </div>
-        ))}
-      </dl>
+      <FaitsFiche faits={faits} />
       <Button variant="outline" size="sm" onClick={() => setModifier(true)}>
         Modifier le bien
       </Button>

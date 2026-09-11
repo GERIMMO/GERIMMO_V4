@@ -5,6 +5,7 @@ import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   alertesDecence,
+  formaterSurface,
 } from "@/lib/parc";
 import {
   diagnosticsExigibles,
@@ -15,13 +16,7 @@ import {
 import { formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LignesDiagnostics, type DiagnosticDepose } from "../../lignes-diagnostics";
 import { RecapLot } from "./recap-lot";
 import { SectionLot } from "./section-lot";
@@ -39,6 +34,7 @@ import { AppelsCharges, type AppelCharge } from "./formulaire-appels-charges";
 import { buttonVariants } from "@/components/ui/button";
 import { EchecLecture, PageEchecLecture } from "../../../echec-lecture";
 import { BlocagesLocation } from "../../../blocages-location";
+import { AttentionFiche, EnteteFiche } from "@/components/fiche-parc";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
 
@@ -186,12 +182,6 @@ export default async function PageLot(
       nomComplet(p),
     ])
   );
-  const recapProprietaires = detentionsActives
-    .map((d) =>
-      nomPersonne(d.person as unknown as { nom: string; prenom: string | null } | null)
-    )
-    .filter((n) => n !== "—")
-    .join(", ");
   const bailEnCours = (baux ?? []).find((b) => ["actif", "preavis"].includes(b.etat));
   const recapLocataire = bailEnCours?.locataire_principal
     ? nomsParId.get(bailEnCours.locataire_principal)
@@ -220,78 +210,172 @@ export default async function PageLot(
   const nbDiagBien = (diagnosticsBien ?? []).length;
   const nbBaux = (baux ?? []).length;
 
+  // Ce qui attend un geste, réuni EN HAUT et dit une seule fois. Le relevé du
+  // 11/09 : l'état du lot était répété quatre fois (la pastille du titre, la
+  // prose pédagogique, « Ce lot est loué », « État actuel : Loué »), tandis que
+  // ce qui manquait vraiment se lisait en petit, dans la sixième rangée.
+  const attention: { cle: string; texte: string; ancre?: string }[] = [];
+  for (const a of decence) attention.push({ cle: `decence-${a}`, texte: a });
+  if (totalQuoteParts !== 100) {
+    attention.push({
+      cle: "detention",
+      texte: `La propriété n’est répartie qu’à ${totalQuoteParts} % : le lot ne se loue pas tant qu’elle n’atteint pas 100 %.`,
+      ancre: "detention",
+    });
+  }
+  if (manquants.length > 0) {
+    attention.push({
+      cle: "diagnostics",
+      texte: `Diagnostic${manquants.length > 1 ? "s" : ""} du logement à déposer : ${manquants
+        .map((m) => m.libelle)
+        .join(", ")}.`,
+      ancre: "diagnostics",
+    });
+  }
+  if (manquantsBien.length > 0) {
+    attention.push({
+      cle: "diagnostics-immeuble",
+      texte: `Diagnostic${manquantsBien.length > 1 ? "s" : ""} de l’immeuble à déposer : ${manquantsBien
+        .map((m) => m.libelle)
+        .join(", ")}.`,
+      ancre: "diagnostics-immeuble",
+    });
+  }
+  if ((piecesLot ?? []).length === 0) {
+    attention.push({
+      cle: "pieces",
+      texte: "Aucune pièce définie : l’état des lieux n’aura pas de grille à remplir.",
+      ancre: "pieces",
+    });
+  }
+
+  const loyerCc =
+    bailEnCours?.loyer_hc != null
+      ? Number(bailEnCours.loyer_hc) + Number(bailEnCours.charges ?? 0)
+      : null;
+
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
-      <div>
-        <Link
-          href={`/agence/${orgId}/parc/${bienId}`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← {bien.nom}
-        </Link>
-        <p className="eyebrow mt-1">
-          {bien.nom}
-          {bien.city ? ` · ${bien.city}` : ""}
-        </p>
-        <div className="entete-page">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1>{lot.nom}</h1>
-            <span
-              className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
-            >
-              {ETATS_LOT[lot.etat] ?? lot.etat}
-            </span>
-          </div>
-        </div>
-      </div>
+      <EnteteFiche
+        retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: bien.nom }}
+        surtitre={bien.city ? `${bien.nom} · ${bien.city}` : bien.nom}
+        titre={lot.nom}
+        badge={
+          <span className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}>
+            {ETATS_LOT[lot.etat] ?? lot.etat}
+          </span>
+        }
+        faits={[
+          ...(loyerCc !== null
+            ? [{ libelle: "Loyer charges comprises", valeur: eur(loyerCc) }]
+            : []),
+          ...(lot.surface_m2 !== null
+            ? [{ libelle: "Surface", valeur: formaterSurface(lot.surface_m2) }]
+            : []),
+        ]}
+      />
 
       <EchecLecture quoi={echecs} />
+      <AttentionFiche points={attention} />
 
-      {decence.length > 0 && (
-        <div className="border-l-[3px] border-l-warning bg-warning-soft p-3 text-sm text-warning-soft-foreground">
-          {decence.map((a) => (
-            <p key={a}>{a}</p>
-          ))}
-        </div>
-      )}
+      {/* LA LOCATION D'ABORD, et c'est le correctif de fond du 11/09. Pour un
+          lot loué, la seule question qui se pose en ouvrant la fiche est : qui
+          habite, pour combien, jusqu'à quand. Ces trois faits étaient au FOND
+          de la page, repliés sous « Baux & état des lieux », derrière neuf
+          rangées de caractéristiques dont quatre vides — précédés d'un
+          paragraphe expliquant le cycle de vie d'un lot, affiché à chaque
+          visite, qui occupait à lui seul le premier écran d'un téléphone. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">
+            {bailEnCours ? "La location en cours" : "Mettre en location"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {bailEnCours ? (
+            // Trois colonnes sur une largeur de téléphone écrasent celle du
+            // milieu : le nom du locataire s'y coupait en trois lignes. Le nom
+            // et le geste tiennent une rangée, les faits du bail la suivante.
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <span className={COULEURS_ETAT_BAIL[bailEnCours.etat] ?? "puce puce-grise"}>
+                  {ETATS_BAIL[bailEnCours.etat] ?? bailEnCours.etat}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                  {recapLocataire ?? "Locataire non nommé"}
+                </span>
+                <Link
+                  href={`/agence/${orgId}/baux/${bailEnCours.id}`}
+                  className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+                >
+                  Ouvrir le bail →
+                </Link>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {[
+                  `Bail ${(TYPES_BAIL[bailEnCours.type] ?? bailEnCours.type).toLowerCase()}`,
+                  loyerCc !== null ? `${eur(loyerCc)} charges comprises` : null,
+                  bailEnCours.date_debut
+                    ? `entrée le ${formaterDate(bailEnCours.date_debut)}`
+                    : null,
+                  bailEnCours.date_fin ? `fin le ${formaterDate(bailEnCours.date_fin)}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Ce qui empêche la mise en location. C'était ici un bloc GRIS
+                  neutre, alors que le parc et la fiche bien en font une alerte
+                  ambre — même RPC, trois rendus (relevé du 11/09). */}
+              {lot.etat === "brouillon" && (
+                <BlocagesLocation
+                  motifs={(blocages ?? []) as string[]}
+                  ctx={{ orgId, bienId, lotId }}
+                  pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`}
+                  titre="Ce qui empêche la mise en location"
+                />
+              )}
+              {lot.etat === "disponible" ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Ce lot est prêt à être loué. Il le devient à l’activation de
+                    son bail, pas d’un clic ici.
+                  </p>
+                  {/* « Plus bas » est une consigne, pas un chemin : le
+                      formulaire de bail est la SEULE porte d'entrée de la
+                      création d'un bail dans l'application, et l'écran la
+                      décrivait au lieu de l'ouvrir. L'ancre déplie la section
+                      et y amène (voir section-lot.tsx). */}
+                  <a
+                    href="#baux"
+                    className={buttonVariants({ variant: "default", size: "sm" })}
+                  >
+                    Créer le bail →
+                  </a>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Un lot se prépare (propriétaires, diagnostics, pièces), puis
+                  passe en disponible. Le bail s’active ensuite, et c’est lui qui
+                  le rend loué.
+                </p>
+              )}
+            </>
+          )}
+          <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">État du lot</CardTitle>
-          {/* La suite d'états parlait le langage du code (« brouillon → disponible
-              → loué ⇄ préavis »). Dite en français, elle décrit la vie du lot. */}
-          <CardDescription>
-            Un lot se prépare, puis se met en location. Il devient loué à
-            l&apos;activation du bail, passe en préavis au congé du locataire, et
-            redevient libre à son départ. Un lot archivé n&apos;est réactivable
-            que par l&apos;administrateur de l&apos;agence.
-          </CardDescription>
+          <CardTitle className="text-base">Le lot</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {/* Ce qui empêche la mise en location. C'était ici un bloc GRIS neutre,
-              alors que le parc et la fiche bien en font une alerte ambre — même
-              RPC, trois rendus (relevé du 11/09). Un seul, désormais. */}
-          {lot.etat === "brouillon" && (
-            <BlocagesLocation
-              motifs={(blocages ?? []) as string[]}
-              ctx={{ orgId, bienId, lotId }}
-              pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`}
-              titre="Ce qui empêche la mise en location"
-            />
-          )}
-          <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} />
-
           {/* Caractéristiques (récap + Modifier) */}
-          <div id="caracteristiques" className="scroll-mt-20 border-t border-border pt-4">
-            <p className="mb-3 text-sm font-medium">Caractéristiques du lot</p>
-            <RecapLot
-              orgId={orgId}
-              bienId={bienId}
-              lot={lot}
-              verrouille={verrouille}
-              proprietaires={recapProprietaires}
-              locataire={recapLocataire}
-            />
+          <div id="caracteristiques" className="scroll-mt-20">
+            <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
           </div>
 
           {/* Détention — rouverte au propriétaire bailleur (audit 06/09) :

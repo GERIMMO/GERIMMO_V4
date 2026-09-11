@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import { changerEtatLot, type EtatParc } from "@/app/actions/parc";
-import { ETATS_LOT } from "@/lib/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
 // Transitions autorisées par la machine à états (module 0) — la base fait foi.
@@ -34,7 +33,9 @@ const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
 
 // Ce que l'agent doit faire à la place, quand l'état ne se change pas à la main.
 const AILLEURS: Record<string, string> = {
-  loue: "Ce lot est loué. Pour enregistrer un départ, passez par le bail et son congé.",
+  // Ne redit PAS que le lot est loué : la pastille du titre, le titre de la
+  // carte et l'état du bail le disent déjà. Ne reste que la suite à donner.
+  loue: "Pour enregistrer un départ, passez par le bail et son congé.",
   preavis:
     "Le locataire a donné congé : son bail court jusqu'au terme du préavis. Quand il aura rendu les clés et que l'état des lieux de sortie sera signé, clôturez le bail depuis sa fiche — le lot redeviendra disponible tout seul.",
 };
@@ -85,12 +86,17 @@ export function BoutonsEtatLot({
       {AILLEURS[etat] && (
         <p className="text-xs text-muted-foreground">{AILLEURS[etat]}</p>
       )}
-      {!compact && (
+      {/* « ÉTAT ACTUEL : LOUÉ » A DISPARU, et c'est le relevé du 11/09 : la
+          pastille du titre disait déjà « Loué », la carte s'intitulait « La
+          location en cours », la ligne du bail affichait « Actif », et la
+          phrase au-dessus commençait par « Ce lot est loué ». Quatre fois le
+          même fait. Ce qui reste ici est le seul renseignement que l'écran ne
+          porte pas ailleurs : ce que vérifie le bouton sur lequel on s'apprête
+          à appuyer. */}
+      {!compact && transitions.some((t) => t.cible === "disponible") && (
         <p className="text-xs text-muted-foreground">
-          État actuel : {ETATS_LOT[etat] ?? etat}.
-          {/* La phrase sur la mise en location n'a de sens que si le bouton est là. */}
-          {transitions.some((t) => t.cible === "disponible") &&
-            " La mise en location vérifie une dernière fois qu'il ne manque rien au lot."}
+          La mise en location vérifie une dernière fois qu&apos;il ne manque rien
+          au lot.
         </p>
       )}
     </div>

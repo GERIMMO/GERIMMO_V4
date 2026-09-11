@@ -135,6 +135,23 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   reouverture: "Réouverture",
   attribution: "Attribution",
   photo: "Photo ajoutée",
+  // Gestes de l'artisan et de sa mission (socle module 8, migration
+  // 20260911170000). Sans ces libellés, le fil d'activité afficherait les
+  // identifiants bruts de la base dès la première sollicitation d'artisan.
+  consultation: "Mise en concurrence ouverte",
+  sollicitation: "Artisan sollicité",
+  devis: "Devis déposé",
+  selection_devis: "Devis retenu",
+  mission_confiee: "Mission confiée",
+  mission_acceptee: "Mission acceptée",
+  mission_refusee: "Mission refusée",
+  creneaux_proposes: "Créneaux proposés",
+  creneau_retenu: "Rendez-vous retenu",
+  arbitrage_creneau: "Rendez-vous arbitré par le gérant",
+  intervention_demarree: "Intervention démarrée",
+  compte_rendu: "Compte rendu de l'artisan",
+  revision_imputation: "Imputation révisée après diagnostic",
+  evaluation: "Artisan évalué",
 };
 
 export const PIECES_INCIDENT = [

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formaterDate, formaterDateHeure } from "@/lib/ged";
+import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
@@ -24,7 +24,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  centsEnEuros,
+  METIERS_ARTISAN,
+  NATURES_TRAVAUX,
+} from "../artisans/referentiel";
 import { EchecLecture } from "../documents/echec-lecture";
+import { VoletArtisan } from "./volet-artisan";
 import {
   FormulaireAttribution,
   FormulaireCloture,
@@ -42,6 +48,21 @@ type Evenement = {
 };
 
 export type MembreGerant = { account_id: string; email: string; role: string };
+
+// Libellés COURTS de la barre d'étapes. À cinq segments, « TERMINÉ — À
+// CLÔTURER » (le libellé complet de ETATS_INCIDENT) ne tient plus dans une
+// colonne de la vue scindée sur téléphone. La puce d'état, en haut du dossier,
+// continue de porter le libellé entier : c'est elle qui informe, la barre ne
+// fait que situer.
+const ETAPES_FLUX: Record<EtatIncident, string> = {
+  declare: "À qualifier",
+  rouvert: "Rouvert",
+  qualifie: "Qualifié",
+  affecte: "Artisan",
+  en_cours: "Artisan",
+  termine: "Terminé",
+  clos: "Clos",
+};
 
 // Le dossier d'un incident, affiché dans la vue scindée de la liste (maquette
 // pageIncident). Composant serveur : il fait ses propres requêtes — la page
@@ -145,13 +166,22 @@ export async function PaneIncident({
 
   // Barre d'étapes du flux (maquette) : déclaré → qualifié → clos ; un
   // incident rouvert repart de « rouvert » à la place de « déclaré ».
-  const etapesFlux: EtatIncident[] = [
-    etatIncident === "rouvert" ? "rouvert" : "declare",
-    "qualifie",
-    "clos",
-  ];
-  const positionFlux =
-    etatIncident === "declare" || etatIncident === "rouvert"
+  //
+  // Depuis le module artisan (11/09), un dossier PEUT passer par une
+  // intervention — mais ce n'est pas obligatoire (RM-7.6.1 : « un incident peut
+  // se clore sans artisan »). La barre raconte donc CE dossier-ci : trois
+  // étapes quand personne n'est intervenu, cinq dès que la mission existe.
+  // Afficher d'office « Affecté » sur un dossier réglé au téléphone laisserait
+  // croire à une étape sautée.
+  const avecArtisan = ["affecte", "en_cours", "termine"].includes(etatIncident);
+  const etapesFlux: EtatIncident[] = avecArtisan
+    ? [etatIncident === "rouvert" ? "rouvert" : "declare", "qualifie", "affecte", "termine", "clos"]
+    : [etatIncident === "rouvert" ? "rouvert" : "declare", "qualifie", "clos"];
+  const positionFlux = avecArtisan
+    ? etatIncident === "termine"
+      ? 3
+      : 2
+    : etatIncident === "declare" || etatIncident === "rouvert"
       ? 0
       : etatIncident === "clos"
         ? 2
@@ -175,6 +205,31 @@ export async function PaneIncident({
         return d.responsable
           ? `à ${emails.get(String(d.responsable)) ?? "un gestionnaire"}`
           : "remis au pot commun";
+      // Gestes du cycle artisan. On ne détaille QUE ce que l'événement porte
+      // lui-même : les identifiants d'artisan resteraient des UUID sans une
+      // lecture de plus, et une chronologie n'a pas à coûter une requête par
+      // ligne. Le nom de l'artisan est dans la carte Intervention, au-dessus.
+      case "consultation":
+        return `${METIERS_ARTISAN[String(d.metier)] ?? d.metier} · ${
+          NATURES_TRAVAUX[String(d.nature_travaux)] ?? d.nature_travaux
+        }${d.decennale_requise ? " · décennale exigée" : ""}${
+          d.devis_unique_assume ? " · devis unique assumé" : ""
+        }`;
+      case "devis":
+      case "selection_devis":
+        return d.montant_ttc_cents != null
+          ? eur(centsEnEuros(Number(d.montant_ttc_cents)))
+          : null;
+      case "mission_refusee":
+        return d.motif ? `« ${d.motif} »` : null;
+      case "arbitrage_creneau":
+        return `${formaterDateHeure(String(d.debut))} → ${formaterDateHeure(String(d.fin))}${
+          d.motif ? ` — « ${d.motif} »` : ""
+        }`;
+      case "compte_rendu":
+        return d.cause_reelle ? `cause constatée : « ${d.cause_reelle} »` : null;
+      case "revision_imputation":
+        return `${IMPUTATIONS_INCIDENT[String(d.imputation)] ?? d.imputation} — « ${d.justification} »`;
       default:
         return null;
     }
@@ -295,7 +350,7 @@ export async function PaneIncident({
               const fait = n < positionFlux;
               const courant = n === positionFlux;
               return (
-                <span key={f} className="min-w-[70px] flex-1">
+                <span key={f} className="min-w-[58px] flex-1">
                   <span
                     className="block h-1"
                     style={{
@@ -315,7 +370,7 @@ export async function PaneIncident({
                       color: courant ? "var(--encre)" : undefined,
                     }}
                   >
-                    {(ETATS_INCIDENT[f] ?? f).toUpperCase()}
+                    {(ETAPES_FLUX[f] ?? f).toUpperCase()}
                   </span>
                 </span>
               );
@@ -479,6 +534,20 @@ export async function PaneIncident({
             </Card>
           )}
 
+          {/* Le volet artisan : missionner, comparer les devis, suivre la
+              mission, réviser l'imputation après diagnostic. Il vit ENTRE la
+              qualification et la clôture parce que c'est sa place dans le
+              cycle — on ne peut pas l'ouvrir avant d'avoir tranché qui paie
+              (RM-7.2.7), et la clôture attend son compte rendu (RM-7.5.1). */}
+          <VoletArtisan
+            orgId={orgId}
+            incidentId={incidentId}
+            etat={incident.etat}
+            categorie={incident.categorie}
+            imputation={incident.imputation}
+            lotId={incident.lot_id}
+          />
+
           <Card id="cloture">
             <CardHeader>
               <CardTitle className="text-base">
@@ -510,9 +579,13 @@ export async function PaneIncident({
                 <p className="text-sm text-muted-foreground">
                   {incident.etat === "en_cours"
                     ? "Une intervention est en cours : la clôture attend le compte rendu de l'artisan."
-                    : incident.etat === "rouvert"
-                      ? "Un incident rouvert repasse d'abord par la qualification."
-                      : "La clôture viendra après l'intervention."}
+                    : incident.etat === "affecte"
+                      ? // Depuis le 11/09 cet état existe vraiment : la mission
+                        // est confiée, l'artisan n'a pas encore répondu.
+                        "La mission est confiée : la clôture attend que l'artisan intervienne et rende compte."
+                      : incident.etat === "rouvert"
+                        ? "Un incident rouvert repasse d'abord par la qualification."
+                        : "La clôture viendra après l'intervention."}
                 </p>
               )}
             </CardContent>

@@ -76,6 +76,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     { data: vivantsBruts, error: erreurVivants },
     { data: closBruts, error: erreurClos, count: totalClosBrut },
     { data: donneesMembres, error: erreurMembres },
+    { data: aEvaluerBrut },
   ] = await Promise.all([
       supabase
         .from("incidents")
@@ -93,6 +94,12 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
         .order("created_at", { ascending: false })
         .limit(PLAFOND_CLOS),
       supabase.rpc("org_membres_gerants", { org: orgId }),
+      // RM-7.6.2 : « la clôture déclenche la notation ». Il n'y a pas d'alerte
+      // pour cela — cloturer_incident solde toutes les alertes du dossier et
+      // refermerait la sienne aussitôt. Le déclenchement est donc un ÉTAT
+      // interrogeable : la file des interventions terminées que l'agence n'a
+      // pas encore notées. Sans cet appel, la fonction n'aurait aucun écran.
+      supabase.rpc("interventions_a_evaluer", { p_org: orgId }),
     ]);
 
   const incidents = [
@@ -100,6 +107,12 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     ...((closBruts ?? []) as unknown as Rang[]),
   ];
   const membres = (donneesMembres ?? []) as MembreGerant[];
+  const aEvaluer = (aEvaluerBrut ?? []) as {
+    intervention_id: string;
+    incident_id: string;
+    incident_numero: string;
+    raison_sociale: string;
+  }[];
   const emails = new Map(membres.map((m) => [m.account_id, m.email.split("@")[0]]));
 
   const enCours = incidents.filter((i) => i.etat !== "clos");
@@ -177,6 +190,12 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
               ? "file de travail indisponible"
               : `${enCours.length} en cours · ${aTraiter.length} à traiter`}
           </span>
+          {/* Seule porte d'entrée du carnet d'artisans tant que la barre de
+              navigation (src/components/nav-agence-premium.tsx) n'a pas son
+              entrée — ce fichier appartient à un autre lot. Signalé au rapport. */}
+          <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+            Carnet d&apos;artisans
+          </Link>
           <Link href={`/agence/${orgId}/incidents/nouveau`} className="btn-or">
             Ouvrir un incident
           </Link>
@@ -184,6 +203,30 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
       </div>
 
       <EchecLecture quoi={lecturesManquees} />
+
+      {/* La file de notation. Discrète — le module 11 insiste : la note ne
+          bloque rien, elle se propose. Un lien par dossier, pas une modale :
+          on note en rouvrant l'intervention, avec le chantier sous les yeux. */}
+      {aEvaluer.length > 0 && (
+        <div className="mb-4 border-l-2 border-l-[var(--or)] bg-[var(--survol)] px-3.5 py-2.5 text-sm">
+          <p className="font-medium">
+            {aEvaluer.length} intervention{aEvaluer.length > 1 ? "s" : ""} terminée
+            {aEvaluer.length > 1 ? "s" : ""} attend{aEvaluer.length > 1 ? "ent" : ""} votre
+            note.
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            {aEvaluer.slice(0, 4).map((i, n) => (
+              <span key={i.intervention_id}>
+                {n > 0 && " · "}
+                <Link href={lien(vue, i.incident_id)} className="hover:underline">
+                  {i.raison_sociale} — {i.incident_numero}
+                </Link>
+              </span>
+            ))}
+            {aEvaluer.length > 4 && ` · et ${aEvaluer.length - 4} autre${aEvaluer.length - 4 > 1 ? "s" : ""}`}
+          </p>
+        </div>
+      )}
 
       {/* Vue scindée maquette : la liste à gauche, le dossier sélectionné à
           droite (?sel=…) — les alertes « Traiter » pointent déjà ici.

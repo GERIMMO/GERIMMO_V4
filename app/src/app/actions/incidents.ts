@@ -463,3 +463,305 @@ export async function joindrePhotoIncident(
   revalidatePath(`/agence/${orgId}/incidents`);
   return { succes: "Photo jointe à l'incident." };
 }
+
+// ============================================================
+// Artisan, devis, intervention — le volet agence du module 8/9/10/11
+//
+// Toutes les règles sont défendues en base par les fonctions SECURITY DEFINER
+// de la migration 20260911180000 : aucune affectation sans imputation
+// (RM-7.2.7), deux artisans au maximum en parallèle sous verrou de ligne
+// (RM-9.1.1), décennale revérifiée à la sélection du devis (RM-8.2.9),
+// révision d'imputation impossible sans signalement d'artisan (RM-7.5.3).
+// Ces actions ne recopient AUCUNE de ces règles : elles vérifient la session,
+// mettent la saisie en forme, et rendent le message de la base tel quel — il
+// est rédigé à hauteur d'agent et nomme la règle.
+// ============================================================
+
+// Un créneau saisi par le gérant arrive en heure de Paris (« jeudi 9 h »),
+// jamais en UTC. Or Vercel tourne en UTC : `new Date("2026-09-17T09:00")`
+// y donne 9 h UTC, soit 11 h à Paris en été — le locataire attendrait
+// l'artisan deux heures trop tard. On mesure donc le décalage que Paris
+// applique à CET instant-là, plutôt que de supposer +1 ou +2.
+// Même parti pris que formaterDate/aujourdhuiParis (lib/ged.ts) : l'agence
+// travaille à l'heure de Paris, pas à celle du serveur.
+// Non exportée : un fichier « use server » n'a le droit d'exporter que des
+// fonctions asynchrones, et celle-ci est un calcul pur. Elle reste locale.
+function instantParis(saisieLocale: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(saisieLocale);
+  if (!m) return null;
+  const commeUTC = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+  const decalage = (instant: number) => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Paris",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(instant));
+    const v = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+    return Date.UTC(v("year"), v("month") - 1, v("day"), v("hour"), v("minute")) - instant;
+  };
+  // Deux passes : la première suppose le décalage de l'instant « comme UTC »,
+  // la seconde le corrige si l'on a traversé une bascule d'heure d'été.
+  const approche = commeUTC - decalage(commeUTC);
+  const instant = commeUTC - decalage(approche);
+  return Number.isFinite(instant) ? new Date(instant).toISOString() : null;
+}
+
+// Les écrans que touche un geste d'affectation : la fiche d'incident (dans la
+// liste, via ?sel=), la file d'alertes (chaînage RM-7.5.3 / réaffectation) et
+// le tableau de bord. Locale, pour la même raison qu'instantParis.
+function revaliderIncident(orgId: string) {
+  revalidatePath(`/agence/${orgId}/incidents`);
+  revalidatePath(`/agence/${orgId}/alertes`);
+  revalidatePath(`/agence/${orgId}`);
+}
+
+// Ouvre la mise en concurrence sur un incident qualifié. Le MÉTIER est un
+// choix explicite de l'agent : RM-8.3 dit « métier déduit de la catégorie de
+// l'incident », mais aucune source ne donne la table de correspondance — et
+// « humidité / infiltration » n'a pas de métier évident. On ne l'invente pas
+// (voir le rapport) ; l'écran montre la catégorie, l'agent tranche.
+export async function ouvrirConsultation(
+  orgId: string,
+  incidentId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const metier = String(formData.get("metier") ?? "");
+  const nature = String(formData.get("nature") ?? "");
+  const validite = Number(formData.get("validite") ?? 30);
+  const devisUnique = formData.get("devis_unique") === "on";
+
+  if (!metier) return { erreur: "Choisissez le métier recherché.", valeurs };
+  if (!nature) {
+    return {
+      erreur:
+        "Choisissez la nature des travaux — c'est elle qui décide si la décennale est exigée.",
+      valeurs,
+    };
+  }
+  if (!Number.isInteger(validite) || validite < 1 || validite > 365) {
+    return { erreur: "La validité demandée se compte en jours, de 1 à 365.", valeurs };
+  }
+
+  const { error } = await supabase.rpc("ouvrir_consultation", {
+    p_org: orgId,
+    p_incident: incidentId,
+    p_metier: metier,
+    p_nature: nature,
+    p_devis_unique_assume: devisUnique,
+    p_validite_jours: validite,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  revaliderIncident(orgId);
+  return {
+    succes:
+      "Mise en concurrence ouverte — sollicitez maintenant un ou deux artisans dans la liste.",
+  };
+}
+
+// RM-9.1.1 : deux au maximum en parallèle, compté sous verrou en base. Si
+// l'artisan n'est pas affectable, la base nomme la raison (décennale, métier,
+// liste noire…) — on la rend telle quelle.
+export async function solliciterArtisan(
+  orgId: string,
+  consultationId: string,
+  artisanId: string,
+  _etat: EtatIncidentAction,
+  _formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("solliciter_artisan", {
+    p_org: orgId,
+    p_consultation: consultationId,
+    p_artisan: artisanId,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revaliderIncident(orgId);
+  return { succes: "Demande de devis envoyée — l'artisan la voit dans son espace." };
+}
+
+// LA SECONDE APPROBATION — la sélection opérationnelle. Elle appartient à
+// l'agence ou au propriétaire : ni le locataire, ni Gerimmo (module 8). À ne
+// pas confondre avec la validation plateforme, qui porte sur le droit
+// d'exister et n'appartient qu'au super admin.
+export async function retenirDevis(
+  orgId: string,
+  devisId: string,
+  _etat: EtatIncidentAction,
+  _formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const { error } = await supabase.rpc("retenir_devis", {
+    p_org: orgId,
+    p_devis: devisId,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  revaliderIncident(orgId);
+  return {
+    succes:
+      "Devis retenu — la mission est confiée à l'artisan, l'autre devis est écarté. Il proposera ses créneaux après acceptation.",
+  };
+}
+
+// RM-10.4.1 : après six créneaux refusés, « le problème n'est plus logistique
+// mais relationnel » — le gérant règle au téléphone et saisit le rendez-vous.
+export async function fixerRendezVous(
+  orgId: string,
+  interventionId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const debut = instantParis(String(formData.get("debut") ?? ""));
+  const fin = instantParis(String(formData.get("fin") ?? ""));
+  const motif = String(formData.get("motif") ?? "").trim();
+  if (!debut || !fin) {
+    return { erreur: "Indiquez le début et la fin du rendez-vous.", valeurs };
+  }
+  if (fin <= debut) {
+    return { erreur: "La fin du rendez-vous doit suivre son début.", valeurs };
+  }
+
+  const { error } = await supabase.rpc("fixer_creneau_arbitrage", {
+    p_org: orgId,
+    p_intervention: interventionId,
+    p_debut: debut,
+    p_fin: fin,
+    p_motif: motif || null,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  revaliderIncident(orgId);
+  return {
+    succes:
+      "Rendez-vous fixé — l'artisan et le locataire le voient dans leur espace, les créneaux en attente tombent.",
+  };
+}
+
+// RM-7.5.3 — l'artisan a signalé une cause différente, l'agent révise AVANT
+// facturation. La base refuse le geste s'il n'existe aucun signalement, et
+// hors des états « en cours » et « terminé » : c'est ce qui distingue cette
+// révision de la qualification, fermée dès le départ en intervention.
+export async function reviserImputation(
+  orgId: string,
+  incidentId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const imputation = String(formData.get("imputation") ?? "");
+  const justification = String(formData.get("justification") ?? "").trim();
+  if (!["locataire", "proprietaire", "degradation_fautive"].includes(imputation)) {
+    return { erreur: "Choisissez qui prend la réparation en charge.", valeurs };
+  }
+  if (!justification) {
+    return {
+      erreur: "La justification est obligatoire — elle est opposable au locataire.",
+      valeurs,
+    };
+  }
+
+  const { error } = await supabase.rpc("reviser_imputation_apres_diagnostic", {
+    p_org: orgId,
+    p_incident: incidentId,
+    p_imputation: imputation,
+    p_justification: justification,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  revaliderIncident(orgId);
+  return {
+    succes:
+      "Imputation révisée après diagnostic — la facturation suivra cette décision, et le locataire en est informé.",
+  };
+}
+
+// L'agence retire la mission : l'incident revient à « qualifié », les créneaux
+// deviennent caducs. Distinct du refus de l'artisan, qui, lui, ouvre l'alerte
+// de réaffectation.
+export async function annulerMission(
+  orgId: string,
+  interventionId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const motif = String(formData.get("motif") ?? "").trim();
+  if (!motif) {
+    return { erreur: "Dites pourquoi vous annulez — l'artisan et le locataire l'apprendront.", valeurs };
+  }
+
+  const { error } = await supabase.rpc("annuler_mission", {
+    p_org: orgId,
+    p_intervention: interventionId,
+    p_motif: motif,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  revaliderIncident(orgId);
+  return { succes: "Mission annulée — l'incident revient en attente d'affectation." };
+}
+
+// Module 11 : le gérant note sur trois critères (50 % du score composite) —
+// « le seul à voir l'ensemble ». Son commentaire reste privé à son agence
+// (RM-11.2.2) : l'artisan ne lira jamais que sa moyenne.
+export async function evaluerArtisan(
+  orgId: string,
+  interventionId: string,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+
+  const valeurs = valeursDuFormulaire(formData);
+  const notes = { qualite: 0, delai: 0, prix: 0 };
+  for (const cle of ["qualite", "delai", "prix"] as const) {
+    const n = Number(formData.get(cle) ?? 0);
+    if (!Number.isInteger(n) || n < 1 || n > 5) {
+      return { erreur: "Notez les trois critères, de 1 à 5.", valeurs };
+    }
+    notes[cle] = n;
+  }
+
+  const { error } = await supabase.rpc("evaluer_artisan_gerant", {
+    p_org: orgId,
+    p_intervention: interventionId,
+    p_qualite: notes.qualite,
+    p_delai: notes.delai,
+    p_prix: notes.prix,
+    p_commentaire: String(formData.get("commentaire") ?? "").trim() || null,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  revaliderIncident(orgId);
+  revalidatePath(`/agence/${orgId}/artisans`);
+  return {
+    succes:
+      "Artisan noté. Votre commentaire reste dans votre agence ; seule la moyenne remonte à son profil.",
+  };
+}

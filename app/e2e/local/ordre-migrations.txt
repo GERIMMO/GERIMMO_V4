@@ -126,3 +126,4 @@
 20260909220000_emettre_quittances_compte_detaille.sql
 20260909230000_perimetre_agent_serveur_et_base.sql
 20260909240000_plafond_depot_garantie.sql
+20260911180000_module8_artisans_socle.sql

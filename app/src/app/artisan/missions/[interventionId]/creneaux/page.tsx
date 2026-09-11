@@ -54,8 +54,9 @@ export default async function PageCreneaux(
       {planifiee && (
         <Avertissement>
           Un rendez-vous est déjà fixé : {creneauTexte(mission.debut_prevu, mission.fin_prevue)}.
-          En proposer d&apos;autres ne l&apos;annule pas, mais ne le remplace que si le
-          locataire en choisit un nouveau.
+          En proposer d&apos;autres L&apos;ANNULE : le locataire sera invité à
+          rechoisir parmi vos nouvelles dates, et n&apos;aura plus l&apos;ancienne.
+          Ne le faites que si vous ne pouvez pas l&apos;honorer.
         </Avertissement>
       )}
 

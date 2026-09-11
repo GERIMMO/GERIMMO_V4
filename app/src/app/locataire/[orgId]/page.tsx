@@ -25,6 +25,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     { data: annonces, error: eAnnonces },
     { data: piecesDemandees, error: eDemandes },
     { data: signatures, error: eSignatures },
+    { data: creneaux, error: eCreneaux },
   ] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
@@ -37,6 +38,11 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     // remettent l'accueil d'accord avec le badge « Mes documents ».
     supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
     supabase.rpc("mes_demandes_signature", { p_org: orgId }),
+    // Le rendez-vous à choisir : c'est le SEUL geste que l'intervention demande
+    // au locataire, et il n'apparaissait que dans « Mes demandes ». Celui qui
+    // n'ouvre pas cet écran ne sait pas qu'on attend sa disponibilité, et le
+    // dossier s'arrête là (RM-19.2.3, constat du 11/09).
+    supabase.rpc("mes_creneaux_locataire", { p_org: orgId }),
   ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const lignes = (echeancier ?? []) as {
@@ -139,6 +145,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   }[])[0];
   const nbPiecesDemandees = ((piecesDemandees ?? []) as unknown[]).length;
   const nbSignatures = ((signatures ?? []) as unknown[]).length;
+  const creneauxAChoisir = (creneaux ?? []) as { intervention_id: string; categorie: string }[];
+  const interventionsAPlanifier = new Set(creneauxAChoisir.map((c) => c.intervention_id)).size;
 
   const moisLong = (d: string) =>
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
@@ -158,6 +166,19 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // en clair et avec le geste à côté. Le loyer en retard y prend sa place —
   // il avait sa propre carte plus bas, qui répétait la même chose.
   const aFaire: { cle: string; titre: string; detail: string; href: string; action: string }[] = [];
+  if (interventionsAPlanifier > 0) {
+    aFaire.push({
+      cle: "creneau",
+      titre:
+        interventionsAPlanifier > 1
+          ? `${interventionsAPlanifier} rendez-vous attendent votre choix`
+          : "Un rendez-vous attend votre choix",
+      detail:
+        "L'artisan a proposé des dates. Tant que vous n'en choisissez pas une, l'intervention n'est pas programmée.",
+      href: `/locataire/${orgId}/demandes`,
+      action: "Choisir",
+    });
+  }
   if (bail && enRetard && prochaine) {
     aFaire.push({
       cle: "loyer",
@@ -254,7 +275,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eGestionnaire,
         eAnnonces,
         eDemandes,
-        eSignatures
+        eSignatures,
+        eCreneaux
       ) && <PanneLecture quoi="l'essentiel de votre logement" />}
 
       {bail && (

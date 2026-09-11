@@ -51,6 +51,11 @@ export function CarteMission({
         {creneauTexte(ligne.debut_prevu, ligne.fin_prevue)}
       </p>
 
+      {/* La référence du dossier : c'est le mot commun entre l'artisan et
+          l'agence quand il appelle depuis le chantier. Elle n'était que sur la
+          fiche de mission, un écran plus loin. */}
+      <p className="mono-discret sans-majuscules mt-2">{ligne.incident_numero}</p>
+
       <p className="mt-1 text-base font-medium text-[var(--corps)]">
         {titreIncident(ligne.categorie)}
         {ligne.urgence === "urgente" && (

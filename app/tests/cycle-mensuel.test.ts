@@ -161,18 +161,14 @@ describe.skipIf(!DB_URL)("le cycle mensuel", () => {
     } = await db.query<{ cycle_mensuel_interne: { baux: number; appels_crees: number } }>(
       `select public.cycle_mensuel_interne()`
     );
-    expect(bilan.baux).toBe(1);
+    // Le cycle est GLOBAL : la base de recette porte aussi le jeu du parcours
+    // E2E. On mesure donc sur NOTRE bail, jamais sur les totaux.
+    expect(bilan.baux).toBeGreaterThanOrEqual(1);
     // Le mois de début, les mois intermédiaires, et le mois courant.
-    expect(bilan.appels_crees).toBe(4);
     expect((await appels(bail)).total).toBe(4);
 
     // Idempotence : le cron peut repasser, il ne double rien.
-    const {
-      rows: [{ cycle_mensuel_interne: second }],
-    } = await db.query<{ cycle_mensuel_interne: { appels_crees: number } }>(
-      `select public.cycle_mensuel_interne()`
-    );
-    expect(second.appels_crees).toBe(0);
+    await db.query(`select public.cycle_mensuel_interne()`);
     expect((await appels(bail)).total).toBe(4);
   });
 
@@ -234,10 +230,10 @@ describe.skipIf(!DB_URL)("le cycle mensuel", () => {
       cycle_mensuel_interne: { baux: number; echecs: { bail_id: string; erreur: string }[] };
     }>(`select public.cycle_mensuel_interne()`);
 
-    expect(bilan.baux).toBe(2);
-    expect(bilan.echecs.length).toBe(1);
-    expect(bilan.echecs[0].bail_id).toBe(casse);
-    expect(bilan.echecs[0].erreur).toMatch(/défaillance simulée/);
+    expect(bilan.baux).toBeGreaterThanOrEqual(2);
+    const notre = bilan.echecs.filter((e) => e.bail_id === casse);
+    expect(notre.length).toBe(1);
+    expect(notre[0].erreur).toMatch(/défaillance simulée/);
     // L'autre bail a bien reçu son mois.
     expect((await appels(bon)).total).toBe(2);
     expect((await appels(casse)).total).toBe(0);
@@ -250,7 +246,7 @@ describe.skipIf(!DB_URL)("le cycle mensuel", () => {
     } = await db.query<{ details: { echecs: number } }>(
       `select details from public.tech_log where evenement='cycle_mensuel' order by created_at desc limit 1`
     );
-    expect(t.details.echecs).toBe(1);
+    expect(t.details.echecs).toBeGreaterThanOrEqual(1);
   });
 });
 
@@ -377,12 +373,7 @@ describe.skipIf(!DB_URL)("l'impayé se constate tout seul", () => {
     const { echus } = await appels(bail);
     expect(echus).toBeGreaterThan(0);
 
-    const {
-      rows: [{ generer_alertes_impayes: posees }],
-    } = await db.query<{ generer_alertes_impayes: number }>(
-      `select public.generer_alertes_impayes()`
-    );
-    expect(Number(posees)).toBe(1);
+    await db.query(`select public.generer_alertes_impayes()`);
 
     const a = await alerteImpayee(bail);
     expect(a.statut).toBe("ouverte");
@@ -396,12 +387,16 @@ describe.skipIf(!DB_URL)("l'impayé se constate tout seul", () => {
 
     // Deuxième passage : rien de neuf, l'alerte ne se duplique pas.
     await simuler(null, "postgres");
+    await db.query(`select public.generer_alertes_impayes()`);
+    await db.query("reset role");
     const {
-      rows: [{ generer_alertes_impayes: seconde }],
-    } = await db.query<{ generer_alertes_impayes: number }>(
-      `select public.generer_alertes_impayes()`
+      rows: [{ n }],
+    } = await db.query<{ n: string }>(
+      `select count(*)::text as n from public.alerts
+        where type='loyer_impaye' and details->>'bail_id'=$1`,
+      [bail]
     );
-    expect(Number(seconde)).toBe(0);
+    expect(n).toBe("1");
 
     // Le locataire paie tout : l'alerte se ferme, avec son motif, et reste
     // à l'historique.

@@ -52,7 +52,7 @@ export function FormulaireBilan({
     deposerMonCompteRendu.bind(null, interventionId),
     {}
   );
-  const [autreCause, setAutreCause] = useState(Boolean(etat.valeurs?.cause_reelle));
+  const [autreCause, setAutreCause] = useState(false);
   const idTravaux = useId();
   const idMontant = useId();
   const idCause = useId();

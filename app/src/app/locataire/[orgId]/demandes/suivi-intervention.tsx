@@ -98,6 +98,7 @@ const RAIL_DE_L_ETAPE: Record<string, number> = {
   recherche: 0,
   devis_recus: 0,
   reaffectation: 0,
+  reaffectation_agence: 0,
   artisan_retenu: 1,
   creneaux_attendus: 1,
   creneau_a_choisir: 1,
@@ -141,6 +142,14 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
         titre: "L'artisan retenu s'est désisté",
         detail:
           "Votre demande reste ouverte : votre gestionnaire en cherche un autre. Vous n'avez rien à faire.",
+      };
+    // L'AGENCE a retiré la mission (motif obligatoire). Le dire comme un
+    // désistement d'artisan imputerait à un tiers un retard qu'elle a décidé.
+    case "reaffectation_agence":
+      return {
+        titre: "Votre gestionnaire a changé d'artisan",
+        detail:
+          "La mission confiée a été retirée et une autre entreprise va être cherchée. Votre demande reste ouverte ; vous n'avez rien à faire.",
       };
     case "artisan_retenu":
       return {

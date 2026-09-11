@@ -67,7 +67,14 @@ export default async function LayoutArtisan({
     <div className="flex min-h-svh flex-col bg-[var(--creme)]">
       <header className="sticky top-0 z-20 border-b border-[var(--encre)] bg-[var(--encre)]">
         <div className="mx-auto flex w-full max-w-[720px] items-center justify-between gap-3 px-4 py-2.5">
-          <Link href="/artisan" aria-label="Accueil de mon espace artisan" className="min-w-0">
+          {/* 44 px de haut : c'est un lien de navigation, et on travaille ici
+              debout, avec une main, parfois gantée. Le sigle ne mesurait que
+              sa propre hauteur de texte. */}
+          <Link
+            href="/artisan"
+            aria-label="Accueil de mon espace artisan"
+            className="flex min-h-11 min-w-0 items-center"
+          >
             <MarqueGerimmo surEncre />
           </Link>
           <div className="flex shrink-0 items-center gap-1">

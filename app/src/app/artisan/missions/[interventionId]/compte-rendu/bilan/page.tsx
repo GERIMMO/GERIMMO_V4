@@ -30,6 +30,14 @@ export default async function PageBilan(
   if (mission.compte_rendu_depose || mission.statut === "terminee") {
     redirect(`/artisan/missions/${interventionId}`);
   }
+  // La base refuse le compte rendu tant que l'intervention n'est pas démarrée
+  // (« Démarrez l'intervention avant d'en rendre compte »). Or la photo
+  // « après » s'accepte dès `acceptee` : sans ce renvoi, l'artisan remplissait
+  // les quatre champs du bilan pour se faire refuser à l'envoi. Constat du
+  // 11/09 — on le renvoie là où se trouve le bouton « Démarrer ».
+  if (mission.statut !== "en_cours") {
+    redirect(`/artisan/missions/${interventionId}`);
+  }
   if (!mission.photo_apres_deposee) {
     redirect(`/artisan/missions/${interventionId}/compte-rendu`);
   }

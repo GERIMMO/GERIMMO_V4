@@ -482,9 +482,23 @@ async function ecrireTable(claims, table, url, entetes, corps, methode) {
     return { lignes, statut: methode === "POST" ? 201 : representation ? 200 : 204, representation };
   });
 }
-function preparerValeur(v) {
-  if (v !== null && typeof v === "object") return JSON.stringify(v);
-  return v;
+/**
+ * Traduit une valeur JSON en paramètre Postgres.
+ *
+ * `type` est le type PG attendu quand on le connaît (appels RPC). Il est
+ * indispensable pour les TABLEAUX : `["plomberie"]` envoyé tel quel à un
+ * paramètre `artisan_metier[]` échouait en « malformed array literal », parce
+ * qu'on le sérialisait en JSON avant de le caster. node-postgres sait, lui,
+ * convertir un tableau JS en tableau PG — à condition qu'on le lui laisse.
+ * Un tableau destiné à un `jsonb` (créneaux d'intervention) reste, lui,
+ * sérialisé : c'est bien du JSON qu'on veut y mettre.
+ *
+ * Sans type (écritures de table), on garde l'ancien comportement.
+ */
+function preparerValeur(v, type) {
+  if (v === null || typeof v !== "object") return v;
+  if (Array.isArray(v) && typeof type === "string" && type.endsWith("[]")) return v;
+  return JSON.stringify(v);
 }
 
 // ── RPC ────────────────────────────────────────────────────────────────────
@@ -496,7 +510,7 @@ async function appelerRpc(claims, nom, corps) {
   const fournis = noms
     .map((n, i) => ({ nom: n, type: (fn.arg_types ?? [])[i] }))
     .filter((a) => Object.prototype.hasOwnProperty.call(args, a.nom));
-  const params = fournis.map((a) => preparerValeur(args[a.nom]));
+  const params = fournis.map((a) => preparerValeur(args[a.nom], a.type));
   const listeArgs = fournis.map((a, i) => `"${a.nom}" => $${i + 1}::${a.type}`).join(", ");
   return sousIdentite(claims, async (client) => {
     if (fn.retourne_set || fn.type_retour.startsWith("TABLE") || fn.type_retour.startsWith("SETOF")) {

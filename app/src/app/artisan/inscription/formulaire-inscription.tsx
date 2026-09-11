@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   inscrireMonEntreprise,
@@ -38,6 +38,13 @@ export function FormulaireInscription() {
     inscrireMonEntreprise,
     {}
   );
+
+  // Les métiers cochés vivent dans l'ÉTAT DU COMPOSANT, pas dans `etat.valeurs`.
+  // Celui-ci est un Record<string, string> : il ne sait pas reporter une valeur
+  // multiple, et la sélection se vidait donc à chaque refus — alors que « au
+  // moins un métier » est justement l'une des causes de refus. Le composant,
+  // lui, n'est pas démonté par l'aller-retour de l'action : son état survit.
+  const [metiers, setMetiers] = useState<string[]>([]);
   const idRaison = useId();
   const idSiret = useId();
   const idTelephone = useId();
@@ -132,6 +139,12 @@ export function FormulaireInscription() {
                 type="checkbox"
                 name="metiers"
                 value={m}
+                checked={metiers.includes(m)}
+                onChange={(e) =>
+                  setMetiers((liste) =>
+                    e.target.checked ? [...liste, m] : liste.filter((x) => x !== m)
+                  )
+                }
                 className="size-6 shrink-0 accent-[var(--encre)]"
               />
               {METIERS[m]}

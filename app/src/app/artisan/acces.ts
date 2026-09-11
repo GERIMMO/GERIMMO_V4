@@ -82,6 +82,16 @@ export type LigneAgenda = {
   montant_ttc_cents: number | null;
   compte_rendu_depose: boolean;
   photo_apres_deposee: boolean;
+  /**
+   * Dates posées par l'artisan et pas encore tranchées par le locataire.
+   *
+   * Sans ce compteur, l'écran ne distinguait pas « aucune date proposée » de
+   * « trois dates proposées, en attente de réponse » : `debut_prevu` reste nul
+   * dans les deux cas. Il affichait donc « Proposer trois créneaux » à un
+   * artisan qui venait de le faire — et reproposer rend CADUQUES les dates du
+   * tour précédent, effaçant le choix que le locataire s'apprêtait à faire.
+   */
+  creneaux_en_attente: number;
 };
 
 export type LigneSollicitation = {

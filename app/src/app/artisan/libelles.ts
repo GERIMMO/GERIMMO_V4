@@ -100,6 +100,15 @@ export function libelle(table: Record<string, string>, cle: string | null | unde
 // ── Formats ────────────────────────────────────────────────────────────────
 // Plein soleil, gants, coup d'œil : les dates s'écrivent en toutes lettres
 // courtes (« lun. 15 sept. »), jamais en 15/09 — deux chiffres se confondent.
+//
+// LE FUSEAU EST EXPLICITE, ET CE N'EST PAS UN DÉTAIL. Ces rendus sont des
+// composants serveur : sans `timeZone`, c'est l'heure du SERVEUR qui s'affiche
+// — UTC sur Vercel. Constat du 11/09 : pour un créneau stocké à 06:00 UTC,
+// l'artisan lisait « 06:00 » et le locataire, dont l'écran passe bien
+// Europe/Paris, « 08:00 ». Deux heures d'écart sur le même rendez-vous. Un
+// artisan qui se présente deux heures trop tôt repart : c'est un rendez-vous
+// manqué, et le module 11 le compte contre lui.
+const FUSEAU = "Europe/Paris";
 
 export function jourCourt(iso: string | null | undefined): string {
   if (!iso) return "Date à fixer";
@@ -107,6 +116,7 @@ export function jourCourt(iso: string | null | undefined): string {
     weekday: "short",
     day: "numeric",
     month: "short",
+    timeZone: FUSEAU,
   });
 }
 
@@ -117,12 +127,17 @@ export function jourLong(iso: string | null | undefined): string {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: FUSEAU,
   });
 }
 
 export function heure(iso: string | null | undefined): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: FUSEAU,
+  });
 }
 
 export function creneauTexte(debut: string | null, fin: string | null): string {
@@ -136,7 +151,20 @@ export function dateSimple(iso: string | null | undefined): string {
     day: "numeric",
     month: "long",
     year: "numeric",
+    timeZone: FUSEAU,
   });
+}
+
+/**
+ * Le jour civil d'un instant, en France — clé de regroupement de l'agenda.
+ *
+ * `toISOString().slice(0,10)` donnait le jour UTC : un rendez-vous de fin de
+ * soirée était rangé la veille, et « Aujourd'hui » se trompait de journée
+ * entre minuit et 2 h du matin.
+ */
+export function jourCivil(iso: string | Date): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  return d.toLocaleDateString("en-CA", { timeZone: FUSEAU });
 }
 
 export function euros(cents: number | null | undefined): string {

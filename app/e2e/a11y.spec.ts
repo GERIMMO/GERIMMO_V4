@@ -27,6 +27,9 @@ const ESPACES = [
   { persona: "admin" as const, depart: "/espaces" },
   { persona: "locataire" as const, depart: "/espaces" },
   { persona: "superadmin" as const, depart: "/admin" },
+  // L'artisan part de SON portail, pas de /espaces : son adresse ne porte pas
+  // d'organisation et « Mes espaces » le redirige aussitôt (RM-19.3.3).
+  { persona: "artisan" as const, depart: "/artisan" },
   { persona: null, depart: "/" },
 ];
 

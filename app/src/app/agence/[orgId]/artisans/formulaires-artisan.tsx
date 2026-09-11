@@ -64,17 +64,26 @@ function ChampsMetiersEtZones({
         </div>
       </fieldset>
       <div className="space-y-1.5">
-        <Label htmlFor={idCodes}>Zone d&apos;intervention — codes postaux</Label>
+        <Label htmlFor={idCodes}>
+          Zone d&apos;intervention — codes postaux{" "}
+          <span className="text-[var(--destructive)]" aria-hidden>
+            *
+          </span>
+          <span className="sr-only">(obligatoire)</span>
+        </Label>
         <Input
           id={idCodes}
           name="codes_postaux"
           inputMode="numeric"
           defaultValue={valeurs?.codes_postaux ?? (codes ?? []).join(" ")}
           placeholder="75011 75012 93100"
+          required
         />
         <p className="text-xs text-muted-foreground">
-          Séparés par un espace ou une virgule. Comparaison exacte au code postal
-          du bien : laissez vide pour ne poser aucune limite de zone.
+          Séparés par un espace ou une virgule. Comparaison EXACTE au code postal
+          du bien : un artisan sans aucun code postal n&apos;est proposé nulle
+          part — il ne remontera dans aucune liste, sans que rien ne vous
+          l&apos;indique. Mettez au moins celui de son secteur principal.
         </p>
       </div>
     </>

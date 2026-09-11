@@ -197,7 +197,7 @@ export default async function PageMission(
             href={`/artisan/missions/${mission.intervention_id}/creneaux`}
             className={CLASSE_BOUTON_SECONDAIRE}
           >
-            Proposer d&apos;autres créneaux
+            Déplacer le rendez-vous
           </Link>
         </div>
       )}

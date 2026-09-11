@@ -55,9 +55,13 @@ export async function choisirMonCreneau(
   if (error) return { erreur: sansJargon(error.message) };
 
   revaliderSuivi(orgId);
+  // Pas de « rappel la veille » annoncé ici : RM-10.5 le prévoit, le produit
+  // ne l'a pas encore (aucune tâche, aucune table ne le porte — vérifié le
+  // 11/09). Promettre un rappel, c'est inviter le locataire à ne pas noter la
+  // date — et lui faire manquer le rendez-vous.
   return {
     succes:
-      "Rendez-vous confirmé — l'artisan est prévenu. Vous le retrouvez ici, et un rappel vous parviendra la veille.",
+      "Rendez-vous confirmé — l'artisan est prévenu. Notez la date : vous la retrouvez ici, dans « Mes demandes ».",
   };
 }
 

@@ -40,7 +40,16 @@ export default async function PageArtisanAccueil({
   const aRendreCompte = agenda.lignes.filter(
     (l) => l.statut === "en_cours" && !l.compte_rendu_depose
   );
-  const aPlanifier = agenda.lignes.filter((l) => l.statut === "acceptee");
+  // « À caler » = ce sur quoi l'artisan doit agir. Une mission dont les dates
+  // sont posées attend le LOCATAIRE : la ranger ici enverrait l'artisan
+  // reproposer, ce qui rend caduques les dates en cours et fait repartir le
+  // ping-pong (RM-10.4.1).
+  const aPlanifier = agenda.lignes.filter(
+    (l) => l.statut === "acceptee" && l.creneaux_en_attente === 0
+  );
+  const enAttenteDuLocataire = agenda.lignes.filter(
+    (l) => l.statut === "acceptee" && l.creneaux_en_attente > 0
+  );
   const aChiffrer = sollicitations.lignes.filter((l) => l.statut === "envoyee");
 
   // Les prochaines interventions calées, l'aujourd'hui en tête.
@@ -59,14 +68,23 @@ export default async function PageArtisanAccueil({
   // « alerte » pas au sens de la table `alerts` (org-scopée par construction,
   // et l'artisan n'appartient à aucune agence) : il les dit à celui qui doit
   // agir, sur son écran d'arrivée.
+  // RM-8.2.5 pose QUATRE seuils : J-60, J-30, J-7, J+0. Le premier manquait
+  // ici — il n'existait que sur « Mes attestations », où il fallait aller le
+  // chercher. Or J-60 est précisément celui qui laisse le temps de demander un
+  // renouvellement à son assureur sans urgence.
   const piecesTendues = pieces.lignes
     .map((p) => ({ piece: p, degre: degreEcheance(p.jours_avant_echeance, p.expiree) }))
-    .filter((p) => ["expiree", "critique", "proche"].includes(p.degre));
+    .filter((p) => ["expiree", "critique", "proche", "a_venir"].includes(p.degre));
 
+  // « Rien ne vous attend » se dit quand l'écran n'a RIEN à montrer — pas
+  // seulement quand il n'y a rien à faire. Une mission dont les dates sont
+  // parties chez le locataire n'appelle aucun geste, mais la cacher derrière
+  // un écran vide donnerait à l'artisan l'impression de l'avoir perdue.
   const rienAFaire =
     aAccepter.length === 0 &&
     aRendreCompte.length === 0 &&
     aPlanifier.length === 0 &&
+    enAttenteDuLocataire.length === 0 &&
     aChiffrer.length === 0;
 
   return (
@@ -164,6 +182,23 @@ export default async function PageArtisanAccueil({
                     key={l.intervention_id}
                     ligne={l}
                     aFaire="Proposer trois créneaux au locataire"
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {enAttenteDuLocataire.length > 0 && (
+            <section>
+              <TitreSection>
+                Dates proposées, réponse attendue ({enAttenteDuLocataire.length})
+              </TitreSection>
+              <div className="space-y-3">
+                {enAttenteDuLocataire.map((l) => (
+                  <CarteMission
+                    key={l.intervention_id}
+                    ligne={l}
+                    aFaire={`${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} au choix du locataire`}
                   />
                 ))}
               </div>

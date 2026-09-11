@@ -267,7 +267,8 @@ export async function VoletArtisan({
     { data: photosBrutes, error: erreurPhotos },
     { data: evaluationsBrutes, error: erreurEvaluations },
     { data: artisansBruts, error: erreurArtisans },
-    { data: bienBrut },
+    { data: bienBrut, error: erreurLot },
+    { data: alerteRevision, error: erreurAlerteRevision },
   ] = await Promise.all([
     idsInterventions.length
       ? supabase
@@ -315,7 +316,17 @@ export async function VoletArtisan({
     // étrangères vers `biens`, PostgREST refuserait d'arbitrer l'embed.
     lotId
       ? supabase.from("lots").select("bien_id").eq("id", lotId).maybeSingle()
-      : Promise.resolve({ data: null }),
+      : Promise.resolve({ data: null, error: null }),
+    // L'alerte de révision : c'est ELLE qui dit si l'arbitrage reste à faire.
+    // Voir plus bas pourquoi la comparaison d'imputations ne le disait pas.
+    supabase
+      .from("alerts")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("type", "incident_imputation_a_reviser")
+      .eq("statut", "ouverte")
+      .eq("details->>incident_id", incidentId)
+      .limit(1),
   ]);
 
   const creneaux = (creneauxBruts ?? []) as Creneau[];
@@ -328,14 +339,22 @@ export async function VoletArtisan({
     )
   );
 
+  // LE CODE POSTAL N'EST PAS FACULTATIF, ET SON ABSENCE NE DOIT PAS SE TAIRE.
+  // `artisans_affectables` saute toute la clause de zone quand on lui passe
+  // null (`p_code_postal is null or exists …`). Une lecture tombée faisait donc
+  // remonter des artisans HORS ZONE sous un pied de liste affirmant « déjà
+  // filtrée : métier, zone… » — et `solliciter_artisan`, qui relit le code
+  // postal lui-même, les refusait ensuite. Constat du 11/09.
   let codePostal: string | null = null;
+  let erreurCodePostal = Boolean(erreurLot);
   const bienId = (bienBrut as { bien_id: string } | null)?.bien_id ?? null;
   if (bienId) {
-    const { data: bien } = await supabase
+    const { data: bien, error: erreurBien } = await supabase
       .from("biens")
       .select("postal_code")
       .eq("id", bienId)
       .maybeSingle();
+    if (erreurBien) erreurCodePostal = true;
     codePostal = (bien as { postal_code: string } | null)?.postal_code ?? null;
   }
 
@@ -368,16 +387,26 @@ export async function VoletArtisan({
     erreurEvaluations && "les notes déjà données",
     erreurArtisans && "les fiches des artisans",
     erreurAffectables && "les artisans proposables",
+    erreurCodePostal && "la zone du bien (la liste ci-dessous n'est alors PAS filtrée par zone)",
+    erreurAlerteRevision && "la révision d'imputation en attente",
   ].filter((q): q is string => Boolean(q));
 
   const compteRenduCourant = mission
     ? (comptesRendus.find((c) => c.intervention_id === mission.id) ?? null)
     : null;
-  // RM-7.5.3 : c'est l'ÉCART entre la cause signalée et l'imputation posée qui
-  // appelle une révision — pas le compte rendu en lui-même.
+  // RM-7.5.3 — CE QUI DIT QUE L'ARBITRAGE RESTE À FAIRE : L'ALERTE OUVERTE.
+  //
+  // La condition lisait l'ÉCART entre la cause signalée par l'artisan et
+  // l'imputation posée. Or l'artisan SIGNALE, il ne requalifie pas : l'agent
+  // tranche, et le plus souvent il tranche en maintenant son imputation. La
+  // base fermait bien l'alerte, mais l'écart, lui, demeurait — la carte rouge
+  // restait donc affichée pour toujours, avec son formulaire, et la révision
+  // se re-soumettait sans fin. Elle ne disparaissait que si l'agent ADOPTAIT
+  // la suggestion de l'artisan, c'est-à-dire jamais dans le cas que la règle
+  // décrit. Constat du 11/09, reproduit en SQL.
   const revisionAttendue =
+    (alerteRevision ?? []).length > 0 &&
     compteRenduCourant?.imputation_suggeree != null &&
-    compteRenduCourant.imputation_suggeree !== imputation &&
     (etat === "en_cours" || etat === "termine");
 
   const nom = (id: string) => nomArtisan.get(id)?.raison_sociale ?? "Artisan";

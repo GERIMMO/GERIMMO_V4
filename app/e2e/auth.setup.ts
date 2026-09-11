@@ -10,6 +10,10 @@ const COMPTES = [
   { nom: "locataire", email: "locataire.alpha@gerimmo-demo.fr" },
   { nom: "proprietaire", email: "proprietaire@gerimmo-demo.fr" },
   { nom: "superadmin", email: "superadmin@gerimmo-demo.fr" },
+  // L'artisan est le seul persona dont l'adresse ne porte pas d'organisation :
+  // son portail les réunit (RM-19.3.3). Il atterrit donc sur /artisan, jamais
+  // sur /agence/<id>.
+  { nom: "artisan", email: "artisan.alpha@gerimmo-demo.fr" },
 ];
 
 const MOT_DE_PASSE = process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";
@@ -24,7 +28,7 @@ setup("sessions des personas", async ({ browser }) => {
     await page.locator("#email").fill(compte.email);
     await page.locator("#mot-de-passe").fill(MOT_DE_PASSE);
     await page.getByRole("button", { name: "Se connecter" }).click();
-    await page.waitForURL(/\/(espaces|agence|locataire|proprietaire|admin)/, {
+    await page.waitForURL(/\/(espaces|agence|locataire|proprietaire|admin|artisan)/, {
       timeout: 20_000,
     });
     await expect(page.locator("body")).not.toContainText("Identifiants invalides");

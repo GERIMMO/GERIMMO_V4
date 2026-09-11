@@ -10,7 +10,11 @@
 //   loyers.ts (genererAppels → generer_appels_loyer, ajouterEncaissement →
 //              insert encaissements + emettre_quittances),
 //   incidents.ts (declarerMonIncident → declarer_mon_incident +
-//                 joindre_photo_incident, côté locataire).
+//                 joindre_photo_incident, côté locataire),
+//   module 8 artisans (qualifier_incident → ouvrir_consultation →
+//                 solliciter_artisan → deposer_devis → retenir_devis →
+//                 accepter_mission → proposer_creneaux) : l'incident déclaré
+//                 par le locataire va jusqu'au rendez-vous à choisir.
 //
 // Idempotent : tous les objets sont préfixés « E2E » et vérifiés par select
 // avant création. Aucun SQL direct — uniquement supabase-js, RLS réelles.
@@ -836,6 +840,231 @@ if (!incident) {
 }
 
 // ------------------------------------------------------------
+// 9. Le module 8, de bout en bout : de l'incident au rendez-vous
+//
+//    On rejoue la chaîne telle que les écrans la font, dans l'ordre que la
+//    base impose — chaque étape est refusée tant que la précédente n'a pas eu
+//    lieu (pas d'artisan sans imputation qualifiée, pas de créneau sans
+//    mission acceptée). Le parcours s'arrête AVANT le choix du créneau : le
+//    locataire de démo a donc trois dates à trancher, ce qui est l'écran le
+//    plus difficile à atteindre autrement.
+// ------------------------------------------------------------
+
+const artisan = createClient(URL_LOCALE, CLE_ANON, { auth: { persistSession: false } });
+const superadmin = createClient(URL_LOCALE, CLE_ANON, { auth: { persistSession: false } });
+ok(
+  "connexion artisan.alpha",
+  await artisan.auth.signInWithPassword({
+    email: "artisan.alpha@gerimmo-demo.fr",
+    password: MDP,
+  })
+);
+ok(
+  "connexion superadmin",
+  await superadmin.auth.signInWithPassword({
+    email: "superadmin@gerimmo-demo.fr",
+    password: MDP,
+  })
+);
+
+const SIRET_ARTISAN = "48291763500017";
+
+// 9.a L'agence enregistre l'artisan qu'elle connaît (artisans/actions.ts).
+//     C'est elle qui crée la fiche : l'artisan la RÉCLAMERA ensuite avec le
+//     même SIRET (« rattaché, jamais dupliqué », RM-8.1.5).
+let ficheArtisan = ok(
+  "recherche artisan E2E",
+  await admin.from("artisans").select("id, account_id, statut_plateforme, siret_etat")
+    .eq("siret", SIRET_ARTISAN).maybeSingle()
+);
+if (!ficheArtisan) {
+  const cree = ok(
+    "artisan_creer_ou_rattacher",
+    await admin.rpc("artisan_creer_ou_rattacher", {
+      p_org: orgId,
+      p_raison_sociale: "E2E Plomberie Dubois",
+      p_siret: SIRET_ARTISAN,
+      p_telephone: "0601020304",
+      p_email: "artisan.alpha@gerimmo-demo.fr",
+      p_metiers: ["plomberie"],
+      p_codes_postaux: ["75012"],
+    })
+  );
+  console.log(`· artisan enregistré par l'agence : ${cree}`);
+  ficheArtisan = ok(
+    "relecture artisan",
+    await admin.from("artisans").select("id, account_id, statut_plateforme, siret_etat")
+      .eq("siret", SIRET_ARTISAN).single()
+  );
+}
+
+// 9.b L'artisan réclame sa fiche en s'inscrivant avec le même SIRET.
+if (!ficheArtisan.account_id) {
+  ok(
+    "inscrire_mon_entreprise_artisan",
+    await artisan.rpc("inscrire_mon_entreprise_artisan", {
+      p_raison_sociale: "E2E Plomberie Dubois",
+      p_siret: SIRET_ARTISAN,
+      p_telephone: "0601020304",
+      p_email: "artisan.alpha@gerimmo-demo.fr",
+      p_metiers: ["plomberie"],
+      p_codes_postaux: ["75012"],
+    })
+  );
+  console.log("· fiche réclamée par le compte artisan");
+}
+
+// 9.c Le super admin vérifie le SIRET puis valide. L'ordre n'est pas libre :
+//     valider un SIRET non vérifié est refusé (impasse silencieuse, RM-A1.9).
+if (ficheArtisan.siret_etat !== "verifie") {
+  ok(
+    "artisan_definir_siret_etat",
+    await superadmin.rpc("artisan_definir_siret_etat", {
+      p_artisan: ficheArtisan.id,
+      p_etat: "verifie",
+    })
+  );
+}
+if (ficheArtisan.statut_plateforme !== "valide") {
+  ok(
+    "artisan_decider_plateforme",
+    await superadmin.rpc("artisan_decider_plateforme", {
+      p_artisan: ficheArtisan.id,
+      p_decision: "validation",
+      p_motif: "Pièces conformes (jeu de démonstration).",
+    })
+  );
+  console.log("· artisan validé par la plateforme, SIRET vérifié");
+}
+
+// 9.d L'incident se qualifie AVANT toute consultation (RM-7.2.7).
+const incidentCourant = ok(
+  "état de l'incident",
+  await admin.from("incidents").select("id, etat").eq("id", incident.id).single()
+);
+if (incidentCourant.etat === "declare" || incidentCourant.etat === "rouvert") {
+  ok(
+    "qualifier_incident",
+    await admin.rpc("qualifier_incident", {
+      p_org: orgId,
+      p_incident: incident.id,
+      p_imputation: "proprietaire",
+      p_justification:
+        "Fuite sur canalisation encastrée : vétusté du réseau, charge du bailleur.",
+    })
+  );
+  console.log("· incident qualifié (imputation propriétaire)");
+}
+
+// 9.e Mise en concurrence, sollicitation, devis, sélection.
+let consultation = ok(
+  "recherche consultation",
+  await admin.from("incident_consultations").select("id, statut")
+    .eq("incident_id", incident.id).eq("statut", "ouverte").maybeSingle()
+);
+let intervention = ok(
+  "recherche intervention",
+  await admin.from("incident_interventions").select("id, statut")
+    .eq("incident_id", incident.id).maybeSingle()
+);
+
+if (!intervention) {
+  if (!consultation) {
+    const id = ok(
+      "ouvrir_consultation",
+      await admin.rpc("ouvrir_consultation", {
+        p_org: orgId,
+        p_incident: incident.id,
+        p_metier: "plomberie",
+        p_nature: "entretien_courant",
+        p_devis_unique_assume: true,
+        p_validite_jours: 30,
+      })
+    );
+    consultation = { id, statut: "ouverte" };
+    console.log(`· mise en concurrence ouverte : ${id}`);
+  }
+
+  let sollicitation = ok(
+    "recherche sollicitation",
+    await admin.from("incident_sollicitations").select("id, statut")
+      .eq("consultation_id", consultation.id).eq("artisan_id", ficheArtisan.id).maybeSingle()
+  );
+  if (!sollicitation) {
+    const id = ok(
+      "solliciter_artisan",
+      await admin.rpc("solliciter_artisan", {
+        p_org: orgId,
+        p_consultation: consultation.id,
+        p_artisan: ficheArtisan.id,
+      })
+    );
+    sollicitation = { id, statut: "envoyee" };
+    console.log(`· artisan sollicité : ${id}`);
+  }
+
+  let devis = ok(
+    "recherche devis",
+    await admin.from("incident_devis").select("id, statut")
+      .eq("sollicitation_id", sollicitation.id).maybeSingle()
+  );
+  if (!devis) {
+    const id = ok(
+      "deposer_devis",
+      await artisan.rpc("deposer_devis", {
+        p_sollicitation: sollicitation.id,
+        p_montant_ttc_cents: 34000,
+        p_description: "Remplacement du flexible et du joint, main-d'œuvre comprise.",
+        p_valide_jusqu_au: plusMois(1),
+      })
+    );
+    devis = { id, statut: "depose" };
+    console.log(`· devis déposé par l'artisan : 340,00 €`);
+  }
+
+  const idIntervention = ok(
+    "retenir_devis",
+    await admin.rpc("retenir_devis", { p_org: orgId, p_devis: devis.id })
+  );
+  intervention = { id: idIntervention, statut: "proposee" };
+  console.log(`· devis retenu — mission créée : ${idIntervention}`);
+}
+
+// 9.f L'artisan accepte, puis propose trois créneaux (RM-10.1.1).
+const missionCourante = ok(
+  "état de la mission",
+  await admin.from("incident_interventions").select("id, statut").eq("id", intervention.id).single()
+);
+if (missionCourante.statut === "proposee") {
+  ok("accepter_mission", await artisan.rpc("accepter_mission", { p_intervention: intervention.id }));
+  console.log("· mission acceptée par l'artisan");
+}
+
+const creneauxPoses = ok(
+  "recherche créneaux",
+  await admin.from("intervention_creneaux").select("id")
+    .eq("intervention_id", intervention.id).eq("statut", "propose")
+);
+if ((creneauxPoses ?? []).length === 0) {
+  // Trois dates ouvrées à venir, en matinée : le locataire aura un vrai choix.
+  const creneaux = [2, 3, 4].map((j) => {
+    const d = new Date(aujourdhui);
+    d.setDate(d.getDate() + j);
+    const debut = `${iso(d)}T08:00:00Z`;
+    const fin = `${iso(d)}T10:00:00Z`;
+    return { debut, fin };
+  });
+  ok(
+    "proposer_creneaux",
+    await artisan.rpc("proposer_creneaux", {
+      p_intervention: intervention.id,
+      p_creneaux: creneaux,
+    })
+  );
+  console.log("· trois créneaux proposés — le locataire a le choix");
+}
+
+// ------------------------------------------------------------
 // Récapitulatif
 // ------------------------------------------------------------
 
@@ -847,6 +1076,8 @@ const recap = {
   incident: incident.id,
   appel: appel.id,
   encaissement: encaissement.id,
+  artisan: ficheArtisan.id,
+  intervention: intervention.id,
 };
 console.log("\nRécapitulatif :");
 console.log(JSON.stringify(recap, null, 2));

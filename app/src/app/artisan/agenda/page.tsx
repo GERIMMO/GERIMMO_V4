@@ -1,6 +1,6 @@
 import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../acces";
 import { CarteMission } from "../carte-mission";
-import { jourLong } from "../libelles";
+import { jourCivil, jourLong } from "../libelles";
 import { Carte, Erreur, TitreSection, Vide } from "../ui";
 
 export const metadata = { title: "Mon agenda — Espace artisan" };
@@ -23,6 +23,23 @@ export const metadata = { title: "Mon agenda — Espace artisan" };
  * LIGNE (RM-19.3.3 / RM-17.3.2), pas en tête d'écran : c'est elle qui dit,
  * à 14 h, pour qui on travaille.
  */
+/**
+ * Ce qui reste à faire sur une mission sans date — et par qui.
+ *
+ * Trois cas, pas deux : la mission attend d'être acceptée ; elle est acceptée
+ * et personne n'a proposé de date ; des dates sont posées et c'est au
+ * locataire de trancher. Le troisième cas n'est PAS une action de l'artisan :
+ * lui répéter « proposez trois créneaux » le pousserait à reproposer, ce qui
+ * annule les dates en cours (RM-10.4.1 — le compteur de tours avance alors
+ * vers l'arbitrage du gérant sans que personne n'ait rien refusé).
+ */
+function consigne(l: LigneAgenda): string {
+  if (l.statut === "proposee") return "Accepter ou refuser";
+  if (l.creneaux_en_attente > 0)
+    return `${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} proposée${l.creneaux_en_attente > 1 ? "s" : ""} — au locataire de choisir`;
+  return "Proposer trois créneaux au locataire";
+}
+
 export default async function PageAgendaArtisan() {
   await verifierAccesArtisan();
   const agenda = await chargerAgenda();
@@ -36,13 +53,13 @@ export default async function PageAgendaArtisan() {
   // début, les créneaux non posés d'abord).
   const jours = new Map<string, LigneAgenda[]>();
   for (const ligne of datees) {
-    const cle = new Date(ligne.debut_prevu!).toISOString().slice(0, 10);
+    const cle = jourCivil(ligne.debut_prevu!);
     const liste = jours.get(cle);
     if (liste) liste.push(ligne);
     else jours.set(cle, [ligne]);
   }
 
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const aujourdhui = jourCivil(new Date());
 
   return (
     <div className="space-y-6">
@@ -66,11 +83,7 @@ export default async function PageAgendaArtisan() {
               <CarteMission
                 key={l.intervention_id}
                 ligne={l}
-                aFaire={
-                  l.statut === "proposee"
-                    ? "Accepter ou refuser"
-                    : "Proposer trois créneaux au locataire"
-                }
+                aFaire={consigne(l)}
               />
             ))}
           </div>

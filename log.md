@@ -3096,3 +3096,49 @@ d'inscription ne renvoie vers aucun lien, la version acceptée des conditions
 n'est pas conservée (la base note que la case a été cochée, pas ce qui a été
 accepté), et le locataire n'accepte aujourd'hui aucune condition alors qu'il
 dépose des pièces.
+
+## [2026-09-11] dev   | Le cycle mensuel tourne seul, et la garde d'abonnement ne s'oublie plus
+
+**Ce qui ne tournait pas.** Les appels de loyer d'un mois n'existaient que si un
+gérant ouvrait le bail et cliquait « Générer l'échéancier » — alors que le wiki
+décrit une tâche planifiée depuis le 24/07. Constat chiffré sur la base de
+production : **12 appels manquants sur 6 baux**, donc pas de quittance, donc
+aucun impayé détectable. On ne vend pas « ça se gère presque tout seul » sur un
+échéancier à la main.
+
+**Ce qui a été posé.**
+- `cycle_mensuel_interne()` — pg_cron, le 1er du mois à 5 h UTC : appels
+  manquants puis resynchronisation des quittances et reçus, bail par bail, un
+  échec n'emportant pas le mois des autres, trace au journal technique.
+- `generer_alertes_impayes()` — quotidienne à 5 h 30 : une alerte par bail,
+  rattachée au bail, qui se ferme au paiement. Elle **constate** et ne relance
+  pas : plancher et délais sont paramétrables par agence (module 18) et ne
+  s'inventent pas ici.
+- `generer_appels_loyer` scindée : le calcul descend dans une fonction interne
+  (le cron n'est personne, la garde de rôle l'aurait refusé), la fonction
+  publique n'est plus que sa garde. Toutes les internes révoquées de
+  `authenticated` et `anon`.
+
+**Deux trous trouvés en chemin.**
+1. *La garde d'abonnement ne couvrait pas le module artisan.* Posée le matin par
+   un bloc anonyme qui énumère les tables au moment où il s'exécute, elle avait
+   raté les **neuf tables** arrivées l'après-midi : une agence suspendue pouvait
+   consulter des artisans, faire chiffrer et faire intervenir gratuitement. La
+   pose devient une fonction rejouable, et un **test** échoue désormais si une
+   table d'organisation échappe au verrou.
+2. *Le banc de test local était 26 migrations en retard sur la production.* Le
+   manifeste `ordre-migrations.txt` s'arrêtait au 09/09 : tout ce qui a été
+   appliqué depuis tournait sur une base qui ne le contenait pas. Manifeste
+   reconstruit depuis l'historique de production (157 migrations), base
+   reconstruite de zéro.
+
+**Au passage.** Le refus d'écriture ne parle plus d'abonnement aux tiers : un
+locataire ou un artisan qui écrit chez une agence suspendue reçoit un message
+neutre, pas « Réactivez l'abonnement ». `tache_systeme()` — la seule fonction
+qui désarme un garde-fou — a désormais son chemin de recherche figé.
+
+**Vérifié.** 456 tests (453 passent, 1 rouge délibéré RM-2.1.2, 2 ignorés),
+typecheck 0, eslint 0 erreur. Migrations appliquées en production ; rattrapage
+joué sur les données réelles : 12 appels créés, 1 quittance, 5 alertes
+d'impayé, 0 échec.
+

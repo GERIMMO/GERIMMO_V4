@@ -16,7 +16,9 @@ import { createClient } from "@/lib/supabase/server";
  *    pas demander « l'agenda de telle agence », donc on ne peut pas demander
  *    celui d'une agence où l'on n'a rien à faire.
  *
- * 2. LE PORTAIL NE LIT AUCUNE TABLE. Pas un seul `.from(...)` dans ce dossier :
+ * 2. LE PORTAIL NE LIT AUCUNE TABLE. Pas une requête PostgREST dans tout ce
+ *    dossier (les deux `.from("documents")` qui s'y trouvent visent le SEAU de
+ *    stockage, pas la table du même nom) :
  *    tout passe par les RPC `mon_artisan`, `mes_sollicitations`,
  *    `mon_agenda_artisan`, `mes_pieces_artisan`, `ma_note_artisan`. Ce n'est
  *    pas un choix de style — la migration du socle (20260911180000) pose que

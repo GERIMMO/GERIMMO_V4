@@ -38,8 +38,14 @@ export default async function LayoutArtisan({
     ? await Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])
     : [null, null, null];
 
-  const missionsAAccepter =
-    agenda?.lignes.filter((l) => l.statut === "proposee").length ?? 0;
+  // Un seul compte pour l'onglet d'arrivée : ce qui attend un geste. Une
+  // mission à accepter et un compte rendu non déposé sont deux urgences de
+  // nature différente, mais la question de l'artisan est la même.
+  const aFaireMaintenant =
+    agenda?.lignes.filter(
+      (l) =>
+        l.statut === "proposee" || (l.statut === "en_cours" && !l.compte_rendu_depose)
+    ).length ?? 0;
   const devisAChiffrer =
     sollicitations?.lignes.filter((l) => l.statut === "envoyee").length ?? 0;
   // Le seuil de la pastille est J-30, pas l'expiration : prévenu le jour où
@@ -125,7 +131,7 @@ export default async function LayoutArtisan({
 
       {fiche && (
         <NavArtisan
-          missionsAAccepter={missionsAAccepter}
+          aFaireMaintenant={aFaireMaintenant}
           devisAChiffrer={devisAChiffrer}
           piecesAAJour={piecesAAJour}
         />

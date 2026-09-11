@@ -2778,3 +2778,8 @@ begin
     raise exception 'Fonctions encore exécutables par anon/public : %', restes;
   end if;
 end $$;
+
+-- Toute migration qui crée une table portant `organization_id` doit reposer la
+-- garde d'abonnement : la pose du 11/09 énumérait les tables existant ce
+-- jour-là (voir 20260911190000_gardes_abonnement_rejouables.sql).
+select public.poser_gardes_abonnement();

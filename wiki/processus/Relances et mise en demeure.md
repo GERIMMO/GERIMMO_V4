@@ -3,7 +3,7 @@ type: process
 tags: [loyer, impaye, relance, mise-en-demeure]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-09-11
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
 ---
 
@@ -66,3 +66,25 @@ paramétrés par agence** (module 18) :
 > → **le module 3 impose des seuils et délais paramétrables par agence** (montant
 > plancher + 3 délais). Le code actuel (2 relances codées en dur, `reminder_count`)
 > devra migrer vers ce paramétrage. → [[État du projet et décisions ouvertes]]
+
+## État dans l'application au 11/09/2026
+
+Depuis le 11/09, une tâche quotidienne **constate** l'impayé : elle pose une
+alerte par bail (une seule, quel que soit le nombre de termes dus) portant le
+montant restant dû, la date du plus ancien terme échu et le nombre de termes.
+L'alerte est rattachée au bail et **se ferme d'elle-même** quand la dette est
+soldée, en restant à l'historique avec son motif.
+
+Elle **ne relance pas**, et c'est délibéré : le circuit décrit ci-dessus suppose
+un **montant plancher** et **trois délais paramétrés par agence** (module 18),
+qui n'existent pas encore. Écrire « relance à J+5 » dans le produit reviendrait
+à inventer une règle que personne n'a arrêtée — et à l'inscrire dans un acte qui
+fonde ensuite un recours. L'escalade reste donc un geste du gérant, tracé dans
+`relances` (niveau, date d'envoi, date de première présentation pour la LRAR).
+
+> [!warning] Points à trancher
+> - Le **montant plancher** (~50 € dans le référentiel) et les **trois délais**
+>   restent à fixer, puis à rendre paramétrables par agence.
+> - La criticité de l'alerte suit aujourd'hui le **nombre de termes dus**
+>   (1 = normale, 2 et plus = critique). C'est une échelle d'affichage, pas une
+>   règle métier : elle ne préjuge pas du circuit à venir.

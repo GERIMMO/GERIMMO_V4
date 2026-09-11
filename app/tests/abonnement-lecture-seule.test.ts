@@ -25,9 +25,46 @@ config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(DB_URL);
 
-const MESSAGE_REFUS = /Abonnement suspendu/;
+// Le refus a deux formulations, selon qui écrit : le gérant s'entend dire quoi
+// faire, les tiers (locataire, artisan, mandant) reçoivent un refus neutre qui
+// ne leur parle pas de l'abonnement d'autrui. Les deux refusent également.
+const MESSAGE_REFUS = /Abonnement suspendu|n'enregistre plus de nouvelles saisies/;
 
 let db: Client;
+
+async function creerUtilisateur(): Promise<string> {
+  const {
+    rows: [{ id }],
+  } = await db.query<{ id: string }>(`
+    insert into auth.users (instance_id, id, aud, role, email, encrypted_password,
+      email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+      confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)
+    values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated','authenticated',
+      'test-ab-'||gen_random_uuid()||'@test.local','x', now(),
+      '{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb, now(), now(),'','','','','')
+    returning id`);
+  return id;
+}
+
+/** Pose (ou retire) l'identité de l'appelant, sans changer de rôle SQL. */
+async function identite(accountId: string | null) {
+  await db.query(
+    `select set_config('request.jwt.claims', $1, true)`,
+    [accountId ? JSON.stringify({ sub: accountId, role: "authenticated" }) : ""]
+  );
+}
+
+/** Un gérant de l'organisation, identifié comme tel. */
+async function gerantDe(org: string): Promise<string> {
+  const compte = await creerUtilisateur();
+  await db.query("select public.tache_systeme()");
+  await db.query(
+    `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'admin_agence')`,
+    [compte, org]
+  );
+  await db.query("select set_config('gerimmo.systeme', '', true)");
+  return compte;
+}
 
 /** Joue une écriture qu'on attend REFUSÉE, sans avorter la transaction. */
 async function refusee(sql: string, params: unknown[] = []): Promise<string> {
@@ -119,16 +156,39 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
 });
 
 describe("une organisation suspendue ne crée plus", () => {
-  it("refuse la création, en disant pourquoi et où réactiver", async () => {
+  it("refuse la création au gérant, en disant pourquoi et où réactiver", async () => {
     const org = await creerOrg("Suspendue", "suspendue");
+    await identite(await gerantDe(org));
     const erreur = await refusee(
       "insert into public.persons (organization_id, nom) values ($1, 'Dupont')",
       [org]
     );
-    expect(erreur).toMatch(MESSAGE_REFUS);
+    expect(erreur).toMatch(/Abonnement suspendu/);
     // Le message dit à l'utilisateur ce qu'il garde, et où aller.
     expect(erreur).toMatch(/consultables et exportables/);
     expect(erreur).toMatch(/Mon abonnement/);
+    await identite(null);
+  });
+
+  it("ne parle pas d'argent aux tiers : locataire et artisan reçoivent un refus neutre", async () => {
+    // Le refus s'applique à QUICONQUE écrit — un locataire qui envoie un
+    // message, un artisan qui dépose un devis. Ni l'un ni l'autre n'a
+    // d'abonnement à réactiver, et l'état de paiement de l'agence ne les
+    // regarde pas : leur dire « Réactivez l'abonnement » est à la fois
+    // inutilisable et indiscret.
+    const org = await creerOrg("Suspendue", "suspendue");
+    await identite(await creerUtilisateur()); // un compte qui n'est pas gérant
+    const erreur = await refusee(
+      "insert into public.persons (organization_id, nom) values ($1, 'Dupont')",
+      [org]
+    );
+    expect(erreur).toMatch(/n'enregistre plus de nouvelles saisies/);
+    expect(erreur).not.toMatch(/[Aa]bonnement suspendu/);
+    expect(erreur).not.toMatch(/Mon abonnement/);
+    // Il garde l'essentiel : ses documents, et à qui s'adresser.
+    expect(erreur).toMatch(/consultables/);
+    expect(erreur).toMatch(/contactez-la directement/);
+    await identite(null);
   });
 
   it("refuse aussi la modification et la suppression", async () => {
@@ -259,5 +319,65 @@ describe("etat_abonnement — ce que l'écran affiche", () => {
     expect(r.biens).toBe("4");
     expect(r.factures).toBe("3");
     expect(r.mensuel).toBe("17.97");
+  });
+});
+
+describe("la garde se repose, elle ne s'oublie pas", () => {
+  it("aucune table d'organisation n'échappe au verrou", async () => {
+    // Le 11/09, la pose était un bloc anonyme : il énumérait les tables au
+    // moment où il s'exécutait. Le module artisan, arrivé quelques heures plus
+    // tard, en a créé NEUF de plus — aucune gardée. Une agence suspendue
+    // pouvait consulter, faire chiffrer et faire intervenir gratuitement.
+    // Ce test est la vraie protection : appeler poser_gardes_abonnement(), on
+    // peut encore l'oublier ; ce test, lui, échoue.
+    const { rows } = await db.query<{ relname: string }>(`
+      select c.relname
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      where n.nspname = 'public' and c.relkind = 'r'
+        and exists (select 1 from pg_attribute a
+                    where a.attrelid = c.oid and a.attname = 'organization_id'
+                      and a.attnum > 0 and not a.attisdropped)
+        -- Les journaux n'en portent jamais : les bloquer bloquerait la lecture.
+        and c.relname not in ('acces_pieces_log', 'audit_log')
+        and not exists (select 1 from pg_trigger t
+                        where t.tgrelid = c.oid and t.tgname like 'abonnement\\_%')
+      order by c.relname`);
+    expect(rows.map((r) => r.relname)).toEqual([]);
+  });
+
+  it("les journaux restent délibérément hors garde", async () => {
+    // Dans l'autre sens : si quelqu'un « corrigeait » l'oubli apparent en
+    // gardant aussi les journaux, lire une pièce deviendrait impossible chez un
+    // client suspendu — et la trace disparaîtrait au moment où elle compte.
+    const { rows } = await db.query<{ n: string }>(`
+      select count(*)::text as n from pg_trigger
+      where tgrelid in ('public.acces_pieces_log'::regclass, 'public.audit_log'::regclass)
+        and tgname like 'abonnement\\_%'`);
+    expect(rows[0].n).toBe("0");
+  });
+
+  it("la pose se déduit du catalogue, elle ne récite pas une liste", async () => {
+    // Ce qui rend la fonction rejouable, c'est qu'elle DEMANDE au catalogue
+    // quelles tables portent `organization_id` au lieu de les énumérer. Une
+    // liste en dur redeviendrait fausse à la table suivante — c'est exactement
+    // ce qui s'est passé le 11/09 avec le bloc anonyme.
+    // (On ne l'EXÉCUTE pas ici : reposer 56 déclencheurs prend un verrou
+    // exclusif sur tout le schéma et bloquerait les autres fichiers de test.)
+    const {
+      rows: [{ src }],
+    } = await db.query<{ src: string }>(
+      "select pg_get_functiondef('public.poser_gardes_abonnement()'::regprocedure) as src"
+    );
+    expect(src).toContain("pg_attribute");
+    expect(src).toContain("organization_id");
+    expect(src).toContain("acces_pieces_log");
+    // Et elle reste hors de portée des comptes applicatifs.
+    const {
+      rows: [d],
+    } = await db.query<{ a: boolean; n: boolean }>(
+      `select has_function_privilege('authenticated','public.poser_gardes_abonnement()','execute') as a,
+              has_function_privilege('anon','public.poser_gardes_abonnement()','execute') as n`
+    );
+    expect(d).toEqual({ a: false, n: false });
   });
 });

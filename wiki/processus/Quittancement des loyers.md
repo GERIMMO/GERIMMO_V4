@@ -3,7 +3,7 @@ type: process
 tags: [loyer, quittance, facturation-locative]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-11
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]"]
 ---
 
@@ -58,11 +58,30 @@ Le référentiel enrichit le flux actuel :
 - Fin de bail : trop-perçu et dettes intégrés au [[Solde de tout compte]].
 Voir [[Révision annuelle IRL]] pour l'évolution du loyer.
 
-> [!warning] Divergences code ↔ cible V3
-> Le code actuel confirme « loyer reçu ? » en bloc (`confirmRent`) et génère la
-> quittance à la confirmation : il n'a **ni appel de loyer envoyé au locataire, ni
-> encaissement partiel, ni reçu, ni imputation multi-mois**. Le modèle
-> appel/encaissement/quittance du module 3 est une refonte du flux `rent_periods`.
+## État dans l'application au 11/09/2026
+
+Le modèle appel / encaissement / quittance de la cible V3 **est en place** :
+appels proratisés à l'entrée et à la sortie, encaissement saisi à la main et
+imputé du plus ancien au plus récent (RM-3.3.2), quittance après encaissement
+intégral et reçu sur paiement partiel (RM-3.4.1, RM-3.4.2).
+
+Depuis le 11/09, la **génération est automatique** : une tâche planifiée
+(`cycle_mensuel_interne`, pg_cron, le 1er du mois à 5 h UTC) parcourt les baux
+actifs et en préavis, crée les appels manquants et resynchronise quittances et
+reçus. Elle ne sert **pas** les organisations dont l'abonnement est fermé
+(lecture seule). Le bouton « Générer l'échéancier » reste, comme rattrapage.
+
+Une seconde tâche, quotidienne, **constate les impayés** sous forme d'alerte par
+bail (`generer_alertes_impayes`, 5 h 30 UTC) : montant restant dû sur les termes
+échus, depuis quand, et combien de termes. Elle se ferme d'elle-même au
+paiement. Voir [[Relances et mise en demeure]] pour ce qu'elle ne fait pas.
+
+> [!warning] Ce qui manque encore
+> - **L'appel n'est pas envoyé au locataire.** Il est créé et visible dans son
+>   espace ; aucun e-mail ne part à la création. Seules les quittances
+>   s'envoient, et sur clic du gérant.
+> - **Le jour d'échéance** est celui du bail (`jour_echeance`, 1 par défaut) ;
+>   la cible v0 parlait d'un 4ᵉ jour du mois, jamais tranché.
 
 > [!warning] Intention produit v0 (précisions)
 > D'après [[2026-07-21-fonctionnalites-par-persona-v0]] : quittance **générique par défaut**, disponible sur la plateforme + e-mail, **validée par l'agence ou le propriétaire** ; l'agence peut générer une quittance **sur-mesure** selon son template (`document_templates`, voir [[Document]]). Voir aussi la divergence « loyer validé par défaut » dans [[Relances et mise en demeure]].

@@ -17,6 +17,11 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
 import { LectureImpossible } from "./panne-lecture";
 import { tagLocataire } from "./pastille-locataire";
+import {
+  SuiviInterventionLocataire,
+  type CreneauPropose,
+  type SuiviIntervention,
+} from "./demandes/suivi-intervention";
 
 export type IncidentLocataire = {
   id: string;
@@ -82,7 +87,22 @@ function PetitFormulaire({
   );
 }
 
-function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentLocataire }) {
+function CarteIncident({
+  orgId,
+  incident,
+  suivi,
+  creneaux,
+  peutAgir,
+}: {
+  orgId: string;
+  incident: IncidentLocataire;
+  // Le suivi de l'intervention, quand il y en a une : l'état de l'incident
+  // seul ne dit pas si l'on cherche encore un artisan ou si le rendez-vous
+  // est pris (voir demandes/suivi-intervention.tsx).
+  suivi?: SuiviIntervention;
+  creneaux: CreneauPropose[];
+  peutAgir: boolean;
+}) {
   const [ouvert, setOuvert] = useState<"contester" | "persiste" | null>(null);
   const [etatContestation, actionContestation] = useActionState<
     EtatIncidentAction,
@@ -111,7 +131,10 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
     incident.etat === "clos"
       ? "border-l-[var(--success)]"
       : (incident.etat === "qualifie" && incident.imputation !== "proprietaire") ||
-          incident.etat === "termine"
+          incident.etat === "termine" ||
+          // Un créneau attend son choix : c'est la seule chose qu'on lui
+          // demande de tout le cycle, elle mérite le liseré d'action.
+          (suivi?.etape === "creneau_a_choisir" && peutAgir)
         ? "border-l-[var(--warning)]"
         : "border-l-[var(--encre)]";
 
@@ -141,6 +164,15 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
               : ""}
           </span>
         </div>
+      )}
+
+      {suivi && (
+        <SuiviInterventionLocataire
+          orgId={orgId}
+          suivi={suivi}
+          creneaux={creneaux}
+          peutAgir={peutAgir}
+        />
       )}
 
       {incident.imputation_contestee_le && (
@@ -222,10 +254,19 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
 export function IncidentsLocataire({
   orgId,
   incidents,
+  suivis = [],
+  creneaux = [],
+  peutAgir = true,
   lectureEnEchec = false,
 }: {
   orgId: string;
   incidents: IncidentLocataire[];
+  /** Une ligne par incident parvenu au stade de l'artisan (sprint 7). */
+  suivis?: SuiviIntervention[];
+  /** Les créneaux que l'artisan propose, toutes demandes confondues. */
+  creneaux?: CreneauPropose[];
+  /** Adhésion active : bail terminé, la lecture reste, les gestes non. */
+  peutAgir?: boolean;
   // La lecture a échoué : « Rien en cours » serait un mensonge rassurant
   lectureEnEchec?: boolean;
 }) {
@@ -253,11 +294,22 @@ export function IncidentsLocataire({
       </div>
     );
   }
+  const suiviDe = new Map(suivis.map((s) => [s.incident_id, s]));
   return (
     <div className="space-y-3">
-      {incidents.map((i) => (
-        <CarteIncident key={i.id} orgId={orgId} incident={i} />
-      ))}
+      {incidents.map((i) => {
+        const suivi = suiviDe.get(i.id);
+        return (
+          <CarteIncident
+            key={i.id}
+            orgId={orgId}
+            incident={i}
+            suivi={suivi}
+            creneaux={creneaux.filter((c) => c.intervention_id === suivi?.intervention_id)}
+            peutAgir={peutAgir}
+          />
+        );
+      })}
     </div>
   );
 }

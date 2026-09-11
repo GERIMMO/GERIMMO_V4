@@ -44,12 +44,18 @@ function Icone({ nom }: { nom: string }) {
 }
 
 export function NavArtisan({
-  missionsAAccepter = 0,
+  aFaireMaintenant = 0,
   devisAChiffrer = 0,
   piecesAAJour = true,
 }: {
-  /** Missions proposées, en attente d'acceptation ou de refus (7.4). */
-  missionsAAccepter?: number;
+  /**
+   * Ce qui attend un geste de sa part sur l'écran d'arrivée : missions à
+   * accepter (7.4) ET comptes rendus à déposer (7.5). Les deux comptent
+   * ensemble parce que le badge répond à une seule question — « est-ce que
+   * quelque chose m'attend ? » ; en séparer un dirait à l'artisan qu'il n'a
+   * rien à faire alors qu'une facture attend son compte rendu.
+   */
+  aFaireMaintenant?: number;
   /** Demandes de devis encore à chiffrer (9.2). */
   devisAChiffrer?: number;
   /** Une pièce expirée ou proche de l'échéance met une pastille sur l'onglet. */
@@ -58,7 +64,7 @@ export function NavArtisan({
   const pathname = usePathname();
 
   const entrees = [
-    { href: "/artisan", libelle: "Aujourd'hui", icone: "jour", exact: true, badge: missionsAAccepter },
+    { href: "/artisan", libelle: "Aujourd'hui", icone: "jour", exact: true, badge: aFaireMaintenant },
     { href: "/artisan/agenda", libelle: "Agenda", icone: "agenda", badge: 0 },
     { href: "/artisan/devis", libelle: "Devis", icone: "devis", badge: devisAChiffrer },
     {

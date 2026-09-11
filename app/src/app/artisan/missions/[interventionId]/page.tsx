@@ -114,6 +114,13 @@ export default async function PageMission(
             {[mission.lot_nom, mission.etage, mission.piece].filter(Boolean).join(" · ")}
           </p>
         )}
+        {/* Un appui, l'itinéraire : c'est le geste que l'artisan fait de toute
+            façon, en recopiant l'adresse à la main dans son téléphone. `rel`
+            coupe le référent — le service de cartes reçoit l'adresse que
+            l'artisan lui donne, jamais l'écran d'où il vient.
+            À CONFIRMER (signalé au rapport de lot) : le choix du fournisseur de
+            cartes est un appel à un tiers, et aucune source du wiki ne le
+            tranche. Il tient en une ligne, ici. */}
         {adresse && (
           <a
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`}

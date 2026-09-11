@@ -2,7 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate, eur } from "@/lib/ged";
-import { TYPES_BAIL, ETATS_BAIL, COULEURS_ETAT_BAIL, COULEURS_ETAT_EDL } from "@/lib/baux";
+import {
+  TYPES_BAIL,
+  ETATS_BAIL,
+  COULEURS_ETAT_BAIL,
+  COULEURS_ETAT_EDL,
+  mentionsObligatoiresManquantes,
+} from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
 import { premier } from "@/lib/postgrest";
 import { actionsAttendues } from "@/lib/actions-attendues";
@@ -70,7 +76,6 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: personnes },
     { data: bailPersonnes },
     { data: intentions },
-    { data: mentionsManquantes },
   ] = await Promise.all([
       supabase.from("lots").select("id, nom, bien_id, meuble, bien:biens!lots_bien_id_fkey(zone_tendue)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
@@ -114,14 +119,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .eq("bail_id", bailId)
         .is("traitee_le", null)
         .order("created_at", { ascending: false }),
-      // Mentions obligatoires du contrat encore absentes (date de prise
-      // d'effet, loyer hors charges, locataire — wiki « Mentions obligatoires
-      // du bail »). La base les exige à l'activation : l'écran les nomme
-      // AVANT le geste plutôt que de laisser le dépôt du PDF échouer. Même
-      // source que le contrôle, pour qu'écran et base ne divergent jamais.
-      supabase.rpc("bail_mentions_manquantes", { p_bail: bailId }),
     ]);
-  const mentions: string[] = Array.isArray(mentionsManquantes) ? mentionsManquantes : [];
+
+  // Mentions obligatoires du contrat encore absentes (wiki « Mentions
+  // obligatoires du bail »). La base les EXIGE à l'activation ; l'écran les
+  // NOMME avant le geste, plutôt que de laisser le dépôt du PDF échouer.
+  const mentions = mentionsObligatoiresManquantes(bail);
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
   const nomsPersonnes = new Map(

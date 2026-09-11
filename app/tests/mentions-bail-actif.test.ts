@@ -15,6 +15,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { mentionsObligatoiresManquantes } from "../src/lib/baux";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -197,6 +198,35 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
       [bail]
     );
     expect(apres[0].n).toBe(0);
+  });
+
+  // L'écran ANNONCE (lib/baux.ts, dérivé du bail déjà chargé), la base REFUSE.
+  // Deux listes, donc deux chances de diverger : ce test les épingle l'une à
+  // l'autre, sur les quatre combinaisons de mentions absentes.
+  it("écran et base disent exactement la même chose", async () => {
+    const lot = await lotLouable();
+    const cas = [
+      { loyer: null, dateDebut: null },
+      { loyer: null, dateDebut: "2026-10-01" },
+      { loyer: 700, dateDebut: null },
+      { loyer: 700, dateDebut: "2026-10-01" },
+    ];
+    for (const c of cas) {
+      const bail = await creerBrouillon(lot, c);
+      const { rows } = await db.query(
+        `select coalesce(public.bail_mentions_manquantes($1), '{}') as base,
+                b.locataire_principal, b.date_debut::text, b.loyer_hc
+           from public.baux b where b.id = $1`,
+        [bail]
+      );
+      const ecran = mentionsObligatoiresManquantes({
+        locataire_principal: rows[0].locataire_principal,
+        date_debut: rows[0].date_debut,
+        loyer_hc: rows[0].loyer_hc,
+      });
+      expect(ecran).toEqual(rows[0].base);
+      // Les brouillons s'empilent sans se gêner : un seul bail VIVANT par lot.
+    }
   });
 
   it("sans loyer hors charges : le contrôle de mise en location et l'activation refusent", async () => {

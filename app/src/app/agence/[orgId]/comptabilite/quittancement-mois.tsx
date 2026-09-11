@@ -108,9 +108,9 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
           )}
         </>
       )}
-      {erreur && <span className="block w-full text-xs text-destructive">{erreur}</span>}
+      {erreur && <span className="block w-full text-left text-xs text-destructive">{erreur}</span>}
       {!erreur && compteRendu && (
-        <span className="block w-full text-xs text-success-soft-foreground">{compteRendu}</span>
+        <span className="block w-full text-left text-xs text-success-soft-foreground">{compteRendu}</span>
       )}
     </>
   );

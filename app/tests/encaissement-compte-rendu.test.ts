@@ -97,6 +97,14 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
     expect(rendu).toContain("200,00 € en avance sur le prochain appel");
   });
 
+  it("sur un bail sans échéancier, dit que l'argent attend le prochain appel", () => {
+    // Cas réel : l'agent encaisse avant d'avoir généré l'échéancier. Rien à
+    // imputer n'est pas rien à dire.
+    const rendu = compteRenduEncaissement(100, [], []);
+    expect(rendu).toContain("aucun terme à couvrir");
+    expect(rendu).toContain("100,00 € en avance sur le prochain appel");
+  });
+
   it("ignore le centime d'arrondi du numeric : ce n'est pas une imputation", () => {
     const apres: EtatAppel[] = [
       { appel_id: "a-juillet", periode: JUILLET, montant_du: 500, montant_couvert: "0.001" },
@@ -231,7 +239,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
 
   it("LE DÉFAUT : le reste du terme affiché part sur la dette antérieure", async () => {
     const avant = await etatLoyers();
-    const ligne = avant.find((l) => l.periode.toString().startsWith(moisAffiche.slice(0, 7)))!;
+    const ligne = avant.find((l) => l.periode === moisAffiche)!;
     const reste = Number(ligne.montant_du) - Number(ligne.montant_couvert);
     expect(reste).toBe(500);
 
@@ -244,8 +252,8 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     const apres = await etatLoyers();
 
     // La règle a fait son office : c'est le terme ANTÉRIEUR qui est soldé.
-    const anterieur = apres.find((l) => l.periode.toString().startsWith(moisAnterieur.slice(0, 7)))!;
-    const affiche = apres.find((l) => l.periode.toString().startsWith(moisAffiche.slice(0, 7)))!;
+    const anterieur = apres.find((l) => l.periode === moisAnterieur)!;
+    const affiche = apres.find((l) => l.periode === moisAffiche)!;
     expect(Number(anterieur.montant_couvert)).toBe(500);
     expect(Number(affiche.montant_couvert)).toBe(0);
 
@@ -280,10 +288,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
 
   it("quittancement_mois nomme la dette antérieure — de quoi rendre le bouton honnête", async () => {
     const [ligneAffichee] = await lire(moisAffiche);
-    expect(ligneAffichee.dette_anterieure_periode).not.toBeNull();
-    expect(String(ligneAffichee.dette_anterieure_periode).slice(0, 7)).toBe(
-      moisAnterieur.slice(0, 7)
-    );
+    expect(ligneAffichee.dette_anterieure_periode).toBe(moisAnterieur);
     expect(Number(ligneAffichee.dette_anterieure_reste)).toBe(500);
 
     // Sur le terme le plus ancien lui-même, il n'y a rien à signaler : le

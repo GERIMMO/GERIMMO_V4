@@ -48,12 +48,19 @@
 --    order by o.name, b.created_at;
 
 -- ---------------------------------------------------------------------------
--- 1. La liste des mentions manquantes — une seule source pour la base ET l'écran.
+-- 1. La liste des mentions manquantes — un seul énoncé, trois lecteurs.
 -- ---------------------------------------------------------------------------
--- Même forme que `lot_blocages_location` : un tableau de libellés lisibles, que
--- la fiche affiche en clair AVANT le geste et que le contrôle relit pour
--- refuser. Deux versions du même énoncé : sur des valeurs (le déclencheur, qui
--- ne voit que NEW) et sur un bail (l'écran et le contrôle).
+-- Même forme que `lot_blocages_location` : un tableau de libellés lisibles.
+-- Deux versions du même énoncé : sur des valeurs (le contrôle de mise en
+-- location et le déclencheur, qui ne voit que NEW) et sur un bail (requête du
+-- pilote, et l'épingle du test).
+--
+-- La fiche bail, elle, dérive la MÊME liste du bail qu'elle a déjà chargé
+-- (`mentionsObligatoiresManquantes`, src/lib/baux.ts) : annoncer ce qui manque
+-- ne vaut pas un aller-retour, et l'écran ne doit pas dépendre du cache de
+-- schéma de PostgREST pour dire une chose qu'il sait déjà. Les libellés sont
+-- identiques mot pour mot ; tests/mentions-bail-actif.test.ts compare les deux
+-- listes sur chaque combinaison et casse si elles divergent.
 
 create or replace function public.bail_mentions_manquantes_valeurs(
   p_locataire uuid,
@@ -77,9 +84,9 @@ revoke execute on function public.bail_mentions_manquantes_valeurs(uuid, date, n
 comment on function public.bail_mentions_manquantes_valeurs(uuid, date, numeric) is
   'Mentions obligatoires du contrat qui manquent, à partir des valeurs — exigibles à l''activation (wiki « Mentions obligatoires du bail », rubriques 1, 4 et 5).';
 
--- Lue par la fiche bail : le refus doit se lire avant le dépôt du PDF, pas
--- seulement au moment où il échoue. Sans SECURITY DEFINER — la RLS de `baux`
--- s'applique à l'appelant, un bail d'une autre agence est simplement introuvable.
+-- La forme requêtable : « quels baux manquent de quoi ? ». Sans SECURITY
+-- DEFINER — la RLS de `baux` s'applique à l'appelant, un bail d'une autre
+-- agence est simplement introuvable.
 create or replace function public.bail_mentions_manquantes(p_bail uuid)
 returns text[]
 language sql

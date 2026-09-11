@@ -62,6 +62,10 @@ describe.skipIf(!DB_URL)("Journal — propositions de publication", () => {
   }
 
   it("le moteur propose les veines du mois, et ne les propose qu'une fois", async () => {
+    // La base locale porte des publications de démonstration : on repart d'une
+    // table vide DANS la transaction (annulée en afterEach). Un test qui
+    // suppose une base vierge se met à mentir dès qu'on sème une donnée.
+    await db.query("delete from public.publications");
     await enSuperAdmin();
     const premier = await db.query(`select public.proposer_publications('2026-01-15'::date) as n`);
     expect(Number(premier.rows[0].n)).toBeGreaterThan(0);
@@ -135,9 +139,17 @@ describe.skipIf(!DB_URL)("Journal — propositions de publication", () => {
     await db.query("reset role");
     await db.query(`select set_config('request.jwt.claims', '{"role":"anon"}', true)`);
     await db.query("set local role anon");
-    const vus = await db.query(`select id, statut from public.publications`);
+    // On ne juge que la ligne du test : la base peut en porter d'autres.
+    const vus = await db.query(`select id, statut from public.publications where id = $1`, [
+      prop.id,
+    ]);
     expect(vus.rows).toHaveLength(1);
     expect(vus.rows[0].statut).toBe("publiee");
+    // …et rien d'autre que des articles PARUS n'est visible sous cette identité.
+    const nonParus = await db.query(
+      `select count(*)::int as n from public.publications where statut <> 'publiee'`
+    );
+    expect(nonParus.rows[0].n).toBe(0);
 
     // …et il n'écrit rien (audit du 10/09 : anon n'écrit nulle part)
     await db.query("savepoint s");
@@ -179,8 +191,12 @@ describe.skipIf(!DB_URL)("Journal — propositions de publication", () => {
       [compte]
     );
     await db.query("set local role authenticated");
-    const vus = await db.query(`select id from public.publications`);
-    expect(vus.rows).toHaveLength(0);
+    // Un gérant ne voit aucune proposition ni aucun brouillon. Les articles
+    // PARUS, eux, sont publics : on ne les compte pas ici.
+    const vus = await db.query(
+      `select count(*)::int as n from public.publications where statut <> 'publiee'`
+    );
+    expect(vus.rows[0].n).toBe(0);
 
     await db.query("savepoint s");
     await expect(

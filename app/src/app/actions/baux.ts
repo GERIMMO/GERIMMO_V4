@@ -8,7 +8,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
 import { motifLitteral, eur } from "@/lib/ged";
-import { TYPES_BAIL } from "@/lib/baux";
+import { TYPES_BAIL, mentionsObligatoiresManquantes } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { envoyerEmail } from "@/lib/email";
 import { headers } from "next/headers";
@@ -321,13 +321,17 @@ async function deposerPieceBail(
       // la fiche les annonce déjà et ferme le dépôt, on n'arrive ici qu'en
       // course. Chacune renvoie au brouillon, là où elle se saisit.
       if (error.message.includes("Mentions obligatoires")) {
-        const { data: mentions } = await supabase.rpc("bail_mentions_manquantes", {
-          p_bail: bailId,
-        });
-        if (Array.isArray(mentions) && mentions.length > 0) {
+        const { data: aCompleter } = await supabase
+          .from("baux")
+          .select("locataire_principal, date_debut, loyer_hc")
+          .eq("id", bailId)
+          .eq("organization_id", orgId)
+          .maybeSingle();
+        const mentions = aCompleter ? mentionsObligatoiresManquantes(aCompleter) : [];
+        if (mentions.length > 0) {
           return {
             erreur: "Mentions obligatoires du contrat manquantes — à compléter dans le brouillon :",
-            blocages: (mentions as string[]).map((m) => ({
+            blocages: mentions.map((m) => ({
               message: m,
               href: `/agence/${orgId}/baux/${bailId}#corriger`,
               libelle: "Corriger",

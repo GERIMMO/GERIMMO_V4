@@ -143,8 +143,8 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
       [orgA, mandat, lot]
     );
     await db.query(
-      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, loyer_hc)
-       values ($1,$2,'brouillon',$3,800)`,
+      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, loyer_hc, date_debut)
+       values ($1,$2,'brouillon',$3,800,current_date)`,
       [orgA, lot, personne]
     );
   }
@@ -340,8 +340,8 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
     const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, document_signe, loyer_hc)
-       values ($1,$2,'brouillon',$3,$4,800) returning id`,
+      `insert into public.baux (organization_id, lot_id, etat, locataire_principal, document_signe, loyer_hc, date_debut)
+       values ($1,$2,'brouillon',$3,$4,800,current_date) returning id`,
       [org, lot, locataire, doc]
     );
 

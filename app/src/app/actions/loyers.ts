@@ -9,6 +9,7 @@ import { envoyerEmail } from "@/lib/email";
 import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
+import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
 
 export type EtatLoyers = {
   erreur?: string;
@@ -195,6 +196,15 @@ export async function ajouterEncaissement(
   const date = String(formData.get("date_paiement") ?? "").trim() || null;
   const mode = String(formData.get("mode") ?? "").trim() || null;
   const note = String(formData.get("note") ?? "").trim() || null;
+
+  // L'état d'AVANT, lu avant l'écriture : la couverture des termes n'est
+  // stockée nulle part (etat_loyers_bail la recalcule depuis le total
+  // encaissé), donc seul l'écart avant/après dit où l'argent est allé.
+  const { data: lignesAvant, error: erreurAvant } = await supabase.rpc("etat_loyers_bail", {
+    p_bail: bailId,
+  });
+  if (erreurAvant) return { erreur: sansJargon(erreurAvant.message), valeurs };
+
   const { error } = await supabase.from("encaissements").insert({
     organization_id: orgId,
     bail_id: bailId,
@@ -206,17 +216,27 @@ export async function ajouterEncaissement(
   if (error) return { erreur: sansJargon(error.message), valeurs };
   // L'encaissement déclenche tout : reçu du montant réglé sur un paiement
   // partiel, promu en quittance quand le mois se solde — sans clic de plus.
+  // (Le déclencheur en base l'a déjà fait pendant l'INSERT : cet appel est un
+  // filet, ses compteurs valent 0 et ne peuvent pas servir de compte rendu.)
   const emission = await emettreRecusQuittances(supabase, bailId);
+  const { data: lignesApres, error: erreurApres } = await supabase.rpc("etat_loyers_bail", {
+    p_bail: bailId,
+  });
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // L'encaissement écrit au journal (loyer + honoraires) : la compta suit.
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  if (emission.erreur)
+  if (erreurApres)
     return {
-      succes: `Encaissement enregistré — mais le reçu ou la quittance n'a pas pu être émis : ${emission.erreur}`,
+      succes: `Encaissement enregistré — l'imputation n'a pas pu être relue : ${sansJargon(erreurApres.message)}`,
     };
-  return {
-    succes: `Encaissement enregistré · ${libelleEmission(emission.quittances, emission.recus)}.`,
-  };
+  const compteRendu = compteRenduEncaissement(
+    montant,
+    (lignesAvant ?? []) as EtatAppel[],
+    (lignesApres ?? []) as EtatAppel[]
+  );
+  if (emission.erreur)
+    return { succes: `${compteRendu} Rattrapage des documents en échec : ${emission.erreur}` };
+  return { succes: compteRendu };
 }
 
 // Supprimer un encaissement, c'est CORRIGER le journal : la suppression

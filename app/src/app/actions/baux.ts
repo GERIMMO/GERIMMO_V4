@@ -317,6 +317,24 @@ async function deposerPieceBail(
         const blocages = await blocagesActionables(supabase, orgId, bailId);
         if (blocages.length > 0) return { erreur: "Mise en location bloquée — à corriger :", blocages };
       }
+      // Mentions obligatoires du contrat (date d'effet, loyer, locataire) :
+      // la fiche les annonce déjà et ferme le dépôt, on n'arrive ici qu'en
+      // course. Chacune renvoie au brouillon, là où elle se saisit.
+      if (error.message.includes("Mentions obligatoires")) {
+        const { data: mentions } = await supabase.rpc("bail_mentions_manquantes", {
+          p_bail: bailId,
+        });
+        if (Array.isArray(mentions) && mentions.length > 0) {
+          return {
+            erreur: "Mentions obligatoires du contrat manquantes — à compléter dans le brouillon :",
+            blocages: (mentions as string[]).map((m) => ({
+              message: m,
+              href: `/agence/${orgId}/baux/${bailId}#corriger`,
+              libelle: "Corriger",
+            })),
+          };
+        }
+      }
       return { erreur: sansJargon(error.message) };
     }
   }

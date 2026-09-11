@@ -137,7 +137,9 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
     const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe) values ($1,$2,$3,$4) returning id`,
+      // Mentions obligatoires exigées à l'activation (audit 11/09) : loyer et date d'effet
+      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, date_debut)
+       values ($1,$2,$3,$4,700,current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
     // Cycle de vie réel : EDL d'entrée signé → bail actif → congé (préavis) →
@@ -180,7 +182,9 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
     const {
       rows: [{ id: bail }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe) values ($1,$2,$3,$4) returning id`,
+      // Mentions obligatoires exigées à l'activation (audit 11/09) : loyer et date d'effet
+      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, date_debut)
+       values ($1,$2,$3,$4,700,current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
     // EDL d'entrée signé : prérequis de la validation (29/08)

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NavAdmin } from "./nav-admin";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
@@ -31,24 +32,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           </div>
           {/* En étroit, les liens passent sous la marque au lieu de déborder */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <Link
-              href="/admin/publications"
-              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-            >
-              Journal
-            </Link>
-            <Link
-              href="/admin/devis"
-              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-            >
-              Demandes de devis
-            </Link>
-            <Link
-              href="/admin/journaux"
-              className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-            >
-              Journaux et conservation
-            </Link>
+            <NavAdmin />
             <SyntheseAlertes alertes={alertes} modeAdmin surEncre rappel />
             <form action={seDeconnecter}>
               <button

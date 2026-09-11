@@ -9,7 +9,7 @@ import {
 } from "@/app/actions/quittancement";
 import type { EtatLoyers } from "@/app/actions/loyers";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
-import { eur } from "@/lib/ged";
+import { eur, moisEnFrancais } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 
 // Carte « Quittancement du mois » (maquette v3) : le mois d'un coup d'œil,
@@ -27,48 +27,37 @@ export type LigneQuittancement = {
   quittance_id: string | null;
   est_quittance: boolean | null;
   email_envoye_at: string | null;
+  // Dette du bail ANTÉRIEURE à ce terme (RM-3.3.2) : l'argent y ira d'abord.
+  // Nulle quand ce terme est bien le plus ancien encore dû.
+  dette_anterieure_periode: string | null;
+  dette_anterieure_reste: number | null;
 };
-
-function BoutonEncaisser({
-  orgId,
-  ligne,
-}: {
-  orgId: string;
-  ligne: LigneQuittancement;
-}) {
-  const [etat, action] = useActionState<EtatLoyers, FormData>(
-    async () => encaisserReste(orgId, ligne.bail_id, ligne.appel_id),
-    {}
-  );
-  const reste = Number(ligne.montant_du) - Number(ligne.montant_couvert);
-  return (
-    <form action={action} className="inline-flex flex-wrap items-center gap-1.5">
-      <BoutonEnvoi size="sm" variant="outline">
-        {`Encaisser ${eur(reste)}`}
-      </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
-    </form>
-  );
-}
-
-function BoutonEmettre({ orgId, bailId }: { orgId: string; bailId: string }) {
-  const [etat, action] = useActionState<EtatLoyers, FormData>(
-    async () => emettreQuittanceBail(orgId, bailId),
-    {}
-  );
-  return (
-    <form action={action} className="inline-flex flex-wrap items-center gap-1.5">
-      <BoutonEnvoi size="sm" variant="ghost">
-        Émettre la quittance
-      </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
-    </form>
-  );
-}
 
 // Statut et actions d'une ligne (encaisser, relancer, quittance) — partagés
 // entre le tableau (≥ sm) et les cartes empilées du mobile.
+//
+// Les deux actions tiennent leur état ICI, pas dans les boutons : un
+// encaissement réussi fait basculer la ligne en « payé » et retire le bouton
+// de l'arbre. Son compte rendu disparaîtrait avec lui — soit exactement le
+// défaut qu'on répare. Porté par la ligne, il survit au basculement.
 function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittancement }) {
+  const [etatEnc, actionEnc] = useActionState<EtatLoyers, FormData>(
+    async () => encaisserReste(orgId, l.bail_id, l.appel_id),
+    {}
+  );
+  const [etatEmi, actionEmi] = useActionState<EtatLoyers, FormData>(
+    async () => emettreQuittanceBail(orgId, l.bail_id),
+    {}
+  );
+  const reste = Number(l.montant_du) - Number(l.montant_couvert);
+  // Le bouton verse le reste de CE terme, mais la base l'impute au plus ancien
+  // impayé (RM-3.3.2). Quand c'est ailleurs, le libellé le dit : promettre ce
+  // terme puis ne pas le solder, c'est ce qui faisait recliquer l'agent.
+  const detteAnterieure = Number(l.dette_anterieure_reste ?? 0);
+  const termeServiDAbord = detteAnterieure > 0 ? l.dette_anterieure_periode : null;
+  const compteRendu = etatEnc.succes ?? etatEmi.succes;
+  const erreur = etatEnc.erreur ?? etatEmi.erreur;
+
   return (
     <>
       <span className={COULEURS_STATUT_APPEL_LOYER[l.statut] ?? "puce puce-grise"}>
@@ -89,11 +78,26 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
             )}
           </>
         ) : (
-          <BoutonEmettre orgId={orgId} bailId={l.bail_id} />
+          <form action={actionEmi} className="inline-flex flex-wrap items-center gap-1.5">
+            <BoutonEnvoi size="sm" variant="ghost">
+              Émettre la quittance
+            </BoutonEnvoi>
+          </form>
         )
       ) : (
         <>
-          <BoutonEncaisser orgId={orgId} ligne={l} />
+          <form action={actionEnc} className="inline-flex flex-wrap items-center gap-1.5">
+            <BoutonEnvoi size="sm" variant="outline">
+              {termeServiDAbord
+                ? `Encaisser ${eur(reste)} (${moisEnFrancais(termeServiDAbord)} d'abord)`
+                : `Encaisser ${eur(reste)}`}
+            </BoutonEnvoi>
+          </form>
+          {termeServiDAbord && (
+            <span className="text-xs text-muted-foreground">
+              {eur(detteAnterieure)} de dette antérieure
+            </span>
+          )}
           {l.statut === "impaye" && (
             <Link
               href={`/agence/${orgId}/baux/${l.bail_id}`}
@@ -103,6 +107,10 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
             </Link>
           )}
         </>
+      )}
+      {erreur && <span className="block w-full text-xs text-destructive">{erreur}</span>}
+      {!erreur && compteRendu && (
+        <span className="block w-full text-xs text-success-soft-foreground">{compteRendu}</span>
       )}
     </>
   );
@@ -224,8 +232,11 @@ export function QuittancementMois({
         L&apos;encaissement déclenche tout : quittance émise (un paiement partiel
         produit un reçu, promu en quittance au solde), écriture de recette
         {proprietaire ? " au livre — sans honoraires, jamais" : " et honoraires au taux du mandat"}. Le premier loyer d&apos;un bail est quittancé
-        au prorata de la date d&apos;entrée. L&apos;encaissement en un clic vaut
-        virement du jour — corrigeable depuis la fiche du bail.
+        au prorata de la date d&apos;entrée. L&apos;argent s&apos;impute toujours du
+        terme le plus ancien au plus récent (RM-3.3.2) : quand une dette
+        antérieure existe, le bouton dit sur quel terme il ira, et le compte
+        rendu dit où il est allé. L&apos;encaissement en un clic vaut virement du
+        jour — corrigeable depuis la fiche du bail.
       </p>
     </div>
   );

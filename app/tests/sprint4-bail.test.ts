@@ -160,8 +160,8 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
     const {
       rows: [{ id }],
     } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, charges, jour_echeance)
-       values ($1,$2,$3,$4,750,50,5) returning id`,
+      `insert into public.baux (organization_id, lot_id, locataire_principal, document_signe, loyer_hc, charges, jour_echeance, date_debut)
+       values ($1,$2,$3,$4,750,50,5,current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
     return id;

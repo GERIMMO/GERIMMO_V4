@@ -181,8 +181,8 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
       rows: [{ id: bail }],
     } = await db.query(
       `insert into public.baux (organization_id, lot_id, locataire_principal,
-                                document_signe, loyer_hc, charges, jour_echeance)
-       values ($1, $2, $3, $4, 750, 50, 5) returning id`,
+                                document_signe, loyer_hc, charges, jour_echeance, date_debut)
+       values ($1, $2, $3, $4, 750, 50, 5, current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
     await db.query(`select public.activer_bail($1)`, [bail]);

@@ -385,7 +385,28 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               que le bail n&apos;est pas signé.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Le refus doit se lire AVANT le geste : un brouillon amputé d'une
+                mention obligatoire ne s'activera pas au dépôt du PDF signé
+                (wiki « Mentions obligatoires du bail »). Un brouillon incomplet
+                reste enregistrable — c'est le bail qu'on prépare. */}
+            {mentions.length > 0 && (
+              <div className="border-l-[3px] border-l-destructive bg-destructive-soft p-3">
+                <p className="text-sm font-semibold text-destructive-soft-foreground">
+                  Mentions obligatoires du contrat à compléter
+                </p>
+                <ul className="mt-1.5 list-disc space-y-0.5 pl-5 text-sm text-destructive-soft-foreground">
+                  {mentions.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-destructive-soft-foreground">
+                  Le dépôt du bail signé sera refusé tant qu&apos;elles manquent :
+                  sans loyer ni date d&apos;effet, les appels de loyer, le prorata
+                  d&apos;entrée et les quittances seraient faux.
+                </p>
+              </div>
+            )}
             <FormulaireEditionBail
               orgId={orgId}
               bailId={bailId}
@@ -513,6 +534,18 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 }
                 actif={bail.etat !== "brouillon"}
               />
+            ) : mentions.length > 0 ? (
+              // Le dépôt active le bail : ne pas le proposer quand la base le
+              // refusera de toute façon — on dit pourquoi et où corriger.
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Le dépôt reste fermé : ce bail n&apos;a pas encore toutes ses
+                  mentions obligatoires ({mentions.join(", ").toLowerCase()}).
+                </p>
+                <a href="#corriger" className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Compléter le brouillon →
+                </a>
+              </div>
             ) : (
               <FormulaireBailSigne orgId={orgId} bailId={bailId} />
             )}

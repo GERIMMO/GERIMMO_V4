@@ -121,6 +121,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 
 ## Synthèses
 - [[Proposition de valeur]] — **l'énoncé fondateur (2026-09-10)** : faire le travail d'une agence, en mieux, plus vite, moins cher ; conséquences sur les priorités.
+- [[État des lieux du design et des parcours]] — **relevé du 11/09** : 254 trouvailles, l'incohérence domine ; les parcours chiffrés en clics ; les écrans qui promettent ce que la base refuse.
 - [[Audit du 10 septembre 2026]] — **audit complet** : 2 failles d'étanchéité inter-agences et 1 P0 documentaire corrigés, durcissement du journal, 89 défauts mobiles ; 4 points à trancher.
 - [[Modèle de rôles et permissions]] — rôles, portails, autorisation ; 6 (code) vs 3 (V3).
 - [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.

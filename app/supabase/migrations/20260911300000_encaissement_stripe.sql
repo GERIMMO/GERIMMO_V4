@@ -63,9 +63,13 @@ create index if not exists abonnements_a_resynchroniser_idx
   on public.abonnements (a_resynchroniser) where a_resynchroniser;
 
 alter table public.abonnements enable row level security;
--- Aucune politique : la table ne se lit et ne s'écrit que par les fonctions
--- ci-dessous. Un identifiant client Stripe n'a rien à faire dans une réponse
--- d'API, et la quantité facturée se lit par `mon_abonnement`.
+-- RLS ACTIF **ET** AUCUN DROIT : les deux, pas l'un ou l'autre. Sans politique,
+-- le RLS seul suffirait à ne rien rendre — mais il suffit qu'on en écrive une
+-- un jour « pour dépanner » pour que la table s'ouvre. Retirer les droits ferme
+-- la porte en amont : `anon` et `authenticated` n'atteignent pas la table, quoi
+-- qu'on écrive ensuite. L'accès passe par les fonctions ci-dessous, qui ne
+-- rendent jamais un identifiant Stripe (voir `mon_abonnement`).
+revoke all on table public.abonnements from anon, authenticated;
 
 create table if not exists public.abonnement_evenements (
   stripe_event_id text primary key,
@@ -79,6 +83,7 @@ create table if not exists public.abonnement_evenements (
 comment on table public.abonnement_evenements is
   'Journal des webhooks Stripe. La clé primaire EST le dédoublonnage : Stripe réessaie pendant trois jours, le second passage se reconnaît et ne refait rien.';
 alter table public.abonnement_evenements enable row level security;
+revoke all on table public.abonnement_evenements from anon, authenticated;
 
 -- ── 2. Les deux tables sortent de la garde d'abonnement ────────────────────
 -- Sans cette exclusion, le compte fermé ne peut pas se rouvrir : la garde

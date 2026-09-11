@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { BadgeStatut } from "@/components/badge-statut";
+import { AttentionFiche, EnteteFiche } from "@/components/fiche-parc";
 import { EchecLecture, PageEchecLecture } from "../echec-lecture";
 import { BlocagesLocation, ListeBlocages } from "../blocages-location";
 import type { BienFormulaire } from "../formulaire-bien";
@@ -195,30 +196,178 @@ export default async function PageBien(
     .map((p) => ({ id: p.id, nom: p.nom, detail: p.parts.join(" · ") }))
     .sort((a, b) => a.nom.localeCompare(b.nom));
 
+  // Ce qui attend un geste, réuni EN HAUT et dit une seule fois. Le relevé du
+  // 11/09 : un diagnostic manquant se lisait au même poids que « Découpage en
+  // lots : non découpable », en quatrième position, sans que rien n'attire
+  // l'œil. Chaque point porte l'ancre de la section qui le règle.
+  const attention: { cle: string; texte: string; ancre?: string }[] = [];
+  if (manquants.length > 0) {
+    attention.push({
+      cle: "diagnostics",
+      texte: `Diagnostic${manquants.length > 1 ? "s" : ""} de l’immeuble à déposer : ${manquants
+        .map((m) => m.libelle)
+        .join(", ")}.`,
+      ancre: "diagnostics",
+    });
+  }
+  if (multiLots && !cle) {
+    attention.push({
+      cle: "cle",
+      texte:
+        "La clé de répartition n’est pas validée : aucun lot ne peut passer en disponible.",
+      ancre: "cle",
+    });
+  }
+  // Les lots bloqués sont comptés, pas énumérés : le détail vit dans la liste
+  // des lots, juste dessous, avec le bouton qui va avec.
+  const lotsBloques = lotsActifs.filter((l) => (blocagesParLot.get(l.id) ?? []).length > 0);
+  if (lotsBloques.length > 0) {
+    attention.push({
+      cle: "lots",
+      texte:
+        lotsBloques.length === 1
+          ? `Le lot « ${lotsBloques[0].nom} » ne peut pas être mis en location.`
+          : `${lotsBloques.length} lots ne peuvent pas être mis en location.`,
+      ancre: "lots",
+    });
+  }
+
+  const loues = lotsActifs.filter((l) => ["loue", "preavis"].includes(l.etat)).length;
+
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
-      <div>
-        <Link
-          href={`/agence/${orgId}/parc`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← {estProprietaire ? "Mes lots" : "Parc"}
-        </Link>
-        <p className="eyebrow mt-1">
-          {TYPES_BIEN[bien.type] ?? bien.type} · {bien.city}
-        </p>
-        <div className="entete-page">
-          <h1>{bien.nom}</h1>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {bien.address_line1}
-          {bien.address_line2 ? `, ${bien.address_line2}` : ""}, {bien.postal_code}{" "}
-          {bien.city}
-          {bien.copropriete ? " · copropriété" : ""}
-        </p>
-      </div>
+      <EnteteFiche
+        retour={{
+          href: `/agence/${orgId}/parc`,
+          libelle: estProprietaire ? "Mes lots" : "Parc",
+        }}
+        surtitre={TYPES_BIEN[bien.type] ?? bien.type}
+        titre={bien.nom}
+        sousTitre={
+          <>
+            {bien.address_line1}
+            {bien.address_line2 ? `, ${bien.address_line2}` : ""}, {bien.postal_code}{" "}
+            {bien.city}
+            {bien.copropriete ? " · copropriété" : ""}
+          </>
+        }
+        // Sur un bien à lot unique, « Lot 1 » et « Loués 1/1 » disent deux fois
+        // ce que la carte juste dessous montre en entier (état, nom, surface).
+        // Les chiffres ne servent que là où on ne peut plus tout voir d'un coup.
+        faits={
+          multiLots
+            ? [
+                { libelle: "Lots", valeur: String(lotsActifs.length) },
+                { libelle: "Loués", valeur: `${loues} / ${lotsActifs.length}` },
+              ]
+            : undefined
+        }
+      />
 
       <EchecLecture quoi={echecs} />
+      <AttentionFiche points={attention} />
+
+      {/* LES LOTS D'ABORD, et c'est le correctif de fond du 11/09. Le lot est
+          l'objet de travail de l'agence : c'est lui qui porte le bail, le
+          loyer, le locataire. Il arrivait en DEUXIÈME carte, après le type de
+          construction et l'année du bâtiment. On lit désormais le bien dans
+          l'ordre où on s'en sert. */}
+      <Card id="lots" className="scroll-mt-20">
+        <CardHeader>
+          <CardTitle className="text-base">
+            {multiLots ? `Les ${lotsActifs.length} lots` : "Le lot"}
+            {lotsArchives.length > 0
+              ? ` · ${lotsArchives.length} archivé${lotsArchives.length > 1 ? "s" : ""}`
+              : ""}
+          </CardTitle>
+          {/* La phrase n'apprend quelque chose qu'à qui prépare encore ses
+              lots. Sur un bien entièrement loué, elle est lue mille fois pour
+              ne rien dire — et une phrase qu'on apprend à sauter apprend aussi
+              à sauter celles qui comptent. */}
+          {loues < lotsActifs.length && (
+            <CardDescription>
+              Le bail porte toujours sur un lot, jamais sur le bien. La mise en
+              location se fait ici, lot par lot.
+            </CardDescription>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* Ce qui bloque TOUS les lots : affiché une fois, pas sous chacun */}
+          <BlocagesLocation
+            motifs={blocagesCommuns}
+            ctx={{ orgId, bienId, lotId: lotsActifs[0]?.id ?? "" }}
+            pageCourante={`/agence/${orgId}/parc/${bienId}`}
+            titre="À régler pour l’ensemble des lots"
+          />
+
+          <ul className="divide-y divide-border">
+            {lotsAffiches.map((lot) => {
+              const blocages = blocagesParLot.get(lot.id) ?? [];
+              const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
+              return (
+                <li key={lot.id} className="space-y-2 py-3">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                    <span
+                      className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
+                    >
+                      {ETATS_LOT[lot.etat] ?? lot.etat}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate font-medium">{lot.nom}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {formaterSurface(lot.surface_m2)}
+                      {lot.pieces ? ` · ${lot.pieces} pièce${lot.pieces > 1 ? "s" : ""}` : ""}
+                    </span>
+                    {blocages.length > 0 && (
+                      <BadgeStatut ton="attente">{blocages.length} à régler</BadgeStatut>
+                    )}
+                    <Link
+                      href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
+                      className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+                    >
+                      Voir le lot →
+                    </Link>
+                  </div>
+
+                  {/* Points propres à ce lot — repliés, la ligne reste lisible */}
+                  {propres.length > 0 && (
+                    <details className="group">
+                      <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
+                        <span className="group-open:hidden">
+                          Voir ce qui bloque ce lot ({propres.length})
+                        </span>
+                        <span className="hidden group-open:inline">Masquer le détail</span>
+                      </summary>
+                      <div className="pl-3">
+                        <ListeBlocages
+                          motifs={propres}
+                          ctx={{ orgId, bienId, lotId: lot.id }}
+                          pageCourante={`/agence/${orgId}/parc/${bienId}`}
+                        />
+                      </div>
+                    </details>
+                  )}
+
+                  <BoutonsEtatLot
+                    orgId={orgId}
+                    bienId={bienId}
+                    lotId={lot.id}
+                    etat={lot.etat}
+                    bloque={blocages.length > 0}
+                    compact
+                  />
+                </li>
+              );
+            })}
+          </ul>
+          {lotsActifs.some((l) => l.etat === "brouillon") && (
+            <p className="text-xs text-muted-foreground">
+              La mise en location vérifie une dernière fois qu’il ne manque rien
+              au lot.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
 
       {/* Le bien : condensé + sections repliables (consulter d'abord, éditer sur clic) */}
       <Card>
@@ -226,11 +375,7 @@ export default async function PageBien(
           <CardTitle className="text-base">Le bien</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <RecapBien
-            orgId={orgId}
-            bien={bien as BienFormulaire}
-            nbLots={lotsActifs.length}
-          />
+          <RecapBien orgId={orgId} bien={bien as BienFormulaire} />
 
           {/* Diagnostics du bien */}
           <SectionLot
@@ -382,115 +527,36 @@ export default async function PageBien(
               infos={(infos ?? null) as InfosPratiques | null}
             />
           </SectionLot>
+
+          {/* L'ANNONCE SE REPLIE. C'était une carte entière, formulaire ouvert,
+              en bas de page — deux cent quatre-vingts pixels au même poids que
+              les lots, pour un geste qu'une agence pose deux fois l'an. Elle
+              reste à un clic, et son résumé dit s'il y a quelque chose
+              d'affiché chez les locataires en ce moment. */}
+          <SectionLot
+            titre="Annonce aux locataires du bien"
+            resume={
+              (annonces ?? []).length === 0
+                ? "Aucune annonce en cours"
+                : `${(annonces ?? []).length} annonce${(annonces ?? []).length > 1 ? "s" : ""} affichée${(annonces ?? []).length > 1 ? "s" : ""} chez les locataires`
+            }
+          >
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Coupure d&apos;eau, travaux, passage du syndic… L&apos;annonce
+                s&apos;affiche sur l&apos;accueil des locataires du bien jusqu&apos;à la
+                date choisie, puis disparaît seule.
+              </p>
+              <CarteAnnonces
+                orgId={orgId}
+                bienId={bienId}
+                annonces={(annonces ?? []) as AnnonceBien[]}
+              />
+            </div>
+          </SectionLot>
         </CardContent>
       </Card>
 
-      {/* Lots — la navigation vers chaque lot */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            {multiLots ? `${lotsActifs.length} lots` : "Lot unique"}
-            {lotsArchives.length > 0
-              ? ` · ${lotsArchives.length} archivé${lotsArchives.length > 1 ? "s" : ""}`
-              : ""}
-          </CardTitle>
-          <CardDescription>
-            Le bail porte toujours sur un lot, jamais sur le bien.
-            La mise en location se fait ici, lot par lot.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Ce qui bloque TOUS les lots : affiché une fois, pas sous chacun */}
-          <BlocagesLocation
-            motifs={blocagesCommuns}
-            ctx={{ orgId, bienId, lotId: lotsActifs[0]?.id ?? "" }}
-            pageCourante={`/agence/${orgId}/parc/${bienId}`}
-            titre="À régler pour l’ensemble des lots"
-          />
-
-          <ul className="divide-y divide-border">
-            {lotsAffiches.map((lot) => {
-              const blocages = blocagesParLot.get(lot.id) ?? [];
-              const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
-              return (
-                <li key={lot.id} className="space-y-2 py-3">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
-                    <span
-                      className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
-                    >
-                      {ETATS_LOT[lot.etat] ?? lot.etat}
-                    </span>
-                    <span className="min-w-0 flex-1 truncate font-medium">{lot.nom}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {formaterSurface(lot.surface_m2)}
-                      {lot.pieces ? ` · ${lot.pieces} pièce${lot.pieces > 1 ? "s" : ""}` : ""}
-                    </span>
-                    {blocages.length > 0 && (
-                      <BadgeStatut ton="attente">{blocages.length} à régler</BadgeStatut>
-                    )}
-                    <Link
-                      href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
-                      className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                    >
-                      Voir le lot →
-                    </Link>
-                  </div>
-
-                  {/* Points propres à ce lot — repliés, la ligne reste lisible */}
-                  {propres.length > 0 && (
-                    <details className="group">
-                      <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">
-                        <span className="group-open:hidden">
-                          Voir ce qui bloque ce lot ({propres.length})
-                        </span>
-                        <span className="hidden group-open:inline">Masquer le détail</span>
-                      </summary>
-                      <div className="pl-3">
-                        <ListeBlocages
-                          motifs={propres}
-                          ctx={{ orgId, bienId, lotId: lot.id }}
-                          pageCourante={`/agence/${orgId}/parc/${bienId}`}
-                        />
-                      </div>
-                    </details>
-                  )}
-
-                  <BoutonsEtatLot
-                    orgId={orgId}
-                    bienId={bienId}
-                    lotId={lot.id}
-                    etat={lot.etat}
-                    bloque={blocages.length > 0}
-                    compact
-                  />
-                </li>
-              );
-            })}
-          </ul>
-          <p className="text-xs text-muted-foreground">
-            La mise en location vérifie une dernière fois qu’il ne manque rien au lot.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Annonce aux locataires (espace locataire v10) : un mot sur leur accueil */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Annonce aux locataires du bien</CardTitle>
-          <CardDescription>
-            Coupure d&apos;eau, travaux, passage du syndic… L&apos;annonce s&apos;affiche
-            sur l&apos;accueil des locataires du bien jusqu&apos;à la date choisie, puis
-            disparaît seule.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CarteAnnonces
-            orgId={orgId}
-            bienId={bienId}
-            annonces={(annonces ?? []) as AnnonceBien[]}
-          />
-        </CardContent>
-      </Card>
     </main>
   );
 }

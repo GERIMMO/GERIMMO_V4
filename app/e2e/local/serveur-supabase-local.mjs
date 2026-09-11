@@ -17,7 +17,22 @@ import http from "node:http";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { Pool } from "pg";
+import { Pool, types as typesPg } from "pg";
+
+// LES DATES RESTENT DES DATES, comme chez PostgREST.
+//
+// `pg` convertit d'office une colonne `date` en objet Date JavaScript, qui part
+// ensuite en JSON sous la forme « 2026-09-25T00:00:00.000Z ». PostgREST, lui,
+// rend « 2026-09-25 » — une date sans heure et sans fuseau, ce qu'elle est.
+// L'écart n'est pas cosmétique : le code de l'application construit des
+// horodatages en concaténant (`${iso}T00:00:00`), ce qui donne une date
+// invalide sur la forme longue. Relevé au navigateur le 11/09 : le bandeau
+// d'essai affichait « (NaN jour restants) » sur tout l'espace agence, et
+// seulement sur le banc — la production, servie par PostgREST, allait bien.
+// Un banc qui ment sur la forme des données fait passer les défauts qu'il
+// devrait attraper.
+typesPg.setTypeParser(1082, (v) => v); // date
+typesPg.setTypeParser(1182, (v) => v); // date[]
 
 const PORT = Number(process.env.SUPALOCAL_PORT ?? 54321);
 const DB_URL = process.env.SUPALOCAL_DB ?? "postgres://postgres@127.0.0.1:55432/gerimmo_local";

@@ -3394,3 +3394,52 @@ reste exécutable par `anon`, et porte la réparation dans son message. La
 fonction, on peut oublier de l'appeler ; le test, lui, échoue.
 
 505 tests (502 passent, 1 rouge délibéré, 2 ignorés), 35 E2E verts, build vert.
+
+## [2026-09-11] dev   | Les fiches bien et lot remises dans l'ordre où l'on s'en sert
+
+Relevé au navigateur, à la demande : « c'est bâclé ». Ça l'était, et de six
+façons qui tenaient toutes à la même cause — l'écran affichait le contenu dans
+l'ordre où le code l'avait écrit, pas dans celui où on s'en sert.
+
+**Tout au même poids.** Un diagnostic manquant se lisait exactement comme
+« Découpage en lots : non découpable », en quatrième rangée. Ce qui attend un
+geste est désormais réuni en haut, une fois, avec le lien qui y mène.
+
+**Le geste à neuf cents pixels de son libellé.** Sept rangées portaient un
+bouton « Modifier » calé au bord droit de la carte ; sur un écran de 1280 px,
+l'œil traversait toute la largeur pour l'atteindre, et la colonne répétait sept
+fois le même mot. La rangée entière est devenue la cible — la distance ne
+compte plus, le mot disparaît, il reste un chevron.
+
+**L'objet du travail en dernier.** Sur la fiche bien, le lot — celui qui porte
+le bail, le loyer, le locataire — arrivait après le type de construction et
+l'année du bâtiment. Sur la fiche lot, le bail était au fond, replié, derrière
+neuf caractéristiques. Les deux sont remontés en tête.
+
+**Le même fait, quatre fois.** « Loué » se lisait dans la pastille du titre,
+dans un paragraphe expliquant le cycle de vie d'un lot, dans « Ce lot est
+loué », puis dans « État actuel : Loué ». Il ne reste que la pastille et la
+suite à donner.
+
+**Des lignes vides qui coûtent un tiers de l'écran.** « Étage — », « Tantième
+— », « Identifiant fiscal — » : quatre rangées sur neuf n'apprenaient rien. Les
+champs non renseignés tiennent maintenant en une phrase, qui dit à la fois
+qu'ils manquent et lesquels.
+
+**Un formulaire ouvert pour un geste annuel.** L'annonce aux locataires occupait
+une carte entière en bas de page, dépliée en permanence. Elle est à un clic, et
+son résumé dit s'il y a quelque chose d'affiché chez les locataires.
+
+Au passage, deux défauts trouvés en regardant : le bandeau d'essai annonçait
+« (NaN jour restants) » sur tout l'espace agence — l'émulateur du banc rendait
+les colonnes `date` en horodatage complet là où PostgREST rend une date nue, et
+la concaténation donnait une date invalide. Un banc qui ment sur la forme des
+données laisse passer les défauts qu'il devrait attraper : l'émulateur est
+corrigé, et le calcul ne suppose plus la forme courte. Et « créez son bail plus
+bas » est devenu un bouton qui y mène.
+
+Neuf tests E2E tiennent l'ordre plutôt que la seule présence : un bloc juste,
+placé en bas, ne sert personne — une assertion de présence aurait laissé passer
+exactement ce qu'on vient de corriger.
+
+507 tests (504 passent, 1 rouge délibéré, 2 ignorés), 43 E2E verts, build vert.

@@ -3313,3 +3313,25 @@ aucune n'est exposée à `anon`, `import_personne` ne l'est pas davantage à
 > mandants) n'est pas faite : les tables existent depuis le 03/09, aucun code
 > ne les utilise. Une agence qui bascule en cours d'exercice saisit encore ses
 > soldes à la main.
+
+## [2026-09-11] dev   | L'adresse d'expédition cesse d'être une constante
+
+Relevé en branchant la production : `RESEND_API_KEY` n'avait **jamais** été
+posée sur Vercel. Aucun e-mail n'était donc jamais sorti de Gerimmo —
+quittances, rapports de gestion, avis de bail signé. La clé est désormais en
+place.
+
+Mais une seconde barrière attendait derrière : l'adresse d'expédition était en
+dur sur `no-reply@gerimmo.app`, et Resend **refuse tout envoi** tant que le
+domaine de l'expéditeur n'est pas vérifié chez lui. Clé valide ou non, le
+produit restait bloqué par une constante — et par un domaine qui n'est peut-être
+même pas encore acquis.
+
+`RESEND_EXPEDITEUR` la règle par l'environnement (défaut inchangé : l'adresse de
+la marque, c'est la cible et non un repli). De quoi démarrer sur l'adresse de
+test de Resend en attendant la vérification. Et le refus le plus fréquent est
+traduit : le message brut parle de « domain » sans jamais dire quoi faire,
+celui qui le lit est un gérant.
+
+501 tests (498 passent, 1 rouge délibéré, 2 ignorés), build vert.
+

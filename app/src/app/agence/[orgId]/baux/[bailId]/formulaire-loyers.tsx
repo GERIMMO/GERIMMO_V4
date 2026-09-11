@@ -2,7 +2,7 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import {
   genererAppels,
   ajouterEncaissement,
@@ -206,6 +206,7 @@ export function FormulaireLoyers({
     regulariserCharges.bind(null, orgId, bailId),
     {}
   );
+  const idNumeroRecommande = useId();
   const impaye = echeancier.some((l) => l.statut === "impaye");
   const anneeDefaut = new Date().getUTCFullYear() - 1;
 
@@ -476,7 +477,10 @@ export function FormulaireLoyers({
             <Label htmlFor="rel-pres" className="text-xs">1re présentation</Label>
             <InputDateJour id="rel-pres"   className="h-9" name="date_premiere_presentation" />
           </div>
-          <Input name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-32" />
+          <div className="space-y-1">
+            <Label htmlFor={idNumeroRecommande} className="text-xs">Numéro de suivi</Label>
+            <Input id={idNumeroRecommande} name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-32" />
+          </div>
           <BoutonEnvoi size="sm" variant="outline">
             Enregistrer la relance
           </BoutonEnvoi>

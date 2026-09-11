@@ -2,7 +2,7 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import {
   deposerBailSigne,
   deposerReglementCopropriete,
@@ -104,6 +104,7 @@ export function FormulaireConge({
   const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   const [par, setPar] = useState<"locataire" | "bailleur">("locataire");
   const [reduit, setReduit] = useState(false);
+  const idJustificatifPreavis = useId();
   const meuble = type === "meuble" || (type === "colocation" && meubleLot);
 
   // Préavis légal dérivé — MÊME règle que enregistrer_conge (la base fait
@@ -177,13 +178,19 @@ export function FormulaireConge({
               de cocher, aucun justificatif n&apos;est exigible (la zone est portée par le bien).
             </p>
             {reduit && (
-              <Input
-                name="justificatif"
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                required
-                className="mt-1"
-              />
+              <div>
+                <Label htmlFor={idJustificatifPreavis} className="text-xs">
+                  Justificatif du préavis réduit
+                </Label>
+                <Input
+                  id={idJustificatifPreavis}
+                  name="justificatif"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  required
+                  className="mt-1"
+                />
+              </div>
             )}
           </div>
         )

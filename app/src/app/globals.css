@@ -255,6 +255,44 @@
 }
 
 /* Charte — libellé de champ : Plex Mono, capitales, interlettrage 0.18em */
+/* ------------------------------------------------------------------ */
+/* Hors couche, à dessein : ces deux règles corrigent un composant      */
+/* tiers (la carte shadcn, qui embarque `rounded-xl` dans son propre    */
+/* className). Placées dans `components`, l'utilitaire du composant     */
+/* l'emportait et les 38 cartes de l'application reprenaient un arrondi */
+/* de 8,4 px — la maquette les veut presque vives (relevé du 11/09).    */
+/* C'est le seul cas où rester hors couche se justifie : on ne corrige  */
+/* pas ici un défaut de charte, on rattrape un style qu'on ne peut pas  */
+/* éditer.                                                             */
+/* ------------------------------------------------------------------ */
+/* Charte 04 — mouvement : aucune ombre au repos ; au survol d'un élément
+   cliquable, translation de 2 px et ombre très douce. Jamais de rebond. */
+a:hover > [data-slot="card"] {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 10px oklch(0% 0 0 / 0.05);
+}
+[data-slot="card"] {
+  transition: transform 0.17s ease, box-shadow 0.17s ease;
+  /* Maquette : cartes presque vives, l'arrondi reste aux boutons */
+  border-radius: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Les classes de la charte vivent dans la couche `components`.        */
+/*                                                                     */
+/* Écrites hors couche, elles battaient TOUTES les utilitaires         */
+/* Tailwind — une règle sans couche l'emporte sur n'importe quelle     */
+/* règle en couche, quelle que soit sa spécificité. Le relevé du 11/09 */
+/* a compté 60 utilitaires ainsi rendus muets : `hidden` sur .barre    */
+/* (l'élément restait visible), `px-4` sur .section-vitrine, et        */
+/* `text-[var(--or)]` sur .eyebrow — d'où un sur-titre gris ardoise    */
+/* sur fond encre, à 2,39:1, là où le laiton était demandé.            */
+/*                                                                     */
+/* Dans la couche, l'ordre voulu revient : la charte pose le défaut,   */
+/* l'utilitaire décide au cas par cas. Toute classe ajoutée ici doit   */
+/* rester DANS la couche.                                             */
+/* ------------------------------------------------------------------ */
+@layer components {
 .libelle-champ {
   font-family: var(--font-libelles), ui-monospace, monospace;
   font-size: 0.5625rem; /* 9 px */
@@ -271,17 +309,6 @@
   text-transform: uppercase;
 }
 
-/* Charte 04 — mouvement : aucune ombre au repos ; au survol d'un élément
-   cliquable, translation de 2 px et ombre très douce. Jamais de rebond. */
-a:hover > [data-slot="card"] {
-  transform: translateY(-2px);
-  box-shadow: 0 2px 10px oklch(0% 0 0 / 0.05);
-}
-[data-slot="card"] {
-  transition: transform 0.17s ease, box-shadow 0.17s ease;
-  /* Maquette : cartes presque vives, l'arrondi reste aux boutons */
-  border-radius: 2px;
-}
 
 /* Charte — chiffre clé : Cormorant ~29 px (maquette .kpi .chiffre) */
 .chiffre-cle {
@@ -790,6 +817,20 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   margin-bottom: 14px;
 }
 
+/* WCAG 1.4.1 — un lien NOYÉ DANS UN PARAGRAPHE ne peut pas se signaler par
+   la seule couleur : bleu sur gris, l'écart n'est que de 1,74:1 alors qu'il
+   en faut 3 (relevé du 11/09 : « Écrivez à votre gestionnaire » dans la FAQ
+   locataire, « Console d'administration » dans les journaux). Dans un texte
+   suivi, le lien se souligne. Ailleurs — barres, listes, cartes — un lien
+   isolé n'a pas ce besoin et garde son allure. Un cas particulier se lève
+   avec `no-underline` : depuis que la charte est en couche, l'utilitaire
+   l'emporte. */
+p a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: from-font;
+}
+
 /* Lien discret bleu (maquette .lien-discret) */
 .lien-discret {
   font-size: 12px;
@@ -1110,6 +1151,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   }
   .lien-discret { padding-block: 8px; display: inline-block; }
 }
+}
 
 /* ==================================================================== */
 /* Charte v2.1 — socle ajouté le 2026-09-11                             */
@@ -1165,6 +1207,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 }
 
 /* --- Section : le rythme d'un écran --------------------------------- */
+@layer components {
 .section-ecran + .section-ecran { margin-top: var(--rythme-5); }
 .section-vitrine {
   padding-block: var(--rythme-6);
@@ -1247,3 +1290,5 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   line-height: 1.55;
 }
 .vide-guide .geste { display: inline-flex; gap: var(--rythme-2); flex-wrap: wrap; justify-content: center; }
+
+}

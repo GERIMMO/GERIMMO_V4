@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useEffect } from "react";
+import { useActionState, useRef, useEffect, useId } from "react";
 import {
   attribuerIncident,
   cloturerIncident,
@@ -258,6 +258,7 @@ export function FormulairePhotoIncident({
   const actionLiee = joindrePhotoIncident.bind(null, orgId, incidentId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
+  const idPhotos = useId();
   useEffect(() => {
     if (etat.succes) formulaire.current?.reset();
   }, [etat]);
@@ -265,7 +266,11 @@ export function FormulairePhotoIncident({
   return (
     <form ref={formulaire} action={action} className="space-y-2">
       <div className="flex items-center gap-2">
-        <Input name="photos" type="file" accept="image/jpeg,image/png" multiple onChange={(e) => void compresserChampFichiers(e.currentTarget)} required />
+        {/* Ligne compacte (champ + bouton) : libellé pour la seule synthèse vocale */}
+        <Label htmlFor={idPhotos} className="sr-only">
+          Photos à joindre
+        </Label>
+        <Input id={idPhotos} name="photos" type="file" accept="image/jpeg,image/png" multiple onChange={(e) => void compresserChampFichiers(e.currentTarget)} required />
         <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
           Joindre
         </BoutonEnvoi>

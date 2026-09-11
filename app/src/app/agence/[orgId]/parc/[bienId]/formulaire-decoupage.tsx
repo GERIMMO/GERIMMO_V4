@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useId, useState } from "react";
 import { decouperBien, type EtatParc } from "@/app/actions/parc";
 import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type LigneSaisie = { nom: string; surface: string };
 
@@ -22,6 +23,10 @@ export function FormulaireDecoupage({
   const actionLiee = decouperBien.bind(null, orgId, bienId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const [lignes, setLignes] = useState<LigneSaisie[]>([{ nom: "", surface: "" }]);
+  // Lignes de saisie compactes : un libellé visible casserait la rangée, les
+  // libellés n'existent donc que pour la synthèse vocale. Identifiants tirés
+  // de useId() — la page peut aligner plusieurs formulaires.
+  const idLigne = useId();
 
   useEffect(() => {
     if (!etat.succes) return;
@@ -39,7 +44,11 @@ export function FormulaireDecoupage({
     <form action={action} className="space-y-3">
       {lignes.map((l, i) => (
         <div key={i} className="flex gap-2">
+          <Label htmlFor={`${idLigne}-nom-${i}`} className="sr-only">
+            Nom du lot à créer (ligne {i + 1} sur {lignes.length})
+          </Label>
           <Input
+            id={`${idLigne}-nom-${i}`}
             name="lot_nom"
             maxLength={120}
             placeholder={`Nom du lot (ex. Lot ${i + 2} — RDC gauche)`}
@@ -47,7 +56,11 @@ export function FormulaireDecoupage({
             value={l.nom}
             onChange={(e) => majLigne(i, "nom", e.target.value)}
           />
+          <Label htmlFor={`${idLigne}-surface-${i}`} className="sr-only">
+            Surface en m² du lot à créer (ligne {i + 1} sur {lignes.length})
+          </Label>
           <Input
+            id={`${idLigne}-surface-${i}`}
             name="lot_surface"
             type="number"
             step="0.01"

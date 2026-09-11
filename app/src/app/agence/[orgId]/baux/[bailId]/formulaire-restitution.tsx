@@ -3,7 +3,7 @@
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useId, useRef, useState } from "react";
 import {
   demarrerRestitution,
   ajouterRetenue,
@@ -255,12 +255,17 @@ function FormRetenue({
     ajouterRetenue.bind(null, orgId, bailId, restitutionId),
     {}
   );
+  const idLibelle = useId();
+  const idJustificatif = useId();
   return (
     <form action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Ajouter une retenue (décote de vétusté)</p>
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <div className="flex flex-wrap items-end gap-2">
-        <Input name="libelle" placeholder="Ex. remise en peinture séjour" defaultValue={etat.valeurs?.libelle} className="h-9 w-56" />
+        <div className="space-y-1">
+          <Label htmlFor={idLibelle} className="text-xs">Objet de la retenue</Label>
+          <Input id={idLibelle} name="libelle" placeholder="Ex. remise en peinture séjour" defaultValue={etat.valeurs?.libelle} className="h-9 w-56" />
+        </div>
         <div className="space-y-1">
           <Label htmlFor="ret-cout" className="text-xs">Coût (€)</Label>
           <Input id="ret-cout" name="cout" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.cout} className="h-9 w-24" />
@@ -280,7 +285,12 @@ function FormRetenue({
         ))}
       </datalist>
       <div className="flex flex-wrap items-center gap-2">
-        <Input name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
+        {/* Champ et bouton sur la même ligne : le libellé ne s'adresse qu'à la
+            synthèse vocale, pour ne pas décaler le bouton. */}
+        <Label htmlFor={idJustificatif} className="sr-only">
+          Justificatif de la retenue
+        </Label>
+        <Input id={idJustificatif} name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
         <BoutonEnvoi size="sm" variant="outline">
           Ajouter la retenue
         </BoutonEnvoi>

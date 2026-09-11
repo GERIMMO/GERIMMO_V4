@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { repondreMessagePersonne, type EtatMessage } from "@/app/actions/messages";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Label } from "@/components/ui/label";
 
 export type MessagePersonne = {
   id: string;
@@ -29,6 +30,7 @@ export function CarteMessages({
     repondreMessagePersonne.bind(null, orgId, personId),
     {}
   );
+  const idTexte = useId();
   const quand = (ts: string) =>
     new Date(ts).toLocaleDateString("fr-FR", {
       day: "numeric",
@@ -69,8 +71,14 @@ export function CarteMessages({
         </div>
       )}
       <form action={action} className="flex flex-wrap items-end gap-2">
+        {/* Ligne compacte (saisie + bouton) : le libellé est pour la seule
+            synthèse vocale — le placeholder disparaît à la première frappe. */}
+        <Label htmlFor={idTexte} className="sr-only">
+          Votre message
+        </Label>
         {/* En erreur, la saisie est reposée via etat.valeurs (audit 09/09) */}
         <textarea
+          id={idTexte}
           name="texte"
           defaultValue={etat.valeurs?.texte}
           rows={2}

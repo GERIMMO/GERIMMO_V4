@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import {
   contesterImputation,
   signalerProblemePersiste,
@@ -14,6 +14,7 @@ import {
   titreIncident,
 } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Label } from "@/components/ui/label";
 import { LectureImpossible } from "./panne-lecture";
 import { tagLocataire } from "./pastille-locataire";
 
@@ -43,20 +44,30 @@ function priseEnCharge(i: IncidentLocataire): string | null {
 function PetitFormulaire({
   action,
   nomChamp,
+  libelle,
   placeholder,
   bouton,
   valeurInitiale,
 }: {
   action: (formData: FormData) => void;
   nomChamp: string;
+  // Ce que la zone attend, dit en toutes lettres : le placeholder n'est
+  // qu'un exemple, et il s'efface à la première frappe.
+  libelle: string;
   placeholder: string;
   bouton: string;
   // Saisie reposée après un refus (conservation des saisies, recette 22/08)
   valeurInitiale?: string;
 }) {
+  const idChamp = useId();
   return (
     <form action={action} className="mt-2 flex items-start gap-2">
+      {/* Ligne compacte (zone + bouton) : libellé pour la seule synthèse vocale */}
+      <Label htmlFor={idChamp} className="sr-only">
+        {libelle}
+      </Label>
       <textarea
+        id={idChamp}
         name={nomChamp}
         required
         rows={2}
@@ -185,6 +196,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
         <PetitFormulaire
           action={actionContestation}
           nomChamp="message"
+          libelle="Motif de votre contestation"
           placeholder="Expliquez pourquoi — votre message est transmis à l'agence."
           bouton="Envoyer"
           valeurInitiale={etatContestation.valeurs?.message}
@@ -194,6 +206,7 @@ function CarteIncident({ orgId, incident }: { orgId: string; incident: IncidentL
         <PetitFormulaire
           action={actionPersiste}
           nomChamp="motif"
+          libelle="Précisions sur le problème"
           placeholder="Qu'est-ce qui ne va toujours pas ?"
           bouton="Rouvrir"
           valeurInitiale={etatPersiste.valeurs?.motif}

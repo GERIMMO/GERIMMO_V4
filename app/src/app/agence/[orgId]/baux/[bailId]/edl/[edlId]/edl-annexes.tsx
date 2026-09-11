@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import {
   ajouterCompteur,
   supprimerCompteur,
@@ -10,6 +10,7 @@ import {
 } from "@/app/actions/edl";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export type Compteur = {
   id: string;
@@ -70,6 +71,12 @@ export function EdlAnnexes({
   const [etatC, formCompteur] = useActionState<EtatEdl, FormData>(actionCompteur, {});
   const actionCle = ajouterCle.bind(null, orgId, bailId, edlId);
   const [etatK, formCle] = useActionState<EtatEdl, FormData>(actionCle, {});
+  // Lignes de saisie compactes : un libellé visible casserait la rangée, les
+  // libellés n'existent donc que pour la synthèse vocale. Identifiants tirés
+  // de useId() — la page peut aligner plusieurs EDL.
+  const idTypeCompteur = useId();
+  const idTypeCle = useId();
+  const idNombreCles = useId();
 
   return (
     <div className="space-y-6">
@@ -97,7 +104,11 @@ export function EdlAnnexes({
         {!signe && (
           <form action={formCompteur} className="flex flex-wrap items-end gap-2">
             {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08) */}
+            <Label htmlFor={idTypeCompteur} className="sr-only">
+              Type de compteur
+            </Label>
             <select
+              id={idTypeCompteur}
               name="type"
               defaultValue={etatC.valeurs?.type ?? ""}
               className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
@@ -144,7 +155,11 @@ export function EdlAnnexes({
         {!signe && (
           <form action={formCle} className="flex flex-wrap items-end gap-2">
             {/* En erreur, la saisie est reposée via etatK.valeurs (recette 22/08) */}
+            <Label htmlFor={idTypeCle} className="sr-only">
+              Type de clé ou de badge
+            </Label>
             <select
+              id={idTypeCle}
               name="libelle"
               defaultValue={etatK.valeurs?.libelle ?? ""}
               className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
@@ -158,7 +173,10 @@ export function EdlAnnexes({
                 </option>
               ))}
             </select>
-            <Input name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-20" />
+            <Label htmlFor={idNombreCles} className="sr-only">
+              Nombre de clés ou badges remis
+            </Label>
+            <Input id={idNombreCles} name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-20" />
             <Input name="reference" aria-label="Référence de la clé" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-36" />
             <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
               Ajouter

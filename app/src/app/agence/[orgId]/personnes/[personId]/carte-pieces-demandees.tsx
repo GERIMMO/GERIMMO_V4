@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import {
   demanderPieceLocataire,
   relancerPieceDemandee,
@@ -8,6 +8,7 @@ import {
   type EtatPieceDemandee,
 } from "@/app/actions/pieces-demandees";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Label } from "@/components/ui/label";
 import { formaterDate } from "@/lib/ged";
 
 export type PieceDemandee = {
@@ -83,6 +84,8 @@ export function CartePiecesDemandees({
     demanderPieceLocataire.bind(null, orgId, personId),
     {}
   );
+  const idLibelle = useId();
+  const idType = useId();
   const enAttente = demandes.filter((d) => !d.satisfaite_le);
   const recues = demandes.filter((d) => d.satisfaite_le);
 
@@ -149,13 +152,26 @@ export function CartePiecesDemandees({
           ))}
         </div>
         <div className="flex flex-wrap items-end gap-2">
+          {/* Ligne compacte : libellés réservés à la synthèse vocale */}
+          <Label htmlFor={idLibelle} className="sr-only">
+            Nom de la pièce demandée
+          </Label>
           <input
+            id={idLibelle}
             name="libelle"
             placeholder="Pièce à demander (ex. : RIB)"
             defaultValue={etat.valeurs?.libelle}
             className="h-9 min-w-44 flex-1 rounded-md border border-input bg-transparent px-3 text-sm"
           />
+          {/* « Type de pièce » tout court est DÉJÀ le nom d'un champ visible
+              de la carte juste au-dessus (dépôt d'une pièce) : deux contrôles
+              au même nom sur une page laissent choisir au hasard. Celui-ci dit
+              la demande, comme son voisin « Nom de la pièce demandée ». */}
+          <Label htmlFor={idType} className="sr-only">
+            Type de la pièce demandée
+          </Label>
           <select
+            id={idType}
             name="type"
             defaultValue={etat.valeurs?.type ?? "justificatif"}
             className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"

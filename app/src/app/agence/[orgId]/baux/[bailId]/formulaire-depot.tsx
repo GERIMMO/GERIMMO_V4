@@ -3,7 +3,7 @@
 import { eur, formaterDate } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState } from "react";
+import { useActionState, useId } from "react";
 import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/app/actions/depot";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
@@ -135,6 +135,7 @@ function FormEncaisser({
     encaisserDepot.bind(null, orgId, bailId),
     {}
   );
+  const idVersantLibelle = useId();
   return (
     <form action={action} className="space-y-2 border border-dashed border-border p-3">
       <p className="text-sm font-medium">Enregistrer un encaissement</p>
@@ -176,7 +177,10 @@ function FormEncaisser({
             ))}
           </select>
         </div>
-        <Input name="versant_libelle" placeholder="ou tiers hors fiche" defaultValue={etat.valeurs?.versant_libelle} className="h-9 w-44" />
+        <div className="space-y-1">
+          <Label htmlFor={idVersantLibelle} className="text-xs">Nom du tiers versant</Label>
+          <Input id={idVersantLibelle} name="versant_libelle" placeholder="ou tiers hors fiche" defaultValue={etat.valeurs?.versant_libelle} className="h-9 w-44" />
+        </div>
         <BoutonEnvoi enCoursTexte="…" size="sm">
           Encaisser
         </BoutonEnvoi>

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { EchecLecture } from "../documents/echec-lecture";
 import { correspond, initiales, type RolePersonne } from "@/lib/roles-personnes";
 
@@ -33,6 +34,7 @@ export function ListePersonnes({
   listeIllisible?: boolean;
 }) {
   const [recherche, setRecherche] = useState("");
+  const idRecherche = useId();
   const visibles = personnes.filter((p) =>
     correspond(
       recherche,
@@ -46,13 +48,20 @@ export function ListePersonnes({
 
   return (
     <div className="space-y-3">
-      <Input
-        type="search"
-        value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
-        placeholder="Chercher un nom, un email, un rôle…"
-        aria-label="Chercher une personne"
-      />
+      {/* Le libellé enveloppé avec le champ : posé en frère direct, il
+          décalerait le champ d'un cran de space-y-3. */}
+      <div>
+        <Label htmlFor={idRecherche} className="sr-only">
+          Chercher une personne
+        </Label>
+        <Input
+          id={idRecherche}
+          type="search"
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          placeholder="Chercher un nom, un email, un rôle…"
+        />
+      </div>
 
       <div className="colonne-liste">
         <div className="tete-liste">

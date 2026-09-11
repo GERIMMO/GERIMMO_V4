@@ -381,3 +381,23 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
     expect(d).toEqual({ a: false, n: false });
   });
 });
+
+describe("l'écran « Mon abonnement » ne promet plus ce qui est faux", () => {
+  it("ne dit plus « rien ne se ferme sans vous prévenir »", async () => {
+    // Depuis le déclencheur du 11/09, un essai expiré ferme l'écriture LE JOUR
+    // MÊME : aucun traitement de nuit, la date suffit. La phrase rassurait sur
+    // une chose que le produit ne fait pas.
+    const fs = await import("node:fs");
+    const src = fs.readFileSync(
+      new URL("../src/app/agence/[orgId]/abonnement/page.tsx", import.meta.url),
+      "utf8"
+    );
+    expect(src).not.toContain("rien ne se ferme sans vous prévenir");
+    // Elle dit ce qui arrive, et ce qui reste possible après.
+    expect(src).toContain("lecture seule");
+    expect(src).toContain("exporter");
+    // Et le décompte vient de la base, pas d'une multiplication refaite ici.
+    expect(src).toContain("etat_abonnement");
+    expect(src).not.toMatch(/\*\s*5[.,]99/);
+  });
+});

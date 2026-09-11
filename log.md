@@ -3232,3 +3232,18 @@ eslint 0 erreur, build vert, E2E 30 cas.
 > Le module attend sa recette complète (le parcours a été joué de bout en bout
 > sur le banc local, pas encore en conditions réelles avec un vrai artisan).
 
+## [2026-09-11] dev   | « Mon abonnement » cesse de rassurer à tort
+
+La page promettait « rien ne se ferme sans vous prévenir ». Depuis le matin
+même, c'est faux : un essai expiré ferme l'écriture LE JOUR MÊME — la date
+suffit, aucun traitement de nuit n'intervient. Elle refaisait par ailleurs le
+calcul du montant de son côté (`max(0, n-1) × 5,99`), en parallèle de
+`etat_abonnement` : deux additions du même montant finissent toujours par
+diverger.
+
+La page lit désormais `etat_abonnement`, annonce ce qui arrive AVANT que ça
+n'arrive (« passé cette date, le compte passe en lecture seule »), décompte les
+derniers jours quand il en reste sept ou moins, et, une fois le compte fermé,
+dit ce qui reste possible : tout consulter, tout exporter, y compris le journal
+de gestion. Un test garde la phrase retirée.
+

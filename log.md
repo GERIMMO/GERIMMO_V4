@@ -3247,3 +3247,27 @@ derniers jours quand il en reste sept ou moins, et, une fois le compte fermé,
 dit ce qui reste possible : tout consulter, tout exporter, y compris le journal
 de gestion. Un test garde la phrase retirée.
 
+## [2026-09-11] dev   | Onboarding : ouvrir une organisation, et voir le chemin
+
+**Le geste qui n'existait pas.** Le site recueille les demandes des agences et
+la console les liste — mais créer l'agence qui suit se faisait en SQL : trois
+insertions à la main, dont le compte de son responsable. RM-16.1.1 réserve ce
+geste au super admin ; il n'avait simplement pas d'écran. Il en a un :
+`/admin/organisations/nouvelle`, atteignable depuis la supervision et depuis
+une demande de devis (qu'il préremplit et marque traitée).
+
+**Ce que le client voit en arrivant.** Un tableau de bord à zéro, et rien
+d'autre. Or entre le premier bien et le premier loyer appelé il y a cinq
+gestes, chacun gardé par une règle qui refuse tant que le précédent n'a pas eu
+lieu — la détention à 100 %, le DPE en habitation, les mentions obligatoires du
+bail. On les rencontrait une par une, sous forme de refus.
+`parcours_demarrage` les met dans l'ordre, dit où l'on en est et ce qui bloque,
+n'ouvre qu'une porte à la fois, et disparaît une fois le premier bail actif.
+
+Aucune table de progression : tout est constaté sur les données. Un parcours
+qu'on coche à la main finit toujours par affirmer une étape que les données
+démentent.
+
+**Vérifié.** 484 tests (481 passent, 1 rouge délibéré, 2 ignorés), E2E 33 cas,
+typecheck 0, eslint 0 erreur, build vert.
+

@@ -161,3 +161,5 @@
 20260911230000_agenda_dit_ou_en_est_le_rendez_vous.sql
 20260911240000_module8_correctifs_bloquants.sql
 20260911250000_suivi_locataire_dit_vrai.sql
+20260911260000_ouvrir_une_organisation.sql
+20260911270000_parcours_de_demarrage.sql

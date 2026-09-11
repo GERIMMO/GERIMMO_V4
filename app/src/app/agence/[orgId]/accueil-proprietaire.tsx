@@ -4,6 +4,7 @@ import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
+import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 
 // Accueil de l'espace propriétaire (maquette PC v1 du 05/09) : son patrimoine
 // en un regard — lots, encaissé, fiscalité — la liste de ce qui l'attend, et
@@ -157,6 +158,12 @@ export async function AccueilProprietaire({
           Voici l&apos;essentiel de votre patrimoine — {organisation.name}.
         </p>
       </div>
+
+      {/* Le chemin du démarrage, avant le reste tant qu'il reste une étape :
+          celui qui vient de s'inscrire n'a ni chiffre ni action à lire, il a
+          besoin de savoir par où commencer. Le bloc disparaît de lui-même une
+          fois le premier bail actif. */}
+      <ParcoursDemarrage supabase={supabase} orgId={orgId} />
 
       <div className="loc-hero">
         <span className="loc-vignette" aria-hidden>

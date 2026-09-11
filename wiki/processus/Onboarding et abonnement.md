@@ -3,7 +3,7 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-30
+updated: 2026-09-11
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]"]
 ---
 
@@ -75,3 +75,37 @@ L'auto-inscription du propriétaire direct est en place (`/inscription` →
 Supabase Auth → `initialiser_espace_proprietaire`, essai 14 jours porté par
 `organizations.essai_fin`). La création d'agence reste réservée au super admin.
 Détail : [[Propriétaire bailleur]].
+
+## Livré le 2026-09-11 — l'ouverture et le chemin
+
+**Le super admin ouvre une organisation depuis la console.** Jusqu'ici, entre
+la demande reçue sur le site (« Demandes de devis », /admin/devis) et le client
+qui se connecte, il fallait ouvrir un client SQL : insérer l'organisation,
+insérer l'adhésion, fabriquer le compte de son responsable. Le geste le plus
+commercial du produit était le seul à ne pas exister.
+
+`ouvrir_organisation(nom, type, email, essai_jours, active_immediatement)` crée
+l'organisation, le compte du premier responsable et l'adhésion qui les relie ;
+l'application envoie ensuite l'invitation par le même chemin que « mot de passe
+oublié ». Le rôle découle du type — une agence a un administrateur, un parc a
+son propriétaire. Le compte est **réutilisé** s'il existe déjà (le responsable
+gère peut-être une autre agence, ou est locataire ailleurs). L'écran s'ouvre
+aussi depuis une demande de devis, qu'il préremplit et marque traitée.
+
+**Le client arrivé voit le chemin.** `parcours_demarrage(org)` rend cinq
+étapes, dans l'ordre où la base les exige : identité · premier bien · lot en
+état d'être loué · locataire · bail. Chacune est **constatée sur les données**,
+jamais cochée à la main — un parcours qu'on coche finit par affirmer une étape
+que les données démentent. L'étape « lot prêt » interroge
+`lot_blocages_location`, la fonction qui décide déjà de la mise en location :
+une seule liste de conditions dans le produit, et elle dit CE QUI bloque
+(détention incomplète, DPE absent…). Le bloc n'ouvre qu'une porte à la fois —
+la suivante — et **disparaît** une fois le premier bail actif.
+
+> [!warning] Ce qui manque encore
+> **L'import courant (16.3)** — « dizaines de lots, ligne par ligne, sans
+> reprise du passé » — n'existe pas : une agence qui arrive avec cinquante lots
+> les saisit à la main. Les tables de **reprise de portefeuille**
+> (`reprises_portefeuille`, `reprise_soldes`, avec balance d'ouverture à écart
+> zéro) existent depuis le 03/09 mais **aucun code ne les utilise**.
+

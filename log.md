@@ -3303,9 +3303,13 @@ lot par lot par la fonction qui en décide déjà.
 **Vérifié.** 497 tests (494 passent, 1 rouge délibéré, 2 ignorés), E2E 35 cas,
 typecheck 0, eslint 0 erreur, build vert.
 
+Les trois migrations de l'onboarding (`ouvrir_organisation`,
+`parcours_demarrage`, `importer_parc`) sont **appliquées en production** :
+aucune n'est exposée à `anon`, `import_personne` ne l'est pas davantage à
+`authenticated`, et toutes portent un chemin de recherche figé.
+
 > [!warning] Ce qui reste
 > La reprise **comptable** (dépôts de garantie détenus, avances, fonds
 > mandants) n'est pas faite : les tables existent depuis le 03/09, aucun code
 > ne les utilise. Une agence qui bascule en cours d'exercice saisit encore ses
 > soldes à la main.
-

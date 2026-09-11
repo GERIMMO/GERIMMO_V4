@@ -2,6 +2,7 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { BoutonImprimer } from "@/components/bouton-imprimer";
 import { eur, formaterDate } from "@/lib/ged";
 
 type DetailQuittance = {
@@ -62,7 +63,16 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
           <h1>{titre}</h1>
           <p className="text-sm text-muted-foreground capitalize">{mois}</p>
         </div>
-        <p className="text-sm text-muted-foreground">Émis le {formaterDate(q.date_emission)}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-sm text-muted-foreground">Émis le {formaterDate(q.date_emission)}</p>
+          {/* Le geste de GARDER le document était laissé au lecteur (« utilisez
+              la fonction d'impression de votre navigateur »), alors que le
+              composant existait déjà ailleurs dans le produit. Sur téléphone,
+              cette phrase ne veut à peu près rien dire : la feuille
+              d'impression d'iOS et d'Android est justement celle qui offre
+              « Enregistrer en PDF ». Un bouton, donc, et non une consigne. */}
+          <BoutonImprimer libelle="Imprimer ou enregistrer" />
+        </div>
       </div>
 
       <div className="grid gap-4 text-sm sm:grid-cols-2">
@@ -126,8 +136,8 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
       </p>
 
       <p className="text-xs text-muted-foreground print:hidden">
-        Document généré par Gerimmo — utilisez la fonction d&apos;impression de votre
-        navigateur pour l&apos;imprimer ou l&apos;enregistrer en PDF.
+        Document généré par Gerimmo. « Imprimer ou enregistrer » ouvre la feuille
+        d&apos;impression de votre appareil, d&apos;où vous pouvez l&apos;enregistrer en PDF.
       </p>
     </main>
   );

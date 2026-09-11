@@ -83,6 +83,16 @@
   --texte-secondaire: #4a4844;
   --libelle: #6e675a;
 
+  /* Nuances dérivées — promues en jetons le 2026-09-11.
+     Elles vivaient en dur dans les règles ci-dessous (20 occurrences). La
+     marque blanche (module 17) veut que TOUTE couleur soit personnalisable :
+     une valeur écrite en dur dans une règle échappe à la personnalisation
+     d'agence, et personne ne pense à aller la chercher. */
+  --survol: #fcfaf5;          /* fond d'un rang survolé ou actif */
+  --survol-critique: #f9e0e0; /* le même, sur un rang critique */
+  --encre-profond: #0d2036;   /* bas du dégradé de la barre latérale */
+  --or-sombre: #b08d3e;       /* début du dégradé de l'entrée active */
+
   /* Crèmes et fonds */
   --creme: #faf7f0;           /* fond de page */
   --ivoire: #ffffff;          /* fond des cartes */
@@ -377,9 +387,9 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   transition: background 0.15s;
 }
 .rang-alerte:last-child { border-bottom: none; }
-.rang-alerte:hover { background: #fcfaf5; }
+.rang-alerte:hover { background: var(--survol); }
 .rang-alerte.critique { border-left-color: var(--destructive); background: var(--destructive-soft); }
-.rang-alerte.critique:hover { background: #f9e0e0; }
+.rang-alerte.critique:hover { background: var(--survol-critique); }
 .rang-alerte.normale { border-left-color: var(--warning); }
 .rang-alerte .niveau {
   font-family: var(--font-libelles), ui-monospace, monospace;
@@ -438,7 +448,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   align-items: center;
   gap: 6px;
   background: var(--or);
-  color: #412402;
+  color: var(--sur-or);
   font-size: 13px;
   font-weight: 500;
   padding: 7px 14px;
@@ -465,7 +475,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   transition: background 0.15s, border-color 0.15s;
 }
 .rang:last-child { border-bottom: none; }
-.rang:hover { background: #fcfaf5; border-left-color: var(--encre); }
+.rang:hover { background: var(--survol); border-left-color: var(--encre); }
 .rang b { font-size: 13.5px; font-weight: 500; }
 .rang small { font-size: 11.5px; color: var(--texte-secondaire); }
 
@@ -517,9 +527,9 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   width: 1px;
   background: var(--filet);
 }
-.rang-lot:hover { background: #fcfaf5; border-left-color: var(--encre); }
+.rang-lot:hover { background: var(--survol); border-left-color: var(--encre); }
 /* Sélection ouverte dans le panneau (maquette .actif) : liseré laiton, fond crème */
-.rang.actif, .rang-lot.actif { background: #fcfaf5; border-left-color: var(--or); }
+.rang.actif, .rang-lot.actif { background: var(--survol); border-left-color: var(--or); }
 .tete-groupe.actif { box-shadow: inset 3px 0 0 var(--or); }
 
 /* ——— Espace locataire — montée en gamme (maquette v10 du 05/09) ———
@@ -528,7 +538,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
    seuls les galbes changent, pas les couleurs (marque blanche intacte). */
 .loc-app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100dvh; }
 .loc-late {
-  background: linear-gradient(180deg, var(--encre), #0d2036);
+  background: linear-gradient(180deg, var(--encre), var(--encre-profond));
   color: var(--sur-encre);
   display: flex;
   flex-direction: column;
@@ -541,7 +551,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   align-items: center;
   gap: 11px;
   padding: 18px 18px 15px;
-  border-bottom: 1px solid rgba(245, 239, 227, 0.08);
+  border-bottom: 1px solid color-mix(in srgb, var(--sur-encre) 8%, transparent);
 }
 .loc-menu { padding: 14px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; }
 .loc-menu a {
@@ -550,14 +560,14 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   gap: 12px;
   padding: 10px 13px;
   border-radius: 10px;
-  color: rgba(245, 239, 227, 0.78);
+  color: color-mix(in srgb, var(--sur-encre) 78%, transparent);
   font-size: 13.5px;
   position: relative;
   transition: background 0.15s, color 0.15s;
 }
-.loc-menu a:hover { background: rgba(245, 239, 227, 0.06); }
+.loc-menu a:hover { background: color-mix(in srgb, var(--sur-encre) 6%, transparent); }
 .loc-menu a.actif {
-  background: linear-gradient(90deg, #b08d3e, var(--or));
+  background: linear-gradient(90deg, var(--or-sombre), var(--or));
   color: var(--encre);
   font-weight: 600;
 }
@@ -565,7 +575,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-badge {
   margin-left: auto;
   background: var(--destructive);
-  color: #fff;
+  color: var(--ivoire);
   font-size: 10.5px;
   font-weight: 600;
   min-width: 18px;
@@ -578,14 +588,14 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 }
 .loc-late-bas {
   padding: 14px 16px;
-  border-top: 1px solid rgba(245, 239, 227, 0.08);
+  border-top: 1px solid color-mix(in srgb, var(--sur-encre) 8%, transparent);
   font-size: 12px;
-  color: rgba(245, 239, 227, 0.55);
+  color: color-mix(in srgb, var(--sur-encre) 55%, transparent);
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
-.loc-late-bas a, .loc-late-bas button { color: rgba(245, 239, 227, 0.75); text-align: left; font-size: 12.5px; }
+.loc-late-bas a, .loc-late-bas button { color: color-mix(in srgb, var(--sur-encre) 75%, transparent); text-align: left; font-size: 12.5px; }
 .loc-late-bas a:hover, .loc-late-bas button:hover { color: var(--sur-encre); }
 .loc-haut {
   background: var(--carte);
@@ -616,7 +626,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-carte {
   background: var(--carte);
   border-radius: 14px;
-  box-shadow: 0 1px 3px rgba(20, 48, 79, 0.06), 0 6px 18px rgba(20, 48, 79, 0.05);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 6%, transparent), 0 6px 18px color-mix(in srgb, var(--encre) 5%, transparent);
   padding: 20px;
 }
 .loc-grille { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
@@ -646,7 +656,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-hero {
   border-radius: 14px;
   background: var(--carte);
-  box-shadow: 0 1px 3px rgba(20, 48, 79, 0.06), 0 6px 18px rgba(20, 48, 79, 0.05);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 6%, transparent), 0 6px 18px color-mix(in srgb, var(--encre) 5%, transparent);
   padding: 22px 24px;
   display: flex;
   align-items: center;
@@ -736,8 +746,8 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 
 /* Rappel de l'état d'entrée sur la grille d'EDL de sortie (maquette v3) */
 .edl-rappel {
-  background: rgba(20, 48, 79, 0.045);
-  border-left: 3px solid rgba(20, 48, 79, 0.18);
+  background: color-mix(in srgb, var(--encre) 4.5%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--encre) 18%, transparent);
   padding: 8px 12px;
   font-size: 12.5px;
   color: var(--texte-secondaire);
@@ -751,7 +761,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   padding: 6px 9px;
   font-size: 11.5px;
   line-height: 1.5;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 14px oklch(0% 0 0 / 0.18);
 }
 .infobulle::after {
   content: "";

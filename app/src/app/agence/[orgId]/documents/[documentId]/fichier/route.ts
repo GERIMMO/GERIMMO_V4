@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { pageErreurFichier } from "@/lib/page-erreur-fichier";
 import { verifierGerant } from "@/lib/ged-acces";
 import { EXTENSIONS, type MimeAccepte } from "@/lib/file-type";
 
@@ -8,28 +9,6 @@ import { EXTENSIONS, type MimeAccepte } from "@/lib/file-type";
 // sort jamais du serveur (RM-A4.10), donc plus d'erreur brute « InvalidJWT »
 // à l'expiration. Trace obligatoire avant tout accès (RM-0b.7.5, RM-12.5.8).
 
-function pageErreur(status: number, titre: string, message: string) {
-  const html = `<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${titre} — Gerimmo</title>
-<style>
-  body { font-family: system-ui, sans-serif; display: flex; min-height: 100vh;
-         margin: 0; align-items: center; justify-content: center; background: #fafafa; color: #171717; }
-  main { max-width: 26rem; padding: 2rem; text-align: center; }
-  h1 { font-size: 1.25rem; margin-bottom: .5rem; }
-  p { color: #525252; font-size: .9rem; line-height: 1.5; }
-</style>
-</head>
-<body><main><h1>${titre}</h1><p>${message}</p><p>Vous pouvez fermer cet onglet et réessayer depuis la page Documents.</p></main></body>
-</html>`;
-  return new Response(html, {
-    status,
-    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
-  });
-}
 
 export async function GET(
   request: NextRequest,
@@ -43,11 +22,11 @@ export async function GET(
 
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) {
-    return pageErreur(
+    return pageErreurFichier(
       403,
       "Accès refusé",
       "Votre session a peut-être expiré, ou vous n'avez pas accès aux documents de cette agence. Reconnectez-vous puis réessayez."
-    );
+    , "depuis la page Documents");
   }
 
   const { data: doc } = await supabase
@@ -57,14 +36,14 @@ export async function GET(
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!doc) {
-    return pageErreur(404, "Document introuvable", "Ce document n'existe pas ou n'appartient pas à cette agence.");
+    return pageErreurFichier(404, "Document introuvable", "Ce document n'existe pas ou n'appartient pas à cette agence.", "depuis la page Documents");
   }
   if (doc.purged_at || !doc.storage_path) {
-    return pageErreur(
+    return pageErreurFichier(
       410,
       "Document purgé",
       "Ce document a été supprimé en application de sa règle de conservation (RGPD). Seule sa fiche de traçabilité subsiste."
-    );
+    , "depuis la page Documents");
   }
 
   const { error: erreurTrace } = await supabase.rpc("log_document_access", {
@@ -73,10 +52,10 @@ export async function GET(
   });
   if (erreurTrace) {
     // La trace est une exigence, pas une option : sans trace, pas d'accès
-    return pageErreur(
-      500,
+    return pageErreurFichier(500,
       "Accès momentanément impossible",
-      "La consultation n'a pas pu être enregistrée au journal d'accès ; elle est donc refusée. Réessayez dans un instant."
+      "La consultation n'a pas pu être enregistrée au journal d'accès ; elle est donc refusée. Réessayez dans un instant.",
+      "depuis la page Documents"
     );
   }
 
@@ -84,10 +63,10 @@ export async function GET(
     .from("documents")
     .download(doc.storage_path);
   if (erreurFichier || !fichier) {
-    return pageErreur(
-      502,
+    return pageErreurFichier(502,
       "Fichier indisponible",
-      "Le fichier n'a pas pu être relu depuis le stockage. Réessayez dans un instant ; si le problème persiste, signalez-le."
+      "Le fichier n'a pas pu être relu depuis le stockage. Réessayez dans un instant ; si le problème persiste, signalez-le.",
+      "depuis la page Documents"
     );
   }
 

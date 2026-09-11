@@ -68,6 +68,14 @@ export function FormulaireDiagnostic({
       setType(typeInitial ?? types[0]?.[0] ?? "");
     }, 0);
     return () => clearTimeout(minuterie);
+    // `typeInitial` et `types` sont volontairement hors des dépendances. Ils
+    // viennent du parent et ne changent pas de valeur pendant la vie du
+    // formulaire ; mais `types` est un TABLEAU RECONSTRUIT à chaque rendu du
+    // parent. Le déclarer ici ferait rejouer l'effet à chaque rendu tant que
+    // `etat.succes` reste vrai — c'est-à-dire vider le formulaire sous les
+    // doigts de celui qui vient de commencer le dépôt suivant. Le seul
+    // déclencheur légitime est l'arrivée d'un succès.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etat]);
 
   return (

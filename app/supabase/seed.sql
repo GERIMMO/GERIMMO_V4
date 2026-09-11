@@ -109,6 +109,16 @@ begin
   insert into public.detentions (organization_id, lot_id, person_id, quote_part)
   values (v_org_pd, v_lot, v_claire, 100);
 
+  -- UN SECOND BIEN, ET IL A UNE RAISON D'ÊTRE. Le premier bien est offert à
+  -- vie : avec un seul, « Mon abonnement » affiche 0 € et ne propose rien à
+  -- payer. Le banc ne pourrait donc jamais montrer ni éprouver l'encaissement
+  -- — ni le décompte, ni le bouton, ni le prorata. Ce studio est ce qui rend
+  -- la facturation observable (5,99 €/mois, décision humain du 2026-09-05).
+  insert into public.biens (organization_id, nom, type, address_line1, postal_code, city,
+                            annee_construction, copropriete, zone_tendue)
+  values (v_org_pd, 'Studio du Rhône', 'appartement', '7 quai Claude Bernard', '69007', 'Lyon',
+          2004, true, true);
+
   insert into public.persons (organization_id, nom, prenom, email, telephone)
   values (v_org_pd, 'Bernard', 'Lucas', 'locataire.pd@gerimmo-demo.fr', '06 12 34 56 78')
   returning id into v_person;

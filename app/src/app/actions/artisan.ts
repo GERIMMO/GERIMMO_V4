@@ -313,7 +313,7 @@ export async function deposerMaPiece(
   );
   if ("erreur" in prepare) return { erreur: prepare.erreur, valeurs };
 
-  const { error } = await supabase.rpc("deposer_ma_piece", {
+  const { error } = await supabase.rpc("deposer_ma_piece_artisan", {
     p_type: type,
     p_storage_path: prepare.chemin,
     p_mime: prepare.mime,

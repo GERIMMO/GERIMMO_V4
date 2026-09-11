@@ -250,13 +250,13 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     // Pas dans le dossier d'un autre.
     await expect(
       essai(
-        `select public.deposer_ma_piece('decennale',
+        `select public.deposer_ma_piece_artisan('decennale',
            'artisans/00000000-0000-0000-0000-000000000000/d.pdf','application/pdf',
            1000,'emp-vol',current_date, current_date + 365)`
       )
     ).rejects.toThrow(/Chemin de stockage invalide/);
     await db.query(
-      `select public.deposer_ma_piece('decennale',$1,'application/pdf',1000,'emp-dec',
+      `select public.deposer_ma_piece_artisan('decennale',$1,'application/pdf',1000,'emp-dec',
          current_date, current_date + 365)`,
       [`artisans/${artisan}/decennale.pdf`]
     );

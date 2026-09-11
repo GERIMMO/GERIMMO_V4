@@ -1572,7 +1572,15 @@ revoke execute on function public.mes_pieces_artisan() from public, anon;
 -- RM-8.2.1 : c'est l'ARTISAN qui dépose ses pièces, pas l'agence. Le chemin de
 -- stockage est contraint à `artisans/<son id>/` par la table : même une RPC
 -- mal appelée ne peut pas écrire dans le dossier d'un autre.
-create function public.deposer_ma_piece(
+--
+-- LE SUFFIXE `_artisan` N'EST PAS DÉCORATIF. `deposer_ma_piece` existe déjà
+-- pour le LOCATAIRE (p_org, p_demande, …). Deux surcharges de même nom sur le
+-- premier geste de l'artisan après son inscription — celui qui conditionne sa
+-- validation plateforme — c'est une résolution qui dépend du jeu de noms
+-- d'arguments : PostgREST s'en sort, l'émulateur de recette non (il indexe par
+-- nom seul), et le chemin devenait donc intestable hors ligne. Un nom distinct
+-- supprime l'ambiguïté au lieu de parier dessus.
+create function public.deposer_ma_piece_artisan(
   p_type public.artisan_piece_type, p_storage_path text, p_mime text,
   p_taille bigint, p_empreinte text, p_emise_le date, p_expire_le date)
 returns uuid language plpgsql security definer set search_path = '' as $$
@@ -1609,7 +1617,7 @@ begin
   return v_piece;
 end;
 $$;
-revoke execute on function public.deposer_ma_piece(public.artisan_piece_type, text, text, bigint, text, date, date) from public, anon;
+revoke execute on function public.deposer_ma_piece_artisan(public.artisan_piece_type, text, text, bigint, text, date, date) from public, anon;
 
 -- RM-8.4.2 : « il décide seul de sa visibilité ». Ni l'agence ni le super
 -- admin ne passent par ici.
@@ -2757,7 +2765,7 @@ begin
       'ouvrir_consultation', 'solliciter_artisan', 'retenir_devis',
       'fixer_creneau_arbitrage', 'reviser_imputation_apres_diagnostic',
       'annuler_mission', 'evaluer_artisan_gerant', 'interventions_a_evaluer',
-      'mon_artisan', 'mes_pieces_artisan', 'deposer_ma_piece',
+      'mon_artisan', 'mes_pieces_artisan', 'deposer_ma_piece_artisan',
       'definir_ma_visibilite', 'ma_note_artisan', 'mes_sollicitations',
       'decliner_sollicitation', 'deposer_devis', 'mon_agenda_artisan',
       'accepter_mission', 'refuser_mission', 'proposer_creneaux',

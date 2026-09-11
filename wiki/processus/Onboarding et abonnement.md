@@ -3,7 +3,7 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-30
+updated: 2026-09-11
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]"]
 ---
 
@@ -75,3 +75,65 @@ L'auto-inscription du propriétaire direct est en place (`/inscription` →
 Supabase Auth → `initialiser_espace_proprietaire`, essai 14 jours porté par
 `organizations.essai_fin`). La création d'agence reste réservée au super admin.
 Détail : [[Propriétaire bailleur]].
+
+## Livré le 2026-09-11 — l'ouverture et le chemin
+
+**Le super admin ouvre une organisation depuis la console.** Jusqu'ici, entre
+la demande reçue sur le site (« Demandes de devis », /admin/devis) et le client
+qui se connecte, il fallait ouvrir un client SQL : insérer l'organisation,
+insérer l'adhésion, fabriquer le compte de son responsable. Le geste le plus
+commercial du produit était le seul à ne pas exister.
+
+`ouvrir_organisation(nom, type, email, essai_jours, active_immediatement)` crée
+l'organisation, le compte du premier responsable et l'adhésion qui les relie ;
+l'application envoie ensuite l'invitation par le même chemin que « mot de passe
+oublié ». Le rôle découle du type — une agence a un administrateur, un parc a
+son propriétaire. Le compte est **réutilisé** s'il existe déjà (le responsable
+gère peut-être une autre agence, ou est locataire ailleurs). L'écran s'ouvre
+aussi depuis une demande de devis, qu'il préremplit et marque traitée.
+
+**Le client arrivé voit le chemin.** `parcours_demarrage(org)` rend cinq
+étapes, dans l'ordre où la base les exige : identité · premier bien · lot en
+état d'être loué · locataire · bail. Chacune est **constatée sur les données**,
+jamais cochée à la main — un parcours qu'on coche finit par affirmer une étape
+que les données démentent. L'étape « lot prêt » interroge
+`lot_blocages_location`, la fonction qui décide déjà de la mise en location :
+une seule liste de conditions dans le produit, et elle dit CE QUI bloque
+(détention incomplète, DPE absent…). Le bloc n'ouvre qu'une porte à la fois —
+la suivante — et **disparaît** une fois le premier bail actif.
+
+### L'import courant (16.3) — livré le même jour
+
+Une agence qui arrive avec cinquante lots les saisissait un par un : six
+écrans, cinquante fois. `/agence/<org>/parc/import` reprend le parc depuis un
+tableur, **une ligne par lot** — le bien, son lot, son propriétaire et sa
+quote-part, le locataire en place s'il y en a un.
+
+- **Deux passes.** Le contrôle n'écrit rien et rend, ligne par ligne, ce qui
+  passera ; l'import ne devient possible qu'ensuite. On ne fait pas basculer un
+  parc sur un fichier que personne n'a regardé.
+- **Le fichier du client, pas un format.** Séparateur détecté (le
+  point-virgule d'Excel francophone comme la virgule des exports), guillemets
+  honorés, en-têtes reconnus sans accents ni casse, colonnes inconnues ignorées
+  et non refusées. Le gabarit se télécharge depuis l'écran et **se relit
+  lui-même** (un test le vérifie).
+- **Rien n'est dupliqué** : deux lignes du même nom de bien vont dans le même
+  immeuble, un propriétaire nommé deux fois n'a qu'une fiche, et rejouer un
+  fichier corrigé ne fabrique pas un second parc.
+- **Une ligne qui tombe n'emporte pas les autres** : elle est rapportée avec le
+  motif que la base a donné, les autres passent.
+
+> [!warning] Les baux arrivent en BROUILLON — et c'est la règle, pas une limite
+> Activer un bail passe par `controler_mise_en_location` : diagnostics, état
+> des lieux d'entrée, mentions obligatoires. Un import qui créerait des baux
+> **actifs** contournerait ces contrôles en masse — exactement ce qu'ils
+> existent pour empêcher. L'import pose les montants et les dates ; ce qui
+> manque pour activer est dit lot par lot par `lot_blocages_location`.
+
+> [!warning] Ce qui manque encore
+> La **reprise de portefeuille comptable** (`reprises_portefeuille`,
+> `reprise_soldes`, balance d'ouverture à écart zéro) existe en base depuis le
+> 03/09 mais **aucun code ne l'utilise** : l'import courant reprend le parc,
+> pas les soldes (dépôts de garantie détenus, avances, fonds mandants). Une
+> agence qui bascule en cours d'exercice les saisit encore à la main.
+

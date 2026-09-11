@@ -20,6 +20,7 @@ import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 import { FilActivite } from "./fil-activite";
 import { AccueilProprietaire } from "./accueil-proprietaire";
+import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -553,6 +554,14 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           forcément absent de votre agence : rechargez dans un instant.
         </div>
       )}
+
+      {/* 0. Le chemin du démarrage — AVANT tout le reste tant qu'il reste une
+          étape, et invisible ensuite. Une agence qui vient d'ouvrir n'a ni
+          action ni chiffre : ce qu'elle attend, c'est de savoir par où
+          commencer. */}
+      <div className="mt-6">
+        <ParcoursDemarrage supabase={supabase} orgId={orgId} />
+      </div>
 
       {/* 1. Ce qu'il y a à faire. L'écran du matin commence par là : les
           chiffres viennent après, ils racontent, ils ne demandent rien. */}

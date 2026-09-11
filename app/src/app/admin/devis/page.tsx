@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { formaterDateHeure } from "@/lib/ged";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonDevisTraite } from "./bouton-traite";
@@ -82,7 +83,19 @@ export default async function PageDevisAdmin() {
                     Traitée le {formaterDateHeure(d.traitee_le)}
                   </span>
                 ) : (
-                  <BoutonDevisTraite id={d.id} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* La suite naturelle d'une demande acceptée : ouvrir
+                        l'agence. Elle préremplit le nom et l'adresse, et marque
+                        la demande traitée — sans quoi la file garde une ligne
+                        dont la suite a déjà eu lieu. */}
+                    <Link
+                      href={`/admin/organisations/nouvelle?demande=${d.id}`}
+                      className="btn-or"
+                    >
+                      Ouvrir l&apos;organisation
+                    </Link>
+                    <BoutonDevisTraite id={d.id} />
+                  </div>
                 )}
               </div>
             </div>

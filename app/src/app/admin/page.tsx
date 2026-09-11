@@ -116,7 +116,16 @@ export default async function PageAdmin() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>Supervision</h1>
-        <span className="mono-discret">{organisations.length} organisation{organisations.length > 1 ? "s" : ""}</span>
+        <div className="flex items-center gap-3">
+          <span className="mono-discret">
+            {organisations.length} organisation{organisations.length > 1 ? "s" : ""}
+          </span>
+          {/* Le geste le plus commercial du produit : il n'existait pas, et
+              l'ouverture d'une agence se faisait en SQL. */}
+          <Link href="/admin/organisations/nouvelle" className="btn-or">
+            Ouvrir une organisation
+          </Link>
+        </div>
       </div>
 
       {enEchec.length > 0 && (

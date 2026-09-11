@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { CoquilleAuth } from "@/components/coquille-auth";
 import { FormulaireNouveauMotDePasse } from "./formulaire-nouveau-mot-de-passe";
 
 export const metadata = { title: "Nouveau mot de passe — Gerimmo" };
@@ -14,21 +14,14 @@ export default async function PageNouveauMotDePasse() {
   if (!user) redirect("/connexion?raison=lien-invalide");
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <div className="mb-4 flex justify-center">
-            <MarqueGerimmo />
-          </div>
-          <h1>Nouveau mot de passe</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Compte : {user.email}. Choisissez un mot de passe d&apos;au moins
-            12 caractères — il sera vérifié contre les fuites de données
-            connues.
-          </p>
-        </div>
-        <FormulaireNouveauMotDePasse />
-      </div>
-    </main>
+    <CoquilleAuth
+      promesse="Un mot de passe, et rien d'autre à retenir."
+      sousPromesse="Douze caractères au moins. Il est vérifié contre les fuites de données connues : un mot de passe déjà exposé ailleurs est refusé ici."
+      mention="Un seul compte, tous vos espaces"
+      titre="Nouveau mot de passe"
+      chapo={`Compte : ${user.email}. Choisissez un mot de passe d'au moins 12 caractères — il sera vérifié contre les fuites de données connues.`}
+    >
+      <FormulaireNouveauMotDePasse />
+    </CoquilleAuth>
   );
 }

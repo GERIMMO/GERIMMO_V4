@@ -70,6 +70,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: personnes },
     { data: bailPersonnes },
     { data: intentions },
+    { data: mentionsManquantes },
   ] = await Promise.all([
       supabase.from("lots").select("id, nom, bien_id, meuble, bien:biens!lots_bien_id_fkey(zone_tendue)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
@@ -113,7 +114,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .eq("bail_id", bailId)
         .is("traitee_le", null)
         .order("created_at", { ascending: false }),
+      // Mentions obligatoires du contrat encore absentes (date de prise
+      // d'effet, loyer hors charges, locataire — wiki « Mentions obligatoires
+      // du bail »). La base les exige à l'activation : l'écran les nomme
+      // AVANT le geste plutôt que de laisser le dépôt du PDF échouer. Même
+      // source que le contrôle, pour qu'écran et base ne divergent jamais.
+      supabase.rpc("bail_mentions_manquantes", { p_bail: bailId }),
     ]);
+  const mentions: string[] = Array.isArray(mentionsManquantes) ? mentionsManquantes : [];
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
   const nomsPersonnes = new Map(
@@ -259,6 +267,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // bail signé active le bail et loue le lot ; l'état des lieux d'entrée se
   // signe à la remise des clés, avant ou après, et une alerte le rappelle.
   if (bail.etat === "brouillon") {
+    // En premier : sans ses mentions obligatoires, le bail ne s'active pas —
+    // inutile d'envoyer l'agent chercher le PDF signé avant de le lui dire.
+    if (mentions.length > 0)
+      aFaire.push({
+        texte: `Compléter les mentions obligatoires du contrat (${mentions.join(", ").toLowerCase()})`,
+        href: "#corriger",
+      });
     if (!edlEntreeSigne && piecesDuLot === 0)
       aFaire.push({
         texte:
@@ -267,10 +282,11 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       });
     if (!edlEntreeSigne)
       aFaire.push({ texte: "Réaliser et signer l'état des lieux d'entrée (à la remise des clés)", href: "#edl" });
-    aFaire.push({
-      texte: "Déposer le bail signé (PDF) — il active le bail et loue le lot",
-      href: "#bail-signe",
-    });
+    if (mentions.length === 0)
+      aFaire.push({
+        texte: "Déposer le bail signé (PDF) — il active le bail et loue le lot",
+        href: "#bail-signe",
+      });
   } else {
     // Déclarer les pièces vient AVANT l'état des lieux : une fois signé, il est
     // figé, et une grille sans pièces ne rattache aucune dégradation à un endroit.
@@ -361,7 +377,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {/* Brouillon corrigeable (recette 21/08) : la saisie de création se
           reprend ici tant que le bail n'est pas signé. */}
       {bail.etat === "brouillon" && (
-        <Card>
+        <Card id="corriger" className="scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Corriger le brouillon</CardTitle>
             <CardDescription>

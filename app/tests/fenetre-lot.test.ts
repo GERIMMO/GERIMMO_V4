@@ -575,12 +575,133 @@ describe.skipIf(!DB_URL)("La fenêtre du lot", () => {
     });
   });
 
+  describe("L'échelle de relance : trois niveaux, pas quatre (12/09)", () => {
+    it("rend les TROIS niveaux du produit, franchis ou non", async () => {
+      await devenir(patron);
+      const { rows } = await db.query<{ niveau: string; rang: number; envoye_le: string | null }>(
+        "select niveau, rang, envoye_le from public.relances_du_lot($1)",
+        [lotConfie]
+      );
+      expect(rows.map((r) => r.niveau)).toEqual([
+        "relance_1",
+        "relance_2",
+        "mise_en_demeure",
+      ]);
+      // Le gabarit du 12/09 en dessinait un quatrième, « commandement de
+      // payer » : c'est un acte d'huissier, que la plateforme ne délivre pas.
+      expect(rows).toHaveLength(3);
+      expect(rows.every((r) => r.envoye_le === null)).toBe(true);
+    });
+
+    it("un niveau franchi porte sa date — et la PLUS RÉCENTE s'il l'est deux fois", async () => {
+      await db.query(
+        `insert into public.relances (organization_id, bail_id, niveau, date_envoi)
+         values ($1,$2,'relance_1', current_date - 10), ($1,$2,'relance_1', current_date - 2)`,
+        [org, bail]
+      );
+      await devenir(patron);
+      // Le jour comparé en SQL : `pg` rend une Date JS, dont la sérialisation
+      // dépend du fuseau du processus de test.
+      const { rows } = await db.query<{ niveau: string; jours: string }>(
+        `select niveau, (current_date - envoye_le)::text as jours
+           from public.relances_du_lot($1) where envoye_le is not null`,
+        [lotConfie]
+      );
+      expect(rows).toHaveLength(1);
+      // On peut relancer deux fois au même niveau : c'est la date la plus
+      // récente qui dit où en est le dossier.
+      expect(Number(rows[0].jours)).toBe(2);
+    });
+
+    it("un agent hors portefeuille n'en lit aucune", async () => {
+      await devenir(agent);
+      const { rows } = await db.query("select * from public.relances_du_lot($1)", [lotEtranger]);
+      expect(rows).toHaveLength(0);
+    });
+  });
+
+  describe("L'historique, assemblé depuis les faits (12/09)", () => {
+    /**
+     * CE QUE CE TEST PROTÈGE. Il n'existe pas de journal d'événements dans le
+     * produit — `audit_log` ne consigne que les consultations d'organisation.
+     * En créer un aujourd'hui ne dirait rien du passé : il démarrerait vide sur
+     * un lot géré depuis deux ans. L'historique est donc RECOMPOSÉ, et ce test
+     * vérifie qu'il l'est depuis toutes ses sources à la fois.
+     */
+    it("réunit le bail, le terme appelé, l'encaissement et la relance", async () => {
+      await db.query(
+        `insert into public.encaissements (organization_id, bail_id, montant, date_paiement, mode)
+         values ($1,$2,250,current_date - 3,'virement')`,
+        [org, bail]
+      );
+      await db.query(
+        `insert into public.relances (organization_id, bail_id, niveau, date_envoi)
+         values ($1,$2,'relance_1', current_date - 1)`,
+        [org, bail]
+      );
+      await devenir(patron);
+      const { rows } = await db.query<{ nature: string; titre: string; montant: string | null }>(
+        "select nature, titre, montant from public.historique_du_lot($1, 40)",
+        [lotConfie]
+      );
+      const natures = new Set(rows.map((r) => r.nature));
+      expect(natures).toContain("bail");
+      expect(natures).toContain("appel");
+      expect(natures).toContain("encaissement");
+      expect(natures).toContain("relance");
+    });
+
+    it("le montant sort NU — la mise en forme française est l'affaire de l'écran", async () => {
+      await db.query(
+        `insert into public.encaissements (organization_id, bail_id, montant, date_paiement, mode)
+         values ($1,$2,250,current_date - 3,'virement')`,
+        [org, bail]
+      );
+      await devenir(patron);
+      const { rows } = await db.query<{ montant: string }>(
+        "select montant from public.historique_du_lot($1, 40) where nature = 'encaissement'",
+        [lotConfie]
+      );
+      // `to_char` suivait la locale du serveur et rendait « 250.00 € » sur une
+      // base anglophone. Le nombre sort donc tel quel.
+      expect(Number(rows[0].montant)).toBe(250);
+    });
+
+    it("la catégorie d'un incident sort en CODE, pas en français", async () => {
+      await db.query(
+        `insert into public.incidents (organization_id, numero, lot_id, canal, categorie, description)
+         values ($1,'INC-2026-0001',$2,'espace_locataire','plomberie_joint','Fuite sous l''évier')`,
+        [org, lotConfie]
+      );
+      await devenir(patron);
+      const { rows } = await db.query<{ titre: string; code: string | null }>(
+        "select titre, code from public.historique_du_lot($1, 40) where nature = 'incident'",
+        [lotConfie]
+      );
+      // Les mots français vivent dans `src/lib/incidents.ts` : les recopier en
+      // base se donnerait deux tables de libellés à tenir d'accord.
+      expect(rows[0].code).toBe("plomberie_joint");
+      expect(rows[0].titre).toBe("Incident déclaré");
+    });
+
+    it("rien ne remonte d'un lot hors du portefeuille de l'agent", async () => {
+      await devenir(agent);
+      const { rows } = await db.query("select * from public.historique_du_lot($1, 40)", [
+        lotEtranger,
+      ]);
+      expect(rows).toHaveLength(0);
+    });
+  });
+
   describe("Aucune de ces fonctions n'est ouverte à anon", () => {
     it.each([
       "fiche_lot(uuid)",
       "documents_du_lot(uuid)",
       "comptabilite_du_lot(uuid, date)",
       "rapport_du_lot(uuid, date)",
+      "relances_du_lot(uuid)",
+      "historique_du_lot(uuid, integer)",
+      "detenteur_principal_du_lot(uuid)",
     ])("%s est fermée à anon et à public", async (signature) => {
       await redevenirService();
       const { rows } = await db.query<{ anon: boolean; pub: boolean }>(

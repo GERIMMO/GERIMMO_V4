@@ -11,9 +11,9 @@ import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 //    navigation vers une autre page passerait le test de « on voit le lot » et
 //    raterait la demande.
 //
-// 2. **Les volets ne chargent qu'au déroulé.** Sur un portefeuille de trois
-//    cents lots, tout ramener d'un coup se paierait trois cents fois par jour.
-//    On vérifie donc qu'AVANT le clic, le contenu n'est pas là.
+// 2. **Les onglets ne chargent qu'à l'ouverture.** Sur un portefeuille de
+//    trois cents lots, tout ramener d'un coup se paierait trois cents fois par
+//    jour. On vérifie donc qu'AVANT le clic, le contenu n'est pas là.
 //
 // 3. **La portée.** Le locataire ouvre la MÊME fenêtre et n'y voit ni le
 //    propriétaire, ni les honoraires de l'agence. Ce test-là est le seul qui
@@ -50,31 +50,69 @@ test.describe("Côté agence", () => {
     expect(page.url()).toBe(urlAvant);
   });
 
-  test("les deux volets ne chargent qu'au déroulé", async ({ page }) => {
+  test("l'impayé et ses gestes arrivent AVANT le reste", async ({ page }) => {
+    // Le cœur du gabarit : on n'ouvre pas un lot pour le lire, on l'ouvre
+    // parce que quelque chose s'y passe. Le bandeau précède donc les onglets.
+    await page.goto(`/agence/${ORG}/parc`);
+    await page.getByRole("button", { name: /E2E Lot 1/ }).first().click();
+    const f = fenetre(page);
+    const bandeau = f.getByRole("region", { name: "Impayé à traiter" });
+    await expect(bandeau).toBeVisible();
+    await expect(bandeau.getByRole("button", { name: "Règlement partiel" })).toBeVisible();
+    await expect(bandeau.getByRole("button", { name: "Relancer" })).toBeVisible();
+
+    const hautBandeau = await bandeau.evaluate((el) => el.getBoundingClientRect().top);
+    const hautOnglets = await f
+      .getByRole("tablist")
+      .evaluate((el) => el.getBoundingClientRect().top);
+    expect(hautBandeau, "le bandeau d'action précède les onglets").toBeLessThan(hautOnglets);
+  });
+
+  test("l'échelle de relance montre les TROIS niveaux du produit", async ({ page }) => {
+    // Le gabarit en dessinait quatre, dont « commandement de payer » : un acte
+    // d'huissier, que la plateforme ne délivre pas. Un bouton qui ne peut rien
+    // déclencher promet un pouvoir qu'on n'a pas.
+    await page.goto(`/agence/${ORG}/parc`);
+    await page.getByRole("button", { name: /E2E Lot 1/ }).first().click();
+    const bandeau = fenetre(page).getByRole("region", { name: "Impayé à traiter" });
+    await expect(bandeau.getByText("Relance simple")).toBeVisible();
+    await expect(bandeau.getByText("Seconde relance")).toBeVisible();
+    await expect(bandeau.getByText(/Mise en demeure/)).toBeVisible();
+    await expect(bandeau.getByText(/commandement/i)).toHaveCount(0);
+  });
+
+  test("les onglets ne chargent qu'à l'ouverture", async ({ page }) => {
     await page.goto(`/agence/${ORG}/parc`);
     await page.getByRole("button", { name: /E2E Lot 1/ }).first().click();
     const f = fenetre(page);
     await expect(f).toBeVisible();
 
-    const documents = f.getByRole("button", { name: "Documents" });
-    const comptabilite = f.getByRole("button", { name: /Comptabilité/ });
-    await expect(documents).toHaveAttribute("aria-expanded", "false");
-    await expect(comptabilite).toHaveAttribute("aria-expanded", "false");
-    // Rien du contenu n'est dans l'arbre tant qu'on n'a pas déroulé.
+    // Rien de la comptabilité n'est dans l'arbre tant qu'on n'y va pas.
     await expect(f.getByText("Journal du lot")).toHaveCount(0);
 
-    await comptabilite.click();
-    await expect(comptabilite).toHaveAttribute("aria-expanded", "true");
+    await f.getByRole("tab", { name: "Comptabilité" }).click();
     await expect(f.getByText("Journal du lot")).toBeVisible();
     // Le geste que la page « Loyers & charges » portait est ici, sur le lot.
     await expect(f.getByText("Dépense sur ce lot")).toBeVisible();
+  });
+
+  test("l'historique est reconstitué depuis les faits", async ({ page }) => {
+    await page.goto(`/agence/${ORG}/parc`);
+    await page.getByRole("button", { name: /E2E Lot 1/ }).first().click();
+    const f = fenetre(page);
+    await f.getByRole("tab", { name: "Historique" }).click();
+    await expect(f.getByText(/Reconstitué depuis les faits/)).toBeVisible();
+    // L'encaissement du seed y figure, avec son montant.
+    await expect(f.getByText("Encaissement").first()).toBeVisible();
+    // Et la catégorie d'incident est dite en français, pas en code.
+    await expect(f.getByText(/plomberie_joint/)).toHaveCount(0);
   });
 
   test("le rapport annonce ce qu'il couvre AVANT le clic", async ({ page }) => {
     await page.goto(`/agence/${ORG}/parc`);
     await page.getByRole("button", { name: /E2E Lot 1/ }).first().click();
     const f = fenetre(page);
-    await f.getByRole("button", { name: /Comptabilité/ }).click();
+    await f.getByRole("tab", { name: "Comptabilité" }).click();
     await expect(f.getByText(/Rapport de gestion/)).toBeVisible();
     await expect(f.getByText(/Adressé à E2E Mandant/)).toBeVisible();
     await expect(
@@ -131,14 +169,17 @@ test.describe("Côté locataire", () => {
 
     // Ce qu'il voit : son bail, ses loyers, ses documents.
     await expect(f.getByText("Mon bail", { exact: true })).toBeVisible();
-    await expect(f.getByRole("button", { name: "Mes loyers" })).toBeVisible();
-    await expect(f.getByRole("button", { name: "Documents" })).toBeVisible();
+    await expect(f.getByRole("tab", { name: "Mes loyers" })).toBeVisible();
+    await expect(f.getByRole("tab", { name: "Documents" })).toBeVisible();
 
     // Ce qu'il NE voit PAS — et que la base ne lui rend même pas.
     const texte = await f.innerText();
     expect(texte).not.toContain("E2E Mandant");
     expect(texte.toLowerCase()).not.toContain("honoraires");
     expect(texte).not.toContain("Propriétaire");
+    // Ni l'échelle de relance : relancer un locataire est un geste d'agence.
+    expect(texte).not.toContain("Mise en demeure");
+    expect(texte).not.toContain("Règlement partiel");
     // Le pied ne l'envoie pas dans l'espace agence, où il n'entre pas.
     await expect(f.getByRole("link", { name: "Voir mon bail en entier" })).toHaveAttribute(
       "href",
@@ -150,7 +191,7 @@ test.describe("Côté locataire", () => {
     await page.goto(`/locataire/${ORG}/logement`);
     await page.getByRole("button", { name: /Tout mon logement/ }).click();
     const f = fenetre(page);
-    await f.getByRole("button", { name: "Mes loyers" }).click();
+    await f.getByRole("tab", { name: "Mes loyers" }).click();
     await expect(f.getByRole("link", { name: /Voir tous mes paiements/ })).toBeVisible();
     // La comptabilité du lot n'existe pas pour lui.
     await expect(f.getByText("Journal du lot")).toHaveCount(0);

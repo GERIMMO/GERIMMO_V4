@@ -3795,3 +3795,68 @@ qui sait d'où il vient), la configuration ne servant que de filet.
 
 663 tests (662 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 64 E2E verts,
 ESLint silencieux, build vert.
+
+## [2026-09-12] dev   | La fenêtre du lot, sur le gabarit de l'humain
+
+L'humain a remis un gabarit d'écran — `fiche-lot-v1.html` — avec ces mots :
+« voilà exactement ce que je veux sur le bouton lot ». Il apporte quatre choses
+que la fenêtre du matin n'avait pas.
+
+1. **Un en-tête qui porte l'état** : vignette, adresse en titre, et des
+   pastilles — loué, impayé, sous mandat ou hors mandat.
+2. **Un bandeau d'action EN TÊTE**, avant tout le reste : le montant impayé,
+   l'échelle de relance là où on en est, et les gestes qui la font avancer.
+   C'est le cœur du gabarit : on n'ouvre pas un lot pour le lire, on l'ouvre
+   parce que quelque chose s'y passe.
+3. **Des onglets** (Résumé · Documents · Comptabilité · Historique) à la place
+   des deux volets dépliants, qui obligeaient à faire défiler la fenêtre
+   entière pour atteindre la comptabilité.
+4. **Un historique**.
+
+**Deux endroits où le gabarit allait plus vite que le produit, et qu'on n'a
+donc pas suivis.**
+
+- Il dessine **quatre étapes de relance**, dont « commandement de payer ». Le
+  produit en connaît trois (`relances.niveau`), et c'est juste : le
+  commandement est un acte d'huissier, que ni l'agence ni la plateforme ne
+  délivrent. Un bouton qui ne peut rien déclencher promet un pouvoir qu'on n'a
+  pas. Les trois vraies étapes sont dessinées entières — franchie, courante, à
+  venir — avec leur date d'envoi.
+- Il affiche un historique **comme s'il existait un journal d'événements**. Il
+  n'en existe pas : `audit_log` ne consigne que les consultations
+  d'organisation. En créer un aujourd'hui ne dirait rien du passé — il
+  démarrerait vide sur un lot géré depuis deux ans. L'historique est donc
+  **assemblé** depuis les faits déjà enregistrés : bail, termes appelés,
+  encaissements, quittances et reçus, relances, états des lieux, incidents. Il
+  est complet dès la première ouverture.
+
+Une troisième liberté, plus petite : le gabarit montre une **photo du bien**.
+Le produit n'en stocke aucune, et une image d'illustration ferait croire que
+c'est celle de ce lot-là. La vignette porte le monogramme de la ville, comme
+l'espace locataire le fait déjà.
+
+**Les couleurs viennent des jetons, pas du gabarit** (module 17, marque
+blanche) : une agence qui change ses couleurs doit voir cette fenêtre changer
+avec elle. Le gabarit donne la forme, la charte donne le ton.
+
+**Ce que la fenêtre sait faire, et que le gabarit se contentait de mimer** :
+encaisser un terme, enregistrer un règlement partiel (avec son reçu, RM-3.4.2 :
+pas de quittance tant que le terme n'est pas soldé), franchir l'étape de
+relance suivante, saisir une dépense, envoyer le rapport au mandant, générer un
+avis d'échéance et une révision IRL — tous ces gestes existaient déjà, ils sont
+simplement venus au contact du lot.
+
+**Un défaut trouvé en chemin, qui touchait TOUTES les modales du produit.**
+`Modale` portait deux classes de largeur — la taille voulue, puis le garde-fou
+`max-w-[calc(100vw-2rem)]` — de même spécificité : c'est l'ordre de la feuille
+compilée qui tranchait, et le garde-fou gagnait. La fenêtre prenait 1248 px au
+lieu de 768. Une seule classe avec `min()` désormais : rien n'a plus à gagner.
+C'est le même piège que celui des boutons ce matin, à un autre endroit.
+
+**La portée tient** : le locataire ouvre la même fenêtre, sans l'échelle de
+relance (relancer est un geste d'agence), sans le propriétaire, sans les
+honoraires — et la base ne lui rend même pas ces colonnes.
+
+673 tests (672 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 66 E2E verts,
+ESLint silencieux, build vert. Migration posée en production :
+`fenetre_du_lot_relances_et_historique`.

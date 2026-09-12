@@ -3543,3 +3543,35 @@ jamais fermée en silence.
 
 582 tests (579 passent, 1 rouge délibéré, 2 ignorés), 48 E2E verts, ESLint à
 zéro, build vert.
+
+## [2026-09-12] query  | Proposer une grille tarifaire pour les agences
+
+Constat de départ : la grille agence actée le 25/07 (79/149/249/399 €/mois par
+palier, + mise en route, + redevance annuelle) **n'est implémentée nulle part**.
+`etat_abonnement` applique 5,99 €/bien à tout le monde et « Mon abonnement » est
+masqué aux agences — aucune agence ne peut payer aujourd'hui.
+
+Le défaut rédhibitoire de la grille par paliers est **la marche** : 50 → 51 lots
+fait passer la facture de 79 € à 149 €, **+89 % pour un lot de plus**. Une agence
+ne saisira pas ce lot, ou appellera pour négocier. Dans les deux cas le prix
+abîme la donnée : le parc dans l'outil cesse d'être le parc réel, et les relevés
+de gestion, régularisations et états fiscaux qui en découlent deviennent faux.
+
+Proposition filée dans [[Grille tarifaire agence — proposition]] : un **barème
+par tranches** (3,90 / 2,00 / 1,30 / 0,80 / 0,50 € par lot selon la tranche),
+plancher à 39 €/mois, ni mise en route ni redevance — un seul prélèvement, un
+seul abonnement Stripe. Le même passage de palier coûte alors **1,30 €** au lieu
+de +70 €.
+
+Elle ressort 25 à 50 % au-dessus de la grille de juillet, et c'est assumé : le
+tarif propriétaire direct est déjà passé de 2,50 à 5,99 € le 05/09 (« montée en
+gamme »), et la grille de juillet précède le module incident/artisan qui est le
+différenciateur du produit ([[Analyse concurrentielle]]).
+
+**Ce qu'elle impose au code** : changer l'unité comptée. `abonnement_quantite_cible`
+compte les BIENS ; pour une agence, un immeuble de trente lots compte alors pour
+un. Le référentiel dit déjà quoi compter — lot sous mandat actif au dernier jour
+du mois (RM-18.6) — et `mandat_lignes` porte ce qu'il faut.
+
+Niveaux, sort de la mise en route et loyer moyen de l'hypothèse : **à trancher
+par l'humain**. Tant que rien n'est arbitré, [[Grille tarifaire]] fait foi.

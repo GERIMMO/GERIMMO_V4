@@ -134,6 +134,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.
 - [[Audit espaces locataire et proprietaire|Audit des espaces locataire et propriétaire]] — audit pré-recette du 06/09 : 10 bloquants (congé en ligne vs RM-A3, colocataires, préavis, storage des justificatifs, déconnexion mobile, impasse détention PD…), conformités vérifiées, plan de correction en 3 vagues.
 - [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.
+- [[Grille tarifaire agence — proposition]] — barème par tranches sans marche ; **en attente d'arbitrage**.
 - [[Fonctionnalités par persona]] — matrice qui-fait-quoi (implémenté vs cible).
 - [[Etat des lieux generation de documents]] — les 50 templates PDF croisés avec la base : vagues de couverture, dette de référentiel, ordre de réalisation (Documents-0).
 - [[Documents a generer et automatisation WhatsApp]] — blueprint des documents (bail, EDL, congés…) : champ par champ AUTO vs à demander, données manquantes, surface de questions minimale pour le bot.

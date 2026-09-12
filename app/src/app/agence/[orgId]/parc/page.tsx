@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
+import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { resumerBlocage } from "@/lib/echeances";
 import { etiqueterNiveau } from "@/lib/diagnostics";
 import {
@@ -206,12 +207,21 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               appartient à l'agence. */}
           {biensVisibles.length > 0 && (
             <>
-              <Link
-                href={`/agence/${orgId}/parc/import`}
-                className="lien-discret text-[13px]"
-              >
-                Reprendre un parc
-              </Link>
+              {/* « Reprendre un parc » N'EST PAS OFFERT À UN AGENT : la page
+                  d'import le refuse (`notFound`), parce qu'un import engage
+                  tout le parc et appartient au responsable. Le lien, lui, était
+                  montré à tout le monde — un agent le voyait, cliquait, et
+                  tombait sur « page introuvable » (relevé au balayage des
+                  boutons, 12/09). Un chemin qu'on propose doit mener quelque
+                  part : on aligne le lien sur la garde, pas l'inverse. */}
+              {ROLES_RESPONSABLES.includes(role) && (
+                <Link
+                  href={`/agence/${orgId}/parc/import`}
+                  className="lien-discret text-[13px]"
+                >
+                  Reprendre un parc
+                </Link>
+              )}
               <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
                 + Ajouter un bien
               </Link>
@@ -259,13 +269,18 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   Créer mon premier bien
                 </Link>
               </div>
-              <p className="mt-3 text-[13px] text-muted-foreground">
-                Vous arrivez avec un parc déjà constitué ?{" "}
-                <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">
-                  Reprenez-le depuis un tableur
-                </Link>{" "}
-                — une ligne par lot, en une fois.
-              </p>
+              {/* Même garde que plus haut : la reprise appartient au
+                  responsable. Un agent devant un portefeuille vide se voyait
+                  proposer un chemin qui lui répond « page introuvable ». */}
+              {ROLES_RESPONSABLES.includes(role) && (
+                <p className="mt-3 text-[13px] text-muted-foreground">
+                  Vous arrivez avec un parc déjà constitué ?{" "}
+                  <Link href={`/agence/${orgId}/parc/import`} className="lien-discret">
+                    Reprenez-le depuis un tableur
+                  </Link>{" "}
+                  — une ligne par lot, en une fois.
+                </p>
+              )}
             </>
           )}
         </div>

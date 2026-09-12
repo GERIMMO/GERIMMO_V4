@@ -3627,3 +3627,23 @@ assez d'alertes pour que le compteur s'affiche.
 
 614 tests (611 passent, 1 rouge délibéré, 2 ignorés), 53 E2E verts, ESLint à
 zéro, build vert.
+
+## [2026-09-12] dev   | Les chiffres redeviennent lisibles
+
+Relevé en préparant la refonte visuelle, et corrigé sans attendre : **Cormorant
+Garamond dessine des chiffres elzéviriens par défaut**. Le « 1 » y est un
+bâtonnet de la hauteur d'un x, le « 0 » descend sous la ligne. Sur les écrans du
+produit, « 11 demandes » se lisait *II demandes*, « 1 bail » se lisait *ı bail*,
+et « 700,00 € » devenait indéchiffrable.
+
+Ce n'est pas une affaire de goût. Un chiffre qu'on ne peut pas lire dans un
+produit qui compte des loyers est un défaut de lisibilité, au même titre qu'un
+contraste insuffisant. Il touchait **tous les espaces** — agence, propriétaire,
+locataire, artisan — partout où un montant ou un compteur passe par la police de
+titrage.
+
+`font-variant-numeric: lining-nums` est posé sur les sept déclarations de la
+police de titrage, sur la classe utilitaire `font-heading` que les composants
+posent en JSX (aucune règle d'élément ne la couvrait), et la déclaration tardive
+de `.montant` qui n'imposait que `tabular-nums` est complétée plutôt que laissée
+en contradiction avec la nouvelle.

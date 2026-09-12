@@ -222,13 +222,26 @@
     @apply font-sans;
   }
 
-  /* Charte — titres en Cormorant Garamond : 27 px page, 21–23 px section,
+  /* CHIFFRES ALIGNÉS, PARTOUT OÙ LA POLICE DE TITRAGE SERT.
+   Ce n'est pas une préférence, c'est une lisibilité. Cormorant Garamond
+   dessine par défaut des chiffres ELZÉVIRIENS : le « 1 » y est un bâtonnet de
+   la hauteur d'un x, le « 0 » descend sous la ligne. Relevé au navigateur le
+   12/09 : « 11 demandes » se lisait « II demandes », « 1 bail » se lisait
+   « ı bail », « 700,00 € » devenait indéchiffrable. Un chiffre illisible dans
+   un produit qui compte des loyers n'est pas un détail de goût.
+   `.font-heading` est la classe utilitaire que les composants posent en JSX :
+   elle passe par Tailwind et n'est couverte par aucune règle d'élément. */
+.font-heading {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* Charte — titres en Cormorant Garamond : 27 px page, 21–23 px section,
      couleur encre. Les tailles Tailwind des composants restent respectées ;
      seules la police et la couleur sont imposées ici. */
   h1,
   h2,
   h3 {
-    font-family: var(--font-titres), Georgia, serif;
+    font-family: var(--font-titres), Georgia, serif; font-variant-numeric: lining-nums;
     color: var(--encre);
     font-weight: 500;
     letter-spacing: 0.01em;
@@ -312,7 +325,7 @@ a:hover > [data-slot="card"] {
 
 /* Charte — chiffre clé : Cormorant ~29 px (maquette .kpi .chiffre) */
 .chiffre-cle {
-  font-family: var(--font-titres), Georgia, serif;
+  font-family: var(--font-titres), Georgia, serif; font-variant-numeric: lining-nums;
   font-size: 1.8125rem; /* 29 px */
   font-weight: 500;
   line-height: 1.1;
@@ -361,7 +374,7 @@ a:hover > [data-slot="card"] {
 .kpi.bleu { border-left-color: var(--bleu); }
 .kpi.vert { border-left-color: var(--success); }
 .kpi .chiffre {
-  font-family: var(--font-titres), Georgia, serif;
+  font-family: var(--font-titres), Georgia, serif; font-variant-numeric: lining-nums;
   font-size: 29px;
   font-weight: 500;
   line-height: 1.1;
@@ -665,7 +678,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   padding: 20px;
 }
 .loc-grille { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
-.loc-kpi .v { font-family: var(--font-titres), Georgia, serif; font-weight: 500; font-size: 27px; color: var(--encre); margin-top: 6px; }
+.loc-kpi .v { font-family: var(--font-titres), Georgia, serif; font-variant-numeric: lining-nums; font-weight: 500; font-size: 27px; color: var(--encre); margin-top: 6px; }
 .loc-tag {
   display: inline-flex;
   align-items: center;
@@ -708,12 +721,12 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-titres), Georgia, serif;
+  font-family: var(--font-titres), Georgia, serif; font-variant-numeric: lining-nums;
   font-size: 30px;
 }
 .loc-citation {
   margin-left: auto;
-  font-family: var(--font-titres), Georgia, serif;
+  font-family: var(--font-titres), Georgia, serif; font-variant-numeric: lining-nums;
   font-style: italic;
   font-size: 17.5px;
   color: var(--encre);
@@ -1272,7 +1285,7 @@ p a {
 }
 
 /* Tout montant, partout, se lit en chasse fixe — y compris hors tableau. */
-.montant { font-variant-numeric: tabular-nums; }
+.montant { font-variant-numeric: lining-nums tabular-nums; }
 
 /* --- État vide : il guide, il ne constate pas ----------------------- */
 /* .vide seule reste ce qu'elle était (20 usages en texte simple, intacts).
@@ -1285,7 +1298,7 @@ p a {
   background: var(--ivoire);
 }
 .vide-guide .titre {
-  font-family: var(--font-titres), Georgia, serif;
+  font-family: var(--font-titres), Georgia, serif; font-variant-numeric: lining-nums;
   font-size: var(--pas-sous-titre);
   color: var(--encre);
   margin-bottom: var(--rythme-2);

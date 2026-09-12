@@ -198,10 +198,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           </span>
           {/* Charte 04 : un seul bouton principal par écran. Sur un parc vide,
               c'est celui de l'état vide qui porte l'appel à l'action.
-              Un agent au périmètre restreint ne crée pas de bien : depuis le
-              périmètre du 09/09, la base le refuse (le bien naîtrait hors de
-              son portefeuille). Mieux vaut ne pas le proposer que d'échouer. */}
-          {biensVisibles.length > 0 && !portefeuille && (
+              L'AGENT AUSSI AJOUTE UN BIEN, depuis le 12/09. Le bouton lui était
+              masqué parce que la base refusait la création : un bien tout neuf
+              n'est sous aucun mandat, donc hors du portefeuille de tout le
+              monde, et la relecture qui suit l'insertion échouait. C'était la
+              règle qui était fausse, pas le geste — ce que personne ne gère
+              appartient à l'agence. */}
+          {biensVisibles.length > 0 && (
             <>
               <Link
                 href={`/agence/${orgId}/parc/import`}
@@ -226,12 +229,23 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         // et le geste qui le remplit — à la place d'un .vide remonté à la main.
         <div className="vide-guide">
           {portefeuille ? (
+            // L'AGENT N'EST PLUS DANS UNE IMPASSE. Cet écran lui disait
+            // d'attendre un mandat, sans un seul geste à faire — c'est
+            // exactement ce que l'humain a rencontré le 12/09. Il peut
+            // enregistrer un bien lui-même ; les mandats, eux, restent le
+            // geste de l'administrateur.
             <>
               <p className="titre">Aucun lot ne vous est confié</p>
               <p className="explication">
-                Votre portefeuille se remplit quand l&apos;administrateur de
-                l&apos;agence vous confie un mandat.
+                Votre portefeuille se remplit de deux façons : un mandat que
+                l&apos;administrateur vous confie, ou un bien que vous
+                enregistrez vous-même.
               </p>
+              <div className="geste">
+                <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
+                  Ajouter un bien
+                </Link>
+              </div>
             </>
           ) : (
             <>

@@ -3860,3 +3860,52 @@ honoraires — et la base ne lui rend même pas ces colonnes.
 673 tests (672 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 66 E2E verts,
 ESLint silencieux, build vert. Migration posée en production :
 `fenetre_du_lot_relances_et_historique`.
+
+## [2026-09-12] dev   | Un agent peut ajouter un bien
+
+**Le constat** (humain, 12/09) : « je me suis connecté en tant qu'agent, je ne
+trouve pas où ajouter un lot ou un bien ». Il n'y avait effectivement nulle
+part : le bouton était masqué, et l'état vide de son portefeuille lui disait
+d'attendre un mandat, sans un seul geste à faire.
+
+**Ce qui se passait vraiment, et pourquoi c'était difficile à voir.** L'INSERT
+passait. C'est la **relecture** qui échouait : `creer_bien_avec_lot` se termine
+par un `insert … returning id`, et le `returning` déclenche la politique de
+LECTURE sur la ligne qu'on vient d'écrire. Un bien tout neuf n'étant sous aucun
+mandat, il était hors du portefeuille d'un agent. Il créait dans le vide et
+recevait « new row violates row-level security policy » — un message dont rien
+ne dit qu'il parle de relecture. Masquer le bouton était donc la bonne
+réaction ; c'est la **règle** qui était fausse.
+
+**La fausse bonne idée, écartée en chemin.** J'ai d'abord posé que « ce que
+personne ne gère appartient à l'agence » : tout lot sans mandat redevenait
+visible de tous les gérants. C'est séduisant et c'est faux — sur une agence
+dont le parc n'est pas encore sous mandat, cela rouvre l'agence entière à
+n'importe quel agent, soit exactement le P0 corrigé le 09/09 (« un agent SANS
+mandat reçoit un ensemble VIDE, pas l'agence entière »). **Le test de
+`quittancement_mois` l'a épinglée avant qu'elle ne parte** ; la règle large est
+restée dehors.
+
+**La règle retenue, étroite : ce qu'un agent enregistre est à lui**, tant que
+l'agence ne l'a confié à personne. Son portefeuille devient les lots de ses
+mandats (inchangé) **plus** ceux qu'il a saisis et qu'aucun mandat ne couvre.
+Deux colonnes `created_by` (biens, lots), avec `auth.uid()` par défaut : les
+lignes existantes restent à NULL, la visibilité d'aujourd'hui ne bouge pas. Le
+jour où l'administrateur confie le lot à un collègue, il sort de la vue de
+celui qui l'a saisi.
+
+Une subtilité de déclencheur : `garde_portefeuille_agent` appelle
+`lot_hors_portefeuille` en BEFORE INSERT, quand la ligne n'est pas encore dans
+la table — aucune liste ne peut donc la contenir. Le prédicat tolère désormais
+la ligne inexistante ; ce n'est pas un trou, puisqu'elle naît avec son auteur.
+
+**Et le helper TypeScript recomposait la règle de son côté.**
+`lotsDuPortefeuille` refaisait en JavaScript ce que la base calcule : deux
+écritures d'une même règle finissent toujours par diverger, et elles avaient
+divergé. Il appelle maintenant `lots_de_mon_portefeuille` — une seule source,
+ici comme dans les vingt-cinq politiques qui s'y adossent. Une lecture qui
+échoue rend un ensemble VIDE, jamais le parc entier.
+
+687 tests (686 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 69 E2E verts,
+ESLint silencieux, build vert. Migration posée en production :
+`agent_peut_ajouter_un_bien`.

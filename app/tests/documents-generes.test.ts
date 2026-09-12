@@ -6,7 +6,7 @@
  * faite en recette.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   Fusion,
   assemblerPage,
@@ -16,6 +16,7 @@ import {
   VERSION_MODELES,
 } from "../src/lib/documents/gabarit";
 import { construireQuittance, type DonneesQuittance } from "../src/lib/documents/modeles/quittance";
+import { corpsRelance } from "../src/lib/relance-paiement-email";
 
 describe("Gabarit — fusion des champs", () => {
   it("imprime la valeur quand elle existe, le libellé d'épreuve sinon — et collecte les manquants", () => {
@@ -134,3 +135,87 @@ function donneesCompletes(): DonneesQuittance {
     f,
   };
 }
+
+describe("L'adresse publique du produit, écrite une fois (12/09)", () => {
+  /**
+   * CE QUE CES TESTS PROTÈGENT. `gerimmo.app` était écrit EN DUR dans le pied de
+   * page de tous les PDF générés. Tant que le domaine n'était pas branché, le
+   * produit IMPRIMAIT une adresse morte sur des baux, des quittances et des
+   * rapports — des documents contractuels qui partent chez des locataires et
+   * des propriétaires. Le domaine est acquis depuis ; la constante reste une
+   * mauvaise idée, parce qu'une adresse de déploiement change et qu'une
+   * constante, elle, ne change que si quelqu'un y pense.
+   */
+  const siteInitial = process.env.NEXT_PUBLIC_SITE_URL;
+  const vercelInitial = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+
+  afterEach(() => {
+    if (siteInitial === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
+    else process.env.NEXT_PUBLIC_SITE_URL = siteInitial;
+    if (vercelInitial === undefined) delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    else process.env.VERCEL_PROJECT_PRODUCTION_URL = vercelInitial;
+  });
+
+  function piedDe(): string {
+    const f = new Fusion();
+    return assemblerPage({
+      f,
+      titreDocument: "Essai",
+      nomPied: "Essai",
+      reference: "REF-1",
+      corps: "<p>corps</p>",
+    }).piedHtml;
+  }
+
+  it("le pied imprime le DOMAINE configuré, sans protocole", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://gerimmo.app";
+    expect(piedDe()).toContain("gerimmo.app");
+    expect(piedDe()).not.toContain("https://gerimmo.app");
+  });
+
+  it("un sous-domaine ou une préproduction suit, sans qu'on y repense", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://app.gerimmo.app/";
+    const pied = piedDe();
+    expect(pied).toContain("app.gerimmo.app");
+    // La barre oblique finale ne doit pas s'imprimer sur un bail.
+    expect(pied).not.toContain("app.gerimmo.app/");
+  });
+
+  it("sans configuration, la marque plutôt que rien : un bail dit d'où il vient", () => {
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    expect(piedDe()).toContain("gerimmo.app");
+  });
+
+  it("une valeur mal formée ne fait pas tomber la génération d'un bail", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "pas une url";
+    expect(() => piedDe()).not.toThrow();
+  });
+});
+
+describe("La relance de paiement ne promet pas un clic qu'elle ne peut pas tenir", () => {
+  it("sans adresse publique configurée, pas de lien mort — le geste est dit en toutes lettres", () => {
+    const sans = corpsRelance({
+      palier: 3,
+      organisation: "Cabinet Martin",
+      montantMensuel: 119,
+      joursRestants: 0,
+      lectureSeuleLe: "2026-09-01",
+      lien: null,
+    });
+    expect(sans).not.toContain("<a href");
+    expect(sans).toContain("Mon abonnement");
+  });
+
+  it("avec l'adresse, le bouton mène à « Mon abonnement » de SON agence", () => {
+    const avec = corpsRelance({
+      palier: 1,
+      organisation: "Cabinet Martin",
+      montantMensuel: 119,
+      joursRestants: 12,
+      lectureSeuleLe: "2026-09-27",
+      lien: "https://gerimmo.app/agence/abc/abonnement",
+    });
+    expect(avec).toContain('href="https://gerimmo.app/agence/abc/abonnement"');
+  });
+});

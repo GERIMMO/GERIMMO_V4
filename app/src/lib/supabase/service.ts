@@ -21,14 +21,3 @@ export function clientDeService() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
-
-/**
- * L'adresse publique du site, pour fabriquer les liens des e-mails envoyés
- * hors requête (une tâche planifiée n'a pas d'en-tête `origin`).
- */
-export function adresseDuSite(): string | null {
-  const explicite = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (explicite) return explicite.replace(/\/+$/, "");
-  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
-  return vercel ? `https://${vercel}` : null;
-}

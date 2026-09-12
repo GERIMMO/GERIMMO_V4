@@ -3735,3 +3735,48 @@ autre est sa **couleur**, pas sa taille. Les quatre noms de classe survivent —
 tableaux — pour ne pas toucher deux cents composants ; ils désignent maintenant
 la même chose. `.badge-statut` garde `color: inherit` pour que sa classe de ton
 (succès, attente, critique) l'emporte sur la couleur commune.
+
+## [2026-09-12] dev   | L'adresse publique du produit, écrite une fois
+
+**Le domaine `gerimmo.app` est acquis** (humain, 12/09). Il restait à ce que le
+code cesse de l'écrire en dur.
+
+Il l'était à trois endroits, à trois rythmes différents : l'expéditeur des
+e-mails (`no-reply@gerimmo.app`), le **pied de page de tous les PDF générés**, et
+le lien de secours de la relance de paiement. Le plus gênant est le deuxième :
+tant que le domaine n'était pas branché, le produit **imprimait une adresse
+morte sur des baux, des quittances et des rapports de gestion** — des documents
+contractuels qui partent chez des locataires et des propriétaires.
+
+Le domaine acquis ne rend pas la constante acceptable pour autant : une adresse
+de déploiement change (sous-domaine, préproduction, changement de marque), et
+trois constantes changent alors à trois rythmes. `src/lib/site.ts` porte
+désormais la seule source : `adresseDuSite()` (l'URL complète, pour les liens)
+et `domaineDuSite()` (le domaine nu, pour l'impression — « https:// » est du
+bruit au pied d'un bail, qu'on ne clique pas). Elle vivait dans
+`supabase/service.ts`, aux côtés de la clé `service_role`, avec laquelle elle
+n'a rien à voir.
+
+Ordre de préférence : `NEXT_PUBLIC_SITE_URL` (la seule valeur que quelqu'un a
+choisie), puis l'adresse que Vercel se donne à lui-même, puis rien — et
+l'appelant décide. **Un lien mort dans le courrier qui annonce un prélèvement
+échoué fait plus de mal que pas de lien** : la relance n'affiche plus de bouton
+quand elle n'a pas d'adresse, et dit le geste en toutes lettres. Le pied de
+document, lui, retombe sur la marque : un bail sans adresse du tout ne dit plus
+d'où il vient.
+
+Six tests posés, dont ceux qui manquaient : le pied suit un sous-domaine sans
+qu'on y repense, ne garde pas la barre oblique finale, et une valeur mal formée
+ne fait pas tomber la génération d'un bail. Ils emploient `assemblerPage`, que
+le fichier de test importait depuis un moment sans s'en servir — c'était le seul
+avertissement ESLint du dépôt.
+
+**Ce qui reste chez l'humain**, et que le code ne peut pas faire : ajouter le
+domaine au projet Vercel (+ enregistrement DNS), poser
+`NEXT_PUBLIC_SITE_URL=https://gerimmo.app`, vérifier le domaine chez Resend
+(sans quoi aucun e-mail ne part de `no-reply@gerimmo.app`), et mettre à jour la
+Site URL et les redirections dans Supabase Auth — sinon les liens d'invitation
+et de mot de passe oublié continuent de pointer sur l'adresse Vercel.
+
+651 tests (650 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 64 E2E verts,
+ESLint silencieux, build vert.

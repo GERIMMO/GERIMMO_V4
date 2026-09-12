@@ -14,7 +14,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { envoyerEmail } from "@/lib/email";
 import { corpsRelance, sujetRelance, type Palier } from "@/lib/relance-paiement-email";
-import { adresseDuSite } from "@/lib/supabase/service";
+import { adresseDuSite } from "@/lib/site";
 
 type Relance = {
   organization_id: string;
@@ -73,7 +73,10 @@ export async function envoyerRelancesDues(
       montantMensuel: Number(r.montant_mensuel),
       joursRestants: r.jours_restants,
       lectureSeuleLe: r.lecture_seule_le,
-      lien: site ? `${site}/agence/${r.organization_id}/abonnement` : "https://gerimmo.app",
+      // Pas de lien de secours en dur : dans le courrier qui annonce un
+      // prélèvement échoué, un lien qui ne mène nulle part fait plus de mal
+      // que pas de lien. La lettre dit alors quoi faire sans promettre un clic.
+      lien: site ? `${site}/agence/${r.organization_id}/abonnement` : null,
     };
     const { erreur } = await envoyerEmail({
       to: r.destinataire,

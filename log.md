@@ -3778,5 +3778,20 @@ domaine au projet Vercel (+ enregistrement DNS), poser
 Site URL et les redirections dans Supabase Auth — sinon les liens d'invitation
 et de mot de passe oublié continuent de pointer sur l'adresse Vercel.
 
-651 tests (650 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 64 E2E verts,
+**Un second piège, trouvé dans la foulée et qui se serait déclenché à la
+prochaine action de l'humain.** `origineDeLaRequete` (retour de paiement Stripe)
+portait un commentaire promettant de lire l'en-tête de la requête « sans quoi
+une recette sur un déploiement de préproduction renverrait le client en
+production après paiement » — et lisait `NEXT_PUBLIC_SITE_URL` AVANT l'en-tête.
+Le code faisait donc exactement ce que son commentaire disait éviter. Le piège
+ne se déclenche que si la variable est posée sur TOUS les environnements Vercel,
+ce que personne ne pense à éviter : c'est-à-dire au moment précis où l'humain
+allait la poser.
+
+Les deux priorités sont désormais explicites et opposées, chacune avec sa
+raison : `adresseDuSite()` lit la configuration (un e-mail de tâche planifiée n'a
+aucune requête) ; `origineDeRetour()` lit l'en-tête (un paiement part d'un écran,
+qui sait d'où il vient), la configuration ne servant que de filet.
+
+663 tests (662 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 64 E2E verts,
 ESLint silencieux, build vert.

@@ -13,6 +13,7 @@ import {
   prixPour,
   type PublicTarif,
 } from "@/lib/stripe";
+import { origineDeRetour } from "@/lib/site";
 
 export type EtatAbonnementAction = { erreur?: string };
 
@@ -23,15 +24,20 @@ export type EtatAbonnementAction = { erreur?: string };
  * implicite. On la lit dans les en-têtes plutôt que de la fixer en dur, sans
  * quoi une recette sur un déploiement de préproduction renverrait le client en
  * production après paiement.
+ *
+ * C'est ce que le commentaire promettait ; ce n'est ce que le code fait que
+ * depuis le 12/09. `NEXT_PUBLIC_SITE_URL` passait AVANT l'en-tête : posée sur
+ * tous les environnements Vercel — ce que personne ne pense à éviter — elle
+ * renvoyait bel et bien en production un client qui payait depuis une
+ * préproduction. La priorité vit désormais dans `origineDeRetour`, avec la
+ * raison écrite à côté.
  */
 async function origineDeLaRequete(): Promise<string | null> {
   const h = await headers();
-  const explicite = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (explicite) return explicite.replace(/\/+$/, "");
-  const hote = h.get("x-forwarded-host") ?? h.get("host");
-  if (!hote) return null;
-  const protocole = h.get("x-forwarded-proto") ?? (hote.startsWith("localhost") ? "http" : "https");
-  return `${protocole}://${hote}`;
+  return origineDeRetour(
+    h.get("x-forwarded-host") ?? h.get("host"),
+    h.get("x-forwarded-proto")
+  );
 }
 
 /**

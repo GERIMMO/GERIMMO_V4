@@ -43,3 +43,24 @@ export function domaineDuSite(): string {
     return adresse.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
   }
 }
+
+/**
+ * L'origine à laquelle RENVOYER quelqu'un après un détour externe (Stripe).
+ *
+ * ICI, L'EN-TÊTE DE LA REQUÊTE PRIME — et c'est l'inverse de `adresseDuSite()`.
+ * La différence n'est pas un détail de style : elle décide où retombe un client
+ * qui vient de payer.
+ *
+ * Un e-mail envoyé par une tâche planifiée n'a aucune requête : il ne peut que
+ * lire la configuration. Un paiement, lui, part d'un écran — et l'écran sait
+ * d'où il vient. Renvoyer vers la configuration ramènerait en PRODUCTION
+ * quelqu'un qui payait depuis une préproduction, ce que le commentaire de
+ * `origineDeLaRequete` promettait d'éviter depuis le début pendant que le code
+ * faisait le contraire (relevé du 12/09, en branchant le domaine). La
+ * configuration reste le filet, pour le cas où aucun en-tête d'hôte n'arrive.
+ */
+export function origineDeRetour(hote: string | null, protocole: string | null): string | null {
+  if (!hote) return adresseDuSite();
+  const schema = protocole ?? (hote.startsWith("localhost") ? "http" : "https");
+  return `${schema}://${hote}`;
+}

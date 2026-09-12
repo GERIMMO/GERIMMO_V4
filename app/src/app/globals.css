@@ -1185,7 +1185,21 @@ p a {
   select {
     min-height: 40px;
   }
-  .filtre { padding: 8px 14px; }
+  .filtre { padding: 9px 14px; }
+  /* LA RÈGLE CI-DESSUS NE COUVRE PAS LES LIENS, et c'est le trou relevé au
+     balayage des boutons du 12/09 : `button`, `input`, `select` y sont, `a`
+     non — or une bonne part des actions du produit SONT des liens. Sur le
+     parc, les pastilles d'action (« Renseigner la surface », « Compléter la
+     détention ») mesuraient 107 × 24 px : la moitié de la cible, pour le
+     geste même qui sert à compléter un lot.
+     On ne monte PAS tous les `a` à 40 px — un lien en pleine phrase
+     (« Reprenez-le depuis un tableur ») deviendrait une barre. Seuls les
+     liens qui SONT des contrôles : une pastille cliquable, un filtre. Une
+     `<span class="puce">` qui n'affiche qu'un état garde sa densité. */
+  a.puce, button.puce, a.filtre {
+    min-height: 40px;
+    box-sizing: border-box;
+  }
   /* L'avatar est le geste le plus souvent fait au doigt de tout l'en-tête, et
      la règle générique ci-dessus ne règle que la HAUTEUR : sous 700 px le nom
      s'efface et la pastille ne mesure plus que 38 px de large (relevé au

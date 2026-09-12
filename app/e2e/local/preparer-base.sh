@@ -37,8 +37,28 @@ psql -v ON_ERROR_STOP=1 -q -d "$DB" -f "$APP_DIR/e2e/local/bootstrap-supabase-lo
 
 # L'ordre d'application N'EST PAS l'ordre lexicographique des fichiers : il est
 # reconstruit depuis l'historique de la production (supabase_migrations) dans
-# ordre-migrations.txt — régénérer ce manifeste si de nouvelles migrations arrivent.
+# ordre-migrations.txt — l'ordre est celui de la PRODUCTION (table
+# supabase_migrations), pas l'ordre des noms de fichiers. Les deux divergent :
+# `module8_artisans_socle` appelle `poser_gardes_abonnement()`, définie par
+# `gardes_abonnement_rejouables`, dont le fichier porte un horodatage PLUS
+# GRAND alors que la production l'a appliquée AVANT. Rejouer par ordre de nom
+# casse donc la reconstruction. Régénérer depuis `mcp Supabase list_migrations`
+# en associant chaque `name` au fichier qui finit par `_<name>.sql`.
 MANIFESTE="$APP_DIR/e2e/local/ordre-migrations.txt"
+
+# LE MANIFESTE DOIT COUVRIR TOUTES LES MIGRATIONS, et se taire coûtait cher :
+# le 12/09, huit fichiers y manquaient — le banc se montait sans broncher sur
+# un schéma vieux de deux jours, et les tests mesuraient autre chose que le
+# produit. Un banc qui ment est pire qu'un banc qui refuse de démarrer.
+oublies="$(comm -13 <(sort "$MANIFESTE") \
+  <(ls "$APP_DIR/supabase/migrations"/*.sql | xargs -n1 basename | sort))"
+if [ -n "$oublies" ]; then
+  echo "Migrations absentes du manifeste — le banc serait incomplet :" >&2
+  echo "$oublies" | sed 's/^/  · /' >&2
+  echo "Ajoutez-les dans l'ordre de la production (voir le commentaire ci-dessus)." >&2
+  exit 1
+fi
+
 echo "— migrations ($(wc -l < "$MANIFESTE") fichiers, ordre de la production)"
 deja="$(psql -qtA -d "$DB" -c "select coalesce(json_agg(name), '[]') from e2e_local.migrations" 2>/dev/null || echo '[]')"
 psql -q -d "$DB" -c "create schema if not exists e2e_local; create table if not exists e2e_local.migrations (name text primary key, applied_at timestamptz default now())"

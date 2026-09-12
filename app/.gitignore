@@ -47,10 +47,5 @@ next-env.d.ts
 e2e/.audit/
 e2e/.results/
 # Sondes jetables du balayage des boutons (12/09) : écrites pour un audit,
-# relancées depuis le journal si besoin — pas du code de production.
-audit-boutons.mjs
-clic-boutons.mjs
-verif-liens.mjs
-verif-boutons.mjs
-verif-incident.mjs
-analyser-verdicts.mjs
+# supprimées après usage — leur méthode vit dans log.md, pas ici.
+/*.mjs

@@ -78,6 +78,16 @@ function GroupeActions({
   reste?: ReactNode;
 }) {
   if (actions.length === 0) return null;
+  // UNE ÉTIQUETTE IDENTIQUE SUR TOUTE UNE LISTE N'INFORME PAS, ELLE ALLONGE.
+  // Même règle que l'écran Alertes (12/09) : ce qui ne distingue pas cette
+  // rangée-là des autres ne s'affiche pas. Le groupe « À venir » alignait
+  // quatre fois « ALERTE NORMALE » sous un en-tête qui disait déjà de quoi il
+  // s'agissait — et depuis que l'étiquette est un aplat, c'était devenu
+  // l'élément le plus voyant de l'écran. Deux natures différentes dans le même
+  // groupe (« Bail bloqué » / « Sur un bail ») : là, elle distingue, on la
+  // garde.
+  const etiquetteUtile =
+    actions.length === 1 || new Set(actions.map((a) => a.nature)).size > 1;
   return (
     <>
       <div className="tete-groupe">
@@ -89,20 +99,41 @@ function GroupeActions({
         return (
           <div key={a.cle} className={`rang-alerte flex-wrap gap-y-2 ${a.criticite}`}>
             <div className="min-w-0 flex-1">
-              <div className="niveau">{a.nature}</div>
-              <div className="mt-0.5 text-sm">{a.titre}</div>
-              {a.detail && (
-                <div className="truncate text-[length:var(--pas-appui)] text-muted-foreground">
+              {/* MÊME LANGAGE QUE L'ÉCRAN ALERTES (gabarit « plan du jour » du
+                  12/09). Le plan du jour était resté au dessin d'avant : la
+                  nature en mono gris, au même poids que le titre, et à
+                  l'identique sur chaque rangée — la seule chose qui
+                  distinguait deux actions était la plus discrète de la ligne.
+                  Elle devient une étiquette en aplat, et le titre reprend son
+                  poids. */}
+              {etiquetteUtile && (
+                <span className="etiquette-alerte">{a.nature}</span>
+              )}
+              <div
+                className={`${etiquetteUtile ? "mt-1.5" : ""} text-[14.5px] font-semibold leading-snug`}
+              >
+                {a.titre}
+              </div>
+              {/* Deux lignes plutôt qu'une coupe nette : sur un téléphone,
+                  `truncate` réduisait « Doublon possible : un incident du même
+                  type… » à « Doublon possible : un i… », qui n'apprend rien. */}
+              {a.detail && !a.titre.includes(a.detail) && (
+                <div className="line-clamp-2 text-[13px] text-muted-foreground">
                   {a.detail}
                 </div>
               )}
             </div>
             <div className="flex shrink-0 items-center gap-3">
-              <span
-                className={`text-[length:var(--pas-appui)] ${ech ? ech.classe : "text-muted-foreground"}`}
-              >
-                {ech ? ech.texte : "Sans échéance"}
-              </span>
+              {/* « SANS ÉCHÉANCE » NE S'AFFICHE PLUS. Il s'écrivait sur chaque
+                  rangée qui n'en a pas — six fois le même mot sur l'écran du
+                  matin. Une mention identique partout n'informe pas, elle
+                  allonge ; l'échéance ne se dit que lorsqu'elle distingue
+                  cette action-là des autres. */}
+              {ech && (
+                <span className={`text-[length:var(--pas-appui)] ${ech.classe}`}>
+                  {ech.texte}
+                </span>
+              )}
               {a.action}
             </div>
           </div>

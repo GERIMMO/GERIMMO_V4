@@ -51,21 +51,39 @@ export function ApercuTableauDeBord() {
           <span className="mono-discret !text-[9px]">3</span>
         </div>
         <div className="rang-alerte critique !py-2">
-          <span className="niveau">Critique</span>
-          <div className="text-[12px] text-[var(--corps)]">
-            Assurance expirée — 12 rue des Lilas, lot B
+          {/* L'aperçu montre le produit QUI EXISTE : étiquette AU-DESSUS du
+              titre, comme sur le plan du jour et l'écran Alertes. Côte à côte,
+              la rangée en flex renvoyait le titre à droite — un dessin qu'on
+              ne trouve nulle part dans l'application. */}
+          <div className="min-w-0 flex-1">
+            <span className="etiquette-alerte">Critique</span>
+            <div className="mt-1 text-[12px] font-semibold text-[var(--corps)]">
+              Assurance expirée — 12 rue des Lilas, lot B
+            </div>
           </div>
         </div>
         <div className="rang-alerte normale !py-2">
-          <span className="niveau">À faire</span>
-          <div className="text-[12px] text-[var(--corps)]">
-            Incident à qualifier — fuite sous évier
+          {/* L'aperçu montre le produit QUI EXISTE : étiquette AU-DESSUS du
+              titre, comme sur le plan du jour et l'écran Alertes. Côte à côte,
+              la rangée en flex renvoyait le titre à droite — un dessin qu'on
+              ne trouve nulle part dans l'application. */}
+          <div className="min-w-0 flex-1">
+            <span className="etiquette-alerte">À faire</span>
+            <div className="mt-1 text-[12px] font-semibold text-[var(--corps)]">
+              Incident à qualifier — fuite sous évier
+            </div>
           </div>
         </div>
         <div className="rang-alerte !py-2">
-          <span className="niveau">À faire</span>
-          <div className="text-[12px] text-[var(--corps)]">
-            État des lieux de sortie à planifier
+          {/* L'aperçu montre le produit QUI EXISTE : étiquette AU-DESSUS du
+              titre, comme sur le plan du jour et l'écran Alertes. Côte à côte,
+              la rangée en flex renvoyait le titre à droite — un dessin qu'on
+              ne trouve nulle part dans l'application. */}
+          <div className="min-w-0 flex-1">
+            <span className="etiquette-alerte">À faire</span>
+            <div className="mt-1 text-[12px] font-semibold text-[var(--corps)]">
+              État des lieux de sortie à planifier
+            </div>
           </div>
         </div>
       </div>

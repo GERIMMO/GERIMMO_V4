@@ -431,20 +431,13 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .rang-alerte.critique { border-left-color: var(--destructive); background: var(--destructive-soft); }
 .rang-alerte.critique:hover { background: var(--survol-critique); }
 .rang-alerte.normale { border-left-color: var(--warning); }
-/* `.niveau` RESTE : le tableau de bord et l'aperçu produit de la vitrine s'en
-   servent encore. Le retirer en même temps qu'on habillait l'écran Alertes a
-   fait tomber le contraste à 2:1 sur la vitrine — attrapé par axe-core, pas
-   par l'œil. Une classe partagée ne se supprime pas depuis un seul de ses
-   appelants. */
-.rang-alerte .niveau {
-  font-family: var(--font-libelles), ui-monospace, monospace;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--texte-secondaire);
-}
-.rang-alerte.critique .niveau { color: var(--destructive); }
-.rang-alerte.normale .niveau { color: var(--warning-soft-foreground); }
+/* `.niveau` A ÉTÉ RETIRÉ le 12/09, cette fois pour de bon : ses TROIS derniers
+   appelants — le plan du jour du tableau de bord, la pop-up du plan du jour et
+   l'aperçu produit de la vitrine — sont passés à l'étiquette ci-dessous. La
+   première tentative l'avait supprimé depuis un SEUL de ses appelants : le
+   contraste était tombé à 2:1 sur la vitrine, attrapé par axe-core et pas par
+   l'œil. Une classe partagée se retire quand plus personne ne l'appelle, et on
+   le vérifie avant. */
 
 /* L'étiquette de niveau : aplat de couleur, comme au gabarit. Elle se lit
    d'un coup d'œil au lieu de se déchiffrer. */

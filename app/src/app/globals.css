@@ -410,13 +410,19 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .puce-rouge { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
 
 /* Rang d'alerte : liseré de criticité à gauche (maquette .alerte) */
+/* LE RANG D'ALERTE — habillage repris du gabarit de l'humain (12/09).
+   Ce qui change : le filet de gauche s'épaissit pour se voir de loin, le
+   niveau devient une ÉTIQUETTE au lieu d'une ligne de mono grise répétée à
+   l'identique sur chaque rang, et le titre reprend le poids qu'il n'aurait
+   jamais dû perdre — sur l'écran d'avant, la mention « NORMALE · CONFIÉE À
+   TOUT LE MONDE » pesait autant que l'objet de l'alerte. */
 .rang-alerte {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 11px 14px;
-  border-left: 3px solid var(--libelle);
+  gap: 14px;
+  padding: 14px 16px;
+  border-left: 4px solid var(--libelle);
   border-bottom: 1px solid var(--filet);
   transition: background 0.15s;
 }
@@ -425,6 +431,11 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .rang-alerte.critique { border-left-color: var(--destructive); background: var(--destructive-soft); }
 .rang-alerte.critique:hover { background: var(--survol-critique); }
 .rang-alerte.normale { border-left-color: var(--warning); }
+/* `.niveau` RESTE : le tableau de bord et l'aperçu produit de la vitrine s'en
+   servent encore. Le retirer en même temps qu'on habillait l'écran Alertes a
+   fait tomber le contraste à 2:1 sur la vitrine — attrapé par axe-core, pas
+   par l'œil. Une classe partagée ne se supprime pas depuis un seul de ses
+   appelants. */
 .rang-alerte .niveau {
   font-family: var(--font-libelles), ui-monospace, monospace;
   font-size: 10px;
@@ -434,6 +445,69 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 }
 .rang-alerte.critique .niveau { color: var(--destructive); }
 .rang-alerte.normale .niveau { color: var(--warning-soft-foreground); }
+
+/* L'étiquette de niveau : aplat de couleur, comme au gabarit. Elle se lit
+   d'un coup d'œil au lieu de se déchiffrer. */
+.etiquette-alerte {
+  display: inline-block;
+  font-family: var(--font-libelles), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--filet-leger);
+  color: var(--texte-secondaire);
+  white-space: nowrap;
+}
+.rang-alerte.critique .etiquette-alerte {
+  background: var(--destructive);
+  color: var(--ivoire);
+}
+.rang-alerte.normale .etiquette-alerte {
+  background: var(--warning-soft-foreground);
+  color: var(--ivoire);
+}
+/* La conséquence : ce qui arrive si personne ne fait rien. Colorée par le
+   niveau, parce que c'est elle qui doit décider de l'ordre des gestes. */
+.consequence-alerte {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texte-secondaire);
+  margin-top: 3px;
+}
+.rang-alerte.critique .consequence-alerte { color: var(--destructive); }
+.rang-alerte.normale .consequence-alerte { color: var(--warning-soft-foreground); }
+
+/* LE BANDEAU DU PLAN DU JOUR (gabarit 12/09) : le compte en chiffres de
+   titrage sur l'encre, et une phrase qui dit par quoi commencer. L'écran
+   d'avant ouvrait sur le mot « Alertes » et un compteur en mono de 11 px. */
+.bandeau-jour {
+  /* Le dégradé se DÉRIVE de l'encre au lieu de poser un second bleu en dur :
+     une agence en marque blanche (module 17) change sa couleur, et le bandeau
+     change avec elle. */
+  background: linear-gradient(
+    120deg,
+    var(--encre),
+    color-mix(in oklch, var(--encre), black 20%)
+  );
+  color: var(--sur-encre);
+  padding: 20px 24px;
+}
+.bandeau-jour .compte {
+  font-family: var(--font-titres), Georgia, serif;
+  font-weight: 600;
+  font-size: 27px;
+  line-height: 1.15;
+  margin-top: 2px;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.bandeau-jour .par-quoi {
+  font-size: 13px;
+  color: color-mix(in oklch, var(--sur-encre), transparent 25%);
+  margin-top: 4px;
+}
 /* Alerte confiée à quelqu'un d'autre : grisée, aucune action possible */
 .rang-alerte.grisee {
   border-left-color: var(--filet);

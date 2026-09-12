@@ -61,28 +61,60 @@ export default async function PageAlertes(
 
   const rangs = (ouvertes ?? []) as AlerteRang[];
   const nbMiennes = rangs.filter((a) => estConfieeAMoi(a, user.id)).length;
+  const nbCritiques = rangs.filter((a) => a.criticite === "critique").length;
+
+  // PAR QUOI COMMENCER — la phrase du bandeau (gabarit du 12/09). L'écran
+  // ouvrait sur le mot « Alertes » et un compteur en mono de 11 px : il disait
+  // COMBIEN, jamais par quoi s'y prendre.
+  const parQuoi = erreurOuvertes
+    ? "La liste n’a pas pu être lue — ce n’est pas une journée sans alerte."
+    : rangs.length === 0
+      ? "Rien à traiter. Gerimmo repose les alertes tout seul, chaque nuit."
+      : nbCritiques > 0
+        ? `${nbCritiques} critique${nbCritiques > 1 ? "s" : ""} — à faire en premier.`
+        : "Rien de critique : il ne reste que du courant.";
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
-      <div className="entete-page mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <Link href={`/agence/${orgId}`} className="hover:underline">
-              {organisation.name}
-            </Link>{" "}
-            / Alertes
-          </p>
-          <h1>Alertes</h1>
-        </div>
-        <span className="mono-discret">
+      <p className="mb-2 text-sm text-muted-foreground">
+        <Link href={`/agence/${orgId}`} className="hover:underline">
+          {organisation.name}
+        </Link>{" "}
+        / Alertes
+      </p>
+      <div className="bandeau-jour mb-6">
+        <p className="mono-discret text-[var(--sur-encre)]/60">Plan du jour</p>
+        {/* Un <h1> reste un <h1> : le bandeau change son habillage, pas son
+            rang dans le document. */}
+        <h1 className="compte text-[var(--sur-encre)]">
           {erreurOuvertes
-            ? "lecture impossible"
-            : `${nbMiennes} à traiter · ${rangs.length - nbMiennes} confiée${rangs.length - nbMiennes > 1 ? "s" : ""} à d'autres`}
-        </span>
+            ? "Alertes"
+            : rangs.length === 0
+              ? "Votre journée est dégagée"
+              : `${rangs.length} alerte${rangs.length > 1 ? "s" : ""} à traiter`}
+        </h1>
+        <p className="par-quoi">{parQuoi}</p>
+        {/* Le partage « pour vous / pour d'autres » ne se dit que s'il y a
+            vraiment deux camps : « 0 confiée à d'autres » n'apprend rien. */}
+        {!erreurOuvertes && rangs.length - nbMiennes > 0 && (
+          <p className="par-quoi">
+            {`${nbMiennes} pour vous · ${rangs.length - nbMiennes} confiée${
+              rangs.length - nbMiennes > 1 ? "s" : ""
+            } à d’autres`}
+          </p>
+        )}
       </div>
 
+      {/* `min-w-0` SUR LES DEUX COLONNES, et ce n'est pas décoratif (mesure au
+          navigateur, 12/09). Un élément de grille vaut `min-width: auto` par
+          défaut : il refuse de devenir plus étroit que son contenu. Le `select`
+          « Assigné à » prend la largeur de sa plus longue option — une adresse
+          e-mail — et poussait la page à 469 px de large sur un téléphone de
+          390. Le navigateur ne débordait pas : il DÉZOOMAIT, et tout l'écran
+          se lisait 17 % plus petit que partout ailleurs. Le parc et le tableau
+          de bord, eux, tenaient dans leurs 390 px. */}
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {/* Une lecture en échec ne se déguise pas en « aucune alerte » :
               l'écran vide et l'écran illisible ne disent pas la même chose. */}
           {erreurOuvertes ? (
@@ -149,7 +181,7 @@ export default async function PageAlertes(
           </Card>
         </div>
 
-        <Card className="h-fit">
+        <Card className="h-fit min-w-0">
           <CardHeader>
             <CardTitle className="text-base">Créer une alerte</CardTitle>
             <CardDescription>

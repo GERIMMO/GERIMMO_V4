@@ -3909,3 +3909,54 @@ ici comme dans les vingt-cinq politiques qui s'y adossent. Une lecture qui
 687 tests (686 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 69 E2E verts,
 ESLint silencieux, build vert. Migration posée en production :
 `agent_peut_ajouter_un_bien`.
+
+## [2026-09-12] dev   | L'écran Alertes réhabillé — la liste reste, le design change
+
+**La demande** : « je ne veux pas forcément changer le regroupement. La liste me
+convient mais pas le design. » Le gabarit `alertes-plan-du-jour-PC-v1.html`
+regroupait les alertes par locataire ; ce regroupement n'a donc pas été repris.
+Ce qui l'a été, c'est son habillage.
+
+**Ce qui change.**
+- Un **bandeau encre en tête**, avec le compte en chiffres de titrage et une
+  phrase qui dit par quoi commencer (« 3 critiques — à faire en premier »).
+  L'écran ouvrait sur le mot « Alertes » et un compteur en mono de 11 px : il
+  disait COMBIEN, jamais par où s'y prendre.
+- Le niveau devient une **étiquette en aplat** au lieu d'une ligne de mono
+  grise. Avant, « NORMALE · CONFIÉE À TOUT LE MONDE » s'affichait au même poids
+  que le titre, à l'identique sur chaque rang : la seule chose qui distinguait
+  deux alertes était la plus discrète de la ligne.
+- Le **titre reprend son poids**, le filet de gauche s'épaissit, et le contexte
+  s'affiche sur deux lignes au lieu d'être coupé net.
+
+**Ce qui n'a pas été repris, et pourquoi.** Le gabarit écrit sous chaque alerte
+une conséquence métier (« sans attestation, le bail peut être résilié »). Il y
+faudrait une phrase juste par type d'alerte — il y en a **vingt-trois**, et
+plusieurs portent des effets de droit. Écrites à la va-vite, elles deviendraient
+des affirmations fausses sur un écran que des professionnels croient. Elles
+s'écriront une par une, avec l'humain.
+
+**Un premier essai a été écrit puis retiré** : y mettre la règle d'escalade.
+Au navigateur, elle donnait seize fois « Non traitée sous 15 jours, elle remonte
+au responsable » — soit exactement le défaut qu'on venait de corriger en
+retirant la mention répétée. Une phrase identique sur tous les rangs n'informe
+pas, elle allonge. La ligne ne s'affiche donc que si elle parle de CETTE
+alerte : l'échéance, qui, elle, distingue un rang d'un autre. La règle générale
+est redescendue en note de bas de page.
+
+**Deux défauts trouvés en mesurant.**
+
+1. **La page faisait 469 px de large sur un téléphone de 390** — et le
+   navigateur ne débordait pas : il DÉZOOMAIT, si bien que tout l'écran se
+   lisait 17 % plus petit que partout ailleurs. Un élément de grille vaut
+   `min-width: auto` : le `select` « Assigné à » prenait la largeur de sa plus
+   longue option, une adresse e-mail, et poussait la colonne. Défaut
+   **préexistant**, propre à cet écran (le parc et le tableau de bord tenaient
+   dans leurs 390 px), invisible à la mesure de débordement habituelle.
+2. **Une classe partagée supprimée depuis un seul de ses appelants.** En
+   remplaçant `.niveau` par l'étiquette, j'ai retiré sa règle CSS — alors que
+   le tableau de bord et l'aperçu produit de la vitrine s'en servent encore. Le
+   contraste y est tombé à 2:1. Attrapé par axe-core, pas par l'œil.
+
+687 tests (686 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 69 E2E verts
+dont l'audit axe-core, ESLint silencieux, build vert. Aucune migration.

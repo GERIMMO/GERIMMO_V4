@@ -64,6 +64,36 @@ function cheminFiche(a: AlerteRang, orgId: string): string | null {
   return null;
 }
 
+/**
+ * Ce qui arrive si personne ne fait rien — QUAND il y a quelque chose à dire.
+ *
+ * LE GABARIT DU 12/09 écrit une conséquence MÉTIER sous chaque alerte (« sans
+ * attestation, le bail peut être résilié »). Il y faudrait une phrase juste par
+ * type d'alerte — il y en a vingt-trois, et plusieurs portent des effets de
+ * droit. Écrites à la va-vite, elles deviendraient des affirmations fausses sur
+ * un écran que des professionnels croient. Elles viendront quand on les aura
+ * écrites une par une, avec l'humain.
+ *
+ * EN ATTENDANT, LA LIGNE NE S'AFFICHE QUE SI ELLE PARLE DE CETTE ALERTE-LÀ.
+ * Premier essai : y mettre la règle d'escalade. Au navigateur, elle donnait
+ * seize fois « Non traitée sous 15 jours, elle remonte au responsable » — soit
+ * exactement le défaut qu'on venait de corriger en retirant le « NORMALE ·
+ * CONFIÉE À TOUT LE MONDE » répété. Une phrase identique sur tous les rangs
+ * n'informe pas : elle allonge. La règle générale est donc redescendue en note
+ * de bas de page, et cette ligne ne sert plus qu'à l'échéance, qui, elle,
+ * distingue un rang d'un autre.
+ */
+function consequence(a: AlerteRang): string | null {
+  const echeance = afficherEcheance(a.echeance);
+  if (!echeance) return null;
+  if (echeance.depassee) {
+    return a.criticite === "informative"
+      ? `${echeance.texte} — pour information, elle ne remonte jamais.`
+      : `${echeance.texte} — elle remonte au responsable de l’agence si elle reste ouverte.`;
+  }
+  return `${echeance.texte} pour la traiter.`;
+}
+
 export function ListeAlertes({
   orgId,
   alertes,
@@ -152,7 +182,6 @@ export function ListeAlertes({
   };
 
   const rang = (a: AlerteRang, grisee: boolean) => {
-    const echeance = afficherEcheance(a.echeance);
     const incidentId = incidentDe(a);
     const fiche = ficheDe(a);
     return (
@@ -161,23 +190,30 @@ export function ListeAlertes({
         className={`rang-alerte flex-wrap gap-y-2 ${grisee ? "grisee" : a.criticite === "critique" ? "critique" : a.criticite === "normale" ? "normale" : ""}`}
       >
         <div className="min-w-0 flex-1">
-          <div className="niveau">
-            {CRITICITES[a.criticite] ?? a.criticite} · confiée à{" "}
-            {nomAssignation(a, membres)}
-          </div>
-          <div className="mt-0.5 text-sm">{a.titre}</div>
+          {/* Le niveau en ÉTIQUETTE, et l'objet de l'alerte en premier poids.
+              Avant le 12/09, « NORMALE · CONFIÉE À TOUT LE MONDE » s'affichait
+              au même poids que le titre, à l'identique sur chaque rang : la
+              seule chose qui distinguait deux alertes était la plus discrète. */}
+          <span className="etiquette-alerte">
+            {CRITICITES[a.criticite] ?? a.criticite}
+          </span>
+          <div className="mt-1.5 text-[14.5px] font-semibold">{a.titre}</div>
           {/* Le contexte que l'alerte transporte (recette 21/08 : treize
-              « État des lieux à réaliser » identiques, illisibles) */}
+              « État des lieux à réaliser » identiques, illisibles).
+              Deux lignes plutôt qu'une coupe nette : sur un téléphone,
+              `truncate` réduisait « Doublon possible : un incident du même
+              type… » à « Doublon possible : un i… », qui n'apprend rien. */}
           {typeof a.details?.libelle === "string" && (
-            <div className="truncate text-xs text-muted-foreground">
+            <div className="line-clamp-2 text-[13px] text-muted-foreground">
               {a.details.libelle}
             </div>
           )}
-          <div className="text-xs text-muted-foreground">
-            créée le {formaterDateHeure(a.created_at)}
-            {echeance && (
-              <span className={`ml-2 ${echeance.classe}`}>{echeance.texte}</span>
-            )}
+          {consequence(a) && (
+            <div className="consequence-alerte">{consequence(a)}</div>
+          )}
+          <div className="mt-1 text-xs text-muted-foreground">
+            créée le {formaterDateHeure(a.created_at)} · confiée à{" "}
+            {nomAssignation(a, membres)}
           </div>
         </div>
         {/* Une alerte grisée est intouchable — seul le responsable peut la
@@ -240,7 +276,7 @@ export function ListeAlertes({
         <div className="vide-guide">
           <p className="titre">
             {filtre === "toutes"
-              ? "Aucune alerte ouverte"
+              ? "Votre journée est dégagée"
               : "Aucune alerte à ce niveau"}
           </p>
           <p className="explication">

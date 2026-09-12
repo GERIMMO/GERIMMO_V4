@@ -89,11 +89,26 @@ function GroupeActions({
   const etiquetteUtile =
     actions.length === 1 || new Set(actions.map((a) => a.nature)).size > 1;
   return (
-    <>
-      <div className="tete-groupe">
+    /* REPLIÉS PAR DÉFAUT (demande de l'humain, 12/09). L'écran du matin
+       ouvrait sur une colonne de quinze rangées : on ne choisit pas par où
+       commencer devant un mur. Chaque groupe se réduit à sa ligne — son nom et
+       son compte — et s'ouvre d'un clic sur celui qu'on décide de traiter.
+       `<details>` natif : pas d'état à porter, l'ouverture marche au clavier
+       comme au doigt, et le contenu replié n'est pas lu par un lecteur
+       d'écran tant qu'il est fermé. */
+    <details className="groupe-plan">
+      <summary className="tete-groupe">
         <span className="libelle-champ">{titre}</span>
-        <span className="libelle-champ">{total}</span>
-      </div>
+        <span className="flex items-center gap-2.5">
+          <span className="libelle-champ">{total}</span>
+          <span className="chevron-groupe" aria-hidden>
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </span>
+      </summary>
       {actions.map((a) => {
         const ech = afficherEcheance(a.echeance);
         return (
@@ -140,7 +155,7 @@ function GroupeActions({
         );
       })}
       {reste}
-    </>
+    </details>
   );
 }
 

@@ -616,6 +616,26 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 }
 .colonne-liste > .tete-groupe:not(:first-child) { border-top: 1px solid var(--filet); }
 
+/* Groupe dépliable du plan du jour (12/09) : l'en-tête EST le bouton.
+   `list-none` des deux façons — la propriété standard et la pseudo-classe
+   WebKit — sinon Safari garde son triangle à côté de notre chevron. */
+.groupe-plan > summary { list-style: none; }
+.groupe-plan > summary::-webkit-details-marker { display: none; }
+.groupe-plan > summary {
+  /* La cible tactile de la règle maison : on ouvre un groupe au doigt. */
+  min-height: 40px;
+}
+.groupe-plan:not(:first-child) > summary { border-top: 1px solid var(--filet); }
+.chevron-groupe {
+  display: inline-flex;
+  color: var(--libelle);
+  transition: transform 0.15s ease;
+}
+.groupe-plan[open] > summary .chevron-groupe { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .chevron-groupe { transition: none; }
+}
+
 /* Rang de lot (maquette .rang-lot) : indenté sous son bien, filet vertical */
 .rang-lot {
   display: flex;

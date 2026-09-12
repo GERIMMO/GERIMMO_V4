@@ -3,7 +3,7 @@ type: concept
 tags: [lot, bien, detention, propriete]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-12
 sources: ["[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]"]
 ---
 
@@ -77,6 +77,29 @@ est **tranché : cette machine fait foi**, le registre A5 est à amender
 - **En copropriété** (module 0c) : le **tantième** est porté par le lot (RM-0c.1.1) —
   contrôle de cohérence des [[Appel de charges|appels de charges]] du syndic et clé
   alternative ; l'onglet « Charges » du lot reçoit les appels et fonds travaux.
+
+## Qui voit quoi d'un lot (décision produit, 2026-09-12)
+
+Le lot est un **objet commun** : plusieurs personnes le regardent, pour des
+raisons différentes. Décision de l'humain, le 12/09 : *« j'aimerais que la vision
+soit similaire pour tous ceux qui ont accès au lot »* — une même fenêtre, dont le
+CONTENU dépend du titre auquel on regarde.
+
+| Regard | Voit | Ne voit jamais |
+|---|---|---|
+| **Gérant** — admin d'agence, agent (dans son portefeuille, RM-18.1.3), [[Gérant\|propriétaire direct]] | Tout : occupant et contacts, mandant, taux d'honoraires, détentions, blocages de mise en location, [[Comptabilité]] du lot, [[Document]]s du lot / du [[Bail]] / du [[Mandat de gestion]], envoi du rapport au mandant | — |
+| **Locataire** | Son logement, son [[Bail]], son loyer, ce qu'il reste à régler, ses documents, ses signalements | Le mandant et son e-mail · le taux d'honoraires de l'agence · les autres détenteurs · ce qui bloque une remise en location · la comptabilité du lot |
+| **Artisan** | Rien de ce lot par cette voie : sa fiche de [[Intervention\|mission]] porte l'adresse, l'accès et le contact de la visite | Le loyer, l'occupant hors visite, le propriétaire, la comptabilité |
+
+Deux principes que cette décision met en œuvre :
+
+1. **C'est la base qui tait, pas l'écran.** La portée est calculée côté base et
+   les colonnes hors portée sont rendues nulles : un écran ne peut pas masquer ce
+   qu'on ne lui a pas donné ([[Socle de sécurité]], [[Isolation multi-organisation]]).
+2. **L'artisan reste hors du modèle par rôle.** Aucune politique RLS ne nomme son
+   rôle : il n'atteint que des fonctions qui déduisent son identité de sa session
+   et ne rendent que ses missions (RM-19.3.3). Lui ouvrir une lecture qui prend un
+   lot en paramètre rouvrirait cette porte.
 
 > [!warning] Écart avec le code actuel
 > Le code Gerimmo-V3 n'a **pas de table lot** : `biens` porte directement loyer,

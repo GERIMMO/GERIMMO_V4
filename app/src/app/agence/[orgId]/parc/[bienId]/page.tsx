@@ -32,6 +32,7 @@ import { BlocagesLocation, ListeBlocages } from "../blocages-location";
 import type { BienFormulaire } from "../formulaire-bien";
 import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
 import { SectionLot } from "./lots/[lotId]/section-lot";
+import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
 import { RecapBien } from "./recap-bien";
 import { LignesDiagnostics, type DiagnosticDepose } from "./lignes-diagnostics";
 import { FormulaireDecoupage } from "./formulaire-decoupage";
@@ -235,7 +236,8 @@ export default async function PageBien(
   const loues = lotsActifs.filter((l) => ["loue", "preavis"].includes(l.etat)).length;
 
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
+    <FenetreLotProvider orgId={orgId}>
+      <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <EnteteFiche
         retour={{
           href: `/agence/${orgId}/parc`,
@@ -320,12 +322,16 @@ export default async function PageBien(
                     {blocages.length > 0 && (
                       <BadgeStatut ton="attente">{blocages.length} à régler</BadgeStatut>
                     )}
-                    <Link
+                    {/* Depuis le 12/09, le lot s'ouvre EN FENÊTRE : locataire,
+                        propriétaire, documents et comptabilité sans quitter le
+                        bien. La fiche complète reste au pied de la fenêtre. */}
+                    <BoutonLot
+                      lotId={lot.id}
                       href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
                       className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                     >
                       Voir le lot →
-                    </Link>
+                    </BoutonLot>
                   </div>
 
                   {/* Points propres à ce lot — repliés, la ligne reste lisible */}
@@ -557,6 +563,7 @@ export default async function PageBien(
         </CardContent>
       </Card>
 
-    </main>
+      </main>
+    </FenetreLotProvider>
   );
 }

@@ -32,7 +32,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Dossier locataire]] — pièces versionnées rattachées à la personne ; purge à 5 ans.
 - [[Patrimoine et résidences]] — regroupements au-dessus du bien (code actuel).
 - [[Bien]] — l'unité physique (adresse, clé, diagnostics communs).
-- [[Lot]] — l'unité locative V3 : porte bail, loyer, détention et mandat.
+- [[Lot]] — l'unité locative V3 : porte bail, loyer, détention et mandat ; qui en voit quoi (gérant, locataire, artisan).
 - [[Clé de répartition]] — répartit une dépense commune entre lots ; 100 % exact, datée.
 - [[Diagnostic]] — DPE, ERP… ; expiré = création de bail bloquée.
 - [[Appel de charges]] — charges de copro : saisie poste à poste, ventilation récupérable.

@@ -59,13 +59,26 @@ export function SidebarAgence({
     },
     { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: badgeIncidents },
     { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
-    // Le libellé colle au titre de la page (audit 09/09) : l'admin ouvre la
-    // comptabilité complète, l'agent ses loyers & charges
-    { href: `${base}/comptabilite`, libelle: admin ? "Comptabilité" : "Loyers & charges", icone: "euro" },
+    // DEUX INDEX QUI NE SONT PLUS CEUX DE L'AGENT (demande de l'humain, 12/09).
+    //
+    // « Comptabilité » et « Documents » posent une question d'ensemble :
+    // « qu'est-ce que l'agence a encaissé ce mois-ci ? », « quelles pièces
+    // avons-nous ? ». C'est la question d'un ADMIN. L'agent, lui, n'en pose
+    // jamais qu'une seule : « qu'est-ce que j'ai sur CE lot ? » — et il
+    // l'obtient en cliquant sur le lot, dans la fenêtre qui porte désormais
+    // ses documents, sa comptabilité, l'encaissement du loyer, la saisie
+    // d'une dépense et l'envoi du rapport au propriétaire.
+    //
+    // Les deux pages ne sont pas supprimées : elles restent celles de l'admin,
+    // et le dépôt d'un document y renvoie depuis la fenêtre. Seul le MENU de
+    // l'agent s'allège — de deux entrées sur onze.
     ...(admin
-      ? [{ href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" }]
+      ? [
+          { href: `${base}/comptabilite`, libelle: "Comptabilité", icone: "euro" },
+          { href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" },
+          { href: `${base}/documents`, libelle: "Documents", icone: "doc" },
+        ]
       : []),
-    { href: `${base}/documents`, libelle: "Documents", icone: "doc" },
     { href: `${base}/messages`, libelle: "Messages", icone: "bulle", badge: badgeMessages },
     { href: `${base}/alertes`, libelle: "Alertes", icone: "cloche", badge: badgeAlertes },
     { href: `${base}/statistiques`, libelle: "Statistiques", icone: "stats" },

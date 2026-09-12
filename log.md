@@ -3647,3 +3647,91 @@ police de titrage, sur la classe utilitaire `font-heading` que les composants
 posent en JSX (aucune règle d'élément ne la couvrait), et la déclaration tardive
 de `.montant` qui n'imposait que `tabular-nums` est complétée plutôt que laissée
 en contradiction avec la nouvelle.
+
+## [2026-09-12] dev   | La fenêtre du lot : un objet, une fenêtre, une portée par regard
+
+**La demande, en deux temps.** D'abord : « pour l'agent immobilier, il n'y a
+plus de page document ou comptabilité ; lorsqu'il clique sur le lot, ça ouvre
+une fenêtre sur la page avec toutes les infos du lot, un bouton pour dérouler
+les documents, un bouton pour dérouler la comptabilité, et la possibilité
+d'envoyer un rapport au propriétaire par mail ». Puis : « j'aimerais que la
+vision soit similaire pour tous ceux qui ont accès au lot, et que tu utilises
+cette logique pour le site ».
+
+**Le renversement.** Une page « Documents » d'agence oblige à chercher une pièce
+au milieu de celles de quatre-vingts autres lots ; une page « Comptabilité »
+oblige à filtrer. Or un agent ne se demande jamais « quels documents
+avons-nous ? » — il se demande « qu'est-ce que j'ai sur CE lot ? ». L'index
+s'efface donc au profit de l'objet. Les deux pages restent celles de
+l'**admin d'agence**, dont la question porte bien sur l'ensemble.
+
+**Une fonction, une portée.** `fiche_lot(p_lot)` rend une colonne `portee` qui
+dit à quel titre l'appelant regarde ce lot, et TAIT le reste. Le gérant (admin,
+agent dans son portefeuille, propriétaire direct) voit tout ; le locataire voit
+son logement, son bail et ce qu'il doit — jamais le mandant, son e-mail, le taux
+d'honoraires, ni la liste de ce qui bloque une remise en location. Ce n'est pas
+l'écran qui masque : l'écran ne peut pas masquer ce qu'on ne lui a pas donné.
+
+**L'artisan n'entre pas, et c'est délibéré.** Son portail ne lit aucune table du
+produit — aucune politique RLS ne nomme son rôle, il ne connaît que des RPC qui
+déduisent son identité de `auth.uid()`. Lui ouvrir une fonction qui prend un
+`p_lot` en paramètre rouvrirait la porte que le socle du 11/09 a condamnée. Sa
+fenêtre à lui existe déjà : sa fiche de mission, avec l'adresse, l'accès et le
+contact de la visite — et pas le loyer de quelqu'un.
+
+**Ce qui ne devait pas se perdre.** Retirer « Loyers & charges » à l'agent, c'est
+lui retirer l'endroit d'où il encaisse un loyer et saisit une dépense — ses deux
+gestes quotidiens. Ils sont dans le volet comptabilité, au contact du lot qui
+les porte, avec l'envoi du rapport au mandant. Le volet annonce AVANT le clic
+combien de lots le rapport couvre : il porte sur le mandat, pas sur le lot.
+
+**Trois défauts trouvés en chemin, tous constatés au navigateur.**
+
+1. **Le mensonge au locataire (grave).** « Mes paiements » annonçait « Tous vos
+   loyers sont à jour — rien à régler » à un locataire qui devait 400 €, pendant
+   que l'agence voyait l'impayé et que la relance partait.
+   `mon_echeancier_locataire` chaînait `etat_loyers_bail`, à qui l'étanchéité du
+   10/09 avait ajouté — à juste titre pour ses autres appelants — une garde de
+   GÉRANT. Un locataire ne l'est jamais : la jointure latérale ne rendait plus
+   rien, pour tout le monde, depuis deux jours. Aucun test ne l'avait vu :
+   l'échéancier du locataire n'en avait pas, et « zéro terme » ressemble trait
+   pour trait à « aucun loyer appelé ». Corrigé (appel au calcul brut, la
+   fonction portant déjà son propre contrôle) et couvert par quatre tests.
+2. **Le filet invisible.** `buttonVariants()` appelée nue sur un `<Link>` — à
+   quarante-six endroits du produit — rendait `border-transparent` ET
+   `border-border` : c'est l'ordre de la feuille compilée qui tranchait, et le
+   bouton « outline » perdait son filet. Il devenait un texte flottant. La
+   fusion (`cn`/tailwind-merge) vit désormais DANS la fonction : un appelant
+   peut l'oublier, la fonction ne le peut pas.
+3. **La roue de quatre cents pixels.** `Spinner` n'avait aucune taille et
+   comptait sur le `[&_svg]:size-4` des boutons. Posée dans un paragraphe, elle
+   prenait toute la largeur de son conteneur. Elle porte sa taille par défaut.
+
+Et deux défauts dans ma propre première écriture, trouvés avant livraison :
+`fiche_lot` n'avait pas de `where l.id = p_lot` (elle rendait le premier lot venu
+du portefeuille, sous le bon titre), et aucune des quatre fonctions ne posait la
+garde de portefeuille (RM-18.1.3) — un agent restreint aurait lu le téléphone du
+locataire et l'e-mail du propriétaire d'un lot qu'aucun de ses écrans ne lui
+liste.
+
+645 tests (644 passent, 1 rouge délibéré — RM-2.1.2, en attente d'arbitrage —
+2 ignorés), 63 E2E verts, ESLint sans erreur, build vert. Migrations posées en
+production : `fenetre_du_lot`, `echeancier_locataire_rendu_au_locataire`.
+
+## [2026-09-12] dev   | Un seul libellé en capitales, au lieu de quatre
+
+Premier morceau de la direction « Le registre » appliqué au produit, livré avec
+la fenêtre du lot parce qu'elle en dépend.
+
+Le dépôt portait **quatre** métriques de libellé mono en capitales — 9 px/0,18em,
+9,5 px/0,12em, 11 px/0,13em, 11,5 px/0,06em — qui revenaient une douzaine de fois
+par écran sans qu'aucune différence ne soit signifiante. Ce qui devait signaler
+ne signalait plus rien, et les 9 px se lisaient mal à bout de bras (au point
+qu'une surcharge mobile les remontait, ce qui n'a plus d'objet).
+
+Une seule métrique désormais, 11 px / 0,12em : ce qui distingue un libellé d'un
+autre est sa **couleur**, pas sa taille. Les quatre noms de classe survivent —
+`.libelle-champ`, `.badge-statut`, `.eyebrow`, `.mono-discret`, plus les `th` des
+tableaux — pour ne pas toucher deux cents composants ; ils désignent maintenant
+la même chose. `.badge-statut` garde `color: inherit` pour que sa classe de ton
+(succès, attente, critique) l'emporte sur la couleur commune.

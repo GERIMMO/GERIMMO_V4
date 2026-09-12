@@ -3,6 +3,7 @@ import { eur, formaterDate } from "@/lib/ged";
 import { TYPES_BAIL } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
+import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
 import { CarteConge } from "./carte-conge";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import type { BailLocataire } from "../types";
@@ -31,6 +32,10 @@ export default async function PageLogementLocataire(
       supabase.rpc("mon_intention_conge", { p_org: orgId }),
       supabase.rpc("mes_edl_locataire", { p_org: orgId }),
     ]);
+  // L'identifiant du lot : `mon_bail_locataire` n'en rend que le nom, et la
+  // fenêtre du lot — la même que voit son gestionnaire, à sa portée à lui —
+  // a besoin de l'identifiant pour s'ouvrir (12/09).
+  const { data: lotId } = await supabase.rpc("mon_lot_locataire", { p_org: orgId });
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const depot = ((depotRows ?? []) as {
     depot_du: number;
@@ -65,6 +70,7 @@ export default async function PageLogementLocataire(
   const forfait = bail.charges_mode === "forfait";
 
   return (
+    <FenetreLotProvider orgId={orgId}>
     <div className="space-y-4">
       <div className="entete-page">
         <h1>Mon logement</h1>
@@ -80,13 +86,20 @@ export default async function PageLogementLocataire(
       )}
 
       <div className="loc-carte">
-        <div className="flex flex-wrap items-center gap-4">
+        {/* Le logement s'ouvre EN FENÊTRE, comme chez son gestionnaire : même
+            composant, même forme, portée différente — son bail, ses documents,
+            ses loyers, jamais le propriétaire ni les honoraires de l'agence. */}
+        <BoutonLot
+          lotId={String(lotId ?? "")}
+          href={`/locataire/${orgId}/bail`}
+          className="flex w-full flex-wrap items-center gap-4 text-left"
+        >
           <span className="loc-vignette" style={{ width: 88, height: 68, fontSize: 24 }} aria-hidden>
             {(bail.ville?.[0] ?? bail.lot_nom[0] ?? "G").toUpperCase()}
           </span>
-          <div className="min-w-0">
-            <p className="font-heading text-lg text-[var(--encre)]">{bail.lot_nom}</p>
-            <p className="text-[13px] text-muted-foreground">
+          <span className="min-w-0 flex-1">
+            <span className="font-heading block text-lg text-[var(--encre)]">{bail.lot_nom}</span>
+            <span className="block text-[13px] text-muted-foreground">
               {[
                 bail.adresse,
                 bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")} m²` : null,
@@ -96,9 +109,12 @@ export default async function PageLogementLocataire(
               ]
                 .filter(Boolean)
                 .join(" · ")}
-            </p>
-          </div>
-        </div>
+            </span>
+            <span className="mono-discret mt-1 block normal-case">
+              Tout mon logement en un coup d’œil →
+            </span>
+          </span>
+        </BoutonLot>
 
         <div className="mt-4">
           <div className="ligne-info">
@@ -253,5 +269,6 @@ export default async function PageLogementLocataire(
         }
       />
     </div>
+    </FenetreLotProvider>
   );
 }

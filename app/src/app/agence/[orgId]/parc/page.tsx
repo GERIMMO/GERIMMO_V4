@@ -21,6 +21,7 @@ import {
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireEquipementCatalogue } from "./formulaire-equipement-catalogue";
 import { PaneParc, lireSelection } from "./pane-parc";
+import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
 import { EchecLecture } from "./echec-lecture";
 
 export const metadata = { title: "Parc — Gerimmo" };
@@ -45,11 +46,20 @@ type LotBloque = {
 // moins un lot ; le multi-lots reste discret tant qu'on ne découpe pas).
 export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">) {
   const { orgId } = await props.params;
-  // Maquette : la sélection (?sel=bien:… | lot:…) s'ouvre dans le panneau de
-  // droite ; sans sélection, la vue d'ensemble. Un changement de searchParams
-  // ne re-déclenche pas loading.tsx : les rangs portent un IndicateurLien.
+  // Un BIEN sélectionné (?sel=bien:…) s'ouvre dans le panneau de droite ;
+  // sans sélection, la vue d'ensemble. Un LOT, lui, ouvre depuis le 12/09 la
+  // FENÊTRE — sur place, sans aller-retour serveur, parce que c'est le geste
+  // le plus répété de la journée d'un agent. `?sel=lot:…` reste honoré : des
+  // écrans y mènent déjà (les « à renseigner » d'un document généré), et la
+  // fenêtre s'ouvre alors d'elle-même à l'arrivée.
   const { sel } = (await props.searchParams) as { sel?: string | string[] };
   const selection = lireSelection(sel);
+  // Deux destinations désormais : le panneau pour un bien, la fenêtre pour un
+  // lot. `selectionBien` est ce qui reste au panneau ; `lotInitial` est ce que
+  // la fenêtre ouvre d'elle-même à l'arrivée.
+  const selectionBien =
+    selection?.type === "bien" ? { type: "bien" as const, id: selection.id } : null;
+  const lotInitial = selection?.type === "lot" ? selection.id : null;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
   // « Mon portefeuille » (RM-18.1.3) : l'agent ne voit que les lots des
   // mandats qui lui sont confiés — null : il voit tout.
@@ -168,7 +178,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   noter("les éléments qui bloquent la mise en location", erreurBlocages);
 
   return (
-    <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
+    // Le fournisseur enveloppe l'écran : chaque rang de lot y puise de quoi
+    // ouvrir la fenêtre, et la fenêtre se monte au-dessus de tout.
+    <FenetreLotProvider orgId={orgId} lotInitial={lotInitial}>
+      <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>
           {estProprietaire
@@ -250,11 +263,11 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         // Vue scindée mobile (socle 10/09) : `detail-actif` masque la liste
         // sous 900px quand une sélection existe — le détail remplace la liste
         // au lieu d'être rendu dessous, avec un lien retour en tête.
-        <div className={`split${selection ? " detail-actif" : ""}`}>
+        <div className={`split${selectionBien ? " detail-actif" : ""}`}>
           <div className="colonne-liste-split volet-liste">
             <div className="tete-liste">
               <span className="mono-discret">Lots</span>
-              {selection ? (
+              {selectionBien ? (
                 <Link href={`/agence/${orgId}/parc`} className="lien-discret text-xs">
                   Vue d&apos;ensemble
                   <IndicateurLien />
@@ -269,7 +282,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               <div key={bien.id}>
                 <Link
                   href={`/agence/${orgId}/parc?sel=bien:${bien.id}`}
-                  className={`tete-groupe${selection?.type === "bien" && selection.id === bien.id ? " actif" : ""}`}
+                  className={`tete-groupe${selectionBien?.id === bien.id ? " actif" : ""}`}
                 >
                   <span className="min-w-0">
                     <b className="block truncate text-[13.5px] font-medium">{bien.nom}</b>
@@ -288,13 +301,17 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   </span>
                   <IndicateurLien />
                 </Link>
+                {/* Le rang du lot n'est plus un lien : il OUVRE la fenêtre,
+                    sur place. Hors fenêtre (navigateur sans JS), BoutonLot
+                    retombe sur le lien vers la fiche complète. */}
                 {bien.lotsVisibles.map((lot) => (
-                  <Link
+                  <BoutonLot
                     key={lot.id}
-                    href={`/agence/${orgId}/parc?sel=lot:${lot.id}`}
-                    className={`rang-lot${selection?.type === "lot" && selection.id === lot.id ? " actif" : ""}`}
+                    lotId={lot.id}
+                    href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
+                    className="rang-lot"
                   >
-                    <span className="min-w-0 flex-1 truncate text-[13px]">
+                    <span className="min-w-0 flex-1 truncate text-left text-[13px]">
                       {lot.nom}
                       {lot.surface_m2 !== null && (
                         <span className="text-muted-foreground">
@@ -308,20 +325,19 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     >
                       {ETATS_LOT[lot.etat] ?? lot.etat}
                     </span>
-                    <IndicateurLien />
-                  </Link>
+                  </BoutonLot>
                 ))}
               </div>
             ))}
           </div>
 
-          {selection ? (
+          {selectionBien ? (
             <div className="min-w-0">
               {/* Visible sous 900px seulement (.retour-liste) : la liste est masquée */}
               <Link href={`/agence/${orgId}/parc`} className="retour-liste mb-2">
                 ← Tous les lots
               </Link>
-              <PaneParc supabase={supabase} orgId={orgId} selection={selection} />
+              <PaneParc supabase={supabase} orgId={orgId} selection={selectionBien} />
             </div>
           ) : (
           /* Aperçu du parc (maquette apercuParc) : KPI, répartition, blocages */
@@ -457,7 +473,8 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           )}
         </CardContent>
       </Card>
-    </main>
+      </main>
+    </FenetreLotProvider>
   );
 }
 

@@ -306,20 +306,29 @@ a:hover > [data-slot="card"] {
 /* rester DANS la couche.                                             */
 /* ------------------------------------------------------------------ */
 @layer components {
-.libelle-champ {
+/* UN SEUL LIBELLÉ EN CAPITALES, ET C'EST LA DIRECTION RETENUE LE 12/09.
+   Il en existait QUATRE — 9 px/0,18em, 9,5 px/0,12em, 11 px/0,13em,
+   11,5 px/0,06em — qui revenaient une douzaine de fois par écran sans qu'aucune
+   différence ne soit signifiante. Ce qui devait signaler ne signalait plus
+   rien, et les 9 px se lisaient mal à bout de bras.
+   Une seule métrique désormais ; ce qui distingue un libellé d'un autre est sa
+   COULEUR, pas sa taille. Les quatre noms de classe survivent pour ne pas
+   toucher deux cents composants — ils désignent maintenant la même chose. */
+.libelle-champ,
+.badge-statut,
+.eyebrow,
+.mono-discret,
+.tableau th {
   font-family: var(--font-libelles), ui-monospace, monospace;
-  font-size: 0.5625rem; /* 9 px */
-  letter-spacing: 0.18em;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--libelle);
 }
-
-/* Charte — badge de statut : Plex Mono capitales, TEXTE COLORÉ SANS FOND */
+/* Le badge de statut porte sa propre couleur (succès, attente, critique) :
+   elle est posée par la classe de ton, qui gagne sur la couleur commune. */
 .badge-statut {
-  font-family: var(--font-libelles), ui-monospace, monospace;
-  font-size: 0.59375rem; /* 9,5 px */
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: inherit;
 }
 
 
@@ -336,23 +345,8 @@ a:hover > [data-slot="card"] {
 /* Composants de la maquette (charte v2) — classes partagées           */
 /* ------------------------------------------------------------------ */
 
-/* Sur-titre mono en capitales (maquette .eyebrow) */
-.eyebrow {
-  font-family: var(--font-libelles), ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--libelle);
-}
-
-/* Appui mono discret (maquette .mono) */
-.mono-discret {
-  font-family: var(--font-libelles), ui-monospace, monospace;
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--libelle);
-}
+/* `.eyebrow` (sur-titre) et `.mono-discret` (appui) partagent désormais la
+   métrique commune posée plus haut ; il ne reste ici que leur variante. */
 /* Variante en casse naturelle — l'utilitaire Tailwind `normal-case` vit dans
    un cascade layer et perd contre .mono-discret, hors layer (audit 09/09) */
 .mono-discret.sans-majuscules {
@@ -1086,7 +1080,8 @@ p a {
   .rang { flex-wrap: wrap; row-gap: 2px; }
   .entete-carte { flex-wrap: wrap; }
   /* Les libellés mono 9 px de la charte sont illisibles à bout de bras */
-  .libelle-champ { font-size: 0.65rem; letter-spacing: 0.14em; }
+  /* La métrique commune (11 px) est déjà lisible à bout de bras :
+     la surcharge mobile qui remontait les 9 px n'a plus d'objet. */
 }
 
 /* Navigation horizontale du petit écran : les libellés reviennent sous les
@@ -1251,11 +1246,6 @@ p a {
   font-size: var(--pas-corps);
 }
 .tableau th {
-  font-family: var(--font-libelles), ui-monospace, monospace;
-  font-size: 0.5625rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--libelle);
   font-weight: 400;
   text-align: left;
   padding: var(--rythme-2) var(--rythme-3) var(--rythme-2) 0;

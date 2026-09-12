@@ -3,7 +3,7 @@ type: business-rule
 tags: [tarifs, stripe, abonnement]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-05
+updated: 2026-09-12
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
 ---
 
@@ -87,6 +87,12 @@ annuelle » ; paliers exprimés en **lots sous mandat** (comptage automatique RM
 Les deux dernières tranches restent sur devis.
 
 > [!warning] Points à trancher / contradictions
+> - **La grille agence par paliers n'est implémentée nulle part (constat du 2026-09-12)** :
+>   `etat_abonnement` applique 5,99 €/bien à TOUT LE MONDE, et « Mon abonnement » est
+>   masqué aux agences — il n'existe aucun chemin d'encaissement pour une agence. Une
+>   proposition de remplacement, par tranches et sans marche, attend l'arbitrage :
+>   voir [[Grille tarifaire agence — proposition]]. **Tant qu'elle n'est pas tranchée,
+>   la présente page fait foi.**
 > - `agency_301_600` : `requires_quote = true` → doit rester non achetable en ligne (sinon R1 bloque).
 > - Prix annuels de `public-pricing.ts` à neutraliser (RM-18.6.7 : mensuel exclusif).
 > - Voir [[Cycle de vie de l'abonnement]], [[Analyse concurrentielle]].

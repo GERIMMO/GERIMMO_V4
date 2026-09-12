@@ -26,14 +26,22 @@ let db: Client;
 let org: string;
 let client: string;
 
-async function creerOrg(statut: string, essai: "hier" | "demain" | null = null): Promise<string> {
+// Le type par défaut d'une organisation est « agence » — et depuis la grille
+// du 12/09, agence et propriétaire direct n'ont ni la même unité ni le même
+// barème. Les tests qui portent sur l'un doivent donc le dire.
+async function creerOrg(
+  statut: string,
+  essai: "hier" | "demain" | null = null,
+  type: "agence" | "proprietaire_direct" = "proprietaire_direct"
+): Promise<string> {
   const date = essai === "hier" ? "current_date - 1" : essai === "demain" ? "current_date + 1" : "null";
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status, essai_fin)
-     values ('Encaissement', $1::public.organization_status, ${date}) returning id`,
-    [statut]
+    `insert into public.organizations (name, status, type, essai_fin)
+     values ('Encaissement', $1::public.organization_status, $2::public.organization_type, ${date})
+     returning id`,
+    [statut, type]
   );
   return id;
 }

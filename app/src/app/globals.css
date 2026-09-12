@@ -449,6 +449,14 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   color: var(--sur-encre);
   border-color: var(--encre);
 }
+/* Le compteur d'un filtre ACTIF hérite de la couleur de la pastille.
+   `.mono-discret` impose un gris pensé pour un fond clair ; posé sur l'encre,
+   il tombait sous le seuil de contraste AA (relevé par axe le 12/09, sur
+   /alertes, dès qu'un filtre porte un nombre). Le défaut préexistait et ne se
+   voyait que lorsqu'il y avait assez d'alertes pour que le compteur s'affiche. */
+.filtre.actif .mono-discret {
+  color: inherit;
+}
 
 /* Barre de complétude (maquette .barre) */
 .barre {

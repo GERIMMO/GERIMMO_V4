@@ -11,10 +11,17 @@ import {
   configurationStripe,
   finDePeriode,
   lireErreurStripe,
+  prixPour,
   quantiteFacturee,
+  variablePrix,
 } from "@/lib/stripe";
 
-const VARIABLES = ["STRIPE_SECRET_KEY", "STRIPE_PRIX_BIEN", "STRIPE_WEBHOOK_SECRET"] as const;
+const VARIABLES = [
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "STRIPE_PRIX_BIEN",
+  "STRIPE_PRIX_LOT_AGENCE",
+] as const;
 const initial = Object.fromEntries(VARIABLES.map((v) => [v, process.env[v]]));
 
 afterEach(() => {
@@ -33,22 +40,19 @@ function poser(valeurs: Partial<Record<(typeof VARIABLES)[number], string | unde
 }
 
 describe("Réglages : rien ne marche à moitié", () => {
-  it("sans aucune variable, l'adaptateur dit lesquelles manquent", () => {
+  it("sans clé ni signature, l'adaptateur dit lesquelles manquent", () => {
     poser({});
     const r = configurationStripe();
     expect(r.pret).toBe(false);
     if (r.pret) return;
     // Le motif est écrit pour être LU par un humain qui doit les poser :
     // « la facturation n'est pas configurée » n'aide personne à la configurer.
-    for (const v of VARIABLES) expect(r.motif).toContain(v);
+    expect(r.motif).toContain("STRIPE_SECRET_KEY");
+    expect(r.motif).toContain("STRIPE_WEBHOOK_SECRET");
   });
 
   it("une seule variable manquante suffit à refuser, et elle est nommée", () => {
-    poser({
-      STRIPE_SECRET_KEY: "sk_test_x",
-      STRIPE_PRIX_BIEN: "price_x",
-      STRIPE_WEBHOOK_SECRET: undefined,
-    });
+    poser({ STRIPE_SECRET_KEY: "sk_test_x", STRIPE_WEBHOOK_SECRET: undefined });
     const r = configurationStripe();
     expect(r.pret).toBe(false);
     if (r.pret) return;
@@ -61,26 +65,63 @@ describe("Réglages : rien ne marche à moitié", () => {
     // Une variable posée à «   » dans un tableau de bord est une variable
     // qu'on a cru poser. La traiter comme présente ferait échouer l'appel
     // chez Stripe, avec un message d'API au lieu d'une consigne.
-    poser({
-      STRIPE_SECRET_KEY: "   ",
-      STRIPE_PRIX_BIEN: "price_x",
-      STRIPE_WEBHOOK_SECRET: "whsec_x",
-    });
-    const r = configurationStripe();
-    expect(r.pret).toBe(false);
+    poser({ STRIPE_SECRET_KEY: "   ", STRIPE_WEBHOOK_SECRET: "whsec_x" });
+    expect(configurationStripe().pret).toBe(false);
   });
 
-  it("les trois posées, la configuration est prête et débarrassée des espaces", () => {
+  it("clé et signature posées, la configuration est prête, espaces retirés", () => {
     poser({
       STRIPE_SECRET_KEY: " sk_test_x ",
-      STRIPE_PRIX_BIEN: "price_x\n",
       STRIPE_WEBHOOK_SECRET: "whsec_x",
+      STRIPE_PRIX_BIEN: "price_bien\n",
     });
     const r = configurationStripe();
     expect(r.pret).toBe(true);
     if (!r.pret) return;
     expect(r.config.cle).toBe("sk_test_x");
-    expect(r.config.prixBien).toBe("price_x");
+    expect(r.config.prix.proprietaire_direct).toBe("price_bien");
+  });
+});
+
+describe("Un tarif par public, et l'un n'attend pas l'autre", () => {
+  it("le tarif propriétaire suffit à faire souscrire un propriétaire", () => {
+    // LE POINT DE CE DÉCOUPAGE. Le tarif agence est un objet à créer chez
+    // Stripe (un barème par tranches) ; tant qu'il n'existe pas, un
+    // propriétaire direct doit pouvoir payer. Exiger les deux ferait attendre
+    // un public à cause de l'autre.
+    poser({
+      STRIPE_SECRET_KEY: "sk_test_x",
+      STRIPE_WEBHOOK_SECRET: "whsec_x",
+      STRIPE_PRIX_BIEN: "price_bien",
+    });
+    const r = configurationStripe();
+    expect(r.pret).toBe(true);
+    if (!r.pret) return;
+    const pd = prixPour(r.config, "proprietaire_direct");
+    expect(pd.ok).toBe(true);
+    if (pd.ok) expect(pd.prix).toBe("price_bien");
+  });
+
+  it("le tarif manquant se signale en nommant SA variable", () => {
+    poser({
+      STRIPE_SECRET_KEY: "sk_test_x",
+      STRIPE_WEBHOOK_SECRET: "whsec_x",
+      STRIPE_PRIX_BIEN: "price_bien",
+    });
+    const r = configurationStripe();
+    if (!r.pret) throw new Error("configuration attendue prête");
+    const agence = prixPour(r.config, "agence");
+    expect(agence.ok).toBe(false);
+    if (!agence.ok) {
+      expect(agence.erreur).toContain("STRIPE_PRIX_LOT_AGENCE");
+      // Et il dit quoi faire à celui qui le lit, qui n'est pas l'administrateur.
+      expect(agence.erreur).toContain("Écrivez-nous");
+    }
+  });
+
+  it("chaque public nomme sa propre variable", () => {
+    expect(variablePrix("agence")).toBe("STRIPE_PRIX_LOT_AGENCE");
+    expect(variablePrix("proprietaire_direct")).toBe("STRIPE_PRIX_BIEN");
   });
 });
 

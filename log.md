@@ -3543,3 +3543,87 @@ jamais fermée en silence.
 
 582 tests (579 passent, 1 rouge délibéré, 2 ignorés), 48 E2E verts, ESLint à
 zéro, build vert.
+
+## [2026-09-12] query  | Proposer une grille tarifaire pour les agences
+
+Constat de départ : la grille agence actée le 25/07 (79/149/249/399 €/mois par
+palier, + mise en route, + redevance annuelle) **n'est implémentée nulle part**.
+`etat_abonnement` applique 5,99 €/bien à tout le monde et « Mon abonnement » est
+masqué aux agences — aucune agence ne peut payer aujourd'hui.
+
+Le défaut rédhibitoire de la grille par paliers est **la marche** : 50 → 51 lots
+fait passer la facture de 79 € à 149 €, **+89 % pour un lot de plus**. Une agence
+ne saisira pas ce lot, ou appellera pour négocier. Dans les deux cas le prix
+abîme la donnée : le parc dans l'outil cesse d'être le parc réel, et les relevés
+de gestion, régularisations et états fiscaux qui en découlent deviennent faux.
+
+Proposition filée dans [[Grille tarifaire agence — proposition]] : un **barème
+par tranches** (3,90 / 2,00 / 1,30 / 0,80 / 0,50 € par lot selon la tranche),
+plancher à 39 €/mois, ni mise en route ni redevance — un seul prélèvement, un
+seul abonnement Stripe. Le même passage de palier coûte alors **1,30 €** au lieu
+de +70 €.
+
+Elle ressort 25 à 50 % au-dessus de la grille de juillet, et c'est assumé : le
+tarif propriétaire direct est déjà passé de 2,50 à 5,99 € le 05/09 (« montée en
+gamme »), et la grille de juillet précède le module incident/artisan qui est le
+différenciateur du produit ([[Analyse concurrentielle]]).
+
+**Ce qu'elle impose au code** : changer l'unité comptée. `abonnement_quantite_cible`
+compte les BIENS ; pour une agence, un immeuble de trente lots compte alors pour
+un. Le référentiel dit déjà quoi compter — lot sous mandat actif au dernier jour
+du mois (RM-18.6) — et `mandat_lignes` porte ce qu'il faut.
+
+Niveaux, sort de la mise en route et loyer moyen de l'hypothèse : **à trancher
+par l'humain**. Tant que rien n'est arbitré, [[Grille tarifaire]] fait foi.
+
+## [2026-09-12] dev   | La grille agence : un barème par tranches, et le lot comme unité
+
+**Grille validée par l'humain le 12/09** ([[Grille tarifaire agence — proposition]]),
+et implémentée le jour même. Elle remplace la grille par paliers du 25/07, qui
+n'avait jamais été codée.
+
+| Tranche | Par lot et par mois |
+|---|---|
+| 1ᵉʳ au 10ᵉ lot | 3,90 € (plancher de 39 €) |
+| 11ᵉ au 50ᵉ | 2,00 € |
+| 51ᵉ au 150ᵉ | 1,30 € |
+| 151ᵉ au 400ᵉ | 0,80 € |
+| au-delà de 400 | 0,50 € |
+
+Ni mise en route, ni redevance annuelle : un seul prélèvement, un seul
+abonnement Stripe. Au-delà de 600 lots, sur devis — mais une agence **déjà
+cliente** qui franchit le seuil n'est jamais coupée, sa facture suit la dernière
+tranche. On ne punit pas un client qui grandit.
+
+**Le barème est marginal**, comme un barème d'impôt : chaque lot est facturé au
+tarif de SA tranche. Franchir 50 lots coûte 1,30 € au lieu de +70 €. Le test ne
+vérifie pas des montants mais la PROPRIÉTÉ : sur toute la plage de 1 à 700 lots,
+un lot de plus ne coûte jamais plus que le tarif de sa tranche. Un test de
+montants aurait laissé revenir la marche.
+
+**L'unité change, et c'était la moitié du travail.** Le calcul comptait les
+BIENS : un immeuble de trente lots comptait pour un, soit une facture divisée
+par trente sans que rien ne le signale. On compte désormais le **lot sous mandat
+actif** (RM-18.6) — vacant compté, sans mandat non, un mandat en préavis compté
+car il travaille jusqu'à son terme. Le double comptage n'est pas évité par
+prudence : il est structurellement impossible, un lot ne pouvant être couvert
+par deux mandats actifs (RM-5.1.3).
+
+**Le barème vit en table**, pas en code : `tarif_tranches`, lisible par tout
+compte connecté — c'est le tarif public du produit. L'écran montre le détail
+tranche par tranche avec ses sous-totaux, parce qu'une facture qu'on ne peut pas
+recalculer soi-même est une facture qu'on appelle pour contester.
+
+**« Mon abonnement » s'ouvre aux agences**, réservé au responsable — un agent
+n'a pas à connaître la facture de son agence, et la base refusait déjà de la lui
+rendre. Jusqu'ici l'écran leur était simplement masqué : elles n'avaient aucun
+moyen de savoir ce qu'elles payaient, ni de payer.
+
+Deux défauts trouvés en chemin : `abonnement_en_ligne_possible` était exposée à
+`authenticated` sans contrôle d'appartenance (refermée), et un compteur de
+filtre actif tombait sous le seuil de contraste AA sur fond encre — un défaut
+**préexistant**, que le portefeuille de démonstration a rendu visible en créant
+assez d'alertes pour que le compteur s'affiche.
+
+614 tests (611 passent, 1 rouge délibéré, 2 ignorés), 53 E2E verts, ESLint à
+zéro, build vert.

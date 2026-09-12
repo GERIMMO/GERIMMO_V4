@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
-import { seDeconnecter } from "@/app/actions/auth";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { SidebarLocataire } from "@/components/nav-locataire";
-import { SortieMobile } from "@/components/sortie-mobile";
+import { MenuCompte } from "@/components/menu-compte";
 import { nomComplet } from "@/lib/roles-personnes";
 import { estARenouveler } from "@/lib/ged";
 import { aEchoue } from "./panne-lecture";
@@ -89,26 +88,19 @@ export default async function LayoutLocataire({
           badgeMessages={Number(nonLus ?? 0)}
           declarationOuverte={adhesionActive}
         />
-        <div className="loc-late-bas">
-          <Link href="/espaces">Mes espaces</Link>
-          <form action={seDeconnecter}>
-            <button type="submit">Se déconnecter</button>
-          </form>
-          <span>{organisation.name}</span>
-        </div>
       </aside>
       <div className="min-w-0">
         <header className="loc-haut">
-          <span className="min-w-0 truncate text-[13px] text-muted-foreground">
-            {personne ? nomComplet(personne) : organisation.name}
-            <span className="text-[var(--libelle)]"> · Locataire</span>
-          </span>
-          <SortieMobile />
-          <span className="loc-avat" aria-hidden>
-            {personne
-              ? `${(personne.prenom?.[0] ?? "").toUpperCase()}${(personne.nom?.[0] ?? "").toUpperCase()}` || "◇"
-              : "◇"}
-          </span>
+          <MenuCompte
+            initiales={
+              personne
+                ? `${(personne.prenom?.[0] ?? "").toUpperCase()}${(personne.nom?.[0] ?? "").toUpperCase()}`
+                : "◇"
+            }
+            titre={personne ? nomComplet(personne) : organisation.name}
+            sousTitre="Locataire"
+            liens={[{ href: "/espaces", libelle: "Mes espaces" }]}
+          />
         </header>
         {comptesIncertains && (
           <p

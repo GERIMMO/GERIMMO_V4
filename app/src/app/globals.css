@@ -702,17 +702,6 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   justify-content: center;
   padding: 0 5px;
 }
-.loc-late-bas {
-  padding: 14px 16px;
-  border-top: 1px solid color-mix(in srgb, var(--sur-encre) 8%, transparent);
-  font-size: 12px;
-  color: color-mix(in srgb, var(--sur-encre) 55%, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-.loc-late-bas a, .loc-late-bas button { color: color-mix(in srgb, var(--sur-encre) 75%, transparent); text-align: left; font-size: 12.5px; }
-.loc-late-bas a:hover, .loc-late-bas button:hover { color: var(--sur-encre); }
 .loc-haut {
   background: var(--carte);
   border-bottom: 1px solid var(--filet);
@@ -725,6 +714,73 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   top: 0;
   z-index: 20;
 }
+/* LE MENU DU COMPTE (12/09) — l'avatar de l'en-tête ouvre ce que le pied de la
+   barre latérale portait. Il vit dans `.loc-haut`, donc à toutes les largeurs :
+   c'est ce qui permet de retirer `SortieMobile`, le second chemin qui existait
+   uniquement parce que le pied de la barre disparaît sous 860 px. */
+.menu-compte { position: relative; flex: none; }
+.menu-compte-bouton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 44 px de cible : c'est le geste le plus souvent fait au doigt de tout
+     l'en-tête. */
+  min-height: 44px;
+  padding: 0 2px;
+  border-radius: 999px;
+}
+.menu-compte-nom {
+  font-size: 13px;
+  color: var(--texte-secondaire);
+  max-width: 15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-compte-role { color: var(--libelle); }
+/* Sous 700 px, l'avatar seul : le nom mangeait la largeur de l'en-tête. */
+@media (max-width: 700px) { .menu-compte-nom { display: none; } }
+.menu-compte-bouton:hover .loc-avat { background: color-mix(in oklch, var(--encre), white 12%); }
+.menu-compte-bouton:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+.menu-compte-volet {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 40;
+  min-width: 14rem;
+  max-width: min(18rem, calc(100vw - 2rem));
+  background: var(--carte);
+  border: 1px solid var(--filet);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 14px 40px color-mix(in srgb, var(--encre) 22%, transparent);
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+}
+.menu-compte-tete {
+  padding: 8px 10px 9px;
+  border-bottom: 1px solid var(--filet);
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+.menu-compte-volet a,
+.menu-compte-volet button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  font-size: 13.5px;
+  color: var(--corps);
+  min-height: 40px;
+  border-radius: var(--radius-md);
+}
+.menu-compte-volet a:hover,
+.menu-compte-volet button:hover { background: var(--survol); }
+/* La déconnexion se distingue : c'est la seule qui ne revient pas d'un clic. */
+.menu-compte-sortir { color: var(--destructive); }
+.menu-compte-volet button.menu-compte-sortir:hover { background: var(--destructive-soft); }
+
 .loc-avat {
   width: 34px;
   height: 34px;
@@ -814,25 +870,11 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 .loc-etape .pt { width: 9px; height: 9px; border-radius: 50%; background: var(--filet); margin-top: 6px; flex: none; }
 .loc-etape.f .pt { background: var(--or); }
 .loc-etape:not(.f) { color: var(--libelle); }
-/* Sortie de secours mobile (audit 06/09) : cachée en desktop, dans l'en-tête
-   sous 860 px — le pied de barre latérale (Se déconnecter) y disparaît. */
-.loc-sortie-mobile { display: none; }
-
 @media (max-width: 860px) {
   .loc-app { grid-template-columns: 60px minmax(0, 1fr); }
-  .loc-sortie-mobile { display: inline-flex; gap: 4px; align-items: center; }
-  .loc-sortie-mobile a, .loc-sortie-mobile button {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px; border-radius: 8px; color: var(--encre);
-    border: 1px solid var(--filet); background: transparent; cursor: pointer;
-  }
-  .loc-sortie-mobile svg {
-    width: 16px; height: 16px; fill: none; stroke: currentColor;
-    stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round;
-  }
   .loc-logo { justify-content: center; padding: 16px 8px 13px; }
   /* Rail d'icônes : le symbole reste, le mot-marque et les libellés partent */
-  .loc-logo .loc-logo-texte, .loc-logo a > span > span, .loc-menu .lib, .loc-late-bas { display: none; }
+  .loc-logo .loc-logo-texte, .loc-logo a > span > span, .loc-menu .lib { display: none; }
   .loc-menu a { justify-content: center; padding: 12px; }
   .loc-badge { position: absolute; top: 3px; right: 3px; margin: 0; }
   .loc-corps { padding: 16px 13px 48px; }
@@ -1144,8 +1186,17 @@ p a {
     min-height: 40px;
   }
   .filtre { padding: 8px 14px; }
-  .loc-sortie-mobile a,
-  .loc-sortie-mobile button { width: 40px; height: 40px; }
+  /* L'avatar est le geste le plus souvent fait au doigt de tout l'en-tête, et
+     la règle générique ci-dessus ne règle que la HAUTEUR : sous 700 px le nom
+     s'efface et la pastille ne mesure plus que 38 px de large (relevé au
+     navigateur, 12/09). On rend la cible carrée et pleine.
+     `button.menu-compte-bouton` plutôt que la classe seule : à spécificité
+     égale à `button:not(.cible-libre)`, la règle la plus tardive l'emporte. */
+  button.menu-compte-bouton {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+  }
 }
 
 /* Rangées et en-têtes : autoriser le retour à la ligne sur petit écran

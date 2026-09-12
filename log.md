@@ -3960,3 +3960,59 @@ est redescendue en note de bas de page.
 
 687 tests (686 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 69 E2E verts
 dont l'audit axe-core, ESLint silencieux, build vert. Aucune migration.
+
+## [2026-09-12] dev   | Un seul chemin pour sortir : le menu de l'avatar
+
+**Demande de l'humain.** « En bas à gauche j'ai les paramètres et la
+déconnexion… j'aimerais que ça soit un menu lorsque je clique sur l'avatar en
+haut à droite. »
+
+**Ce que ça répare, au-delà du goût.** Ces liens vivaient au PIED de la barre
+latérale, là où la convention de tous les produits les cherche en haut à
+droite. Mais surtout : sous 860 px, la barre se réduit à un rail d'icônes et
+son pied DISPARAÎT. Il avait donc fallu greffer un second mécanisme —
+`SortieMobile`, trois icônes remises dans l'en-tête (audits des 06/09 et
+09/09) — pour qu'un téléphone puisse encore se déconnecter. **Se déconnecter
+empruntait un chemin différent selon la largeur de l'écran.** Le menu de
+l'avatar est là à toutes les largeurs : les deux mécanismes n'en font plus
+qu'un, et `SortieMobile` est supprimé.
+
+**Le même menu pour les quatre regards** — agent, admin d'agence,
+propriétaire, locataire. Seules les entrées changent, parce que seules elles
+diffèrent : « Profil de l'agence » pour l'agence, « Mon profil » pour le
+propriétaire, « Mes espaces » et « Se déconnecter » pour tous. Même logique que
+la fenêtre du lot livrée ce matin : un objet, une fenêtre, une portée par
+regard.
+
+**L'avatar devient un bouton.** Il n'était qu'une pastille décorative
+(`aria-hidden`) : il porte désormais un nom accessible, annonce qu'il ouvre un
+menu (`aria-haspopup`), et dit s'il est ouvert. Échap referme et **rend le
+focus au bouton** — sans quoi le clavier repart au début du document et le menu
+n'est plus réouvrable sans souris.
+
+**Un défaut trouvé en mesurant au navigateur.** La cible tactile de l'avatar
+faisait **38 × 40 px**, pas 44. Deux causes, cumulées : la règle générique des
+cibles tactiles ne règle que la HAUTEUR (40 px), et `button:not(.cible-libre)`
+l'emporte en spécificité sur une simple classe — mon `min-height: 44px` ne
+s'appliquait donc pas sous un pointeur grossier. Corrigé là où vit le reste du
+dimensionnement tactile, avec la spécificité qu'il faut.
+
+**Ce que les tests protègent.** Ce menu porte désormais LE SEUL CHEMIN DE
+SORTIE de l'application : s'il casse, plus personne ne quitte sa session, à
+aucune largeur. Le test va donc jusqu'au bout du geste — cliquer, puis vérifier
+qu'un retour sur l'espace renvoie à la connexion — au lieu de se contenter de
+voir le libellé. Vérifié par falsification : en cassant l'action de
+déconnexion, les quatre tests rougissent.
+
+**Un débordement de 4 px relevé, et laissé.** Le tableau de bord du locataire
+déborde de 4 px à 390 px — mesuré **avant comme après** ce changement, donc
+préexistant et étranger à celui-ci. La cause est localisée : sur téléphone,
+`.loc-grille` retombe en `grid-template-columns: 1fr`, ce qui réintroduit le
+minimum `auto` que la règle de bureau neutralise déjà par `minmax(0, 1fr)` ;
+une carte de la colonne ne sait pas se réduire sous 381 px. Le corriger
+proprement demande de traiter aussi le contenu de la carte, ce qui n'a rien à
+voir avec ce menu : consigné plutôt qu'emballé ici.
+
+687 tests unitaires (686 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés),
+86 E2E verts dont l'audit axe-core et les 18 nouveaux du menu, ESLint
+silencieux, build vert. Aucune migration.

@@ -31,6 +31,8 @@ type EtatPaiement = {
   quantite_cible: number;
   montant_mensuel: number;
   paiement_en_retard: boolean;
+  lecture_seule_le: string | null;
+  jours_avant_lecture_seule: number | null;
 };
 
 // « Mon abonnement » (maquette PC v1) — grille tarifaire ACTÉE le 05/09
@@ -72,8 +74,16 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
   const etat = ((etatBrut ?? []) as EtatAbonnement[])[0] ?? null;
   const paiement = ((paiementBrut ?? []) as EtatPaiement[])[0] ?? null;
   const total = etat?.mensuel ?? 0;
-  const statut = statutOrganisation(organisation.status);
   const ferme = etat ? !etat.ecriture_ouverte : false;
+  // LA PASTILLE DOIT DIRE CE QUE L'ÉCRAN DIT. Une organisation en défaut de
+  // paiement garde le statut « active » — elle PAIE, c'est sa carte qui a
+  // échoué — mais son écriture est fermée. Afficher une pastille verte au-dessus
+  // d'un bandeau rouge « lecture seule » ferait douter de l'un ou de l'autre.
+  const statutBrut = statutOrganisation(organisation.status);
+  const statut =
+    ferme && organisation.status === "active"
+      ? { libelle: "lecture seule", puce: "puce-rouge" }
+      : statutBrut;
   const jours = etat?.jours_essai_restants ?? null;
 
   // Retour de Stripe. `annule` n'est pas une erreur : le client a fermé la page
@@ -122,25 +132,50 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
         </EncadreLectureImpossible>
       )}
 
-      {/* LE PRÉLÈVEMENT A ÉCHOUÉ, ET RIEN N'EST FERMÉ. Stripe relance pendant
-          des semaines avant d'abandonner : une carte expirée n'est pas un
-          impayé, et couper l'agence au premier échec lui ferait perdre sa
-          journée pour une raison qu'elle ignore encore. On prévient, c'est
-          tout — et on dit où corriger. */}
+      {/* LE PRÉLÈVEMENT A ÉCHOUÉ : ON DIT LA DATE, PAS SEULEMENT LE FAIT.
+          Décision humain du 12/09 — quinze jours, puis lecture seule jusqu'à
+          régularisation. Un délai qu'on ne nomme pas est un délai qu'on subit :
+          l'écran affiche le jour exact, et le décompte quand il approche. */}
       {paiement?.paiement_en_retard && (
         <div
           role="alert"
-          className="loc-carte border-l-4 border-l-[var(--warning)]"
+          className={`loc-carte border-l-4 ${
+            ferme ? "border-l-[var(--destructive)]" : "border-l-[var(--warning)]"
+          }`}
         >
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
-              Le dernier prélèvement n&apos;est pas passé.
+              {ferme
+                ? "Votre compte est en lecture seule, faute de règlement."
+                : "Le dernier prélèvement n’est pas passé."}
             </b>{" "}
             <span className="text-muted-foreground">
-              Votre compte reste entièrement ouvert : votre banque a peut-être
-              refusé, ou la carte a expiré. Une nouvelle tentative est
-              automatique dans les jours qui viennent. Pour aller plus vite,
-              mettez votre moyen de paiement à jour ci-dessous.
+              {ferme ? (
+                <>
+                  Dès que le paiement aboutit, tout rouvre à la seconde, exactement
+                  où vous vous êtes arrêté. Rien n’a été supprimé, et rien ne le
+                  sera : vos baux, quittances, états des lieux et votre journal de
+                  gestion restent consultables et exportables.
+                </>
+              ) : (
+                <>
+                  Votre banque a peut-être refusé, ou la carte a expiré. Votre
+                  compte reste entièrement ouvert
+                  {paiement.lecture_seule_le
+                    ? ` jusqu’au ${formaterDate(paiement.lecture_seule_le)}`
+                    : ""}
+                  {paiement.jours_avant_lecture_seule !== null
+                    ? paiement.jours_avant_lecture_seule === 0
+                      ? " — dernier jour"
+                      : ` — ${paiement.jours_avant_lecture_seule} jour${
+                          paiement.jours_avant_lecture_seule > 1 ? "s" : ""
+                        } restant${paiement.jours_avant_lecture_seule > 1 ? "s" : ""}`
+                    : ""}
+                  . Passé cette date et sans règlement, la saisie de nouvelles
+                  données est suspendue — tout reste consultable et exportable.
+                  Mettez votre moyen de paiement à jour ci-dessous.
+                </>
+              )}
             </span>
           </p>
         </div>
@@ -162,7 +197,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
         </div>
       )}
 
-      {ferme && (
+      {ferme && !paiement?.paiement_en_retard && (
         <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
@@ -252,6 +287,18 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
                 à vie. Le paiement s&apos;ouvrira le jour où vous en ajouterez un
                 second.
               </p>
+            ) : paiement?.paiement_en_retard ? (
+              <>
+                {/* Ce client a DÉJÀ une souscription : lui proposer de
+                    « s'abonner » ouvrirait un second prélèvement à côté du
+                    premier. Ce qu'il doit faire, c'est changer sa carte. */}
+                <p className="mesure-lecture text-sm text-muted-foreground">
+                  Votre abonnement existe : il n’y a rien à souscrire de
+                  nouveau. Mettez votre moyen de paiement à jour, et le
+                  prélèvement repart.
+                </p>
+                <BoutonPortail orgId={orgId} />
+              </>
             ) : paiement?.paye ? (
               <>
                 <p className="mesure-lecture text-sm text-muted-foreground">

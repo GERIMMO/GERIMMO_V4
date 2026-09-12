@@ -3499,3 +3499,47 @@ l'écran ne propose pas de payer, et les deux routes répondent 503 plutôt que
 > implémentée nulle part : `etat_abonnement` applique 5,99 €/bien à tout le
 > monde. Il n'existe aujourd'hui **aucun chemin d'encaissement pour une
 > agence** — voir [[Grille tarifaire]].
+
+## [2026-09-12] dev   | Un prélèvement qui échoue prévient, puis ferme à J+15
+
+**Décision humain du 12/09**, qui remplace la règle posée la veille. Celle-ci
+laissait `past_due` sans effet : le produit attendait que Stripe abandonne ses
+relances, sans échéance connue ni du client ni de nous. Le client tranche —
+alerte immédiate, relances, puis **lecture seule au quinzième jour**, jusqu'à
+régularisation.
+
+**La fermeture est portée par la DATE, pas par une tâche de nuit.** Même choix
+que l'expiration d'essai, et pour une raison de plus : la **régularisation doit
+rouvrir à la seconde**. Un client qui vient de mettre sa carte à jour et qu'on
+ferait attendre le passage d'une tâche de nuit nous téléphone — à raison.
+`org_ecriture_ouverte` lit la date de défaut ; `abonnement_appliquer` l'efface
+dès que Stripe redit « active », et l'écriture rouvre dans la même transaction.
+
+**Le statut de l'organisation ne bouge pas.** Ce client PAIE — c'est sa carte
+qui a échoué. `status` reste `active`, c'est l'**écriture** qui se ferme. La
+distinction évite qu'une carte expirée laisse au journal la même trace qu'une
+résiliation, et fait rouvrir le compte sans qu'aucun statut n'ait à être
+redressé. La pastille de l'écran dit « lecture seule » pour ne pas afficher du
+vert au-dessus d'un bandeau rouge.
+
+**Le piège de la date qui se repousse.** Stripe réémet `past_due` à chaque
+tentative ratée. Réécrire la date à chaque événement repousserait l'échéance
+indéfiniment et les quinze jours ne viendraient JAMAIS — le compte resterait
+ouvert pour toujours. La date se pose **une seule fois**, et un test l'exige.
+
+**Quatre courriers, et chacun dit autre chose** : l'alerte (J+0, envoyée par le
+webhook le jour même — en perdre un à attendre la nuit, c'est en retirer un au
+client), le rappel (J+7), l'avis (« demain, la saisie s'arrête »), le constat
+(J+15, « voici comment rouvrir »). Le même message répété apprend à ne plus
+l'ouvrir, et le dernier — celui qui compte — arriverait dans un fil qu'on ne lit
+plus. Aucun n'accuse : une carte qui expire est presque toujours matérielle.
+Tous rappellent ce qui reste possible — tout se consulte, tout s'exporte, le
+journal de gestion compris. C'est la peur de perdre ses données qui fait partir
+un client, pas la facture.
+
+**Le destinataire** est l'adresse de contact de l'organisation, à défaut celle
+de son responsable. Une organisation qu'on n'a pas pu prévenir est **rapportée**,
+jamais fermée en silence.
+
+582 tests (579 passent, 1 rouge délibéré, 2 ignorés), 48 E2E verts, ESLint à
+zéro, build vert.

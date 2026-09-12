@@ -19,6 +19,7 @@
 // pas une décision de la plateforme — et une tâche de nuit qui ouvrirait un
 // abonnement prélèverait quelqu'un qui n'a rien demandé.
 
+import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { clientStripe, configurationStripe, synchroniserQuantite } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
 import { timingSafeEqual } from "node:crypto";
@@ -70,6 +71,12 @@ export async function GET(request: Request) {
     );
   }
 
+  // ── D'ABORD LES RELANCES, ET C'EST VOLONTAIRE. Elles ont une échéance :
+  // un courrier de la veille du quinzième jour envoyé le seizième ne sert à
+  // rien. L'alignement des quantités, lui, peut attendre une journée de plus.
+  // Si Stripe tombe entre les deux, les courriers sont partis.
+  const relances = await envoyerRelancesDues(supabase);
+
   const { data, error } = await supabase.rpc("abonnements_a_synchroniser", { p_limite: 200 });
   if (error) {
     return Response.json({ erreur: error.message }, { status: 500 });
@@ -108,6 +115,7 @@ export async function GET(request: Request) {
   }
 
   return Response.json({
+    relances,
     examinees: lignes.length,
     alignees: alignes,
     resiliees,

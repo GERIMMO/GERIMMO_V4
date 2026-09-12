@@ -26,6 +26,7 @@ import {
   lireErreurStripe,
   quantiteFacturee,
 } from "@/lib/stripe";
+import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { clientDeService } from "@/lib/supabase/service";
 import type Stripe from "stripe";
 
@@ -123,7 +124,24 @@ export async function POST(request: Request) {
       // une souscription créée à la main). On le classe, avec son motif.
       p_erreur: org ? null : "Client Stripe inconnu de Gerimmo",
     });
-    return Response.json({ traite: evenement.type, organisation: org ?? null });
+
+    // L'ALERTE PART LE JOUR MÊME. Le client a quinze jours pour régulariser :
+    // en perdre un à attendre la tâche de nuit, c'est lui en retirer un.
+    //
+    // Le courrier ne peut PAS faire échouer le webhook. Un envoi raté rendrait
+    // 500, Stripe rejouerait l'événement, et `abonnement_appliquer` serait
+    // rejouée pour un défaut déjà posé — sans rien changer, mais en masquant le
+    // vrai incident. La tâche de nuit rattrape l'alerte non partie : la base
+    // sait encore qu'aucune relance n'est sortie.
+    let alerte: unknown = null;
+    if (org && (statut === "past_due" || statut === "unpaid")) {
+      try {
+        alerte = await envoyerRelancesDues(supabase, { org });
+      } catch (e) {
+        alerte = { echecs: [e instanceof Error ? e.message : "envoi impossible"] };
+      }
+    }
+    return Response.json({ traite: evenement.type, organisation: org ?? null, alerte });
   } catch (e) {
     // La trace s'efface : la relance de Stripe doit repartir d'une page
     // blanche, faute de quoi elle passerait pour un doublon.

@@ -10,8 +10,10 @@ import { useEffect, type ReactNode } from "react";
 export function Modale({
   titre,
   surtitre,
+  entete,
   variante = "encre",
   large = false,
+  tresLarge = false,
   haut = false,
   pied,
   fermer,
@@ -19,8 +21,20 @@ export function Modale({
 }: {
   titre: string;
   surtitre?: string;
+  /**
+   * Un en-tête à soi, à la place du surtitre + titre.
+   *
+   * Le bandeau encre, la croix de fermeture et tout le reste ne bougent pas :
+   * seule la zone de texte change. Une fenêtre qui doit porter davantage — une
+   * vignette, des pastilles d'état — n'a pas à réimplémenter une modale, avec
+   * l'échappement, le verrou de défilement et les gabarits qui vont avec.
+   * `titre` reste exigé : c'est le nom que lisent les lecteurs d'écran.
+   */
+  entete?: ReactNode;
   variante?: "encre" | "critique";
   large?: boolean;
+  /** Plus large encore : une fenêtre à deux colonnes et à onglets. */
+  tresLarge?: boolean;
   // Posée en haut de l'écran (synthèse de la cloche) plutôt que centrée
   haut?: boolean;
   // Rangée de pied séparée d'un filet (bouton Fermer…)
@@ -64,7 +78,20 @@ export function Modale({
         aria-label={titre}
         className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col border border-border bg-background text-foreground ${
           haut ? "" : "my-auto"
-        } ${large ? "max-w-xl" : "max-w-md"} max-w-[calc(100vw-2rem)]`}
+        } ${
+          // UNE SEULE CLASSE DE LARGEUR, ET C'EST DÉLIBÉRÉ (constat au
+          // navigateur, 12/09). Il y en avait deux — la taille voulue, puis le
+          // garde-fou `max-w-[calc(100vw-2rem)]` — et elles portent la MÊME
+          // spécificité : c'est l'ordre de la feuille compilée qui tranchait,
+          // pas l'ordre d'écriture. Le garde-fou gagnait, et la fenêtre prenait
+          // tout l'écran moins deux rem au lieu de sa taille. `min()` fait le
+          // travail des deux sans que rien n'ait à gagner.
+          tresLarge
+            ? "max-w-[min(48rem,calc(100vw-2rem))]"
+            : large
+              ? "max-w-[min(36rem,calc(100vw-2rem))]"
+              : "max-w-[min(28rem,calc(100vw-2rem))]"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div
@@ -72,12 +99,14 @@ export function Modale({
             variante === "critique" ? "bg-[var(--destructive)]" : "bg-[var(--encre)]"
           }`}
         >
-          <div>
-            {surtitre && (
-              <p className="mono-discret text-[var(--sur-encre)]/75">{surtitre}</p>
-            )}
-            <h3 className="mt-0.5 text-[var(--sur-encre)]">{titre}</h3>
-          </div>
+          {entete ?? (
+            <div>
+              {surtitre && (
+                <p className="mono-discret text-[var(--sur-encre)]/75">{surtitre}</p>
+              )}
+              <h3 className="mt-0.5 text-[var(--sur-encre)]">{titre}</h3>
+            </div>
+          )}
           {/* Fermeture au doigt : Escape n'existe pas sur mobile et le tap
               sur le voile n'est pas découvrable (audit mobile 10/09) */}
           <button

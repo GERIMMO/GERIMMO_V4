@@ -33,6 +33,13 @@ export type FicheLot = {
   mandat_id: string | null; mandat_etat: string | null; mandant: string | null;
   mandant_email: string | null; taux_honoraires: number | null; jour_rapport: number | null;
   proprietaires: string | null;
+  /**
+   * Le détenteur principal, par sa QUOTE-PART. `proprietaires` est un texte
+   * — bon à lire, inutilisable pour ouvrir sa page. Sur un lot hors mandat, le
+   * geste qui compte est justement d'en proposer un, et il se prépare depuis
+   * la fiche du propriétaire.
+   */
+  proprietaire_id: string | null;
   blocages: string[] | null; incidents_ouverts: number;
   impaye_echu: number; termes_impayes: number; diagnostics_manquants: number;
 };
@@ -64,14 +71,21 @@ export type Chargement<T> = { donnees?: T; erreur?: string };
 
 export async function chargerFicheLot(lotId: string): Promise<Chargement<FicheLot>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fiche_lot", { p_lot: lotId });
+  // Deux lectures EN PARALLÈLE plutôt qu'une colonne de plus : `fiche_lot` est
+  // déjà en production et sert la fenêtre de tous les rôles ; lui changer son
+  // type de retour pour un identifiant que seul le bouton « Proposer un
+  // mandat » consomme coûterait plus cher que cet aller-retour simultané.
+  const [{ data, error }, { data: proprietaire }] = await Promise.all([
+    supabase.rpc("fiche_lot", { p_lot: lotId }),
+    supabase.rpc("detenteur_principal_du_lot", { p_lot: lotId }),
+  ]);
   if (error) return { erreur: sansJargon(error.message) };
   const ligne = ((data ?? []) as FicheLot[])[0];
   // Une fiche absente n'est PAS une fiche vide : le lot peut appartenir à une
   // autre agence, et la base refuse alors de la rendre. Le dire ainsi évite
   // d'afficher un lot « sans locataire ni propriétaire » qui existe pourtant.
   if (!ligne) return { erreur: "Ce lot ne fait pas partie de votre portefeuille." };
-  return { donnees: ligne };
+  return { donnees: { ...ligne, proprietaire_id: (proprietaire as string | null) ?? null } };
 }
 
 export async function chargerDocumentsDuLot(
@@ -147,6 +161,41 @@ export async function chargerEcheancierLocataire(
   const { data, error } = await supabase.rpc("mon_echeancier_locataire", { p_org: orgId });
   if (error) return { erreur: sansJargon(error.message) };
   return { donnees: (data ?? []) as TermeLocataire[] };
+}
+
+/** Un barreau de l'échelle de relance — franchi quand `envoye_le` est posé. */
+export type EchelonRelance = {
+  niveau: string; rang: number; libelle: string;
+  envoye_le: string | null; premiere_presentation: string | null; recommande: string | null;
+};
+
+/** Un fait du passé du lot. Le montant sort NU : l'écran le met en forme. */
+export type EvenementDuLot = {
+  survenu_le: string; nature: string; titre: string;
+  detail: string | null; montant: number | null;
+  /** Un code métier à habiller côté écran (catégorie d'incident, par ex.). */
+  code: string | null;
+};
+
+export async function chargerRelancesDuLot(
+  lotId: string
+): Promise<Chargement<EchelonRelance[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("relances_du_lot", { p_lot: lotId });
+  if (error) return { erreur: sansJargon(error.message) };
+  return { donnees: (data ?? []) as EchelonRelance[] };
+}
+
+export async function chargerHistoriqueDuLot(
+  lotId: string
+): Promise<Chargement<EvenementDuLot[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("historique_du_lot", {
+    p_lot: lotId,
+    p_limite: 40,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  return { donnees: (data ?? []) as EvenementDuLot[] };
 }
 
 export type EtatEnvoiRapport = { erreur?: string; succes?: string };

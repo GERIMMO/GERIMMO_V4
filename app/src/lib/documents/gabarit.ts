@@ -14,6 +14,7 @@
 
 import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
+import { domaineDuSite } from "@/lib/site";
 
 export const VERSION_MODELES = "2026.11-g1";
 
@@ -282,7 +283,7 @@ function piedDePage(nom: string, reference: string, empreinte: string): string {
     <div style="text-align:center;padding-top:3px;">
       <span style="color:${CHARTE.encre};letter-spacing:3px;font-size:7.5px;">G E R I M M O</span>
       <span>&nbsp;&nbsp;Document généré avec Gerimmo&nbsp;&nbsp;</span>
-      <span style="color:${CHARTE.laiton};">gerimmo.app</span>
+      <span style="color:${CHARTE.laiton};">${echapper(domaineDuSite())}</span>
     </div>
   </div>`;
 }

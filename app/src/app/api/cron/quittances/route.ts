@@ -22,7 +22,8 @@
 
 import { envoyerEmail } from "@/lib/email";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
-import { adresseDuSite, clientDeService } from "@/lib/supabase/service";
+import { clientDeService } from "@/lib/supabase/service";
+import { adresseDuSite } from "@/lib/site";
 import { timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";

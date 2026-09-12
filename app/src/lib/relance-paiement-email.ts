@@ -26,7 +26,9 @@ export type RelancePaiement = {
   montantMensuel: number;
   joursRestants: number;
   lectureSeuleLe: string; // AAAA-MM-JJ
-  lien: string; // vers « Mon abonnement »
+  // Vers « Mon abonnement ». `null` quand l'adresse publique du site n'est
+  // pas configurée : la lettre dit alors le geste sans promettre un clic.
+  lien: string | null;
 };
 
 function jour(iso: string): string {
@@ -90,12 +92,17 @@ export function corpsRelance(r: RelancePaiement): string {
       <h2 style="font-size:17px">${sujetRelance(r)}</h2>
       <p>Bonjour,</p>
       ${message(r)}
-      <p style="margin:22px 0">
+      ${
+        r.lien
+          ? `<p style="margin:22px 0">
         <a href="${r.lien}"
            style="background:#12263f;color:#fff;padding:11px 18px;border-radius:6px;text-decoration:none;display:inline-block">
           ${geste}
         </a>
-      </p>
+      </p>`
+          : `<p style="margin:22px 0"><strong>${geste}</strong> depuis « Mon abonnement »,
+             dans votre espace Gerimmo.</p>`
+      }
       <p style="color:#555">
         Quoi qu'il arrive, <strong>vos données restent entières</strong> : baux,
         quittances, états des lieux, journal de gestion — tout reste consultable et

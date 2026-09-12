@@ -4231,3 +4231,36 @@ vitrine, attrapé par axe-core et pas par l'œil.
 684 tests unitaires verts (1 rouge délibéré — RM-2.1.2), 88 E2E verts contre
 la production dont l'audit axe-core, ESLint silencieux, build vert. Aucune
 migration.
+
+## [2026-09-12] dev   | Le plan du jour s'ouvre replié
+
+**Demande de l'humain.** « Les listes de choses à faire, je les veux en liste
+déroulante qui sont par défaut repliée. »
+
+**Ce que ça règle.** L'écran du matin ouvrait sur une colonne de quinze
+rangées. On ne choisit pas par où commencer devant un mur. Chaque groupe se
+réduit désormais à sa ligne — son nom et son compte — et s'ouvre sur celui
+qu'on décide de traiter. **Le compte reste lisible replié** : rien n'est caché,
+c'est plié.
+
+**`<details>`/`<summary>` natif**, pas un état React : rien à porter, rien à
+resynchroniser, l'ouverture marche au clavier comme au doigt, et un lecteur
+d'écran ne lit pas le contenu tant qu'il est fermé. L'en-tête fait 40 px de
+haut (la règle tactile maison) et son chevron s'immobilise si le système
+demande moins d'animations.
+
+**LE PIÈGE QUI M'A COÛTÉ DEUX DIAGNOSTICS DANS L'HEURE.** Le test de
+falsification est passé une première fois alors qu'il aurait dû rougir — et la
+suite complète a ensuite rougi alors qu'elle aurait dû passer. Même cause les
+deux fois : **un `next start` resté en vie servait le build précédent** pendant
+que j'en construisais un autre. Un serveur qui survit à son build ment sans
+bruit, et on croit le mensonge parce qu'il ressemble à un résultat.
+
+La parade est simple et tient en une ligne : **vérifier le HTML RÉELLEMENT
+SERVI** avant de conclure — ici `{groupes: 2, ouverts: 0}` — plutôt que de
+supposer qu'une reconstruction a atteint le serveur qui répond. Une fois cela
+fait, la falsification dit ce qu'elle doit dire : en remettant les groupes
+ouverts par défaut, le test rougit.
+
+684 tests unitaires verts (1 rouge délibéré — RM-2.1.2), 89 E2E verts contre la
+production, ESLint silencieux, build vert. Aucune migration.

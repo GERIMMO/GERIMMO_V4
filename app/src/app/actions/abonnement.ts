@@ -10,6 +10,8 @@ import {
   configurationStripe,
   creerSessionPaiement,
   ouvrirPortailFacturation,
+  prixPour,
+  type PublicTarif,
 } from "@/lib/stripe";
 
 export type EtatAbonnementAction = { erreur?: string };
@@ -66,22 +68,47 @@ export async function demarrerAbonnement(
   const supabase = await createClient();
   const [{ data: org, error: erreurOrg }, { data: etatBrut, error: erreurEtat }] =
     await Promise.all([
-      supabase.from("organizations").select("id, name, email_contact").eq("id", orgId).maybeSingle(),
-      supabase.rpc("mon_abonnement", { p_org: orgId }),
+      supabase
+        .from("organizations")
+        .select("id, name, type, email_contact")
+        .eq("id", orgId)
+        .maybeSingle(),
+      supabase.rpc("etat_abonnement", { p_org: orgId }),
     ]);
   if (erreurOrg || !org) {
     return { erreur: "Votre organisation n'a pas pu être lue. Rechargez la page." };
   }
   if (erreurEtat) return { erreur: sansJargon(erreurEtat.message) };
 
-  const etat = ((etatBrut ?? []) as { quantite_cible: number }[])[0];
-  const quantite = etat?.quantite_cible ?? 0;
+  const etat = ((etatBrut ?? []) as {
+    unites_facturees: number;
+    en_ligne_possible: boolean;
+    unite: string;
+  }[])[0];
+  const quantite = etat?.unites_facturees ?? 0;
   if (quantite < 1) {
     return {
       erreur:
-        "Votre premier bien est offert, à vie : il n'y a rien à payer tant que vous n'en gérez qu'un.",
+        org.type === "agence"
+          ? "Aucun lot n'est encore sous mandat actif : il n'y a rien à facturer."
+          : "Votre premier bien est offert, à vie : il n'y a rien à payer tant que vous n'en gérez qu'un.",
     };
   }
+  // AU-DELÀ DU SEUIL, ON NE VEND PAS EN LIGNE. Un portefeuille de cette taille
+  // suppose une reprise comptable, une formation, un engagement : le laisser
+  // souscrire d'un clic, c'est promettre un accompagnement qu'on n'a pas prévu.
+  if (etat && !etat.en_ligne_possible) {
+    return {
+      erreur:
+        "Au-delà de 600 lots, l'abonnement se met en place avec nous : écrivez-nous, nous préparons votre devis et la reprise de votre portefeuille.",
+    };
+  }
+
+  const tarif = prixPour(
+    reglages.config,
+    (org.type === "agence" ? "agence" : "proprietaire_direct") as PublicTarif
+  );
+  if (!tarif.ok) return { erreur: tarif.erreur };
 
   const { data: clientExistant } = await supabase.rpc("mon_client_stripe", { p_org: orgId });
   const stripe = clientStripe(reglages.config);
@@ -104,7 +131,7 @@ export async function demarrerAbonnement(
 
   const retour = `${origine}/agence/${orgId}/abonnement`;
   const session = await creerSessionPaiement(stripe, {
-    config: reglages.config,
+    prix: tarif.prix,
     customer: client.customer,
     quantite,
     orgId,

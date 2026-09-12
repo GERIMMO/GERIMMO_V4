@@ -16,9 +16,22 @@ type EtatAbonnement = {
   ecriture_ouverte: boolean;
   essai_fin: string | null;
   jours_essai_restants: number | null;
-  biens: number;
-  biens_factures: number;
+  public_tarif: "agence" | "proprietaire_direct";
+  unite: string;
+  unites_total: number;
+  unites_facturees: number;
   mensuel: number;
+  en_ligne_possible: boolean;
+};
+
+// Le détail du barème, tranche par tranche. Une facture qu'on ne peut pas
+// recalculer soi-même est une facture qu'on appelle pour contester.
+type Tranche = {
+  rang: number;
+  libelle: string;
+  unites: number;
+  prix_unitaire: number;
+  sous_total: number;
 };
 
 // Ce que Stripe sait, ramené au strict nécessaire : ni identifiant client, ni
@@ -58,21 +71,29 @@ type EtatPaiement = {
 // du même montant finissent toujours par diverger.
 export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/abonnement">) {
   const { orgId } = await props.params;
-  const { supabase, organisation, estProprietaire } = await verifierAccesEspace(orgId);
-  if (!estProprietaire) notFound();
+  const { supabase, organisation, role } = await verifierAccesEspace(orgId);
+  // OUVERT AUX AGENCES depuis la grille du 12/09 : elles ont désormais un
+  // barème et un chemin d'encaissement. Réservé au RESPONSABLE dans les deux
+  // cas — un agent n'a pas à connaître la facture de son agence, et la base
+  // refuse déjà de la lui rendre (`mon_abonnement`).
+  if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
+  const estAgence = organisation.type === "agence";
 
   const [
     { data: biens, error: erreurBiens },
     { data: etatBrut, error: erreurEtat },
     { data: paiementBrut, error: erreurPaiement },
+    { data: tranchesBrut, error: erreurTranches },
   ] = await Promise.all([
     supabase.from("biens").select("id, nom").eq("organization_id", orgId).order("created_at"),
     supabase.rpc("etat_abonnement", { p_org: orgId }),
     supabase.rpc("mon_abonnement", { p_org: orgId }),
+    supabase.rpc("detail_tranches_abonnement", { p_org: orgId }),
   ]);
   const liste = (biens ?? []) as { id: string; nom: string }[];
   const etat = ((etatBrut ?? []) as EtatAbonnement[])[0] ?? null;
   const paiement = ((paiementBrut ?? []) as EtatPaiement[])[0] ?? null;
+  const tranches = (tranchesBrut ?? []) as Tranche[];
   const total = etat?.mensuel ?? 0;
   const ferme = etat ? !etat.ecriture_ouverte : false;
   // LA PASTILLE DOIT DIRE CE QUE L'ÉCRAN DIT. Une organisation en défaut de
@@ -93,12 +114,16 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
   // Rien à payer tant qu'on ne gère qu'un bien : le premier est offert à vie.
   // La page ne propose donc pas de souscrire — proposer de payer 0 € est la
   // meilleure façon de faire douter quelqu'un de ce qu'il va lui être compté.
-  const rienAPayer = (paiement?.quantite_cible ?? 0) < 1;
+  const rienAPayer = (etat?.unites_facturees ?? 0) < 1;
+  // Au-delà du seuil, l'abonnement ne se souscrit plus d'un clic.
+  const surDevis = etat ? !etat.en_ligne_possible : false;
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
       <EnteteReglages titre="Mon abonnement" mention={organisation.name}>
-        Ce que vous payez, bien par bien, et l&apos;état de votre compte.
+        {estAgence
+          ? "Ce que vous payez, lot par lot, et l'état de votre compte."
+          : "Ce que vous payez, bien par bien, et l'état de votre compte."}
       </EnteteReglages>
 
       {retourStripe === "ok" && (
@@ -228,7 +253,60 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
           <h3>Formule Gerimmo</h3>
           <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
         </div>
-        {erreurBiens ? (
+        {/* DEUX PUBLICS, DEUX LECTURES. Un propriétaire gère une poignée de
+            biens : la liste nominative lui montre lequel est offert, c'est le
+            plus parlant. Une agence en gère des centaines : la même liste
+            ferait trois cents lignes que personne ne lit, et cacherait la seule
+            chose qui compte — d'où sort le montant. Elle voit donc son barème,
+            tranche par tranche, avec ses sous-totaux. */}
+        {estAgence ? (
+          erreurTranches || erreurEtat ? (
+            <EncadreLectureImpossible>
+              Votre décompte n&apos;a pas pu être lu — ce n&apos;est pas un
+              portefeuille vide, et un total affiché ici serait faux. Rechargez
+              la page dans un instant : rien n&apos;est prélevé entre-temps.
+            </EncadreLectureImpossible>
+          ) : (etat?.unites_facturees ?? 0) === 0 ? (
+            <div className="vide-guide">
+              <p className="titre">Aucun lot sous mandat actif</p>
+              <p className="explication">
+                La facturation suit les lots que vos mandants vous confient :
+                un lot sous mandat actif est compté, vacant ou loué. Tant
+                qu&apos;aucun mandat n&apos;est signé, rien n&apos;est dû.
+              </p>
+              <div className="geste">
+                <Link href={`/agence/${orgId}/parc`} className="btn-or">
+                  Voir mon portefeuille
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="ligne-info">
+                <span>Lots sous mandat actif</span>
+                <span className="montant font-medium">{etat?.unites_facturees}</span>
+              </div>
+              {tranches.map((tr) => (
+                <div key={tr.rang} className="ligne-info">
+                  <span>
+                    {tr.libelle}
+                    <small className="block">
+                      {tr.unites} lot{tr.unites > 1 ? "s" : ""}
+                      {tr.prix_unitaire > 0
+                        ? ` × ${eur(tr.prix_unitaire)}`
+                        : " · forfait de départ"}
+                    </small>
+                  </span>
+                  <span className="montant">{eur(tr.sous_total)}</span>
+                </div>
+              ))}
+              <div className="ligne-info font-medium">
+                <span className="!text-foreground">Total mensuel</span>
+                <span className="montant font-heading text-lg">{eur(total)}</span>
+              </div>
+            </div>
+          )
+        ) : erreurBiens ? (
           <EncadreLectureImpossible>
             Vos biens n&apos;ont pas pu être lus — ce n&apos;est pas un parc
             vide, et un total affiché ici serait faux. Rechargez la page dans
@@ -269,9 +347,9 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
           </div>
         )}
         <p className="mesure-lecture mt-3 text-xs text-muted-foreground">
-          Un prix par bien, tout compris, sans engagement : baux, quittances,
-          incidents, livre et fiscalité. Un bien retiré n&apos;est plus compté
-          le mois suivant.
+          {estAgence
+            ? "Un tarif dégressif par tranches, tout compris, sans engagement : baux, quittances, incidents, artisans, comptabilité de gérance et relevés. Chaque lot est facturé au tarif de sa tranche — signer un lot de plus ne fait jamais changer de palier. Un mandat résilié n'est plus compté le mois suivant."
+            : "Un prix par bien, tout compris, sans engagement : baux, quittances, incidents, livre et fiscalité. Un bien retiré n'est plus compté le mois suivant."}
         </p>
 
         {/* LES DEUX GESTES, ET UN SEUL À LA FOIS. Proposer « S'abonner » à qui
@@ -283,9 +361,19 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
           <div className="mt-4 space-y-3 border-t border-border pt-4">
             {rienAPayer ? (
               <p className="mesure-lecture text-sm text-muted-foreground">
-                Rien à régler pour l&apos;instant : votre premier bien est offert,
-                à vie. Le paiement s&apos;ouvrira le jour où vous en ajouterez un
-                second.
+                {estAgence
+                  ? "Rien à régler pour l'instant : la facturation démarre au premier lot confié sous mandat actif."
+                  : "Rien à régler pour l'instant : votre premier bien est offert, à vie. Le paiement s'ouvrira le jour où vous en ajouterez un second."}
+              </p>
+            ) : surDevis && !paiement?.paye ? (
+              /* AU-DELÀ DU SEUIL, ON NE VEND PAS D'UN CLIC. Un portefeuille de
+                 cette taille suppose une reprise comptable et une formation :
+                 proposer un bouton, ce serait promettre un accompagnement
+                 qu'on n'a pas préparé. */
+              <p className="mesure-lecture text-sm text-muted-foreground">
+                Au-delà de 600 lots, l&apos;abonnement se met en place avec nous.
+                Écrivez-nous : nous préparons votre devis et la reprise de votre
+                portefeuille, soldes compris.
               </p>
             ) : paiement?.paiement_en_retard ? (
               <>
@@ -352,7 +440,9 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
               l&apos;accès à tout ce qui s&apos;y trouve et à vos exports, mais
               vous ne pouvez plus rien saisir de nouveau.
               {rienAPayer
-                ? " Tant que vous ne gérez qu'un bien, rien n'est à régler : votre compte reste ouvert."
+                ? estAgence
+                  ? " Tant qu'aucun lot n'est sous mandat actif, rien n'est à régler."
+                  : " Tant que vous ne gérez qu'un bien, rien n'est à régler : votre compte reste ouvert."
                 : " Souscrire maintenant ne raccourcit pas votre essai."}
             </span>
           </p>

@@ -23,6 +23,9 @@ const IC: Record<string, string> = {
   mallette: '<rect x="3" y="8" width="18" height="12" rx="2"/><path d="M9 8V6a3 3 0 0 1 6 0v2M3 13h18"/>',
   stats: '<path d="M4 20V10M10 20V4M16 20v-8M21 20H3"/>',
   roue: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/>',
+  // Même carte bancaire que dans les barres locataire et propriétaire : le
+  // même geste doit porter le même signe d'un espace à l'autre.
+  carte: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
 };
 
 function Icone({ nom }: { nom: string }) {
@@ -66,8 +69,16 @@ export function SidebarAgence({
     { href: `${base}/messages`, libelle: "Messages", icone: "bulle", badge: badgeMessages },
     { href: `${base}/alertes`, libelle: "Alertes", icone: "cloche", badge: badgeAlertes },
     { href: `${base}/statistiques`, libelle: "Statistiques", icone: "stats" },
+    // « Mon abonnement » n'apparaît qu'au responsable, comme chez le
+    // propriétaire direct : un agent n'a pas à connaître la facture de son
+    // agence, et la base refuse déjà de la lui rendre (`mon_abonnement`).
+    // Avant la grille du 12/09, l'écran n'existait pas pour les agences —
+    // elles n'avaient aucun moyen de savoir ce qu'elles payaient, ni de payer.
     ...(admin
-      ? [{ href: `${base}/administration`, libelle: "Administration", icone: "roue" }]
+      ? [
+          { href: `${base}/abonnement`, libelle: "Mon abonnement", icone: "carte" },
+          { href: `${base}/administration`, libelle: "Administration", icone: "roue" },
+        ]
       : []),
   ];
 

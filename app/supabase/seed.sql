@@ -139,3 +139,46 @@ begin
   insert into public.memberships (account_id, organization_id, role, status)
   values (v_uid, v_org_pd, 'locataire', 'active');
 end $$;
+
+-- ── Un portefeuille sous mandat, pour que la facturation agence soit visible ──
+--
+-- POURQUOI DU MULTI-LOT. La grille agence facture le LOT SOUS MANDAT ACTIF, et
+-- son barème est dégressif par tranches. Avec un seul lot, le banc ne montre
+-- que le forfait de départ : ni la deuxième tranche, ni la dégressivité, ni la
+-- promesse qui fait tout l'intérêt de la grille — qu'un lot de plus ne fasse
+-- jamais changer de palier. Cet immeuble de dix-sept lots rend la facture
+-- observable, et c'est la seule raison de sa taille.
+do $$
+declare
+  v_org uuid; v_mandant uuid; v_mandat uuid; v_bien uuid; v_lot uuid; i integer;
+begin
+  select id into v_org from public.organizations where name = 'Agence Alpha';
+  if v_org is null then return; end if;
+  -- Le drapeau système : le seed écrit avant que l'abonnement n'existe.
+  perform public.tache_systeme();
+
+  insert into public.persons (organization_id, nom, prenom)
+  values (v_org, 'Vasseur', 'Hélène') returning id into v_mandant;
+
+  -- Le mandat naît en BROUILLON : la base refuse de l'activer tant qu'il n'a
+  -- ni lot ni taux (recette 23/08). On le compose, puis on l'active.
+  insert into public.mandats (organization_id, person_id, etat, date_debut)
+  values (v_org, v_mandant, 'brouillon', current_date - 60) returning id into v_mandat;
+
+  insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
+  values (v_org, 'Immeuble Vasseur', 'immeuble', '22 rue de la Paix', '75002', 'Paris')
+  returning id into v_bien;
+
+  for i in 1..17 loop
+    insert into public.lots (organization_id, bien_id, nom)
+    values (v_org, v_bien, 'Lot ' || i) returning id into v_lot;
+    -- Sans détention, `mandat_lignes` refuse le lot (RM-5.1.1).
+    insert into public.detentions (organization_id, lot_id, person_id, quote_part)
+    values (v_org, v_lot, v_mandant, 100);
+    insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires, date_debut)
+    values (v_org, v_mandat, v_lot, 7, current_date - 60);
+  end loop;
+
+  update public.mandats set etat = 'actif' where id = v_mandat;
+  perform set_config('gerimmo.systeme', '', true);
+end $$;

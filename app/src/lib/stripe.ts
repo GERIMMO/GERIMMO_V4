@@ -19,28 +19,45 @@
 
 import Stripe from "stripe";
 
+export type Echec = { ok: false; erreur: string };
+export type Reussite<T> = { ok: true } & T;
+
+/** Les deux publics du produit, et leur barème. */
+export type PublicTarif = "agence" | "proprietaire_direct";
+
 export type ConfigStripe = {
   cle: string;
-  prixBien: string;
   secretWebhook: string;
+  /** Un tarif par public : ils n'ont ni la même unité ni le même barème. */
+  prix: Partial<Record<PublicTarif, string>>;
 };
 
 export type Manque = { pret: false; motif: string };
 export type Prete = { pret: true; config: ConfigStripe };
+
+/** La variable d'environnement qui porte le tarif de ce public. */
+export function variablePrix(pour: PublicTarif): string {
+  return pour === "agence" ? "STRIPE_PRIX_LOT_AGENCE" : "STRIPE_PRIX_BIEN";
+}
 
 /**
  * Les réglages, ou la raison précise de leur absence.
  *
  * Le motif est écrit pour être AFFICHÉ (au super admin) et JOURNALISÉ : « la
  * facturation n'est pas configurée » n'aide personne à la configurer.
+ *
+ * LES TARIFS NE SONT PAS EXIGÉS ICI, et c'est délibéré. La clé et la signature
+ * commandent TOUT — sans elles rien ne fonctionne, pour personne. Les tarifs,
+ * eux, sont propres à un public : celui du propriétaire direct peut exister
+ * quand celui de l'agence n'a pas encore été créé chez Stripe. Refuser
+ * l'ensemble ferait attendre un public à cause de l'autre. Le tarif manquant se
+ * signale au moment où quelqu'un veut souscrire, en nommant SA variable.
  */
 export function configurationStripe(): Prete | Manque {
   const cle = process.env.STRIPE_SECRET_KEY?.trim();
-  const prixBien = process.env.STRIPE_PRIX_BIEN?.trim();
   const secretWebhook = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   const manquantes = [
     !cle && "STRIPE_SECRET_KEY",
-    !prixBien && "STRIPE_PRIX_BIEN",
     !secretWebhook && "STRIPE_WEBHOOK_SECRET",
   ].filter(Boolean) as string[];
   if (manquantes.length > 0) {
@@ -51,7 +68,32 @@ export function configurationStripe(): Prete | Manque {
       } de l'environnement.`,
     };
   }
-  return { pret: true, config: { cle: cle!, prixBien: prixBien!, secretWebhook: secretWebhook! } };
+  return {
+    pret: true,
+    config: {
+      cle: cle!,
+      secretWebhook: secretWebhook!,
+      prix: {
+        proprietaire_direct: process.env.STRIPE_PRIX_BIEN?.trim() || undefined,
+        agence: process.env.STRIPE_PRIX_LOT_AGENCE?.trim() || undefined,
+      },
+    },
+  };
+}
+
+/** Le tarif de ce public, ou la variable qu'il faut poser. */
+export function prixPour(
+  config: ConfigStripe,
+  pour: PublicTarif
+): { ok: true; prix: string } | Echec {
+  const prix = config.prix[pour];
+  if (prix) return { ok: true, prix };
+  return {
+    ok: false,
+    erreur: `Le tarif ${
+      pour === "agence" ? "agence" : "propriétaire"
+    } n'est pas encore configuré (${variablePrix(pour)}). Écrivez-nous : nous l'ouvrons et prolongeons votre accès en attendant.`,
+  };
 }
 
 let cache: { cle: string; client: Stripe } | null = null;
@@ -65,9 +107,6 @@ export function clientStripe(config: ConfigStripe): Stripe {
   cache = { cle: config.cle, client };
   return client;
 }
-
-export type Echec = { ok: false; erreur: string };
-export type Reussite<T> = { ok: true } & T;
 
 /**
  * Traduire un refus de Stripe.
@@ -92,7 +131,7 @@ export function lireErreurStripe(e: unknown): string {
     return "Trop de demandes au service de paiement en même temps. Réessayez dans un instant.";
   }
   if (/no such price/i.test(brut)) {
-    return "Le tarif configuré n'existe pas chez Stripe. Vérifiez STRIPE_PRIX_BIEN — un tarif de test n'existe pas dans le mode réel.";
+    return "Le tarif configuré n'existe pas chez Stripe. Vérifiez STRIPE_PRIX_BIEN ou STRIPE_PRIX_LOT_AGENCE — un tarif de test n'existe pas dans le mode réel.";
   }
   if (/no such customer/i.test(brut)) {
     return "Le client Stripe enregistré pour cette organisation n'existe plus chez Stripe. Contactez Gerimmo : la souscription doit être recréée.";
@@ -157,7 +196,7 @@ export async function assurerClientStripe(
 export async function creerSessionPaiement(
   stripe: Stripe,
   params: {
-    config: ConfigStripe;
+    prix: string;
     customer: string;
     quantite: number;
     orgId: string;
@@ -168,15 +207,14 @@ export async function creerSessionPaiement(
   if (params.quantite < 1) {
     return {
       ok: false,
-      erreur:
-        "Votre premier bien est offert : il n'y a rien à payer tant que vous n'en gérez qu'un.",
+      erreur: "Il n'y a rien à payer pour l'instant.",
     };
   }
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: params.customer,
-      line_items: [{ price: params.config.prixBien, quantity: params.quantite }],
+      line_items: [{ price: params.prix, quantity: params.quantite }],
       success_url: params.retourOk,
       cancel_url: params.retourAnnule,
       // Sans cela, une agence ne peut pas récupérer sa TVA ni justifier la

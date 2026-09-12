@@ -1,5 +1,18 @@
 -- Seed de démo Sprint 0 — environnement de développement uniquement.
 -- Mot de passe commun des comptes de démo : Gerimmo-Demo-2026
+--
+-- LES IDENTIFIANTS DE DÉMO SONT FIXES, ET C'EST LE CORRECTIF DU 12/09. Ils
+-- étaient tirés au hasard à chaque montage : un banc reconstruit recevait de
+-- nouveaux UUID, et les cinq specs E2E qui les portent en dur — abonnement,
+-- fiches-parc, fenêtre du lot, l'agent qui ajoute un bien, le brouillon d'EDL —
+-- se mettaient à interroger des objets inexistants. Vingt-quatre tests rouges,
+-- sans qu'une ligne de produit ait bougé.
+--
+-- Le banc n'était donc pas reproductible : il ne vivait que par accumulation,
+-- et personne ne pouvait le remonter de zéro. Un banc qu'on ne peut pas
+-- reconstruire finit par mesurer son propre passé au lieu du produit.
+-- Ces UUID sont ceux que les specs portaient déjà : ils deviennent la
+-- convention, au lieu d'être l'empreinte d'une base particulière.
 do $$
 declare
   v_org_alpha uuid;
@@ -9,11 +22,16 @@ declare
   v_pwd text := 'Gerimmo-Demo-2026';
   r record;
 begin
-  insert into public.organizations (name, status) values ('Agence Alpha', 'active') returning id into v_org_alpha;
-  insert into public.organizations (name, status) values ('Agence Beta', 'active') returning id into v_org_beta;
+  insert into public.organizations (id, name, status)
+  values ('c14c3187-1258-4e58-8822-368c6007e3fa', 'Agence Alpha', 'active')
+  returning id into v_org_alpha;
+  insert into public.organizations (id, name, status)
+  values ('b6332d4f-1ef8-45d7-b1cb-9628381a7527', 'Agence Beta', 'active')
+  returning id into v_org_beta;
   -- Propriétaire direct de démo (S9a) : son parc, en essai 14 jours
-  insert into public.organizations (name, type, status, essai_fin)
-  values ('Parc de Claire Moreau', 'proprietaire_direct', 'essai', current_date + 14)
+  insert into public.organizations (id, name, type, status, essai_fin)
+  values ('3c1d1e95-3570-400b-8012-44530be145b1', 'Parc de Claire Moreau',
+          'proprietaire_direct', 'essai', current_date + 14)
   returning id into v_org_pd;
 
   for r in

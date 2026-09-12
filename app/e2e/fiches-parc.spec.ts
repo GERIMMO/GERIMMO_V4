@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import fs from "node:fs";
 import path from "node:path";
 import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 
@@ -17,9 +18,24 @@ import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 
 test.use({ storageState: path.join(__dirname, ".auth", "agent.json") });
 
-const ORG = "c14c3187-1258-4e58-8822-368c6007e3fa";
-const BIEN = "310d8652-285c-46fc-87b7-881723c63dcc";
-const LOT = "03ea8599-70c8-4557-b626-28c1b5472c00";
+// LES IDENTIFIANTS VIENNENT DE LA MATRICE, PLUS D'UNE CONSTANTE. Ils étaient
+// écrits en dur — l'empreinte d'UNE base particulière. Le 12/09, en remontant
+// le banc de zéro, ils ont désigné des objets inexistants : huit tests de ce
+// fichier au rouge sans qu'une ligne de produit ait bougé. Un test qui ne
+// survit pas à la reconstruction de sa base ne teste pas le produit, il teste
+// une base. La matrice, elle, est régénérée après chaque seed
+// (npm run e2e:matrice) — même idiome que le brouillon d'EDL.
+function chemins(): { bien: string; lot: string } {
+  const matrice = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "matrice-ecrans.json"), "utf8"),
+  ) as { path: string }[];
+  const lot = matrice.find((e) => /\/parc\/[0-9a-f-]{36}\/lots\/[0-9a-f-]{36}$/.test(e.path));
+  const bien = matrice.find((e) => /\/parc\/[0-9a-f-]{36}$/.test(e.path));
+  if (!lot || !bien)
+    throw new Error("Pas de fiche bien/lot dans la matrice — lancer seed-parcours puis e2e:matrice");
+  return { bien: bien.path, lot: lot.path };
+}
+const { bien: CHEMIN_BIEN, lot: CHEMIN_LOT } = chemins();
 
 test.beforeEach(async ({ page }) => {
   await sansSyntheseAlertes(page);
@@ -34,7 +50,7 @@ async function hauteur(page: Page, selecteur: string): Promise<number> {
 }
 
 test("fiche lot : la location passe avant les caractéristiques", async ({ page }) => {
-  await page.goto(`/agence/${ORG}/parc/${BIEN}/lots/${LOT}`);
+  await page.goto(CHEMIN_LOT);
   // `CardTitle` rend un <div>, pas un titre : on vise la fente de données.
   await expect(
     page.locator('[data-slot="card-title"]', { hasText: "La location en cours" })
@@ -50,7 +66,7 @@ test("fiche lot : la location passe avant les caractéristiques", async ({ page 
 });
 
 test("fiche lot : l'état n'est dit qu'une fois de trop, pas quatre", async ({ page }) => {
-  await page.goto(`/agence/${ORG}/parc/${BIEN}/lots/${LOT}`);
+  await page.goto(CHEMIN_LOT);
   await expect(
     page.locator('[data-slot="card-title"]', { hasText: "La location en cours" })
   ).toBeVisible();
@@ -63,7 +79,7 @@ test("fiche lot : l'état n'est dit qu'une fois de trop, pas quatre", async ({ p
 });
 
 test("fiche lot : les caractéristiques vides ne prennent pas de place", async ({ page }) => {
-  await page.goto(`/agence/${ORG}/parc/${BIEN}/lots/${LOT}`);
+  await page.goto(CHEMIN_LOT);
   await expect(page.getByText("Non renseigné :")).toBeVisible();
   // Aucune rangée « libellé ↔ — » : les champs vides sont réunis en une phrase.
   const tirets = await page.locator("main dd", { hasText: /^—$/ }).count();
@@ -73,7 +89,7 @@ test("fiche lot : les caractéristiques vides ne prennent pas de place", async (
 test("fiche lot : une section se déplie en touchant sa rangée, pas un bouton lointain", async ({
   page,
 }) => {
-  await page.goto(`/agence/${ORG}/parc/${BIEN}/lots/${LOT}`);
+  await page.goto(CHEMIN_LOT);
   const rangee = page.getByRole("button", { name: /Diagnostics du lot/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "false");
 
@@ -87,7 +103,7 @@ test("fiche lot : une section se déplie en touchant sa rangée, pas un bouton l
 });
 
 test("fiche bien : les lots passent avant l'administratif", async ({ page }) => {
-  await page.goto(`/agence/${ORG}/parc/${BIEN}`);
+  await page.goto(CHEMIN_BIEN);
   await expect(
     page.locator('[data-slot="card-title"]').filter({ hasText: /^Le lot$|^Les \d+ lots/ })
   ).toBeVisible();
@@ -100,7 +116,7 @@ test("fiche bien : les lots passent avant l'administratif", async ({ page }) => 
 test("fiche bien : ce qui manque est dit en haut, avec le chemin pour le régler", async ({
   page,
 }) => {
-  await page.goto(`/agence/${ORG}/parc/${BIEN}`);
+  await page.goto(CHEMIN_BIEN);
   const bandeau = page.getByRole("region", { name: "Ce qui attend un geste" });
   await expect(bandeau).toBeVisible();
   await expect(bandeau).toContainText("Termites");
@@ -113,7 +129,7 @@ test("fiche bien : ce qui manque est dit en haut, avec le chemin pour le régler
 });
 
 test("fiche bien : l'annonce aux locataires ne déploie plus son formulaire", async ({ page }) => {
-  await page.goto(`/agence/${ORG}/parc/${BIEN}`);
+  await page.goto(CHEMIN_BIEN);
   const rangee = page.getByRole("button", { name: /Annonce aux locataires/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByLabel("Texte de l’annonce")).toHaveCount(0);
@@ -124,8 +140,8 @@ test("les deux fiches tiennent dans 390 px", async ({ page }) => {
   // et mesurer pendant qu'il tourne rend un verdict sur une page qui n'est pas
   // celle qu'on teste (échec intermittent constaté à l'écriture du test).
   for (const [url, attendu] of [
-    [`/agence/${ORG}/parc/${BIEN}`, /^Le lot$|^Les \d+ lots/],
-    [`/agence/${ORG}/parc/${BIEN}/lots/${LOT}`, /^Le lot$/],
+    [CHEMIN_BIEN, /^Le lot$|^Les \d+ lots/],
+    [CHEMIN_LOT, /^Le lot$/],
   ] as const) {
     await page.goto(url);
     await expect(

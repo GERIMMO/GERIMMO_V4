@@ -4177,3 +4177,57 @@ rustine. Consigné pour être tranché.
 687 tests unitaires (684 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés) sur
 un banc reconstruit de zéro, 88 E2E verts contre la production dont l'audit
 axe-core, ESLint silencieux, build vert. Aucune migration.
+
+## [2026-09-12] dev   | Le plan du jour rejoint le gabarit — il était resté en arrière
+
+**Constat de l'humain.** « Tu n'as pas fait les modifications du tableau de
+bord. »
+
+**Il avait raison, et l'indice était dans le nom du fichier.** Le gabarit
+s'appelle `alertes-plan-du-jour-PC-v1.html` — et c'est une image de la POP-UP
+« Plan du jour », pas de l'écran Alertes. J'avais habillé l'écran Alertes et
+laissé au dessin d'avant les deux endroits que le gabarit montre vraiment : la
+section « Votre plan du jour » du tableau de bord, et la pop-up qui s'ouvre à
+la connexion. Lire le nom du fichier qu'on me donne aurait suffi.
+
+**Trois endroits parlent maintenant la même langue** — le tableau de bord, la
+pop-up, et l'aperçu produit de la vitrine qui vendait encore un produit qui
+n'existe plus :
+
+- le niveau devient une **étiquette en aplat** au lieu d'une ligne de mono
+  grise posée au même poids que le titre ;
+- le **titre reprend son poids** ;
+- le contexte passe sur **deux lignes** au lieu d'être coupé net — `truncate`
+  réduisait « Doublon possible : un incident du même type… » à « Doublon
+  possible : un i… », qui n'apprend rien — et il disparaît quand le titre le
+  contient déjà ;
+- **« Sans échéance » ne s'écrit plus** sur chaque rangée qui n'en a pas : six
+  fois le même mot sur l'écran du matin.
+
+**L'ÉTIQUETTE ELLE-MÊME EST TOMBÉE SOUS SA PROPRE RÈGLE.** En la passant en
+aplat, « ALERTE NORMALE » se répétait quatre fois de suite sous un en-tête qui
+disait déjà de quoi il s'agissait : le geste censé hiérarchiser l'écran en
+faisait l'élément le plus voyant, identique partout. Elle ne s'affiche donc que
+lorsqu'elle distingue cette rangée-là de ses voisines — « Bail bloqué » à côté
+de « Sur un bail » la mérite. C'est la règle déjà admise le matin même sur
+l'écran Alertes, appliquée à ce qu'on venait d'ajouter.
+
+**Ce qui n'a pas été repris, et pourquoi.** Le gabarit met dans l'étiquette la
+CONSÉQUENCE (« RISQUE DE RÉSILIATION », « ARGENT DÛ », « BLOQUE LA
+SIGNATURE »), pas le niveau. Il n'existe aucun libellé français des types
+d'alerte dans le code — la liste des alertes fermées affiche le code brut. Les
+écrire, c'est le même travail que les vingt-trois phrases de conséquence :
+il se fait avec l'humain, pas à sa place. Le gabarit regroupe aussi par
+**lot/occupant** (avatar, adresse, propriétaire, « Traiter les 2 »), ce qui
+ferait disparaître les quatre « Incident à qualifier » alignés ; l'humain avait
+dit ne pas vouloir changer le regroupement de l'écran Alertes — la question lui
+est posée pour le tableau de bord.
+
+**`.niveau` est retiré, cette fois après vérification.** Ses trois derniers
+appelants sont passés à l'étiquette. La semaine dernière je l'avais supprimé
+depuis UN SEUL de ses appelants : le contraste était tombé à 2:1 sur la
+vitrine, attrapé par axe-core et pas par l'œil.
+
+684 tests unitaires verts (1 rouge délibéré — RM-2.1.2), 88 E2E verts contre
+la production dont l'audit axe-core, ESLint silencieux, build vert. Aucune
+migration.

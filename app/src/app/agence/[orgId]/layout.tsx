@@ -4,10 +4,9 @@ import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
-import { seDeconnecter } from "@/app/actions/auth";
 import { SidebarAgence } from "@/components/nav-agence-premium";
 import { SidebarProprietaire } from "@/components/nav-proprietaire";
-import { SortieMobile } from "@/components/sortie-mobile";
+import { MenuCompte } from "@/components/menu-compte";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { Toasteur } from "@/components/ui/toast";
@@ -117,14 +116,6 @@ export default async function LayoutAgence({
             badgeMessages={messagesNonLus}
             organisations={organisations}
           />
-          <div className="loc-late-bas">
-            <Link href={`/agence/${orgId}/profil`}>Mon profil</Link>
-            <Link href="/espaces">Mes espaces</Link>
-            <form action={seDeconnecter}>
-              <button type="submit">Se déconnecter</button>
-            </form>
-            <span>{organisation.name}</span>
-          </div>
         </aside>
         <div className="min-w-0">
           <header className="loc-haut">
@@ -133,16 +124,19 @@ export default async function LayoutAgence({
               membres={membres}
               estResponsable={estResponsable}
             />
-            {/* Recette Tahir 09/09 : « Espace propriétaire » vit dans la barre
-                blanche, sans le nom du propriétaire (le sélecteur de la barre
-                latérale dit déjà où l'on est) */}
-            <span className="min-w-0 truncate text-[13px] text-muted-foreground">
-              Espace propriétaire
-            </span>
-            <SortieMobile profilHref={`/agence/${orgId}/profil`} />
-            <span className="loc-avat" aria-hidden>
-              {(organisation.name?.[0] ?? "◇").toUpperCase()}
-            </span>
+            {/* Le pied de la barre latérale a rejoint ce menu (12/09) : ses
+                liens se cherchaient en bas à gauche et disparaissaient sous
+                860 px. Recette Tahir 09/09 : « Espace propriétaire » sans le
+                nom du propriétaire — le sélecteur de la barre dit déjà où
+                l'on est. */}
+            <MenuCompte
+              initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
+              titre="Espace propriétaire"
+              liens={[
+                { href: `/agence/${orgId}/profil`, libelle: "Mon profil" },
+                { href: "/espaces", libelle: "Mes espaces" },
+              ]}
+            />
           </header>
           {organisation.status === "essai" && organisation.essai_fin && (
             <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
@@ -183,14 +177,6 @@ export default async function LayoutAgence({
           badgeAlertes={alertesOrg}
           badgeMessages={messagesNonLus}
         />
-        <div className="loc-late-bas">
-          <Link href={`/agence/${orgId}/profil`}>Profil de l&apos;agence</Link>
-          <Link href="/espaces">Mes espaces</Link>
-          <form action={seDeconnecter}>
-            <button type="submit">Se déconnecter</button>
-          </form>
-          <span>{organisation.name}</span>
-        </div>
       </aside>
       <div className="min-w-0">
         <header className="loc-haut">
@@ -199,17 +185,15 @@ export default async function LayoutAgence({
             membres={membres}
             estResponsable={estResponsable}
           />
-          <span className="min-w-0 truncate text-[13px] text-muted-foreground">
-            {organisation.name}
-            <span className="text-[var(--libelle)]">
-              {" "}
-              · {role === "admin_agence" ? "Admin d'agence" : "Agent"}
-            </span>
-          </span>
-          <SortieMobile profilHref={`/agence/${orgId}/profil`} />
-          <span className="loc-avat" aria-hidden>
-            {(organisation.name?.[0] ?? "◇").toUpperCase()}
-          </span>
+          <MenuCompte
+            initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
+            titre={organisation.name}
+            sousTitre={role === "admin_agence" ? "Admin d'agence" : "Agent"}
+            liens={[
+              { href: `/agence/${orgId}/profil`, libelle: "Profil de l'agence" },
+              { href: "/espaces", libelle: "Mes espaces" },
+            ]}
+          />
         </header>
         {organisation.status === "essai" && organisation.essai_fin && (
           <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">

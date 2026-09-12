@@ -18,6 +18,14 @@ export default defineConfig({
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM }
       : {},
+    // LA SUITE VISE LE SERVEUR DE DÉV — ET IL PEUT MENTIR. Le 12/09, toutes
+    // les fiches de lot y renvoyaient 404 sans que la page ne s'exécute
+    // (sonde posée dedans : aucun log), alors que la MÊME base et le MÊME code
+    // les servaient en 200 sous `next start`. Neuf tests au rouge pour un
+    // défaut de résolution de routes de Turbopack, pas du produit.
+    // Avant de conclure qu'un écran est cassé : rejouer contre la production —
+    //   npm run build && npx next start -p 3002
+    //   E2E_BASE_URL=http://localhost:3002 npm run test:e2e
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     viewport: { width: 390, height: 844 },
     isMobile: true,

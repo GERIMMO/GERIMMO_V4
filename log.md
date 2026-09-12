@@ -3960,3 +3960,220 @@ est redescendue en note de bas de page.
 
 687 tests (686 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés), 69 E2E verts
 dont l'audit axe-core, ESLint silencieux, build vert. Aucune migration.
+
+## [2026-09-12] dev   | Un seul chemin pour sortir : le menu de l'avatar
+
+**Demande de l'humain.** « En bas à gauche j'ai les paramètres et la
+déconnexion… j'aimerais que ça soit un menu lorsque je clique sur l'avatar en
+haut à droite. »
+
+**Ce que ça répare, au-delà du goût.** Ces liens vivaient au PIED de la barre
+latérale, là où la convention de tous les produits les cherche en haut à
+droite. Mais surtout : sous 860 px, la barre se réduit à un rail d'icônes et
+son pied DISPARAÎT. Il avait donc fallu greffer un second mécanisme —
+`SortieMobile`, trois icônes remises dans l'en-tête (audits des 06/09 et
+09/09) — pour qu'un téléphone puisse encore se déconnecter. **Se déconnecter
+empruntait un chemin différent selon la largeur de l'écran.** Le menu de
+l'avatar est là à toutes les largeurs : les deux mécanismes n'en font plus
+qu'un, et `SortieMobile` est supprimé.
+
+**Le même menu pour les quatre regards** — agent, admin d'agence,
+propriétaire, locataire. Seules les entrées changent, parce que seules elles
+diffèrent : « Profil de l'agence » pour l'agence, « Mon profil » pour le
+propriétaire, « Mes espaces » et « Se déconnecter » pour tous. Même logique que
+la fenêtre du lot livrée ce matin : un objet, une fenêtre, une portée par
+regard.
+
+**L'avatar devient un bouton.** Il n'était qu'une pastille décorative
+(`aria-hidden`) : il porte désormais un nom accessible, annonce qu'il ouvre un
+menu (`aria-haspopup`), et dit s'il est ouvert. Échap referme et **rend le
+focus au bouton** — sans quoi le clavier repart au début du document et le menu
+n'est plus réouvrable sans souris.
+
+**Un défaut trouvé en mesurant au navigateur.** La cible tactile de l'avatar
+faisait **38 × 40 px**, pas 44. Deux causes, cumulées : la règle générique des
+cibles tactiles ne règle que la HAUTEUR (40 px), et `button:not(.cible-libre)`
+l'emporte en spécificité sur une simple classe — mon `min-height: 44px` ne
+s'appliquait donc pas sous un pointeur grossier. Corrigé là où vit le reste du
+dimensionnement tactile, avec la spécificité qu'il faut.
+
+**Ce que les tests protègent.** Ce menu porte désormais LE SEUL CHEMIN DE
+SORTIE de l'application : s'il casse, plus personne ne quitte sa session, à
+aucune largeur. Le test va donc jusqu'au bout du geste — cliquer, puis vérifier
+qu'un retour sur l'espace renvoie à la connexion — au lieu de se contenter de
+voir le libellé. Vérifié par falsification : en cassant l'action de
+déconnexion, les quatre tests rougissent.
+
+**Un débordement de 4 px relevé, et laissé.** Le tableau de bord du locataire
+déborde de 4 px à 390 px — mesuré **avant comme après** ce changement, donc
+préexistant et étranger à celui-ci. La cause est localisée : sur téléphone,
+`.loc-grille` retombe en `grid-template-columns: 1fr`, ce qui réintroduit le
+minimum `auto` que la règle de bureau neutralise déjà par `minmax(0, 1fr)` ;
+une carte de la colonne ne sait pas se réduire sous 381 px. Le corriger
+proprement demande de traiter aussi le contenu de la carte, ce qui n'a rien à
+voir avec ce menu : consigné plutôt qu'emballé ici.
+
+687 tests unitaires (686 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés),
+86 E2E verts dont l'audit axe-core et les 18 nouveaux du menu, ESLint
+silencieux, build vert. Aucune migration.
+
+## [2026-09-12] dev   | Un seul chemin pour sortir : le menu de l'avatar
+
+**Demande de l'humain.** « En bas à gauche j'ai les paramètres et la
+déconnexion… j'aimerais que ça soit un menu lorsque je clique sur l'avatar en
+haut à droite. »
+
+**Ce que ça répare, au-delà du goût.** Ces liens vivaient au PIED de la barre
+latérale, là où la convention de tous les produits les cherche en haut à
+droite. Mais surtout : sous 860 px, la barre se réduit à un rail d'icônes et
+son pied DISPARAÎT. Il avait donc fallu greffer un second mécanisme —
+`SortieMobile`, trois icônes remises dans l'en-tête (audits des 06/09 et
+09/09) — pour qu'un téléphone puisse encore se déconnecter. **Se déconnecter
+empruntait un chemin différent selon la largeur de l'écran.** Le menu de
+l'avatar est là à toutes les largeurs : les deux mécanismes n'en font plus
+qu'un, et `SortieMobile` est supprimé.
+
+**Le même menu pour les quatre regards** — agent, admin d'agence,
+propriétaire, locataire. Seules les entrées changent, parce que seules elles
+diffèrent : « Profil de l'agence » pour l'agence, « Mon profil » pour le
+propriétaire, « Mes espaces » et « Se déconnecter » pour tous.
+
+**L'avatar devient un bouton.** Il n'était qu'une pastille décorative
+(`aria-hidden`) : il porte désormais un nom accessible, annonce qu'il ouvre un
+menu, et dit s'il est ouvert. Échap referme et **rend le focus au bouton** —
+sans quoi le clavier repart au début du document et le menu n'est plus
+réouvrable sans souris.
+
+**Un défaut trouvé en mesurant.** La cible tactile de l'avatar faisait
+**38 × 40 px**, pas 44. Deux causes cumulées : la règle générique ne fixe que
+la HAUTEUR (40 px), et `button:not(.cible-libre)` l'emporte en spécificité sur
+une simple classe.
+
+**Ce que les tests protègent.** Ce menu porte désormais LE SEUL CHEMIN DE
+SORTIE : s'il casse, plus personne ne quitte sa session, à aucune largeur. Le
+test va donc jusqu'au bout du geste — cliquer, puis vérifier qu'un retour sur
+l'espace renvoie à la connexion. Vérifié par falsification : en cassant
+l'action de déconnexion, les quatre tests rougissent.
+
+## [2026-09-12] dev   | Tous les boutons, tous les personas — et ce que le balayage a déterré
+
+**Demande de l'humain.** « Reteste tous les boutons de tous les personas. »
+
+**La méthode.** Parcours au navigateur, à 390 × 844 tactile, des six regards
+(agent, admin d'agence, propriétaire, locataire, artisan, super admin) :
+**105 écrans, 2 270 contrôles relevés**. Base sauvegardée avant de commencer,
+pour cliquer sans retenue.
+
+**Le résultat d'ensemble : aucun plantage, aucune 500, aucune exception.**
+
+**MA PREMIÈRE PASSE ÉTAIT FAUSSE, ET JE L'AI JETÉE.** Elle visait les contrôles
+par leur INDICE dans un inventaire relevé une heure plus tôt ; entre-temps ses
+propres clics avaient créé des biens, allongé des listes, et l'indice 12 ne
+désignait plus le même bouton. Elle rendait 51 « introuvable » et 31 délais
+dépassés qui ne disaient rien de l'application. Refaite en rechargeant la page
+AVANT CHAQUE CLIC, et en SUIVANT les liens par leur adresse au lieu de les
+cliquer — l'adresse est déterministe, le clic dépend de l'état de l'écran.
+**Une sonde qui se trompe coûte plus cher que pas de sonde : elle occupe à
+lire de faux défauts pendant que les vrais attendent.**
+
+### Quatre vrais défauts
+
+**1. « Reprendre un parc » renvoyait l'agent sur une 404.** Le lien s'affichait
+pour tout le monde, alors que la page d'import refuse l'agent (`notFound`) — un
+import engage tout le parc, il appartient au responsable. La règle était juste ;
+c'est le lien qui mentait. Aligné aux deux endroits (barre d'actions et état
+vide), avec un test qui tient la garde et l'affichage ensemble. La garde du
+serveur reste la vraie protection : masquer un lien ne protège rien.
+
+**2. La règle des cibles tactiles ne couvre pas les liens.** `button`, `input`,
+`select` y sont — `a` non. Or une bonne part des actions du produit SONT des
+liens : sur le parc, les pastilles « Renseigner la surface » et « Compléter la
+détention » mesuraient **107 × 24 px**, la moitié de la cible, pour le geste
+même qui sert à compléter un lot. Corrigé pour `a.puce`, `button.puce`,
+`a.filtre` — **pas** pour tous les liens : un lien en pleine phrase
+deviendrait une barre. Une `<span class="puce">` qui n'affiche qu'un état garde
+sa densité.
+
+**3. UN ÉTAT DES LIEUX PERDAIT UNE LIGNE EN ANNONÇANT « SYNCHRONISÉ ».** C'est
+le plus grave de la journée. Un EDL se saisit debout, sur un téléphone, dans
+une cage d'escalier : la grille s'affiche avant que React n'ait attaché ses
+écouteurs, l'agent touche un état — le `<select>` du DOM change, l'état React
+non, et un `change` ne se rejoue pas. La suite était SILENCIEUSE : aucun
+brouillon (rien n'avait « bougé » du point de vue de React), l'indicateur
+affichait « Synchronisé » — il disait vrai de son point de vue — et la ligne
+disparaissait au rendu suivant. **Un état des lieux qui perd une ligne en
+annonçant que tout est enregistré est pire qu'un écran qui plante.**
+Le correctif lit le DOM dans l'INITIALISEUR D'ÉTAT, pas dans un effet : un
+premier essai le faisait au montage, trop tard — React a déjà remis le champ
+contrôlé à la valeur de sa prop. Mesuré : correctif neutralisé, **4 essais sur
+4 perdent la ligne** ; avec, **4 sur 4 la gardent** (brouillon écrit, POST 200,
+valeur en base).
+
+**4. Le banc local ne se reconstruisait plus — et se taisait.** En restaurant
+la base par `pg_restore` j'ai effacé les `revoke` sur `anon` : 32 tests rouges,
+tous sur les droits. En la remontant depuis les migrations, découverte que le
+manifeste était **périmé de huit fichiers et mal ordonné** :
+`module8_artisans_socle` appelle `poser_gardes_abonnement()`, définie par
+`gardes_abonnement_rejouables`, dont le nom de fichier trie APRÈS alors que la
+production l'a appliquée AVANT. Et le seed tirait ses UUID au hasard, alors que
+**cinq specs les portaient en dur** : reconstruire la base rendait 24 tests
+rouges sans qu'une ligne de produit ait bougé. Manifeste reconstruit depuis
+l'historique réel de la production, identifiants de démo figés, et
+`preparer-base.sh` **refuse désormais de démarrer** quand une migration manque.
+Le silence était le plus cher : le banc montait sans broncher un schéma vieux
+de deux jours, et les tests mesuraient autre chose que le produit.
+
+### LE SERVEUR DE DÉV MENTAIT, ET LA SUITE LE RÉPÉTAIT
+
+Neuf tests sont restés rouges après tout cela. **Toutes les fiches de lot**
+renvoyaient 404 — pas seulement celles des tests — et la page ne s'exécutait
+JAMAIS (sonde posée dedans : aucun log). La base, elle, répondait : interrogée
+en REST avec le jeton de l'agent, le lot et le bien remontent. La preuve
+décisive : **sous `next start`, les mêmes pages répondent 200**. Même code,
+même base, même session. C'est la résolution de routes de Turbopack en dév.
+
+La suite E2E vise `npm run dev` : un serveur de dév qui 404 des routes que la
+production sert la rend capable de dire faux dans les deux sens. La marche à
+suivre est désormais écrite dans `playwright.config.ts` — rejouer contre
+`next start` avant de conclure qu'un écran est cassé. **Verdict contre la
+production : 88 verts, 1 ignoré, aucun échec.**
+
+J'ai aussi laissé tourner **deux serveurs de dév en parallèle** pendant un
+moment, ce qui a brouillé deux séries de mesures avant que je ne le voie.
+
+### Quatre fausses alertes, vérifiées une par une
+
+- `/incidents/«id»` « page vide » : c'est un `redirect()`, attrapé en vol.
+- Les filtres d'alertes « sans effet » : ma sonde cliquait celui DÉJÀ ACTIF.
+  Sur « Critiques », la liste passe de 5 267 à 1 351 caractères.
+- « Modifier le bien » : ouvre bien son formulaire — 5 champs deviennent 16.
+- Les suggestions de message du locataire : elles remplissent bien le champ.
+  Ma mesure lisait `innerText`, où la VALEUR d'un champ ne figure pas.
+
+### Deux tests à moi, écrits puis jetés
+
+L'un retardait les chunks pour élargir la fenêtre d'hydratation : il ne la
+retardait pas, il **l'empêchait** — la page restait au rendu serveur. L'autre,
+réécrit, **passait sans le correctif**. Un test qui ne rougit pas quand le
+défaut est là ne protège rien : supprimé plutôt que gardé pour la façade. C'est
+le test `hors ligne` existant qui tient réellement la garde, et il le dit
+maintenant dans son propre commentaire.
+
+### Une découverte utile
+
+« Générer le congé (PDF) » échouait avec une référence de support : **Chrome
+est absent du bac à sable**, et le rendu PDF en a besoin (`GERIMMO_CHROME`, ou
+le Chromium serverless sur Vercel). Renseigné, le congé sort : **108 909
+octets**. Toute la chaîne documentaire — congés, avenants, quittances —
+n'avait jamais été exercée ici.
+
+### Ce qui reste mesuré, pas corrigé
+
+Cent soixante-sept contrôles passent encore sous les 40 px : liens en pleine
+phrase, onglets `border-b-2`, le lien du logo (34 × 29). Les grossir un par un
+sans règle abîmerait la typographie ; il y faut une décision de charte, pas une
+rustine. Consigné pour être tranché.
+
+687 tests unitaires (684 passent, 1 rouge délibéré — RM-2.1.2, 2 ignorés) sur
+un banc reconstruit de zéro, 88 E2E verts contre la production dont l'audit
+axe-core, ESLint silencieux, build vert. Aucune migration.

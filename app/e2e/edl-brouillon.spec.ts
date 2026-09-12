@@ -56,6 +56,17 @@ test("saisie → brouillon local → rechargement → la saisie est toujours là
   await expect(page.getByRole("status")).toContainText(/à synchroniser/);
 });
 
+// CE TEST TIENT AUSSI LA SAISIE D'AVANT L'HYDRATATION (12/09). En coupant le
+// réseau si tôt après l'ouverture, il attrape la grille avant que React n'ait
+// attaché ses écouteurs : le <select> du DOM change, l'état React non, et un
+// `change` ne se rejoue pas. Le défaut était SILENCIEUX — aucun brouillon (rien
+// n'avait « bougé » du point de vue de React), l'indicateur affichait
+// « Synchronisé », et la ligne disparaissait. Un état des lieux qui perd une
+// ligne en annonçant que tout est enregistré est pire qu'un écran qui plante.
+// Mesuré en neutralisant le correctif : 4 essais sur 4 perdent la ligne ; avec,
+// 4 sur 4 la gardent. C'est `saisieDejaDansLeDom` (grille-edl.tsx) qui la
+// rattrape, et c'est CETTE assertion de rechargement qui le prouve — un test
+// écrit exprès pour le dire passait, lui, même sans le correctif.
 test("hors ligne : l'indicateur l'annonce ; au retour du réseau la grille se synchronise seule", async ({ page, context }) => {
   await ouvrirGrille(page);
   const deuxieme = page.locator('select[name^="etat_"]').nth(1);

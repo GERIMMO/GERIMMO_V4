@@ -77,6 +77,49 @@ function grouper(lignes: Ligne[]): { titre: string; lignes: Ligne[] }[] {
   return groupes;
 }
 
+/**
+ * CE QUI EST SAISI AVANT L'HYDRATATION NE DOIT PAS DISPARAÎTRE.
+ *
+ * Relevé le 12/09, en reconstruisant le banc : sans cache, l'hydratation prend
+ * assez de temps pour que le geste la précède. L'agent voit la grille, touche
+ * un état — le <select> du DOM change, l'état React non, puisque les écouteurs
+ * ne sont pas encore attachés et qu'un `change` ne se rejoue pas.
+ *
+ * LA SUITE ÉTAIT SILENCIEUSE, ET C'EST LE PIRE : la saisie n'entrait dans aucun
+ * brouillon (rien n'avait « bougé » du point de vue de React), l'indicateur
+ * affichait « Synchronisé » — il disait vrai de son point de vue — et la ligne
+ * disparaissait au rendu suivant. Un état des lieux qui perd une ligne en
+ * annonçant que tout est enregistré est pire qu'un écran qui plante. C'est
+ * exactement la situation du module 19 : un EDL se saisit debout, sur un
+ * téléphone, dans une cage d'escalier.
+ *
+ * ON LIT LE DOM DANS L'INITIALISEUR D'ÉTAT, PAS DANS UN EFFET. Un premier essai
+ * le faisait au montage : trop tard, React a déjà remis le contrôle contrôlé à
+ * la valeur de sa prop, et l'effet ne relit plus qu'un champ vide. L'initialiseur,
+ * lui, s'exécute pendant le premier rendu client — le DOM y porte encore ce que
+ * le doigt y a mis, et la valeur rendue COÏNCIDE avec lui, donc aucune
+ * divergence d'hydratation.
+ *
+ * En régime normal le DOM porte exactement l'état serveur : rien n'est repris.
+ * Sur une navigation client, les champs de cette grille n'existent pas encore —
+ * `id in base` écarte ceux d'un autre écran.
+ */
+function saisieDejaDansLeDom(
+  balise: "select" | "input",
+  prefixe: string,
+  base: Record<string, string>
+): Record<string, string> {
+  if (typeof document === "undefined") return base;
+  const repris = { ...base };
+  document
+    .querySelectorAll<HTMLSelectElement | HTMLInputElement>(`${balise}[name^="${prefixe}"]`)
+    .forEach((el) => {
+      const id = el.name.slice(prefixe.length);
+      if (el.value && id in repris) repris[id] = el.value;
+    });
+  return repris;
+}
+
 export function GrilleEdl({
   orgId,
   bailId,
@@ -100,13 +143,21 @@ export function GrilleEdl({
   // section d'un coup, de surligner les lignes sans état, et de savoir avant
   // de signer combien il en manque.
   const [etats, setEtats] = useState<Record<string, string>>(() =>
-    Object.fromEntries(lignes.map((l) => [l.id, l.etat ?? ""]))
+    saisieDejaDansLeDom(
+      "select",
+      "etat_",
+      Object.fromEntries(lignes.map((l) => [l.id, l.etat ?? ""]))
+    )
   );
   // Commentaires contrôlés eux aussi (recette 22/08) : React réinitialise les
   // champs libres d'un formulaire après son action — la grille semblait se
   // vider à chaque « Enregistrer » alors que la base était bien à jour.
   const [commentaires, setCommentaires] = useState<Record<string, string>>(() =>
-    Object.fromEntries(lignes.map((l) => [l.id, l.commentaire ?? ""]))
+    saisieDejaDansLeDom(
+      "input",
+      "commentaire_",
+      Object.fromEntries(lignes.map((l) => [l.id, l.commentaire ?? ""]))
+    )
   );
   const [confirmeSignature, setConfirmeSignature] = useState(false);
   const boutonSigner = useRef<HTMLButtonElement>(null);

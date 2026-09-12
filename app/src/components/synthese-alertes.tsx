@@ -179,20 +179,48 @@ export function SyntheseAlertes({
                         <span className="libelle-champ">{groupe.liste.length}</span>
                       </div>
                     )}
+                    {/* Même règle que l'écran Alertes et le plan du jour :
+                        une étiquette identique sur toute la liste n'informe
+                        pas, elle allonge — et depuis qu'elle est un aplat,
+                        c'est elle qu'on voit en premier. Cinq alertes toutes
+                        « normales » n'ont rien à se dire par là. */}
                     {groupe.liste.map((a) => {
                         const echeance = afficherEcheance(a.echeance);
+                        const etiquetteUtile =
+                          groupe.liste.length === 1 ||
+                          new Set(groupe.liste.map((x) => x.criticite)).size > 1;
                         // Rangée de la charte : liseré de criticité, niveau en
-                        // mono, titre complet sans troncature — TOUTE la
+                        // ÉTIQUETTE, titre complet sans troncature — TOUTE la
                         // rangée mène au traitement.
+                        //
+                        // MÊME LANGAGE QUE L'ÉCRAN ALERTES (gabarit « plan du
+                        // jour » du 12/09) : le niveau s'écrivait en mono gris,
+                        // au même poids que le titre et à l'identique sur
+                        // chaque rangée. Le contexte que l'alerte transporte
+                        // arrive avec — c'est lui qui distingue treize
+                        // « État des lieux à réaliser » les uns des autres.
                         const contenu = (
                           <>
                             <span className="min-w-0 flex-1">
-                              <span className="niveau block">
-                                {CRITICITES[a.criticite] ?? a.criticite}
-                              </span>
-                              <span className="mt-0.5 block text-sm leading-snug">
+                              {etiquetteUtile && (
+                                <span className="etiquette-alerte">
+                                  {CRITICITES[a.criticite] ?? a.criticite}
+                                </span>
+                              )}
+                              <span
+                                className={`${etiquetteUtile ? "mt-1.5 " : ""}block text-[14.5px] font-semibold leading-snug`}
+                              >
                                 {a.titre}
                               </span>
+                              {typeof a.details?.libelle === "string" &&
+                                // Le titre porte déjà souvent le lot et le
+                                // locataire : le répéter dessous n'ajoute rien
+                                // et coûte deux lignes sur un téléphone.
+                                !a.titre.includes(a.details.libelle) && (
+                                  <span className="line-clamp-2 block text-[13px] text-muted-foreground">
+                                    {a.details.libelle}
+                                  </span>
+                                )}
                             </span>
                             <span className="flex shrink-0 items-center gap-3">
                               {echeance && (

@@ -19,7 +19,7 @@ export type EtatLoyers = {
   valeurs?: Record<string, string>;
 };
 
-// Envoyer une quittance par email au locataire (API Resend).
+// Envoyer une quittance ou un reçu partiel par email au locataire (API Resend).
 export async function envoyerQuittance(
   orgId: string,
   bailId: string,
@@ -27,6 +27,21 @@ export async function envoyerQuittance(
 ): Promise<EtatLoyers> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
+
+  // Les identifiants reçus peuvent être incohérents, même si les boutons
+  // habituels transmettent le bon trio. La lecture respecte la RLS et lie
+  // le document au bail dont on va chercher le destinataire.
+  const { data: document, error: erreurDocument } = await supabase
+    .from("quittances")
+    .select("id")
+    .eq("id", quittanceId)
+    .eq("bail_id", bailId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (erreurDocument)
+    return { erreur: "Impossible de vérifier le document à envoyer. Réessayez." };
+  if (!document)
+    return { erreur: "Ce document est introuvable ou inaccessible pour ce bail." };
 
   const { data: bail } = await supabase
     .from("baux")
@@ -39,7 +54,9 @@ export async function envoyerQuittance(
     : { data: null };
   if (!loc?.email) return { erreur: "Le locataire n'a pas d'email renseigné." };
 
-  const { data } = await supabase.rpc("quittance_detail", { p_quittance: quittanceId });
+  const { data, error: erreurDetail } = await supabase.rpc("quittance_detail", { p_quittance: quittanceId });
+  if (erreurDetail)
+    return { erreur: "Impossible de lire le document à envoyer. Réessayez." };
   const q = ((data ?? []) as {
     emetteur: string;
     periode: string;
@@ -48,7 +65,8 @@ export async function envoyerQuittance(
     montant: number;
     est_quittance: boolean;
   }[])[0];
-  if (!q) return { erreur: "Quittance introuvable." };
+  if (!q) return { erreur: "Document de paiement introuvable." };
+  const libelleEnvoi = q.est_quittance ? "Quittance envoyée" : "Reçu de paiement partiel envoyé";
 
   const origine = (await headers()).get("origin") ?? "";
   // Le corps vit dans lib/quittance-email : la tâche planifiée envoie le même
@@ -78,14 +96,15 @@ export async function envoyerQuittance(
     .from("quittances")
     .update({ email_envoye_at: new Date().toISOString() })
     .eq("id", quittanceId)
+    .eq("bail_id", bailId)
     .eq("organization_id", orgId);
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   if (erreurMemo) {
     return {
-      succes: `Quittance envoyée à ${loc.email}, mais l'envoi n'a pas pu être mémorisé — le bouton peut réapparaître.`,
+      succes: `${libelleEnvoi} à ${loc.email}, mais l'envoi n'a pas pu être mémorisé — le bouton peut réapparaître.`,
     };
   }
-  return { succes: `Quittance envoyée à ${loc.email}.` };
+  return { succes: `${libelleEnvoi} à ${loc.email}.` };
 }
 
 // Relance d'impayé ou mise en demeure (LRAR hors plateforme : date de 1re présentation).
@@ -140,9 +159,12 @@ export async function regulariserCharges(
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const annee = Number(String(formData.get("annee") ?? "").trim());
-  const reelles = Number(String(formData.get("charges_reelles") ?? "").trim());
+  const reellesSaisies = String(formData.get("charges_reelles") ?? "").trim();
+  const reelles = Number(reellesSaisies);
   if (!annee) return { erreur: "Année invalide.", valeurs };
-  if (Number.isNaN(reelles) || reelles < 0) return { erreur: "Charges réelles invalides.", valeurs };
+  if (!reellesSaisies)
+    return { erreur: "Indiquez les charges réelles de l'exercice — saisissez 0 si elles sont nulles.", valeurs };
+  if (!Number.isFinite(reelles) || reelles < 0) return { erreur: "Charges réelles invalides.", valeurs };
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };

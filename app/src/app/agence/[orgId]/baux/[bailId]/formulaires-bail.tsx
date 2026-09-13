@@ -1,5 +1,4 @@
 "use client";
-import { InputDateJour } from "@/components/input-date-jour";
 
 import Link from "next/link";
 import { useActionState, useId, useState } from "react";
@@ -136,7 +135,9 @@ export function FormulaireConge({
           <Label htmlFor="conge-date" className="text-xs">
             1ʳᵉ présentation du recommandé
           </Label>
-          <InputDateJour id="conge-date"   required name="date_presentation" />
+          {/* Le préavis dépend de cette date : elle doit être relevée sur
+              le suivi postal, jamais déduite du jour de la saisie. */}
+          <Input id="conge-date" type="date" required name="date_presentation" defaultValue={etat.valeurs?.date_presentation} />
         </div>
       </div>
 

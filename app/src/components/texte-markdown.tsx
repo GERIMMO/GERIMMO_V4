@@ -56,7 +56,32 @@ function enLigne(texte: string, cle: string): ReactNode {
 }
 
 export function TexteMarkdown({ contenu }: { contenu: string }) {
-  const blocs = contenu.replace(/\r\n/g, "\n").split(/\n{2,}/);
+  const blocs: string[] = [];
+  let courant: string[] = [];
+  let typeCourant = "";
+  const terminer = () => {
+    if (courant.length > 0) blocs.push(courant.join("\n"));
+    courant = [];
+    typeCourant = "";
+  };
+  for (const ligne of contenu.replace(/\r\n/g, "\n").split("\n")) {
+    if (!ligne.trim()) {
+      terminer();
+      continue;
+    }
+    if (/^#{2,3} /.test(ligne)) {
+      terminer();
+      blocs.push(ligne);
+      continue;
+    }
+    const type = /^\s*[-*]\s+/.test(ligne)
+      ? "puces"
+      : /^\s*\d+\.\s+/.test(ligne) ? "numeros" : "paragraphe";
+    if (type !== typeCourant) terminer();
+    typeCourant = type;
+    courant.push(ligne);
+  }
+  terminer();
 
   return (
     <div className="space-y-4">

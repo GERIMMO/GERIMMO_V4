@@ -32,8 +32,14 @@ function listerTrous(corps: string): string[] {
 
 export function EditeurPublication(p: Props) {
   const [corps, setCorps] = useState(p.corps ?? "");
+  const [chapo, setChapo] = useState(p.chapo ?? "");
+  const [modificationsNonEnregistrees, setModificationsNonEnregistrees] = useState(false);
   const [etat, action] = useActionState<EtatPublication, FormData>(
-    async (e, fd) => enregistrerPublication(p.id, e, fd),
+    async (e, fd) => {
+      const resultat = await enregistrerPublication(p.id, e, fd);
+      if (resultat.succes) setModificationsNonEnregistrees(false);
+      return resultat;
+    },
     {}
   );
   const [etatParution, actionParution] = useActionState<EtatPublication, FormData>(
@@ -49,13 +55,24 @@ export function EditeurPublication(p: Props) {
     {}
   );
 
-  const trous = listerTrous(corps);
+  const trous = listerTrous(`${corps} ${chapo}`);
+  const controles = [
+    ...(corps.trim().length < 200 ? ["Le corps doit contenir au moins 200 caractères."] : []),
+    ...(!chapo.trim() ? ["Ajoutez un chapô : c’est le résumé visible dans le journal."] : []),
+    ...(modificationsNonEnregistrees ? ["Enregistrez vos modifications avant la parution."] : []),
+  ];
+  const pret = trous.length === 0 && controles.length === 0;
   const paru = p.statut === "publiee";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px] lg:items-start">
       {/* ------------------------------------------------ Colonne d'écriture */}
-      <form action={action} className="space-y-4">
+      <form
+        action={action}
+        onChange={() => setModificationsNonEnregistrees(true)}
+        onReset={(event) => event.preventDefault()}
+        className="space-y-4"
+      >
         <div className="space-y-1.5">
           <Label htmlFor="titre" className="libelle-champ">Titre</Label>
           <Input id="titre" name="titre" defaultValue={etat.valeurs?.titre ?? p.titre} required />
@@ -69,7 +86,8 @@ export function EditeurPublication(p: Props) {
             id="chapo"
             name="chapo"
             rows={3}
-            defaultValue={etat.valeurs?.chapo ?? p.chapo ?? ""}
+            value={chapo}
+            onChange={(event) => setChapo(event.target.value)}
             className="w-full rounded-[3px] border border-[var(--filet)] bg-[var(--ivoire)] p-2.5 text-base leading-relaxed sm:text-sm"
           />
         </div>
@@ -110,8 +128,9 @@ export function EditeurPublication(p: Props) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <BoutonEnvoi>Enregistrer</BoutonEnvoi>
-          {etat.succes && <span className="text-[13px] text-[var(--success)]">{etat.succes}</span>}
+          <BoutonEnvoi>{paru ? "Enregistrer comme brouillon" : "Enregistrer"}</BoutonEnvoi>
+          {paru && <p className="text-[13px] text-[var(--texte-secondaire)]">L’enregistrement retire l’article du journal. Vous pourrez le faire paraître à nouveau après relecture.</p>}
+          {etat.succes && !paru && <span className="text-[13px] text-[var(--success)]">{etat.succes}</span>}
           {etat.erreur && <span className="text-[13px] text-[var(--destructive)]">{etat.erreur}</span>}
         </div>
       </form>
@@ -121,17 +140,17 @@ export function EditeurPublication(p: Props) {
         {/* Ce qui reste à fournir : le vrai travail de l'article */}
         <div
           className={`border p-3.5 ${
-            trous.length > 0
+            !pret
               ? "border-[var(--warning)] bg-[var(--warning-soft)]"
               : "border-[var(--filet)] bg-[var(--ivoire)]"
           }`}
         >
           <p className="libelle-champ">
-            {trous.length > 0 ? "Faits à fournir" : "Rien ne manque"}
+            {paru ? "Article en ligne" : trous.length > 0 ? "Faits à fournir" : pret ? "Prêt à paraître" : "Avant la parution"}
           </p>
           {trous.length === 0 ? (
             <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
-              Aucun passage n&apos;attend plus de fait daté. L&apos;article peut paraître.
+              {paru ? "La version enregistrée est visible dans le journal." : pret ? "Aucun passage à compléter ne subsiste. Le texte enregistré peut paraître après votre relecture." : "Complétez les contrôles ci-dessous avant de faire paraître l’article."}
             </p>
           ) : (
             <>
@@ -152,12 +171,17 @@ export function EditeurPublication(p: Props) {
               </p>
             </>
           )}
+          {controles.length > 0 && (
+            <ul className="mt-2 space-y-2 text-[13px] text-[var(--warning-soft-foreground)]">
+              {controles.map((controle) => <li key={controle}>{controle}</li>)}
+            </ul>
+          )}
         </div>
 
         {/* Parution */}
         {!paru ? (
           <form action={actionParution} className="space-y-2">
-            <BoutonEnvoi className="w-full justify-center" disabled={trous.length > 0}>
+            <BoutonEnvoi className="w-full justify-center" disabled={!pret}>
               Faire paraître
             </BoutonEnvoi>
             {etatParution.erreur && (
@@ -184,6 +208,13 @@ export function EditeurPublication(p: Props) {
           </div>
         )}
 
+        {!paru && etatRetrait.succes && (
+          <p role="status" className="text-[12.5px] text-[var(--success)]">{etatRetrait.succes}</p>
+        )}
+        {etatRetrait.erreur && (
+          <p role="alert" className="text-[12.5px] text-[var(--destructive)]">{etatRetrait.erreur}</p>
+        )}
+
         {/* Sources : d'où vient la règle */}
         {p.sources.length > 0 && (
           <div className="border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
@@ -203,7 +234,7 @@ export function EditeurPublication(p: Props) {
           <details className="border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
             <summary className="libelle-champ cursor-pointer">Écarter ce sujet</summary>
             <form action={actionRefus} className="mt-2.5 space-y-2">
-              <Input name="motif" placeholder="Pourquoi ?" aria-label="Motif du refus" />
+              <Input name="motif" placeholder="Pourquoi ?" aria-label="Motif du refus" required />
               <BoutonEnvoi variant="outline" size="sm" className="w-full justify-center">
                 Écarter
               </BoutonEnvoi>

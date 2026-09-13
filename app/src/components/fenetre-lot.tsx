@@ -214,7 +214,7 @@ function FenetreLot({
                 Fiche du bien
               </Link>
             )}
-            <Link href={ficheComplete} className={buttonVariants({ size: "sm" })}>
+            <Link href={ficheComplete} onClick={fermer} className={buttonVariants({ size: "sm" })}>
               {locataire ? "Voir les détails de mon bail" : "Ouvrir la fiche complète"}
             </Link>
           </div>

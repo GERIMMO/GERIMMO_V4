@@ -9,6 +9,7 @@ import {
   CLASSE_LIBELLE,
   CLASSE_ZONE_TEXTE,
   Succes,
+  Erreur,
 } from "../ui";
 
 /**
@@ -47,6 +48,7 @@ export function Contestation({
   const [ouvert, setOuvert] = useState(false);
   const [motifs, setMotifs] = useState("");
   const [copie, setCopie] = useState(false);
+  const [copieImpossible, setCopieImpossible] = useState(false);
   const idMotifs = useId();
 
   const texte = [
@@ -67,13 +69,13 @@ export function Contestation({
 
   if (!ouvert) {
     return (
-      <button
+      <div className="space-y-2"><p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Cet outil prépare un texte à transmettre à Gerimmo. Il n’envoie pas de demande depuis le site.</p><button
         type="button"
         className={CLASSE_BOUTON_SECONDAIRE}
         onClick={() => setOuvert(true)}
       >
         Préparer une contestation
-      </button>
+      </button></div>
     );
   }
 
@@ -97,16 +99,19 @@ export function Contestation({
         />
       </div>
 
+      {copieImpossible && <div className="space-y-2"><Erreur>La copie automatique n’est pas disponible. Sélectionnez et copiez le texte ci-dessous.</Erreur><textarea aria-label="Texte de ma demande à copier" readOnly rows={8} value={texte} className={CLASSE_ZONE_TEXTE} /></div>}
       {copie && <Succes>Demande copiée. Collez-la dans votre message à Gerimmo.</Succes>}
 
       <button
         type="button"
         className={CLASSE_BOUTON_PRINCIPAL}
         onClick={() => {
-          void navigator.clipboard
-            ?.writeText(texte)
+          setCopie(false);
+          setCopieImpossible(false);
+          if (!navigator.clipboard) { setCopieImpossible(true); return; }
+          void navigator.clipboard.writeText(texte)
             .then(() => setCopie(true))
-            .catch(() => setCopie(false));
+            .catch(() => setCopieImpossible(true));
         }}
       >
         Copier ma demande

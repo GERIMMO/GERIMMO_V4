@@ -58,7 +58,7 @@ function File({
   action,
 }: {
   titre: string;
-  compte: number;
+  compte: number | null;
   explication: string;
   href: string;
   action: string;
@@ -71,14 +71,14 @@ function File({
       <span
         aria-hidden
         className={`mt-0.5 w-[3px] shrink-0 self-stretch ${
-          compte > 0 ? "bg-[var(--or)]" : "bg-[var(--filet)]"
+          (compte ?? 0) > 0 ? "bg-[var(--or)]" : "bg-[var(--filet)]"
         }`}
       />
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-baseline justify-between gap-x-3">
           <span className="font-heading text-[16px] text-[var(--encre)]">{titre}</span>
-          <span className={`puce ${compte > 0 ? "puce-prep" : "puce-grise"}`}>
-            {compte === 0 ? "à jour" : `${compte} en attente`}
+          <span className={`puce ${(compte ?? 0) > 0 ? "puce-prep" : "puce-grise"}`}>
+            {compte === null ? "indisponible" : compte === 0 ? "à jour" : `${compte} en attente`}
           </span>
         </span>
         <span className="mt-1 block text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
@@ -118,7 +118,7 @@ export default async function PageAdmin() {
         <h1>Supervision</h1>
         <div className="flex items-center gap-3">
           <span className="mono-discret">
-            {organisations.length} organisation{organisations.length > 1 ? "s" : ""}
+            {orgs.error ? "Organisations indisponibles" : `${organisations.length} organisation${organisations.length > 1 ? "s" : ""}`}
           </span>
           {/* Le geste le plus commercial du produit : il n'existait pas, et
               l'ouverture d'une agence se faisait en SQL. */}
@@ -144,13 +144,13 @@ export default async function PageAdmin() {
           lots gérés (base de facturation), volumes. */}
       <section className="section-ecran">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Indicateur libelle="Actives" valeur={parStatut("active")} accent="vert"
+          <Indicateur libelle="Actives" valeur={orgs.error ? "—" : parStatut("active")} accent="vert"
             precision="abonnement en cours" />
-          <Indicateur libelle="En essai" valeur={parStatut("essai")} accent="or"
+          <Indicateur libelle="En essai" valeur={orgs.error ? "—" : parStatut("essai")} accent="or"
             precision="14 jours, sans carte" />
-          <Indicateur libelle="Suspendues" valeur={parStatut("suspendue")} accent="rouge"
+          <Indicateur libelle="Suspendues" valeur={orgs.error ? "—" : parStatut("suspendue")} accent="rouge"
             precision="lecture seule, export ouvert" />
-          <Indicateur libelle="Lots gérés" valeur={lots.count ?? 0} accent="bleu"
+          <Indicateur libelle="Lots gérés" valeur={lots.error ? "—" : lots.count ?? 0} accent="bleu"
             precision="base de facturation" />
         </div>
       </section>
@@ -165,14 +165,14 @@ export default async function PageAdmin() {
         <div className="grid gap-3">
           <File
             titre="Demandes de devis"
-            compte={devis.count ?? 0}
-            explication="Des agences ont demandé une proposition depuis le site. Le wiki promet une réponse sous 48 h ouvrées."
+            compte={devis.error ? null : devis.count ?? 0}
+            explication="Demandes commerciales reçues depuis le site : consultez le besoin de l’agence et préparez votre réponse."
             href="/admin/devis"
             action="Traiter les demandes"
           />
           <File
             titre="Journal"
-            compte={aEcrire}
+            compte={publications.error ? null : aEcrire}
             explication="Sujets proposés par le calendrier du métier, à compléter et publier. Un article ne paraît pas tant qu'un fait daté manque."
             href="/admin/publications"
             action="Ouvrir le journal"
@@ -193,10 +193,10 @@ export default async function PageAdmin() {
           <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
             Organisations
           </h2>
-          <span className="mono-discret">{organisations.length}</span>
+          <span className="mono-discret">{orgs.error ? "—" : organisations.length}</span>
         </div>
 
-        {organisations.length === 0 ? (
+        {orgs.error ? <p>La liste des organisations est indisponible. Rechargez la page pour la consulter.</p> : organisations.length === 0 ? (
           <div className="vide-guide">
             <p className="titre">Aucune organisation</p>
             <p className="explication">

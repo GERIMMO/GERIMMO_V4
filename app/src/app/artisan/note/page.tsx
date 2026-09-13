@@ -1,5 +1,5 @@
 import { chargerNote, verifierAccesArtisan } from "../acces";
-import { Carte, Erreur, LigneInfo, Retour, TitreSection } from "../ui";
+import { Carte, DetailsInformation, Erreur, LigneInfo, Retour, TitreSection } from "../ui";
 import { Contestation } from "./contestation";
 
 export const metadata = { title: "Ma note — Espace artisan" };
@@ -42,14 +42,14 @@ export default async function PageNote() {
         <p className="portail-introduction">Comprenez votre évaluation et retrouvez les indicateurs de vos interventions.</p>
       </div>
 
-      {erreur && (
+      {(erreur || !note) && (
         <Erreur>
           Votre note n&apos;a pas pu être lue à l&apos;instant. Rechargez dans un instant.
         </Erreur>
       )}
 
-      <Carte>
-        {note?.publiable && moyenne !== null ? (
+      {!erreur && note && <Carte>
+        {note.publiable && moyenne !== null ? (
           <>
             <p className="font-[family-name:var(--font-titres)] text-[2.75rem] leading-none text-[var(--encre)]">
               {moyenne.toFixed(1)}
@@ -67,38 +67,26 @@ export default async function PageNote() {
               {note?.nb_evaluations ?? 0} évaluation
               {(note?.nb_evaluations ?? 0) > 1 ? "s" : ""} reçue
               {(note?.nb_evaluations ?? 0) > 1 ? "s" : ""}. Votre note est publiée
-              au-delà de trois : en dessous, les agences vous voient marqué
-              « nouveau » plutôt que mal noté.
+              dès trois évaluations : en dessous, les agences vous voient marqué
+              « nouveau ».
             </p>
           </>
         )}
-      </Carte>
+      </Carte>}
 
-      <Carte>
-        <TitreSection>Comment elle se compose</TitreSection>
-        <ul className="space-y-2 text-[0.9375rem] text-[var(--corps)]">
-          <li>
-            <b className="font-medium">Le gérant, 50 %</b> — qualité, délai,
-            rapport qualité-prix. Il est le seul à voir l&apos;ensemble.
-          </li>
-          <li>
-            <b className="font-medium">Le locataire, 25 %</b> — ce qu&apos;il a vu
-            sur place. On ne lui fait juger ni le prix ni la technique.
-          </li>
-          <li>
-            <b className="font-medium">La fiabilité, 25 %</b> — mesurée, jamais
-            donnée à l&apos;appréciation de quiconque.
-          </li>
-        </ul>
-        <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          La part « fiabilité » n&apos;est pas encore intégrée au calcul : ses
-          indicateurs sont mesurés et vous sont montrés ci-dessous, mais le
-          barème qui les convertit en note n&apos;est pas arrêté. La moyenne
-          ci-dessus est donc celle des appréciations humaines.
+      <DetailsInformation titre="Comment ma note est calculée">
+        <p className="text-[0.9375rem] text-[var(--corps)]">
+          La note actuelle repose sur les appréciations du gérant (qualité, délai et rapport qualité-prix)
+          et du locataire (son expérience sur place). Quand les deux sont disponibles,
+          elles comptent respectivement pour deux tiers et un tiers ; sinon, seule la source disponible est utilisée.
         </p>
-      </Carte>
+        <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
+          Les indicateurs de fiabilité sont présentés séparément ci-dessous. Ils ne sont pas encore intégrés à la note.
+          Votre note devient visible aux agences dès trois évaluations.
+        </p>
+      </DetailsInformation>
 
-      <Carte>
+      {!erreur && note && <Carte>
         <TitreSection>Ma fiabilité, en détail</TitreSection>
         <div>
           <LigneInfo libelle="Délai d'acceptation">
@@ -116,25 +104,23 @@ export default async function PageNote() {
               ? `${Math.round(Number(note.taux_refus) * 100)} %`
               : "—"}
           </LigneInfo>
-          <LigneInfo libelle="Rendez-vous manqués">Pas encore mesuré</LigneInfo>
           <LigneInfo libelle="Attestations expirées">
             {note?.pieces_expirees ?? 0}
           </LigneInfo>
         </div>
         <p className="mt-3 text-[0.8125rem] text-[var(--texte-secondaire)]">
           Ces mesures sont les vôtres : personne d&apos;autre que vous n&apos;y a accès
-          dans ce détail.
+          dans ce détail. Les rendez-vous manqués ne sont pas encore mesurés.
         </p>
-      </Carte>
+      </Carte>}
 
       {/* Le droit à l'intervention humaine — présenté comme un droit (RM-A2.11),
           avec, avant le geste, l'information que Gerimmo doit à l'artisan. */}
       <Carte className="border-l-4 border-l-[var(--or)]">
         <TitreSection>Contester votre note est un droit</TitreSection>
         <p className="text-[0.9375rem] text-[var(--corps)]">
-          Votre note combine des appréciations humaines et des indicateurs
-          calculés, et elle influence votre classement dans les recherches des
-          agences. À ce titre, vous pouvez exiger qu&apos;une personne la réexamine :
+          Votre note repose actuellement sur des appréciations humaines et
+          influence votre classement dans les recherches des agences. À ce titre, vous pouvez exiger qu&apos;une personne la réexamine :
           c&apos;est votre droit à l&apos;intervention humaine.
         </p>
         <ul className="mt-3 space-y-2 text-[0.9375rem] text-[var(--corps)]">

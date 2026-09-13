@@ -9,7 +9,7 @@ import {
 import { cibleBlocage } from "@/lib/parc";
 import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { lotsDuPortefeuille } from "@/lib/portefeuille";
+import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { CRITICITES, ORDRE_CRITICITE, ROLES_RESPONSABLES, eur, aujourdhuiParis } from "@/lib/ged";
 import { TraiterAlerte } from "./alertes/traiter-alerte";
@@ -275,6 +275,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // chaque bloc concerné le répète là où le vide se verrait.
   const lecturesEnEchec = [
     erreurLots && "le parc",
+    portefeuille instanceof PortefeuilleIndisponible && "votre portefeuille",
+    messagesNonLus === null && "les messages non lus",
     erreurAlertes && "les alertes",
     erreurRapports && "les rapports de gestion",
     (erreurAppels || erreurEncaissements) && "le quittancement du mois",
@@ -688,7 +690,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             )}
             {/* Les messages non lus sont une action, pas un chiffre de plus :
                 ils tiennent en un rang, au bas du plan. */}
-            {messagesNonLus > 0 && (
+            {messagesNonLus !== null && messagesNonLus > 0 && (
               <Link href={`/agence/${orgId}/messages`} className="rang">
                 <span className="min-w-0 flex-1 text-sm">
                   {messagesNonLus} message{messagesNonLus > 1 ? "s" : ""} non lu

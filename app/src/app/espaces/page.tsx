@@ -18,6 +18,14 @@ const LIBELLES: Record<string, string> = {
   artisan: "Espace artisan",
 };
 
+const UTILITES: Record<string, string> = {
+  super_admin: "Superviser les organisations et traiter les décisions de la plateforme.",
+  admin_agence: "Piloter le parc, les loyers, les mandats et l’équipe.",
+  agent: "Traiter les actions de votre portefeuille et suivre les échanges avec vos locataires.",
+  proprietaire_direct: "Suivre vos lots, vos loyers, vos dépenses et vos locataires.",
+  locataire: "Consulter votre logement, vos paiements et vos documents ; contacter votre gestionnaire.",
+};
+
 type Adhesion = {
   id: string;
   role: string;
@@ -53,7 +61,7 @@ export default async function PageEspaces() {
   // qu'aucune agence ne l'a sollicité — son adhésion de navigation naît avec la
   // première demande de devis. Sans cette lecture, il arrivait sur « Aucun
   // accès actif » alors que sa fiche existe et attend d'être validée.
-  const [{ data }, { data: artisan }] = await Promise.all([
+  const [{ data, error: erreurAdhesions }, { data: artisan, error: erreurArtisan }] = await Promise.all([
     supabase
       .from("memberships")
       .select("id, role, organization:organizations(id, name)")
@@ -93,26 +101,31 @@ export default async function PageEspaces() {
   // LECTURE à son espace — quittances, décompte de restitution, justificatifs.
   // La RLS ne livre pas le nom de l'organisation à une adhésion inactive :
   // il vient de la RPC de contexte.
-  const { data: inactifsBruts } = await supabase
+  const { data: inactifsBruts, error: erreurAnciens } = await supabase
     .from("memberships")
     .select("id, organization_id")
     .eq("account_id", user.id)
     .eq("status", "inactive")
     .eq("role", "locataire");
+  let erreurContexteAncien = false;
   const anciens: { id: string; orgId: string; nom: string }[] = [];
   for (const m of (inactifsBruts ?? []) as { id: string; organization_id: string }[]) {
-    const { data: ctx } = await supabase.rpc("mon_espace_locataire", {
+    const { data: ctx, error: erreurContexte } = await supabase.rpc("mon_espace_locataire", {
       p_org: m.organization_id,
     });
+    erreurContexteAncien ||= Boolean(erreurContexte);
     const nom = ((ctx ?? []) as { organisation_nom: string }[])[0]?.organisation_nom;
     if (nom) anciens.push({ id: m.id, orgId: m.organization_id, nom });
   }
+
+  const accesIncomplets = Boolean(erreurAdhesions || erreurArtisan || erreurAnciens || erreurContexteAncien);
 
   // S9a — un propriétaire qui vient de s'inscrire (immédiatement, ou via le
   // lien de confirmation reçu par email) n'a pas encore d'espace : on l'ouvre
   // ici, une fois pour toutes (fonction idempotente), puis on y entre.
   let erreurOuverture: string | null = null;
   if (
+    !accesIncomplets &&
     adhesions.length === 0 &&
     !estArtisan &&
     user.user_metadata?.espace === "proprietaire_direct"
@@ -126,7 +139,7 @@ export default async function PageEspaces() {
   // L'artisan n'a qu'UNE destination, même avec trois adhésions : elles mènent
   // toutes à son portail, qui réunit les agences. Une page à une seule carte
   // n'apporterait rien — on y entre directement.
-  if (estArtisan && autresAdhesions.length === 0 && anciens.length === 0 && !estSuperAdmin) {
+  if (!accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0 && !estSuperAdmin) {
     redirect("/artisan");
   }
 
@@ -134,7 +147,7 @@ export default async function PageEspaces() {
   // super admin, qui choisit entre sa console et les espaces supervisés.
   // `!estArtisan` : un gérant qui est aussi artisan a deux destinations, même
   // si l'une d'elles ne tient pas encore à une adhésion.
-  if (adhesions.length === 1 && !estArtisan && anciens.length === 0 && !estSuperAdmin) {
+  if (!accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0 && !estSuperAdmin) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -166,7 +179,8 @@ export default async function PageEspaces() {
         <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
         <h1 className="mb-6">Mes espaces</h1>
 
-        {adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
+        {accesIncomplets && <p role="alert" className="err mb-4">Certains accès n’ont pas pu être chargés. Rechargez la page pour retrouver la liste complète de vos espaces ; les accès affichés restent disponibles.</p>}
+        {!accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
           <p className="text-muted-foreground">
             {erreurOuverture
               ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
@@ -232,6 +246,7 @@ export default async function PageEspaces() {
                     {a.organization?.name ?? "Toute la plateforme"}
                     {!chemin && " — bientôt disponible"}
                   </span>
+                  <span className="mt-1 block text-sm text-[var(--texte-secondaire)]">{UTILITES[a.role]}</span>
                 </span>
               </span>
             );

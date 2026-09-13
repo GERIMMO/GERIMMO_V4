@@ -6,8 +6,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // cache() : le layout et le tableau de bord le demandent dans la même requête,
 // un seul aller-retour (audit 09/09 — la RPC partait deux fois par page).
 export const totalMessagesNonLus = cache(
-  async (supabase: SupabaseClient, orgId: string): Promise<number> => {
-    const { data } = await supabase.rpc("messages_non_lus_gerant", { p_org: orgId });
+  async (supabase: SupabaseClient, orgId: string): Promise<number | null> => {
+    const { data, error } = await supabase.rpc("messages_non_lus_gerant", { p_org: orgId });
+    if (error) return null;
     return ((data ?? []) as { non_lus: number }[]).reduce((s, r) => s + r.non_lus, 0);
   }
 );

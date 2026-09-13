@@ -174,8 +174,7 @@ export async function AccueilProprietaire({
             {nbLots} lot{nbLots > 1 ? "s" : ""} en gestion directe
           </p>
           <p className="text-[13px] text-muted-foreground">
-            {loues} loué{loues > 1 ? "s" : ""} · {vacants} vacant{vacants > 1 ? "s" : ""} — aucun
-            honoraire de gestion, jamais
+            {loues} loué{loues > 1 ? "s" : ""} · {vacants} vacant{vacants > 1 ? "s" : ""}
           </p>
           <Link
             href={`/agence/${orgId}/parc`}

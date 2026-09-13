@@ -2,7 +2,7 @@ import Link from "next/link";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../acces";
 import { euros, jourCourt } from "../libelles";
-import { Carte, Erreur, Etiquette, MarqueAgence, Retour, TitreSection, Vide } from "../ui";
+import { Carte, DetailsInformation, Erreur, Etiquette, MarqueAgence, Retour, TitreSection, Vide } from "../ui";
 
 export const metadata = { title: "Ma facturation — Espace artisan" };
 
@@ -43,6 +43,8 @@ export default async function PageFacturation() {
           Ma facturation
         </h1>
       </div>
+
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Cet écran suit les interventions facturables, pas les paiements reçus. Transmettez encore votre facture directement à l’agence : son dépôt dans Gerimmo n’est pas disponible.</p>
 
       {agenda.erreur && <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur>}
 
@@ -118,8 +120,7 @@ export default async function PageFacturation() {
         )}
       </section>}
 
-      <Carte>
-        <TitreSection>Comment vous êtes payé</TitreSection>
+      <DetailsInformation titre="Comment transmettre ma facture et être payé">
         <ul className="space-y-2 text-[0.9375rem] text-[var(--corps)]">
           <li>
             Adressez votre facture à l&apos;agence en rappelant le devis retenu et
@@ -140,7 +141,7 @@ export default async function PageFacturation() {
           Ce que vous voyez ci-dessus est l&apos;état, du côté de Gerimmo, de ce qui
           est facturable.
         </p>
-      </Carte>
+      </DetailsInformation>
     </div>
   );
 }

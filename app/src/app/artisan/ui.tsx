@@ -200,3 +200,11 @@ export function LigneInfo({
     </div>
   );
 }
+
+/** Les explications secondaires se lisent à la demande, même sans JavaScript. */
+export function DetailsInformation({ titre, children }: { titre: string; children: React.ReactNode }) {
+  return <details className="artisan-carte information-depliable">
+    <summary>{titre}<span aria-hidden className="information-chevron">⌄</span></summary>
+    <div className="mt-4">{children}</div>
+  </details>;
+}

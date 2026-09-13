@@ -1504,3 +1504,11 @@ p a {
   .portail-hero h1 { font-size: 32px; }
 }
 }
+
+@layer components {
+.information-depliable > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; cursor: pointer; list-style: none; font-weight: 500; color: var(--encre); }
+.information-depliable > summary::-webkit-details-marker { display: none; }
+.information-chevron { font-size: 22px; transition: transform .15s ease; }
+.information-depliable[open] .information-chevron { transform: rotate(180deg); }
+}
+@media (prefers-reduced-motion: reduce) { .information-chevron { transition: none; } }

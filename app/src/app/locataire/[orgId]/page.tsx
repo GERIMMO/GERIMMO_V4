@@ -276,7 +276,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
           Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""},
         </h1>
         <p className="text-sm text-muted-foreground">
-          Voici l&apos;essentiel pour votre logement.
+          Vos prochaines actions, puis le suivi de votre logement et de vos paiements.
         </p>
       </div>
 

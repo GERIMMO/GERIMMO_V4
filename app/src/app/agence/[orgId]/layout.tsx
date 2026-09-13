@@ -113,7 +113,7 @@ export default async function LayoutAgence({
             orgId={orgId}
             badgeIncidents={badgeIncidents}
             badgeAlertes={alertesOrg}
-            badgeMessages={messagesNonLus}
+            badgeMessages={messagesNonLus ?? 0}
             organisations={organisations}
           />
         </aside>
@@ -147,7 +147,7 @@ export default async function LayoutAgence({
             </p>
           )}
           {/* Les pages gardent leur <main> et leurs marges : seul le chrome change */}
-          <div className="portail-ecrans min-w-0">{children}</div>
+          <div className="portail-ecrans min-w-0">{messagesNonLus === null && <p role="alert" className="err mx-4 mt-4">Le nombre de messages non lus est indisponible. Consultez votre messagerie pour vérifier les échanges en attente.</p>}{children}</div>
         </div>
         <Toasteur />
       </div>
@@ -175,7 +175,7 @@ export default async function LayoutAgence({
           admin={role === "admin_agence"}
           badgeIncidents={badgeIncidents}
           badgeAlertes={alertesOrg}
-          badgeMessages={messagesNonLus}
+          badgeMessages={messagesNonLus ?? 0}
         />
       </aside>
       <div className="min-w-0">
@@ -203,7 +203,7 @@ export default async function LayoutAgence({
               : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
           </p>
         )}
-        <div className="portail-ecrans min-w-0">{children}</div>
+        <div className="portail-ecrans min-w-0">{messagesNonLus === null && <p role="alert" className="err mx-4 mt-4">Le nombre de messages non lus est indisponible. Consultez votre messagerie pour vérifier les échanges en attente.</p>}{children}</div>
       </div>
       <Toasteur />
     </div>

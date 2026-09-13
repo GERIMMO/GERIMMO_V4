@@ -89,15 +89,18 @@ const NIVEAU_RELANCE: Record<string, string> = {
 
 function BoutonEnvoiQuittance({ orgId, bailId, quittanceId }: { orgId: string; bailId: string; quittanceId: string }) {
   const [etat, action] = useActionState<EtatLoyers, FormData>(
-    async () => envoyerQuittance(orgId, bailId, quittanceId),
+    // Un email parti reste un envoi réussi même si sa mémorisation échoue.
+    // Un second geste déjà en file ne doit pas le renvoyer dans cette vue.
+    async (precedent) => precedent.succes ? precedent : envoyerQuittance(orgId, bailId, quittanceId),
     {}
   );
   return (
-    <form action={action} className="flex items-center gap-1">
-      <BoutonEnvoi variant="ghost" size="sm" className="h-6 px-2 text-xs">
-        Envoyer
+    <form action={action} className="flex flex-wrap items-center gap-1">
+      <BoutonEnvoi variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={Boolean(etat.succes)}>
+        {etat.succes ? "Envoyé" : "Envoyer"}
       </BoutonEnvoi>
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="text-xs text-success-soft-foreground" role="status">{etat.succes}</span>}
     </form>
   );
 }
@@ -471,11 +474,13 @@ export function FormulaireLoyers({
           </select>
           <div className="space-y-1">
             <Label htmlFor="rel-date" className="text-xs">Envoyée le</Label>
-            <InputDateJour id="rel-date"   className="h-9" name="date_envoi" />
+            <InputDateJour id="rel-date" className="h-9" name="date_envoi" valeurSoumise={etatRel.valeurs?.date_envoi} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="rel-pres" className="text-xs">1re présentation</Label>
-            <InputDateJour id="rel-pres"   className="h-9" name="date_premiere_presentation" />
+            <Label htmlFor="rel-pres" className="text-xs">1re présentation (si recommandé)</Label>
+            {/* La date de présentation se relève sur le suivi postal : elle
+                reste vide tant que la présentation n'est pas confirmée. */}
+            <Input id="rel-pres" type="date" className="h-9" name="date_premiere_presentation" defaultValue={etatRel.valeurs?.date_premiere_presentation} />
           </div>
           <div className="space-y-1">
             <Label htmlFor={idNumeroRecommande} className="text-xs">Numéro de suivi</Label>
@@ -485,6 +490,7 @@ export function FormulaireLoyers({
             Enregistrer la relance
           </BoutonEnvoi>
           {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
+          {etatRel.succes && <p className="w-full text-sm text-success-soft-foreground" role="status">{etatRel.succes}</p>}
         </form>
         <p className="text-xs text-muted-foreground">
           La mise en demeure part en lettre recommandée avec accusé de réception, hors de la plateforme ; saisissez la date de première présentation
@@ -518,15 +524,15 @@ export function FormulaireLoyers({
           {/* En erreur, la saisie est reposée via etatReg.valeurs (recette 22/08) */}
           <div className="space-y-1">
             <Label htmlFor="reg-annee" className="text-xs">Année</Label>
-            <Input id="reg-annee" name="annee" type="number" defaultValue={etatReg.valeurs?.annee ?? anneeDefaut} className="h-9 w-24" />
+            <Input id="reg-annee" name="annee" type="number" required defaultValue={etatReg.valeurs?.annee ?? anneeDefaut} className="h-9 w-24" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="reg-reel" className="text-xs">Charges réelles (€)</Label>
-            <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
+            <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" required defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="reg-just" className="text-xs">Justificatif</Label>
-            <Input id="reg-just" name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9" />
+            <Input id="reg-just" name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" required className="h-9" />
           </div>
           <BoutonEnvoi size="sm" variant="outline">
             Régulariser

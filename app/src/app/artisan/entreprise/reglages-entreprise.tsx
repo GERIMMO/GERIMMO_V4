@@ -112,6 +112,9 @@ export function FormulaireMetiersZones({
     {}
   );
   const [ouvert, setOuvert] = useState(false);
+  const [metiersChoisis, setMetiersChoisis] = useState(metiers);
+  const [zoneSaisie, setZoneSaisie] = useState(codesPostaux.join(", "));
+  const [afficherResultat, setAfficherResultat] = useState(false);
   const idZones = useId();
   const base = useId();
 
@@ -137,7 +140,12 @@ export function FormulaireMetiersZones({
         <button
           type="button"
           className={`${CLASSE_BOUTON_SECONDAIRE} mt-3`}
-          onClick={() => setOuvert(true)}
+          onClick={() => {
+            setMetiersChoisis(metiers);
+            setZoneSaisie(codesPostaux.join(", "));
+            setAfficherResultat(false);
+            setOuvert(true);
+          }}
         >
           Modifier
         </button>
@@ -152,7 +160,12 @@ export function FormulaireMetiersZones({
   return (
     <Carte>
       <TitreSection>Mes métiers et ma zone</TitreSection>
-      <form action={action} className="space-y-4">
+      <form
+        action={action}
+        onSubmit={() => setAfficherResultat(true)}
+        onReset={(event) => event.preventDefault()}
+        className="space-y-4"
+      >
         <fieldset>
           <legend className={CLASSE_LIBELLE}>Mes métiers</legend>
           <p className="mb-2 text-[0.9375rem] text-[var(--texte-secondaire)]">
@@ -170,7 +183,10 @@ export function FormulaireMetiersZones({
                   type="checkbox"
                   name="metiers"
                   value={m}
-                  defaultChecked={metiers.includes(m)}
+                  checked={metiersChoisis.includes(m)}
+                  onChange={(event) => setMetiersChoisis((selection) =>
+                    event.target.checked ? [...selection, m] : selection.filter((choix) => choix !== m)
+                  )}
                   className="size-6 shrink-0 accent-[var(--encre)]"
                 />
                 {METIERS[m]}
@@ -192,12 +208,14 @@ export function FormulaireMetiersZones({
             name="codes_postaux"
             type="text"
             inputMode="numeric"
-            defaultValue={etat.valeurs?.codes_postaux ?? codesPostaux.join(", ")}
+            value={zoneSaisie}
+            onChange={(event) => setZoneSaisie(event.target.value)}
             className={CLASSE_CHAMP}
           />
         </div>
 
-        {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
+        {afficherResultat && etat.erreur && <Erreur>{etat.erreur}</Erreur>}
+        {afficherResultat && etat.succes && <Succes>{etat.succes}</Succes>}
 
         <BoutonEnregistrer libelleBouton="Enregistrer" />
         <button

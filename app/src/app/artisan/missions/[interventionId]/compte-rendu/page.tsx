@@ -90,7 +90,7 @@ export default async function PageComptePhoto(
         </Link>
       ) : (
         <p className="rounded-lg border border-dashed border-border px-4 py-4 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Le bilan s&apos;ouvre dès que la photo est partie.
+          Une fois la photo envoyée, touchez « Continuer — le bilan ».
         </p>
       )}
 

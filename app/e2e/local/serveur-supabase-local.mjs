@@ -195,7 +195,14 @@ function traduireFiltre(col, expr, params, prefixe = "") {
   const p = e.indexOf(".");
   const op = p === -1 ? e : e.slice(0, p);
   const val = p === -1 ? "" : e.slice(p + 1);
-  const colonne = `${prefixe}"${col}"`;
+  // PostgREST accepte le chemin JSON « details->>incident_id » : ce n'est
+  // pas le nom littéral d'une colonne. Les clés restent paramétrées.
+  const json = /^([a-zA-Z_][a-zA-Z_0-9]*)(->>)([a-zA-Z_][a-zA-Z_0-9]*)$/.exec(col);
+  let colonne;
+  if (json) {
+    params.push(json[3]);
+    colonne = `${prefixe}"${json[1]}" ->> $${params.length}`;
+  } else colonne = `${prefixe}"${col.replace(/"/g, '\"\"')}"`;
   let sql;
   if (op === "is") {
     const v = val.toLowerCase();
@@ -418,11 +425,12 @@ async function lireTable(claims, table, url, entetes) {
 
   return sousIdentite(claims, async (client) => {
     let total = null;
-    if (veutCompte) {
+    const inner = arbre.some((n) => n.type === "embed" && n.inner);
+    if (veutCompte && !inner) {
       const rc = await client.query(`select count(*)::int as n from "${table}"${where}`, params);
       total = rc.rows[0].n;
     }
-    if (entetes.methode === "HEAD") return { lignes: [], total };
+    if (entetes.methode === "HEAD" && !inner) return { lignes: [], total };
     const colsDemandees = colonnesDeBase(arbre);
     const colsSql = colsDemandees === null
       ? "*"
@@ -431,12 +439,18 @@ async function lireTable(claims, table, url, entetes) {
         })])].map((c) => `"${c}"`).join(", ");
     let sql = `select ${colsSql} from "${table}"${where}`;
     if (ordre) sql += ` order by ${ordre}`;
-    if (limite !== null) sql += ` limit ${limite}`;
-    if (decalage !== null) sql += ` offset ${decalage}`;
+    if (!inner && limite !== null) sql += ` limit ${limite}`;
+    if (!inner && decalage !== null) sql += ` offset ${decalage}`;
     const r = await client.query(sql, params);
     let lignes = r.rows;
     await chargerEmbeds(client, table, lignes, arbre, filtresEmbeds);
-    lignes = projeterSortie(lignes, arbre);
+    // Pour !inner, la projection élimine des parents : le compte et la
+    // pagination portent sur ce résultat filtré, comme chez PostgREST.
+    if (inner) {
+      if (veutCompte) total = lignes.length;
+      lignes = lignes.slice(decalage ?? 0, limite === null ? undefined : (decalage ?? 0) + limite);
+    }
+    lignes = entetes.methode === "HEAD" ? [] : projeterSortie(lignes, arbre);
     return { lignes, total };
   });
 }

@@ -78,6 +78,23 @@ describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () =>
     }
   });
 
+  it("un filtre sur une relation obligatoire précède le compte et la limite", async () => {
+    const c = await connecte(ADMIN_A); clients.push(c);
+    const requete = (head = false) => c.from("memberships")
+      .select("id, organisation:organizations!inner(id)", { count: "exact", head })
+      .eq("organisation.id", "00000000-0000-0000-0000-000000000000").limit(1);
+    const r = await requete();
+    expect(r.error).toBeNull(); expect(r.data).toEqual([]); expect(r.count).toBe(0);
+    const h = await requete(true); expect(h.error).toBeNull(); expect(h.count).toBe(0);
+  });
+
+  it("lit les alertes par identifiant de dossier dans leurs détails JSON", async () => {
+    const c = await connecte(ADMIN_A); clients.push(c);
+    const r = await c.from("alerts").select("id")
+      .eq("details->>incident_id", "00000000-0000-0000-0000-000000000000");
+    expect(r.error).toBeNull(); expect(r.data).toEqual([]);
+  });
+
   it("chaque admin ne voit que sa propre agence", async () => {
     const a = await connecte(ADMIN_A);
     const b = await connecte(ADMIN_B);

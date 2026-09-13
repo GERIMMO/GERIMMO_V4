@@ -86,7 +86,6 @@ export default async function LayoutLocataire({
           }
           badgeDemandes={demandesEnCours}
           badgeMessages={Number(nonLus ?? 0)}
-          declarationOuverte={adhesionActive}
         />
       </aside>
       <div className="min-w-0">

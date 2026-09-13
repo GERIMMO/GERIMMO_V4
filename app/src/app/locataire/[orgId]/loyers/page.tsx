@@ -1,3 +1,4 @@
+import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
 import { eur, formaterDate } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
@@ -136,7 +137,7 @@ export default async function PagePaiementsLocataire(
         <div className="space-y-4">
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
-              <h3 className="text-base font-medium">Prochain loyer</h3>
+              <h3 className="text-base font-medium">{prochaine && ["impaye", "partiel"].includes(prochaine.statut) ? "Loyer restant à régler" : "Prochain loyer"}</h3>
               {aEchoue(eEcheancier, eBaux) ? null : prochaine ? (
                 <span className="loc-tag bleu capitalize">{moisLong(prochaine.periode)}</span>
               ) : bail ? (
@@ -162,7 +163,7 @@ export default async function PagePaiementsLocataire(
                     : ""}
                 </p>
                 <p className="mt-2 text-[13px] text-muted-foreground">
-                  Dès l&apos;encaissement, votre quittance est établie et disponible
+                  Après paiement intégral, votre quittance est établie et disponible
                   ici — rien à demander. Le premier loyer d&apos;un bail est
                   quittancé au prorata de la date d&apos;entrée.
                 </p>
@@ -208,7 +209,7 @@ export default async function PagePaiementsLocataire(
 
         <div className="loc-carte">
           <div className="entete-carte">
-            <h3 className="text-base font-medium">Mes quittances</h3>
+            <h3 className="text-base font-medium">Historique des loyers</h3>
             {/* La liste montre TOUS les mois de l'échéancier : dire seulement
                 « N émises » laissait croire à un compte tronqué. */}
             {!aEchoue(eEcheancier) && lignesLoyer.length > 0 && (
@@ -241,10 +242,11 @@ export default async function PagePaiementsLocataire(
                     // (button/select), d'où le min-h au pointeur grossier
                     <Link
                       href={`/quittance/${l.quittance_id}`}
+                      aria-label={`Ouvrir ${l.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(l.statut)} de ${moisLong(l.periode)}`}
                       target="_blank"
                       className={`shrink-0 pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                     >
-                      Ouvrir
+                      {libelleDocumentLoyer(l.statut)}
                     </Link>
                   )}
                 </li>
@@ -252,7 +254,7 @@ export default async function PagePaiementsLocataire(
             </ul>
           )}
           <p className="mt-3 text-xs text-muted-foreground">
-            Vos quittances restent disponibles ici pendant toute la durée du
+            Vos quittances et reçus de paiement restent disponibles ici pendant toute la durée du
             bail — utiles pour la CAF ou un futur dossier de location.
           </p>
           <Link

@@ -1,3 +1,4 @@
+import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
 import { estARenouveler, estExpiree, eur, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -114,7 +115,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // porte déjà la quittance, le bail et les attestations, et l'accueil les
   // cachait derrière un nombre. On ne nomme que ce qui est réellement là.
   const contenuDocuments = [
-    quittancesDispo > 0 ? "vos quittances" : null,
+    quittances.some((l) => l.statut === "paye") ? "vos quittances" : null,
+    quittances.some((l) => l.statut !== "paye") ? "vos reçus de paiement" : null,
     mesPieces.some((p) => p.type === "bail") ? "votre bail" : null,
     mesPieces.some((p) => p.type === "attestation_assurance") ? "vos attestations" : null,
   ].filter((m): m is string => Boolean(m));
@@ -392,7 +394,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       <div className="loc-grille">
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="loc-carte loc-kpi">
-            <p className="text-[13px] font-semibold text-[var(--encre)]">Prochain loyer</p>
+            <p className="text-[13px] font-semibold text-[var(--encre)]">{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
             {eEcheancier ? (
               <div className="mt-2">
                 <LectureImpossible quoi="votre échéancier" />
@@ -471,7 +473,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 href={`/quittance/${derniereQuittance.quittance_id}`}
                 className="lien-discret mt-3 block"
               >
-                Dernière quittance — {moisLong(derniereQuittance.periode)} →
+                Dernier document — {libelleDocumentLoyer(derniereQuittance.statut)} de {moisLong(derniereQuittance.periode)} →
               </Link>
             )}
             <Link href={`/locataire/${orgId}/documents`} className="lien-discret mt-3 block">

@@ -80,6 +80,7 @@ export function CarteMessages({
         <textarea
           id={idTexte}
           name="texte"
+          required
           defaultValue={etat.valeurs?.texte}
           rows={2}
           maxLength={4000}

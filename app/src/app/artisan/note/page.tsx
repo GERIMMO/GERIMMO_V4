@@ -36,9 +36,10 @@ export default async function PageNote() {
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <div>
-        <p className="eyebrow">Module 11 — notation</p>
-        <h1 className="mt-0.5 text-[1.5rem] leading-tight text-[var(--encre)]">Ma note</h1>
+      <div className="portail-hero">
+        <p className="portail-surtitre">Votre réputation professionnelle</p>
+        <h1>Ma note</h1>
+        <p className="portail-introduction">Comprenez votre évaluation et retrouvez les indicateurs de vos interventions.</p>
       </div>
 
       {erreur && (

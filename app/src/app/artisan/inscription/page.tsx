@@ -24,9 +24,9 @@ export default async function PageInscriptionArtisan() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow">Espace artisan</p>
-        <h1 className="mt-0.5 text-[1.5rem] leading-tight text-[var(--encre)]">
+      <div className="portail-hero">
+        <p className="portail-surtitre">Espace artisan</p>
+        <h1 className="mt-0.5">
           Inscrire mon entreprise
         </h1>
         <p className="mt-2 text-base text-[var(--corps)]">

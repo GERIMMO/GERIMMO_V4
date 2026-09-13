@@ -64,9 +64,9 @@ export default async function LayoutArtisan({
   const refuse = fiche?.statut_plateforme === "refuse";
 
   return (
-    <div className="flex min-h-svh flex-col bg-[var(--creme)]">
-      <header className="sticky top-0 z-20 border-b border-[var(--encre)] bg-[var(--encre)]">
-        <div className="mx-auto flex w-full max-w-[720px] items-center justify-between gap-3 px-4 py-2.5">
+    <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
+      <header className="artisan-bandeau sticky top-0 z-20 border-b border-[var(--encre)] bg-[var(--encre)]">
+        <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">
           {/* 44 px de haut : c'est un lien de navigation, et on travaille ici
               debout, avec une main, parfois gantée. Le sigle ne mesurait que
               sa propre hauteur de texte. */}
@@ -106,7 +106,7 @@ export default async function LayoutArtisan({
             </form>
           </div>
         </div>
-        <p className="mx-auto w-full max-w-[720px] px-4 pb-2 text-[0.8125rem] text-[var(--sur-encre)]/70">
+        <p className="mx-auto w-full max-w-[960px] px-4 pb-2 text-[0.8125rem] text-[var(--sur-encre)]/70">
           {fiche ? fiche.raison_sociale : "Espace artisan"}
         </p>
       </header>
@@ -132,7 +132,7 @@ export default async function LayoutArtisan({
 
       {/* pb-28 : la barre d'onglets est fixe et recouvrirait le dernier bouton
           de la page — le compte rendu finit précisément par un bouton. */}
-      <main className="mx-auto w-full max-w-[720px] flex-1 px-4 pt-4 pb-28">
+      <main className="artisan-corps mx-auto w-full max-w-[960px] flex-1 px-4 pt-6 pb-28 sm:px-7 sm:pt-8">
         {children}
       </main>
 

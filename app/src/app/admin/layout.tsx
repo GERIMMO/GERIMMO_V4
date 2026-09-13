@@ -45,7 +45,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           </div>
         </div>
       </header>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="portail-ecrans min-w-0 flex-1">{children}</div>
     </div>
   );
 }

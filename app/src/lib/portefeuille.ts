@@ -19,6 +19,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * l'agence — sinon un agent ne pourrait jamais enregistrer un bien, puisqu'un
  * bien tout neuf n'est sous aucun mandat.
  */
+export class PortefeuilleIndisponible extends Set<string> {}
+
 export async function lotsDuPortefeuille(
   supabase: SupabaseClient,
   orgId: string,
@@ -30,7 +32,7 @@ export async function lotsDuPortefeuille(
   // Une lecture qui échoue ne doit PAS ouvrir le parc entier : on rend un
   // ensemble vide, l'écran affiche « aucun lot » et l'encart d'échec dit
   // pourquoi. L'inverse montrerait à un agent le portefeuille de ses collègues.
-  if (error) return new Set<string>();
+  if (error) return new PortefeuilleIndisponible();
   return new Set<string>(((data ?? []) as (string | { lots_de_mon_portefeuille: string })[]).map(
     (l) => (typeof l === "string" ? l : l.lots_de_mon_portefeuille)
   ));

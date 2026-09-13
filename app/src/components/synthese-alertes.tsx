@@ -64,6 +64,7 @@ export function SyntheseAlertes({
   estResponsable?: boolean;
 }) {
   const [ouverte, setOuverte] = useState(false);
+  const [toutAfficher, setToutAfficher] = useState(false);
   // Pop-up de traitement OUVERTE SUR PLACE (recette 24/08) : son état vit au
   // niveau de la cloche — la synthèse se referme, la modale de traitement
   // survit à ce démontage.
@@ -95,12 +96,12 @@ export function SyntheseAlertes({
   const nbCritiques = alertes.filter((a) => a.criticite === "critique").length;
   // Regroupement par id d'agence (deux agences homonymes restent distinctes)
   const parAgence = new Map<string, { nom: string; liste: AlerteSynthese[] }>();
-  for (const a of triees) {
+  for (const a of (toutAfficher ? triees : triees.slice(0, 5))) {
     const groupe = parAgence.get(a.organization_id) ?? { nom: a.organisation, liste: [] };
     groupe.liste.push(a);
     parAgence.set(a.organization_id, groupe);
   }
-  const multiAgences = parAgence.size > 1;
+  const multiAgences = new Set(alertes.map(a => a.organization_id)).size > 1;
 
   return (
     <>
@@ -144,7 +145,7 @@ export function SyntheseAlertes({
             <div className="flex w-full items-center justify-between gap-3">
               {/* Une seule agence concernée : raccourci vers sa page Alertes
                   (historique et alertes fermées comprises) */}
-              {!modeAdmin && parAgence.size === 1 && alertes.length > 0 ? (
+              {!modeAdmin && !multiAgences && alertes.length > 0 ? (
                 <Link
                   href={`/agence/${[...parAgence.keys()][0]}/alertes`}
                   onClick={fermer}
@@ -166,6 +167,7 @@ export function SyntheseAlertes({
           }
         >
             <div className="max-h-[55vh] overflow-y-auto">
+              {!toutAfficher && alertes.length > 5 && <p className="mb-3 text-sm text-muted-foreground">Les 5 priorités sur {alertes.length} alertes. <button type="button" className="lien-discret" onClick={() => setToutAfficher(true)}>Afficher toutes les alertes</button></p>}
               {alertes.length === 0 ? (
                 <p className="py-4 text-sm text-muted-foreground">
                   Rien ne vous est confié — tout est traité.

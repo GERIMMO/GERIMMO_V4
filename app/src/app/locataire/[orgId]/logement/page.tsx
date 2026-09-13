@@ -91,7 +91,7 @@ export default async function PageLogementLocataire(
             ses loyers, jamais le propriétaire ni les honoraires de l'agence. */}
         <BoutonLot
           lotId={String(lotId ?? "")}
-          href={`/locataire/${orgId}/bail`}
+          href="#bail"
           className="flex w-full flex-wrap items-center gap-4 text-left"
         >
           <span className="loc-vignette" style={{ width: 88, height: 68, fontSize: 24 }} aria-hidden>
@@ -116,7 +116,7 @@ export default async function PageLogementLocataire(
           </span>
         </BoutonLot>
 
-        <div className="mt-4">
+        <div id="bail" className="mt-4 scroll-mt-24">
           <div className="ligne-info">
             <span>Bail</span>
             <span className="text-right">

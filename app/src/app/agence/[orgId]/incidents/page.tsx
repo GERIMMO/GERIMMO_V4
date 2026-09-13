@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -20,6 +21,7 @@ const PLAFOND_CLOS = 200;
 
 type Rang = {
   id: string;
+  lot_id: string;
   numero: string;
   categorie: string;
   urgence: string;
@@ -70,29 +72,35 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   // Revue 23/08 : un plafond global faisait sortir les plus VIEUX dossiers —
   // précisément ceux que la file « À traiter » ne doit jamais perdre. Les
   // dossiers vivants sont lus sans plafond ; seuls les clos sont bornés.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  if (portefeuille instanceof PortefeuilleIndisponible) {
+    return <div className="space-y-4"><h1>Incidents</h1>
+      <EchecLecture quoi={["votre portefeuille"]} />
+      <p>Votre portefeuille n’a pas pu être chargé. Réessayez pour consulter vos dossiers.</p>
+    </div>;
+  }
   const colonnes =
-    "id, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), declarant:persons(nom, prenom)";
+    "id, lot_id, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), declarant:persons(nom, prenom)";
+  let vivantsQuery = supabase.from("incidents").select(colonnes)
+    .eq("organization_id", orgId).neq("etat", "clos")
+    .order("created_at", { ascending: false });
+  let closQuery = supabase.from("incidents").select(colonnes, { count: "exact" })
+    .eq("organization_id", orgId).eq("etat", "clos")
+    .order("created_at", { ascending: false }).limit(PLAFOND_CLOS);
+  // Le périmètre précède le comptage et le plafond : les dossiers des
+  // collègues ne doivent ni gonfler les onglets, ni consommer la fenêtre.
+  if (portefeuille) {
+    vivantsQuery = vivantsQuery.in("lot_id", [...portefeuille]);
+    closQuery = closQuery.in("lot_id", [...portefeuille]);
+  }
   const [
     { data: vivantsBruts, error: erreurVivants },
     { data: closBruts, error: erreurClos, count: totalClosBrut },
     { data: donneesMembres, error: erreurMembres },
     { data: aEvaluerBrut },
   ] = await Promise.all([
-      supabase
-        .from("incidents")
-        .select(colonnes)
-        .eq("organization_id", orgId)
-        .neq("etat", "clos")
-        .order("created_at", { ascending: false }),
-      // `count: exact` : les onglets annoncent le VRAI nombre de dossiers
-      // clos, pas la taille de la fenêtre qu'on en montre.
-      supabase
-        .from("incidents")
-        .select(colonnes, { count: "exact" })
-        .eq("organization_id", orgId)
-        .eq("etat", "clos")
-        .order("created_at", { ascending: false })
-        .limit(PLAFOND_CLOS),
+      vivantsQuery,
+      closQuery,
       supabase.rpc("org_membres_gerants", { org: orgId }),
       // RM-7.6.2 : « la clôture déclenche la notation ». Il n'y a pas d'alerte
       // pour cela — cloturer_incident solde toutes les alertes du dossier et
@@ -105,14 +113,14 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   const incidents = [
     ...((vivantsBruts ?? []) as unknown as Rang[]),
     ...((closBruts ?? []) as unknown as Rang[]),
-  ];
+  ].filter(i => !portefeuille || portefeuille.has(i.lot_id));
   const membres = (donneesMembres ?? []) as MembreGerant[];
-  const aEvaluer = (aEvaluerBrut ?? []) as {
+  const aEvaluer = ((aEvaluerBrut ?? []) as {
     intervention_id: string;
     incident_id: string;
     incident_numero: string;
     raison_sociale: string;
-  }[];
+  }[]).filter(e => !portefeuille || incidents.some(i => i.id === e.incident_id));
   const emails = new Map(membres.map((m) => [m.account_id, m.email.split("@")[0]]));
 
   const enCours = incidents.filter((i) => i.etat !== "clos");

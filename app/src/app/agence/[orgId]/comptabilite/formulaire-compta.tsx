@@ -205,7 +205,9 @@ function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string 
 export function FormulaireEcriture({
   orgId,
   lots,
+  estProprietaire = false,
 }: {
+  estProprietaire?: boolean;
   orgId: string;
   lots: { id: string; nom: string }[];
 }) {
@@ -260,8 +262,7 @@ export function FormulaireEcriture({
         {"Ajouter l'écriture"}
       </BoutonEnvoi>
       <p className="w-full text-xs text-muted-foreground">
-        Sans lot, l&apos;écriture n&apos;entre dans aucun rapport de gestion ni
-        dans le périmètre d&apos;un agent.
+        {estProprietaire ? "Rattachez l’écriture à un lot pour retrouver la dépense dans son suivi." : "Sans lot, l’écriture n’entre dans aucun rapport de gestion ni dans le périmètre d’un agent."}
       </p>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>

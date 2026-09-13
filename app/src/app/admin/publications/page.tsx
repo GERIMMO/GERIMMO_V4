@@ -104,7 +104,7 @@ function Section({
 
 export default async function PageJournalAdmin() {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("publications")
     .select(
       "id, veine, periode, statut, titre, slug, chapo, corps, sources, propose_le, publie_le, refus_motif"
@@ -131,7 +131,9 @@ export default async function PageJournalAdmin() {
         tant qu&apos;il en reste un.
       </p>
 
-      {tout.length === 0 && (
+      {error && <div role="alert" className="err">Le journal n’a pas pu être chargé. Rechargez la page : ce n’est pas une file vide.</div>}
+
+      {!error && tout.length === 0 && (
         <div className="vide-guide">
           <p className="titre">La file est vide</p>
           <p className="explication">

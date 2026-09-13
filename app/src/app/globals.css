@@ -268,26 +268,17 @@
 }
 
 /* Charte — libellé de champ : Plex Mono, capitales, interlettrage 0.18em */
-/* ------------------------------------------------------------------ */
-/* Hors couche, à dessein : ces deux règles corrigent un composant      */
-/* tiers (la carte shadcn, qui embarque `rounded-xl` dans son propre    */
-/* className). Placées dans `components`, l'utilitaire du composant     */
-/* l'emportait et les 38 cartes de l'application reprenaient un arrondi */
-/* de 8,4 px — la maquette les veut presque vives (relevé du 11/09).    */
-/* C'est le seul cas où rester hors couche se justifie : on ne corrige  */
-/* pas ici un défaut de charte, on rattrape un style qu'on ne peut pas  */
-/* éditer.                                                             */
-/* ------------------------------------------------------------------ */
-/* Charte 04 — mouvement : aucune ombre au repos ; au survol d'un élément
-   cliquable, translation de 2 px et ombre très douce. Jamais de rebond. */
+/* Les cartes du composant tiers gardent un arrondi cohérent dans tous
+   les espaces. Cette règle hors couche remplace son utilitaire intégré. */
 a:hover > [data-slot="card"] {
   transform: translateY(-2px);
-  box-shadow: 0 2px 10px oklch(0% 0 0 / 0.05);
+  box-shadow: 0 7px 22px color-mix(in srgb, var(--encre) 10%, transparent);
 }
 [data-slot="card"] {
   transition: transform 0.17s ease, box-shadow 0.17s ease;
-  /* Maquette : cartes presque vives, l'arrondi reste aux boutons */
-  border-radius: 2px;
+  /* Arrondi discret, sans changer la palette de la marque. */
+  border-radius: 10px;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--encre) 4%, transparent);
 }
 
 /* ------------------------------------------------------------------ */
@@ -547,8 +538,11 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--filet);
+  margin-bottom: 20px;
 }
 
 /* Bouton d'action laiton (maquette .btn-or) */
@@ -569,6 +563,8 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 
 /* Colonne de liste (maquette .colonne-liste) : un seul cadre, des rangs */
 .colonne-liste {
+  border-radius: 10px;
+  overflow: clip;
   border: 1px solid var(--filet);
   background: var(--ivoire);
 }
@@ -578,7 +574,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 13px 16px;
   border-left: 3px solid transparent;
   border-bottom: 1px solid var(--filet);
   transition: background 0.15s, border-color 0.15s;
@@ -809,6 +805,7 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
 }
 .loc-corps { padding: 24px 28px 56px; max-width: 1080px; width: 100%; }
 .loc-carte {
+  border: 1px solid var(--filet);
   background: var(--carte);
   border-radius: 14px;
   box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 6%, transparent), 0 6px 18px color-mix(in srgb, var(--encre) 5%, transparent);
@@ -839,6 +836,8 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--encre); }
   flex: none;
 }
 .loc-hero {
+  border: 1px solid var(--or-filet);
+  border-top: 3px solid var(--or);
   border-radius: 14px;
   background: var(--carte);
   box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 6%, transparent), 0 6px 18px color-mix(in srgb, var(--encre) 5%, transparent);
@@ -1434,6 +1433,7 @@ p a {
    Avec .vide-guide, elle devient un vrai état vide : ce qu'il n'y a pas,
    pourquoi, et le geste qui le remplit. */
 .vide-guide {
+  border-radius: 10px;
   padding: var(--rythme-5) var(--rythme-4);
   text-align: center;
   border: 1px dashed var(--filet);
@@ -1454,4 +1454,10 @@ p a {
 }
 .vide-guide .geste { display: inline-flex; gap: var(--rythme-2); flex-wrap: wrap; justify-content: center; }
 
+}
+/* Les mouvements décoratifs restent facultatifs. */
+@media (prefers-reduced-motion: reduce) {
+  a:hover > [data-slot="card"], .btn-or:hover { transform: none; }
+  [data-slot="card"], .btn-or, .loc-menu a { transition: none; }
+  .rond-attente { animation: none; }
 }

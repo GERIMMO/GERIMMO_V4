@@ -479,7 +479,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             </Link>
           </div>
           <div className="loc-carte loc-kpi">
-            <p className="text-[13px] font-semibold text-[var(--encre)]">Mon logement</p>
+            <p className="text-[13px] font-semibold text-[var(--encre)]">Mes demandes</p>
             {eIncidents ? (
               <div className="mt-2">
                 <LectureImpossible quoi="vos demandes" />

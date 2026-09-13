@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { verifierAccesEspace } from "@/lib/espace";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -81,7 +82,8 @@ export async function PaneIncident({
   estResponsable: boolean;
   membres: MembreGerant[];
 }) {
-  const supabase = await createClient();
+  const { supabase, role, user } = await verifierAccesEspace(orgId);
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
   const [
     { data: incident, error: erreurIncident },
@@ -114,7 +116,7 @@ export async function PaneIncident({
   if (erreurIncident) {
     return <EchecLecture quoi={["ce dossier d'incident"]} />;
   }
-  if (!incident) {
+  if (!incident || (portefeuille && !portefeuille.has(incident.lot_id))) {
     return (
       <div className="vide-guide">
         <p className="titre">Dossier introuvable</p>

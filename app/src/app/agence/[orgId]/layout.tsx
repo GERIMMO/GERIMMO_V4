@@ -9,6 +9,7 @@ import { SidebarProprietaire } from "@/components/nav-proprietaire";
 import { MenuCompte } from "@/components/menu-compte";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { RechercheEspace } from "@/components/recherche-espace";
 import { Toasteur } from "@/components/ui/toast";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
@@ -119,6 +120,7 @@ export default async function LayoutAgence({
         </aside>
         <div className="min-w-0">
           <header className="loc-haut">
+            <RechercheEspace orgId={orgId} />
             <SyntheseAlertes
               alertes={alertes}
               membres={membres}
@@ -180,6 +182,7 @@ export default async function LayoutAgence({
       </aside>
       <div className="min-w-0">
         <header className="loc-haut">
+            <RechercheEspace orgId={orgId} />
           <SyntheseAlertes
             alertes={alertes}
             membres={membres}

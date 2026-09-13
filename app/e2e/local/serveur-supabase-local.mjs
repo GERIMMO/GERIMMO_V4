@@ -129,11 +129,14 @@ function resoudreRelation(tableParent, tableEmbed, fkNom) {
 // ── Analyseur du paramètre select (syntaxe PostgREST) ──────────────────────
 function decouperNiveauZero(s, sep = ",") {
   const parts = [];
-  let depth = 0, cur = "";
+  let depth = 0, cur = "", guillemets = false, echappe = false;
   for (const ch of s) {
-    if (ch === "(") depth++;
-    if (ch === ")") depth--;
-    if (ch === sep && depth === 0) {
+    if (echappe) { cur += ch; echappe = false; continue; }
+    if (ch === "\\" && guillemets) { cur += ch; echappe = true; continue; }
+    if (ch === '"') guillemets = !guillemets;
+    if (!guillemets && ch === "(") depth++;
+    if (!guillemets && ch === ")") depth--;
+    if (ch === sep && depth === 0 && !guillemets) {
       parts.push(cur);
       cur = "";
     } else cur += ch;
@@ -205,7 +208,10 @@ function traduireFiltre(col, expr, params, prefixe = "") {
       sql = `${colonne} = any($${params.length})`;
     }
   } else if (OPS[op]) {
-    let v = val;
+    // Dans les filtres logiques, PostgREST retire les guillemets délimitant
+    // une valeur et déséchappe les guillemets / antislashs de cette grammaire.
+    let v = val.startsWith('"') && val.endsWith('"')
+      ? val.slice(1, -1).replace(/\\([\\"])/g, "$1") : val;
     if (op === "like" || op === "ilike") v = v.replace(/\*/g, "%");
     params.push(v);
     sql = `${colonne} ${OPS[op]} $${params.length}`;

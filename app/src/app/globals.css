@@ -1512,3 +1512,26 @@ p a {
 .information-depliable[open] .information-chevron { transform: rotate(180deg); }
 }
 @media (prefers-reduced-motion: reduce) { .information-chevron { transition: none; } }
+
+/* Recherche transversale : les mêmes couleurs, un accès discret et constant. */
+.recherche-ouvrir { margin-right:auto; min-width:0; display:flex; align-items:center; gap:10px; min-height:42px; padding:8px 12px; border:1px solid var(--filet); border-radius:8px; background:var(--ivoire); color:var(--encre); font-size:13px; text-align:left; }
+.recherche-ouvrir:hover { border-color:var(--or); }
+.recherche-ouvrir kbd { margin-left:12px; font-size:10px; opacity:.65; white-space:nowrap; }
+.recherche-dialog { padding:0; border:1px solid var(--filet); width:min(640px,calc(100vw - 24px)); max-width:none; max-height:calc(100dvh - 32px); margin:8vh auto auto; color:var(--encre); background:var(--ivoire); box-shadow:0 24px 90px color-mix(in srgb,var(--encre) 20%,transparent); border-radius:12px; overflow:hidden; }
+.recherche-dialog::backdrop { background:color-mix(in srgb,var(--encre) 50%,transparent); backdrop-filter:blur(3px); }
+.recherche-corps { display:flex; flex-direction:column; max-height:calc(84dvh - 32px); }
+.recherche-entete { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:22px 24px; background:var(--encre); color:var(--sur-encre); border-bottom:3px solid var(--or); }
+.recherche-entete h2 { color:inherit; font-size:27px; }
+.recherche-entete .eyebrow { color:var(--or-clair); }
+.recherche-fermer { min-width:44px; min-height:44px; display:grid; place-items:center; border-radius:6px; }
+.recherche-fermer:hover { background:color-mix(in srgb,var(--or) 13%,transparent); }
+.recherche-champ { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--filet); background:var(--carte); }
+.recherche-champ input { min-width:0; width:100%; min-height:44px; font-size:16px; outline:none; }
+.recherche-champ:focus-within { box-shadow:inset 0 -2px var(--or); }
+.recherche-resultats { padding:18px 20px; overflow:auto; min-height:0; }
+.recherche-resultat { display:flex; align-items:center; gap:14px; padding:12px; border-radius:8px; min-height:64px; }
+.recherche-resultat:hover,.recherche-resultat:focus-visible { background:var(--ardoise); outline:2px solid var(--or); outline-offset:-2px; }
+.recherche-icone { display:grid; place-items:center; width:42px; height:42px; flex:none; border:1px solid var(--filet); border-radius:9px; background:var(--carte); }
+.recherche-raccourcis { margin-top:14px; display:grid; gap:5px; }
+.recherche-pied { border-top:1px solid var(--filet); padding:12px 20px; font-size:11px; color:var(--texte-secondaire); }
+@media (max-width:600px) { .recherche-ouvrir { gap:7px; padding:8px; } .recherche-entete { padding:14px 16px; } .recherche-entete h2 { font-size:24px; } .recherche-resultats { padding:14px 12px; } .recherche-pied { display:none; } }

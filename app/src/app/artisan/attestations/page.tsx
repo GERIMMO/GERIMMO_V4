@@ -61,9 +61,9 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <div>
-        <p className="eyebrow">Valables pour toutes les agences</p>
-        <h1 className="mt-0.5 text-[1.5rem] leading-tight text-[var(--encre)]">
+      <div className="portail-hero">
+        <p className="portail-surtitre">Valables pour toutes les agences</p>
+        <h1 className="mt-0.5">
           Mes attestations
         </h1>
       </div>

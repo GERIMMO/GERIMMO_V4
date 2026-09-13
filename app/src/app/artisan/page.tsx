@@ -89,9 +89,9 @@ export default async function PageArtisanAccueil({
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow">{jourLong(new Date().toISOString())}</p>
-        <h1 className="mt-0.5 text-[1.5rem] leading-tight text-[var(--encre)]">Aujourd&apos;hui</h1>
+      <div className="portail-hero">
+        <p className="portail-surtitre">{jourLong(new Date().toISOString())}</p>
+        <h1 className="mt-0.5">Aujourd&apos;hui</h1>
       </div>
 
       {refus && (

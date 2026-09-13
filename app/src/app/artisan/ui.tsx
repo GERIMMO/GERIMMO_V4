@@ -54,7 +54,7 @@ export function Carte({
 }) {
   return (
     <section
-      className={`rounded-lg border border-border bg-card p-4 ${className}`}
+      className={`artisan-carte ${className}`}
     >
       {children}
     </section>

@@ -147,7 +147,7 @@ export default async function LayoutAgence({
             </p>
           )}
           {/* Les pages gardent leur <main> et leurs marges : seul le chrome change */}
-          <div className="min-w-0">{children}</div>
+          <div className="portail-ecrans min-w-0">{children}</div>
         </div>
         <Toasteur />
       </div>
@@ -203,7 +203,7 @@ export default async function LayoutAgence({
               : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
           </p>
         )}
-        <div className="min-w-0">{children}</div>
+        <div className="portail-ecrans min-w-0">{children}</div>
       </div>
       <Toasteur />
     </div>

@@ -1461,3 +1461,46 @@ p a {
   [data-slot="card"], .btn-or, .loc-menu a { transition: none; }
   .rond-attente { animation: none; }
 }
+
+
+@layer components {
+/* Habillage commun : les couleurs de marque restent celles des jetons. */
+.loc-corps { padding-top: 32px; }
+.portail-ecrans .entete-page, .loc-corps > .entete-page, .loc-corps > div > .entete-page {
+  padding: 22px 24px;
+  background: var(--carte);
+  border: 1px solid var(--or-filet);
+  border-left: 5px solid var(--or);
+  border-radius: 14px;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--encre) 6%, transparent);
+}
+.loc-carte { padding: 24px; border-radius: 16px; }
+.loc-hero { padding: 28px; border-top-width: 5px; }
+.loc-kpi .v { font-size: 34px; }
+.artisan-bandeau { border-bottom: 3px solid var(--or); }
+.artisan-carte {
+  background: var(--carte);
+  border: 1px solid var(--filet);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 3px 14px color-mix(in srgb, var(--encre) 7%, transparent);
+}
+.artisan-carte h2 { font-family: var(--font-titres), Georgia, serif; font-size: 24px; }
+.artisan-navigation { box-shadow: 0 -4px 20px color-mix(in srgb, var(--encre) 8%, transparent); }
+.portail-hero {
+  background: var(--encre);
+  color: var(--sur-encre);
+  border-radius: 18px;
+  border-bottom: 4px solid var(--or);
+  padding: 28px;
+}
+.portail-hero h1 { color: var(--sur-encre); font-size: 38px; line-height: 1.15; margin-top: 8px; }
+.portail-surtitre { color: var(--or); font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+.portail-introduction { max-width: 52ch; margin-top: 12px; line-height: 1.6; }
+@media (max-width: 640px) {
+  .loc-corps { padding-top: 20px; }
+  .loc-carte, .artisan-carte { padding: 18px; }
+  .loc-hero, .portail-hero { padding: 22px; }
+  .portail-hero h1 { font-size: 32px; }
+}
+}

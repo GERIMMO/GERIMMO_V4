@@ -83,9 +83,9 @@ export function NavArtisan({
   return (
     <nav
       aria-label="Mon espace artisan"
-      className="fixed inset-x-0 bottom-0 z-30 border-t-2 border-[var(--filet)] bg-[var(--ivoire)] pb-[env(safe-area-inset-bottom)]"
+      className="artisan-navigation fixed inset-x-0 bottom-0 z-30 border-t-2 border-[var(--filet)] bg-[var(--ivoire)] pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="mx-auto flex w-full max-w-[720px]">
+      <ul className="mx-auto flex w-full max-w-[960px]">
         {entrees.map((e) => {
           const actif = e.exact
             ? pathname === e.href

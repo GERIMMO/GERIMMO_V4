@@ -63,9 +63,9 @@ export default async function PageAgendaArtisan() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow">Toutes agences confondues</p>
-        <h1 className="mt-0.5 text-[1.5rem] leading-tight text-[var(--encre)]">Mon agenda</h1>
+      <div className="portail-hero">
+        <p className="portail-surtitre">Toutes agences confondues</p>
+        <h1 className="mt-0.5">Mon agenda</h1>
       </div>
 
       {agenda.erreur && (

@@ -37,9 +37,9 @@ export default async function PageFacturation() {
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <div>
-        <p className="eyebrow">Toutes agences confondues</p>
-        <h1 className="mt-0.5 text-[1.5rem] leading-tight text-[var(--encre)]">
+      <div className="portail-hero">
+        <p className="portail-surtitre">Toutes agences confondues</p>
+        <h1 className="mt-0.5">
           Ma facturation
         </h1>
       </div>

@@ -65,9 +65,9 @@ export default async function PageEntreprise() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow">Mon entreprise</p>
-        <h1 className="mt-0.5 text-[1.5rem] leading-tight text-[var(--encre)]">
+      <div className="portail-hero">
+        <p className="portail-surtitre">Mon entreprise</p>
+        <h1 className="mt-0.5">
           {fiche.raison_sociale}
         </h1>
       </div>

@@ -34,7 +34,7 @@ n'est pas un défaut du produit, c'est la configuration qui manque.
 
 **Mot de passe commun : `Gerimmo-Demo-2026`**
 
-Les huit comptes sont **présents en production** (vérifié le 13/09).
+Les **neuf** comptes sont présents en production (vérifié le 13/09).
 
 | Adresse | Rôle | Organisation | Ce qu'il sert à éprouver |
 |---|---|---|---|
@@ -45,10 +45,32 @@ Les huit comptes sont **présents en production** (vérifié le 13/09).
 | `locataire.pd@gerimmo-demo.fr` | Locataire | Parc de Claire Moreau | L'espace locataire côté propriétaire direct |
 | `multi@gerimmo-demo.fr` | Agent **et** admin | Alpha **et** Beta | Le sélecteur « Mes espaces », le passage d'une agence à l'autre |
 | `admin.beta@gerimmo-demo.fr` | Admin d'agence | Agence Beta | **L'étanchéité** : il ne doit RIEN voir d'Alpha |
-| `superadmin@gerimmo-demo.fr` | Super admin | — | La console `/admin`, la supervision transverse |
+| `artisan.alpha@gerimmo-demo.fr` | **Artisan** | Plomberie Fictive SARL | Le portail artisan : sollicitations, devis, agenda, comptes rendus |
+| `superadmin@gerimmo-demo.fr` | **Super admin** | — | La console `/admin`, la supervision transverse |
 
-L'artisan n'a pas d'adhésion posée d'avance : elle se crée quand une agence le
-sollicite sur un incident. Son portail apparaît alors dans « Mes espaces ».
+Votre propre compte `tahir.brahim.pro@gmail.com` est **déjà super admin** en
+production.
+
+### Deux corrections faites le 13/09
+
+Je vous avais annoncé ces deux comptes comme utilisables : ils ne l'étaient pas.
+
+- **Le super admin ne pouvait pas ouvrir sa console.** Son adhésion existait
+  mais était `inactive`, donc `is_super_admin()` répondait faux. Aucune
+  migration ne désactive une adhésion de ce rôle — **je n'ai pas pu établir
+  d'où venait ce statut**. Je l'ai réactivée et le seed le pose désormais
+  explicitement au lieu de s'en remettre au défaut de la colonne.
+- **Le compte artisan n'existait pas du tout** en production : le seed qui l'a
+  peuplée est antérieur au module artisan. Il est créé, avec sa fiche
+  d'entreprise complète.
+
+**L'artisan de démo :** Plomberie Fictive SARL, métiers plomberie et
+chauffage, zones 69001/69002/69003/69007, rattachée à Agence Alpha, validée
+sur la plateforme. Montée **par les fonctions du produit**
+(`artisan_creer_ou_rattacher`, puis `artisan_definir_siret_etat` et
+`artisan_decider_plateforme`), pas par des écritures à la main — le produit a
+d'ailleurs refusé la validation tant que le SIRET n'était pas vérifié
+(RM-A1.9), ce qui est exactement ce qu'il doit faire.
 
 ---
 
@@ -131,9 +153,22 @@ Dans cet ordre — chaque étape prépare la suivante.
     *Sans compte Stripe configuré, le paiement doit refuser par une **phrase**,
     pas par une erreur technique. C'est ce qu'il faut vérifier aujourd'hui.*
 
-### F. Le mobile
+### F. L'artisan (`artisan.alpha`) et le super admin (`superadmin`)
 
-18. Reprenez A → E **sur votre téléphone**. Rien ne doit déborder
+18. **`artisan.alpha`** : le portail s'ouvre sans identifiant d'agence dans
+    l'adresse. Vérifiez **Mon entreprise** (métiers, zones, pièces), l'agenda,
+    et le dépôt d'une attestation dans **Mes attestations**.
+19. Pour lui faire parvenir une sollicitation : côté `admin.alpha`, ouvrez un
+    incident → qualifiez-le → ouvrez une consultation → sollicitez Plomberie
+    Fictive. Elle doit apparaître dans son portail.
+20. **`superadmin`** : la console `/admin`, la supervision des organisations,
+    et l'écran des **artisans à valider**. Pour l'éprouver, faites créer un
+    second artisan par Agence Alpha : il arrive en `en_attente`, et le produit
+    vous refusera de le valider tant que son SIRET n'est pas vérifié.
+
+### G. Le mobile
+
+21. Reprenez A → F **sur votre téléphone**. Rien ne doit déborder
     horizontalement, et tout doit se toucher au doigt.
 
 ---

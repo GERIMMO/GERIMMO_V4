@@ -19,6 +19,8 @@ declare
   v_org_beta uuid;
   v_org_pd uuid;
   v_uid uuid;
+  v_sa uuid;
+  v_artisan uuid;
   v_pwd text := 'Gerimmo-Demo-2026';
   r record;
 begin
@@ -43,10 +45,8 @@ begin
       ('multi@gerimmo-demo.fr'),
       ('locataire.alpha@gerimmo-demo.fr'),
       ('proprietaire@gerimmo-demo.fr'),
-      -- Artisan de démo (module 8). Il n'a PAS d'adhésion posée ici : elle est
-      -- créée par `solliciter_artisan` au moment où une agence le sollicite —
-      -- c'est ainsi que le portail artisan apparaît dans « Mes espaces », et
-      -- ainsi que l'artisan n'existe pour une agence qu'après un vrai geste.
+      -- Artisan de démo (module 8) — sa fiche et son rattachement sont posés
+      -- plus bas, par les fonctions du produit.
       ('artisan.alpha@gerimmo-demo.fr')
     ) as t(email)
   loop
@@ -64,7 +64,11 @@ begin
   end loop;
 
   select id into v_uid from public.accounts where email = 'superadmin@gerimmo-demo.fr';
-  insert into public.memberships (account_id, organization_id, role) values (v_uid, null, 'super_admin');
+  -- STATUT EXPLICITE. En production cette adhésion était `inactive` — le
+  -- super admin ne pouvait pas ouvrir sa console, et rien ne le disait.
+  -- On ne s'en remet plus au défaut de la colonne.
+  insert into public.memberships (account_id, organization_id, role, status)
+  values (v_uid, null, 'super_admin', 'active');
 
   select id into v_uid from public.accounts where email = 'admin.alpha@gerimmo-demo.fr';
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_alpha, 'admin_agence');
@@ -94,6 +98,46 @@ begin
   insert into public.memberships (account_id, organization_id, role) values (v_uid, v_org_pd, 'proprietaire_direct');
   insert into public.persons (organization_id, account_id, nom, prenom, email)
   values (v_org_pd, v_uid, 'Moreau', 'Claire', 'proprietaire@gerimmo-demo.fr');
+
+  -- ── L'ARTISAN DE DÉMO, PRÊT À SE CONNECTER ────────────────────────────
+  --
+  -- Il n'y en avait pas : le compte était créé, et rien derrière. Le portail
+  -- artisan était donc intestable tant qu'on n'avait pas joué toute la chaîne
+  -- d'un incident (qualifier → consulter → solliciter). Pour une recette à la
+  -- main, c'est un mur ; pour une démonstration, c'est un écran vide.
+  --
+  -- ON PASSE PAR LES FONCTIONS DU PRODUIT, pas par des insert à la main :
+  -- `artisan_creer_ou_rattacher` pose la fiche, les métiers, les zones ET le
+  -- lien d'agence de façon cohérente, et la validation plateforme respecte
+  -- l'ordre que le produit impose — RM-A1.9 : le SIRET se vérifie d'abord,
+  -- sinon un artisan validé ne serait proposé à personne.
+  --
+  -- L'adhésion porte l'AGENCE, comme celle que pose `solliciter_artisan` :
+  -- seul le super admin en a une sans organisation.
+  select id into v_uid from public.accounts where email = 'artisan.alpha@gerimmo-demo.fr';
+  select id into v_sa from public.accounts where email = 'superadmin@gerimmo-demo.fr';
+
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', (select id from public.accounts where email = 'admin.alpha@gerimmo-demo.fr')::text,
+                      'role', 'authenticated')::text, true);
+  perform set_config('role', 'authenticated', true);
+  select public.artisan_creer_ou_rattacher(
+    v_org_alpha, 'Plomberie Fictive SARL', '00000000000000', '06 00 00 00 44',
+    'artisan.alpha@gerimmo-demo.fr',
+    array['plomberie','chauffage']::public.artisan_metier[],
+    array['69001','69002','69003','69007']
+  ) into v_artisan;
+
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', v_sa::text, 'role', 'authenticated')::text, true);
+  perform public.artisan_definir_siret_etat(v_artisan, 'verifie'::public.artisan_siret_etat);
+  perform public.artisan_decider_plateforme(v_artisan, 'validation'::public.artisan_decision_plateforme, null);
+  perform set_config('role', 'postgres', true);
+  perform set_config('request.jwt.claims', '', true);
+
+  update public.artisans set account_id = v_uid, updated_at = now() where id = v_artisan;
+  insert into public.memberships (account_id, organization_id, role)
+  values (v_uid, v_org_alpha, 'artisan') on conflict do nothing;
 end $$;
 
 -- Jeu de démo du propriétaire direct (ajouté le 06/09, reflet de la prod) :

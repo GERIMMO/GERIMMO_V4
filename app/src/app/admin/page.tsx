@@ -98,14 +98,15 @@ export default async function PageAdmin() {
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
   // On lit `error` : une console de pilotage qui affiche zéro parce qu'une
   // requête a échoué est pire que pas de console du tout.
-  const [orgs, devis, publications, lots] = await Promise.all([
+  const [orgs, devis, publications, lots, artisans] = await Promise.all([
     supabase.from("organizations").select("id, name, status, type, essai_fin").order("name"),
     supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
     supabase.from("publications").select("id, statut"),
     supabase.from("lots").select("id", { count: "exact", head: true }).neq("etat", "archive"),
+    supabase.rpc("artisans_a_valider"),
   ]);
 
-  const enEchec = [orgs.error, devis.error, publications.error, lots.error].filter(Boolean);
+  const enEchec = [orgs.error, devis.error, publications.error, lots.error, artisans.error].filter(Boolean);
   const organisations = (orgs.data ?? []) as Organisation[];
   const parStatut = (s: string) => organisations.filter((o) => o.status === s).length;
   const aEcrire = (publications.data ?? []).filter(
@@ -163,6 +164,13 @@ export default async function PageAdmin() {
           </h2>
         </div>
         <div className="grid gap-3">
+          <File
+            titre="Inscriptions artisan"
+            compte={artisans.error ? null : (artisans.data ?? []).length}
+            explication="Vérifiez le SIRET et les justificatifs, puis validez ou refusez l’inscription avec un motif."
+            href="/admin/artisans"
+            action="Examiner les inscriptions"
+          />
           <File
             titre="Demandes de devis"
             compte={devis.error ? null : devis.count ?? 0}

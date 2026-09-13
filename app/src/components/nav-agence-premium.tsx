@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 // premium que les espaces locataire et propriétaire — menu vertical encre,
 // entrée active laiton, badges. Deux menus : l'agent voit SON portefeuille
 // (RM-18.1.3) ; l'admin voit tout, plus les mandats, l'administration.
-// Pas de cloche (décision 30/08 — l'onglet Alertes prime), pas de ⌘K ni de
-// bot (chantiers dédiés).
+// Pas de cloche (décision 30/08 — l'onglet Alertes prime). La recherche
+// transversale vit dans l’en-tête.
 
 const IC: Record<string, string> = {
   maison: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/>',

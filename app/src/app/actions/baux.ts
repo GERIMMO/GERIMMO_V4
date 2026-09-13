@@ -486,7 +486,7 @@ export async function enregistrerConge(
   const date = String(formData.get("date_presentation") ?? "").trim();
   const preavis = Number(formData.get("preavis_mois") ?? 3);
   const motif = String(formData.get("motif") ?? "").trim();
-  if (!date) return { erreur: "Indiquez la date de première présentation.", valeurs };
+  if (!date) return { erreur: "Indiquez la date de réception du congé.", valeurs };
 
   // Préavis réduit du locataire : justificatif déposé en GED, transmis au contrôle base.
   let justificatif: string | null = null;

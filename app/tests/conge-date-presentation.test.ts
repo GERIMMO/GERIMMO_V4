@@ -64,7 +64,7 @@ describe("Congé : la date qui déclenche le préavis doit être saisie explicit
     saisie.set("par", "locataire");
     if (date !== undefined) saisie.set("date_presentation", date);
     const resultat = await enregistrerConge("org-test", "bail-test", {}, saisie);
-    expect(resultat.erreur).toBe("Indiquez la date de première présentation.");
+    expect(resultat.erreur).toBe("Indiquez la date de réception du congé.");
     expect(resultat.valeurs?.par).toBe("locataire");
     expect(banc.depot).not.toHaveBeenCalled();
     expect(banc.rpc).not.toHaveBeenCalled();

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RubriqueDossier } from "@/components/rubrique-dossier";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate, eur } from "@/lib/ged";
@@ -387,8 +388,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-[1.125rem] p-4 sm:p-7">
-      <div>
+    <main className="dossier-bail mx-auto w-full max-w-4xl space-y-[1.125rem] p-4 sm:p-7">
+      <div className="dossier-bail-entete">
         {lot && (
           <Link
             href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`}
@@ -398,7 +399,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           </Link>
         )}
         <p className="eyebrow mt-1">Bail {TYPES_BAIL[bail.type] ?? bail.type}</p>
-        <div className="entete-page">
+        <div className="my-3">
           <div className="flex flex-wrap items-center gap-3">
             {/* Le titre porte qui habite où — le type de bail vit dans l'eyebrow */}
             <h1>{locataire ? nomComplet(locataire) : lot?.nom ?? "Bail"}</h1>
@@ -419,6 +420,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </p>
       </div>
 
+      <nav aria-label="Accès rapide au bail" className="dossier-nav">
+        <a href="#contrat">Contrat & documents</a>
+        {loyersActif && <a href="#loyers">Loyers & paiements</a>}
+        <a href="#edl">États des lieux</a>
+        {loyersActif && <a href="#depot">Dépôt de garantie</a>}
+        {sectionSortie && <a href="#sortie-bail">Départ du locataire</a>}
+      </nav>
       <EchecLecture quoi={echecs} />
 
       {/* La prochaine action évidente, dérivée de l'état du bail */}
@@ -467,7 +475,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </div>
       )}
 
-      <h2 className="eyebrow pt-2">Le contrat</h2>
+      <RubriqueDossier id="contrat" titre="Contrat & documents" resume={bail.document_signe ? "Bail signé disponible · annexes, garants et conditions du contrat" : "Préparer le contrat, réunir les annexes et déposer le bail signé"} ouverte={bail.etat === "brouillon"}>
 
       {/* Brouillon corrigeable (recette 21/08) : la saisie de création se
           reprend ici tant que le bail n'est pas signé. */}
@@ -566,8 +574,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardDescription>
             Les conditions détaillées que le contrat type imprime : fixation et
             paiement du loyer, travaux, honoraires, encadrement en zone tendue.
-            Facultatives — un champ vide s&apos;imprime en libellé d&apos;épreuve
-            ou en « — ».
+            Vérifiez ces informations avant de générer le contrat : les données
+            absentes restent signalées dans le PDF.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -609,9 +617,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardHeader>
             <CardTitle className="text-base">Bail signé</CardTitle>
             <CardDescription>
-              Signature hors plateforme en V0 : le dépôt du PDF signé active le bail
-              et loue le lot (contrôles de mise en location au dépôt). Le locataire
-              le retrouve dans « Mes documents ».
+              Déposez le contrat signé par les parties pour démarrer la location.
+              Le locataire le retrouve ensuite dans « Mes documents ».
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -790,7 +797,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
-      <h2 className="eyebrow pt-2">La vie du bail</h2>
+      </RubriqueDossier>
+      <RubriqueDossier id="suivi-bail" titre="Au quotidien" resume={loyersActif ? "Loyers, paiements, états des lieux et dépôt de garantie" : "Préparer l’état des lieux avant la remise des clés"} ouverte={bail.etat !== "brouillon"}>
 
       {/* États des lieux */}
       <Card id="edl" className="scroll-mt-20">
@@ -802,13 +810,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </CardHeader>
         <CardContent className="space-y-4">
           {(edls ?? []).length === 0 ? (
-            // Sans EDL d'entrée signé, le logement est réputé remis en bon état :
-            // aucune retenue ne sera possible à la sortie (RM-2.4.3).
+            // L’état des lieux sert de référence pour comparer l’entrée et la sortie.
             bail.etat === "brouillon" ? (
               <p className="text-sm text-muted-foreground">
                 Aucun état des lieux. Celui d&apos;entrée se signe à la remise des
-                clés — sans lui, aucune retenue ne sera possible à la sortie ; une
-                alerte le rappellera dès le dépôt du bail signé.
+                clés pour décrire ensemble l’état du logement. Une alerte le
+                rappellera dès le dépôt du bail signé.
               </p>
             ) : (
               <div className="border-l-[3px] border-l-destructive bg-destructive-soft p-3">
@@ -817,9 +824,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 </p>
                 <p className="mt-0.5 text-sm text-destructive-soft-foreground">
                   Le bail est {ETATS_BAIL[bail.etat]?.toLowerCase() ?? bail.etat} : sans
-                  état des lieux d&apos;entrée signé, le logement sera réputé remis en
-                  bon état et <strong>aucune retenue ne pourra être faite sur le
-                  dépôt de garantie</strong>.
+                  état des lieux d&apos;entrée signé, la comparaison à la sortie sera
+                  plus délicate. Documentez l’état du logement avec les parties
+                  et conservez les justificatifs.
                 </p>
               </div>
             )
@@ -843,9 +850,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               ))}
             </ul>
           )}
-          {(edls ?? []).length < 2 && (
-            <FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} />
-          )}
+          {!erreurEdls && <FormulaireCreerEdl orgId={orgId} bailId={bailId} bailEtat={bail.etat} typesExistants={(edls ?? []).map((e) => e.type)} />}
         </CardContent>
       </Card>
 
@@ -925,16 +930,15 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
-      {sectionSortie && (
-        <h2 className="eyebrow pt-2">La sortie du locataire</h2>
-      )}
+      </RubriqueDossier>
+      {sectionSortie && <RubriqueDossier id="sortie-bail" titre="Départ du locataire" resume={bail.date_fin ? `Fin prévue le ${formaterDate(bail.date_fin)} · congé, comparaison des états des lieux et restitution` : "Enregistrer un congé et préparer la fin de location"} ouverte={restitutionActif || (intentions ?? []).length > 0}>
 
       {bail.etat === "actif" && (
         <Card className={(intentions ?? []).length > 0 ? "border-l-4 border-l-[var(--or)]" : undefined}>
           <CardHeader>
             <CardTitle className="text-base">Congé</CardTitle>
             <CardDescription>
-              La lettre recommandée part hors de la plateforme : saisissez la date de première présentation. Le
+              Enregistrez la réception effective du congé à partir de son justificatif. Le
               préavis réduit exige un justificatif.
             </CardDescription>
           </CardHeader>
@@ -956,7 +960,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 {it.motif ? <> — « {it.motif} »</> : null}
                 <span className="block text-muted-foreground">
                   À réception de sa lettre recommandée, enregistrez le congé ci-dessous avec la
-                  date de première présentation — le locataire verra sa fin de bail confirmée.
+                  date de réception — le locataire verra sa fin de bail confirmée.
                 </span>
               </p>
             ))}
@@ -981,7 +985,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardContent className="space-y-3 text-sm">
             {(conges ?? []).map((c, i) => (
               <p key={i} className={c.annule_le ? "text-muted-foreground" : undefined}>
-                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, présentation
+                Donné par {c.par === "bailleur" ? "le bailleur" : "le locataire"}, date enregistrée
                 le {formaterDate(c.date_premiere_presentation)}, préavis {c.preavis_mois} mois
                 → effet le <span className="font-medium">{formaterDate(c.date_effet)}</span>
                 {c.motif && !c.annule_le && (
@@ -1082,6 +1086,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
+      </RubriqueDossier>}
     </main>
   );
 }

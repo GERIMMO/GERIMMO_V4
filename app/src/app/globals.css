@@ -1535,3 +1535,23 @@ p a {
 .recherche-raccourcis { margin-top:14px; display:grid; gap:5px; }
 .recherche-pied { border-top:1px solid var(--filet); padding:12px 20px; font-size:11px; color:var(--texte-secondaire); }
 @media (max-width:600px) { .recherche-ouvrir { gap:7px; padding:8px; } .recherche-entete { padding:14px 16px; } .recherche-entete h2 { font-size:24px; } .recherche-resultats { padding:14px 12px; } .recherche-pied { display:none; } }
+
+/* Le dossier suit trois temps : préparer, gérer, terminer. */
+.dossier-bail-entete { padding:24px; background:var(--encre); color:var(--sur-encre); border-radius:12px; border-bottom:3px solid var(--or); }
+.dossier-bail-entete h1 { color:var(--sur-encre); }
+.dossier-bail-entete .text-muted-foreground { color:color-mix(in srgb,var(--sur-encre) 78%,transparent); }
+.dossier-bail-entete .eyebrow { color:var(--or-clair); }
+.dossier-nav { display:flex; flex-wrap:wrap; gap:8px; }
+.dossier-nav a { padding:10px 13px; min-height:44px; border:1px solid var(--filet); border-radius:8px; background:var(--carte); color:var(--encre); font-size:12px; }
+.dossier-nav a:hover,.dossier-nav a:focus-visible { background:var(--ardoise); border-color:var(--or); }
+.dossier-rubrique { border:1px solid var(--filet); border-radius:10px; background:var(--carte); scroll-margin-top:90px; }
+.dossier-rubrique > summary { display:flex; align-items:center; justify-content:space-between; gap:15px; list-style:none; padding:18px 20px; cursor:pointer; border-radius:10px; min-height:72px; }
+.dossier-rubrique > summary::-webkit-details-marker { display:none; }
+.dossier-rubrique > summary:hover { background:var(--survol); }
+.dossier-rubrique > summary:focus-visible { outline:2px solid var(--or); outline-offset:2px; }
+.dossier-rubrique-titre { display:block; font-family:var(--font-titres), Georgia, serif; color:var(--encre); font-size:25px; line-height:1.2; }
+.dossier-rubrique-resume { display:block; margin-top:5px; color:var(--texte-secondaire); font-size:12px; }
+.dossier-rubrique[open] > summary { border-bottom:1px solid var(--filet); border-radius:10px 10px 0 0; background:var(--survol); }
+.dossier-rubrique[open] .dossier-chevron { transform:rotate(180deg); }
+.dossier-rubrique-contenu { padding:16px; }
+@media (max-width:600px) { .dossier-bail-entete { padding:18px; } .dossier-rubrique > summary { padding:16px; } .dossier-rubrique-contenu { padding:10px; } }

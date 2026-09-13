@@ -167,12 +167,12 @@ export async function actionsAttendues(
       });
     }
 
-    // État des lieux d'entrée : sans lui, aucune retenue possible à la sortie
+    // État des lieux d'entrée : référence pour la comparaison à la sortie.
     if (!bailsAvecEdl.has(bail.id)) {
       edls.push({
         cle: `edl-${bail.id}`,
         titre: `État des lieux d'entrée à signer — ${nomLot}`,
-        detail: "Sans lui, aucune retenue ne sera possible à la sortie",
+        detail: "Décrire l’état du logement avec le locataire à la remise des clés",
         href: `/agence/${orgId}/baux/${bail.id}#edl`,
         critique: false,
       });

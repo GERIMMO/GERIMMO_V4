@@ -49,3 +49,4 @@ e2e/.results/
 # Sondes jetables du balayage des boutons (12/09) : écrites pour un audit,
 # supprimées après usage — leur méthode vit dans log.md, pas ici.
 /*.mjs
+kit-de-test-gerimmo.zip

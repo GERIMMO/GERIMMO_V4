@@ -1,4 +1,5 @@
 import Link from "next/link";
+import "./portail.css";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { SidebarLocataire } from "@/components/nav-locataire";
@@ -16,7 +17,8 @@ export default async function LayoutLocataire({
   params,
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
-  const { supabase, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, organisation, personne, adhesionActive } =
+    await verifierAccesEspaceLocataire(orgId);
 
   const [
     { data: pieces, error: ePieces },
@@ -25,21 +27,22 @@ export default async function LayoutLocataire({
     { data: demandes, error: eDemandes },
     { data: baux, error: eBaux },
     { data: signatures, error: eSignatures },
-  ] =
-    await Promise.all([
-      supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
-      supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
-      supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
-      supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
-      supabase.rpc("mon_bail_locataire", { p_org: orgId }),
-      supabase.rpc("mes_demandes_signature", { p_org: orgId }),
-    ]);
-  const attestations = ((pieces ?? []) as {
-    type: string;
-    depose_le: string;
-    expire_le: string | null;
-    verifie_le: string | null;
-  }[])
+  ] = await Promise.all([
+    supabase.rpc("mes_pieces_locataire", { p_org: orgId }),
+    supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
+    supabase.rpc("messages_non_lus_locataire", { p_org: orgId }),
+    supabase.rpc("mes_pieces_demandees", { p_org: orgId }),
+    supabase.rpc("mon_bail_locataire", { p_org: orgId }),
+    supabase.rpc("mes_demandes_signature", { p_org: orgId }),
+  ]);
+  const attestations = (
+    (pieces ?? []) as {
+      type: string;
+      depose_le: string;
+      expire_le: string | null;
+      verifie_le: string | null;
+    }[]
+  )
     .filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
   const derniere = attestations[0];
@@ -50,9 +53,10 @@ export default async function LayoutLocataire({
   // RM-0b.5.1 rend dû AU LOCATAIRE, et celui que l'accueil et la page
   // Documents affichent désormais (revue 11/09 — le menu restait muet
   // pendant que « Ce qui vous attend » réclamait le renouvellement).
-  const assuranceOk = !bailActif || Boolean(derniere && !estARenouveler(derniere.expire_le));
+  const assuranceOk =
+    !bailActif || Boolean(derniere && !estARenouveler(derniere.expire_le));
   const demandesEnCours = ((incidents ?? []) as { etat: string }[]).filter(
-    (i) => i.etat !== "clos"
+    (i) => i.etat !== "clos",
   ).length;
   // Une lecture tombée éteint silencieusement un badge : le locataire ne voit
   // plus la pièce qu'on lui réclame et croit être en règle. On ne peut pas
@@ -63,19 +67,17 @@ export default async function LayoutLocataire({
     eNonLus,
     eDemandes,
     eBaux,
-    eSignatures
+    eSignatures,
   );
 
   return (
-    <div className="loc-app">
+    <div className="loc-app loc-premium">
       <aside className="loc-late">
         <div className="loc-logo">
           <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace">
-            <MarqueGerimmo surEncre />
+            <MarqueGerimmo />
           </Link>
-          <span className="loc-logo-texte eyebrow text-[var(--sur-encre)]/55">
-            Espace locataire
-          </span>
+          <span className="loc-logo-texte eyebrow">Espace locataire</span>
         </div>
         <SidebarLocataire
           orgId={orgId}
@@ -91,6 +93,7 @@ export default async function LayoutLocataire({
       </aside>
       <div className="min-w-0">
         <header className="loc-haut">
+          <span className="loc-haut-libelle">Mon espace locataire</span>
           <MenuCompte
             initiales={
               personne

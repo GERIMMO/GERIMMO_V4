@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { House, MessageCircle } from "lucide-react";
+import { AgendaLocataire } from "./agenda-locataire";
+import { ConseilsLocataire } from "./conseils-locataire";
 import { estARenouveler, estExpiree, eur, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
 import { CarteGestionnaire, CarteUrgence } from "./cartes-laterales";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
+import type { SuiviIntervention } from "./demandes/suivi-intervention";
 import type { BailLocataire } from "./types";
 
 export const metadata = { title: "Mon espace — Gerimmo" };
@@ -12,9 +16,12 @@ export const metadata = { title: "Mon espace — Gerimmo" };
 // Accueil de l'espace locataire (maquette v10) : l'essentiel du logement en
 // un regard — ce qui l'attend, le logement, le prochain loyer, les documents,
 // les demandes — et à droite, qui s'occupe de moi.
-export default async function PageAccueilLocataire(props: PageProps<"/locataire/[orgId]">) {
+export default async function PageAccueilLocataire(
+  props: PageProps<"/locataire/[orgId]">,
+) {
   const { orgId } = await props.params;
-  const { supabase, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, personne, adhesionActive } =
+    await verifierAccesEspaceLocataire(orgId);
 
   const [
     { data: baux, error: eBaux },
@@ -26,6 +33,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     { data: piecesDemandees, error: eDemandes },
     { data: signatures, error: eSignatures },
     { data: creneaux, error: eCreneaux },
+    { data: suivis, error: eSuivis },
   ] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
@@ -43,6 +51,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     // n'ouvre pas cet écran ne sait pas qu'on attend sa disponibilité, et le
     // dossier s'arrête là (RM-19.2.3, constat du 11/09).
     supabase.rpc("mes_creneaux_locataire", { p_org: orgId }),
+    supabase.rpc("mon_suivi_intervention", { p_org: orgId }),
   ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const lignes = (echeancier ?? []) as {
@@ -63,7 +72,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     .filter((p) => p.type === "attestation_assurance")
     .sort((a, b) => b.depose_le.localeCompare(a.depose_le));
   const derniere = attestations[0];
-  const attestationValide = Boolean(derniere && !estExpiree(derniere.expire_le));
+  const attestationValide = Boolean(
+    derniere && !estExpiree(derniere.expire_le),
+  );
   // Même vocabulaire que la page Documents : déposée mais pas encore validée
   // par le gestionnaire = « en cours de vérification », pas « à jour »
   const assuranceEnVerification = attestationValide && !derniere?.verifie_le;
@@ -97,7 +108,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // préavis dont le bail s'achève dans vingt jours n'a pas à renouveler une
   // assurance pour cinq jours de couverture.
   const bailFiniAvantEcheance = Boolean(
-    bail?.date_fin && derniere?.expire_le && bail.date_fin <= derniere.expire_le
+    bail?.date_fin &&
+    derniere?.expire_le &&
+    bail.date_fin <= derniere.expire_le,
   );
   const assuranceARenouveler =
     Boolean(bail) &&
@@ -116,13 +129,17 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const contenuDocuments = [
     quittancesDispo > 0 ? "vos quittances" : null,
     mesPieces.some((p) => p.type === "bail") ? "votre bail" : null,
-    mesPieces.some((p) => p.type === "attestation_assurance") ? "vos attestations" : null,
+    mesPieces.some((p) => p.type === "attestation_assurance")
+      ? "vos attestations"
+      : null,
   ].filter((m): m is string => Boolean(m));
   const enumererFr = (mots: string[]) =>
-    mots.length > 1 ? `${mots.slice(0, -1).join(", ")} et ${mots[mots.length - 1]}` : mots[0];
-  const incidentsEnCours = ((incidentsBruts ?? []) as IncidentLocataire[]).filter(
-    (i) => i.etat !== "clos"
-  );
+    mots.length > 1
+      ? `${mots.slice(0, -1).join(", ")} et ${mots[mots.length - 1]}`
+      : mots[0];
+  const incidentsEnCours = (
+    (incidentsBruts ?? []) as IncidentLocataire[]
+  ).filter((i) => i.etat !== "clos");
   // Incidents mis à la charge du locataire dont la fenêtre de contestation lui
   // est encore ouverte. Conditions COPIÉES du bouton « Contester » de la liste
   // (incidents-locataire.tsx:99-103) : réservé au DÉCLARANT — les colocataires
@@ -134,22 +151,34 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   const aContester = incidentsEnCours.filter(
     (i) =>
       i.est_declarant &&
-      (i.imputation === "locataire" || i.imputation === "degradation_fautive") &&
-      !i.imputation_contestee_le
+      (i.imputation === "locataire" ||
+        i.imputation === "degradation_fautive") &&
+      !i.imputation_contestee_le,
   );
-  const gestionnaire = ((gestionnaires ?? []) as {
-    agence: string;
-    telephone: string | null;
-    email_contact: string | null;
-    agent_email: string | null;
-  }[])[0];
+  const gestionnaire = (
+    (gestionnaires ?? []) as {
+      agence: string;
+      telephone: string | null;
+      email_contact: string | null;
+      agent_email: string | null;
+    }[]
+  )[0];
   const nbPiecesDemandees = ((piecesDemandees ?? []) as unknown[]).length;
   const nbSignatures = ((signatures ?? []) as unknown[]).length;
-  const creneauxAChoisir = (creneaux ?? []) as { intervention_id: string; categorie: string }[];
-  const interventionsAPlanifier = new Set(creneauxAChoisir.map((c) => c.intervention_id)).size;
+  const creneauxAChoisir = (creneaux ?? []) as {
+    intervention_id: string;
+    categorie: string;
+  }[];
+  const interventionsAPlanifier = new Set(
+    creneauxAChoisir.map((c) => c.intervention_id),
+  ).size;
 
   const moisLong = (d: string) =>
-    new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+    new Date(d).toLocaleDateString("fr-FR", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
+    });
   const aujourdhui = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -157,7 +186,9 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     year: "numeric",
     timeZone: "Europe/Paris",
   });
-  const enRetard = prochaine && (prochaine.statut === "impaye" || prochaine.statut === "partiel");
+  const enRetard =
+    prochaine &&
+    (prochaine.statut === "impaye" || prochaine.statut === "partiel");
   const resteADevoir = prochaine
     ? Number(prochaine.montant_du) - Number(prochaine.montant_couvert)
     : 0;
@@ -165,7 +196,13 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
   // « Ce qui vous attend » : tout ce que le menu comptait déjà en badges, dit
   // en clair et avec le geste à côté. Le loyer en retard y prend sa place —
   // il avait sa propre carte plus bas, qui répétait la même chose.
-  const aFaire: { cle: string; titre: string; detail: string; href: string; action: string }[] = [];
+  const aFaire: {
+    cle: string;
+    titre: string;
+    detail: string;
+    href: string;
+    action: string;
+  }[] = [];
   if (eCreneaux) {
     // La lecture des rendez-vous a échoué. Ne rien dire ferait croire au
     // locataire qu'on n'attend rien de lui — et le dossier s'arrêterait là,
@@ -250,7 +287,8 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         nbSignatures > 1
           ? `${nbSignatures} documents à signer`
           : "Un document à signer",
-      detail: "À télécharger, signer, puis redéposer — votre gestionnaire est prévenu.",
+      detail:
+        "À télécharger, signer, puis redéposer — votre gestionnaire est prévenu.",
       href: `/locataire/${orgId}/documents`,
       action: "Ouvrir",
     });
@@ -268,16 +306,24 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     });
   }
 
+  const autresActions = aFaire.filter((t) => t.cle !== "loyer");
+
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="mono-discret sans-majuscules">{aujourdhui}</p>
-        <h1 className="mt-0.5">
-          Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""},
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Voici l&apos;essentiel pour votre logement.
-        </p>
+    <div className="loc-accueil">
+      <div className="loc-bienvenue">
+        <div>
+          <p className="mono-discret sans-majuscules">{aujourdhui}</p>
+          <h1 className="mt-0.5">
+            Bonjour{personne?.prenom ? ` ${personne.prenom}` : ""},
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Votre logement, vos démarches. En toute simplicité.
+          </p>
+        </div>
+        <Link href={`/locataire/${orgId}/contact`} className="loc-cta">
+          <MessageCircle aria-hidden />
+          Écrire à mon gestionnaire
+        </Link>
       </div>
 
       {aEchoue(
@@ -288,21 +334,27 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         eGestionnaire,
         eAnnonces,
         eDemandes,
-        eSignatures
+        eSignatures,
       ) && <PanneLecture quoi="l'essentiel de votre logement" />}
 
       {bail && (
         <div className="loc-hero">
           <span className="loc-vignette" aria-hidden>
-            {(bail.ville?.[0] ?? bail.lot_nom[0] ?? "G").toUpperCase()}
+            <House aria-hidden />
           </span>
           <div className="min-w-0">
-            <p className="font-heading text-xl text-[var(--encre)]">{bail.lot_nom}</p>
+            <p className="font-heading text-xl text-[var(--encre)]">
+              {bail.lot_nom}
+            </p>
             <p className="text-[13px] text-muted-foreground">{bail.adresse}</p>
             <p className="mt-1 text-[12.5px] text-muted-foreground">
               {[
-                bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")} m²` : null,
-                bail.pieces != null ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}` : null,
+                bail.surface_m2 != null
+                  ? `${Number(bail.surface_m2).toLocaleString("fr-FR")} m²`
+                  : null,
+                bail.pieces != null
+                  ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}`
+                  : null,
                 bail.etage ? `étage ${bail.etage}` : null,
                 bail.meuble ? "meublé" : null,
               ]
@@ -336,47 +388,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               )}
             </div>
           </div>
-          <div className="loc-citation">
-            Un chez-vous plus serein,
-            <br />
-            au quotidien.
-          </div>
-        </div>
-      )}
-
-      {aFaire.length > 0 && (
-        <div className="loc-carte border-l-4 border-l-[var(--or)]">
-          <div className="entete-carte !mb-1">
-            <h3 className="text-base font-medium">Ce qui vous attend</h3>
-            <span className="loc-tag ambre">
-              {aFaire.length} point{aFaire.length > 1 ? "s" : ""}
-            </span>
-          </div>
-          <ul className="divide-y divide-border">
-            {aFaire.map((t) => (
-              <li
-                key={t.cle}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
-              >
-                <span className="min-w-0 flex-1">
-                  <b className="block font-medium">{t.titre}</b>
-                  <small className="block text-muted-foreground">{t.detail}</small>
-                </span>
-                <Link
-                  href={t.href}
-                  className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                >
-                  {t.action}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {enRetard && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              Une difficulté de paiement ? Écrivez à votre gestionnaire : une
-              solution se trouve toujours plus tôt que tard.
-            </p>
-          )}
         </div>
       )}
 
@@ -390,9 +401,11 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       ))}
 
       <div className="loc-grille">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="space-y-5">
           <div className="loc-carte loc-kpi">
-            <p className="text-[13px] font-semibold text-[var(--encre)]">Prochain loyer</p>
+            <p className="text-[13px] font-semibold text-[var(--encre)]">
+              Prochain loyer
+            </p>
             {eEcheancier ? (
               <div className="mt-2">
                 <LectureImpossible quoi="votre échéancier" />
@@ -400,10 +413,14 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             ) : bail && prochaine ? (
               <>
                 <p className="v montant">{eur(resteADevoir)}</p>
-                <p className="text-xs text-muted-foreground capitalize">{moisLong(prochaine.periode)}</p>
-                <span className={`loc-tag mt-2.5 ${enRetard ? "rouge" : "vert"}`}>
+                <p className="text-xs text-muted-foreground capitalize">
+                  {moisLong(prochaine.periode)}
+                </p>
+                <span
+                  className={`loc-tag mt-2.5 ${enRetard ? "rouge" : "vert"}`}
+                >
                   {prochaine.statut === "impaye"
-                    ? "En retard — régularisez vite"
+                    ? "En retard"
                     : prochaine.statut === "partiel"
                       ? "Partiellement réglé"
                       : "✓ À jour"}
@@ -414,12 +431,68 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 Rien à régler pour l&apos;instant.
               </p>
             )}
-            <Link href={`/locataire/${orgId}/loyers`} className="lien-discret mt-3 block">
+            {bail && prochaine && !eEcheancier && (
+              <p className="mt-3 text-xs text-muted-foreground">
+                À régler par virement à votre gestionnaire.
+              </p>
+            )}
+            {enRetard && (
+              <Link
+                href={`/locataire/${orgId}/contact`}
+                className="lien-discret mt-3 block"
+              >
+                Une difficulté de paiement ? Écrire à mon gestionnaire →
+              </Link>
+            )}
+            <Link
+              href={`/locataire/${orgId}/loyers`}
+              className="lien-discret mt-3 block"
+            >
               Voir mes paiements →
             </Link>
           </div>
+          {autresActions.length > 0 && (
+            <div className="loc-carte loc-actions">
+              <div className="entete-carte !mb-1">
+                <h3 className="text-base font-medium">
+                  Vos démarches à suivre
+                </h3>
+                <span className="loc-tag ambre">
+                  {autresActions.length} point
+                  {autresActions.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <ul className="divide-y divide-border">
+                {autresActions.map((t) => (
+                  <li
+                    key={t.cle}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <b className="block font-medium">{t.titre}</b>
+                      <details className="mt-1">
+                        <summary>Voir le détail</summary>
+                        <small className="block text-muted-foreground">
+                          {t.detail}
+                        </small>
+                      </details>
+                    </span>
+                    <Link
+                      href={t.href}
+                      className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+                    >
+                      {t.action}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="loc-carte loc-kpi">
-            <p className="text-[13px] font-semibold text-[var(--encre)]">Mes documents</p>
+            <p className="text-[13px] font-semibold text-[var(--encre)]">
+              Mes documents
+            </p>
             {ePieces || eEcheancier ? (
               <div className="mt-2">
                 <LectureImpossible quoi="vos documents" />
@@ -434,27 +507,32 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                       ? enumererFr(contenuDocuments)
                       : `pièce${nbDocuments > 1 ? "s" : ""} à votre disposition`}
                 </p>
-                <span
-                  className={`loc-tag mt-2.5 ${
-                    !bail
-                      ? "bleu"
-                      : renouvellementDepose || assuranceEnVerification || assuranceARenouveler || !attestationValide
-                        ? "ambre"
-                        : "vert"
-                  }`}
-                >
-                  {!bail
-                    ? "Aucune pièce attendue"
-                    : renouvellementDepose
-                      ? "Renouvellement déposé — en cours de vérification"
-                      : assuranceARenouveler && derniere
-                        ? `Assurance à renouveler avant le ${formaterDate(derniere.expire_le)}`
-                        : assuranceEnVerification
-                          ? "Assurance en cours de vérification"
-                          : attestationValide
-                            ? "✓ Assurance à jour"
-                            : "Assurance à déposer"}
-                </span>
+                {!autresActions.some((t) => t.cle === "assurance") && (
+                  <span
+                    className={`loc-tag mt-2.5 ${
+                      !bail
+                        ? "bleu"
+                        : renouvellementDepose ||
+                            assuranceEnVerification ||
+                            assuranceARenouveler ||
+                            !attestationValide
+                          ? "ambre"
+                          : "vert"
+                    }`}
+                  >
+                    {!bail
+                      ? "Aucune pièce attendue"
+                      : renouvellementDepose
+                        ? "Renouvellement déposé — en cours de vérification"
+                        : assuranceARenouveler && derniere
+                          ? `Assurance à renouveler avant le ${formaterDate(derniere.expire_le)}`
+                          : assuranceEnVerification
+                            ? "Assurance en cours de vérification"
+                            : attestationValide
+                              ? "✓ Assurance à jour"
+                              : "Assurance à déposer"}
+                  </span>
+                )}
               </>
             )}
             {/* L'accueil comptait les quittances sans jamais en ouvrir une
@@ -474,12 +552,17 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 Dernière quittance — {moisLong(derniereQuittance.periode)} →
               </Link>
             )}
-            <Link href={`/locataire/${orgId}/documents`} className="lien-discret mt-3 block">
+            <Link
+              href={`/locataire/${orgId}/documents`}
+              className="lien-discret mt-3 block"
+            >
               Voir mes documents →
             </Link>
           </div>
           <div className="loc-carte loc-kpi">
-            <p className="text-[13px] font-semibold text-[var(--encre)]">Mon logement</p>
+            <p className="text-[13px] font-semibold text-[var(--encre)]">
+              Mes signalements
+            </p>
             {eIncidents ? (
               <div className="mt-2">
                 <LectureImpossible quoi="vos demandes" />
@@ -489,26 +572,27 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 <p className="mt-1.5 font-heading text-xl text-[var(--encre)]">
                   Tout est en ordre
                 </p>
-                <span className="loc-tag vert mt-2.5">✓ Aucun incident en cours</span>
+                <span className="loc-tag vert mt-2.5">
+                  ✓ Aucun incident en cours
+                </span>
               </>
             ) : (
               <>
                 <p className="v">{incidentsEnCours.length}</p>
                 <p className="text-xs text-muted-foreground">
-                  demande{incidentsEnCours.length > 1 ? "s" : ""} en cours de traitement
+                  demande{incidentsEnCours.length > 1 ? "s" : ""} en cours de
+                  traitement
                 </p>
                 {/* La pastille disait « Suivie(s) par votre gestionnaire »
                     même quand l'imputation venait d'être mise à la charge du
                     locataire et que sa fenêtre de contestation était ouverte
                     (relevé 11/09) : à ce moment-là, c'est lui qui a la main.
                     RM-19.2.3 : le statut se lit depuis l'accueil. */}
-                <span className="loc-tag ambre mt-2.5">
-                  {aContester.length > 1
-                    ? "Des décisions vous attendent"
-                    : aContester.length === 1
-                      ? "Une décision vous attend"
-                      : `Suivie${incidentsEnCours.length > 1 ? "s" : ""} par votre gestionnaire`}
-                </span>
+                {aContester.length === 0 && (
+                  <span className="loc-tag ambre mt-2.5">
+                    {`Suivie${incidentsEnCours.length > 1 ? "s" : ""} par votre gestionnaire`}
+                  </span>
+                )}
               </>
             )}
             {/* Les DEUX portes, au lieu d'une qui bascule : le ternaire
@@ -519,14 +603,23 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 cul-de-sac : on ne propose alors que l'historique. */}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
               {adhesionActive && (
-                <Link href={`/locataire/${orgId}/incident`} className="lien-discret">
+                <Link
+                  href={`/locataire/${orgId}/incident`}
+                  className="lien-discret"
+                >
                   Signaler un problème →
                 </Link>
               )}
               {(incidentsEnCours.length > 0 || !adhesionActive) && (
-                <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
+                <Link
+                  href={`/locataire/${orgId}/demandes`}
+                  className="lien-discret"
+                >
                   Suivre mes demandes
-                  {incidentsEnCours.length > 0 ? ` (${incidentsEnCours.length})` : ""} →
+                  {incidentsEnCours.length > 0
+                    ? ` (${incidentsEnCours.length})`
+                    : ""}{" "}
+                  →
                 </Link>
               )}
             </div>
@@ -534,10 +627,23 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         </div>
 
         <div className="space-y-4">
+          {eSuivis ? (
+            <div className="loc-carte">
+              <LectureImpossible quoi="vos rendez-vous" />
+            </div>
+          ) : (
+            <AgendaLocataire
+              orgId={orgId}
+              bail={bail}
+              suivis={(suivis ?? []) as SuiviIntervention[]}
+              choix={interventionsAPlanifier}
+            />
+          )}
           <CarteGestionnaire orgId={orgId} gestionnaire={gestionnaire} />
           <CarteUrgence />
         </div>
       </div>
+      <ConseilsLocataire orgId={orgId} />
     </div>
   );
 }

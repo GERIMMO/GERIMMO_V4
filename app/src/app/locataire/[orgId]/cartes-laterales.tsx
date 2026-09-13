@@ -29,7 +29,12 @@ export function CarteGestionnaire({
       <div className="mt-3 flex items-center gap-3">
         <span
           className="loc-avat"
-          style={{ width: 44, height: 44, background: "linear-gradient(135deg, var(--bleu), var(--encre))", color: "var(--sur-encre)" }}
+          style={{
+            width: 44,
+            height: 44,
+            background: "var(--loc-sauge, var(--ardoise))",
+            color: "var(--loc-accent, var(--encre))",
+          }}
           aria-hidden
         >
           {initiales || "◇"}
@@ -43,12 +48,14 @@ export function CarteGestionnaire({
           )}
         </span>
       </div>
-      <div className={`mt-3.5 grid gap-2 ${gestionnaire.telephone ? "grid-cols-2" : "grid-cols-1"}`}>
+      <div
+        className={`mt-3.5 grid gap-2 ${gestionnaire.telephone ? "grid-cols-2" : "grid-cols-1"}`}
+      >
         <Link
           href={`/locataire/${orgId}/contact`}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
-          Contacter
+          Écrire
         </Link>
         {gestionnaire.telephone && (
           <a
@@ -67,7 +74,8 @@ export function CarteUrgence() {
   return (
     <div className="loc-carte">
       <p className="text-xs text-muted-foreground">
-        Une urgence vitale ? En cas de danger, contactez d&apos;abord les secours :
+        Une urgence vitale ? En cas de danger, contactez d&apos;abord les
+        secours :
       </p>
       <div className="mt-2 flex items-center gap-2.5">
         <span
@@ -86,7 +94,9 @@ export function CarteUrgence() {
         <a href="tel:112" className="text-lg font-bold text-destructive">
           112
         </a>
-        <span className="text-xs text-muted-foreground">numéro d&apos;urgence européen</span>
+        <span className="text-xs text-muted-foreground">
+          numéro d&apos;urgence européen
+        </span>
       </div>
       <p className="mt-2.5 text-xs text-muted-foreground">
         Odeur de gaz : aérez, ne touchez aucun interrupteur, appelez Urgence

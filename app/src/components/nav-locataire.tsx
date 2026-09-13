@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -9,13 +10,20 @@ import { cn } from "@/lib/utils";
 // qui l'attend. En mobile, la barre devient un rail d'icônes.
 
 const IC: Record<string, string> = {
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
   maison: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/>',
   cle: '<circle cx="8" cy="12" r="4"/><path d="M12 12h9M17 12v3M20.5 12v2"/>',
   doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4M9 12h6M9 16h6"/>',
-  carte: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
-  outil: '<path d="M14.5 6.5a4 4 0 0 0-5.6 4.9L4 16.3V20h3.7l4.9-4.9a4 4 0 0 0 4.9-5.6L15 12l-3-3z"/>',
-  bulle: '<path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/>',
-  quest: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7M12 17h.01"/>',
+  carte:
+    '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
+  outil:
+    '<path d="M14.5 6.5a4 4 0 0 0-5.6 4.9L4 16.3V20h3.7l4.9-4.9a4 4 0 0 0 4.9-5.6L15 12l-3-3z"/>',
+  bulle:
+    '<path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/>',
+  calendrier:
+    '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+  quest:
+    '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7M12 17h.01"/>',
 };
 
 function Icone({ nom }: { nom: string }) {
@@ -48,6 +56,7 @@ export function SidebarLocataire({
   declarationOuverte?: boolean;
 }) {
   const pathname = usePathname();
+  const [ouvert, setOuvert] = useState(false);
   const base = `/locataire/${orgId}`;
   // « Signaler un problème » menait à la LISTE, où il fallait toucher un
   // bouton portant les mêmes mots (relevé 11/09) : l'entrée mène maintenant
@@ -64,7 +73,12 @@ export function SidebarLocataire({
   const entrees = [
     { href: base, libelle: "Accueil", icone: "maison", exact: true },
     { href: `${base}/logement`, libelle: "Mon logement", icone: "cle" },
-    { href: `${base}/documents`, libelle: "Mes documents", icone: "doc", badge: badgeDocuments },
+    {
+      href: `${base}/documents`,
+      libelle: "Mes documents",
+      icone: "doc",
+      badge: badgeDocuments,
+    },
     { href: `${base}/loyers`, libelle: "Mes paiements", icone: "carte" },
     {
       href: declarationOuverte ? `${base}/incident` : `${base}/demandes`,
@@ -73,38 +87,71 @@ export function SidebarLocataire({
       aussi: declarationOuverte ? `${base}/demandes` : `${base}/incident`,
       badge: badgeDemandes,
     },
-    { href: `${base}/contact`, libelle: "Mon gestionnaire", icone: "bulle", badge: badgeMessages },
+    {
+      href: `${base}/agenda`,
+      libelle: "Agenda & alertes",
+      icone: "calendrier",
+    },
+    {
+      href: `${base}/contact`,
+      libelle: "Mon gestionnaire",
+      icone: "bulle",
+      badge: badgeMessages,
+    },
     { href: `${base}/faq`, libelle: "Questions fréquentes", icone: "quest" },
   ];
 
   return (
-    <nav className="loc-menu" aria-label="Mon espace">
-      {entrees.map((e) => {
-        const active = e.exact
-          ? pathname === e.href
-          : pathname.startsWith(e.href) || (e.aussi ? pathname.startsWith(e.aussi) : false);
-        const nb = e.badge ?? 0;
-        return (
-          <Link
-            key={e.href}
-            href={e.href}
-            className={cn(active && "actif")}
-            title={e.libelle}
-            // Accessibilité (audit 09/09) : le lien s'annonce en entier, le
-            // badge est décoratif — sinon les lecteurs d'écran ne lisent
-            // que le nombre
-            aria-label={nb > 0 ? `${e.libelle}, ${nb} élément${nb > 1 ? "s" : ""} à traiter` : undefined}
-          >
-            <Icone nom={e.icone} />
-            <span className="lib">{e.libelle}</span>
-            {nb > 0 && (
-              <span className="loc-badge" aria-hidden="true">
-                {nb > 99 ? "99+" : nb}
-              </span>
-            )}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="loc-navigation">
+      <button
+        type="button"
+        className="loc-menu-toggle"
+        aria-expanded={ouvert}
+        aria-controls="loc-navigation-liens"
+        onClick={() => setOuvert(!ouvert)}
+      >
+        <Icone nom="menu" />
+        {ouvert ? "Fermer le menu" : "Menu de mon espace"}
+      </button>
+      <nav
+        id="loc-navigation-liens"
+        className={cn("loc-menu", ouvert && "ouvert")}
+        aria-label="Mon espace"
+      >
+        {entrees.map((e) => {
+          const active = e.exact
+            ? pathname === e.href
+            : pathname.startsWith(e.href) ||
+              (e.aussi ? pathname.startsWith(e.aussi) : false);
+          const nb = e.badge ?? 0;
+          return (
+            <Link
+              key={e.href}
+              href={e.href}
+              onClick={() => setOuvert(false)}
+              className={cn(active && "actif")}
+              title={e.libelle}
+              aria-current={active ? "page" : undefined}
+              // Accessibilité (audit 09/09) : le lien s'annonce en entier, le
+              // badge est décoratif — sinon les lecteurs d'écran ne lisent
+              // que le nombre
+              aria-label={
+                nb > 0
+                  ? `${e.libelle}, ${nb} élément${nb > 1 ? "s" : ""} à traiter`
+                  : undefined
+              }
+            >
+              <Icone nom={e.icone} />
+              <span className="lib">{e.libelle}</span>
+              {nb > 0 && (
+                <span className="loc-badge" aria-hidden="true">
+                  {nb > 99 ? "99+" : nb}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
   );
 }

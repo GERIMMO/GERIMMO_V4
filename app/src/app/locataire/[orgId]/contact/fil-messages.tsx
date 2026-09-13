@@ -1,7 +1,10 @@
 "use client";
 
 import { useActionState, useRef } from "react";
-import { envoyerMessageLocataire, type EtatMessage } from "@/app/actions/messages";
+import {
+  envoyerMessageLocataire,
+  type EtatMessage,
+} from "@/app/actions/messages";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
 import { LectureImpossible } from "../panne-lecture";
@@ -38,7 +41,7 @@ export function FilMessages({
 }) {
   const [etat, action] = useActionState<EtatMessage, FormData>(
     envoyerMessageLocataire.bind(null, orgId),
-    {}
+    {},
   );
   const champ = useRef<HTMLTextAreaElement>(null);
 
@@ -70,18 +73,19 @@ export function FilMessages({
               key={m.id}
               className={`max-w-[88%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
                 m.auteur === "locataire"
-                  ? "ml-auto rounded-br-sm bg-[var(--encre)] text-[var(--sur-encre)]"
+                  ? "ml-auto rounded-br-sm loc-message-bulle"
                   : "rounded-bl-sm bg-[var(--ardoise)]"
               }`}
             >
               <p
                 className={`mb-0.5 text-[11px] ${
                   m.auteur === "locataire"
-                    ? "text-[var(--sur-encre)]/60"
+                    ? "text-muted-foreground"
                     : "text-muted-foreground"
                 }`}
               >
-                {m.auteur === "locataire" ? "Vous" : agence} · {quand(m.cree_le)}
+                {m.auteur === "locataire" ? "Vous" : agence} ·{" "}
+                {quand(m.cree_le)}
               </p>
               {m.texte}
             </div>
@@ -91,70 +95,74 @@ export function FilMessages({
 
       {lectureSeule ? (
         <p className="mt-4 text-xs text-muted-foreground">
-          Votre bail est terminé : le fil reste consultable, mais l&apos;envoi de
-          nouveaux messages est fermé. Besoin de joindre votre ancien
+          Votre bail est terminé : le fil reste consultable, mais l&apos;envoi
+          de nouveaux messages est fermé. Besoin de joindre votre ancien
           gestionnaire ? Ses coordonnées figurent sur cette page, dans la carte
           «&nbsp;{agence}&nbsp;».
         </p>
       ) : (
-      <>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            // Le libellé est raccourci pour tenir : le titre et le nom
-            // accessible portent la phrase entière, qui est celle insérée.
-            title={s}
-            aria-label={s}
-            className="filtre hover:!bg-[var(--ardoise)]"
-            onClick={() => {
-              if (champ.current) {
-                champ.current.value = s;
-                champ.current.focus();
-              }
-            }}
-          >
-            {s.length > 44 ? `${s.slice(0, 42).replace(/\s+\S*$/, "")}…` : s}
-          </button>
-        ))}
-      </div>
+        <>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                // Le libellé est raccourci pour tenir : le titre et le nom
+                // accessible portent la phrase entière, qui est celle insérée.
+                title={s}
+                aria-label={s}
+                className="filtre hover:!bg-[var(--ardoise)]"
+                onClick={() => {
+                  if (champ.current) {
+                    champ.current.value = s;
+                    champ.current.focus();
+                  }
+                }}
+              >
+                {s.length > 44
+                  ? `${s.slice(0, 42).replace(/\s+\S*$/, "")}…`
+                  : s}
+              </button>
+            ))}
+          </div>
 
-      <form action={action} className="mt-3">
-        <Label htmlFor="msg-texte">Votre message</Label>
-        {/* Non contrôlé, re-monté à chaque nouveau message : le champ se vide
+          <form action={action} className="mt-3">
+            <Label htmlFor="msg-texte">Votre message</Label>
+            {/* Non contrôlé, re-monté à chaque nouveau message : le champ se vide
             quand l'envoi aboutit, sans état React. En erreur, la saisie est
             reposée via etat.valeurs (audit vie du bail 09/09). */}
-        <textarea
-          id="msg-texte"
-          name="texte"
-          ref={champ}
-          key={messages.length}
-          defaultValue={etat.valeurs?.texte}
-          rows={3}
-          maxLength={4000}
-          className="mt-1 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"
-          placeholder="Écrire à votre gestionnaire…"
-        />
-        {etat.erreur && (
-          <p className="err mt-2 !mb-0" role="alert">
-            {etat.erreur}
-          </p>
-        )}
-        <div className="mt-2 flex items-center gap-3">
-          <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
-            Envoyer le message
-          </BoutonEnvoi>
-          {etat.succes && (
-            <span className="text-sm text-success-soft-foreground">{etat.succes}</span>
-          )}
-        </div>
-        <p className="mt-2.5 text-xs text-muted-foreground">
-          Tout le fil est conservé ici — vous retrouverez toujours ce qui a été
-          dit.
-        </p>
-      </form>
-      </>
+            <textarea
+              id="msg-texte"
+              name="texte"
+              ref={champ}
+              key={messages.length}
+              defaultValue={etat.valeurs?.texte}
+              rows={3}
+              maxLength={4000}
+              className="mt-1 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"
+              placeholder="Écrire à votre gestionnaire…"
+            />
+            {etat.erreur && (
+              <p className="err mt-2 !mb-0" role="alert">
+                {etat.erreur}
+              </p>
+            )}
+            <div className="mt-2 flex items-center gap-3">
+              <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
+                Envoyer le message
+              </BoutonEnvoi>
+              {etat.succes && (
+                <span className="text-sm text-success-soft-foreground">
+                  {etat.succes}
+                </span>
+              )}
+            </div>
+            <p className="mt-2.5 text-xs text-muted-foreground">
+              Tout le fil est conservé ici — vous retrouverez toujours ce qui a
+              été dit.
+            </p>
+          </form>
+        </>
       )}
     </div>
   );

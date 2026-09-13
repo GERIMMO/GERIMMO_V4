@@ -1,0 +1,385 @@
+/* Présentation du portail uniquement : les jetons métier restent inchangés. */
+.loc-app.loc-premium {
+  --loc-accent: var(--portail-accent, #48695b);
+  --loc-sauge: color-mix(in srgb, var(--loc-accent) 9%, var(--carte));
+  grid-template-columns: 218px minmax(0, 1fr);
+  background: var(--creme);
+}
+.loc-premium .loc-late {
+  background: var(--carte);
+  color: var(--encre);
+  border-right: 1px solid var(--filet);
+}
+.loc-premium .loc-logo {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 28px 22px;
+  border-color: var(--filet);
+}
+.loc-premium .loc-logo-texte {
+  color: var(--libelle);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+.loc-premium .loc-navigation {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.loc-premium .loc-menu-toggle {
+  display: none;
+}
+.loc-premium .loc-menu {
+  gap: 6px;
+  padding: 18px 12px;
+}
+.loc-premium .loc-menu a {
+  color: var(--texte-secondaire);
+  min-height: 46px;
+  font-size: 13px;
+  border-radius: 12px;
+}
+.loc-premium .loc-menu a:hover,
+.loc-premium .loc-menu a.actif {
+  background: var(--loc-sauge);
+  color: var(--loc-accent);
+}
+.loc-premium .loc-menu a.actif {
+  font-weight: 500;
+}
+.loc-premium .loc-badge {
+  background: var(--warning-soft);
+  color: var(--warning-soft-foreground);
+  font-weight: 500;
+}
+.loc-premium .loc-haut {
+  justify-content: space-between;
+  padding: 12px 30px;
+}
+.loc-premium .loc-haut-libelle {
+  font-size: 12px;
+  color: var(--libelle);
+}
+.loc-premium .loc-avat {
+  background: var(--loc-sauge);
+  color: var(--loc-accent);
+  font-weight: 500;
+}
+.loc-premium .loc-corps {
+  max-width: 1200px;
+  padding: 34px 34px 56px;
+}
+.loc-premium .loc-carte {
+  border: 1px solid var(--filet);
+  border-radius: 20px;
+  box-shadow: none;
+  padding: 24px;
+}
+.loc-premium .loc-hero {
+  background: var(--loc-sauge);
+  border-radius: 20px;
+  box-shadow: none;
+  padding: 25px;
+  gap: 22px;
+}
+.loc-premium .loc-vignette {
+  width: 76px;
+  height: 88px;
+  border-radius: 38px 38px 13px 13px;
+  background: var(--carte);
+  color: var(--loc-accent);
+}
+.loc-premium .loc-vignette svg {
+  width: 30px;
+  height: 30px;
+}
+.loc-premium .loc-grille {
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+  gap: 22px;
+}
+.loc-premium .loc-kpi .v {
+  font-size: 38px;
+  font-weight: 400;
+  margin-block: 12px 5px;
+}
+.loc-premium .loc-tag {
+  font-weight: 500;
+  font-size: 11px;
+  padding: 5px 10px;
+  white-space: normal;
+}
+.loc-premium .loc-accueil {
+  display: grid;
+  gap: 24px;
+}
+.loc-premium .loc-bienvenue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.loc-premium .loc-bienvenue h1 {
+  margin-block: 8px;
+}
+.loc-premium .loc-bienvenue .mono-discret {
+  font-family: var(--font-interface), sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+}
+.loc-premium .loc-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 11px;
+  background: var(--loc-accent);
+  color: var(--carte);
+  font-size: 13px;
+  min-height: 44px;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.loc-premium .loc-cta:hover {
+  background: color-mix(in srgb, var(--loc-accent) 85%, var(--encre));
+}
+.loc-premium .loc-cta svg {
+  width: 16px;
+  height: 16px;
+}
+.loc-premium .loc-cta:active {
+  transform: translateY(1px);
+}
+.loc-premium .loc-cta:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.loc-premium .loc-actions li {
+  padding-block: 16px;
+}
+.loc-premium .loc-actions small {
+  margin-top: 5px;
+  line-height: 1.55;
+}
+.loc-premium .loc-actions summary,
+.loc-premium .loc-agenda summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--loc-accent);
+}
+.loc-premium .loc-conseils {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: color-mix(in srgb, var(--or) 8%, var(--carte));
+}
+.loc-premium .loc-conseils-icone {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--loc-accent);
+  background: var(--carte);
+}
+.loc-premium .loc-conseils .lien-discret {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.loc-premium .loc-agenda-ligne {
+  display: flex;
+  gap: 14px;
+  padding-block: 14px;
+  border-top: 1px solid var(--filet);
+}
+.loc-premium .loc-agenda-jour {
+  width: 40px;
+  flex: none;
+  text-align: center;
+  color: var(--loc-accent);
+  font-family: var(--font-titres), Georgia, serif;
+  font-size: 25px;
+  line-height: 1.2;
+}
+.loc-premium .loc-agenda-jour small {
+  display: block;
+  font:
+    10px var(--font-interface),
+    sans-serif;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.loc-premium .loc-agenda-ligne p {
+  font-size: 13px;
+}
+.loc-premium .loc-agenda-ligne small {
+  color: var(--libelle);
+}
+.loc-premium .loc-message-bulle {
+  background: var(--loc-sauge);
+  color: var(--corps);
+}
+@media (max-width: 1050px) {
+  .loc-app.loc-premium {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+  .loc-premium .loc-logo {
+    padding-inline: 16px;
+  }
+  .loc-premium .loc-logo a > span {
+    gap: 6px;
+  }
+  .loc-premium .loc-logo a > span > span {
+    font-size: 15px;
+    letter-spacing: 0.17em;
+  }
+  .loc-premium .loc-corps {
+    padding-inline: 24px;
+  }
+  .loc-premium .loc-grille {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 860px) and (min-width: 641px) {
+  .loc-app.loc-premium {
+    grid-template-columns: 150px minmax(0, 1fr);
+  }
+  .loc-premium .loc-logo a > span > span {
+    display: block;
+    font-size: 12px;
+  }
+  .loc-premium .loc-logo-texte {
+    display: block;
+    font-size: 9px;
+  }
+  .loc-premium .loc-menu a {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 12px 9px;
+  }
+  .loc-premium .loc-menu .lib {
+    display: block;
+    font-size: 12px;
+    text-align: left;
+  }
+  .loc-premium .loc-badge {
+    position: static;
+    margin-left: auto;
+  }
+}
+@media (max-width: 640px) {
+  .loc-app.loc-premium {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .loc-premium .loc-late {
+    border-right: 0;
+    border-bottom: 1px solid var(--filet);
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .loc-premium .loc-logo {
+    padding: 18px 16px 10px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .loc-premium .loc-logo a > span > span {
+    display: block;
+    font-size: 15px;
+  }
+  .loc-premium .loc-logo-texte {
+    display: block;
+    font-size: 9px;
+  }
+  .loc-premium .loc-menu-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 8px 16px 14px;
+    color: var(--loc-accent);
+    font-size: 13px;
+  }
+  .loc-premium .loc-menu-toggle svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+  }
+  .loc-premium .loc-menu:not(.ouvert) {
+    display: none;
+  }
+  .loc-premium .loc-menu {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 8px 12px 14px;
+    gap: 4px;
+    overflow: visible;
+  }
+  .loc-premium .loc-menu a {
+    flex-direction: row;
+    gap: 6px;
+    padding: 10px 9px;
+    min-height: 44px;
+  }
+  .loc-premium .loc-menu .lib {
+    display: block;
+    font-size: 11px;
+  }
+  .loc-premium .loc-badge {
+    position: static;
+    margin-left: 2px;
+    font-size: 10px;
+  }
+  .loc-premium .loc-menu svg {
+    width: 15px;
+    height: 15px;
+  }
+  .loc-premium .loc-haut {
+    padding: 8px 16px;
+  }
+  .loc-premium .loc-corps {
+    padding: 24px 16px 40px;
+  }
+  .loc-premium .loc-carte {
+    padding: 20px;
+    border-radius: 17px;
+  }
+  .loc-premium .loc-hero {
+    padding: 20px;
+    gap: 16px;
+  }
+  .loc-premium .loc-vignette {
+    width: 48px;
+    height: 64px;
+  }
+  .loc-premium .loc-hero > div.min-w-0 {
+    flex: 1;
+  }
+  .loc-premium .loc-conseils {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .loc-premium .loc-conseils > div:nth-child(2) {
+    flex: 1;
+    min-width: 180px;
+  }
+  .loc-premium .loc-conseils .lien-discret {
+    margin-left: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loc-premium .loc-cta {
+    transition: none;
+  }
+}

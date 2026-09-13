@@ -164,40 +164,34 @@ export async function changerEtatMandat(
   if (!retourBrouillon && TRANSITIONS_MANDAT[mandat.etat] !== nouvelEtat) {
     return { erreur: "Ce changement d'état n'est pas permis depuis l'état actuel." };
   }
-  if (retourBrouillon) {
-    const { count } = await supabase
-      .from("mandat_lignes")
-      .select("*", { count: "exact", head: true })
-      .eq("mandat_id", mandatId)
-      .eq("organization_id", orgId)
-      .is("date_fin", null);
-    if ((count ?? 0) > 0) {
-      return {
-        erreur:
-          "Ce mandat porte des lots : signé, son contenu est celui du contrat — il ne repasse pas en brouillon.",
-      };
-    }
+  // Une lecture commune aux deux directions : l'absence de lot autorise le
+  // retour en brouillon, mais empêche de poursuivre le cycle du contrat.
+  const { count, error: erreurLignes } = await supabase
+    .from("mandat_lignes")
+    .select("*", { count: "exact", head: true })
+    .eq("mandat_id", mandatId)
+    .eq("organization_id", orgId)
+    .is("date_fin", null);
+  if (erreurLignes || count === null) {
+    return { erreur: "Impossible de vérifier les lots de ce mandat. Réessayez." };
+  }
+  if (retourBrouillon && count > 0) {
+    return {
+      erreur:
+        "Ce mandat porte des lots : signé, son contenu est celui du contrat — il ne repasse pas en brouillon.",
+    };
   }
   // Recette 21/08 puis 22/08 : un mandat vide traversait toute la chaîne
   // jusqu'à « résilié » sans jamais avoir porté de lot ni de taux. Le contrat
-  // vit avec son contenu, ou pas du tout — la garde vaut donc pour TOUTES les
-  // transitions (les mandats vides créés avant la garde du 21/08 ne doivent
-  // plus pouvoir avancer non plus, y compris vers la résiliation).
-  {
-    const { count } = await supabase
-      .from("mandat_lignes")
-      .select("*", { count: "exact", head: true })
-      .eq("mandat_id", mandatId)
-      .eq("organization_id", orgId)
-      .is("date_fin", null);
-    if ((count ?? 0) === 0) {
-      return {
-        erreur:
-          nouvelEtat === "a_signer"
-            ? "Un mandat sans lot ne part pas à la signature : ajoutez au moins un lot avec son taux d'honoraires."
-            : "Ce mandat ne porte ni lot ni taux : un contrat vide ne change plus d'état.",
-      };
-    }
+  // vit avec son contenu, ou pas du tout — sauf le retour prévu ci-dessus,
+  // les mandats vides ne peuvent plus avancer, y compris vers la résiliation.
+  if (!retourBrouillon && count === 0) {
+    return {
+      erreur:
+        nouvelEtat === "a_signer"
+          ? "Un mandat sans lot ne part pas à la signature : ajoutez au moins un lot avec son taux d'honoraires."
+          : "Ce mandat ne porte ni lot ni taux : un contrat vide ne change plus d'état.",
+    };
   }
 
   const { data: modifies, error } = await supabase

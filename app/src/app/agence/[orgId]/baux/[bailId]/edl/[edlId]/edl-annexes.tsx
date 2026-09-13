@@ -287,6 +287,7 @@ export function EdlAnnexes({
         <form
           id={idFormAnnexes}
           action={formAnnexes}
+          onReset={(event) => event.preventDefault()}
           className="flex flex-wrap items-center gap-2 border-t border-border pt-4"
         >
           <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">

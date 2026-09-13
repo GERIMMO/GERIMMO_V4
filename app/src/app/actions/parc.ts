@@ -18,6 +18,9 @@ import {
 export type EtatParc = {
   erreur?: string;
   succes?: string;
+  // Création de fiche réussie, mais détention refusée : reprendre cette
+  // fiche précise sans en créer une seconde lors de la correction.
+  personneCreee?: { id: string; nom: string; prenom: string | null };
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
 };
@@ -394,6 +397,7 @@ export async function ajouterDetention(
   // Propriétaire : une personne existante, ou une fiche minimale créée à la
   // volée (les fiches complètes arrivent au S3)
   let personId = String(formData.get("person_id") ?? "");
+  let personneCreee: EtatParc["personneCreee"];
   if (personId === "nouvelle") {
     // Pop-up « le propriétaire n'existe pas » (recette 08/08) : fiche créée à
     // la volée avec le rôle propriétaire mandant — mêmes règles que
@@ -419,10 +423,13 @@ export async function ajouterDetention(
     const { data: personne, error: erreurPersonne } = await supabase
       .from("persons")
       .insert({ organization_id: orgId, nom, prenom: prenom || null, email })
-      .select("id")
+      .select("id, nom, prenom")
       .single();
     if (erreurPersonne) return { erreur: sansJargon(erreurPersonne.message), valeurs };
     personId = personne.id;
+    personneCreee = personne;
+    revalidatePath(`/agence/${orgId}/personnes`);
+    revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   }
   if (!personId) return { erreur: "Choisir un propriétaire.", valeurs };
 
@@ -434,7 +441,18 @@ export async function ajouterDetention(
     quote_part: quotePart,
     ...(dateDebut ? { date_debut: dateDebut } : {}),
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (error) {
+    if (personneCreee) {
+      revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
+      revalidatePath(`/agence/${orgId}/parc/${bienId}`);
+      return {
+        erreur: `La fiche propriétaire a été créée, mais la détention n'a pas été enregistrée : ${sansJargon(error.message)} Corrigez la détention puis réessayez avec cette fiche.`,
+        valeurs: { ...valeurs, person_id: personneCreee.id },
+        personneCreee,
+      };
+    }
+    return { erreur: sansJargon(error.message), valeurs };
+  }
 
   // Les blocages « détention » s'affichent aussi sur la fiche bien, le parc et
   // le tableau de bord : mêmes chemins que changerEtatLot.

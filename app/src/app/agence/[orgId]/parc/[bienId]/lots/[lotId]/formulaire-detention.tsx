@@ -43,8 +43,24 @@ export function FormulaireDetention({
   // dans le formulaire via des champs cachés.
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const [nouveau, setNouveau] = useState({ nom: "", prenom: "", email: "" });
+  const [personnesAjoutees, setPersonnesAjoutees] = useState<Personne[]>([]);
+  const [etatTraite, setEtatTraite] = useState<EtatParc>();
   const refNom = useRef<HTMLInputElement>(null);
   const refEmail = useRef<HTMLInputElement>(null);
+
+  // Consommer le retour une seule fois : après la reprise, un changement
+  // manuel de propriétaire doit rester possible. L'option locale couvre
+  // aussi le délai de rafraîchissement de la liste venant du serveur.
+  if (etat !== etatTraite) {
+    setEtatTraite(etat);
+    if (etat.personneCreee) {
+      const personne = etat.personneCreee;
+      setChoix(personne.id);
+      setPersonnesAjoutees((precedentes) => precedentes.some((p) => p.id === personne.id)
+        ? precedentes : [...precedentes, personne]);
+      setModaleOuverte(false);
+    }
+  }
 
   const annulerNouveau = () => {
     setModaleOuverte(false);
@@ -63,8 +79,12 @@ export function FormulaireDetention({
   };
 
   // C : les propriétaires existants remontent en tête ; on garde tout le monde.
-  const dejaProprietaires = personnes.filter((p) => proprietairesIds.includes(p.id));
-  const autres = personnes.filter((p) => !proprietairesIds.includes(p.id));
+  const personnesDisponibles = [
+    ...personnes,
+    ...personnesAjoutees.filter((p) => !personnes.some((existante) => existante.id === p.id)),
+  ];
+  const dejaProprietaires = personnesDisponibles.filter((p) => proprietairesIds.includes(p.id));
+  const autres = personnesDisponibles.filter((p) => !proprietairesIds.includes(p.id));
   // Quote-part visible dès qu'il y a (ou qu'on déclare) plusieurs propriétaires
   const montrerQuotePart = !premierProprietaire || indivision;
 
@@ -179,7 +199,7 @@ export function FormulaireDetention({
         )}
         <div className="space-y-1.5">
           <Label htmlFor="detention-debut">Début de détention</Label>
-          <InputDateJour id="detention-debut"   name="date_debut" />
+          <InputDateJour id="detention-debut" name="date_debut" valeurSoumise={etat.valeurs?.date_debut} />
           <p className="text-xs text-muted-foreground">
             Vide = aujourd&apos;hui. La somme active ne peut pas dépasser 100 %
             .

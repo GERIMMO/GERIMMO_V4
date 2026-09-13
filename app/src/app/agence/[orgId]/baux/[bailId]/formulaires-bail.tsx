@@ -133,10 +133,10 @@ export function FormulaireConge({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="conge-date" className="text-xs">
-            1ʳᵉ présentation du recommandé
+            Date de réception du congé
           </Label>
           {/* Le préavis dépend de cette date : elle doit être relevée sur
-              le suivi postal, jamais déduite du jour de la saisie. */}
+              l’avis de réception, jamais déduite du jour de la saisie. */}
           <Input id="conge-date" type="date" required name="date_presentation" defaultValue={etat.valeurs?.date_presentation} />
         </div>
       </div>
@@ -210,7 +210,8 @@ export function FormulaireConge({
               : reduit
                 ? " (locataire, réduit)"
                 : " (locataire, nu)"}
-        . La date d&apos;effet est calculée depuis la 1ʳᵉ présentation.
+        . Le délai commence à la réception effective du congé. Pour un recommandé,
+        retenez le jour où le destinataire reçoit la lettre, pas le passage du facteur.
       </p>
 
       <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
@@ -226,6 +227,7 @@ export function FormulaireCreerEdl({
   orgId,
   bailId,
   bailEtat,
+  typesExistants = [],
 }: {
   orgId: string;
   bailId: string;
@@ -233,10 +235,13 @@ export function FormulaireCreerEdl({
   // hors préavis, l'option n'est pas proposée. Sans la prop, comportement
   // d'avant (les deux options) — le serveur revérifie de toute façon.
   bailEtat?: string;
+  typesExistants?: string[];
 }) {
   const action = creerEdl.bind(null, orgId, bailId);
   const [etat, formAction] = useActionState<EtatEdl, FormData>(action, {});
-  const sortiePossible = bailEtat === undefined || bailEtat === "preavis";
+  const entreePossible = bailEtat !== "termine" && !typesExistants.includes("entree");
+  const sortiePossible = (bailEtat === undefined || bailEtat === "preavis") && !typesExistants.includes("sortie");
+  if (!entreePossible && !sortiePossible) return null;
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
@@ -246,15 +251,15 @@ export function FormulaireCreerEdl({
         <select
           id="edl-type"
           name="type"
-          defaultValue="entree"
+          defaultValue={entreePossible ? "entree" : "sortie"}
           className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
         >
-          <option value="entree">Entrée</option>
+          {entreePossible && <option value="entree">Entrée</option>}
           {sortiePossible && <option value="sortie">Sortie</option>}
         </select>
       </div>
       <BoutonEnvoi enCoursTexte="Création…" size="sm" variant="outline">
-        Créer + générer la grille
+        Préparer cet état des lieux
       </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>

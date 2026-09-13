@@ -665,11 +665,28 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
     ]);
     expect(i.responsable_account_id).toBe(agentA);
 
-    // Un second agent ne peut pas se l'approprier : dossier déjà suivi
+    // Un second agent ne peut pas se l'approprier : le lot est d'abord hors
+    // de son portefeuille. Cette garde précède celle du responsable suivi.
     const agent2 = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'agent')`,
       [agent2, orgA]
+    );
+    await simuler(db, agent2);
+    await attendreEchec(
+      db,
+      /hors de votre portefeuille/,
+      `select public.attribuer_incident($1,$2,$3)`,
+      [orgA, incident, agent2]
+    );
+
+    // Même après transfert du mandat, le responsable d'un incident existant
+    // reste en place : seul l'administrateur peut réattribuer le dossier.
+    await simuler(db, adminA);
+    await db.query(
+      `update public.mandats set agent_account_id=$1
+       where organization_id=$2 and agent_account_id=$3`,
+      [agent2, orgA, agentA]
     );
     await simuler(db, agent2);
     await attendreEchec(
@@ -679,7 +696,13 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
       [orgA, incident, agent2]
     );
 
-    // Le premier le rend au pot commun
+    // Le premier retrouve son portefeuille puis rend le dossier au pot commun.
+    await simuler(db, adminA);
+    await db.query(
+      `update public.mandats set agent_account_id=$1
+       where organization_id=$2 and agent_account_id=$3`,
+      [agentA, orgA, agent2]
+    );
     await simuler(db, agentA);
     await db.query(`select public.attribuer_incident($1,$2,null)`, [orgA, incident]);
   });

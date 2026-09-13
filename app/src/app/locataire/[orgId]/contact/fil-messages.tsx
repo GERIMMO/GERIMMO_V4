@@ -128,6 +128,7 @@ export function FilMessages({
         <textarea
           id="msg-texte"
           name="texte"
+          required
           ref={champ}
           key={messages.length}
           defaultValue={etat.valeurs?.texte}

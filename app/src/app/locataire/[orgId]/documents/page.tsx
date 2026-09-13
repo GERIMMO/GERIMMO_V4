@@ -1,3 +1,4 @@
+import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
 import {
   TYPES_DOCUMENT,
@@ -27,6 +28,7 @@ type Piece = {
 };
 
 type LigneEcheancier = {
+  statut: string;
   periode: string;
   quittance_id: string | null;
 };
@@ -270,14 +272,14 @@ export default async function PageDocumentsLocataire(
                 className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
               >
                 <span className="min-w-0 flex-1">
-                  <b className="block truncate font-medium">Quittance — {moisLong(q.periode)}</b>
-                  <small className="block text-muted-foreground">Quittance de loyer</small>
+                  <b className="block truncate font-medium first-letter:uppercase">{libelleDocumentLoyer(q.statut)} — {moisLong(q.periode)}</b>
+                  <small className="block text-muted-foreground">Justificatif de paiement du loyer</small>
                 </span>
                 <Link
                   href={`/quittance/${q.quittance_id}`}
                   target="_blank"
                   rel="noopener"
-                  aria-label={`Ouvrir la quittance de ${moisLong(q.periode)}`}
+                  aria-label={`Ouvrir ${q.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(q.statut)} de ${moisLong(q.periode)}`}
                   className={`shrink-0 pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                 >
                   Ouvrir

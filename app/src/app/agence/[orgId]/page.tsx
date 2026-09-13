@@ -607,9 +607,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           étape, et invisible ensuite. Une agence qui vient d'ouvrir n'a ni
           action ni chiffre : ce qu'elle attend, c'est de savoir par où
           commencer. */}
-      <div className="mt-6">
-        <ParcoursDemarrage supabase={supabase} orgId={orgId} />
-      </div>
+      {ROLES_RESPONSABLES.includes(role) && (
+        <div className="mt-6">
+          <ParcoursDemarrage supabase={supabase} orgId={orgId} />
+        </div>
+      )}
 
       {/* 1. Ce qu'il y a à faire. L'écran du matin commence par là : les
           chiffres viennent après, ils racontent, ils ne demandent rien. */}

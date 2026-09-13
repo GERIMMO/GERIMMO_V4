@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 // transversale vit dans l’en-tête.
 
 const IC: Record<string, string> = {
+  agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 18h3"/>',
   maison: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/>',
   parc: '<path d="M3 21V9l6-4 6 4v12"/><path d="M15 21V11l6-3v13M7 13h2M7 17h2"/>',
   outil: '<path d="M14.5 6.5a4 4 0 0 0-5.6 4.9L4 16.3V20h3.7l4.9-4.9a4 4 0 0 0 4.9-5.6L15 12l-3-3z"/>',
@@ -58,6 +59,7 @@ export function SidebarAgence({
       icone: "parc",
     },
     { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: badgeIncidents },
+    { href: `${base}/agenda`, libelle: "Agenda", icone: "agenda" },
     { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
     // DEUX INDEX QUI NE SONT PLUS CEUX DE L'AGENT (demande de l'humain, 12/09).
     //

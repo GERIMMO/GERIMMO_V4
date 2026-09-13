@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 // le propriétaire en a plusieurs : tout suit, lots, livre, fiscalité.
 
 const IC: Record<string, string> = {
+  agenda: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 18h3"/>',
   maison: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/>',
   cle: '<circle cx="8" cy="12" r="4"/><path d="M12 12h9M17 12v3M20.5 12v2"/>',
   gens: '<circle cx="9" cy="8" r="3.5"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3.5 3.5 0 0 1 0 7M15.5 13.5A6 6 0 0 1 21 20"/>',
@@ -54,6 +55,7 @@ export function SidebarProprietaire({
     { href: `${base}/parc`, libelle: "Mes lots", icone: "cle" },
     { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens" },
     { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: badgeIncidents },
+    { href: `${base}/agenda`, libelle: "Agenda", icone: "agenda" },
     { href: `${base}/comptabilite`, libelle: "Livre & fiscalité", icone: "livre" },
     { href: `${base}/messages`, libelle: "Messages", icone: "message", badge: badgeMessages },
     { href: `${base}/documents`, libelle: "Documents", icone: "doc" },

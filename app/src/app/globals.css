@@ -1555,3 +1555,16 @@ p a {
 .dossier-rubrique[open] .dossier-chevron { transform:rotate(180deg); }
 .dossier-rubrique-contenu { padding:16px; }
 @media (max-width:600px) { .dossier-bail-entete { padding:18px; } .dossier-rubrique > summary { padding:16px; } .dossier-rubrique-contenu { padding:10px; } }
+
+/* Rendez-vous : la date précède le dossier, sans grille vide sur mobile. */
+.dossier-nav a.agenda-onglet-actif { background:var(--encre); color:var(--sur-encre); border-color:var(--encre); }
+.agenda-periode { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
+.agenda-periode h2 { font-size:27px; margin:4px 0; }
+.agenda-rendezvous { display:flex; gap:24px; padding:22px; border:1px solid var(--filet); border-left:3px solid var(--or); border-radius:10px; background:var(--carte); }
+.agenda-rendezvous h2 { font-size:23px; overflow-wrap:anywhere; }
+.agenda-horaire { flex:0 0 190px; display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--encre); }
+.agenda-horaire svg { flex-shrink:0; margin-top:2px; }
+.agenda-vide { display:flex; align-items:flex-start; flex-direction:column; gap:12px; padding:30px; background:var(--carte); border:1px solid var(--filet); border-radius:10px; }
+.agenda-vide h2 { font-size:25px; }
+.agenda-vide p { color:var(--texte-secondaire); font-size:14px; }
+@media (max-width:700px) { .agenda-rendezvous { flex-direction:column; gap:14px; padding:18px; } .agenda-horaire { flex-basis:auto; } }

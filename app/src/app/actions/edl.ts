@@ -88,13 +88,22 @@ export async function majGrilleEdl(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  const { data: lignes } = await supabase
+  const { data: lignes, error: erreurLecture } = await supabase
     .from("edl_lignes")
     .select("id")
     .eq("edl_id", edlId)
     .eq("organization_id", orgId);
 
-  const p_lignes = (lignes ?? []).map((l) => {
+  // Une lecture manquée ne doit pas être transformée en sauvegarde vide,
+  // ni laisser une signature porter sur l'ancienne grille enregistrée.
+  if (erreurLecture)
+    return { erreur: "Impossible de lire la grille. Votre saisie n’a pas été enregistrée ; réessayez." };
+  if (!lignes?.length)
+    return { erreur: "Grille vide ou inaccessible : générez-la avant de l’enregistrer." };
+  if (lignes.some((l) => !formData.has(`etat_${l.id}`)))
+    return { erreur: "La grille a changé depuis l’ouverture. Rechargez la page pour retrouver toutes les lignes avant de l’enregistrer." };
+
+  const p_lignes = lignes.map((l) => {
     const etat = String(formData.get(`etat_${l.id}`) ?? "");
     const commentaire = String(formData.get(`commentaire_${l.id}`) ?? "").trim();
     return { id: l.id, etat: etat || null, commentaire: commentaire || null };
@@ -116,6 +125,59 @@ export async function majGrilleEdl(
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Grille enregistrée." };
+}
+
+// Relevés et clés partent ensemble. Une lecture indisponible ne doit jamais
+// transformer une partie de la saisie en tableau vide annoncé enregistré.
+export async function enregistrerAnnexesEdl(
+  orgId: string,
+  bailId: string,
+  edlId: string,
+  _etat: EtatEdl,
+  formData: FormData
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
+  const [compteurs, cles] = await Promise.all([
+    supabase.from("edl_compteurs").select("id").eq("edl_id", edlId).eq("organization_id", orgId),
+    supabase.from("edl_cles").select("id").eq("edl_id", edlId).eq("organization_id", orgId),
+  ]);
+  if (compteurs.error || cles.error) return {
+    erreur: "Impossible de lire les relevés et les clés. Votre saisie n’a pas été enregistrée ; réessayez.",
+    valeurs,
+  };
+
+  // Une ligne absente de ce formulaire a pu être ajoutée depuis son ouverture.
+  // On ne la touche pas. Un relevé présent mais vidé conserve le sens NULL.
+  const p_compteurs: { id: string; releve: number | null }[] = [];
+  for (const l of compteurs.data ?? []) {
+    if (!formData.has(`releve_${l.id}`)) continue;
+    const brut = String(formData.get(`releve_${l.id}`) ?? "").trim();
+    if (brut === "") {
+      p_compteurs.push({ id: l.id, releve: null });
+      continue;
+    }
+    const valeur = Number(brut);
+    if (!Number.isFinite(valeur)) return { erreur: "Relevé de compteur invalide.", valeurs };
+    p_compteurs.push({ id: l.id, releve: valeur });
+  }
+
+  // Une clé laissée sans nombre ne signifie pas zéro clé rendue : la ligne
+  // reste inchangée. Son retrait demeure un geste distinct.
+  const p_cles: { id: string; nombre: number }[] = [];
+  for (const l of cles.data ?? []) {
+    const brut = String(formData.get(`nombre_${l.id}`) ?? "").trim();
+    if (brut === "") continue;
+    const valeur = Number(brut);
+    if (!Number.isFinite(valeur) || valeur < 0) return { erreur: "Nombre de clés invalide.", valeurs };
+    p_cles.push({ id: l.id, nombre: Math.floor(valeur) });
+  }
+
+  const { error } = await supabase.rpc("enregistrer_annexes_edl", { p_edl: edlId, p_compteurs, p_cles });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: "Relevés enregistrés." };
 }
 
 // Un EDL signé est figé : compteurs et clés compris (revue 23/08 — seules les
@@ -229,4 +291,3 @@ export async function supprimerCle(
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Clé retirée." };
 }
-

@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { revalidatePath } from "next/cache";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
-import { verifierGerant } from "@/lib/ged-acces";
-import { sansJargon } from "@/lib/erreurs";
 import { formaterDate } from "@/lib/ged";
 import { COULEURS_ETAT_EDL } from "@/lib/baux";
-import type { EtatEdl } from "@/app/actions/edl";
+import { enregistrerAnnexesEdl } from "@/app/actions/edl";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GrilleEdl } from "./grille-edl";
 import { BoutonRegenererGrille } from "./bouton-regenerer-grille";
@@ -153,59 +150,7 @@ export default async function PageEdl(
   // depuis la migration 20260911141500) ; ne restent que les chiffres relevés
   // sur place, et les envoyer un par un coûtait huit allers-retours sur un
   // logement ordinaire (relevé de parcours du 11/09).
-  // Fonction serveur en ligne, au plus près de l'écran qu'elle sert : elle ne
-  // fait que router le formulaire vers `enregistrer_annexes_edl`, qui porte
-  // seule la règle (accès, EDL figé, périmètre des colonnes écrites).
-  async function enregistrerAnnexes(_etat: EtatEdl, formData: FormData): Promise<EtatEdl> {
-    "use server";
-    const { supabase: db, user } = await verifierGerant(orgId);
-    if (!user) return { erreur: "Accès refusé." };
-
-    // Le client dit QUELLE valeur, jamais QUELLES lignes : les identifiants
-    // sont relus côté serveur, comme dans majGrilleEdl.
-    const [{ data: lignesC }, { data: lignesK }] = await Promise.all([
-      db.from("edl_compteurs").select("id").eq("edl_id", edlId).eq("organization_id", orgId),
-      db.from("edl_cles").select("id").eq("edl_id", edlId).eq("organization_id", orgId),
-    ]);
-
-    // Une ligne absente du formulaire envoyé n'est pas une ligne vidée : elle
-    // n'était pas à l'écran (ajout concurrent, page périmée). On n'y touche pas
-    // — sinon un relevé déjà saisi serait effacé par une soumission qui ne le
-    // connaissait pas.
-    const p_compteurs: { id: string; releve: number | null }[] = [];
-    for (const l of lignesC ?? []) {
-      if (!formData.has(`releve_${l.id}`)) continue;
-      const brut = String(formData.get(`releve_${l.id}`) ?? "").trim();
-      if (brut === "") {
-        p_compteurs.push({ id: l.id, releve: null });
-        continue;
-      }
-      const valeur = Number(brut);
-      if (!Number.isFinite(valeur)) return { erreur: "Relevé de compteur invalide." };
-      p_compteurs.push({ id: l.id, releve: valeur });
-    }
-
-    // Un champ vidé par mégarde ne doit pas écrire « aucune clé rendue » : sans
-    // valeur, la ligne n'est pas touchée. Le retrait de la ligne reste le geste
-    // pour dire qu'une clé n'existe plus.
-    const p_cles: { id: string; nombre: number }[] = [];
-    for (const l of lignesK ?? []) {
-      const brut = String(formData.get(`nombre_${l.id}`) ?? "").trim();
-      if (brut === "") continue;
-      const valeur = Number(brut);
-      if (!Number.isFinite(valeur) || valeur < 0) return { erreur: "Nombre de clés invalide." };
-      p_cles.push({ id: l.id, nombre: Math.floor(valeur) });
-    }
-
-    const { error } = await db.rpc("enregistrer_annexes_edl", {
-      p_edl: edlId,
-      p_compteurs,
-      p_cles,
-    });
-    if (error) return { erreur: sansJargon(error.message) };
-    revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
-    return { succes: "Relevés enregistrés." };
-  }
+  const enregistrerAnnexes = enregistrerAnnexesEdl.bind(null, orgId, bailId, edlId);
 
   // Un EDL de sortie SIGNÉ ouvre la restitution du dépôt : la modale de
   // signature l'annonce (« ils alimenteront le décompte de restitution ») sans

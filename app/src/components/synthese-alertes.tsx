@@ -1,4 +1,5 @@
 "use client";
+import { cheminFicheAlerte } from "@/lib/chemin-alerte";
 import { afficherEcheance } from "@/lib/echeances";
 
 import { useCallback, useEffect, useState } from "react";
@@ -18,6 +19,7 @@ import { ModaleAlerte } from "@/app/agence/[orgId]/alertes/modale-alerte";
 
 export type AlerteSynthese = {
   id: string;
+  type?: string;
   organization_id: string;
   organisation: string;
   criticite: string;
@@ -244,9 +246,9 @@ export function SyntheseAlertes({
                           ? `/admin/organisations/${a.organization_id}`
                           : typeof a.details?.incident_id === "string"
                             ? `/agence/${a.organization_id}/incidents?sel=${a.details.incident_id}`
-                            : membres
+                            : cheminFicheAlerte(a, a.organization_id) ?? (membres
                               ? null
-                              : `/agence/${a.organization_id}/alertes?traiter=${a.id}`;
+                              : `/agence/${a.organization_id}/alertes?traiter=${a.id}`);
                         return cible ? (
                           <Link
                             key={a.id}

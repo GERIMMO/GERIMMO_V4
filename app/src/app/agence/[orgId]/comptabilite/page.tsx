@@ -312,7 +312,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <FormulaireEcriture orgId={orgId} lots={lotsEcriture} />
+          <FormulaireEcriture orgId={orgId} lots={lotsEcriture} estProprietaire={estProprietaire} />
           <div className="border-t border-border pt-4">
             <p className="mb-2 text-sm font-medium">
               Dépense sur tout le bien, répartie entre ses lots

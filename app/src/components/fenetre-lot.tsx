@@ -184,7 +184,7 @@ function FenetreLot({
   const ficheComplete = !fiche
     ? null
     : locataire
-      ? `/locataire/${orgId}/bail`
+      ? `/locataire/${orgId}/logement#bail`
       : `/agence/${orgId}/parc/${fiche.bien_id}/lots/${fiche.lot_id}`;
 
   const onglets: { cle: Onglet; libelle: string }[] = [
@@ -214,8 +214,8 @@ function FenetreLot({
                 Fiche du bien
               </Link>
             )}
-            <Link href={ficheComplete} className={buttonVariants({ size: "sm" })}>
-              {locataire ? "Voir mon bail en entier" : "Ouvrir la fiche complète"}
+            <Link href={ficheComplete} onClick={fermer} className={buttonVariants({ size: "sm" })}>
+              {locataire ? "Voir les détails de mon bail" : "Ouvrir la fiche complète"}
             </Link>
           </div>
         ) : null
@@ -664,7 +664,7 @@ function OngletResume({
               <Ligne
                 libelle="Bail"
                 valeur={
-                  <Link href={locataire ? `/locataire/${orgId}/bail` : `/agence/${orgId}/baux/${fiche.bail_id}`} className="lien-discret">
+                  <Link href={locataire ? `/locataire/${orgId}/logement#bail` : `/agence/${orgId}/baux/${fiche.bail_id}`} className="lien-discret">
                     {TYPES_BAIL[fiche.bail_type ?? ""] ?? fiche.bail_type}
                     {fiche.date_debut ? ` · depuis le ${formaterDate(fiche.date_debut)}` : ""} ›
                   </Link>

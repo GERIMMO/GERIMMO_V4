@@ -16,6 +16,7 @@ const IC: Record<string, string> = {
   outil: '<path d="M14.5 6.5a4 4 0 0 0-5.6 4.9L4 16.3V20h3.7l4.9-4.9a4 4 0 0 0 4.9-5.6L15 12l-3-3z"/>',
   livre: '<path d="M4 4h9a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4z"/><path d="M17 8h3v12h-9"/>',
   doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h4M9 12h6M9 16h6"/>',
+  message: '<path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5H3l2-5.5A8.5 8.5 0 1 1 21 11.5Z"/>',
   cloche: '<path d="M6 9a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/>',
   carte: '<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/>',
   quest: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7M12 17h.01"/>',
@@ -51,9 +52,10 @@ export function SidebarProprietaire({
   const entrees = [
     { href: base, libelle: "Accueil", icone: "maison", exact: true },
     { href: `${base}/parc`, libelle: "Mes lots", icone: "cle" },
-    { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", badge: badgeMessages },
+    { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens" },
     { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: badgeIncidents },
     { href: `${base}/comptabilite`, libelle: "Livre & fiscalité", icone: "livre" },
+    { href: `${base}/messages`, libelle: "Messages", icone: "message", badge: badgeMessages },
     { href: `${base}/documents`, libelle: "Documents", icone: "doc" },
     { href: `${base}/alertes`, libelle: "Alertes", icone: "cloche", badge: badgeAlertes },
     { href: `${base}/abonnement`, libelle: "Mon abonnement", icone: "carte" },
@@ -93,6 +95,7 @@ export function SidebarProprietaire({
               key={e.href}
               href={e.href}
               className={cn(active && "actif")}
+              aria-current={active ? "page" : undefined}
               title={e.libelle}
               // Accessibilité (audit 09/09) : le lien s'annonce en entier, le
               // badge est décoratif — sinon les lecteurs d'écran ne lisent

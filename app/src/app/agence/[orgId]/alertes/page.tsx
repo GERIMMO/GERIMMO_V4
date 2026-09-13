@@ -128,6 +128,7 @@ export default async function PageAlertes(
               orgId={orgId}
               alertes={rangs}
               membres={membres}
+              estProprietaire={organisation.type === "proprietaire_direct"}
               monCompte={user.id}
               estResponsable={estResponsable}
               ouvrirAlerteId={traiterId}

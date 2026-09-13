@@ -89,6 +89,7 @@ export function SidebarLocataire({
             key={e.href}
             href={e.href}
             className={cn(active && "actif")}
+              aria-current={active ? "page" : undefined}
             title={e.libelle}
             // Accessibilité (audit 09/09) : le lien s'annonce en entier, le
             // badge est décoratif — sinon les lecteurs d'écran ne lisent

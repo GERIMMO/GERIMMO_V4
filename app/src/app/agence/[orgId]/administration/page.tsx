@@ -38,6 +38,7 @@ export default async function PageAdministration(
     { data: membres, error: erreurMembres },
     { data: mandats, error: erreurMandats },
     { data: lignes, error: erreurLignes },
+    { data: abonnement, error: erreurAbonnement },
   ] = await Promise.all([
     supabase.rpc("org_membres_gerants", { org: orgId }),
     supabase
@@ -50,6 +51,7 @@ export default async function PageAdministration(
       .select("mandat_id, lot_id")
       .eq("organization_id", orgId)
       .is("date_fin", null),
+    supabase.rpc("etat_abonnement", { p_org: orgId }),
   ]);
   // Un échec de lecture ne doit pas se déguiser en agence vide (audit 09/09).
   // Chaque carte le dit pour ce qui la concerne : l'équipe reste lisible même
@@ -74,7 +76,7 @@ export default async function PageAdministration(
       lotsParAgent.get(m.agent)!.add(l.lot_id);
     }
   }
-  const nbLotsFactures = lotsSousMandatActif.size;
+  const nbLotsFactures = ((abonnement ?? []) as { unites_total: number }[])[0]?.unites_total;
   const equipe = ((membres ?? []) as { account_id: string; email: string; role: string }[])
     .filter((m) => m.role === "agent" || m.role === "admin_agence")
     .sort((a, b) => a.role.localeCompare(b.role) || a.email.localeCompare(b.email));
@@ -176,7 +178,7 @@ export default async function PageAdministration(
           <h3>Abonnement de l&apos;agence</h3>
           <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
         </div>
-        {portefeuillesLus ? (
+        {!erreurAbonnement && nbLotsFactures != null ? (
           <>
             <div className="ligne-info">
               <span>Lots sous mandat actif</span>
@@ -184,7 +186,7 @@ export default async function PageAdministration(
             </div>
             <div className="ligne-info">
               <span>Tarification</span>
-              <span>par palier — sur devis</span>
+              <a href={`/agence/${orgId}/abonnement`} className="lien-discret">Voir ma formule et son tarif →</a>
             </div>
           </>
         ) : (
@@ -194,8 +196,8 @@ export default async function PageAdministration(
           </EncadreLectureImpossible>
         )}
         <p className="mt-3 text-xs text-muted-foreground">
-          Le comptage suit les lots sous mandat actif. Le paiement en ligne
-          (Stripe) arrive prochainement — rien ne se ferme d&apos;ici là.
+          Le décompte et les possibilités de souscription sont détaillés dans
+          « Mon abonnement ». Les mandats en préavis restent comptés tant qu’ils courent.
         </p>
       </div>
 

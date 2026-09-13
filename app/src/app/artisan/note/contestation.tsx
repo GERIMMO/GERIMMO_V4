@@ -72,7 +72,7 @@ export function Contestation({
         className={CLASSE_BOUTON_SECONDAIRE}
         onClick={() => setOuvert(true)}
       >
-        Contester ma note
+        Préparer une contestation
       </button>
     );
   }

@@ -100,6 +100,7 @@ export function ListeAlertes({
   membres,
   monCompte,
   estResponsable,
+  estProprietaire = false,
   ouvrirAlerteId,
 }: {
   orgId: string;
@@ -107,6 +108,7 @@ export function ListeAlertes({
   membres: Membre[];
   monCompte: string;
   estResponsable: boolean;
+  estProprietaire?: boolean;
   // « Traiter » une alerte générique depuis un lien : la pop-up s'ouvre
   // d'emblée sur cette alerte.
   ouvrirAlerteId?: string;
@@ -305,11 +307,11 @@ export function ListeAlertes({
         </div>
       )}
 
-      <p className="mt-3.5 text-xs text-muted-foreground">
+      {!estProprietaire && <p className="mt-3.5 text-xs text-muted-foreground">
         Une alerte critique non traitée sous 7 jours remonte au responsable de
         l&apos;agence, une normale sous 15 jours. Les informatives ne remontent
         jamais.
-      </p>
+      </p>}
 
       {ouverte && (
         <ModaleAlerte

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../acces";
 import { euros, jourCourt } from "../libelles";
-import { Carte, Etiquette, MarqueAgence, Retour, TitreSection, Vide } from "../ui";
+import { Carte, Erreur, Etiquette, MarqueAgence, Retour, TitreSection, Vide } from "../ui";
 
 export const metadata = { title: "Ma facturation — Espace artisan" };
 
@@ -44,7 +44,9 @@ export default async function PageFacturation() {
         </h1>
       </div>
 
-      {aCompleter.length > 0 && (
+      {agenda.erreur && <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur>}
+
+      {!agenda.erreur && aCompleter.length > 0 && (
         <Carte className="border-l-4 border-l-[var(--warning)]">
           <TitreSection>
             {aCompleter.length === 1
@@ -71,7 +73,7 @@ export default async function PageFacturation() {
         </Carte>
       )}
 
-      <section>
+      {!agenda.erreur && <section>
         <TitreSection>Interventions terminées ({terminees.length})</TitreSection>
         {terminees.length === 0 ? (
           <Vide>
@@ -114,14 +116,14 @@ export default async function PageFacturation() {
             </p>
           </div>
         )}
-      </section>
+      </section>}
 
       <Carte>
         <TitreSection>Comment vous êtes payé</TitreSection>
         <ul className="space-y-2 text-[0.9375rem] text-[var(--corps)]">
           <li>
-            Votre facture est attendue par l&apos;agence, et elle est pré-remplie de
-            votre devis retenu.
+            Adressez votre facture à l&apos;agence en rappelant le devis retenu et
+            l&apos;intervention concernée.
           </li>
           <li>
             Un écart entre le devis et la facture ne bloque rien : vous le

@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { envoyerRetour, soutenirRetour, type EtatRetour } from "@/app/actions/retours";
-import { useActionFormulaire } from "@/lib/use-action-formulaire";
+import { envoyerRetour, soutenirRetour } from "@/app/actions/retours";
+import { useActionRetour } from "@/lib/use-action-retour";
 import { ACTIONS_RETOUR, NATURES_RETOUR } from "@/lib/retours";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ const champ="w-full rounded-md border border-input bg-background px-3 py-2 text-
 export function FormulaireRetour({ecran,action,cle,organisations,contestation=false}:{ecran:string;action:string;cle:string;organisations:{id:string;nom:string}[];contestation?:boolean}){
  const [cleEnvoi]=useState(cle);
  const [nature,setNature]=useState(contestation?'contestation':'bug');
- const {etat,soumettre,enCours}=useActionFormulaire<EtatRetour>(envoyerRetour);
+ const {etat,soumettre,enCours}=useActionRetour(envoyerRetour);
  if(etat.id)return <div role="status" className="rounded-xl border border-[var(--filet)] bg-[var(--success-soft)] p-5 space-y-3">
   <p className="font-medium">Votre demande est enregistrée.</p><p>La supervision Gerimmo peut maintenant l’examiner. Son suivi conserve toutes les réponses.</p>
   <Link className="underline" href={`/assistance?sel=${etat.id}#mes-demandes`}>Consulter ma demande</Link>
@@ -44,7 +44,7 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
  </form>;
 }
 export function SoutenirIdee({id}:{id:string}){
- const {etat,soumettre,enCours}=useActionFormulaire<EtatRetour>(soutenirRetour.bind(null,id));
+ const {etat,soumettre,enCours}=useActionRetour(soutenirRetour.bind(null,id));
  return <form onSubmit={soumettre} className="mt-3"><BoutonEnvoi size="sm" variant="outline" enCours={enCours} disabled={Boolean(etat.succes)}>Soutenir cette idée</BoutonEnvoi>
  {etat.succes&&<p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}{etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}</form>;
 }

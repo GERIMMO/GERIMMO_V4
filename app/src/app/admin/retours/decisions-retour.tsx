@@ -1,13 +1,13 @@
 "use client";
 import { useState } from "react";
-import { cloreRevue, deciderRetour, regrouperRetours, type EtatRetour } from "@/app/actions/retours";
-import { useActionFormulaire } from "@/lib/use-action-formulaire";
+import { cloreRevue, deciderRetour, regrouperRetours } from "@/app/actions/retours";
+import { useActionRetour } from "@/lib/use-action-retour";
 import { ETATS_RETOUR, type RetourUtilisateur } from "@/lib/retours";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 const champ="w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
 export function DecisionRetour({retour}:{retour:RetourUtilisateur}){
  const [decision,setDecision]=useState('en_examen');
- const {etat,soumettre,enCours}=useActionFormulaire<EtatRetour>(deciderRetour.bind(null,retour.id,retour.version));
+ const {etat,soumettre,enCours}=useActionRetour(deciderRetour.bind(null,retour.id,retour.version));
  const etats=retour.nature==='idee'?['en_examen','retenue','non_retenue','deja_couverte']:['en_examen','en_cours','resolu'];
  return <form onSubmit={soumettre} className="mt-5 space-y-3 border-t border-[var(--filet)] pt-4">
   <div className="grid gap-3 sm:grid-cols-2"><label className="space-y-1 text-sm"><span>Décision</span><select name="etat" className={champ} value={decision} onChange={e=>setDecision(e.target.value)}>{etats.map(e=><option key={e} value={e}>{ETATS_RETOUR[e]}</option>)}</select></label>
@@ -20,12 +20,12 @@ export function DecisionRetour({retour}:{retour:RetourUtilisateur}){
  </form>;
 }
 export function RegrouperIdees({retour,idees}:{retour:RetourUtilisateur;idees:RetourUtilisateur[]}){
- const {etat,soumettre,enCours}=useActionFormulaire<EtatRetour>(regrouperRetours.bind(null,retour.id));
+ const {etat,soumettre,enCours}=useActionRetour(regrouperRetours.bind(null,retour.id));
  const autres=idees.filter(i=>i.id!==retour.id&&i.groupe_id!==retour.groupe_id);if(!autres.length)return null;
  return <details className="mt-4 text-sm"><summary className="cursor-pointer">Rapprocher une idée similaire</summary><form onSubmit={soumettre} className="mt-3 space-y-2"><label><span>Idée du même besoin</span><select name="cible" required className={champ} defaultValue=""><option value="" disabled>Choisir une idée</option>{autres.map(i=><option key={i.id} value={i.id}>{i.titre} · {i.id.slice(0,8)}</option>)}</select></label><p className="text-xs text-muted-foreground">Les soutiens sont rapprochés pour la revue ; les descriptions restent privées entre les organisations.</p><BoutonEnvoi size="sm" variant="outline" enCours={enCours}>Regrouper les idées</BoutonEnvoi>{etat.erreur&&<p role="alert">{etat.erreur}</p>}{etat.succes&&<p role="status">{etat.succes}</p>}</form></details>;
 }
 
 export function CloreRevue(){
- const {etat,soumettre,enCours}=useActionFormulaire<EtatRetour>(cloreRevue);
+ const {etat,soumettre,enCours}=useActionRetour(cloreRevue);
  return <details className="mt-3 text-sm"><summary className="cursor-pointer font-medium">Enregistrer le bilan de la revue</summary><form onSubmit={soumettre} className="mt-3 space-y-3"><label className="block">Bilan et prochaines étapes<textarea name="bilan" minLength={15} maxLength={6000} required rows={3} className={champ}/></label><BoutonEnvoi enCours={enCours} size="sm">Terminer la revue du mois</BoutonEnvoi>{etat.erreur&&<p role="alert">{etat.erreur}</p>}{etat.succes&&<p role="status">{etat.succes}</p>}</form></details>;
 }

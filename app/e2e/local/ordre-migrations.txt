@@ -179,3 +179,4 @@
 20260914110000_plafond_depot_colocation.sql
 20260914120000_retours_utilisateurs.sql
 20260914130000_retention_signalements_support.sql
+20260914150000_mentions_contrat_location.sql

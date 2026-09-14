@@ -26,12 +26,10 @@ const PUBLIC_PATHS = [
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
 export async function proxy(request: NextRequest) {
-  // Les tâches planifiées n'ont pas de session : les faire passer par le
-  // contrôle d'authentification les renverrait vers /connexion. Elles portent
-  // leur propre verrou (CRON_SECRET, vérifié dans la route) — et elles sont
-  // les SEULES routes /api du produit, tout le reste passant par des actions
-  // serveur.
-  if (request.nextUrl.pathname.startsWith("/api/cron/")) {
+  // Ces appels viennent de serveurs, sans cookie de connexion. Chaque route
+  // vérifie son propre secret (Cron) ou la signature du corps brut (Stripe).
+  // Garder la liste exacte : aucun autre chemin /api n'est rendu public.
+  if (["/api/cron/quittances", "/api/cron/abonnements", "/api/stripe/webhook"].includes(request.nextUrl.pathname)) {
     return NextResponse.next({ request });
   }
 

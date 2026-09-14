@@ -4286,3 +4286,8 @@ un modèle nu refusé par le serveur est remplacé par le dépôt du contrat sig
 ## [2026-09-14] ingest | Référentiel vérifiable comme socle minimum
 
 Lecture du document fourni hors du coffre Obsidian (465 exigences, neuf personas) et prise en compte de la précision humaine « le référentiel est le minimum ». Source et empreinte enregistrées, statuts historiques séparés des preuves actuelles. Premier module ajouté : suivi privé des retours et contestations, classement et revue mensuelle des idées, brouillon éditorial. 927 tests locaux passent ; publication de la base et essais visuels en attente. Aucun fichier raw ni fichier du coffre Obsidian modifié.
+
+
+## [2026-09-14] query | Conservation du support et validations du dépôt
+
+Extension de la conservation : les signalements de bug et leurs réponses sont supprimés après six mois via le nettoyage existant, par lots bornés, sans supprimer les idées. Trois tests SQL supplémentaires portent la suite locale à 930 tests réussis. La base du support (PR 46) et sa conservation (PR 48) sont intégrées au dépôt après CI ; les migrations restent à appliquer. L’interface (PR 47) reste en brouillon jusqu’à ces applications et à la recette visuelle. Le coffre Obsidian et raw restent inchangés.

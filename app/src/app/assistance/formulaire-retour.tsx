@@ -36,6 +36,7 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
    <p className="font-medium">Contexte joint à la demande</p><p>Écran : {ecran}</p><p>Dernière interaction : {ACTIONS_RETOUR[action]}</p>
    <p>Aucune capture d’écran, valeur de champ, pièce, nom de dossier ni paramètre d’URL n’est collecté automatiquement. Évitez les données personnelles dans votre description.</p>
   </div>
+  {nature==='bug'&&<p className="text-xs text-muted-foreground">Les signalements de problème et leurs réponses sont conservés six mois, puis supprimés.</p>}
   {nature==='idee'?<label className="flex items-start gap-2 text-sm"><input type="checkbox" name="partage" required className="mt-1"/>Je comprends que cette idée sera visible des membres de l’espace choisi et de la supervision. Sans organisation, elle reste visible de moi et de la supervision.</label>:
    <p className="text-xs text-muted-foreground">{nature==='contestation'?'Cette demande est examinée uniquement par la supervision Gerimmo, jamais par l’agence qui a évalué votre travail.':'Votre demande est visible de vous, de la supervision et de l’administrateur de l’agence concernée.'}</p>}
   {etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}

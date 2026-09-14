@@ -24,7 +24,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
 - [[Onboarding et abonnement]] — création d'agence, invitations, essai 14 j.
-- [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées ; réalisation et preuves séparées des fonctionnalités restantes.
+- [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées et conservation des signalements ; réalisation et preuves séparées des fonctionnalités restantes.
 
 ## Concepts
 - [[Organisation]] — l'entité cliente, racine de l'isolation multi-tenant.

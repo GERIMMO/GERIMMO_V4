@@ -12,11 +12,13 @@ import { Spinner } from "@/components/ui/spinner";
 // suffit.
 export function BoutonEnvoi({
   enCoursTexte,
+  enCours,
   disabled,
   children,
   ...props
-}: React.ComponentProps<typeof Button> & { enCoursTexte?: string }) {
-  const { pending } = useFormStatus();
+}: React.ComponentProps<typeof Button> & { enCoursTexte?: string; enCours?: boolean }) {
+  const statut = useFormStatus();
+  const pending = enCours ?? statut.pending;
   return (
     <Button type="submit" disabled={pending || disabled} {...props}>
       {pending && <Spinner />}

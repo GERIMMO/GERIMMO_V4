@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useId, useState } from "react";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import {
   ajouterCompteur,
   supprimerCompteur,
@@ -57,11 +58,11 @@ const apparier = (a: string, b: string | null) => JSON.stringify([a, b ?? ""]);
 // L'erreur de l'action (« EDL signé : figé »…) s'affiche sous la ligne —
 // avant, elle était jetée (audit vie du bail 09/09).
 function BoutonRetirer({ onAction }: { onAction: () => Promise<EtatEdl> }) {
-  const [etat, formAction] = useActionState<EtatEdl, FormData>(() => onAction(), {});
+  const { etat, soumettre: formAction, enCours } = useActionFormulaire<EtatEdl>(() => onAction());
   return (
     <>
-      <form action={formAction}>
-        <BoutonEnvoi variant="ghost" size="sm">
+      <form onSubmit={formAction}>
+        <BoutonEnvoi enCours={enCours} variant="ghost" size="sm">
           Retirer
         </BoutonEnvoi>
       </form>
@@ -74,8 +75,8 @@ export function EdlAnnexes({
   orgId,
   bailId,
   edlId,
-  compteurs,
-  cles,
+  compteurs: compteursServeur,
+  cles: clesServeur,
   signe,
   entree,
   enregistrer,
@@ -90,11 +91,31 @@ export function EdlAnnexes({
   entree: AnnexesEntree | null;
   enregistrer: (etat: EtatEdl, formData: FormData) => Promise<EtatEdl>;
 }) {
-  const actionCompteur = ajouterCompteur.bind(null, orgId, bailId, edlId);
-  const [etatC, formCompteur] = useActionState<EtatEdl, FormData>(actionCompteur, {});
-  const actionCle = ajouterCle.bind(null, orgId, bailId, edlId);
-  const [etatK, formCle] = useActionState<EtatEdl, FormData>(actionCle, {});
-  const [etatA, formAnnexes] = useActionState<EtatEdl, FormData>(enregistrer, {});
+  // Les retours confirmés complètent les props sans attendre la transition RSC.
+  // Les champs existants gardent leurs clés React et leur saisie non enregistrée.
+  const [compteursAjoutes, setCompteursAjoutes] = useState<Compteur[]>([]);
+  const [clesAjoutees, setClesAjoutees] = useState<Cle[]>([]);
+  const [retires, setRetires] = useState<string[]>([]);
+  const compteurs = [...compteursServeur, ...compteursAjoutes.filter((c) => !compteursServeur.some((s) => s.id === c.id))].filter((c) => !retires.includes(c.id));
+  const cles = [...clesServeur, ...clesAjoutees.filter((c) => !clesServeur.some((s) => s.id === c.id))].filter((c) => !retires.includes(c.id));
+  const retirer = async (id: string, action: () => Promise<EtatEdl>) => {
+    const retour = await action();
+    if (retour.succes) setRetires((anciens) => [...anciens, id]);
+    return retour;
+  };
+  const actionCompteur = async (etat: EtatEdl, donnees: FormData) => {
+    const retour = await ajouterCompteur(orgId, bailId, edlId, etat, donnees);
+    if (retour.succes && retour.compteur) setCompteursAjoutes((anciens) => [...anciens, retour.compteur!]);
+    return retour;
+  };
+  const { etat: etatC, soumettre: formCompteur, enCours: enCoursC, version: versionC } = useActionFormulaire<EtatEdl>(actionCompteur, true);
+  const actionCle = async (etat: EtatEdl, donnees: FormData) => {
+    const retour = await ajouterCle(orgId, bailId, edlId, etat, donnees);
+    if (retour.succes && retour.cle) setClesAjoutees((anciennes) => [...anciennes, retour.cle!]);
+    return retour;
+  };
+  const { etat: etatK, soumettre: formCle, enCours: enCoursK, version: versionK } = useActionFormulaire<EtatEdl>(actionCle, true);
+  const { etat: etatA, soumettre: formAnnexes, enCours: enCoursA } = useActionFormulaire<EtatEdl>(enregistrer);
   // Lignes de saisie compactes : un libellé visible casserait la rangée, les
   // libellés n'existent donc que pour la synthèse vocale. Identifiants tirés
   // de useId() — la page peut aligner plusieurs EDL.
@@ -149,6 +170,7 @@ export function EdlAnnexes({
                     <span className="shrink-0 font-medium">{c.releve ?? "—"}</span>
                   ) : (
                     <Input
+                      disabled={enCoursA}
                       form={idFormAnnexes}
                       name={`releve_${c.id}`}
                       type="number"
@@ -159,7 +181,7 @@ export function EdlAnnexes({
                     />
                   )}
                   {!signe && (
-                    <BoutonRetirer onAction={() => supprimerCompteur(orgId, bailId, edlId, c.id)} />
+                    <BoutonRetirer onAction={() => retirer(c.id, () => supprimerCompteur(orgId, bailId, edlId, c.id))} />
                   )}
                 </li>
               );
@@ -167,7 +189,7 @@ export function EdlAnnexes({
           </ul>
         )}
         {!signe && (
-          <form action={formCompteur} className="flex flex-wrap items-end gap-2">
+          <form key={versionC} onSubmit={formCompteur}><fieldset disabled={enCoursC} className="flex flex-wrap items-end gap-2">
             {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08) */}
             <Label htmlFor={idTypeCompteur} className="sr-only">
               Type de compteur
@@ -189,11 +211,12 @@ export function EdlAnnexes({
             </select>
             <Input name="numero" aria-label="Numéro du compteur" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-36" />
             <Input name="releve" aria-label="Relevé du compteur" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-28" />
-            <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
+            <BoutonEnvoi enCours={enCoursC} enCoursTexte="Ajout…" size="sm" variant="outline">
               Ajouter
             </BoutonEnvoi>
+            {etatC.succes && <p role="status" className="w-full text-sm text-success-soft-foreground">{etatC.succes}</p>}
             {etatC.erreur && <p className="w-full text-sm text-destructive">{etatC.erreur}</p>}
-          </form>
+          </fieldset></form>
         )}
       </div>
 
@@ -227,6 +250,7 @@ export function EdlAnnexes({
                   )}
                   {!signe && (
                     <Input
+                      disabled={enCoursA}
                       form={idFormAnnexes}
                       name={`nombre_${k.id}`}
                       type="number"
@@ -239,7 +263,7 @@ export function EdlAnnexes({
                     />
                   )}
                   {!signe && (
-                    <BoutonRetirer onAction={() => supprimerCle(orgId, bailId, edlId, k.id)} />
+                    <BoutonRetirer onAction={() => retirer(k.id, () => supprimerCle(orgId, bailId, edlId, k.id))} />
                   )}
                 </li>
               );
@@ -247,7 +271,7 @@ export function EdlAnnexes({
           </ul>
         )}
         {!signe && (
-          <form action={formCle} className="flex flex-wrap items-end gap-2">
+          <form key={versionK} onSubmit={formCle}><fieldset disabled={enCoursK} className="flex flex-wrap items-end gap-2">
             {/* En erreur, la saisie est reposée via etatK.valeurs (recette 22/08) */}
             <Label htmlFor={idTypeCle} className="sr-only">
               Type de clé ou de badge
@@ -272,11 +296,12 @@ export function EdlAnnexes({
             </Label>
             <Input id={idNombreCles} name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-20" />
             <Input name="reference" aria-label="Référence de la clé" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-36" />
-            <BoutonEnvoi enCoursTexte="Ajout…" size="sm" variant="outline">
+            <BoutonEnvoi enCours={enCoursK} enCoursTexte="Ajout…" size="sm" variant="outline">
               Ajouter
             </BoutonEnvoi>
+            {etatK.succes && <p role="status" className="w-full text-sm text-success-soft-foreground">{etatK.succes}</p>}
             {etatK.erreur && <p className="w-full text-sm text-destructive">{etatK.erreur}</p>}
-          </form>
+          </fieldset></form>
         )}
       </div>
 
@@ -286,11 +311,11 @@ export function EdlAnnexes({
       {aEnregistrer && (
         <form
           id={idFormAnnexes}
-          action={formAnnexes}
+          onSubmit={formAnnexes}
           onReset={(event) => event.preventDefault()}
           className="flex flex-wrap items-center gap-2 border-t border-border pt-4"
         >
-          <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
+          <BoutonEnvoi enCours={enCoursA} enCoursTexte="Enregistrement…" size="sm" variant="outline">
             {entree ? "Enregistrer les relevés et les clés rendues" : "Enregistrer les relevés"}
           </BoutonEnvoi>
           <span className="text-xs text-muted-foreground">

@@ -33,6 +33,7 @@ vi.mock("react", async (importOriginal) => {
     },
   };
 });
+vi.mock("@/lib/use-action-formulaire", () => ({ useActionFormulaire: () => ({ etat: banc.etat, soumettre: () => {}, enCours: false, version: 0 }) }));
 vi.mock("@/app/actions/parc", () => ({ ajouterDetention: vi.fn() }));
 
 import { FormulaireDetention } from "@/app/agence/[orgId]/parc/[bienId]/lots/[lotId]/formulaire-detention";

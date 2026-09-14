@@ -2,6 +2,7 @@
 import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import {
   ajouterDetention,
   cloreDetention,
@@ -34,7 +35,7 @@ export function FormulaireDetention({
   premierProprietaire: boolean;
 }) {
   const actionLiee = ajouterDetention.bind(null, orgId, bienId, lotId);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const { etat, soumettre: action, enCours } = useActionFormulaire<EtatParc>(actionLiee);
   const formulaire = useRef<HTMLFormElement>(null);
   const [choix, setChoix] = useState("");
   // L'agent déclare l'indivision → la quote-part s'ouvre dès le 1er propriétaire.
@@ -101,7 +102,8 @@ export function FormulaireDetention({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
+    <form ref={formulaire} onSubmit={action} className="space-y-3 border-t border-border pt-4">
+      <fieldset disabled={enCours || Boolean(etat.succes)} className="space-y-3 min-w-0">
       <p className="text-sm font-medium">
         {premierProprietaire
           ? "Le propriétaire du lot"
@@ -210,7 +212,7 @@ export function FormulaireDetention({
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
+      <BoutonEnvoi enCours={enCours} size="sm" variant="outline" enCoursTexte="Enregistrement…">
         Enregistrer la détention
       </BoutonEnvoi>
 
@@ -293,6 +295,12 @@ export function FormulaireDetention({
               </div>
           </div>
         </Modale>
+      )}
+      </fieldset>
+      {etat.succes && (
+        <Button type="button" size="sm" variant="outline" onClick={() => window.location.reload()}>
+          Afficher la répartition mise à jour
+        </Button>
       )}
     </form>
   );

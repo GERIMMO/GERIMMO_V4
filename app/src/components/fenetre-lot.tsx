@@ -265,7 +265,7 @@ function FenetreLot({
           {onglet === "resume" && (
             <OngletResume orgId={orgId} fiche={fiche} allerA={setOnglet} />
           )}
-          {onglet === "documents" && <OngletDocuments orgId={orgId} fiche={fiche} />}
+          {onglet === "documents" && <OngletDocuments orgId={orgId} fiche={fiche} fermer={fermer} />}
           {onglet === "compta" &&
             (locataire ? (
               <OngletMesLoyers orgId={orgId} />
@@ -934,7 +934,7 @@ function EnAttente({ quoi }: { quoi: string }) {
 
 /* ── Onglet « Documents » ─────────────────────────────────────────────── */
 
-function OngletDocuments({ orgId, fiche }: { orgId: string; fiche: FicheLot }) {
+function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: FicheLot; fermer: () => void }) {
   const locataire = fiche.portee === "locataire";
   const [docs, setDocs] = useState<DocumentDuLot[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -974,7 +974,8 @@ function OngletDocuments({ orgId, fiche }: { orgId: string; fiche: FicheLot }) {
               <li key={d.document_id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5">
                 <span className="min-w-0 flex-1">
                   <Link
-                    href={locataire ? `/locataire/${orgId}/documents` : `/agence/${orgId}/documents/${d.document_id}`}
+                    href={locataire ? `/locataire/${orgId}/documents` : `/agence/${orgId}/documents?sel=${d.document_id}`}
+                    onNavigate={fermer}
                     className="block truncate text-[13.5px] font-semibold lien-discret"
                   >
                     {d.titre}
@@ -996,6 +997,7 @@ function OngletDocuments({ orgId, fiche }: { orgId: string; fiche: FicheLot }) {
       )}
       <Link
         href={locataire ? `/locataire/${orgId}/documents` : `/agence/${orgId}/documents?sel=depot`}
+        onNavigate={fermer}
         className={buttonVariants({ variant: "outline", size: "sm" })}
       >
         {locataire ? "Déposer mon attestation d’assurance" : "Déposer un document"}

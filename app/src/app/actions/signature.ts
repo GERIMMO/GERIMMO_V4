@@ -27,6 +27,10 @@ export async function enregistrerSignature(
   if (!user || !role || !ROLES_RESPONSABLES.includes(role)) {
     return { erreur: "Réservé au responsable de l'organisation." };
   }
+  const { data: responsableReel, error: erreurDroit } = await supabase.rpc("has_org_role", {
+    org: orgId, roles: ROLES_RESPONSABLES,
+  });
+  if (erreurDroit || !responsableReel) return { erreur: "La signature est réservée au responsable de l’organisation, hors accès de supervision." };
   const fichier = formData.get("fichier");
   if (!(fichier instanceof File) || fichier.size === 0) {
     return { erreur: "Choisissez l'image de votre signature (PNG ou JPEG)." };
@@ -64,6 +68,10 @@ export async function retirerSignature(orgId: string): Promise<EtatSignature> {
   if (!user || !role || !ROLES_RESPONSABLES.includes(role)) {
     return { erreur: "Réservé au responsable de l'organisation." };
   }
+  const { data: responsableReel, error: erreurDroit } = await supabase.rpc("has_org_role", {
+    org: orgId, roles: ROLES_RESPONSABLES,
+  });
+  if (erreurDroit || !responsableReel) return { erreur: "La signature est réservée au responsable de l’organisation, hors accès de supervision." };
   const { error } = await supabase.rpc("definir_signature_organisation", {
     p_org: orgId,
     p_path: null,

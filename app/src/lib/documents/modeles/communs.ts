@@ -304,6 +304,9 @@ export async function signatureOrganisation(
   supabase: SupabaseClient,
   orgId: string
 ): Promise<string | null> {
+  const { data: autorise, error: erreurDroit } = await supabase.rpc("peut_utiliser_signature_organisation", { p_org: orgId });
+  if (erreurDroit) throw new Error("Impossible de vérifier le droit d’utiliser la signature de l’organisation.");
+  if (!autorise) return null;
   const { data: org } = await supabase
     .from("organizations")
     .select("signature_path")

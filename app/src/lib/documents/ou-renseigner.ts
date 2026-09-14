@@ -16,7 +16,7 @@ type Cible = "organisation" | "personne" | "lot" | "bail" | "complements";
 type Regle = { motifs: string[]; cible: Cible; cibleBail?: Cible };
 
 const REGLES: Regle[] = [
-  { motifs: ["dépenses annuelles", "prix de l’énergie", "date prévue de conclusion", "servitude de résidence", "application des loyers de référence", "plafond de location", "plafond état des lieux", "honoraires état des lieux", "honoraires visite", "date du dernier versement", "date de dernière révision"], cible: "complements" },
+  { motifs: ["libre, plafonnement", "dépenses annuelles", "prix de l’énergie", "date prévue de conclusion", "servitude de résidence", "application des loyers de référence", "plafond de location", "plafond état des lieux", "honoraires état des lieux", "honoraires visite", "date du dernier versement", "date de dernière révision"], cible: "complements" },
   { motifs: ["classe dpe du logement"], cible: "lot" },
   // L'état civil du locataire (bail) — avant « commune » tout court (faitA)
   {

@@ -87,7 +87,7 @@ it('décrit les périodes de construction sans englober 1998 dans le neuf', () =
 
 it('dirige les nouvelles mentions vers leur saisie plutôt que vers la personne', () => {
   const liens = [{ entite: 'bail' as const, entiteId: 'b' }, { entite: 'lot' as const, entiteId: 'l' }, { entite: 'personne' as const, entiteId: 'p' }];
-  for (const libelle of ['dépenses annuelles minimales du DPE', 'date prévue de conclusion du contrat', 'existence de la servitude de résidence principale à vérifier', 'plafond de location selon la date et la zone'])
+  for (const libelle of ['libre, plafonnement, réévaluation après travaux…', 'dépenses annuelles minimales du DPE', 'date prévue de conclusion du contrat', 'existence de la servitude de résidence principale à vérifier', 'plafond de location selon la date et la zone'])
     expect(lienPourManquant(libelle, 'org', liens, 'bail_colocation')?.href).toBe('/agence/org/baux/b#complements');
   expect(lienPourManquant('classe DPE du logement', 'org', liens, 'bail_meuble')?.href).toBe('/agence/org/parc?sel=lot:l');
 });

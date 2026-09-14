@@ -43,6 +43,7 @@ import { afficherToast } from "@/components/ui/toast";
 import { ETATS_LOT, TYPES_BIEN, formaterSurface } from "@/lib/parc";
 import { TYPES_BAIL, ETATS_BAIL, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { TYPES_DOCUMENT, eur, formaterDate, moisEnFrancais } from "@/lib/ged";
+import { regrouperDocumentsLot } from "@/lib/documents-lot";
 import { CATEGORIES_INCIDENT } from "@/lib/incidents";
 
 // LA FENÊTRE DU LOT — sur le gabarit remis par l'humain le 12/09.
@@ -944,7 +945,7 @@ function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: Fiche
     chargerDocumentsDuLot(fiche.lot_id).then((r) => {
       if (!vivant) return;
       if (r.erreur) setErreur(r.erreur);
-      else setDocs(r.donnees ?? []);
+      else setDocs(regrouperDocumentsLot(r.donnees ?? []));
     });
     return () => {
       vivant = false;

@@ -19,6 +19,8 @@ describe("document individuel", () => {
     expect(doc.html).toContain("Contrat individuel de colocation");
     expect(doc.html).toContain("Chambre Jardin"); expect(doc.html).toContain("Porte 2, fenêtre sur jardin");
     expect(doc.html).toContain("Cuisine équipée, séjour et salle de bains");
+    expect(doc.html).toContain("Locaux et équipements à usage privatif : <span class=\"v\">Chambre Jardin — Bureau, placard et lit</span>");
+    expect(doc.html).not.toContain("Locaux et équipements à usage privatif : <span class=\"v\">Cave n° 4</span>");
     expect(doc.html).toContain("aucune solidarité"); expect(doc.html).toContain("ne mettent pas fin aux contrats des autres");
     expect(doc.html).not.toContain("Contrat type — annexe"); expect(doc.html).not.toContain("Clause de solidarité");
     expect(doc.html).toMatch(/650,00\s€/); expect(doc.html).toMatch(/1[\s\u202f]200,00\s€/);

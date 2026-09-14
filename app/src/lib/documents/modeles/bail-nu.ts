@@ -157,8 +157,8 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     <p>Le logement est loué à usage exclusif d'habitation, à titre de résidence principale du locataire.</p>
     ${destinationServitude(ctx, f)}
     ${sousSection("C. Désignation des locaux et équipements accessoires")}
-    <p>Locaux et équipements à usage privatif : ${f.champ(ctx.lot.locaux_privatifs, "cave, parking, garage… avec numéro")}<br/>
-    Locaux, parties, équipements et accessoires à usage commun : ${f.champ(ctx.bien.parties_communes, "hall, ascenseur, local vélos…")}<br/>
+    <p>Locaux et équipements à usage privatif : ${ctx.chambre ? f.champ([ctx.chambre.nom, ctx.chambre.equipements].filter(Boolean).join(" — "), "chambre et équipements privatifs") : f.champ(ctx.lot.locaux_privatifs, "cave, parking, garage… avec numéro")}<br/>
+    Locaux, parties, équipements et accessoires à usage commun : ${ctx.chambre ? f.champ(ctx.chambre.espaces_partages, "espaces partagés autorisés par ce contrat") : f.champ(ctx.bien.parties_communes, "hall, ascenseur, local vélos…")}<br/>
     Équipements d'accès aux technologies de l'information et de la communication : ${f.champ(ctx.bien.acces_tic, "fibre, câble, TNT…")}</p>
     ${
       copro

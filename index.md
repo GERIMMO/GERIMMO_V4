@@ -137,7 +137,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.
 - [[Grille tarifaire agence — proposition]] — barème par tranches sans marche ; **en attente d'arbitrage**.
 - [[Fonctionnalités par persona]] — matrice qui-fait-quoi (implémenté vs cible).
-- [[Etat des lieux generation de documents]] — les 50 templates PDF croisés avec la base : vagues de couverture, dette de référentiel, ordre de réalisation (Documents-0).
+- [[Etat des lieux generation de documents]] — catalogue en préparation : 55 entrées, 54 générables, 35 compléments ; tests et limites explicités, épreuves historiques absentes, facture d’honoraires encore à terminer.
 - [[Documents a generer et automatisation WhatsApp]] — blueprint des documents (bail, EDL, congés…) : champ par champ AUTO vs à demander, données manquantes, surface de questions minimale pour le bot.
 - [[Récapitulatif fonctionnel et lacunes de spécification]] — **archivée** (snapshot du 2026-07-22, supplanté par le référentiel V3).
 

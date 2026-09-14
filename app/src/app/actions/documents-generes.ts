@@ -29,11 +29,13 @@ export async function genererDocument(
   cheminRetour: string,
   options?: Record<string, string>
 ): Promise<EtatGeneration> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   // Typé Modele : un assembleur peut déclarer moins de paramètres (les
   // options sont facultatives), l'appel à 4 arguments reste valide
+  if (!Object.hasOwn(MODELES, code)) return { erreur: "Modèle de document inconnu." };
+  if (["cloture_mensuelle", "recap_fiscal_agence", "rapport_gestion", "bordereau_versement"].includes(code) && role !== "admin_agence" && role !== "proprietaire_direct") return { erreur: "Ce document global est réservé au responsable de l’organisation." };
   const modele: Modele = MODELES[code];
   if (!modele) return { erreur: "Modèle de document inconnu." };
 
@@ -62,7 +64,7 @@ export async function genererDocument(
     // Rattachements : le dépôt GED lie déjà à l'organisation ; on ajoute les
     // objets métier (bail, personne, lot) pour la navigation documentaire.
     if (assemblage.liens.length > 0) {
-      await supabase.from("document_liens").insert(
+      const { error: erreurLiens } = await supabase.from("document_liens").insert(
         assemblage.liens.map((l) => ({
           document_id: depot.documentId,
           organization_id: orgId,
@@ -70,9 +72,13 @@ export async function genererDocument(
           entite_id: l.entiteId,
         }))
       );
+      if (erreurLiens) {
+        revalidatePath(`/agence/${orgId}/documents`);
+        return { documentId: depot.documentId, erreur: "Le PDF a été enregistré dans Documents, mais son rattachement au dossier a échoué. Ouvrez le document pour corriger ses liens avant de le partager." };
+      }
     }
 
-    revalidatePath(cheminRetour);
+    revalidatePath(cheminRetour.startsWith(`/agence/${orgId}/`) ? cheminRetour : `/agence/${orgId}/documents`);
     revalidatePath(`/agence/${orgId}/documents`);
     const manquants = assemblage.document.manquants;
     return {

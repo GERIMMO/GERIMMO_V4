@@ -105,6 +105,32 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     return l;
   }
 
+  it.each([
+    ["nu", false, 700], ["nu", true, 700],
+    ["meuble", false, 1400], ["meuble", true, 1400],
+    ["colocation", false, 700], ["colocation", true, 1400],
+  ])("dépôt %s, lot meublé %s : plafond %s, insertion et correction protégées", async (type, meuble, plafond) => {
+    const l = await lot(meuble);
+    const sql = `insert into public.baux (organization_id, lot_id, locataire_principal, type, loyer_hc, depot_garantie)
+      values ($1,$2,$3,$4,700,$5) returning id`;
+    await attendreEchec(db, /Dépôt de garantie trop élevé/, sql, [orgA, l, locataire, type, plafond + 0.01]);
+    const { rows: [bail] } = await db.query(sql, [orgA, l, locataire, type, plafond]);
+    await attendreEchec(db, /Dépôt de garantie trop élevé/,
+      `update public.baux set depot_garantie=$2 where id=$1`, [bail.id, plafond + 0.01]);
+    const { rows: [apres] } = await db.query(`select depot_garantie from public.baux where id=$1`, [bail.id]);
+    expect(Number(apres.depot_garantie)).toBe(plafond);
+  });
+
+  it("recontrôle le plafond quand un brouillon de colocation change de logement", async () => {
+    const meuble = await lot(true);
+    const nu = await lot(false);
+    const { rows: [bail] } = await db.query(`insert into public.baux
+      (organization_id, lot_id, locataire_principal, type, loyer_hc, depot_garantie)
+      values ($1,$2,$3,'colocation',700,1400) returning id`, [orgA, meuble, locataire]);
+    await attendreEchec(db, /Dépôt de garantie trop élevé/,
+      `update public.baux set lot_id=$2 where id=$1`, [bail.id, nu]);
+  });
+
   it("prorata de SORTIE : le dernier mois n'est pas facturé en plein", async () => {
     const l = await lot();
     // Bail du 1er janvier au 10 avril 2025 → avril = 10/30 jours
@@ -257,22 +283,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     expect(al.rows[0].n).toBe(1);
   });
 
-  // ⚠ ROUGE ASSUMÉ — arbitrage humain en attente, ce n'est PAS une régression.
-  // Le produit se contredit lui-même sur cette règle :
-  //   • encaisser_depot (20260909190000) lit lots.meuble : colocation d'un lot
-  //     meublé → 2 mois. C'est ce que ce test affirme.
-  //   • le déclencheur controler_plafond_depot_garantie (20260909240000) ne lit
-  //     que baux.type : 'colocation' → 1 mois, et refuse le bail dès l'insert.
-  // Le déclencheur étant le plus strict, la règle EFFECTIVE aujourd'hui est
-  // 1 mois — conforme à wiki/concepts/Dépôt de garantie.md, qui tranche
-  // « colocation = bail nu, 1 mois ». La branche « or v_meuble »
-  // d'encaisser_depot est donc du code mort (le cumul encaissé est de toute
-  // façon borné par baux.depot_garantie : aucune fuite d'argent).
-  // La question est juridique, pas technique — la colocation d'un logement
-  // MEUBLÉ relève-t-elle des 2 mois du meublé ? — donc elle revient à l'humain.
-  // Voir wiki/syntheses/Audit du 10 septembre 2026.md § « Points à trancher ».
-  // Quand l'arbitrage tombera : soit le déclencheur apprend lots.meuble (et ce
-  // test passe au vert), soit le « or v_meuble » saute (et ce test est réécrit).
+  // Colocation à bail unique meublée : 2 mois HC pour le logement entier.
+  // Vérifié auprès de Service Public F34661/F31269 le 14/09/2026.
   it("plafond du dépôt : une colocation d'un lot MEUBLÉ ouvre 2 mois (RM-2.1.2)", async () => {
     const l = await lot(true); // lot meublé
     const {

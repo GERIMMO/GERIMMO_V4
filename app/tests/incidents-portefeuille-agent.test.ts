@@ -22,7 +22,7 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
   const id = async (sql: string, args: unknown[] = []) => (await db.query<{ id: string }>(sql, args)).rows[0].id;
   const devenir = async (compte: string) => {
     await db.query("reset role");
-    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated')::text,true)", [compte]);
+    await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)", [compte]);
     await db.query("set local role authenticated");
   };
   const postgres = async () => {

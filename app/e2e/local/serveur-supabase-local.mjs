@@ -14,6 +14,7 @@
 // Puis : NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run dev
 
 import http from "node:http";
+import { facteursPour, routerMfaLocal } from "./mfa-local.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -565,12 +566,13 @@ async function appelerRpc(claims, nom, corps) {
 }
 
 // ── Auth ───────────────────────────────────────────────────────────────────
-function sessionPour(user) {
+function sessionPour(user, niveau = "aal1") {
   const expires_in = 3600;
   const maintenant = Math.floor(Date.now() / 1000);
   const claims = {
     sub: user.id, email: user.email, phone: "", role: "authenticated",
     aud: "authenticated", session_id: crypto.randomUUID(),
+    aal: niveau, amr: [{ method: "password", timestamp: maintenant }, ...(niveau === "aal2" ? [{ method: "totp", timestamp: maintenant }] : [])],
     app_metadata: user.raw_app_meta_data ?? {}, user_metadata: user.raw_user_meta_data ?? {},
     iat: maintenant, exp: maintenant + expires_in, iss: `http://127.0.0.1:${PORT}/auth/v1`,
   };
@@ -579,7 +581,7 @@ function sessionPour(user) {
     token_type: "bearer",
     expires_in,
     expires_at: maintenant + expires_in,
-    refresh_token: signer({ sub: user.id, type: "refresh", iat: maintenant }),
+    refresh_token: signer({ sub: user.id, type: "refresh", aal: niveau, iat: maintenant }),
     user: utilisateurJson(user),
   };
 }
@@ -589,7 +591,7 @@ function utilisateurJson(u) {
     email_confirmed_at: u.email_confirmed_at, phone: u.phone ?? "",
     confirmed_at: u.email_confirmed_at, last_sign_in_at: u.last_sign_in_at,
     app_metadata: u.raw_app_meta_data ?? {}, user_metadata: u.raw_user_meta_data ?? {},
-    identities: [], created_at: u.created_at, updated_at: u.updated_at, is_anonymous: false,
+    factors: facteursPour(u.id), identities: [], created_at: u.created_at, updated_at: u.updated_at, is_anonymous: false,
   };
 }
 async function utilisateurParId(id) {
@@ -598,6 +600,15 @@ async function utilisateurParId(id) {
 }
 
 async function routerAuth(methode, chemin, url, corps, claims) {
+  if (chemin === 'factors' || chemin.startsWith('factors/')) {
+    const resultat = routerMfaLocal(methode, chemin, corps, claims);
+    if (resultat.valide) {
+      const u = await utilisateurParId(claims.sub);
+      if (!u) return { statut: 401, corps: { msg: 'Utilisateur disparu' } };
+      return { statut: 200, corps: sessionPour(u, 'aal2') };
+    }
+    return resultat;
+  }
   if (chemin === "token" && methode === "POST") {
     const grant = url.searchParams.get("grant_type");
     if (grant === "password") {
@@ -616,7 +627,7 @@ async function routerAuth(methode, chemin, url, corps, claims) {
       if (!c2 || c2.type !== "refresh") return { statut: 400, corps: { error: "invalid_grant", msg: "Invalid Refresh Token" } };
       const u = await utilisateurParId(c2.sub);
       if (!u) return { statut: 400, corps: { error: "invalid_grant", msg: "Utilisateur disparu" } };
-      return { statut: 200, corps: sessionPour(u) };
+      return { statut: 200, corps: sessionPour(u, c2.aal === "aal2" ? "aal2" : "aal1") };
     }
     return { statut: 400, corps: { error: "unsupported_grant_type" } };
   }

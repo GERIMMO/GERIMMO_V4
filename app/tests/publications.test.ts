@@ -55,7 +55,7 @@ describe.skipIf(!DB_URL)("Journal — propositions de publication", () => {
     await db.query("reset role");
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub',$1::text,'role','authenticated')::text, true)`,
+         json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text, true)`,
       [superAdmin]
     );
     await db.query("set local role authenticated");
@@ -187,7 +187,7 @@ describe.skipIf(!DB_URL)("Journal — propositions de publication", () => {
     await db.query("reset role");
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub',$1::text,'role','authenticated')::text, true)`,
+         json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text, true)`,
       [compte]
     );
     await db.query("set local role authenticated");

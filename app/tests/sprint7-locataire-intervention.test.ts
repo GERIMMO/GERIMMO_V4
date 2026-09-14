@@ -51,7 +51,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
   const connecte = (id: string) =>
     db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role','authenticated')::text, true)`,
+         json_build_object('sub', $1::text, 'role','authenticated','aal','aal2')::text, true)`,
       [id]
     );
   const role = (r: string) =>

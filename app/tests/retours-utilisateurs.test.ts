@@ -11,7 +11,7 @@ describe.skipIf(!url)("Retours utilisateurs : droits, traçabilité et idempoten
  let db:Client; let orgA:string;let orgB:string;let auteur:string;let collegue:string;let adminA:string;let autre:string;let sa:string;let artisan:string;
  async function compte(){const {rows:[u]}=await db.query(`insert into auth.users(id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
  values(gen_random_uuid(),'authenticated','authenticated','retour-'||gen_random_uuid()||'@test.local','x',now(),'{"provider":"email","providers":["email"]}','{}',now(),now()) returning id`);return u.id as string;}
- async function agir(id:string){await db.query('reset role');await db.query(`select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated')::text,true)`,[id]);await db.query('set local role authenticated');}
+ async function agir(id:string){await db.query('reset role');await db.query(`select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)`,[id]);await db.query('set local role authenticated');}
  async function refus(sql:string,params:unknown[],motif:RegExp){await db.query('savepoint refus');await expect(db.query(sql,params)).rejects.toThrow(motif);await db.query('rollback to savepoint refus');}
  async function creer(nature='bug',org:string|null=orgA,cle=randomUUID()){const {rows:[r]}=await db.query(ENVOI,[cle,nature,'Problème de sauvegarde','La sauvegarde du dossier ne donne pas de confirmation.','Une confirmation visible','/agence/123456/personnes/Jean-Dupont?email=jean@example.org#IBAN',org]);return r.id as string;}
  beforeAll(async()=>{db=new Client({connectionString:url});await db.connect();});

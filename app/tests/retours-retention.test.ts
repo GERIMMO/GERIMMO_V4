@@ -17,7 +17,7 @@ describe.skipIf(!url)("Conservation du support : contenu limité à six mois",()
    (values(gen_random_uuid(),'bug',now()-interval '7 months'),(gen_random_uuid(),'bug',now()-interval '5 months'),(gen_random_uuid(),'idee',now()-interval '7 months')) x(id,nature,date_creation) returning id`,[auteur]);[ancien,recent,idee]=retours.map(r=>r.id);
   await db.query("insert into public.retours_historique(retour_id,acteur_id,evenement,message) values($1,$2,'creation','Un contexte privé')",[ancien,auteur]);
  });afterEach(async()=>{await db.query('rollback');});
- async function agir(id:string){await db.query('reset role');await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated')::text,true)",[id]);await db.query('set local role authenticated');}
+ async function agir(id:string){await db.query('reset role');await db.query("select set_config('request.jwt.claims',json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)",[id]);await db.query('set local role authenticated');}
  it('efface le bug ancien et son texte de suivi, conserve le récent et les idées',async()=>{
   await agir(sa);expect((await db.query('select public.purger_signalements_support() n')).rows[0].n).toBe(1);
   expect((await db.query('select id from public.retours_utilisateurs where id=any($1::uuid[])',[[ancien,recent,idee]])).rows.map(r=>r.id).sort()).toEqual([recent,idee].sort());

@@ -37,7 +37,7 @@ async function fiche(db: Client, siretVerifie = false) {
 async function agir(db: Client, utilisateur: string) {
   await db.query("reset role");
   await db.query(`select set_config('request.jwt.claims',
-    json_build_object('sub',$1::text,'role','authenticated')::text,true)`, [utilisateur]);
+    json_build_object('sub',$1::text,'role','authenticated','aal','aal2')::text,true)`, [utilisateur]);
   await db.query("set local role authenticated");
 }
 

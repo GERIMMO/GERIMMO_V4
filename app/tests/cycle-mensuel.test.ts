@@ -45,7 +45,7 @@ async function simuler(accountId: string | null, role = "authenticated") {
   if (accountId) {
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)`,
+         json_build_object('sub', $1::text, 'role', 'authenticated','aal','aal2')::text, true)`,
       [accountId]
     );
   } else {
@@ -308,7 +308,7 @@ describe.skipIf(!DB_URL)("qui a le droit de déclencher", () => {
     await db.query("reset role");
     await db.query(
       `select set_config('request.jwt.claims',
-         json_build_object('sub', $1::text, 'role', 'authenticated')::text, true)`,
+         json_build_object('sub', $1::text, 'role', 'authenticated','aal','aal2')::text, true)`,
       [gerant]
     );
     await db.query("savepoint e");

@@ -34,6 +34,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <NavAdmin />
             <SyntheseAlertes alertes={alertes} modeAdmin surEncre rappel />
+            <Link href="/securite" className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]">Sécurité du compte</Link>
             <form action={seDeconnecter}>
               <button
                 type="submit"

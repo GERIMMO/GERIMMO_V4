@@ -4301,3 +4301,11 @@ Le bail commun de colocation devient générable depuis le brouillon, selon le c
 ## [2026-09-14] query | Mentions et honoraires des contrats de location
 
 Compléments structurés ajoutés : conclusion prévue, encadrement local distinct de la zone tendue, servitude, énergie et honoraires d'état des lieux. Les modèles nu/meublé/colocation reprennent les données, distinguent les délais de résiliation et réservent la date de signature aux parties. Tests des bornes financières, erreurs, clauses et protection des contrats terminés. Recette navigateur sur un brouillon fictif : champs conditionnels, refus d'une fourchette inversée, conservation des choix après erreur, enregistrement. PDF de colocation inspectés ; signatures regroupées pour éviter une page presque vide. Le test du découpage distingue les lots par identifiant, leurs dates de création étant égales dans une transaction. Les sources légales sont citées dans Bail ; raw et Obsidian restent inchangés. Cette étape ne constitue pas une certification juridique de tous les modèles.
+
+## [2026-09-14] implementation | Second facteur obligatoire en supervision
+Écran TOTP Supabase Auth, reprise de destination interne, annulation et erreurs
+explicites. Contrôle web et migration `20260914160000` dans `is_super_admin()`.
+1 022 tests locaux réussis, types/lint/build réussis ; activation et ouverture
+de la console essayées au navigateur. Le banc Auth reste un émulateur local,
+les politiques SQL sont réelles. Déployer l’écran avant la migration.
+[[Socle de sécurité]] et index mis à jour ; MFA facultative autres rôles restante.

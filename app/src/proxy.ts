@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { doitVerifierSecondFacteur } from "@/lib/mfa";
 import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
 
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
@@ -120,6 +121,21 @@ export async function proxy(request: NextRequest) {
     sameSite: "lax",
     path: "/",
   });
+
+  // Le rôle de supervision nécessite un second facteur, y compris lorsqu'il
+  // ouvre un espace agence. La page de configuration reste accessible avant AAL2.
+  const roles = (memberships ?? []).map(m => m.role);
+  if (!isPublic && pathname !== "/securite" && roles.includes("super_admin")) {
+    const { data: niveau, error: erreurMfa } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (erreurMfa || doitVerifierSecondFacteur(roles, niveau?.currentLevel)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/securite";
+      url.search = `?suite=${encodeURIComponent(pathname + request.nextUrl.search)}`;
+      const redirect = NextResponse.redirect(url);
+      response.cookies.getAll().forEach(c => redirect.cookies.set(c));
+      return redirect;
+    }
+  }
 
   // Un utilisateur connecté n'a rien à faire sur /connexion ni sur la vitrine
   if (pathname === "/" || REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p))) {

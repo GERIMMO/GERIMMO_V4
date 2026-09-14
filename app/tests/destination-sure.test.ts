@@ -38,6 +38,10 @@ describe("destinationSure", () => {
     expect(destinationSure("espaces")).toBe("/espaces");
   });
 
+  it.each(["/\\ailleurs.fr", "/\n/ailleurs.fr", "/\t/ailleurs.fr", "/ /ailleurs.fr"])("refuse la normalisation dangereuse %j", chemin => {
+    expect(destinationSure(chemin)).toBe('/espaces');
+  });
+
   it("accepte un repli propre à l'appelant", () => {
     expect(destinationSure(null, "/locataire/1")).toBe("/locataire/1");
     expect(destinationSure("https://ailleurs", "/locataire/1")).toBe("/locataire/1");

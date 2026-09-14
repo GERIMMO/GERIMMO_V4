@@ -4281,3 +4281,8 @@ et de correction du bail affichent maintenant leur résultat sans attendre
 la fin de la transition. La création ouvre le dossier reçu du serveur et
 conserve un lien d'accès. En colocation, le bouton de génération qui proposait
 un modèle nu refusé par le serveur est remplacé par le dépôt du contrat signé.
+
+
+## [2026-09-14] ingest | Référentiel vérifiable comme socle minimum
+
+Lecture du document fourni hors du coffre Obsidian (465 exigences, neuf personas) et prise en compte de la précision humaine « le référentiel est le minimum ». Source et empreinte enregistrées, statuts historiques séparés des preuves actuelles. Premier module ajouté : suivi privé des retours et contestations, classement et revue mensuelle des idées, brouillon éditorial. 927 tests locaux passent ; publication de la base et essais visuels en attente. Aucun fichier raw ni fichier du coffre Obsidian modifié.

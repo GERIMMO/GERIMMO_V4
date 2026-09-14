@@ -24,7 +24,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
 - [[Onboarding et abonnement]] — création d'agence, invitations, essai 14 j.
-- [[Retours utilisateurs]] — signalements de bugs et idées ; le code se corrige hors app.
+- [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées ; réalisation et preuves séparées des fonctionnalités restantes.
 
 ## Concepts
 - [[Organisation]] — l'entité cliente, racine de l'isolation multi-tenant.
@@ -153,3 +153,5 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Recette S3-S8 - scenarios]] — les 24 scénarios de recette humaine remis le 05/08 (référence de numérotation).
 - [[Recette - test par sprint et persona]] — **le fichier central de recette** (ex « Recette S3-S8 - tests par sprint et persona », renommé le 23/08) : Partie 1 recetté OK / Partie 2 reste à recetter (re-tests du 23/08, Sprint 7 incidents, sprints jamais déroulés, transverse).
 - [[Recette S7 - incidents]] — les scénarios détaillés du Sprint 7 (déclaration locataire, qualification, clôture, réouverture, pop-up de traitement).
+
+- [[Référentiel vérifiable Gerimmo du 12 septembre 2026]] — 465 exigences et neuf personas ; minimum demandé, couverture à prouver dans la version publiée.

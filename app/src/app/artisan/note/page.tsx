@@ -25,7 +25,7 @@ export const metadata = { title: "Ma note — Espace artisan" };
  *    vrai, plutôt que « 0 », qui serait un compliment mensonger.
  */
 export default async function PageNote() {
-  const { fiche } = await verifierAccesArtisan();
+  await verifierAccesArtisan();
   const { note, erreur } = await chargerNote();
 
   const moyenne = note?.note_publiee !== null && note?.note_publiee !== undefined
@@ -139,11 +139,7 @@ export default async function PageNote() {
           </li>
         </ul>
         <div className="mt-4">
-          <Contestation
-            raisonSociale={fiche.raison_sociale}
-            siret={fiche.siret}
-            note={note?.publiable ? moyenne : null}
-          />
+          <Contestation />
         </div>
       </Carte>
     </div>

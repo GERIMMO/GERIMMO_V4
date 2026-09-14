@@ -340,8 +340,8 @@ export default async function PageLot(
               {lot.etat === "disponible" ? (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Ce lot est prêt à être loué. Il le devient à l’activation de
-                    son bail, pas d’un clic ici.
+                    Ce lot est disponible. Vérifiez les éléments à compléter
+                    avant le prochain bail ; il passera en location lorsque ce bail sera activé.
                   </p>
                   {/* « Plus bas » est une consigne, pas un chemin : le
                       formulaire de bail est la SEULE porte d'entrée de la

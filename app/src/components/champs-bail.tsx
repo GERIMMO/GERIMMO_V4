@@ -287,6 +287,11 @@ export function ChampsBail({
           min="0"
           defaultValue={valeurs?.depot_garantie ?? defauts.depot_garantie ?? ""}
         />
+        <p className="text-xs text-muted-foreground">
+          Maximum : 1 mois de loyer hors charges en location nue, 2 en meublé.
+          En colocation, ce plafond vaut pour le logement entier ; son caractère
+          meublé est repris de la fiche du lot.
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${prefixe}-irl`}>Trimestre IRL de référence</Label>

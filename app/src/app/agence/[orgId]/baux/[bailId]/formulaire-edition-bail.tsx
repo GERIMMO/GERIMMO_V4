@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { modifierBail, type EtatBail } from "@/app/actions/baux";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { ChampsBail, type BailDefauts } from "@/components/champs-bail";
@@ -21,16 +21,16 @@ export function FormulaireEditionBail({
   defauts: BailDefauts;
 }) {
   const action = modifierBail.bind(null, orgId, bailId);
-  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
+  const { etat, soumettre: formAction, enCours } = useActionFormulaire<EtatBail>(action);
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form onSubmit={formAction} className="space-y-3">
       {/* etat.valeurs prime sur les défauts du brouillon : un refus ne doit pas
           écraser les corrections saisies (recette 22/08). */}
       <ChampsBail personnes={personnes} defauts={defauts} prefixe="edition" valeurs={etat.valeurs} />
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
-      <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+      <BoutonEnvoi enCours={enCours} enCoursTexte="Enregistrement…" size="sm" variant="outline">
         Enregistrer les corrections
       </BoutonEnvoi>
     </form>

@@ -537,16 +537,24 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {bail.etat === "brouillon" && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Générer le bail</CardTitle>
+            <CardTitle className="text-base">{bail.type === "colocation" ? "Préparer le contrat de colocation" : "Générer le bail"}</CardTitle>
             <CardDescription>
-              Le contrat type ({bail.type === "meuble" ? "logement meublé, inventaire du mobilier annexé" : "logement nu"})
-              rempli avec ce que Gerimmo sait déjà — les champs sans donnée
-              restent en libellé, la liste vous est donnée. À imprimer, faire
-              signer, puis déposer ci-dessous.
+              {bail.type === "colocation" ? (
+                <>La génération automatique du contrat de colocation n’est pas encore disponible.
+                  Préparez le contrat commun, faites-le signer par les parties, puis déposez le PDF signé.</>
+              ) : (
+                <>Le contrat type ({bail.type === "meuble" ? "logement meublé, inventaire du mobilier annexé" : "logement nu"})
+                  rempli avec les informations du dossier. Les données manquantes sont signalées.
+                  Relisez-le, faites-le signer, puis déposez le PDF signé ci-dessous.</>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {bail.locataire_principal ? (
+            {bail.type === "colocation" ? (
+              <Link href="#bail-signe" className="text-sm font-medium text-primary underline underline-offset-4">
+                Déposer le contrat de colocation signé
+              </Link>
+            ) : bail.locataire_principal ? (
               <BoutonGenererDocument
                 orgId={orgId}
                 code={bail.type === "meuble" ? "bail_meuble" : "bail_nu"}
@@ -572,10 +580,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <CardHeader>
           <CardTitle className="text-base">Compléments du contrat</CardTitle>
           <CardDescription>
-            Les conditions détaillées que le contrat type imprime : fixation et
-            paiement du loyer, travaux, honoraires, encadrement en zone tendue.
-            Vérifiez ces informations avant de générer le contrat : les données
-            absentes restent signalées dans le PDF.
+            Fixation et paiement du loyer, travaux, honoraires et encadrement en zone tendue :
+            renseignez les conditions convenues avec les parties et vérifiez leur cohérence
+            avec le contrat signé.
           </CardDescription>
         </CardHeader>
         <CardContent>

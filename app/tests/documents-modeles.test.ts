@@ -347,13 +347,15 @@ describe("Modèles 14/15 — états des lieux", () => {
 // Rendu PDF réel des deux gros modèles (Chrome local uniquement) : les
 // fichiers partent dans le scratchpad pour la comparaison visuelle aux épreuves.
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-const CHROME_LOCAL = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome"].find((c) => existsSync(c));
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+const CHROME_LOCAL = [process.env.GERIMMO_CHROME, "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome"].find((c): c is string => Boolean(c && existsSync(c)));
 describe.skipIf(!CHROME_LOCAL)("Rendu PDF des modèles (Chrome local)", () => {
   it("bail nu et EDL de sortie se rendent en PDF multi-pages", { timeout: 90_000 }, async () => {
     process.env.GERIMMO_CHROME = CHROME_LOCAL;
     const { rendrePdf } = await import("../src/lib/documents/rendu");
     const dossier =
-      "C:/Users/Admin/AppData/Local/Temp/claude/C--Users-Admin-Documents-vault-Gerimmo/ceefd2e8-ae36-45de-ae3c-959d39cbb275/scratchpad/pdf-generes";
+      join(tmpdir(), "gerimmo-recette-pdf");
     mkdirSync(dossier, { recursive: true });
     const bail = construireBailNu(contexte(), { dpeClasse: "G", f: new Fusion() });
     const pdfBail = await rendrePdf(bail);

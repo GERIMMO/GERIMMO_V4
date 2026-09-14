@@ -3,8 +3,8 @@ type: concept
 tags: [depot-de-garantie, bail, encaissement, restitution, plafond]
 status: draft
 created: 2026-07-24
-updated: 2026-08-05
-sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
+updated: 2026-09-14
+sources: ["[[2026-09-14-service-public-depot-colocation]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
 # Dépôt de garantie
@@ -27,6 +27,7 @@ produisent chacun une écriture comptable (4.2 / 4.1).
 |---|---|---|
 | **Bail nu** | **1 mois maximum** (RM-2.1.1) | Loyer **hors charges** |
 | **Bail meublé** | **2 mois maximum** (RM-2.1.2) | Loyer **hors charges** |
+| **Colocation à bail commun** | **1 mois en nu, 2 en meublé** | Loyer **hors charges du bail entier** |
 | **Bail mobilité** | Interdit | Hors périmètre |
 
 Le système **bloque la validation** si le montant saisi dépasse le plafond (US-2.1.1) —
@@ -82,8 +83,23 @@ pas re-vérifiés tant qu'on n'y touche pas. Base retenue : **loyer hors
 charges** ; nu → 1 mois, meublé → 2 mois.
 
 > [!warning] Points à trancher / contradictions
-> - **Colocation** : traitée comme un bail nu (1 mois de loyer HC du bail
->   entier). Aucune source ne tranche le cas d'un dépôt par colocataire —
->   à confirmer.
+> - **Colocation à contrats séparés** : non couverte par cette correction. Ne pas appliquer un plafond par personne au bail commun. La génération du contrat de colocation reste à traiter séparément.
 > - **Bail mobilité** : dépôt interdit par la loi ELAN ; le type n'existe pas
 >   encore dans l'application — à couvrir quand il arrivera.
+
+## Cohérence du dépôt en colocation (2026-09-14)
+
+La source officielle [[2026-09-14-service-public-depot-colocation]] distingue
+le bail commun nu du bail commun meublé. Elle remplace l'hypothèse précédente
+« toute colocation = bail nu ». Le produit utilise le caractère meublé de la
+fiche du lot pour le type `colocation`, déjà utilisé par son encaissement.
+Un bail explicitement `nu` reste plafonné à un mois HC, même si le lot est
+marqué meublé ; un bail `meuble` est plafonné à deux mois.
+
+La migration `20260914110000` harmonise insertion, modification, contrôle
+d'activation et encaissement. Les actions serveur relisent le lot autorisé
+avant de calculer le plafond : un indicateur reçu du navigateur ne fait pas foi.
+Aucun dépôt existant n'est recalculé, augmenté ni réécrit. Le dépôt contractuel
+reste la limite de l'encaissement cumulé. Les locations à paiement mensuel
+sont le périmètre actuel ; les exceptions de versement anticipé de plus de
+deux mois ne constituent pas un nouveau parcours implémenté.

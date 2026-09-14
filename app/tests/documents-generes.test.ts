@@ -6,6 +6,8 @@
  * faite en recette.
  */
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   Fusion,
@@ -88,8 +90,8 @@ describe("Modèle 18/19 — quittance et reçu", () => {
 });
 
 // Rendu PDF réel : uniquement si un Chrome local est disponible
-const CHROME = ["C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome"].find(
-  (c) => existsSync(c)
+const CHROME = [process.env.GERIMMO_CHROME, "C:/Program Files/Google/Chrome/Application/chrome.exe", "/usr/bin/google-chrome"].find(
+  (c): c is string => Boolean(c && existsSync(c))
 );
 
 describe.skipIf(!CHROME)("Rendu PDF (Chrome local)", () => {
@@ -101,7 +103,7 @@ describe.skipIf(!CHROME)("Rendu PDF (Chrome local)", () => {
     expect(octets.length).toBeGreaterThan(20_000);
     const tete = new TextDecoder().decode(octets.slice(0, 8));
     expect(tete.startsWith("%PDF-")).toBe(true);
-    const dossier = "C:/Users/Admin/AppData/Local/Temp/claude/C--Users-Admin-Documents-vault-Gerimmo/ceefd2e8-ae36-45de-ae3c-959d39cbb275/scratchpad/pdf-generes";
+    const dossier = join(tmpdir(), "gerimmo-recette-pdf");
     mkdirSync(dossier, { recursive: true });
     writeFileSync(`${dossier}/test-quittance.pdf`, octets);
   });

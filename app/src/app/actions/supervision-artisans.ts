@@ -35,15 +35,15 @@ export async function traiterInscriptionArtisan(
     if (artisan.siret_etat !== "verifie") return { erreur: "Vérifiez d’abord le SIRET." };
     if (formData.get("pieces_relues") !== "oui") return { erreur: "Confirmez avoir relu les justificatifs avant de valider l’inscription." };
   }
-  const { error: erreurTrace } = await supabase.rpc("log_sa_access", {
-    org: null,
-    sa_action: "examen_inscription_artisan",
-    sa_details: { artisan_id: artisanId, operation_demandee: operation },
+  // La lecture ci-dessus sert au retour immédiat. La RPC recontrôle l’état
+  // sous verrou et enregistre la trace avec la décision dans sa transaction.
+  const { error } = await supabase.rpc("traiter_inscription_artisan_atomique", {
+    p_artisan: artisanId,
+    p_operation: operation,
+    p_motif: motif || null,
+    p_verification_effectuee: formData.get("verification_effectuee") === "oui",
+    p_pieces_relues: formData.get("pieces_relues") === "oui",
   });
-  if (erreurTrace) return { erreur: "La demande ne peut pas être journalisée. Réessayez avant de décider." };
-  const { error } = operation === "verifier_siret"
-    ? await supabase.rpc("artisan_definir_siret_etat", { p_artisan: artisanId, p_etat: "verifie" })
-    : await supabase.rpc("artisan_decider_plateforme", { p_artisan: artisanId, p_decision: operation, p_motif: motif || null });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath("/admin/artisans");
   revalidatePath("/admin");

@@ -143,7 +143,7 @@ grant select on storage.buckets, storage.objects to anon;
 -- seule barrière est le qual RLS, le banc local doit reproduire ce risque
 -- (constat de l'audit du 10/09), pas le masquer.
 alter default privileges in schema public
-  grant select, insert, update, delete on tables to anon, authenticated, service_role;
+  grant select, insert, update, delete, truncate on tables to anon, authenticated, service_role;
 alter default privileges in schema public
   grant execute on functions to anon, authenticated, service_role;
 alter default privileges in schema public

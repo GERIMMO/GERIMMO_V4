@@ -61,7 +61,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 ## Règles métier
 - [[Grille tarifaire]] — offres par audience ; V3 : mensuel + mise en route + redevance.
 - [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
-- [[Mentions obligatoires du bail]] — modèle-type 2015 + ajouts 2024 (identifiant fiscal, DPE) ; trou repéré au module 1.
+- [[Mentions obligatoires du bail]] — modèle-type et compléments DPE, servitude, clauses et honoraires revus le 14/09/2026 ; revue de tous les régimes encore ouverte.
 - [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.
 - [[Cycle de vie de l'abonnement]] — essai 14 j → paiement ou suspension.
 - [[Archivage plutôt que suppression]] — on archive, on ne supprime pas.

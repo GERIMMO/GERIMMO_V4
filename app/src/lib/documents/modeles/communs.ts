@@ -2,6 +2,7 @@
 // le bailleur (les détenteurs du lot), le locataire et le logement — les
 // mêmes cartouches reviennent d'une épreuve à l'autre.
 
+import type { MentionsContrat } from "@/lib/mentions-contrat";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { Fusion, type EnTeteExpediteur } from "../gabarit";
@@ -34,7 +35,7 @@ export type ContexteBail = {
     garantie_financiere: string | null;
     iban: string | null;
   };
-  bail: {
+  bail: MentionsContrat & {
     id: string;
     type: string;
     etat: string;
@@ -130,6 +131,9 @@ export async function chargerContexteBail(
          clauses_particulieres, loyer_reference, loyer_reference_majore,
          complement_loyer, complement_justification, dernier_loyer,
          dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant,
+         date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires,
+         honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference,
+         clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude,
          lot:lots!baux_lot_meme_org_fk(id, nom, surface_m2, pieces, etage, meuble,
            identifiant_fiscal, description, chauffage, eau_chaude, locaux_privatifs,
            bien:biens!lots_bien_id_fkey(id, nom, type, address_line1, postal_code, city,

@@ -1,5 +1,7 @@
 "use server";
 
+import { premier } from "@/lib/postgrest";
+import { lireMentionsContrat, verifierHonorairesContrat } from "@/lib/mentions-contrat";
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
@@ -239,9 +241,26 @@ export async function modifierComplementsBail(
     return brut ? Number(brut) : null;
   };
 
+  const { mentions, erreur: erreurMentions } = lireMentionsContrat(formData);
+  if (erreurMentions) return { erreur: erreurMentions, valeurs };
+  for (const champ of ['irl_valeur', 'travaux_recents_montant', 'honoraires_bailleur', 'honoraires_locataire', 'loyer_reference', 'loyer_reference_majore', 'complement_loyer', 'dernier_loyer']) {
+    const n = nombre(champ);
+    if (n !== null && (!Number.isFinite(n) || n < 0)) return { erreur: "Saisissez des montants positifs ou nuls.", valeurs };
+  }
+  const { data: contrat, error: erreurLecture } = await supabase.from("baux")
+    .select("lot:lots!baux_lot_meme_org_fk(surface_m2)")
+    .eq("id", bailId).eq("organization_id", orgId).eq("etat", "brouillon").maybeSingle();
+  if (erreurLecture) return { erreur: "Le logement n’a pas pu être vérifié. Réessayez.", valeurs };
+  if (!contrat) return { erreur: "Seul un bail en brouillon accessible peut être corrigé.", valeurs };
+  const logement = premier(contrat.lot);
+  const erreurHonoraires = verifierHonorairesContrat({ ...mentions, honoraires_bailleur: nombre("honoraires_bailleur"), honoraires_locataire: nombre("honoraires_locataire") }, logement?.surface_m2 ?? null);
+  if (erreurHonoraires) return { erreur: erreurHonoraires, valeurs };
+
+
   const { data: modifies, error } = await supabase
     .from("baux")
     .update({
+      ...mentions,
       fixation_loyer: texte("fixation_loyer"),
       paiement_echeance: formData.get("paiement_echeance") === "echu" ? "echu" : "echoir",
       lieu_paiement: texte("lieu_paiement"),

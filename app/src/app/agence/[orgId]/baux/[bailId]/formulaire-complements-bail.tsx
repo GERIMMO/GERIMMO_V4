@@ -1,6 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import type { MentionsContrat } from "@/lib/mentions-contrat";
+import { MentionsContratFormulaire } from "./mentions-contrat";
+import { useActionState, useState } from "react";
 import { modifierComplementsBail, type EtatBail } from "@/app/actions/baux";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -9,7 +11,7 @@ import { eur, formaterDate } from "@/lib/ged";
 
 // Valeurs actuelles du bail — la page les lit dans son select `baux` et les
 // passe telles quelles.
-export type ComplementsBailDefauts = {
+export type ComplementsBailDefauts = MentionsContrat & {
   fixation_loyer: string | null;
   paiement_echeance: string; // 'echoir' | 'echu'
   lieu_paiement: string | null;
@@ -66,6 +68,7 @@ export function FormulaireComplementsBail({
 }) {
   const action = modifierComplementsBail.bind(null, orgId, bailId);
   const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
+  const [encadrement, setEncadrement] = useState(defauts.encadrement_loyer === true);
 
   // Le contrat signé fige ses conditions : passé le brouillon, lecture seule.
   if (!modifiable) {
@@ -89,7 +92,7 @@ export function FormulaireComplementsBail({
           ] as [string, string][])
         : []),
       ["Clauses particulières", defauts.clauses_particulieres ?? "—"],
-      ...(zoneTendue
+      ...(defauts.encadrement_loyer === true || zoneTendue
         ? ([
             ["Loyer de référence", montant(defauts.loyer_reference)],
             ["Loyer de référence majoré", montant(defauts.loyer_reference_majore)],
@@ -109,6 +112,7 @@ export function FormulaireComplementsBail({
     ];
     return (
       <div>
+        <MentionsContratFormulaire defauts={defauts} agence={agence} modifiable={false} />
         <p className="text-sm text-muted-foreground">
           Le contrat a avancé — ces conditions sont figées.
         </p>
@@ -131,6 +135,7 @@ export function FormulaireComplementsBail({
 
   return (
     <form action={formAction} className="space-y-3">
+      <MentionsContratFormulaire defauts={defauts} valeurs={etat.valeurs} agence={agence} modifiable onEncadrementChange={setEncadrement} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="comp-fixation">Fixation initiale du loyer</Label>
@@ -230,7 +235,7 @@ export function FormulaireComplementsBail({
         {agence && (
           <>
             <div className="space-y-1.5">
-              <Label htmlFor="comp-hono-bailleur">Honoraires à la charge du bailleur (€)</Label>
+              <Label htmlFor="comp-hono-bailleur">Visite, dossier et bail — part du bailleur (€ TTC)</Label>
               <Input
                 id="comp-hono-bailleur"
                 name="honoraires_bailleur"
@@ -241,7 +246,7 @@ export function FormulaireComplementsBail({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="comp-hono-locataire">Honoraires à la charge du locataire (€)</Label>
+              <Label htmlFor="comp-hono-locataire">Visite, dossier et bail — part du locataire (€ TTC)</Label>
               <Input
                 id="comp-hono-locataire"
                 name="honoraires_locataire"
@@ -265,11 +270,12 @@ export function FormulaireComplementsBail({
             className={classeTextarea}
           />
         </div>
-        {zoneTendue && (
+        {(
           <>
             <p className="border-t border-border pt-3 text-sm font-medium sm:col-span-2">
-              Zone tendue — encadrement des loyers
+              Informations sur la précédente location
             </p>
+            {encadrement && <>
             <div className="space-y-1.5">
               <Label htmlFor="comp-loyer-ref">Loyer de référence (€/m²)</Label>
               <Input
@@ -313,6 +319,7 @@ export function FormulaireComplementsBail({
                 defaultValue={d("complement_justification", defauts.complement_justification)}
               />
             </div>
+            </>}
             <div className="space-y-1.5">
               <Label htmlFor="comp-dernier-loyer">
                 Dernier loyer de l&apos;ancien locataire (€)

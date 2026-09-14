@@ -32,15 +32,10 @@ import {
   type PersonneDocument,
   liensLocataires,
 } from "./communs";
+import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
 import type { Assemblage } from "./index";
 
-function periodeConstruction(annee: number | null): string | null {
-  if (!annee) return null;
-  if (annee < 1949) return "avant 1949";
-  if (annee <= 1974) return "1949-1974";
-  if (annee <= 1997) return "1975-1997";
-  return "après 1997";
-}
+
 
 // Montant total dû à la première échéance : loyer + charges, proratisés quand
 // le bail ne prend pas effet un 1er du mois (jours restants jusqu'à la fin du
@@ -75,7 +70,6 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
   const indivision = ctx.bailleurs.length > 1;
   const colocation = ctx.bail.type === "colocation";
   const plusieursLocataires = ctx.locataires.length > 1;
-  const zoneTendue = ctx.bien.zone_tendue;
   const copro = ctx.bien.copropriete;
   const depot = ctx.bail.depot_garantie === null ? null : Number(ctx.bail.depot_garantie);
   const chargesMode =
@@ -146,7 +140,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       ctx.bien.type === "appartement" || ctx.bien.type === "immeuble" ? "immeuble collectif" : "individuel",
       "immeuble collectif ou individuel"
     )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")} —
-    Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, après 1974…")}<br/>
+    Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
     Surface habitable : ${f.champ(
       ctx.lot.surface_m2 !== null ? `${ctx.lot.surface_m2} m²` : null,
       "en m²"
@@ -155,8 +149,10 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     Éléments d'équipement du logement : ${f.champ(ctx.lot.equipements.join(", "), "cuisine équipée, sanitaires, placards…")}<br/>
     Modalité de production de chauffage : ${f.champ(ctx.lot.chauffage, "individuel ou collectif, énergie")} — Modalité de
     production d'eau chaude sanitaire : ${f.champ(ctx.lot.eau_chaude, "individuel ou collectif, énergie")}</p>
+    ${mentionsEnergie(ctx, options.dpeClasse, f)}
     ${sousSection("B. Destination des locaux")}
     <p>Le logement est loué à usage exclusif d'habitation, à titre de résidence principale du locataire.</p>
+    ${destinationServitude(ctx, f)}
     ${sousSection("C. Désignation des locaux et équipements accessoires")}
     <p>Locaux et équipements à usage privatif : ${f.champ(ctx.lot.locaux_privatifs, "cave, parking, garage… avec numéro")}<br/>
     Locaux, parties, équipements et accessoires à usage commun : ${f.champ(ctx.bien.parties_communes, "hall, ascenseur, local vélos…")}<br/>
@@ -170,6 +166,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     }
 
     ${section("III — Date de prise d'effet et durée du contrat")}
+    ${dateConclusion(ctx, f)}
     <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut)}.<br/>
     Durée du contrat : ${f.champ(
       bailleurPrincipal?.qualite && bailleurPrincipal.qualite !== "Personne physique" ? "six ans" : "trois ans",
@@ -185,22 +182,8 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${section("IV — Conditions financières")}
     ${sousSection("A. Loyer")}
     <p>Montant du loyer mensuel hors charges : ${f.montant(ctx.bail.loyer_hc, "montant mensuel")}.<br/>
-    Modalité de fixation du loyer : ${f.champ(ctx.bail.fixation_loyer, "libre, plafonnement, réévaluation après travaux…")}.</p>
-    ${
-      zoneTendue
-        ? `<div class="encadre"><p><b>Zone tendue.</b> Loyer de référence : ${f.montant(ctx.bail.loyer_reference, "loyer de référence €/m²")} —
-           Loyer de référence majoré : ${f.montant(ctx.bail.loyer_reference_majore, "loyer de référence majoré €/m²")}.<br/>
-           ${
-             ctx.bail.complement_loyer === null
-               ? // Pas de complément convenu : « néant » — ce n'est pas une donnée manquante
-                 `Complément de loyer : néant.<br/>`
-               : `Complément de loyer : ${f.montant(ctx.bail.complement_loyer, "montant")} — justifié par :
-                  ${f.champ(ctx.bail.complement_justification, "caractéristiques justifiant le complément")}.<br/>`
-           }
-           Loyer du dernier locataire : ${f.montant(ctx.bail.dernier_loyer, "dernier loyer du précédent locataire")}, versé le
-           ${f.date(ctx.bail.dernier_loyer_versement, "date de versement")}, dernière révision le ${f.date(ctx.bail.dernier_loyer_revision, "date de dernière révision")}.</p></div>`
-        : ""
-    }
+    Modalité de fixation du loyer : ${f.champ(fixationLoyer(ctx.bail.fixation_loyer), "libre, plafonnement, réévaluation après travaux…")}.</p>
+    ${encadrementLocation(ctx, f)}
     ${
       ctx.bail.revision_irl
         ? `<p>Le loyer est révisé chaque année à la date anniversaire du contrat, dans la limite de la
@@ -249,20 +232,10 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     dès qu'un nouveau locataire le remplace au bail.</p>` : ""}
 
     ${section(`${plusieursLocataires ? "VIII" : "VII"} — Clause résolutoire`)}
-    <p>Le présent contrat sera résilié de plein droit, après commandement resté infructueux, en cas de
-    défaut de paiement du loyer, des charges (provisions ou régularisation annuelle) aux termes convenus,
-    de non-versement du dépôt de garantie, de défaut d'assurance contre les risques locatifs, ou de
-    troubles de voisinage constatés par une décision de justice passée en force de chose jugée.</p>
+    ${clauseResolutoire(ctx)}
 
     ${section(`${plusieursLocataires ? "IX" : "VIII"} — Honoraires de location`)}
-    ${
-      ctx.organisation.type !== "agence"
-        ? `<p>Sans objet — location conclue sans intermédiaire.</p>`
-        : `<p>Le cas échéant (article 5-I de la loi du 6 juillet 1989), les honoraires de visite, de
-           constitution du dossier et de rédaction du bail sont partagés : part du bailleur
-           ${f.montant(ctx.bail.honoraires_bailleur, "montant honoraires bailleur")} — part du locataire ${f.montant(ctx.bail.honoraires_locataire, "montant honoraires locataire")}
-           (plafond : ${zoneTendue ? 10 : 8} €/m² de surface habitable), état des lieux compris.</p>`
-    }
+    ${honorairesLocation(ctx, f)}
 
     ${section(`${plusieursLocataires ? "X" : "IX"} — Autres conditions particulières`)}
     <p>${ouNeant(ctx.bail.clauses_particulieres)}</p>
@@ -278,9 +251,9 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ☐ Le cas échéant, l'attestation d'assurance contre les risques locatifs<br/>
     ☐ Le cas échéant, la grille de vétusté applicable</p>
 
-    ${colocation ? '<div class="saut">' : ""}
+    ${colocation ? '<div class="bloc-signataires">' : ""}
     ${section(`${plusieursLocataires ? "XII" : "XI"} — Date et signatures`)}
-    <p>Fait à ${f.champ(exp.ville, "commune")}, le ${f.date(new Date().toISOString())}, en autant
+    <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
     d'exemplaires originaux que de parties.</p>
     <div class="signatures">
       ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
@@ -311,13 +284,14 @@ export async function assemblerBailNu(
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
   if (ctx.bail.type !== "nu") {
-    return { erreur: "Ce modèle couvre le bail nu — le meublé et la colocation arrivent avec les modèles 02/03." };
+    return { erreur: "Choisissez le modèle correspondant au bail : nu, meublé ou colocation." };
   }
+  if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare sur un brouillon. Pour un bail déjà engagé, utilisez un avenant." };
   if (!ctx.bail.locataire_principal) {
     return { erreur: "Renseignez d'abord le locataire principal du bail." };
   }
 
-  const { data: dpe } = await supabase
+  const { data: dpe, error: erreurDpe } = await supabase
     .from("diagnostics")
     .select("classe_dpe")
     .eq("lot_id", ctx.lot.id)
@@ -327,6 +301,7 @@ export async function assemblerBailNu(
     .limit(1)
     .maybeSingle();
 
+  if (erreurDpe) return { erreur: "Le diagnostic du logement n’a pas pu être chargé. Réessayez avant de générer le contrat." };
   const f = new Fusion();
   const document = construireBailNu(ctx, { dpeClasse: dpe?.classe_dpe ?? null, f });
 

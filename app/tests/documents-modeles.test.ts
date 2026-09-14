@@ -34,7 +34,7 @@ describe("Modèle 01 — bail nu", () => {
 
   it("ouvre les blocs conditionnels selon les données : zone tendue, copro, DPE F/G, solidarité", () => {
     const zt = construireBailNu(contexte(), { dpeClasse: "G", f: new Fusion() });
-    expect(zt.html).toContain("Zone tendue");
+    expect(zt.html).toContain("plafonnement de l’évolution du loyer à la relocation : oui");
     expect(zt.html).toContain("règlement de copropriété");
     expect(zt.html).toContain("classé G");
     expect(zt.html).not.toContain("Clause de solidarité");
@@ -52,13 +52,13 @@ describe("Modèle 01 — bail nu", () => {
       }),
       { dpeClasse: "C", f: new Fusion() }
     );
-    expect(simple.html).not.toContain("Zone tendue");
+    expect(simple.html).toContain("plafonnement de l’évolution du loyer à la relocation : non");
     expect(simple.html).not.toContain("règlement de copropriété");
   });
 
   it("imprime les données du bail 100 % rempli — zéro manquant sur la fixture complète", () => {
     const f = new Fusion();
-    const doc = construireBailNu(contexte(), { dpeClasse: null, f });
+    const doc = construireBailNu(contexte(), { dpeClasse: "D", f });
     // Câblage du contrat type (décret 2015-587) : chaque rubrique porte la donnée réelle
     expect(doc.html).toContain("Villeurbanne"); // commune de naissance du locataire
     expect(doc.html).toContain("Cuisine équipée, Placards"); // équipements du lot
@@ -127,7 +127,7 @@ describe("Modèle 01 — bail nu", () => {
           complement_justification: "Terrasse de 20 m² avec vue dégagée",
         },
       }),
-      { dpeClasse: null, f }
+      { dpeClasse: "D", f }
     );
     // 15 → 30 septembre : 16 jours sur 30 → (650 + 90) × 16/30 = 394,67 €
     expect(doc.html).toMatch(/394,67\s€/);
@@ -135,7 +135,7 @@ describe("Modèle 01 — bail nu", () => {
     // Agence : mandataire avec carte pro, honoraires chiffrés, plafond zone tendue calculé
     expect(doc.html).toContain("CPI 6901 2018 000 025 — CCI de Lyon");
     expect(doc.html).toMatch(/300,00\s€/);
-    expect(doc.html).toContain("10 €/m²");
+    expect(doc.html).toMatch(/10,09\s€/);
     // Durée réduite justifiée, complément de loyer motivé : plus aucun « Sans objet »
     expect(doc.html).toContain("Reprise du logement pour retraite du bailleur en 2028");
     expect(doc.html).toContain("Terrasse de 20 m² avec vue dégagée");

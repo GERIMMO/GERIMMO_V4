@@ -139,23 +139,25 @@ describe.skipIf(!URL || !KEY)("API — isolation multi-agences (RM-A1.7)", () =>
     expect(agences.size, "les deux adhésions devraient viser deux agences").toBeGreaterThanOrEqual(2);
   });
 
-  it("le super admin voit toutes les agences", async () => {
+  it("le mot de passe du super admin seul ne donne aucun accès de supervision", async () => {
     const sa = await connecte(SUPERADMIN);
     const a = await connecte(ADMIN_A);
     clients.push(sa, a);
 
     const { data: toutes } = await sa.from("organizations").select("id");
     const { data: sienne } = await a.from("organizations").select("id");
-    expect((toutes ?? []).length).toBeGreaterThan((sienne ?? []).length);
+    expect(toutes ?? []).toHaveLength(0);
+    expect((sienne ?? []).length).toBeGreaterThan(0);
+    expect((await sa.rpc("is_super_admin")).data).toBe(false);
   });
 
   it("un admin ne peut pas créer de fiche chez une autre agence", async () => {
-    const sa = await connecte(SUPERADMIN);
+    const b = await connecte(ADMIN_B);
     const a = await connecte(ADMIN_A);
-    clients.push(sa, a);
+    clients.push(b, a);
 
     const { data: sienne } = await a.from("organizations").select("id");
-    const { data: toutes } = await sa.from("organizations").select("id");
+    const { data: toutes } = await b.from("organizations").select("id");
     const autre = (toutes ?? []).find((o) => o.id !== sienne![0].id);
     expect(autre, "il faut au moins deux agences pour ce test").toBeDefined();
 

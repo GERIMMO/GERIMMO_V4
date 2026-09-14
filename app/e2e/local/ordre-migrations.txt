@@ -180,3 +180,4 @@
 20260914120000_retours_utilisateurs.sql
 20260914130000_retention_signalements_support.sql
 20260914150000_mentions_contrat_location.sql
+20260914160000_supervision_second_facteur.sql

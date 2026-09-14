@@ -44,7 +44,7 @@ async function compte(prefixe: string): Promise<string> {
 async function agir(accountId: string | null) {
   await db.query("reset role");
   await db.query(`select set_config('request.jwt.claims', $1, true)`, [
-    accountId ? JSON.stringify({ sub: accountId, role: "authenticated" }) : "",
+    accountId ? JSON.stringify({ sub: accountId, role: "authenticated", aal: "aal2" }) : "",
   ]);
   if (accountId) await db.query("set local role authenticated");
 }

@@ -71,7 +71,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Machines à états et événements]] — 8 machines, transitions interdites, idempotence.
 - [[Vétusté et décote]] — grille de durées de vie, décote linéaire ; amorti = zéro retenue.
 - [[Plan de reprise d'activité]] — RPO 24 h / RTO 4 h, test de restauration documenté.
-- [[Socle de sécurité]] — MFA par rôle, mots de passe, sessions, chiffrement, fichiers, incidents.
+- [[Socle de sécurité]] — MFA super administrateur avec écran TOTP et contrôle AAL2 en base ; autres exigences et limites de recette.
 
 ## Sources
 - [[2026-09-14-service-public-depot-colocation]] — source officielle : bail commun nu/meublé et plafond du dépôt hors charges.

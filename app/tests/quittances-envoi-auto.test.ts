@@ -45,7 +45,7 @@ async function simuler(accountId: string | null, role = "authenticated") {
   await db.query("reset role");
   await db.query(
     `select set_config('request.jwt.claims', $1, true)`,
-    [accountId ? JSON.stringify({ sub: accountId, role: "authenticated" }) : ""]
+    [accountId ? JSON.stringify({ sub: accountId, role: "authenticated", aal: "aal2" }) : ""]
   );
   await db.query(`set local role ${role}`);
 }

@@ -13,6 +13,6 @@
 export function destinationSure(brut: string | null | undefined, repli = "/espaces"): string {
   if (!brut) return repli;
   if (!brut.startsWith("/")) return repli;
-  if (brut.startsWith("//")) return repli;
+  if (brut.startsWith("//") || /[\\\x00-\x20\x7f]/.test(brut)) return repli;
   return brut;
 }

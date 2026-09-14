@@ -3,7 +3,7 @@ type: business-rule
 tags: [securite, mfa, mot-de-passe, session, chiffrement, antivirus]
 status: draft
 created: 2026-07-25
-updated: 2026-07-25
+updated: 2026-09-14
 sources: ["[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -27,6 +27,33 @@ sécurité externe reste recommandé avant lancement**.
 Justification actée : l'imposer partout produirait des contournements (mot de passe
 partagé, session jamais fermée) — « la sécurité théorique nuirait à la sécurité
 réelle ».
+
+## Mise en œuvre vérifiée le 14 septembre 2026
+
+L’écran `/securite` configure un facteur TOTP Supabase Auth, vérifie le code,
+permet d’annuler une configuration inachevée et reprend la destination interne.
+Le proxy exige AAL2 pour le super administrateur, y compris dans une agence.
+La migration `20260914160000_supervision_second_facteur.sql` impose également
+AAL2 dans `is_super_admin()` : cacher l’écran ne suffit pas à obtenir les données.
+Une adhésion inactive et les autres rôles restent refusés même avec AAL2.
+
+Déploiement : publier l’écran d’abord, appliquer la migration ensuite. À la
+première connexion, chaque super administrateur doit configurer sa propre
+application. Une perte de facteur nécessite une réinitialisation par le
+propriétaire du projet Supabase, après vérification d’identité. Aucun contournement
+par mot de passe seul n’est ajouté.
+
+Preuves : suites `mfa-base`, `mfa-api`, `mfa-proxy`, `mfa` et `destination-sure` ;
+1 022 tests locaux réussis, compilation/types/lint réussis. Recette navigateur :
+annulation, mauvais code, activation, ouverture des espaces et de la console.
+Le banc utilise le SDK réel et les politiques SQL réelles, mais émule Auth :
+il ne certifie pas le service hébergé ni la lecture d’un QR par téléphone.
+Les facteurs de recette sont en mémoire et disparaissent au redémarrage du banc.
+La MFA facultative des autres personas (01.9/01.10) reste à développer.
+
+Sources de mise en œuvre : [Supabase — TOTP](https://supabase.com/docs/guides/auth/auth-mfa/totp),
+[Supabase — niveaux d’assurance](https://supabase.com/docs/guides/auth/auth-mfa).
+La source métier A4 ci-dessus reste inchangée.
 
 ## Mots de passe et sessions
 

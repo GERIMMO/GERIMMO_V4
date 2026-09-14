@@ -217,6 +217,24 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
     expect(apres.rows[0].closed_action).toMatch(/entrée signé/);
   });
 
+  it("colocation meublée : même plafond à la création, activation et encaissement cumulé", async () => {
+    const lot = await lotLouable();
+    await db.query(`update public.lots set meuble=true where id=$1`, [lot]);
+    const bail = await creerBail(lot, await docBail());
+    await db.query(`update public.baux set type='colocation', depot_garantie=1500 where id=$1`, [bail]);
+    await db.query(`select public.controler_mise_en_location($1)`, [bail]);
+    await db.query(`select public.activer_bail($1)`, [bail]);
+    await db.query(`select public.encaisser_depot($1,1000,current_date,'virement',null,null)`, [bail]);
+    await db.query(`select public.encaisser_depot($1,500,current_date,'virement',null,null)`, [bail]);
+    await db.query("savepoint depot_excessif");
+    await expect(db.query(`select public.encaisser_depot($1,0.01,current_date,'virement',null,null)`, [bail]))
+      .rejects.toThrow(/dépass|supérieur|plafond/i);
+    await db.query("rollback to savepoint depot_excessif");
+    const { rows: [apres] } = await db.query(`select etat, depot_garantie from public.baux where id=$1`, [bail]);
+    expect(apres.etat).toBe("actif");
+    expect(Number(apres.depot_garantie)).toBe(1500);
+  });
+
   it("activation avec l'EDL d'entrée déjà signé : aucune alerte", async () => {
     const lot = await lotLouable();
     const doc = await docBail();

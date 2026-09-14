@@ -205,6 +205,7 @@ export default async function PageDocuments(
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <Link href={`/agence/${orgId}/documents/catalogue`} className={buttonVariants()}>Préparer un document</Link>
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {erreurDocuments ? (

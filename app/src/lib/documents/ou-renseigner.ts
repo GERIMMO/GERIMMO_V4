@@ -16,6 +16,7 @@ type Cible = "organisation" | "personne" | "lot" | "bail" | "complements";
 type Regle = { motifs: string[]; cible: Cible; cibleBail?: Cible };
 
 const REGLES: Regle[] = [
+  { motifs: ["chambre", "surface privative", "volume privatif", "espaces partagés", "équipements privatifs", "loyer maximum du logement entier"], cible: "lot" },
   { motifs: ["libre, plafonnement", "dépenses annuelles", "prix de l’énergie", "date prévue de conclusion", "servitude de résidence", "application des loyers de référence", "plafond de location", "plafond état des lieux", "honoraires état des lieux", "honoraires visite", "date du dernier versement", "date de dernière révision"], cible: "complements" },
   { motifs: ["classe dpe du logement"], cible: "lot" },
   // L'état civil du locataire (bail) — avant « commune » tout court (faitA)
@@ -129,7 +130,7 @@ export function lienPourManquant(
 
   for (const r of REGLES) {
     if (r.motifs.some((m) => l.includes(m))) {
-      return vers(["bail_nu", "bail_meuble", "bail_colocation"].includes(modele ?? "") && r.cibleBail ? r.cibleBail : r.cible);
+      return vers(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel"].includes(modele ?? "") && r.cibleBail ? r.cibleBail : r.cible);
     }
   }
   if (personne) {

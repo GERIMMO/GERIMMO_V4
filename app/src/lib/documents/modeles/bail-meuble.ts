@@ -35,6 +35,7 @@ import {
   liensLocataires,
 } from "./communs";
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
+import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 
 // Une ligne de l'inventaire du mobilier attaché au bail (table inventaire_lignes)
@@ -89,7 +90,8 @@ export function construireBailMeuble(
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
-  const colocation = ctx.bail.type === "colocation";
+  const individuel = Boolean(ctx.chambre);
+  const colocation = ctx.bail.type === "colocation" && !individuel;
   const plusieursLocataires = ctx.locataires.length > 1;
   const copro = ctx.bien.copropriete;
   const depot = ctx.bail.depot_garantie === null ? null : Number(ctx.bail.depot_garantie);
@@ -126,9 +128,9 @@ export function construireBailMeuble(
 
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre(colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement meublé · résidence principale", [
+    ${titre(individuel ? "Contrat individuel de colocation" : colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement meublé · résidence principale", [
       "Soumis au titre Ier bis de la loi n° 89-462 du 6 juillet 1989 (articles 25-3 à 25-11)",
-      "Contrat type — annexe 2 du décret n° 2015-587 du 29 mai 2015",
+      individuel ? "Contrat indépendant — article 8-1 de la loi du 6 juillet 1989" : "Contrat type — annexe 2 du décret n° 2015-587 du 29 mai 2015",
     ])}
     <p>Les parties déclarent avoir pris connaissance de la notice d'information relative aux droits
     et obligations des locataires et des bailleurs, annexée au présent contrat et en faisant partie
@@ -179,7 +181,8 @@ export function construireBailMeuble(
     <p>Ci-après dénommé${plusieursLocataires ? "s" : ""} « le locataire ».</p>
 
     ${section("II — Objet du contrat")}
-    <p>Le présent contrat a pour objet la location d'un logement meublé, ainsi déterminé :</p>
+    <p>${individuel ? 'Le présent contrat porte exclusivement sur la chambre privative meublée et le droit d’usage des espaces partagés désignés ci-dessous. Il ne loue pas le logement entier.' : "Le présent contrat a pour objet la location d'un logement meublé, ainsi déterminé :"}</p>
+    ${designationIndividuelle(ctx, f)}
     ${sousSection("A. Consistance du logement")}
     <p>Localisation du logement : ${f.champ(adresseLogement(ctx.lot, ctx.bien), "adresse complète, étage, porte")}<br/>
     Identifiant fiscal du logement : ${f.champ(ctx.lot.identifiant_fiscal, "le cas échéant")}<br/>
@@ -188,7 +191,7 @@ export function construireBailMeuble(
       "immeuble collectif ou individuel"
     )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")} —
     Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
-    Surface habitable : ${f.champ(
+    Surface habitable ${individuel ? "du logement entier" : ""} : ${f.champ(
       ctx.lot.surface_m2 !== null ? `${ctx.lot.surface_m2} m²` : null,
       "en m²"
     )} — Nombre de pièces principales : ${f.champ(ctx.lot.pieces, "nombre")}<br/>
@@ -202,8 +205,8 @@ export function construireBailMeuble(
     du locataire. Le mobilier mis à disposition est décrit dans l'inventaire annexé au présent contrat.</p>
     ${destinationServitude(ctx, f)}
     ${sousSection("C. Désignation des locaux et équipements accessoires")}
-    <p>Locaux et équipements à usage privatif : ${f.champ(ctx.lot.locaux_privatifs, "cave, parking, garage… avec numéro")}<br/>
-    Locaux, parties, équipements et accessoires à usage commun : ${f.champ(ctx.bien.parties_communes, "hall, ascenseur, local vélos…")}<br/>
+    <p>Locaux et équipements à usage privatif : ${ctx.chambre ? f.champ([ctx.chambre.nom, ctx.chambre.equipements].filter(Boolean).join(" — "), "chambre et équipements privatifs") : f.champ(ctx.lot.locaux_privatifs, "cave, parking, garage… avec numéro")}<br/>
+    Locaux, parties, équipements et accessoires à usage commun : ${ctx.chambre ? f.champ(ctx.chambre.espaces_partages, "espaces partagés autorisés par ce contrat") : f.champ(ctx.bien.parties_communes, "hall, ascenseur, local vélos…")}<br/>
     Équipements d'accès aux technologies de l'information et de la communication : ${f.champ(ctx.bien.acces_tic, "fibre, câble, TNT…")}</p>
     ${
       copro
@@ -329,8 +332,8 @@ export function construireBailMeuble(
 
   return assemblerPage({
     f,
-    titreDocument: colocation ? "Colocation — bail commun meublé" : "Contrat de location — logement meublé",
-    nomPied: colocation ? "Colocation — bail commun meublé" : "Contrat de location — logement meublé",
+    titreDocument: individuel ? "Colocation — contrat individuel meublé" : colocation ? "Colocation — bail commun meublé" : "Contrat de location — logement meublé",
+    nomPied: individuel ? "Colocation — contrat individuel meublé" : colocation ? "Colocation — bail commun meublé" : "Contrat de location — logement meublé",
     reference: referenceBail,
     corps,
   });

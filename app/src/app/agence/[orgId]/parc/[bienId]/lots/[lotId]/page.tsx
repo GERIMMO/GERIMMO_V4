@@ -29,6 +29,7 @@ import {
 } from "./formulaire-detention";
 import { FormulaireEquipementsLot } from "./formulaire-equipements-lot";
 import { FormulairePiecesLot, type PieceLot } from "./formulaire-pieces-lot";
+import { ChambresLogement } from "./chambres-logement";
 import { FormulaireBailLot } from "./formulaire-bail-lot";
 import { AppelsCharges, type AppelCharge } from "./formulaire-appels-charges";
 import { buttonVariants } from "@/components/ui/button";
@@ -43,6 +44,8 @@ export default async function PageLot(
 ) {
   const { orgId, bienId, lotId } = await props.params;
   const { supabase, role } = await verifierAccesEspace(orgId);
+
+  const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("*").eq("lot_id", lotId).eq("organization_id", orgId).order("nom");
 
   const [
     { data: lot, error: erreurLot },
@@ -115,7 +118,7 @@ export default async function PageLot(
     supabase.rpc("lot_blocages_location", { p_lot: lotId }),
     supabase
       .from("baux")
-      .select("id, type, etat, locataire_principal, loyer_hc, charges, date_debut, date_fin")
+      .select("id, chambre_id, type, etat, locataire_principal, loyer_hc, charges, date_debut, date_fin")
       .eq("lot_id", lotId)
       .order("created_at", { ascending: false }),
     supabase
@@ -182,7 +185,8 @@ export default async function PageLot(
       nomComplet(p),
     ])
   );
-  const bailEnCours = (baux ?? []).find((b) => ["actif", "preavis"].includes(b.etat));
+  const bauxEnCours = (baux ?? []).filter((b) => ["actif", "preavis"].includes(b.etat));
+  const bailEnCours = bauxEnCours[0];
   const recapLocataire = bailEnCours?.locataire_principal
     ? nomsParId.get(bailEnCours.locataire_principal)
     : undefined;
@@ -241,7 +245,7 @@ export default async function PageLot(
       ancre: "diagnostics-immeuble",
     });
   }
-  if ((piecesLot ?? []).length === 0) {
+  if ((piecesLot ?? []).length === 0 && (chambres ?? []).length === 0) {
     attention.push({
       cle: "pieces",
       texte: "Aucune pièce définie : l’état des lieux n’aura pas de grille à remplir.",
@@ -292,7 +296,10 @@ export default async function PageLot(
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {bailEnCours ? (
+          {bauxEnCours.length > 1 ? <div className="space-y-3">
+            <p>{bauxEnCours.length} contrats individuels en cours</p>
+            {bauxEnCours.map(b => <p key={b.id}><Link className="underline" href={`/agence/${orgId}/baux/${b.id}`}>{chambres?.find(c => c.id === b.chambre_id)?.nom ?? "Chambre"} · {nomsParId.get(b.locataire_principal) ?? "Locataire"} · {eur(Number(b.loyer_hc ?? 0) + Number(b.charges ?? 0))} / mois</Link></p>)}
+          </div> : bailEnCours ? (
             // Trois colonnes sur une largeur de téléphone écrasent celle du
             // milieu : le nom du locataire s'y coupait en trois lignes. Le nom
             // et le geste tiennent une rangée, les faits du bail la suivante.
@@ -601,7 +608,7 @@ export default async function PageLot(
                           habite, pour combien et depuis quand — avant
                           d'ouvrir. */}
                       <span className="min-w-0 flex-1 truncate text-sm">
-                        Bail {(TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
+                        Bail {b.chambre_id ? `individuel · ${chambres?.find(c => c.id === b.chambre_id)?.nom ?? "chambre"}` : (TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
                         {b.locataire_principal && nomsParId.get(b.locataire_principal)
                           ? ` — ${nomsParId.get(b.locataire_principal)}`
                           : ""}
@@ -640,9 +647,14 @@ export default async function PageLot(
                   bienId={bienId}
                   lotId={lotId}
                   personnes={personnes ?? []}
+                  chambres={chambres ?? []}
                 />
               )}
             </div>
+          </SectionLot>
+
+          <SectionLot id="chambres" titre="Colocation · contrats individuels" resume={`${chambres?.length ?? 0} chambre(s) préparée(s)`}>
+            {erreurChambres ? <p role="alert">Les chambres n’ont pas pu être chargées. Rechargez la page.</p> : <ChambresLogement orgId={orgId} lotId={lotId} bienId={bienId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} />}
           </SectionLot>
 
           {/* Charges de copropriété (module 0c) — appels du syndic, ventilés */}

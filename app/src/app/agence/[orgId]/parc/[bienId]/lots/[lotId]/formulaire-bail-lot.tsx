@@ -14,11 +14,13 @@ export function FormulaireBailLot({
   bienId,
   lotId,
   personnes,
+  chambres,
 }: {
   orgId: string;
   bienId: string;
   lotId: string;
   personnes: Personne[];
+  chambres?: { id: string; nom: string }[];
 }) {
   const action = creerBail.bind(null, orgId, lotId, bienId);
   const router = useRouter();
@@ -31,7 +33,7 @@ export function FormulaireBailLot({
   return (
     <form onSubmit={formAction} className="space-y-3">
       {/* etat.valeurs : en erreur, la saisie du bail est reposée (recette 22/08) */}
-      <ChampsBail personnes={personnes} valeurs={etat.valeurs} />
+      <ChampsBail chambres={chambres} personnes={personnes} valeurs={etat.valeurs} />
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.bailCree && <p role="status" className="text-sm text-success-soft-foreground">
         Brouillon créé. <Link className="underline" href={`/agence/${orgId}/baux/${etat.bailCree}`}>Ouvrir le bail</Link>

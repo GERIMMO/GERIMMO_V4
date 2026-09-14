@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 import { domaineDuSite } from "@/lib/site";
 
-export const VERSION_MODELES = "2026.11-g3";
+export const VERSION_MODELES = "2026.11-g4";
 
 // ------------------------------------------------------------------
 // La charte, en valeurs imprimables

@@ -1,3 +1,6 @@
+import { CODES_COMPLEMENTS_BAIL, assemblerComplementBail } from "./catalogue-bail";
+import { CODES_COMPLEMENTS_GESTION, assemblerComplementGestion } from "./catalogue-gestion";
+import { assemblerBailIndividuel } from "./bail-individuel";
 import { assemblerBailColocation } from "./bail-colocation";
 // Registre des modèles de documents générables (sprint « Documents-0 »).
 // Chaque modèle sait assembler son HTML depuis la base ; le type GED pilote
@@ -47,7 +50,12 @@ export type Modele = {
   ): Promise<Assemblage>;
 };
 
+const complementsBail = Object.fromEntries(CODES_COMPLEMENTS_BAIL.map(code => [code, { typeGed: "courrier", assembler: (db, org, id, options) => assemblerComplementBail(code, db, org, id, options) } satisfies Modele])) as Record<typeof CODES_COMPLEMENTS_BAIL[number], Modele>;
+const complementsGestion = Object.fromEntries(CODES_COMPLEMENTS_GESTION.map(code => [code, { typeGed: "courrier", assembler: (db, org, id, options) => assemblerComplementGestion(code, db, org, id, options) } satisfies Modele])) as Record<typeof CODES_COMPLEMENTS_GESTION[number], Modele>;
+
 export const MODELES = {
+  ...complementsBail,
+  ...complementsGestion,
   // 18 + 19 — cible : id de la quittance (est_quittance décide du visage)
   quittance: { typeGed: "quittance", assembler: assemblerQuittance },
   // 17 — cible : id de l'appel de loyer
@@ -63,6 +71,7 @@ export const MODELES = {
   // 05 — cible : id du bail
   notice: { typeGed: "courrier", assembler: assemblerNotice },
   // 01 — cible : id du bail (brouillon, locataire renseigné)
+  bail_individuel: { typeGed: "bail", assembler: assemblerBailIndividuel },
   bail_colocation: { typeGed: "bail", assembler: assemblerBailColocation },
   bail_nu: { typeGed: "bail", assembler: assemblerBailNu },
   // 02 — cible : id du bail (brouillon, type meublé) — inventaire annexé

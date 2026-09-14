@@ -37,7 +37,7 @@ import {
 import type { Assemblage } from "./index";
 
 // Une ligne de l'inventaire du mobilier attaché au bail (table inventaire_lignes)
-type LigneInventaire = {
+export type LigneInventaire = {
   piece: string | null;
   designation: string;
   quantite: number;
@@ -94,6 +94,7 @@ export function construireBailMeuble(
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
+  const colocation = ctx.bail.type === "colocation";
   const plusieursLocataires = ctx.locataires.length > 1;
   const zoneTendue = ctx.bien.zone_tendue;
   const copro = ctx.bien.copropriete;
@@ -131,7 +132,7 @@ export function construireBailMeuble(
 
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre("Contrat de location", "Logement meublé · résidence principale", [
+    ${titre(colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement meublé · résidence principale", [
       "Soumis au titre Ier bis de la loi n° 89-462 du 6 juillet 1989 (articles 25-3 à 25-11)",
       "Contrat type — annexe 2 du décret n° 2015-587 du 29 mai 2015",
     ])}
@@ -327,18 +328,20 @@ export function construireBailMeuble(
     ☐ Le cas échéant, l'attestation d'assurance contre les risques locatifs<br/>
     ☐ Le cas échéant, la grille de vétusté applicable</p>
 
+    ${colocation ? '<div class="saut">' : ""}
     ${section(`${plusieursLocataires ? "XII" : "XI"} — Date et signatures`)}
     <p>Fait à ${f.champ(exp.ville, "commune")}, le ${f.date(new Date().toISOString())}, en autant
     d'exemplaires originaux que de parties.</p>
     <div class="signatures">
       ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
-      ${cadreSignature(
+      ${colocation ? ctx.locataires.map((l, i) => cadreSignature(`Colocataire ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
         plusieursLocataires ? "Les locataires" : "Le locataire",
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
           f.champ(null, "nom et prénom(s) du ou des locataires")
       )}
       ${ctx.garants.length > 0 ? cadreSignature("La caution", ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")) : ""}
     </div>
+    ${colocation ? "</div>" : ""}
 
     <div class="saut">
       ${section("Annexe — Inventaire du mobilier")}
@@ -356,8 +359,8 @@ export function construireBailMeuble(
 
   return assemblerPage({
     f,
-    titreDocument: "Contrat de location — logement meublé",
-    nomPied: "Contrat de location — logement meublé",
+    titreDocument: colocation ? "Colocation — bail commun meublé" : "Contrat de location — logement meublé",
+    nomPied: colocation ? "Colocation — bail commun meublé" : "Contrat de location — logement meublé",
     reference: referenceBail,
     corps,
   });

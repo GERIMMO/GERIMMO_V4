@@ -39,7 +39,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Mandat de gestion]] — contrat-pivot agence↔propriétaire ; taux par lot, seuil de délégation.
 - [[Occupation d'un bien]] — le « bail » simplifié du code actuel.
 - [[Gérant]] — terme générique : agent immobilier ou propriétaire bailleur.
-- [[Bail]] — nu/meublé/colocation, signature Yousign V1, préavis et congés.
+- [[Bail]] — nu/meublé/colocation, contrat commun et inventaire générables ; signature Yousign et contrats séparés encore à compléter.
 - [[Types de baux]] — panorama des 10 régimes locatifs ; périmètre V3 vs hors périmètre.
 - [[Structure du modèle-type de bail]] — les 11 sections du formulaire officiel, blueprint du générateur 1.16 ; 7 champs manquants.
 - [[État des lieux]] — constat mobile pièce par pièce ; sans EDL d'entrée, pas de retenue.

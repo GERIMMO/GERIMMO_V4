@@ -73,6 +73,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
+  const colocation = ctx.bail.type === "colocation";
   const plusieursLocataires = ctx.locataires.length > 1;
   const zoneTendue = ctx.bien.zone_tendue;
   const copro = ctx.bien.copropriete;
@@ -84,7 +85,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
 
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre("Contrat de location", "Logement nu · résidence principale", [
+    ${titre(colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement nu · résidence principale", [
       "Soumis au titre Ier de la loi n° 89-462 du 6 juillet 1989",
       "Contrat type — annexe 1 du décret n° 2015-587 du 29 mai 2015",
     ])}
@@ -277,24 +278,26 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ☐ Le cas échéant, l'attestation d'assurance contre les risques locatifs<br/>
     ☐ Le cas échéant, la grille de vétusté applicable</p>
 
+    ${colocation ? '<div class="saut">' : ""}
     ${section(`${plusieursLocataires ? "XII" : "XI"} — Date et signatures`)}
     <p>Fait à ${f.champ(exp.ville, "commune")}, le ${f.date(new Date().toISOString())}, en autant
     d'exemplaires originaux que de parties.</p>
     <div class="signatures">
       ${cadreSignature("Le bailleur", f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination"))}
-      ${cadreSignature(
+      ${colocation ? ctx.locataires.map((l, i) => cadreSignature(`Colocataire ${i + 1}`, f.champ(nomPersonne(l), `nom du colocataire ${i + 1}`))).join("") : cadreSignature(
         plusieursLocataires ? "Les locataires" : "Le locataire",
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
           f.champ(null, "nom et prénom(s) du ou des locataires")
       )}
       ${ctx.garants.length > 0 ? cadreSignature("La caution", ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")) : ""}
     </div>
+    ${colocation ? "</div>" : ""}
   `;
 
   return assemblerPage({
     f,
-    titreDocument: "Contrat de location — logement nu",
-    nomPied: "Contrat de location — logement nu",
+    titreDocument: colocation ? "Colocation — bail commun nu" : "Contrat de location — logement nu",
+    nomPied: colocation ? "Colocation — bail commun nu" : "Contrat de location — logement nu",
     reference: referenceBail,
     corps,
   });

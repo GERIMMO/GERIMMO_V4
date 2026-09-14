@@ -540,8 +540,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             <CardTitle className="text-base">{bail.type === "colocation" ? "Préparer le contrat de colocation" : "Générer le bail"}</CardTitle>
             <CardDescription>
               {bail.type === "colocation" ? (
-                <>La génération automatique du contrat de colocation n’est pas encore disponible.
-                  Préparez le contrat commun, faites-le signer par les parties, puis déposez le PDF signé.</>
+                <>Un contrat commun pour tous les colocataires, adapté au logement {lot?.meuble ? "meublé, avec son inventaire" : "nu"}.
+                  Vérifiez les personnes et les informations du dossier, relisez le PDF, puis faites-le signer par toutes les parties.</>
               ) : (
                 <>Le contrat type ({bail.type === "meuble" ? "logement meublé, inventaire du mobilier annexé" : "logement nu"})
                   rempli avec les informations du dossier. Les données manquantes sont signalées.
@@ -550,17 +550,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {bail.type === "colocation" ? (
-              <Link href="#bail-signe" className="text-sm font-medium text-primary underline underline-offset-4">
-                Déposer le contrat de colocation signé
-              </Link>
-            ) : bail.locataire_principal ? (
+            {bail.locataire_principal ? (
               <BoutonGenererDocument
                 orgId={orgId}
-                code={bail.type === "meuble" ? "bail_meuble" : "bail_nu"}
+                code={bail.type === "colocation" ? "bail_colocation" : bail.type === "meuble" ? "bail_meuble" : "bail_nu"}
                 cibleId={bailId}
                 cheminRetour={`/agence/${orgId}/baux/${bailId}`}
-                libelle="Générer le bail (PDF)"
+                libelle={bail.type === "colocation" ? "Générer le contrat commun (PDF)" : "Générer le bail (PDF)"}
                 variant="default"
               />
             ) : (
@@ -611,7 +607,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               meuble_etudiant: Boolean(bail.meuble_etudiant),
             }}
             zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
-            meuble={bail.type === "meuble"}
+            meuble={bail.type === "meuble" || (bail.type === "colocation" && Boolean(lot?.meuble))}
             agence={agence}
             modifiable={bail.etat === "brouillon"}
           />
@@ -785,12 +781,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       )}
 
       {/* Inventaire du mobilier (bail meublé) */}
-      {bail.type === "meuble" && (
+      {(bail.type === "meuble" || (bail.type === "colocation" && lot?.meuble)) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Inventaire du mobilier</CardTitle>
             <CardDescription>
-              Annexe obligatoire du bail meublé (décret 2015-1437), reprise dans
+              Annexe obligatoire du bail meublé (décret 2015-981), reprise dans
               l&apos;état des lieux.
             </CardDescription>
           </CardHeader>

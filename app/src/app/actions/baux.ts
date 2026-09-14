@@ -617,12 +617,15 @@ export async function supprimerInventaireLigne(
 ): Promise<EtatBail> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("inventaire_lignes")
     .delete()
     .eq("id", ligneId)
-    .eq("organization_id", orgId);
+    .eq("bail_id", bailId)
+    .eq("organization_id", orgId)
+    .select("id");
   if (error) return { erreur: sansJargon(error.message) };
+  if (!data?.length) return { erreur: "Ce meuble n'a pas pu être retiré de ce bail. Rechargez l'inventaire avant de réessayer." };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Meuble retiré de l'inventaire." };
 }

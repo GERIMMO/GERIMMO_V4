@@ -1,3 +1,4 @@
+import { assemblerBailColocation } from "./bail-colocation";
 // Registre des modèles de documents générables (sprint « Documents-0 »).
 // Chaque modèle sait assembler son HTML depuis la base ; le type GED pilote
 // droits et conservation (aucun nouveau type : on range dans l'existant).
@@ -62,6 +63,7 @@ export const MODELES = {
   // 05 — cible : id du bail
   notice: { typeGed: "courrier", assembler: assemblerNotice },
   // 01 — cible : id du bail (brouillon, locataire renseigné)
+  bail_colocation: { typeGed: "bail", assembler: assemblerBailColocation },
   bail_nu: { typeGed: "bail", assembler: assemblerBailNu },
   // 02 — cible : id du bail (brouillon, type meublé) — inventaire annexé
   bail_meuble: { typeGed: "bail", assembler: assemblerBailMeuble },

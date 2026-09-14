@@ -3,7 +3,7 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-08-30
+updated: 2026-09-14
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -191,3 +191,17 @@ colocataires.
 > (singulier) est insuffisant → il faut **plusieurs locataires + quotes-parts + surface
 > privative + solidarité résiduelle 6 mois**. Blocage à ajouter : **DPE = G** interdit
 > la mise en location.
+
+
+## Contrat commun de colocation — réalisation du 14 septembre 2026
+
+Le brouillon propose la génération d'un contrat commun nu ou meublé selon le lot enregistré. Le principal et au moins un colocataire distinct sont requis. Tous apparaissent parmi les parties, avec un cadre de signature individuel ; le loyer reste celui du logement entier. Le contrat initial n'est pas régénérable depuis un bail actif : son évolution passe par l'avenant existant. Les documents signés et les données financières ne sont pas réécrits.
+
+Le mobilier d'une colocation meublée est accessible sur le dossier et repris dans l'annexe PDF. Une lecture en panne interrompt la génération ; un inventaire vide reste signalé comme information manquante. Le retrait du mobilier vérifie le bail, l'organisation et la ligne réellement supprimée ; les refus sont visibles.
+
+Sources consultées le 14 septembre : [Service Public — colocation](https://www.service-public.gouv.fr/particuliers/vosdroits/F34661) (bail commun signé par tous, modèles selon le régime) et [annexe 1 du décret 2015-587](https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000043842254/) (champ du contrat commun, exclusion des contrats individuels). Le modèle reprend les générateurs existants ; cette réalisation ne vaut pas audit exhaustif de toutes leurs clauses ni validation des changements réglementaires du 1er octobre 2026 (exigence 09.7 distincte).
+
+Preuves : tests des deux régimes, montants globaux, signataires distincts, refus hors brouillon, erreurs de lecture, données manquantes, rattachements GED et retrait du mobilier. 946 tests locaux réussis ; neuf pages de PDF contrôlées visuellement, puis séparation des signatures et espacement du tableau corrigés. Publication suivie dans la recette extérieure au dépôt.
+
+> [!warning] Source plus récente — contrats séparés
+> Le référentiel fourni classe désormais les contrats séparés en P1 (09.4), contrairement à la mention V2 historique ci-dessus. Ils restent à développer ; le contrat commun ne les remplace pas.

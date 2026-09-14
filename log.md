@@ -4291,3 +4291,8 @@ Lecture du document fourni hors du coffre Obsidian (465 exigences, neuf personas
 ## [2026-09-14] query | Conservation du support et validations du dépôt
 
 Extension de la conservation : les signalements de bug et leurs réponses sont supprimés après six mois via le nettoyage existant, par lots bornés, sans supprimer les idées. Trois tests SQL supplémentaires portent la suite locale à 930 tests réussis. La base du support (PR 46) et sa conservation (PR 48) sont intégrées au dépôt après CI ; les migrations restent à appliquer. L’interface (PR 47) reste en brouillon jusqu’à ces applications et à la recette visuelle. Le coffre Obsidian et raw restent inchangés.
+
+
+## [2026-09-14] query | Contrat commun et inventaire de colocation
+
+Le bail commun de colocation devient générable depuis le brouillon, selon le caractère meublé du lot, avec chaque colocataire et sa signature, un loyer global et l'inventaire annexé en meublé. Retrait du mobilier confirmé sur la ligne du bail, erreur visible en cas de refus. 946 tests locaux passent après correction de la connexion au banc de test ; les deux PDF sont rendus et contrôlés. Les contrats séparés et la revue réglementaire d'octobre restent des travaux distincts. Raw et le coffre Obsidian restent inchangés.

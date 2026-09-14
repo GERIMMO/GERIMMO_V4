@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 import { domaineDuSite } from "@/lib/site";
 
-export const VERSION_MODELES = "2026.11-g1";
+export const VERSION_MODELES = "2026.11-g2";
 
 // ------------------------------------------------------------------
 // La charte, en valeurs imprimables
@@ -335,6 +335,7 @@ const CSS_DOCUMENT = `
   td { border-bottom:0.5pt solid var(--filet-leger); padding:6pt 6pt 6pt 0;
        vertical-align:top; }
   th.d, td.d { text-align:right; padding-right:0; }
+  th.d + th, td.d + td { padding-left:8pt; }
   tr { page-break-inside:avoid; }
   .total { font-weight:700; color:var(--encre); border-top:0.75pt solid var(--encre); }
   .signatures { display:grid; grid-template-columns:1fr 1fr; gap:16pt; margin-top:12pt; }

@@ -19,7 +19,7 @@ export type LigneInventaire = {
   observation: string | null;
 };
 
-// Mobilier minimum imposé par le décret 2015-1437 (bail meublé) — rappel non bloquant.
+// Mobilier minimum imposé par le décret 2015-981 (bail meublé) — rappel non bloquant.
 const CATEGORIES_DECRET = [
   "Literie (couette/couverture)",
   "Occultation fenêtres (chambres)",
@@ -43,16 +43,14 @@ const LIBELLE_ETAT: Record<string, string> = {
 };
 
 function BoutonSupprimer({ orgId, bailId, ligneId }: { orgId: string; bailId: string; ligneId: string }) {
+  const [etat, action] = useActionState<EtatBail, FormData>(
+    () => supprimerInventaireLigne(orgId, bailId, ligneId), {}
+  );
   return (
-    <form
-      action={async () => {
-        await supprimerInventaireLigne(orgId, bailId, ligneId);
-      }}
-    >
-      <BoutonEnvoi variant="ghost" size="sm">
-        Retirer
-      </BoutonEnvoi>
-    </form>
+    <div>
+      <form action={action}><BoutonEnvoi variant="ghost" size="sm">Retirer</BoutonEnvoi></form>
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+    </div>
   );
 }
 
@@ -72,7 +70,7 @@ export function FormulaireInventaire({
     <div className="space-y-4">
       <div className="bg-muted p-3 text-xs text-muted-foreground">
         <p className="mb-1 font-medium text-foreground">
-          Mobilier minimum obligatoire (décret 2015-1437)
+          Mobilier minimum obligatoire (décret 2015-981)
         </p>
         <p>{CATEGORIES_DECRET.join(" · ")}</p>
         <p className="mt-1">Un meublé incomplet expose à une requalification en bail nu.</p>

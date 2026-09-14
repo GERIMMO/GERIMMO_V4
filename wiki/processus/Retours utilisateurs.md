@@ -1,10 +1,10 @@
 ---
 type: process
 tags: [retours, bugs, idees, support]
-status: draft
+status: in-progress
 created: 2026-07-25
-updated: 2026-07-25
-sources: ["[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]"]
+updated: 2026-09-14
+sources: ["[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[Référentiel vérifiable Gerimmo du 12 septembre 2026]]"]
 ---
 
 # Retours utilisateurs
@@ -60,3 +60,16 @@ correctif** ; l'utilisateur est notifié à la confirmation puis à la correctio
 Console et files du [[Super Admin]] (module 18) ; alerte de revue et annonces au
 module 14 ; conservation [[RGPD]] 6 mois. **Plan de livraison** : signalement dès le
 **lot 1** (« c'est ainsi qu'on découvre ce qui ne va pas »), idées au lot 2.
+
+
+## Réalisation et preuves au 14 septembre 2026
+
+Le module en préparation enregistre les problèmes, questions, idées et contestations artisan. Un signalement exige le constat et le résultat attendu. Le contexte automatique contient uniquement une route dont les identifiants sont remplacés et une catégorie d'interaction ; il ne lit aucun champ ni contenu de dossier. Les textes saisis volontairement restent soumis à la consigne de ne pas inclure de données personnelles inutiles.
+
+L'auteur et la supervision voient leurs échanges. L'administrateur de l'organisation concernée voit les signalements de son agence ; ses membres voient les idées de cet espace. Une contestation artisan reste entre l'artisan et la supervision. La réponse de support ne retire pas une évaluation automatiquement.
+
+Les soutiens sont dédupliqués, le classement est calculé sur tout l'historique avant pagination. Le rapprochement d'idées ne partage pas leurs descriptions entre organisations. Une idée non retenue reste dans la file avec motif et date de réexamen. Chaque mois ouvre une nouvelle revue dont la supervision conserve le bilan. Retenir une idée crée une seule fois un brouillon d'article, sans recopier le texte privé ; sa publication demande une rédaction et la validation humaine habituelle.
+
+Le support reste utilisable si l'abonnement est suspendu. Cette exception ne modifie aucun droit sur le parc, les baux ou la comptabilité.
+
+Preuves locales : migration `20260914120000_retours_utilisateurs.sql`, 13 scénarios SQL et sept scénarios de serveur et contexte ; suite globale de 927 tests réussis. Interface compilée et contrôlée par lint. La publication de la base et la recette visuelle restent à faire ; le verrouillage du Mac empêche temporairement les essais dans le navigateur. La conservation à six mois est préparée par la migration `20260914130000_retention_signalements_support.sql` : elle supprime les problèmes échus et leurs réponses par lots de 500 via le nettoyage existant, sans supprimer les idées. Trois tests SQL supplémentaires passent ; l’ensemble local atteint 930 tests réussis. Cette migration attend également son application à la base publique. Le raccordement à l’outil de développement reste un chantier distinct, non livré.

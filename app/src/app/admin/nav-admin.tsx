@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 const ENTREES: [string, string][] = [
   ["/admin", "Supervision"],
   ["/admin/publications", "Journal"],
+  ["/admin/retours", "Retours et idées"],
   ["/admin/artisans", "Inscriptions artisan"],
   ["/admin/devis", "Demandes de devis"],
   ["/admin/journaux", "Journaux et conservation"],

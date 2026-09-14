@@ -4,11 +4,7 @@ import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
 
 export const metadata = { title: "Console d'administration — Gerimmo" };
 
-// Console de supervision du Super Admin (wiki/personas/Super Admin.md § 18) :
-// des INDICATEURS, puis les FILES D'ATTENTE. Le wiki en prescrit six ; quatre
-// (modèles, contestations de notes, modèles WhatsApp, correctifs) relèvent de
-// chantiers non construits — on ne les affiche pas vides pour faire nombre,
-// on dit qu'elles viendront. Politique « fonctionnalités honnêtes ».
+// Indicateurs et files de décisions de la supervision.
 
 type Organisation = {
   id: string;
@@ -98,15 +94,17 @@ export default async function PageAdmin() {
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
   // On lit `error` : une console de pilotage qui affiche zéro parce qu'une
   // requête a échoué est pire que pas de console du tout.
-  const [orgs, devis, publications, lots, artisans] = await Promise.all([
+  const [orgs, devis, publications, lots, artisans, retours, contestations] = await Promise.all([
     supabase.from("organizations").select("id, name, status, type, essai_fin").order("name"),
     supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
     supabase.from("publications").select("id, statut"),
     supabase.from("lots").select("id", { count: "exact", head: true }).neq("etat", "archive"),
     supabase.rpc("artisans_a_valider"),
+    supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).in("etat", ["nouveau", "en_examen", "en_cours"]).neq("nature", "contestation"),
+    supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "contestation").neq("etat", "resolu"),
   ]);
 
-  const enEchec = [orgs.error, devis.error, publications.error, lots.error, artisans.error].filter(Boolean);
+  const enEchec = [orgs.error, devis.error, publications.error, lots.error, artisans.error, retours.error, contestations.error].filter(Boolean);
   const organisations = (orgs.data ?? []) as Organisation[];
   const parStatut = (s: string) => organisations.filter((o) => o.status === s).length;
   const aEcrire = (publications.data ?? []).filter(
@@ -178,6 +176,8 @@ export default async function PageAdmin() {
             href="/admin/devis"
             action="Traiter les demandes"
           />
+          <File titre="Retours et idées" compte={retours.error ? null : retours.count ?? 0} explication="Qualifiez les problèmes, répondez aux utilisateurs et examinez les idées lors de la revue mensuelle." href="/admin/retours" action="Ouvrir le suivi" />
+          <File titre="Contestations artisan" compte={contestations.error ? null : contestations.count ?? 0} explication="Examinez les demandes de révision dans un suivi privé entre l’artisan et la supervision." href="/admin/retours?nature=contestation" action="Examiner les contestations" />
           <File
             titre="Journal"
             compte={publications.error ? null : aEcrire}
@@ -186,13 +186,7 @@ export default async function PageAdmin() {
             action="Ouvrir le journal"
           />
         </div>
-        <p className="mt-3 text-[12.5px] leading-relaxed text-[var(--texte-secondaire)]">
-          Le référentiel prévoit quatre autres files — demandes de modèles,
-          contestations de notes d&apos;artisan, modèles de messages, retours
-          utilisateurs (bugs, correctifs, idées). Les chantiers correspondants
-          ne sont pas construits : elles apparaîtront ici quand ils le seront,
-          pas avant.
-        </p>
+
       </section>
 
       {/* Le parc d'organisations */}

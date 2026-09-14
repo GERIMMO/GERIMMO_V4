@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Instrument_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { BoutonAssistance } from "@/components/bouton-assistance";
 
 // Charte graphique GERIMMO v2.0 (maquette août 2026) — trois rôles, trois
 // polices : Cormorant Garamond pour la marque, les titres et les chiffres
@@ -38,7 +39,7 @@ export default function RootLayout({
       lang="fr"
       className={`${titres.variable} ${interface_.variable} ${libelles.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">{children}<BoutonAssistance /></body>
     </html>
   );
 }

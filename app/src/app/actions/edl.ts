@@ -7,6 +7,8 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 
 export type EtatEdl = {
+  compteur?: { id: string; type: string; numero: string | null; releve: number | null };
+  cle?: { id: string; libelle: string; nombre: number; reference: string | null };
   erreur?: string;
   succes?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
@@ -214,16 +216,13 @@ export async function ajouterCompteur(
   if (!type) return { erreur: "Choisissez le type de compteur.", valeurs };
   const numero = String(formData.get("numero") ?? "").trim() || null;
   const releveStr = String(formData.get("releve") ?? "").trim();
+  const compteur = { id: crypto.randomUUID(), type, numero, releve: releveStr ? Number(releveStr) : null };
   const { error } = await supabase.from("edl_compteurs").insert({
-    edl_id: edlId,
-    organization_id: orgId,
-    type,
-    numero,
-    releve: releveStr ? Number(releveStr) : null,
+    ...compteur, edl_id: edlId, organization_id: orgId,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
-  return { succes: "Relevé de compteur ajouté." };
+  return { succes: "Relevé de compteur ajouté.", compteur };
 }
 
 export async function supprimerCompteur(
@@ -261,16 +260,13 @@ export async function ajouterCle(
   if (!libelle) return { erreur: "Précisez le type de clé.", valeurs };
   const nombre = Math.max(0, Math.floor(Number(formData.get("nombre") ?? 1)) || 0);
   const reference = String(formData.get("reference") ?? "").trim() || null;
+  const cle = { id: crypto.randomUUID(), libelle, nombre, reference };
   const { error } = await supabase.from("edl_cles").insert({
-    edl_id: edlId,
-    organization_id: orgId,
-    libelle,
-    nombre,
-    reference,
+    ...cle, edl_id: edlId, organization_id: orgId,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
-  return { succes: "Clé ajoutée." };
+  return { succes: "Clé ajoutée.", cle };
 }
 
 export async function supprimerCle(

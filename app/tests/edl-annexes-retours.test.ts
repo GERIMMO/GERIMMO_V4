@@ -16,7 +16,10 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("react", async (original) => ({
   ...await original<typeof import("react")>(),
   useId: () => "form-annexes-test",
-  useActionState: () => [{ erreur: "EDL signé : les annexes sont figées" }, vi.fn(), false],
+  useState: (initial: unknown) => [initial, vi.fn()],
+}));
+vi.mock("@/lib/use-action-formulaire", () => ({
+  useActionFormulaire: () => ({ etat: { erreur: "EDL signé : les annexes sont figées" }, soumettre: vi.fn(), enCours: false, version: 0 }),
 }));
 vi.mock("@/lib/ged-acces", () => ({
   verifierGerant: async () => ({

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { majGrilleEdl, type EtatEdl } from "@/app/actions/edl";
 import { formaterDate, formaterDateHeure } from "@/lib/ged";
 import {
@@ -138,7 +138,9 @@ export function GrilleEdl({
   reference?: ReferenceEntree | null;
 }) {
   const actionMaj = majGrilleEdl.bind(null, orgId, bailId, edlId);
-  const [etatMaj, formMaj, enCoursMaj] = useActionState<EtatEdl, FormData>(actionMaj, {});
+  const [etatMaj, setEtatMaj] = useState<EtatEdl>({});
+  const [enCoursMaj, setEnCoursMaj] = useState(false);
+  const verrouEnvoi = useRef(false);
   // La grille est pilotée (recette 21/08) : c'est ce qui permet de remplir une
   // section d'un coup, de surligner les lignes sans état, et de savoir avant
   // de signer combien il en manque.
@@ -177,7 +179,6 @@ export function GrilleEdl({
     etats: Object.fromEntries(lignes.map((l) => [l.id, l.etat ?? ""])),
     commentaires: Object.fromEntries(lignes.map((l) => [l.id, l.commentaire ?? ""])),
   }));
-  const enVol = useRef<SaisieGrille | null>(null);
   // navigator.onLine est un magasin externe ; côté serveur on suppose en ligne.
   const enLigne = useSyncExternalStore(
     (notifier) => {
@@ -251,17 +252,6 @@ export function GrilleEdl({
       formulaire.current?.requestSubmit();
     }
   }, [signe, enLigne, etats, commentaires, synchronise]);
-
-  // Une action aboutie fait de la saisie soumise la nouvelle référence, et le
-  // brouillon local n'a plus de raison d'être.
-  useEffect(() => {
-    if (etatMaj.succes && enVol.current) {
-      const soumis = enVol.current;
-      enVol.current = null;
-      effacerBrouillon(edlId);
-      queueMicrotask(() => setSynchronise(soumis));
-    }
-  }, [etatMaj, edlId]);
 
   const refParCle = new Map<string, LigneReference>(
     (reference?.lignes ?? []).map((l) => [cleLigne(l), l])
@@ -359,18 +349,39 @@ export function GrilleEdl({
       )}
       <form
         ref={formulaire}
-        action={formMaj}
-        onSubmit={(e) => {
-          if (!navigator.onLine) {
-            // Hors ligne, l'envoi échouerait : la saisie est déjà sur
-            // l'appareil, elle repartira seule au retour du réseau (RM-19.1.2)
-            e.preventDefault();
-            return;
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!navigator.onLine || verrouEnvoi.current) return;
+          const submitter = (event.nativeEvent as SubmitEvent).submitter;
+          const donnees = new FormData(event.currentTarget);
+          if (submitter instanceof HTMLButtonElement && submitter.name)
+            donnees.set(submitter.name, submitter.value);
+          const soumis = { etats: { ...etats }, commentaires: { ...commentaires } };
+          verrouEnvoi.current = true;
+          setEnCoursMaj(true);
+          setEtatMaj({});
+          try {
+            // La promesse de l'action confirme l'écriture indépendamment du
+            // rendu de revalidation : celui-ci peut rester suspendu en Next 16.
+            const retour = await actionMaj({}, donnees);
+            setEtatMaj(retour);
+            if (retour.succes) {
+              setSynchronise(soumis);
+              setConflit(null);
+              effacerBrouillon(edlId);
+              // Après signature, relire le dossier figé avant toute autre action.
+              if (donnees.get("signer") === "1") window.location.reload();
+            }
+          } catch {
+            setEtatMaj({ erreur: "La confirmation de sauvegarde n’a pas pu être reçue. Votre saisie reste sur cet appareil ; rouvrez le dossier pour vérifier ce qui a été enregistré." });
+          } finally {
+            verrouEnvoi.current = false;
+            setEnCoursMaj(false);
           }
-          enVol.current = { etats: { ...etats }, commentaires: { ...commentaires } };
         }}
         className="space-y-3"
       >
+        <fieldset disabled={enCoursMaj} className="space-y-3 min-w-0">
         {grouper(lignes).map((g) => {
           const reprenables = reference
             ? g.lignes.filter((l) => referenceDe(l)?.etat)
@@ -513,7 +524,7 @@ export function GrilleEdl({
               ? ` · ${degradees} dégradé${degradees > 1 ? "s" : ""}`
               : ""}
           </span>
-          <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
+          <BoutonEnvoi enCours={enCoursMaj} enCoursTexte="Enregistrement…" size="sm" variant="outline">
             Enregistrer la grille
           </BoutonEnvoi>
           {/* Un seul geste : la signature enregistre la grille puis la fige.
@@ -533,6 +544,7 @@ export function GrilleEdl({
             </>
           ) : (
             <BoutonEnvoi
+              enCours={enCoursMaj}
               enCoursTexte="…"
               name="signer"
               value="1"
@@ -621,6 +633,7 @@ export function GrilleEdl({
             </p>
           </Modale>
         )}
+        </fieldset>
       </form>
     </div>
   );

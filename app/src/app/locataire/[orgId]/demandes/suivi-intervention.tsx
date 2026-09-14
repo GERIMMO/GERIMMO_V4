@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useId, useState } from "react";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import {
   choisirMonCreneau,
   noterMonIntervention,
@@ -390,9 +391,8 @@ function TravailFait({
   peutAgir: boolean;
 }) {
   const idNote = useId();
-  const [etat, action] = useActionState<EtatIncidentAction, FormData>(
-    noterMonIntervention.bind(null, orgId, suivi.intervention_id ?? ""),
-    {}
+  const { etat, soumettre: action, enCours } = useActionFormulaire<EtatIncidentAction>(
+    noterMonIntervention.bind(null, orgId, suivi.intervention_id ?? "")
   );
 
   return (
@@ -446,13 +446,13 @@ function TravailFait({
           Merci, votre avis sur cette intervention est enregistré.
         </p>
       ) : peutAgir && suivi.intervention_id ? (
-        <form action={action}>
+        <form onSubmit={action}>
           {etat.erreur && (
             <p className="err !mb-2" role="alert">
               {etat.erreur}
             </p>
           )}
-          <fieldset className="border-0 p-0">
+          <fieldset disabled={enCours} className="border-0 p-0">
             <legend className="text-sm font-medium">
               Votre avis sur l&apos;intervention
             </legend>
@@ -494,7 +494,7 @@ function TravailFait({
               className="w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm"
             />
           </fieldset>
-          <BoutonEnvoi enCoursTexte="Envoi…" variant="outline" size="lg" className="mt-2 min-h-11">
+          <BoutonEnvoi enCours={enCours} enCoursTexte="Envoi…" variant="outline" size="lg" className="mt-2 min-h-11">
             Envoyer mon avis
           </BoutonEnvoi>
         </form>

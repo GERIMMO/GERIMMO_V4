@@ -4309,3 +4309,11 @@ explicites. Contrôle web et migration `20260914160000` dans `is_super_admin()`.
 de la console essayées au navigateur. Le banc Auth reste un émulateur local,
 les politiques SQL sont réelles. Déployer l’écran avant la migration.
 [[Socle de sécurité]] et index mis à jour ; MFA facultative autres rôles restante.
+
+## [2026-09-14] implementation | La supervision ne vaut pas droit de signature
+Référentiel 05.16 : droits réels dans l’organisation exigés pour modifier la
+signature ; protections SQL, stockage et génération de documents. Image et
+boutons absents du profil en supervision, émission automatique conservée.
+15 tests dédiés, suite locale 1 045 réussis, build/lint/types réussis. Migration
+20260914170000 à appliquer avant l’interface qui utilise sa fonction d’autorisation.
+[[Socle de sécurité]] et index mis à jour ; sources métier conservées.

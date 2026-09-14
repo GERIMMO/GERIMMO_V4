@@ -55,6 +55,21 @@ Sources de mise en œuvre : [Supabase — TOTP](https://supabase.com/docs/guides
 [Supabase — niveaux d’assurance](https://supabase.com/docs/guides/auth/auth-mfa).
 La source métier A4 ci-dessus reste inchangée.
 
+## Signature et supervision (référentiel 05.16)
+
+Les droits globaux de supervision ne constituent pas un rôle de signataire.
+La migration `20260914170000_signature_hors_supervision.sql` réserve le
+remplacement et le retrait de la signature au responsable réellement membre de
+l’organisation, y compris lors d’un appel direct. Les accès au fichier courant
+sont limités aux rôles métier ; la supervision ne l’appose pas aux nouveaux PDF.
+Les documents historiques restent inchangés. Un rôle métier effectivement détenu
+par un compte également super administrateur conserve ses droits dans cette
+organisation ; les émissions automatiques serveur restent autorisées.
+
+Preuves : 15 tests dédiés (SQL et actions/rendu), 1 045 tests locaux au total ;
+profil visité en supervision : message explicite et aucune action de signature.
+La signature électronique Yousign reste un développement distinct.
+
 ## Mots de passe et sessions
 
 - **12 caractères minimum**, **vérification contre les fuites connues** (RM-A4.3,

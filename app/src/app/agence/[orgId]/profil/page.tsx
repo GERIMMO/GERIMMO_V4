@@ -1,5 +1,5 @@
 import { verifierAccesEspace } from "@/lib/espace";
-import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { ROLES_GERANTS, ROLES_RESPONSABLES } from "@/lib/ged";
 import { FormulaireProfilOrganisation } from "./formulaire-profil";
 import { FormulaireSignature } from "./formulaire-signature";
 import { EncadreLectureImpossible, EnteteReglages } from "./famille-reglages";
@@ -44,7 +44,8 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   }
 
   // La signature préenregistrée, prête à prévisualiser (chantier documentaire)
-  const apercuSignature = await signatureOrganisation(supabase, orgId);
+  const { data: roleMetier } = await supabase.rpc("has_org_role", { org: orgId, roles: ROLES_GERANTS });
+  const apercuSignature = roleMetier ? await signatureOrganisation(supabase, orgId) : null;
 
   const manquants = [
     !profil.address_line1 && "adresse",
@@ -97,11 +98,11 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           Apposée sur les documents que vous émettez seul — quittances, reçus,
           courriers. Jamais sur un bail ni un état des lieux : là, chacun signe.
         </p>
-        <FormulaireSignature
+        {roleMetier ? <FormulaireSignature
           orgId={orgId}
           apercu={apercuSignature}
           lectureSeule={!responsable}
-        />
+        /> : <p className="rounded-lg bg-muted p-4 text-sm">La signature reste sous le contrôle du responsable de cette organisation. L’accès de supervision ne permet ni de la remplacer ni de l’apposer sur de nouveaux documents.</p>}
       </div>
     </main>
   );

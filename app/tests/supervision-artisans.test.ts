@@ -6,8 +6,13 @@ const mocks = vi.hoisted(() => ({ client: vi.fn(), revalidate: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.client }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 
-function client({ sa = true, traceErreur = false, statut = "en_attente", siret = "verifie", pieceAbsente = false } = {}) {
-  const rpc = vi.fn(async (nom: string) => ({ data: nom === "is_super_admin" ? sa : null, error: nom === "log_sa_access" && traceErreur ? { message: "trace en panne" } : null }));
+function client({ sa = true, traceErreur = false, statut = "en_attente", siret = "verifie", pieceAbsente = false, decisionErreur = "" } = {}) {
+  const rpc = vi.fn(async (nom: string) => ({
+    data: nom === "is_super_admin" ? sa : null,
+    error: nom === "traiter_inscription_artisan_atomique" && decisionErreur
+      ? { message: decisionErreur }
+      : nom === "log_sa_access" && traceErreur ? { message: "trace en panne" } : null,
+  }));
   const download = vi.fn(async () => ({ data: new Blob(["photo"], { type: "image/png" }), error: null }));
   const from = vi.fn((table: string) => {
     const q = {
@@ -52,19 +57,52 @@ describe("décisions de supervision artisan", () => {
     expect(await traiterInscriptionArtisan("artisan", {}, donnees("validation", { pieces_relues: "oui" }))).toHaveProperty("erreur");
     expect(c.rpc).toHaveBeenCalledTimes(1);
   });
-  it("journalise puis appelle la décision métier existante", async () => {
+  it("confie le refus et sa trace à un seul appel atomique", async () => {
     const c = client();
     expect(await traiterInscriptionArtisan("artisan", {}, donnees("refus", { motif: " Pièce illisible " }))).toHaveProperty("succes");
-    expect(c.rpc.mock.calls.map((a) => a[0])).toEqual(["is_super_admin", "log_sa_access", "artisan_decider_plateforme"]);
-    expect(c.rpc).toHaveBeenLastCalledWith("artisan_decider_plateforme", { p_artisan: "artisan", p_decision: "refus", p_motif: "Pièce illisible" });
+    expect(c.rpc.mock.calls.map((a) => a[0])).toEqual(["is_super_admin", "traiter_inscription_artisan_atomique"]);
+    expect(c.rpc).toHaveBeenLastCalledWith("traiter_inscription_artisan_atomique", {
+      p_artisan: "artisan", p_operation: "refus", p_motif: "Pièce illisible",
+      p_verification_effectuee: false, p_pieces_relues: false,
+    });
+    expect(mocks.revalidate.mock.calls.map((a) => a[0])).toEqual(["/admin/artisans", "/admin", "/artisan/entreprise"]);
   });
-  it("n’effectue pas le constat de SIRET sans confirmation ni traçabilité", async () => {
+  it("n’effectue pas le constat de SIRET sans confirmation ni si la transaction échoue", async () => {
     let c = client();
     expect(await traiterInscriptionArtisan("artisan", {}, donnees("verifier_siret"))).toHaveProperty("erreur");
     expect(c.rpc).toHaveBeenCalledTimes(1);
-    c = client({ traceErreur: true });
-    expect(await traiterInscriptionArtisan("artisan", {}, donnees("verifier_siret", { verification_effectuee: "oui" }))).toHaveProperty("erreur");
-    expect(c.rpc).not.toHaveBeenCalledWith("artisan_definir_siret_etat", expect.anything());
+    c = client({ decisionErreur: "La décision ne peut pas être journalisée." });
+    expect(await traiterInscriptionArtisan("artisan", {}, donnees("verifier_siret", { verification_effectuee: "oui" })))
+      .toEqual({ erreur: "La décision ne peut pas être journalisée." });
+    expect(c.rpc.mock.calls.map((a) => a[0])).toEqual(["is_super_admin", "traiter_inscription_artisan_atomique"]);
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+  it("transmet les confirmations de SIRET et de relecture, et le réexamen", async () => {
+    let c = client();
+    expect(await traiterInscriptionArtisan("artisan", {}, donnees("verifier_siret", { verification_effectuee: "oui" }))).toHaveProperty("succes");
+    expect(c.rpc).toHaveBeenLastCalledWith("traiter_inscription_artisan_atomique", {
+      p_artisan: "artisan", p_operation: "verifier_siret", p_motif: null,
+      p_verification_effectuee: true, p_pieces_relues: false,
+    });
+    c = client();
+    expect(await traiterInscriptionArtisan("artisan", {}, donnees("validation", { pieces_relues: "oui" }))).toHaveProperty("succes");
+    expect(c.rpc).toHaveBeenLastCalledWith("traiter_inscription_artisan_atomique", {
+      p_artisan: "artisan", p_operation: "validation", p_motif: null,
+      p_verification_effectuee: false, p_pieces_relues: true,
+    });
+    c = client({ statut: "refuse" });
+    expect(await traiterInscriptionArtisan("artisan", {}, donnees("remise_en_attente"))).toHaveProperty("succes");
+    expect(c.rpc).toHaveBeenLastCalledWith("traiter_inscription_artisan_atomique", {
+      p_artisan: "artisan", p_operation: "remise_en_attente", p_motif: null,
+      p_verification_effectuee: false, p_pieces_relues: false,
+    });
+  });
+  it("affiche le refus sous verrou si le dossier change après la première lecture", async () => {
+    const c = client({ decisionErreur: "Cette inscription a déjà changé d’état. Rechargez la page." });
+    expect(await traiterInscriptionArtisan("artisan", {}, donnees("validation", { pieces_relues: "oui" })))
+      .toEqual({ erreur: "Cette inscription a déjà changé d’état. Rechargez la page." });
+    expect(c.rpc.mock.calls.map((a) => a[0])).toEqual(["is_super_admin", "traiter_inscription_artisan_atomique"]);
+    expect(mocks.revalidate).not.toHaveBeenCalled();
   });
 });
 

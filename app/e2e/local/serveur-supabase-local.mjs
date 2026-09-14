@@ -806,6 +806,10 @@ const serveur = http.createServer(async (req, res) => {
   };
 
   try {
+    if (req.method === "GET" && url.pathname === "/health") {
+      await pool.query("select 1");
+      return repondreJson(200, { pret: true });
+    }
     const segments = url.pathname.split("/").filter(Boolean);
     // /auth/v1/…
     if (segments[0] === "auth" && segments[1] === "v1") {

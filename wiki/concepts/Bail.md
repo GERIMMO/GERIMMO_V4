@@ -218,3 +218,17 @@ Les clauses distinguent le commandement de payer (six semaines), le défaut d'as
 Sources primaires vérifiées : [décret 2026-596, article 1 applicable aux contrats conclus ou renouvelés dès le 1er octobre 2026](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054393114), [contrat type, annexe 1](https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000043842254/), [honoraires de location 2026](https://www.service-public.gouv.fr/particuliers/vosdroits/F375).
 
 Cette recette ciblée ne clôt pas la revue de tous les régimes : durées dérogatoires, SCI familiales, contrats individuels de colocation et ensemble des annexes restent à examiner ou compléter. Les PDF déjà déposés demeurent inchangés.
+
+
+## Contrats individuels de colocation — réalisation du 14 septembre 2026
+La demande explicite de terminer les contrats individuels remplace leur ancien classement différé. Le logement reste un seul lot : chaque chambre désignée porte un bail distinct, avec son locataire, son loyer, son dépôt, sa régularisation, son état des lieux et son congé. Aucun contrat commun existant n’est converti.
+
+Les chambres décrivent la surface et le volume privatifs, l’accès, les équipements et les pièces partagées. Une chambre déjà décrite dans un contrat signé conserve ses caractéristiques. Deux contrats en cours ne peuvent occuper la même chambre ; un bail portant sur tout le logement ne peut coexister avec un bail individuel. Les cotitulaires sont refusés sur un contrat individuel ; ses garants restent possibles. Le logement demeure loué tant qu’un contrat est actif, puis en préavis si tous les contrats restants le sont. Le départ d’un locataire laisse les autres contrats en cours.
+
+Le gestionnaire renseigne le loyer applicable au logement entier. La base contrôle le total des contrats actifs/en préavis à l’activation et à chaque modification du loyer. La fenêtre du lot présente tous les contrats au gestionnaire et uniquement son contrat au locataire. La grille d’état des lieux individuel porte sur la chambre et les espaces partagés ; la sortie reprend l’entrée de ce même contrat.
+
+Deux PDF, nu et meublé, utilisent la charte existante, décrivent le périmètre privatif, précisent l’absence de solidarité entre contrats et reprennent les données réelles. Ils sont des contrats indépendants : aucune mention d’obligation d’utiliser le contrat type du logement entier. Inventaire du contrat annexé en meublé. Une donnée manquante reste signalée, sans invention.
+
+Sources primaires : [Service Public — bail individuel](https://www.service-public.gouv.fr/particuliers/vosdroits/F34661) et [article 8-1 de la loi du 6 juillet 1989](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041587279/2026-04-29). La partie privative doit atteindre 9 m² **et** 20 m³ ; l’appréciation de la décence inclut le logement partagé. La valeur du plafond local doit être vérifiée par le gestionnaire.
+
+Recette : 8 essais SQL ciblés (double activation, plafond, chevauchement, départ, annulation, surfaces, état des lieux, confidentialité), 2 essais de contenu PDF et rendu réel des deux contrats (4 et 5 pages). Suite complète locale : 1 056 tests réussis. Parcours navigateur : plafond, création de chambre, création du bail, génération et rangement GED. La migration 20260914180000 précède la publication de l’interface.

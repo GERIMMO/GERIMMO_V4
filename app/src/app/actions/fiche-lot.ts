@@ -20,7 +20,10 @@ import { eur } from "@/lib/ged";
 /** À quel titre on regarde ce lot. La base tranche ; l'écran s'y range. */
 export type PorteeLot = "gerant" | "locataire";
 
+export type ContratDuLot = { id: string; chambre: string; locataire: string; etat: string; loyer_hc: number; charges: number; date_fin: string | null; impaye_echu: number; termes_impayes: number };
+
 export type FicheLot = {
+  contrats?: ContratDuLot[];
   portee: PorteeLot;
   lot_id: string; lot_nom: string; lot_etat: string;
   surface_m2: number | null; pieces: number | null; etage: string | null; meuble: boolean;
@@ -75,17 +78,25 @@ export async function chargerFicheLot(lotId: string): Promise<Chargement<FicheLo
   // déjà en production et sert la fenêtre de tous les rôles ; lui changer son
   // type de retour pour un identifiant que seul le bouton « Proposer un
   // mandat » consomme coûterait plus cher que cet aller-retour simultané.
-  const [{ data, error }, { data: proprietaire }] = await Promise.all([
+  const [{ data, error }, { data: proprietaire }, { data: contrats, error: erreurContrats }] = await Promise.all([
     supabase.rpc("fiche_lot", { p_lot: lotId }),
     supabase.rpc("detenteur_principal_du_lot", { p_lot: lotId }),
+    supabase.rpc("contrats_du_lot", { p_lot: lotId }),
   ]);
-  if (error) return { erreur: sansJargon(error.message) };
+  if (error || erreurContrats) return { erreur: "Les contrats du logement n’ont pas pu être chargés. Réessayez." };
   const ligne = ((data ?? []) as FicheLot[])[0];
   // Une fiche absente n'est PAS une fiche vide : le lot peut appartenir à une
   // autre agence, et la base refuse alors de la rendre. Le dire ainsi évite
   // d'afficher un lot « sans locataire ni propriétaire » qui existe pourtant.
   if (!ligne) return { erreur: "Ce lot ne fait pas partie de votre portefeuille." };
-  return { donnees: { ...ligne, proprietaire_id: (proprietaire as string | null) ?? null } };
+  const individuels = (contrats ?? []) as ContratDuLot[];
+  const multiple = individuels.length > 1;
+  return { donnees: { ...ligne, contrats: individuels, ...(multiple ? {
+    bail_id: null, bail_etat: null, locataire: null, locataire_email: null, locataire_telephone: null,
+    date_debut: null, date_fin: null, jour_echeance: null, depot_garantie: null,
+    loyer_hc: individuels.reduce((s, c) => s + Number(c.loyer_hc), 0), charges: individuels.reduce((s, c) => s + Number(c.charges), 0),
+    impaye_echu: individuels.reduce((s, c) => s + Number(c.impaye_echu), 0), termes_impayes: individuels.reduce((s, c) => s + Number(c.termes_impayes), 0),
+  } : {}), proprietaire_id: (proprietaire as string | null) ?? null } };
 }
 
 export async function chargerDocumentsDuLot(

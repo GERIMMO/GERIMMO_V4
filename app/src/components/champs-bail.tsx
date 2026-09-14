@@ -14,6 +14,7 @@ type Personne = { id: string; nom: string; prenom: string | null };
 // revenait vierge, la saisie était perdue).
 export type BailDefauts = {
   type?: string;
+  chambre_id?: string | null;
   locataire_principal?: string | null;
   date_debut?: string | null;
   loyer_hc?: number | string | null;
@@ -34,11 +35,13 @@ const classeSelect =
 // React ne vide pas le formulaire (recette 22/08, voir lib/formulaires.ts).
 export function ChampsBail({
   personnes,
+  chambres = [],
   defauts = {},
   prefixe = "bail",
   valeurs,
 }: {
   personnes: Personne[];
+  chambres?: { id: string; nom: string }[];
   defauts?: BailDefauts;
   prefixe?: string;
   valeurs?: Record<string, string>;
@@ -46,6 +49,7 @@ export function ChampsBail({
   // Création rapide d'un locataire (recette Tahir 09/09) : même patron que le
   // « + Nouvelle personne… » de la détention — saisie en pop-up, valeurs
   // reportées en champs cachés, la fiche est créée avec le bail.
+  const [type, setType] = useState(valeurs?.type ?? (defauts.chambre_id ? "colocation_individuelle" : defauts.type ?? "nu"));
   const [locataire, setLocataire] = useState(
     valeurs?.locataire_principal ?? defauts.locataire_principal ?? ""
   );
@@ -80,16 +84,28 @@ export function ChampsBail({
         <select
           id={`${prefixe}-type`}
           name="type"
-          defaultValue={valeurs?.type ?? defauts.type ?? "nu"}
+          value={type}
+          onChange={e => setType(e.target.value)}
           className={classeSelect}
         >
           <option value="nu">Nu</option>
           <option value="meuble">Meublé</option>
-          <option value="colocation">Colocation</option>
+          <option value="colocation">Colocation · contrat commun</option>
+          <option value="colocation_individuelle">Colocation · contrat individuel</option>
         </select>
       </div>
+      {type === "colocation_individuelle" && <div className="space-y-1.5 sm:col-span-2">
+        <Label htmlFor={`${prefixe}-chambre`}>Chambre privative</Label>
+        <select id={`${prefixe}-chambre`} name="chambre_id" required className={classeSelect}
+          defaultValue={valeurs?.chambre_id ?? defauts.chambre_id ?? ""}>
+          <option value="" disabled>Choisir une chambre</option>
+          {chambres.map(c => <option key={c.id} value={c.id}>{c.nom}</option>)}
+        </select>
+        <p className="text-xs text-muted-foreground">Un seul locataire, son propre loyer et son dépôt. Sans solidarité avec les autres chambres.
+          {chambres.length === 0 && " Ajoutez d’abord les chambres dans la fiche du logement."}</p>
+      </div>}
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-locataire`}>Locataire principal</Label>
+        <Label htmlFor={`${prefixe}-locataire`}>{type === "colocation_individuelle" ? "Locataire du contrat" : "Locataire principal"}</Label>
         <select
           id={`${prefixe}-locataire`}
           name="locataire_principal"
@@ -289,8 +305,8 @@ export function ChampsBail({
         />
         <p className="text-xs text-muted-foreground">
           Maximum : 1 mois de loyer hors charges en location nue, 2 en meublé.
-          En colocation, ce plafond vaut pour le logement entier ; son caractère
-          meublé est repris de la fiche du lot.
+          {type === "colocation_individuelle" ? " Le plafond s’applique au loyer de cette chambre." : " En contrat commun, le plafond s’applique au loyer du logement entier."}
+          Le caractère meublé est repris de la fiche du lot pour les colocations.
         </p>
       </div>
       <div className="space-y-1.5">

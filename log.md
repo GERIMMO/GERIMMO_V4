@@ -4317,3 +4317,6 @@ boutons absents du profil en supervision, émission automatique conservée.
 15 tests dédiés, suite locale 1 045 réussis, build/lint/types réussis. Migration
 20260914170000 à appliquer avant l’interface qui utilise sa fonction d’autorisation.
 [[Socle de sécurité]] et index mis à jour ; sources métier conservées.
+
+## [2026-09-14] implementation | Contrats individuels par chambre
+Demande utilisateur : terminer les contrats individuels et le catalogue documentaire. Première livraison : plusieurs baux sur un seul logement, sans solidarité ni confusion des comptes ; chambre privative, plafond agrégé, départ indépendant, EDL limité et fenêtre locataire isolée. Deux modèles PDF nu/meublé et parcours de préparation dans le parc. Sources légales primaires vérifiées ; raw conservé. Huit tests SQL, contenu et rendu PDF, suite 1 056 réussis et recette navigateur. [[Bail]] et index mis à jour. Le catalogue complet constitue la livraison suivante, encore en cours.

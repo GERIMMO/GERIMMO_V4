@@ -21,7 +21,10 @@ export type PersonneDocument = {
   qualite: string | null;
 };
 
+export type ChambreDocument = { id: string; nom: string; surface_m2: number; volume_m3: number; description: string; espaces_partages: string; equipements: string | null };
 export type ContexteBail = {
+  chambre?: ChambreDocument | null;
+  plafondColocation?: number | null;
   organisation: {
     name: string;
     type: string;
@@ -38,6 +41,7 @@ export type ContexteBail = {
   bail: MentionsContrat & {
     id: string;
     type: string;
+    chambre_id?: string | null;
     etat: string;
     date_debut: string | null;
     date_fin: string | null;
@@ -123,7 +127,7 @@ export async function chargerContexteBail(
     supabase
       .from("baux")
       .select(
-        `id, type, etat, date_debut, date_fin, loyer_hc, charges, charges_mode,
+        `id, chambre_id, type, etat, date_debut, date_fin, loyer_hc, charges, charges_mode,
          depot_garantie, jour_echeance, irl_trimestre, revision_irl, locataire_principal,
          fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur,
          duree_reduite_evenement, travaux_recents, travaux_recents_montant,
@@ -154,6 +158,18 @@ export async function chargerContexteBail(
   );
   const bien = lot ? premier(lot.bien) : null;
   if (!lot || !bien) return { erreur: "Lot introuvable pour ce bail." };
+
+  let chambre: ChambreDocument | null = null;
+  let plafondColocation: number | null = null;
+  if (bail.chambre_id) {
+    const [{ data: piece, error }, { data: logement, error: erreurLogement }] = await Promise.all([
+      supabase.from("lot_chambres").select("id, nom, surface_m2, volume_m3, description, espaces_partages, equipements").eq("id", bail.chambre_id).eq("lot_id", lot.id).eq("organization_id", orgId).maybeSingle(),
+      supabase.from("lots").select("colocation_loyer_reference").eq("id", lot.id).eq("organization_id", orgId).maybeSingle(),
+    ]);
+    if (error || !piece || erreurLogement || !logement) return { erreur: "La chambre et le plafond du logement ne peuvent pas être vérifiés." };
+    chambre = piece;
+    plafondColocation = logement.colocation_loyer_reference;
+  }
 
   // Les équipements du lot (liste fermée du catalogue de l'agence) — ils
   // remplissent « Éléments d'équipement du logement » du contrat type
@@ -200,8 +216,10 @@ export async function chargerContexteBail(
 
   return {
     organisation,
+    chambre,
+    plafondColocation,
     bail: { ...bail, id: bail.id },
-    lot: { ...lot, equipements },
+    lot: { ...lot, nom: chambre ? `${lot.nom} · ${chambre.nom}` : lot.nom, equipements },
     bien,
     bailleurs,
     locataires,

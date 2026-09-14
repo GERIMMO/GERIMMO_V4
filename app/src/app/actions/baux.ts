@@ -70,7 +70,7 @@ async function lireLogementPourDepot(
   lotId: string,
   formData: FormData
 ): Promise<{ meuble: boolean } | { erreur: string }> {
-  if (formData.get("type") !== "colocation") return { meuble: false };
+  if (!["colocation", "colocation_individuelle"].includes(String(formData.get("type")))) return { meuble: false };
   // Ne pas croire un indicateur envoyé par le navigateur : relire le lot
   // autorisé dans l'agence avant de calculer le plafond de la colocation.
   const { data, error } = await supabase.from("lots").select("meuble")
@@ -89,7 +89,12 @@ function lireChampsBail(
   const charges = String(formData.get("charges") ?? "").trim();
   const depot = String(formData.get("depot_garantie") ?? "").trim();
   const jour = String(formData.get("jour_echeance") ?? "1").trim();
-  const type = String(formData.get("type") ?? "nu");
+  const choixType = String(formData.get("type") ?? "nu");
+  if (!["nu", "meuble", "colocation", "colocation_individuelle"].includes(choixType)) return { erreur: "Choisissez un type de bail proposé." };
+  const individuel = choixType === "colocation_individuelle";
+  const chambre = String(formData.get("chambre_id") ?? "").trim();
+  if (individuel && !/^[0-9a-f-]{36}$/i.test(chambre)) return { erreur: "Choisissez la chambre privative de ce contrat." };
+  const type = individuel ? "colocation" : choixType;
 
   // Plafond légal du dépôt de garantie (audit 09/09, RM-2.1.1 / RM-2.1.2 —
   // wiki « Dépôt de garantie ») : 1 mois HORS CHARGES en nu, 2 en meublé.
@@ -111,6 +116,7 @@ function lireChampsBail(
   return {
     valeurs: {
       type,
+      chambre_id: individuel ? chambre : null,
       locataire_principal: locataire,
       date_debut: String(formData.get("date_debut") ?? "").trim() || null,
       loyer_hc: loyer ? Number(loyer) : null,
@@ -415,7 +421,7 @@ async function deposerPieceBail(
       .eq("type", "entree")
       .eq("etat", "signe");
     succes =
-      "Bail signé déposé — le bail est actif, le lot est loué." +
+      "Bail signé déposé — le contrat est actif, l’occupation du logement est actualisée." +
       (count ? "" : " L'état des lieux d'entrée reste à signer : une alerte le rappelle.");
   }
 

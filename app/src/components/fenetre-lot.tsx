@@ -619,6 +619,7 @@ function OngletResume({
   allerA: (o: Onglet) => void;
 }) {
   const locataire = fiche.portee === "locataire";
+  const multiple = (fiche.contrats?.length ?? 0) > 1;
   const loyer = Number(fiche.loyer_hc ?? 0) + Number(fiche.charges ?? 0);
   const impaye = Number(fiche.impaye_echu);
 
@@ -627,8 +628,8 @@ function OngletResume({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Tuile
           libelle="Loyer + charges"
-          valeur={fiche.bail_id ? eur(loyer) : "—"}
-          sous={fiche.jour_echeance ? `le ${fiche.jour_echeance} du mois` : "lot libre"}
+          valeur={fiche.bail_id || multiple ? eur(loyer) : "—"}
+          sous={fiche.jour_echeance ? `le ${fiche.jour_echeance} du mois` : multiple ? "total des contrats" : "lot libre"}
         />
         <Tuile
           libelle={locataire ? "Mon solde" : "Solde locataire"}
@@ -639,7 +640,7 @@ function OngletResume({
         <Tuile
           libelle="Dépôt de garantie"
           valeur={fiche.depot_garantie ? eur(fiche.depot_garantie) : "—"}
-          sous={fiche.depot_garantie ? "restitué après l’EDL de sortie" : "non renseigné"}
+          sous={multiple ? "voir chaque contrat" : fiche.depot_garantie ? "restitué après l’EDL de sortie" : "non renseigné"}
         />
         <Tuile
           libelle="Dans les lieux"
@@ -654,7 +655,11 @@ function OngletResume({
           badge={fiche.bail_etat && fiche.bail_etat !== "actif" ? (ETATS_BAIL[fiche.bail_etat] ?? fiche.bail_etat) : "occupant"}
           ton={fiche.bail_etat === "preavis" ? "attente" : "ok"}
         >
-          {fiche.bail_id ? (
+          {multiple ? <div className="space-y-3">{fiche.contrats?.map(c => <div key={c.id} className="rounded-lg border p-3">
+            <Link className="lien-discret font-medium" href={`/agence/${orgId}/baux/${c.id}`}>{c.chambre} · {c.locataire} →</Link>
+            <p className="mt-1 text-sm">{eur(Number(c.loyer_hc) + Number(c.charges))} / mois · {ETATS_BAIL[c.etat] ?? c.etat}{c.date_fin ? ` · fin le ${formaterDate(c.date_fin)}` : ""}</p>
+            {Number(c.impaye_echu) > 0 && <p className="text-sm text-destructive">{eur(Number(c.impaye_echu))} restant dû</p>}
+          </div>)}</div> : fiche.bail_id ? (
             <>
               {!locataire && (
                 <Personne

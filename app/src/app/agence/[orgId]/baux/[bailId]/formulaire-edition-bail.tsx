@@ -13,11 +13,13 @@ export function FormulaireEditionBail({
   orgId,
   bailId,
   personnes,
+  chambres,
   defauts,
 }: {
   orgId: string;
   bailId: string;
   personnes: Personne[];
+  chambres?: { id: string; nom: string }[];
   defauts: BailDefauts;
 }) {
   const action = modifierBail.bind(null, orgId, bailId);
@@ -27,7 +29,7 @@ export function FormulaireEditionBail({
     <form onSubmit={formAction} className="space-y-3">
       {/* etat.valeurs prime sur les défauts du brouillon : un refus ne doit pas
           écraser les corrections saisies (recette 22/08). */}
-      <ChampsBail personnes={personnes} defauts={defauts} prefixe="edition" valeurs={etat.valeurs} />
+      <ChampsBail chambres={chambres} personnes={personnes} defauts={defauts} prefixe="edition" valeurs={etat.valeurs} />
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
       <BoutonEnvoi enCours={enCours} enCoursTexte="Enregistrement…" size="sm" variant="outline">

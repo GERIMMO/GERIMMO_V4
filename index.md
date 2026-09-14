@@ -155,3 +155,5 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Recette S7 - incidents]] — les scénarios détaillés du Sprint 7 (déclaration locataire, qualification, clôture, réouverture, pop-up de traitement).
 
 - [[Référentiel vérifiable Gerimmo du 12 septembre 2026]] — 465 exigences et neuf personas ; minimum demandé, couverture à prouver dans la version publiée.
+
+- [[Bail#Contrats individuels de colocation — réalisation du 14 septembre 2026|Contrats individuels de colocation]] — chambres, gestion indépendante, plafonds et confidentialité testés ; contrats nu et meublé.

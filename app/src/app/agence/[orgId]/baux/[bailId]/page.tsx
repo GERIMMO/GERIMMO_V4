@@ -61,7 +61,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     .from("baux")
     // Colonnes du cycle de vie + « Compléments du contrat » (bail 100 % rempli, 09/09)
     .select(
-      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant, date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires, honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference, clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude"
+      "id, chambre_id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant, date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires, honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference, clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -77,6 +77,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       />
     );
   if (!bail) notFound();
+
+  const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("id, nom, surface_m2, volume_m3, description, espaces_partages").eq("lot_id", bail.lot_id).eq("organization_id", orgId).order("nom");
+  const chambre = chambres?.find(c => c.id === bail.chambre_id);
 
   const [
     { data: lot, error: erreurLot },
@@ -339,7 +342,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         texte: `Compléter les mentions obligatoires du contrat (${mentions.join(", ").toLowerCase()})`,
         href: "#corriger",
       });
-    if (!edlEntreeSigne && piecesDuLot === 0)
+    if (!edlEntreeSigne && piecesDuLot === 0 && !bail.chambre_id)
       aFaire.push({
         texte:
           "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
@@ -355,7 +358,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   } else {
     // Déclarer les pièces vient AVANT l'état des lieux : une fois signé, il est
     // figé, et une grille sans pièces ne rattache aucune dégradation à un endroit.
-    if (!edlEntreeSigne && piecesDuLot === 0)
+    if (!edlEntreeSigne && piecesDuLot === 0 && !bail.chambre_id)
       aFaire.push({
         texte:
           "Déclarer les pièces du lot — sans elles, l'état des lieux ne distingue pas la cuisine de la chambre",
@@ -398,7 +401,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             ← {lot.nom}
           </Link>
         )}
-        <p className="eyebrow mt-1">Bail {TYPES_BAIL[bail.type] ?? bail.type}</p>
+        <p className="eyebrow mt-1">Bail {bail.chambre_id ? `individuel · ${chambre?.nom ?? "chambre"}` : TYPES_BAIL[bail.type] ?? bail.type}</p>
         <div className="my-3">
           <div className="flex flex-wrap items-center gap-3">
             {/* Le titre porte qui habite où — le type de bail vit dans l'eyebrow */}
@@ -511,11 +514,13 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               </div>
             )}
             <FormulaireEditionBail
+              chambres={chambres ?? []}
               orgId={orgId}
               bailId={bailId}
               personnes={(personnes ?? []) as { id: string; nom: string; prenom: string | null }[]}
               defauts={{
                 type: bail.type,
+                chambre_id: bail.chambre_id,
                 locataire_principal: bail.locataire_principal,
                 date_debut: bail.date_debut,
                 loyer_hc: bail.loyer_hc,
@@ -531,6 +536,14 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         </Card>
       )}
 
+      {bail.chambre_id && <Card><CardHeader><CardTitle>Contrat individuel · {chambre?.nom ?? "Chambre"}</CardTitle></CardHeader><CardContent className="space-y-2 text-sm">
+        {erreurChambres ? <p role="alert">La description de la chambre n’a pas pu être chargée.</p> : <>
+          <p>{chambre?.surface_m2} m² privatifs · {chambre?.volume_m3} m³</p><p>{chambre?.description}</p>
+          <p><strong>Espaces partagés :</strong> {chambre?.espaces_partages}</p>
+        </>}
+        <p>Les loyers, régularisations, états des lieux et congés ci-dessous concernent uniquement ce contrat. Les autres colocataires ne sont pas solidaires de ses dettes.</p>
+      </CardContent></Card>}
+
       {/* Documents-0 : générer le contrat (nu 01 / meublé 02) depuis le
           brouillon — le PDF sert à imprimer et faire signer ; le dépôt du
           signé reste le seul déclencheur d'activation. */}
@@ -539,7 +552,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           <CardHeader>
             <CardTitle className="text-base">{bail.type === "colocation" ? "Préparer le contrat de colocation" : "Générer le bail"}</CardTitle>
             <CardDescription>
-              {bail.type === "colocation" ? (
+              {bail.chambre_id ? (
+                <>Un contrat indépendant pour {chambre?.nom ?? "la chambre désignée"}, avec son propre loyer, ses charges et son dépôt. Le départ de ce locataire ne met pas fin aux autres contrats.</>
+              ) : bail.type === "colocation" ? (
                 <>Un contrat commun pour tous les colocataires, adapté au logement {lot?.meuble ? "meublé, avec son inventaire" : "nu"}.
                   Vérifiez les personnes et les informations du dossier, relisez le PDF, puis faites-le signer par toutes les parties.</>
               ) : (
@@ -553,10 +568,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             {bail.locataire_principal ? (
               <BoutonGenererDocument
                 orgId={orgId}
-                code={bail.type === "colocation" ? "bail_colocation" : bail.type === "meuble" ? "bail_meuble" : "bail_nu"}
+                code={bail.chambre_id ? "bail_individuel" : bail.type === "colocation" ? "bail_colocation" : bail.type === "meuble" ? "bail_meuble" : "bail_nu"}
                 cibleId={bailId}
                 cheminRetour={`/agence/${orgId}/baux/${bailId}`}
-                libelle={bail.type === "colocation" ? "Générer le contrat commun (PDF)" : "Générer le bail (PDF)"}
+                libelle={bail.chambre_id ? "Générer le contrat individuel (PDF)" : bail.type === "colocation" ? "Générer le contrat commun (PDF)" : "Générer le bail (PDF)"}
                 variant="default"
               />
             ) : (
@@ -720,7 +735,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Colocation (bail unique) : colocataires + garants — un bail terminé
           ne se complète plus (audit vie du bail 09/09) */}
-      {bail.type === "colocation" && bail.etat !== "termine" && (
+      {bail.type === "colocation" && !bail.chambre_id && bail.etat !== "termine" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Colocataires & garants</CardTitle>
@@ -749,7 +764,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       {/* Garants d'un bail nu ou meublé (hors colocation, qui a sa carte) —
           l'acte de cautionnement se génère dans la carte suivante. */}
-      {bail.type !== "colocation" && bail.etat !== "termine" && (
+      {(bail.type !== "colocation" || bail.chambre_id) && bail.etat !== "termine" && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Garants</CardTitle>

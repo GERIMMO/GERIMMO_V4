@@ -33,6 +33,7 @@ import {
   liensLocataires,
 } from "./communs";
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
+import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
 
 
@@ -68,7 +69,8 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
   const referenceBail = referenceCourte("BAIL", ctx.bail.id);
   const bailleurPrincipal = ctx.bailleurs[0] ?? null;
   const indivision = ctx.bailleurs.length > 1;
-  const colocation = ctx.bail.type === "colocation";
+  const individuel = Boolean(ctx.chambre);
+  const colocation = ctx.bail.type === "colocation" && !individuel;
   const plusieursLocataires = ctx.locataires.length > 1;
   const copro = ctx.bien.copropriete;
   const depot = ctx.bail.depot_garantie === null ? null : Number(ctx.bail.depot_garantie);
@@ -79,9 +81,9 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
 
   const corps = `
     ${enTete(f, exp, { libelle: "Contrat", reference: referenceBail, etabliLe: new Date().toISOString() })}
-    ${titre(colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement nu · résidence principale", [
+    ${titre(individuel ? "Contrat individuel de colocation" : colocation ? "Contrat commun de colocation" : "Contrat de location", "Logement nu · résidence principale", [
       "Soumis au titre Ier de la loi n° 89-462 du 6 juillet 1989",
-      "Contrat type — annexe 1 du décret n° 2015-587 du 29 mai 2015",
+      individuel ? "Contrat indépendant — article 8-1 de la loi du 6 juillet 1989" : "Contrat type — annexe 1 du décret n° 2015-587 du 29 mai 2015",
     ])}
     <p>Les parties déclarent avoir pris connaissance de la notice d'information relative aux droits
     et obligations des locataires et des bailleurs, annexée au présent contrat et en faisant partie
@@ -132,7 +134,8 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     <p>Ci-après dénommé${plusieursLocataires ? "s" : ""} « le locataire ».</p>
 
     ${section("II — Objet du contrat")}
-    <p>Le présent contrat a pour objet la location d'un logement, ainsi déterminé :</p>
+    <p>${individuel ? 'Le présent contrat porte exclusivement sur la chambre privative et le droit d’usage des espaces partagés désignés ci-dessous. Il ne loue pas le logement entier.' : "Le présent contrat a pour objet la location d'un logement, ainsi déterminé :"}</p>
+    ${designationIndividuelle(ctx, f)}
     ${sousSection("A. Consistance du logement")}
     <p>Localisation du logement : ${f.champ(adresseLogement(ctx.lot, ctx.bien), "adresse complète, étage, porte")}<br/>
     Identifiant fiscal du logement : ${f.champ(ctx.lot.identifiant_fiscal, "le cas échéant")}<br/>
@@ -141,7 +144,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
       "immeuble collectif ou individuel"
     )} — Régime juridique de l'immeuble : ${f.champ(copro ? "copropriété" : "monopropriété", "monopropriété ou copropriété")} —
     Période de construction : ${f.champ(periodeConstruction(ctx.bien.annee_construction), "avant 1949, 1949-1974, 1975-1989, 1990-2005, depuis 2006")}<br/>
-    Surface habitable : ${f.champ(
+    Surface habitable ${individuel ? "du logement entier" : ""} : ${f.champ(
       ctx.lot.surface_m2 !== null ? `${ctx.lot.surface_m2} m²` : null,
       "en m²"
     )} — Nombre de pièces principales : ${f.champ(ctx.lot.pieces, "nombre")}<br/>
@@ -269,8 +272,8 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
 
   return assemblerPage({
     f,
-    titreDocument: colocation ? "Colocation — bail commun nu" : "Contrat de location — logement nu",
-    nomPied: colocation ? "Colocation — bail commun nu" : "Contrat de location — logement nu",
+    titreDocument: individuel ? "Colocation — contrat individuel nu" : colocation ? "Colocation — bail commun nu" : "Contrat de location — logement nu",
+    nomPied: individuel ? "Colocation — contrat individuel nu" : colocation ? "Colocation — bail commun nu" : "Contrat de location — logement nu",
     reference: referenceBail,
     corps,
   });

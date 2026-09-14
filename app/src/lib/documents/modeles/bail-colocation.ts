@@ -9,7 +9,7 @@ import type { Assemblage } from "./index";
 export async function assemblerBailColocation(supabase: SupabaseClient, orgId: string, bailId: string): Promise<Assemblage> {
   const ctx = await chargerContexteBail(supabase, orgId, bailId);
   if ("erreur" in ctx) return ctx;
-  if (ctx.bail.type !== "colocation") return { erreur: "Ce modèle est réservé au contrat commun de colocation." };
+  if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "Ce modèle est réservé au contrat commun de colocation." };
   if (ctx.bail.etat !== "brouillon") return { erreur: "Le contrat initial se prépare en brouillon. Pour un bail signé, préparez un avenant." };
   if (!ctx.bail.locataire_principal || !ctx.locataires.some(p => p.id === ctx.bail.locataire_principal)) {
     return { erreur: "Renseignez d'abord le locataire principal du bail." };

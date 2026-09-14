@@ -35,11 +35,19 @@ export function BoutonGenererDocument({
   const [enCours, demarrer] = useTransition();
   const [resultat, setResultat] = useState<EtatGeneration | null>(null);
 
+  const [montrerTous, setMontrerTous] = useState(false);
+
   function generer() {
+    setMontrerTous(false);
+    setResultat(null);
     demarrer(async () => {
-      const res = await genererDocument(orgId, code, cibleId, cheminRetour, options);
-      setResultat(res);
-      if (res.succes) afficherToast(res.succes);
+      try {
+        const res = await genererDocument(orgId, code, cibleId, cheminRetour, options);
+        setResultat(res);
+        if (res.succes) afficherToast(res.succes);
+      } catch {
+        setResultat({ erreur: "La connexion a été interrompue. Vérifiez les documents du dossier avant de relancer la génération." });
+      }
     });
   }
 
@@ -61,8 +69,8 @@ export function BoutonGenererDocument({
       {resultat?.erreur && <span className="text-xs text-destructive">{resultat.erreur}</span>}
       {resultat && !resultat.erreur && (resultat.manquants?.length ?? 0) > 0 && (
         <span className="block w-full text-xs text-warning-soft-foreground">
-          Restés en libellé :{" "}
-          {resultat.manquants!.slice(0, 5).map((m, i) => {
+          À compléter dans le document :{" "}
+          {resultat.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
             const cible = lienPourManquant(m, orgId, resultat.liens ?? [], code);
             return (
               <span key={m}>
@@ -79,7 +87,11 @@ export function BoutonGenererDocument({
               </span>
             );
           })}
-          {resultat.manquants!.length > 5 ? ` · +${resultat.manquants!.length - 5}` : ""}
+          {resultat.manquants!.length > 5 && (
+            <button type="button" className="ml-2 lien-discret" aria-expanded={montrerTous} onClick={() => setMontrerTous(!montrerTous)}>
+              {montrerTous ? "Réduire la liste" : `Voir les ${resultat.manquants!.length} informations à compléter`}
+            </button>
+          )}
         </span>
       )}
     </span>

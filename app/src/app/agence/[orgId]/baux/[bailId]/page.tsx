@@ -61,7 +61,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     .from("baux")
     // Colonnes du cycle de vie + « Compléments du contrat » (bail 100 % rempli, 09/09)
     .select(
-      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant"
+      "id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant, date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires, honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference, clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -576,7 +576,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         <CardHeader>
           <CardTitle className="text-base">Compléments du contrat</CardTitle>
           <CardDescription>
-            Fixation et paiement du loyer, travaux, honoraires et encadrement en zone tendue :
+            Dates, énergie, fixation et paiement du loyer, travaux et honoraires :
             renseignez les conditions convenues avec les parties et vérifiez leur cohérence
             avec le contrat signé.
           </CardDescription>
@@ -605,6 +605,19 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               dernier_loyer_versement: bail.dernier_loyer_versement,
               dernier_loyer_revision: bail.dernier_loyer_revision,
               meuble_etudiant: Boolean(bail.meuble_etudiant),
+              date_conclusion_prevue: bail.date_conclusion_prevue,
+              servitude_residence_principale: bail.servitude_residence_principale,
+              encadrement_loyer: bail.encadrement_loyer,
+              zone_honoraires: bail.zone_honoraires,
+              honoraires_edl_bailleur: bail.honoraires_edl_bailleur,
+              honoraires_edl_locataire: bail.honoraires_edl_locataire,
+              dpe_depenses_min: bail.dpe_depenses_min,
+              dpe_depenses_max: bail.dpe_depenses_max,
+              dpe_annees_reference: bail.dpe_annees_reference,
+              clause_resolutoire_assurance: bail.clause_resolutoire_assurance,
+              clause_resolutoire_troubles: bail.clause_resolutoire_troubles,
+              clause_resolutoire_servitude: bail.clause_resolutoire_servitude,
+
             }}
             zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
             meuble={bail.type === "meuble" || (bail.type === "colocation" && Boolean(lot?.meuble))}

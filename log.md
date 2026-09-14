@@ -4296,3 +4296,8 @@ Extension de la conservation : les signalements de bug et leurs réponses sont s
 ## [2026-09-14] query | Contrat commun et inventaire de colocation
 
 Le bail commun de colocation devient générable depuis le brouillon, selon le caractère meublé du lot, avec chaque colocataire et sa signature, un loyer global et l'inventaire annexé en meublé. Retrait du mobilier confirmé sur la ligne du bail, erreur visible en cas de refus. 946 tests locaux passent après correction de la connexion au banc de test ; les deux PDF sont rendus et contrôlés. Les contrats séparés et la revue réglementaire d'octobre restent des travaux distincts. Raw et le coffre Obsidian restent inchangés.
+
+
+## [2026-09-14] query | Mentions et honoraires des contrats de location
+
+Compléments structurés ajoutés : conclusion prévue, encadrement local distinct de la zone tendue, servitude, énergie et honoraires d'état des lieux. Les modèles nu/meublé/colocation reprennent les données, distinguent les délais de résiliation et réservent la date de signature aux parties. Tests des bornes financières, erreurs, clauses et protection des contrats terminés. Recette navigateur sur un brouillon fictif : champs conditionnels, refus d'une fourchette inversée, conservation des choix après erreur, enregistrement. PDF de colocation inspectés ; signatures regroupées pour éviter une page presque vide. Le test du découpage distingue les lots par identifiant, leurs dates de création étant égales dans une transaction. Les sources légales sont citées dans Bail ; raw et Obsidian restent inchangés. Cette étape ne constitue pas une certification juridique de tous les modèles.

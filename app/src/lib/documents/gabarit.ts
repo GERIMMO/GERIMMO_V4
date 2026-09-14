@@ -16,7 +16,7 @@ import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 import { domaineDuSite } from "@/lib/site";
 
-export const VERSION_MODELES = "2026.11-g2";
+export const VERSION_MODELES = "2026.11-g3";
 
 // ------------------------------------------------------------------
 // La charte, en valeurs imprimables
@@ -338,6 +338,7 @@ const CSS_DOCUMENT = `
   th.d + th, td.d + td { padding-left:8pt; }
   tr { page-break-inside:avoid; }
   .total { font-weight:700; color:var(--encre); border-top:0.75pt solid var(--encre); }
+  .bloc-signataires { break-inside:avoid; }
   .signatures { display:grid; grid-template-columns:1fr 1fr; gap:16pt; margin-top:12pt; }
   .signature { page-break-inside:avoid; }
   .signature .bandeau { background:var(--encre); color:var(--sur-encre); font-weight:700;

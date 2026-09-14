@@ -437,7 +437,8 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
       [bien]
     );
     expect(lots.rows).toHaveLength(2);
-    const nouveau = lots.rows[1];
+    // now() est identique pour toute la transaction : created_at ne départage pas ces deux lots.
+    const nouveau = lots.rows.find((l) => l.id !== lot)!;
     // Le nouveau lot hérite du propriétaire actif du lot d'origine
     const heritage = await db.query(
       `select person_id, quote_part from public.detentions where lot_id = $1 and date_fin is null`,

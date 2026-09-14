@@ -205,3 +205,16 @@ Preuves : tests des deux régimes, montants globaux, signataires distincts, refu
 
 > [!warning] Source plus récente — contrats séparés
 > Le référentiel fourni classe désormais les contrats séparés en P1 (09.4), contrairement à la mention V2 historique ci-dessus. Ils restent à développer ; le contrat commun ne les remplace pas.
+
+
+## Compléments et génération — recette du 14 septembre 2026
+
+Les contrats nu, meublé et commun de colocation exposent désormais la classe DPE, la fourchette annuelle d'énergie et les années de prix, la date prévue de conclusion, la servitude de résidence principale et les clauses optionnelles. La date réelle de signature reste à compléter par les parties : générer un PDF ne signe pas le contrat.
+
+La zone tendue et les loyers de référence fixés localement sont deux informations distinctes. Les montants de référence apparaissent au formulaire après confirmation de leur application. Une réponse inconnue reste à vérifier. Les honoraires de visite/dossier/bail et ceux d'état des lieux sont distincts ; la part locataire ne peut dépasser celle du bailleur ni le plafond calculable. Barème 2026 : 12,10 / 10,09 / 8,07 € TTC par m² selon la zone, 3,03 € TTC pour l'état des lieux. Un barème futur inconnu n'est pas projeté.
+
+Les clauses distinguent le commandement de payer (six semaines), le défaut d'assurance (un mois) et, si convenu et applicable, la servitude (délai de mise en demeure du maire). Les nouveaux champs sont protégés en base après le brouillon. Les modèles initiaux refusent un bail déjà engagé : il faut un avenant. Les erreurs de lecture du diagnostic ou de l'inventaire ne sont plus assimilées à des données absentes.
+
+Sources primaires vérifiées : [décret 2026-596, article 1 applicable aux contrats conclus ou renouvelés dès le 1er octobre 2026](https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054393114), [contrat type, annexe 1](https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000043842254/), [honoraires de location 2026](https://www.service-public.gouv.fr/particuliers/vosdroits/F375).
+
+Cette recette ciblée ne clôt pas la revue de tous les régimes : durées dérogatoires, SCI familiales, contrats individuels de colocation et ensemble des annexes restent à examiner ou compléter. Les PDF déjà déposés demeurent inchangés.

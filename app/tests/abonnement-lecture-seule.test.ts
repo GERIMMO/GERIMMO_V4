@@ -343,8 +343,10 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
         -- d'un client qu'il paie avec un compte qu'on lui a fermé faute de
         -- paiement — une impasse parfaite, invisible jusqu'au premier client
         -- qui paie (migration 20260911300000).
+        -- Le support reste ouvert pour signaler précisément un blocage d'accès.
         and c.relname not in ('acces_pieces_log', 'audit_log',
-                              'abonnements', 'abonnement_evenements')
+                              'abonnements', 'abonnement_evenements',
+                              'retours_utilisateurs', 'retours_soutiens')
         and not exists (select 1 from pg_trigger t
                         where t.tgrelid = c.oid and t.tgname like 'abonnement\\_%')
       order by c.relname`);

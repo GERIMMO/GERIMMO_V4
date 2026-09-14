@@ -2,7 +2,6 @@
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
@@ -12,11 +11,13 @@ import { TYPES_BAIL, mentionsObligatoiresManquantes } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { envoyerEmail } from "@/lib/email";
 import { headers } from "next/headers";
+import { moisDepotGarantie } from "@/lib/depot-garantie";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
 export type EtatBail = {
   erreur?: string;
   succes?: string;
+  bailCree?: string;
   blocages?: BlocageActionable[];
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
@@ -34,7 +35,9 @@ export async function creerBail(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
-  const champs = lireChampsBail(formData);
+  const logement = await lireLogementPourDepot(supabase, orgId, lotId, formData);
+  if ("erreur" in logement) return { erreur: logement.erreur, valeurs };
+  const champs = lireChampsBail(formData, logement.meuble);
   if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
   const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData);
   if ("erreur" in locataire) return { erreur: locataire.erreur, valeurs };
@@ -53,14 +56,30 @@ export async function creerBail(
   if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}`, valeurs };
 
   revalidatePath(`/agence/${orgId}/parc/${bienId}/lots/${lotId}`);
-  redirect(`/agence/${orgId}/baux/${data.id}`);
+  return { succes: "Brouillon créé.", bailCree: data.id };
 }
 
 // Champs communs création / édition (recette 21/08 : le brouillon devient
 // corrigeable, et la date d'entrée se saisit — elle tombait au jour du clic
 // « Activer », faussant l'échéancier)
-function lireChampsBail(
+async function lireLogementPourDepot(
+  supabase: Awaited<ReturnType<typeof verifierGerant>>["supabase"],
+  orgId: string,
+  lotId: string,
   formData: FormData
+): Promise<{ meuble: boolean } | { erreur: string }> {
+  if (formData.get("type") !== "colocation") return { meuble: false };
+  // Ne pas croire un indicateur envoyé par le navigateur : relire le lot
+  // autorisé dans l'agence avant de calculer le plafond de la colocation.
+  const { data, error } = await supabase.from("lots").select("meuble")
+    .eq("id", lotId).eq("organization_id", orgId).maybeSingle();
+  if (error || !data) return { erreur: "Le logement ne peut pas être vérifié. Rechargez le dossier avant d’enregistrer le bail." };
+  return { meuble: data.meuble === true };
+}
+
+function lireChampsBail(
+  formData: FormData,
+  logementMeuble: boolean
 ): { erreur: string } | { valeurs: Record<string, unknown> } {
   const locataire = String(formData.get("locataire_principal") ?? "");
   if (!locataire) return { erreur: "Choisissez le locataire principal." };
@@ -71,11 +90,12 @@ function lireChampsBail(
   const type = String(formData.get("type") ?? "nu");
 
   // Plafond légal du dépôt de garantie (audit 09/09, RM-2.1.1 / RM-2.1.2 —
-  // wiki « Dépôt de garantie ») : 1 mois de loyer HORS CHARGES en nu et en
-  // colocation, 2 mois en meublé. Refus dès la saisie — le contrôle
+  // wiki « Dépôt de garantie ») : 1 mois HORS CHARGES en nu, 2 en meublé.
+  // En colocation, le caractère du logement détermine le plafond du bail
+  // entier (Service Public F34661/F31269, vérification du 14/09). Le contrôle
   // n'attendait que l'activation, un bail nu acceptait n'importe quel dépôt.
   if (loyer && depot) {
-    const mois = type === "meuble" ? 2 : 1;
+    const mois = moisDepotGarantie(type, logementMeuble);
     const plafond = mois * Number(loyer);
     if (Number(depot) > plafond) {
       return {
@@ -158,21 +178,23 @@ export async function modifierBail(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
-  const champs = lireChampsBail(formData);
-  if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
-
   // Seul un brouillon se corrige — vérifié AVANT de résoudre le locataire :
   // sinon « + Nouveau locataire… » créait une fiche personne orpheline alors
   // que la modification allait être refusée (audit vie du bail 09/09).
   const { data: bailActuel } = await supabase
     .from("baux")
-    .select("etat")
+    .select("etat, lot_id")
     .eq("id", bailId)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (bailActuel?.etat !== "brouillon") {
     return { erreur: "Seul un bail en brouillon se corrige — celui-ci a déjà avancé.", valeurs };
   }
+
+  const logement = await lireLogementPourDepot(supabase, orgId, bailActuel.lot_id, formData);
+  if ("erreur" in logement) return { erreur: logement.erreur, valeurs };
+  const champs = lireChampsBail(formData, logement.meuble);
+  if ("erreur" in champs) return { erreur: champs.erreur, valeurs };
 
   const locataire = await resoudreLocatairePrincipal(supabase, orgId, formData);
   if ("erreur" in locataire) return { erreur: locataire.erreur, valeurs };

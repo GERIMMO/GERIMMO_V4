@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { modifierLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -34,10 +34,10 @@ export function FormulaireLot({
   verrouille: boolean;
 }) {
   const actionLiee = modifierLot.bind(null, orgId, bienId, lot.id);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const { etat, soumettre: action, enCours } = useActionFormulaire<EtatParc>(actionLiee);
 
   return (
-    <form action={action} className="space-y-4">
+    <form onSubmit={action} className="space-y-4">
       {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe sur
           la saisie, pas sur les valeurs d'origine (recette 22/08). */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -83,8 +83,7 @@ export function FormulaireLot({
             disabled={verrouille}
           />
           <p className="text-xs text-muted-foreground">
-            Champ simple en V1 — sans date ni mesureur, pas de défense en cas de
-            contestation au-delà de 5 % d&apos;écart.
+            Reprenez la surface privative indiquée sur l’attestation Carrez, si le logement est concerné.
           </p>
         </div>
         <div className="space-y-2">
@@ -163,11 +162,11 @@ export function FormulaireLot({
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
         />
       </div>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (
-        <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
+        <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <BoutonEnvoi enCoursTexte="Enregistrement…">
+      <BoutonEnvoi enCours={enCours} enCoursTexte="Enregistrement…">
         Enregistrer
       </BoutonEnvoi>
     </form>

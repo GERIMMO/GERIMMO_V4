@@ -45,7 +45,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[État des lieux]] — constat mobile pièce par pièce ; sans EDL d'entrée, pas de retenue.
 - [[Signature électronique]] — circuit Yousign : simple, séquentiel, bailleur en dernier.
 - [[Marque blanche]] — logo + couleurs par agence ; mention Gerimmo conservée.
-- [[Dépôt de garantie]] — plafonné, jamais révisé, pas un solde comptable.
+- [[Dépôt de garantie]] — plafonné, jamais révisé ; colocation à bail commun nue/meublée clarifiée le 14/09.
 - [[Garantie]] — caution solidaire (acte Yousign) et garanties externes.
 - [[Comptabilité]] — déclarative de caisse ; écritures 2 dates, clôture verrouillante.
 - [[Fiscalité]] — aide à la déclaration (récap 2044) ; régimes LMNP/SCI à trancher.
@@ -74,6 +74,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Socle de sécurité]] — MFA par rôle, mots de passe, sessions, chiffrement, fichiers, incidents.
 
 ## Sources
+- [[2026-09-14-service-public-depot-colocation]] — source officielle : bail commun nu/meublé et plafond du dépôt hors charges.
 - [[Dépôt Gerimmo-V3]] — le code (2026-07-21) : SQL, services, état réel.
 - [[2026-07-21-fonctionnalites-par-persona-v0|Fonctionnalités par persona (v0)]] — note produit interne.
 - [[2026-07-22-rentila-site-web|Rentila]] — concurrent bailleur particulier.

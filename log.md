@@ -4264,3 +4264,20 @@ ouverts par défaut, le test rougit.
 
 684 tests unitaires verts (1 rouge délibéré — RM-2.1.2), 89 E2E verts contre la
 production, ESLint silencieux, build vert. Aucune migration.
+
+## [2026-09-14] query | Cohérence du dépôt de colocation pendant la recette complète
+
+Vérification des fiches officielles Service Public F34661 et F31269. L'hypothèse
+« colocation toujours nue » est remplacée par la distinction du logement pour
+le bail commun. Harmonisation des plafonds SQL et de la saisie, conservation
+des dépôts existants. Tests aux limites, activation et encaissements cumulés,
+ainsi que lecture autorisée du lot côté serveur. La génération du contrat de
+colocation demeure un sujet distinct. Sources, concept et catalogue mis à jour ;
+aucune modification des sources brutes ni du coffre Obsidian personnel.
+
+La recette au navigateur a aussi reproduit des états « Enregistrement… »
+figés sur le lot et la création du bail. Les formulaires du lot, de création
+et de correction du bail affichent maintenant leur résultat sans attendre
+la fin de la transition. La création ouvre le dossier reçu du serveur et
+conserve un lien d'accès. En colocation, le bouton de génération qui proposait
+un modèle nu refusé par le serveur est remplacé par le dépôt du contrat signé.

@@ -92,7 +92,7 @@ function AppelBloc({
         </span>
         {appel.document_id && (
           <a
-            href={`/agence/${orgId}/documents/${appel.document_id}`}
+            href={`/agence/${orgId}/documents?sel=${appel.document_id}`}
             className="text-xs text-muted-foreground underline-offset-2 hover:underline"
           >
             appel du syndic

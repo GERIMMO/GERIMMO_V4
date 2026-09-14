@@ -11,7 +11,6 @@ import {
   formaterSurface,
   cibleBlocage,
 } from "@/lib/parc";
-import { Donut, LegendeDonut } from "@/components/graphes";
 import {
   Card,
   CardContent,
@@ -113,19 +112,11 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     b.lotsVisibles.map((l) => ({ ...l, bien_id: b.id }))
   );
   const enPreparation = tousLots.filter((l) => l.etat === "brouillon");
-  const tauxOccupation = nbLots ? Math.round((nbLoues / nbLots) * 100) : 0;
+  const disponibles = tousLots.filter((l) => l.etat === "disponible");
   const quittancement = (bauxActifs ?? [])
     .filter((b) => !portefeuille || portefeuille.has(b.lot_id as string))
     .reduce((s, b) => s + Number(b.loyer_hc) + Number(b.charges), 0);
-  const segmentsParc = [
-    { libelle: "Loués", valeur: nbLoues, couleur: "var(--success)" },
-    {
-      libelle: "Disponibles",
-      valeur: tousLots.filter((l) => l.etat === "disponible").length,
-      couleur: "var(--or)",
-    },
-    { libelle: "En préparation", valeur: enPreparation.length, couleur: "var(--warning)" },
-  ];
+
 
   // « Éléments à compléter » (maquette) : les motifs de blocage de mise en
   // location, agrégés sur les lots en préparation, triés du plus fréquent.
@@ -369,7 +360,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               <PaneParc supabase={supabase} orgId={orgId} selection={selectionBien} />
             </div>
           ) : (
-          /* Aperçu du parc (maquette apercuParc) : KPI, répartition, blocages */
+          /* Des dossiers à ouvrir, puis les points de préparation vérifiés. */
           <div className="min-w-0 space-y-3.5">
             <p className="text-sm text-muted-foreground">
               Sélectionnez un bien ou un lot dans la liste pour le lire ici, ou
@@ -377,14 +368,14 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="kpi or">
-                <span className="eyebrow">Occupation</span>
-                <span className="chiffre block">{tauxOccupation} %</span>
+                <span className="eyebrow">En location</span>
+                <span className="chiffre block">{nbLoues}</span>
                 <span className="block text-xs text-muted-foreground">
                   {nbLoues} loué{nbLoues > 1 ? "s" : ""} sur {nbLots}
                 </span>
               </div>
               <div className="kpi">
-                <span className="eyebrow">À finaliser</span>
+                <span className="eyebrow">En préparation</span>
                 <span className="chiffre block">{enPreparation.length}</span>
                 <span className="block text-xs text-muted-foreground">
                   {/* Ce compteur agrège les BLOCAGES de mise en location (dont
@@ -392,16 +383,16 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                       « manquants » des fiches, qui couvrent aussi le non bloquant. */}
                   {erreurBlocages
                     ? "blocages non lus"
-                    : `${totalBlocages} blocage${totalBlocages > 1 ? "s" : ""} de mise en location`}
+                    : `${totalBlocages} point${totalBlocages > 1 ? "s" : ""} sur ces lots`}
                 </span>
               </div>
               <div className="kpi bleu">
                 <span className="eyebrow">Quittancement</span>
                 <span className="chiffre block">
-                  {quittancement.toLocaleString("fr-FR")} €
+                  {erreurBaux ? "—" : `${quittancement.toLocaleString("fr-FR")} €`}
                 </span>
                 <span className="block text-xs text-muted-foreground">
-                  par mois, baux en cours
+                  {erreurBaux ? "montants indisponibles" : "par mois, baux en cours"}
                 </span>
               </div>
             </div>
@@ -409,22 +400,28 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               <Card>
                 <CardContent>
                   <div className="entete-carte">
-                    <h3 className="text-[1.05rem]">Répartition du parc</h3>
+                    <h3 className="text-[1.05rem]">Prochaines mises en location</h3>
+                    <span className="mono-discret">{disponibles.length} disponible{disponibles.length > 1 ? "s" : ""}</span>
                   </div>
-                  <div className="bloc-graph">
-                    <Donut
-                      segments={segmentsParc}
-                      centre={`${tauxOccupation} %`}
-                      sous="LOUÉS"
-                    />
-                    <LegendeDonut segments={segmentsParc} />
+                  <p className="mb-3 text-sm text-muted-foreground">
+                    {disponibles.length > 0
+                      ? "Ouvrez la fiche pour vérifier les diagnostics, les propriétaires et préparer le bail. Le statut disponible ne garantit pas que le dossier est à jour."
+                      : "Aucun lot disponible actuellement. Les lots en préparation restent à compléter avant leur mise en location."}
+                  </p>
+                  <div className="space-y-2">
+                    {disponibles.slice(0, 3).map((lot) => (
+                      <Link key={lot.id} href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
+                        <span className="min-w-0">{lot.nom}</span><span aria-hidden>→</span>
+                      </Link>
+                    ))}
+                    {disponibles.length > 3 && <p className="text-xs text-muted-foreground">{disponibles.length - 3} autre{disponibles.length > 4 ? "s" : ""} lot{disponibles.length > 4 ? "s" : ""} disponible{disponibles.length > 4 ? "s" : ""} dans la liste du parc.</p>}
                   </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent>
                   <div className="entete-carte">
-                    <h3 className="text-[1.05rem]">Éléments à compléter</h3>
+                    <h3 className="text-[1.05rem]">Préparer les nouveaux lots</h3>
                     {!erreurBlocages && (
                       <span className="mono-discret">{totalBlocages} au total</span>
                     )}
@@ -437,7 +434,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     </p>
                   ) : motifsTries.length === 0 ? (
                     <p className="text-sm text-success-soft-foreground">
-                      Tous vos lots sont prêts à la location. Rien à compléter.
+                      {enPreparation.length === 0
+                        ? "Aucun lot en préparation. Vérifiez les lots disponibles avant chaque nouveau bail."
+                        : "Aucun blocage relevé sur les lots en préparation. Ouvrez leur fiche pour poursuivre la mise en location."}
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -468,7 +467,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         </div>
       )}
 
-      <Card className="mt-8">
+      <details className="mt-8 rounded-xl border border-border bg-card">
+        <summary className="cursor-pointer px-5 py-4 text-sm font-medium">Catalogue d’équipements <span className="ml-2 text-xs font-normal text-muted-foreground">Préparer les futurs états des lieux</span></summary>
+      <Card className="border-0 shadow-none">
         <CardHeader>
           <CardTitle className="text-base">Catalogue d&apos;équipements</CardTitle>
           <CardDescription>
@@ -502,6 +503,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           )}
         </CardContent>
       </Card>
+      </details>
       </main>
     </FenetreLotProvider>
   );

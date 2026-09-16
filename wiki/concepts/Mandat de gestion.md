@@ -3,7 +3,7 @@ type: concept
 tags: [mandat, honoraires, seuil-delegation, agence]
 status: draft
 created: 2026-07-24
-updated: 2026-09-09
+updated: 2026-09-16
 sources: ["[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -65,3 +65,40 @@ l'agence (profil de l'organisation), lots confiés et taux d'honoraires
 préavis, reddition de comptes mensuelle — signatures des parties (aucun
 tampon d'émetteur : c'est un acte). Numéro au registre : référence courte
 MAND-. Voir [[Document]].
+
+## Facturation des honoraires (2026-09-16)
+
+Les honoraires s'inscrivent au journal **au fil des encaissements** (déclencheur
+sur `encaissements`, au taux de la ligne de mandat du lot). La **facture
+d'honoraires** les rassemble par mandat et par mois et leur donne la forme que
+la loi exige d'une facture — ce que l'écriture comptable, seule, n'est pas :
+
+- **numéro chronologique et continu** par organisation et par année
+  (`FH-<année>-<rang>`, art. L441-9 du code de commerce) — attribué à
+  l'émission et persisté, jamais recalculé ;
+- **mentions de l'émetteur** : dénomination, adresse, SIRET, TVA
+  intracommunautaire (ou mention de franchise, art. 293 B du CGI), carte
+  professionnelle et garantie financière ;
+- **une facture par mandant et par mois**, jointe à son rapport de gestion.
+
+Le geste est **réservé au responsable de l'agence** et **refusé** tant que le
+profil de l'organisation est incomplet : émettre un numéro sur un document
+invalide ne se rattrape pas, la séquence devant rester sans trou. Régénérer le
+PDF **reprend la même facture** ; si le journal a bougé depuis l'émission, la
+régénération est refusée — une facture émise se corrige par un **avoir**, qui
+reste à construire. Voir [[Document]] et [[Comptabilité]].
+
+> [!warning] Points à trancher / contradictions
+> **Le taux de mandat s'entend-il HT ou TTC ?** Le contrat de mandat que
+> l'application fait signer intitule sa colonne « **Taux d'honoraires % TTC** »
+> et stipule des honoraires « calculés au taux ci-dessus sur les sommes
+> encaissées ». La [[2026-09-08-maquette-espace-agence-v6|maquette v6]] présente
+> au contraire des honoraires **HT** auxquels s'ajoutent 20 % de TVA. Les deux
+> ne peuvent pas coexister : suivre la maquette ferait payer au mandant **20 %
+> de plus que le taux qu'il a signé**.
+> **Tranché pour le contrat signé** (2026-09-16) : le montant inscrit au journal
+> est TTC, et la facture en **extrait** la TVA au lieu de l'ajouter. Le total TTC
+> facturé égale donc, au centime, la somme des honoraires du journal.
+> À rouvrir si le porteur du projet décide que les taux s'entendent HT — il
+> faudra alors **reprendre les mandats déjà signés**, pas seulement le code.
+

@@ -20,6 +20,8 @@ type Organisation = {
   carte_pro: string | null;
   garantie_financiere: string | null;
   iban: string | null;
+  tva_intracom: string | null;
+  tva_franchise: boolean;
   quittances_envoi_auto: boolean;
 };
 
@@ -39,7 +41,7 @@ export function FormulaireProfilOrganisation({
     {}
   );
   // En erreur, la saisie est reposée via etat.valeurs (convention React 19)
-  const valeur = (nom: Exclude<keyof Organisation, "quittances_envoi_auto">) =>
+  const valeur = (nom: Exclude<keyof Organisation, "quittances_envoi_auto" | "tva_franchise">) =>
     etat.valeurs?.[nom] ?? organisation[nom] ?? "";
 
   return (
@@ -129,6 +131,38 @@ export function FormulaireProfilOrganisation({
               placeholder="Galian, 120 000 €"
             />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="pr-tva">N&deg; de TVA intracommunautaire</Label>
+            <Input
+              id="pr-tva"
+              name="tva_intracom"
+              disabled={lectureSeule}
+              defaultValue={valeur("tva_intracom")}
+              placeholder="FR 12 345678901"
+            />
+            <p className="text-xs text-muted-foreground">
+              Mention obligatoire des factures d&apos;honoraires. Sans elle,
+              l&apos;émission est refusée.
+            </p>
+          </div>
+          <label
+            htmlFor="pr-tva-franchise"
+            className="flex min-h-12 items-center gap-3 text-sm"
+          >
+            <input
+              id="pr-tva-franchise"
+              type="checkbox"
+              name="tva_franchise"
+              disabled={lectureSeule}
+              defaultChecked={organisation.tva_franchise}
+              className="size-5 shrink-0 accent-[var(--encre)]"
+            />
+            Franchise en base de TVA (article 293 B du CGI)
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Cochée, les factures d&apos;honoraires ne portent aucune TVA et
+            affichent la mention de franchise à la place.
+          </p>
         </>
       )}
       <div className="space-y-2">

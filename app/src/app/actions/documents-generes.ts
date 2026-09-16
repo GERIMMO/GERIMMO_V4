@@ -35,7 +35,7 @@ export async function genererDocument(
   // Typé Modele : un assembleur peut déclarer moins de paramètres (les
   // options sont facultatives), l'appel à 4 arguments reste valide
   if (!Object.hasOwn(MODELES, code)) return { erreur: "Modèle de document inconnu." };
-  if (["cloture_mensuelle", "recap_fiscal_agence", "rapport_gestion", "bordereau_versement"].includes(code) && role !== "admin_agence" && role !== "proprietaire_direct") return { erreur: "Ce document global est réservé au responsable de l’organisation." };
+  if (["cloture_mensuelle", "recap_fiscal_agence", "rapport_gestion", "bordereau_versement", "facture_honoraires"].includes(code) && role !== "admin_agence" && role !== "proprietaire_direct") return { erreur: "Ce document global est réservé au responsable de l’organisation." };
   const modele: Modele = MODELES[code];
   if (!modele) return { erreur: "Modèle de document inconnu." };
 

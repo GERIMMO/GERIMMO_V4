@@ -4323,3 +4323,25 @@ Demande utilisateur : terminer les contrats individuels et le catalogue document
 
 ## [2026-09-14] implementation | Catalogue documentaire contextualisé
 Suite de la demande de contrats individuels et catalogue complet. Ajout du catalogue avec sélection du dossier, 35 assembleurs contextuels, contrôle des variantes, des données réelles et des refus métier. Rapports rattachés au livre actif ; échec des liens GED signalé. Correction des annexes privatives des PDF individuels pour ne pas attribuer celles du logement entier à chaque occupant. [[Etat des lieux generation de documents]] et index actualisés ; raw conservé. 54 modèles/variantes générables sur 55 présentés, pas une preuve de conformité aux épreuves absentes. Facture d’honoraires, formulaire CAF officiel et livrables techniques restent ouverts. Publication et recette interactive du catalogue bloquées par le Mac verrouillé.
+
+## [2026-09-16] implementation | Facture d'honoraires — le catalogue est complet
+Dernière entrée « en préparation » livrée : 55 modèles sur 55 générables. Ce qui
+manquait n'était pas un gabarit mais la numérotation chronologique continue
+(art. L441-9) et les mentions de l'émetteur. Table `factures_honoraires` écrite
+par une seule fonction d'émission idempotente, numéro `FH-<année>-<rang>` unique
+par organisation, TVA intracommunautaire et franchise au profil. La cible passe
+de `mouvements_mandants` — fermée, non câblée, plus visée par aucun modèle — au
+mandat. Refus explicites : profil incomplet, mois non révolu, rien à facturer,
+facture démentie par le journal depuis son émission. Émission et lecture
+réservées au responsable ; garde d'abonnement posée. Contradiction tranchée :
+le mandat signé dit « taux % TTC », la maquette v6 dit HT + 20 % — le contrat
+l'emporte, la facture extrait la TVA au lieu de l'ajouter, sinon le mandant
+paierait 20 % de plus que ce qu'il a signé. 13 épreuves SQL sur banc local
+reconstruit (186 migrations), 15 épreuves d'assembleur, PDF rendu et relu ;
+suite complète 1 113 tests verts, lint/types/build verts. [[Mandat de gestion]],
+[[Etat des lieux generation de documents]] et index mis à jour ; raw inchangé.
+Migration `20260914190000` non encore appliquée en production. Restent ouverts :
+l'avoir, le Cerfa CAF/MSA officiel, les PDF des sept blocs et le circuit de
+modèles spécifiques — les deux derniers ne sont définis que dans le référentiel
+du 12/09, hors dépôt.
+

@@ -3,7 +3,7 @@ import type { EntreeCatalogue } from "./catalogue";
 import { lireLignes, texte, RefusDocument } from "./modeles/catalogue-bail";
 import { formaterDateFr } from "./gabarit";
 export type ChoixDossier = {id:string;libelle:string;bailId?:string};
-export const TABLES_CATALOGUE = {bail:"baux",lot:"lots",appel:"appels_loyer",quittance:"quittances",depot:"depot_encaissements",revision:"revisions_loyer",attestation:"documents",edl:"etats_des_lieux",regularisation:"regularisations_charges",incident:"incidents",intervention:"incident_interventions",ecriture:"ecritures",mandat:"mandats",rapport:"rapports_gestion",mouvement:"mouvements_mandants"} as const;
+export const TABLES_CATALOGUE = {bail:"baux",lot:"lots",appel:"appels_loyer",quittance:"quittances",depot:"depot_encaissements",revision:"revisions_loyer",attestation:"documents",edl:"etats_des_lieux",regularisation:"regularisations_charges",incident:"incidents",intervention:"incident_interventions",ecriture:"ecritures",mandat:"mandats",rapport:"rapports_gestion"} as const;
 export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   // Les filtres sont appliqués avant la pagination, dans la requête SQL.
   type Filtre = {eq(k:string,v:unknown):Filtre;is(k:string,v:null):Filtre;not(k:string,op:string,v:null):Filtre;in(k:string,v:string[]):Filtre};

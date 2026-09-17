@@ -4345,3 +4345,35 @@ l'avoir, le Cerfa CAF/MSA officiel, les PDF des sept blocs et le circuit de
 modèles spécifiques — les deux derniers ne sont définis que dans le référentiel
 du 12/09, hors dépôt.
 
+## [2026-09-17] query | Ce que ChatGPT a laissé dans le dépôt entre le 14 et le 16
+Le porteur du projet a « avancé avec ChatGPT » sans savoir dire quoi. Trois
+sources indépendantes, même réponse : rien de visible. GitHub — 261 exécutions
+de CI, la plus récente le 14/09 à 13:39 UTC (fusion de la PR #56) ; aucune PR,
+aucune issue, aucun commit après cette heure hormis ceux de cette session ;
+aucun nouveau dépôt. Supabase — 185 migrations, la dernière `20260914180000` ;
+schéma de production comparé objet par objet au banc local reconstruit depuis
+les fichiers : 732 objets identiques, aucun DDL hors migrations. Dépôt — les 38
+branches `codex/*` sont les têtes des PR #22–#56 déjà fusionnées, jamais
+nettoyées. Ce qui a été fait est donc sur le Mac sans être poussé, ou resté en
+conversation. Deux restes trouvés en passant, qui ne sont pas de ChatGPT :
+`claude/lucid-dijkstra-kvsoho` garde deux commits du 13/09 sans PR (kit de test
+manuel de 46 fichiers, seed artisan et super admin) ; la PR #21 a été fermée
+sans fusion 21 secondes après ouverture, remplacée par #22/#23.
+Leçon d'outillage, à retenir pour les prochaines sessions : le clone de session
+est **superficiel (50 commits) et peut être pris dans un cache périmé** — ici
+daté du 10/09. Il a fait croire à une `main` réécrite et à une branche supprimée
+qui n'ont jamais existé. Avant tout diagnostic d'histoire : `git fetch
+--unshallow origin`.
+
+## [2026-09-17] implementation | Facture d'honoraires — migration en production et PR
+Carte blanche du porteur du projet pour finir. Migration `20260914190000`
+passée par le chantier « Migrations Supabase » depuis les fichiers du dépôt :
+simulation (run #26, tout joué puis annulé, garde d'abonnement reposée sur 58
+tables) puis application (run #27). Vérification en base : colonnes
+`tva_intracom` et `tva_franchise`, table `factures_honoraires`, fonction
+`emettre_facture_honoraires`, politique de lecture et garde d'abonnement
+présentes ; version enregistrée dans `supabase_migrations` ; aucune facture
+émise. PR #57 ouverte vers `main` pour la CI et la fusion — la fusion, qui met
+le code en ligne, reste au porteur du projet. Le code en production ne
+référence pas encore ces objets : la migration est additive, l'ordre est le bon.
+

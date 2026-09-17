@@ -67,7 +67,7 @@ export function Donut({
         x="21"
         y="21"
         textAnchor="middle"
-        style={{ font: "500 8.5px var(--font-titres), Georgia, serif", fill: "var(--encre)" }}
+        style={{ font: "500 8.5px var(--font-titres), system-ui, sans-serif", fill: "var(--encre)" }}
       >
         {centre}
       </text>

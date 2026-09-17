@@ -19,6 +19,11 @@ export const metadata = {
 // existe dans l'application (politique « fonctionnalités honnêtes ») : aucune
 // capture d'un écran qui n'existe pas, aucun témoignage, aucun chiffre d'usage
 // — nous n'en avons pas à montrer, et nous n'en inventerons pas.
+//
+// Charte v3 (17/09) : la page s'ouvre sur du blanc et du bleu, pas sur un
+// bloc marine ; les sections alternent blanc et gris perle ; les cartes sont
+// des cartes (rayon, filet, ombre au survol) et non des colonnes à filet
+// laiton. Le contenu, lui, n'a pas bougé.
 
 const REMPLACE: [string, string, string][] = [
   [
@@ -62,7 +67,7 @@ const FONCTIONNALITES: [string, string][] = [
   ],
   [
     "Documents générés",
-    "Bail, quittance, décompte de restitution, rapport de gestion : produits depuis vos données, à votre en-tête, prêts à envoyer.",
+    "Bail, quittance, décompte de restitution, rapport de gestion, facture d'honoraires : produits depuis vos données, à votre en-tête, prêts à envoyer.",
   ],
   [
     "Cloisonnement strict",
@@ -100,11 +105,23 @@ const FAQ: [string, string][] = [
 function TitreSection({ sur, titre }: { sur: string; titre: string }) {
   return (
     <>
-      <p className="eyebrow">{sur}</p>
-      <h2 className="mt-1.5 font-heading text-[26px] leading-tight text-[var(--encre)] sm:text-[30px]">
+      <p className="eyebrow text-[var(--marque-sombre)]">{sur}</p>
+      <h2 className="mt-2 max-w-[22ch] text-balance font-heading text-[26px] font-bold leading-[1.15] tracking-[-0.015em] text-[var(--encre)] sm:text-[32px]">
         {titre}
       </h2>
     </>
+  );
+}
+
+function Coche() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      aria-hidden
+      className="mt-0.5 size-4 shrink-0 fill-none stroke-[var(--marque)] stroke-[2.2]"
+    >
+      <path d="m4.5 10.5 3.5 3.5 7.5-8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
@@ -122,37 +139,32 @@ export default async function PageVitrine() {
 
   return (
     <div className="min-h-full bg-[var(--creme)]">
-      {/* ------------------------------------------------------------ Héros */}
-      <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
-        <EnTetePublic />
+      <EnTetePublic />
 
-        <div className="mx-auto w-full max-w-6xl px-4 pt-12 pb-16 sm:px-7 sm:pt-20 sm:pb-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+      {/* ------------------------------------------------------------ Héros */}
+      <header className="vitrine-hero">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-14 pb-16 sm:px-7 sm:pt-20 sm:pb-24">
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.95fr]">
             <div>
-              <p className="eyebrow text-[var(--or)]">Gestion locative</p>
-              <h1 className="mt-3 max-w-xl font-heading text-[38px] leading-[1.08] text-[var(--sur-encre)] sm:text-[var(--pas-affiche)]">
-                Le sérieux d&apos;une agence,
-                <br />
-                sans les honoraires.
+              <p className="eyebrow text-[var(--marque-sombre)]">Gestion locative</p>
+              <h1 className="mt-4 max-w-[14ch] text-balance font-heading text-[40px] font-extrabold leading-[1.05] tracking-[-0.025em] text-[var(--encre)] sm:text-[56px]">
+                Le sérieux d&apos;une agence, sans les honoraires.
               </h1>
-              <p className="mt-5 max-w-lg text-[16px] leading-relaxed text-[var(--sur-encre)]/80">
+              <p className="mt-6 max-w-lg text-[17px] leading-relaxed text-[var(--texte-secondaire)]">
                 Baux, quittances automatiques, incidents, états des lieux, livre
                 et fiscalité — et un espace pour chaque locataire. Pour les
                 propriétaires bailleurs qui gèrent en direct, et pour les
                 agences.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link href="/inscription" className="btn-or !px-5 !py-2.5 !text-[14px]">
+                <Link href="/inscription" className="btn-or !px-5 !py-3 !text-[15px]">
                   Commencer — 1ᵉʳ bien offert
                 </Link>
-                <a
-                  href="#agences"
-                  className="rounded-lg border border-[var(--sur-encre)]/30 px-4 py-2.5 text-sm text-[var(--sur-encre)]/90 hover:border-[var(--sur-encre)]/60"
-                >
+                <a href="#agences" className="btn-secondaire">
                   Je suis une agence →
                 </a>
               </div>
-              <p className="mt-4 text-xs text-[var(--sur-encre)]/55">
+              <p className="mt-5 text-[13px] text-[var(--libelle)]">
                 Essai de 14 jours, sans carte bancaire. Aucun honoraire de
                 gestion, jamais.
               </p>
@@ -160,7 +172,7 @@ export default async function PageVitrine() {
 
             {/* L'aperçu n'est pas une image : c'est l'interface réelle,
                 construite avec les mêmes classes que l'application. */}
-            <div className="lg:pl-4">
+            <div className="vitrine-cadre">
               <ApercuTableauDeBord />
             </div>
           </div>
@@ -169,15 +181,15 @@ export default async function PageVitrine() {
 
       <main>
         {/* --------------------------------------------- Ce que ça remplace */}
-        <section className="border-b border-[var(--filet)] bg-card">
+        <section className="border-y border-[var(--filet)] bg-[var(--ivoire)]">
           <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
             <TitreSection sur="Ce que Gerimmo remplace" titre="Quatre corvées en moins" />
-            <div className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {REMPLACE.map(([quoi, quand, comment]) => (
-                <div key={quoi} className="border-t-2 border-t-[var(--or)] pt-3.5">
-                  <h3 className="font-heading text-[17px] text-[var(--encre)]">{quoi}</h3>
-                  <p className="mono-discret mt-1 !text-[10px] sans-majuscules">{quand}</p>
-                  <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
+                <div key={quoi} className="vitrine-carte">
+                  <p className="eyebrow text-[var(--marque-sombre)]">{quand}</p>
+                  <h3 className="mt-2 font-heading text-[18px] font-bold text-[var(--encre)]">{quoi}</h3>
+                  <p className="mt-2 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
                     {comment}
                   </p>
                 </div>
@@ -188,45 +200,49 @@ export default async function PageVitrine() {
 
         {/* ------------------------------------------------ Quittancement */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
-          <div className="grid items-center gap-10 lg:grid-cols-[1fr_420px]">
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr_440px]">
             <div>
               <TitreSection
                 sur="Le geste le plus fréquent"
                 titre="L'encaissement écrit tout le reste"
               />
-              <p className="mesure-lecture mt-4 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
+              <p className="mesure-lecture mt-5 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
                 Vous notez qu&apos;un loyer est rentré. Gerimmo émet la quittance,
                 l&apos;inscrit au livre, calcule le prorata du premier mois et
                 referme la relance. Un paiement partiel produit un reçu, promu
                 en quittance dès que le mois est soldé.
               </p>
-              <p className="mesure-lecture mt-3 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
+              <p className="mesure-lecture mt-3 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
                 Et si vous supprimez un encaissement saisi par erreur, la
                 quittance correspondante est retirée : le document ne survit
                 jamais à l&apos;argent qu&apos;il atteste.
               </p>
             </div>
-            <ApercuQuittance />
+            <div className="vitrine-cadre vitrine-cadre-doux">
+              <ApercuQuittance />
+            </div>
           </div>
         </section>
 
         {/* ------------------------------------------------ Espace locataire */}
-        <section className="border-y border-[var(--filet)] bg-card">
+        <section className="border-y border-[var(--filet)] bg-[var(--ivoire)]">
           <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
-            <div className="grid items-center gap-10 lg:grid-cols-[260px_1fr]">
-              <ApercuMobileIncident />
+            <div className="grid items-center gap-10 lg:grid-cols-[300px_1fr]">
+              <div className="vitrine-cadre vitrine-cadre-doux !p-8">
+                <ApercuMobileIncident />
+              </div>
               <div>
                 <TitreSection
                   sur="Inclus, sans supplément"
                   titre="Chaque locataire a son espace"
                 />
-                <p className="mesure-lecture mt-4 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
+                <p className="mesure-lecture mt-5 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
                   Il y consulte son bail signé et ses quittances, dépose son
                   attestation d&apos;assurance, signale un incident photo à
                   l&apos;appui, annonce son départ. Depuis son téléphone, sans
                   installer d&apos;application.
                 </p>
-                <p className="mesure-lecture mt-3 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
+                <p className="mesure-lecture mt-3 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
                   Chaque geste qu&apos;il fait lui-même est un appel que vous ne
                   recevez pas — et une pièce qui arrive au bon endroit du
                   dossier.
@@ -239,7 +255,7 @@ export default async function PageVitrine() {
         {/* ---------------------------------------------------- Pour qui */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
           <TitreSection sur="Pour qui" titre="Trois espaces, un même dossier" />
-          <div className="mt-8 grid gap-5 sm:grid-cols-3">
+          <div className="mt-10 grid gap-4 sm:grid-cols-3">
             {[
               [
                 "Propriétaire bailleur",
@@ -254,12 +270,9 @@ export default async function PageVitrine() {
                 "Mandats, honoraires, portefeuilles par agent, rapports de gestion — la gérance complète, du bail à la restitution du dépôt.",
               ],
             ].map(([titre, texte]) => (
-              <div
-                key={titre}
-                className="border border-[var(--filet)] bg-[var(--ivoire)] p-5"
-              >
-                <h3 className="font-heading text-[17px] text-[var(--encre)]">{titre}</h3>
-                <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
+              <div key={titre} className="vitrine-carte">
+                <h3 className="font-heading text-[18px] font-bold text-[var(--encre)]">{titre}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
                   {texte}
                 </p>
               </div>
@@ -268,19 +281,22 @@ export default async function PageVitrine() {
         </section>
 
         {/* ------------------------------------------------ Fonctionnalités */}
-        <section className="border-y border-[var(--filet)] bg-card">
+        <section className="border-y border-[var(--filet)] bg-[var(--ivoire)]">
           <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
             <TitreSection
               sur="Ce que Gerimmo fait pour vous"
               titre="Du bail à la restitution du dépôt"
             />
-            <div className="mt-8 grid gap-x-9 gap-y-7 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
               {FONCTIONNALITES.map(([titre, texte]) => (
-                <div key={titre}>
-                  <h3 className="text-[15px] font-semibold text-[var(--encre)]">{titre}</h3>
-                  <p className="mt-1.5 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
-                    {texte}
-                  </p>
+                <div key={titre} className="flex gap-3">
+                  <Coche />
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-[var(--encre)]">{titre}</h3>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
+                      {texte}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -290,44 +306,51 @@ export default async function PageVitrine() {
         {/* ---------------------------------------------------------- Tarifs */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
           <TitreSection sur="Tarifs" titre="Un prix simple, tout compris" />
-          <div className="mt-8 grid gap-5 lg:grid-cols-2">
-            <div className="border border-[var(--filet)] border-l-[3px] border-l-[var(--or)] bg-[var(--ivoire)] p-6">
-              <h3 className="font-heading text-[18px] text-[var(--encre)]">
-                Propriétaire bailleur
-              </h3>
-              <p className="mt-3 font-heading text-[34px] leading-none text-[var(--encre)]">
+          <div className="mt-10 grid gap-5 lg:grid-cols-2">
+            <div className="vitrine-carte vitrine-carte-mise-en-avant">
+              <p className="eyebrow text-[var(--marque-sombre)]">Propriétaire bailleur</p>
+              <p className="mt-4 font-heading text-[40px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
                 <span className="montant">5,99 €</span>
-                <span className="text-[15px] text-muted-foreground"> / bien / mois</span>
+                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> / bien / mois</span>
               </p>
-              <ul className="mt-4 space-y-2 text-[13.5px] text-[var(--texte-secondaire)]">
-                <li>✓ 1ᵉʳ bien offert, à vie</li>
-                <li>✓ Essai de 14 jours sans carte</li>
-                <li>✓ Sans engagement — un bien retiré n&apos;est plus compté</li>
-                <li>✓ Espaces locataires inclus, sans limite</li>
-                <li>✓ Aucuns frais de mise en place</li>
+              <ul className="mt-6 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
+                {[
+                  "1ᵉʳ bien offert, à vie",
+                  "Essai de 14 jours sans carte",
+                  "Sans engagement — un bien retiré n'est plus compté",
+                  "Espaces locataires inclus, sans limite",
+                  "Aucuns frais de mise en place",
+                ].map((l) => (
+                  <li key={l} className="flex gap-2.5">
+                    <Coche />
+                    <span>{l}</span>
+                  </li>
+                ))}
               </ul>
-              <Link href="/inscription" className="btn-or mt-5 inline-flex">
+              <Link href="/inscription" className="btn-or mt-7 inline-flex !px-5 !py-2.5">
                 Créer mon compte
               </Link>
             </div>
-            <div className="border border-[var(--filet)] border-l-[3px] border-l-[var(--encre)] bg-[var(--ivoire)] p-6">
-              <h3 className="font-heading text-[18px] text-[var(--encre)]">
-                Agence immobilière
-              </h3>
-              <p className="mt-3 font-heading text-[34px] leading-none text-[var(--encre)]">
+            <div className="vitrine-carte">
+              <p className="eyebrow text-[var(--marque-sombre)]">Agence immobilière</p>
+              <p className="mt-4 font-heading text-[40px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
                 Sur devis
-                <span className="text-[15px] text-muted-foreground"> — par palier de lots</span>
+                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> — par palier de lots</span>
               </p>
-              <ul className="mt-4 space-y-2 text-[13.5px] text-[var(--texte-secondaire)]">
-                <li>✓ Mandats, honoraires, rapports de gestion</li>
-                <li>✓ Portefeuilles par agent</li>
-                <li>✓ Tarification par palier de lots</li>
-                <li>✓ Essai de 14 jours</li>
+              <ul className="mt-6 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
+                {[
+                  "Mandats, honoraires, rapports de gestion",
+                  "Portefeuilles par agent",
+                  "Facture d'honoraires numérotée, jointe au rapport",
+                  "Essai de 14 jours",
+                ].map((l) => (
+                  <li key={l} className="flex gap-2.5">
+                    <Coche />
+                    <span>{l}</span>
+                  </li>
+                ))}
               </ul>
-              <a
-                href="#agences"
-                className="mt-5 inline-flex rounded-lg border border-[var(--encre)]/25 px-4 py-2 text-sm text-[var(--encre)] hover:border-[var(--encre)]"
-              >
+              <a href="#agences" className="btn-secondaire mt-7 inline-flex">
                 Demander un devis →
               </a>
             </div>
@@ -336,26 +359,26 @@ export default async function PageVitrine() {
 
         {/* --------------------------------------------------------- Journal */}
         {articles && articles.length > 0 && (
-          <section className="border-y border-[var(--filet)] bg-card">
+          <section className="border-y border-[var(--filet)] bg-[var(--ivoire)]">
             <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
               <div className="entete-carte">
                 <div>
                   <TitreSection sur="Journal" titre="Ce qu'il faut savoir, quand ça compte" />
                 </div>
-                <Link href="/journal" className="lien-discret text-[13px]">
+                <Link href="/journal" className="lien-discret text-[13.5px]">
                   Tout le journal →
                 </Link>
               </div>
-              <div className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-3">
+              <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {articles.map((a) => (
-                  <article key={a.id}>
-                    <h3 className="font-heading text-[17px] leading-snug text-[var(--encre)]">
-                      <Link href={`/journal/${a.slug}`} className="hover:underline">
+                  <article key={a.id} className="vitrine-carte">
+                    <h3 className="font-heading text-[17px] font-bold leading-snug text-[var(--encre)]">
+                      <Link href={`/journal/${a.slug}`} className="hover:text-[var(--marque-sombre)]">
                         {a.titre}
                       </Link>
                     </h3>
                     {a.chapo && (
-                      <p className="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
+                      <p className="mt-2 line-clamp-3 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
                         {a.chapo}
                       </p>
                     )}
@@ -369,11 +392,11 @@ export default async function PageVitrine() {
         {/* ------------------------------------------------------------- FAQ */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
           <TitreSection sur="Questions fréquentes" titre="Ce qu'on nous demande" />
-          <div className="mt-8 grid gap-x-9 gap-y-6 sm:grid-cols-2">
+          <div className="mt-10 grid gap-x-10 gap-y-7 sm:grid-cols-2">
             {FAQ.map(([q, r]) => (
-              <div key={q}>
-                <h3 className="text-[15px] font-semibold text-[var(--encre)]">{q}</h3>
-                <p className="mt-1.5 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
+              <div key={q} className="border-t border-[var(--filet)] pt-5">
+                <h3 className="text-[16px] font-semibold text-[var(--encre)]">{q}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
                   {r}
                 </p>
               </div>
@@ -382,15 +405,15 @@ export default async function PageVitrine() {
         </section>
 
         {/* --------------------------------------------------- Devis agences */}
-        <section id="agences" className="bg-[var(--encre)] text-[var(--sur-encre)]">
-          <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
+        <section id="agences" className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-7 sm:pb-24">
+          <div className="vitrine-bandeau">
             <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
               <div>
-                <p className="eyebrow text-[var(--or)]">Agences</p>
-                <h2 className="mt-1.5 font-heading text-[26px] leading-tight sm:text-[30px]">
+                <p className="eyebrow text-[var(--sur-marque)]/80">Agences</p>
+                <h2 className="mt-2 max-w-[18ch] text-balance font-heading text-[28px] font-bold leading-[1.15] text-[var(--sur-marque)] sm:text-[34px]">
                   Parlons de votre portefeuille
                 </h2>
-                <p className="mt-4 max-w-md text-[14px] leading-relaxed text-[var(--sur-encre)]/75">
+                <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
                   Dites-nous qui vous êtes et combien de lots vous gérez : nous
                   revenons vers vous sous 48 h ouvrées avec une proposition par
                   palier de lots, mise en route comprise.

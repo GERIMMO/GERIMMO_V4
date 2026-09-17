@@ -4377,3 +4377,22 @@ présentes ; version enregistrée dans `supabase_migrations` ; aucune facture
 le code en ligne, reste au porteur du projet. Le code en production ne
 référence pas encore ces objets : la migration est additive, l'ordre est le bon.
 
+## [2026-09-17] implementation | Refonte visuelle — charte v3 bleue
+Le porteur du projet trouve le site « vieux et figé » : l'identité
+encre/laiton/crème à empattements ET la mise en page sans mouvement. Direction
+proposée et retenue : neutres blancs, une seule couleur de marque (bleu),
+sans-serif géométrique, arrondis, transitions discrètes — dans l'esprit des
+outils de gestion récents (Qonto pour la base, Pennylane pour la discipline).
+Délégation complète pour la nuit. Fait : jetons de `globals.css` remappés (les
+anciens noms `--or`, `--encre`… conservés, donc les ~330 usages et la marque
+blanche tiennent), Manrope + Figtree à la place de Cormorant / Instrument /
+Plex Mono, libellés en sans, rayons et ombres, apparition en fondu et
+squelettes en vague ; vitrine, journal et portes d'entrée réécrits sur le
+bandeau blanc ; barre latérale des espaces en blanc, entrée active en lavis
+bleu. Contenu de la vitrine inchangé (une mention de la facture d'honoraires
+en plus). PDF, admin et artisan hors périmètre. Vérifié : typegen, tsc, ESLint,
+build, 538 tests unitaires (les tests SQL attendent le Postgres de la CI).
+Page [[Charte visuelle v3 bleue]] créée, avertissements posés sur la charte de
+l'espace agent et la maquette d'août. Poussé sur `claude/ecstatic-knuth-pcoqz0`
+avec PR vers `main` — **non fusionnée** : une refonte visuelle se regarde
+avant de se fusionner, la prévisualisation Vercel est là pour ça.

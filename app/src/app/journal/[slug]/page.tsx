@@ -42,9 +42,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
 
   return (
     <div className="min-h-full bg-[var(--creme)]">
-      <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
-        <EnTetePublic compact />
-      </header>
+      <EnTetePublic compact />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-7 sm:py-14">
         <Link href="/journal" className="lien-discret text-[13px]">

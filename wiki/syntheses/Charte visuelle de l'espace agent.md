@@ -3,11 +3,18 @@ type: synthesis
 tags: [charte, visuel, ux, espace-agent, design-system]
 status: stable
 created: 2026-08-03
-updated: 2026-08-03
+updated: 2026-09-17
 sources: ["raw/Gerimmo-V3/docs/03-design-system.md"]
 ---
 
 # Charte visuelle de l'espace agent
+
+> [!warning] Supplantée une seconde fois le 2026-09-17
+> Refonte décidée par le porteur du projet : blanc et gris perle, **bleu**
+> comme seule couleur de marque, Manrope et Figtree, angles arrondis,
+> transitions. Valeurs de référence dans [[Charte visuelle v3 bleue]]. Les
+> principes d'usage ci-dessous restent valables ; les couleurs et polices de
+> cette page et de la charte v2 ne le sont plus.
 
 > [!warning] Supplantée le 2026-08-08
 > La maquette cliquable ([[2026-08-08-maquette-prototype-cliquable]]) devient la

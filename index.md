@@ -115,7 +115,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-08-05-bailpdf-contrat-de-bail|BailPDF — Contrat de bail]] — panorama des baux, mentions 2024, clauses ; source de vulgarisation à recouper.
 - [[2026-08-05-bailpdf-modele-bail-non-meuble|BailPDF — Modèle bail non meublé (PDF)]] — le formulaire officiel du modèle-type ; base du blueprint 1.16.
 - [[2026-08-05-bailpdf-modele-bail-meuble|BailPDF — Modèle bail meublé (PDF)]] — même squelette que le vide ; variantes durée, forfait, dépôt 2 mois, inventaire mobilier.
-- [[2026-08-08-maquette-prototype-cliquable|Maquette — prototype cliquable (août 2026)]] — référence charte v2 (encre/laiton/crème, Instrument Sans) appliquée à l'app bloc 0 → S3 ; spécifie aussi la refonte des alertes.
+- [[2026-08-08-maquette-prototype-cliquable|Maquette — prototype cliquable (août 2026)]] — référence charte v2 (encre/laiton/crème, Instrument Sans) appliquée à l'app bloc 0 → S3 ; spécifie aussi la refonte des alertes. ⚠ Habillage supplanté le 17/09 par [[Charte visuelle v3 bleue]].
 - [[2026-09-04-maquette-v3-prototype|Maquette v3 — prototype cliquable (sept. 2026)]] — ~20 chantiers nouveaux (réseau artisan, reprise de portefeuille, dossier de pièces, EDL de sortie guidé, quittancement, SCI/fiscalité PD, « mon portefeuille » agent…) ; inventaire classé, 6 contradictions à trancher, découpage T1→T8.
 
 - [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
@@ -129,7 +129,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Canaux de communication]] — Telegram (code), WhatsApp (V3), email, messagerie.
 - [[Modèle de données]] — schéma du code + cible socle V3.
 - [[Architecture du socle V3]] — lot 0 : 9 tables, RLS, pg_cron, séquence en 5 étapes.
-- [[Charte visuelle de l'espace agent]] — complète le design-system V3 : 6 patterns validés en recette, états d'interface, formats, accessibilité.
+- [[Charte visuelle v3 bleue|Charte visuelle v3 — bleue]] — **la refonte du 17/09** : blanc et gris perle, bleu `#2457f5` seule couleur de marque, Manrope + Figtree, rayons 10–24 px, transitions ; jetons historiques remappés, marque blanche intacte, PDF inchangés. Implémentée, **en attente de recette visuelle**.
+- [[Charte visuelle de l'espace agent]] — complète le design-system V3 : 6 patterns validés en recette, états d'interface, formats, accessibilité. ⚠ Valeurs supplantées par la charte v3.
 - [[Coherence maquette-application|Cohérence maquette ↔ application]] — audit du 14/08 : conformités des écrans Tableau de bord/Parc/Personnes et **tableau des écarts assumés** (à lire avant toute recette visuelle).
 - [[État du projet et décisions ouvertes]] — arbitrages quasi tous clos (25/07) ; reste les montants PD.
 - [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.

@@ -43,6 +43,11 @@ export async function modifierProfilOrganisation(
       carte_pro: champ("carte_pro"),
       garantie_financiere: champ("garantie_financiere"),
       iban: champ("iban"),
+      // Mentions de facturation : la facture d'honoraires les exige, et
+      // refuse d'émettre tant qu'elles manquent (un numéro consommé sur une
+      // facture invalide ne se rattrape pas).
+      tva_intracom: champ("tva_intracom"),
+      tva_franchise: formData.get("tva_franchise") !== null,
       // Accord permanent d'envoi des quittances : une case décochée n'apparaît
       // pas dans le formulaire, d'où la lecture par présence et non par valeur.
       quittances_envoi_auto: formData.get("quittances_envoi_auto") !== null,

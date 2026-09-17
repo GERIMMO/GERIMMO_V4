@@ -23,6 +23,7 @@ import { assemblerDecompteRestitution } from "./decompte-restitution";
 import { assemblerCongeBailleur } from "./conge-bailleur";
 import { assemblerAvenant } from "./avenant";
 import { assemblerMandatGestion } from "./mandat-gestion";
+import { assemblerFactureHonoraires } from "./facture-honoraires";
 
 export type LienDocument = {
   entite: "bail" | "personne" | "lot" | "mandat";
@@ -88,6 +89,10 @@ export const MODELES = {
   avenant: { typeGed: "bail", assembler: assemblerAvenant },
   // cible : id du mandat (loi Hoguet)
   mandat_gestion: { typeGed: "mandat", assembler: assemblerMandatGestion },
+  // cible : id du mandat ; options { mois }. Rangée en « rapport_gestion » :
+  // c'est le seul type GED dont la conservation répond à l'obligation
+  // comptable (10 ans à l'émission) qu'une facture appelle.
+  facture_honoraires: { typeGed: "rapport_gestion", assembler: assemblerFactureHonoraires },
 } satisfies Record<string, Modele>;
 
 export type CodeModele = keyof typeof MODELES;

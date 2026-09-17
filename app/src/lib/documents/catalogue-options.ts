@@ -20,6 +20,7 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   autorisation_travaux:[{cle:"travaux",libelle:"Travaux autorisés",type:"textarea"},{cle:"intervenant",libelle:"Intervenant"},{cle:"periode",libelle:"Période convenue"},{cle:"prise_en_charge",libelle:"Prise en charge et plafond",type:"textarea"},conditions],
   ordre_intervention:[{cle:"acces",libelle:"Accès et contact sur place",type:"textarea"}],
   cloture_mensuelle:[{cle:"mois",libelle:"Mois",type:"month"}],
+  facture_honoraires:[{cle:"mois",libelle:"Mois facturé",type:"month",aide:"Un mois révolu. Le numéro de facture est attribué définitivement à l’émission."}],
   recap_fiscal_nu:[annee],recap_fiscal_meuble:[annee],recap_fiscal_agence:[annee],
   avenant_mandat:[effet,modifications],avenant_perimetre:[effet,modifications],
   resiliation_mandat:[effet,{cle:"motif",libelle:"Motif et fondement",type:"textarea"},{cle:"remise",libelle:"Remise du dossier et du solde",type:"textarea"}],

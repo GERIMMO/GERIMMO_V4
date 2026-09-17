@@ -4323,3 +4323,57 @@ Demande utilisateur : terminer les contrats individuels et le catalogue document
 
 ## [2026-09-14] implementation | Catalogue documentaire contextualisé
 Suite de la demande de contrats individuels et catalogue complet. Ajout du catalogue avec sélection du dossier, 35 assembleurs contextuels, contrôle des variantes, des données réelles et des refus métier. Rapports rattachés au livre actif ; échec des liens GED signalé. Correction des annexes privatives des PDF individuels pour ne pas attribuer celles du logement entier à chaque occupant. [[Etat des lieux generation de documents]] et index actualisés ; raw conservé. 54 modèles/variantes générables sur 55 présentés, pas une preuve de conformité aux épreuves absentes. Facture d’honoraires, formulaire CAF officiel et livrables techniques restent ouverts. Publication et recette interactive du catalogue bloquées par le Mac verrouillé.
+
+## [2026-09-16] implementation | Facture d'honoraires — le catalogue est complet
+Dernière entrée « en préparation » livrée : 55 modèles sur 55 générables. Ce qui
+manquait n'était pas un gabarit mais la numérotation chronologique continue
+(art. L441-9) et les mentions de l'émetteur. Table `factures_honoraires` écrite
+par une seule fonction d'émission idempotente, numéro `FH-<année>-<rang>` unique
+par organisation, TVA intracommunautaire et franchise au profil. La cible passe
+de `mouvements_mandants` — fermée, non câblée, plus visée par aucun modèle — au
+mandat. Refus explicites : profil incomplet, mois non révolu, rien à facturer,
+facture démentie par le journal depuis son émission. Émission et lecture
+réservées au responsable ; garde d'abonnement posée. Contradiction tranchée :
+le mandat signé dit « taux % TTC », la maquette v6 dit HT + 20 % — le contrat
+l'emporte, la facture extrait la TVA au lieu de l'ajouter, sinon le mandant
+paierait 20 % de plus que ce qu'il a signé. 13 épreuves SQL sur banc local
+reconstruit (186 migrations), 15 épreuves d'assembleur, PDF rendu et relu ;
+suite complète 1 113 tests verts, lint/types/build verts. [[Mandat de gestion]],
+[[Etat des lieux generation de documents]] et index mis à jour ; raw inchangé.
+Migration `20260914190000` non encore appliquée en production. Restent ouverts :
+l'avoir, le Cerfa CAF/MSA officiel, les PDF des sept blocs et le circuit de
+modèles spécifiques — les deux derniers ne sont définis que dans le référentiel
+du 12/09, hors dépôt.
+
+## [2026-09-17] query | Ce que ChatGPT a laissé dans le dépôt entre le 14 et le 16
+Le porteur du projet a « avancé avec ChatGPT » sans savoir dire quoi. Trois
+sources indépendantes, même réponse : rien de visible. GitHub — 261 exécutions
+de CI, la plus récente le 14/09 à 13:39 UTC (fusion de la PR #56) ; aucune PR,
+aucune issue, aucun commit après cette heure hormis ceux de cette session ;
+aucun nouveau dépôt. Supabase — 185 migrations, la dernière `20260914180000` ;
+schéma de production comparé objet par objet au banc local reconstruit depuis
+les fichiers : 732 objets identiques, aucun DDL hors migrations. Dépôt — les 38
+branches `codex/*` sont les têtes des PR #22–#56 déjà fusionnées, jamais
+nettoyées. Ce qui a été fait est donc sur le Mac sans être poussé, ou resté en
+conversation. Deux restes trouvés en passant, qui ne sont pas de ChatGPT :
+`claude/lucid-dijkstra-kvsoho` garde deux commits du 13/09 sans PR (kit de test
+manuel de 46 fichiers, seed artisan et super admin) ; la PR #21 a été fermée
+sans fusion 21 secondes après ouverture, remplacée par #22/#23.
+Leçon d'outillage, à retenir pour les prochaines sessions : le clone de session
+est **superficiel (50 commits) et peut être pris dans un cache périmé** — ici
+daté du 10/09. Il a fait croire à une `main` réécrite et à une branche supprimée
+qui n'ont jamais existé. Avant tout diagnostic d'histoire : `git fetch
+--unshallow origin`.
+
+## [2026-09-17] implementation | Facture d'honoraires — migration en production et PR
+Carte blanche du porteur du projet pour finir. Migration `20260914190000`
+passée par le chantier « Migrations Supabase » depuis les fichiers du dépôt :
+simulation (run #26, tout joué puis annulé, garde d'abonnement reposée sur 58
+tables) puis application (run #27). Vérification en base : colonnes
+`tva_intracom` et `tva_franchise`, table `factures_honoraires`, fonction
+`emettre_facture_honoraires`, politique de lecture et garde d'abonnement
+présentes ; version enregistrée dans `supabase_migrations` ; aucune facture
+émise. PR #57 ouverte vers `main` pour la CI et la fusion — la fusion, qui met
+le code en ligne, reste au porteur du projet. Le code en production ne
+référence pas encore ces objets : la migration est additive, l'ordre est le bon.
+

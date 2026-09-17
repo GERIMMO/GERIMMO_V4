@@ -3,7 +3,7 @@ type: synthesis
 tags: [documents, generation, pdf, bail, templates, documents-0]
 status: in-progress
 created: 2026-08-30
-updated: 2026-09-14
+updated: 2026-09-16
 sources: ["[[Documents a generer et automatisation WhatsApp]]", "[[Structure du modèle-type de bail]]", "[[Mentions obligatoires du bail]]"]
 ---
 
@@ -148,7 +148,7 @@ candidature) · **42/45/46/56** (artisans/devis/interventions — S13) ·
 
 Le catalogue applicatif présente 55 entrées, dont 54 générables : les variantes de quittance/reçu et d’EDL sont comptées séparément. Il ajoute 35 assembleurs aux 19 entrées existantes (dont leurs variantes), accessibles depuis Documents → Préparer un document. Recherche par situation, sélection paginée des dossiers compatibles, vérification serveur de la cible, données du dossier, champs du geste, génération PDF et rangement GED. Les couleurs bleu, or et ivoire sont conservées.
 
-Ce décompte ne prouve pas la conformité aux 47 épreuves historiques : les dossiers pdf-vierges et baux-annotes annoncés dans les anciennes notes n’ont pas été retrouvés. La nomenclature actuelle est reconstruite depuis les documents identifiés. La facture d’honoraires est explicitement indisponible ; la préparation CAF/MSA ne remplace pas le Cerfa officiel. Les PDF techniques des sept blocs et le circuit de modèles spécifiques soumis au super administrateur restent à terminer. Le référentiel n’est donc pas déclaré intégralement couvert.
+Ce décompte ne prouve pas la conformité aux 47 épreuves historiques : les dossiers pdf-vierges et baux-annotes annoncés dans les anciennes notes n’ont pas été retrouvés. La nomenclature actuelle est reconstruite depuis les documents identifiés. La préparation CAF/MSA ne remplace pas le Cerfa officiel. Les PDF techniques des sept blocs et le circuit de modèles spécifiques soumis au super administrateur restent à terminer. Le référentiel n’est donc pas déclaré intégralement couvert.
 
 Les nouveaux contrôles refusent notamment une relance sans dette échue, une seconde relance sans première enregistrée, une attestation de fin avant clôture, un compte rendu non déposé, un bordereau de versement sans versement enregistré et un rapport dont le détail diverge du net. Les charges forfaitaires ne sont pas régularisées. Les états globaux sont réservés au responsable. Les lectures défaillantes ou susceptibles d’être tronquées ne produisent pas de bilan vide. Les documents ne déclenchent aucun envoi ni paiement ; les actes restent à signer et les décisions à enregistrer dans leurs parcours respectifs.
 
@@ -157,3 +157,49 @@ Les rapports et récapitulatifs utilisent le livre ecritures, réellement alimen
 Vérifications : 43 tests de règles documentaires, 55 contrôles réels de sélection/assemblage par l’API, 35 épreuves PDF locales contrôlées. Le navigateur reste indisponible tant que le Mac est verrouillé : recette interactive du nouveau catalogue et publication non effectuées. Les contrats individuels ont déjà leur recette navigateur et une simulation de migration réussie ; application réelle de la migration et mise en ligne toujours en attente.
 
 Sources : [mentions de facturation](https://entreprendre.service-public.gouv.fr/vosdroits/F31808), [attestation de loyer CAF/MSA](https://www.service-public.gouv.fr/particuliers/vosdroits/R51280), [charges locatives, article 23](https://www.legifrance.gouv.fr/loda/id/JORFTEXT000000509310/2024-01-22). Une facture définitive demande notamment une numérotation chronologique et les mentions de l’émetteur : un simple document de gestion ne sera pas présenté comme une facture.
+
+## Facture d'honoraires — livraison du 16 septembre 2026
+
+La dernière entrée du catalogue qui restait « en préparation » est générable :
+**55 modèles présentés, 55 générables**. Elle n'attendait pas un gabarit mais
+deux obligations qu'un assembleur ne peut pas tenir seul — une **numérotation
+chronologique continue** (art. L441-9 du code de commerce), qui exige d'être
+persistée en base, et les **mentions de l'émetteur**, sans lesquelles le PDF
+n'est pas une facture.
+
+Ce qui a été construit : une table `factures_honoraires` écrite par une seule
+fonction d'émission, le numéro `FH-<année>-<rang>` unique par organisation,
+deux colonnes de TVA au profil de l'organisation, et l'assembleur. La cible du
+modèle passe de `mouvements_mandants` — table **fermée et non câblée**, qu'aucun
+autre modèle ne visait — au **mandat**, avec le mois en choix du geste.
+
+Les refus sont explicites plutôt que silencieux : profil d'organisation
+incomplet, mois non révolu, aucun honoraire sur la période, annulations qui ne
+laissent rien à facturer, organisation qui n'est pas une agence, et
+**régénération d'une facture que le journal a démentie depuis** (l'avoir reste
+à construire). Émettre est réservé au responsable de l'agence ; la lecture des
+factures aussi. Une agence à l'abonnement fermé n'émet plus.
+
+Vérifications : **13 épreuves SQL** sur un banc Postgres local reconstruit avec
+les 186 migrations (continuité et cloisonnement des séquences, idempotence,
+extraction de la TVA au centime, franchise, droits, refus d'écriture directe),
+**15 épreuves** de l'assembleur, épreuve PDF rendue et relue. Suite complète :
+**1 113 tests verts**. Ce que cela ne prouve pas : la conformité aux 47 épreuves
+historiques, toujours introuvables, et la recette sur PostgREST — le banc
+reproduit les politiques SQL, pas Supabase.
+
+**Restent ouverts** : l'**avoir** (rectification d'une facture émise), le
+**Cerfa CAF/MSA officiel**, les **PDF techniques des sept blocs** et le
+**circuit de modèles spécifiques soumis au super administrateur** — ces deux
+derniers ne sont définis que dans le référentiel du 12/09, qui vit hors du
+dépôt.
+
+Sources : [mentions obligatoires des factures](https://entreprendre.service-public.gouv.fr/vosdroits/F31808),
+art. L441-9 et L441-10 du code de commerce, art. 242 nonies A de l'annexe II et
+art. 293 B du CGI.
+
+> [!warning] Points à trancher / contradictions
+> Le taux de mandat s'entend **TTC** dans le contrat signé, **HT** dans la
+> maquette v6. Tranché pour le contrat : la facture extrait la TVA au lieu de
+> l'ajouter. Détail et conséquences dans [[Mandat de gestion]].
+

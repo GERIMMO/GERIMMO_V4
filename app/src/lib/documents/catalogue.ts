@@ -1,6 +1,6 @@
 // Catalogue fonctionnel : modèles existants, variantes métier et compléments identifiés.
 // Les numéros des anciennes épreuves ne sont pas réattribués aux modèles ajoutés.
-export type CibleCatalogue = "bail" | "lot" | "appel" | "quittance" | "depot" | "revision" | "attestation" | "edl" | "regularisation" | "incident" | "intervention" | "ecriture" | "mandat" | "rapport" | "organisation" | "mouvement";
+export type CibleCatalogue = "bail" | "lot" | "appel" | "quittance" | "depot" | "revision" | "attestation" | "edl" | "regularisation" | "incident" | "intervention" | "ecriture" | "mandat" | "rapport" | "organisation";
 export type EntreeCatalogue = { id: string; nom: string; famille: string; cible: CibleCatalogue; description: string; priorite: "P1" | "P2"; code: string };
 export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
   {
@@ -475,8 +475,8 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
     "id": "facture_honoraires",
     "nom": "Facture d’honoraires",
     "famille": "Mandats et agence",
-    "cible": "mouvement",
-    "description": "Honoraires enregistrés et mentions de facturation à compléter.",
+    "cible": "mandat",
+    "description": "Honoraires du mois inscrits au journal, numérotés et facturés au mandant.",
     "priorite": "P2",
     "code": "facture_honoraires"
   },

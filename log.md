@@ -4396,3 +4396,12 @@ Page [[Charte visuelle v3 bleue]] créée, avertissements posés sur la charte d
 l'espace agent et la maquette d'août. Poussé sur `claude/ecstatic-knuth-pcoqz0`
 avec PR vers `main` — **non fusionnée** : une refonte visuelle se regarde
 avant de se fusionner, la prévisualisation Vercel est là pour ça.
+
+## [2026-09-18] implementation | Charte v3 bleue — validée et fusionnée
+Le porteur du projet valide la prévisualisation Vercel de la PR #58 au réveil.
+La page [[Charte visuelle v3 bleue]] passe en `stable` : c'est la charte de
+référence, les réglages fins se feront écran par écran. PR fusionnée dans
+`main` (CI verte : lint, types, tests SQL et unitaires, build), ce qui met la
+refonte en ligne. Restent ouverts, notés sur la page : les bandeaux admin et
+artisan encore en marine, le symbole du logo toujours provisoire, les noms de
+classes historiques (`.btn-or`) qui désignent du bleu.

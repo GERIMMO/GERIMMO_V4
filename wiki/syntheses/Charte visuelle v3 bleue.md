@@ -1,9 +1,9 @@
 ---
 type: synthesis
 tags: [charte, visuel, ux, design-system, vitrine, marque-blanche]
-status: draft
+status: stable
 created: 2026-09-17
-updated: 2026-09-17
+updated: 2026-09-18
 sources: ["[[2026-08-08-maquette-prototype-cliquable]]", "[[2026-09-04-maquette-v3-prototype]]"]
 ---
 
@@ -17,9 +17,9 @@ discrètes. Cette page fixe les valeurs ; elle supplante la charte v2 pour les
 couleurs et les polices, pas pour les principes d'usage.
 
 > [!info] Statut
-> Implémentée dans le code le 17/09 (branche `claude/ecstatic-knuth-pcoqz0`,
-> PR vers `main`), **pas encore vue ni validée** par le porteur du projet.
-> Passe en `stable` après sa recette sur la prévisualisation Vercel.
+> Implémentée dans le code le 17/09 (PR #58) et **validée par le porteur du
+> projet le 18/09** sur la prévisualisation Vercel, puis fusionnée dans `main`.
+> C'est désormais la charte de référence ; les réglages fins se font à l'usage.
 
 ## La décision et ses références
 
@@ -100,9 +100,9 @@ reste intacte : une agence qui redéfinit sa couleur principale redéfinit
 ## Ce qui reste ouvert
 
 > [!warning] Points à trancher
-> - **Recette visuelle** du porteur du projet sur la prévisualisation : la
->   direction est posée, les réglages fins (intensité des lueurs, densité des
->   listes, taille des titres) se font à l'œil.
+> - **Réglages fins** (intensité des lueurs, densité des listes, taille des
+>   titres) : la direction est validée, le détail se règle écran par écran, à
+>   l'usage.
 > - **Symbole du logo** : toujours le tracé provisoire de la maquette d'août
 >   (toit et clé) ; les fichiers officiels n'ont jamais été transmis.
 > - **Admin et artisan** : passer aussi leurs bandeaux au blanc, ou assumer

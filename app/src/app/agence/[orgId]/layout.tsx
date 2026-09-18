@@ -107,7 +107,7 @@ export default async function LayoutAgence({
         <aside className="loc-late">
           <div className="loc-logo">
             <Link href={`/agence/${orgId}`} aria-label="Accueil de mon espace">
-              <MarqueGerimmo surEncre />
+              <MarqueGerimmo />
             </Link>
           </div>
           <SidebarProprietaire
@@ -166,9 +166,9 @@ export default async function LayoutAgence({
       <aside className="loc-late">
         <div className="loc-logo">
           <Link href={`/agence/${orgId}`} aria-label="Accueil de l'agence">
-            <MarqueGerimmo surEncre />
+            <MarqueGerimmo />
           </Link>
-          <span className="loc-logo-texte eyebrow text-[var(--sur-encre)]/55">
+          <span className="loc-logo-texte eyebrow">
             Espace agence
           </span>
         </div>

@@ -37,19 +37,19 @@ export function CoquilleAuth({
 }) {
   return (
     <main className="grid min-h-full flex-1 md:grid-cols-[1.05fr_1fr]">
-      <div className="hidden flex-col justify-between bg-[var(--encre)] p-13 text-[var(--sur-encre)] md:flex">
+      <div className="panneau-marque hidden flex-col justify-between p-13 text-[var(--sur-marque)] md:flex">
         <MarqueGerimmo surEncre />
         <div>
           {/* Le panneau porte la promesse, pas le titre de la page : deux h1
               dans un même document se disputeraient la structure. */}
-          <p className="max-w-[14ch] font-heading text-[2rem] leading-[1.15] text-[var(--sur-encre)] sm:max-w-[16ch]">
+          <p className="max-w-[14ch] font-heading text-[2.25rem] font-extrabold leading-[1.1] tracking-[-0.02em] text-[var(--sur-marque)] sm:max-w-[16ch]">
             {promesse}
           </p>
-          <p className="mt-3.5 max-w-[26em] text-sm text-[var(--sur-encre)]/65">
+          <p className="mt-3.5 max-w-[26em] text-[15px] leading-relaxed text-[var(--sur-marque)]/80">
             {sousPromesse}
           </p>
         </div>
-        <p className="mono-discret text-[var(--sur-encre)]/60">{mention}</p>
+        <p className="mono-discret text-[var(--sur-marque)]/70">{mention}</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-8">

@@ -15,7 +15,7 @@
 export function ApercuTableauDeBord() {
   return (
     <div
-      className="rounded-[3px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 shadow-[var(--ombre-flottante)]"
+      className="rounded-[14px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 shadow-[var(--ombre-flottante)]"
       role="img"
       aria-label="Aperçu du tableau de bord : trois indicateurs, puis la liste des échéances du jour."
     >
@@ -45,7 +45,7 @@ export function ApercuTableauDeBord() {
         </div>
       </div>
 
-      <div className="mt-3 border border-[var(--filet)] bg-[var(--ivoire)]">
+      <div className="mt-3 overflow-clip rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)]">
         <div className="tete-liste !py-2">
           <span className="libelle-champ">À faire aujourd&apos;hui</span>
           <span className="mono-discret !text-[9px]">3</span>
@@ -97,7 +97,7 @@ export function ApercuTableauDeBord() {
 export function ApercuQuittance() {
   return (
     <div
-      className="rounded-[3px] border border-[var(--filet)] bg-[var(--ivoire)] p-4 shadow-[var(--ombre-portee)]"
+      className="rounded-[14px] border border-[var(--filet)] bg-[var(--ivoire)] p-4 shadow-[var(--ombre-portee)]"
       role="img"
       aria-label="Aperçu d'une quittance de loyer : période, détail loyer et charges, total acquitté."
     >
@@ -135,7 +135,7 @@ export function ApercuQuittance() {
 export function ApercuMobileIncident() {
   return (
     <div
-      className="mx-auto w-[210px] rounded-[20px] border-[6px] border-[var(--encre)] bg-[var(--creme)] p-2.5 shadow-[var(--ombre-flottante)]"
+      className="mx-auto w-[210px] rounded-[26px] border-[6px] border-[var(--encre)] bg-[var(--creme)] p-2.5 shadow-[var(--ombre-flottante)]"
       role="img"
       aria-label="Aperçu de l'espace locataire sur téléphone : signalement d'un incident avec photo."
     >
@@ -143,7 +143,7 @@ export function ApercuMobileIncident() {
         <span className="mono-discret !text-[8px]">Mon logement</span>
         <span className="puce puce-prep !text-[8px]">En cours</span>
       </div>
-      <div className="border border-[var(--filet)] bg-[var(--ivoire)] p-2.5">
+      <div className="rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-2.5">
         <span className="libelle-champ">Signaler un incident</span>
         <p className="mt-1.5 text-[11px] leading-snug text-[var(--corps)]">
           Fuite sous l&apos;évier de la cuisine

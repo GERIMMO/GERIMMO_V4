@@ -30,14 +30,16 @@ export default async function PageJournal() {
 
   return (
     <div className="min-h-full bg-[var(--creme)]">
-      <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
-        <EnTetePublic />
-        <div className="mx-auto w-full max-w-6xl px-4 pt-8 pb-12 sm:px-7 sm:pt-12 sm:pb-16">
-          <p className="eyebrow text-[var(--or)]">Journal</p>
-          <h1 className="mt-2 max-w-2xl font-heading text-3xl leading-tight sm:text-4xl">
+      <EnTetePublic />
+      {/* Charte v3 : le journal s'ouvre comme la vitrine, sur blanc lumineux —
+          plus d'aplat marine sous le bandeau. */}
+      <header className="vitrine-hero">
+        <div className="mx-auto w-full max-w-6xl px-4 pt-10 pb-12 sm:px-7 sm:pt-14 sm:pb-16">
+          <p className="eyebrow text-[var(--or-texte)]">Journal</p>
+          <h1 className="mt-2 max-w-2xl text-balance font-heading text-3xl leading-tight text-[var(--encre)] sm:text-4xl">
             Ce qu&apos;il faut savoir, au moment où ça compte
           </h1>
-          <p className="mesure-lecture mt-4 text-[15px] leading-relaxed text-[var(--sur-encre)]/80">
+          <p className="mesure-lecture mt-4 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
             Les règles de la gestion locative, expliquées quand elles servent —
             et sourcées. Nous n&apos;écrivons rien que nous n&apos;ayons vérifié.
           </p>

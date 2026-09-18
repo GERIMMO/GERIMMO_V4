@@ -71,9 +71,9 @@ export default async function LayoutLocataire({
       <aside className="loc-late">
         <div className="loc-logo">
           <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace">
-            <MarqueGerimmo surEncre />
+            <MarqueGerimmo />
           </Link>
-          <span className="loc-logo-texte eyebrow text-[var(--sur-encre)]/55">
+          <span className="loc-logo-texte eyebrow">
             Espace locataire
           </span>
         </div>

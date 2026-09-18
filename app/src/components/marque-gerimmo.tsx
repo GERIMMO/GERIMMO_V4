@@ -7,7 +7,7 @@
 // laiton) mais n'est PAS le symbole officiel. Déposez les SVG dans
 // `public/logo/` et remplacez ce composant.
 //
-// Le mot-marque suit la maquette : Cormorant Garamond, interlettrage 0,26em.
+// Le mot-marque, charte v3 : Manrope 800, interlettrage 0,2em.
 // `surEncre` : variante posée sur le bandeau encre (mot-marque crème).
 
 export function MarqueGerimmo({
@@ -48,10 +48,10 @@ export function MarqueGerimmo({
         />
       </svg>
       <span
-        className={`font-[family-name:var(--font-titres)] text-[1.19rem] tracking-[0.26em] ${
+        className={`font-[family-name:var(--font-titres)] text-[1.05rem] tracking-[0.2em] ${
           surEncre ? "text-[var(--sur-encre)]" : "text-[var(--encre)]"
         }`}
-        style={{ fontWeight: 500 }}
+        style={{ fontWeight: 800 }}
       >
         GERIMMO
       </span>

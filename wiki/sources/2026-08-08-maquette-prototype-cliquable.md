@@ -3,7 +3,7 @@ type: source
 tags: [charte, visuel, maquette, prototype, ux, alertes]
 status: stable
 created: 2026-08-08
-updated: 2026-08-08
+updated: 2026-09-17
 sources: []
 source-file: raw/maquettes/2026-08-08-gerimmo-prototype.html
 source-type: maquette HTML cliquable
@@ -11,6 +11,12 @@ source-date: 2026-08-08
 ---
 
 # Maquette — prototype cliquable Gerimmo (août 2026)
+
+> [!warning] Habillage supplanté le 2026-09-17
+> La charte v2 de cette maquette (encre, laiton, crème, serif) est remplacée
+> par [[Charte visuelle v3 bleue]] pour les couleurs, polices, rayons et
+> mouvement. La structure des écrans et les parcours décrits ici restent la
+> référence.
 
 **En une phrase :** prototype HTML autonome (~3 700 lignes) réalisé par l'humain,
 couvrant tous les écrans du produit avec données fictives — désigné le 2026-08-08

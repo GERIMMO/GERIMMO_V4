@@ -88,7 +88,7 @@ export function FormulairePersonne({
       <span
         className={`flex size-6 items-center justify-center rounded-full font-[family-name:var(--font-libelles)] text-xs ${
           etape === n
-            ? "bg-[var(--encre)] text-[var(--or)] ring-4 ring-[var(--ardoise)]"
+            ? "bg-[var(--marque)] text-[var(--sur-marque)] ring-4 ring-[var(--marque-clair)]"
             : etape > n
               ? "bg-[var(--success)] text-[var(--sur-encre)]"
               : "border border-border bg-card text-muted-foreground"

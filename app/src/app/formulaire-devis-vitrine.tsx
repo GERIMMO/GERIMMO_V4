@@ -79,8 +79,15 @@ export function FormulaireDevisVitrine() {
           className={`${champ} h-auto py-2`}
         />
       </div>
+      {/* Le message posé sur le bandeau bleu : une pastille blanche, sinon il
+          se confondrait avec le fond et l'erreur passerait inaperçue. */}
       {etat.erreur && (
-        <p className="text-sm text-[var(--or)] sm:col-span-2">{etat.erreur}</p>
+        <p
+          role="alert"
+          className="rounded-lg bg-[var(--ivoire)] px-3 py-2 text-sm font-medium text-[var(--destructive)] sm:col-span-2"
+        >
+          {etat.erreur}
+        </p>
       )}
       <div className="sm:col-span-2">
         <button type="submit" disabled={enCours} className="btn-or">

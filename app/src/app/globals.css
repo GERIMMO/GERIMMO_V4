@@ -955,10 +955,11 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
   line-height: 1.5;
 }
 
-/* Infobulle des graphiques (charte : encre sur ivoire, angles vifs, mono discret) */
+/* Infobulle des graphiques : marine sur ivoire, angles adoucis (charte v3) */
 .infobulle {
   background: var(--encre);
   color: var(--sur-encre);
+  border-radius: 8px;
   padding: 6px 9px;
   font-size: 11.5px;
   line-height: 1.5;
@@ -1509,7 +1510,7 @@ p a {
 .loc-carte { padding: 24px; border-radius: 16px; }
 .loc-hero { padding: 28px; }
 .loc-kpi .v { font-size: 34px; }
-.artisan-bandeau { border-bottom: 3px solid var(--or); }
+.artisan-bandeau { border-bottom: 1px solid var(--filet); }
 .artisan-carte {
   background: var(--carte);
   border: 1px solid var(--filet);
@@ -1553,11 +1554,11 @@ p a {
 .recherche-dialog { padding:0; border:1px solid var(--filet); width:min(640px,calc(100vw - 24px)); max-width:none; max-height:calc(100dvh - 32px); margin:8vh auto auto; color:var(--encre); background:var(--ivoire); box-shadow:0 24px 90px color-mix(in srgb,var(--encre) 20%,transparent); border-radius:12px; overflow:hidden; }
 .recherche-dialog::backdrop { background:color-mix(in srgb,var(--encre) 50%,transparent); backdrop-filter:blur(3px); }
 .recherche-corps { display:flex; flex-direction:column; max-height:calc(84dvh - 32px); }
-.recherche-entete { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:22px 24px; background:var(--encre); color:var(--sur-encre); border-bottom:3px solid var(--or); }
+.recherche-entete { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:22px 24px; background:var(--ivoire); color:var(--encre); border-bottom:1px solid var(--filet); }
 .recherche-entete h2 { color:inherit; font-size:27px; }
-.recherche-entete .eyebrow { color:color-mix(in srgb,var(--sur-encre) 70%,transparent); }
+.recherche-entete .eyebrow { color:var(--marque-sombre); }
 .recherche-fermer { min-width:44px; min-height:44px; display:grid; place-items:center; border-radius:6px; }
-.recherche-fermer:hover { background:color-mix(in srgb,var(--or) 13%,transparent); }
+.recherche-fermer:hover { background:var(--survol); }
 .recherche-champ { display:flex; align-items:center; gap:12px; padding:12px 20px; border-bottom:1px solid var(--filet); background:var(--carte); }
 .recherche-champ input { min-width:0; width:100%; min-height:44px; font-size:16px; outline:none; }
 .recherche-champ:focus-within { box-shadow:inset 0 -2px var(--or); }
@@ -1590,7 +1591,7 @@ p a {
 @media (max-width:600px) { .dossier-bail-entete { padding:18px; } .dossier-rubrique > summary { padding:16px; } .dossier-rubrique-contenu { padding:10px; } }
 
 /* Rendez-vous : la date précède le dossier, sans grille vide sur mobile. */
-.dossier-nav a.agenda-onglet-actif { background:var(--encre); color:var(--sur-encre); border-color:var(--encre); }
+.dossier-nav a.agenda-onglet-actif { background:var(--marque); color:var(--sur-marque); border-color:var(--marque); }
 .agenda-periode { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
 .agenda-periode h2 { font-size:22px; margin:4px 0; }
 .agenda-rendezvous { display:flex; gap:24px; padding:22px; border:1px solid var(--filet); border-left:3px solid var(--or); border-radius:14px; background:var(--carte); }
@@ -1666,5 +1667,72 @@ p a {
 }
 @media (prefers-reduced-motion: reduce) {
   .vitrine-carte:hover { transform: none; }
+}
+}
+
+/* ------------------------------------------------- Charte v3 — seconde passe
+   Les écrans SANS barre latérale (console d'administration, portail artisan,
+   choix d'espace, pages légales, assistance) portaient chacun un bandeau
+   marine — le dernier aplat sombre du produit. Ils partagent désormais le même
+   bandeau blanc que la vitrine : c'est la marque qui dit où l'on est, pas la
+   couleur de fond. Une seule définition, pour qu'ils ne divergent plus. */
+@layer components {
+.bandeau-appli {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--ivoire) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--filet);
+}
+/* Les liens d'un bandeau : discrets au repos, une pastille au survol — la
+   cible fait 40 px de haut, on clique parfois debout, sur un téléphone. */
+.lien-bandeau {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--texte-secondaire);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.lien-bandeau:hover,
+.lien-bandeau:focus-visible { background: var(--survol); color: var(--encre); }
+
+/* La pastille d'initiales. En v2 : laiton sur marine. Le remappage des jetons
+   l'a rendue BLEUE sur marine, donc illisible (rapport de contraste ~1,9).
+   Elle reprend le contraste des pastilles de l'espace locataire. */
+.pastille-marque {
+  background: var(--marque-clair);
+  color: var(--marque-sombre);
+  font-weight: 600;
+}
+
+/* Les cartes de « Mes espaces » : angles vifs et glissement latéral en v2 ;
+   même carte à survol que partout ailleurs en v3. */
+.carte-espace {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  text-align: left;
+  background: var(--carte);
+  border: 1px solid var(--filet);
+  border-radius: 14px;
+  transition: transform 0.17s ease, box-shadow 0.17s ease, border-color 0.17s ease;
+}
+a:hover > .carte-espace,
+a:focus-visible > .carte-espace {
+  transform: translateY(-2px);
+  box-shadow: var(--ombre-portee);
+  border-color: var(--marque);
+}
+.carte-espace.indisponible { opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) {
+  a:hover > .carte-espace, a:focus-visible > .carte-espace { transform: none; }
 }
 }

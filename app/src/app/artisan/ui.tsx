@@ -25,13 +25,13 @@ import { initialesAgence } from "./libelles";
  */
 
 export const CLASSE_BOUTON_PRINCIPAL =
-  "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--encre)] bg-[var(--encre)] px-4 text-center text-[1.0625rem] font-medium text-[var(--sur-encre)] transition-colors hover:bg-[var(--graphite)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--marque)] bg-[var(--marque)] px-4 text-center text-[1.0625rem] font-medium text-[var(--sur-marque)] transition-colors hover:border-[var(--marque-sombre)] hover:bg-[var(--marque-sombre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
 
 export const CLASSE_BOUTON_SECONDAIRE =
-  "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--encre)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-medium text-[var(--encre)] transition-colors hover:bg-[var(--ardoise)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--marque)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-medium text-[var(--marque-sombre)] transition-colors hover:bg-[var(--marque-clair)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
 
 export const CLASSE_BOUTON_SOBRE =
-  "flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] px-4 text-center text-base font-medium text-[var(--texte-secondaire)] transition-colors hover:border-[var(--encre)] hover:text-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
+  "flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] px-4 text-center text-base font-medium text-[var(--texte-secondaire)] transition-colors hover:border-[var(--marque)] hover:text-[var(--marque-sombre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
 
 export const CLASSE_BOUTON_REFUS =
   "flex min-h-14 w-full items-center justify-center gap-2 rounded-lg border-2 border-[var(--destructive)] bg-[var(--ivoire)] px-4 text-center text-[1.0625rem] font-medium text-[var(--destructive)] transition-colors hover:bg-[var(--destructive-soft)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)] disabled:opacity-60";
@@ -116,7 +116,7 @@ export function MarqueAgence({
     <span className="flex min-w-0 items-center gap-2.5">
       <span
         aria-hidden
-        className={`flex shrink-0 items-center justify-center rounded-full bg-[var(--encre)] font-medium text-[var(--or)] ${cote}`}
+        className={`pastille-marque flex shrink-0 items-center justify-center rounded-full ${cote}`}
       >
         {initialesAgence(nom)}
       </span>

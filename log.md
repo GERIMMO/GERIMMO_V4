@@ -4405,3 +4405,25 @@ référence, les réglages fins se feront écran par écran. PR fusionnée dans
 refonte en ligne. Restent ouverts, notés sur la page : les bandeaux admin et
 artisan encore en marine, le symbole du logo toujours provisoire, les noms de
 classes historiques (`.btn-or`) qui désignent du bleu.
+
+## [2026-09-18] implementation | Charte v3 — seconde passe, tout le site
+Demande du porteur du projet : passer TOUT le site sur la nouvelle charte.
+Les cinq derniers bandeaux marine (console d'administration, portail artisan,
+« Mes espaces », pages légales, assistance) partagent désormais un bandeau
+blanc unique — `.bandeau-appli` + `.lien-bandeau`, une seule définition pour
+qu'ils ne divergent plus. Les états actifs passent au bleu (onglets de la
+console, onglet du dossier de bail, boutons du portail artisan, ronds
+d'étape), les derniers angles vifs à 10 px, le panneau de recherche quitte
+l'aplat marine.
+
+Relecture de contraste, à l'œil, qui a trouvé trois textes rendus illisibles
+par le remappage des jetons de la première passe : les pastilles d'initiales
+(bleu sur marine, ~1,9:1), le sélecteur d'organisation du propriétaire (blanc
+sur blanc depuis que la barre latérale est blanche) et l'erreur du formulaire
+de devis (bleue sur le bandeau bleu). Corrigés, documentés dans
+[[Charte visuelle v3 bleue]]. Aucun outil ne les signalait : ni le typage, ni
+le lint, ni le build. Variante `surEncre` de la synthèse d'alertes supprimée,
+plus aucun appelant.
+
+Vérifié : typage, ESLint, build, 538 tests unitaires ; tests SQL en CI.
+Fusionné dans `main` et publié.

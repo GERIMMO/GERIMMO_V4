@@ -157,17 +157,14 @@ export default async function PageEspaces() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      {/* Bandeau encre de la maquette, version nue : marque et sortie */}
-      <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
+      {/* Charte v3 : bandeau blanc, comme la vitrine et les autres portails */}
+      <header className="bandeau-appli">
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3 sm:px-7">
-          <MarqueGerimmo surEncre />
-          <div className="flex items-center gap-4">
-            <SyntheseAlertes alertes={alertes} surEncre rappel />
+          <MarqueGerimmo />
+          <div className="flex items-center gap-2">
+            <SyntheseAlertes alertes={alertes} rappel />
             <form action={seDeconnecter}>
-              <button
-                type="submit"
-                className="text-[0.8125rem] text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-              >
+              <button type="submit" className="lien-bandeau">
                 Se déconnecter
               </button>
             </form>
@@ -202,8 +199,8 @@ export default async function PageEspaces() {
               sur cette carte — elles y sont toutes. */}
           {estArtisan && (
             <Link href="/artisan">
-              <span className="flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left transition-all hover:translate-x-[3px] hover:border-[var(--encre)]">
-                <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[var(--encre)] text-[13px] text-[var(--or)]">
+              <span className="carte-espace">
+                <span className="pastille-marque flex size-9.5 shrink-0 items-center justify-center rounded-full text-[13px]">
                   AR
                 </span>
                 <span className="min-w-0 flex-1">
@@ -229,13 +226,9 @@ export default async function PageEspaces() {
               .toUpperCase();
             const carte = (
               <span
-                className={`flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left transition-all ${
-                  chemin
-                    ? "hover:translate-x-[3px] hover:border-[var(--encre)]"
-                    : "opacity-60"
-                }`}
+                className={`carte-espace ${chemin ? "" : "indisponible"}`}
               >
-                <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[var(--encre)] text-[13px] text-[var(--or)]">
+                <span className="pastille-marque flex size-9.5 shrink-0 items-center justify-center rounded-full text-[13px]">
                   {initiales}
                 </span>
                 <span className="min-w-0 flex-1">
@@ -260,8 +253,8 @@ export default async function PageEspaces() {
           })}
           {supervision.map((o) => (
             <Link key={o.id} href={`/agence/${o.id}`}>
-              <span className="flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left transition-all hover:translate-x-[3px] hover:border-[var(--encre)]">
-                <span className="flex size-9.5 shrink-0 items-center justify-center rounded-full bg-[var(--encre)] text-[13px] text-[var(--or)]">
+              <span className="carte-espace">
+                <span className="pastille-marque flex size-9.5 shrink-0 items-center justify-center rounded-full text-[13px]">
                   {o.name
                     .split(/\s+/)
                     .map((x) => x[0])

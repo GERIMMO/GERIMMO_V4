@@ -92,9 +92,9 @@ export async function ParcoursDemarrage({
                 aria-hidden
                 className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] ${
                   e.faite
-                    ? "bg-[var(--encre)] text-[var(--or)]"
+                    ? "bg-[var(--marque)] text-[var(--sur-marque)]"
                     : courante
-                      ? "border-2 border-[var(--or)] text-[var(--encre)]"
+                      ? "border-2 border-[var(--marque)] text-[var(--marque-sombre)]"
                       : "border border-[var(--filet)] text-[var(--texte-secondaire)]"
                 }`}
               >

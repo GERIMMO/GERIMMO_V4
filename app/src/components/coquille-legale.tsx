@@ -45,15 +45,12 @@ export function CoquilleLegale({
   const manquants = faitsManquants();
   return (
     <div className="min-h-full bg-[var(--creme)]">
-      <header className="bg-[var(--encre)] text-[var(--sur-encre)]">
+      <header className="bandeau-appli">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3.5 sm:px-7">
-          <Link href="/" aria-label="Retour à l'accueil">
-            <MarqueGerimmo surEncre />
+          <Link href="/" aria-label="Retour à l'accueil" className="flex min-h-11 items-center">
+            <MarqueGerimmo />
           </Link>
-          <Link
-            href="/"
-            className="text-[13px] text-[var(--sur-encre)]/80 hover:text-[var(--sur-encre)]"
-          >
+          <Link href="/" className="lien-bandeau">
             ← Retour
           </Link>
         </div>

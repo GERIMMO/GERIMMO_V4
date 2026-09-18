@@ -417,7 +417,7 @@ export async function PaneIncident({
                       <img
                         src={`/agence/${orgId}/documents/${p.id}/fichier`}
                         alt={p.titre ?? "Photo de l'incident"}
-                        className="h-20 w-20 rounded-[3px] border border-border object-cover"
+                        className="h-20 w-20 rounded-[10px] border border-border object-cover"
                       />
                     </a>
                   ))}

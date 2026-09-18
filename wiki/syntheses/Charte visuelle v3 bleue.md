@@ -94,8 +94,29 @@ reste intacte : une agence qui redéfinit sa couleur principale redéfinit
 - **Espaces** (agence, propriétaire, locataire) : barre latérale **blanche**
   de 240 px avec filet à droite, marque en marine, entrée active en lavis bleu
   sur texte bleu foncé, bandeau du jour en dégradé bleu.
-- **Admin et artisan** gardent leur bandeau marine (le nouveau marine), sans
-  autre changement : hors périmètre de cette première passe.
+- **Console d'administration, portail artisan, « Mes espaces », pages légales
+  et assistance** : ces cinq écrans portaient chacun leur propre bandeau
+  marine. Ils partagent désormais **un seul bandeau blanc** (`.bandeau-appli`,
+  collé en haut, filet en bas), avec les liens en pastille au survol
+  (`.lien-bandeau`). Plus aucun aplat sombre dans le produit : c'est la marque
+  qui dit où l'on est.
+- **Les états actifs** convergent sur le bleu : onglets de la console,
+  onglet du dossier de bail, ronds d'étape, boutons du portail artisan.
+
+## Défauts corrigés par la seconde passe (18/09)
+
+Le remappage des jetons a produit trois textes devenus illisibles, invisibles
+au typage comme au build — ils se voient à l'œil, sur un écran :
+
+| Où | Ce qui se passait | Correction |
+|---|---|---|
+| Pastilles d'initiales (« Mes espaces », portail artisan, fiche personne, parcours de démarrage) | Laiton sur marine en v2, donc **bleu sur marine** après remappage : contraste ~1,9:1 | Jeton `.pastille-marque` : lavis bleu, texte bleu foncé |
+| Sélecteur d'organisation du propriétaire | Écrit en crème pour la barre latérale marine, devenu **blanc sur blanc** | Filet et texte marine |
+| Erreur du formulaire de devis agences | Posée en laiton sur le bandeau, devenue **bleue sur bleu** | Pastille blanche, texte rouge, `role="alert"` |
+
+Leçon : un remappage de jetons ne casse rien mécaniquement, il déplace les
+contrastes. Toute page qui écrivait clair sur un fond sombre est à revoir
+quand ce fond s'éclaircit.
 
 ## Ce qui reste ouvert
 
@@ -105,8 +126,6 @@ reste intacte : une agence qui redéfinit sa couleur principale redéfinit
 >   l'usage.
 > - **Symbole du logo** : toujours le tracé provisoire de la maquette d'août
 >   (toit et clé) ; les fichiers officiels n'ont jamais été transmis.
-> - **Admin et artisan** : passer aussi leurs bandeaux au blanc, ou assumer
->   un marine « back-office » ?
 > - Les noms de classes historiques (`.btn-or`, `.kpi.or`) désignent
 >   désormais du bleu ; renommer un jour, ou vivre avec.
 

@@ -679,7 +679,7 @@ export async function VoletArtisan({
                         <img
                           src={`/agence/${orgId}/documents/${p.document_id}/fichier`}
                           alt={`Chantier — ${MOMENTS_PHOTO[p.moment] ?? p.moment}`}
-                          className="h-20 w-20 rounded-[3px] border border-border object-cover"
+                          className="h-20 w-20 rounded-[10px] border border-border object-cover"
                         />
                       </a>
                     ))}

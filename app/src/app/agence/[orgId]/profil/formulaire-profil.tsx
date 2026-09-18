@@ -23,6 +23,7 @@ type Organisation = {
   tva_intracom: string | null;
   tva_franchise: boolean;
   quittances_envoi_auto: boolean;
+  appels_envoi_auto: boolean;
 };
 
 export function FormulaireProfilOrganisation({
@@ -41,7 +42,9 @@ export function FormulaireProfilOrganisation({
     {}
   );
   // En erreur, la saisie est reposée via etat.valeurs (convention React 19)
-  const valeur = (nom: Exclude<keyof Organisation, "quittances_envoi_auto" | "tva_franchise">) =>
+  const valeur = (
+    nom: Exclude<keyof Organisation, "quittances_envoi_auto" | "appels_envoi_auto" | "tva_franchise">
+  ) =>
     etat.valeurs?.[nom] ?? organisation[nom] ?? "";
 
   return (
@@ -155,7 +158,7 @@ export function FormulaireProfilOrganisation({
               name="tva_franchise"
               disabled={lectureSeule}
               defaultChecked={organisation.tva_franchise}
-              className="size-5 shrink-0 accent-[var(--encre)]"
+              className="size-5 shrink-0 accent-[var(--marque)]"
             />
             Franchise en base de TVA (article 293 B du CGI)
           </label>
@@ -178,6 +181,31 @@ export function FormulaireProfilOrganisation({
           Reporté sur les avis d&apos;échéance.
         </p>
       </div>
+      <fieldset className="space-y-2 rounded-lg border p-4">
+        <legend className="px-1 text-sm font-medium">Avis d&apos;échéance</legend>
+        <label
+          htmlFor="pr-avis-auto"
+          className="flex min-h-12 items-center gap-3 text-sm"
+        >
+          <input
+            id="pr-avis-auto"
+            type="checkbox"
+            name="appels_envoi_auto"
+            disabled={lectureSeule}
+            defaultChecked={organisation.appels_envoi_auto}
+            className="size-5 shrink-0 accent-[var(--marque)]"
+          />
+          Annoncer chaque échéance au locataire par e-mail
+        </label>
+        <p className="text-xs text-muted-foreground">
+          À la création de l&apos;appel, le locataire reçoit le détail de son
+          terme et sa date d&apos;échéance, avec son solde antérieur s&apos;il en
+          a un. Un terme déjà réglé n&apos;est jamais réclamé, et cocher la case
+          n&apos;envoie pas l&apos;historique : seuls les appels de moins de 45
+          jours partent. Vérifiez les adresses de vos locataires avant de
+          cocher.
+        </p>
+      </fieldset>
       <fieldset className="space-y-2 rounded-lg border p-4">
         <legend className="px-1 text-sm font-medium">Envoi des quittances</legend>
         <label

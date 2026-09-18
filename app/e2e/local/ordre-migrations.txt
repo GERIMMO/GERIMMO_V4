@@ -184,3 +184,4 @@
 20260914170000_signature_hors_supervision.sql
 20260914180000_colocation_contrats_individuels.sql
 20260914190000_facture_honoraires.sql
+20260918050000_appel_loyer_part_au_locataire.sql

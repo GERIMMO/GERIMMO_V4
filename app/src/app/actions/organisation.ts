@@ -51,6 +51,7 @@ export async function modifierProfilOrganisation(
       // Accord permanent d'envoi des quittances : une case décochée n'apparaît
       // pas dans le formulaire, d'où la lecture par présence et non par valeur.
       quittances_envoi_auto: formData.get("quittances_envoi_auto") !== null,
+      appels_envoi_auto: formData.get("appels_envoi_auto") !== null,
     })
     .eq("id", orgId)
     .select("id");

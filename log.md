@@ -4427,3 +4427,32 @@ plus aucun appelant.
 
 Vérifié : typage, ESLint, build, 538 tests unitaires ; tests SQL en CI.
 Fusionné dans `main` et publié.
+
+## [2026-09-18] implementation | Les trois fonctionnalités annoncées mais absentes
+Carte blanche du porteur du projet après l'inventaire de ce qui restait. Les
+trois trous que le wiki nommait sont comblés.
+
+**L'avis d'échéance part au locataire.** Le cycle mensuel créait l'appel,
+l'encaissement émettait la quittance, et entre les deux personne ne disait rien :
+le locataire découvrait sa dette à la relance. Tâche quotidienne, accord
+permanent de l'agence, solde antérieur annoncé, et jamais un terme déjà réglé.
+
+**Le rappel de rendez-vous (RM-10.5).** Rien ne le portait. Il écrit maintenant
+aux DEUX parties, avec deux messages différents, la veille et sept jours avant.
+Le suivi est par destinataire, pour qu'une adresse fausse n'en prive pas l'autre.
+L'écran du locataire promet de nouveau le rappel — la phrase avait été retirée
+le 11/09 faute de quoi la tenir.
+
+**La reprise de portefeuille comptable.** `reprises_portefeuille`,
+`reprise_soldes` et `mouvements_mandants` étaient nées le 03/09 avec leur RLS
+activée, aucune politique et aucun droit : inutilisables, et donc jamais
+utilisées. Elles portent désormais un parcours complet à écart zéro.
+
+Trois défauts trouvés par les tests avant toute mise en ligne, qu'aucun outil ne
+signalait : la nouvelle route de tâche n'était pas dans la liste des chemins
+exemptés de session (elle aurait été renvoyée vers la page de connexion) ; des
+colonnes ambiguës entre les paramètres de sortie d'une fonction et les tables
+qu'elle lit ; et des virgules dans un libellé d'en-tête qui trompaient la
+détection du séparateur CSV.
+
+Vérifié : 46 tests nouveaux, suite complète à 1193 tests, lint, types, build.

@@ -88,7 +88,7 @@ export function EditeurPublication(p: Props) {
             rows={3}
             value={chapo}
             onChange={(event) => setChapo(event.target.value)}
-            className="w-full rounded-[3px] border border-[var(--filet)] bg-[var(--ivoire)] p-2.5 text-base leading-relaxed sm:text-sm"
+            className="w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-2.5 text-base leading-relaxed sm:text-sm"
           />
         </div>
 
@@ -100,7 +100,7 @@ export function EditeurPublication(p: Props) {
             rows={26}
             value={corps}
             onChange={(e) => setCorps(e.target.value)}
-            className="w-full rounded-[3px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 font-mono text-base leading-relaxed sm:text-[13px]"
+            className="w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 font-mono text-base leading-relaxed sm:text-[13px]"
           />
         </div>
 

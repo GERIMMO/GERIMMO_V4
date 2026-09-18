@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 
 // La barre de la console ne disait jamais où l'on se trouve (constat de l'état
 // des lieux du 11/09) : quatre liens identiques, aucun état actif. Le liseré
-// laiton sous l'entrée courante est le même signal que dans les espaces
-// agence et locataire — on ne réinvente pas un motif par espace.
+// bleu sous l'entrée courante est le même signal que dans les espaces agence
+// et locataire — on ne réinvente pas un motif par espace.
 const ENTREES: [string, string][] = [
   ["/admin", "Supervision"],
   ["/admin/publications", "Journal"],
@@ -31,8 +31,8 @@ export function NavAdmin() {
             aria-current={actif ? "page" : undefined}
             className={`border-b-2 py-1 text-[0.8125rem] transition-colors ${
               actif
-                ? "border-[var(--or)] text-[var(--sur-encre)]"
-                : "border-transparent text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+                ? "border-[var(--marque)] font-semibold text-[var(--marque-sombre)]"
+                : "border-transparent text-[var(--texte-secondaire)] hover:text-[var(--encre)]"
             }`}
           >
             {libelle}

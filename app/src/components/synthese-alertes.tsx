@@ -46,7 +46,6 @@ export const CLE_SESSION_ALERTES = "gerimmo-synthese-alertes-vue";
 export function SyntheseAlertes({
   alertes,
   modeAdmin = false,
-  surEncre = false,
   membres,
   estResponsable = false,
   rappel = false,
@@ -58,8 +57,6 @@ export function SyntheseAlertes({
   // Console SA : le détail renvoie vers la fiche agence de la console,
   // pas vers l'espace agence (dont le SA n'est pas membre)
   modeAdmin?: boolean;
-  // Bandeau encre de la maquette : la cloche s'éclaircit
-  surEncre?: boolean;
   // Fournis par le layout agence (recette 24/08) : « Traiter » ouvre alors la
   // pop-up SUR PLACE. Sans eux (page /espaces, console SA), repli navigation.
   membres?: { account_id: string; email: string; role: string }[];
@@ -111,11 +108,7 @@ export function SyntheseAlertes({
         <button
           type="button"
           onClick={() => setOuverte(true)}
-          className={`text-[0.8125rem] transition-colors ${
-            surEncre
-              ? "text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
-              : "text-muted-foreground hover:text-foreground"
-          }`}
+          className="lien-bandeau"
         >
           Alertes
           {alertes.length > 0 && (

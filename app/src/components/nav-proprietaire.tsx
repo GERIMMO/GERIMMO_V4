@@ -70,7 +70,7 @@ export function SidebarProprietaire({
         <div className="loc-org px-4 pt-3.5">
           <label
             htmlFor="selecteur-organisation"
-            className="eyebrow block text-[var(--sur-encre)]/50"
+            className="eyebrow block text-[var(--libelle)]"
           >
             Organisation
           </label>
@@ -78,10 +78,10 @@ export function SidebarProprietaire({
             id="selecteur-organisation"
             value={orgId}
             onChange={(e) => router.push(`/agence/${e.target.value}`)}
-            className="mt-1.5 w-full rounded-lg border border-[var(--sur-encre)]/20 bg-[var(--sur-encre)]/5 px-2 py-1.5 text-[12.5px] text-[var(--sur-encre)]"
+            className="mt-1.5 w-full rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] px-2 py-1.5 text-[12.5px] text-[var(--encre)]"
           >
             {organisations.map((o) => (
-              <option key={o.id} value={o.id} className="text-[var(--encre)]">
+              <option key={o.id} value={o.id}>
                 {o.nom}
               </option>
             ))}

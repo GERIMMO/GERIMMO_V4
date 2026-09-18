@@ -65,7 +65,7 @@ export default async function LayoutArtisan({
 
   return (
     <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
-      <header className="artisan-bandeau sticky top-0 z-20 border-b border-[var(--encre)] bg-[var(--encre)]">
+      <header className="artisan-bandeau bandeau-appli">
         <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">
           {/* 44 px de haut : c'est un lien de navigation, et on travaille ici
               debout, avec une main, parfois gantée. Le sigle ne mesurait que
@@ -75,14 +75,14 @@ export default async function LayoutArtisan({
             aria-label="Accueil de mon espace artisan"
             className="flex min-h-11 min-w-0 items-center"
           >
-            <MarqueGerimmo surEncre />
+            <MarqueGerimmo />
           </Link>
           <div className="flex shrink-0 items-center gap-1">
             <Link
               href="/espaces"
               title="Mes espaces"
               aria-label="Mes espaces"
-              className="flex size-11 items-center justify-center text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+              className="lien-bandeau size-11 justify-center"
             >
               <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
                 <rect x="4" y="4" width="7" height="7" rx="1.5" />
@@ -96,7 +96,7 @@ export default async function LayoutArtisan({
                 type="submit"
                 title="Se déconnecter"
                 aria-label="Se déconnecter"
-                className="flex size-11 items-center justify-center text-[var(--sur-encre)]/75 hover:text-[var(--sur-encre)]"
+                className="lien-bandeau size-11 justify-center"
               >
                 <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
                   <path d="M9 4h-4v16h4" strokeLinecap="round" />
@@ -106,7 +106,7 @@ export default async function LayoutArtisan({
             </form>
           </div>
         </div>
-        <p className="mx-auto w-full max-w-[960px] px-4 pb-2 text-[0.8125rem] text-[var(--sur-encre)]/70">
+        <p className="mx-auto w-full max-w-[960px] px-4 pb-2 text-[0.8125rem] text-[var(--texte-secondaire)]">
           {fiche ? fiche.raison_sociale : "Espace artisan"}
         </p>
       </header>

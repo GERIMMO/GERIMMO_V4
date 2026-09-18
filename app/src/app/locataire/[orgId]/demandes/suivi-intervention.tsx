@@ -181,9 +181,14 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
         detail: `${artisan} doit confirmer l'une d'elles. Vous n'avez rien à faire d'ici là.`,
       };
     case "planifiee":
+      // La promesse de rappel est revenue le 18/09 : elle avait été retirée le
+      // 11/09 parce que rien ne l'honorait (RM-10.5 n'existait pas). La tâche
+      // `/api/cron/rappels` l'envoie désormais la veille, et sept jours avant
+      // quand le rendez-vous est posé assez tôt. On peut la promettre parce
+      // qu'on la tient.
       return {
         titre: s.rdv_debut && s.rdv_fin ? `Rendez-vous ${plage(s.rdv_debut, s.rdv_fin)}` : "Rendez-vous fixé",
-        detail: `${artisan} intervient chez vous. Prévoyez d'être présent, ou de faire ouvrir.`,
+        detail: `${artisan} intervient chez vous. Prévoyez d'être présent, ou de faire ouvrir — nous vous le rappellerons la veille.`,
       };
     case "en_cours":
       return {

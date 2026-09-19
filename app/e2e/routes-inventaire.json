@@ -42,9 +42,27 @@
   "dynamic": ""
  },
  {
+  "path": "/compte",
+  "persona": "agent",
+  "label": "Sécurité du compte (mot de passe, second facteur)",
+  "dynamic": ""
+ },
+ {
+  "path": "/compte",
+  "persona": "locataire",
+  "label": "Sécurité du compte (locataire)",
+  "dynamic": ""
+ },
+ {
   "path": "/admin",
   "persona": "superadmin",
   "label": "Console d'administration (accueil)",
+  "dynamic": ""
+ },
+ {
+  "path": "/admin/clients",
+  "persona": "superadmin",
+  "label": "Clients (agences, propriétaires, artisans)",
   "dynamic": ""
  },
  {

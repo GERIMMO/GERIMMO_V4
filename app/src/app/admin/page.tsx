@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
+import { familleOrganisation } from "@/lib/clients-supervision";
 
 export const metadata = { title: "Console d'administration — Gerimmo" };
 
@@ -107,6 +107,8 @@ export default async function PageAdmin() {
   const enEchec = [orgs.error, devis.error, publications.error, lots.error, artisans.error, retours.error, contestations.error].filter(Boolean);
   const organisations = (orgs.data ?? []) as Organisation[];
   const parStatut = (s: string) => organisations.filter((o) => o.status === s).length;
+  const agences = organisations.filter((o) => familleOrganisation(o.type) === "agence").length;
+  const proprietairesDirects = organisations.length - agences;
   const aEcrire = (publications.data ?? []).filter(
     (p) => p.statut === "proposition" || p.statut === "brouillon"
   ).length;
@@ -189,67 +191,38 @@ export default async function PageAdmin() {
 
       </section>
 
-      {/* Le parc d'organisations */}
+      {/* LES CLIENTS ONT LEUR ÉCRAN (19/09) : la liste complète vivait ici, à
+          plat, agences et propriétaires mêlés et les artisans absents. Deux
+          listes divergentes valent moins qu'une : celle-ci renvoie à l'autre,
+          en disant seulement combien ils sont. */}
       <section className="section-ecran">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
-            Organisations
-          </h2>
+          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">Clients</h2>
           <span className="mono-discret">{orgs.error ? "—" : organisations.length}</span>
         </div>
-
-        {orgs.error ? <p>La liste des organisations est indisponible. Rechargez la page pour la consulter.</p> : organisations.length === 0 ? (
-          <div className="vide-guide">
-            <p className="titre">Aucune organisation</p>
-            <p className="explication">
-              Les propriétaires bailleurs ouvrent leur espace eux-mêmes depuis le
-              site ; les agences sont créées ici après contrat. La première
-              demande de devis arrivera dans la file ci-dessus.
-            </p>
-          </div>
+        {orgs.error ? (
+          <p>La liste des clients est indisponible. Rechargez la page pour la consulter.</p>
         ) : (
-          <div className="border border-[var(--filet)] bg-[var(--ivoire)]">
-            {organisations.map((o) => (
-              <Link
-                key={o.id}
-                href={`/admin/organisations/${o.id}`}
-                className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[var(--filet-leger)] px-4 py-3 last:border-b-0 hover:bg-[var(--survol)]"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate text-[14px] text-[var(--corps)]">{o.name}</span>
-                  {o.type && (
-                    <span className="mono-discret sans-majuscules !text-[10px]">
-                      {o.type === "proprietaire_direct" ? "propriétaire en direct" : "agence"}
-                    </span>
-                  )}
-                </span>
-                <span className="flex items-center gap-2">
-                  {o.status === "essai" && o.essai_fin && (
-                    <span className="mono-discret sans-majuscules !text-[10px]">
-                      jusqu&apos;au{" "}
-                      {new Date(o.essai_fin).toLocaleDateString("fr-FR", {
-                        day: "2-digit",
-                        month: "short",
-                      })}
-                    </span>
-                  )}
-                  <span
-                    className={`puce ${
-                      o.status === "active"
-                        ? "puce-loue"
-                        : o.status === "essai"
-                          ? "puce-prep"
-                          : o.status === "suspendue"
-                            ? "puce-rouge"
-                            : "puce-grise"
-                    }`}
-                  >
-                    {LIBELLES_STATUT_ORGANISATION[o.status] ?? o.status}
-                  </span>
-                </span>
-              </Link>
-            ))}
-          </div>
+          <Link
+            href="/admin/clients"
+            className="group flex items-center justify-between gap-3 border border-[var(--filet)] bg-[var(--ivoire)] p-4 transition-colors hover:bg-[var(--survol)]"
+          >
+            <span className="min-w-0">
+              <span className="block font-heading text-[16px] text-[var(--encre)]">
+                {agences} agence{agences > 1 ? "s" : ""} · {proprietairesDirects} propriétaire
+                {proprietairesDirects > 1 ? "s" : ""} bailleur
+                {proprietairesDirects > 1 ? "s" : ""}
+                {artisans.error ? "" : ` · ${(artisans.data ?? []).length} artisan${(artisans.data ?? []).length > 1 ? "s" : ""} en attente`}
+              </span>
+              <span className="mt-1 block text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
+                Les trois familles, leurs fiches, et l&apos;entrée dans leur
+                espace.
+              </span>
+            </span>
+            <span className="lien-discret shrink-0 text-[12.5px] group-hover:underline">
+              Ouvrir →
+            </span>
+          </Link>
         )}
       </section>
     </main>

@@ -1,6 +1,16 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+// « Sommes-nous dans le navigateur ? », posé comme React veut qu'on le pose :
+// une source extérieure qui ne change jamais, un instantané `false` au rendu
+// serveur et `true` au client. Un `useState` + `useEffect` dirait la même
+// chose, mais en écrivant un état depuis un effet — ce que la règle de pureté
+// refuse, et elle a raison : ce n'est pas un changement, c'est un constat.
+const RIEN_A_ECOUTER = () => () => {};
+const AU_NAVIGATEUR = () => true;
+const AU_SERVEUR = () => false;
 
 // Modale unique de la charte (maquette .voile/.modale, recette 22/08) : le
 // dépôt portait trois implémentations divergentes — voile encre 35 %, boîte
@@ -42,6 +52,23 @@ export function Modale({
   fermer: () => void;
   children: ReactNode;
 }) {
+  // LA FENÊTRE VIT DANS <body>, PAS LÀ OÙ ELLE EST ÉCRITE, et c'est le
+  // correctif du 19/09. `position: fixed` ne se règle sur la FENÊTRE que si
+  // aucun ancêtre ne forme un bloc conteneur — et `backdrop-filter`,
+  // `transform`, `filter`, `perspective` ou `will-change` en forment un.
+  // Depuis la charte v3, le bandeau collant `.bandeau-appli` porte
+  // `backdrop-filter: blur(8px)` ; la synthèse d'alertes, écrite DANS ce
+  // bandeau (console, espaces agence, « Mes espaces »), s'y repliait donc :
+  // `inset-0` se résolvait sur les soixante pixels du bandeau, et la modale
+  // s'ouvrait coupée en deux — on lisait « DONT 6 CRITIQUES » et la moitié du
+  // titre, rien d'autre. Capture du porteur du projet, console
+  // d'administration.
+  //
+  // Le portail règle la classe entière de ces pannes : d'où qu'une modale
+  // soit écrite, elle se pose au même endroit. Retirer le `backdrop-filter`
+  // n'aurait réparé que ce bandeau-ci, jusqu'au prochain ancêtre animé.
+  const monte = useSyncExternalStore(RIEN_A_ECOUTER, AU_NAVIGATEUR, AU_SERVEUR);
+
   useEffect(() => {
     const surTouche = (e: KeyboardEvent) => {
       if (e.key === "Escape") fermer();
@@ -57,7 +84,11 @@ export function Modale({
     };
   }, [fermer]);
 
-  return (
+  // Rien avant le montage : le portail exige `document`, et une modale ne
+  // s'ouvre jamais au premier rendu du serveur.
+  if (!monte) return null;
+
+  return createPortal(
     <div
       // max-w-[100vw] n'est pas une ceinture de sécurité décorative (constat de
       // rendu du 11/09, à 390 px) : quand le document est plus large que la
@@ -123,6 +154,7 @@ export function Modale({
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">{children}</div>
         {pied && <div className="border-t border-border px-5 py-2.5 text-right">{pied}</div>}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

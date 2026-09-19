@@ -21,10 +21,13 @@ import { entrerDansEspace, sansSyntheseAlertes } from "./aides";
 // l'ancien chemin s'effaçait.
 
 const PERSONAS = [
-  { nom: "agent", etat: "agent.json", espace: "agence" as const, attendus: ["Profil de l'agence", "Mes espaces"] },
-  { nom: "admin", etat: "admin.json", espace: "agence" as const, attendus: ["Profil de l'agence", "Mes espaces"] },
-  { nom: "propriétaire", etat: "proprietaire.json", espace: "agence" as const, attendus: ["Mon profil", "Mes espaces"] },
-  { nom: "locataire", etat: "locataire.json", espace: "locataire" as const, attendus: ["Mes espaces"] },
+  // « Sécurité du compte » (19/09) : le seul chemin vers son mot de passe et
+  // son second facteur. Il manquait à tous les espaces — le locataire et
+  // l'artisan n'en avaient AUCUN.
+  { nom: "agent", etat: "agent.json", espace: "agence" as const, attendus: ["Profil de l'agence", "Sécurité du compte", "Mes espaces"] },
+  { nom: "admin", etat: "admin.json", espace: "agence" as const, attendus: ["Profil de l'agence", "Sécurité du compte", "Mes espaces"] },
+  { nom: "propriétaire", etat: "proprietaire.json", espace: "agence" as const, attendus: ["Mon profil", "Sécurité du compte", "Mes espaces"] },
+  { nom: "locataire", etat: "locataire.json", espace: "locataire" as const, attendus: ["Sécurité du compte", "Mes espaces"] },
 ];
 
 test.beforeEach(async ({ page }) => {

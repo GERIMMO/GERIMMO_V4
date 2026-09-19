@@ -80,23 +80,21 @@ export default async function PageEspaces() {
   const estArtisan =
     adhesionsArtisan.length > 0 || ((artisan ?? []) as unknown[]).length > 0;
 
-  // Le super admin voit TOUTES les organisations (décision Tahir 09/09 :
-  // « toutes les autorisations ») — une carte de supervision par espace,
-  // en plus de sa console.
   const estSuperAdmin = adhesions.some((a) => a.role === "super_admin");
-  const idsAdhesions = new Set(adhesions.map((a) => a.organization?.id).filter(Boolean));
-  let supervision: { id: string; name: string; type: string; status: string }[] = [];
-  let erreurSupervision = false;
-  if (estSuperAdmin) {
-    const { data: orgs, error } = await supabase
-      .from("organizations")
-      .select("id, name, type, status")
-      .order("name");
-    erreurSupervision = Boolean(error);
-    supervision = (
-      (orgs ?? []) as { id: string; name: string; type: string; status: string }[]
-    ).filter((o) => !idsAdhesions.has(o.id));
-  }
+
+  // LA SUPERVISION VA DROIT À SA CONSOLE (demande du porteur du projet, 19/09 :
+  // « j'aimerai tout le temps accéder à la console administrateur »).
+  //
+  // Elle atterrissait ici sur un sélecteur portant sa console ET une carte par
+  // organisation de la plateforme — un choix à refaire à chaque connexion, et
+  // une liste qui grandit avec le nombre de clients. Les espaces clients
+  // restent atteignables, mais par la porte qui a du sens : la fiche du client,
+  // dans « Clients », avec son bouton « Entrer dans son espace » et la
+  // journalisation de la traversée (RM-A1.11).
+  //
+  // Le sélecteur n'est pas perdu pour autant : il reste l'écran des comptes
+  // multirôles ordinaires, et la console y ramène.
+  if (estSuperAdmin) redirect("/admin");
 
   // Locataire sorti (chantier D2) : l'adhésion désactivée garde un accès en
   // LECTURE à son espace — quittances, décompte de restitution, justificatifs.
@@ -148,15 +146,15 @@ export default async function PageEspaces() {
   // L'artisan n'a qu'UNE destination, même avec trois adhésions : elles mènent
   // toutes à son portail, qui réunit les agences. Une page à une seule carte
   // n'apporterait rien — on y entre directement.
-  if (!accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0 && !estSuperAdmin) {
+  if (!accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0) {
     redirect("/artisan");
   }
 
-  // Une seule adhésion (et pas d'ancien espace) : entrée directe — sauf le
-  // super admin, qui choisit entre sa console et les espaces supervisés.
+  // Une seule adhésion (et pas d'ancien espace) : entrée directe. Le super
+  // admin est déjà parti vers sa console plus haut.
   // `!estArtisan` : un gérant qui est aussi artisan a deux destinations, même
   // si l'une d'elles ne tient pas encore à une adhésion.
-  if (!accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0 && !estSuperAdmin) {
+  if (!accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -191,13 +189,6 @@ export default async function PageEspaces() {
             {erreurOuverture
               ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
               : "Aucun accès actif n'est associé à votre compte. Rapprochez-vous de votre agence."}
-          </p>
-        )}
-
-        {erreurSupervision && (
-          <p className="mb-2.5 text-sm text-muted-foreground">
-            Impossible de charger les espaces supervisés — rechargez dans un
-            instant.
           </p>
         )}
 
@@ -260,32 +251,10 @@ export default async function PageEspaces() {
               <span key={a.id}>{carte}</span>
             );
           })}
-          {supervision.map((o) => (
-            <Link key={o.id} href={`/agence/${o.id}`}>
-              <span className="carte-espace">
-                <span className="pastille-marque flex size-9.5 shrink-0 items-center justify-center rounded-full text-[13px]">
-                  {o.name
-                    .split(/\s+/)
-                    .map((x) => x[0])
-                    .slice(0, 2)
-                    .join("")
-                    .toUpperCase()}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium">
-                    {o.type === "proprietaire_direct"
-                      ? "Espace propriétaire (supervision)"
-                      : "Espace agence (supervision)"}
-                  </span>
-                  <span className="block text-xs text-muted-foreground">
-                    {o.name}
-                    {o.status === "suspendue" && " · suspendue"}
-                    {o.status === "archivee" && " · archivée"}
-                  </span>
-                </span>
-              </span>
-            </Link>
-          ))}
+          {/* Les cartes « espace supervisé » vivaient ici : une par
+              organisation de la plateforme, que le super admin devait trier à
+              chaque connexion. Elles ont laissé la place à la console, où la
+              fiche de chaque client porte son bouton d'entrée (19/09). */}
           {anciens.map((m) => (
             <Link key={m.id} href={`/locataire/${m.orgId}`}>
               <span className="flex w-full items-center gap-3.5 border border-border bg-card px-4.5 py-4 text-left opacity-80 transition-all hover:translate-x-[3px] hover:border-[var(--encre)]">

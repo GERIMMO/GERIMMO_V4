@@ -34,7 +34,11 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <NavAdmin />
             <SyntheseAlertes alertes={alertes} modeAdmin rappel />
-            <Link href="/securite" className="lien-bandeau">Sécurité du compte</Link>
+            {/* Vers /compte, pas /securite (19/09) : le sas de supervision ne
+                sait que faire ENTRER, et se contente d'annoncer « votre session
+                est protégée » à qui l'a déjà franchi. Le mot de passe et le
+                second facteur s'entretiennent dans le compte. */}
+            <Link href="/compte" className="lien-bandeau">Sécurité du compte</Link>
             <form action={seDeconnecter}>
               <button type="submit" className="lien-bandeau">
                 Se déconnecter

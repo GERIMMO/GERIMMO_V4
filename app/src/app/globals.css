@@ -90,7 +90,13 @@
   --sur-encre: #ffffff;         /* texte posé sur la marine */
   --corps: #151b2b;             /* corps de texte */
   --texte-secondaire: #5b6478;
-  --libelle: #6b7386;
+  /* #6b7386 jusqu'au 19/09, et il tombait SOUS le seuil AA : 4,44 contre le
+     fond de page #f6f7fb, pour un minimum de 4,5 (WCAG 1.4.3). Toutes les
+     surtitres, libellés de champ et en-têtes de tableau du produit portent
+     cette couleur — axe-core en relevait douze, sur huit écrans. Assombri d'un
+     cran : 5,06 sur le fond de page, 5,42 sur une carte, 4,97 sur un rang
+     survolé. L'œil ne voit pas la différence ; la norme, si. */
+  --libelle: #626a7d;
 
   /* Nuances dérivées (promues en jetons le 2026-09-11) */
   --survol: #f3f5fa;            /* fond d'un rang survolé ou actif */

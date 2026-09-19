@@ -181,7 +181,11 @@ test.describe("Côté locataire", () => {
     expect(texte).not.toContain("Mise en demeure");
     expect(texte).not.toContain("Règlement partiel");
     // Le pied ne l'envoie pas dans l'espace agence, où il n'entre pas.
-    await expect(f.getByRole("link", { name: "Voir mon bail en entier" })).toHaveAttribute(
+    // Libellé « Voir les détails de mon bail » depuis d85df82 ; l'assertion
+    // visait encore l'ancien (« Voir mon bail en entier ») et ne l'a jamais
+    // signalé — toute la suite navigateur était bloquée par le sas MFA du
+    // setup, donc ce test ne tournait plus (constat du 19/09).
+    await expect(f.getByRole("link", { name: "Voir les détails de mon bail" })).toHaveAttribute(
       "href",
       /^\/locataire\//
     );

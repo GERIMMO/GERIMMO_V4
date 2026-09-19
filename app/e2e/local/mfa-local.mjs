@@ -21,6 +21,22 @@ export function totp(secret, timestamp = Date.now(), chiffres = 6) {
   return String((h.readUInt32BE(position) & 0x7fffffff) % (10 ** chiffres)).padStart(chiffres, '0');
 }
 const facteurs = new Map(), challenges = new Map();
+
+/**
+ * Vide le magasin — banc uniquement, jamais appelé par l'application.
+ *
+ * Les facteurs vivent en mémoire : ils survivent donc au harnais, pas au
+ * redémarrage de l'émulateur. Sans remise à zéro, `auth.setup.ts` ne pouvait
+ * tourner qu'UNE fois par processus : au deuxième passage, /securite voyait le
+ * facteur du passage précédent, n'offrait plus « Configurer mon application »,
+ * et le setup mourait sur un bouton absent — en emportant toute la suite
+ * navigateur (constat du 19/09).
+ */
+export function oublierFacteurs() {
+  facteurs.clear();
+  challenges.clear();
+}
+
 export function facteursPour(compte) {
   return [...facteurs.values()].filter(f => f.compte === compte).map(f => ({
     id: f.id, friendly_name: f.friendly_name, factor_type: 'totp', status: f.status,

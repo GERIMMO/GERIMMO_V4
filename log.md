@@ -4682,3 +4682,236 @@ exige. Corrigés. Banc reconstruit avec les 190 migrations : suite complète
 build verts. **Migration à appliquer en production avant la mise en ligne du
 code** — sur le mot du porteur du projet, comme ce matin. L'avantage du
 parrainage reste sa décision.
+
+## [2026-09-19] implementation | Parrainage en production, PR #62 fusionnée — tout est publié
+
+« Accord » du porteur du projet. Migration `20260919120000_parrainage.sql`
+passée par le chantier « Migrations Supabase » depuis les fichiers de la
+branche : simulation (run #30 — `BEGIN → ROLLBACK` sans erreur, garde
+d'abonnement à 60 tables inchangée puisque `parrainages` n'a pas
+d'`organization_id`, `fermer_fonctions_a_anon` rend 0) puis application
+(run #31). Vérification en base : **19 contrôles sur 19** — colonne
+`code_parrainage` non nulle et son index unique, déclencheur posé, table
+`parrainages` avec son unicité de filleul, sa contrainte « pas soi-même », sa
+RLS, sa politique de lecture et son grant en lecture seule, fonction
+`enregistrer_parrainage` présente, fonctions du déclencheur fermées à `anon`
+et `authenticated` ; toutes les organisations ont un code, tous distincts et
+bien formés ; aucun parrainage enregistré.
+
+PR #62 fusionnée dans `main` (`402a8b1`), CI verte sur `95bc19f`. **Plus rien
+en attente** : les trois fonctionnalités du 18/09, la refonte des écrans, la
+modale d'alerte, le territoire, les capteurs, la ronde mensuelle et le
+parrainage sont tous en ligne, base à jour.
+
+Décisions qui restent au porteur du projet : l'avantage du parrainage, le
+budget par département, les seuils de santé, le compte annonceur Meta, les
+mentions de l'éditeur, et l'ouverture réseau des sources publiques pour que le
+marché se remplisse.
+
+## [2026-09-19] exploitation | Un seul super admin, et son mot de passe renouvelé
+
+Demande du porteur du projet. Constat qui la motive : `superadmin@gerimmo-demo.fr`
+était **super admin actif en production avec le mot de passe écrit dans le
+dépôt** (`app/supabase/seed.sql`, `Gerimmo-Demo-2026`) — un accès total à
+toutes les organisations, ouvert à quiconque lit le code.
+
+Deux gestes en base, sur accord explicite :
+1. Mot de passe de `tahir.brahim.pro@gmail.com` renouvelé (bcrypt via pgcrypto,
+   comme GoTrue l'attend) — à changer à la première connexion.
+2. Adhésion `super_admin` de `superadmin@gerimmo-demo.fr` passée à `inactive` —
+   désactivée, pas supprimée : réversible, et l'historique reste lisible.
+   `is_super_admin()` lit `memberships`, le droit tombe donc immédiatement.
+
+Vérifié en base : un seul super admin actif, le nouveau mot de passe répond.
+Aucun code de production ne référence le compte de démonstration (il ne vit que
+dans `seed.sql`, `tests/api-isolation`, `e2e/auth.setup` et `seed-parcours`,
+tous sur le banc local — les tests ne sont pas touchés).
+
+Reste ouvert, moins grave mais réel : les sept autres comptes
+`@gerimmo-demo.fr` gardent le même mot de passe public et un accès **aux seules
+organisations de démonstration** (Agence Alpha, Agence Beta, Parc de Claire
+Moreau — 18 lots, 5 baux fictifs). À arbitrer le jour où une vraie agence
+entrera : soit renouveler leurs mots de passe, soit archiver ces organisations.
+
+## [2026-09-19] implementation | Le bandeau collant avalait les modales
+
+Bug rapporté par le porteur du projet, capture à l'appui : dans la console
+d'administration, la synthèse d'alertes s'ouvre **coupée en deux** — « DONT 6
+CRITIQUES » et la moitié du titre, rien d'autre.
+
+La cause n'est pas la modale mais son ancêtre. `position: fixed` ne se règle
+sur la fenêtre que si aucun ancêtre ne forme un bloc conteneur ; or
+`backdrop-filter` en forme un, comme `transform`, `filter`, `perspective` et
+`will-change`. La charte v3 a posé `backdrop-filter: blur(8px)` sur
+`.bandeau-appli`, et la synthèse est écrite **dans** ce bandeau : son
+`inset-0` se résolvait sur ses soixante pixels. Quatre écrans touchés (console,
+les deux layouts agence, « Mes espaces »), depuis le 18/09.
+
+Corrigé par un **portail** : `Modale` se monte dans `<body>`, d'où qu'elle soit
+écrite — les treize modales du produit sont couvertes d'un coup. Retirer le
+`backdrop-filter` n'aurait réparé que ce bandeau, jusqu'au prochain ancêtre
+animé. Le montage se détecte par `useSyncExternalStore` et non par un
+`setState` dans un effet, que la règle de pureté refuse à raison.
+
+L'épreuve navigateur `arrivee-alertes` — qui vérifiait la largeur depuis le
+11/09 — mesure désormais aussi le **voile** : il doit couvrir toute la hauteur,
+sans quoi un ancêtre capture le `position: fixed`. C'est le contrôle qui
+manquait.
+
+Suite complète contre le banc : 1 316 tests verts ; lint, types, build verts.
+Aucune migration. Leçon consignée dans [[Charte visuelle v3 bleue]].
+
+## [2026-09-19] implementation | Sécurité du compte : changer son mot de passe et son second facteur
+
+**Ce qui manquait.** Un utilisateur connecté n'avait **aucun** moyen de changer
+son mot de passe : le seul chemin passait par « Mot de passe oublié », donc par
+un email. Et **aucun moyen du tout** de remplacer son second facteur. Le
+porteur du projet s'est retrouvé enfermé dehors le 19/09 quand son trousseau a
+perdu la clé TOTP ; seule une intervention en base a rouvert le compte. Un
+produit qui exige une intervention manuelle pour un geste aussi banal n'est pas
+fini.
+
+**Ce qui est posé** — `/compte`, « Sécurité du compte », pour tout le monde :
+- *Identifiants* : adresse de connexion, dernière connexion, et le fait dit
+  franchement que l'adresse ne se change pas depuis là.
+- *Mot de passe* : le mot de passe **actuel est exigé et vérifié** (sur un
+  client jetable, jamais sur la session en cours, refermé aussitôt) — sans quoi
+  un poste laissé déverrouillé une minute suffirait à voler le compte. Les
+  autres appareils tombent, l'appareil courant reste ouvert.
+- *Double authentification* : activer, **remplacer**, **retirer**. L'ordre des
+  gestes est imposé par Supabase — un facteur vérifié ne se retire pas depuis
+  une session restée en aal1 (403) — donc l'écran demande le code **avant** de
+  montrer ces boutons, au lieu de laisser buter dessus.
+- L'écran dit aussi pourquoi un trousseau qui range mot de passe et code dans
+  la même fiche les perd ensemble : c'est exactement ce qui est arrivé.
+
+`/securite` reste le **sas** de supervision (le proxy y envoie le super admin
+avant aal2) ; `/compte` est derrière la vérification et sert à entretenir son
+compte. Le lien a été ajouté dans les quatre espaces — le locataire et
+l'artisan n'en avaient aucun.
+
+**Au passage** : le harnais Playwright ne pouvait plus ouvrir de session
+superadmin (le sas MFA, jamais franchi par `auth.setup.ts`) — donc **aucune**
+spec ne tournait. Le setup franchit désormais le sas comme un humain.
+
+**Vérification** : 1 326 tests au vert (dont 10 neufs), 2 specs navigateur
+neuves passées contre l'émulateur avec un vrai calcul TOTP, 20/20 sur
+`menu-compte` + `compte-securite`, lint, types et build au vert. Aucune
+migration.
+
+## [2026-09-19] implementation | La console de supervision : « Clients », et l'entrée dans leur espace
+
+**Trois demandes du porteur du projet.** « J'aimerai tout le temps accéder à la
+console administrateur » ; « lorsque je clique sur clients (au lieu de
+inscriptions artisan) je veux avoir une partie avec les artisans (ceux en
+attente de validation en évidence), une partie agences et une partie
+propriétaires bailleurs » ; « lorsque je clique sur un des clients, je veux voir
+sa fiche complétée avec un bouton pour entrer dans sa session ».
+
+**1. La supervision va droit à sa console.** `/espaces` lui présentait un
+sélecteur portant sa console ET une carte par organisation de la plateforme —
+un choix à refaire à chaque connexion, et une liste qui grandit avec le nombre
+de clients. Le super admin est désormais redirigé vers `/admin`. Les cartes
+« espace supervisé » ont disparu du sélecteur : la porte d'entrée est la fiche
+du client.
+
+**2. « Clients » remplace « Inscriptions artisan » dans la barre.** L'entrée
+portait le nom d'une file d'attente, pas d'une population ; les agences et les
+propriétaires n'avaient aucune entrée. `/admin/clients` réunit les trois
+familles : artisans d'abord (les inscriptions en attente en tête, liseré or et
+bandeau de rappel vers l'écran de décision), puis agences, puis propriétaires
+bailleurs. `/admin/artisans` reste l'écran où l'on valide et refuse.
+
+**3. Les fiches.** Celle d'une organisation portait deux cartes (adhésions,
+personnes) et rien d'autre : ni adresse, ni contact, ni SIRET, ni état de
+l'abonnement, ni parc. Elle porte maintenant l'identité complète, le parc
+(lots, baux, personnes), le parrainage (code, parrain, filleuls), les comptes
+rattachés — et le bouton **« Entrer dans son espace »**. La fiche artisan est
+nouvelle : identité, vérifications, métiers, zones, justificatifs, historique
+des décisions, et les gestes de décision sur place.
+
+> [!warning] Pas de bouton d'entrée pour un artisan, et ce n'est pas un oubli
+> Le portail artisan se lit depuis `mon_artisan_id()`, déduite de `auth.uid()`
+> sans paramètre forgeable (module 8). La supervision ne peut pas s'y
+> substituer, et le produit n'a aucun mécanisme d'usurpation. On n'en a pas
+> inventé un pour une commodité de navigation : la fiche montre tout ce que la
+> supervision peut lire, et dit pourquoi il n'y a pas de bouton.
+
+**Deux défauts d'accessibilité trouvés en vérifiant, et réparés.**
+- `--libelle` valait `#6b7386`, soit **4,44** de contraste sur le fond de page
+  pour un minimum AA de 4,5 (WCAG 1.4.3). Tous les surtitres, libellés de champ
+  et en-têtes de tableau du produit portent cette couleur : axe-core en relevait
+  **douze, sur huit écrans**. Assombri à `#626a7d` (5,06 sur le fond, 5,42 sur
+  une carte) — une seule ligne, douze violations éteintes.
+- Les trois tableaux de `/admin/territoire` défilaient à la souris seulement :
+  au clavier, les colonnes de droite étaient inatteignables. `tabIndex` posé sur
+  les conteneurs.
+
+La suite d'accessibilité est **entièrement verte** : aucune violation sérieuse
+ni critique, tous personas et tous écrans confondus.
+
+**Vérification** : 1 332 tests au vert (dont 6 neufs), 4 specs navigateur neuves
+sur la console, la suite a11y verte, lint, types et build au vert. Aucune
+migration.
+
+## [2026-09-19] implementation | Entrer dans la session d'un artisan, pour de vrai
+
+**La demande.** Après une première réponse en lecture seule : « je veux pas une
+simple vue, je souhaite entrer dans sa session comme si j'étais l'artisan ».
+
+**Ce que la plateforme savait déjà faire.** Entrer dans l'espace d'une
+**agence** n'a jamais été une usurpation : la supervision y entre avec **sa
+propre identité**, la RLS la laisse passer, la traversée s'inscrit au journal
+d'audit (RM-A1.11). Le portail artisan, lui, ne se lit pas par organisation
+mais par `mon_artisan_id()`, déduite de `auth.uid()` : il n'y avait aucune
+porte.
+
+**Ce qui est posé** (migration `20260919170000_session_supervision_artisan`) :
+- une **session de supervision** — une ligne qui dit « ce compte travaille dans
+  l'espace de cet artisan, jusqu'à telle heure ». Ouverte par une fonction
+  réservée à la supervision (AAL2), **une seule à la fois**, **expirée au bout
+  de trente minutes** ;
+- `mon_artisan_id()` la prend en compte. C'est la pièce maîtresse : les
+  **cinquante-quatre** points du produit qui s'appuient dessus — RPC de
+  lecture, RPC d'écriture, politiques RLS, accès au stockage — suivent **sans
+  être touchés**. La supervision voit et **fait** ce que fait l'artisan ;
+- un **bandeau rouge** en haut de chaque écran du portail : chez qui l'on est,
+  jusqu'à quand, et la sortie ;
+- ouverture et fermeture au **journal d'audit**, avec un motif facultatif.
+
+> [!warning] Ce que cela autorise, et le choix qui a été fait
+> Pendant une session ouverte, la supervision peut **écrire** ce que l'artisan
+> écrirait : accepter une sollicitation, déposer un devis, rendre un compte
+> d'intervention. Ce sont des engagements pris dans l'espace d'un tiers.
+>
+> **Aucun jeton n'est émis au nom de l'artisan**, et c'est délibéré :
+> `auth.uid()` reste celui du superviseur, donc tout ce qui enregistre un
+> auteur enregistre le superviseur. Une session Supabase forgée sous le compte
+> de l'artisan aurait rendu les deux gestes **indiscernables** — c'est ce qui
+> transforme un outil d'assistance en dénégation possible.
+>
+> Le droit se **revérifie à chaque lecture** : un compte qui perd la
+> supervision, ou dont la session retombe en AAL1, cesse aussitôt d'emprunter
+> l'identité, même si la ligne est encore ouverte.
+
+**Le banc était cassé, et on ne le savait pas.** Trois pannes trouvées en
+vérifiant, toutes de la même famille — `is_super_admin()` exige AAL2 depuis le
+14/09, et rien dans le harnais ne franchissait ce sas :
+1. `auth.setup.ts` n'ouvrait plus de session superadmin → **aucune** spec
+   navigateur ne tournait. Il franchit désormais le sas comme un humain, et la
+   remise à zéro des facteurs de l'émulateur le rend **rejouable**.
+2. `seed-parcours.mjs` s'arrêtait à `artisan_definir_siret_etat` (« Accès
+   refusé ») : l'artisan n'était jamais validé, donc aucune mission n'existait,
+   donc `parcours-artisan.spec.ts` échouait sur un agenda vide. Le seed pose et
+   retire son second facteur.
+3. `fenetre-lot.spec.ts` visait encore « Voir mon bail en entier », renommé en
+   « Voir les détails de mon bail » le jour de `d85df82`. Personne ne l'avait
+   vu : le test ne tournait plus.
+
+**Vérification** : 1 344 tests au vert (12 neufs sur la traversée, dont la
+preuve qu'une **écriture** d'artisan passe et qu'elle est bien rattachée à
+lui), suite navigateur complète au vert, lint, types et build au vert.
+
+> [!warning] Migration non appliquée
+> Elle est écrite, jouée et testée sur le banc ; la production attend l'accord
+> du porteur du projet.

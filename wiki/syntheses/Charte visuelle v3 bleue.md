@@ -146,6 +146,32 @@ Leçon : les grilles qui se règlent sur la **fenêtre** mentent dès qu'un écr
 deux colonnes. À l'intérieur d'un volet, d'une carte ou d'une modale, la mesure
 utile est celle du conteneur.
 
+## Troisième défaut de la charte v3 : le bandeau qui avalait les modales (19/09)
+
+Capture du porteur du projet, console d'administration : la synthèse d'alertes
+s'ouvre **coupée en deux** — on lit « DONT 6 CRITIQUES » et la moitié du titre,
+rien d'autre.
+
+La cause n'est pas la modale, c'est **son ancêtre**. `position: fixed` ne se
+règle sur la fenêtre que si aucun ancêtre ne forme un **bloc conteneur** ; or
+`backdrop-filter`, `transform`, `filter`, `perspective` et `will-change` en
+forment un. La charte v3 a posé `backdrop-filter: blur(8px)` sur
+`.bandeau-appli` (le bandeau blanc collant qui a remplacé les cinq bandeaux
+marine), et la synthèse d'alertes est écrite **dans** ce bandeau — console,
+espaces agence, « Mes espaces ». Son `inset-0` se résolvait donc sur les
+soixante pixels du bandeau.
+
+**Corrigé le 19/09 par un portail** : la modale se monte dans `<body>`, d'où
+qu'elle soit écrite. Retirer le `backdrop-filter` n'aurait réparé que ce
+bandeau-ci, jusqu'au prochain ancêtre animé ; le portail règle la classe
+entière. L'épreuve navigateur `arrivee-alertes` mesure désormais le **voile** :
+il doit couvrir toute la hauteur de la fenêtre.
+
+Leçon, jumelle de la précédente : un effet visuel posé sur un conteneur change
+le référentiel de tout ce qu'il contient. `backdrop-filter` n'est pas qu'un
+flou — c'est un nouveau repère pour les positions fixes de toute sa
+descendance.
+
 ## Ce qui reste ouvert
 
 > [!warning] Points à trancher

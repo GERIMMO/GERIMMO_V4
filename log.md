@@ -4575,3 +4575,25 @@ mensuelle. Le référentiel des 101 départements et de leurs régions est
 recopié du code officiel géographique ; la contiguïté n'y est pas, à sourcer
 pour le score. Suite à 623 tests, lint, types et build verts. Sur la branche,
 non publié.
+
+## [2026-09-19] implementation | Territoire — le score et la décision « où aller ensuite »
+
+Deuxième brique de [[Expansion territoriale autonome]], toujours sans
+migration. La **contiguïté des départements** est dérivée du fond de carte
+public (frontières partagées : au moins deux sommets communs), vérifiée sur
+des cas connus (Paris → 92, 93, 94 ; Essonne → 28, 45, 77, 78, 92, 94 ; Nord →
+02, 62, 80 ; Corse ; Finistère), et versionnée avec sa source, son empreinte
+et sa méthode — le script Node la reproduit. Le **score** met le marché en face
+de l'empreinte : logements loués 40 %, agences 20 %, zone tendue 15 %, part des
+voisins ouverts 25 %, chaque composante en rang de 0 à 100 parmi les
+candidats ; un null vaut zéro **et se dit**. La **décision** reste dans la
+région courante tant qu'un candidat y dépasse le seuil, sinon change de région
+automatiquement. La page `/admin/territoire` affiche la décision en une
+phrase, les dix meilleurs candidats avec leurs composantes et leurs manques.
+
+Constat bloquant pour la suite : depuis cet environnement, **seul GitHub
+répond** — data.gouv, l'annuaire des entreprises, geo.api.gouv et l'INSEE sont
+coupés par la politique réseau. Le fichier de marché est donc livré vide, avec
+ses trois sources nommées et le script qui le remplira ; les domaines à
+autoriser sont consignés dans la page. 42 tests sur les deux modules ; lint,
+types et build verts. PR #61 mise à jour.

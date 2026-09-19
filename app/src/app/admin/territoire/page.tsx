@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import voisinsFichier from "@/data/departements-voisins.json";
+import marcheFichier from "@/data/territoires-marche.json";
+import { decider, noterCandidats, type Marche, type Voisinage } from "@/lib/score-territoire";
 import {
   empreinteParDepartement,
   empreinteParRegion,
@@ -7,6 +10,12 @@ import {
   type LigneLot,
   type LigneOrganisation,
 } from "@/lib/territoire";
+
+const LIBELLES_MANQUANTS: Record<string, string> = {
+  logements_loues_prive: "logements loués",
+  agences: "agences",
+  communes_zone_tendue: "zone tendue",
+};
 
 export const metadata = { title: "Territoire — Gerimmo" };
 
@@ -41,6 +50,14 @@ export default async function PageTerritoire() {
     baux: (baux.data ?? []) as LigneBail[],
   });
   const regions = empreinteParRegion(empreinte.lignes);
+  // Brique 2 : le marché en face de l'empreinte, et la décision. Les données de
+  // marché sont un fichier versionné (src/data), rempli par script quand le
+  // réseau le permet ; tant qu'elles manquent, le score le dit ligne par ligne.
+  const marche = marcheFichier as Marche;
+  const voisinage = voisinsFichier.voisins as Voisinage;
+  const candidats = noterCandidats({ empreinte: empreinte.lignes, marche, voisinage });
+  const decision = decider(empreinte.lignes, candidats);
+  const sourcesManquantes = marche.sources.filter((s) => !s.recupere_le);
   const organisationsPlacees = empreinte.lignes.reduce(
     (n, l) => n + l.agences + l.proprietairesDirects,
     0
@@ -219,11 +236,116 @@ export default async function PageTerritoire() {
         </section>
       )}
 
+      {/* OÙ ALLER ENSUITE. La décision d'abord, en une phrase ; puis les dix
+          meilleurs candidats avec leurs composantes — et, pour chacun, ce que
+          le marché ne dit pas encore. Un score sans ses manques serait un
+          chiffre qui ment. */}
+      {!enEchec.length && (
+        <section className="section-ecran">
+          <div className="entete-carte mb-3">
+            <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
+              Où aller ensuite
+            </h2>
+            <span className="mono-discret">{candidats.length} candidats</span>
+          </div>
+
+          {decision.prochain ? (
+            <div
+              className={`rounded-xl border p-4 ${
+                decision.changementDeRegion
+                  ? "border-[var(--warning)] bg-[var(--warning-soft)]"
+                  : "border-[var(--or-filet)] bg-[var(--marque-clair)]"
+              }`}
+            >
+              <span className="eyebrow">
+                {decision.changementDeRegion ? "Changement de région" : "Prochain département"}
+              </span>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="font-heading text-xl font-semibold text-[var(--encre)]">
+                  {decision.prochain.nom}
+                  <span className="mono-discret ml-2">{decision.prochain.code}</span>
+                </span>
+                <span className="text-sm text-muted-foreground">{decision.prochain.region}</span>
+                <span className="puce puce-encre">score {decision.prochain.score}</span>
+              </div>
+              <p className="mt-2 text-sm">{decision.raison}</p>
+              {decision.prochain.manquants.length > 0 && (
+                <p className="mt-1 text-[13px] text-warning-soft-foreground">
+                  Noté sans :{" "}
+                  {decision.prochain.manquants.map((m) => LIBELLES_MANQUANTS[m] ?? m).join(", ")} —
+                  comptés zéro.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">{decision.raison}</p>
+          )}
+
+          {sourcesManquantes.length > 0 && (
+            <p className="mt-3 text-[13px] text-muted-foreground">
+              Le marché n&apos;est pas encore renseigné pour :{" "}
+              {sourcesManquantes.map((s) => s.libelle.toLowerCase()).join(" · ")}. Tant
+              qu&apos;il manque, seule la proximité départage — et chaque candidat le
+              dit. Script : <code>scripts/territoire/recuperer-marche.mjs</code>.
+            </p>
+          )}
+
+          {candidats.length > 0 && (
+            <div className="mt-4 overflow-x-auto">
+              <table className="tableau w-full min-w-[44rem] text-sm">
+                <caption className="sr-only">Les dix meilleurs départements candidats</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="text-left">Département</th>
+                    <th scope="col" className="text-left">Région</th>
+                    <th scope="col" className="text-right">Score</th>
+                    <th scope="col" className="text-right">Marché</th>
+                    <th scope="col" className="text-right">Agences</th>
+                    <th scope="col" className="text-right">Tension</th>
+                    <th scope="col" className="text-right">Proximité</th>
+                    <th scope="col" className="text-left">Voisins ouverts</th>
+                    <th scope="col" className="text-left">Manque</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {candidats.slice(0, 10).map((c) => (
+                    <tr key={c.code} className="border-t border-[var(--filet)]">
+                      <td className="py-2 pr-3">
+                        <span className="mono-discret mr-2">{c.code}</span>
+                        <span className="font-medium text-[var(--encre)]">{c.nom}</span>
+                      </td>
+                      <td className="py-2 pr-3 text-muted-foreground">{c.region}</td>
+                      <td className="py-2 pr-3 text-right font-semibold tabular-nums text-[var(--encre)]">
+                        {c.score}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{c.composantes.marche}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{c.composantes.agences}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{c.composantes.tension}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums">{c.composantes.proximite}</td>
+                      <td className="py-2 pr-3 text-[13px] text-muted-foreground">
+                        {c.voisinsOuverts.length > 0 ? c.voisinsOuverts.join(", ") : "—"}
+                      </td>
+                      <td className="py-2 text-[13px] text-warning-soft-foreground">
+                        {c.manquants.length > 0
+                          ? c.manquants.map((m) => LIBELLES_MANQUANTS[m] ?? m).join(", ")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
       <p className="mesure-lecture mt-6 text-xs text-muted-foreground">
-        Brique suivante : le marché en face de l&apos;empreinte — logements loués
-        (INSEE), agences en activité (SIRENE), zones tendues — pour noter les
-        départements candidats et ouvrir le suivant. Rien de tout cela n&apos;est
-        estimé : une donnée absente vaudra zéro, et se dira.
+        Le score : marché (logements loués, INSEE) 40 %, agences en activité
+        (SIRENE) 20 %, zone tendue 15 %, proximité (part des voisins déjà ouverts)
+        25 % — chaque composante en rang de 0 à 100 parmi les candidats. On reste
+        dans la région tant qu&apos;un candidat y dépasse le seuil ; sinon la
+        meilleure région prend le relais, automatiquement. Rien n&apos;est estimé :
+        une donnée absente vaut zéro, et se dit.
       </p>
     </main>
   );

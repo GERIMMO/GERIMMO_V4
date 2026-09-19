@@ -94,7 +94,7 @@ visibilité (pages locales, publicité) et le [[Parrainage|parrainage]].
 | Inscription en ligne, essai, paiement | **existe** |
 | Vitrine et journal | **existent** — sans déclinaison locale |
 | Tableau de bord par département (empreinte + santé) | **empreinte construite le 19/09** (`/admin/territoire`, console de supervision, sans migration) : organisations là où elles sont domiciliées, biens/lots/baux là où ils sont, inscriptions du mois, remontée par région, non-placés dits. La **santé** (signalements, résiliations, délais) reste à brancher — elle dépend des capteurs de [[Gerimmo en autonomie]]. |
-| Sources publiques et score | à construire — table des territoires, alimentée par INSEE, SIRENE, zones tendues |
+| Sources publiques et score | **score construit le 19/09** (`src/lib/score-territoire.ts`, pur, 15 tests) : marché 40 %, agences 20 %, tension 15 %, proximité 25 %, chaque composante en rang parmi les candidats ; on reste dans la région tant qu'un candidat y dépasse le seuil (20), sinon la meilleure région prend le relais — automatiquement. **Contiguïté dérivée du fond de carte** et versionnée (`src/data/departements-voisins.json`, source, empreinte, méthode, contrôles), pas écrite de mémoire. **Marché encore vide** (`src/data/territoires-marche.json`, trois sources nommées) : depuis l'environnement de développement, data.gouv, l'annuaire des entreprises et l'INSEE **ne répondent pas** (politique réseau) ; le script `scripts/territoire/recuperer-marche.mjs` les remplira dès qu'ils seront joignables. Tant qu'il manque, la page le dit ligne par ligne. |
 | Pages locales sur gabarit | à construire |
 | Parrainage | **n'existe pas** — à construire |
 | Publicité Instagram/Facebook pilotée | à construire — demande un compte publicitaire Meta et un accès d'API, au nom de l'entreprise |
@@ -121,8 +121,13 @@ visibilité (pages locales, publicité) et le [[Parrainage|parrainage]].
 > - **Identité de l'annonceur** : les mentions de l'éditeur sont encore
 >   incomplètes (`app/src/lib/editeur.ts`) ; sans elles, ni pages légales ni
 >   compte publicitaire au nom de l'entreprise.
-> - **Contiguïté des départements** : à sourcer d'un référentiel, pas à
->   écrire de mémoire.
+> - ~~Contiguïté des départements~~ → **dérivée le 19/09** des frontières partagées
+>   du fond de carte, avec contrôles connus ; versionnée avec sa source.
+> - **Réseau de l'environnement de développement** : pour que le marché se
+>   remplisse et que la routine mensuelle tourne seule, autoriser dans la
+>   politique réseau `recherche-entreprises.api.gouv.fr`, `api.insee.fr`,
+>   `www.insee.fr`, `www.data.gouv.fr`, `static.data.gouv.fr` et
+>   `geo.api.gouv.fr`. Sans cela, seule la proximité départage.
 > - **Prospection des agences** : le cadre exact (base légale, mentions,
 >   registre) est à établir avant le premier envoi ; jusque-là, la liste se
 >   prépare, rien ne part.

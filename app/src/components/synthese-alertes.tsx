@@ -237,11 +237,9 @@ export function SyntheseAlertes({
                         // dossier, dans l'onglet Incidents.
                         const cible = modeAdmin
                           ? `/admin/organisations/${a.organization_id}`
-                          : typeof a.details?.incident_id === "string"
-                            ? `/agence/${a.organization_id}/incidents?sel=${a.details.incident_id}`
-                            : cheminFicheAlerte(a, a.organization_id) ?? (membres
-                              ? null
-                              : `/agence/${a.organization_id}/alertes?traiter=${a.id}`);
+                          : cheminFicheAlerte(a, a.organization_id) ?? (membres
+                            ? null
+                            : `/agence/${a.organization_id}/alertes?traiter=${a.id}`);
                         return cible ? (
                           <Link
                             key={a.id}

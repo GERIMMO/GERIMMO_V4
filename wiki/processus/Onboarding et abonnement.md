@@ -130,10 +130,54 @@ quote-part, le locataire en place s'il y en a un.
 > existent pour empêcher. L'import pose les montants et les dates ; ce qui
 > manque pour activer est dit lot par lot par `lot_blocages_location`.
 
+## La reprise COMPTABLE (depuis le 18/09)
+
+L'import ci-dessus reprend les biens, les lots et les baux — pas l'argent.
+Depuis le 18/09, une seconde reprise prend les **soldes** :
+`/agence/[orgId]/comptabilite/reprise`, même forme que l'import du parc
+(gabarit, contrôle qui n'écrit rien, bascule ensuite).
+
+**Pourquoi les tables ne servaient à rien.** `reprises_portefeuille` et
+`reprise_soldes` étaient nées le 03/09 avec leur RLS activée, **aucune
+politique et aucun droit de table** : des coquilles fermées à double tour,
+qu'aucun code ne pouvait toucher. `mouvements_mandants`, le compte mandant,
+était dans le même cas. Les trois sont maintenant lisibles par les
+gestionnaires de leur organisation ; l'écriture passe par les fonctions, jamais
+en direct, parce que c'est le contrôle d'écart zéro qui donne son sens à la
+bascule.
+
+**L'écart zéro, concrètement.** L'agence annonce la trésorerie qu'elle reprend ;
+la somme des lignes qui représentent de l'argent qu'elle DÉTIENT doit l'égaler.
+N'y entrent donc ni un dépôt gardé par le propriétaire, ni une dette de
+locataire — ce n'est pas de l'argent chez elle. Tant que l'écart n'est pas nul,
+le bouton de bascule n'existe pas.
+
+**Où chaque euro atterrit** :
+
+| Nature | Ce que la bascule en fait |
+|---|---|
+| Dépôt de garantie détenu par l'agence | `depot_encaissements` du bail — là où la restitution et le solde de tout compte iront le chercher |
+| Dépôt détenu par le propriétaire | Enregistré et signalé ; hors trésorerie |
+| Avance du locataire | `encaissements` à la date de bascule : le prochain appel s'impute dessus |
+| Dette du locataire | **Non écrite** — voir ci-dessous |
+| Provisions et fonds mandants | `mouvements_mandants`, ventilés par propriétaire |
+
+> [!warning] Une dette de locataire n'est pas écrite au compte
+> Elle serait un appel de loyer pour une période que Gerimmo n'a pas connue :
+> elle polluerait l'échéancier et déclencherait des quittances fausses. Elle
+> est enregistrée dans la balance, signalée ligne à ligne, et reste à traiter
+> par le parcours de [[Relances et mise en demeure]]. Mieux vaut une dette
+> visible hors du compte qu'une écriture inventée dedans.
+
+**Ce qui bloque** (et pourquoi) : un dépôt sans détenteur — personne ne saurait
+qui le rend ; un dépôt déjà encaissé dans Gerimmo — le compter deux fois ; une
+ligne qu'aucun bail ni aucun propriétaire ne porte ; un type inconnu. La
+bascule est **définitive** : après elle, on corrige par écritures
+rectificatives.
+
 > [!warning] Ce qui manque encore
-> La **reprise de portefeuille comptable** (`reprises_portefeuille`,
-> `reprise_soldes`, balance d'ouverture à écart zéro) existe en base depuis le
-> 03/09 mais **aucun code ne l'utilise** : l'import courant reprend le parc,
-> pas les soldes (dépôts de garantie détenus, avances, fonds mandants). Une
-> agence qui bascule en cours d'exercice les saisit encore à la main.
+> Le **compte mandant ne vit pas encore au quotidien** : la reprise y écrit sa
+> balance d'ouverture et l'écran de comptabilité la donne à lire, mais aucun
+> mouvement courant (encaissement de loyer, versement au propriétaire,
+> honoraires, TVA) ne l'alimente. C'est le chantier suivant du module 16.
 

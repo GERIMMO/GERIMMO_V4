@@ -3,7 +3,7 @@ type: process
 tags: [planification, creneaux, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-11
+updated: 2026-09-18
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]"]
 ---
 
@@ -79,7 +79,27 @@ Le rendez-vous se négocie en deux tours, et la base tient les règles :
   le portail artisan rendait l'heure du serveur (UTC) : deux heures d'écart sur
   le même rendez-vous.
 
-> [!warning] Ce qui manque encore
-> **Le rappel de la veille** (RM-10.5) n'existe pas : aucune tâche, aucune
-> table ne le porte. L'écran du locataire l'annonçait ; la phrase a été retirée
-> plutôt que laissée à mentir. À construire avec les autres tâches planifiées.
+## Le rappel de rendez-vous (depuis le 18/09)
+
+RM-10.5 — « veille systématique, J-7 si posé assez tôt » — est **en place**. Une
+tâche quotidienne (`/api/cron/rappels`, 6 h UTC, tôt pour que le rappel
+précède les rendez-vous du matin) écrit **aux deux parties** : le locataire doit
+être là, l'artisan doit venir, et les deux absences ont les mêmes conséquences.
+
+Trois partis pris :
+- **Suivi par destinataire** (`intervention_rappels`, une ligne par destinataire
+  et par échéance) : l'adresse fausse de l'un ne prive pas l'autre de son
+  rappel, et la prochaine passe retente le premier.
+- **Des dates exactes, pas des fenêtres.** Si la tâche saute un jour, le rappel
+  est perdu — un message disant « demain » envoyé le matin même serait faux, et
+  un rappel faux est pire que pas de rappel. « Si posé assez tôt » ne s'écrit
+  nulle part : un rendez-vous fixé l'avant-veille n'a simplement pas de J-7.
+- **Pas de réglage d'agence**, contrairement aux quittances et aux avis
+  d'échéance : ces deux-là engagent la parole de l'agence sur des sujets
+  d'argent ; un rappel ne fait que répéter ce que les deux parties ont déjà
+  convenu. Le refuser laisserait locataires et artisans se manquer.
+
+Les deux messages sont **différents** : au locataire l'heure, la durée et quoi
+faire s'il ne peut pas ; à l'artisan l'adresse, le désordre et la référence du
+dossier. L'écran du locataire promet de nouveau le rappel — la phrase, retirée
+le 11/09 faute de quoi la tenir, est revenue avec la tâche qui la tient.

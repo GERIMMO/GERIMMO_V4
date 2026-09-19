@@ -3,7 +3,7 @@ type: synthesis
 tags: [charte, visuel, ux, design-system, vitrine, marque-blanche]
 status: stable
 created: 2026-09-17
-updated: 2026-09-18
+updated: 2026-09-19
 sources: ["[[2026-08-08-maquette-prototype-cliquable]]", "[[2026-09-04-maquette-v3-prototype]]"]
 ---
 
@@ -117,6 +117,34 @@ au typage comme au build — ils se voient à l'œil, sur un écran :
 Leçon : un remappage de jetons ne casse rien mécaniquement, il déplace les
 contrastes. Toute page qui écrivait clair sur un fond sombre est à revoir
 quand ce fond s'éclaircit.
+
+## Deuxième relevé, au doigt sur iPad (19/09/2026)
+
+Retour de l'humain sur trois écrans de l'espace agence — portefeuille, fiche de
+lot, loyers d'un bail : « trop monochrome, trop fade, pas joli et compliqué à
+comprendre ». Le diagnostic a séparé ce qui relevait du goût de ce qui relevait
+du **défaut mesurable** — il y en avait cinq.
+
+| Défaut | Cause | Correction |
+|---|---|---|
+| « QUITTANCEMENT » tronqué, « 939,76 € » sur trois lignes | `sm:grid-cols-3` compte les colonnes sur la largeur de la **fenêtre** ; dans le volet droit d'une vue scindée, chaque tuile tombait à 170 px | `.grille-kpi` en `auto-fit`/`minmax` — la grille compte sur **sa** place ; le chiffre se dimensionne en `cqi` |
+| Un sur-titre en capitales qui déborde de sa tuile | Capitales + interlettrage = **mot insécable** que le flex ne peut pas rétrécir | `overflow-wrap: anywhere` sur `.kpi .eyebrow` |
+| Titre de carte sur trois lignes pendant que la mention de droite est coupée | `.entete-carte` ne passait pas à la ligne hors mobile, et rien ne protégeait le titre | Retour à la ligne à toute largeur ; le titre prend la place, la mention garde la sienne |
+| « Lot unique » flottant dans une boîte blanche ajustée au mot | `.portail-ecrans .entete-page` est un sélecteur **descendant** : il transformait en carte un titre imbriqué dans une rangée flex | `EnteteFiche` n'emprunte plus la classe d'une barre de titre de page |
+| Sept rangées identiques sur la fiche d'un lot, dont une seule appelle un geste | `BadgeStatut` est « sans pastille ni fond » (charte v2) : « 1 MANQUANT » se perdait | Puce de statut v3 + liseré ambre sur la rangée |
+
+Sur le fond — le « monochrome » — la décision est que **la couleur dit l'état,
+elle ne décore pas**. Une tuile de chiffre porte le ton de la puce du même
+statut (vert « loué », ambre « en préparation », bleu pour l'argent, rouge pour
+un solde dû), de sorte qu'une couleur vue sur une tuile se retrouve dans la
+liste au-dessous. L'échéancier d'un bail, qui alignait huit éléments de même
+poids par ligne, devient une colonne : période et détail à gauche, montant
+aligné, statut toujours au même endroit, documents en grappe discrète à droite,
+liseré de statut à l'extrême gauche — l'impayé se voit sans se lire.
+
+Leçon : les grilles qui se règlent sur la **fenêtre** mentent dès qu'un écran a
+deux colonnes. À l'intérieur d'un volet, d'une carte ou d'une modale, la mesure
+utile est celle du conteneur.
 
 ## Ce qui reste ouvert
 

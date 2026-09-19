@@ -232,6 +232,19 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             ? "Vos encaissements et vos dépenses, sans honoraires. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible. Clôturer un mois est recommandé, jamais imposé."
             : "Le journal des encaissements et des dépenses de l'agence. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible. Chaque mois se clôture une fois pour toutes."}
         </p>
+        {/* La reprise des comptes ne concerne qu'une agence qui arrive avec un
+            portefeuille : on la propose au responsable, et on ne l'affiche plus
+            une fois la balance d'ouverture passée. */}
+        {!estProprietaire && role === "admin_agence" && (
+          <p className="mt-2 text-sm">
+            <a
+              href={`/agence/${orgId}/comptabilite/reprise`}
+              className="lien-discret inline-block py-2 sm:py-0"
+            >
+              Reprendre mes comptes — balance d&apos;ouverture →
+            </a>
+          </p>
+        )}
         {/* S9a : seul le propriétaire direct bénéficie de l'aide fiscale */}
         {estProprietaire && (
           <p className="mt-2 text-sm">

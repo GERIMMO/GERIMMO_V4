@@ -23,7 +23,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   const { data: profil, error: erreurProfil } = await supabase
     .from("organizations")
     .select(
-      "name, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, iban, tva_intracom, tva_franchise, quittances_envoi_auto"
+      "name, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, iban, tva_intracom, tva_franchise, quittances_envoi_auto, appels_envoi_auto"
     )
     .eq("id", orgId)
     .maybeSingle();

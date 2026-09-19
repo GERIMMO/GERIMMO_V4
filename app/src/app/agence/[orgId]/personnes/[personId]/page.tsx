@@ -316,8 +316,10 @@ export default async function PagePersonne(
       </Card>
       )}
 
-      {/* Dossier : pièces versionnées */}
-      <Card>
+      {/* Dossier : pièces versionnées. L'ancre est la destination des alertes
+          d'assurance et de pièce déposée — la fiche d'une personne est longue,
+          y atterrir en haut fait chercher le bloc (relevé du 19/09). */}
+      <Card id="pieces" className="scroll-mt-20">
         <CardHeader>
           <CardTitle className="text-base">Pièces justificatives</CardTitle>
           <CardDescription>

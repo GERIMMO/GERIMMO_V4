@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import Link from "next/link";
+import { useActionState, useEffect, useState } from "react";
 import {
   escaladerAlerte,
   fermerAlerte,
   type EtatAlerte,
 } from "@/app/actions/alertes";
 import { ASSIGNATION_TOUS } from "@/lib/alertes";
+import { gesteAlerte } from "@/lib/chemin-alerte";
 import { afficherEcheance } from "@/lib/echeances";
 import { CRITICITES } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -42,10 +44,18 @@ export function nomAssignation(
 }
 
 // Modale de traitement (maquette « Traiter l'alerte ») : tête colorée par la
-// criticité, deux gestes — confier à quelqu'un, ou marquer traitée en disant
-// ce qui a été fait (obligatoire), puis valider. Partagée : page Alertes,
+// criticité, LE GESTE D'ABORD, puis confier à quelqu'un, puis — en dernier —
+// marquer traitée en disant ce qui a été fait. Partagée : page Alertes,
 // tableau de bord et cloche l'ouvrent SUR PLACE (recette 24/08 — plus de
 // redirection vers l'onglet Alertes).
+//
+// L'ORDRE EST LE CORRECTIF DU 19/09. Devant « défaut d'assurance persistant »,
+// cette modale ne proposait que de confier l'alerte ou d'écrire ce qu'on avait
+// fait : rien pour ALLER DÉPOSER l'attestation, qui est pourtant le seul geste
+// qui règle quoi que ce soit. Et pour les douze types qui se referment seuls
+// (voir SE_FERMENT_SEULES), « marquer traitée » n'est même pas le chemin
+// normal — c'est la sortie de secours quand le geste a eu lieu ailleurs. Elle
+// se replie donc, au lieu d'occuper la place du geste.
 export function ModaleAlerte({
   orgId,
   alerte,
@@ -90,6 +100,13 @@ export function ModaleAlerte({
   const nbEscalades = Array.isArray(alerte.escalades)
     ? alerte.escalades.length
     : 0;
+  const geste = gesteAlerte(alerte, orgId);
+  // Quand l'alerte se referme seule, la clore à la main est l'exception : le
+  // bloc reste accessible mais replié, pour qu'on ne le prenne pas pour la
+  // marche à suivre. Sans geste connu, il est la marche à suivre — donc ouvert.
+  const [clotureOuverte, setClotureOuverte] = useState(
+    !geste || !geste.seFermeSeule
+  );
 
   return (
     <Modale
@@ -108,6 +125,22 @@ export function ModaleAlerte({
         )}
         {nbEscalades > 0 && <p>Transmise {nbEscalades} fois.</p>}
       </div>
+
+      {/* LE GESTE, EN PREMIER ET EN GRAND. C'est la seule chose de cette modale
+          qui règle l'alerte ; tout le reste la déplace ou la déclare close. */}
+      {geste && (
+        <div className="geste-alerte">
+          <Link href={geste.href} onClick={fermer} className="btn-or w-full justify-center">
+            {geste.libelle}
+            <span aria-hidden> →</span>
+          </Link>
+          <p className="mt-2 mb-0 text-[13px] text-muted-foreground">
+            {geste.seFermeSeule
+              ? "Faites-le et l’alerte se refermera d’elle-même : c’est le dépôt qui la clôt, pas cette fenêtre."
+              : "Vous reviendrez clore l’alerte ici une fois le geste fait."}
+          </p>
+        </div>
+      )}
 
       {alerte.criticite !== "informative" && (
         <form action={actionConfier} className="space-y-1.5">
@@ -162,33 +195,56 @@ export function ModaleAlerte({
         </form>
       )}
 
-      <form action={actionTraiter} className="space-y-1.5">
-        <label htmlFor="traiter-action" className="libelle-champ">
-          Marquer traitée — ce qui a été fait
-        </label>
-        <textarea
-          id="traiter-action"
-          name="action_effectuee"
-          required
-          rows={2}
-          placeholder="Ce que vous avez fait…"
-          defaultValue={etatTraiter.valeurs?.action_effectuee}
-          className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
-        />
-        {etatTraiter.erreur && (
-          <p className="err mt-1.5 mb-0" role="alert">
-            {etatTraiter.erreur}
-          </p>
-        )}
-        <div className="flex items-center justify-end gap-2">
+      {/* La clôture à la main. Repliée quand l'alerte se referme seule : la
+          proposer au même rang que le geste apprenait à clore sans faire. */}
+      {!clotureOuverte ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setClotureOuverte(true)}
+            className="lien-discret text-[13px]"
+          >
+            Déjà réglé en dehors de Gerimmo ? Clore à la main
+          </button>
           <Button type="button" variant="ghost" size="sm" onClick={fermer}>
-            Annuler
+            Fermer
           </Button>
-          <BoutonEnvoi size="sm" enCoursTexte="Validation…">
-            Valider
-          </BoutonEnvoi>
         </div>
-      </form>
+      ) : (
+        <form action={actionTraiter} className="space-y-1.5">
+          <label htmlFor="traiter-action" className="libelle-champ">
+            Marquer traitée — ce qui a été fait
+          </label>
+          {geste?.seFermeSeule && (
+            <p className="mt-0 mb-1 text-[13px] text-muted-foreground">
+              À n’employer que si le geste a eu lieu ailleurs : déposé dans
+              Gerimmo, il aurait fermé l’alerte tout seul.
+            </p>
+          )}
+          <textarea
+            id="traiter-action"
+            name="action_effectuee"
+            required
+            rows={2}
+            placeholder="Ce que vous avez fait…"
+            defaultValue={etatTraiter.valeurs?.action_effectuee}
+            className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
+          />
+          {etatTraiter.erreur && (
+            <p className="err mt-1.5 mb-0" role="alert">
+              {etatTraiter.erreur}
+            </p>
+          )}
+          <div className="flex items-center justify-end gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={fermer}>
+              Annuler
+            </Button>
+            <BoutonEnvoi size="sm" enCoursTexte="Validation…">
+              Valider
+            </BoutonEnvoi>
+          </div>
+        </form>
+      )}
     </Modale>
   );
 }

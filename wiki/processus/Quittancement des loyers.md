@@ -3,7 +3,7 @@ type: process
 tags: [loyer, quittance, facturation-locative]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-11
+updated: 2026-09-18
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]"]
 ---
 
@@ -76,12 +76,23 @@ bail (`generer_alertes_impayes`, 5 h 30 UTC) : montant restant dû sur les terme
 échus, depuis quand, et combien de termes. Elle se ferme d'elle-même au
 paiement. Voir [[Relances et mise en demeure]] pour ce qu'elle ne fait pas.
 
+Depuis le 18/09, **l'appel est annoncé au locataire**. Une troisième tâche
+quotidienne (`/api/cron/appels`, 7 h 30 UTC) envoie l'avis d'échéance : détail
+du terme, date d'échéance, mention du prorata, et **solde antérieur** s'il en
+reste un — taire une dette en cours laisserait croire au locataire qu'il sera à
+jour en payant le mois. Trois garde-fous : l'agence doit avoir donné son accord
+permanent (`organizations.appels_envoi_auto`, faux par défaut, réglable dans le
+profil) ; **un terme déjà réglé n'est jamais réclamé** (c'est `etat_loyers_bail_brut`
+qui tranche, la même vue que l'écran et que l'alerte d'impayé) ; et cocher la
+case n'expédie pas l'historique (appels de moins de 45 jours seulement).
+L'avis n'est ni une quittance, qui libère, ni une relance, qui engage un
+circuit : il annonce.
+
 > [!warning] Ce qui manque encore
-> - **L'appel n'est pas envoyé au locataire.** Il est créé et visible dans son
->   espace ; aucun e-mail ne part à la création. Seules les quittances
->   s'envoient, et sur clic du gérant.
 > - **Le jour d'échéance** est celui du bail (`jour_echeance`, 1 par défaut) ;
->   la cible v0 parlait d'un 4ᵉ jour du mois, jamais tranché.
+>   la cible v0 parlait d'un 4ᵉ jour du mois, jamais tranché. **Décision
+>   attendue de l'humain** — le code suit le bail, ce qui est défendable ; la
+>   question est de savoir si l'agence doit pouvoir imposer un jour unique.
 
 > [!warning] Intention produit v0 (précisions)
 > D'après [[2026-07-21-fonctionnalites-par-persona-v0]] : quittance **générique par défaut**, disponible sur la plateforme + e-mail, **validée par l'agence ou le propriétaire** ; l'agence peut générer une quittance **sur-mesure** selon son template (`document_templates`, voir [[Document]]). Voir aussi la divergence « loyer validé par défaut » dans [[Relances et mise en demeure]].

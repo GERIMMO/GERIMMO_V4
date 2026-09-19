@@ -366,15 +366,22 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               Sélectionnez un bien ou un lot dans la liste pour le lire ici, ou
               traitez ce qui bloque ci-dessous.
             </p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="kpi or">
+            {/* `grille-kpi` compte ses colonnes d'après la place dont elle
+                dispose : ces tuiles vivent dans le volet droit d'une vue
+                scindée, et `sm:grid-cols-3` y posait trois colonnes de 170 px
+                où « QUITTANCEMENT » sortait du cadre (capture du 19/09).
+                Le ton de chaque tuile est celui de la puce du même statut —
+                vert « loué », ambre « en préparation », bleu pour l'argent —
+                pour qu'une couleur vue ici se retrouve dans la liste. */}
+            <div className="grille-kpi">
+              <div className="kpi vert">
                 <span className="eyebrow">En location</span>
                 <span className="chiffre block">{nbLoues}</span>
                 <span className="block text-xs text-muted-foreground">
                   {nbLoues} loué{nbLoues > 1 ? "s" : ""} sur {nbLots}
                 </span>
               </div>
-              <div className="kpi">
+              <div className={`kpi${!erreurBlocages && totalBlocages > 0 ? " ambre" : ""}`}>
                 <span className="eyebrow">En préparation</span>
                 <span className="chiffre block">{enPreparation.length}</span>
                 <span className="block text-xs text-muted-foreground">
@@ -396,7 +403,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 </span>
               </div>
             </div>
-            <div className="grid gap-3.5 lg:grid-cols-2">
+            <div className="grille-cartes">
               <Card>
                 <CardContent>
                   <div className="entete-carte">

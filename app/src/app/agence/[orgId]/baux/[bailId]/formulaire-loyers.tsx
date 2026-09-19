@@ -221,18 +221,38 @@ export function FormulaireLoyers({
   return (
     <div className="space-y-5">
       {/* Résumé + actions */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm">
-          Dû <span className="font-medium">{eur(totalDu)}</span> · Encaissé{" "}
-          <span className="font-medium">{eur(totalEncaisse)}</span> · Solde{" "}
-          <span className={`font-semibold ${solde > 0 ? "text-destructive" : "text-success"}`}>
-            {eur(solde)}
+      {/* TROIS CHIFFRES, PAS UNE PHRASE. « Dû 1 859,76 € · Encaissé 920,00 € ·
+          Solde 939,76 € » se lisait d'un bout à l'autre pour trouver le seul
+          nombre qui compte — le solde. Les trois prennent la forme des tuiles
+          de la charte, et le solde porte sa couleur : rouge s'il reste dû,
+          vert si le bail est à jour (relevé du 19/09). */}
+      <div className="grille-kpi">
+        <div className="kpi">
+          <span className="eyebrow">Dû</span>
+          <span className="chiffre block">{eur(totalDu)}</span>
+          <span className="block text-xs text-muted-foreground">
+            {echeancier.length} terme{echeancier.length > 1 ? "s" : ""} appelé
+            {echeancier.length > 1 ? "s" : ""}
           </span>
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <BoutonEcheancier orgId={orgId} bailId={bailId} />
-          <BoutonQuittances orgId={orgId} bailId={bailId} />
         </div>
+        <div className="kpi vert">
+          <span className="eyebrow">Encaissé</span>
+          <span className="chiffre block">{eur(totalEncaisse)}</span>
+          <span className="block text-xs text-muted-foreground">
+            {encaissements.length} encaissement{encaissements.length > 1 ? "s" : ""}
+          </span>
+        </div>
+        <div className={`kpi ${solde > 0 ? "rouge" : "vert"}`}>
+          <span className="eyebrow">Solde</span>
+          <span className="chiffre block">{eur(solde)}</span>
+          <span className="block text-xs text-muted-foreground">
+            {solde > 0 ? "reste dû par le locataire" : solde < 0 ? "en avance" : "à jour"}
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <BoutonEcheancier orgId={orgId} bailId={bailId} />
+        <BoutonQuittances orgId={orgId} bailId={bailId} />
       </div>
       {/* Retour des deux actions du haut — une erreur avalée ici a déjà caché
           un vrai blocage (« Le bail n'a pas de date de début ») pendant la recette */}
@@ -243,15 +263,29 @@ export function FormulaireLoyers({
           Aucun appel — cliquez « Générer l&apos;échéancier ».
         </p>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="echeancier">
           {echeancier.map((l) => {
             return (
-              <li key={l.appel_id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                <span className="w-32 shrink-0 capitalize">{mois(l.periode)}</span>
-                <span className="w-24 shrink-0 text-right">{eur(l.montant_du)}</span>
-                <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                  couvert {eur(l.montant_couvert)} · échéance {formaterDate(l.date_echeance)}
+              <li
+                key={l.appel_id}
+                className={`rang-echeance text-sm ${
+                  l.statut === "paye"
+                    ? "terme-paye"
+                    : l.statut === "impaye"
+                      ? "terme-impaye"
+                      : l.statut === "partiel"
+                        ? "terme-partiel"
+                        : ""
+                }`}
+              >
+                <span className="min-w-0">
+                  <span className="periode">{mois(l.periode)}</span>
+                  <span className="detail-terme">
+                    échéance {formaterDate(l.date_echeance)} · couvert{" "}
+                    {eur(l.montant_couvert)}
+                  </span>
                 </span>
+                <span className="montant-terme">{eur(l.montant_du)}</span>
                 <span
                   className={`shrink-0 ${COULEURS_STATUT_APPEL_LOYER[l.statut] ?? COULEURS_STATUT_APPEL_LOYER.attendu}`}
                 >
@@ -260,7 +294,7 @@ export function FormulaireLoyers({
                 {(() => {
                   const q = quittanceParAppel.get(l.appel_id);
                   return (
-                    <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="actions-terme">
                       {q && (
                         <>
                           {/* Au tactile, le lien texte garde une cible ~40px

@@ -357,9 +357,17 @@ a:hover > [data-slot="card"] {
 }
 
 /* Tuile KPI : carte à liseré gauche, chiffre serif, jauge (maquette .kpi) */
+/* ELLE TIENT DANS UNE COLONNE ÉTROITE, et c'est le correctif du 19/09. Ces
+   tuiles vivent aussi dans le volet droit d'une vue scindée : sur un iPad, ce
+   volet fait 170 px par tuile. « QUITTANCEMENT » en sortait tronqué et
+   « 939,76 € » tombait sur trois lignes. Le sur-titre peut désormais se couper,
+   et le chiffre se dimensionne sur la LARGEUR DE SA TUILE (cqi) et non sur
+   celle de la fenêtre, qui ne lui apprend rien. */
 .kpi {
   display: block;
   width: 100%;
+  min-width: 0;
+  container-type: inline-size;
   text-align: left;
   background: var(--ivoire);
   border: 1px solid var(--filet);
@@ -368,18 +376,42 @@ a:hover > [data-slot="card"] {
   padding: 14px 16px;
   transition: transform 0.17s ease, border-color 0.17s ease, box-shadow 0.17s ease;
 }
+.kpi .eyebrow { display: block; overflow-wrap: anywhere; }
+/* LA COULEUR DIT CE QU'ON COMPTE, elle ne décore pas. Une tuile porte le ton
+   du statut qu'elle totalise — le même que la puce du rang correspondant, pour
+   qu'un vert vu sur la tuile soit le vert lu dans la liste. Un écran où seul
+   le bouton d'action est coloré se lit comme une feuille de calcul : c'est le
+   reproche rapporté le 19/09 (« trop monochrome, trop fade »). */
 .kpi.rouge { border-left-color: var(--destructive); }
+.kpi.rouge .chiffre, .kpi.rouge .eyebrow { color: var(--destructive-soft-foreground); }
 .kpi.or { border-left-color: var(--or); }
+.kpi.or .chiffre, .kpi.or .eyebrow { color: var(--marque-sombre); }
 .kpi.bleu { border-left-color: var(--bleu); }
+.kpi.bleu .chiffre, .kpi.bleu .eyebrow { color: var(--marque-sombre); }
 .kpi.vert { border-left-color: var(--success); }
+.kpi.vert .chiffre, .kpi.vert .eyebrow { color: var(--success-soft-foreground); }
+.kpi.ambre { border-left-color: var(--warning); }
+.kpi.ambre .chiffre, .kpi.ambre .eyebrow { color: var(--warning-soft-foreground); }
 .kpi .chiffre {
   font-family: var(--font-titres), system-ui, sans-serif; font-variant-numeric: lining-nums tabular-nums;
-  font-size: 29px;
+  font-size: clamp(21px, 15cqi, 29px);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.1;
   color: var(--encre);
 }
+
+/* Une rangée de tuiles ou de cartes qui compte ses colonnes d'après LA PLACE
+   QU'ELLE A, pas d'après la largeur de la fenêtre. `sm:grid-cols-3` posait
+   trois colonnes dès 640 px de FENÊTRE — y compris quand la grille tenait dans
+   un volet de 520 px, où les trois tuiles se retrouvaient à 170 px. */
+.grille-kpi,
+.grille-cartes {
+  display: grid;
+  gap: 12px;
+}
+.grille-kpi { grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.25rem), 1fr)); }
+.grille-cartes { gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); }
 a.kpi { color: inherit; position: relative; }
 a.kpi::after {
   content: "›";
@@ -414,6 +446,113 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 .puce-encre { background: var(--ardoise); color: var(--encre); }
 .puce-grise { background: var(--filet-leger); color: var(--texte-secondaire); }
 .puce-rouge { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
+
+/* Rangée d'une fiche du parc (diagnostics, équipements, pièces…). Sept
+   rangées y ont le même poids ; celle qui attend un geste porte un liseré
+   ambre, pour qu'on la trouve sans lire les six autres (relevé du 19/09). */
+.rang-section.a-completer {
+  border-left: 3px solid var(--warning);
+  padding-left: 11px;
+  background: color-mix(in srgb, var(--warning-soft) 30%, transparent);
+}
+.rang-section.a-completer:hover {
+  background: color-mix(in srgb, var(--warning-soft) 60%, transparent);
+}
+
+/* ------------------------------------------------------------------ */
+/* L'ÉCHÉANCIER D'UN BAIL — une colonne qui se descend, pas une phrase  */
+/* qui se relit.                                                        */
+/*                                                                      */
+/* Relevé au navigateur le 19/09 : chaque terme tenait sur une ligne de  */
+/* huit éléments au même poids — « Août 2026 920,00 € couvert 920,00 €   */
+/* · échéance 05/08/2026 Payé quittance ✉ envoyée PDF Avis PDF ». Les    */
+/* documents occupaient plus de largeur que les chiffres, rien ne        */
+/* s'alignait d'un rang à l'autre, et le statut — la seule chose qu'on   */
+/* cherche en diagonale — était noyé au milieu.                          */
+/*                                                                      */
+/* Ici : la période et son détail à gauche, le montant aligné sur sa     */
+/* colonne, le statut TOUJOURS AU MÊME ENDROIT, les documents en grappe  */
+/* discrète à droite. Le liseré porte le statut, pour que l'impayé se    */
+/* voie sans lire. La bascule se fait sur la largeur du CONTENEUR : cet  */
+/* échéancier vit dans une carte, pas dans la fenêtre.                   */
+/* ------------------------------------------------------------------ */
+.echeancier { container-type: inline-size; }
+.rang-echeance {
+  display: grid;
+  grid-template-columns: minmax(7rem, 1fr) auto auto auto;
+  align-items: center;
+  column-gap: 14px;
+  row-gap: 6px;
+  padding: 9px 12px 9px 13px;
+  border-left: 3px solid var(--filet);
+  border-radius: 0 10px 10px 0;
+}
+.rang-echeance + .rang-echeance { margin-top: 3px; }
+.rang-echeance:hover { background: var(--survol); }
+.rang-echeance .periode {
+  display: block;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--encre);
+}
+.rang-echeance .detail-terme {
+  display: block;
+  font-size: 12px;
+  color: var(--texte-secondaire);
+}
+.rang-echeance .montant-terme {
+  font-variant-numeric: lining-nums tabular-nums;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--encre);
+}
+/* Les documents ne sont PAS au même rang que les chiffres : ils se proposent,
+   ils ne s'annoncent pas. Un filet les sépare de ce qui est une donnée. */
+.actions-terme {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding-left: 12px;
+  border-left: 1px solid var(--filet-leger);
+}
+.actions-terme > * { font-size: 12px; }
+
+/* Le statut se lit au liseré avant de se lire à la puce. */
+.rang-echeance.terme-paye { border-left-color: var(--success); }
+.rang-echeance.terme-partiel { border-left-color: var(--warning); }
+.rang-echeance.terme-impaye {
+  border-left-color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive-soft) 55%, transparent);
+}
+.rang-echeance.terme-impaye:hover {
+  background: color-mix(in srgb, var(--destructive-soft) 80%, transparent);
+}
+.rang-echeance.terme-impaye .montant-terme { color: var(--destructive-soft-foreground); }
+
+@container (max-width: 33rem) {
+  .rang-echeance { grid-template-columns: minmax(0, 1fr) auto; }
+  .rang-echeance .puce { justify-self: end; }
+  .actions-terme {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--filet-leger);
+    padding-top: 6px;
+  }
+}
+
+/* Le geste qui règle une alerte, mis en avant dans la modale de traitement.
+   Un encadré teinté de l'accent : c'est la seule action de cette fenêtre qui
+   change quelque chose au dossier, elle ne se lit pas comme un lien de plus. */
+.geste-alerte {
+  background: var(--marque-clair);
+  border: 1px solid var(--or-filet);
+  border-radius: 12px;
+  padding: 14px;
+}
+.geste-alerte .btn-or { min-height: 44px; }
 
 /* Rang d'alerte : liseré de criticité à gauche (maquette .alerte) */
 /* LE RANG D'ALERTE — habillage repris du gabarit de l'humain (12/09).
@@ -984,13 +1123,24 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 }
 
 /* En-tête de carte (maquette .entete-carte) : titre + mention/lien à droite */
+/* LA MENTION DE DROITE NE COUPE PLUS LE TITRE. Relevé au navigateur le 19/09
+   sur les cartes du portefeuille : « Prochaines mises en location » tombait sur
+   trois lignes pendant que « 0 DISPONIBLE » sortait de la carte, tronqué. Deux
+   causes cumulées — la rangée ne passait pas à la ligne, et un sur-titre en
+   capitales espacées est un MOT INSÉCABLE que le flex ne peut pas rétrécir.
+   Désormais : le titre prend la place, la mention garde la sienne, et quand
+   les deux ne tiennent plus la mention descend d'une ligne au lieu
+   d'écraser le titre. */
 .entete-carte {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   margin-bottom: 14px;
 }
+.entete-carte > :first-child { flex: 1 1 auto; min-width: 0; }
+.entete-carte > :last-child:not(:first-child) { flex: 0 0 auto; white-space: nowrap; }
 
 /* WCAG 1.4.1 — un lien NOYÉ DANS UN PARAGRAPHE ne peut pas se signaler par
    la seule couleur : bleu sur gris, l'écart n'est que de 1,74:1 alors qu'il
@@ -1262,7 +1412,8 @@ p a {
    plutôt que tronquer le titre ou pousser l'action hors cadre. */
 @media (max-width: 640px) {
   .rang { flex-wrap: wrap; row-gap: 2px; }
-  .entete-carte { flex-wrap: wrap; }
+  /* .entete-carte passe à la ligne À TOUTE LARGEUR depuis le 19/09 : le défaut
+     est posé plus haut, cette surcharge n'a plus d'objet. */
   /* Les libellés mono 9 px de la charte sont illisibles à bout de bras */
   /* La métrique commune (11 px) est déjà lisible à bout de bras :
      la surcharge mobile qui remontait les 9 px n'a plus d'objet. */

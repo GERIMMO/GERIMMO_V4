@@ -29,7 +29,13 @@ export async function proxy(request: NextRequest) {
   // Ces appels viennent de serveurs, sans cookie de connexion. Chaque route
   // vérifie son propre secret (Cron) ou la signature du corps brut (Stripe).
   // Garder la liste exacte : aucun autre chemin /api n'est rendu public.
-  if (["/api/cron/quittances", "/api/cron/abonnements", "/api/stripe/webhook"].includes(request.nextUrl.pathname)) {
+  if ([
+    "/api/cron/quittances",
+    "/api/cron/appels",
+    "/api/cron/rappels",
+    "/api/cron/abonnements",
+    "/api/stripe/webhook",
+  ].includes(request.nextUrl.pathname)) {
     return NextResponse.next({ request });
   }
 

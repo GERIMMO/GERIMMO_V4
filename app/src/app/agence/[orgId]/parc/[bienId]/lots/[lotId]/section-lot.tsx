@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { BadgeStatut } from "@/components/badge-statut";
 
 // Section pliable de la fiche : un résumé (replié) + le détail éditable.
 // Toutes les sections restent repliées — une section incomplète le signale par
@@ -64,12 +63,18 @@ export function SectionLot({
         // -mx-2 px-2 : la surbrillance déborde jusqu'au bord de la carte, de
         // sorte que la rangée se lit comme une rangée et non comme un bloc de
         // texte posé à côté d'un bouton.
-        className="-mx-2 flex w-[calc(100%+1rem)] min-h-11 items-center gap-3 rounded-md px-2 py-3 text-left transition-colors hover:bg-[var(--filet-leger)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]"
+        // `rang-section` pose le liseré qui signale une section incomplète.
+        className={`rang-section -mx-2 flex w-[calc(100%+1rem)] min-h-11 items-center gap-3 rounded-md px-2 py-3 text-left transition-colors hover:bg-[var(--filet-leger)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]${alerte ? " a-completer" : ""}`}
       >
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-baseline gap-2.5 text-sm font-medium">
             {titre}
-            {alerte && <BadgeStatut ton="attente">{alerte}</BadgeStatut>}
+            {/* UNE PASTILLE, PAS UN MOT DE PLUS. En texte coloré (charte v2 :
+                « sans pastille ni fond »), « 1 MANQUANT » se perdait à côté du
+                titre, sur une fiche où sept rangées se ressemblent — c'est ce
+                que montre la capture du 19/09. La charte v3 a des puces de
+                statut ; celle-ci en est une. */}
+            {alerte && <span className="puce puce-prep">{alerte}</span>}
           </span>
           {!ouvert && (
             <span

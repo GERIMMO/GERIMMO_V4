@@ -4798,3 +4798,58 @@ spec ne tournait. Le setup franchit désormais le sas comme un humain.
 neuves passées contre l'émulateur avec un vrai calcul TOTP, 20/20 sur
 `menu-compte` + `compte-securite`, lint, types et build au vert. Aucune
 migration.
+
+## [2026-09-19] implementation | La console de supervision : « Clients », et l'entrée dans leur espace
+
+**Trois demandes du porteur du projet.** « J'aimerai tout le temps accéder à la
+console administrateur » ; « lorsque je clique sur clients (au lieu de
+inscriptions artisan) je veux avoir une partie avec les artisans (ceux en
+attente de validation en évidence), une partie agences et une partie
+propriétaires bailleurs » ; « lorsque je clique sur un des clients, je veux voir
+sa fiche complétée avec un bouton pour entrer dans sa session ».
+
+**1. La supervision va droit à sa console.** `/espaces` lui présentait un
+sélecteur portant sa console ET une carte par organisation de la plateforme —
+un choix à refaire à chaque connexion, et une liste qui grandit avec le nombre
+de clients. Le super admin est désormais redirigé vers `/admin`. Les cartes
+« espace supervisé » ont disparu du sélecteur : la porte d'entrée est la fiche
+du client.
+
+**2. « Clients » remplace « Inscriptions artisan » dans la barre.** L'entrée
+portait le nom d'une file d'attente, pas d'une population ; les agences et les
+propriétaires n'avaient aucune entrée. `/admin/clients` réunit les trois
+familles : artisans d'abord (les inscriptions en attente en tête, liseré or et
+bandeau de rappel vers l'écran de décision), puis agences, puis propriétaires
+bailleurs. `/admin/artisans` reste l'écran où l'on valide et refuse.
+
+**3. Les fiches.** Celle d'une organisation portait deux cartes (adhésions,
+personnes) et rien d'autre : ni adresse, ni contact, ni SIRET, ni état de
+l'abonnement, ni parc. Elle porte maintenant l'identité complète, le parc
+(lots, baux, personnes), le parrainage (code, parrain, filleuls), les comptes
+rattachés — et le bouton **« Entrer dans son espace »**. La fiche artisan est
+nouvelle : identité, vérifications, métiers, zones, justificatifs, historique
+des décisions, et les gestes de décision sur place.
+
+> [!warning] Pas de bouton d'entrée pour un artisan, et ce n'est pas un oubli
+> Le portail artisan se lit depuis `mon_artisan_id()`, déduite de `auth.uid()`
+> sans paramètre forgeable (module 8). La supervision ne peut pas s'y
+> substituer, et le produit n'a aucun mécanisme d'usurpation. On n'en a pas
+> inventé un pour une commodité de navigation : la fiche montre tout ce que la
+> supervision peut lire, et dit pourquoi il n'y a pas de bouton.
+
+**Deux défauts d'accessibilité trouvés en vérifiant, et réparés.**
+- `--libelle` valait `#6b7386`, soit **4,44** de contraste sur le fond de page
+  pour un minimum AA de 4,5 (WCAG 1.4.3). Tous les surtitres, libellés de champ
+  et en-têtes de tableau du produit portent cette couleur : axe-core en relevait
+  **douze, sur huit écrans**. Assombri à `#626a7d` (5,06 sur le fond, 5,42 sur
+  une carte) — une seule ligne, douze violations éteintes.
+- Les trois tableaux de `/admin/territoire` défilaient à la souris seulement :
+  au clavier, les colonnes de droite étaient inatteignables. `tabIndex` posé sur
+  les conteneurs.
+
+La suite d'accessibilité est **entièrement verte** : aucune violation sérieuse
+ni critique, tous personas et tous écrans confondus.
+
+**Vérification** : 1 332 tests au vert (dont 6 neufs), 4 specs navigateur neuves
+sur la console, la suite a11y verte, lint, types et build au vert. Aucune
+migration.

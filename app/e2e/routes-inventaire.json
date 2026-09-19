@@ -60,6 +60,12 @@
   "dynamic": ""
  },
  {
+  "path": "/admin/clients",
+  "persona": "superadmin",
+  "label": "Clients (agences, propriétaires, artisans)",
+  "dynamic": ""
+ },
+ {
   "path": "/admin/devis",
   "persona": "superadmin",
   "label": "Demandes de devis du site vitrine",

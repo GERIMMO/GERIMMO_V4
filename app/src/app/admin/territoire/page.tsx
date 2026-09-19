@@ -171,6 +171,10 @@ export default async function PageTerritoire() {
           </h2>
           <span className="mono-discret">du plus actif au moins actif</span>
         </div>
+        {/* `tabIndex` sur les trois conteneurs qui défilent : sans lui, un
+            tableau plus large que l'écran ne se parcourt qu'à la souris — au
+            clavier, les colonnes de droite sont inatteignables (axe-core,
+            règle scrollable-region-focusable, relevé du 19/09). */}
         {empreinte.lignes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {enEchec.length > 0
@@ -178,7 +182,7 @@ export default async function PageTerritoire() {
               : "Aucune organisation ni aucun bien placé : le territoire commence avec le premier code postal saisi."}
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Empreinte de la plateforme par département">
             <table className="tableau w-full min-w-[46rem] text-sm">
               <caption className="sr-only">Empreinte de la plateforme par département</caption>
               <thead>
@@ -232,7 +236,7 @@ export default async function PageTerritoire() {
               Par région
             </h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Empreinte de la plateforme par région">
             <table className="tableau w-full min-w-[32rem] text-sm">
               <caption className="sr-only">Empreinte de la plateforme par région</caption>
               <thead>
@@ -343,7 +347,7 @@ export default async function PageTerritoire() {
           )}
 
           {candidats.length > 0 && (
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-4 overflow-x-auto" tabIndex={0} role="group" aria-label="Les dix meilleurs départements candidats">
               <table className="tableau w-full min-w-[44rem] text-sm">
                 <caption className="sr-only">Les dix meilleurs départements candidats</caption>
                 <thead>

@@ -188,3 +188,4 @@
 20260918060000_rappel_rendez_vous.sql
 20260918070000_reprise_comptable_utilisable.sql
 20260919120000_parrainage.sql
+20260919170000_session_supervision_artisan.sql

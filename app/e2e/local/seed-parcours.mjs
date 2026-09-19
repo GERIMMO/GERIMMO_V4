@@ -23,6 +23,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { createHash, randomUUID } from "node:crypto";
+import { totp } from "./mfa-local.mjs";
 
 const URL_LOCALE = "http://127.0.0.1:54321";
 const CLE_ANON = "cle-locale";
@@ -867,6 +868,27 @@ ok(
   })
 );
 
+// LE SECOND FACTEUR, SANS QUOI LA SUPERVISION NE PEUT RIEN (constat du 19/09).
+//
+// `is_super_admin()` exige AAL2 depuis la migration du 14/09 : une connexion
+// par mot de passe seul reste en AAL1, et TOUTES les étapes de supervision du
+// parcours étaient refusées — le seed s'arrêtait à `artisan_definir_siret_etat`
+// (« Accès refusé »), donc l'artisan n'était jamais validé, donc aucune
+// mission n'existait, donc `parcours-artisan.spec.ts` échouait sur un agenda
+// vide. Les facteurs de l'émulateur vivent en mémoire : on en pose un ici,
+// comme le ferait l'écran /securite.
+const inscriptionMfa = ok(
+  "configuration du second facteur superadmin",
+  await superadmin.auth.mfa.enroll({ factorType: "totp", friendlyName: `Seed ${Date.now()}` })
+);
+ok(
+  "vérification du second facteur superadmin",
+  await superadmin.auth.mfa.challengeAndVerify({
+    factorId: inscriptionMfa.id,
+    code: totp(inscriptionMfa.totp.secret),
+  })
+);
+
 const SIRET_ARTISAN = "48291763500017";
 
 // 9.a L'agence enregistre l'artisan qu'elle connaît (artisans/actions.ts).
@@ -1063,6 +1085,19 @@ if ((creneauxPoses ?? []).length === 0) {
   );
   console.log("· trois créneaux proposés — le locataire a le choix");
 }
+
+// ------------------------------------------------------------
+// Le seed referme ce qu'il a ouvert
+// ------------------------------------------------------------
+// Le facteur posé plus haut n'a servi qu'à franchir le sas de supervision. Le
+// laisser derrière rendrait le compte superadmin inutilisable par le harnais :
+// `auth.setup.ts` ne connaît pas ce secret-là, et /securite lui demanderait un
+// code qu'il ne peut pas produire. On le retire — la session est en AAL2, donc
+// le retrait passe.
+ok(
+  "retrait du second facteur du seed",
+  await superadmin.auth.mfa.unenroll({ factorId: inscriptionMfa.id })
+);
 
 // ------------------------------------------------------------
 // Récapitulatif

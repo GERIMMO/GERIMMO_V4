@@ -66,17 +66,18 @@ export function trierArtisans<T extends { statut_plateforme?: string | null; rai
 }
 
 /**
- * ENTRER DANS L'ESPACE D'UN CLIENT — ce que la plateforme sait faire, et ce
- * qu'elle ne sait PAS faire.
+ * ENTRER DANS L'ESPACE D'UN CLIENT — les deux portes, qui ne se ressemblent
+ * pas.
  *
- * Une organisation (agence, propriétaire) s'ouvre : la supervision traverse
- * ses écrans, et la traversée est journalisée (RM-A1.11, `log_sa_access`).
+ * Une organisation (agence, propriétaire) s'ouvre par un simple LIEN : ses
+ * écrans sont adressés par `orgId`, la RLS laisse passer la supervision, et la
+ * traversée est journalisée (RM-A1.11, `log_sa_access`).
  *
- * Un artisan, NON — et ce n'est pas un oubli d'écran : son portail se lit
- * depuis `mon_artisan_id()`, déduite de `auth.uid()`, sans paramètre forgeable
- * (module 8). Il n'existe aucun mécanisme d'usurpation dans le produit, et on
- * n'en invente pas un pour une commodité de navigation. Sa fiche donne donc
- * tout ce que la supervision peut lire, décisions comprises, et le dit.
+ * Un artisan, non : son portail n'est pas adressé par une organisation, il se
+ * lit depuis `mon_artisan_id()`. Y entrer demande d'OUVRIR une traversée
+ * (`ouvrir_session_artisan`, réservée à la supervision, bornée à trente
+ * minutes, journalisée) — un geste, pas un lien. D'où le `null` ici : la fiche
+ * de l'artisan porte un formulaire, pas une ancre.
  */
 export function cheminEspaceClient(client: {
   famille: FamilleClient;

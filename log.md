@@ -4853,3 +4853,65 @@ ni critique, tous personas et tous écrans confondus.
 **Vérification** : 1 332 tests au vert (dont 6 neufs), 4 specs navigateur neuves
 sur la console, la suite a11y verte, lint, types et build au vert. Aucune
 migration.
+
+## [2026-09-19] implementation | Entrer dans la session d'un artisan, pour de vrai
+
+**La demande.** Après une première réponse en lecture seule : « je veux pas une
+simple vue, je souhaite entrer dans sa session comme si j'étais l'artisan ».
+
+**Ce que la plateforme savait déjà faire.** Entrer dans l'espace d'une
+**agence** n'a jamais été une usurpation : la supervision y entre avec **sa
+propre identité**, la RLS la laisse passer, la traversée s'inscrit au journal
+d'audit (RM-A1.11). Le portail artisan, lui, ne se lit pas par organisation
+mais par `mon_artisan_id()`, déduite de `auth.uid()` : il n'y avait aucune
+porte.
+
+**Ce qui est posé** (migration `20260919170000_session_supervision_artisan`) :
+- une **session de supervision** — une ligne qui dit « ce compte travaille dans
+  l'espace de cet artisan, jusqu'à telle heure ». Ouverte par une fonction
+  réservée à la supervision (AAL2), **une seule à la fois**, **expirée au bout
+  de trente minutes** ;
+- `mon_artisan_id()` la prend en compte. C'est la pièce maîtresse : les
+  **cinquante-quatre** points du produit qui s'appuient dessus — RPC de
+  lecture, RPC d'écriture, politiques RLS, accès au stockage — suivent **sans
+  être touchés**. La supervision voit et **fait** ce que fait l'artisan ;
+- un **bandeau rouge** en haut de chaque écran du portail : chez qui l'on est,
+  jusqu'à quand, et la sortie ;
+- ouverture et fermeture au **journal d'audit**, avec un motif facultatif.
+
+> [!warning] Ce que cela autorise, et le choix qui a été fait
+> Pendant une session ouverte, la supervision peut **écrire** ce que l'artisan
+> écrirait : accepter une sollicitation, déposer un devis, rendre un compte
+> d'intervention. Ce sont des engagements pris dans l'espace d'un tiers.
+>
+> **Aucun jeton n'est émis au nom de l'artisan**, et c'est délibéré :
+> `auth.uid()` reste celui du superviseur, donc tout ce qui enregistre un
+> auteur enregistre le superviseur. Une session Supabase forgée sous le compte
+> de l'artisan aurait rendu les deux gestes **indiscernables** — c'est ce qui
+> transforme un outil d'assistance en dénégation possible.
+>
+> Le droit se **revérifie à chaque lecture** : un compte qui perd la
+> supervision, ou dont la session retombe en AAL1, cesse aussitôt d'emprunter
+> l'identité, même si la ligne est encore ouverte.
+
+**Le banc était cassé, et on ne le savait pas.** Trois pannes trouvées en
+vérifiant, toutes de la même famille — `is_super_admin()` exige AAL2 depuis le
+14/09, et rien dans le harnais ne franchissait ce sas :
+1. `auth.setup.ts` n'ouvrait plus de session superadmin → **aucune** spec
+   navigateur ne tournait. Il franchit désormais le sas comme un humain, et la
+   remise à zéro des facteurs de l'émulateur le rend **rejouable**.
+2. `seed-parcours.mjs` s'arrêtait à `artisan_definir_siret_etat` (« Accès
+   refusé ») : l'artisan n'était jamais validé, donc aucune mission n'existait,
+   donc `parcours-artisan.spec.ts` échouait sur un agenda vide. Le seed pose et
+   retire son second facteur.
+3. `fenetre-lot.spec.ts` visait encore « Voir mon bail en entier », renommé en
+   « Voir les détails de mon bail » le jour de `d85df82`. Personne ne l'avait
+   vu : le test ne tournait plus.
+
+**Vérification** : 1 344 tests au vert (12 neufs sur la traversée, dont la
+preuve qu'une **écriture** d'artisan passe et qu'elle est bien rattachée à
+lui), suite navigateur complète au vert, lint, types et build au vert.
+
+> [!warning] Migration non appliquée
+> Elle est écrite, jouée et testée sur le banc ; la production attend l'accord
+> du porteur du projet.

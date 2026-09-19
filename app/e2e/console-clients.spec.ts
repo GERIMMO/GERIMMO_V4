@@ -65,19 +65,40 @@ test("la fiche d'une agence est complète, et son bouton entre vraiment dans l'e
   await page.waitForURL(/\/agence\/[0-9a-f-]+/, { timeout: 20_000 });
 });
 
-test("la fiche d'un artisan dit qu'on ne peut pas entrer dans sa session", async ({ page }) => {
+test("on entre dans la session d'un artisan, le portail le dit, et on en sort", async ({
+  page,
+}) => {
   await page.goto("/admin/clients");
 
   const premierArtisan = page.locator('a[href^="/admin/clients/artisans/"]').first();
-  const ilYEnA = await premierArtisan.count();
-  test.skip(ilYEnA === 0, "aucun artisan inscrit sur ce banc");
+  test.skip((await premierArtisan.count()) === 0, "aucun artisan inscrit sur ce banc");
 
   await premierArtisan.click();
   await page.waitForURL(/\/admin\/clients\/artisans\/[0-9a-f-]+/);
+  const fiche = page.url();
   await expect(page.getByRole("heading", { name: "Justificatifs" })).toBeVisible();
 
-  // Pas de bouton d'entrée, et la raison écrite : le portail artisan se lit
-  // depuis son propre compte, et le produit n'usurpe personne.
-  await expect(page.getByRole("link", { name: /Entrer dans/ })).toHaveCount(0);
-  await expect(page.getByText(/pas de bouton pour entrer dans la session/i)).toBeVisible();
+  // Le motif part au journal d'audit avec l'ouverture.
+  // « Motif » tout court viserait aussi celui du refus d'inscription.
+  await page.getByLabel(/Motif \(facultatif/).fill("recette e2e");
+  await page.getByRole("button", { name: /Entrer dans la session de/ }).click();
+
+  // On est DANS le portail de l'artisan — pas dans une copie en lecture.
+  await page.waitForURL(/\/artisan/, { timeout: 20_000 });
+  const bandeau = page.getByRole("status").filter({ hasText: "Session de supervision" });
+  await expect(bandeau).toBeVisible();
+  await expect(bandeau).toContainText(/vous agissez dans l['’]espace de/i);
+  expect(await debordementHorizontal(page)).toBe(0);
+
+  // Et la sortie est à portée de pouce, sur chaque écran du portail.
+  await bandeau.getByRole("button", { name: "Quitter sa session" }).click();
+  await page.waitForURL(/\/admin\/clients\/artisans\//, { timeout: 20_000 });
+  expect(page.url()).toBe(fiche);
+
+  // Une fois sortie, la supervision n'emprunte plus rien : le portail ne la
+  // reconnaît plus comme artisan.
+  await page.goto("/artisan");
+  await expect(
+    page.getByRole("status").filter({ hasText: "Session de supervision" })
+  ).toHaveCount(0);
 });

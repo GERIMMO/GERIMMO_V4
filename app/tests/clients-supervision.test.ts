@@ -33,10 +33,10 @@ describe("Les clients vus de la supervision", () => {
     expect(tries.map((a) => a.raison_sociale)).toEqual(["Bravo", "Zulu", "Mike", "Alpha"]);
   });
 
-  it("n'invente pas d'entrée dans la session d'un artisan", () => {
-    // Le portail artisan se lit depuis mon_artisan_id(), déduite de auth.uid() :
-    // la supervision ne peut pas s'y substituer, et le produit n'a aucun
-    // mécanisme d'usurpation. Un bouton ici serait un mensonge — ou une faille.
+  it("ne donne pas de LIEN vers l'espace d'un artisan : on y entre par un geste tracé", () => {
+    // Le portail artisan n'est pas adressé par une organisation : on l'ouvre
+    // avec `ouvrir_session_artisan` (supervision, 30 minutes, journalisée),
+    // donc un formulaire, jamais une ancre.
     expect(cheminEspaceClient({ famille: "artisan", id: "abc" })).toBeNull();
     expect(cheminEspaceClient({ famille: "agence", id: "abc" })).toBe("/agence/abc");
     expect(cheminEspaceClient({ famille: "proprietaire", id: "abc" })).toBe("/agence/abc");

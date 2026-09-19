@@ -14,7 +14,7 @@
 // Puis : NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run dev
 
 import http from "node:http";
-import { facteursPour, routerMfaLocal } from "./mfa-local.mjs";
+import { facteursPour, oublierFacteurs, routerMfaLocal } from "./mfa-local.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -820,6 +820,15 @@ const serveur = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/health") {
       await pool.query("select 1");
       return repondreJson(200, { pret: true });
+    }
+    // Remise à zéro des seconds facteurs — HARNAIS UNIQUEMENT. Ce serveur ne
+    // tourne que sur le banc hors ligne ; l'application n'appelle jamais cette
+    // route. Elle rend `auth.setup.ts` rejouable : sans elle, le magasin en
+    // mémoire gardait le facteur du passage précédent et le sas devenait
+    // infranchissable (le secret, lui, était perdu).
+    if (req.method === "POST" && url.pathname === "/__banc/oublier-facteurs") {
+      oublierFacteurs();
+      return repondreJson(200, { oublies: true });
     }
     const segments = url.pathname.split("/").filter(Boolean);
     // /auth/v1/…

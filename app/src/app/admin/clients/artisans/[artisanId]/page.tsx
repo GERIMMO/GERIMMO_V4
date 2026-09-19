@@ -5,6 +5,7 @@ import { formaterDate } from "@/lib/ged";
 import { METIERS, PIECES_ARTISAN } from "@/app/artisan/libelles";
 import { DecisionArtisan } from "@/app/admin/artisans/decision-artisan";
 import { RetourDecisionsArtisan } from "@/app/admin/artisans/retour-decisions";
+import { BoutonEntrerSession } from "./bouton-entrer";
 import {
   initiales,
   LIBELLES_SIRET,
@@ -21,12 +22,11 @@ export const metadata = { title: "Artisan — Console Gerimmo" };
  * vérifications, métiers, zones, justificatifs, décisions passées — et les
  * gestes de décision, pour ne pas avoir à repasser par la file d'attente.
  *
- * PAS DE BOUTON « ENTRER DANS SA SESSION », ET C'EST DÉLIBÉRÉ. Le portail
- * artisan se lit depuis `mon_artisan_id()`, déduite de `auth.uid()` et sans
- * paramètre forgeable (module 8) : la supervision ne peut pas s'y substituer,
- * et le produit n'a aucun mécanisme d'usurpation. On n'en invente pas un pour
- * une commodité de navigation — on dit ce qu'il en est, et on montre à la
- * place tout ce qui est lisible.
+ * ET LE BOUTON « ENTRER DANS SA SESSION » (19/09, deuxième demande : « je veux
+ * pas une simple vue »). Il n'ouvre pas une copie en lecture : il pose une
+ * traversée de supervision, et le portail de l'artisan répond dès lors comme
+ * s'il était lui, écritures comprises. Ce que la fiche doit donc dire avant le
+ * clic : ce que ça autorise, combien de temps ça dure, et où ça s'inscrit.
  */
 
 type Piece = {
@@ -295,13 +295,27 @@ export default async function PageFicheArtisan(
           </section>
         )}
 
-        <p className="mesure-lecture mt-4 text-sm text-[var(--texte-secondaire)]">
-          Il n&apos;y a pas de bouton pour entrer dans la session de cet artisan :
-          son portail se lit depuis son propre compte, sans paramètre
-          d&apos;organisation, et le produit n&apos;a aucun mécanisme
-          d&apos;usurpation. Tout ce que la supervision peut lire de lui est
-          au-dessus.
-        </p>
+        <section className="loc-carte mt-4">
+          <div className="entete-carte">
+            <h3>Entrer dans sa session</h3>
+            <span className="puce puce-rouge">30 minutes</span>
+          </div>
+          <p className="mesure-lecture mb-3 text-sm text-[var(--texte-secondaire)]">
+            Vous ouvrez son portail tel qu&apos;il le voit, et vous pouvez y{" "}
+            <b>agir comme lui</b> : accepter une sollicitation, déposer un
+            devis, rendre un compte d&apos;intervention. Ce sont des engagements
+            pris dans l&apos;espace d&apos;un tiers.
+          </p>
+          <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">
+            La traversée est <b>bornée à trente minutes</b>, affichée en rouge
+            en haut de chaque écran du portail, et inscrite au journal
+            d&apos;audit à l&apos;ouverture comme à la fermeture. Votre compte
+            reste l&apos;auteur de tout ce qui est écrit : aucune session
+            n&apos;est émise au nom de l&apos;artisan, rien n&apos;est
+            indiscernable de ses propres gestes.
+          </p>
+          <BoutonEntrerSession artisanId={artisan.id} nom={artisan.raison_sociale} />
+        </section>
       </main>
     </RetourDecisionsArtisan>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { seDeconnecter } from "@/app/actions/auth";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { BandeauSessionSupervision } from "@/components/bandeau-session-supervision";
 import { NavArtisan } from "@/components/nav-artisan";
 import {
   chargerFicheArtisan,
@@ -65,6 +66,10 @@ export default async function LayoutArtisan({
 
   return (
     <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
+      {/* Au-DESSUS du bandeau de marque, et pas dedans : quand la supervision
+          traverse, la première chose à lire n'est pas « Gerimmo », c'est
+          « vous n'êtes pas chez vous ». Rend null hors traversée. */}
+      <BandeauSessionSupervision />
       <header className="artisan-bandeau bandeau-appli">
         <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">
           {/* 44 px de haut : c'est un lien de navigation, et on travaille ici

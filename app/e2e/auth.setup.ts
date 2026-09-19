@@ -18,6 +18,7 @@ const COMPTES = [
 
 const MOT_DE_PASSE = process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";
 const DOSSIER = path.join(__dirname, ".auth");
+const API_LOCALE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 
 /**
  * LE SAS DE SUPERVISION, FRANCHI COMME UN HUMAIN LE FRANCHIT.
@@ -35,8 +36,13 @@ async function franchirLeSasMfa(page: Page) {
     return; // pas de sas : ce compte n'a pas d'accès de supervision
   }
   const { totp } = await import("./local/mfa-local.mjs");
-  const configurer = page.getByRole("button", { name: "Configurer mon application" });
-  await configurer.click();
+  // Le magasin de facteurs de l'émulateur vit en mémoire et SURVIT au harnais :
+  // sans remise à zéro, le deuxième passage du setup tombait sur le facteur du
+  // premier, dont il n'a pas le secret, et restait bloqué devant « Entrez le
+  // code ». Route de banc, jamais appelée par l'application.
+  await fetch(`${API_LOCALE}/__banc/oublier-facteurs`, { method: "POST" }).catch(() => {});
+  await page.reload();
+  await page.getByRole("button", { name: "Configurer mon application" }).click();
   // On lit la clé plutôt que le QR : c'est le même secret, et un test ne sait
   // pas scanner une image.
   await page.getByText("Saisir une clé à la place du QR code").click();
@@ -46,6 +52,11 @@ async function franchirLeSasMfa(page: Page) {
 }
 
 setup("sessions des personas", async ({ browser }) => {
+  // Six connexions, dont une qui franchit le sas MFA, contre un serveur de dév
+  // qui compile chaque écran à la première visite : les 60 s par défaut de la
+  // suite ne suffisent pas, et le setup mourait à mi-parcours en emportant
+  // toute la suite avec lui.
+  setup.setTimeout(240_000);
   fs.mkdirSync(DOSSIER, { recursive: true });
   for (const compte of COMPTES) {
     const context = await browser.newContext();

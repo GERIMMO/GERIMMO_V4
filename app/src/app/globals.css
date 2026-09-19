@@ -1893,3 +1893,781 @@ a:focus-visible > .carte-espace {
   a:hover > .carte-espace, a:focus-visible > .carte-espace { transform: none; }
 }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COQUILLE v4 — refonte d'interface (19/09/2026), premier prototype.
+
+   Ce bloc est ADDITIF : il ne redéfinit aucune classe existante, il en pose de
+   nouvelles pour la barre latérale, l'en-tête, la barre basse mobile, le tiroir
+   et les tuiles du tableau de bord. Les anciennes (.loc-*) restent en place le
+   temps de la validation — un retour en arrière est un changement de layout,
+   pas une restauration.
+
+   Trois règles, tenues partout ici :
+   1. LA COULEUR A UNE FONCTION. Le bleu de marque dit « actif » ou « action » ;
+      vert / ambre / rouge disent un état ; tout le reste est gris perle.
+   2. PEU DE CARTES. Une surface blanche n'apparaît que pour grouper ce qui va
+      ensemble ; le fond de page porte le reste.
+   3. LE MOUVEMENT EST COURT. 120–180 ms, jamais plus, et rien sous
+      prefers-reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Jetons sémantiques de la v4 — TOUS mappés sur les jetons existants : la
+     marque blanche (--marque) continue de tout gouverner. */
+  --surface: var(--carte);
+  --surface-2: var(--creme);
+  --trait: var(--filet);
+  --trait-doux: var(--filet-leger);
+  --texte: var(--corps);
+  --texte-2: var(--texte-secondaire);
+  --texte-3: var(--libelle);
+  /* Le bleu de marque s'écrit `--marque` / `--marque-clair` / `--marque-sombre`
+     directement : la v4 avait d'abord posé un alias `--accent`, qui écrasait
+     le jeton shadcn du même nom (fond pâle + texte encre, `bg-accent`) — texte
+     encre sur bleu plein sur cinq écrans, relevé par la sonde a11y le 19/09. */
+  --largeur-late: 232px;
+  --hauteur-haut: 56px;
+}
+
+/* ——— La grille de l'espace ——— */
+.coquille {
+  display: grid;
+  grid-template-columns: var(--largeur-late) minmax(0, 1fr);
+  min-height: 100dvh;
+  background: var(--surface-2);
+}
+.coquille-late {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--trait);
+}
+.coquille-marque {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--hauteur-haut);
+  padding: 0 14px 0 16px;
+}
+.coquille-marque .espace {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texte-3);
+  white-space: nowrap;
+}
+
+/* Le menu : une colonne d'entrées de 36 px, icône + libellé, sans capitales.
+   L'entrée active est une pastille bleu pâle — pas de liseré, pas de gras
+   marqué : Linear ne crie pas où l'on est, il le montre. */
+.coquille-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.coquille-menu a,
+.coquille-menu summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--texte-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.coquille-menu a:hover,
+.coquille-menu summary:hover { background: var(--survol); color: var(--texte); }
+.coquille-menu a.actif { background: var(--marque-clair); color: var(--marque-sombre); }
+.coquille-menu a:focus-visible,
+.coquille-menu summary:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+.coquille-menu svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+.coquille-menu a.actif svg { opacity: 1; }
+.coquille-menu .lib { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* La pastille : bleu pâle par défaut — « quelque chose attend » — et rouge
+   SEULEMENT quand c'est critique. Une pastille rouge partout n'alerte plus. */
+.coquille-badge {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--marque-clair);
+  color: var(--marque-sombre);
+}
+.coquille-badge.critique { background: var(--destructive); color: var(--sur-encre); }
+
+/* « Plus » : un groupe replié, même hauteur d'entrée, chevron discret. */
+.coquille-groupe { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--trait-doux); }
+.coquille-groupe > summary { list-style: none; cursor: pointer; color: var(--texte-3); font-size: 12.5px; }
+.coquille-groupe > summary::-webkit-details-marker { display: none; }
+.coquille-groupe > summary .chevron { margin-left: auto; transition: transform 0.15s ease; }
+.coquille-groupe[open] > summary .chevron { transform: rotate(180deg); }
+.coquille-groupe > div { display: flex; flex-direction: column; gap: 1px; margin-top: 2px; }
+
+/* Le pied : l'essai en cours, en une ligne calme — plus de bandeau plein
+   écran au-dessus de chaque page. */
+.coquille-pied { padding: 10px; border-top: 1px solid var(--trait-doux); }
+.coquille-essai {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 12px;
+  color: var(--texte-2);
+  transition: background 0.12s ease;
+}
+.coquille-essai:hover { background: var(--marque-clair); color: var(--marque-sombre); }
+.coquille-essai b { font-weight: 600; color: var(--texte); }
+.coquille-essai.termine b { color: var(--warning-soft-foreground); }
+
+/* ——— L'en-tête : 56 px, blanc, un filet. Rien d'autre. ——— */
+.coquille-haut {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--hauteur-haut);
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--trait);
+}
+.coquille-haut .recherche-ouvrir {
+  min-height: 34px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--texte-2);
+  max-width: 22rem;
+  box-shadow: none;
+}
+.coquille-haut .recherche-ouvrir:hover { border-color: var(--trait); background: var(--survol); }
+.coquille-haut .lien-bandeau { min-height: 34px; padding: 6px 10px; border-radius: 8px; font-size: 13px; }
+.coquille-haut .loc-avat { width: 30px; height: 30px; font-size: 11px; }
+.coquille-marque-mobile { display: none; }
+
+/* ——— Le corps ——— */
+.coquille-corps { min-width: 0; }
+.coquille-corps > main { animation: apparition 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+/* Les titres de page perdent leur boîte blanche : dans la v4, un titre est un
+   titre, pas une carte. La règle historique le mettait en carte pour tout
+   `.portail-ecrans .entete-page` ; on l'annule ici sans toucher au reste. */
+.coquille-corps .entete-page {
+  padding: 0 0 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--trait);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* ——— Barre basse et tiroir (téléphone) ——— */
+.coquille-basse { display: none; }
+.tiroir-voile {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--encre) 35%, transparent);
+  animation: apparition-voile 0.16s ease both;
+}
+.tiroir {
+  position: absolute;
+  inset: auto 0 0 0;
+  max-height: min(86dvh, 40rem);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  box-shadow: var(--ombre-flottante);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: tiroir-monte 0.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.tiroir-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 12px 8px 18px;
+  border-bottom: 1px solid var(--trait-doux);
+}
+.tiroir-tete h2 { font-size: 15px; font-weight: 600; color: var(--texte); }
+.tiroir-corps { overflow-y: auto; padding: 8px 10px 12px; }
+.tiroir-corps .coquille-menu { padding: 0; }
+.tiroir-corps .coquille-menu a { min-height: 44px; font-size: 15px; }
+@keyframes apparition-voile { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tiroir-monte { from { transform: translateY(12px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* Tablette : le rail. Les libellés partent, les icônes restent, le titre du
+   lien dit le mot au survol. */
+/* Le rail ne concerne que la COLONNE (`.coquille-late`) : le même menu,
+   rendu dans le tiroir du téléphone, garde ses libellés — sinon le tiroir
+   n'affichait que des icônes (vu sur téléphone le 19/09). */
+@media (max-width: 1023px) {
+  :root { --largeur-late: 60px; }
+  .coquille-late .coquille-marque { justify-content: center; padding: 0; }
+  .coquille-late .coquille-marque .espace,
+  .coquille-late .coquille-marque a > span > span:last-child,
+  .coquille-late .coquille-menu .lib,
+  .coquille-late .coquille-groupe > summary .lib,
+  .coquille-late .coquille-groupe > summary .chevron,
+  .coquille-late .coquille-pied { display: none; }
+  .coquille-late .coquille-menu { padding: 8px 6px; }
+  .coquille-late .coquille-menu a,
+  .coquille-late .coquille-menu summary { justify-content: center; padding: 0; position: relative; }
+  .coquille-late .coquille-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; font-size: 10px; }
+  .coquille-late .coquille-groupe > div { display: flex; }
+}
+
+/* Téléphone : plus de colonne. Une barre basse de quatre entrées + « Menu »,
+   et l'en-tête porte la marque. */
+@media (max-width: 640px) {
+  .coquille { grid-template-columns: minmax(0, 1fr); }
+  .coquille-late { display: none; }
+  .coquille-marque-mobile { display: flex; align-items: center; margin-right: auto; }
+  .coquille-haut { padding: 0 12px; gap: 6px; }
+  .coquille-haut .recherche-ouvrir { min-width: 0; margin-right: 0; }
+  .coquille-haut .recherche-ouvrir .texte, .coquille-haut .recherche-ouvrir kbd { display: none; }
+  .coquille-corps { padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  .coquille-basse {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: var(--surface);
+    border-top: 1px solid var(--trait);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .coquille-basse a, .coquille-basse button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 56px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--texte-2);
+    position: relative;
+  }
+  .coquille-basse a.actif { color: var(--marque-sombre); }
+  .coquille-basse svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .coquille-basse .coquille-badge { position: absolute; top: 6px; left: calc(50% + 6px); }
+}
+
+/* ——— Le tableau de bord v4 ——— */
+/* L'accueil humain : une phrase, pas un tableau. */
+.accueil-phrase {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--texte-2);
+}
+.accueil-phrase.ok { color: var(--success-soft-foreground); }
+.accueil-phrase b { font-weight: 600; }
+
+/* Quatre chiffres, une ligne chacun. Pas de liseré, pas d'ombre : un point de
+   couleur dit l'état, le chiffre parle. La grille compte sur SA largeur. */
+.tuiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); }
+.tuile {
+  display: block;
+  min-width: 0;
+  container-type: inline-size;
+  padding: 14px 16px;
+  border: 1px solid var(--trait);
+  border-radius: 12px;
+  background: var(--surface);
+  color: inherit;
+  transition: border-color 0.14s ease, transform 0.14s ease;
+}
+a.tuile:hover { border-color: var(--marque); transform: translateY(-1px); }
+.tuile .lib { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--texte-2); }
+.tuile .lib::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--texte-3);
+  flex: none;
+}
+.tuile.ok .lib::before { background: var(--success); }
+.tuile.attention .lib::before { background: var(--warning); }
+.tuile.probleme .lib::before { background: var(--destructive); }
+.tuile.accent .lib::before { background: var(--marque); }
+.tuile .val {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-titres), system-ui, sans-serif;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: clamp(20px, 14cqi, 26px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--texte);
+}
+.tuile .sous { display: block; margin-top: 4px; font-size: 12px; color: var(--texte-3); }
+
+/* Le bloc « Gerimmo a repéré… » : la seule surface teintée de l'écran. C'est
+   l'assistant — il explique, il propose, il ne décide pas. */
+.assistant {
+  border: 1px solid var(--or-filet);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: clip;
+}
+.assistant-tete {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--marque-clair);
+  border-bottom: 1px solid var(--or-filet);
+}
+.assistant-tete .rond {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--marque);
+  color: var(--sur-marque);
+  font-family: var(--font-titres), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+}
+.assistant-tete p { margin: 0; font-size: 14px; color: var(--marque-sombre); }
+.assistant-tete p b { font-weight: 600; }
+.assistant-tete .lien-discret { margin-left: auto; white-space: nowrap; align-self: center; }
+.assistant .colonne-liste { border: 0; border-radius: 0; }
+.assistant .tete-groupe { background: var(--surface); }
+
+/* Les statistiques secondaires : repliées. Elles racontent, elles ne
+   demandent rien — elles n'ont pas à être vues avant qu'on les cherche. */
+.details-calme > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap; /* sur téléphone, le sous-titre passe dessous, le titre reste entier */
+  align-items: center;
+  gap: 4px 8px;
+  min-height: 40px;
+  color: var(--texte-2);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.details-calme > summary::-webkit-details-marker { display: none; }
+.details-calme > summary .chevron { transition: transform 0.15s ease; color: var(--texte-3); }
+.details-calme[open] > summary .chevron { transform: rotate(180deg); }
+.details-calme > summary:hover { color: var(--texte); }
+
+/* Les groupes du plan du jour, allégés : plus de fond gris sur l'en-tête,
+   la ligne suffit. */
+.assistant .groupe-plan > summary.tete-groupe { padding: 10px 16px; }
+.assistant .rang-alerte { padding: 12px 16px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tiroir-voile, .tiroir, .coquille-corps > main { animation: none; }
+  .tuile, .coquille-menu a, .coquille-essai, .chevron { transition: none; }
+}
+
+/* ═══ v4.1 — « Il faut un peu de décoration » (porteur du projet, 19/09) ═══
+   Le prototype v4 était nu : des filets, pas d'ombre, pas de lueur, pas
+   d'icône. Ce qui rend Linear ou Stripe vivants sans être chargés, c'est le
+   RELIEF (surfaces en couches, ombres douces), UNE touche de marque en dégradé
+   en haut, et des icônes dans des pastilles teintées. On ajoute ces trois
+   choses — et rien qui décore sans dire quelque chose. */
+
+/* Le halo de marque derrière l'accueil : une lueur bleue qui s'éteint vite. */
+.coquille-corps > main {
+  position: relative;
+}
+.coquille-corps > main::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 320px;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(60% 55% at 18% -10%, color-mix(in srgb, var(--marque) 13%, transparent), transparent 70%),
+    radial-gradient(35% 40% at 85% 0%, color-mix(in srgb, var(--marque) 6%, transparent), transparent 70%);
+}
+.coquille-corps { position: relative; isolation: isolate; }
+
+/* La barre latérale : un léger dégradé sous la marque, et l'entrée active
+   gagne un trait bleu à gauche en plus de sa pastille. */
+.coquille-marque {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--marque) 7%, transparent), transparent);
+}
+.coquille-menu a { position: relative; }
+.coquille-menu a.actif::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--marque);
+}
+@media (max-width: 1023px) { .coquille-late .coquille-menu a.actif::before { left: -6px; } }
+.tiroir .coquille-menu a.actif::before { display: none; } /* le lavis suffit dans le tiroir */
+.coquille-menu a:hover svg { transform: translateY(-1px); }
+.coquille-menu svg { transition: transform 0.14s ease; }
+
+/* Les tuiles : ombre douce, fond légèrement teinté par l'état, icône dans une
+   pastille. Le chiffre grandit d'un cran. */
+.tuile {
+  position: relative;
+  box-shadow: var(--ombre-portee);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 100%, transparent), var(--surface));
+}
+.tuile.ok { background: linear-gradient(180deg, color-mix(in srgb, var(--success) 5%, var(--surface)), var(--surface) 70%); }
+.tuile.attention { background: linear-gradient(180deg, color-mix(in srgb, var(--warning) 7%, var(--surface)), var(--surface) 70%); }
+.tuile.probleme { background: linear-gradient(180deg, color-mix(in srgb, var(--destructive) 6%, var(--surface)), var(--surface) 70%); }
+.tuile.accent { background: linear-gradient(180deg, color-mix(in srgb, var(--marque) 7%, var(--surface)), var(--surface) 70%); }
+a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px); }
+.tuile .ico {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--trait-doux);
+  color: var(--texte-2);
+}
+.tuile .ico svg { width: 16px; height: 16px; }
+.tuile.ok .ico { background: var(--success-soft); color: var(--success-soft-foreground); }
+.tuile.attention .ico { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+.tuile.probleme .ico { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
+.tuile.accent .ico { background: var(--marque-clair); color: var(--marque-sombre); }
+.tuile .lib { padding-right: 38px; }
+.tuile .val { font-size: clamp(22px, 15cqi, 28px); }
+
+/* Les cartes de l'espace v4 : une ombre douce, comme les cartes de la
+   charte — la primitive <Card> n'en avait pas. Portée à la coquille seulement. */
+.coquille-corps [data-slot="card"] { box-shadow: var(--ombre-portee); }
+.coquille-corps [data-slot="card"],
+.coquille-corps .assistant,
+.coquille-corps .colonne-liste { transition: box-shadow 0.16s ease; }
+
+/* L'assistant : un dégradé bleu qui s'efface vers la droite, et le rond « G »
+   qui rayonne un peu. C'est la seule lueur colorée de l'écran, à dessein. */
+.assistant { box-shadow: var(--ombre-portee); }
+.assistant-tete {
+  background: linear-gradient(90deg, var(--marque-clair), color-mix(in srgb, var(--marque-clair) 35%, var(--surface)));
+}
+.assistant-tete .rond {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--marque) 18%, transparent), 0 6px 16px color-mix(in srgb, var(--marque) 30%, transparent);
+}
+
+/* L'en-tête gagne une ligne de marque d'un pixel, dégradée, sous son filet. */
+.coquille-haut::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--marque), color-mix(in srgb, var(--marque) 20%, transparent) 40%, transparent 70%);
+  opacity: 0.55;
+}
+
+/* La phrase d'accueil « Tout est en ordre » porte sa coche. */
+.accueil-phrase.ok::before {
+  content: "✓";
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--success-soft);
+  color: var(--success-soft-foreground);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: -3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coquille-menu svg, a.tuile { transition: none; }
+  a.tuile:hover { transform: none; }
+}
+
+/* ═══ v4.2 — « Plus de couleur, là c'est trop timide » (porteur du projet, 19/09) ═══
+   La v4.1 posait le relief ; elle restait pâle. Ici la couleur PLEINE entre,
+   mais toujours à sa place : la marque en grand une fois (le bandeau
+   d'accueil), l'état en couleur pleine sur les tuiles, l'assistant en bleu
+   parce que c'est lui qui parle, l'entrée active en bleu plein. Les cartes
+   restent blanches : la couleur dit quelque chose, ou elle n'est pas là. */
+
+/* 1. Le bandeau d'accueil : encre → marque, texte blanc, deux lueurs et des
+   anneaux discrets. La seule grande surface colorée de l'écran. */
+.coquille-corps .accueil-bandeau {
+  position: relative;
+  isolation: isolate;
+  padding: 22px 24px;
+  border: 0;
+  border-radius: 18px;
+  margin-bottom: 20px;
+  color: #fff;
+  background:
+    radial-gradient(60% 140% at 100% -20%, rgba(255, 255, 255, 0.2), transparent 60%),
+    radial-gradient(45% 120% at 6% 120%, color-mix(in srgb, var(--marque) 65%, #fff), transparent 60%),
+    linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--marque) 100%);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--encre) 28%, transparent);
+  overflow: clip;
+}
+.coquille-corps .accueil-bandeau::after {
+  content: "";
+  position: absolute;
+  right: -70px;
+  top: -110px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 44px rgba(255, 255, 255, 0.045), 0 0 0 96px rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+  z-index: -1;
+}
+.accueil-bandeau h1 { color: #fff; }
+.accueil-bandeau > div > p:first-child { color: #dfe7ff; }
+.accueil-bandeau .accueil-phrase { color: #eef2ff; font-size: 15.5px; }
+.accueil-bandeau .accueil-phrase b { color: #fff; font-weight: 700; }
+.accueil-bandeau .accueil-phrase.ok { color: #fff; }
+.accueil-bandeau .accueil-phrase.ok::before { background: #fff; color: var(--success); }
+@media (max-width: 640px) {
+  .coquille-corps .accueil-bandeau { padding: 18px 18px 20px; border-radius: 16px; }
+}
+/* Le halo de page n'a plus de raison d'être sous un bandeau plein. */
+.coquille-corps > main::before { display: none; }
+
+/* 2. Les tuiles : le fond prend la couleur de l'état, le chiffre aussi, et
+   l'icône passe en pastille PLEINE. Plus de liseré : la couleur borde. */
+.tuile, a.tuile:hover { border-color: transparent; }
+.tuile.neutre, .tuile.accent {
+  background: linear-gradient(160deg, var(--marque-clair), color-mix(in srgb, var(--marque-clair) 40%, var(--surface)) 75%);
+}
+.tuile.ok {
+  background: linear-gradient(160deg, var(--success-soft), color-mix(in srgb, var(--success-soft) 40%, var(--surface)) 75%);
+}
+.tuile.attention {
+  background: linear-gradient(160deg, var(--warning-soft), color-mix(in srgb, var(--warning-soft) 40%, var(--surface)) 75%);
+}
+.tuile.probleme {
+  background: linear-gradient(160deg, var(--destructive-soft), color-mix(in srgb, var(--destructive-soft) 40%, var(--surface)) 75%);
+}
+.tuile .sous { color: var(--texte-2); }
+.tuile.neutre .val, .tuile.accent .val { color: var(--marque-sombre); }
+.tuile.ok .val { color: var(--success-soft-foreground); }
+.tuile.attention .val { color: var(--warning-soft-foreground); }
+.tuile.probleme .val { color: var(--destructive-soft-foreground); }
+.tuile .ico { width: 34px; height: 34px; border-radius: 10px; color: #fff; }
+.tuile .ico svg { width: 18px; height: 18px; }
+.tuile.neutre .ico, .tuile.accent .ico {
+  background: var(--marque);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--marque) 35%, transparent);
+}
+.tuile.ok .ico {
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--success) 35%, transparent);
+}
+.tuile.attention .ico {
+  background: var(--warning);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--warning) 35%, transparent);
+}
+.tuile.probleme .ico {
+  background: var(--destructive);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--destructive) 35%, transparent);
+}
+
+/* 3. L'assistant : c'est lui qui parle, il parle en bleu. */
+.coquille-corps .assistant {
+  border-color: transparent;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--marque) 18%, transparent);
+}
+.assistant-tete {
+  background: linear-gradient(100deg, var(--marque) 0%, var(--marque-sombre) 100%);
+  border-bottom: 0;
+}
+.assistant-tete p, .assistant-tete b { color: #fff; }
+.assistant-tete a.lien-discret {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.6);
+}
+.assistant-tete .rond {
+  background: #fff;
+  color: var(--marque);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.26), 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* 4. La barre latérale : fond à peine bleuté en tête, entrée active en bleu
+   plein, badges pleins. Le rail (tablette) suit tout seul. */
+.coquille-late { background: linear-gradient(180deg, #eef3ff 0%, var(--surface) 36%); }
+.coquille-menu a.actif {
+  background: var(--marque);
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--marque) 30%, transparent);
+}
+.coquille-menu a.actif::before { display: none; }
+.tiroir .coquille-menu a.actif { box-shadow: none; } /* dans le tiroir, le bleu suffit */
+.coquille-menu a:not(.actif):hover { background: var(--marque-clair); color: var(--marque-sombre); }
+.coquille-badge { background: var(--marque); color: #fff; }
+.coquille-badge.critique { background: var(--destructive); color: #fff; }
+.coquille-menu a.actif .coquille-badge { background: #fff; color: var(--marque); }
+.coquille-haut::after { opacity: 1; height: 2px; }
+
+/* La barre basse : l'entrée active porte son icône sur une pastille bleue. */
+@media (max-width: 640px) {
+  .coquille-basse a.actif { color: var(--marque); }
+  .coquille-basse a.actif svg {
+    width: 28px;
+    height: 28px;
+    padding: 5px;
+    margin-top: -4px;
+    border-radius: 9px;
+    background: var(--marque);
+    stroke: #fff;
+  }
+}
+
+/* 5. Le fil : la pastille prend la couleur de la nature du fait. */
+.avatar.ton-ok { background: var(--success-soft); color: var(--success-soft-foreground); }
+.avatar.ton-attention { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+
+/* ═══ v4.3 — « Ajouter une autre couleur et des images » (porteur du projet, 19/09) ═══
+   Une deuxième couleur de marque, le TURQUOISE : il dit « information »
+   (la tuile du parc, les faits du fil qui ne sont ni argent ni incident, le
+   point « en direct ») là où le bleu dit « action ». Et de vraies photos —
+   « pas du vectoriel » : une façade derrière l'accueil, un intérieur sur le
+   parcours de démarrage. Servies par un CDN, avec repli : sans photo, le
+   dégradé reste et tout se lit. */
+:root {
+  --turquoise: #0d9488;
+  --turquoise-doux: #d7f3ee;
+  --turquoise-texte: #0b6b62;
+}
+
+/* 1. Le bandeau : la photo à droite, sous un voile encre → bleu qui s'ouvre
+   vers elle. Le texte reste sur la partie sombre. */
+.coquille-corps .accueil-bandeau {
+  background: linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--marque) 100%);
+}
+/* La place réservée à la photo n'existe que si la photo est là : sans elle
+   (repli), le bandeau reprend sa hauteur de texte. */
+.coquille-corps .accueil-bandeau:has(.accueil-photo) { padding-right: 42%; min-height: 176px; }
+/* Les anneaux décoratifs n'ont plus lieu d'être sur une photo. */
+.coquille-corps .accueil-bandeau:has(.accueil-photo)::after { display: none; }
+.coquille-corps .accueil-bandeau::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    90deg,
+    var(--encre) 0%,
+    rgba(28, 63, 184, 0.94) 32%,
+    rgba(36, 87, 245, 0.42) 58%,
+    rgba(36, 87, 245, 0.06) 100%
+  );
+}
+.accueil-photo { object-fit: cover; object-position: 70% 50%; z-index: -2; }
+@media (max-width: 640px) {
+  .coquille-corps .accueil-bandeau:has(.accueil-photo) { padding-right: 18px; padding-bottom: 76px; min-height: 220px; }
+  .coquille-corps .accueil-bandeau::before {
+    background: linear-gradient(180deg, var(--encre) 0%, rgba(28, 63, 184, 0.92) 46%, rgba(36, 87, 245, 0.22) 100%);
+  }
+  .accueil-photo { object-position: 50% 60%; }
+}
+
+/* 2. Le turquoise, là où il dit « information ». */
+.coquille-haut::after { background: linear-gradient(90deg, var(--marque), var(--turquoise) 45%, transparent 78%); }
+.tuile.neutre {
+  background: linear-gradient(160deg, var(--turquoise-doux), color-mix(in srgb, var(--turquoise-doux) 40%, var(--surface)) 75%);
+}
+.tuile.neutre .lib::before { background: var(--turquoise); }
+.tuile.neutre .val { color: var(--turquoise-texte); }
+.tuile.neutre .ico {
+  background: var(--turquoise);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--turquoise) 35%, transparent);
+}
+.avatar.ton-info { background: var(--turquoise-doux); color: var(--turquoise-texte); }
+.en-direct { display: inline-flex; align-items: center; gap: 6px; }
+.en-direct::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--turquoise);
+  animation: pouls 2.2s ease-out infinite;
+}
+@keyframes pouls {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--turquoise) 45%, transparent); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .en-direct::before { animation: none; } }
+
+/* 3. Le parcours de démarrage : un intérieur, en vignette, en haut à droite —
+   sous l'en-tête et son compteur, à droite des premières étapes. */
+.parcours-carte { position: relative; }
+.parcours-photo {
+  position: absolute;
+  right: 22px;
+  top: 58px;
+  width: 128px;
+  height: 92px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--ombre-portee);
+  pointer-events: none;
+}
+.parcours-photo:empty { display: none; }
+.parcours-photo img { object-fit: cover; }
+/* Sur téléphone les étapes prennent toute la largeur : la photo du bandeau suffit. */
+@media (max-width: 640px) { .parcours-photo { display: none; } }
+

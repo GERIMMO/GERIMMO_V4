@@ -307,3 +307,42 @@ export async function synchroniserQuantite(
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
+
+/**
+ * Porter un avoir au solde du client — l'avantage du parrainage, côté argent.
+ *
+ * `createBalanceTransaction` avec un montant NÉGATIF crédite le client :
+ * Stripe déduit ce solde des prochaines factures, tout seul, sans toucher à la
+ * souscription ni à sa quantité. C'est exactement ce qu'on veut d'« un mois
+ * offert » — pas une remise permanente, pas une ligne à zéro, une fois.
+ *
+ * L'IDEMPOTENCE N'EST PAS DÉCORATIVE ICI. La tâche planifiée peut expirer
+ * APRÈS que Stripe a enregistré l'avoir mais AVANT que la base le sache : la
+ * ligne resterait « à appliquer » et repasserait le lendemain. Avec la clé
+ * d'idempotence — l'identifiant de l'avantage, qui ne bouge pas — Stripe rend
+ * la même transaction au lieu d'en créer une seconde. Sans elle, on offrirait
+ * deux mois pour un seul filleul, silencieusement.
+ */
+export async function crediterClientStripe(
+  stripe: Stripe,
+  params: { customer: string; montantCents: number; avantageId: string; libelle: string }
+): Promise<Reussite<{ reference: string }> | Echec> {
+  if (!params.customer) return { ok: false, erreur: "Client Stripe inconnu pour cette organisation." };
+  if (!Number.isSafeInteger(params.montantCents) || params.montantCents <= 0) {
+    return { ok: false, erreur: "Montant d'avoir invalide." };
+  }
+  try {
+    const transaction = await stripe.customers.createBalanceTransaction(
+      params.customer,
+      {
+        amount: -params.montantCents,
+        currency: "eur",
+        description: params.libelle.slice(0, 350),
+      },
+      { idempotencyKey: `avantage-parrainage-${params.avantageId}` }
+    );
+    return { ok: true, reference: transaction.id };
+  } catch (e) {
+    return { ok: false, erreur: lireErreurStripe(e) };
+  }
+}

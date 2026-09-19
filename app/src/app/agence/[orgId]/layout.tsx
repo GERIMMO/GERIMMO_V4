@@ -1,14 +1,13 @@
-import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
-import { ROLES_RESPONSABLES, formaterDate, aujourdhuiParis } from "@/lib/ged";
-import { SidebarAgence } from "@/components/nav-agence-premium";
-import { SidebarProprietaire } from "@/components/nav-proprietaire";
+import { ROLES_RESPONSABLES, aujourdhuiParis } from "@/lib/ged";
+import { navigationEspace, type RoleEspace } from "@/lib/navigation-espace";
+import { BarreBasse, BarreLaterale } from "@/components/barre-laterale";
+import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { MenuCompte } from "@/components/menu-compte";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
-import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { RechercheEspace } from "@/components/recherche-espace";
 import { Toasteur } from "@/components/ui/toast";
 
@@ -27,9 +26,19 @@ function joursRestants(iso: string): number {
   return Number.isFinite(ms) ? Math.round(ms / 86_400_000) : 0;
 }
 
-// Layout de l'espace agence — charte : marque à gauche, contexte d'agence
-// séparé d'un filet, actions à droite ; navigation en onglets sous l'en-tête,
-// liseré or sur l'onglet actif. Partagé avec le propriétaire direct.
+/**
+ * LA COQUILLE DE L'ESPACE AGENCE — v4 (refonte d'interface, 19/09).
+ *
+ * Une seule coquille pour les trois rôles qui partagent ces écrans (admin
+ * d'agence, agent, propriétaire direct) : la même barre latérale, le même
+ * en-tête, la même barre basse sur téléphone. Ce qui change d'un rôle à
+ * l'autre — les entrées du menu, leurs noms, leurs badges — est calculé par
+ * `navigationEspace()`, qui préserve exactement les accès d'avant.
+ *
+ * Ce que le layout LIT n'a pas bougé : alertes confiées, incidents du
+ * portefeuille, gérants pour « Confier à », messages non lus. Seul le chrome
+ * change ; les pages gardent leur <main> et leurs marges.
+ */
 export default async function LayoutAgence({
   children,
   params,
@@ -70,7 +79,6 @@ export default async function LayoutAgence({
   const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
     (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
   ).length;
-  const alertesOrg = alertes.length;
   const membres = (donneesMembres ?? []) as {
     account_id: string;
     email: string;
@@ -78,10 +86,9 @@ export default async function LayoutAgence({
   }[];
   const estResponsable = ROLES_RESPONSABLES.includes(role);
 
-  // Espace propriétaire — montée en gamme (maquette PC v1 du 05/09) : le
-  // propriétaire direct est chez lui — barre latérale premium (même langage
-  // que l'espace locataire), sélecteur d'organisation (nom propre / SCI) si
-  // plusieurs, pages inchangées derrière.
+  // Le propriétaire direct qui a plusieurs organisations (SCI, nom propre)
+  // choisit dans la barre : tout suit, lots, livre, fiscalité.
+  let organisations: { id: string; nom: string }[] = [];
   if (estProprietaire) {
     const { data: adhesions } = await supabase
       .from("memberships")
@@ -89,7 +96,7 @@ export default async function LayoutAgence({
       .eq("account_id", user.id)
       .eq("role", "proprietaire_direct")
       .eq("status", "active");
-    const organisations = ((adhesions ?? []) as {
+    organisations = ((adhesions ?? []) as {
       organization_id: string;
       organisation:
         | { id: string; name: string; type: string }
@@ -101,114 +108,88 @@ export default async function LayoutAgence({
         return o ? { id: o.id, nom: o.name } : null;
       })
       .filter((o): o is { id: string; nom: string } => o !== null);
-
-    return (
-      <div className="loc-app">
-        <aside className="loc-late">
-          <div className="loc-logo">
-            <Link href={`/agence/${orgId}`} aria-label="Accueil de mon espace">
-              <MarqueGerimmo />
-            </Link>
-          </div>
-          <SidebarProprietaire
-            orgId={orgId}
-            badgeIncidents={badgeIncidents}
-            badgeAlertes={alertesOrg}
-            badgeMessages={messagesNonLus ?? 0}
-            organisations={organisations}
-          />
-        </aside>
-        <div className="min-w-0">
-          <header className="loc-haut">
-            <RechercheEspace orgId={orgId} />
-            <SyntheseAlertes
-              alertes={alertes}
-              membres={membres}
-              estResponsable={estResponsable}
-            />
-            {/* Le pied de la barre latérale a rejoint ce menu (12/09) : ses
-                liens se cherchaient en bas à gauche et disparaissaient sous
-                860 px. Recette Tahir 09/09 : « Espace propriétaire » sans le
-                nom du propriétaire — le sélecteur de la barre dit déjà où
-                l'on est. */}
-            <MenuCompte
-              initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
-              titre="Espace propriétaire"
-              liens={[
-                { href: `/agence/${orgId}/profil`, libelle: "Mon profil" },
-                { href: "/compte", libelle: "Sécurité du compte" },
-                { href: "/espaces", libelle: "Mes espaces" },
-              ]}
-            />
-          </header>
-          {organisation.status === "essai" && organisation.essai_fin && (
-            <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
-              Essai gratuit jusqu&apos;au {formaterDate(organisation.essai_fin)}
-              {joursRestants(organisation.essai_fin) < 0
-                ? " — période d'essai terminée, l'abonnement arrive prochainement"
-                : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
-            </p>
-          )}
-          {/* Les pages gardent leur <main> et leurs marges : seul le chrome change */}
-          <div className="portail-ecrans min-w-0">{messagesNonLus === null && <p role="alert" className="err mx-4 mt-4">Le nombre de messages non lus est indisponible. Consultez votre messagerie pour vérifier les échanges en attente.</p>}{children}</div>
-        </div>
-        <Toasteur />
-      </div>
-    );
   }
 
-  // Espace agence — montée en gamme (maquette v6 du 08/09) : agent et admin
-  // passent sur la barre latérale premium (même langage que les espaces
-  // locataire et propriétaire). L'agent voit « Mon portefeuille », l'admin
-  // « Parc de l'agence » + Mandats & rapports + Administration. Les pages
-  // gardent leur <main> : seul le chrome change.
+  const roleNav: RoleEspace = estProprietaire
+    ? "proprietaire_direct"
+    : role === "admin_agence"
+      ? "admin_agence"
+      : "agent";
+  const navigation = navigationEspace({
+    orgId,
+    role: roleNav,
+    badges: {
+      incidents: badgeIncidents,
+      alertes: alertes.length,
+      alertesCritiques: alertes.filter((a) => a.criticite === "critique").length,
+      messages: messagesNonLus ?? 0,
+    },
+  });
+  const espace = estProprietaire ? "Mon espace" : "Espace agence";
+
+  // L'essai, en une ligne au pied de la barre — plus de bandeau plein écran
+  // au-dessus de chaque page. Réservé au responsable : un agent n'a pas à
+  // connaître la facture de son agence.
+  const essai =
+    estResponsable && organisation.status === "essai" && organisation.essai_fin
+      ? { jours: joursRestants(organisation.essai_fin), href: `/agence/${orgId}/abonnement` }
+      : null;
+
+  const liensCompte = estProprietaire
+    ? [
+        { href: `/agence/${orgId}/profil`, libelle: "Mon profil" },
+        { href: "/compte", libelle: "Sécurité du compte" },
+        { href: "/espaces", libelle: "Mes espaces" },
+      ]
+    : [
+        { href: `/agence/${orgId}/profil`, libelle: "Profil de l'agence" },
+        { href: "/compte", libelle: "Sécurité du compte" },
+        { href: "/espaces", libelle: "Mes espaces" },
+      ];
+
   return (
-    <div className="loc-app">
-      <aside className="loc-late">
-        <div className="loc-logo">
-          <Link href={`/agence/${orgId}`} aria-label="Accueil de l'agence">
-            <MarqueGerimmo />
-          </Link>
-          <span className="loc-logo-texte eyebrow">
-            Espace agence
-          </span>
-        </div>
-        <SidebarAgence
+    <div className="coquille">
+      <aside className="coquille-late">
+        <BarreLaterale
           orgId={orgId}
-          admin={role === "admin_agence"}
-          badgeIncidents={badgeIncidents}
-          badgeAlertes={alertesOrg}
-          badgeMessages={messagesNonLus ?? 0}
+          espace={espace}
+          navigation={navigation}
+          organisations={organisations}
+          essai={essai}
         />
       </aside>
-      <div className="min-w-0">
-        <header className="loc-haut">
-            <RechercheEspace orgId={orgId} />
-          <SyntheseAlertes
-            alertes={alertes}
-            membres={membres}
-            estResponsable={estResponsable}
-          />
+      <div className="coquille-corps">
+        <header className="coquille-haut">
+          {/* Sur téléphone la colonne n'existe plus : la marque monte ici. */}
+          <span className="coquille-marque-mobile">
+            <MarqueGerimmo />
+          </span>
+          <RechercheEspace orgId={orgId} />
+          <SyntheseAlertes alertes={alertes} membres={membres} estResponsable={estResponsable} />
           <MenuCompte
             initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
-            titre={organisation.name}
-            sousTitre={role === "admin_agence" ? "Admin d'agence" : "Agent"}
-            liens={[
-              { href: `/agence/${orgId}/profil`, libelle: "Profil de l'agence" },
-              { href: "/compte", libelle: "Sécurité du compte" },
-              { href: "/espaces", libelle: "Mes espaces" },
-            ]}
+            titre={estProprietaire ? "Espace propriétaire" : organisation.name}
+            sousTitre={
+              estProprietaire ? undefined : role === "admin_agence" ? "Admin d'agence" : "Agent"
+            }
+            liens={liensCompte}
           />
         </header>
-        {organisation.status === "essai" && organisation.essai_fin && (
-          <p className="border-b border-border bg-[var(--or-clair)]/30 px-4 py-1.5 text-center text-xs text-muted-foreground">
-            Essai gratuit jusqu&apos;au {formaterDate(organisation.essai_fin)}
-            {joursRestants(organisation.essai_fin) < 0
-              ? " — période d'essai terminée, l'abonnement arrive prochainement"
-              : ` (${joursRestants(organisation.essai_fin)} jour${joursRestants(organisation.essai_fin) > 1 ? "s" : ""} restants)`}
+        {/* L'essai terminé se dit en clair, une fois, en tête : la barre le
+            porte aussi, mais un essai échu ferme l'écriture — ça se lit. */}
+        {essai && essai.jours < 0 && (
+          <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
+            Période d&apos;essai terminée — l&apos;abonnement arrive prochainement.
           </p>
         )}
-        <div className="portail-ecrans min-w-0">{messagesNonLus === null && <p role="alert" className="err mx-4 mt-4">Le nombre de messages non lus est indisponible. Consultez votre messagerie pour vérifier les échanges en attente.</p>}{children}</div>
+        {messagesNonLus === null && (
+          <p role="alert" className="err mx-4 mt-4">
+            Le nombre de messages non lus est indisponible. Consultez votre messagerie
+            pour vérifier les échanges en attente.
+          </p>
+        )}
+        {children}
+        <BarreBasse espace={espace} navigation={navigation} />
       </div>
       <Toasteur />
     </div>

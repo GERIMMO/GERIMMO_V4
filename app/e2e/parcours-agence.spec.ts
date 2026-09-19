@@ -13,9 +13,11 @@ test.beforeEach(async ({ page }) => {
 
 test("le tableau de bord s'ouvre sans débordement et la navigation porte ses libellés", async ({ page }) => {
   await entrerDansEspace(page, "agence");
-  await expect(page.locator(".loc-menu")).toBeVisible();
-  // Les libellés de navigation sont visibles sous les icônes (socle mobile)
-  await expect(page.locator(".loc-menu .lib", { hasText: "Tableau de bord" })).toBeVisible();
+  // Coquille v4 (19/09) : sur téléphone, la colonne cède la place à une barre
+  // basse de quatre entrées — visée par son rôle, pas par une classe.
+  const barre = page.getByRole("navigation", { name: /téléphone/ });
+  await expect(barre).toBeVisible();
+  await expect(barre.getByRole("link", { name: /Tableau de bord/ })).toBeVisible();
   expect(await debordementHorizontal(page)).toBe(0);
 });
 

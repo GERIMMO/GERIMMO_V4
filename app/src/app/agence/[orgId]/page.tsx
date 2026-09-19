@@ -21,6 +21,9 @@ import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 import { FilActivite } from "./fil-activite";
 import { AccueilProprietaire } from "./accueil-proprietaire";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
+import { IconeTrait } from "@/components/icone-trait";
+import { PhotoDecor } from "@/components/photo-decor";
+import { PHOTOS_ACCUEIL } from "@/lib/photos-decor";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -332,25 +335,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     (incidentsEnCours ?? []) as { imputation: string | null; lot_id: string }[]
   ).filter((i) => dansPortefeuille(i.lot_id));
   const aQualifier = dossiersIncidents.filter((i) => !i.imputation).length;
-  const segmentsIncidents = [
-    {
-      libelle: "Charge propriétaire",
-      valeur: dossiersIncidents.filter((i) => i.imputation === "proprietaire").length,
-      couleur: "var(--encre)",
-    },
-    {
-      libelle: "Charge locataire",
-      valeur: dossiersIncidents.filter(
-        (i) => i.imputation === "locataire" || i.imputation === "degradation_fautive"
-      ).length,
-      couleur: "var(--warning)",
-    },
-    {
-      libelle: "Pas encore tranché",
-      valeur: aQualifier,
-      couleur: "var(--destructive)",
-    },
-  ];
+  // (La jauge par payeur a quitté la tuile Incidents avec la v4 : le détail
+  //  de l'imputation se lit sur l'écran Incidents, pas sur l'accueil.)
 
   const lotsActifs = (lots ?? []).filter(
     (l) => l.etat !== "archive" && dansPortefeuille(l.id)
@@ -563,36 +549,50 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   const planVide = nbActions === 0 && messagesNonLus === 0;
   const planIllisible = planVide && Boolean(erreurAlertes || erreurRapports);
 
+  // ---------------------------------------------------------------- Accueil v4
+  // « Montre-moi ce qui est important maintenant. » Une phrase dit si tout va
+  // bien ; quatre chiffres disent où l'on en est ; l'assistant liste ce qui
+  // attend un geste ; le reste — activité, préparation, statistiques — vient
+  // après, et les statistiques sont repliées.
+  const elementsEnAttente = nbActions + (messagesNonLus && messagesNonLus > 0 ? 1 : 0);
+  const toutEnOrdre = !planIllisible && elementsEnAttente === 0 && aQualifier === 0;
+  const tauxQuittancement =
+    !erreurAppels && !erreurEncaissements && totalAppele > 0
+      ? Math.round((totalEncaisse / totalAppele) * 100)
+      : null;
+  // Les groupes restent REPLIÉS à l'arrivée (demande du 12/09 : « des listes
+  // déroulantes par défaut repliées ») : la phrase d'accueil et l'en-tête de
+  // l'assistant disent déjà combien, et quoi, sans un clic.
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
-      <div className="entete-page">
+      {/* 0. L'accueil humain */}
+      <div className="entete-page accueil-bandeau items-end">
+        <PhotoDecor sources={PHOTOS_ACCUEIL} sizes="(max-width: 640px) 100vw, 60vw" priority className="accueil-photo" />
         <div>
-          <p className="mono-discret sans-majuscules">
+          <p className="text-[12.5px] text-[var(--texte-3)]">
             {portefeuille ? "Mon portefeuille · " : ""}
             {new Date().toLocaleDateString("fr-FR", {
               weekday: "long",
               day: "numeric",
               month: "long",
-              year: "numeric",
               timeZone: "Europe/Paris",
             })}
           </p>
-          <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""},</h1>
-          <p className="text-sm text-muted-foreground">
-            {role === "agent"
-              ? "Voici ce que votre portefeuille attend de vous."
-              : "Voici ce que votre agence attend de vous."}
+          <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""}</h1>
+          <p className={`accueil-phrase${toutEnOrdre ? " ok" : ""}`}>
+            {planIllisible ? (
+              "Une partie de vos informations n'a pas pu être lue."
+            ) : toutEnOrdre ? (
+              "Tout est en ordre."
+            ) : (
+              <>
+                <b>{elementsEnAttente}</b> élément{elementsEnAttente > 1 ? "s" : ""}{" "}
+                {elementsEnAttente > 1 ? "nécessitent" : "nécessite"} votre attention.
+              </>
+            )}
           </p>
         </div>
-        <span className="mono-discret">
-          {/* Un compte tiré d'une lecture en échec ne s'affiche pas : il
-              vaudrait moins que rien, il rassurerait à tort. */}
-          {erreurAlertes || erreurRapports
-            ? "compte indisponible"
-            : `${nbActions} action${nbActions > 1 ? "s" : ""}${
-                enRetard.length > 0 ? ` · ${enRetard.length} en retard` : ""
-              }`}
-        </span>
       </div>
 
       {lecturesEnEchec.length > 0 && (
@@ -603,7 +603,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         </div>
       )}
 
-      {/* 0. Le chemin du démarrage — AVANT tout le reste tant qu'il reste une
+      {/* Le chemin du démarrage — AVANT tout le reste tant qu'il reste une
           étape, et invisible ensuite. Une agence qui vient d'ouvrir n'a ni
           action ni chiffre : ce qu'elle attend, c'est de savoir par où
           commencer. */}
@@ -613,42 +613,137 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         </div>
       )}
 
-      {/* 1. Ce qu'il y a à faire. L'écran du matin commence par là : les
-          chiffres viennent après, ils racontent, ils ne demandent rien. */}
-      <section className="section-ecran mt-6">
-        <div className="entete-carte">
-          <h2 className="text-[length:var(--pas-section)]">Votre plan du jour</h2>
+      {/* 1. Quatre chiffres — une ligne chacun, un point de couleur pour l'état. */}
+      <section className="tuiles mt-6" aria-label="Les chiffres du jour">
+        <Link
+          href={`/agence/${orgId}/parc`}
+          className={`tuile ${erreurLots ? "" : lotsActifs.length > 0 && nbLoues === lotsActifs.length ? "ok" : "neutre"}`}
+        >
+          <span className="ico"><IconeTrait nom="cle" /></span>
+          <span className="lib">Lots loués</span>
+          <span className="val">
+            {erreurLots ? "—" : `${nbLoues}`}
+            {!erreurLots && lotsActifs.length > 0 && (
+              <span className="text-[0.62em] font-medium text-[var(--texte-3)]"> / {lotsActifs.length}</span>
+            )}
+          </span>
+          <span className="sous">
+            {erreurLots
+              ? "Lecture impossible"
+              : lotsActifs.length === 0
+                ? "Aucun lot suivi"
+                : `${tauxOccupation} % d'occupation`}
+          </span>
+        </Link>
+
+        <Link
+          href={`/agence/${orgId}/comptabilite`}
+          className={`tuile ${
+            erreurAppels || erreurEncaissements
+              ? ""
+              : tauxQuittancement === null
+                ? "neutre"
+                : tauxQuittancement >= 100
+                  ? "ok"
+                  : "attention"
+          }`}
+        >
+          <span className="ico"><IconeTrait nom="euro" /></span>
+          <span className="lib">Loyers de {nomMois}</span>
+          <span className="val montant whitespace-nowrap">
+            {erreurEncaissements ? "—" : eur(totalEncaisse)}
+          </span>
+          <span className="sous">
+            {erreurAppels || erreurEncaissements
+              ? "Lecture impossible"
+              : tauxQuittancement === null
+                ? "Aucun appel émis ce mois"
+                : `${tauxQuittancement} % des ${eur(totalAppele)} appelés`}
+          </span>
+        </Link>
+
+        <Link
+          href={`/agence/${orgId}/incidents${aQualifier > 0 ? "?vue=a-traiter" : ""}`}
+          className={`tuile ${erreurIncidents ? "" : aQualifier > 0 ? "probleme" : dossiersIncidents.length > 0 ? "attention" : "ok"}`}
+        >
+          <span className="ico"><IconeTrait nom="outil" /></span>
+          <span className="lib">Incidents en cours</span>
+          <span className="val">{erreurIncidents ? "—" : dossiersIncidents.length}</span>
+          <span className="sous">
+            {erreurIncidents
+              ? "Lecture impossible"
+              : aQualifier > 0
+                ? `${aQualifier} à qualifier — votre décision lance la suite`
+                : dossiersIncidents.length > 0
+                  ? "Tous qualifiés"
+                  : "Aucun dossier ouvert"}
+          </span>
+        </Link>
+
+        <Link
+          href={`/agence/${orgId}/alertes`}
+          className={`tuile ${planIllisible ? "" : enRetard.length > 0 ? "probleme" : nbActions > 0 ? "attention" : "ok"}`}
+        >
+          <span className="ico"><IconeTrait nom="eclair" /></span>
+          <span className="lib">À faire</span>
+          <span className="val">{planIllisible ? "—" : nbActions}</span>
+          <span className="sous">
+            {planIllisible
+              ? "Lecture impossible"
+              : enRetard.length > 0
+                ? `${enRetard.length} en retard`
+                : nbActions > 0
+                  ? "Rien en retard"
+                  : "Rien ne vous attend"}
+          </span>
+        </Link>
+      </section>
+
+      {/* 2. L'assistant : ce que Gerimmo a repéré, et le geste pour chaque
+          chose. Il explique, il propose, il ne décide pas. */}
+      <section className="assistant mt-6" aria-labelledby="assistant-titre">
+        <div className="assistant-tete">
+          <span className="rond" aria-hidden>G</span>
+          <p id="assistant-titre">
+            {planIllisible ? (
+              "Gerimmo n'a pas pu lire ce que vous avez à traiter."
+            ) : planVide ? (
+              <>Gerimmo n&apos;a <b>rien repéré</b> — tout est en ordre.</>
+            ) : (
+              <>
+                Gerimmo a repéré <b>{elementsEnAttente} élément{elementsEnAttente > 1 ? "s" : ""}</b>{" "}
+                {elementsEnAttente > 1 ? "qui nécessitent" : "qui nécessite"} votre attention.
+              </>
+            )}
+          </p>
           <Link href={`/agence/${orgId}/alertes`} className="lien-discret">
-            Toutes les alertes&nbsp;→
+            Tout voir&nbsp;→
           </Link>
         </div>
 
         {planIllisible ? (
-          <LectureImpossible quoi="ce que vous avez à traiter" />
+          <div className="p-4">
+            <LectureImpossible quoi="ce que vous avez à traiter" />
+          </div>
         ) : planVide ? (
-          <div className="vide-guide">
-            <p className="titre">Rien ne vous attend ce matin</p>
-            <p className="explication">
-              Aucun bail bloqué, aucune alerte confiée, aucun rapport à valider.
-              Gerimmo pose les alertes tout seul — diagnostic périmé, état des
-              lieux à faire, loyer impayé : elles arriveront ici.
-            </p>
-            <span className="geste">
-              <Link
-                href={`/agence/${orgId}/parc`}
-                className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
-              >
-                Ouvrir le parc
-                <IndicateurLien />
-              </Link>
-              <Link
-                href={`/agence/${orgId}/alertes`}
-                className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
-              >
-                Toutes les alertes
-                <IndicateurLien />
-              </Link>
-            </span>
+          <div className="p-4">
+            <div className="vide-guide">
+              <p className="titre">Rien ne vous attend ce matin</p>
+              <p className="explication">
+                Aucun bail bloqué, aucune alerte confiée, aucun rapport à valider.
+                Gerimmo pose les alertes tout seul — diagnostic périmé, état des
+                lieux à faire, loyer impayé : elles arriveront ici.
+              </p>
+              <span className="geste">
+                <Link
+                  href={`/agence/${orgId}/parc`}
+                  className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
+                >
+                  Ouvrir le parc
+                  <IndicateurLien />
+                </Link>
+              </span>
+            </div>
           </div>
         ) : (
           <div className="colonne-liste">
@@ -660,7 +755,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               actions={surLesBaux}
               total={surLesBaux.length}
             />
-            <GroupeActions titre="En retard" actions={enRetard} total={enRetard.length} />
+            <GroupeActions
+              titre="En retard"
+              actions={enRetard}
+              total={enRetard.length}
+            />
             <GroupeActions
               titre="À venir"
               actions={aVenirVisibles}
@@ -708,156 +807,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         )}
       </section>
 
-      {/* 2. Les chiffres du jour — ce qui se passe, pas ce qu'on doit faire. */}
-      <section className="section-ecran grid gap-[var(--rythme-4)] sm:grid-cols-2">
-        {/* Tuile Incidents de la maquette (conformité 24/08) : dossiers en
-            cours, jauge par payeur, la file à qualifier en sous-ligne — et,
-            depuis le relevé du 11/09, un lien vers cette file. La sous-ligne
-            promettait « N à qualifier » et le href atterrissait sur « En
-            cours », où les dossiers déjà tranchés sont mêlés aux autres. La vue
-            n'est qu'un filtre d'affichage : elle ne franchit aucune transition
-            de la machine A5. */}
-        <Link
-          href={`/agence/${orgId}/incidents${aQualifier > 0 ? "?vue=a-traiter" : ""}`}
-          className="kpi or h-full"
-        >
-          <span className="eyebrow">Incidents</span>
-          <span className="mt-1 flex items-baseline gap-2">
-            <span className="chiffre">{erreurIncidents ? "—" : dossiersIncidents.length}</span>
-            <span className="text-sm text-muted-foreground">en cours</span>
-          </span>
-          {/* Pas de jauge sur une lecture en échec : une barre à zéro dessine
-              une répartition qu'on n'a pas lue. */}
-          {!erreurIncidents && (
-            <span className="jauge" aria-hidden>
-              {segmentsIncidents.map((s) => (
-                <span
-                  key={s.libelle}
-                  style={{ flex: s.valeur || 0.01, background: s.couleur }}
-                />
-              ))}
-            </span>
-          )}
-          <span className="block text-xs text-muted-foreground">
-            {erreurIncidents ? (
-              <span className="text-destructive">Lecture impossible — rechargez</span>
-            ) : aQualifier > 0 ? (
-              <span className="text-warning-soft-foreground">
-                {aQualifier} à qualifier — votre décision lance la suite
-              </span>
-            ) : dossiersIncidents.length > 0 ? (
-              "Tous qualifiés — rien à trancher"
-            ) : (
-              "Aucun dossier en cours"
-            )}
-          </span>
-        </Link>
-
-        {/* Maquette : l'encaissé du mois, jauge de quittancement */}
-        <Link href={`/agence/${orgId}/comptabilite`} className="kpi bleu h-full">
-          <span className="eyebrow">Encaissé en {nomMois}</span>
-          <span className="mt-1 flex flex-wrap items-baseline gap-x-2">
-            {/* Le montant ne casse jamais avant son « € » (conformité 24/08) */}
-            <span className="chiffre montant whitespace-nowrap">
-              {erreurEncaissements ? "—" : eur(totalEncaisse)}
-            </span>
-            {!erreurAppels && totalAppele > 0 && (
-              <span className="montant text-sm whitespace-nowrap text-muted-foreground">
-                / {eur(totalAppele)} appelés
-              </span>
-            )}
-          </span>
-          {!erreurAppels && !erreurEncaissements && (
-            <span className="jauge" aria-hidden>
-              <span
-                style={{
-                  flex: Math.min(totalEncaisse, totalAppele) || 0.01,
-                  background: "var(--bleu)",
-                }}
-              />
-              <span
-                style={{
-                  flex: Math.max(totalAppele - totalEncaisse, 0) || 0.01,
-                  background: "var(--or-clair)",
-                }}
-              />
-            </span>
-          )}
-          <span className="block text-xs text-muted-foreground">
-            {erreurAppels || erreurEncaissements ? (
-              <span className="text-destructive">Lecture impossible — rechargez</span>
-            ) : totalAppele > 0 ? (
-              `${Math.round((totalEncaisse / totalAppele) * 100)} % du quittancement du mois`
-            ) : (
-              "Aucun appel de loyer émis ce mois"
-            )}
-          </span>
-        </Link>
-      </section>
-
-      {/* 3. Rangée graphique : répartition du parc, encaissements et dépenses
-          sur 6 mois. « Incidents par payeur » retiré le 30/08 : un incident
-          est une alerte, il vit déjà dans le plan du jour. */}
-      <section className="section-ecran grid gap-[var(--rythme-4)] md:grid-cols-2">
-        <Card>
-          <CardContent>
-            <div className="entete-carte">
-              <h3 className="text-[length:var(--pas-sous-titre)]">Répartition du parc</h3>
-              <span className="mono-discret">
-                {erreurLots ? "—" : `${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
-              </span>
-            </div>
-            {erreurLots ? (
-              <LectureImpossible quoi="les lots du parc" />
-            ) : lotsActifs.length === 0 ? (
-              <p className="vide">
-                Aucun lot suivi pour l&apos;instant — le parc se remplit depuis
-                l&apos;onglet Parc.
-              </p>
-            ) : (
-              <div className="bloc-graph">
-                <Donut segments={segmentsParc} centre={`${tauxOccupation} %`} sous="LOUÉS" />
-                <LegendeDonut segments={segmentsParc} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent>
-            <div className="entete-carte">
-              <h3 className="text-[length:var(--pas-sous-titre)]">Encaissements et dépenses</h3>
-              <span className="mono-discret">
-                {portefeuille ? "Mon portefeuille · 6 mois" : "6 mois"}
-              </span>
-            </div>
-            {erreurEcritures ? (
-              <LectureImpossible quoi="les écritures des six derniers mois" />
-            ) : historiqueVide ? (
-              <p className="vide">
-                Aucune écriture sur les six derniers mois — rien à comparer
-                encore.
-              </p>
-            ) : (
-              <>
-                <BarresDouble donnees={historique} />
-                <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden className="size-2.5" style={{ background: "var(--success)" }} />
-                    Encaissé
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span aria-hidden className="size-2.5" style={{ background: "var(--warning)" }} />
-                    Dépenses
-                  </span>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* 4. Le pouls du portefeuille, et ce qui se prépare. */}
-      <section className="section-ecran grid gap-[var(--rythme-4)] lg:grid-cols-[1.6fr_1fr]">
+      {/* 3. Ce qui s'est passé, et ce qui se prépare. */}
+      <section className="mt-6 grid gap-[var(--rythme-4)] lg:grid-cols-[1.6fr_1fr]">
         <FilActivite
           supabase={supabase}
           orgId={orgId}
@@ -907,6 +858,80 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </CardContent>
         </Card>
       </section>
+
+      {/* 4. Les statistiques, repliées : elles racontent, elles ne demandent
+          rien. Répartition du parc et six mois d'écritures, comme avant. */}
+      <details className="details-calme mt-6">
+        <summary>
+          <span className="chevron" aria-hidden>
+            <svg viewBox="0 0 24 24" width="14" height="14">
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+          <span className="whitespace-nowrap">Statistiques du mois</span>
+          <span className="text-[12.5px] font-normal text-[var(--texte-3)]">
+            · répartition du parc, encaissements et dépenses sur 6 mois
+          </span>
+        </summary>
+        <div className="mt-3 grid gap-[var(--rythme-4)] md:grid-cols-2">
+          <Card>
+            <CardContent>
+              <div className="entete-carte">
+                <h3 className="text-[length:var(--pas-sous-titre)]">Répartition du parc</h3>
+                <span className="mono-discret">
+                  {erreurLots ? "—" : `${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
+                </span>
+              </div>
+              {erreurLots ? (
+                <LectureImpossible quoi="les lots du parc" />
+              ) : lotsActifs.length === 0 ? (
+                <p className="vide">
+                  Aucun lot suivi pour l&apos;instant — le parc se remplit depuis
+                  l&apos;onglet Parc.
+                </p>
+              ) : (
+                <div className="bloc-graph">
+                  <Donut segments={segmentsParc} centre={`${tauxOccupation} %`} sous="LOUÉS" />
+                  <LegendeDonut segments={segmentsParc} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent>
+              <div className="entete-carte">
+                <h3 className="text-[length:var(--pas-sous-titre)]">Encaissements et dépenses</h3>
+                <span className="mono-discret">
+                  {portefeuille ? "Mon portefeuille · 6 mois" : "6 mois"}
+                </span>
+              </div>
+              {erreurEcritures ? (
+                <LectureImpossible quoi="les écritures des six derniers mois" />
+              ) : historiqueVide ? (
+                <p className="vide">
+                  Aucune écriture sur les six derniers mois — rien à comparer
+                  encore.
+                </p>
+              ) : (
+                <>
+                  <BarresDouble donnees={historique} />
+                  <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span aria-hidden className="size-2.5" style={{ background: "var(--success)" }} />
+                      Encaissé
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span aria-hidden className="size-2.5" style={{ background: "var(--warning)" }} />
+                      Dépenses
+                    </span>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </details>
     </main>
   );
 }

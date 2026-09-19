@@ -57,7 +57,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Période de loyer]] — le loyer attendu du code actuel ; cible : appel/encaissement.
 - [[Abonnement]] — souscription SaaS Stripe de l'organisation.
 - [[Agenda et échéances]] — écran unique agenda + 27 types d'alertes, escalade nominative. Contient le relevé du 19/09 : l'écran de traitement contredisait RM-14.3.2 (« fermeture par l'action, jamais par marquage »), et les **douze** types d'alerte qui se referment d'eux-mêmes.
-- [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. L'avantage (montant) reste à trancher.
+- [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. **Un mois pour vous, un mois pour lui** : essai du filleul porté à 30 jours, un mois offert au parrain quand son filleul devient client payant.
 
 ## Règles métier
 - [[Grille tarifaire]] — offres par audience ; V3 : mensuel + mise en route + redevance.

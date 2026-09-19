@@ -8,6 +8,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { JOURS_ESSAI_FILLEUL, JOURS_ESSAI_ORDINAIRE } from "@/lib/parrainage";
 
 export function FormulaireInscription({ codeParrain }: { codeParrain?: string | null }) {
   const [etat, action] = useActionState<EtatInscription, FormData>(
@@ -118,8 +119,9 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""}
             />
             <p className="text-xs text-muted-foreground">
-              Si quelqu&apos;un vous a recommandé Gerimmo, son code est ici. Sinon,
-              laissez vide.
+              Si quelqu&apos;un vous a recommandé Gerimmo, son code est ici : votre
+              essai passe alors à {JOURS_ESSAI_FILLEUL} jours au lieu de{" "}
+              {JOURS_ESSAI_ORDINAIRE}. Sinon, laissez vide.
             </p>
           </div>
           <div className="space-y-2">

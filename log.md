@@ -4915,3 +4915,254 @@ lui), suite navigateur complète au vert, lint, types et build au vert.
 > [!warning] Migration non appliquée
 > Elle est écrite, jouée et testée sur le banc ; la production attend l'accord
 > du porteur du projet.
+
+## [2026-09-19] exploitation | Migration de la session artisan appliquée, PR #63 fusionnée
+
+**Dans cet ordre, et pas l'inverse** : la migration d'abord, la fusion ensuite.
+Fusionner avant aurait déployé un écran qui appelle `ouvrir_session_artisan`
+avant que la fonction existe — le bouton aurait échoué le temps du déploiement.
+
+**Migration `20260919170000_session_supervision_artisan`** appliquée sur
+`rddlxunppddzpsaatdaz`. Neuf contrôles passés en production :
+
+| Contrôle | Attendu | Obtenu |
+|---|---|---|
+| Table `supervision_sessions_artisan` | 1 | 1 |
+| RLS activée | oui | oui |
+| Index « une seule session ouverte » | 1 | 1 |
+| Politique de lecture | 1 | 1 |
+| Écriture ouverte à `authenticated` | 0 | 0 |
+| Les quatre fonctions posées | 4 | 4 |
+| `mon_artisan_id()` connaît la supervision | oui | oui |
+| Fonctions exécutables par `anon` | 0 | 0 |
+| Traversées ouvertes à l'instant T | 0 | 0 |
+
+Conseillers Supabase : deux familles, toutes deux **préexistantes et
+inchangées** — `rls_enabled_no_policy` (7 tables sans politique, déjà là) et
+`authenticated_security_definer_function_executable` (210 fonctions : c'est le
+motif de tout le produit, chaque RPC se garde elle-même ; `artisan_supervise`
+en est la 210ᵉ et se garde par `is_super_admin()`).
+
+**PR #63 fusionnée** — `f81f306`, quatre chantiers : les modales portées dans
+`body`, « Sécurité du compte », la console « Clients », la traversée artisan.
+Surveillance de la PR et contrôle horaire arrêtés.
+
+> [!warning] Ce qui reste à décider — usage, pas technique
+> La traversée permet d'**engager un artisan** (accepter une mission, déposer
+> un devis) depuis son espace. C'est tracé, borné à trente minutes et affiché
+> en rouge à l'écran, mais la règle d'usage — dans quels cas la supervision
+> s'autorise à écrire chez un tiers plutôt qu'à seulement regarder — reste à
+> écrire par le porteur du projet.
+
+## [2026-09-19] implementation | L'avantage du parrainage : un mois pour vous, un mois pour lui
+
+**Le chiffre manquait depuis le 19/09** ; le voici, choisi de façon à ne jamais
+avoir à le retoucher.
+
+| Qui | Quoi | Quand |
+|---|---|---|
+| Filleul | Essai porté de **14 à 30 jours** | à l'instant où le code est accepté |
+| Parrain en essai | **30 jours d'essai** de plus | quand le filleul devient client payant |
+| Parrain abonné | **un avoir égal à son mensuel courant** | quand le filleul devient client payant |
+
+**Trois décisions qui tiennent le dispositif debout :**
+
+1. **Le parrain est payé à la CONVERSION, jamais à l'inscription.** Récompenser
+   une inscription, c'est financer des organisations fictives ouvertes avec son
+   propre code. Le déclencheur est le passage du filleul à `active`.
+2. **« Un mois » vaut ce que le parrain paie** — le mensuel est lu sur son
+   abonnement au moment de l'acquisition, puis figé. Aucun barème à tenir quand
+   les tarifs bougent, et aucun chiffre à redemander au porteur du projet.
+3. **Rien n'est promis à vide.** Filleul déjà payant, parrain sans montant
+   facturé, parrain archivé : l'avantage est inscrit « sans objet » et l'écran
+   le dit, au lieu d'afficher un cadeau qui n'arrivera jamais.
+
+**Ce qui est posé** (migration `20260919200000_avantage_parrainage`) : le
+registre `avantages_parrainage` (unique par parrainage et par nature — c'est
+lui qui empêche de récompenser deux fois la même conversion, y compris après
+une suspension), les deux durées en fonctions SQL, l'avantage du filleul dans
+la même transaction que le rattachement, un déclencheur sur le passage à
+`active`, et deux fonctions réservées aux tâches planifiées.
+
+Côté application : `crediterClientStripe()` porte l'avoir au solde du client
+(montant **négatif**, clé d'idempotence = l'identifiant de l'avantage — une
+tâche rejouée n'offre pas deux mois), la tâche `/api/cron/abonnements` les
+applique **après** l'alignement des quantités (si Stripe tombe au milieu, ce
+qui reste est un cadeau en retard d'un jour, pas une facture fausse), le profil
+annonce la promesse et liste ce qui a été acquis, et le champ d'inscription dit
+enfin à quoi sert le code.
+
+**Vérification** : 1 362 tests au vert (18 neufs), dont un qui compare la durée
+**appliquée** en base à la durée **annoncée** à l'écran — une page qui promet
+trente jours pendant que la base en pose quatorze serait un mensonge
+commercial. Lint, types et build au vert.
+
+> [!warning] Migration non appliquée
+> Écrite, jouée et testée sur le banc ; la production attend l'accord.
+
+> [!warning] Reste à trancher : un plafond ?
+> Rien ne limite le nombre de filleuls récompensés pour un même parrain. C'est
+> volontaire, mais cinquante filleuls en un mois poseront la question.
+
+## [2026-09-19] implementation | Refonte d'interface v4 — étape 3, premier prototype (coquille + tableau de bord)
+
+**La commande.** Faire évoluer Gerimmo vers un SaaS « calme, premium, moderne,
+humain, intelligent », sans rien reconstruire ni rien supprimer, par étapes,
+avec validation après le premier prototype. Références de principe : Linear
+(structure), Notion (calme), Stripe/Qonto (chiffres), Attio (fiches), Vercel
+(micro-interactions).
+
+**L'audit** (étape 1) a mesuré ce qui rendait une refonte risquée : deux
+systèmes parallèles à parts égales (`<Card>` 26 fichiers / `.loc-carte` 31 ;
+`<Button>` 51 / `.btn-or` 27), **1 764 atteintes directes au style** depuis le
+balisage (852 `var(--…)` + 912 `text-[…]`/`bg-[…]`), 277 classes maison sans
+familles, un mode sombre sans basculeur (code mort), aucun tiroir, et **aucun
+test de régression visuelle** — trois régressions v3 avaient été trouvées à
+l'œil, jamais par la machine. Décisions du porteur du projet : « Loyers &
+charges » devient un écran d'agence (oui) ; carte blanche pour le reste.
+
+**Le prototype** (étape 3) — layout, barre latérale, en-tête, tableau de bord de
+l'espace agence, pour les trois rôles qui le partagent :
+
+- **`lib/navigation-espace.ts`** — les règles de navigation, pures et
+  testées : même accès qu'avant, nouvel ordre, nouveaux noms. Neuf entrées
+  principales pour l'admin, sept pour l'agent (sans comptabilité ni documents,
+  décision du 12/09 tenue), huit pour le propriétaire (son vocabulaire, sa
+  FAQ). Le reste sous « Plus », replié. Les pastilles ne comptent que ce qui
+  attend un geste, et ne sont **rouges que si c'est critique**.
+- **`components/barre-laterale.tsx`** — une seule barre pour les trois rôles
+  (contre deux composants avant), à trois largeurs : colonne de 232 px,
+  rail d'icônes sous 1024 px, **barre basse de quatre entrées + tiroir « Menu »**
+  sous 640 px. Un téléphone n'est plus un bureau rétréci.
+- **`components/ui/tiroir.tsx`** (première feuille montante du produit — il n'y
+  en avait aucune) et **`components/ui/statut.tsx`** (puce nommée par ce que
+  la couleur veut dire : ok / attention / problème / accent / neutre).
+- **Styles v4** : un bloc additif dans `globals.css`, jetons sémantiques
+  (`--surface`, `--trait`, `--texte-2`, `--accent`…) **tous mappés** sur les
+  jetons existants — la marque blanche continue de gouverner. Aucune classe
+  existante n'est redéfinie ; les anciennes barres restent dans le dépôt le
+  temps de la validation.
+- **Layout agence** : coquille unique, en-tête de 56 px, l'essai en une ligne
+  au pied de la barre au lieu d'un bandeau plein écran sur chaque page.
+- **Tableau de bord** : accueil humain (« Bonjour » + « Tout est en ordre » ou
+  « N éléments nécessitent votre attention »), quatre chiffres à point de
+  couleur, le bloc **« Gerimmo a repéré… »** qui porte le plan du jour (c'est
+  l'assistant : il explique et propose, il ne décide pas), activité récente,
+  lots en préparation, et les statistiques **repliées**. **Aucune lecture de
+  données n'a bougé** : 953 lignes contre 912, seul le rendu a changé.
+- **Garde-fou visuel** (`e2e/visuel.spec.ts`) : le tableau de bord photographié
+  à 1 280, 900 et 390 px et comparé à ses références. Ce qui manquait.
+
+> [!warning] Un conflit entre deux demandes, tranché en faveur de la plus précise
+> Le brief du 19/09 veut « À faire » visible sans défiler ; la demande du
+> **12/09** voulait « des listes déroulantes par défaut repliées ». Le prototype
+> a d'abord ouvert le groupe le plus urgent — et un test écrit le 12/09 l'a
+> refusé. Les groupes restent **repliés** : la phrase d'accueil et l'en-tête de
+> l'assistant disent déjà combien et quoi, sans un clic. À confirmer par le
+> porteur du projet à la validation.
+
+**Ce qui n'est pas dans le prototype, et où c'est prévu** : la scission de
+`/comptabilite` en « Loyers & charges » et « Comptabilité & fiscalité » (phase
+D — l'entrée pointe sur le quittancement existant, qui s'intitule déjà ainsi
+pour un agent) ; la fusion Agenda + Alertes en un écran ; le bloc « Paramètres »
+réunissant profil, abonnement et administration ; les espaces locataire et
+artisan, et la console ; le mode sombre (différé à la fin) ; le fil d'activité,
+qui répète « Nouveau » sur chaque rangée.
+
+## [2026-09-19] implementation | Refonte v4.1 — « Il faut un peu de décoration »
+
+**Demande** : le premier prototype (b5db7b6) était jugé trop nu. **Réponse** :
+une couche de relief, sans toucher à la structure ni aux données.
+
+- **Icônes en trait** (`components/icone-trait.tsx`) : un seul jeu de vingt
+  pictogrammes (maison, clé, euro, outil, cloche…) partagé par la barre
+  latérale, la barre basse et les tuiles du tableau de bord.
+- **Tuiles** : ombre douce, fond légèrement teinté selon le ton (vert = en
+  ordre, orange = attention, rouge = problème), pastille d'icône, chiffre plus
+  grand. **La couleur garde une fonction** : elle dit l'état, pas l'humeur.
+- **Coquille** : halo discret en tête de page, dégradé sur la marque, barre
+  d'accent sur l'entrée active, filet d'accent sous l'en-tête ; ombres sur les
+  cartes ; en-tête de l'assistant en dégradé avec un rond lumineux.
+- « Tout est en ordre » gagne une coche. Mouvements coupés sous
+  `prefers-reduced-motion`.
+- Les trois références visuelles (`e2e/visuel.spec.ts-snapshots/`) sont
+  régénérées — c'est le nouveau point de comparaison.
+- **Défaut trouvé en regardant, pas en testant** : sur téléphone, le tiroir
+  « Menu » n'affichait que des icônes. Les règles du rail (« sous 1 024 px,
+  cacher les libellés ») s'appliquaient au même menu rendu dans le tiroir.
+  Les tests passaient : ils lisent le nom accessible, pas ce qui se voit.
+  Corrigé en limitant le rail à la colonne (`.coquille-late`).
+
+Rien de ce que le tableau de bord lit ou calcule n'a changé.
+
+## [2026-09-19] implementation | Refonte v4.2 — « Plus de couleur, là c'est trop timide »
+
+**Demande** : la v4.1 restait pâle. **Réponse** : la couleur pleine entre, à
+sa place — elle dit quelque chose ou elle n'est pas là.
+
+- **Bandeau d'accueil** : « Bonjour » sur un dégradé encre → marque, texte
+  blanc, deux lueurs, anneaux discrets. La seule grande surface colorée de
+  l'écran ; le halo de page disparaît, devenu inutile.
+- **Tuiles** : le fond prend la couleur de l'état, le chiffre aussi ; l'icône
+  passe en pastille pleine (vert en ordre, orange attention, rouge problème,
+  bleu information). Plus de liseré.
+- **Assistant** : en-tête en bleu plein (marque → marque sombre), texte blanc,
+  rond « G » blanc — c'est lui qui parle.
+- **Barre latérale** : tête à peine bleutée, entrée active en bleu plein,
+  badges pleins (rouge seulement si critique) ; barre basse : l'entrée active
+  porte son icône sur une pastille bleue.
+- **Fil d'activité** : la pastille prend la couleur de la nature du fait
+  (vert = encaissement, orange = incident, bleu = le reste), lue sur la clé
+  de l'événement — aucun champ ajouté.
+- Contrastes tenus : blanc sur `#2457f5` = 5,6:1, sur l'encre davantage ; les
+  sous-titres des tuiles passent en `--texte-2` sur fond teinté.
+- Références visuelles régénérées.
+
+Toujours aucune lecture de données modifiée.
+
+## [2026-09-19] implementation | Refonte v4.3 — « Ajouter une autre couleur et des images »
+
+**Demande** : une deuxième couleur, et des images — puis, précisé : « de
+vraies images, pas du vectoriel ». **Réponse** : le **turquoise** comme
+seconde couleur de marque, et de vraies photos.
+
+- **Turquoise** (`--turquoise`, `--turquoise-doux`, `--turquoise-texte`) :
+  il dit « information » là où le bleu dit « action ». Il colore la tuile du
+  parc (« Lots loués »), les faits du fil qui ne sont ni argent ni incident,
+  le point « en direct » (qui bat doucement, sauf mouvement réduit). Le filet
+  sous l'en-tête va du bleu au turquoise.
+- **Photos** (`components/photo-decor.tsx`, `lib/photos-decor.ts`,
+  `src/images/`) : **deux photos fournies par le porteur du projet** — une
+  façade haussmannienne d'angle derrière le bandeau d'accueil, sous un voile
+  encre → bleu qui s'ouvre vers elle (le texte reste sur la partie sombre) ;
+  un salon clair en vignette sur le parcours de démarrage (bureau seulement).
+  Décoratives (`alt=""`), redimensionnées (1 600 / 960 px, JPEG 80 : 183 et
+  64 Ko), servies et optimisées par `next/image` avec flou de chargement. Le
+  composant garde son repli : sans photo, le dégradé reste seul et tout se
+  lit, et l'espace de la photo n'est réservé que si elle est là.
+- Deux versions écartées le même jour : une ville et une maison dessinées en
+  vectoriel (« de vraies images, pas du vectoriel »), puis des photos d'un
+  CDN externe, retirées dès que le porteur du projet a fourni les siennes —
+  le banc n'atteignait pas cet hôte et rien ne pouvait y être vérifié.
+- Les droits d'usage des deux photos relèvent du porteur du projet, qui les
+  a fournies ; leur origine n'est pas consignée ici.
+
+Toujours aucune lecture de données modifiée.
+
+## [2026-09-19] correction | Le jeton `--accent` de shadcn, écrasé par la v4
+
+**Relevé par la sonde a11y** (crawl axe-core, 57 pages) : « texte encre sur
+bleu plein » sur l'avis « Votre session a expiré » de `/connexion` — et sur
+quatre autres usages de `bg-accent text-accent-foreground` (sélecteur de lot,
+formulaire de bien, page du bail, catalogue de documents).
+
+**Cause** : la refonte v4 avait posé un alias `--accent: var(--marque)` pour
+ses styles, sans voir que shadcn nomme déjà `--accent` son fond pâle de survol
+et de sélection (avec `--accent-foreground` encre). Le remappage a donc peint
+en bleu plein tout ce qui attendait un fond pâle. La sonde ne l'a vu qu'au
+moment où la session du banc a expiré en plein crawl — d'où un premier
+échec pris pour un aléa.
+
+**Correction** : `--accent` retrouve sa valeur ; les styles v4 (37 occurrences)
+écrivent `--marque`, `--marque-clair`, `--marque-sombre` directement. Rendu
+identique aux références visuelles, sonde a11y au vert.

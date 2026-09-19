@@ -4,7 +4,13 @@ import { FormulaireProfilOrganisation } from "./formulaire-profil";
 import { FormulaireSignature } from "./formulaire-signature";
 import { EncadreLectureImpossible, EnteteReglages } from "./famille-reglages";
 import { signatureOrganisation } from "@/lib/documents/modeles/communs";
-import { lienDeParrainage } from "@/lib/parrainage";
+import {
+  lienDeParrainage,
+  libelleAvantage,
+  PROMESSE_PARRAINAGE,
+  type AvantageParrainage,
+} from "@/lib/parrainage";
+import { eur } from "@/lib/ged";
 import { adresseDuSite } from "@/lib/site";
 
 export const metadata = { title: "Profil — Gerimmo" };
@@ -68,6 +74,14 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   const codeParrainage = (profil as { code_parrainage?: string | null }).code_parrainage ?? null;
   const site = adresseDuSite();
 
+  // Ce que le parrainage a rapporté À CETTE organisation (19/09). La RLS ne
+  // rend que ses propres lignes : un avantage ne se lit pas de l'extérieur.
+  const { data: avantagesLus } = await supabase
+    .from("avantages_parrainage")
+    .select("nature, jours, montant_cents, etat")
+    .order("created_at", { ascending: false });
+  const mesAvantages = (avantagesLus ?? []) as unknown as AvantageParrainage[];
+
   const manquants = [
     !profil.address_line1 && "adresse",
     !profil.city && "ville (le « Fait à » des documents)",
@@ -118,10 +132,33 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           </span>
         </div>
         <p className="mesure-lecture mb-3 text-sm text-muted-foreground">
-          Une agence ou un propriétaire que vous amenez s&apos;inscrit avec votre
-          code : Gerimmo sait alors qui a amené qui. L&apos;avantage attaché au
-          parrainage sera annoncé ici quand il sera fixé.
+          {PROMESSE_PARRAINAGE} Le mois du parrain s&apos;acquiert à la
+          souscription du filleul, pas à son inscription.
         </p>
+        {mesAvantages.length > 0 && (
+          <ul className="mb-3 space-y-1">
+            {mesAvantages.map((a, i) => (
+              <li key={i} className="ligne-info">
+                <span>{libelleAvantage(a, (cents) => eur(cents / 100))}</span>
+                <span
+                  className={`puce ${
+                    a.etat === "applique"
+                      ? "puce-loue"
+                      : a.etat === "a_appliquer"
+                        ? "puce-prep"
+                        : "puce-grise"
+                  }`}
+                >
+                  {a.etat === "applique"
+                    ? "acquis"
+                    : a.etat === "a_appliquer"
+                      ? "en cours"
+                      : "sans objet"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
         <dl className="grid gap-x-8 sm:grid-cols-2">
           <div className="ligne-info">
             <dt className="text-muted-foreground">Votre code</dt>

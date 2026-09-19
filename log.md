@@ -5087,5 +5087,10 @@ une couche de relief, sans toucher à la structure ni aux données.
   `prefers-reduced-motion`.
 - Les trois références visuelles (`e2e/visuel.spec.ts-snapshots/`) sont
   régénérées — c'est le nouveau point de comparaison.
+- **Défaut trouvé en regardant, pas en testant** : sur téléphone, le tiroir
+  « Menu » n'affichait que des icônes. Les règles du rail (« sous 1 024 px,
+  cacher les libellés ») s'appliquaient au même menu rendu dans le tiroir.
+  Les tests passaient : ils lisent le nom accessible, pas ce qui se voit.
+  Corrigé en limitant le rail à la colonne (`.coquille-late`).
 
 Rien de ce que le tableau de bord lit ou calcule n'a changé.

@@ -2131,19 +2131,23 @@ a:focus-visible > .carte-espace {
 
 /* Tablette : le rail. Les libellés partent, les icônes restent, le titre du
    lien dit le mot au survol. */
+/* Le rail ne concerne que la COLONNE (`.coquille-late`) : le même menu,
+   rendu dans le tiroir du téléphone, garde ses libellés — sinon le tiroir
+   n'affichait que des icônes (vu sur téléphone le 19/09). */
 @media (max-width: 1023px) {
   :root { --largeur-late: 60px; }
-  .coquille-marque { justify-content: center; padding: 0; }
-  .coquille-marque .espace,
-  .coquille-marque a > span > span:last-child,
-  .coquille-menu .lib,
-  .coquille-groupe > summary .lib,
-  .coquille-groupe > summary .chevron,
-  .coquille-pied { display: none; }
-  .coquille-menu { padding: 8px 6px; }
-  .coquille-menu a, .coquille-menu summary { justify-content: center; padding: 0; position: relative; }
-  .coquille-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; font-size: 10px; }
-  .coquille-groupe > div { display: flex; }
+  .coquille-late .coquille-marque { justify-content: center; padding: 0; }
+  .coquille-late .coquille-marque .espace,
+  .coquille-late .coquille-marque a > span > span:last-child,
+  .coquille-late .coquille-menu .lib,
+  .coquille-late .coquille-groupe > summary .lib,
+  .coquille-late .coquille-groupe > summary .chevron,
+  .coquille-late .coquille-pied { display: none; }
+  .coquille-late .coquille-menu { padding: 8px 6px; }
+  .coquille-late .coquille-menu a,
+  .coquille-late .coquille-menu summary { justify-content: center; padding: 0; position: relative; }
+  .coquille-late .coquille-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; font-size: 10px; }
+  .coquille-late .coquille-groupe > div { display: flex; }
 }
 
 /* Téléphone : plus de colonne. Une barre basse de quatre entrées + « Menu »,
@@ -2338,7 +2342,8 @@ a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
   border-radius: 0 3px 3px 0;
   background: var(--accent);
 }
-@media (max-width: 1023px) { .coquille-menu a.actif::before { left: -6px; } }
+@media (max-width: 1023px) { .coquille-late .coquille-menu a.actif::before { left: -6px; } }
+.tiroir .coquille-menu a.actif::before { display: none; } /* le lavis suffit dans le tiroir */
 .coquille-menu a:hover svg { transform: translateY(-1px); }
 .coquille-menu svg { transition: transform 0.14s ease; }
 

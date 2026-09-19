@@ -48,11 +48,16 @@ export function EnteteFiche({
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
           {surtitre && <p className="eyebrow mt-1">{surtitre}</p>}
-          <div className="entete-page">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1>{titre}</h1>
-              {badge}
-            </div>
+          {/* PAS `.entete-page` ICI. Cette classe est celle de la barre de
+              titre d'une PAGE, et l'espace agence la transforme en carte
+              blanche ombrée (`.portail-ecrans .entete-page`, sélecteur
+              descendant). Posée sur ce titre-ci, qui vit dans une rangée flex,
+              elle produisait une boîte blanche ajustée au mot — « Lot unique »
+              flottant dans un cadre qui s'arrêtait après son badge (capture du
+              19/09). Le titre n'a besoin que d'une rangée. */}
+          <div className="mt-1 mb-4 flex flex-wrap items-center gap-3 border-b border-[var(--filet)] pb-3">
+            <h1>{titre}</h1>
+            {badge}
           </div>
           {sousTitre && (
             <p className="text-sm text-muted-foreground">{sousTitre}</p>

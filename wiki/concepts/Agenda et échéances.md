@@ -3,7 +3,7 @@ type: concept
 tags: [agenda, echeances, rdv, alertes, produit-v0]
 status: draft
 created: 2026-07-21
-updated: 2026-08-30
+updated: 2026-09-19
 sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]"]
 ---
 
@@ -112,7 +112,46 @@ manuel. Le référentiel V3 (module 14, Agenda et alertes) couvre donc cette int
 - `bien_echeances` (échéances datées par bien) + rappels d'expiration de documents (`expiration_alert_days`,
   anti-doublon 30 j). Mais **pas** d'agenda transverse, ni de fenêtres 2 mois/1 mois/2 sem, ni de RDV auto.
 
+## L'écran de traitement contredisait RM-14.3.2 (relevé du 19/09/2026)
+
+Constat de l'humain devant l'alerte « Assurance habitation — Moreau : défaut
+d'assurance persistant » : **la modale de traitement ne proposait que deux
+gestes** — confier l'alerte à quelqu'un, ou la marquer traitée en écrivant ce
+qu'on avait fait. Aucun chemin vers l'endroit où l'attestation se dépose.
+
+C'est la règle **RM-14.3.2 prise à l'envers** : « une alerte se ferme par
+l'action, jamais manuellement ». L'écran ne donnait accès qu'au marquage manuel,
+c'est-à-dire au seul geste que la règle proscrit.
+
+**La mécanique de fermeture automatique existait pourtant déjà** (livrée le
+29/08, voir plus haut). Recensement des appels à `fermer_alertes_origine` dans
+les migrations : **douze types d'alerte se referment seuls** dès que l'objet
+d'origine bouge — `assurance_expiration`, `attestation_a_verifier`, `decompte`,
+`decompte_lrar`, `diagnostic_expiration`, `ecart_versement`, `edl_entree`,
+`edl_sortie`, `loyer_impaye`, `restitution_echeance`,
+`retenue_sans_justificatif`, `versement_proprietaire`. Pour ces douze-là, le
+marquage manuel n'est pas le chemin normal : c'est la sortie de secours. L'écran
+présentait l'exception comme la règle.
+
+**Corrigé le 19/09** : la modale met le geste en premier — « Déposer
+l'attestation d'assurance → » —, dit que l'alerte se refermera d'elle-même, et
+replie le marquage manuel derrière « Déjà réglé en dehors de Gerimmo ? ». Le
+résolveur de destination (`src/lib/chemin-alerte.ts`) couvre désormais
+l'assurance et les attestations (→ pièces justificatives de la personne), les
+diagnostics (→ fiche du lot ou de l'immeuble, par une page de résolution : la
+charge utile de l'alerte ne porte que l'identifiant du diagnostic), les impayés
+(→ carte des loyers du bail) et les incidents (jusque-là recopiés à la main dans
+deux écrans).
+
 > [!warning] Points à trancher / contradictions
+> - **RM-14.3.2 dit « jamais manuellement », le code garde un marquage manuel.**
+>   L'audit du 06/09 l'avait délibérément conservé pour les alertes dont le geste
+>   n'aura jamais lieu dans Gerimmo (recommandé jamais envoyé, pièce vérifiée hors
+>   ligne, arrangement de gré à gré). La tension n'est pas tranchée : faut-il
+>   supprimer le marquage manuel pour les douze types à fermeture automatique, ou
+>   l'assumer comme soupape ? Le correctif du 19/09 choisit la soupape — replié,
+>   nommé « déjà réglé en dehors de Gerimmo », et accompagné d'un avertissement —
+>   mais **ne tranche pas la règle**. À arbitrer avec le porteur du projet.
 > - ~~Modèle de RDV à définir / fenêtres d'alerte v0~~ → **entièrement spécifié par les
 >   modules 10 et 14** (objets Rendez-vous, Alerte, Annonce ; seuils par type d'alerte).
 >   Reste l'**implémentation** : le code n'a que `bien_echeances` +

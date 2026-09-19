@@ -4456,3 +4456,31 @@ qu'elle lit ; et des virgules dans un libellé d'en-tête qui trompaient la
 détection du séparateur CSV.
 
 Vérifié : 46 tests nouveaux, suite complète à 1193 tests, lint, types, build.
+
+## [2026-09-19] implementation | Trois écrans agence relus au doigt, et l'alerte qui ne menait nulle part
+
+Deux retours du porteur du projet le même matin, sur la prévisualisation `main`.
+
+**1. « Trop monochrome, trop fade, pas joli et compliqué à comprendre »** —
+portefeuille, fiche de lot, loyers d'un bail. Derrière le jugement de goût,
+cinq défauts mesurables : un sur-titre en capitales tronqué dans sa tuile
+(mot insécable), un chiffre clé sur trois lignes, un titre de carte écrasé par
+la mention de droite, un titre de fiche transformé en boîte blanche flottante
+par un sélecteur descendant, et sept rangées de fiche au même poids dont une
+seule appelait un geste. Corrigés, plus la refonte de l'échéancier en colonne
+et l'usage de la couleur comme porteuse d'état. Détail :
+[[Charte visuelle v3 bleue]].
+
+**2. L'alerte qui ne mène nulle part.** Devant « défaut d'assurance
+persistant », la modale ne proposait que de confier l'alerte ou de la marquer
+traitée — aucun chemin vers l'endroit où l'attestation se dépose. C'est
+**RM-14.3.2 prise à l'envers** (« fermeture par l'action, jamais par
+marquage ») : l'écran ne donnait accès qu'au geste que la règle proscrit.
+Recensement fait : **douze types d'alerte se referment déjà tout seuls** quand
+l'objet d'origine bouge. La modale met désormais le geste en premier, annonce
+la fermeture automatique, et replie le marquage manuel. Le résolveur de
+destination couvre l'assurance, les diagnostics, les impayés et les incidents.
+Détail et contradiction non tranchée : [[Agenda et échéances]].
+
+Vérifications : lint, types et build verts ; 596 tests passent (les 5 suites
+SQL exigent un Postgres local). Aucune migration.

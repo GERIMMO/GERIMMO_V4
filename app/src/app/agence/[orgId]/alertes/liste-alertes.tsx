@@ -77,8 +77,9 @@ export function ListeAlertes({
   const router = useRouter();
   const [filtre, setFiltre] = useState<string>("toutes");
   const [ouverte, setOuverte] = useState<AlerteRang | null>(null);
-  const incidentDe = (a: AlerteRang) =>
-    typeof a.details?.incident_id === "string" ? a.details.incident_id : null;
+  // Les incidents étaient résolus ICI, à la main, en doublon de la même règle
+  // recopiée dans la synthèse de connexion. `cheminFicheAlerte` les couvre
+  // depuis le 19/09, avec les diagnostics et les attestations d'assurance.
   const ficheDe = (a: AlerteRang) => cheminFiche(a, orgId);
   // L'auto-ouverture se consomme UNE fois, puis le paramètre est retiré de
   // l'URL : sans cela, la revalidation qui suit le traitement remontait le
@@ -100,12 +101,7 @@ export function ListeAlertes({
     // Une alerte qui a un lieu de traitement (incident, fiche, bail) y emmène
     // — sinon le lien profond depuis « Mes espaces » ne faisait plus rien
     // (audit de vérification 06/09) ; les autres ouvrent la modale.
-    const incident = incidentDe(cible);
     const fiche = cheminFiche(cible, orgId);
-    if (incident) {
-      router.push(`/agence/${orgId}/incidents?sel=${incident}`);
-      return;
-    }
     if (fiche) {
       router.push(fiche);
       return;
@@ -145,7 +141,6 @@ export function ListeAlertes({
   };
 
   const rang = (a: AlerteRang, grisee: boolean) => {
-    const incidentId = incidentDe(a);
     const fiche = ficheDe(a);
     return (
       <div
@@ -183,10 +178,10 @@ export function ListeAlertes({
             rouvrir pour la réassigner ou la traiter à la place d'un absent.
             Une alerte incident emmène au dossier, dans l'onglet Incidents. */}
         {(!grisee || estResponsable) &&
-          ((incidentId || fiche) && !grisee ? (
+          (fiche && !grisee ? (
             <span className="flex shrink-0 items-center gap-2.5">
               <Link
-                href={incidentId ? `/agence/${orgId}/incidents?sel=${incidentId}` : (fiche as string)}
+                href={fiche}
                 className={buttonVariants({
                   variant: a.criticite === "critique" ? "destructive" : "outline",
                   size: "sm",

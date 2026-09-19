@@ -4484,3 +4484,32 @@ Détail et contradiction non tranchée : [[Agenda et échéances]].
 
 Vérifications : lint, types et build verts ; 596 tests passent (les 5 suites
 SQL exigent un Postgres local). Aucune migration.
+
+## [2026-09-19] implementation | Migrations du 18/09 en production, PR #60 fusionnée
+
+« Accord » du porteur du projet à 07:48 UTC. Les trois migrations —
+`20260918050000` (avis d'échéance au locataire), `20260918060000` (rappel de
+rendez-vous), `20260918070000` (reprise comptable utilisable) — sont passées
+par le chantier « Migrations Supabase » depuis les fichiers de la branche :
+simulation (run #28 : 796 lignes jouées dans une transaction, BEGIN → ROLLBACK
+sans erreur, garde d'abonnement de 58 à 60 tables, `UPDATE 0` sur
+`reprise_soldes` qui confirme des tables vides) puis application (run #29,
+COMMIT explicite dans le log). Vérification en base : 28 contrôles sur 28 —
+les trois versions enregistrées dans `supabase_migrations`, colonnes
+`appels_loyer.email_envoye_at`, `organizations.appels_envoi_auto` et
+`reprise_soldes.organization_id`, table `intervention_rappels` et ses deux
+types, les sept fonctions, les trois politiques de lecture ET leurs grants à
+`authenticated`, la garde d'abonnement posée sur les deux tables nouvelles.
+Et rien d'écrit : aucun avis marqué envoyé, aucun rappel, aucune reprise,
+envoi automatique à faux pour toutes les organisations.
+
+Puis la [PR #60](https://github.com/GERIMMO/GERIMMO_V4/pull/60) fusionnée dans
+`main` (`9f60bd8`), CI verte sur sa tête. Le code arrive après la base : la
+page de profil d'agence, qui lit `appels_envoi_auto`, trouve sa colonne. Elle
+emporte les trois fonctionnalités du 18/09, la refonte de la modale d'alerte
+et les correctifs de présentation du matin.
+
+Ce qui se déclenche désormais tout seul en production : le cron des avis
+(7 h 30) ne part que pour les agences qui l'activeront dans leur profil ; celui
+des rappels (6 h) écrit aux deux parties la veille et à J-7 de chaque
+intervention planifiée.

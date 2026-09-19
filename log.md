@@ -4732,3 +4732,31 @@ Reste ouvert, moins grave mais réel : les sept autres comptes
 organisations de démonstration** (Agence Alpha, Agence Beta, Parc de Claire
 Moreau — 18 lots, 5 baux fictifs). À arbitrer le jour où une vraie agence
 entrera : soit renouveler leurs mots de passe, soit archiver ces organisations.
+
+## [2026-09-19] implementation | Le bandeau collant avalait les modales
+
+Bug rapporté par le porteur du projet, capture à l'appui : dans la console
+d'administration, la synthèse d'alertes s'ouvre **coupée en deux** — « DONT 6
+CRITIQUES » et la moitié du titre, rien d'autre.
+
+La cause n'est pas la modale mais son ancêtre. `position: fixed` ne se règle
+sur la fenêtre que si aucun ancêtre ne forme un bloc conteneur ; or
+`backdrop-filter` en forme un, comme `transform`, `filter`, `perspective` et
+`will-change`. La charte v3 a posé `backdrop-filter: blur(8px)` sur
+`.bandeau-appli`, et la synthèse est écrite **dans** ce bandeau : son
+`inset-0` se résolvait sur ses soixante pixels. Quatre écrans touchés (console,
+les deux layouts agence, « Mes espaces »), depuis le 18/09.
+
+Corrigé par un **portail** : `Modale` se monte dans `<body>`, d'où qu'elle soit
+écrite — les treize modales du produit sont couvertes d'un coup. Retirer le
+`backdrop-filter` n'aurait réparé que ce bandeau, jusqu'au prochain ancêtre
+animé. Le montage se détecte par `useSyncExternalStore` et non par un
+`setState` dans un effet, que la règle de pureté refuse à raison.
+
+L'épreuve navigateur `arrivee-alertes` — qui vérifiait la largeur depuis le
+11/09 — mesure désormais aussi le **voile** : il doit couvrir toute la hauteur,
+sans quoi un ancêtre capture le `position: fixed`. C'est le contrôle qui
+manquait.
+
+Suite complète contre le banc : 1 316 tests verts ; lint, types, build verts.
+Aucune migration. Leçon consignée dans [[Charte visuelle v3 bleue]].

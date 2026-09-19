@@ -47,7 +47,28 @@ test("la synthèse d'alertes qui s'ouvre à l'arrivée tient dans l'écran et se
     `la modale déborde : elle finit à ${Math.round(boite.x + boite.width)} px pour une fenêtre de ${fenetre} px`
   ).toBeLessThanOrEqual(fenetre + 1);
 
-  // 2. Le geste de sortie est ATTEIGNABLE — c'est le vrai test, pas la mesure.
+  // 2. Elle n'est pas CAPTURÉE par un ancêtre (bug du 19/09). `position: fixed`
+  //    ne se règle sur la fenêtre que si aucun ancêtre ne forme un bloc
+  //    conteneur — et `backdrop-filter`, posé sur le bandeau collant par la
+  //    charte v3, en forme un. La synthèse, écrite DANS ce bandeau, se repliait
+  //    dans ses soixante pixels : on lisait le surtitre et la moitié du titre.
+  //    On mesure donc le VOILE, qui doit couvrir toute la hauteur.
+  const hauteurFenetre = page.viewportSize()!.height;
+  const voile = page.locator('[role="dialog"]').locator("xpath=..");
+  const boiteVoile = (await voile.boundingBox())!;
+  expect(
+    boiteVoile.height,
+    `le voile ne couvre que ${Math.round(boiteVoile.height)} px sur ${hauteurFenetre} : ` +
+      "un ancêtre capture le position:fixed (backdrop-filter, transform, filter…)"
+  ).toBeGreaterThanOrEqual(hauteurFenetre - 1);
+  expect(boiteVoile.y, "le voile commence en haut de l'écran").toBeLessThanOrEqual(1);
+  // Et la fenêtre elle-même n'est pas rognée : son pied est visible.
+  expect(
+    boite.y + boite.height,
+    "la modale est coupée en bas — elle déborde de son conteneur"
+  ).toBeLessThanOrEqual(hauteurFenetre + 1);
+
+  // 3. Le geste de sortie est ATTEIGNABLE — c'est le vrai test, pas la mesure.
   const fermer = page.getByRole("button", { name: /fermer/i }).first();
   await expect(fermer).toBeVisible();
   await fermer.click({ timeout: 5000 });

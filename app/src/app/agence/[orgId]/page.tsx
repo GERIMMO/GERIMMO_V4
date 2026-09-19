@@ -22,6 +22,8 @@ import { FilActivite } from "./fil-activite";
 import { AccueilProprietaire } from "./accueil-proprietaire";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 import { IconeTrait } from "@/components/icone-trait";
+import { PhotoDecor } from "@/components/photo-decor";
+import { PHOTOS_ACCUEIL } from "@/lib/photos-decor";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -566,6 +568,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
       {/* 0. L'accueil humain */}
       <div className="entete-page accueil-bandeau items-end">
+        <PhotoDecor sources={PHOTOS_ACCUEIL} sizes="(max-width: 640px) 100vw, 60vw" priority className="accueil-photo" />
         <div>
           <p className="text-[12.5px] text-[var(--texte-3)]">
             {portefeuille ? "Mon portefeuille · " : ""}

@@ -2578,3 +2578,93 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 .avatar.ton-ok { background: var(--success-soft); color: var(--success-soft-foreground); }
 .avatar.ton-attention { background: var(--warning-soft); color: var(--warning-soft-foreground); }
 
+/* ═══ v4.3 — « Ajouter une autre couleur et des images » (porteur du projet, 19/09) ═══
+   Une deuxième couleur de marque, le TURQUOISE : il dit « information »
+   (la tuile du parc, les faits du fil qui ne sont ni argent ni incident, le
+   point « en direct ») là où le bleu dit « action ». Et de vraies photos —
+   « pas du vectoriel » : une façade derrière l'accueil, un intérieur sur le
+   parcours de démarrage. Servies par un CDN, avec repli : sans photo, le
+   dégradé reste et tout se lit. */
+:root {
+  --turquoise: #0d9488;
+  --turquoise-doux: #d7f3ee;
+  --turquoise-texte: #0b6b62;
+}
+
+/* 1. Le bandeau : la photo à droite, sous un voile encre → bleu qui s'ouvre
+   vers elle. Le texte reste sur la partie sombre. */
+.coquille-corps .accueil-bandeau {
+  background: linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--accent) 100%);
+}
+/* La place réservée à la photo n'existe que si la photo est là : sans elle
+   (repli), le bandeau reprend sa hauteur de texte. */
+.coquille-corps .accueil-bandeau:has(.accueil-photo) { padding-right: 42%; min-height: 150px; }
+.coquille-corps .accueil-bandeau::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    90deg,
+    var(--encre) 0%,
+    rgba(28, 63, 184, 0.94) 34%,
+    rgba(36, 87, 245, 0.55) 62%,
+    rgba(36, 87, 245, 0.1) 100%
+  );
+}
+.accueil-photo { object-fit: cover; object-position: 70% 50%; z-index: -2; }
+@media (max-width: 640px) {
+  .coquille-corps .accueil-bandeau:has(.accueil-photo) { padding-right: 18px; padding-bottom: 76px; min-height: 220px; }
+  .coquille-corps .accueil-bandeau::before {
+    background: linear-gradient(180deg, var(--encre) 0%, rgba(28, 63, 184, 0.92) 48%, rgba(36, 87, 245, 0.35) 100%);
+  }
+  .accueil-photo { object-position: 50% 60%; }
+}
+
+/* 2. Le turquoise, là où il dit « information ». */
+.coquille-haut::after { background: linear-gradient(90deg, var(--accent), var(--turquoise) 45%, transparent 78%); }
+.tuile.neutre {
+  background: linear-gradient(160deg, var(--turquoise-doux), color-mix(in srgb, var(--turquoise-doux) 40%, var(--surface)) 75%);
+}
+.tuile.neutre .lib::before { background: var(--turquoise); }
+.tuile.neutre .val { color: var(--turquoise-texte); }
+.tuile.neutre .ico {
+  background: var(--turquoise);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--turquoise) 35%, transparent);
+}
+.avatar.ton-info { background: var(--turquoise-doux); color: var(--turquoise-texte); }
+.en-direct { display: inline-flex; align-items: center; gap: 6px; }
+.en-direct::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--turquoise);
+  animation: pouls 2.2s ease-out infinite;
+}
+@keyframes pouls {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--turquoise) 45%, transparent); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .en-direct::before { animation: none; } }
+
+/* 3. Le parcours de démarrage : un intérieur, en vignette, en haut à droite —
+   sous l'en-tête et son compteur, à droite des premières étapes. */
+.parcours-carte { position: relative; }
+.parcours-photo {
+  position: absolute;
+  right: 22px;
+  top: 58px;
+  width: 128px;
+  height: 92px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--ombre-portee);
+  pointer-events: none;
+}
+.parcours-photo:empty { display: none; }
+.parcours-photo img { object-fit: cover; }
+/* Sur téléphone les étapes prennent toute la largeur : la photo du bandeau suffit. */
+@media (max-width: 640px) { .parcours-photo { display: none; } }
+

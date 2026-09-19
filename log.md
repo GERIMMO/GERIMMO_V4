@@ -5119,3 +5119,34 @@ sa place — elle dit quelque chose ou elle n'est pas là.
 - Références visuelles régénérées.
 
 Toujours aucune lecture de données modifiée.
+
+## [2026-09-19] implementation | Refonte v4.3 — « Ajouter une autre couleur et des images »
+
+**Demande** : une deuxième couleur, et des images — puis, précisé : « de
+vraies images, pas du vectoriel ». **Réponse** : le **turquoise** comme
+seconde couleur de marque, et de vraies photos.
+
+- **Turquoise** (`--turquoise`, `--turquoise-doux`, `--turquoise-texte`) :
+  il dit « information » là où le bleu dit « action ». Il colore la tuile du
+  parc (« Lots loués »), les faits du fil qui ne sont ni argent ni incident,
+  le point « en direct » (qui bat doucement, sauf mouvement réduit). Le filet
+  sous l'en-tête va du bleu au turquoise.
+- **Photos** (`components/photo-decor.tsx`, `lib/photos-decor.ts`) : une
+  façade en fin de journée derrière le bandeau d'accueil, sous un voile
+  encre → bleu qui s'ouvre vers elle (le texte reste sur la partie sombre) ;
+  un intérieur en vignette sur le parcours de démarrage (bureau seulement).
+  Décoratives (`alt=""`), servies par le CDN d'Unsplash sous licence Unsplash,
+  optimisées par `next/image` (hôte autorisé dans `next.config.ts`). Chaque
+  emplacement liste plusieurs sources : la première qui répond est prise, et
+  sans aucune, le dégradé reste seul et tout se lit.
+- Une première version dessinait une ville et une maison en vectoriel ; le
+  porteur du projet a demandé de vraies photos, les dessins sont retirés.
+
+> [!warning] À vérifier sur la préversion, pas sur le banc
+> Le banc n'a pas accès aux hôtes d'images : les captures locales montrent le
+> repli (dégradé seul), et les références visuelles aussi. Le choix des
+> photos ne peut être jugé que sur la préversion Vercel. Pour les photos de
+> l'agence elle-même : déposer les fichiers dans `app/src/images/` et les
+> importer dans `lib/photos-decor.ts`.
+
+Toujours aucune lecture de données modifiée.

@@ -46,12 +46,12 @@ function tempsRelatif(ts: string): string {
 }
 
 // La couleur de la pastille dit la nature du fait : vert pour l'argent
-// encaissé, orange pour un incident qui attend, bleu pour le reste (un état
-// des lieux signé, un rapport envoyé). Lue sur la clé — pas de champ à ajouter.
+// encaissé, orange pour un incident qui attend, turquoise pour le reste (un
+// état des lieux signé, un rapport envoyé). Lue sur la clé — pas de champ à ajouter.
 function tonDe(cle: string): string {
   if (cle.startsWith("enc-")) return "ton-ok";
   if (cle.startsWith("inc-")) return "ton-attention";
-  return "";
+  return "ton-info";
 }
 
 export async function FilActivite({
@@ -216,7 +216,7 @@ export async function FilActivite({
       <CardContent>
         <div className="entete-carte">
           <h3 className="text-[1.05rem]">Ce qui vient de se passer</h3>
-          <span className="mono-discret">En direct</span>
+          <span className="mono-discret en-direct">En direct</span>
         </div>
         <div className="divide-y divide-border">
           {recents.map((e) => (

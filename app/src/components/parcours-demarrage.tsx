@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PhotoDecor } from "@/components/photo-decor";
+import { PHOTOS_PREMIER_LOT } from "@/lib/photos-decor";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -71,7 +73,10 @@ export async function ParcoursDemarrage({
   const suivante = etapes.find((e) => !e.faite);
 
   return (
-    <section className="loc-carte border-l-4 border-l-[var(--or)]" aria-labelledby="parcours-titre">
+    <section className="loc-carte parcours-carte border-l-4 border-l-[var(--or)]" aria-labelledby="parcours-titre">
+      <span className="parcours-photo" aria-hidden>
+        <PhotoDecor sources={PHOTOS_PREMIER_LOT} sizes="128px" />
+      </span>
       <div className="entete-carte">
         <h3 id="parcours-titre">Mettre votre premier lot en location</h3>
         <span className="mono-discret">

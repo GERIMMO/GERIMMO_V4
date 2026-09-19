@@ -45,6 +45,15 @@ function tempsRelatif(ts: string): string {
   return `il y a ${Math.round(h / 24)} j`;
 }
 
+// La couleur de la pastille dit la nature du fait : vert pour l'argent
+// encaissé, orange pour un incident qui attend, bleu pour le reste (un état
+// des lieux signé, un rapport envoyé). Lue sur la clé — pas de champ à ajouter.
+function tonDe(cle: string): string {
+  if (cle.startsWith("enc-")) return "ton-ok";
+  if (cle.startsWith("inc-")) return "ton-attention";
+  return "";
+}
+
 export async function FilActivite({
   supabase,
   orgId,
@@ -212,7 +221,7 @@ export async function FilActivite({
         <div className="divide-y divide-border">
           {recents.map((e) => (
             <Link key={e.cle} href={e.href} className="rang !border-l-0 !px-0">
-              <span className="avatar shrink-0">{e.initiales}</span>
+              <span className={`avatar shrink-0 ${tonDe(e.cle)}`}>{e.initiales}</span>
               {/* En étroit, deux lignes plutôt qu'un titre amputé du montant */}
               <span className="min-w-0 flex-1">
                 <b className="line-clamp-2 text-[13.5px] font-medium sm:line-clamp-1">{e.titre}</b>

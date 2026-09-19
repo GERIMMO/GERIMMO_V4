@@ -5094,3 +5094,28 @@ une couche de relief, sans toucher à la structure ni aux données.
   Corrigé en limitant le rail à la colonne (`.coquille-late`).
 
 Rien de ce que le tableau de bord lit ou calcule n'a changé.
+
+## [2026-09-19] implementation | Refonte v4.2 — « Plus de couleur, là c'est trop timide »
+
+**Demande** : la v4.1 restait pâle. **Réponse** : la couleur pleine entre, à
+sa place — elle dit quelque chose ou elle n'est pas là.
+
+- **Bandeau d'accueil** : « Bonjour » sur un dégradé encre → marque, texte
+  blanc, deux lueurs, anneaux discrets. La seule grande surface colorée de
+  l'écran ; le halo de page disparaît, devenu inutile.
+- **Tuiles** : le fond prend la couleur de l'état, le chiffre aussi ; l'icône
+  passe en pastille pleine (vert en ordre, orange attention, rouge problème,
+  bleu information). Plus de liseré.
+- **Assistant** : en-tête en bleu plein (marque → marque sombre), texte blanc,
+  rond « G » blanc — c'est lui qui parle.
+- **Barre latérale** : tête à peine bleutée, entrée active en bleu plein,
+  badges pleins (rouge seulement si critique) ; barre basse : l'entrée active
+  porte son icône sur une pastille bleue.
+- **Fil d'activité** : la pastille prend la couleur de la nature du fait
+  (vert = encaissement, orange = incident, bleu = le reste), lue sur la clé
+  de l'événement — aucun champ ajouté.
+- Contrastes tenus : blanc sur `#2457f5` = 5,6:1, sur l'encre davantage ; les
+  sous-titres des tuiles passent en `--texte-2` sur fond teinté.
+- Références visuelles régénérées.
+
+Toujours aucune lecture de données modifiée.

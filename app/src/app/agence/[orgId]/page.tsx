@@ -565,7 +565,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
       {/* 0. L'accueil humain */}
-      <div className="entete-page items-end">
+      <div className="entete-page accueil-bandeau items-end">
         <div>
           <p className="text-[12.5px] text-[var(--texte-3)]">
             {portefeuille ? "Mon portefeuille · " : ""}

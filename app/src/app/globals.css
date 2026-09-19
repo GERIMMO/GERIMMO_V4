@@ -2429,3 +2429,152 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   .coquille-menu svg, a.tuile { transition: none; }
   a.tuile:hover { transform: none; }
 }
+
+/* ═══ v4.2 — « Plus de couleur, là c'est trop timide » (porteur du projet, 19/09) ═══
+   La v4.1 posait le relief ; elle restait pâle. Ici la couleur PLEINE entre,
+   mais toujours à sa place : la marque en grand une fois (le bandeau
+   d'accueil), l'état en couleur pleine sur les tuiles, l'assistant en bleu
+   parce que c'est lui qui parle, l'entrée active en bleu plein. Les cartes
+   restent blanches : la couleur dit quelque chose, ou elle n'est pas là. */
+
+/* 1. Le bandeau d'accueil : encre → marque, texte blanc, deux lueurs et des
+   anneaux discrets. La seule grande surface colorée de l'écran. */
+.coquille-corps .accueil-bandeau {
+  position: relative;
+  isolation: isolate;
+  padding: 22px 24px;
+  border: 0;
+  border-radius: 18px;
+  margin-bottom: 20px;
+  color: #fff;
+  background:
+    radial-gradient(60% 140% at 100% -20%, rgba(255, 255, 255, 0.2), transparent 60%),
+    radial-gradient(45% 120% at 6% 120%, color-mix(in srgb, var(--accent) 65%, #fff), transparent 60%),
+    linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--accent) 100%);
+  box-shadow: 0 14px 36px color-mix(in srgb, var(--encre) 28%, transparent);
+  overflow: clip;
+}
+.coquille-corps .accueil-bandeau::after {
+  content: "";
+  position: absolute;
+  right: -70px;
+  top: -110px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 44px rgba(255, 255, 255, 0.045), 0 0 0 96px rgba(255, 255, 255, 0.025);
+  pointer-events: none;
+  z-index: -1;
+}
+.accueil-bandeau h1 { color: #fff; }
+.accueil-bandeau > div > p:first-child { color: #dfe7ff; }
+.accueil-bandeau .accueil-phrase { color: #eef2ff; font-size: 15.5px; }
+.accueil-bandeau .accueil-phrase b { color: #fff; font-weight: 700; }
+.accueil-bandeau .accueil-phrase.ok { color: #fff; }
+.accueil-bandeau .accueil-phrase.ok::before { background: #fff; color: var(--success); }
+@media (max-width: 640px) {
+  .coquille-corps .accueil-bandeau { padding: 18px 18px 20px; border-radius: 16px; }
+}
+/* Le halo de page n'a plus de raison d'être sous un bandeau plein. */
+.coquille-corps > main::before { display: none; }
+
+/* 2. Les tuiles : le fond prend la couleur de l'état, le chiffre aussi, et
+   l'icône passe en pastille PLEINE. Plus de liseré : la couleur borde. */
+.tuile, a.tuile:hover { border-color: transparent; }
+.tuile.neutre, .tuile.accent {
+  background: linear-gradient(160deg, var(--accent-doux), color-mix(in srgb, var(--accent-doux) 40%, var(--surface)) 75%);
+}
+.tuile.ok {
+  background: linear-gradient(160deg, var(--success-soft), color-mix(in srgb, var(--success-soft) 40%, var(--surface)) 75%);
+}
+.tuile.attention {
+  background: linear-gradient(160deg, var(--warning-soft), color-mix(in srgb, var(--warning-soft) 40%, var(--surface)) 75%);
+}
+.tuile.probleme {
+  background: linear-gradient(160deg, var(--destructive-soft), color-mix(in srgb, var(--destructive-soft) 40%, var(--surface)) 75%);
+}
+.tuile .sous { color: var(--texte-2); }
+.tuile.neutre .val, .tuile.accent .val { color: var(--accent-texte); }
+.tuile.ok .val { color: var(--success-soft-foreground); }
+.tuile.attention .val { color: var(--warning-soft-foreground); }
+.tuile.probleme .val { color: var(--destructive-soft-foreground); }
+.tuile .ico { width: 34px; height: 34px; border-radius: 10px; color: #fff; }
+.tuile .ico svg { width: 18px; height: 18px; }
+.tuile.neutre .ico, .tuile.accent .ico {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.tuile.ok .ico {
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--success) 35%, transparent);
+}
+.tuile.attention .ico {
+  background: var(--warning);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--warning) 35%, transparent);
+}
+.tuile.probleme .ico {
+  background: var(--destructive);
+  color: #fff;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--destructive) 35%, transparent);
+}
+
+/* 3. L'assistant : c'est lui qui parle, il parle en bleu. */
+.coquille-corps .assistant {
+  border-color: transparent;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.assistant-tete {
+  background: linear-gradient(100deg, var(--accent) 0%, var(--accent-texte) 100%);
+  border-bottom: 0;
+}
+.assistant-tete p, .assistant-tete b { color: #fff; }
+.assistant-tete a.lien-discret {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(255, 255, 255, 0.6);
+}
+.assistant-tete .rond {
+  background: #fff;
+  color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.26), 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* 4. La barre latérale : fond à peine bleuté en tête, entrée active en bleu
+   plein, badges pleins. Le rail (tablette) suit tout seul. */
+.coquille-late { background: linear-gradient(180deg, #eef3ff 0%, var(--surface) 36%); }
+.coquille-menu a.actif {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.coquille-menu a.actif::before { display: none; }
+.tiroir .coquille-menu a.actif { box-shadow: none; } /* dans le tiroir, le bleu suffit */
+.coquille-menu a:not(.actif):hover { background: var(--accent-doux); color: var(--accent-texte); }
+.coquille-badge { background: var(--accent); color: #fff; }
+.coquille-badge.critique { background: var(--destructive); color: #fff; }
+.coquille-menu a.actif .coquille-badge { background: #fff; color: var(--accent); }
+.coquille-haut::after { opacity: 1; height: 2px; }
+
+/* La barre basse : l'entrée active porte son icône sur une pastille bleue. */
+@media (max-width: 640px) {
+  .coquille-basse a.actif { color: var(--accent); }
+  .coquille-basse a.actif svg {
+    width: 28px;
+    height: 28px;
+    padding: 5px;
+    margin-top: -4px;
+    border-radius: 9px;
+    background: var(--accent);
+    stroke: #fff;
+  }
+}
+
+/* 5. Le fil : la pastille prend la couleur de la nature du fait. */
+.avatar.ton-ok { background: var(--success-soft); color: var(--success-soft-foreground); }
+.avatar.ton-attention { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+

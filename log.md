@@ -5003,3 +5003,68 @@ commercial. Lint, types et build au vert.
 > [!warning] Reste à trancher : un plafond ?
 > Rien ne limite le nombre de filleuls récompensés pour un même parrain. C'est
 > volontaire, mais cinquante filleuls en un mois poseront la question.
+
+## [2026-09-19] implementation | Refonte d'interface v4 — étape 3, premier prototype (coquille + tableau de bord)
+
+**La commande.** Faire évoluer Gerimmo vers un SaaS « calme, premium, moderne,
+humain, intelligent », sans rien reconstruire ni rien supprimer, par étapes,
+avec validation après le premier prototype. Références de principe : Linear
+(structure), Notion (calme), Stripe/Qonto (chiffres), Attio (fiches), Vercel
+(micro-interactions).
+
+**L'audit** (étape 1) a mesuré ce qui rendait une refonte risquée : deux
+systèmes parallèles à parts égales (`<Card>` 26 fichiers / `.loc-carte` 31 ;
+`<Button>` 51 / `.btn-or` 27), **1 764 atteintes directes au style** depuis le
+balisage (852 `var(--…)` + 912 `text-[…]`/`bg-[…]`), 277 classes maison sans
+familles, un mode sombre sans basculeur (code mort), aucun tiroir, et **aucun
+test de régression visuelle** — trois régressions v3 avaient été trouvées à
+l'œil, jamais par la machine. Décisions du porteur du projet : « Loyers &
+charges » devient un écran d'agence (oui) ; carte blanche pour le reste.
+
+**Le prototype** (étape 3) — layout, barre latérale, en-tête, tableau de bord de
+l'espace agence, pour les trois rôles qui le partagent :
+
+- **`lib/navigation-espace.ts`** — les règles de navigation, pures et
+  testées : même accès qu'avant, nouvel ordre, nouveaux noms. Neuf entrées
+  principales pour l'admin, sept pour l'agent (sans comptabilité ni documents,
+  décision du 12/09 tenue), huit pour le propriétaire (son vocabulaire, sa
+  FAQ). Le reste sous « Plus », replié. Les pastilles ne comptent que ce qui
+  attend un geste, et ne sont **rouges que si c'est critique**.
+- **`components/barre-laterale.tsx`** — une seule barre pour les trois rôles
+  (contre deux composants avant), à trois largeurs : colonne de 232 px,
+  rail d'icônes sous 1024 px, **barre basse de quatre entrées + tiroir « Menu »**
+  sous 640 px. Un téléphone n'est plus un bureau rétréci.
+- **`components/ui/tiroir.tsx`** (première feuille montante du produit — il n'y
+  en avait aucune) et **`components/ui/statut.tsx`** (puce nommée par ce que
+  la couleur veut dire : ok / attention / problème / accent / neutre).
+- **Styles v4** : un bloc additif dans `globals.css`, jetons sémantiques
+  (`--surface`, `--trait`, `--texte-2`, `--accent`…) **tous mappés** sur les
+  jetons existants — la marque blanche continue de gouverner. Aucune classe
+  existante n'est redéfinie ; les anciennes barres restent dans le dépôt le
+  temps de la validation.
+- **Layout agence** : coquille unique, en-tête de 56 px, l'essai en une ligne
+  au pied de la barre au lieu d'un bandeau plein écran sur chaque page.
+- **Tableau de bord** : accueil humain (« Bonjour » + « Tout est en ordre » ou
+  « N éléments nécessitent votre attention »), quatre chiffres à point de
+  couleur, le bloc **« Gerimmo a repéré… »** qui porte le plan du jour (c'est
+  l'assistant : il explique et propose, il ne décide pas), activité récente,
+  lots en préparation, et les statistiques **repliées**. **Aucune lecture de
+  données n'a bougé** : 953 lignes contre 912, seul le rendu a changé.
+- **Garde-fou visuel** (`e2e/visuel.spec.ts`) : le tableau de bord photographié
+  à 1 280, 900 et 390 px et comparé à ses références. Ce qui manquait.
+
+> [!warning] Un conflit entre deux demandes, tranché en faveur de la plus précise
+> Le brief du 19/09 veut « À faire » visible sans défiler ; la demande du
+> **12/09** voulait « des listes déroulantes par défaut repliées ». Le prototype
+> a d'abord ouvert le groupe le plus urgent — et un test écrit le 12/09 l'a
+> refusé. Les groupes restent **repliés** : la phrase d'accueil et l'en-tête de
+> l'assistant disent déjà combien et quoi, sans un clic. À confirmer par le
+> porteur du projet à la validation.
+
+**Ce qui n'est pas dans le prototype, et où c'est prévu** : la scission de
+`/comptabilite` en « Loyers & charges » et « Comptabilité & fiscalité » (phase
+D — l'entrée pointe sur le quittancement existant, qui s'intitule déjà ainsi
+pour un agent) ; la fusion Agenda + Alertes en un écran ; le bloc « Paramètres »
+réunissant profil, abonnement et administration ; les espaces locataire et
+artisan, et la console ; le mode sombre (différé à la fin) ; le fil d'activité,
+qui répète « Nouveau » sur chaque rangée.

@@ -1,6 +1,6 @@
 "use client";
 import { cheminFicheAlerte } from "@/lib/chemin-alerte";
-import { afficherEcheance } from "@/lib/echeances";
+import { afficherEcheance, dateDeReference } from "@/lib/echeances";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -49,8 +49,11 @@ export function SyntheseAlertes({
   membres,
   estResponsable = false,
   rappel = false,
+  aujourdhui,
 }: {
   alertes: AlerteSynthese[];
+  /** Date de Paris du serveur (« AAAA-MM-JJ ») : voir `dateDeReference`. */
+  aujourdhui?: string;
   // Lien texte « Alertes (n) » qui rouvre la synthèse — pour les écrans sans
   // menu Alertes ; dans l'espace agence, l'onglet du menu suffit.
   rappel?: boolean;
@@ -182,7 +185,7 @@ export function SyntheseAlertes({
                         c'est elle qu'on voit en premier. Cinq alertes toutes
                         « normales » n'ont rien à se dire par là. */}
                     {groupe.liste.map((a) => {
-                        const echeance = afficherEcheance(a.echeance);
+                        const echeance = afficherEcheance(a.echeance, dateDeReference(aujourdhui));
                         const etiquetteUtile =
                           groupe.liste.length === 1 ||
                           new Set(groupe.liste.map((x) => x.criticite)).size > 1;
@@ -276,6 +279,7 @@ export function SyntheseAlertes({
           alerte={traitement}
           membres={membres}
           estResponsable={estResponsable}
+          aujourdhui={aujourdhui}
           fermer={() => setTraitement(null)}
         />
       )}

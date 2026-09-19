@@ -11,6 +11,7 @@ export function TraiterAlerte({
   alerte,
   membres,
   estResponsable,
+  aujourdhui,
   className,
   children,
   avantOuverture,
@@ -19,6 +20,8 @@ export function TraiterAlerte({
   alerte: AlerteRang;
   membres: Membre[];
   estResponsable: boolean;
+  /** Date de Paris du serveur (« AAAA-MM-JJ ») : voir `dateDeReference`. */
+  aujourdhui?: string;
   className?: string;
   children: ReactNode;
   // La cloche se referme avant d'ouvrir la pop-up de traitement
@@ -44,6 +47,7 @@ export function TraiterAlerte({
           alerte={alerte}
           membres={membres}
           estResponsable={estResponsable}
+          aujourdhui={aujourdhui}
           fermer={() => setOuverte(false)}
         />
       )}

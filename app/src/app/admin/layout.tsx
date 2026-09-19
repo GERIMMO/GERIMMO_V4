@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { aujourdhuiParis } from "@/lib/ged";
 import { NavAdmin } from "./nav-admin";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -33,7 +34,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           {/* En étroit, les liens passent sous la marque au lieu de déborder */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <NavAdmin />
-            <SyntheseAlertes alertes={alertes} modeAdmin rappel />
+            <SyntheseAlertes alertes={alertes} modeAdmin rappel aujourdhui={aujourdhuiParis()} />
             {/* Vers /compte, pas /securite (19/09) : le sas de supervision ne
                 sait que faire ENTRER, et se contente d'annoncer « votre session
                 est protégée » à qui l'a déjà franchi. Le mot de passe et le

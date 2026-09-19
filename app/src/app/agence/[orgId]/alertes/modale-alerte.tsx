@@ -9,7 +9,7 @@ import {
 } from "@/app/actions/alertes";
 import { ASSIGNATION_TOUS } from "@/lib/alertes";
 import { gesteAlerte } from "@/lib/chemin-alerte";
-import { afficherEcheance } from "@/lib/echeances";
+import { afficherEcheance, dateDeReference } from "@/lib/echeances";
 import { CRITICITES } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
@@ -61,12 +61,15 @@ export function ModaleAlerte({
   alerte,
   membres,
   estResponsable,
+  aujourdhui,
   fermer,
 }: {
   orgId: string;
   alerte: AlerteRang;
   membres: Membre[];
   estResponsable: boolean;
+  /** Date de Paris du serveur (« AAAA-MM-JJ ») : voir `dateDeReference`. */
+  aujourdhui?: string;
   fermer: () => void;
 }) {
   // Le toast se déclenche ICI, à la résolution de l'action — pas dans un
@@ -96,7 +99,7 @@ export function ModaleAlerte({
     if (etatConfier.succes || etatTraiter.succes) fermer();
   }, [etatConfier.succes, etatTraiter.succes, fermer]);
 
-  const echeance = afficherEcheance(alerte.echeance);
+  const echeance = afficherEcheance(alerte.echeance, dateDeReference(aujourdhui));
   const nbEscalades = Array.isArray(alerte.escalades)
     ? alerte.escalades.length
     : 0;

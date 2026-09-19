@@ -26,7 +26,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
       "Personnes",
       "Loyers & charges",
       "Incidents",
-      "Comptabilité & fiscalité",
+      "Comptabilité",
       "Agenda & alertes",
       "Messages",
       "Paramètres",
@@ -35,14 +35,14 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
 
   it("ne retire rien à l'admin : mandats, documents, statistiques, abonnement, administration restent atteignables", () => {
     const c = chemins("admin_agence");
-    for (const p of ["/mandats", "/documents", "/statistiques", "/abonnement", "/administration", "/agenda"]) {
+    for (const p of ["/loyers", "/comptabilite", "/mandats", "/documents", "/statistiques", "/abonnement", "/administration", "/agenda"]) {
       expect(c, p).toContain(p);
     }
   });
 
   it("allège l'agent comme le 12/09 l'a décidé : ni comptabilité, ni documents, ni abonnement, ni administration", () => {
     const c = chemins("agent");
-    for (const p of ["/comptabilite", "/comptabilite/fiscal", "/documents", "/abonnement", "/administration", "/mandats"]) {
+    for (const p of ["/loyers", "/comptabilite", "/comptabilite/fiscal", "/documents", "/abonnement", "/administration", "/mandats"]) {
       expect(c, p).not.toContain(p);
     }
     expect(nav("agent").principales.map((e) => e.libelle)).toContain("Mon portefeuille");
@@ -76,8 +76,8 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     const toutes = [...n.principales, ...n.secondaires];
     expect(entreeActive(toutes, `/agence/${ORG}`)?.libelle).toBe("Tableau de bord");
     expect(entreeActive(toutes, `/agence/${ORG}/parc/abc/lots/def`)?.libelle).toBe("Parc de l'agence");
-    expect(entreeActive(toutes, `/agence/${ORG}/comptabilite`)?.libelle).toBe("Loyers & charges");
-    expect(entreeActive(toutes, `/agence/${ORG}/comptabilite/fiscal`)?.libelle).toBe("Comptabilité & fiscalité");
+    expect(entreeActive(toutes, `/agence/${ORG}/loyers`)?.libelle).toBe("Loyers & charges");
+    expect(entreeActive(toutes, `/agence/${ORG}/comptabilite`)?.libelle).toBe("Comptabilité");
     expect(entreeActive(toutes, `/agence/${ORG}/profil`)?.libelle).toBe("Paramètres");
     expect(entreeActive(toutes, `/agence/${ORG}/inconnu`)).toBeNull();
   });

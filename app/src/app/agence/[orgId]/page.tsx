@@ -448,6 +448,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           alerte={a}
           membres={membres}
           estResponsable={estResponsable}
+          aujourdhui={aujourdhuiParis()}
           className={buttonVariants({
             size: "sm",
             variant: a.criticite === "critique" ? "destructive" : "outline",

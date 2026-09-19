@@ -1922,9 +1922,10 @@ a:focus-visible > .carte-espace {
   --texte: var(--corps);
   --texte-2: var(--texte-secondaire);
   --texte-3: var(--libelle);
-  --accent: var(--marque);
-  --accent-doux: var(--marque-clair);
-  --accent-texte: var(--marque-sombre);
+  /* Le bleu de marque s'écrit `--marque` / `--marque-clair` / `--marque-sombre`
+     directement : la v4 avait d'abord posé un alias `--accent`, qui écrasait
+     le jeton shadcn du même nom (fond pâle + texte encre, `bg-accent`) — texte
+     encre sur bleu plein sur cinq écrans, relevé par la sonde a11y le 19/09. */
   --largeur-late: 232px;
   --hauteur-haut: 56px;
 }
@@ -1988,7 +1989,7 @@ a:focus-visible > .carte-espace {
 }
 .coquille-menu a:hover,
 .coquille-menu summary:hover { background: var(--survol); color: var(--texte); }
-.coquille-menu a.actif { background: var(--accent-doux); color: var(--accent-texte); }
+.coquille-menu a.actif { background: var(--marque-clair); color: var(--marque-sombre); }
 .coquille-menu a:focus-visible,
 .coquille-menu summary:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
 .coquille-menu svg {
@@ -2019,8 +2020,8 @@ a:focus-visible > .carte-espace {
   font-size: 10.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  background: var(--accent-doux);
-  color: var(--accent-texte);
+  background: var(--marque-clair);
+  color: var(--marque-sombre);
 }
 .coquille-badge.critique { background: var(--destructive); color: var(--sur-encre); }
 
@@ -2047,7 +2048,7 @@ a:focus-visible > .carte-espace {
   color: var(--texte-2);
   transition: background 0.12s ease;
 }
-.coquille-essai:hover { background: var(--accent-doux); color: var(--accent-texte); }
+.coquille-essai:hover { background: var(--marque-clair); color: var(--marque-sombre); }
 .coquille-essai b { font-weight: 600; color: var(--texte); }
 .coquille-essai.termine b { color: var(--warning-soft-foreground); }
 
@@ -2182,7 +2183,7 @@ a:focus-visible > .carte-espace {
     color: var(--texte-2);
     position: relative;
   }
-  .coquille-basse a.actif { color: var(--accent-texte); }
+  .coquille-basse a.actif { color: var(--marque-sombre); }
   .coquille-basse svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
   .coquille-basse .coquille-badge { position: absolute; top: 6px; left: calc(50% + 6px); }
 }
@@ -2211,7 +2212,7 @@ a:focus-visible > .carte-espace {
   color: inherit;
   transition: border-color 0.14s ease, transform 0.14s ease;
 }
-a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
+a.tuile:hover { border-color: var(--marque); transform: translateY(-1px); }
 .tuile .lib { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--texte-2); }
 .tuile .lib::before {
   content: "";
@@ -2224,7 +2225,7 @@ a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
 .tuile.ok .lib::before { background: var(--success); }
 .tuile.attention .lib::before { background: var(--warning); }
 .tuile.probleme .lib::before { background: var(--destructive); }
-.tuile.accent .lib::before { background: var(--accent); }
+.tuile.accent .lib::before { background: var(--marque); }
 .tuile .val {
   display: block;
   margin-top: 6px;
@@ -2251,7 +2252,7 @@ a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  background: var(--accent-doux);
+  background: var(--marque-clair);
   border-bottom: 1px solid var(--or-filet);
 }
 .assistant-tete .rond {
@@ -2261,13 +2262,13 @@ a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--accent);
+  background: var(--marque);
   color: var(--sur-marque);
   font-family: var(--font-titres), system-ui, sans-serif;
   font-weight: 800;
   font-size: 13px;
 }
-.assistant-tete p { margin: 0; font-size: 14px; color: var(--accent-texte); }
+.assistant-tete p { margin: 0; font-size: 14px; color: var(--marque-sombre); }
 .assistant-tete p b { font-weight: 600; }
 .assistant-tete .lien-discret { margin-left: auto; white-space: nowrap; align-self: center; }
 .assistant .colonne-liste { border: 0; border-radius: 0; }
@@ -2321,15 +2322,15 @@ a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
   pointer-events: none;
   z-index: -1;
   background:
-    radial-gradient(60% 55% at 18% -10%, color-mix(in srgb, var(--accent) 13%, transparent), transparent 70%),
-    radial-gradient(35% 40% at 85% 0%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 70%);
+    radial-gradient(60% 55% at 18% -10%, color-mix(in srgb, var(--marque) 13%, transparent), transparent 70%),
+    radial-gradient(35% 40% at 85% 0%, color-mix(in srgb, var(--marque) 6%, transparent), transparent 70%);
 }
 .coquille-corps { position: relative; isolation: isolate; }
 
 /* La barre latérale : un léger dégradé sous la marque, et l'entrée active
    gagne un trait bleu à gauche en plus de sa pastille. */
 .coquille-marque {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, transparent), transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--marque) 7%, transparent), transparent);
 }
 .coquille-menu a { position: relative; }
 .coquille-menu a.actif::before {
@@ -2340,7 +2341,7 @@ a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
   bottom: 8px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: var(--accent);
+  background: var(--marque);
 }
 @media (max-width: 1023px) { .coquille-late .coquille-menu a.actif::before { left: -6px; } }
 .tiroir .coquille-menu a.actif::before { display: none; } /* le lavis suffit dans le tiroir */
@@ -2358,7 +2359,7 @@ a.tuile:hover { border-color: var(--accent); transform: translateY(-1px); }
 .tuile.ok { background: linear-gradient(180deg, color-mix(in srgb, var(--success) 5%, var(--surface)), var(--surface) 70%); }
 .tuile.attention { background: linear-gradient(180deg, color-mix(in srgb, var(--warning) 7%, var(--surface)), var(--surface) 70%); }
 .tuile.probleme { background: linear-gradient(180deg, color-mix(in srgb, var(--destructive) 6%, var(--surface)), var(--surface) 70%); }
-.tuile.accent { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--surface)), var(--surface) 70%); }
+.tuile.accent { background: linear-gradient(180deg, color-mix(in srgb, var(--marque) 7%, var(--surface)), var(--surface) 70%); }
 a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px); }
 .tuile .ico {
   position: absolute;
@@ -2376,7 +2377,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 .tuile.ok .ico { background: var(--success-soft); color: var(--success-soft-foreground); }
 .tuile.attention .ico { background: var(--warning-soft); color: var(--warning-soft-foreground); }
 .tuile.probleme .ico { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
-.tuile.accent .ico { background: var(--accent-doux); color: var(--accent-texte); }
+.tuile.accent .ico { background: var(--marque-clair); color: var(--marque-sombre); }
 .tuile .lib { padding-right: 38px; }
 .tuile .val { font-size: clamp(22px, 15cqi, 28px); }
 
@@ -2391,10 +2392,10 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
    qui rayonne un peu. C'est la seule lueur colorée de l'écran, à dessein. */
 .assistant { box-shadow: var(--ombre-portee); }
 .assistant-tete {
-  background: linear-gradient(90deg, var(--accent-doux), color-mix(in srgb, var(--accent-doux) 35%, var(--surface)));
+  background: linear-gradient(90deg, var(--marque-clair), color-mix(in srgb, var(--marque-clair) 35%, var(--surface)));
 }
 .assistant-tete .rond {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent), 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--marque) 18%, transparent), 0 6px 16px color-mix(in srgb, var(--marque) 30%, transparent);
 }
 
 /* L'en-tête gagne une ligne de marque d'un pixel, dégradée, sous son filet. */
@@ -2405,7 +2406,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   right: 0;
   bottom: -1px;
   height: 1px;
-  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 20%, transparent) 40%, transparent 70%);
+  background: linear-gradient(90deg, var(--marque), color-mix(in srgb, var(--marque) 20%, transparent) 40%, transparent 70%);
   opacity: 0.55;
 }
 
@@ -2449,8 +2450,8 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   color: #fff;
   background:
     radial-gradient(60% 140% at 100% -20%, rgba(255, 255, 255, 0.2), transparent 60%),
-    radial-gradient(45% 120% at 6% 120%, color-mix(in srgb, var(--accent) 65%, #fff), transparent 60%),
-    linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--accent) 100%);
+    radial-gradient(45% 120% at 6% 120%, color-mix(in srgb, var(--marque) 65%, #fff), transparent 60%),
+    linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--marque) 100%);
   box-shadow: 0 14px 36px color-mix(in srgb, var(--encre) 28%, transparent);
   overflow: clip;
 }
@@ -2483,7 +2484,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
    l'icône passe en pastille PLEINE. Plus de liseré : la couleur borde. */
 .tuile, a.tuile:hover { border-color: transparent; }
 .tuile.neutre, .tuile.accent {
-  background: linear-gradient(160deg, var(--accent-doux), color-mix(in srgb, var(--accent-doux) 40%, var(--surface)) 75%);
+  background: linear-gradient(160deg, var(--marque-clair), color-mix(in srgb, var(--marque-clair) 40%, var(--surface)) 75%);
 }
 .tuile.ok {
   background: linear-gradient(160deg, var(--success-soft), color-mix(in srgb, var(--success-soft) 40%, var(--surface)) 75%);
@@ -2495,16 +2496,16 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   background: linear-gradient(160deg, var(--destructive-soft), color-mix(in srgb, var(--destructive-soft) 40%, var(--surface)) 75%);
 }
 .tuile .sous { color: var(--texte-2); }
-.tuile.neutre .val, .tuile.accent .val { color: var(--accent-texte); }
+.tuile.neutre .val, .tuile.accent .val { color: var(--marque-sombre); }
 .tuile.ok .val { color: var(--success-soft-foreground); }
 .tuile.attention .val { color: var(--warning-soft-foreground); }
 .tuile.probleme .val { color: var(--destructive-soft-foreground); }
 .tuile .ico { width: 34px; height: 34px; border-radius: 10px; color: #fff; }
 .tuile .ico svg { width: 18px; height: 18px; }
 .tuile.neutre .ico, .tuile.accent .ico {
-  background: var(--accent);
+  background: var(--marque);
   color: #fff;
-  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 35%, transparent);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--marque) 35%, transparent);
 }
 .tuile.ok .ico {
   background: var(--success);
@@ -2525,10 +2526,10 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 /* 3. L'assistant : c'est lui qui parle, il parle en bleu. */
 .coquille-corps .assistant {
   border-color: transparent;
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--marque) 18%, transparent);
 }
 .assistant-tete {
-  background: linear-gradient(100deg, var(--accent) 0%, var(--accent-texte) 100%);
+  background: linear-gradient(100deg, var(--marque) 0%, var(--marque-sombre) 100%);
   border-bottom: 0;
 }
 .assistant-tete p, .assistant-tete b { color: #fff; }
@@ -2540,7 +2541,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 }
 .assistant-tete .rond {
   background: #fff;
-  color: var(--accent);
+  color: var(--marque);
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.26), 0 6px 16px rgba(0, 0, 0, 0.18);
 }
 
@@ -2548,28 +2549,28 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
    plein, badges pleins. Le rail (tablette) suit tout seul. */
 .coquille-late { background: linear-gradient(180deg, #eef3ff 0%, var(--surface) 36%); }
 .coquille-menu a.actif {
-  background: var(--accent);
+  background: var(--marque);
   color: #fff;
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--marque) 30%, transparent);
 }
 .coquille-menu a.actif::before { display: none; }
 .tiroir .coquille-menu a.actif { box-shadow: none; } /* dans le tiroir, le bleu suffit */
-.coquille-menu a:not(.actif):hover { background: var(--accent-doux); color: var(--accent-texte); }
-.coquille-badge { background: var(--accent); color: #fff; }
+.coquille-menu a:not(.actif):hover { background: var(--marque-clair); color: var(--marque-sombre); }
+.coquille-badge { background: var(--marque); color: #fff; }
 .coquille-badge.critique { background: var(--destructive); color: #fff; }
-.coquille-menu a.actif .coquille-badge { background: #fff; color: var(--accent); }
+.coquille-menu a.actif .coquille-badge { background: #fff; color: var(--marque); }
 .coquille-haut::after { opacity: 1; height: 2px; }
 
 /* La barre basse : l'entrée active porte son icône sur une pastille bleue. */
 @media (max-width: 640px) {
-  .coquille-basse a.actif { color: var(--accent); }
+  .coquille-basse a.actif { color: var(--marque); }
   .coquille-basse a.actif svg {
     width: 28px;
     height: 28px;
     padding: 5px;
     margin-top: -4px;
     border-radius: 9px;
-    background: var(--accent);
+    background: var(--marque);
     stroke: #fff;
   }
 }
@@ -2594,7 +2595,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 /* 1. Le bandeau : la photo à droite, sous un voile encre → bleu qui s'ouvre
    vers elle. Le texte reste sur la partie sombre. */
 .coquille-corps .accueil-bandeau {
-  background: linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--accent) 100%);
+  background: linear-gradient(115deg, var(--encre) 0%, #1c3fb8 52%, var(--marque) 100%);
 }
 /* La place réservée à la photo n'existe que si la photo est là : sans elle
    (repli), le bandeau reprend sa hauteur de texte. */
@@ -2624,7 +2625,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 }
 
 /* 2. Le turquoise, là où il dit « information ». */
-.coquille-haut::after { background: linear-gradient(90deg, var(--accent), var(--turquoise) 45%, transparent 78%); }
+.coquille-haut::after { background: linear-gradient(90deg, var(--marque), var(--turquoise) 45%, transparent 78%); }
 .tuile.neutre {
   background: linear-gradient(160deg, var(--turquoise-doux), color-mix(in srgb, var(--turquoise-doux) 40%, var(--surface)) 75%);
 }

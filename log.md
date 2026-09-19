@@ -5148,3 +5148,21 @@ seconde couleur de marque, et de vraies photos.
   a fournies ; leur origine n'est pas consignée ici.
 
 Toujours aucune lecture de données modifiée.
+
+## [2026-09-19] correction | Le jeton `--accent` de shadcn, écrasé par la v4
+
+**Relevé par la sonde a11y** (crawl axe-core, 57 pages) : « texte encre sur
+bleu plein » sur l'avis « Votre session a expiré » de `/connexion` — et sur
+quatre autres usages de `bg-accent text-accent-foreground` (sélecteur de lot,
+formulaire de bien, page du bail, catalogue de documents).
+
+**Cause** : la refonte v4 avait posé un alias `--accent: var(--marque)` pour
+ses styles, sans voir que shadcn nomme déjà `--accent` son fond pâle de survol
+et de sélection (avec `--accent-foreground` encre). Le remappage a donc peint
+en bleu plein tout ce qui attendait un fond pâle. La sonde ne l'a vu qu'au
+moment où la session du banc a expiré en plein crawl — d'où un premier
+échec pris pour un aléa.
+
+**Correction** : `--accent` retrouve sa valeur ; les styles v4 (37 occurrences)
+écrivent `--marque`, `--marque-clair`, `--marque-sombre` directement. Rendu
+identique aux références visuelles, sonde a11y au vert.

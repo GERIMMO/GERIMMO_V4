@@ -5131,22 +5131,20 @@ seconde couleur de marque, et de vraies photos.
   parc (« Lots loués »), les faits du fil qui ne sont ni argent ni incident,
   le point « en direct » (qui bat doucement, sauf mouvement réduit). Le filet
   sous l'en-tête va du bleu au turquoise.
-- **Photos** (`components/photo-decor.tsx`, `lib/photos-decor.ts`) : une
-  façade en fin de journée derrière le bandeau d'accueil, sous un voile
+- **Photos** (`components/photo-decor.tsx`, `lib/photos-decor.ts`,
+  `src/images/`) : **deux photos fournies par le porteur du projet** — une
+  façade haussmannienne d'angle derrière le bandeau d'accueil, sous un voile
   encre → bleu qui s'ouvre vers elle (le texte reste sur la partie sombre) ;
-  un intérieur en vignette sur le parcours de démarrage (bureau seulement).
-  Décoratives (`alt=""`), servies par le CDN d'Unsplash sous licence Unsplash,
-  optimisées par `next/image` (hôte autorisé dans `next.config.ts`). Chaque
-  emplacement liste plusieurs sources : la première qui répond est prise, et
-  sans aucune, le dégradé reste seul et tout se lit.
-- Une première version dessinait une ville et une maison en vectoriel ; le
-  porteur du projet a demandé de vraies photos, les dessins sont retirés.
-
-> [!warning] À vérifier sur la préversion, pas sur le banc
-> Le banc n'a pas accès aux hôtes d'images : les captures locales montrent le
-> repli (dégradé seul), et les références visuelles aussi. Le choix des
-> photos ne peut être jugé que sur la préversion Vercel. Pour les photos de
-> l'agence elle-même : déposer les fichiers dans `app/src/images/` et les
-> importer dans `lib/photos-decor.ts`.
+  un salon clair en vignette sur le parcours de démarrage (bureau seulement).
+  Décoratives (`alt=""`), redimensionnées (1 600 / 960 px, JPEG 80 : 183 et
+  64 Ko), servies et optimisées par `next/image` avec flou de chargement. Le
+  composant garde son repli : sans photo, le dégradé reste seul et tout se
+  lit, et l'espace de la photo n'est réservé que si elle est là.
+- Deux versions écartées le même jour : une ville et une maison dessinées en
+  vectoriel (« de vraies images, pas du vectoriel »), puis des photos d'un
+  CDN externe, retirées dès que le porteur du projet a fourni les siennes —
+  le banc n'atteignait pas cet hôte et rien ne pouvait y être vérifié.
+- Les droits d'usage des deux photos relèvent du porteur du projet, qui les
+  a fournies ; leur origine n'est pas consignée ici.
 
 Toujours aucune lecture de données modifiée.

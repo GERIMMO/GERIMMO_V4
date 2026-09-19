@@ -2598,7 +2598,9 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 }
 /* La place réservée à la photo n'existe que si la photo est là : sans elle
    (repli), le bandeau reprend sa hauteur de texte. */
-.coquille-corps .accueil-bandeau:has(.accueil-photo) { padding-right: 42%; min-height: 150px; }
+.coquille-corps .accueil-bandeau:has(.accueil-photo) { padding-right: 42%; min-height: 176px; }
+/* Les anneaux décoratifs n'ont plus lieu d'être sur une photo. */
+.coquille-corps .accueil-bandeau:has(.accueil-photo)::after { display: none; }
 .coquille-corps .accueil-bandeau::before {
   content: "";
   position: absolute;
@@ -2607,16 +2609,16 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   background: linear-gradient(
     90deg,
     var(--encre) 0%,
-    rgba(28, 63, 184, 0.94) 34%,
-    rgba(36, 87, 245, 0.55) 62%,
-    rgba(36, 87, 245, 0.1) 100%
+    rgba(28, 63, 184, 0.94) 32%,
+    rgba(36, 87, 245, 0.42) 58%,
+    rgba(36, 87, 245, 0.06) 100%
   );
 }
 .accueil-photo { object-fit: cover; object-position: 70% 50%; z-index: -2; }
 @media (max-width: 640px) {
   .coquille-corps .accueil-bandeau:has(.accueil-photo) { padding-right: 18px; padding-bottom: 76px; min-height: 220px; }
   .coquille-corps .accueil-bandeau::before {
-    background: linear-gradient(180deg, var(--encre) 0%, rgba(28, 63, 184, 0.92) 48%, rgba(36, 87, 245, 0.35) 100%);
+    background: linear-gradient(180deg, var(--encre) 0%, rgba(28, 63, 184, 0.92) 46%, rgba(36, 87, 245, 0.22) 100%);
   }
   .accueil-photo { object-position: 50% 60%; }
 }

@@ -5,11 +5,6 @@ const nextConfig: NextConfig = {
   // et son dossier bin/ (le navigateur compressé) était perdu au déploiement —
   // toute génération PDF échouait. On externalise le moteur et on force le
   // traçage de ses binaires pour chaque route.
-  // Photos de décor du tableau de bord (refonte v4.3) : servies depuis le CDN
-  // d'Unsplash, optimisées par Next au passage. Voir `src/lib/photos-decor.ts`.
-  images: {
-    remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],
-  },
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
   outputFileTracingIncludes: {
     "/**": ["./node_modules/@sparticuz/chromium/bin/**/*"],

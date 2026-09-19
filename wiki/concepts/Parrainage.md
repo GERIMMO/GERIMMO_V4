@@ -1,7 +1,7 @@
 ---
 type: concept
 tags: [parrainage, croissance, expansion, acquisition, proprietaire-direct, agence]
-status: draft
+status: stable
 created: 2026-09-19
 updated: 2026-09-19
 sources: []
@@ -33,15 +33,43 @@ mais ils peuvent recommander ([[Expansion territoriale autonome]]).
   vérifié (bien formé, connu, organisation non archivée) **avant** d'ouvrir ;
   une vue des parrainages par organisation dans la console reste à faire.
 
+## L'avantage (décidé le 19/09/2026)
+
+**Un mois pour vous, un mois pour lui.**
+
+| Qui | Ce qu'il reçoit | Quand |
+|---|---|---|
+| **Filleul** | Essai porté de **14 à 30 jours** | À l'instant où le code est accepté |
+| **Parrain** encore en essai | **30 jours d'essai** de plus | Quand le filleul devient client payant |
+| **Parrain** déjà abonné | **Un avoir égal à son mensuel courant**, déduit de sa prochaine facture | Quand le filleul devient client payant |
+
+- **Le parrain est payé à la CONVERSION, jamais à l'inscription.** Récompenser
+  une inscription reviendrait à financer des organisations fictives ouvertes
+  avec son propre code. Le déclencheur est le passage de l'organisation
+  filleule au statut `active` (c'est-à-dire la souscription effective).
+- **Un mois vaut ce que le parrain paie** : le montant est lu sur son
+  [[Abonnement]] au moment où l'avantage est acquis, et figé. Il n'y a donc
+  aucun barème à tenir à jour quand les tarifs bougent.
+- **Une seule récompense par filleul.** Une organisation qui repasse par
+  `active` après une suspension ne rapporte pas un second mois : c'est
+  l'unicité `(parrainage, nature)` du registre qui le garantit.
+- **Rien n'est promis à vide.** Un filleul déjà payant, un parrain sans
+  montant facturé, un parrain archivé : l'avantage est inscrit « sans objet »
+  et l'écran le dit, plutôt que d'afficher un cadeau qui n'arrivera jamais.
+- **L'avoir est porté au solde client Stripe** par la tâche planifiée
+  `/api/cron/abonnements`, avec une clé d'idempotence : une tâche rejouée ne
+  crédite pas deux fois.
+
+Registre : `avantages_parrainage` — qui, pour quel parrainage, quelle nature,
+quel montant ou combien de jours, et si c'est honoré.
+
 ## Ce qui reste à trancher
 
-> [!warning] L'avantage
-> Ce que gagnent le parrain et le filleul n'est **pas décidé** : c'est un
-> montant, donc au porteur du projet (voir [[Expansion territoriale
-> autonome]], points à trancher). La mécanique est construite pour qu'un
-> avantage puisse s'y greffer sans la reprendre : une prolongation d'essai
-> (`essai_fin`) ou un avoir sur l'[[Abonnement]] — deux gestes qui touchent
-> respectivement la base et Stripe, et viendront dans leur propre brique.
+> [!warning] Un seuil d'anti-abus ?
+> Rien ne limite aujourd'hui le **nombre** de filleuls récompensés pour un même
+> parrain. C'est volontaire — un bouche-à-oreille qui marche ne doit pas être
+> plafonné — mais si un jour une organisation amène cinquante filleuls en un
+> mois, il faudra décider si c'est un succès ou une fraude.
 
 ## Rôle dans le métier
 
@@ -53,4 +81,4 @@ recommandent est un département sain).
 
 [[Expansion territoriale autonome]] (le pourquoi) · [[Onboarding et
 abonnement]] (où le code entre) · [[Organisation]] (le code y vit) ·
-[[Abonnement]] (l'avantage, plus tard).
+[[Abonnement]] (l'avantage : avoir sur facture).

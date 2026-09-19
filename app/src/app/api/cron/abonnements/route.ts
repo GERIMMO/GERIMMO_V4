@@ -20,7 +20,12 @@
 // abonnement prélèverait quelqu'un qui n'a rien demandé.
 
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
-import { clientStripe, configurationStripe, synchroniserQuantite } from "@/lib/stripe";
+import {
+  clientStripe,
+  configurationStripe,
+  crediterClientStripe,
+  synchroniserQuantite,
+} from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
@@ -34,6 +39,14 @@ type Ligne = {
   stripe_subscription_id: string;
   quantite_posee: number;
   quantite_cible: number;
+};
+
+type Avoir = {
+  avantage_id: string;
+  organization_id: string;
+  organisation: string;
+  montant_cents: number;
+  stripe_customer_id: string | null;
 };
 
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
@@ -116,6 +129,43 @@ export async function GET(request: Request) {
     });
   }
 
+  // ── LES AVOIRS DE PARRAINAGE, EN DERNIER (19/09). Un mois offert au parrain
+  // quand son filleul devient client payant : la base a posé la ligne, ici on
+  // la porte au solde Stripe, qui la déduira de la prochaine facture.
+  //
+  // APRÈS l'alignement des quantités, à dessein : si Stripe tombe au milieu,
+  // ce qui n'est pas passé est un CADEAU en retard d'un jour, pas une facture
+  // fausse. L'appel est idempotent (clé = identifiant de l'avantage), donc une
+  // ligne rejouée demain ne crédite pas deux fois.
+  const { data: avoirsBruts, error: erreurAvoirs } = await supabase.rpc(
+    "avantages_parrainage_a_appliquer"
+  );
+  const avoirs = (avoirsBruts ?? []) as Avoir[];
+  let avoirsPortes = 0;
+  const avoirsEnEchec: { organisation: string; motif: string }[] = [];
+  if (erreurAvoirs) {
+    avoirsEnEchec.push({ organisation: "—", motif: "lecture des avoirs impossible" });
+  }
+  for (const a of avoirs) {
+    const r = await crediterClientStripe(stripe, {
+      customer: a.stripe_customer_id ?? "",
+      montantCents: Number(a.montant_cents),
+      avantageId: a.avantage_id,
+      libelle: "Parrainage Gerimmo — un mois offert",
+    });
+    if (!r.ok) {
+      // La ligne reste « à appliquer » : elle repassera demain. On n'invente
+      // pas d'état « perdu » pour un cadeau qu'on doit toujours.
+      avoirsEnEchec.push({ organisation: a.organisation, motif: r.erreur });
+      continue;
+    }
+    await supabase.rpc("avantage_parrainage_solde", {
+      p_avantage: a.avantage_id,
+      p_reference: r.reference,
+    });
+    avoirsPortes += 1;
+  }
+
   // Les échecs sont comptés, pas recopiés : leurs motifs vivent déjà sur
   // chaque organisation (abonnement_synchro_faite), et tech_log n'a pas à
   // porter deux fois le même texte.
@@ -125,6 +175,8 @@ export async function GET(request: Request) {
     alignees: alignes,
     resiliees,
     echecs: echecs.length,
+    avoirs_portes: avoirsPortes,
+    avoirs_en_echec: avoirsEnEchec.length,
   });
   return Response.json({
     relances,
@@ -132,5 +184,7 @@ export async function GET(request: Request) {
     alignees: alignes,
     resiliees,
     echecs,
+    avoirs_portes: avoirsPortes,
+    avoirs_en_echec: avoirsEnEchec,
   });
 }

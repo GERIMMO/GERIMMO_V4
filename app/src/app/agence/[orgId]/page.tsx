@@ -21,6 +21,7 @@ import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 import { FilActivite } from "./fil-activite";
 import { AccueilProprietaire } from "./accueil-proprietaire";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
+import { IconeTrait } from "@/components/icone-trait";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
@@ -615,6 +616,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           href={`/agence/${orgId}/parc`}
           className={`tuile ${erreurLots ? "" : lotsActifs.length > 0 && nbLoues === lotsActifs.length ? "ok" : "neutre"}`}
         >
+          <span className="ico"><IconeTrait nom="cle" /></span>
           <span className="lib">Lots loués</span>
           <span className="val">
             {erreurLots ? "—" : `${nbLoues}`}
@@ -643,6 +645,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                   : "attention"
           }`}
         >
+          <span className="ico"><IconeTrait nom="euro" /></span>
           <span className="lib">Loyers de {nomMois}</span>
           <span className="val montant whitespace-nowrap">
             {erreurEncaissements ? "—" : eur(totalEncaisse)}
@@ -660,6 +663,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           href={`/agence/${orgId}/incidents${aQualifier > 0 ? "?vue=a-traiter" : ""}`}
           className={`tuile ${erreurIncidents ? "" : aQualifier > 0 ? "probleme" : dossiersIncidents.length > 0 ? "attention" : "ok"}`}
         >
+          <span className="ico"><IconeTrait nom="outil" /></span>
           <span className="lib">Incidents en cours</span>
           <span className="val">{erreurIncidents ? "—" : dossiersIncidents.length}</span>
           <span className="sous">
@@ -677,6 +681,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           href={`/agence/${orgId}/alertes`}
           className={`tuile ${planIllisible ? "" : enRetard.length > 0 ? "probleme" : nbActions > 0 ? "attention" : "ok"}`}
         >
+          <span className="ico"><IconeTrait nom="eclair" /></span>
           <span className="lib">À faire</span>
           <span className="val">{planIllisible ? "—" : nbActions}</span>
           <span className="sous">
@@ -861,7 +866,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                     strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </span>
-          Statistiques du mois
+          <span className="whitespace-nowrap">Statistiques du mois</span>
           <span className="text-[12.5px] font-normal text-[var(--texte-3)]">
             · répartition du parc, encaissements et dépenses sur 6 mois
           </span>

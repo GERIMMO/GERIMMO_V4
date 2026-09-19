@@ -5068,3 +5068,24 @@ pour un agent) ; la fusion Agenda + Alertes en un écran ; le bloc « Paramètre
 réunissant profil, abonnement et administration ; les espaces locataire et
 artisan, et la console ; le mode sombre (différé à la fin) ; le fil d'activité,
 qui répète « Nouveau » sur chaque rangée.
+
+## [2026-09-19] implementation | Refonte v4.1 — « Il faut un peu de décoration »
+
+**Demande** : le premier prototype (b5db7b6) était jugé trop nu. **Réponse** :
+une couche de relief, sans toucher à la structure ni aux données.
+
+- **Icônes en trait** (`components/icone-trait.tsx`) : un seul jeu de vingt
+  pictogrammes (maison, clé, euro, outil, cloche…) partagé par la barre
+  latérale, la barre basse et les tuiles du tableau de bord.
+- **Tuiles** : ombre douce, fond légèrement teinté selon le ton (vert = en
+  ordre, orange = attention, rouge = problème), pastille d'icône, chiffre plus
+  grand. **La couleur garde une fonction** : elle dit l'état, pas l'humeur.
+- **Coquille** : halo discret en tête de page, dégradé sur la marque, barre
+  d'accent sur l'entrée active, filet d'accent sous l'en-tête ; ombres sur les
+  cartes ; en-tête de l'assistant en dégradé avec un rond lumineux.
+- « Tout est en ordre » gagne une coche. Mouvements coupés sous
+  `prefers-reduced-motion`.
+- Les trois références visuelles (`e2e/visuel.spec.ts-snapshots/`) sont
+  régénérées — c'est le nouveau point de comparaison.
+
+Rien de ce que le tableau de bord lit ou calcule n'a changé.

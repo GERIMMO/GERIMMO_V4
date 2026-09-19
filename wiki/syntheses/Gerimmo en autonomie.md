@@ -9,6 +9,21 @@ sources: ["[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07
 
 # Gerimmo en autonomie — exploitation, débogage, évolution
 
+> [!warning] Cette page a répondu à une lecture technique de la question
+> Le porteur du projet a précisé le 19/09 que « se développer en France en
+> autonomie » désigne **l'expansion commerciale sur le territoire** : une fois
+> installée en Essonne, l'application doit gagner le département voisin, puis
+> toute la région, puis choisir la région suivante en étudiant où il est le
+> plus pertinent de s'implanter. Cette page reste valable pour l'exploitation
+> et le débogage — avec deux corrections : les e-mails partent **au fil des
+> gestes** (le propriétaire note le loyer reçu → la quittance part), pas la
+> nuit ; et la réparation **peut être automatique dans des limites** — RM-20.3
+> fait des tests, de la préproduction et du déploiement progressif le
+> garde-fou, pas d'un clic humain ; seuls la structure de la base, les droits
+> et les restaurations restent à validation humaine (PRA). L'expansion
+> territoriale fait l'objet d'une page à part, à écrire une fois le cadre
+> (limites de budget, de loi, de santé, de rythme) confirmé avec l'humain.
+
 **En une phrase :** « se gérer seul » recouvre trois choses qui n'ont pas le
 même plafond. **Exploiter** (faire tourner la journée métier) : l'application
 doit le faire à 100 %, et le fait déjà en grande partie. **Déboguer** (voir ce

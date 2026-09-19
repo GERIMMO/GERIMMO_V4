@@ -4531,3 +4531,18 @@ patron du projet — à vérifier mécaniquement), 7 tables RLS sans politique,
 corriger, évoluer, rester en France), chacune avec sa ligne d'arrêt — celle
 que les règles du projet fixent déjà : jamais de fusion, de migration, de
 permission ni de restauration sans validation humaine (RM-20.3, PRA).
+
+## [2026-09-19] query  | Correction de lecture — « se développer en France » = expansion territoriale
+
+Le porteur du projet corrige la synthèse [[Gerimmo en autonomie]] sur trois
+points : (1) les e-mails partent au fil des gestes des utilisateurs, pas par
+lot nocturne ; (2) la réparation peut être automatique, avec des limites —
+relecture de RM-20.3 : le garde-fou est le processus (tests, préproduction,
+déploiement progressif), pas un clic humain ; (3) surtout, la question visait
+**l'expansion commerciale sur le territoire** : Essonne → département voisin →
+région → région suivante choisie par étude de pertinence. Constat immédiat :
+les organisations et les biens portent déjà un code postal (l'empreinte par
+département est calculable sans rien ajouter) ; aucun parrainage n'existe ;
+aucune notion territoriale dans le wiki. Callout d'avertissement posé sur la
+page ; page « Expansion territoriale autonome » à écrire une fois le cadre
+(budget, loi, santé, rythme, qui décide du changement de région) confirmé.

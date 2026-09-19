@@ -4682,3 +4682,28 @@ exige. Corrigés. Banc reconstruit avec les 190 migrations : suite complète
 build verts. **Migration à appliquer en production avant la mise en ligne du
 code** — sur le mot du porteur du projet, comme ce matin. L'avantage du
 parrainage reste sa décision.
+
+## [2026-09-19] implementation | Parrainage en production, PR #62 fusionnée — tout est publié
+
+« Accord » du porteur du projet. Migration `20260919120000_parrainage.sql`
+passée par le chantier « Migrations Supabase » depuis les fichiers de la
+branche : simulation (run #30 — `BEGIN → ROLLBACK` sans erreur, garde
+d'abonnement à 60 tables inchangée puisque `parrainages` n'a pas
+d'`organization_id`, `fermer_fonctions_a_anon` rend 0) puis application
+(run #31). Vérification en base : **19 contrôles sur 19** — colonne
+`code_parrainage` non nulle et son index unique, déclencheur posé, table
+`parrainages` avec son unicité de filleul, sa contrainte « pas soi-même », sa
+RLS, sa politique de lecture et son grant en lecture seule, fonction
+`enregistrer_parrainage` présente, fonctions du déclencheur fermées à `anon`
+et `authenticated` ; toutes les organisations ont un code, tous distincts et
+bien formés ; aucun parrainage enregistré.
+
+PR #62 fusionnée dans `main` (`402a8b1`), CI verte sur `95bc19f`. **Plus rien
+en attente** : les trois fonctionnalités du 18/09, la refonte des écrans, la
+modale d'alerte, le territoire, les capteurs, la ronde mensuelle et le
+parrainage sont tous en ligne, base à jour.
+
+Décisions qui restent au porteur du projet : l'avantage du parrainage, le
+budget par département, les seuils de santé, le compte annonceur Meta, les
+mentions de l'éditeur, et l'ouverture réseau des sources publiques pour que le
+marché se remplisse.

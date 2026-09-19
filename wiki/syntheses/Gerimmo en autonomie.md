@@ -149,6 +149,14 @@ Ligne d'arrêt : aucune — lire ne coûte rien et ne casse rien.
 
 ### 2. Veiller — la routine du matin
 
+> [!info] En partie construit le 19/09 (PR #61)
+> La **ronde mensuelle du territoire** existe (`/api/cron/territoire`, voir
+> [[Expansion territoriale autonome]]) : elle lit les capteurs de la boucle 1,
+> évalue la porte de santé et consigne. La **ronde quotidienne** — lire ce que
+> les capteurs ont noté depuis la veille et préparer les corrections — reste à
+> armer ; le point de santé `/api/sante` lui donne déjà tout ce qu'elle doit
+> lire.
+
 Une session planifiée, chaque matin, qui lit tout ce que la boucle 1 produit
 depuis la veille (tech_log, bilans des tâches, delta des conseils Supabase, CI
 sur `main`, audit des dépendances, état du déploiement, signalements ouverts),

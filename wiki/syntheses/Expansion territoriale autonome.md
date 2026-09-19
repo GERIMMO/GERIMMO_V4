@@ -99,7 +99,7 @@ visibilité (pages locales, publicité) et le [[Parrainage|parrainage]].
 | Parrainage | **n'existe pas** — à construire |
 | Publicité Instagram/Facebook pilotée | à construire — demande un compte publicitaire Meta et un accès d'API, au nom de l'entreprise |
 | Prospection encadrée des agences | à construire, après cadrage juridique |
-| Compte rendu mensuel et interrupteur | à construire |
+| Compte rendu mensuel et interrupteur | **ronde mensuelle construite le 19/09** (`/api/cron/territoire`, le 1er du mois à 5 h) : elle mesure l'empreinte, note les candidats, décide, évalue la **porte de santé** (passes des quatre tâches sous 36 h, erreurs d'écran ≤ 5 sur 24 h, zéro bug N1 ouvert — seuils par défaut, à confirmer) et consigne le tout, daté, dans `tech_log` (`tache_territoire`, avec `agi: false`). Elle **calcule et consigne, elle n'agit pas encore** : c'est ici, derrière la porte, que les gestes d'ouverture se brancheront. Un test lie désormais chaque cron de `vercel.json` à la liste exemptée du proxy — l'oubli du 18/09 ne peut plus se reproduire. L'interrupteur (arrêter d'un mot) reste à poser. |
 
 ## Ordre de construction
 
@@ -116,8 +116,11 @@ visibilité (pages locales, publicité) et le [[Parrainage|parrainage]].
 > [!warning] Points à trancher
 > - **Montants** : budget mensuel par département, plafond quotidien par
 >   campagne, avantage du parrainage — chiffres du porteur du projet.
-> - **Seuils de santé** : à partir de quels chiffres (signalements,
->   résiliations, délai de réponse) un territoire est-il « sain » ?
+> - **Seuils de santé** : des défauts sont posés dans `src/lib/porte-sante.ts`
+>   (quatre tâches passées sous 36 h, ≤ 5 erreurs d'écran sur 24 h, aucun bug
+>   N1 ouvert) ; un compteur illisible ferme la porte. À confirmer ou à
+>   changer — en un seul endroit. Les résiliations et le délai de réponse
+>   du support n'y sont pas encore.
 > - **Identité de l'annonceur** : les mentions de l'éditeur sont encore
 >   incomplètes (`app/src/lib/editeur.ts`) ; sans elles, ni pages légales ni
 >   compte publicitaire au nom de l'entreprise.

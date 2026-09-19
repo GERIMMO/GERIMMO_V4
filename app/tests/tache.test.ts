@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { consignerTache, dernieresTaches, porteurDuSecret } from "../src/lib/tache";
+import { consignerTache, depuisHeures, dernieresTaches, porteurDuSecret } from "../src/lib/tache";
+
+describe("la borne d'une fenêtre de journal", () => {
+  it("rend l'instant d'il y a n heures, en ISO", () => {
+    const maintenant = new Date("2026-09-19T12:00:00.000Z");
+    expect(depuisHeures(24, maintenant)).toBe("2026-09-18T12:00:00.000Z");
+    expect(depuisHeures(0.5, maintenant)).toBe("2026-09-19T11:30:00.000Z");
+  });
+});
 
 afterEach(() => {
   vi.restoreAllMocks();

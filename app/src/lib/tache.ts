@@ -56,6 +56,15 @@ export function porteurDuSecret(request: Request, secret: string | undefined): b
   return timingSafeEqual(a, b);
 }
 
+/**
+ * L'instant, en ISO, d'il y a `heures` heures — pour borner une lecture de
+ * journal. Vit ici plutôt que dans un composant : la règle de pureté des
+ * composants refuse `Date.now()` dans leur corps, à raison.
+ */
+export function depuisHeures(heures: number, maintenant: Date = new Date()): string {
+  return new Date(maintenant.getTime() - heures * 3_600_000).toISOString();
+}
+
 export type PasseConsignee = { evenement: string; details: unknown; created_at: string };
 
 /**

@@ -4618,3 +4618,25 @@ commit présente mais vide donnait `""` au lieu de `null`. 16 tests sur les
 trois modules, les huit tests de routes et de proxy toujours verts ; lint,
 types et build verts. PR #61 mise à jour. Reste : les seuils qui font d'un
 signal une porte fermée pour l'expansion.
+
+## [2026-09-19] implementation | Territoire — la ronde mensuelle et la porte de santé
+
+Le squelette de la boucle d'[[Expansion territoriale autonome]], sans
+migration : `/api/cron/territoire`, le 1er du mois à 5 h, mêmes verrous que
+les autres tâches. Elle mesure l'empreinte, note les candidats, décide du
+prochain département (et du changement de région, automatique), évalue la
+**porte de santé** avec les capteurs posés le matin — chacune des quatre
+tâches passée sous 36 h, au plus 5 erreurs d'écran sur 24 h, aucun bug N1
+ouvert ; un compteur illisible ferme la porte, parce que « on ne sait pas »
+n'est pas « tout va bien » — et consigne le tout, daté, dans `tech_log`
+(`tache_territoire`, `agi: false` : elle calcule et consigne, elle n'agit pas
+encore). La page `/admin/territoire` montre la même porte, avec ses motifs,
+au-dessus de la décision : l'écran et la passe ne peuvent pas se contredire.
+
+Un test lie désormais **chaque** cron de `vercel.json` à la liste exemptée
+du proxy — l'oubli du 18/09 devient impossible. Deux défauts pris par les
+outils avant mise en ligne : `Date.now()` dans le corps d'un composant
+serveur (règle de pureté — déplacé dans `depuisHeures`), et des seuils figés
+en littéraux par `as const` (type `SeuilsSante` explicite). 69 tests sur les
+six modules du territoire et des capteurs ; lint, types et build verts.
+Seuils par défaut à confirmer par le porteur du projet.

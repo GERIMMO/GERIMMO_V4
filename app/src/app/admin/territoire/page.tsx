@@ -1,7 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import voisinsFichier from "@/data/departements-voisins.json";
 import marcheFichier from "@/data/territoires-marche.json";
+import { evaluerPorte } from "@/lib/porte-sante";
 import { decider, noterCandidats, type Marche, type Voisinage } from "@/lib/score-territoire";
+import { depuisHeures, dernieresTaches, type PasseConsignee } from "@/lib/tache";
 import {
   empreinteParDepartement,
   empreinteParRegion,
@@ -35,13 +37,39 @@ export const metadata = { title: "Territoire — Gerimmo" };
 export default async function PageTerritoire() {
   const supabase = await createClient();
 
-  const [orgs, biens, lots, baux] = await Promise.all([
+  const depuis24h = depuisHeures(24);
+  const [orgs, biens, lots, baux, passes, erreurs, bugs] = await Promise.all([
     supabase.from("organizations").select("id, type, status, postal_code, created_at"),
     supabase.from("biens").select("id, organization_id, postal_code"),
     supabase.from("lots").select("id, bien_id, etat"),
     supabase.from("baux").select("id, lot_id, etat"),
+    // La porte de santé, avec les mêmes signaux que la ronde mensuelle
+    // (/api/cron/territoire) : l'écran et la passe ne doivent jamais se
+    // contredire. Le super admin lit tech_log et les signalements par la RLS.
+    supabase
+      .from("tech_log")
+      .select("evenement, details, created_at")
+      .like("evenement", "tache_%")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("tech_log")
+      .select("id", { count: "exact", head: true })
+      .eq("evenement", "erreur_ecran")
+      .gte("created_at", depuis24h),
+    supabase
+      .from("retours_utilisateurs")
+      .select("id", { count: "exact", head: true })
+      .eq("nature", "bug")
+      .eq("gravite", "N1")
+      .in("etat", ["nouveau", "en_examen", "en_cours"]),
   ]);
   const enEchec = [orgs.error, biens.error, lots.error, baux.error].filter(Boolean);
+  const porte = evaluerPorte({
+    passes: dernieresTaches((passes.data ?? []) as PasseConsignee[]),
+    erreursEcran24h: erreurs.error ? null : (erreurs.count ?? 0),
+    bugsBloquantsOuverts: bugs.error ? null : (bugs.count ?? 0),
+  });
 
   const empreinte = empreinteParDepartement({
     organisations: (orgs.data ?? []) as LigneOrganisation[],
@@ -247,6 +275,30 @@ export default async function PageTerritoire() {
               Où aller ensuite
             </h2>
             <span className="mono-discret">{candidats.length} candidats</span>
+          </div>
+
+          {/* LA PORTE AVANT LA DESTINATION. On n'ouvre pas un département quand
+              le produit va mal là où il est : la porte dit si l'on peut, et
+              sinon pourquoi — chaque motif est un signal des capteurs. */}
+          <div
+            className={`mb-3 rounded-lg border px-3 py-2 text-sm ${
+              porte.ouverte
+                ? "border-[var(--success)] bg-[var(--success-soft)] text-[var(--success-soft-foreground)]"
+                : "border-[var(--destructive)] bg-[var(--destructive-soft)] text-[var(--destructive-soft-foreground)]"
+            }`}
+          >
+            <span className="font-semibold">
+              {porte.ouverte ? "Porte de santé ouverte" : "Porte de santé fermée"}
+            </span>
+            {porte.ouverte ? (
+              <span> — les tâches passent, peu d&apos;erreurs, aucun bug bloquant : une ouverture est possible.</span>
+            ) : (
+              <ul className="mt-1 list-disc pl-5">
+                {porte.motifs.map((m) => (
+                  <li key={m}>{m}</li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {decision.prochain ? (

@@ -4953,3 +4953,53 @@ Surveillance de la PR et contrôle horaire arrêtés.
 > en rouge à l'écran, mais la règle d'usage — dans quels cas la supervision
 > s'autorise à écrire chez un tiers plutôt qu'à seulement regarder — reste à
 > écrire par le porteur du projet.
+
+## [2026-09-19] implementation | L'avantage du parrainage : un mois pour vous, un mois pour lui
+
+**Le chiffre manquait depuis le 19/09** ; le voici, choisi de façon à ne jamais
+avoir à le retoucher.
+
+| Qui | Quoi | Quand |
+|---|---|---|
+| Filleul | Essai porté de **14 à 30 jours** | à l'instant où le code est accepté |
+| Parrain en essai | **30 jours d'essai** de plus | quand le filleul devient client payant |
+| Parrain abonné | **un avoir égal à son mensuel courant** | quand le filleul devient client payant |
+
+**Trois décisions qui tiennent le dispositif debout :**
+
+1. **Le parrain est payé à la CONVERSION, jamais à l'inscription.** Récompenser
+   une inscription, c'est financer des organisations fictives ouvertes avec son
+   propre code. Le déclencheur est le passage du filleul à `active`.
+2. **« Un mois » vaut ce que le parrain paie** — le mensuel est lu sur son
+   abonnement au moment de l'acquisition, puis figé. Aucun barème à tenir quand
+   les tarifs bougent, et aucun chiffre à redemander au porteur du projet.
+3. **Rien n'est promis à vide.** Filleul déjà payant, parrain sans montant
+   facturé, parrain archivé : l'avantage est inscrit « sans objet » et l'écran
+   le dit, au lieu d'afficher un cadeau qui n'arrivera jamais.
+
+**Ce qui est posé** (migration `20260919200000_avantage_parrainage`) : le
+registre `avantages_parrainage` (unique par parrainage et par nature — c'est
+lui qui empêche de récompenser deux fois la même conversion, y compris après
+une suspension), les deux durées en fonctions SQL, l'avantage du filleul dans
+la même transaction que le rattachement, un déclencheur sur le passage à
+`active`, et deux fonctions réservées aux tâches planifiées.
+
+Côté application : `crediterClientStripe()` porte l'avoir au solde du client
+(montant **négatif**, clé d'idempotence = l'identifiant de l'avantage — une
+tâche rejouée n'offre pas deux mois), la tâche `/api/cron/abonnements` les
+applique **après** l'alignement des quantités (si Stripe tombe au milieu, ce
+qui reste est un cadeau en retard d'un jour, pas une facture fausse), le profil
+annonce la promesse et liste ce qui a été acquis, et le champ d'inscription dit
+enfin à quoi sert le code.
+
+**Vérification** : 1 362 tests au vert (18 neufs), dont un qui compare la durée
+**appliquée** en base à la durée **annoncée** à l'écran — une page qui promet
+trente jours pendant que la base en pose quatorze serait un mensonge
+commercial. Lint, types et build au vert.
+
+> [!warning] Migration non appliquée
+> Écrite, jouée et testée sur le banc ; la production attend l'accord.
+
+> [!warning] Reste à trancher : un plafond ?
+> Rien ne limite le nombre de filleuls récompensés pour un même parrain. C'est
+> volontaire, mais cinquante filleuls en un mois poseront la question.

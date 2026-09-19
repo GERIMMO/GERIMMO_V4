@@ -14,6 +14,7 @@ import {
   prixPour,
   quantiteFacturee,
   variablePrix,
+  crediterClientStripe,
 } from "@/lib/stripe";
 
 const VARIABLES = [
@@ -189,5 +190,61 @@ describe("Lire une souscription, quelle que soit la version d'API", () => {
     // Zéro, pas « une par défaut » : facturer une unité qu'on n'a pas lue
     // serait prélever au hasard.
     expect(quantiteFacturee(s as never)).toBe(0);
+  });
+});
+
+// ── L'avoir de parrainage : ce que l'adaptateur décide avant d'appeler ─────
+describe("porter un avoir au solde du client", () => {
+  type Appel = { customer: string; corps: Record<string, unknown>; options: Record<string, unknown> };
+
+  function faux(reponse: unknown = { id: "cbtxn_1" }) {
+    const appels: Appel[] = [];
+    const stripe = {
+      customers: {
+        createBalanceTransaction: async (
+          customer: string,
+          corps: Record<string, unknown>,
+          options: Record<string, unknown>
+        ) => {
+          appels.push({ customer, corps, options });
+          if (reponse instanceof Error) throw reponse;
+          return reponse;
+        },
+      },
+    };
+    return { stripe, appels };
+  }
+
+  const base = { customer: "cus_1", montantCents: 4193, avantageId: "av-1", libelle: "Parrainage" };
+
+  it("crédite, donc envoie un montant NÉGATIF — un positif ferait payer le cadeau", async () => {
+    const { stripe, appels } = faux();
+    const r = await crediterClientStripe(stripe as never, base);
+    expect(r).toEqual({ ok: true, reference: "cbtxn_1" });
+    expect(appels[0].corps).toMatchObject({ amount: -4193, currency: "eur" });
+  });
+
+  it("porte une clé d'idempotence stable : une tâche rejouée n'offre pas deux mois", async () => {
+    const { stripe, appels } = faux();
+    await crediterClientStripe(stripe as never, base);
+    await crediterClientStripe(stripe as never, base);
+    expect(appels[0].options.idempotencyKey).toBe("avantage-parrainage-av-1");
+    expect(appels[1].options.idempotencyKey).toBe(appels[0].options.idempotencyKey);
+  });
+
+  it("n'appelle pas Stripe sans client, ni pour un montant qui n'en est pas un", async () => {
+    const { stripe, appels } = faux();
+    expect(await crediterClientStripe(stripe as never, { ...base, customer: "" })).toMatchObject({ ok: false });
+    for (const montant of [0, -100, 1.5, Number.NaN]) {
+      expect(await crediterClientStripe(stripe as never, { ...base, montantCents: montant })).toMatchObject({ ok: false });
+    }
+    expect(appels).toHaveLength(0);
+  });
+
+  it("rend l'échec sans jargon plutôt que de le laisser remonter", async () => {
+    const { stripe } = faux(new Error("No such customer: cus_1"));
+    const r = await crediterClientStripe(stripe as never, base);
+    expect(r.ok).toBe(false);
+    expect((r as { erreur: string }).erreur).toBeTruthy();
   });
 });

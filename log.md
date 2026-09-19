@@ -4656,3 +4656,29 @@ quand elles seront toutes passées.
 Suite annoncée et engagée : la ronde quotidienne (session planifiée, lit les
 capteurs, ne prépare une correction que s'il y a quelque chose) puis le
 parrainage.
+
+## [2026-09-19] implementation | Parrainage — la mécanique, sans l'avantage
+
+Brique 4 de [[Expansion territoriale autonome]] ; page de concept
+[[Parrainage]] créée. Migration `20260919120000_parrainage.sql` : un code
+par organisation (huit caractères hexadécimaux, engendré à la création par un
+déclencheur qui boucle jusqu'à l'unicité, reprise des organisations
+existantes), table `parrainages` (un parrain au plus par filleul, jamais
+soi-même, lecture par les membres des deux organisations et la supervision,
+écriture par la seule fonction `enregistrer_parrainage`, qui refuse un code mal
+formé, inconnu ou d'une organisation archivée, l'auto-parrainage et un second
+parrain, et redonne le même rattachement si on la rappelle). Écrans : champ
+facultatif à l'auto-inscription (prérempli par `/inscription?parrain=…`),
+consommé à la naissance de l'organisation sur `/espaces` ; champ à l'ouverture
+d'une agence par la supervision, vérifié **avant** d'ouvrir ; carte
+« Parrainage » sur le profil (code, lien, filleuls, parrain).
+
+Deux défauts pris par la suite complète contre le banc, avant toute PR : la
+fonction du déclencheur restait exécutable par `anon` et `authenticated` —
+donc accrochable à une table forgée (audit du 10/09) — et la migration ne se
+terminait pas par `fermer_fonctions_a_anon()`, que le test de surface publique
+exige. Corrigés. Banc reconstruit avec les 190 migrations : suite complète
+**1 316 tests verts, zéro échec** (SQL, émulateur d'API compris) ; lint, types,
+build verts. **Migration à appliquer en production avant la mise en ligne du
+code** — sur le mot du porteur du projet, comme ce matin. L'avantage du
+parrainage reste sa décision.

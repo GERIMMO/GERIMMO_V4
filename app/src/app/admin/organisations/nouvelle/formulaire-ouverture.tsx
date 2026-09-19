@@ -119,6 +119,23 @@ export function FormulaireOuverture({
         )}
       </fieldset>
 
+      {/* Une agence amenée par une autre — ou par un propriétaire : le code
+          se saisit ici, à l'ouverture, pour que Gerimmo sache qui a amené qui
+          (wiki : Parrainage, 19/09). */}
+      <div className="space-y-2">
+        <Label htmlFor={`${base}-parrain`}>Code de parrainage (facultatif)</Label>
+        <Input
+          id={`${base}-parrain`}
+          name="code_parrainage"
+          autoComplete="off"
+          autoCapitalize="characters"
+          placeholder="3FA2B9C0"
+          maxLength={12}
+          defaultValue={valeur("code_parrainage", "")}
+          className="max-w-48"
+        />
+      </div>
+
       {etat.erreur && (
         <p role="alert" className="text-sm text-destructive">
           {etat.erreur}

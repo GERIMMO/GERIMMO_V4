@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { normaliserCode } from "@/lib/parrainage";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 
@@ -39,11 +40,29 @@ export async function ouvrirOrganisation(
   const active = formData.get("active") !== null;
   const jours = Number(String(formData.get("essai_jours") ?? "14"));
   const demande = String(formData.get("demande_id") ?? "").trim();
+  // Le code de parrainage (19/09) : facultatif ; s'il est là, il doit être
+  // bien formé ET connu AVANT d'ouvrir quoi que ce soit — une organisation
+  // créée puis un rattachement refusé laisserait la supervision devant un
+  // écran de succès pour un geste à moitié fait.
+  const codeSaisi = String(formData.get("code_parrainage") ?? "").trim();
+  const codeParrainage = codeSaisi ? normaliserCode(codeSaisi) : null;
 
   if (!nom) return { erreur: "Le nom de l'organisation est obligatoire.", valeurs };
   if (!email) return { erreur: "L'adresse du responsable est obligatoire.", valeurs };
   if (!active && (!Number.isFinite(jours) || jours < 0 || jours > 365)) {
     return { erreur: "La durée d'essai doit tenir entre 0 et 365 jours.", valeurs };
+  }
+  if (codeSaisi && !codeParrainage) {
+    return { erreur: "Le code de parrainage n'a pas la bonne forme : huit lettres ou chiffres, comme 3FA2B9C0.", valeurs };
+  }
+  if (codeParrainage) {
+    const { data: parrain } = await supabase
+      .from("organizations")
+      .select("id")
+      .eq("code_parrainage", codeParrainage)
+      .neq("status", "archivee")
+      .maybeSingle();
+    if (!parrain) return { erreur: "Code de parrainage inconnu.", valeurs };
   }
 
   const { data, error } = await supabase.rpc("ouvrir_organisation", {
@@ -75,6 +94,16 @@ export async function ouvrirOrganisation(
     // La demande qui a mené à cette ouverture n'a plus à être retraitée.
     await supabase.rpc("demande_devis_traitee", { p_demande: demande });
     revalidatePath("/admin/devis");
+  }
+  // Le rattachement, une fois l'organisation née. Le code a été vérifié plus
+  // haut ; un refus ici serait une course (parrain archivé entre-temps) et
+  // se dit dans le journal plutôt que de faire échouer une ouverture réussie.
+  if (codeParrainage) {
+    const { error: erreurParrainage } = await supabase.rpc("enregistrer_parrainage", {
+      p_filleul: ligne.organization_id,
+      p_code: codeParrainage,
+    });
+    if (erreurParrainage) console.error("[ouverture] parrainage non enregistré:", erreurParrainage.message);
   }
   revalidatePath("/admin");
 

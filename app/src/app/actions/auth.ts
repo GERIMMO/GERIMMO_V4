@@ -5,6 +5,7 @@ import { sansJargon } from "@/lib/erreurs";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { normaliserCode } from "@/lib/parrainage";
 import { ACTIVITY_COOKIE } from "@/lib/session-policy";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 
@@ -142,6 +143,17 @@ export async function inscrireProprietaire(
   if (!formData.get("cgu")) {
     return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
   }
+  // Le code de parrainage (19/09) : facultatif, mais s'il est tapé il doit
+  // avoir la bonne forme — un code qu'on laisserait passer de travers ne
+  // rattacherait personne, et la personne ne le saurait pas.
+  const codeSaisi = String(formData.get("code_parrainage") ?? "").trim();
+  const codeParrainage = codeSaisi ? normaliserCode(codeSaisi) : null;
+  if (codeSaisi && !codeParrainage) {
+    return {
+      erreur: "Le code de parrainage n'a pas la bonne forme : huit lettres ou chiffres, comme 3FA2B9C0.",
+      valeurs,
+    };
+  }
 
   const origine = (await headers()).get("origin") ?? "";
   const supabase = await createClient();
@@ -167,6 +179,8 @@ export async function inscrireProprietaire(
         // l'utilisateur.
         cgu_version: CONDITIONS_VERSION,
         cgu_acceptee_le: new Date().toISOString(),
+        // Consommé à la naissance de l'organisation, sur /espaces.
+        ...(codeParrainage ? { code_parrainage: codeParrainage } : {}),
       },
       emailRedirectTo: `${origine}/auth/confirm?next=/espaces`,
     },

@@ -187,3 +187,4 @@
 20260918050000_appel_loyer_part_au_locataire.sql
 20260918060000_rappel_rendez_vous.sql
 20260918070000_reprise_comptable_utilisable.sql
+20260919120000_parrainage.sql

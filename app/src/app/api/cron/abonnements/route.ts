@@ -22,6 +22,7 @@
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { clientStripe, configurationStripe, synchroniserQuantite } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
+import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase.rpc("abonnements_a_synchroniser", { p_limite: 200 });
   if (error) {
+    await consignerTache(supabase, "abonnements", { erreur: "lecture impossible", relances });
     return Response.json({ erreur: error.message }, { status: 500 });
   }
   const lignes = (data ?? []) as Ligne[];
@@ -114,6 +116,16 @@ export async function GET(request: Request) {
     });
   }
 
+  // Les échecs sont comptés, pas recopiés : leurs motifs vivent déjà sur
+  // chaque organisation (abonnement_synchro_faite), et tech_log n'a pas à
+  // porter deux fois le même texte.
+  await consignerTache(supabase, "abonnements", {
+    relances,
+    examinees: lignes.length,
+    alignees: alignes,
+    resiliees,
+    echecs: echecs.length,
+  });
   return Response.json({
     relances,
     examinees: lignes.length,

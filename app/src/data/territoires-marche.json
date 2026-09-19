@@ -1,0 +1,535 @@
+{
+ "sources": [
+  {
+   "cle": "logements_loues_prive",
+   "libelle": "Résidences principales occupées par un locataire du parc privé",
+   "fournisseur": "INSEE — recensement de la population, statut d'occupation",
+   "url": "https://api.insee.fr/melodi/data/DS_RP_LOGEMENT_PRINC",
+   "recupere_le": null,
+   "note": "à confirmer : jeu et modalités exacts (locataire hors HLM) lors de la première récupération"
+  },
+  {
+   "cle": "agences",
+   "libelle": "Établissements actifs des codes NAF 68.31Z, 68.32A et 68.32B",
+   "fournisseur": "Annuaire des entreprises (base SIRENE)",
+   "url": "https://recherche-entreprises.api.gouv.fr/search",
+   "recupere_le": null,
+   "note": "une requête par département et par code NAF, champ total_results"
+  },
+  {
+   "cle": "communes_zone_tendue",
+   "libelle": "Communes en zone tendue (décret n° 2013-392 modifié)",
+   "fournisseur": "data.gouv.fr",
+   "url": "https://www.data.gouv.fr/api/1/datasets/?q=zone+tendue",
+   "recupere_le": null,
+   "note": "identifier la ressource officielle à la première récupération ; compter les communes par département"
+  }
+ ],
+ "departements": {
+  "01": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "03": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "07": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "15": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "26": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "38": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "42": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "43": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "63": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "69": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "73": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "74": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "21": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "25": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "39": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "58": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "70": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "71": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "89": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "90": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "22": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "29": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "35": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "56": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "18": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "28": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "36": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "37": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "41": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "45": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "2A": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "2B": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "08": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "10": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "51": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "52": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "54": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "55": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "57": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "67": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "68": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "88": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "02": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "59": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "60": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "62": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "80": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "75": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "77": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "78": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "91": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "92": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "93": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "94": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "95": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "14": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "27": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "50": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "61": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "76": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "16": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "17": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "19": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "23": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "24": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "33": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "40": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "47": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "64": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "79": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "86": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "87": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "09": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "11": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "12": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "30": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "31": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "32": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "34": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "46": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "48": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "65": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "66": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "81": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "82": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "44": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "49": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "53": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "72": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "85": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "04": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "05": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "06": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "13": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "83": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "84": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "971": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "972": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "973": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "974": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  },
+  "976": {
+   "logements_loues_prive": null,
+   "agences": null,
+   "communes_zone_tendue": null
+  }
+ }
+}

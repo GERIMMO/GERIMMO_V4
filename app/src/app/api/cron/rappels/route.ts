@@ -22,6 +22,7 @@
 import { envoyerEmail } from "@/lib/email";
 import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
 import { clientDeService } from "@/lib/supabase/service";
+import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
 
 export const dynamic = "force-dynamic";
@@ -78,10 +79,16 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.rpc("rendez_vous_a_rappeler", { p_limite: 200 });
   if (error) {
     console.error("[cron rappels] lecture impossible:", error.message);
+    await consignerTache(supabase, "rappels", { erreur: "lecture impossible" });
     return Response.json({ erreur: "Lecture impossible." }, { status: 500 });
   }
   const lignes = (data ?? []) as Ligne[];
-  if (lignes.length === 0) return Response.json({ rappeles: 0, echecs: 0 });
+  if (lignes.length === 0) {
+    // Une passe sans rien à faire se consigne aussi : c'est le battement de
+    // cœur que la ronde du matin attend à cette heure-là.
+    await consignerTache(supabase, "rappels", { rappeles: 0, echecs: 0 });
+    return Response.json({ rappeles: 0, echecs: 0 });
+  }
 
   let rappeles = 0;
   const echecs: string[] = [];
@@ -130,5 +137,6 @@ export async function GET(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
+  await consignerTache(supabase, "rappels", { rappeles, echecs: echecs.length });
   return Response.json({ rappeles, echecs: echecs.length });
 }

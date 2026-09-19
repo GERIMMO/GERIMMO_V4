@@ -4484,3 +4484,159 @@ Détail et contradiction non tranchée : [[Agenda et échéances]].
 
 Vérifications : lint, types et build verts ; 596 tests passent (les 5 suites
 SQL exigent un Postgres local). Aucune migration.
+
+## [2026-09-19] implementation | Migrations du 18/09 en production, PR #60 fusionnée
+
+« Accord » du porteur du projet à 07:48 UTC. Les trois migrations —
+`20260918050000` (avis d'échéance au locataire), `20260918060000` (rappel de
+rendez-vous), `20260918070000` (reprise comptable utilisable) — sont passées
+par le chantier « Migrations Supabase » depuis les fichiers de la branche :
+simulation (run #28 : 796 lignes jouées dans une transaction, BEGIN → ROLLBACK
+sans erreur, garde d'abonnement de 58 à 60 tables, `UPDATE 0` sur
+`reprise_soldes` qui confirme des tables vides) puis application (run #29,
+COMMIT explicite dans le log). Vérification en base : 28 contrôles sur 28 —
+les trois versions enregistrées dans `supabase_migrations`, colonnes
+`appels_loyer.email_envoye_at`, `organizations.appels_envoi_auto` et
+`reprise_soldes.organization_id`, table `intervention_rappels` et ses deux
+types, les sept fonctions, les trois politiques de lecture ET leurs grants à
+`authenticated`, la garde d'abonnement posée sur les deux tables nouvelles.
+Et rien d'écrit : aucun avis marqué envoyé, aucun rappel, aucune reprise,
+envoi automatique à faux pour toutes les organisations.
+
+Puis la [PR #60](https://github.com/GERIMMO/GERIMMO_V4/pull/60) fusionnée dans
+`main` (`9f60bd8`), CI verte sur sa tête. Le code arrive après la base : la
+page de profil d'agence, qui lit `appels_envoi_auto`, trouve sa colonne. Elle
+emporte les trois fonctionnalités du 18/09, la refonte de la modale d'alerte
+et les correctifs de présentation du matin.
+
+Ce qui se déclenche désormais tout seul en production : le cron des avis
+(7 h 30) ne part que pour les agences qui l'activeront dans leur profil ; celui
+des rappels (6 h) écrit aux deux parties la veille et à J-7 de chaque
+intervention planifiée.
+
+## [2026-09-19] query  | Comment Gerimmo peut se gérer seul — exploitation, débogage, évolution
+
+Question du porteur du projet. Réponse filée dans
+[[Gerimmo en autonomie]]. Le constat, sur le code et la base du jour : quatre
+crons et douze alertes à fermeture automatique font tourner la journée métier ;
+CI et chantier de migrations tiennent la qualité ; mais **l'application est
+aveugle à ses pannes** (aucune frontière d'erreur, `tech_log` écrit à un seul
+endroit, aucun point de santé), **il n'y a pas de préproduction** (une seule
+branche Supabase ; les prévisualisations Vercel lisent vraisemblablement la
+production), et le pont entre les signalements et le développement est, selon
+le wiki lui-même, « non livré ». Rapports de conseils Supabase lus en
+totalité : 205 fonctions `security definer` ouvertes à `authenticated` (le
+patron du projet — à vérifier mécaniquement), 7 tables RLS sans politique,
+2 tables à politiques doublées. Proposition : cinq boucles (voir, veiller,
+corriger, évoluer, rester en France), chacune avec sa ligne d'arrêt — celle
+que les règles du projet fixent déjà : jamais de fusion, de migration, de
+permission ni de restauration sans validation humaine (RM-20.3, PRA).
+
+## [2026-09-19] query  | Correction de lecture — « se développer en France » = expansion territoriale
+
+Le porteur du projet corrige la synthèse [[Gerimmo en autonomie]] sur trois
+points : (1) les e-mails partent au fil des gestes des utilisateurs, pas par
+lot nocturne ; (2) la réparation peut être automatique, avec des limites —
+relecture de RM-20.3 : le garde-fou est le processus (tests, préproduction,
+déploiement progressif), pas un clic humain ; (3) surtout, la question visait
+**l'expansion commerciale sur le territoire** : Essonne → département voisin →
+région → région suivante choisie par étude de pertinence. Constat immédiat :
+les organisations et les biens portent déjà un code postal (l'empreinte par
+département est calculable sans rien ajouter) ; aucun parrainage n'existe ;
+aucune notion territoriale dans le wiki. Callout d'avertissement posé sur la
+page ; page « Expansion territoriale autonome » à écrire une fois le cadre
+(budget, loi, santé, rythme, qui décide du changement de région) confirmé.
+
+## [2026-09-19] query  | Expansion territoriale autonome — cadre confirmé
+
+Réponses du porteur du projet : le changement de région est **automatique**
+(sur score) ; les particuliers ne sont jamais démarchés, mais Gerimmo peut
+faire de la **publicité sur Instagram et Facebook**. Page
+[[Expansion territoriale autonome]] créée : la boucle mensuelle (mesurer,
+noter, ouvrir, agir, surveiller, changer de région), les limites (argent, loi
+pour les particuliers, les professionnels, le contenu et les données, santé,
+rythme), ce qui existe et ce qui manque, l'ordre de construction. Première
+brique engagée : le tableau de bord par département dans la console de
+supervision, sans migration — les codes postaux sont déjà là.
+
+## [2026-09-19] implementation | Territoire — l'empreinte par département dans la console
+
+Première brique de [[Expansion territoriale autonome]], sans migration : la
+page `/admin/territoire` compte, département par département, les
+organisations (agences et propriétaires directs, hors archivées, avec leur
+statut et les inscriptions du mois) là où elles sont domiciliées, et les
+biens, lots et baux en cours là où ils sont — une agence d'Évry qui gère un
+immeuble à Antony est présente dans les deux départements. Remontée par
+région, du plus actif au moins actif. Ce qui n'a pas pu être placé (sans code
+postal, hors des 101 départements) est dit, jamais tu. Le calcul vit dans
+`src/lib/territoire.ts`, pur et sans base — 27 tests, dont la Corse (2A/2B)
+et l'outre-mer (trois chiffres) — réutilisable tel quel par la routine
+mensuelle. Le référentiel des 101 départements et de leurs régions est
+recopié du code officiel géographique ; la contiguïté n'y est pas, à sourcer
+pour le score. Suite à 623 tests, lint, types et build verts. Sur la branche,
+non publié.
+
+## [2026-09-19] implementation | Territoire — le score et la décision « où aller ensuite »
+
+Deuxième brique de [[Expansion territoriale autonome]], toujours sans
+migration. La **contiguïté des départements** est dérivée du fond de carte
+public (frontières partagées : au moins deux sommets communs), vérifiée sur
+des cas connus (Paris → 92, 93, 94 ; Essonne → 28, 45, 77, 78, 92, 94 ; Nord →
+02, 62, 80 ; Corse ; Finistère), et versionnée avec sa source, son empreinte
+et sa méthode — le script Node la reproduit. Le **score** met le marché en face
+de l'empreinte : logements loués 40 %, agences 20 %, zone tendue 15 %, part des
+voisins ouverts 25 %, chaque composante en rang de 0 à 100 parmi les
+candidats ; un null vaut zéro **et se dit**. La **décision** reste dans la
+région courante tant qu'un candidat y dépasse le seuil, sinon change de région
+automatiquement. La page `/admin/territoire` affiche la décision en une
+phrase, les dix meilleurs candidats avec leurs composantes et leurs manques.
+
+Constat bloquant pour la suite : depuis cet environnement, **seul GitHub
+répond** — data.gouv, l'annuaire des entreprises, geo.api.gouv et l'INSEE sont
+coupés par la politique réseau. Le fichier de marché est donc livré vide, avec
+ses trois sources nommées et le script qui le remplira ; les domaines à
+autoriser sont consignés dans la page. 42 tests sur les deux modules ; lint,
+types et build verts. PR #61 mise à jour.
+
+## [2026-09-19] implementation | Les capteurs — l'application cesse d'être aveugle à ses pannes
+
+Boucle « Voir » de [[Gerimmo en autonomie]], sans migration. Trois capteurs :
+**frontières d'erreur** (`error.tsx`, `global-error.tsx`) — un écran qui
+plante rend un geste (réessayer) et note l'incident par une action serveur,
+avec le condensé, la route anonymisée (`ecranSansDonnees`, la règle des
+signalements) et l'espace, jamais un champ ; **bilan de chaque passe** des
+quatre tâches quotidiennes dans `tech_log` (`tache_appels`, `tache_quittances`,
+`tache_rappels`, `tache_abonnements` — y compris la passe qui n'avait rien à
+faire, battement de cœur de la ronde du matin) ; **point de santé**
+`/api/sante` — base joignable et commit pour tout le monde, dernière passe de
+chaque tâche et erreurs d'écran sur 24 h pour qui porte le secret des tâches.
+Route ajoutée à la liste exemptée de session (la leçon du 18/09), avec son
+test. Un capteur ne lève jamais.
+
+Un défaut trouvé par les tests avant toute mise en ligne : une variable de
+commit présente mais vide donnait `""` au lieu de `null`. 16 tests sur les
+trois modules, les huit tests de routes et de proxy toujours verts ; lint,
+types et build verts. PR #61 mise à jour. Reste : les seuils qui font d'un
+signal une porte fermée pour l'expansion.
+
+## [2026-09-19] implementation | Territoire — la ronde mensuelle et la porte de santé
+
+Le squelette de la boucle d'[[Expansion territoriale autonome]], sans
+migration : `/api/cron/territoire`, le 1er du mois à 5 h, mêmes verrous que
+les autres tâches. Elle mesure l'empreinte, note les candidats, décide du
+prochain département (et du changement de région, automatique), évalue la
+**porte de santé** avec les capteurs posés le matin — chacune des quatre
+tâches passée sous 36 h, au plus 5 erreurs d'écran sur 24 h, aucun bug N1
+ouvert ; un compteur illisible ferme la porte, parce que « on ne sait pas »
+n'est pas « tout va bien » — et consigne le tout, daté, dans `tech_log`
+(`tache_territoire`, `agi: false` : elle calcule et consigne, elle n'agit pas
+encore). La page `/admin/territoire` montre la même porte, avec ses motifs,
+au-dessus de la décision : l'écran et la passe ne peuvent pas se contredire.
+
+Un test lie désormais **chaque** cron de `vercel.json` à la liste exemptée
+du proxy — l'oubli du 18/09 devient impossible. Deux défauts pris par les
+outils avant mise en ligne : `Date.now()` dans le corps d'un composant
+serveur (règle de pureté — déplacé dans `depuisHeures`), et des seuils figés
+en littéraux par `as const` (type `SeuilsSante` explicite). 69 tests sur les
+six modules du territoire et des capteurs ; lint, types et build verts.
+Seuils par défaut à confirmer par le porteur du projet.

@@ -4546,3 +4546,15 @@ département est calculable sans rien ajouter) ; aucun parrainage n'existe ;
 aucune notion territoriale dans le wiki. Callout d'avertissement posé sur la
 page ; page « Expansion territoriale autonome » à écrire une fois le cadre
 (budget, loi, santé, rythme, qui décide du changement de région) confirmé.
+
+## [2026-09-19] query  | Expansion territoriale autonome — cadre confirmé
+
+Réponses du porteur du projet : le changement de région est **automatique**
+(sur score) ; les particuliers ne sont jamais démarchés, mais Gerimmo peut
+faire de la **publicité sur Instagram et Facebook**. Page
+[[Expansion territoriale autonome]] créée : la boucle mensuelle (mesurer,
+noter, ouvrir, agir, surveiller, changer de région), les limites (argent, loi
+pour les particuliers, les professionnels, le contenu et les données, santé,
+rythme), ce qui existe et ce qui manque, l'ordre de construction. Première
+brique engagée : le tableau de bord par département dans la console de
+supervision, sans migration — les codes postaux sont déjà là.

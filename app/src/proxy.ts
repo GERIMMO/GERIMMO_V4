@@ -35,6 +35,7 @@ export async function proxy(request: NextRequest) {
     "/api/cron/rappels",
     "/api/cron/abonnements",
     "/api/cron/territoire",
+    "/api/cron/relances",
     "/api/stripe/webhook",
     "/api/sante",
   ].includes(request.nextUrl.pathname)) {

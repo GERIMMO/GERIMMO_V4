@@ -91,6 +91,19 @@ export default async function LayoutArtisan({
                 <rect x="13" y="13" width="7" height="7" rx="1.5" />
               </svg>
             </Link>
+            {/* Mot de passe et second facteur : l'artisan a un compte comme
+                tout le monde, et son bandeau n'en portait aucun chemin. */}
+            <Link
+              href="/compte"
+              title="Sécurité du compte"
+              aria-label="Sécurité du compte"
+              className="lien-bandeau size-11 justify-center"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
+                <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3z" strokeLinejoin="round" />
+                <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
             <form action={seDeconnecter}>
               <button
                 type="submit"

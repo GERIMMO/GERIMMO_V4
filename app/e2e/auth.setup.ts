@@ -1,4 +1,4 @@
-import { test as setup, expect } from "@playwright/test";
+import { test as setup, expect, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -19,6 +19,32 @@ const COMPTES = [
 const MOT_DE_PASSE = process.env.E2E_MOT_DE_PASSE ?? "Gerimmo-Demo-2026";
 const DOSSIER = path.join(__dirname, ".auth");
 
+/**
+ * LE SAS DE SUPERVISION, FRANCHI COMME UN HUMAIN LE FRANCHIT.
+ *
+ * Le proxy renvoie tout compte `super_admin` vers /securite tant que sa session
+ * n'est pas en aal2 — et les facteurs de l'émulateur vivent en mémoire, donc ils
+ * repartent à zéro à chaque démarrage du banc. Sans ce passage, la session du
+ * persona superadmin ne s'ouvrait jamais : le setup échouait, et AUCUNE spec ne
+ * tournait (constat du 19/09). Les autres personas ne voient pas ce sas.
+ */
+async function franchirLeSasMfa(page: Page) {
+  try {
+    await page.waitForURL(/\/securite/, { timeout: 5_000 });
+  } catch {
+    return; // pas de sas : ce compte n'a pas d'accès de supervision
+  }
+  const { totp } = await import("./local/mfa-local.mjs");
+  const configurer = page.getByRole("button", { name: "Configurer mon application" });
+  await configurer.click();
+  // On lit la clé plutôt que le QR : c'est le même secret, et un test ne sait
+  // pas scanner une image.
+  await page.getByText("Saisir une clé à la place du QR code").click();
+  const secret = (await page.locator("details p").first().innerText()).trim();
+  await page.getByLabel("Code à six chiffres").fill(totp(secret));
+  await page.getByRole("button", { name: "Activer et continuer" }).click();
+}
+
 setup("sessions des personas", async ({ browser }) => {
   fs.mkdirSync(DOSSIER, { recursive: true });
   for (const compte of COMPTES) {
@@ -28,6 +54,7 @@ setup("sessions des personas", async ({ browser }) => {
     await page.locator("#email").fill(compte.email);
     await page.locator("#mot-de-passe").fill(MOT_DE_PASSE);
     await page.getByRole("button", { name: "Se connecter" }).click();
+    await franchirLeSasMfa(page);
     await page.waitForURL(/\/(espaces|agence|locataire|proprietaire|admin|artisan)/, {
       timeout: 20_000,
     });

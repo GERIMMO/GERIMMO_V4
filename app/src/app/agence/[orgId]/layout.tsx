@@ -136,6 +136,7 @@ export default async function LayoutAgence({
               titre="Espace propriétaire"
               liens={[
                 { href: `/agence/${orgId}/profil`, libelle: "Mon profil" },
+                { href: "/compte", libelle: "Sécurité du compte" },
                 { href: "/espaces", libelle: "Mes espaces" },
               ]}
             />
@@ -194,6 +195,7 @@ export default async function LayoutAgence({
             sousTitre={role === "admin_agence" ? "Admin d'agence" : "Agent"}
             liens={[
               { href: `/agence/${orgId}/profil`, libelle: "Profil de l'agence" },
+              { href: "/compte", libelle: "Sécurité du compte" },
               { href: "/espaces", libelle: "Mes espaces" },
             ]}
           />

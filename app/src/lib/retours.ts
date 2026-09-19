@@ -11,7 +11,7 @@ export const ACTIONS_RETOUR: Record<string,string> = {
 const SEGMENTS = new Set([
   'agence','admin','artisan','locataire','espaces','parc','baux','documents','personnes','incidents','demandes','logement','loyers','comptabilite','fiscal',
   'agenda','alertes','messages','contact','profil','administration','abonnement','missions','devis','attestations','entreprise','note','edl','compte-rendu',
-  'bilan','creneaux','nouveau','nouvelle','import','organisations','publications','journaux','retours','assistance','idees','securite','parametres',
+  'bilan','creneaux','nouveau','nouvelle','import','organisations','publications','journaux','retours','assistance','idees','securite','parametres','compte',
 ]);
 /** Ne lit ni le DOM des dossiers, ni les champs, ni les paramètres de l’URL. */
 export function ecranSansDonnees(chemin: string):string {

@@ -4760,3 +4760,41 @@ manquait.
 
 Suite complète contre le banc : 1 316 tests verts ; lint, types, build verts.
 Aucune migration. Leçon consignée dans [[Charte visuelle v3 bleue]].
+
+## [2026-09-19] implementation | Sécurité du compte : changer son mot de passe et son second facteur
+
+**Ce qui manquait.** Un utilisateur connecté n'avait **aucun** moyen de changer
+son mot de passe : le seul chemin passait par « Mot de passe oublié », donc par
+un email. Et **aucun moyen du tout** de remplacer son second facteur. Le
+porteur du projet s'est retrouvé enfermé dehors le 19/09 quand son trousseau a
+perdu la clé TOTP ; seule une intervention en base a rouvert le compte. Un
+produit qui exige une intervention manuelle pour un geste aussi banal n'est pas
+fini.
+
+**Ce qui est posé** — `/compte`, « Sécurité du compte », pour tout le monde :
+- *Identifiants* : adresse de connexion, dernière connexion, et le fait dit
+  franchement que l'adresse ne se change pas depuis là.
+- *Mot de passe* : le mot de passe **actuel est exigé et vérifié** (sur un
+  client jetable, jamais sur la session en cours, refermé aussitôt) — sans quoi
+  un poste laissé déverrouillé une minute suffirait à voler le compte. Les
+  autres appareils tombent, l'appareil courant reste ouvert.
+- *Double authentification* : activer, **remplacer**, **retirer**. L'ordre des
+  gestes est imposé par Supabase — un facteur vérifié ne se retire pas depuis
+  une session restée en aal1 (403) — donc l'écran demande le code **avant** de
+  montrer ces boutons, au lieu de laisser buter dessus.
+- L'écran dit aussi pourquoi un trousseau qui range mot de passe et code dans
+  la même fiche les perd ensemble : c'est exactement ce qui est arrivé.
+
+`/securite` reste le **sas** de supervision (le proxy y envoie le super admin
+avant aal2) ; `/compte` est derrière la vérification et sert à entretenir son
+compte. Le lien a été ajouté dans les quatre espaces — le locataire et
+l'artisan n'en avaient aucun.
+
+**Au passage** : le harnais Playwright ne pouvait plus ouvrir de session
+superadmin (le sas MFA, jamais franchi par `auth.setup.ts`) — donc **aucune**
+spec ne tournait. Le setup franchit désormais le sas comme un humain.
+
+**Vérification** : 1 326 tests au vert (dont 10 neufs), 2 specs navigateur
+neuves passées contre l'émulateur avec un vrai calcul TOTP, 20/20 sur
+`menu-compte` + `compte-securite`, lint, types et build au vert. Aucune
+migration.

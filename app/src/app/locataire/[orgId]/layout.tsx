@@ -98,7 +98,10 @@ export default async function LayoutLocataire({
             }
             titre={personne ? nomComplet(personne) : organisation.name}
             sousTitre="Locataire"
-            liens={[{ href: "/espaces", libelle: "Mes espaces" }]}
+            liens={[
+              { href: "/compte", libelle: "Sécurité du compte" },
+              { href: "/espaces", libelle: "Mes espaces" },
+            ]}
           />
         </header>
         {comptesIncertains && (

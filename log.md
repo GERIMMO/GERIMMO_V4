@@ -4915,3 +4915,41 @@ lui), suite navigateur complète au vert, lint, types et build au vert.
 > [!warning] Migration non appliquée
 > Elle est écrite, jouée et testée sur le banc ; la production attend l'accord
 > du porteur du projet.
+
+## [2026-09-19] exploitation | Migration de la session artisan appliquée, PR #63 fusionnée
+
+**Dans cet ordre, et pas l'inverse** : la migration d'abord, la fusion ensuite.
+Fusionner avant aurait déployé un écran qui appelle `ouvrir_session_artisan`
+avant que la fonction existe — le bouton aurait échoué le temps du déploiement.
+
+**Migration `20260919170000_session_supervision_artisan`** appliquée sur
+`rddlxunppddzpsaatdaz`. Neuf contrôles passés en production :
+
+| Contrôle | Attendu | Obtenu |
+|---|---|---|
+| Table `supervision_sessions_artisan` | 1 | 1 |
+| RLS activée | oui | oui |
+| Index « une seule session ouverte » | 1 | 1 |
+| Politique de lecture | 1 | 1 |
+| Écriture ouverte à `authenticated` | 0 | 0 |
+| Les quatre fonctions posées | 4 | 4 |
+| `mon_artisan_id()` connaît la supervision | oui | oui |
+| Fonctions exécutables par `anon` | 0 | 0 |
+| Traversées ouvertes à l'instant T | 0 | 0 |
+
+Conseillers Supabase : deux familles, toutes deux **préexistantes et
+inchangées** — `rls_enabled_no_policy` (7 tables sans politique, déjà là) et
+`authenticated_security_definer_function_executable` (210 fonctions : c'est le
+motif de tout le produit, chaque RPC se garde elle-même ; `artisan_supervise`
+en est la 210ᵉ et se garde par `is_super_admin()`).
+
+**PR #63 fusionnée** — `f81f306`, quatre chantiers : les modales portées dans
+`body`, « Sécurité du compte », la console « Clients », la traversée artisan.
+Surveillance de la PR et contrôle horaire arrêtés.
+
+> [!warning] Ce qui reste à décider — usage, pas technique
+> La traversée permet d'**engager un artisan** (accepter une mission, déposer
+> un devis) depuis son espace. C'est tracé, borné à trente minutes et affiché
+> en rouge à l'écran, mais la règle d'usage — dans quels cas la supervision
+> s'autorise à écrire chez un tiers plutôt qu'à seulement regarder — reste à
+> écrire par le porteur du projet.

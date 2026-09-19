@@ -4558,3 +4558,20 @@ pour les particuliers, les professionnels, le contenu et les données, santé,
 rythme), ce qui existe et ce qui manque, l'ordre de construction. Première
 brique engagée : le tableau de bord par département dans la console de
 supervision, sans migration — les codes postaux sont déjà là.
+
+## [2026-09-19] implementation | Territoire — l'empreinte par département dans la console
+
+Première brique de [[Expansion territoriale autonome]], sans migration : la
+page `/admin/territoire` compte, département par département, les
+organisations (agences et propriétaires directs, hors archivées, avec leur
+statut et les inscriptions du mois) là où elles sont domiciliées, et les
+biens, lots et baux en cours là où ils sont — une agence d'Évry qui gère un
+immeuble à Antony est présente dans les deux départements. Remontée par
+région, du plus actif au moins actif. Ce qui n'a pas pu être placé (sans code
+postal, hors des 101 départements) est dit, jamais tu. Le calcul vit dans
+`src/lib/territoire.ts`, pur et sans base — 27 tests, dont la Corse (2A/2B)
+et l'outre-mer (trois chiffres) — réutilisable tel quel par la routine
+mensuelle. Le référentiel des 101 départements et de leurs régions est
+recopié du code officiel géographique ; la contiguïté n'y est pas, à sourcer
+pour le score. Suite à 623 tests, lint, types et build verts. Sur la branche,
+non publié.

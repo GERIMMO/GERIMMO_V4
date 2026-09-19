@@ -9,6 +9,7 @@ import { usePathname } from "next/navigation";
 // et locataire — on ne réinvente pas un motif par espace.
 const ENTREES: [string, string][] = [
   ["/admin", "Supervision"],
+  ["/admin/territoire", "Territoire"],
   ["/admin/publications", "Journal"],
   ["/admin/retours", "Retours et idées"],
   ["/admin/artisans", "Inscriptions artisan"],

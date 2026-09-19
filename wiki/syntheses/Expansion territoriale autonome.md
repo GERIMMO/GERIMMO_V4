@@ -93,7 +93,7 @@ visibilité (pages locales, publicité) et le [[Parrainage|parrainage]].
 | Codes postaux des organisations et des biens | **existe** |
 | Inscription en ligne, essai, paiement | **existe** |
 | Vitrine et journal | **existent** — sans déclinaison locale |
-| Tableau de bord par département (empreinte + santé) | à construire — première brique, sans migration |
+| Tableau de bord par département (empreinte + santé) | **empreinte construite le 19/09** (`/admin/territoire`, console de supervision, sans migration) : organisations là où elles sont domiciliées, biens/lots/baux là où ils sont, inscriptions du mois, remontée par région, non-placés dits. La **santé** (signalements, résiliations, délais) reste à brancher — elle dépend des capteurs de [[Gerimmo en autonomie]]. |
 | Sources publiques et score | à construire — table des territoires, alimentée par INSEE, SIRENE, zones tendues |
 | Pages locales sur gabarit | à construire |
 | Parrainage | **n'existe pas** — à construire |

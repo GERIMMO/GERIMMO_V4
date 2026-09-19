@@ -237,9 +237,12 @@ export async function FilActivite({
               )}
               {/* Horodatage sous le titre en étroit (le .rang wrappe ≤ 640 px) ;
                   46 px = avatar 34 px + écart 12 px, pour l'aligner sur le texte */}
-              <span className="mono-discret shrink-0 whitespace-nowrap max-sm:order-last max-sm:basis-full max-sm:pl-[46px]">
+              <time
+                dateTime={e.ts}
+                className="mono-discret shrink-0 whitespace-nowrap max-sm:order-last max-sm:basis-full max-sm:pl-[46px]"
+              >
                 {tempsRelatif(e.ts).toUpperCase()}
-              </span>
+              </time>
               <IndicateurLien />
             </Link>
           ))}

@@ -5166,3 +5166,30 @@ moment où la session du banc a expiré en plein crawl — d'où un premier
 **Correction** : `--accent` retrouve sa valeur ; les styles v4 (37 occurrences)
 écrivent `--marque`, `--marque-clair`, `--marque-sombre` directement. Rendu
 identique aux références visuelles, sonde a11y au vert.
+
+## [2026-09-19] exploitation | Migration de l'avantage du parrainage appliquée, PR #64 fusionnée
+
+Sur « Applique et fusionne » du porteur du projet.
+
+- **Migration `avantage_parrainage`** appliquée au projet de production
+  (`rddlxunppddzpsaatdaz`) après la CI verte de la tête (5aad7a5). Vérifié
+  dans la foulée : registre `avantages_parrainage` en place, RLS activée avec
+  sa politique de lecture, déclencheur de conversion posé, `anon` sans droit
+  d'exécution sur la tâche, `authenticated` sans droit sur la récompense,
+  `service_role` seul à solder ; 30 jours de chaque côté ; zéro parrainage
+  enregistré à ce jour, donc zéro avantage — le dispositif démarre à vide.
+  Conseils de sécurité Supabase : rien de nouveau sur ces objets.
+- **PR #64 fusionnée** dans `main` (commit de fusion 3cafec2) : l'avantage du
+  parrainage, et la refonte d'interface v4 — prototype (coquille, barre,
+  en-tête, tableau de bord), relief (v4.1), couleur (v4.2), turquoise et
+  photos (v4.3), correctif du tiroir téléphone, correctif du jeton
+  `--accent`. Le déploiement de production suit la fusion.
+- Ordre tenu : la migration d'abord, la fusion ensuite — le code fusionné lit
+  le registre, il ne pouvait pas arriver avant lui.
+
+**Reste ouvert** : la validation formelle de l'étape 4 de la refonte (le
+porteur du projet a orienté pièce par pièce — décoration, couleur, images —
+sans trancher le point « À faire » replié ou ouvert) ; les dix photos
+restantes, « à voir plus tard » ; les phases suivantes (« Loyers & charges »
+en écran propre, Agenda + Alertes, Paramètres, Personnes, Parc, Incidents,
+Comptabilité).

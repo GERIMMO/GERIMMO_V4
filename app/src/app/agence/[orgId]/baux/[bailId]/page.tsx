@@ -233,7 +233,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .order("date_effet", { ascending: false }),
         supabase
           .from("relances")
-          .select("id, niveau, date_envoi, date_premiere_presentation, numero_recommande")
+          .select("id, niveau, date_envoi, date_premiere_presentation, numero_recommande, origine")
           .eq("bail_id", bailId)
           .order("date_envoi", { ascending: false }),
         supabase

@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [audit, personas, parcours, automatisation, clics, bugs]
-status: in-progress
+status: stable
 created: 2026-09-20
 updated: 2026-09-20
 sources: ["[[Fonctionnalités par persona]]", "[[État des lieux du design et des parcours]]", "[[Agenda et échéances]]", "[[Quittancement des loyers]]", "[[Relances et mise en demeure]]", "[[Cycle de vie d'un incident]]"]
@@ -265,5 +265,34 @@ n'est appliqué en production ni fusionné.
    téléphone : icône seule (44 px, `aria-label`), libellé à partir de 640 px.
 5. **« Bonjour, »** sans prénom ne laisse plus sa virgule.
 
-*(Suite : relances d'impayé automatiques, proposition d'automatisation sur
-le tableau de bord — en cours.)*
+6. **Les relances d'impayé partent seules — pour qui l'a demandé.**
+   Migration `20260920030000_relances_loyer_automatiques` (**écrite et testée
+   sur le banc, non appliquée**) : trois réglages d'organisation
+   (`relances_envoi_auto` faux par défaut, `relance_1_jours` 5,
+   `relance_2_jours` 15, le second après le premier), une colonne `origine`
+   sur les relances, la fonction `relances_loyer_dues()` (le terme impayé le
+   plus ancien de chaque bail actif, passé le délai, sans relance de ce niveau
+   depuis ce terme, jamais deux courriers le même jour, une relance saisie
+   par le gérant compte, rien après une mise en demeure, rien sans adresse,
+   rien pour une organisation suspendue) et `relance_loyer_consigner()`, toutes
+   deux réservées à `service_role`. La tâche `/api/cron/relances` (7 h 45 UTC,
+   après les quittances et les avis) envoie l'e-mail puis consigne la relance
+   sur le bail — même chronologie, même preuve, étiquetée « automatique ».
+   Deux courriers qui ne s'accusent pas (`lib/relance-loyer-email.ts`). Le
+   réglage vit dans « Profil » sous « Relances d'impayé ». **La mise en
+   demeure reste un geste du gérant.** 12 tests SQL, 3 tests de route, 5
+   tests d'e-mail.
+7. **L'assistant propose l'automatisation** : dès qu'un lot est loué et qu'un
+   des trois envois automatiques (quittances, avis d'échéance, relances) est
+   éteint, le bloc « Gerimmo a repéré… » le dit en une ligne turquoise, avec
+   « Activer » vers les réglages. Il propose ; le responsable décide.
+
+> [!warning] À trancher au réveil
+> - **Appliquer la migration des relances** (« applique et fusionne ») : elle
+>   n'ajoute que des réglages à faux et deux fonctions réservées à la tâche —
+>   rien ne part tant qu'une agence ne coche pas la case.
+> - Les délais par défaut (5 et 15 jours) sont un choix de départ, pas une
+>   règle du référentiel : à confirmer.
+> - Faut-il proposer ces trois automatisations **dès le parcours de
+>   démarrage** (une étape « Laisser Gerimmo envoyer ») plutôt que dans
+>   l'assistant seulement ?

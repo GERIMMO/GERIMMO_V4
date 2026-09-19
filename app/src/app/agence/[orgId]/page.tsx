@@ -188,6 +188,25 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     );
   }
   const estResponsable = ROLES_RESPONSABLES.includes(role);
+  // L'assistant propose l'automatisation au bon moment (audit du 20/09) : dès
+  // qu'un lot est loué et qu'un des trois envois automatiques est éteint, il
+  // le dit — une fois par écran, un lien, jamais un geste à la place du
+  // responsable. Les réglages se lisent ici parce que `verifierAccesEspace`
+  // ne les porte pas.
+  const { data: reglagesEnvoi } = estResponsable
+    ? await supabase
+        .from("organizations")
+        .select("quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto")
+        .eq("id", orgId)
+        .maybeSingle()
+    : { data: null };
+  const envoisEteints = reglagesEnvoi
+    ? [
+        !reglagesEnvoi.quittances_envoi_auto && "les quittances",
+        !reglagesEnvoi.appels_envoi_auto && "les avis d'échéance",
+        !reglagesEnvoi.relances_envoi_auto && "les relances d'impayé",
+      ].filter((x): x is string => Boolean(x))
+    : [];
   // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent ne lit que les
   // lots des mandats qui lui sont confiés — null : il voit tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
@@ -721,6 +740,22 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             Tout voir&nbsp;→
           </Link>
         </div>
+
+        {estResponsable && nbLoues > 0 && envoisEteints.length > 0 && (
+          <div className="assistant-suggestion">
+            <p>
+              <b>Gerimmo peut faire seul</b> : envoyer {envoisEteints.join(", ")}. Rien ne
+              part sans votre accord — il se donne une fois, dans les réglages.
+            </p>
+            <Link
+              href={`/agence/${orgId}/profil#relances`}
+              className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
+            >
+              Activer
+              <IndicateurLien />
+            </Link>
+          </div>
+        )}
 
         {planIllisible ? (
           <div className="p-4">

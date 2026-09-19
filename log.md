@@ -5193,3 +5193,30 @@ sans trancher le point « À faire » replié ou ouvert) ; les dix photos
 restantes, « à voir plus tard » ; les phases suivantes (« Loyers & charges »
 en écran propre, Agenda + Alertes, Paramètres, Personnes, Parc, Incidents,
 Comptabilité).
+
+## [2026-09-20] audit | Nuit du 19 au 20 : fonctionnalités, personas, automatisation
+
+Commande du porteur du projet au soir du 19/09 : audit complet des
+fonctionnalités et des personas « à leur place », carte blanche sur les bugs et
+les manques, objectif « un maximum automatique, un minimum de clics ». Règle
+tenue : rien d'appliqué en production, rien de fusionné — tout est sur la
+branche, testé, avec une PR pour le matin.
+
+- **Six parcours sur le banc** (admin, agent, propriétaire, locataire, artisan,
+  super-admin ; 90 écrans capturés) → page
+  [[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]].
+- **Corrigé** : 404 du menu v4 (« Comptabilité & fiscalité » pour l'agence),
+  erreur d'hydratation des alertes (date de référence donnée par le serveur),
+  widget « Aide et retours » qui recouvrait les gestes sur téléphone, « Bonjour, »
+  sans prénom.
+- **Construit** : l'écran « Loyers & charges » (phase D validée le 19/09), les
+  relances d'impayé automatiques (migration écrite et testée, non appliquée ;
+  tâche du matin ; deux courriers ; réglage dans le profil), la suggestion
+  d'automatisation dans l'assistant du tableau de bord.
+- **À trancher** : appliquer la migration des relances, confirmer les délais
+  5 / 15 jours, proposer l'automatisation dès le parcours de démarrage.
+
+Le banc a montré deux limites qui ne sont pas des bugs produit : le serveur
+de dev redémarre sous la charge d'un crawl (mémoire), et le stockage n'est
+pas émulé (justificatifs « indisponibles » sur la fiche artisan de la
+console).

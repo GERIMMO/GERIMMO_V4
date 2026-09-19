@@ -4707,3 +4707,28 @@ Décisions qui restent au porteur du projet : l'avantage du parrainage, le
 budget par département, les seuils de santé, le compte annonceur Meta, les
 mentions de l'éditeur, et l'ouverture réseau des sources publiques pour que le
 marché se remplisse.
+
+## [2026-09-19] exploitation | Un seul super admin, et son mot de passe renouvelé
+
+Demande du porteur du projet. Constat qui la motive : `superadmin@gerimmo-demo.fr`
+était **super admin actif en production avec le mot de passe écrit dans le
+dépôt** (`app/supabase/seed.sql`, `Gerimmo-Demo-2026`) — un accès total à
+toutes les organisations, ouvert à quiconque lit le code.
+
+Deux gestes en base, sur accord explicite :
+1. Mot de passe de `tahir.brahim.pro@gmail.com` renouvelé (bcrypt via pgcrypto,
+   comme GoTrue l'attend) — à changer à la première connexion.
+2. Adhésion `super_admin` de `superadmin@gerimmo-demo.fr` passée à `inactive` —
+   désactivée, pas supprimée : réversible, et l'historique reste lisible.
+   `is_super_admin()` lit `memberships`, le droit tombe donc immédiatement.
+
+Vérifié en base : un seul super admin actif, le nouveau mot de passe répond.
+Aucun code de production ne référence le compte de démonstration (il ne vit que
+dans `seed.sql`, `tests/api-isolation`, `e2e/auth.setup` et `seed-parcours`,
+tous sur le banc local — les tests ne sont pas touchés).
+
+Reste ouvert, moins grave mais réel : les sept autres comptes
+`@gerimmo-demo.fr` gardent le même mot de passe public et un accès **aux seules
+organisations de démonstration** (Agence Alpha, Agence Beta, Parc de Claire
+Moreau — 18 lots, 5 baux fictifs). À arbitrer le jour où une vraie agence
+entrera : soit renouveler leurs mots de passe, soit archiver ces organisations.

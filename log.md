@@ -4640,3 +4640,19 @@ serveur (règle de pureté — déplacé dans `depuisHeures`), et des seuils fig
 en littéraux par `as const` (type `SeuilsSante` explicite). 69 tests sur les
 six modules du territoire et des capteurs ; lint, types et build verts.
 Seuils par défaut à confirmer par le porteur du projet.
+
+## [2026-09-19] implementation | PR #61 fusionnée — le territoire, les capteurs et la ronde mensuelle en ligne
+
+« Go » du porteur du projet à 11:3x UTC ; CI verte sur `949ee0e`, mergeable,
+aucune migration. Fusion dans `main` (`78cff95`) ; Vercel déploie. Sont en
+ligne : la page « Territoire » de la console (empreinte, score, décision,
+porte de santé), les trois capteurs (frontières d'erreur, bilans des tâches,
+`/api/sante`) et la ronde mensuelle `/api/cron/territoire` (1er du mois, 5 h,
+qui calcule et consigne sans agir). Premier effet attendu : dès demain matin,
+les quatre tâches laissent chacune un bilan dans `tech_log` — et la porte de
+santé, fermée aujourd'hui faute de passes consignées, s'ouvrira d'elle-même
+quand elles seront toutes passées.
+
+Suite annoncée et engagée : la ronde quotidienne (session planifiée, lit les
+capteurs, ne prépare une correction que s'il y a quelque chose) puis le
+parrainage.

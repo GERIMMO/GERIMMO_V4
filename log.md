@@ -4513,3 +4513,21 @@ Ce qui se déclenche désormais tout seul en production : le cron des avis
 (7 h 30) ne part que pour les agences qui l'activeront dans leur profil ; celui
 des rappels (6 h) écrit aux deux parties la veille et à J-7 de chaque
 intervention planifiée.
+
+## [2026-09-19] query  | Comment Gerimmo peut se gérer seul — exploitation, débogage, évolution
+
+Question du porteur du projet. Réponse filée dans
+[[Gerimmo en autonomie]]. Le constat, sur le code et la base du jour : quatre
+crons et douze alertes à fermeture automatique font tourner la journée métier ;
+CI et chantier de migrations tiennent la qualité ; mais **l'application est
+aveugle à ses pannes** (aucune frontière d'erreur, `tech_log` écrit à un seul
+endroit, aucun point de santé), **il n'y a pas de préproduction** (une seule
+branche Supabase ; les prévisualisations Vercel lisent vraisemblablement la
+production), et le pont entre les signalements et le développement est, selon
+le wiki lui-même, « non livré ». Rapports de conseils Supabase lus en
+totalité : 205 fonctions `security definer` ouvertes à `authenticated` (le
+patron du projet — à vérifier mécaniquement), 7 tables RLS sans politique,
+2 tables à politiques doublées. Proposition : cinq boucles (voir, veiller,
+corriger, évoluer, rester en France), chacune avec sa ligne d'arrêt — celle
+que les règles du projet fixent déjà : jamais de fusion, de migration, de
+permission ni de restauration sans validation humaine (RM-20.3, PRA).

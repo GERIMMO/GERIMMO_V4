@@ -260,7 +260,7 @@ export function FormulaireProfilOrganisation({
         <div className="grid gap-3 sm:grid-cols-2">
           <label htmlFor="pr-relance-1" className="text-sm">
             <span className="block text-xs text-muted-foreground">Première relance, jours après l&apos;échéance</span>
-            <input
+            <Input
               id="pr-relance-1"
               type="number"
               name="relance_1_jours"
@@ -268,12 +268,12 @@ export function FormulaireProfilOrganisation({
               max={60}
               disabled={lectureSeule}
               defaultValue={organisation.relance_1_jours}
-              className="champ mt-1 w-full"
+              className="mt-1"
             />
           </label>
           <label htmlFor="pr-relance-2" className="text-sm">
             <span className="block text-xs text-muted-foreground">Seconde relance, jours après l&apos;échéance</span>
-            <input
+            <Input
               id="pr-relance-2"
               type="number"
               name="relance_2_jours"
@@ -281,7 +281,7 @@ export function FormulaireProfilOrganisation({
               max={90}
               disabled={lectureSeule}
               defaultValue={organisation.relance_2_jours}
-              className="champ mt-1 w-full"
+              className="mt-1"
             />
           </label>
         </div>

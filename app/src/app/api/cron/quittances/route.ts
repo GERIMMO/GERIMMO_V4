@@ -23,6 +23,7 @@
 import { envoyerEmail } from "@/lib/email";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
 import { clientDeService } from "@/lib/supabase/service";
+import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
 import { timingSafeEqual } from "node:crypto";
 
@@ -86,10 +87,16 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.rpc("quittances_a_envoyer", { p_limite: 200 });
   if (error) {
     console.error("[cron quittances] lecture impossible:", error.message);
+    await consignerTache(supabase, "quittances", { erreur: "lecture impossible" });
     return Response.json({ erreur: "Lecture impossible." }, { status: 500 });
   }
   const lignes = (data ?? []) as Ligne[];
-  if (lignes.length === 0) return Response.json({ envoyees: 0, echecs: 0 });
+  if (lignes.length === 0) {
+    // Une passe sans rien à faire se consigne aussi : c'est le battement de
+    // cœur que la ronde du matin attend à cette heure-là.
+    await consignerTache(supabase, "quittances", { envoyees: 0, echecs: 0 });
+    return Response.json({ envoyees: 0, echecs: 0 });
+  }
 
   let envoyees = 0;
   const echecs: string[] = [];
@@ -126,5 +133,6 @@ export async function GET(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron quittances] échecs:", [...new Set(echecs)].join(" · "));
   }
+  await consignerTache(supabase, "quittances", { envoyees, echecs: echecs.length });
   return Response.json({ envoyees, echecs: echecs.length });
 }

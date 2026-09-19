@@ -77,7 +77,7 @@ mais à trancher un jour : si Vercel change, les crons partent avec lui.
 
 ## Ce qui manque — et qui rend l'autonomie impossible aujourd'hui
 
-**L'application est aveugle à ses propres pannes.** Relevé du 19/09 :
+**L'application était aveugle à ses propres pannes** — relevé du 19/09 au matin, corrigé le même jour (voir la boucle 1 ci-dessous) :
 
 - **aucune frontière d'erreur** — pas un `error.tsx`, pas un
   `global-error.tsx`, aucune capture côté navigateur ;
@@ -120,6 +120,20 @@ de conseils, lus et analysés en totalité le 19/09 :
 ## Cinq boucles, chacune avec sa ligne d'arrêt
 
 ### 1. Voir — les capteurs (préalable à tout le reste)
+
+> [!info] Construit le 19/09 (PR #61)
+> Trois capteurs, sans migration — `tech_log` et `log_tech` existaient :
+> **frontières d'erreur** (`src/app/error.tsx`, `global-error.tsx`) qui
+> rendent un geste à la personne et notent l'incident par une action serveur
+> (`erreur_ecran` : condensé, route avec ses identifiants remplacés par
+> `ecranSansDonnees`, espace — jamais un champ) ; **bilan de chaque passe**
+> des quatre tâches (`tache_<nom>` : envoyés, échecs, ou « lecture
+> impossible » — une passe sans rien à faire se consigne aussi, c'est le
+> battement de cœur attendu) ; **point de santé** `/api/sante` (base
+> joignable, commit déployé ; avec le secret des tâches : dernière passe de
+> chaque tâche et erreurs d'écran sur 24 h), exempté de session dans
+> `proxy.ts`. Un capteur ne lève jamais : il ne doit pas ajouter une panne à
+> la panne. Ce qui reste : les seuils qui font d'un signal une porte fermée.
 
 - `error.tsx` et `global-error.tsx` sur les espaces ; toute erreur serveur non
   rattrapée écrit dans `tech_log` **avec la même règle d'anonymisation que les

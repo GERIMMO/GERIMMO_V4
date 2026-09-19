@@ -4597,3 +4597,24 @@ coupés par la politique réseau. Le fichier de marché est donc livré vide, av
 ses trois sources nommées et le script qui le remplira ; les domaines à
 autoriser sont consignés dans la page. 42 tests sur les deux modules ; lint,
 types et build verts. PR #61 mise à jour.
+
+## [2026-09-19] implementation | Les capteurs — l'application cesse d'être aveugle à ses pannes
+
+Boucle « Voir » de [[Gerimmo en autonomie]], sans migration. Trois capteurs :
+**frontières d'erreur** (`error.tsx`, `global-error.tsx`) — un écran qui
+plante rend un geste (réessayer) et note l'incident par une action serveur,
+avec le condensé, la route anonymisée (`ecranSansDonnees`, la règle des
+signalements) et l'espace, jamais un champ ; **bilan de chaque passe** des
+quatre tâches quotidiennes dans `tech_log` (`tache_appels`, `tache_quittances`,
+`tache_rappels`, `tache_abonnements` — y compris la passe qui n'avait rien à
+faire, battement de cœur de la ronde du matin) ; **point de santé**
+`/api/sante` — base joignable et commit pour tout le monde, dernière passe de
+chaque tâche et erreurs d'écran sur 24 h pour qui porte le secret des tâches.
+Route ajoutée à la liste exemptée de session (la leçon du 18/09), avec son
+test. Un capteur ne lève jamais.
+
+Un défaut trouvé par les tests avant toute mise en ligne : une variable de
+commit présente mais vide donnait `""` au lieu de `null`. 16 tests sur les
+trois modules, les huit tests de routes et de proxy toujours verts ; lint,
+types et build verts. PR #61 mise à jour. Reste : les seuils qui font d'un
+signal une porte fermée pour l'expansion.

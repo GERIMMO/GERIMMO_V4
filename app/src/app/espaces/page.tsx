@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { normaliserCode } from "@/lib/parrainage";
 import { seDeconnecter } from "@/app/actions/auth";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
@@ -131,7 +132,15 @@ export default async function PageEspaces() {
     user.user_metadata?.espace === "proprietaire_direct"
   ) {
     const { data: orgId, error } = await supabase.rpc("initialiser_espace_proprietaire");
-    if (orgId) redirect(`/agence/${orgId}`);
+    if (orgId) {
+      // Le code de parrainage a voyagé dans les métadonnées du compte depuis
+      // l'inscription ; il se consomme ici, à la naissance de l'organisation.
+      // Un code refusé (inconnu, organisation archivée) n'empêche pas
+      // l'ouverture : le profil dira « aucun parrain ».
+      const code = normaliserCode(user.user_metadata?.code_parrainage);
+      if (code) await supabase.rpc("enregistrer_parrainage", { p_filleul: orgId, p_code: code });
+      redirect(`/agence/${orgId}`);
+    }
     // Refus métier (ex. : adresse d'un mandant — exclusivité PD/PM) : dit tel quel
     erreurOuverture = error ? sansJargon(error.message) : null;
   }

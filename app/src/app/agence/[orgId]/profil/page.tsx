@@ -4,6 +4,8 @@ import { FormulaireProfilOrganisation } from "./formulaire-profil";
 import { FormulaireSignature } from "./formulaire-signature";
 import { EncadreLectureImpossible, EnteteReglages } from "./famille-reglages";
 import { signatureOrganisation } from "@/lib/documents/modeles/communs";
+import { lienDeParrainage } from "@/lib/parrainage";
+import { adresseDuSite } from "@/lib/site";
 
 export const metadata = { title: "Profil — Gerimmo" };
 
@@ -23,7 +25,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   const { data: profil, error: erreurProfil } = await supabase
     .from("organizations")
     .select(
-      "name, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, iban, tva_intracom, tva_franchise, quittances_envoi_auto, appels_envoi_auto"
+      "name, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, iban, tva_intracom, tva_franchise, quittances_envoi_auto, appels_envoi_auto, code_parrainage"
     )
     .eq("id", orgId)
     .maybeSingle();
@@ -46,6 +48,25 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   // La signature préenregistrée, prête à prévisualiser (chantier documentaire)
   const { data: roleMetier } = await supabase.rpc("has_org_role", { org: orgId, roles: ROLES_GERANTS });
   const apercuSignature = roleMetier ? await signatureOrganisation(supabase, orgId) : null;
+
+  // Parrainage (19/09) : le code, le lien à partager, qui a été amené — et par
+  // qui. La RLS ne rend que les rattachements où cette organisation est
+  // parrain ou filleule ; on trie ici de quel côté elle est.
+  const { data: parrainages } = await supabase
+    .from("parrainages")
+    .select(
+      "parrain_organization_id, filleul_organization_id, parrain:organizations!parrainages_parrain_organization_id_fkey(name)"
+    );
+  const lignesParrainage = (parrainages ?? []) as unknown as {
+    parrain_organization_id: string;
+    filleul_organization_id: string;
+    parrain: { name: string } | null;
+  }[];
+  const filleuls = lignesParrainage.filter((p) => p.parrain_organization_id === orgId).length;
+  const monParrain =
+    lignesParrainage.find((p) => p.filleul_organization_id === orgId)?.parrain?.name ?? null;
+  const codeParrainage = (profil as { code_parrainage?: string | null }).code_parrainage ?? null;
+  const site = adresseDuSite();
 
   const manquants = [
     !profil.address_line1 && "adresse",
@@ -87,6 +108,38 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           lectureSeule={!responsable}
           estProprietaire={estProprietaire}
         />
+      </div>
+
+      <div className="loc-carte">
+        <div className="entete-carte">
+          <h3>Parrainage</h3>
+          <span className="mono-discret">
+            {filleuls} filleul{filleuls > 1 ? "s" : ""}
+          </span>
+        </div>
+        <p className="mesure-lecture mb-3 text-sm text-muted-foreground">
+          Une agence ou un propriétaire que vous amenez s&apos;inscrit avec votre
+          code : Gerimmo sait alors qui a amené qui. L&apos;avantage attaché au
+          parrainage sera annoncé ici quand il sera fixé.
+        </p>
+        <dl className="grid gap-x-8 sm:grid-cols-2">
+          <div className="ligne-info">
+            <dt className="text-muted-foreground">Votre code</dt>
+            <dd className="montant font-semibold tracking-wider">{codeParrainage ?? "—"}</dd>
+          </div>
+          {monParrain && (
+            <div className="ligne-info">
+              <dt className="text-muted-foreground">Votre parrain</dt>
+              <dd className="font-medium">{monParrain}</dd>
+            </div>
+          )}
+        </dl>
+        {site && codeParrainage && (
+          <p className="mt-3 text-[13px] text-muted-foreground">
+            Lien à partager :{" "}
+            <code className="break-all text-[var(--corps)]">{lienDeParrainage(site, codeParrainage)}</code>
+          </p>
+        )}
       </div>
 
       <div className="loc-carte">

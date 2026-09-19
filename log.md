@@ -4640,3 +4640,45 @@ serveur (règle de pureté — déplacé dans `depuisHeures`), et des seuils fig
 en littéraux par `as const` (type `SeuilsSante` explicite). 69 tests sur les
 six modules du territoire et des capteurs ; lint, types et build verts.
 Seuils par défaut à confirmer par le porteur du projet.
+
+## [2026-09-19] implementation | PR #61 fusionnée — le territoire, les capteurs et la ronde mensuelle en ligne
+
+« Go » du porteur du projet à 11:3x UTC ; CI verte sur `949ee0e`, mergeable,
+aucune migration. Fusion dans `main` (`78cff95`) ; Vercel déploie. Sont en
+ligne : la page « Territoire » de la console (empreinte, score, décision,
+porte de santé), les trois capteurs (frontières d'erreur, bilans des tâches,
+`/api/sante`) et la ronde mensuelle `/api/cron/territoire` (1er du mois, 5 h,
+qui calcule et consigne sans agir). Premier effet attendu : dès demain matin,
+les quatre tâches laissent chacune un bilan dans `tech_log` — et la porte de
+santé, fermée aujourd'hui faute de passes consignées, s'ouvrira d'elle-même
+quand elles seront toutes passées.
+
+Suite annoncée et engagée : la ronde quotidienne (session planifiée, lit les
+capteurs, ne prépare une correction que s'il y a quelque chose) puis le
+parrainage.
+
+## [2026-09-19] implementation | Parrainage — la mécanique, sans l'avantage
+
+Brique 4 de [[Expansion territoriale autonome]] ; page de concept
+[[Parrainage]] créée. Migration `20260919120000_parrainage.sql` : un code
+par organisation (huit caractères hexadécimaux, engendré à la création par un
+déclencheur qui boucle jusqu'à l'unicité, reprise des organisations
+existantes), table `parrainages` (un parrain au plus par filleul, jamais
+soi-même, lecture par les membres des deux organisations et la supervision,
+écriture par la seule fonction `enregistrer_parrainage`, qui refuse un code mal
+formé, inconnu ou d'une organisation archivée, l'auto-parrainage et un second
+parrain, et redonne le même rattachement si on la rappelle). Écrans : champ
+facultatif à l'auto-inscription (prérempli par `/inscription?parrain=…`),
+consommé à la naissance de l'organisation sur `/espaces` ; champ à l'ouverture
+d'une agence par la supervision, vérifié **avant** d'ouvrir ; carte
+« Parrainage » sur le profil (code, lien, filleuls, parrain).
+
+Deux défauts pris par la suite complète contre le banc, avant toute PR : la
+fonction du déclencheur restait exécutable par `anon` et `authenticated` —
+donc accrochable à une table forgée (audit du 10/09) — et la migration ne se
+terminait pas par `fermer_fonctions_a_anon()`, que le test de surface publique
+exige. Corrigés. Banc reconstruit avec les 190 migrations : suite complète
+**1 316 tests verts, zéro échec** (SQL, émulateur d'API compris) ; lint, types,
+build verts. **Migration à appliquer en production avant la mise en ligne du
+code** — sur le mot du porteur du projet, comme ce matin. L'avantage du
+parrainage reste sa décision.

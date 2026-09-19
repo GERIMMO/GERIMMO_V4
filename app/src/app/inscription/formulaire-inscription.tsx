@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 
-export function FormulaireInscription() {
+export function FormulaireInscription({ codeParrain }: { codeParrain?: string | null }) {
   const [etat, action] = useActionState<EtatInscription, FormData>(
     inscrireProprietaire,
     {}
@@ -105,6 +105,22 @@ export function FormulaireInscription() {
               required
               defaultValue={etat.valeurs?.email}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="code-parrainage">Code de parrainage (facultatif)</Label>
+            <Input
+              id="code-parrainage"
+              name="code_parrainage"
+              autoComplete="off"
+              autoCapitalize="characters"
+              placeholder="3FA2B9C0"
+              maxLength={12}
+              defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""}
+            />
+            <p className="text-xs text-muted-foreground">
+              Si quelqu&apos;un vous a recommandé Gerimmo, son code est ici. Sinon,
+              laissez vide.
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="mot-de-passe">Mot de passe</Label>

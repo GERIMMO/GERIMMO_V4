@@ -5220,3 +5220,30 @@ Le banc a montré deux limites qui ne sont pas des bugs produit : le serveur
 de dev redémarre sous la charge d'un crawl (mémoire), et le stockage n'est
 pas émulé (justificatifs « indisponibles » sur la fiche artisan de la
 console).
+
+## [2026-09-20] exploitation | Migration des relances automatiques appliquée, PR #65 fusionnée
+
+Sur « Applique et fusionne » du porteur du projet, au matin.
+
+- **Migration `relances_loyer_automatiques`** appliquée au projet de production
+  (`rddlxunppddzpsaatdaz`), CI verte sur la tête (9952036). Vérifié dans la
+  foulée : les trois réglages sur `organizations` et la contrainte des délais,
+  la colonne `origine` sur `relances` et sa contrainte, `anon` sans lecture,
+  `authenticated` sans consignation, `service_role` seul à lire et consigner ;
+  **zéro organisation activée**, zéro relance due aujourd'hui — le dispositif
+  démarre éteint, comme voulu. La tâche `/api/cron/relances` tourne chaque
+  matin à 7 h 45 UTC dès le déploiement ; elle ne fera rien tant qu'une agence
+  n'a pas coché « Relancer automatiquement » dans son profil.
+- **PR #65 fusionnée** dans `main` (commit de fusion df340ce) : l'audit de
+  nuit, l'écran « Loyers & charges », les relances automatiques, la suggestion
+  d'automatisation de l'assistant, les corrections (menu v4, hydratation des
+  alertes, widget d'aide, salutation, proxy de la tâche). Le déploiement de
+  production suit.
+- Ordre tenu : la migration d'abord, la fusion ensuite — le profil fusionné
+  lit trois colonnes que la migration crée.
+
+**Reste ouvert** (audit du 20/09, §7) : rattacher un doublon d'incident en un
+clic, rapport de gestion généré à la clôture, dépenses récurrentes du
+propriétaire, « J'ai réglé » côté locataire, alertes ↔ incidents en double ;
+les délais 5 / 15 jours restent un choix de départ à confirmer ; proposer
+l'automatisation dès le parcours de démarrage.

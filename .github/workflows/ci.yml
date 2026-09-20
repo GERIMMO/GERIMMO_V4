@@ -76,4 +76,5 @@ jobs:
           path: |
             app/e2e/.results
             app/e2e/.audit
+          include-hidden-files: true
           if-no-files-found: ignore

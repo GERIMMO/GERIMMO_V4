@@ -29,7 +29,7 @@ export default async function PageFacturation() {
 
   const terminees = agenda.lignes.filter((l) => l.statut === "terminee");
   const aCompleter = agenda.lignes.filter(
-    (l) => l.statut === "en_cours" && !l.compte_rendu_depose
+    (l) => l.statut === "en_cours" && (!l.compte_rendu_depose || !l.photo_apres_deposee)
   );
   const total = terminees.reduce((somme, l) => somme + (l.montant_ttc_cents ?? 0), 0);
 
@@ -56,9 +56,9 @@ export default async function PageFacturation() {
               : `${aCompleter.length} interventions ne sont pas facturables`}
           </TitreSection>
           <p className="text-[0.9375rem] text-[var(--corps)]">
-            Il y manque le compte rendu et la photo du travail réalisé. Tant
-            qu&apos;ils manquent, l&apos;intervention n&apos;est pas terminée — et une
-            intervention non terminée ne se facture pas.
+            La photo du travail réalisé et le compte rendu sont tous deux
+            nécessaires. Chaque mission ci-dessous indique ce qu&apos;il reste à
+            faire avant de pouvoir la facturer.
           </p>
           <ul className="mt-3 space-y-2">
             {aCompleter.map((l) => (
@@ -67,7 +67,7 @@ export default async function PageFacturation() {
                   href={`/artisan/missions/${l.intervention_id}/compte-rendu`}
                   className="inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
                 >
-                  {titreIncident(l.categorie)} — {l.agence_nom} : rendre compte
+                  {titreIncident(l.categorie)} — {l.agence_nom} : {l.photo_apres_deposee ? "terminer le compte rendu" : "ajouter la photo du travail réalisé"}
                 </Link>
               </li>
             ))}

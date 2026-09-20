@@ -1304,7 +1304,7 @@ p a {
   gap: 14px;
   align-items: start;
 }
-@media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .split { grid-template-columns: minmax(0, 1fr); } }
 .colonne-liste-split {
   border: 1px solid var(--filet);
   background: var(--ivoire);
@@ -1313,7 +1313,7 @@ p a {
   position: sticky;
   top: 14px;
 }
-@media (max-width: 900px) { .colonne-liste-split { position: static; max-height: none; } }
+@media (max-width: 900px) { .colonne-liste-split { position: static; max-height: none; min-width: 0; } }
 
 /* Rangée libellé ↔ valeur (maquette .ligne-info) */
 .ligne-info {
@@ -1334,7 +1334,7 @@ p a {
   align-items: start;
 }
 @media (max-width: 860px) {
-  .deux-col { grid-template-columns: 1fr; }
+  .deux-col { grid-template-columns: minmax(0, 1fr); }
 }
 .lien-discret:hover { text-decoration: underline; text-underline-offset: 2px; }
 

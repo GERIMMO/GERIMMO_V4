@@ -20,7 +20,7 @@ export default async function PageSecurite({ searchParams }: PageProps<'/securit
   if (!adhesion) redirect('/espaces');
   const params = await searchParams;
   return <main className="mx-auto w-full max-w-xl px-5 py-10 sm:py-16">
-    <div className="mb-10 flex items-center justify-between"><MarqueGerimmo /><form action={seDeconnecter}><button className="lien-discret text-sm">Se déconnecter</button></form></div>
+    <div className="mb-10 flex items-center justify-between"><MarqueGerimmo /><form action={seDeconnecter}><button type="submit" className="lien-discret text-sm">Se déconnecter</button></form></div>
     <p className="eyebrow">Protection du compte</p>
     <h1 className="mt-2 text-3xl font-semibold">Une seconde vérification</h1>
     <p className="mt-3 text-muted-foreground">L’accès de supervision donne accès aux organisations et aux données sensibles. Un code de votre application d’authentification est requis en plus du mot de passe.</p>

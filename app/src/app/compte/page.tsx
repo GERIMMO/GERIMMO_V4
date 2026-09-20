@@ -60,6 +60,7 @@ export default async function PageCompte() {
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 space-y-4 p-4 sm:p-7">
+        <div className="repere-visuel repere-visuel-legal" aria-hidden="true" />
         <div>
           <p className="eyebrow mb-1.5">Votre compte</p>
           <h1 className="mb-6">Sécurité du compte</h1>

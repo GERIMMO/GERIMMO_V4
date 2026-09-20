@@ -2913,7 +2913,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 /* Repère photographique discret dans chaque espace : le bleu reste la couleur
    dominante, et les titres/actions conservent leur propre surface lisible. */
 .repere-visuel {
-  height: 66px;
+  height: 94px;
   flex: none;
   margin: 14px 24px 0;
   border-radius: 14px;
@@ -2933,7 +2933,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
     url('/illustrations/intervention-gerimmo-2026.jpg');
 }
 .repere-visuel-locataire { margin-inline: max(24px, calc((100% - 1032px) / 2)); }
-.repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0; }
+.repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0 0 24px; }
 .panneau-marque {
   background-image:
     linear-gradient(115deg, rgba(23, 48, 107, .96) 0%, rgba(28, 63, 184, .9) 58%, rgba(36, 87, 245, .24) 100%),
@@ -2949,10 +2949,10 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   background-size: cover;
 }
 @media (max-width: 640px) {
-  .repere-visuel { height: 48px; margin: 10px 16px 0; border-radius: 10px; }
+  .repere-visuel { height: 72px; margin: 10px 16px 0; border-radius: 10px; }
   .repere-visuel-locataire { margin-inline: 16px; }
   .repere-visuel-artisan { width: calc(100% - 32px); }
-  .repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0; }
+  .repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0 0 20px; }
   .journal-hero {
     background-image:
       linear-gradient(180deg, var(--ivoire) 0%, rgba(255, 255, 255, .97) 70%, rgba(255, 255, 255, .35) 100%),

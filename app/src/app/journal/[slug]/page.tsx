@@ -45,6 +45,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
       <EnTetePublic compact />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-7 sm:py-14">
+        <div className="repere-visuel repere-visuel-legal mb-6" aria-hidden="true" />
         <Link href="/journal" className="lien-discret text-[13px]">
           ← Journal
         </Link>

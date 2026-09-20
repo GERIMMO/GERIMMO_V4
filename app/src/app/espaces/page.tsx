@@ -181,6 +181,7 @@ export default async function PageEspaces() {
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
+        <div className="repere-visuel repere-visuel-legal mb-6" aria-hidden="true" />
         <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
         <h1 className="mb-6">Mes espaces</h1>
 

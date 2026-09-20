@@ -98,6 +98,11 @@ for (const persona of PERSONAS) {
       path.join(SORTIE, `rapport-${persona}.json`),
       JSON.stringify(rapport, null, 2),
     );
+    console.log(
+      `Audit ${persona} : ${rapport.length} écrans, ${rapport.filter((r) => r.redirection).length} redirections, ` +
+      `${rapport.reduce((n, r) => n + Number(r.boutonsVisibles ?? 0), 0)} commandes visibles, ` +
+      `${rapport.reduce((n, r) => n + Number(r.boutonsSansNom ?? 0), 0)} sans nom`,
+    );
     const casses = rapport.filter((r) =>
       r.statut === "erreur" ||
       (typeof r.statut === "number" && r.statut >= 400) ||

@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 // sous un seul nom, et `/admin/artisans` reste l'écran de décision derrière.
 const ENTREES: [string, string][] = [
   ["/admin", "Supervision"],
+  ["/admin/brief", "Brief"],
   ["/admin/clients", "Clients"],
   ["/admin/territoire", "Territoire"],
   ["/admin/publications", "Journal"],

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { FormulaireDevisVitrine } from "./formulaire-devis-vitrine";
@@ -253,6 +254,30 @@ export default async function PageVitrine() {
         </section>
 
         {/* ---------------------------------------------------- Pour qui */}
+        <section className="mx-auto w-full max-w-6xl px-4 pt-12 sm:px-7">
+          <div className="grid overflow-hidden rounded-2xl border border-[var(--filet)] bg-[var(--ivoire)] shadow-sm lg:grid-cols-2">
+            <Image
+              src="/illustrations/interieur-gerimmo-2026.jpg"
+              width={1536}
+              height={1024}
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              alt="Salon lumineux d'un logement locatif"
+              className="h-full max-h-[350px] w-full object-cover lg:max-h-none"
+            />
+            <div className="flex flex-col justify-center p-7 sm:p-10">
+              <p className="eyebrow text-[var(--marque-sombre)]">Un logement, un dossier clair</p>
+              <h2 className="mt-2 font-heading text-[26px] font-bold leading-tight text-[var(--encre)]">
+                Gardez le fil de chaque location
+              </h2>
+              <p className="mt-4 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
+                Le bien, son bail, ses loyers et ses documents restent reliés. Vous retrouvez l&apos;information utile au moment d&apos;agir, sans reconstituer l&apos;historique.
+              </p>
+              <Link href="/inscription" className="lien-discret mt-5 self-start">Découvrir la gestion en direct →</Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------- Pour qui */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
           <TitreSection sur="Pour qui" titre="Trois espaces, un même dossier" />
           <div className="mt-10 grid gap-4 sm:grid-cols-3">
@@ -300,6 +325,27 @@ export default async function PageVitrine() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------- Tarifs */}
+        <section className="mx-auto w-full max-w-6xl px-4 pt-12 sm:px-7">
+          <div className="grid overflow-hidden rounded-2xl border border-[var(--filet)] bg-[var(--ivoire)] shadow-sm lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="flex flex-col justify-center p-7 sm:p-10">
+              <p className="eyebrow text-[var(--marque-sombre)]">Incident et intervention</p>
+              <h2 className="mt-2 font-heading text-[26px] font-bold leading-tight text-[var(--encre)]">Une demande suivie jusqu&apos;à sa résolution</h2>
+              <p className="mt-4 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
+                Le locataire décrit le problème et joint ses photos. Le gestionnaire qualifie la demande, organise l&apos;intervention et conserve les échanges dans le dossier.
+              </p>
+            </div>
+            <Image
+              src="/illustrations/intervention-gerimmo-2026.jpg"
+              width={1536}
+              height={1024}
+              sizes="(max-width: 1024px) 100vw, 55vw"
+              alt="Artisan intervenant sous un évier dans un logement"
+              className="h-full max-h-[350px] w-full object-cover lg:max-h-none"
+            />
           </div>
         </section>
 

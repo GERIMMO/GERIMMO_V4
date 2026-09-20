@@ -116,7 +116,7 @@ test.describe("Côté agence", () => {
     await expect(f.getByText(/Rapport de gestion/)).toBeVisible();
     await expect(f.getByText(/Adressé à E2E Mandant/)).toBeVisible();
     await expect(
-      f.getByRole("button", { name: /Envoyer le rapport au propriétaire/ })
+      f.getByRole("button", { name: /Envoyer le compte rendu en PDF|Renvoyer le compte rendu/ })
     ).toBeVisible();
   });
 

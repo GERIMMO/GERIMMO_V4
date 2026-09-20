@@ -13,21 +13,23 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
   const cle = process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim();
   if (!cle) return { erreur: "Configurez OPENAI_API_KEY ou OPEN_AI_KEY côté serveur dans Vercel pour activer cette analyse." };
 
-  const [bugsN1, bugs, idees, devis, propositions, organisations] = await Promise.all([
+  const [bugsN1, bugs, idees, devis, propositions, organisations, alertesCritiques, alertes] = await Promise.all([
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").in("etat", ["nouveau", "en_examen", "en_cours"]),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").in("etat", ["nouveau", "en_examen", "en_cours"]),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "idee").in("etat", ["nouveau", "en_examen"]),
     supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
     supabase.from("publications").select("id", { count: "exact", head: true }).in("statut", ["proposition", "brouillon"]),
     supabase.from("organizations").select("id", { count: "exact", head: true }).in("status", ["active", "essai"]),
+    supabase.from("alerts").select("id", { count: "exact", head: true }).eq("statut", "ouverte").eq("criticite", "critique"),
+    supabase.from("alerts").select("id", { count: "exact", head: true }).eq("statut", "ouverte"),
   ]);
-  const lectures = [bugsN1, bugs, idees, devis, propositions, organisations];
+  const lectures = [bugsN1, bugs, idees, devis, propositions, organisations, alertesCritiques, alertes];
   if (lectures.some((resultat) => resultat.error || resultat.count === null)) {
     return { erreur: "Certaines données de pilotage sont indisponibles. L'analyse IA est reportée pour éviter une recommandation trompeuse." };
   }
 
   // Aucun titre, description, adresse, courriel, contenu de document ou
-  // donnée de personne n'est envoyé à l'API. Le modèle ne reçoit que six
+  // donnée de personne n'est envoyé à l'API. Le modèle ne reçoit que huit
   // compteurs et la date, sans outil de lecture ou d'écriture dans Gerimmo.
   const donnees = {
     date: new Date().toISOString().slice(0, 10),
@@ -37,6 +39,8 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
     demandes_de_devis_en_attente: devis.count,
     propositions_editoriales: propositions.count,
     organisations_actives_ou_en_essai: organisations.count,
+    alertes_critiques_ouvertes: alertesCritiques.count,
+    alertes_ouvertes: alertes.count,
   };
   try {
     const reponse = await fetch("https://api.openai.com/v1/responses", {
@@ -46,7 +50,7 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
         model: process.env.OPENAI_BRIEF_MODEL?.trim() || "gpt-5.6-luna",
         store: false,
         max_output_tokens: 650,
-        instructions: "Tu aides le fondateur de Gerimmo à choisir UNE prochaine action. Les données sont des compteurs agrégés ; ne prétends connaître ni la cause d'un bug, ni le revenu, ni les concurrents, ni l'état de production. Donne priorité aux bugs critiques avant la croissance. Énonce clairement les données manquantes et propose une vérification humaine. Tu ne peux déclencher aucune action, modifier aucun dossier ou décider d'une dépense. Réponds en français, de manière concise.",
+        instructions: "Tu aides le fondateur de Gerimmo à choisir UNE prochaine action. Les données sont des compteurs agrégés ; ne prétends connaître ni la cause d'un bug, ni le revenu, ni les concurrents, ni l'état de production. Donne priorité aux alertes critiques et aux bugs critiques avant la croissance. Une alerte critique n'est pas un bug logiciel : distingue ces deux files. Énonce clairement les données manquantes et propose une vérification humaine. Tu ne peux déclencher aucune action, modifier aucun dossier ou décider d'une dépense. Réponds en français, de manière concise.",
         input: JSON.stringify(donnees),
         text: { format: FORMAT_BRIEF_IA },
       }),

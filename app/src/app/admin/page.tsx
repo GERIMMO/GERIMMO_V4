@@ -145,6 +145,11 @@ export default async function PageAdmin() {
         </div>
       </div>
 
+      <Link href="/admin/brief" className="mb-5 flex items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm text-[var(--encre)] hover:bg-[var(--survol)]">
+        <span><b>Brief de pilotage</b><span className="ml-2 text-[var(--texte-secondaire)]">Priorités, signaux utilisateurs et ordre de croissance.</span></span>
+        <span className="lien-discret shrink-0">Ouvrir →</span>
+      </Link>
+
       {enEchec.length > 0 && (
         <div
           role="alert"

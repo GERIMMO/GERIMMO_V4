@@ -1,0 +1,1815 @@
+{
+  "date": "2026-09-20",
+  "base_git": "83da9b011b449c62a82d2f692d529e59e2287f6f",
+  "source_sha256": "6c0f0e312b9bca3ee3c5d600ff571e692357a855b653a33e64973cd338fa7c4a",
+  "portee": "Audit initial des 100 sections ; pas de certification E2E de tous les boutons ni de conformité juridique. Absent identifié = non trouvé dans le code inspecté, même si une note wiki évoque le sujet.",
+  "sections": [
+    {
+      "section": 1,
+      "page_pdf": 3,
+      "titre": "RÈGLE ABSOLUE : NE PAS CASSER L’EXISTANT",
+      "exigences_source": "Avant toute modification importante : analyse le dépôt complet ; lis la documentation ; identifie la\nstack ; comprends l’architecture ; recense les fonctionnalités opérationnelles, partielles et absentes ;\nrepère bugs, incohérences et dettes techniques ; vérifie migrations, modèle de données et\ndépendances.\nNe reconstruis pas arbitrairement ce qui fonctionne. Privilégie l’amélioration progressive. Ne supprime\npas une fonctionnalité simplement parce que son utilité n’est pas immédiatement comprise.",
+      "statut": "Consigne appliquée à ce lot",
+      "priorite": "P1",
+      "constat_et_reste": "Travail sur une branche isolée issue de main ; brouillons anciens préservés. Audit complet du comportement reste ouvert.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 2,
+      "page_pdf": 3,
+      "titre": "COMPRENDRE GERIMMO",
+      "exigences_source": "Gerimmo est une plateforme complète de gestion immobilière et locative pour : super administrateur\nGerimmo, administrateur d’agence, agents immobiliers, propriétaires bailleurs gérés par agence, leurs\nlocataires, propriétaires bailleurs autonomes, leurs locataires et artisans/intervenants.\nLes permissions, données visibles et actions dépendent du rôle. Aucun utilisateur ne doit accéder sans\nautorisation aux données d’un autre utilisateur, propriétaire ou agence.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Rôles et isolation présents, mais le propriétaire mandant ne dispose pas de chemin de portail : cheminEspace retourne null pour ce rôle et les anciens écrans indiquent explicitement aucun accès. Écart P1 au nouveau périmètre ; recette complète des sept personas encore impossible.",
+      "elements_code_et_tests": [
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts",
+        "app/src/app/espaces/page.tsx",
+        "app/src/app/agence/[orgId]/mandats/page.tsx",
+        "app/supabase/migrations/20260727_socle_identite_isolation.sql"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 3,
+      "page_pdf": 3,
+      "titre": "MODULES PRINCIPAUX",
+      "exigences_source": "Tableau de bord ; Parc immobilier ; Personnes ; Loyers et charges ; Incidents ; Comptabilité et fiscalité\n; Agenda et alertes ; Messages ; Paramètres.\nAnalyse l’existant avant de créer ou modifier ces modules.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Modules principaux présents. Présence de routes ne prouve pas chaque action ni chaque erreur.",
+      "elements_code_et_tests": [
+        "app/src/app/agence/[orgId]",
+        "app/src/lib/import-parc.ts",
+        "app/tests/import-parc.test.ts",
+        "app/tests/portefeuille-lecture.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 4,
+      "page_pdf": 3,
+      "titre": "PARCOURS DE MISE EN LOCATION",
+      "exigences_source": "Gerimmo ne gère ni les visites ni les candidats non retenus. Le logement/lot est créé par le\npropriétaire ou l’agence et doit être suffisamment complété avant location.\nUne fois le locataire choisi : nom, prénom, e-mail, téléphone, garant éventuel et documents. Gerimmo\ndoit inviter le locataire, gérer/créer son accès, récupérer les documents manquants, informer les\npersonnes concernées, gérer/générer les documents d’entrée, le bail, l’état des lieux et conserver les\ndocuments associés. Le propriétaire/gestionnaire peut aussi déposer lui-même les documents\nmanquants.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Parcours après sélection présent ; bon de visite retiré de la génération dans ce lot. Invitation réelle et récupération des pièces à vérifier jusqu'au destinataire.",
+      "elements_code_et_tests": [
+        "app/src/app/actions/baux.ts",
+        "app/src/app/actions/personnes.ts",
+        "app/src/app/actions/parc.ts",
+        "app/tests/sprint4-bail.test.ts",
+        "app/e2e/local/seed-parcours.mjs",
+        "app/src/lib/documents",
+        "app/src/app/actions/documents-generes.ts",
+        "app/tests/catalogue-conformite-v3.test.ts",
+        "app/tests/catalogue-api.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 5,
+      "page_pdf": 3,
+      "titre": "GESTION DES LOYERS",
+      "exigences_source": "Le suivi mensuel ne dépend pas obligatoirement d’un accès bancaire. Chaque mois, Gerimmo peut\ndemander si le loyer a été reçu.\n\n\nReçu → paiement enregistré → suivi actualisé → quittance si applicable.\nNon reçu → retard → alertes → suivi impayé → actions adaptées aux règles métier et juridiques.\nHistoriser les actions importantes.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Suivi manuel, encaissement, quittance et relances présents ; vérifier rappel mensuel au gestionnaire et réception des courriers réels.",
+      "elements_code_et_tests": [
+        "app/src/app/actions/loyers.ts",
+        "app/src/lib/quittancement-du-mois.ts",
+        "app/tests/cycle-mensuel.test.ts",
+        "app/tests/cron-relances-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 6,
+      "page_pdf": 4,
+      "titre": "INCIDENTS ET ARTISANS",
+      "exigences_source": "Déclaration → qualification → gestionnaire → artisan éventuel → devis → validation → rendez-vous →\nintervention → clôture.\nEn cas de danger potentiel, afficher les consignes adaptées et orienter vers les services d’urgence.\nGerimmo ne gère pas les troubles de voisinage.\nLes artisans peuvent recevoir les interventions, consulter les informations nécessaires, créer/modifier\nun devis, échanger, organiser le rendez-vous et mettre à jour l’intervention. Locataire et artisan\npeuvent convenir du rendez-vous via calendrier partagé ou équivalent.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Cycle technique, urgence, devis et créneaux présents. Pas de parcours de conflits de voisinage identifié ; clauses de bail distinctes préservées. Clôture complète à retester.",
+      "elements_code_et_tests": [
+        "app/src/lib/incidents.ts",
+        "app/src/app/locataire/[orgId]/reflexes-urgence.tsx",
+        "app/tests/sprint7-locataire-intervention.test.ts",
+        "app/tests/sprint7-artisans.test.ts",
+        "app/src/app/artisan",
+        "app/src/app/agence/[orgId]/artisans"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 7,
+      "page_pdf": 4,
+      "titre": "SUPER ADMIN GERIMMO",
+      "exigences_source": "Espace spécifique pour gestion utilisateurs/agences, supervision, événements/erreurs, support,\nanalyse bugs et intervention sur un compte si nécessaire.\nActions sensibles : contrôlées, autorisées, journalisées, traçables et réversibles lorsque pertinent.\nL’impersonation est clairement signalée et journalisée.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Console, accès support et journaux présents ; relecture exhaustive de toutes les actions sensibles et réversibilité restante.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx",
+        "app/src/lib/mfa.ts",
+        "app/src/lib/session-policy.ts",
+        "app/tests/mfa-base.test.ts",
+        "app/tests/signature-supervision-base.test.ts",
+        "app/tests/aucune-fonction-ouverte-a-anon.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 8,
+      "page_pdf": 4,
+      "titre": "SÉCURITÉ ET CONFIDENTIALITÉ",
+      "exigences_source": "Vérifier authentification, autorisations, séparation tenants/agences/propriétaires, contrôles serveur,\nstockage sécurisé, secrets, validation des entrées, vulnérabilités web, limitation actions sensibles,\nlogs, sauvegarde/restauration, erreurs, protection des données et RGPD pertinent.\nAucun secret, mot de passe ou clé privée dans Git.",
+      "statut": "Partiel",
+      "priorite": "P0",
+      "constat_et_reste": "Tests SQL et API d'isolation disponibles et exécutés localement ; restauration de production, configuration et revue de sécurité complète non prouvées.",
+      "elements_code_et_tests": [
+        "app/src/lib/mfa.ts",
+        "app/src/lib/session-policy.ts",
+        "app/tests/mfa-base.test.ts",
+        "app/tests/signature-supervision-base.test.ts",
+        "app/tests/aucune-fonction-ouverte-a-anon.test.ts",
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts",
+        "wiki/regles-metier/Plan de reprise d'activité.md",
+        "app/src/lib/edl-brouillon.ts",
+        "app/tests/edl-brouillon.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 9,
+      "page_pdf": 4,
+      "titre": "AUDIT INITIAL OBLIGATOIRE",
+      "exigences_source": "Produire un état des lieux fonctionnel et technique : frontend, backend, API, base, authentification,\nstockage, services externes, e-mails, documents, sécurité, tests, monitoring, infrastructure, CI/CD,\ndéploiement.\nClasser : P0 bloque production ; P1 indispensable V1 ; P2 important non bloquant ; P3 amélioration\nultérieure. Construire ensuite un plan d’exécution.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Matrice des 100 sections et audit initial produits ; audit interactif de tous les boutons et services externes encore incomplet.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt",
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 10,
+      "page_pdf": 4,
+      "titre": "TRAVAILLER DE MANIÈRE AUTONOME",
+      "exigences_source": "Après audit, avancer sans demander confirmation pour chaque décision technique réversible,\ncohérente avec l’existant et sans risque important.\nValidation humaine avant : suppression/migration destructive, changement métier/architecture\nmajeur, service payant, dépense, DNS critique, opération irréversible, changement juridique important\nou action nécessitant explicitement mes identifiants/autorisations.\nEn cas d’ambiguïté : code → documentation → schémas → migrations → tests → historique Git.\n\n\n--- PAGE 5 ---\nGERIMMO - Cahier des charges maître V3\nPage 5",
+      "statut": "Consigne appliquée à ce lot",
+      "priorite": "P1",
+      "constat_et_reste": "Corrections réversibles autonomes ; pas de modification financière, contractuelle, destructive ou d'extension de droits dans ce lot.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 11,
+      "page_pdf": 5,
+      "titre": "QUALITÉ",
+      "exigences_source": "Une fonction n’est pas terminée parce que le code compile. Vérifier interface → API → permissions →\nbase → résultat → erreur → historique.\nTester super admin, agence, agent, propriétaire autonome, propriétaire géré, locataire, artisan et\naccès interdits.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Suite locale passe ; chaîne UI → API → permissions → base → résultat → erreurs → historique pas intégralement prouvée pour chaque fonction.",
+      "elements_code_et_tests": [
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts",
+        "app/src/lib/documents",
+        "app/src/app/actions/documents-generes.ts",
+        "app/tests/catalogue-conformite-v3.test.ts",
+        "app/tests/catalogue-api.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 12,
+      "page_pdf": 5,
+      "titre": "TESTS DE BOUT EN BOUT",
+      "exigences_source": "Création propriétaire → logement → location → invitation locataire → documents → bail → entrée →\nloyer → paiement → quittance → incident → artisan → devis → validation → rendez-vous → intervention\n→ clôture.\nTester aussi erreurs, données manquantes, double clic, refresh, session expirée, droits insuffisants,\nautre agence, archivage, réseau, e-mails échoués et mobile.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Fixtures API de parcours disponibles ; tests navigateur existants ne sont pas tous rejoués dans cet audit. Tous cas réseau/mobile et échecs à compléter.",
+      "elements_code_et_tests": [
+        "app/src/app/actions/baux.ts",
+        "app/src/app/actions/personnes.ts",
+        "app/src/app/actions/parc.ts",
+        "app/tests/sprint4-bail.test.ts",
+        "app/e2e/local/seed-parcours.mjs",
+        "app/src/lib/incidents.ts",
+        "app/src/app/locataire/[orgId]/reflexes-urgence.tsx",
+        "app/tests/sprint7-locataire-intervention.test.ts",
+        "app/tests/sprint7-artisans.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 13,
+      "page_pdf": 5,
+      "titre": "UX",
+      "exigences_source": "Compréhensible par un non-expert. Éviter complexité inutile, jargon, boutons ambigus, formulaires\ninterminables et doublons. Privilégier actions évidentes, statuts compréhensibles, formulaires\nprogressifs, erreurs utiles, confirmations adaptées et tableaux de bord orientés actions.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Présentations par rôle et états utiles présents. Correction locale de la sélection documentaire et du lien des loyers ; revue de tous les écrans restante.",
+      "elements_code_et_tests": [
+        "app/src/app/agence/[orgId]",
+        "app/src/lib/import-parc.ts",
+        "app/tests/import-parc.test.ts",
+        "app/tests/portefeuille-lecture.test.ts",
+        "app/src/app/locataire",
+        "app/tests/mes-documents-locataire.test.ts",
+        "app/e2e/parcours-locataire.spec.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 14,
+      "page_pdf": 5,
+      "titre": "MISE EN PRODUCTION",
+      "exigences_source": "Vérifier configuration, variables, migrations, sauvegardes, domaine/HTTPS, e-mails, stockage, tâches\nplanifiées, logs, monitoring, performances essentielles, erreurs frontend/backend et smoke test réel.\nNe pas déclarer le projet terminé uniquement parce que le déploiement a réussi.",
+      "statut": "Partiel",
+      "priorite": "P0",
+      "constat_et_reste": "CI, migrations et contrôles de configuration présents ; validation e-mails, sauvegarde/restauration et recette réelle exigée avant clôture V1.",
+      "elements_code_et_tests": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json",
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 15,
+      "page_pdf": 5,
+      "titre": "GIT ET TRAÇABILITÉ",
+      "exigences_source": "Git propre, modifications massives évitées, historique compréhensible, point de restauration avant\nopérations risquées, aucun secret, changements importants documentés.",
+      "statut": "Consigne appliquée à ce lot",
+      "priorite": "P1",
+      "constat_et_reste": "main récupéré et branche isolée ; preuves, diff, tests et publication tracés pour ce lot. Les anciens brouillons restent séparés.",
+      "elements_code_et_tests": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 16,
+      "page_pdf": 5,
+      "titre": "DEFINITION OF DONE",
+      "exigences_source": "V1 prête si parcours critiques E2E, permissions isolées, aucune vulnérabilité critique connue ni erreur\nbloquante, migrations, sauvegarde/restauration, e-mails/documents essentiels, logs, tests,\ndesktop/mobile, HTTPS et retests production sont satisfaisants.",
+      "statut": "Non vérifié",
+      "priorite": "P0",
+      "constat_et_reste": "Définition de fin V1 non atteinte : preuve complète E2E/production, e-mails et restauration manquante.",
+      "elements_code_et_tests": [
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts",
+        "wiki/regles-metier/Plan de reprise d'activité.md",
+        "app/src/lib/edl-brouillon.ts",
+        "app/tests/edl-brouillon.test.ts",
+        "app/src/lib/messagerie.ts",
+        "app/src/app/agence/[orgId]/messages",
+        "app/src/lib/email.ts",
+        "app/supabase/templates"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 17,
+      "page_pdf": 5,
+      "titre": "RAPPORT FINAL V1",
+      "exigences_source": "Fournir : état opérationnel ; modifications ; tests/résultats ; production/URL ; sécurité/risques résiduels\n; reste à faire non bloquant ; décisions nécessitant mon intervention.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Rapport intermédiaire daté ; rapport final V1 impossible tant que ses critères de fin ne sont pas satisfaits.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 18,
+      "page_pdf": 5,
+      "titre": "OBJECTIF",
+      "exigences_source": "Je veux un produit cohérent, testé, sécurisé, documenté et réellement utilisable en production.\nAUDITER → TERMINER → TESTER → SÉCURISER → PUBLIER → OBTENIR DE VRAIS UTILISATEURS.\nNe retarde pas la V1 pour construire immédiatement toute l’autonomie suivante.\n\n\nPHASE B — AUTONOMIE, APPRENTISSAGE ET\nCROISSANCE",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Socle immobilier développé, finition vérifiable et préparation au lancement encore nécessaires.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 19,
+      "page_pdf": 6,
+      "titre": "BOUCLE D’AMÉLIORATION CONTINUE",
+      "exigences_source": "Après la V1, Gerimmo fonctionne progressivement selon : OBSERVER → MESURER → ÉTUDIER →\nPROPOSER → PRIORISER → DÉVELOPPER → TESTER → DÉPLOYER → MESURER → APPRENDRE →\nAMÉLIORER.\nCodex devient progressivement le moteur technique de cette boucle.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Signaux, journaux et CI constituent un début ; boucle observe → mesure → apprend reliée aux résultats non complète.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance",
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 20,
+      "page_pdf": 6,
+      "titre": "GERIMMO CONTROL CENTER",
+      "exigences_source": "Faire du Super Admin un centre de pilotage : utilisateurs, propriétaires, locataires, artisans, agences,\nlogements, abonnements, revenus, incidents, support, bugs, erreurs, performances, acquisition,\nactivation, conversion, rétention, churn, territoires, études, expérimentations, développements Codex,\ndéploiements, alertes et décisions humaines.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Console et santé présentes ; acquisition, rétention, études, expériences, actions Codex et décisions réunies restent à développer.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 21,
+      "page_pdf": 6,
+      "titre": "FOUNDER BRIEF",
+      "exigences_source": "Créer une synthèse : aujourd’hui, cette semaine, Codex, études, expansion et HUMAIN REQUIS. Je dois\ncomprendre l’état de Gerimmo en quelques minutes.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de Founder Brief réunissant aujourd'hui, semaine, Codex, études, expansion et humain requis identifié.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 22,
+      "page_pdf": 6,
+      "titre": "JAUGES GERIMMO",
+      "exigences_source": "Créer des jauges Produit, Utilisateurs, Business, Croissance et Support : stabilité, disponibilité,\nsécurité, dette technique, couverture tests, propriétaires, logements, locataires, artisans, agences,\nactivation, rétention, satisfaction, CA, MRR, ARR, marge, CAC, LTV, ARPU, conversion, churn, payback,\nterritoires et couverture artisans.\nNe jamais inventer une métrique. Distinguer DONNÉE MESURÉE / ESTIMATION / HYPOTHÈSE / N/A.\nChaque jauge doit être explicable et consultable en détail.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Quelques comptes et indicateurs techniques ; pas de jeu complet de jauges avec MRR/ARR, marge, CAC/LTV, rétention, confiance et détail.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx",
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 23,
+      "page_pdf": 6,
+      "titre": "CENTRE D’ÉTUDES",
+      "exigences_source": "Créer ÉTUDES & STRATÉGIE.\nÉtudier régulièrement fonctionnalités, UX, acquisition, conversion, rétention, churn, prix, concurrence,\nvilles, artisans, agences, propriétaires, réglementation, automatisation, coûts et nouvelles sources de\nrevenus.\nChaque étude conserve date, question, sources, données, méthode, résultats, niveau de confiance,\nhypothèses, opportunités, risques, recommandation, décision et résultat réel.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de centre d'études persistant avec méthode, sources, confiance, décision et résultat réel identifié dans l'application.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 24,
+      "page_pdf": 6,
+      "titre": "USER SIGNALS",
+      "exigences_source": "Centraliser bugs, plaintes, suggestions, demandes, abandons, difficultés, support et points de sortie\ndes parcours.\nRegrouper les signaux similaires. Mesurer volume, fréquence, gravité, valeur utilisateur, impact\nconversion/rétention/revenu, coût, complexité, risque et confiance. Alimenter automatiquement la\nroadmap.\n\n\n--- PAGE 7 ---\nGERIMMO - Cahier des charges maître V3\nPage 7",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Bugs, idées, contestations et regroupement présents ; abandons, fréquence et impacts conversion/rétention/revenu non instrumentés intégralement.",
+      "elements_code_et_tests": [
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 25,
+      "page_pdf": 7,
+      "titre": "RADAR CONCURRENTIEL",
+      "exigences_source": "Créer GERIMMO COMPETITOR RADAR à partir d’informations publiques et légalement accessibles.\nÉtudier positionnement, cible, fonctionnalités, prix, onboarding, modèle économique, nouveautés, avis\npublics et problèmes publiquement remontés.\nPour chaque opportunité : IGNORER / ÉTUDIER / TESTER / DÉVELOPPER / ACCÉLÉRER.\nNe pas copier aveuglément. Respecter propriété intellectuelle, confidentialité, conditions d’utilisation\net règles de collecte applicables.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Notes de veille et journal ne constituent pas un radar concurrentiel applicatif avec suivi des opportunités.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx",
+        "app/src/app/admin/publications",
+        "app/src/app/journal",
+        "app/tests/publications.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 26,
+      "page_pdf": 7,
+      "titre": "DÉVELOPPEMENT AUTONOME AVEC CODEX",
+      "exigences_source": "Pipeline : SIGNAL → ANALYSE → SPÉCIFICATION → BRANCHE → CODE → TESTS → REVUE → STAGING →\nVALIDATION → DÉPLOIEMENT SELON RISQUE → MONITORING → MESURE → APPRENTISSAGE.\nTracer pourquoi chaque changement existe, ce qui a été modifié, les tests réalisés et le résultat\nobservé.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Branches, CI et retour utilisateur présents ; pipeline relié signal → livraison → mesure non complet dans le produit.",
+      "elements_code_et_tests": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 27,
+      "page_pdf": 7,
+      "titre": "NIVEAUX D’AUTONOMIE",
+      "exigences_source": "Niveau 1 — autonome : bugs UI simples, textes, tests, instrumentation, petites améliorations UX,\ncorrectifs clairement vérifiables.\nNiveau 2 — autonome contrôlé : optimisation de parcours, fonctionnalités limitées, expérimentations.\nUtiliser feature flags, staging, canary release, monitoring et rollback lorsque pertinent.\nNiveau 3 — humain requis : prix, paiements, dépenses significatives, contrats/CGU, suppression de\ndonnées, migrations destructives, droits admin, sécurité critique, données personnelles sensibles,\nchangements juridiques, architecture ou modèle économique majeurs.\nJe reste disponible lorsqu’une intervention humaine est réellement nécessaire.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Niveaux d'autonomie appliqués au travail ; aucun workflow applicatif complet de validation des décisions de niveau 3 identifié.",
+      "elements_code_et_tests": [
+        "app/src/lib/mfa.ts",
+        "app/src/lib/session-policy.ts",
+        "app/tests/mfa-base.test.ts",
+        "app/tests/signature-supervision-base.test.ts",
+        "app/tests/aucune-fonction-ouverte-a-anon.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 28,
+      "page_pdf": 7,
+      "titre": "BUG AUTOPILOT",
+      "exigences_source": "Sources : logs, monitoring, frontend, backend, tests, support et utilisateurs.\nDÉTECTION → CLASSIFICATION → REPRODUCTION → DIAGNOSTIC → CORRECTIF CODEX → TESTS →\nSTAGING → DÉPLOIEMENT CONTRÔLÉ → MONITORING.\nP0 critique, P1 important, P2 normal, P3 mineur. Prévoir alertes, feature flags, rollback et intervention\nhumaine selon le risque.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Collecte des bugs présente ; pas de Bug Autopilot complet reproduisant, corrigeant, testant et déployant sous contrôles.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 29,
+      "page_pdf": 7,
+      "titre": "MÉMOIRE DES DÉCISIONS",
+      "exigences_source": "Créer GERIMMO DECISION LOG : problème, date, données, hypothèses, options, décision, responsable,\nrésultat attendu, résultat réel et apprentissage.\nGerimmo doit apprendre de son historique et éviter de répéter inutilement les expériences déjà\ninvalidées sans nouvelle donnée.\n\n\n--- PAGE 8 ---\nGERIMMO - Cahier des charges maître V3\nPage 8",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Audit technique et historique wiki présents ; pas de Decision Log métier avec hypothèses, alternatives et résultats réels identifié.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/journaux",
+        "app/src/lib/tache.ts",
+        "app/src/lib/retours.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 30,
+      "page_pdf": 8,
+      "titre": "MOTEUR DE PRIORISATION",
+      "exigences_source": "Analyser : USER VALUE / REVENUE IMPACT / RETENTION IMPACT / STRATEGIC VALUE / URGENCY /\nDEVELOPMENT COST / RISK / CONFIDENCE.\nLes scores servent d’aide mais ne doivent jamais masquer hypothèses et données.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Gravité de bugs disponible ; moteur de priorisation valeur/coût/risque/confiance avec hypothèses explicites absent.",
+      "elements_code_et_tests": [
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 31,
+      "page_pdf": 8,
+      "titre": "GROWTH ENGINE",
+      "exigences_source": "Créer GERIMMO GROWTH ENGINE.\nChaque expérimentation : HYPOTHÈSE → MÉTRIQUE → TEST → RÉSULTAT → COMPARAISON →\nDÉCISION → APPRENTISSAGE.\nConserver réussites et échecs. Arrêter les stratégies inefficaces et accélérer celles dont l’efficacité est\ndémontrée.\n\n\nPHASE C — ACQUISITION ET RENTABILITÉ",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Parrainage présent ; registre d'expériences de croissance avec comparaison, décision et apprentissage absent.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 32,
+      "page_pdf": 9,
+      "titre": "ORDRE INITIAL D’ACQUISITION",
+      "exigences_source": "Hypothèse initiale :\n1. propriétaires bailleurs ;\n \n2. artisans ;\n \n3. agences immobilières.\n \nTester cette séquence. Gerimmo peut proposer de la modifier si les données montrent une meilleure\nstratégie.",
+      "statut": "Non vérifié",
+      "priorite": "P3",
+      "constat_et_reste": "Ordre propriétaires → artisans → agences consigné comme hypothèse ; validation terrain de cette séquence non mesurée.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 33,
+      "page_pdf": 9,
+      "titre": "ACQUISITION DES PROPRIÉTAIRES",
+      "exigences_source": "Priorité initiale : propriétaires bailleurs autonomes.\nÉtudier réseaux sociaux, SEO, contenus, communautés, partenariats, parrainage, outils gratuits,\nsimulateurs, landing pages et acquisition payante lorsqu’elle est validée.\nMesurer : IMPRESSIONS → VISITES → LEADS → INSCRIPTIONS → ACTIVATIONS → CLIENTS → REVENU →\nRÉTENTION.\nCalculer lorsque possible CAC, conversion, ARPU, LTV et payback.\nNe pas utiliser de spam, faux comptes ou pratiques trompeuses. Respecter les règles des plateformes\net les obligations de prospection.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Inscription, contenu et parrainage présents ; attribution impressions → revenus/rétention et CAC/LTV non complète.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts",
+        "app/src/app/admin/publications",
+        "app/src/app/journal",
+        "app/tests/publications.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 34,
+      "page_pdf": 9,
+      "titre": "ACQUISITION DES ARTISANS",
+      "exigences_source": "Recruter selon les besoins réels par territoire : plomberie, électricité, serrurerie, chauffage, peinture,\nentretien et autres métiers pertinents.\nMesurer disponibilité, délais, acceptation, qualité, satisfaction, coût et couverture. Éviter une\nacquisition massive de propriétaires dans une zone sans capacité d’intervention suffisante.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Réseau et métiers présents ; acquisition pilotée par capacité réelle et métriques locales à compléter.",
+      "elements_code_et_tests": [
+        "app/src/app/artisan",
+        "app/src/app/agence/[orgId]/artisans",
+        "app/tests/sprint7-artisans.test.ts",
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 35,
+      "page_pdf": 9,
+      "titre": "ACQUISITION DES AGENCES",
+      "exigences_source": "Lorsque produit, workflows et preuves de valeur sont suffisants, développer l’offre agence :\ndémonstration, onboarding, import/migration du parc, multi-utilisateurs, reporting et offre\ncommerciale adaptée.\nMesurer acquisition, activation, conversion, revenu, rétention et coût de support.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Import, équipe, portefeuilles et reporting présents ; acquisition/activation/rétention/support des agences non mesurés complètement.",
+      "elements_code_et_tests": [
+        "app/src/app/agence/[orgId]",
+        "app/src/lib/import-parc.ts",
+        "app/tests/import-parc.test.ts",
+        "app/tests/portefeuille-lecture.test.ts",
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 36,
+      "page_pdf": 9,
+      "titre": "OBJECTIF ÉCONOMIQUE",
+      "exigences_source": "Construire une activité rentable et scalable.\nSuivre CA, MRR, ARR, marge brute, coûts infrastructure, IA et support, CAC, LTV, churn, ARPU et\npayback.\nNe pas optimiser uniquement le chiffre d’affaires si cela détruit marge, rétention, conformité, qualité\nou confiance.\n\n\nIdentifier les segments, fonctionnalités, canaux et territoires créant le plus de valeur, les coûts inutiles\net les automatisations permettant d’améliorer la marge.\n\n\nPHASE D — EXPANSION NATIONALE",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Abonnements implémentés ; coûts infrastructure/IA/support, marge, CAC/LTV et payback non consolidés.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 37,
+      "page_pdf": 11,
+      "titre": "CROISSANCE GÉOGRAPHIQUE",
+      "exigences_source": "Expansion progressive : zone pilote → ville → agglomération → département → région → France.\nAvant chaque expansion, étudier notamment :\n• nombre de logements locatifs ;\n \n• propriétaires bailleurs ;\n \n• agences ;\n \n• artisans ;\n \n• demande potentielle ;\n \n• concurrence ;\n \n• coûts d’acquisition ;\n \n• revenus potentiels ;\n \n• support nécessaire ;\n \n• densité ;\n \n• rentabilité potentielle.\n \nPour chaque zone : ÉTUDIER → TESTER → ACQUÉRIR → MESURER → RENTABILISER → DENSIFIER →\nÉTENDRE.\nNe pas chercher une présence artificielle partout. Construire d’abord des zones locales suffisamment\ndenses et utiles.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Empreinte et recommandation départementale présentes ; protocole pilote → ville, rentabilité et transitions territoriales non complet.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 38,
+      "page_pdf": 11,
+      "titre": "GERIMMO EXPANSION SCORE ET CARTE DE FRANCE",
+      "exigences_source": "Créer une carte de France dans le Control Center.\nStatuts territoriaux :\nNON ÉTUDIÉ / ÉTUDE / TEST / ACTIF / DENSIFICATION / ACCÉLÉRATION / MATURE.\nAfficher lorsque disponible : propriétaires, logements, locataires, artisans, agences, inscriptions,\nutilisateurs actifs, CA, MRR, CAC, conversion, rétention, churn, croissance, rentabilité et couverture\nartisans.\nCréer un GERIMMO EXPANSION SCORE explicable. Aucun score arbitraire : afficher facteurs, données,\nhypothèses et niveau de confiance.\nCréer également une jauge PROGRESSION GERIMMO FRANCE, elle aussi calculée à partir de critères\nréels et documentés.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Carte/empreinte et score pondéré présents ; pas les sept statuts ni toutes métriques. Une donnée absente compte zéro dans le score, ce qui exige une meilleure qualification de l'incertitude.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 39,
+      "page_pdf": 11,
+      "titre": "EFFET RÉSEAU GERIMMO",
+      "exigences_source": "Chercher progressivement à créer :\n**PLUS DE PROPRIÉTAIRES\n→ PLUS DE LOGEMENTS\n\n\n→ PLUS DE LOCATAIRES\n→ PLUS D’INTERVENTIONS\n→ PLUS D’INTÉRÊT POUR LES ARTISANS\n→ MEILLEURE COUVERTURE ARTISANS\n→ MEILLEUR SERVICE POUR LES PROPRIÉTAIRES\n→ PLUS D’ATTRACTIVITÉ POUR LES AGENCES\n→ PLUS DE LOGEMENTS\n→ RENFORCEMENT DU RÉSEAU GERIMMO.**\nLa densité et la qualité locales comptent davantage qu’une présence nominale partout.",
+      "statut": "Non vérifié",
+      "priorite": "P3",
+      "constat_et_reste": "Réseau théorique cohérent ; effet réel sur délais, qualité, densité et rétention non démontré.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts",
+        "app/src/app/artisan",
+        "app/src/app/agence/[orgId]/artisans",
+        "app/tests/sprint7-artisans.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 40,
+      "page_pdf": 12,
+      "titre": "OBJECTIF NATIONAL — GERIMMO FRANCE",
+      "exigences_source": "L’objectif stratégique majeur est de construire une plateforme nationale capable de connecter et servir\nefficacement :\nPROPRIÉTAIRES ↔ LOCATAIRES ↔ ARTISANS ↔ AGENCES IMMOBILIÈRES ↔ GERIMMO.\nGerimmo doit devenir progressivement une infrastructure numérique permettant de simplifier,\ncentraliser et automatiser une part croissante de la gestion locative.\nLa progression nationale doit être pilotée par les données et non par l’intuition seule.\nGerimmo doit continuellement rechercher les moyens d’accélérer son développement national :\namélioration produit, onboarding, automatisation, SEO, réseaux sociaux, contenus, parrainage,\npartenariats, acquisition organique ou payante validée, conversion, réduction du churn, réseau\nartisans, acquisition agences et nouvelles sources de revenus pertinentes.\nChaque stratégie doit être testée et mesurée :\nTESTER → MESURER → COMPARER → ARRÊTER / AMÉLIORER / ACCÉLÉRER.\nLes expériences réussies peuvent être reproduites dans des territoires suffisamment similaires. Les\néchecs sont conservés dans l’historique.\nÀ mesure que Gerimmo grandit, réduire le travail humain nécessaire par utilisateur ou territoire. Un\nutilisateur supplémentaire ne doit pas systématiquement créer une unité supplémentaire de travail\nhumain.\nConcevoir la plateforme pour pouvoir évoluer progressivement vers 100, 1 000, 10 000, 100 000\nutilisateurs et davantage sans reconstruction totale à chaque étape.\nNe jamais sacrifier sécurité, données personnelles, conformité, stabilité, qualité ou confiance\nuniquement pour accélérer la croissance.\nRechercher simultanément :\nCROISSANCE + RÉTENTION + MARGE + AUTOMATISATION + SATISFACTION UTILISATEUR.\nLe chiffre d’affaires seul ne suffit pas : analyser la qualité économique de la croissance.\nLe Super Admin doit me permettre de comprendre rapidement :\n\n\n• où en est Gerimmo ;\n \n• combien Gerimmo gagne et dépense ;\n \n• combien d’utilisateurs utilisent réellement le service ;\n \n• ce qui fonctionne ou non ;\n \n• les bugs ;\n \n• ce que Codex développe ;\n \n• les améliorations récentes ;\n \n• les expériences et études en cours ;\n \n• les villes étudiées et actives ;\n \n• les concurrents et opportunités détectés ;\n \n• les décisions nécessitant mon intervention.\n \nLa France constitue le premier objectif stratégique majeur. Toute expansion internationale doit faire\nl’objet d’une étude spécifique et ne doit pas être engagée automatiquement sans validation humaine.\n\n\nPHASE E — CONTRÔLE, SCALABILITÉ ET\nEXÉCUTION",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Premiers outils territoriaux ; progression nationale et rentabilité réelles non démontrées. Pas d'expansion internationale engagée dans cet audit.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts",
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 41,
+      "page_pdf": 14,
+      "titre": "SCALABILITÉ",
+      "exigences_source": "Préparer progressivement l’architecture, les traitements, le stockage, les files de tâches, la génération\ndocumentaire, les notifications, les logs et le monitoring à une croissance importante.\nMesurer les goulets d’étranglement avant de sur-architecturer. Ne pas reconstruire prématurément\nl’ensemble pour une échelle hypothétique.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Pagination et tâches disponibles ; tests de charge, goulets mesurés, files et capacité cible non documentés par preuves récentes.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt",
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 42,
+      "page_pdf": 14,
+      "titre": "KILL SWITCH ET ROLLBACK",
+      "exigences_source": "Le Super Admin doit pouvoir arrêter ou désactiver rapidement :\n• un déploiement ;\n \n• une fonctionnalité sous feature flag ;\n \n• une expérimentation ;\n \n• une automatisation ;\n \n• une campagne ;\n \n• Bug Autopilot ;\n \n• Growth Engine.\n \nPrévoir rollback et restauration lorsque techniquement pertinent.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Retour arrière Git possible ; pas de kill switch central pour fonctionnalités, expériences, campagnes et moteurs identifié.",
+      "elements_code_et_tests": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 43,
+      "page_pdf": 14,
+      "titre": "CONFORMITÉ ET DROIT FRANÇAIS",
+      "exigences_source": "Intégrer la conformité dès la conception : RGPD, consentement lorsque nécessaire, droits des\npersonnes, conservation, suppression/export, sous-traitants, cookies, prospection, sécurité, obligations\npertinentes de gestion locative et évolutions réglementaires.\nLes études automatiques ne remplacent pas une validation juridique lorsque celle-ci est nécessaire.",
+      "statut": "Partiel",
+      "priorite": "P0",
+      "constat_et_reste": "Conservation et pages présentes, identité éditeur encore vide. Revue juridique et configuration des sous-traitants non attestées ; aucune certification de conformité.",
+      "elements_code_et_tests": [
+        "app/src/lib/editeur.ts",
+        "app/src/app/confidentialite/page.tsx",
+        "wiki/regles-metier/RGPD.md",
+        "app/src/lib/mfa.ts",
+        "app/src/lib/session-policy.ts",
+        "app/tests/mfa-base.test.ts",
+        "app/tests/signature-supervision-base.test.ts",
+        "app/tests/aucune-fonction-ouverte-a-anon.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 44,
+      "page_pdf": 14,
+      "titre": "TRANSPARENCE",
+      "exigences_source": "Gerimmo ne doit jamais prétendre savoir sans données.\nDistinguer clairement :\nDONNÉE MESURÉE / ESTIMATION / HYPOTHÈSE / RECOMMANDATION / DÉCISION HUMAINE / DÉCISION\nAUTOMATIQUE.\nToute décision importante doit être explicable.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Valeurs manquantes signalées dans plusieurs modules ; score territorial transforme encore des valeurs inconnues en zéro, sans confiance agrégée explicite.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts",
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 45,
+      "page_pdf": 14,
+      "titre": "RÔLE PERMANENT DE CODEX",
+      "exigences_source": "Après la V1, Codex ne doit pas seulement attendre des demandes manuelles.\nLorsque les outils et permissions le permettent, il doit aider à :\n• détecter et corriger les bugs ;\n \n• maintenir les tests ;\n \n\n• analyser les User Signals ;\n \n• proposer des améliorations ;\n \n• implémenter les changements autorisés ;\n \n• mesurer leurs résultats ;\n \n• maintenir la documentation ;\n \n• surveiller la dette technique ;\n \n• préparer les évolutions nécessaires à la croissance.\n \nToute action reste soumise aux niveaux d’autonomie et garde-fous précédents.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Capteurs et support existants ; supervision permanente et boucle de maintenance autorisée non configurées de bout en bout.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 46,
+      "page_pdf": 15,
+      "titre": "DÉFINITION DE « GERIMMO AUTONOME »",
+      "exigences_source": "Gerimmo autonome ne signifie pas Gerimmo sans contrôle.\nCela signifie que le système peut progressivement :\nOBSERVER ; MESURER ; ÉTUDIER ; APPRENDRE ; PROPOSER ; DÉVELOPPER ; TESTER ; CORRIGER ;\nDÉPLOYER DANS LES LIMITES AUTORISÉES ; MESURER LES RÉSULTATS ; IDENTIFIER LES PROCHAINES\nOPPORTUNITÉS.\nIl sollicite l’humain lorsqu’une décision comporte un risque, une dépense, une conséquence juridique,\nune action irréversible, une modification sensible des données/droits ou une décision stratégique\nmajeure.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Autonomie partielle des tâches métier ; système complet d'apprentissage et d'action contrôlée absent.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 47,
+      "page_pdf": 15,
+      "titre": "ORDRE D’EXÉCUTION IMMÉDIAT POUR CODEX",
+      "exigences_source": "Ne tente pas de construire les 47 sections simultanément.\nOrdre obligatoire :\nÉTAPE 1 — AUDIT\nExplorer le dépôt, la documentation, les migrations, les tests, l’historique et l’infrastructure. Produire\nl’état des lieux P0/P1/P2/P3.\nÉTAPE 2 — PLAN V1\nDéfinir précisément ce qui manque pour une V1 réellement exploitable.\nÉTAPE 3 — P0/P1\nCorriger d’abord les blocages production et les fonctions indispensables.\nÉTAPE 4 — TESTS ET SÉCURITÉ\nValider rôles, permissions, données, parcours critiques, sauvegardes et sécurité.\nÉTAPE 5 — PRODUCTION\nPréparer et effectuer le déploiement lorsque les autorisations nécessaires sont disponibles. Tester la\nproduction réelle.\nÉTAPE 6 — INSTRUMENTATION\nMettre en place les métriques indispensables pour comprendre l’utilisation réelle.\n\n\nÉTAPE 7 — PREMIERS UTILISATEURS\nCommencer l’acquisition des propriétaires bailleurs selon les canaux validés.\nÉTAPE 8 — APPRENTISSAGE\nCollecter User Signals, bugs, conversion, rétention et retours.\nÉTAPE 9 — AUTONOMIE PROGRESSIVE\nConstruire Control Center, Founder Brief, jauges, études, Bug Autopilot et boucle Codex\nprogressivement, selon la valeur réelle.\nÉTAPE 10 — EXPANSION\nÉtudier puis développer les territoires sur la base des données.\nNe transforme jamais la vision long terme en excuse pour retarder le lancement.\n\n\nOBJECTIF FINAL\nConstruire progressivement GERIMMO FRANCE : une plateforme nationale rentable, scalable,\nsécurisée, conforme, continuellement améliorée et utilisée par un nombre croissant de propriétaires,\nlocataires, artisans et agences immobilières.\nLa priorité immédiate reste néanmoins simple :\nTERMINER GERIMMO → LE TESTER → LE SÉCURISER → LE METTRE EN PRODUCTION → OBTENIR DE\nVRAIS UTILISATEURS → APPRENDRE → AMÉLIORER → GRANDIR.\n\n\nV3 — SPÉCIFICATION PRODUIT APPROFONDIE\nLes sections suivantes complètent intégralement les V1/V2 ci-dessus.",
+      "statut": "Consigne appliquée à ce lot",
+      "priorite": "P1",
+      "constat_et_reste": "Audit et plan V1 avant développement avancé ; corrections du lot limitées au périmètre et aux défauts vérifiables.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt",
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 48,
+      "page_pdf": 18,
+      "titre": "PRINCIPE DIRECTEUR",
+      "exigences_source": "Gerimmo reste d’abord un produit immobilier. IA, Codex, automatisation, études et croissance servent\ncette mission.\nGESTION LOCATIVE EXCELLENTE → SATISFACTION → RÉTENTION → MONÉTISATION → CROISSANCE\nRENTABLE → AUTOMATISATION.",
+      "statut": "Consigne appliquée à ce lot",
+      "priorite": "P1",
+      "constat_et_reste": "Priorité à la gestion locative ; pas de reconstruction ni de moteur de croissance développé au détriment de la V1 dans ce lot.",
+      "elements_code_et_tests": [
+        "app/src/app/agence/[orgId]",
+        "app/src/lib/import-parc.ts",
+        "app/tests/import-parc.test.ts",
+        "app/tests/portefeuille-lecture.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 49,
+      "page_pdf": 18,
+      "titre": "GERIMMO BRAIN",
+      "exigences_source": "Créer une couche d’orchestration réunissant santé produit, bugs, User Signals, performances\ncommerciales, incidents, churn, acquisition, rentabilité, territoires, concurrence, dette technique et\nconformité.\nLe Brain produit constats, hypothèses, recommandations, priorités et tâches traçables. Il ne contourne\njamais les niveaux d’autonomie.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de couche Brain intégrant signaux produit, business, territoires, conformité et tâches traçables identifiée.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 50,
+      "page_pdf": 18,
+      "titre": "MOTEUR PROPRIÉTAIRE BAILLEUR",
+      "exigences_source": "Espace unique pour biens/lots, occupants, baux, loyers/charges, échéances, documents, incidents,\ninterventions, artisans, dépenses, alertes, historique et communications.\nLe tableau de bord répond d’abord à : Que dois-je faire aujourd’hui ? Qu’est-ce qui est en retard ?\nQu’est-ce qui nécessite mon attention ?",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Espace propriétaire autonome présent. Pour le propriétaire géré par agence, seules la fiche mandant et les données de mandat existent ; aucun portail accessible identifié. Définir et implémenter la consultation de son patrimoine/rapports/documents et ses échanges, avec autorisations limitées à ses propres dossiers, puis tester séparément.",
+      "elements_code_et_tests": [
+        "app/src/app/agence/[orgId]/accueil-proprietaire.tsx",
+        "app/src/lib/navigation-espace.ts",
+        "app/tests/navigation-espace.test.ts",
+        "app/src/app/actions/loyers.ts",
+        "app/src/lib/quittancement-du-mois.ts",
+        "app/tests/cycle-mensuel.test.ts",
+        "app/tests/cron-relances-route.test.ts",
+        "app/src/app/espaces/page.tsx",
+        "app/src/app/agence/[orgId]/mandats/page.tsx",
+        "app/supabase/migrations/20260727_socle_identite_isolation.sql"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 51,
+      "page_pdf": 18,
+      "titre": "MOTEUR AGENCE IMMOBILIÈRE",
+      "exigences_source": "Structure cible :\nAGENCE → COLLABORATEURS → PROPRIÉTAIRES MANDANTS → IMMEUBLES/BIENS/LOTS → LOCATIONS\n→ LOCATAIRES → LOYERS/CHARGES → DOCUMENTS → INCIDENTS → ARTISANS → REPORTING.\nPrévoir rôles internes, permissions fines, affectation de portefeuille, vues filtrées, import, actions en\nmasse sécurisées, historique, reporting et migration/onboarding d’un portefeuille existant.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Structure, rôles, affectation, import et reporting présents ; traitements en masse et migration de portefeuille réel à éprouver.",
+      "elements_code_et_tests": [
+        "app/src/app/agence/[orgId]",
+        "app/src/lib/import-parc.ts",
+        "app/tests/import-parc.test.ts",
+        "app/tests/portefeuille-lecture.test.ts",
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 52,
+      "page_pdf": 18,
+      "titre": "PORTAIL LOCATAIRE",
+      "exigences_source": "Le locataire peut consulter sa location, recevoir/déposer documents, accéder au bail et documents\nautorisés, recevoir quittances/communications, déclarer/suivre incident, échanger et organiser\nrendez-vous.\nNe jamais exposer de données internes ou appartenant à d’autres utilisateurs.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Portail, bail/documents, loyers, incidents et rendez-vous présents ; échanges et invitations réels restant à valider jusqu'au destinataire.",
+      "elements_code_et_tests": [
+        "app/src/app/locataire",
+        "app/tests/mes-documents-locataire.test.ts",
+        "app/e2e/parcours-locataire.spec.ts",
+        "app/src/lib/incidents.ts",
+        "app/src/app/locataire/[orgId]/reflexes-urgence.tsx",
+        "app/tests/sprint7-locataire-intervention.test.ts",
+        "app/tests/sprint7-artisans.test.ts",
+        "app/src/lib/messagerie.ts",
+        "app/src/app/agence/[orgId]/messages",
+        "app/src/lib/email.ts",
+        "app/supabase/templates"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 53,
+      "page_pdf": 18,
+      "titre": "MOTEUR DOCUMENTAIRE",
+      "exigences_source": "Distinguer documents reçus, demandés, manquants, générés, expirés, remplacés/archivés et modèles.\nGérer type, propriétaire, logement/location associé, version, date, statut, échéance, droits, origine et\nhistorique.\nRéutiliser les données déjà connues. Ne jamais inventer une donnée manquante.\n\n\n--- PAGE 19 ---\nGERIMMO - Cahier des charges maître V3\nPage 19",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "GED, types, rattachements, versions et pièces demandées présents ; transitions de tous statuts et provenance à recetter intégralement.",
+      "elements_code_et_tests": [
+        "app/src/lib/documents",
+        "app/src/app/actions/documents-generes.ts",
+        "app/tests/catalogue-conformite-v3.test.ts",
+        "app/tests/catalogue-api.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 54,
+      "page_pdf": 19,
+      "titre": "GÉNÉRATION DE DOCUMENTS",
+      "exigences_source": "DONNÉES SOURCE → VALIDATION → GÉNÉRATION → PRÉVISUALISATION SI NÉCESSAIRE →\nVALIDATION/SIGNATURE SELON CAS → ARCHIVAGE → DISTRIBUTION → HISTORIQUE.\nVersionner les modèles. Un nouveau modèle ne modifie jamais rétroactivement un document finalisé.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Génération et archivage présents ; prévisualisation/signature/distribution selon chaque document à valider. Yousign non identifié comme intégration opérationnelle.",
+      "elements_code_et_tests": [
+        "app/src/lib/documents",
+        "app/src/app/actions/documents-generes.ts",
+        "app/tests/catalogue-conformite-v3.test.ts",
+        "app/tests/catalogue-api.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 55,
+      "page_pdf": 19,
+      "titre": "MOTEUR LOYERS, CHARGES ET IMPAYÉS",
+      "exigences_source": "Vue chronologique : loyer attendu, montant, échéance, statut, réception, quittance, retard, impayé,\nrégularisation, historique.\nEmpêcher doublons et états incohérents autant que possible.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Chronologie et contrôles SQL présents ; doubles actions, états incohérents et erreurs à compléter par les parcours navigateur réels.",
+      "elements_code_et_tests": [
+        "app/src/app/actions/loyers.ts",
+        "app/src/lib/quittancement-du-mois.ts",
+        "app/tests/cycle-mensuel.test.ts",
+        "app/tests/cron-relances-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 56,
+      "page_pdf": 19,
+      "titre": "MOTEUR INCIDENTS",
+      "exigences_source": "Chaque incident possède : déclarant, bien/location, catégorie, description, pièces éventuelles,\nurgence, statut, responsable, artisan, devis, rendez-vous, échanges, coût, historique et clôture.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Objet incident riche et transitions présentes ; chaîne complète et historique à vérifier pour chaque rôle et erreur.",
+      "elements_code_et_tests": [
+        "app/src/lib/incidents.ts",
+        "app/src/app/locataire/[orgId]/reflexes-urgence.tsx",
+        "app/tests/sprint7-locataire-intervention.test.ts",
+        "app/tests/sprint7-artisans.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 57,
+      "page_pdf": 19,
+      "titre": "RÉSEAU ARTISANS",
+      "exigences_source": "Gerimmo construit un réseau utile, pas seulement un annuaire : identité professionnelle, métiers,\nzone, disponibilité, interventions, devis, délais, performance/retours appropriés et historique.\nLe matching peut considérer métier, zone, disponibilité, performance passée et contraintes du dossier,\nsans discrimination illégitime.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Missions, pièces professionnelles, disponibilités et retours présents ; matching/couverture locale complète non démontrés.",
+      "elements_code_et_tests": [
+        "app/src/app/artisan",
+        "app/src/app/agence/[orgId]/artisans",
+        "app/tests/sprint7-artisans.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 58,
+      "page_pdf": 19,
+      "titre": "DEVIS ET PRIX DE RÉFÉRENCE",
+      "exigences_source": "Toujours distinguer PRIX DE RÉFÉRENCE / ESTIMATION GERIMMO / DEVIS ARTISAN.\nL’artisan conserve la maîtrise de son devis final.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Devis déposés par artisans ; distinction systématique référence/estimation/devis et règles d'accès à recetter.",
+      "elements_code_et_tests": [
+        "app/src/app/artisan",
+        "app/src/app/agence/[orgId]/artisans",
+        "app/tests/sprint7-artisans.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 59,
+      "page_pdf": 19,
+      "titre": "MESSAGERIE ET NOTIFICATIONS",
+      "exigences_source": "Centraliser les échanges utiles. Chaque notification possède déclencheur, destinataire, priorité, statut,\ndate et lien vers l’action.\nÉviter doublons et bruit.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Messagerie et envois présents ; statuts de livraison réels, rebonds, doublons et bruit à valider avec prestataires.",
+      "elements_code_et_tests": [
+        "app/src/lib/messagerie.ts",
+        "app/src/app/agence/[orgId]/messages",
+        "app/src/lib/email.ts",
+        "app/supabase/templates"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 60,
+      "page_pdf": 19,
+      "titre": "AGENDA ET ALERTES",
+      "exigences_source": "Regrouper rendez-vous, échéances, loyers, documents, interventions, tâches et alertes. Chaque alerte\ndoit conduire vers l’action pertinente.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Rendez-vous, échéances et alertes présents ; toutes les destinations et états de traitement à recetter.",
+      "elements_code_et_tests": [
+        "app/src/lib/agenda-gestion.ts",
+        "app/src/lib/chemin-alerte.ts",
+        "app/tests/agenda-gestion.test.ts",
+        "app/tests/chemin-alerte.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 61,
+      "page_pdf": 19,
+      "titre": "COMPTABILITÉ ET FISCALITÉ",
+      "exigences_source": "Organiser revenus locatifs, charges, dépenses, justificatifs, catégories, exports, synthèses et données\nnécessaires aux démarches comptables/fiscales selon le périmètre.\nNe pas prétendre remplacer un professionnel réglementé lorsque ce n’est pas approprié.\nVersionner/sourcer les règles évolutives.\n\n\n--- PAGE 20 ---\nGERIMMO - Cahier des charges maître V3\nPage 20",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Écritures, exports, synthèses et aide fiscale présentes ; complétude par régime et règles évolutives non certifiée.",
+      "elements_code_et_tests": [
+        "app/src/lib/fiscal.ts",
+        "app/src/app/agence/[orgId]/comptabilite",
+        "app/src/lib/documents/modeles/facture-honoraires.ts",
+        "app/tests/facture-honoraires-base.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 62,
+      "page_pdf": 20,
+      "titre": "RECHERCHE GLOBALE",
+      "exigences_source": "Recherche autorisée sur personnes, biens, lots, locations, documents, incidents, artisans, paiements et\nagences. Respect strict des permissions.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Recherche actuelle : logements, personnes et baux. Documents, incidents, artisans, paiements et agences ne figurent pas dans cette recherche globale.",
+      "elements_code_et_tests": [
+        "app/src/app/actions/recherche-espace.ts",
+        "app/src/components/recherche-espace.tsx",
+        "app/tests/recherche-espace.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 63,
+      "page_pdf": 20,
+      "titre": "AUDIT LOG",
+      "exigences_source": "Tracer qui, quoi, quand, objet, ancienne/nouvelle valeur lorsque pertinent, origine\nhumaine/automatique, contexte et résultat.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Audit/tech log présents ; exhaustivité qui/quoi/avant/après/origine/contexte/résultat pour toutes actions non démontrée.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/journaux",
+        "app/src/lib/tache.ts",
+        "app/src/lib/retours.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 64,
+      "page_pdf": 20,
+      "titre": "SUPER ADMIN — ULTIMATE CONTROL CENTER",
+      "exigences_source": "Le fondateur dispose du plus haut niveau d’administration avec garde-fous.\nIl peut selon permissions : gérer utilisateurs/rôles/agences, superviser tenants, rechercher dossiers,\nimpersoner pour support, suspendre/réactiver lorsque prévu, gérer feature flags, consulter\nlogs/erreurs, métriques business/produit, études, expansion, actions Codex, approuver Niveau 3,\nutiliser kill switches et piloter rollback.\nLes opérations destructives exigent confirmation renforcée et audit.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Gestion/support et supervision présents ; flags, décisions niveau 3, métriques business, études, rollback centralisés manquent.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx",
+        "app/src/lib/mfa.ts",
+        "app/src/lib/session-policy.ts",
+        "app/tests/mfa-base.test.ts",
+        "app/tests/signature-supervision-base.test.ts",
+        "app/tests/aucune-fonction-ouverte-a-anon.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 65,
+      "page_pdf": 20,
+      "titre": "SÉCURITÉ DU SUPER ADMIN",
+      "exigences_source": "Authentification forte, MFA lorsque disponible, sessions sécurisées, réauthentification critique,\njournalisation exhaustive, alertes sensibles, moindre privilège pour autres admins et récupération\ncontrôlée.",
+      "statut": "Partiel",
+      "priorite": "P0",
+      "constat_et_reste": "MFA obligatoire supervision et tests d'isolation présents ; récupération, réauthentification de toutes actions critiques et alertes sensibles à éprouver.",
+      "elements_code_et_tests": [
+        "app/src/lib/mfa.ts",
+        "app/src/lib/session-policy.ts",
+        "app/tests/mfa-base.test.ts",
+        "app/tests/signature-supervision-base.test.ts",
+        "app/tests/aucune-fonction-ouverte-a-anon.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 66,
+      "page_pdf": 20,
+      "titre": "GERIMMO SUPPORT",
+      "exigences_source": "Centraliser, classifier et dédupliquer les demandes ; suggérer réponses ; détecter bugs probables ;\ncréer tâches techniques ; suivre résolution ; mesurer délais/satisfaction. Escalader l’incertain ou\nsensible.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Classification, réponse, regroupement et suivi présents ; suggestion, création automatique de tâches et mesures délais/satisfaction incomplètes.",
+      "elements_code_et_tests": [
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 67,
+      "page_pdf": 20,
+      "titre": "OBSERVABILITÉ",
+      "exigences_source": "Surveiller disponibilité, erreurs, latence, jobs, e-mails, génération documentaire, stockage, base, files,\nservices externes, taux d’erreur par version et parcours critiques.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Santé, logs et dernières tâches présents ; latence, files, erreurs par version et surveillance réelle de chaque service à compléter.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 68,
+      "page_pdf": 20,
+      "titre": "AUTO-DIAGNOSTIC",
+      "exigences_source": "SIGNAL → CORRÉLATION → REPRODUCTION → HYPOTHÈSE → PREUVES → CORRECTIF PROPOSÉ →\nTESTS → ACTION SELON AUTONOMIE.\nNe jamais masquer une erreur uniquement pour faire disparaître l’alerte.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Signaux et erreurs centralisés partiellement ; corrélation automatique, reproduction et hypothèses avec preuves non complètes.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 69,
+      "page_pdf": 20,
+      "titre": "AUTO-AMÉLIORATION",
+      "exigences_source": "Toute amélioration doit avoir problème, population concernée, métrique de référence, hypothèse,\ncoût, risque, résultat attendu, critère de succès et résultat réel.\nUne amélioration dégradant significativement les métriques essentielles doit pouvoir être\nstoppée/annulée.\n\n\n--- PAGE 21 ---\nGERIMMO - Cahier des charges maître V3\nPage 21",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Corrections tracées ; métrique initiale, population, coût/risque et mesure après changement pas systématisés.",
+      "elements_code_et_tests": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 70,
+      "page_pdf": 21,
+      "titre": "GROWTH CENTER",
+      "exigences_source": "Créer un espace comparant SEO, contenu, Facebook, Instagram, autres réseaux pertinents, Google,\npartenariats, communautés, parrainage et acquisition payante validée.\nNe jamais déclarer un canal gagnant sans données.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de Growth Center comparant canaux, coût et résultats réels identifié.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts",
+        "app/src/app/admin/publications",
+        "app/src/app/journal",
+        "app/tests/publications.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 71,
+      "page_pdf": 21,
+      "titre": "RÉSEAUX SOCIAUX",
+      "exigences_source": "Gerimmo peut proposer sujets, brouillons, calendrier éditorial, formats par plateforme, suivi des\nperformances et attribution contenu → visite → inscription → activation → revenu lorsque mesurable.\nPublication automatique uniquement via intégrations officielles/autorisées. Pas de faux comptes, spam\nou manipulation.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Propositions et publications du journal présentes ; calendrier multi-réseaux, API officielles et attribution non identifiés.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/publications",
+        "app/src/app/journal",
+        "app/tests/publications.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 72,
+      "page_pdf": 21,
+      "titre": "FACEBOOK / INSTAGRAM",
+      "exigences_source": "Ne pas figer la stratégie. Tester Facebook pour communautés/contenus/acquisition autorisée,\nInstagram pour marque/pédagogie/formats visuels, et d’autres canaux si leurs résultats sont meilleurs.\nComparer portée, leads, activation, conversion, CAC, LTV et rétention.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de comparateur d'expériences Facebook/Instagram avec portée, leads, CAC/LTV et rétention identifié.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/publications",
+        "app/src/app/journal",
+        "app/tests/publications.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 73,
+      "page_pdf": 21,
+      "titre": "SEO ET CONTENU",
+      "exigences_source": "Créer du contenu utile autour des problèmes réels des bailleurs, locataires, artisans et agences.\nPrioriser exactitude et qualité. Mesurer trafic qualifié, activation, conversion et revenus attribuables.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Journal et contenu utile présents ; attribution trafic qualifié → activation → revenus à développer et mesurer.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/publications",
+        "app/src/app/journal",
+        "app/tests/publications.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 74,
+      "page_pdf": 21,
+      "titre": "MONÉTISATION",
+      "exigences_source": "Étudier abonnements propriétaires, offres agences, services additionnels et autres modèles légitimes\ncompatibles avec Gerimmo.\nTout changement significatif de prix/modèle nécessite validation humaine.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Abonnements présents ; études de monétisation tracées non complètes. Aucun changement de prix ou paiement déclenché dans ce lot.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 75,
+      "page_pdf": 21,
+      "titre": "ÉCONOMIE UNITAIRE",
+      "exigences_source": "Afficher revenu et marge par segment, CAC, LTV, churn, coût support, infrastructure, IA, payback et\ncontribution des services lorsque mesurable.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de tableau consolidant marge, CAC/LTV, coûts support/infra/IA et payback par segment identifié.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 76,
+      "page_pdf": 21,
+      "titre": "OBJECTIF FINANCIER",
+      "exigences_source": "Maximiser durablement la valeur économique de Gerimmo en améliorant acquisition, activation,\nconversion, rétention, revenu/client, marge et efficacité opérationnelle.\nNe jamais rechercher le revenu court terme au prix de pratiques trompeuses, d’une dégradation\nmajeure de la confiance, sécurité ou conformité.",
+      "statut": "Non vérifié",
+      "priorite": "P3",
+      "constat_et_reste": "Objectif économique adopté ; amélioration durable de marge/rétention et coûts non démontrée par données réelles.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 77,
+      "page_pdf": 21,
+      "titre": "EXPANSION VILLE PAR VILLE",
+      "exigences_source": "Pour chaque zone : marché locatif, densité, acquisition propriétaires, artisans nécessaires, agences,\nconcurrence, coûts, revenus, support, maturité réseau et risques.\nLes passages ÉTUDE → TEST → ACTIF → DENSIFICATION → ACCÉLÉRATION doivent être justifiés.\n\n\n--- PAGE 22 ---\nGERIMMO - Cahier des charges maître V3\nPage 22",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Départements et marché présents ; états et critères d'activation ville par ville avec capacité artisan et économie incomplets.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 78,
+      "page_pdf": 22,
+      "titre": "PLAYBOOK D’OUVERTURE D’UNE VILLE",
+      "exigences_source": "1. étude ;\n \n2. hypothèses ;\n \n3. objectif mesurable ;\n \n4. acquisition pilote propriétaires ;\n \n5. activation/rétention ;\n \n6. besoins artisans ;\n \n7. recrutement ciblé artisans ;\n \n8. couverture ;\n \n9. approche agences quand les preuves sont suffisantes ;\n \n10. arrêter, maintenir, densifier ou accélérer.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de playbook applicatif d'ouverture de ville avec les dix étapes et décisions justifiées identifié.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 79,
+      "page_pdf": 22,
+      "titre": "RÉPLICATION NATIONALE",
+      "exigences_source": "Répliquer les playbooks gagnants uniquement après vérification de la comparabilité locale.",
+      "statut": "Non vérifié",
+      "priorite": "P3",
+      "constat_et_reste": "Aucun playbook gagnant répliqué avec comparabilité locale démontrée.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 80,
+      "page_pdf": 22,
+      "titre": "SCALABILITÉ ÉCONOMIQUE ET OPÉRATIONNELLE",
+      "exigences_source": "Suivre le ratio croissance/charge humaine. Automatiser les tâches répétitives et réserver l’humain aux\nexceptions, décisions et relations à forte valeur.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Automatismes récurrents présents ; ratio croissance/charge humaine et coût des exceptions non mesurés.",
+      "elements_code_et_tests": [
+        "app/src/app/actions/loyers.ts",
+        "app/src/lib/quittancement-du-mois.ts",
+        "app/tests/cycle-mensuel.test.ts",
+        "app/tests/cron-relances-route.test.ts",
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 81,
+      "page_pdf": 22,
+      "titre": "ARCHITECTURE ÉVOLUTIVE",
+      "exigences_source": "Faire évoluer selon les métriques : traitements asynchrones, files de tâches, idempotence,\nobservabilité, stockage scalable, sauvegardes/restauration, limitation de débit, résilience services\nexternes et séparation des responsabilités.\nÉviter la sur-architecture prématurée.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Tâches, limites, stockage et certains traitements idempotents présents ; charge, files et restauration bout en bout non prouvées.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt",
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "wiki/regles-metier/Plan de reprise d'activité.md",
+        "app/src/lib/edl-brouillon.ts",
+        "app/tests/edl-brouillon.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 82,
+      "page_pdf": 22,
+      "titre": "FEATURE FLAGS ET EXPÉRIMENTATION",
+      "exigences_source": "Les changements expérimentaux peuvent être activés par population/territoire. Conserver population,\nversion, métriques avant/après, date, résultat et décision.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de registre de flags/expériences par population/territoire avec métriques avant/après et décision identifié.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 83,
+      "page_pdf": 22,
+      "titre": "QUALITÉ DES DONNÉES",
+      "exigences_source": "Mettre en place validations, contraintes, détection doublons, cohérence, provenance, gestion des\nvaleurs manquantes et métriques de qualité.\nNe jamais transformer une donnée incomplète en certitude.",
+      "statut": "Partiel",
+      "priorite": "P1",
+      "constat_et_reste": "Contraintes et valeurs manquantes présentes ; métriques globales de qualité, déduplication et provenance complète à compléter.",
+      "elements_code_et_tests": [
+        "app/src/lib/documents",
+        "app/src/app/actions/documents-generes.ts",
+        "app/tests/catalogue-conformite-v3.test.ts",
+        "app/tests/catalogue-api.test.ts",
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts",
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 84,
+      "page_pdf": 22,
+      "titre": "IA ET TRAÇABILITÉ",
+      "exigences_source": "Pour les fonctions IA importantes, conserver objectif, données utilisées, version/configuration, résultat,\nconfiance, action déclenchée et validation humaine éventuelle.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Propositions éditoriales traçables partiellement ; registre commun des objectifs/données/version/confiance/action/validation pour IA non complet.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/publications",
+        "app/src/app/journal",
+        "app/tests/publications.test.ts",
+        "app/src/app/admin/journaux",
+        "app/src/lib/tache.ts",
+        "app/src/lib/retours.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 85,
+      "page_pdf": 22,
+      "titre": "VIE PRIVÉE PAR CONCEPTION",
+      "exigences_source": "Minimiser la collecte, limiter les accès, gérer conservation, exports, documents et droits des\npersonnes. L’autonomie ne justifie jamais une collecte excessive.\n\n\n--- PAGE 23 ---\nGERIMMO - Cahier des charges maître V3\nPage 23",
+      "statut": "Partiel",
+      "priorite": "P0",
+      "constat_et_reste": "RLS, conservation, export et anonymisation présents ; exercice des droits et sous-traitants réels à valider.",
+      "elements_code_et_tests": [
+        "app/src/lib/editeur.ts",
+        "app/src/app/confidentialite/page.tsx",
+        "wiki/regles-metier/RGPD.md",
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 86,
+      "page_pdf": 23,
+      "titre": "RÉSILIENCE",
+      "exigences_source": "Prévoir sauvegardes testées, restauration testée, procédures incident, rollback, dépendances\ncritiques, modes dégradés lorsque pertinent et communication incident.",
+      "statut": "Partiel",
+      "priorite": "P0",
+      "constat_et_reste": "PRA et brouillons hors ligne présents ; restauration réelle, rollback opérationnel et communication incident non éprouvés dans cet audit.",
+      "elements_code_et_tests": [
+        "wiki/regles-metier/Plan de reprise d'activité.md",
+        "app/src/lib/edl-brouillon.ts",
+        "app/tests/edl-brouillon.test.ts",
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 87,
+      "page_pdf": 23,
+      "titre": "TABLEAU « HUMAIN REQUIS »",
+      "exigences_source": "Chaque décision bloquée doit montrer : décision, raison, urgence, données, recommandation,\nalternatives, conséquences d’attendre et action exacte attendue de moi.",
+      "statut": "Absent identifié",
+      "priorite": "P2",
+      "constat_et_reste": "Pas de tableau de décisions bloquées réunissant urgence, données, options, conséquences d'attendre et action attendue identifié.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 88,
+      "page_pdf": 23,
+      "titre": "AUTONOMIE RÉELLE MAIS CONTRÔLÉE",
+      "exigences_source": "Gerimmo doit tendre vers une entreprise numérique très automatisée.\nIl peut observer, mesurer, étudier, apprendre, proposer, développer, tester, corriger, déployer dans les\nlimites autorisées, mesurer et recommencer.\nIl ne doit jamais s’octroyer lui-même de nouveaux privilèges ou supprimer les garde-fous qui le\ncontrôlent.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Garde-fous appliqués au travail et aux accès ; entreprise numérique autonome contrôlée non complète.",
+      "elements_code_et_tests": [
+        "app/src/lib/mfa.ts",
+        "app/src/lib/session-policy.ts",
+        "app/tests/mfa-base.test.ts",
+        "app/tests/signature-supervision-base.test.ts",
+        "app/tests/aucune-fonction-ouverte-a-anon.test.ts",
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 89,
+      "page_pdf": 23,
+      "titre": "GERIMMO WATCH",
+      "exigences_source": "Créer une fonction de surveillance transverse regroupant santé technique, sécurité, incidents,\nmétriques critiques, dépendances et anomalies business.\nGerimmo Watch alimente Bug Autopilot, Brain et Founder Brief.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Santé et journaux amorcent Watch ; corrélation transverse technique/sécurité/business et liaison aux autres moteurs absentes.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 90,
+      "page_pdf": 23,
+      "titre": "GERIMMO DEV",
+      "exigences_source": "Codex constitue le moteur de développement. Son backlog doit être issu de P0/P1, User Signals,\nétudes, dette technique, sécurité et Growth Engine.\nLe backlog doit rester visible et priorisé.",
+      "statut": "Partiel",
+      "priorite": "P2",
+      "constat_et_reste": "Bugs/retours et GitHub présents ; backlog applicatif unifié et priorisé depuis toutes sources manquant.",
+      "elements_code_et_tests": [
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance",
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 91,
+      "page_pdf": 23,
+      "titre": "GERIMMO LAB",
+      "exigences_source": "Centraliser expérimentations produit/business : hypothèse, protocole, population, métrique, durée,\nrésultat, décision et apprentissage.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de Lab centralisant hypothèse, protocole, population, durée, métriques et apprentissage identifié.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 92,
+      "page_pdf": 23,
+      "titre": "GERIMMO EXPANSION",
+      "exigences_source": "Centraliser études territoriales, Expansion Scores, playbooks, couverture artisans, acquisition\npropriétaires/agences et décisions d’ouverture.",
+      "statut": "Partiel",
+      "priorite": "P3",
+      "constat_et_reste": "Empreinte et recommandation existent ; études, playbooks, couverture et décisions d'ouverture restent incomplets.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 93,
+      "page_pdf": 23,
+      "titre": "GERIMMO GROWTH",
+      "exigences_source": "Centraliser acquisition, activation, conversion, rétention, revenus, attribution et expériences de\ncroissance.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de moteur unifié d'acquisition/activation/rétention/revenus/attribution et expériences identifié.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 94,
+      "page_pdf": 23,
+      "titre": "INTERACTION ENTRE LES MOTEURS",
+      "exigences_source": "WATCH détecte.\nBRAIN analyse/priorise.\nLAB teste les hypothèses.\nDEV/CODEX développe.\n\n\nGROWTH mesure la croissance.\nEXPANSION pilote le territoire.\nSUPPORT capte la voix utilisateur.\nCONTROL CENTER donne au fondateur visibilité et contrôle.\nAucun moteur ne contourne les permissions ou validations.",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Les briques existantes ne forment pas la chaîne Watch → Brain → Lab → Dev → Growth → Expansion contrôlée décrite.",
+      "elements_code_et_tests": [
+        "app/src/lib/sante-service.ts",
+        "app/src/lib/tache.ts",
+        "app/src/app/api/sante/route.ts",
+        "app/tests/sante-service.test.ts",
+        "app/tests/sante-route.test.ts",
+        "app/src/lib/retours.ts",
+        "app/src/app/admin/retours",
+        "app/src/app/assistance",
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 95,
+      "page_pdf": 24,
+      "titre": "PRIORITÉ AUX VRAIS UTILISATEURS",
+      "exigences_source": "Après la V1, ne pas passer des mois à construire ces moteurs avant d’acquérir des utilisateurs.\nConstruire l’autonomie par étapes en fonction de problèmes réels et de données réelles.",
+      "statut": "Consigne appliquée à ce lot",
+      "priorite": "P1",
+      "constat_et_reste": "Priorité V1 et problèmes réels maintenue ; acquisition de vrais utilisateurs encore à constater.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 96,
+      "page_pdf": 24,
+      "titre": "DEFINITION OF DONE — PRODUIT MATURE",
+      "exigences_source": "Gerimmo mature doit pouvoir gérer de bout en bout les principales opérations locatives de ses cibles,\navec sécurité, observabilité, documents, incidents, artisans, loyers, portefeuilles agences, support et\npilotage.\nL’autonomie doit réduire le travail répétitif sans rendre le système incontrôlable.",
+      "statut": "Non vérifié",
+      "priorite": "P1",
+      "constat_et_reste": "Critères produit mature non atteints par les preuves réunies ; ne pas confondre existence du code et exploitation complète.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt",
+        "app/src/lib/espace.ts",
+        "app/src/lib/portefeuille.ts",
+        "app/tests/rpc-etancheite-inter-agences.test.ts",
+        "app/tests/api-isolation.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 97,
+      "page_pdf": 24,
+      "titre": "DEFINITION OF DONE — CROISSANCE",
+      "exigences_source": "La croissance n’est pas « beaucoup d’inscriptions ». Elle implique utilisateurs activés, rétention,\nrevenus, marge, satisfaction et coûts maîtrisés.",
+      "statut": "Non vérifié",
+      "priorite": "P3",
+      "constat_et_reste": "Activation, rétention, marge, satisfaction et coût maîtrisé non démontrés ; nombre d'inscrits insuffisant comme preuve.",
+      "elements_code_et_tests": [
+        "app/src/lib/stripe.ts",
+        "app/src/lib/parrainage.ts",
+        "app/src/app/api/stripe/webhook/route.ts",
+        "app/tests/stripe-webhook-route.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 98,
+      "page_pdf": 24,
+      "titre": "DEFINITION OF DONE — EXPANSION",
+      "exigences_source": "La couverture nationale n’est pas un coloriage de carte. Une zone active doit disposer d’utilisateurs\nréels, d’un service opérationnel, d’une couverture suffisante et d’indicateurs économiques suivis.",
+      "statut": "Non vérifié",
+      "priorite": "P3",
+      "constat_et_reste": "Empreinte administrative ne prouve pas service actif ni couverture nationale ; utilisateurs/capacité/économie à mesurer.",
+      "elements_code_et_tests": [
+        "app/src/lib/territoire.ts",
+        "app/src/lib/score-territoire.ts",
+        "app/src/lib/porte-sante.ts",
+        "app/src/app/api/cron/territoire/route.ts",
+        "app/tests/score-territoire.test.ts"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 99,
+      "page_pdf": 24,
+      "titre": "RAPPORT FONDATEUR STRATÉGIQUE",
+      "exigences_source": "Produire périodiquement une synthèse :\n• santé produit ;\n \n• utilisateurs ;\n \n• revenus/marge ;\n \n• acquisition/rétention ;\n \n• problèmes ;\n \n• travaux Codex ;\n \n• expériences ;\n \n• concurrence ;\n \n• expansion ;\n \n• risques ;\n \n• opportunités ;\n \n• décisions humaines nécessaires.\n \n\n--- PAGE 25 ---\nGERIMMO - Cahier des charges maître V3\nPage 25",
+      "statut": "Absent identifié",
+      "priorite": "P3",
+      "constat_et_reste": "Pas de rapport fondateur périodique réunissant santé, marge, acquisition, Codex, expériences, concurrence et décisions identifié.",
+      "elements_code_et_tests": [
+        "app/src/app/admin/page.tsx",
+        "app/src/app/admin/clients",
+        "app/src/app/admin/territoire",
+        "app/src/app/admin/sante/page.tsx"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    },
+    {
+      "section": 100,
+      "page_pdf": 25,
+      "titre": "ORDRE DE MISSION FINAL",
+      "exigences_source": "Ne construis pas tout simultanément.\nOrdre directeur :\n1 AUDITER → 2 TERMINER V1 → 3 TESTER/SÉCURISER → 4 PUBLIER → 5 INSTRUMENTER → 6 ACQUÉRIR\nPROPRIÉTAIRES → 7 APPRENDRE → 8 CORRIGER/AMÉLIORER → 9 DENSIFIER ARTISANS → 10\nDÉVELOPPER AGENCES → 11 AUTOMATISER DAVANTAGE → 12 ÉTENDRE VILLE PAR VILLE → 13\nRÉPLIQUER → 14 GERIMMO FRANCE.",
+      "statut": "Consigne appliquée à ce lot",
+      "priorite": "P1",
+      "constat_et_reste": "Séquence V1 → preuve → production → instrumentation → acquisition → croissance progressive appliquée au présent travail.",
+      "elements_code_et_tests": [
+        "app/package.json",
+        "app/src/app",
+        "app/supabase/migrations",
+        "app/e2e/local/ordre-migrations.txt",
+        ".github/workflows/ci.yml",
+        ".github/workflows/migrations.yml",
+        "app/vercel.json"
+      ],
+      "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
+    }
+  ]
+}

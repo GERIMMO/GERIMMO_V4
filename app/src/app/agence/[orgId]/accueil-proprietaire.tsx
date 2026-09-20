@@ -199,7 +199,7 @@ export async function AccueilProprietaire({
               <p className="text-xs text-muted-foreground">
                 quittances émises à l&apos;encaissement
               </p>
-              <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret mt-3 block text-[13px]">
+              <Link href={`/agence/${orgId}/loyers`} className="lien-discret mt-3 block text-[13px]">
                 Voir mes loyers →
               </Link>
             </div>

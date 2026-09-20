@@ -11,7 +11,6 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   inventaire_entree:[{cle:"date_constat",libelle:"Date du constat",type:"date"}],
   inventaire_sortie:[{cle:"date_constat",libelle:"Date du constat",type:"date"},{cle:"constat",libelle:"Constat du mobilier à la sortie",type:"textarea"}],
   avenant_remplacement:[{cle:"sortant",libelle:"Colocataire sortant"},{cle:"entrant",libelle:"Identité et adresse de l’entrant",type:"textarea"},effet,{cle:"depot",libelle:"Accord relatif au dépôt",type:"textarea"}],
-  bon_visite:[{cle:"visiteur",libelle:"Visiteur"},{cle:"contact",libelle:"Coordonnées du visiteur"},{cle:"rendez_vous",libelle:"Date et heure de visite"},{cle:"representant",libelle:"Personne ayant assuré la visite"}],
   attestation_loyer:[{cle:"destinataire",libelle:"Destinataire"}],
   attestation_caf:[{cle:"destinataire",libelle:"Caisse destinataire"},{cle:"allocataire",libelle:"Numéro allocataire"}],
   regularisation_charges:[consultation],decompte_charges:[consultation],consultation_charges:[consultation],

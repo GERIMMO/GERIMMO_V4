@@ -602,7 +602,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             {planIllisible ? (
               "Une partie de vos informations n'a pas pu être lue."
             ) : toutEnOrdre ? (
-              "Tout est en ordre."
+              "Aucune alerte en attente."
             ) : (
               <>
                 <b>{elementsEnAttente}</b> élément{elementsEnAttente > 1 ? "s" : ""}{" "}
@@ -659,7 +659,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         </Link>
 
         <Link
-          href={`/agence/${orgId}/comptabilite`}
+          href={`/agence/${orgId}/loyers`}
           className={`tuile ${
             erreurAppels || erreurEncaissements
               ? ""
@@ -730,7 +730,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             {planIllisible ? (
               "Gerimmo n'a pas pu lire ce que vous avez à traiter."
             ) : planVide ? (
-              <>Gerimmo n&apos;a <b>rien repéré</b> — tout est en ordre.</>
+              <>Gerimmo ne signale <b>aucune alerte en attente</b>.</>
             ) : (
               <>
                 Gerimmo a repéré <b>{elementsEnAttente} élément{elementsEnAttente > 1 ? "s" : ""}</b>{" "}
@@ -766,9 +766,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         ) : planVide ? (
           <div className="p-4">
             <div className="vide-guide">
-              <p className="titre">Rien ne vous attend ce matin</p>
+              <p className="titre">Aucune action signalée pour ce matin</p>
               <p className="explication">
-                Aucun bail bloqué, aucune alerte confiée, aucun rapport à valider.
+                Aucun bail bloqué, aucune alerte confiée, aucun rapport à valider dans cette liste. Les lots en préparation restent à compléter ci-dessous.
                 Gerimmo pose les alertes tout seul — diagnostic périmé, état des
                 lieux à faire, loyer impayé : elles arriveront ici.
               </p>

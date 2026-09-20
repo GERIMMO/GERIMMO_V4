@@ -16,6 +16,7 @@ export function filtrerCibles<T>(q:T, modele:EntreeCatalogue):T {
   if(id==="avenant_remplacement") r=r.eq("type","colocation").is("chambre_id",null);
   if(id==="prorata") r=r.eq("prorata",true);
   if(id==="rappel_assurance") r=r.eq("type","attestation_assurance").is("purged_at",null);
+  if(["attestation_loyer","attestation_caf"].includes(id)) r=r.in("etat",["actif","preavis"]);
   if(id==="attestation_fin_bail") r=r.eq("etat","termine");
   if(id==="ecriture_rectificative") r=r.not("contre_ecriture_de","is",null);
   if(id==="recap_fiscal_nu" || id==="recap_fiscal_meuble") r=r.eq("meuble",id==="recap_fiscal_meuble");

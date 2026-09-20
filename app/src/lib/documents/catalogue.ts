@@ -202,20 +202,11 @@ export const CATALOGUE_DOCUMENTS: EntreeCatalogue[] = [
     "code": "avenant_remplacement"
   },
   {
-    "id": "bon_visite",
-    "nom": "Bon de visite",
-    "famille": "Entrée et contrat",
-    "cible": "lot",
-    "description": "Logement présenté, visiteur et rendez-vous convenu.",
-    "priorite": "P1",
-    "code": "bon_visite"
-  },
-  {
     "id": "liste_dossier",
     "nom": "Liste des pièces du dossier",
     "famille": "Entrée et contrat",
     "cible": "bail",
-    "description": "Pièces demandées au candidat et statut des dépôts.",
+    "description": "Pièces demandées au locataire retenu et statut des dépôts.",
     "priorite": "P1",
     "code": "liste_dossier"
   },

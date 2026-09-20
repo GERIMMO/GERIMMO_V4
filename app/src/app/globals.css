@@ -2909,3 +2909,32 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   .loc-corps .entete-page,
   .portail-ecrans .entete-page { padding: 16px; }
 }
+
+/* Repère photographique discret dans chaque espace : le bleu reste la couleur
+   dominante, et les titres/actions conservent leur propre surface lisible. */
+.repere-visuel {
+  height: 66px;
+  flex: none;
+  margin: 14px 24px 0;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--marque) 22%, transparent);
+  background-image:
+    linear-gradient(90deg, var(--encre) 0%, rgba(28, 63, 184, .93) 43%, rgba(36, 87, 245, .2) 100%),
+    url('/illustrations/interieur-gerimmo-2026.jpg');
+  background-position: center, center 48%;
+  background-size: cover;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--encre) 13%, transparent);
+}
+.repere-visuel-artisan {
+  width: min(912px, calc(100% - 48px));
+  align-self: center;
+  background-image:
+    linear-gradient(90deg, var(--encre) 0%, rgba(28, 63, 184, .9) 42%, rgba(36, 87, 245, .14) 100%),
+    url('/illustrations/intervention-gerimmo-2026.jpg');
+}
+.repere-visuel-locataire { margin-inline: max(24px, calc((100% - 1032px) / 2)); }
+@media (max-width: 640px) {
+  .repere-visuel { height: 48px; margin: 10px 16px 0; border-radius: 10px; }
+  .repere-visuel-locataire { margin-inline: 16px; }
+  .repere-visuel-artisan { width: calc(100% - 32px); }
+}

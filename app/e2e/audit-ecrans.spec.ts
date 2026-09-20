@@ -14,7 +14,7 @@ const MATRICE: Ecran[] = JSON.parse(
 
 const SORTIE = process.env.E2E_AUDIT_DIR ?? path.join(__dirname, ".audit");
 
-const PERSONAS = ["public", "agent", "admin", "locataire", "proprietaire", "superadmin"] as const;
+const PERSONAS = ["public", "agent", "admin", "locataire", "proprietaire", "superadmin", "artisan"] as const;
 
 for (const persona of PERSONAS) {
   const ecrans = MATRICE.filter((e) => e.persona === persona);
@@ -53,8 +53,15 @@ for (const persona of PERSONAS) {
             }
           }
           const h1 = document.querySelector("h1")?.textContent?.trim() ?? null;
+          const photos = Array.from(document.querySelectorAll<HTMLElement>("body *")).filter((el) => {
+            const r = el.getBoundingClientRect();
+            if (r.width < 20 || r.height < 20) return false;
+            if (el instanceof HTMLImageElement) return el.complete && el.naturalWidth > 0;
+            return /url\([^)]*illustrations\//.test(getComputedStyle(el).backgroundImage);
+          }).length;
           return {
             overflowPx: Math.max(0, doc.scrollWidth - window.innerWidth),
+            photos,
             larges,
             titre: document.title,
             h1,
@@ -83,8 +90,10 @@ for (const persona of PERSONAS) {
       r.statut === "erreur" ||
       (typeof r.statut === "number" && r.statut >= 400) ||
       r.soft404 === true ||
-      (typeof r.overflowPx === "number" && r.overflowPx > 2)
-    ).map((r) => ({ path: r.path, statut: r.statut, soft404: r.soft404, overflowPx: r.overflowPx, erreur: r.erreur }));
+      (typeof r.overflowPx === "number" && r.overflowPx > 2) ||
+      (!String(r.path).startsWith("/quittance/") &&
+       !String(r.path).startsWith("/attestation-loyer/") && r.photos === 0)
+    ).map((r) => ({ path: r.path, statut: r.statut, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur }));
     expect(casses, `Écrans ${persona} cassés ou débordants`).toEqual([]);
   });
 }

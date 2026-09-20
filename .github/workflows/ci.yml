@@ -56,3 +56,24 @@ jobs:
       - run: npm run build
       - run: npm run typecheck
       - run: npm test
+      - name: Préparer les parcours navigateur isolés
+        run: |
+          node e2e/local/seed-parcours.mjs
+          npm run e2e:matrice
+      - name: Installer Chromium pour les essais interactifs
+        run: npx playwright install --with-deps chromium
+      - name: Tester les parcours par profil et auditer les écrans mobiles
+        env:
+          E2E_CI: "1"
+          E2E_USE_BUILD: "1"
+          E2E_BASE_URL: http://127.0.0.1:3100
+        run: npm run test:e2e
+      - name: Conserver les résultats du navigateur
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: essais-interactifs
+          path: |
+            app/e2e/.results
+            app/e2e/.audit
+          if-no-files-found: ignore

@@ -15,7 +15,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  const alertes = await chargerSyntheseAlertes(supabase);
+  const alertes = await chargerSyntheseAlertes(supabase, { toutes: true });
 
   return (
     <div className="admin-coquille">

@@ -79,9 +79,11 @@ export default function PageMentionsLegales() {
               <tr>
                 <td>Hébergement et diffusion de l&apos;application</td>
                 <td>Vercel</td>
-                <td>
-                  <AFournir quoi="région de déploiement" />
-                </td>
+                {/* La région des fonctions est fixée dans vercel.json
+                    (`regions: ["cdg1"]`) : sans ce réglage, Vercel exécute le
+                    serveur à Washington, et les données transitent hors UE à
+                    chaque page. */}
+                <td>Région cdg1 (Paris, France)</td>
               </tr>
               <tr>
                 <td>Envoi des courriels du service</td>

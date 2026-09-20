@@ -5279,3 +5279,45 @@ Point d'information du porteur du projet : publication visée autour du
 Pages lues : [[État du projet et décisions ouvertes]], [[Gerimmo en
 autonomie]], [[Audit de nuit — fonctionnalités, personas et automatisation
 (20 septembre 2026)]], [[Grille tarifaire]], [[Canaux de communication]].
+
+## [2026-09-20] preparation | Lancement : tout ce que l'agent pouvait faire seul
+
+Sur « Fais tout ce que tu peux faire seul » du porteur, à la suite de la
+liste de lancement. Livré sur la branche de travail, PR ouverte, **sans
+fusion** (décision du porteur).
+
+- **Écran « Santé du service »** (`/admin/sante`, entrée de menu) : variables
+  de production avec leur état — posée, à vérifier, manque — sans jamais
+  afficher une valeur ; les six tâches planifiées avec leur dernière passe
+  et son bilan ; les faits de l'éditeur manquants ; l'adoption des envois
+  automatiques. La supervision affiche « Le service n'est pas prêt : n
+  points » tant qu'un manque subsiste. Logique pure dans
+  `lib/sante-service.ts`, 14 tests.
+- **L'automatique proposé dès le parcours de démarrage** (audit de nuit,
+  proposition n° 7) ; la liste des envois éteints est partagée avec
+  l'assistant (`lib/envois-automatiques.ts`), et le parcours se tait quand
+  l'assistant le dit déjà sur le même écran.
+- **Région Vercel fixée à Paris** (`vercel.json`, `cdg1`) : le serveur
+  s'exécutait par défaut à Washington, à chaque page un aller-retour vers la
+  base de Paris. Mentions légales mises à jour.
+- **Page confidentialité réécrite** depuis le code et `retention_rules`
+  (rôles, données, sous-traitants et régions, durées, mesures, droits) ; une
+  promesse non tenue (restauration testée) retirée avant publication.
+- **Modèles d'e-mails d'authentification en français**
+  (`app/supabase/templates/` + LISEZ-MOI) : le courrier d'invitation était
+  le « Reset Password » anglais de Supabase.
+- **Relecture des dix courriers du service** : rien à corriger.
+- **Découvert en relisant les pages légales** : les faits de l'éditeur
+  (`lib/editeur.ts`) sont tous vides — nouveau point bloquant § 2.6 de la
+  page de lancement, seul le porteur peut les fournir.
+- **Wiki** : [[Registre des traitements]], [[Procédure de notification de
+  violation]], [[Recette de production]] (brouillons) ; page de lancement
+  complétée (§ 5 « Fait dans la foulée », calendrier ajusté) ; index.
+- **Vérifié** : types, lint, 1 406 tests unitaires et SQL (71 ignorés hors
+  banc), captures visuelles du tableau de bord régénérées (le pied du
+  parcours change) ; le balayage d'accessibilité couvre désormais
+  `/admin/sante` (inventaire et matrice mis à jour).
+
+**Reste au porteur** : Stripe, Resend et SMTP, DNS, modèles collés dans
+Supabase, plan Supabase et test de restauration, faits de l'éditeur, sort des
+données de développement, MFA des personnes.

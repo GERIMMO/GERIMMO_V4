@@ -77,6 +77,12 @@
   "label": "Journaux d'audit",
   "dynamic": ""
  },
+{
+  "path": "/admin/sante",
+  "persona": "superadmin",
+  "label": "Santé du service",
+  "dynamic": ""
+ },
  {
   "path": "/admin/organisations/ORG",
   "persona": "superadmin",

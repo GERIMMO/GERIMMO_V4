@@ -96,7 +96,17 @@ Je ne supprime rien sans décision explicite.
   jetable **avant** l'ouverture : une sauvegarde jamais restaurée n'existe
   pas.
 
-### 2.6 Accès super-admin
+### 2.6 Les faits de l'éditeur sur les pages légales
+Les mentions légales, les conditions et la page confidentialité tirent
+l'identité de l'éditeur de `app/src/lib/editeur.ts` — **tous les champs sont
+encore vides** : dénomination, forme juridique, siège, RCS, SIRET, directeur
+de la publication, adresse de contact, médiateur de la consommation. Tant
+qu'ils le sont, les trois pages affichent un encadré « document en cours de
+finalisation » et des passages « à fournir ». C'est une obligation de la LCEN
+(art. 6-III) sur un site marchand : **à remplir avant l'ouverture**, en une
+fois, dans ce seul fichier. Seul le porteur connaît ces faits.
+
+### 2.7 Accès super-admin
 - Chaque compte super-admin avec son **second facteur enrôlé** (le code
   l'impose ; il ne reste plus qu'à le faire pour chaque personne).
 - Mots de passe des comptes créés pendant le développement **changés** s'ils
@@ -145,17 +155,59 @@ Je ne supprime rien sans décision explicite.
 
 ---
 
-## 5. Proposition de calendrier
+## 5. Fait dans la foulée (20/09, après « Fais tout ce que tu peux faire seul »)
+
+Ce que l'agent a livré seul, sur la branche de travail (PR ouverte, fusion
+sur décision du porteur) :
+
+- **Écran « Santé du service »** (`/admin/sante`, entrée de menu de la
+  console) : chaque variable de production avec son état — posée, à vérifier,
+  manque — sans jamais afficher une valeur (clé Stripe de test signalée,
+  expéditeur `resend.dev` refusé, adresse locale refusée) ; les six tâches
+  planifiées avec leur dernière passe et son bilan (à l'heure, en retard,
+  jamais passée, en échec) ; les faits de l'éditeur manquants ; l'adoption
+  des envois automatiques par les organisations vivantes. La page de
+  supervision affiche un bandeau « Le service n'est pas prêt : n points »
+  tant qu'un manque subsiste — il disparaît seul.
+- **L'automatique proposé dès le parcours de démarrage** (proposition n° 7
+  de l'audit de nuit) : le bloc du démarrage propose « Activer les envois
+  automatiques » tant que les trois sont éteints ; le tableau de bord et le
+  parcours partagent désormais la même liste (`lib/envois-automatiques.ts`).
+- **Région Vercel fixée à Paris** (`vercel.json`, `regions: ["cdg1"]`) : sans
+  ce réglage, le serveur s'exécutait à Washington et chaque page faisait un
+  aller-retour transatlantique vers la base de Paris (RM-A4.7, hébergement
+  européen — et de la latence en moins). Mentions légales mises à jour.
+- **Page confidentialité réécrite** à partir du code et de la base : qui est
+  responsable de quoi, données traitées, sous-traitants et régions, durées de
+  `retention_rules`, mesures en place, droits et CNIL. Elle ne promet rien
+  qui n'existe pas (la restauration testée en a été retirée).
+- **Modèles d'e-mails d'authentification en français**
+  (`app/supabase/templates/`, avec un LISEZ-MOI) : inscription, accès /
+  mot de passe (le même courrier sert à l'invitation, l'application passe
+  par le flux de réinitialisation), changement d'adresse — à coller dans le
+  tableau de bord Supabase, avec les réglages d'URL et de SMTP indiqués.
+- **Relecture des dix courriers du service** (`lib/*-email.ts` et les corps
+  en ligne des actions) : français, liens construits sur l'adresse du site,
+  ton conforme ; rien à corriger.
+- **Wiki** : [[Registre des traitements]] (brouillon, deux volets),
+  [[Procédure de notification de violation]] (chaîne, gestes, gabarits),
+  [[Recette de production]] (le tour de `gerimmo.app` persona par persona).
+
+**Reste au porteur** : les comptes Stripe et Resend, le DNS, le SMTP et les
+modèles dans Supabase, le plan Supabase et le test de restauration, les faits
+de l'éditeur, le sort des données de développement, le MFA des personnes.
+
+## 6. Proposition de calendrier
 
 | Jour | Quoi |
 |---|---|
 | J-10 → J-9 (20–21/09) | Stripe : prix, clés *live*, webhook ; premier paiement de test réel |
 | J-8 (22/09) | Resend : domaine vérifié, expéditeur ; SMTP Supabase Auth ; lecture de chaque courrier |
-| J-7 (23/09) | Variables Vercel passées en revue ; décision sur les données de développement, puis purge ou renommage |
+| J-7 (23/09) | Variables Vercel passées en revue dans « Santé du service » ; faits de l'éditeur remplis ; décision sur les données de développement, puis purge ou renommage |
 | J-6 (24/09) | Plan Supabase, région, sauvegardes ; **test de restauration** |
 | J-5 → J-4 (25–26/09) | Recette de production par persona ; corrections mineures ; MFA de chaque super-admin |
 | J-3 → J-2 (27–28/09) | Registre des traitements, procédure de violation, page confidentialité relue ; automatique proposé au démarrage |
-| J-1 (29/09) | Gel du code ; dernière passe des tâches vérifiée dans `/admin/journaux` |
+| J-1 (29/09) | Gel du code ; « Santé du service » sans manque, six tâches à l'heure |
 | J0 (30/09) | Ouverture ; rituel quotidien de surveillance pendant une semaine |
 
 Ce que je peux faire seul dans ce calendrier : tout ce qui est code et wiki

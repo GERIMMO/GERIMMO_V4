@@ -20,6 +20,7 @@ const ENTREES: [string, string][] = [
   ["/admin/retours", "Retours et idées"],
   ["/admin/devis", "Demandes de devis"],
   ["/admin/journaux", "Journaux et conservation"],
+  ["/admin/sante", "Santé du service"],
 ];
 
 // Les écrans qui appartiennent à une entrée sans vivre sous son chemin : la

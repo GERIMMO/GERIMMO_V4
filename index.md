@@ -20,6 +20,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Révision annuelle IRL]] — proposition validée, prescription 1 an, DPE F/G bloqué.
 - [[Solde de tout compte]] — décompte final de fin de bail, émis dans les deux sens.
 - [[Rapport de gestion]] — le livrable mensuel du mandant, figé après envoi.
+- [[Recette de production]] — **20/09, brouillon** : le tour de `gerimmo.app` persona par persona le jour du déploiement — prérequis (Santé du service sans manque, modèles d'e-mails Supabase, données de développement), étapes, les dix courriers à lire, critères de sortie.
 - [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
@@ -68,6 +69,8 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Archivage plutôt que suppression]] — on archive, on ne supprime pas.
 - [[Isolation multi-organisation]] — RLS partout + test d'isolation par table.
 - [[RGPD]] — droits des personnes, durées de conservation, purge encadrée.
+- [[Registre des traitements]] — **20/09, brouillon** : les deux volets de l'article 30 (Gerimmo responsable pour la plateforme, sous-traitant pour la gestion locative), traitement par traitement, durées de `retention_rules`, sous-traitants du déploiement ; DPO, AIPD du score artisan et contrat de sous-traitance à trancher.
+- [[Procédure de notification de violation]] — **20/09, brouillon** : la chaîne A4 rendue opérationnelle (détecter, qualifier en 2 h, confiner en 4 h, informer les organisations, CNIL sous 72 h, personnes si risque élevé, registre des violations), qui fait quoi, gestes disponibles, gabarits de fiche et de messages.
 - [[Notification et valeur probante]] — Gerimmo ne notifie jamais ; trace GED ≠ preuve.
 - [[Machines à états et événements]] — 8 machines, transitions interdites, idempotence.
 - [[Vétusté et décote]] — grille de durées de vie, décote linéaire ; amorti = zéro retenue.

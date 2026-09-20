@@ -59,7 +59,7 @@ describe("Les clients vus de la supervision", () => {
   it("garde /admin/clients lisible dans le journal des retours, sans le nom du client", () => {
     expect(ecranSansDonnees("/admin/clients")).toBe("/admin/clients");
     expect(ecranSansDonnees("/admin/clients/artisans/UUID")).toBe(
-      "/admin/clients/[dossier]/[dossier]"
+      "/admin/clients/artisans/[dossier]"
     );
     expect(ecranSansDonnees("/admin/organisations/UUID")).toBe("/admin/organisations/[dossier]");
   });

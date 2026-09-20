@@ -9,6 +9,8 @@ function fd(nature="bug") { const f=new FormData();Object.entries({nature,titre:
 describe("Retours : données minimales et confirmations honnêtes", () => {
  it("retire noms, emails, identifiants, paramètres et fragments du contexte", () => {
   expect(ecranSansDonnees("/agence/UUID/personnes/Nom-Prenom?email=a@b.fr#IBAN")).toBe("/agence/[dossier]/personnes/[dossier]");
+  expect(ecranSansDonnees("/admin/sante")).toBe("/admin/sante");
+  expect(ecranSansDonnees("/artisan/facturation")).toBe("/artisan/facturation");
   expect(actionSansDonnees("nom@example.org")).toBe("navigation");
  });
  it("refuse une session absente avant toute écriture", async () => {

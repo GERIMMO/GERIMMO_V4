@@ -33,7 +33,7 @@ type Piece = {
   id: string;
   type: string;
   expire_le: string | null;
-  depose_le: string | null;
+  created_at: string;
 };
 
 const ETATS_PUCE: Record<string, string> = {
@@ -75,14 +75,14 @@ export default async function PageFicheArtisan(
     supabase.from("artisan_zones").select("code_postal").eq("artisan_id", artisanId),
     supabase
       .from("artisan_pieces")
-      .select("id, type, expire_le, depose_le")
+      .select("id, type, expire_le, created_at")
       .eq("artisan_id", artisanId)
       .is("retiree_le", null),
     supabase
       .from("artisan_validations")
-      .select("id, decision, motif, decide_le")
+      .select("id, decision, motif, created_at")
       .eq("artisan_id", artisanId)
-      .order("decide_le", { ascending: false }),
+      .order("created_at", { ascending: false }),
     supabase
       .from("artisan_agences")
       .select("organization:organizations(id, name)")
@@ -192,7 +192,7 @@ export default async function PageFicheArtisan(
                   </a>
                   <span className="ml-2 text-[var(--texte-secondaire)]">
                     {p.expire_le ? `échéance ${formaterDate(p.expire_le)}` : "sans échéance"}
-                    {p.depose_le ? ` · déposée le ${formaterDate(p.depose_le)}` : ""}
+                    {` · déposée le ${formaterDate(p.created_at)}`}
                   </span>
                 </li>
               ))}
@@ -282,7 +282,7 @@ export default async function PageFicheArtisan(
                 <li key={v.id} className="border-t border-[var(--filet)] pt-3 text-sm first:border-t-0 first:pt-0">
                   <p>
                     <b>{LIBELLES_STATUT_ARTISAN[v.decision] ?? v.decision}</b>
-                    {v.decide_le ? ` · ${formaterDate(v.decide_le)}` : ""}
+                    {` · ${formaterDate(v.created_at)}`}
                   </p>
                   {v.motif && (
                     <p className="mt-1 whitespace-pre-wrap text-[var(--texte-secondaire)]">

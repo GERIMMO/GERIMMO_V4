@@ -1,11 +1,11 @@
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
 // Audit visuel mobile : parcourt la matrice d'écrans par persona, capture
 // chaque page à 390×844 et mesure le débordement horizontal (le symptôme
-// le plus objectif d'un écran cassé sur téléphone). Ne fait pas échouer le
-// run : produit un rapport JSON + des captures pour analyse.
+// le plus objectif d'un écran cassé sur téléphone). Produit un rapport JSON
+// et des captures ; un écran en erreur, en 404 ou qui déborde fait échouer le run.
 type Ecran = { path: string; persona: string; label: string };
 
 const MATRICE: Ecran[] = JSON.parse(
@@ -79,5 +79,12 @@ for (const persona of PERSONAS) {
       path.join(SORTIE, `rapport-${persona}.json`),
       JSON.stringify(rapport, null, 2),
     );
+    const casses = rapport.filter((r) =>
+      r.statut === "erreur" ||
+      (typeof r.statut === "number" && r.statut >= 400) ||
+      r.soft404 === true ||
+      (typeof r.overflowPx === "number" && r.overflowPx > 2)
+    ).map((r) => ({ path: r.path, statut: r.statut, soft404: r.soft404, overflowPx: r.overflowPx, erreur: r.erreur }));
+    expect(casses, `Écrans ${persona} cassés ou débordants`).toEqual([]);
   });
 }

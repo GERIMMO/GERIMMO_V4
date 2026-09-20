@@ -4,10 +4,11 @@ import { faitsManquants } from "@/lib/editeur";
 import { etatConfiguration, etatTaches, pointsBloquants } from "@/lib/sante-service";
 import { dernieresTaches, type PasseConsignee } from "@/lib/tache";
 import { BoutonBriefIA } from "./bouton-ia";
+import { OuvrirAlertes } from "./ouvrir-alertes";
 
 export const metadata = { title: "Brief de pilotage — Gerimmo" };
 
-type Signal = { titre: string; detail: string; href: string; action: string; niveau: "urgent" | "attention" | "suivi" };
+type Signal = { titre: string; detail: string; href?: string; action: string; niveau: "urgent" | "attention" | "suivi" };
 
 function nombre(resultat: { count: number | null; error: unknown }) {
   return resultat.error ? null : resultat.count ?? 0;
@@ -17,7 +18,7 @@ export default async function PageBrief() {
   // L'accès super admin est contrôlé par le layout. Chaque lecture conserve son
   // état d'erreur : une source indisponible ne devient jamais un faux zéro.
   const supabase = await createClient();
-  const [bugsN1, bugs, idees, devis, brouillons, comptes, taches] = await Promise.all([
+  const [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques] = await Promise.all([
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").in("etat", ["nouveau", "en_examen", "en_cours"]),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").in("etat", ["nouveau", "en_examen", "en_cours"]),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "idee").in("etat", ["nouveau", "en_examen"]),
@@ -25,6 +26,7 @@ export default async function PageBrief() {
     supabase.from("publications").select("id", { count: "exact", head: true }).in("statut", ["proposition", "brouillon"]),
     supabase.from("organizations").select("id", { count: "exact", head: true }).in("status", ["active", "essai"]),
     supabase.from("tech_log").select("evenement, details, created_at").like("evenement", "tache_%").order("created_at", { ascending: false }).limit(200),
+    supabase.from("alerts").select("id", { count: "exact", head: true }).eq("statut", "ouverte").eq("criticite", "critique"),
   ]);
 
   const configuration = etatConfiguration(process.env);
@@ -33,16 +35,23 @@ export default async function PageBrief() {
     taches.error ? [] : etatTaches(dernieresTaches((taches.data ?? []) as PasseConsignee[]), new Date()),
     faitsManquants().length
   );
-  const lecturesEnEchec = [bugsN1, bugs, idees, devis, brouillons, comptes, taches].filter((r) => r.error).length;
+  const lecturesEnEchec = [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques].filter((r) => r.error).length;
   const valeurs = {
     bugsN1: nombre(bugsN1), bugs: nombre(bugs), idees: nombre(idees),
-    devis: nombre(devis), brouillons: nombre(brouillons), comptes: nombre(comptes),
+    devis: nombre(devis), brouillons: nombre(brouillons), comptes: nombre(comptes), alertesCritiques: nombre(alertesCritiques),
   };
   const signaux: Signal[] = [];
   if (valeurs.bugsN1 === null || valeurs.bugsN1 > 0) signaux.push({
     titre: "Vérifier les incidents bloquants",
     detail: valeurs.bugsN1 === null ? "Le nombre de bugs critiques est indisponible." : `${valeurs.bugsN1} signalement${valeurs.bugsN1 > 1 ? "s" : ""} N1 ouvert${valeurs.bugsN1 > 1 ? "s" : ""}.`,
     href: "/admin/retours?nature=bug", action: "Examiner les bugs", niveau: "urgent",
+  });
+  if (valeurs.alertesCritiques === null || valeurs.alertesCritiques > 0) signaux.push({
+    titre: "Examiner les alertes critiques",
+    detail: valeurs.alertesCritiques === null
+      ? "Le nombre d'alertes critiques est indisponible. Ouvrez la file pour vérifier."
+      : `${valeurs.alertesCritiques} alerte${valeurs.alertesCritiques > 1 ? "s" : ""} critique${valeurs.alertesCritiques > 1 ? "s" : ""} ouverte${valeurs.alertesCritiques > 1 ? "s" : ""}, toutes organisations confondues.`,
+    action: "Ouvrir les alertes", niveau: "urgent",
   });
   if (sante > 0 || taches.error) signaux.push({
     titre: "Rétablir la santé du service",
@@ -80,14 +89,20 @@ export default async function PageBrief() {
         <h2 className="mb-3 font-heading text-[var(--pas-section)] text-[var(--encre)]">À décider maintenant</h2>
         {signaux.length === 0 ? <p className="text-sm text-muted-foreground">Aucun signal ouvert dans ces files. Consultez la santé du service et le territoire avant de lancer une nouvelle action.</p> : (
           <div className="grid gap-3">
-            {signaux.map((signal, i) => <Link key={signal.titre} href={signal.href} className="group flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 hover:bg-[var(--survol)]">
+            {signaux.map((signal, i) => {
+              const classe = "group flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 hover:bg-[var(--survol)]";
+              const contenu = <>
               <div className="min-w-0">
                 <span className="mono-discret">{i === 0 ? "Priorité 1" : `Priorité ${i + 1}`} · {signal.niveau === "urgent" ? "service" : signal.niveau === "attention" ? "opérations" : "croissance"}</span>
                 <h3 className="mt-1 font-semibold text-[var(--encre)]">{signal.titre}</h3>
                 <p className="mt-1 text-sm text-[var(--texte-secondaire)]">{signal.detail}</p>
               </div>
               <span className="lien-discret text-sm group-hover:underline">{signal.action} →</span>
-            </Link>)}
+              </>;
+              return signal.href
+                ? <Link key={signal.titre} href={signal.href} className={classe}>{contenu}</Link>
+                : <OuvrirAlertes key={signal.titre} className={classe}>{contenu}</OuvrirAlertes>;
+            })}
           </div>
         )}
       </section>

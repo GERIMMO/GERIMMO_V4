@@ -180,6 +180,7 @@ export default async function LayoutAgence({
             liens={liensCompte}
           />
         </header>
+        <div className="repere-visuel repere-visuel-agence" aria-hidden="true" />
         {/* L'essai terminé se dit en clair, une fois, en tête : la barre le
             porte aussi, mais un essai échu ferme l'écriture — ça se lit. */}
         {essai && essai.jours < 0 && (

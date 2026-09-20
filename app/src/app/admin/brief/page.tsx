@@ -111,7 +111,7 @@ export default async function PageBrief() {
 
       <section className="section-ecran">
         <h2 className="mb-2 font-heading text-[var(--pas-section)] text-[var(--encre)]">Aide à la décision par l&apos;IA</h2>
-        <p className="mb-4 text-sm text-[var(--texte-secondaire)]">À la demande, l&apos;IA reçoit seulement six compteurs agrégés et propose une prochaine vérification. Elle ne lit aucun dossier personnel et ne modifie ni données, ni prix, ni publications.</p>
+        <p className="mb-4 text-sm text-[var(--texte-secondaire)]">À la demande, l&apos;IA reçoit seulement huit compteurs agrégés, dont les alertes ouvertes, et propose une prochaine vérification. Elle ne lit aucun dossier personnel et ne modifie ni données, ni prix, ni publications.</p>
         <BoutonBriefIA disponible={Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim())} />
       </section>
     </main>

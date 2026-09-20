@@ -16,12 +16,12 @@ export function estConfieeAMoi(
 
 // Synthèse des alertes ouvertes pour la pop-up de connexion (et son rappel).
 // Retour recette 08/08 : uniquement celles qui me sont confiées (à moi ou à
-// tout le monde) — la vision macro « toutes agences, toutes mains » est
-// abandonnée. `orgId` restreint à l'agence courante (layout agence) ; sans
-// lui (page /espaces), toutes mes agences confondues.
+// tout le monde). La supervision peut demander toutes les alertes ouvertes,
+// y compris celles affectées à d'autres comptes, afin de voir les mêmes
+// priorités que son brief. `orgId` restreint à l'agence courante.
 export async function chargerSyntheseAlertes(
   supabase: SupabaseClient,
-  options: { orgId?: string } = {}
+  options: { orgId?: string; toutes?: boolean } = {}
 ): Promise<AlerteSynthese[]> {
   const {
     data: { user },
@@ -34,9 +34,9 @@ export async function chargerSyntheseAlertes(
       "id, type, organization_id, criticite, titre, echeance, created_at, assignee_account_id, assigned_all, escalades, details, organization:organizations(name)"
     )
     .eq("statut", "ouverte")
-    .or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`)
     .order("created_at", { ascending: true })
     .limit(100);
+  if (!options.toutes) requete = requete.or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`);
   if (options.orgId) requete = requete.eq("organization_id", options.orgId);
 
   const { data } = await requete;

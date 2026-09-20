@@ -31,6 +31,12 @@ const ids = {
   BAIL: (await un("select id from baux where organization_id = $1 order by created_at desc limit 1", [ORG]))?.id,
   INCIDENT: (await un("select id from incidents where organization_id = $1 limit 1", [ORG]))?.id,
   QUITTANCE: (await un("select id from quittances where organization_id = $1 limit 1", [ORG]))?.id,
+  ARTISAN: (await un("select id from artisans order by created_at limit 1"))?.id,
+  PUBLICATION: (await un("select id from publications order by created_at limit 1"))?.id,
+  ARTICLE: (await un("select slug from publications where statut = 'publiee' order by publie_le desc limit 1"))?.slug,
+  DIAGNOSTIC: (await un("select id from diagnostics where organization_id = $1 and archived_at is null limit 1", [ORG]))?.id,
+  SOLLICITATION: (await un("select id from incident_sollicitations where statut = 'envoyee' order by envoyee_le desc limit 1"))?.id,
+  INTERVENTION: (await un("select id from incident_interventions order by confiee_le desc limit 1"))?.id,
 };
 const lot = await un(
   "select l.id, l.bien_id from lots l join biens b on b.id = l.bien_id where l.organization_id = $1 order by (b.nom like 'E2E%') desc, l.created_at limit 1",
@@ -49,7 +55,7 @@ for (const route of inventaire) {
   // L'espace « propriétaire » réutilise les routes /agence avec l'organisation PD
   if (route.persona === "proprietaire") chemin = chemin.replace("/agence/ORG", `/agence/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE)\b/g, (m) => {
+  chemin = chemin.replace(/\b(ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

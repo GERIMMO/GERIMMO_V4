@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { faitsManquants } from "@/lib/editeur";
 import { etatConfiguration, etatTaches, pointsBloquants } from "@/lib/sante-service";
 import { dernieresTaches, type PasseConsignee } from "@/lib/tache";
+import { BoutonBriefIA } from "./bouton-ia";
 
 export const metadata = { title: "Brief de pilotage — Gerimmo" };
 
@@ -106,6 +107,12 @@ export default async function PageBrief() {
         <h2 className="mb-2 font-heading text-[var(--pas-section)] text-[var(--encre)]">Publication et acquisition</h2>
         <p className="text-sm leading-relaxed text-[var(--texte-secondaire)]">Utiliser le journal pour expliquer des cas concrets de gestion locative. Tester d&apos;abord Facebook pour les propriétaires directs dans un seul département, avec une page et une source de demande identifiables ; comparer ensuite Instagram à volume égal. Aucune dépense ni publication sur ces réseaux ne part depuis cet écran. Les résultats et le coût par client doivent être mesurés avant d&apos;étendre la campagne.</p>
         <Link className="lien-discret mt-3 inline-block text-sm" href="/admin/publications">Préparer un article vérifié →</Link>
+      </section>
+
+      <section className="section-ecran">
+        <h2 className="mb-2 font-heading text-[var(--pas-section)] text-[var(--encre)]">Aide à la décision par l&apos;IA</h2>
+        <p className="mb-4 text-sm text-[var(--texte-secondaire)]">À la demande, l&apos;IA reçoit seulement six compteurs agrégés et propose une prochaine vérification. Elle ne lit aucun dossier personnel et ne modifie ni données, ni prix, ni publications.</p>
+        <BoutonBriefIA disponible={Boolean(process.env.OPENAI_API_KEY?.trim())} />
       </section>
     </main>
   );

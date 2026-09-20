@@ -78,6 +78,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Socle de sécurité]] — MFA super administrateur, contrôle AAL2 et séparation des droits de supervision et de signature.
 
 ## Sources
+- [[2026-09-20-cahier-des-charges-maitre-v3|Cahier maître V3 — audit des 100 sections]] — référence prioritaire ; couverture réelle, écarts et plan V1 documentés dans app/docs.
 - [[2026-09-14-service-public-depot-colocation]] — source officielle : bail commun nu/meublé et plafond du dépôt hors charges.
 - [[Dépôt Gerimmo-V3]] — le code (2026-07-21) : SQL, services, état réel.
 - [[2026-07-21-fonctionnalites-par-persona-v0|Fonctionnalités par persona (v0)]] — note produit interne.

@@ -123,7 +123,7 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
       const pieces = await lireLignes(supabase.from("pieces_demandees").select("*").eq("organization_id",orgId).eq("person_id",ctx.bail.locataire_principal).order("demandee_le"));
       for (const p of pieces) p.statut = p.satisfaite_le ? "Reçue" : p.document_id ? "Déposée, à vérifier" : "À fournir";
       contenu = `${section("Pièces demandées dans le dossier")}${lignesTableau(f,pieces,[["Pièce","libelle","texte"],["Statut","statut","texte"]])}
-        <p>Les pièces déjà fournies restent consultables dans le dossier de la personne. Demandez uniquement les justificatifs autorisés pour la candidature et la garantie.</p>`;
+        <p>Les pièces déjà fournies restent consultables dans le dossier de la personne. Demandez uniquement les justificatifs nécessaires au dossier du locataire retenu et de son garant éventuel.</p>`;
       if (!pieces.length) contenu += "<p>Aucune demande de pièce enregistrée à cette date.</p>";
     } else if (code === "avenant_remplacement") {
       if (ctx.bail.type !== "colocation" || ctx.bail.chambre_id) return { erreur: "L’avenant de remplacement concerne un contrat commun. En contrat individuel, clôturez le sortant et créez le contrat du nouvel occupant." };

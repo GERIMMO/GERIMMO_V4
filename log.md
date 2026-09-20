@@ -5323,3 +5323,10 @@ fusion** (décision du porteur).
 **Reste au porteur** : Stripe, Resend et SMTP, DNS, modèles collés dans
 Supabase, plan Supabase et test de restauration, faits de l'éditeur, sort des
 données de développement, MFA des personnes.
+
+
+## [2026-09-20] audit et corrections | Cahier maître V3, 100 sections
+
+Reprise sur main 83da9b0, sans écraser les anciens brouillons. Audit initial des 100 sections, critères source, fichiers et limites dans app/docs/audit-cahier-maitre-v3-20260920.{md,json}. Le relevé distingue 67 sections partielles, 18 absences identifiées, 8 résultats non vérifiés et 7 consignes appliquées au lot ; ce ne sont pas des taux de conformité. Suppression des nouvelles générations de bon de visite (hors périmètre §4), dossier du locataire retenu, attestations réservées aux baux en cours, formulaire conservant saisie et sélection, lien du loyer vers les loyers et synthèse sans affirmation globale trompeuse. Version des modèles g5 ; archives inchangées. Correction du test de date civile, sans modifier la facturation. Base isolée : 193 migrations, 1 473 tests réussis et 6 PDF initialement sautés puis exécutés dans 85 tests PDF/modèles réussis. Recette du solde fictif 400 euros : loyer soldé et quittance créée. Aucun virement ni courrier réel envoyé. Publication et reste de recette suivis dans le bilan ; source PDF, raw et Obsidian conservés.
+
+Validation finale du lot : 1 479 tests réussis dans 144 fichiers, aucun test sauté (PDF activés), build/lint/types réussis. Neuf rubriques agence ouvertes ; génération d’attestation réussie avec sélection et destinataire conservés, génération désactivée sans dossier. Les limites de preuve restent dans le rapport.

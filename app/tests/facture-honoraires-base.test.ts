@@ -83,7 +83,10 @@ describe.skipIf(!url)('Facture d’honoraires : numérotation, droits et TVA', (
     await agir(admin);
     const premiere = (await emettre(mandat, '2026-05-01', 480)).rows[0];
     expect((await emettre(mandat, '2026-05-17', 480)).rows[0].id).toBe(premiere.id);
-    expect(premiere.periode.toISOString().slice(0, 10)).toBe('2026-05-01');
+    // Une date SQL est un jour civil, pas un instant UTC. Lire la valeur
+    // stockée évite que pg + le fuseau du poste la déplacent la veille.
+    const periode = (await db.query('select periode::text as jour from public.factures_honoraires where id=$1', [premiere.id])).rows[0].jour;
+    expect(periode).toBe('2026-05-01');
   });
 
   it('extrait la TVA du TTC sans perdre un centime', async () => {

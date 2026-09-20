@@ -6,7 +6,7 @@ import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte }
 import { recapitulatifFiscal, type EcritureFiscale } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
 
-export const CODES_COMPLEMENTS_GESTION = ["bon_visite", "regularisation_charges", "decompte_charges", "consultation_charges", "restitution_cles", "ordre_intervention", "comparatif_devis", "compte_rendu_intervention", "recap_incident", "cloture_mensuelle", "ecriture_rectificative", "recap_fiscal_nu", "recap_fiscal_meuble", "avenant_mandat", "avenant_perimetre", "rapport_gestion", "bordereau_versement", "resiliation_mandat", "recap_fiscal_agence"] as const;
+export const CODES_COMPLEMENTS_GESTION = ["regularisation_charges", "decompte_charges", "consultation_charges", "restitution_cles", "ordre_intervention", "comparatif_devis", "compte_rendu_intervention", "recap_incident", "cloture_mensuelle", "ecriture_rectificative", "recap_fiscal_nu", "recap_fiscal_meuble", "avenant_mandat", "avenant_perimetre", "rapport_gestion", "bordereau_versement", "resiliation_mandat", "recap_fiscal_agence"] as const;
 
 export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_GESTION[number], db: SupabaseClient, orgId: string, cibleId: string, options: Record<string,string> = {}): Promise<Assemblage> {
   try {
@@ -96,25 +96,17 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           <p>Justification : ${facultatif(texte(incident.imputation_justification))}.</p>
           <p>${incident.clos_le ? `Clôturé le ${f.date(texte(incident.clos_le))}. ${facultatif(texte(incident.cloture_commentaire))}` : "Le dossier est toujours ouvert."}</p>`;
       }
-    } else if (["bon_visite","recap_fiscal_nu","recap_fiscal_meuble"].includes(code)) {
+    } else if (["recap_fiscal_nu","recap_fiscal_meuble"].includes(code)) {
       const lot = await lotConcerne(cibleId);
-      if (code === "bon_visite") {
-        destinataire = champ("visiteur","nom et prénom du visiteur");
-        contenu = `${section("Visite du logement")}<p>Visiteur : ${destinataire} ; contact : ${champ("contact","coordonnées du visiteur")}.</p>
-          <p>Date et heure : ${champ("rendez_vous","date et heure de la visite")} ; représentant : ${champ("representant","personne ayant assuré la visite")}.</p>
-          <p>Ce bon atteste uniquement la présentation du logement. Il ne constitue ni un bail, ni une réservation, ni un engagement de louer ou de payer des honoraires.</p>`;
-        signatures = true;
-      } else {
-        if ((code === "recap_fiscal_meuble") !== Boolean(lot.meuble)) throw new RefusDocument("Choisissez le récapitulatif correspondant au caractère nu ou meublé du lot.");
-        const annee = anneeDocument(options);
-        const ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",`${annee}-01-01`).lt("date_piece",`${annee+1}-01-01`).order("date_piece"));
-        const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
-        const fiscal = recapitulatifFiscal(ecritures as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
-        contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. Périmètre : ${ecritures.length} écritures enregistrées.</p>`;
-        if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
-        else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.aCompleter?null:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p>`;
-        contenu += "<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération.</p>";
-      }
+      if ((code === "recap_fiscal_meuble") !== Boolean(lot.meuble)) throw new RefusDocument("Choisissez le récapitulatif correspondant au caractère nu ou meublé du lot.");
+      const annee = anneeDocument(options);
+      const ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",`${annee}-01-01`).lt("date_piece",`${annee+1}-01-01`).order("date_piece"));
+      const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
+      const fiscal = recapitulatifFiscal(ecritures as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
+      contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. Périmètre : ${ecritures.length} écritures enregistrées.</p>`;
+      if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
+      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.aCompleter?null:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p>`;
+      contenu += "<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération.</p>";
     } else if (code === "ecriture_rectificative" || code === "cloture_mensuelle") {
       if (code === "ecriture_rectificative") {
         const e = await unique("ecritures",cibleId);

@@ -493,7 +493,7 @@
   },
   {
     "path": "/securite",
-    "persona": "agent",
+    "persona": "superadmin",
     "label": "Sécurité des données",
     "dynamic": ""
   }

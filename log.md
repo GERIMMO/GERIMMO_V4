@@ -5315,8 +5315,10 @@ fusion** (décision du porteur).
   complétée (§ 5 « Fait dans la foulée », calendrier ajusté) ; index.
 - **Vérifié** : types, lint, 1 406 tests unitaires et SQL (71 ignorés hors
   banc), captures visuelles du tableau de bord régénérées (le pied du
-  parcours change) ; le balayage d'accessibilité couvre désormais
-  `/admin/sante` (inventaire et matrice mis à jour).
+  parcours change) et repassées vertes seules ; balayage d'accessibilité
+  vert sur les 48 écrans de la matrice, `/admin/sante` compris (inventaire
+  et matrice mis à jour). PR #66 ouverte, en attente de « Applique et
+  fusionne » — aucune migration à appliquer cette fois.
 
 **Reste au porteur** : Stripe, Resend et SMTP, DNS, modèles collés dans
 Supabase, plan Supabase et test de restauration, faits de l'éditeur, sort des

@@ -5338,3 +5338,15 @@ fois : la PR ne touchait ni le schéma ni les fonctions.
 - **À faire par le porteur juste après le déploiement** : ouvrir
   `/admin/sante` en production et lire ce qui manque ; coller les trois
   modèles d'e-mails dans Supabase Auth ; fournir les faits de l'éditeur.
+
+## [2026-09-20] query  | Réexpliquer la partie « territoire »
+
+Question du porteur après la fusion de la PR #66 (la tâche « Territoire »
+figure dans l'écran Santé du service). Réponse dans le chat, à partir de
+[[Expansion territoriale autonome]], de `/api/cron/territoire` et de
+`/admin/territoire` : ce que la boucle mensuelle mesure, note et décide, ce
+qu'elle fait réellement aujourd'hui (elle calcule et consigne, elle n'agit
+pas), ce qui manque (marché INSEE/SIRENE vide faute de réseau, pages locales,
+publicité Meta, prospection encadrée, interrupteur) et ce qui reste à
+trancher (budgets, seuils de santé, identité de l'annonceur). Pas de page
+filée : la synthèse existante fait foi.

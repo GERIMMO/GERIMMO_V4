@@ -39,6 +39,12 @@ for (const persona of PERSONAS) {
       try {
         const reponse = await page.goto(ecran.path, { waitUntil: "load", timeout: 20_000 });
         await page.waitForTimeout(1_200);
+        // Le rappel d'arrivée est testé dans son propre parcours. Pour juger
+        // chaque page et ses boutons, fermer son panneau au-dessus du contenu.
+        const fermerRappel = page.locator('.fixed.z-50 button[aria-label="Fermer"]').first();
+        if (await fermerRappel.isVisible().catch(() => false)) {
+          await fermerRappel.click();
+        }
         const mesure = await page.evaluate(() => {
           const doc = document.documentElement;
           const larges: string[] = [];

@@ -313,7 +313,7 @@
   },
   {
     "path": "/artisan/inscription",
-    "persona": "public",
+    "persona": "agent",
     "label": "Inscription artisan",
     "dynamic": ""
   },
@@ -349,13 +349,13 @@
   },
   {
     "path": "/artisan/panne",
-    "persona": "public",
+    "persona": "artisan",
     "label": "Aide en cas de panne",
     "dynamic": ""
   },
   {
     "path": "/assistance",
-    "persona": "public",
+    "persona": "agent",
     "label": "Assistance",
     "dynamic": ""
   },
@@ -397,7 +397,7 @@
   },
   {
     "path": "/espaces",
-    "persona": "public",
+    "persona": "agent",
     "label": "Sélecteur d'espaces (tout utilisateur connecté)",
     "dynamic": ""
   },
@@ -493,7 +493,7 @@
   },
   {
     "path": "/securite",
-    "persona": "public",
+    "persona": "superadmin",
     "label": "Sécurité des données",
     "dynamic": ""
   }

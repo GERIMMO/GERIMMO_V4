@@ -38,7 +38,14 @@ for (const persona of PERSONAS) {
       const slug = ecran.path.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "racine";
       try {
         const reponse = await page.goto(ecran.path, { waitUntil: "load", timeout: 20_000 });
-        await page.waitForTimeout(1_200);
+        await page.locator("h1").first().waitFor({ state: "visible", timeout: 15_000 });
+        await page.waitForTimeout(350);
+        // Le rappel d'arrivée est testé dans son propre parcours. Pour juger
+        // chaque page et ses boutons, fermer son panneau au-dessus du contenu.
+        const fermerRappel = page.locator('.fixed.z-50 button[aria-label="Fermer"]').first();
+        if (await fermerRappel.isVisible().catch(() => false)) {
+          await fermerRappel.click();
+        }
         const mesure = await page.evaluate(() => {
           const doc = document.documentElement;
           const larges: string[] = [];

@@ -111,11 +111,11 @@ describe("les pages légales ne promettent que ce qui existe", () => {
     const article = cgu.slice(cgu.indexOf('titre="9. Réversibilité"'), cgu.indexOf('titre="10.'));
     // Le journal s'exporte (route /comptabilite/export) : l'article peut le dire.
     expect(article).toContain("journal de gestion");
-    // L'archive documentaire et l'export du référentiel n'existent pas : ils
-    // doivent rester marqués « à fournir », jamais promis à l'indicatif.
-    const promesse = article.slice(article.indexOf("Engagements supplémentaires"));
-    expect(promesse).toContain("AFournir");
-    expect(promesse).toContain("ne sont pas encore écrites");
+    // Les autres exports et l'accès après suspension n'existent pas : aucun
+    // engagement contractuel ne doit les présenter comme disponibles.
+    expect(article).not.toContain("archive documentaire indexée");
+    expect(article).not.toContain("export du référentiel");
+    expect(article).not.toContain("accès en lecture seule après suspension");
   });
 
   it("la route d'export citée par l'article 9 existe vraiment", () => {

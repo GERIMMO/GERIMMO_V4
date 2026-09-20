@@ -2775,3 +2775,137 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   .admin-nav { margin-inline: -16px; padding-inline: 16px; }
   .portail-ecrans .entete-page { padding: 18px; }
 }
+
+/* Une même grammaire visuelle pour les cinq espaces connectés. Le tableau de
+   bord agence reste la référence : navigation bleue, surfaces nettes et états
+   colorés par sens. Les règles suivantes portent sur les composants communs,
+   sans changer la structure ni les actions des pages. */
+@layer components {
+  .admin-coquille {
+    display: grid;
+    grid-template-columns: 218px minmax(0, 1fr);
+    min-height: 100dvh;
+    background: var(--creme);
+  }
+  .admin-late {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    min-width: 0;
+    border-right: 1px solid var(--filet);
+    background: linear-gradient(180deg, var(--marque-clair), var(--ivoire) 34%);
+  }
+  .admin-marque {
+    display: flex;
+    align-items: center;
+    min-height: 64px;
+    padding-inline: 18px;
+    border-bottom: 1px solid var(--filet);
+  }
+  .admin-corps { display: flex; min-width: 0; flex-direction: column; }
+  .admin-bandeau { border-top: 0; }
+  .admin-bandeau-interieur {
+    display: flex;
+    min-height: 64px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-inline: 24px;
+  }
+  .admin-contexte {
+    color: var(--encre);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .admin-contexte:hover { color: var(--marque-sombre); }
+  .admin-nav {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 12px 10px;
+  }
+  .admin-nav-lien {
+    width: 100%;
+    min-height: 40px;
+    padding: 9px 12px;
+    white-space: normal;
+  }
+  .admin-nav-lien[aria-current="page"] { box-shadow: 0 5px 14px color-mix(in srgb, var(--marque) 25%, transparent); }
+
+  /* En-têtes secondaires : le filet de marque reprend celui de la capture,
+     sans transformer chaque formulaire en tableau de bord. */
+  .coquille-corps .entete-page,
+  .loc-corps .entete-page,
+  .portail-ecrans .entete-page {
+    border-left: 4px solid var(--marque);
+    border-bottom: 1px solid var(--or-filet);
+    border-radius: 14px;
+    background: linear-gradient(110deg, var(--marque-clair), var(--ivoire) 68%);
+    padding: 20px 22px;
+    box-shadow: var(--ombre-portee);
+  }
+  .coquille-corps .entete-page h1,
+  .loc-corps .entete-page h1,
+  .portail-ecrans .entete-page h1 { color: var(--encre); }
+
+  :where(.coquille-corps, .loc-corps, .artisan-corps, .portail-ecrans) [data-slot="card"],
+  .loc-carte,
+  .artisan-carte {
+    border: 1px solid var(--filet);
+    border-radius: 16px;
+    background-color: var(--ivoire);
+    box-shadow: var(--ombre-portee);
+  }
+  :where(.coquille-corps, .loc-corps, .artisan-corps, .portail-ecrans) [data-slot="card-title"] {
+    color: var(--encre);
+    font-weight: 650;
+  }
+  .artisan-app .portail-hero {
+    min-height: 152px;
+    background-image:
+      linear-gradient(90deg, var(--encre) 0%, rgba(23, 48, 107, .94) 45%, rgba(36, 87, 245, .38) 100%),
+      url('/illustrations/intervention-gerimmo-2026.jpg');
+    background-position: center, 68% 50%;
+    background-size: cover;
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--encre) 18%, transparent);
+  }
+  .loc-corps .loc-carte.loc-kpi {
+    background: linear-gradient(155deg, var(--ivoire), var(--marque-clair));
+    border-top-color: var(--marque);
+  }
+  .kpi {
+    box-shadow: var(--ombre-portee);
+    border-left-width: 4px;
+  }
+  .kpi.rouge { background: linear-gradient(145deg, var(--destructive-soft), var(--ivoire)); }
+  .kpi.vert { background: linear-gradient(145deg, var(--success-soft), var(--ivoire)); }
+  .kpi.ambre { background: linear-gradient(145deg, var(--warning-soft), var(--ivoire)); }
+  .kpi.or, .kpi.bleu { background: linear-gradient(145deg, var(--marque-clair), var(--ivoire)); }
+  .tableau th { color: var(--encre); border-bottom-color: var(--filet); }
+}
+
+@media (max-width: 900px) {
+  .admin-coquille { grid-template-columns: minmax(0, 1fr); }
+  .admin-late { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--filet); }
+  .admin-marque { min-height: 52px; }
+  .admin-nav { flex-direction: row; flex: none; gap: 5px; overflow-x: auto; overflow-y: hidden; padding: 8px 12px; }
+  .admin-nav-lien { width: auto; min-height: 38px; flex: none; white-space: nowrap; }
+  .admin-bandeau-interieur { min-height: 52px; padding-inline: 16px; }
+}
+
+@media (max-width: 640px) {
+  .admin-bandeau-interieur { align-items: flex-start; flex-wrap: wrap; padding-block: 9px; }
+  .admin-bandeau-actions { width: 100%; justify-content: space-between; }
+  .admin-nav { margin-inline: 0; }
+  .coquille-corps .entete-page,
+  .loc-corps .entete-page,
+  .portail-ecrans .entete-page { padding: 16px; }
+}

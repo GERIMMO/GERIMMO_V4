@@ -51,7 +51,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
       <input type="hidden" name="nature" value={nature} />
       <label>État<select name="etat" defaultValue={etat} className="ml-2 rounded border bg-white p-2"><option value="">Tous</option>{Object.entries(ETATS_RETOUR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label>Organisation<select name="org" defaultValue={org} className="ml-2 rounded border bg-white p-2"><option value="">Toutes</option>{(organisations.data ?? []).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-      <button className="btn-or">Filtrer</button>
+      <button type="submit" className="btn-or">Filtrer</button>
     </form>
     {erreur && <p role="alert" className="err">Une partie du suivi est indisponible. Rechargez avant de prendre une décision.</p>}
     {!file.error && !lignes.length && <p className="text-sm text-muted-foreground">Aucune demande sur cette page pour ces filtres.</p>}

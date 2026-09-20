@@ -165,7 +165,12 @@ export default async function LayoutAgence({
             <MarqueGerimmo />
           </span>
           <RechercheEspace orgId={orgId} />
-          <SyntheseAlertes alertes={alertes} membres={membres} estResponsable={estResponsable} />
+          <SyntheseAlertes
+            alertes={alertes}
+            membres={membres}
+            estResponsable={estResponsable}
+            aujourdhui={aujourdhuiParis()}
+          />
           <MenuCompte
             initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
             titre={estProprietaire ? "Espace propriétaire" : organisation.name}

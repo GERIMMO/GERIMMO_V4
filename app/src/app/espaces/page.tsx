@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { aujourdhuiParis } from "@/lib/ged";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normaliserCode } from "@/lib/parrainage";
@@ -169,7 +170,7 @@ export default async function PageEspaces() {
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3 sm:px-7">
           <MarqueGerimmo />
           <div className="flex items-center gap-2">
-            <SyntheseAlertes alertes={alertes} rappel />
+            <SyntheseAlertes alertes={alertes} rappel aujourdhui={aujourdhuiParis()} />
             <form action={seDeconnecter}>
               <button type="submit" className="lien-bandeau">
                 Se déconnecter

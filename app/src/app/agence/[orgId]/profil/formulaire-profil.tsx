@@ -24,6 +24,9 @@ type Organisation = {
   tva_franchise: boolean;
   quittances_envoi_auto: boolean;
   appels_envoi_auto: boolean;
+  relances_envoi_auto: boolean;
+  relance_1_jours: number;
+  relance_2_jours: number;
 };
 
 export function FormulaireProfilOrganisation({
@@ -43,7 +46,15 @@ export function FormulaireProfilOrganisation({
   );
   // En erreur, la saisie est reposée via etat.valeurs (convention React 19)
   const valeur = (
-    nom: Exclude<keyof Organisation, "quittances_envoi_auto" | "appels_envoi_auto" | "tva_franchise">
+    nom: Exclude<
+      keyof Organisation,
+      | "quittances_envoi_auto"
+      | "appels_envoi_auto"
+      | "relances_envoi_auto"
+      | "relance_1_jours"
+      | "relance_2_jours"
+      | "tva_franchise"
+    >
   ) =>
     etat.valeurs?.[nom] ?? organisation[nom] ?? "";
 
@@ -227,7 +238,60 @@ export function FormulaireProfilOrganisation({
           jamais envoyées partent au locataire, sans qu&apos;il y ait à cliquer.
           Cocher cette case vaut validation permanente de leur envoi. Décochée,
           rien ne part sans votre geste — l&apos;envoi groupé reste disponible
-          depuis la comptabilité.
+          depuis « Loyers &amp; charges ».
+        </p>
+      </fieldset>
+      <fieldset className="space-y-2 rounded-lg border p-4" id="relances">
+        <legend className="px-1 text-sm font-medium">Relances d&apos;impayé</legend>
+        <label
+          htmlFor="pr-relances-auto"
+          className="flex min-h-12 items-center gap-3 text-sm"
+        >
+          <input
+            id="pr-relances-auto"
+            type="checkbox"
+            name="relances_envoi_auto"
+            disabled={lectureSeule}
+            defaultChecked={organisation.relances_envoi_auto}
+            className="size-5 shrink-0 accent-[var(--encre)]"
+          />
+          Relancer automatiquement les loyers impayés par e-mail
+        </label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label htmlFor="pr-relance-1" className="text-sm">
+            <span className="block text-xs text-muted-foreground">Première relance, jours après l&apos;échéance</span>
+            <Input
+              id="pr-relance-1"
+              type="number"
+              name="relance_1_jours"
+              min={1}
+              max={60}
+              disabled={lectureSeule}
+              defaultValue={organisation.relance_1_jours}
+              className="mt-1"
+            />
+          </label>
+          <label htmlFor="pr-relance-2" className="text-sm">
+            <span className="block text-xs text-muted-foreground">Seconde relance, jours après l&apos;échéance</span>
+            <Input
+              id="pr-relance-2"
+              type="number"
+              name="relance_2_jours"
+              min={2}
+              max={90}
+              disabled={lectureSeule}
+              defaultValue={organisation.relance_2_jours}
+              className="mt-1"
+            />
+          </label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Chaque matin, le terme impayé le plus ancien de chaque bail reçoit sa
+          première relance passé le premier délai, puis la seconde passé le
+          second — jamais deux courriers le même jour, et une relance que vous
+          avez saisie vous-même compte. La mise en demeure reste votre geste :
+          c&apos;est un recommandé. Chaque relance envoyée s&apos;inscrit sur
+          le bail, comme si vous l&apos;aviez saisie.
         </p>
       </fieldset>
       {etat.erreur && (

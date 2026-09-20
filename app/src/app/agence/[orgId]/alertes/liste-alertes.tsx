@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cheminFicheAlerte as cheminFiche } from "@/lib/chemin-alerte";
 import { estConfieeAMoi } from "@/lib/alertes";
-import { afficherEcheance } from "@/lib/echeances";
+import { afficherEcheance, dateDeReference } from "@/lib/echeances";
 import { CRITICITES, formaterDateHeure } from "@/lib/ged";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
@@ -44,8 +44,8 @@ export type { AlerteRang } from "./modale-alerte";
  * de bas de page, et cette ligne ne sert plus qu'à l'échéance, qui, elle,
  * distingue un rang d'un autre.
  */
-function consequence(a: AlerteRang): string | null {
-  const echeance = afficherEcheance(a.echeance);
+function consequence(a: AlerteRang, reference: Date): string | null {
+  const echeance = afficherEcheance(a.echeance, reference);
   if (!echeance) return null;
   if (echeance.depassee) {
     return a.criticite === "informative"
@@ -63,9 +63,12 @@ export function ListeAlertes({
   estResponsable,
   estProprietaire = false,
   ouvrirAlerteId,
+  aujourdhui,
 }: {
   orgId: string;
   alertes: AlerteRang[];
+  /** Date de Paris du serveur (« AAAA-MM-JJ ») : voir `dateDeReference`. */
+  aujourdhui?: string;
   membres: Membre[];
   monCompte: string;
   estResponsable: boolean;
@@ -74,6 +77,7 @@ export function ListeAlertes({
   // d'emblée sur cette alerte.
   ouvrirAlerteId?: string;
 }) {
+  const reference = dateDeReference(aujourdhui);
   const router = useRouter();
   const [filtre, setFiltre] = useState<string>("toutes");
   const [ouverte, setOuverte] = useState<AlerteRang | null>(null);
@@ -166,8 +170,8 @@ export function ListeAlertes({
               {a.details.libelle}
             </div>
           )}
-          {consequence(a) && (
-            <div className="consequence-alerte">{consequence(a)}</div>
+          {consequence(a, reference) && (
+            <div className="consequence-alerte">{consequence(a, reference)}</div>
           )}
           <div className="mt-1 text-xs text-muted-foreground">
             créée le {formaterDateHeure(a.created_at)} · confiée à{" "}
@@ -275,6 +279,7 @@ export function ListeAlertes({
           alerte={ouverte}
           membres={membres}
           estResponsable={estResponsable}
+          aujourdhui={aujourdhui}
           fermer={() => setOuverte(null)}
         />
       )}

@@ -122,6 +122,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[2026-09-08-maquette-espace-agence-v6|Maquette espace agence v6]] — agent + admin d'agence : inventaire, contradictions (fonds mandants vs RM-A6.1), découpage d'intégration.
 
 ## Synthèses
+- [[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]] — **20/09** : six personas traversés écran par écran ; ce qui est automatique et ce qui attend un clic ; bugs corrigés (404 du menu v4, hydratation des alertes, widget d'aide) ; écran « Loyers & charges » ; relances d'impayé automatiques (migration écrite, non appliquée) ; sept propositions pour retirer des clics.
 - [[Audit et point santé du 11 septembre 2026]] — **le point de fin de chantier** : 107 pages mesurées au navigateur, 3 requêtes que PostgREST refusait (dont la veille DPE, en silence), la charte qui battait 60 utilitaires, les 4 parcours recomptés dans le code ; 10 points à trancher par un humain.
 - [[Proposition de valeur]] — **l'énoncé fondateur (2026-09-10)** : faire le travail d'une agence, en mieux, plus vite, moins cher ; conséquences sur les priorités.
 - [[État des lieux du design et des parcours]] — **relevé du 11/09** : 254 trouvailles, l'incohérence domine ; les parcours chiffrés en clics ; les écrans qui promettent ce que la base refuse. ⚠ Ses nombres de clics sont **contredits** par la marche dans le code du même jour (callout en tête de section).

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { aujourdhuiParis } from "@/lib/ged";
 import { verifierAccesEspace } from "@/lib/espace";
 import { CRITICITES, COULEURS_CRITICITE, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
 import { estConfieeAMoi } from "@/lib/alertes";
@@ -126,6 +127,7 @@ export default async function PageAlertes(
           ) : (
             <ListeAlertes
               orgId={orgId}
+              aujourdhui={aujourdhuiParis()}
               alertes={rangs}
               membres={membres}
               estProprietaire={organisation.type === "proprietaire_direct"}

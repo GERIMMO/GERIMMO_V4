@@ -11,7 +11,9 @@ import {
   type MandatCompta,
   type RapportCompta,
 } from "./formulaire-compta";
-import { QuittancementMois, type LigneQuittancement } from "./quittancement-mois";
+import Link from "next/link";
+import { QuittancementMois } from "./quittancement-mois";
+import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 
 export const metadata = { title: "Comptabilité — Gerimmo" };
@@ -184,31 +186,12 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   // Le repli sur le mois précédent ne vaut QUE pour un mois vraiment vide : si
   // la lecture échoue, replier afficherait le mois d'avant comme s'il était
   // l'actualité. L'échec se dit, il ne se contourne pas.
-  const lireQuittancement = async (mois: string) => {
-    const { data, error } = await supabase.rpc("quittancement_mois", {
-      p_org: orgId,
-      p_mois: `${mois}-01`,
-    });
-    return {
-      lignes: ((data ?? []) as LigneQuittancement[]).filter((l) => dansPortefeuille(l.lot_id)),
-      error,
-    };
-  };
-  let moisQuittancement = moisCourant;
-  const courant = await lireQuittancement(moisCourant);
-  let lignesQuittancement = courant.lignes;
-  let erreurQuittancement = courant.error;
-  if (!erreurQuittancement && lignesQuittancement.length === 0) {
-    const precedent = new Date(`${moisCourant}-01T00:00:00Z`);
-    precedent.setUTCMonth(precedent.getUTCMonth() - 1);
-    const moisPrecedent = precedent.toISOString().slice(0, 7);
-    const veille = await lireQuittancement(moisPrecedent);
-    erreurQuittancement = veille.error;
-    if (!veille.error && veille.lignes.length > 0) {
-      moisQuittancement = moisPrecedent;
-      lignesQuittancement = veille.lignes;
-    }
-  }
+  // Le quittancement se lit par le chargeur partagé avec « Loyers & charges »
+  // (audit du 20/09) : ici, l'admin n'en voit plus que le résumé.
+  const quittancement = await chargerQuittancementDuMois(supabase, orgId, dansPortefeuille);
+  const moisQuittancement = quittancement.mois;
+  const lignesQuittancement = quittancement.lignes;
+  const erreurQuittancement = quittancement.error;
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
@@ -286,7 +269,9 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         ci-dessous.
       </p>
 
-      {/* Quittancement du mois (maquette v3) : encaisser en un clic, envoi groupé */}
+      {/* Quittancement du mois : les gestes (encaisser, envoyer, relancer) sont
+          sur « Loyers & charges » depuis le 20/09. L'agent, dont le menu ne
+          porte pas cet écran (décision du 12/09), garde le bloc ici. */}
       {erreurQuittancement ? (
         <Card>
           <CardContent className="pt-5">
@@ -297,7 +282,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             </p>
           </CardContent>
         </Card>
-      ) : (
+      ) : role === "agent" ? (
         lignesQuittancement.length > 0 && (
           <Card>
             <CardContent className="pt-5">
@@ -311,6 +296,23 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             </CardContent>
           </Card>
         )
+      ) : (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
+            <div>
+              <p className="font-medium">Quittancement de {moisEnFrancais(moisQuittancement)}</p>
+              <p className="text-sm text-muted-foreground">
+                {lignesQuittancement.length === 0
+                  ? "Aucun appel de loyer ce mois-ci."
+                  : `${lignesQuittancement.filter((l) => Number(l.montant_couvert) >= Number(l.montant_du)).length} sur ${lignesQuittancement.length} encaissé${lignesQuittancement.length > 1 ? "s" : ""} en entier`}
+                {" — "}encaisser, envoyer les quittances et relancer se font sur « Loyers &amp; charges ».
+              </p>
+            </div>
+            <Link href={`/agence/${orgId}/loyers`} className="btn-or">
+              Loyers &amp; charges →
+            </Link>
+          </CardContent>
+        </Card>
       )}
 
       <Card>

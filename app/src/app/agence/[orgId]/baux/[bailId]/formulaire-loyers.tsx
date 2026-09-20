@@ -72,6 +72,8 @@ export type RelanceLigne = {
   date_envoi: string;
   date_premiere_presentation: string | null;
   numero_recommande: string | null;
+  /** « gerant » (saisie ici) ou « automatique » (tâche du matin, e-mail). */
+  origine?: string | null;
 };
 export type RegulLigne = {
   id: string;
@@ -491,6 +493,7 @@ export function FormulaireLoyers({
                 <span className="w-32 shrink-0">{NIVEAU_RELANCE[r.niveau] ?? r.niveau}</span>
                 <span className="min-w-0 flex-1 text-xs text-muted-foreground">
                   envoyée {formaterDate(r.date_envoi)}
+                  {r.origine === "automatique" && " · automatique (e-mail)"}
                   {r.date_premiere_presentation && ` · 1re prés. ${formaterDate(r.date_premiere_presentation)}`}
                   {r.numero_recommande && ` · R${r.numero_recommande}`}
                 </span>

@@ -21,7 +21,10 @@ export function BoutonAssistance(){
  },[visible,chemin]);
  if(!visible)return null;
  return <Link data-assistance href={`/assistance?ecran=${encodeURIComponent(ecranSansDonnees(chemin))}&action=${action}`}
-  className="fixed right-3 bottom-24 z-30 flex min-h-11 items-center gap-2 rounded-full border border-[var(--filet)] bg-[var(--ivoire)] px-4 text-sm font-medium text-[var(--encre)] shadow-sm hover:border-[var(--or)] sm:right-5 sm:bottom-5">
-  <MessageSquarePlus className="size-4" aria-hidden/>Aide et retours
+  aria-label="Aide et retours"
+  className="fixed right-3 bottom-20 z-30 flex size-11 items-center justify-center gap-2 rounded-full border border-[var(--filet)] bg-[var(--ivoire)] text-sm font-medium text-[var(--encre)] shadow-sm hover:border-[var(--or)] sm:size-auto sm:min-h-11 sm:px-4 sm:right-5 sm:bottom-5">
+  {/* Sur téléphone, l'icône seule : le libellé recouvrait des gestes
+      (« Régler », « Devis retenu », un champ du signalement — audit du 20/09). */}
+  <MessageSquarePlus className="size-4" aria-hidden/><span className="hidden sm:inline">Aide et retours</span>
  </Link>;
 }

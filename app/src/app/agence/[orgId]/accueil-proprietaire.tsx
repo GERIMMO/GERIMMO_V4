@@ -153,7 +153,7 @@ export async function AccueilProprietaire({
     <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7">
       <div>
         <p className="mono-discret normal-case">{aujourdhui}</p>
-        <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""},</h1>
+        <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom},` : ""}</h1>
         <p className="text-sm text-muted-foreground">
           Voici l&apos;essentiel de votre patrimoine — {organisation.name}.
         </p>

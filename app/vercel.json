@@ -20,6 +20,10 @@
     {
       "path": "/api/cron/territoire",
       "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/cron/relances",
+      "schedule": "45 7 * * *"
     }
   ]
 }

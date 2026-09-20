@@ -88,7 +88,7 @@ export function navigationEspace({
         tableauDeBord,
         { href: `${base}/parc`, libelle: "Mes lots", icone: "cle", court: "Lots" },
         { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", court: "Locataires" },
-        { href: `${base}/comptabilite`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" },
+        { href: `${base}/loyers`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" },
         incidents,
         alertes,
         messages,
@@ -96,6 +96,7 @@ export function navigationEspace({
       ],
       secondaires: [
         agenda,
+        { href: `${base}/comptabilite`, libelle: "Livre recettes-dépenses", icone: "livre" },
         { href: `${base}/comptabilite/fiscal`, libelle: "Fiscalité", icone: "livre" },
         documents,
         abonnement,
@@ -124,9 +125,12 @@ export function navigationEspace({
       tableauDeBord,
       { href: `${base}/parc`, libelle: "Parc de l'agence", icone: "parc", court: "Parc" },
       { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
-      { href: `${base}/comptabilite`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" },
+      { href: `${base}/loyers`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" },
       incidents,
-      { href: `${base}/comptabilite/fiscal`, libelle: "Comptabilité & fiscalité", icone: "livre" },
+      // « Comptabilité & fiscalité » du brief : la fiscalité (récapitulatif 2044)
+      // n'existe que pour le propriétaire direct — l'entrée pointait sur une 404
+      // pour l'agence (audit du 20/09).
+      { href: `${base}/comptabilite`, libelle: "Comptabilité", icone: "livre" },
       alertes,
       messages,
       parametres,

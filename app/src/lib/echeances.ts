@@ -6,6 +6,20 @@ import { formaterDate } from "./ged";
 //   - « long »   dans une phrase               → « dépassée de 23 jours »
 // Un retard doit se lire sans calcul mental, et le rouge reste réservé au
 // dépassement pour ne pas perdre son sens.
+/**
+ * La date « d'aujourd'hui » qu'un composant client doit reprendre du serveur.
+ *
+ * Un composant rendu côté serveur puis hydraté qui calcule « Dépassée de N j »
+ * avec `new Date()` compte deux fois : une fois sur le serveur (UTC), une fois
+ * dans le navigateur (Paris) — à cheval sur minuit, ou d'un fuseau à l'autre,
+ * N diffère, et React rejette tout l'arbre (relevé du 20/09 sur Alertes).
+ * Le serveur passe donc sa date de Paris (« AAAA-MM-JJ ») ; midi local évite
+ * qu'un décalage horaire ne fasse basculer le jour.
+ */
+export function dateDeReference(aujourdhui?: string | null): Date {
+  return aujourdhui ? new Date(`${aujourdhui}T12:00:00`) : new Date();
+}
+
 export type EcheanceAffichee = {
   texte: string;
   classe: string;

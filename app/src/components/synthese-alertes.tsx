@@ -84,6 +84,14 @@ export function SyntheseAlertes({
     return () => clearTimeout(minuterie);
   }, [alertes.length]);
 
+  // Le brief de supervision ouvre cette même synthèse depuis sa priorité
+  // « alertes critiques » : un seul détail à maintenir, et un clic utile.
+  useEffect(() => {
+    const ouvrirDepuisLeBrief = () => setOuverte(true);
+    window.addEventListener("gerimmo:ouvrir-alertes", ouvrirDepuisLeBrief);
+    return () => window.removeEventListener("gerimmo:ouvrir-alertes", ouvrirDepuisLeBrief);
+  }, []);
+
   const fermer = useCallback(() => {
     sessionStorage.setItem(CLE_SESSION_ALERTES, "1");
     setOuverte(false);

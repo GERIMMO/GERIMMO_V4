@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { familleOrganisation } from "@/lib/clients-supervision";
+import { dernieresTaches, type PasseConsignee } from "@/lib/tache";
+import { faitsManquants } from "@/lib/editeur";
+import { etatConfiguration, etatTaches, pointsBloquants } from "@/lib/sante-service";
 
 export const metadata = { title: "Console d'administration — Gerimmo" };
 
@@ -94,7 +97,7 @@ export default async function PageAdmin() {
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
   // On lit `error` : une console de pilotage qui affiche zéro parce qu'une
   // requête a échoué est pire que pas de console du tout.
-  const [orgs, devis, publications, lots, artisans, retours, contestations] = await Promise.all([
+  const [orgs, devis, publications, lots, artisans, retours, contestations, journalTaches] = await Promise.all([
     supabase.from("organizations").select("id, name, status, type, essai_fin").order("name"),
     supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
     supabase.from("publications").select("id, statut"),
@@ -102,7 +105,20 @@ export default async function PageAdmin() {
     supabase.rpc("artisans_a_valider"),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).in("etat", ["nouveau", "en_examen", "en_cours"]).neq("nature", "contestation"),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "contestation").neq("etat", "resolu"),
+    supabase.from("tech_log").select("evenement, details, created_at").like("evenement", "tache_%").order("created_at", { ascending: false }).limit(200),
   ]);
+
+  // La santé du service, en une ligne (20/09) : une variable absente ou une
+  // tâche qui n'a jamais tourné ne se voit pas d'ici, et c'est ici qu'on
+  // regarde. Le détail vit sur /admin/sante ; la supervision dit seulement
+  // combien de points bloquent, et se tait quand tout est en place.
+  const bloquants = pointsBloquants(
+    etatConfiguration(process.env),
+    journalTaches.error
+      ? []
+      : etatTaches(dernieresTaches((journalTaches.data ?? []) as PasseConsignee[]), new Date()),
+    faitsManquants().length
+  );
 
   const enEchec = [orgs.error, devis.error, publications.error, lots.error, artisans.error, retours.error, contestations.error].filter(Boolean);
   const organisations = (orgs.data ?? []) as Organisation[];
@@ -139,6 +155,20 @@ export default async function PageAdmin() {
           incomplets. Rechargez — s&apos;ils ne reviennent pas, c&apos;est la base qui
           ne répond pas.
         </div>
+      )}
+
+      {bloquants > 0 && (
+        <Link
+          href="/admin/sante"
+          className="mb-6 flex items-start gap-3 border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-[13px] text-[var(--warning-soft-foreground)] hover:underline"
+        >
+          <span className="min-w-0 flex-1">
+            <b className="font-semibold">Le service n&apos;est pas prêt</b> : {bloquants} point
+            {bloquants > 1 ? "s" : ""} bloque{bloquants > 1 ? "nt" : ""} — variable absente,
+            tâche jamais passée ou document légal incomplet.
+          </span>
+          <span className="shrink-0">Santé du service →</span>
+        </Link>
       )}
 
       {/* Indicateurs — wiki/personas/Super Admin.md : agences par statut,

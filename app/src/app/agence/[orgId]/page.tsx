@@ -21,6 +21,7 @@ import { Donut, LegendeDonut, BarresDouble } from "@/components/graphes";
 import { FilActivite } from "./fil-activite";
 import { AccueilProprietaire } from "./accueil-proprietaire";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
+import { envoisEteints as listerEnvoisEteints } from "@/lib/envois-automatiques";
 import { IconeTrait } from "@/components/icone-trait";
 import { PhotoDecor } from "@/components/photo-decor";
 import { PHOTOS_ACCUEIL } from "@/lib/photos-decor";
@@ -200,13 +201,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         .eq("id", orgId)
         .maybeSingle()
     : { data: null };
-  const envoisEteints = reglagesEnvoi
-    ? [
-        !reglagesEnvoi.quittances_envoi_auto && "les quittances",
-        !reglagesEnvoi.appels_envoi_auto && "les avis d'échéance",
-        !reglagesEnvoi.relances_envoi_auto && "les relances d'impayé",
-      ].filter((x): x is string => Boolean(x))
-    : [];
+  const envoisEteints = listerEnvoisEteints(reglagesEnvoi);
   // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent ne lit que les
   // lots des mandats qui lui sont confiés — null : il voit tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
@@ -362,6 +357,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   );
   const nomsLots = new Map(lotsActifs.map((l) => [l.id, { nom: l.nom, bienId: l.bien_id }]));
   const nbLoues = lotsActifs.filter((l) => l.etat === "loue" || l.etat === "preavis").length;
+  // L'assistant propose l'automatique dès qu'un lot est loué ; le parcours de
+  // démarrage ne le redit pas sur le même écran.
+  const assistantProposeAutomatique = estResponsable && nbLoues > 0 && envoisEteints.length > 0;
   const enPreparation = lotsActifs.filter((l) => l.etat === "brouillon");
   const tauxOccupation = lotsActifs.length
     ? Math.round((nbLoues / lotsActifs.length) * 100)
@@ -629,7 +627,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           commencer. */}
       {ROLES_RESPONSABLES.includes(role) && (
         <div className="mt-6">
-          <ParcoursDemarrage supabase={supabase} orgId={orgId} />
+          <ParcoursDemarrage
+            supabase={supabase}
+            orgId={orgId}
+            automatiqueProposeAilleurs={assistantProposeAutomatique}
+          />
         </div>
       )}
 
@@ -741,7 +743,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           </Link>
         </div>
 
-        {estResponsable && nbLoues > 0 && envoisEteints.length > 0 && (
+        {assistantProposeAutomatique && (
           <div className="assistant-suggestion">
             <p>
               <b>Gerimmo peut faire seul</b> : envoyer {envoisEteints.join(", ")}. Rien ne

@@ -5220,3 +5220,106 @@ Le banc a montré deux limites qui ne sont pas des bugs produit : le serveur
 de dev redémarre sous la charge d'un crawl (mémoire), et le stockage n'est
 pas émulé (justificatifs « indisponibles » sur la fiche artisan de la
 console).
+
+## [2026-09-20] exploitation | Migration des relances automatiques appliquée, PR #65 fusionnée
+
+Sur « Applique et fusionne » du porteur du projet, au matin.
+
+- **Migration `relances_loyer_automatiques`** appliquée au projet de production
+  (`rddlxunppddzpsaatdaz`), CI verte sur la tête (9952036). Vérifié dans la
+  foulée : les trois réglages sur `organizations` et la contrainte des délais,
+  la colonne `origine` sur `relances` et sa contrainte, `anon` sans lecture,
+  `authenticated` sans consignation, `service_role` seul à lire et consigner ;
+  **zéro organisation activée**, zéro relance due aujourd'hui — le dispositif
+  démarre éteint, comme voulu. La tâche `/api/cron/relances` tourne chaque
+  matin à 7 h 45 UTC dès le déploiement ; elle ne fera rien tant qu'une agence
+  n'a pas coché « Relancer automatiquement » dans son profil.
+- **PR #65 fusionnée** dans `main` (commit de fusion df340ce) : l'audit de
+  nuit, l'écran « Loyers & charges », les relances automatiques, la suggestion
+  d'automatisation de l'assistant, les corrections (menu v4, hydratation des
+  alertes, widget d'aide, salutation, proxy de la tâche). Le déploiement de
+  production suit.
+- Ordre tenu : la migration d'abord, la fusion ensuite — le profil fusionné
+  lit trois colonnes que la migration crée.
+
+**Reste ouvert** (audit du 20/09, §7) : rattacher un doublon d'incident en un
+clic, rapport de gestion généré à la clôture, dépenses récurrentes du
+propriétaire, « J'ai réglé » côté locataire, alertes ↔ incidents en double ;
+les délais 5 / 15 jours restent un choix de départ à confirmer ; proposer
+l'automatisation dès le parcours de démarrage.
+
+## [2026-09-20] query  | Gerimmo publié dans 10 jours, sans WhatsApp : que reste-t-il à faire ?
+
+Point d'information du porteur du projet : publication visée autour du
+30/09/2026, bot WhatsApp reporté juste après (trop long). Réponse filée dans
+[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]].
+
+- **Constat de production** (SQL + journal technique) : les tâches
+  `quittances`, `appels`, `rappels` ont tourné ce matin (0 envoi, automatique
+  éteint partout) ; la tâche `abonnements` **n'a jamais tourné** — elle
+  répond 503 avant tout journal quand Stripe n'est pas configuré, donc **les
+  clés Stripe ne sont pas posées en production** ; 3 organisations de
+  développement avec 3 personnes à adresses de test ; 12 comptes, un seul
+  second facteur vérifié ; pages légales présentes ; avis de sécurité
+  Supabase conformes à la conception (fonctions `security definer`, tables
+  lues par fonctions).
+- **Bloquant** : Stripe réel (prix, clés, webhook, paiement de test — l'essai
+  de 14 jours ferme l'écriture au 15ᵉ jour), e-mails réels (domaine Resend
+  vérifié, SMTP Auth Supabase, lecture de chaque courrier), variables Vercel,
+  sort des données de développement, plan Supabase + premier test de
+  restauration, MFA des super-admins.
+- **Important** : registre des traitements et procédure de violation,
+  restrictions réseau, recette par persona sur `gerimmo.app`, rituel de
+  surveillance, automatique proposé au démarrage ; antivirus en risque accepté.
+- **Peut attendre** : WhatsApp, les sept propositions de l'audit de nuit,
+  suite de la refonte, export du journal, écran CGU.
+- Calendrier J-10 → J0 proposé ; quatre points à trancher (données de
+  développement, antivirus, plan Supabase, délais 5 / 15 jours).
+
+Pages lues : [[État du projet et décisions ouvertes]], [[Gerimmo en
+autonomie]], [[Audit de nuit — fonctionnalités, personas et automatisation
+(20 septembre 2026)]], [[Grille tarifaire]], [[Canaux de communication]].
+
+## [2026-09-20] preparation | Lancement : tout ce que l'agent pouvait faire seul
+
+Sur « Fais tout ce que tu peux faire seul » du porteur, à la suite de la
+liste de lancement. Livré sur la branche de travail, PR ouverte, **sans
+fusion** (décision du porteur).
+
+- **Écran « Santé du service »** (`/admin/sante`, entrée de menu) : variables
+  de production avec leur état — posée, à vérifier, manque — sans jamais
+  afficher une valeur ; les six tâches planifiées avec leur dernière passe
+  et son bilan ; les faits de l'éditeur manquants ; l'adoption des envois
+  automatiques. La supervision affiche « Le service n'est pas prêt : n
+  points » tant qu'un manque subsiste. Logique pure dans
+  `lib/sante-service.ts`, 14 tests.
+- **L'automatique proposé dès le parcours de démarrage** (audit de nuit,
+  proposition n° 7) ; la liste des envois éteints est partagée avec
+  l'assistant (`lib/envois-automatiques.ts`), et le parcours se tait quand
+  l'assistant le dit déjà sur le même écran.
+- **Région Vercel fixée à Paris** (`vercel.json`, `cdg1`) : le serveur
+  s'exécutait par défaut à Washington, à chaque page un aller-retour vers la
+  base de Paris. Mentions légales mises à jour.
+- **Page confidentialité réécrite** depuis le code et `retention_rules`
+  (rôles, données, sous-traitants et régions, durées, mesures, droits) ; une
+  promesse non tenue (restauration testée) retirée avant publication.
+- **Modèles d'e-mails d'authentification en français**
+  (`app/supabase/templates/` + LISEZ-MOI) : le courrier d'invitation était
+  le « Reset Password » anglais de Supabase.
+- **Relecture des dix courriers du service** : rien à corriger.
+- **Découvert en relisant les pages légales** : les faits de l'éditeur
+  (`lib/editeur.ts`) sont tous vides — nouveau point bloquant § 2.6 de la
+  page de lancement, seul le porteur peut les fournir.
+- **Wiki** : [[Registre des traitements]], [[Procédure de notification de
+  violation]], [[Recette de production]] (brouillons) ; page de lancement
+  complétée (§ 5 « Fait dans la foulée », calendrier ajusté) ; index.
+- **Vérifié** : types, lint, 1 406 tests unitaires et SQL (71 ignorés hors
+  banc), captures visuelles du tableau de bord régénérées (le pied du
+  parcours change) et repassées vertes seules ; balayage d'accessibilité
+  vert sur les 48 écrans de la matrice, `/admin/sante` compris (inventaire
+  et matrice mis à jour). PR #66 ouverte, en attente de « Applique et
+  fusionne » — aucune migration à appliquer cette fois.
+
+**Reste au porteur** : Stripe, Resend et SMTP, DNS, modèles collés dans
+Supabase, plan Supabase et test de restauration, faits de l'éditeur, sort des
+données de développement, MFA des personnes.

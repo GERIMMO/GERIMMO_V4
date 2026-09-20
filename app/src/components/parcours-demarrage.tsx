@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PhotoDecor } from "@/components/photo-decor";
 import { PHOTOS_PREMIER_LOT } from "@/lib/photos-decor";
+import { toutManuel, type ReglagesEnvoi } from "@/lib/envois-automatiques";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -57,14 +58,35 @@ function lien(orgId: string, e: Etape): string {
 export async function ParcoursDemarrage({
   supabase,
   orgId,
+  automatiqueProposeAilleurs = false,
 }: {
   supabase: SupabaseClient;
   orgId: string;
+  /** Vrai quand l'écran qui porte le bloc propose déjà l'automatique (l'assistant du tableau de bord) : on ne le dit pas deux fois. */
+  automatiqueProposeAilleurs?: boolean;
 }) {
-  const { data, error } = await supabase.rpc("parcours_demarrage", { p_org: orgId });
+  const [{ data, error }, reglages] = await Promise.all([
+    supabase.rpc("parcours_demarrage", { p_org: orgId }),
+    // Les trois envois automatiques (audit du 20/09, proposition n° 7) : le
+    // moment de les proposer est CELUI-CI, avant le premier bail, pas après
+    // le premier loyer réclamé à la main. Une lecture tombée vaut « rien
+    // d'activé » : on propose, on ne décide pas.
+    supabase
+      .from("organizations")
+      .select("quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto")
+      .eq("id", orgId)
+      .maybeSingle(),
+  ]);
   // Une lecture tombée ne doit pas se déguiser en parcours terminé : on
   // n'affiche rien plutôt que d'annoncer une fin qu'on n'a pas constatée.
   if (error) return null;
+  const proposerAutomatique = !automatiqueProposeAilleurs && toutManuel(
+    (reglages.data as ReglagesEnvoi | null) ?? {
+      quittances_envoi_auto: false,
+      appels_envoi_auto: false,
+      relances_envoi_auto: false,
+    }
+  );
 
   const etapes = (data ?? []) as Etape[];
   if (etapes.length === 0 || etapes.every((e) => e.faite)) return null;
@@ -140,11 +162,25 @@ export async function ParcoursDemarrage({
         })}
       </ol>
 
-      <p className="mt-3 text-xs text-muted-foreground">
-        Une fois le bail actif, le loyer s&apos;appelle seul le 1ᵉʳ de chaque
-        mois et la quittance suit l&apos;encaissement — vous n&apos;aurez plus
-        rien à lancer.
-      </p>
+      {proposerAutomatique ? (
+        <div className="assistant-suggestion mt-3 border-b-0">
+          <p>
+            Une fois le bail actif, le loyer s&apos;appelle seul le 1ᵉʳ de chaque
+            mois et la quittance suit l&apos;encaissement.{" "}
+            <b>Gerimmo peut aussi les envoyer seul</b>, avec les relances
+            d&apos;impayé : rien ne part sans votre accord, donné une fois.
+          </p>
+          <Link href={`/agence/${orgId}/profil#relances`} className="lien-discret whitespace-nowrap">
+            Activer les envois automatiques →
+          </Link>
+        </div>
+      ) : (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Une fois le bail actif, le loyer s&apos;appelle seul le 1ᵉʳ de chaque
+          mois et la quittance suit l&apos;encaissement — vous n&apos;aurez plus
+          rien à lancer.
+        </p>
+      )}
     </section>
   );
 }

@@ -5247,3 +5247,35 @@ clic, rapport de gestion généré à la clôture, dépenses récurrentes du
 propriétaire, « J'ai réglé » côté locataire, alertes ↔ incidents en double ;
 les délais 5 / 15 jours restent un choix de départ à confirmer ; proposer
 l'automatisation dès le parcours de démarrage.
+
+## [2026-09-20] query  | Gerimmo publié dans 10 jours, sans WhatsApp : que reste-t-il à faire ?
+
+Point d'information du porteur du projet : publication visée autour du
+30/09/2026, bot WhatsApp reporté juste après (trop long). Réponse filée dans
+[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]].
+
+- **Constat de production** (SQL + journal technique) : les tâches
+  `quittances`, `appels`, `rappels` ont tourné ce matin (0 envoi, automatique
+  éteint partout) ; la tâche `abonnements` **n'a jamais tourné** — elle
+  répond 503 avant tout journal quand Stripe n'est pas configuré, donc **les
+  clés Stripe ne sont pas posées en production** ; 3 organisations de
+  développement avec 3 personnes à adresses de test ; 12 comptes, un seul
+  second facteur vérifié ; pages légales présentes ; avis de sécurité
+  Supabase conformes à la conception (fonctions `security definer`, tables
+  lues par fonctions).
+- **Bloquant** : Stripe réel (prix, clés, webhook, paiement de test — l'essai
+  de 14 jours ferme l'écriture au 15ᵉ jour), e-mails réels (domaine Resend
+  vérifié, SMTP Auth Supabase, lecture de chaque courrier), variables Vercel,
+  sort des données de développement, plan Supabase + premier test de
+  restauration, MFA des super-admins.
+- **Important** : registre des traitements et procédure de violation,
+  restrictions réseau, recette par persona sur `gerimmo.app`, rituel de
+  surveillance, automatique proposé au démarrage ; antivirus en risque accepté.
+- **Peut attendre** : WhatsApp, les sept propositions de l'audit de nuit,
+  suite de la refonte, export du journal, écran CGU.
+- Calendrier J-10 → J0 proposé ; quatre points à trancher (données de
+  développement, antivirus, plan Supabase, délais 5 / 15 jours).
+
+Pages lues : [[État du projet et décisions ouvertes]], [[Gerimmo en
+autonomie]], [[Audit de nuit — fonctionnalités, personas et automatisation
+(20 septembre 2026)]], [[Grille tarifaire]], [[Canaux de communication]].

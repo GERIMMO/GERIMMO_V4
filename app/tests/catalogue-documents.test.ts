@@ -46,6 +46,14 @@ const options={annee:"2026",mois:"2026-01",delai:"15",mensualites:"3",premiere_e
 function succes(r:Assemblage) {expect(r).not.toHaveProperty("erreur");if("erreur" in r) throw new Error(r.erreur);return r;}
 beforeEach(()=>{ctx=contexte();ctx.bail.etat="actif";vi.mocked(chargerContexteBail).mockImplementation(async()=>ctx);});
 describe("Catalogue — documents issus des dossiers",()=>{
+  it("classe le compte rendu dans les rapports et présente sa validation sans certifier l’envoi", async()=>{
+    expect(MODELES.rapport_gestion.typeGed).toBe("rapport_gestion");
+    const modele=CATALOGUE_DOCUMENTS.find(m=>m.id==="rapport_gestion")!;
+    const {db}=mockDb();
+    const resultat=await chargerCiblesCatalogue(db,"org",modele);
+    expect(resultat.choix[0].libelle).toContain("Validé");
+    expect(resultat.choix[0].libelle).not.toContain("envoye");
+  });
   it.each(CODES_COMPLEMENTS_BAIL)("assemble %s avec sa source métier",async code=>{
     if(code.startsWith("inventaire")) ctx.lot.meuble=true;
     if(code==="inventaire_sortie") ctx.bail.etat="preavis";

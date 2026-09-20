@@ -39,7 +39,8 @@ export async function chargerCiblesCatalogue(db:SupabaseClient,orgId:string,mode
     const b=bauxMap.get(modele.cible==="bail"?r.id:r.bail_id);
     const dossier=b?[lotsMap.get(b.lot_id),personnesMap.get(b.locataire_principal)].filter(Boolean).join(" · "):lotsMap.get(r.lot_id)||personnesMap.get(r.person_id)||"";
     const date=texte(r.periode||r.mois||r.date_edl||r.date_echeance||r.date_emission||r.date_effet||r.date_piece);
-    return {id:texte(r.id),bailId:b?texte(b.id):undefined,libelle:[dossier,texte(r.nom||r.titre||r.nature_travaux||r.libelle||(r.numero?`Incident ${r.numero}`:"")),date?formaterDateFr(date):r.annee,texte(r.etat||r.statut),`réf. ${texte(r.id).slice(0,8)}`].filter(Boolean).join(" · ")};
+    const etat = modele.cible === "rapport" ? (r.statut === "envoye" ? "Validé" : "À valider") : texte(r.etat||r.statut);
+    return {id:texte(r.id),bailId:b?texte(b.id):undefined,libelle:[dossier,texte(r.nom||r.titre||r.nature_travaux||r.libelle||(r.numero?`Incident ${r.numero}`:"")),date?formaterDateFr(date):r.annee,etat,`réf. ${texte(r.id).slice(0,8)}`].filter(Boolean).join(" · ")};
   })};
 }
 export async function verifierCibleCatalogue(db:SupabaseClient,orgId:string,modele:EntreeCatalogue,cibleId:string) {

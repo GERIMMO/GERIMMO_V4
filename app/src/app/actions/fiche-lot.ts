@@ -2,8 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
-import { envoyerEmail } from "@/lib/email";
-import { eur } from "@/lib/ged";
+import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
+import { verifierGerant } from "@/lib/ged-acces";
+import { revalidatePath } from "next/cache";
 
 // Ce que la fenêtre du lot va chercher, et QUAND.
 //
@@ -209,7 +210,7 @@ export async function chargerHistoriqueDuLot(
   return { donnees: (data ?? []) as EvenementDuLot[] };
 }
 
-export type EtatEnvoiRapport = { erreur?: string; succes?: string };
+export type EtatEnvoiRapport = { erreur?: string; succes?: string; documentId?: string };
 
 /**
  * Envoyer le rapport de gestion au propriétaire, depuis le lot.
@@ -244,11 +245,6 @@ export async function envoyerRapportDuLot(
         "Ce lot n’est couvert par aucun mandat actif : il n’y a pas de propriétaire à qui adresser un rapport.",
     };
   }
-  if (rapport.envoye_le) {
-    return {
-      erreur: `Le rapport de ce mois est déjà parti le ${new Date(rapport.envoye_le).toLocaleDateString("fr-FR")}.`,
-    };
-  }
 
   let rapportId = rapport.rapport_id;
   if (!rapportId) {
@@ -264,47 +260,16 @@ export async function envoyerRapportDuLot(
     }
   }
 
-  const { error: erreurEnvoi } = await supabase.rpc("envoyer_rapport", {
-    p_rapport: rapportId,
-    p_commentaire: commentaire,
-  });
-  if (erreurEnvoi) return { erreur: sansJargon(erreurEnvoi.message) };
-
-  // Le courrier au mandant. Le rapport est FIGÉ quoi qu'il arrive ensuite :
-  // un échec d'envoi se dit, il n'annule rien — et il ne doit pas laisser
-  // croire que le rapport reste à faire.
-  const { data: releve } = await supabase
-    .from("rapports_gestion")
-    .select("net, mois")
-    .eq("id", rapportId)
-    .maybeSingle();
-  const net = Number((releve as { net?: number } | null)?.net ?? 0);
-
-  if (!rapport.mandant_email) {
-    return {
-      succes: `Rapport figé et validé. ${rapport.mandant} n’a pas d’adresse e-mail : la remise se fait hors plateforme.`,
-    };
-  }
-  const html = `<div style="font-family:sans-serif;font-size:14px;color:#111;line-height:1.55">
-      <h2 style="font-size:17px">Votre rapport de gestion</h2>
-      <p>Bonjour,</p>
-      <p>Votre rapport de gestion est disponible. Net à reverser :
-         <strong>${eur(net)}</strong>${net < 0 ? " (appel de fonds)" : ""}.</p>
-      ${commentaire ? `<p>${commentaire}</p>` : ""}
-      <p style="color:#555">Il couvre ${rapport.lots_du_mandat > 1 ? `les ${rapport.lots_du_mandat} lots` : "le lot"} que vous nous avez confiés.</p>
-      <p>— Votre agence</p>
-    </div>`;
-  const { erreur } = await envoyerEmail({
-    to: rapport.mandant_email,
-    subject: "Votre rapport de gestion",
-    html,
-  });
-  if (erreur) {
-    return {
-      succes: `Rapport figé et validé, mais l’e-mail n’est pas parti : ${erreur}`,
-    };
-  }
-  return {
-    succes: `Rapport envoyé à ${rapport.mandant}${rapport.lots_du_mandat > 1 ? `, pour les ${rapport.lots_du_mandat} lots de son mandat` : ""}.`,
-  };
+  // Le RPC du lot impose déjà le portefeuille. Recontrôler la session et
+  // l'organisation avant la remise documentaire partagée avec la comptabilité.
+  const { data: fiche, error: erreurFiche } = await supabase.from("rapports_gestion")
+    .select("organization_id").eq("id", rapportId).maybeSingle();
+  if (erreurFiche || !fiche) return { erreur: "Rapport introuvable ou inaccessible." };
+  const acces = await verifierGerant(fiche.organization_id);
+  if (!acces.user) return { erreur: "Accès refusé." };
+  const resultat = await remettreRapportMensuel(acces.supabase, acces.user, fiche.organization_id, rapportId, commentaire, acces.role ?? "");
+  revalidatePath(`/agence/${fiche.organization_id}/comptabilite`);
+  revalidatePath(`/agence/${fiche.organization_id}/mandats`);
+  revalidatePath(`/agence/${fiche.organization_id}/documents`);
+  return resultat;
 }

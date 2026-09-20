@@ -69,3 +69,14 @@ describe("l'expéditeur", () => {
     expect(r.erreur).toMatch(/non configuré/);
   });
 });
+
+it("transmet une pièce jointe et la clé anti-doublon, et conserve la référence du prestataire", async () => {
+  vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "message-test" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetch);
+  const { envoyerEmail } = await chargerEmail();
+  expect(await envoyerEmail({ to: "a@b.fr", subject: "Rapport", html: "<p>Votre PDF</p>", piecesJointes: [{ nom: "rapport.pdf", contenuBase64: "cGRm" }], cleIdempotence: "rapport/test" })).toEqual({ id: "message-test" });
+  const requete = fetch.mock.calls[0][1];
+  expect(requete.headers["Idempotency-Key"]).toBe("rapport/test");
+  expect(JSON.parse(requete.body).attachments).toEqual([{ filename: "rapport.pdf", content: "cGRm" }]);
+});

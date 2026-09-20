@@ -171,7 +171,7 @@ export async function FilActivite({
     evenements.push({
       cle: `rap-${r.id}`,
       ts: r.envoye_le,
-      titre: `Rapport de gestion de ${mois} envoyé à ${nom}`,
+      titre: `Rapport de gestion de ${mois} validé pour ${nom}`,
       detail:
         r.net != null ? `Versement de ${eur(Number(r.net))} à enregistrer` : "Versement à suivre",
       initiales: initialesDe(nom),

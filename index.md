@@ -7,7 +7,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Super Admin]] — l'éditeur de la plateforme ; console, modèles, blacklist globale, facturation.
 - [[Administrateur d'agence]] — « agent ++ » : administration, paramétrages, vue retards.
 - [[Agent immobilier]] — gestion locative quotidienne ; limité à ses mandats (V3).
-- [[Propriétaire bailleur]] — deux personas V3 : mandant (aucun accès) vs gestion directe (accès complet).
+- [[Propriétaire bailleur]] — deux personas V3 : mandant (aucun accès, compte rendu mensuel reçu) vs gestion directe (accès complet).
 - [[Artisan]] — intervenant sur incidents ; pièces auto-gérées, décennale, score composite.
 - [[Locataire]] — occupant ; incidents, quittances, assurance annuelle, portail restreint.
 
@@ -19,7 +19,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Quittancement des loyers]] — appel → encaissement → quittance (ou reçu si partiel).
 - [[Révision annuelle IRL]] — proposition validée, prescription 1 an, DPE F/G bloqué.
 - [[Solde de tout compte]] — décompte final de fin de bail, émis dans les deux sens.
-- [[Rapport de gestion]] — le livrable mensuel du mandant, figé après envoi.
+- [[Rapport de gestion]] — compte rendu mensuel sans accès propriétaire, PDF détaillé joint et conservé ; relecture agence et reprise d’envoi.
 - [[Recette de production]] — **20/09, brouillon** : le tour de `gerimmo.app` persona par persona le jour du déploiement — prérequis (Santé du service sans manque, modèles d'e-mails Supabase, données de développement), étapes, les dix courriers à lire, critères de sortie.
 - [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.

@@ -538,7 +538,7 @@ function preparerValeur(v, type) {
 }
 
 // ── RPC ────────────────────────────────────────────────────────────────────
-async function appelerRpc(claims, nom, corps) {
+async function appelerRpc(claims, nom, corps, url) {
   const fn = catalogue.fns.get(nom);
   if (!fn) throw erreurRest(404, "PGRST202", `Fonction public.${nom} introuvable`);
   const args = corps ?? {};
@@ -550,8 +550,16 @@ async function appelerRpc(claims, nom, corps) {
   const listeArgs = fournis.map((a, i) => `"${a.nom}" => $${i + 1}::${a.type}`).join(", ");
   return sousIdentite(claims, async (client) => {
     if (fn.retourne_set || fn.type_retour.startsWith("TABLE") || fn.type_retour.startsWith("SETOF")) {
+      // Les RPC setof de PostgREST acceptent les mêmes filtres SQL que les
+      // tables. Les ignorer donnait de faux résultats dans la recherche GED.
+      const { clauses, ordre, limite, decalage } = clausesDepuisParams(url, params, new Set());
+      let selection = `select * from public."${nom}"(${listeArgs})`;
+      if (clauses.length) selection += ` where ${clauses.join(" and ")}`;
+      if (ordre) selection += ` order by ${ordre}`;
+      if (limite !== null) selection += ` limit ${limite}`;
+      if (decalage !== null) selection += ` offset ${decalage}`;
       const r = await client.query(
-        `select coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) as j from public."${nom}"(${listeArgs}) t`,
+        `select coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) as j from (${selection}) t`,
         params,
       );
       return r.rows[0].j;
@@ -840,7 +848,7 @@ const serveur = http.createServer(async (req, res) => {
     // /rest/v1/rpc/:fn
     if (segments[0] === "rest" && segments[1] === "v1" && segments[2] === "rpc") {
       const corps = brut.length ? JSON.parse(brut.toString()) : {};
-      const resultat = await appelerRpc(claims, segments[3], corps);
+      const resultat = await appelerRpc(claims, segments[3], corps, url);
       const accept = entetes.accept ?? "";
       if (accept.includes("vnd.pgrst.object")) {
         const tableau = Array.isArray(resultat) ? resultat : [resultat];

@@ -20,21 +20,25 @@ export async function envoyerEmail(params: {
   to: string;
   subject: string;
   html: string;
-}): Promise<{ erreur?: string }> {
+  piecesJointes?: { nom: string; contenuBase64: string }[];
+  cleIdempotence?: string;
+}): Promise<{ erreur?: string; id?: string }> {
   const cle = process.env.RESEND_API_KEY;
-  if (!cle) return { erreur: "Envoi email non configuré (RESEND_API_KEY absente de .env.local)." };
+  if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   try {
     const reponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${cle}`,
         "Content-Type": "application/json",
+        ...(params.cleIdempotence ? { "Idempotency-Key": params.cleIdempotence } : {}),
       },
       body: JSON.stringify({
         from: EXPEDITEUR,
         to: [params.to],
         subject: params.subject,
         html: params.html,
+        ...(params.piecesJointes?.length ? { attachments: params.piecesJointes.map(p => ({ filename: p.nom, content: p.contenuBase64 })) } : {}),
       }),
     });
     if (!reponse.ok) {
@@ -49,7 +53,8 @@ export async function envoyerEmail(params: {
       }
       return { erreur: `Resend a refusé l'envoi (${reponse.status}) : ${txt.slice(0, 200)}` };
     }
-    return {};
+    const resultat = await reponse.json().catch(() => null);
+    return { ...(typeof resultat?.id === "string" ? { id: resultat.id } : {}) };
   } catch (e) {
     return { erreur: `Échec réseau de l'envoi : ${e instanceof Error ? e.message : "inconnu"}` };
   }

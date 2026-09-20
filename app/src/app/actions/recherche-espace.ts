@@ -5,6 +5,7 @@ import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille
 import { filtreRecherche, filtrePersonnes, normaliserRecherche, type ReponseRecherche, type ResultatRecherche } from "@/lib/recherche-espace";
 import { nomComplet } from "@/lib/roles-personnes";
 import { ETATS_BAIL } from "@/lib/baux";
+import { eur, formaterDate, TYPES_DOCUMENT } from "@/lib/ged";
 
 export async function rechercherDansEspace(orgId: string, saisie: string): Promise<ReponseRecherche> {
   const { supabase, user, role } = await verifierAccesEspace(orgId);
@@ -56,6 +57,55 @@ export async function rechercherDansEspace(orgId: string, saisie: string): Promi
       resultats.push({ id: b.id, type: "Bail", titre: personne ? nomComplet(personne) : lots.find((l) => l.id === b.lot_id)?.nom ?? "Contrat de location", detail: ETATS_BAIL[b.etat] ?? b.etat, href: `${base}/baux/${b.id}` });
     }
   }
-  return { resultats, ...(lotsNoms.error || biens.error || personnes.error || lotsAdresse.error || erreurBaux
+  // Même source et même périmètre que la GED : ne pas réintroduire les
+  // versions remplacées ou les documents d'un autre portefeuille.
+  let incidentsQuery = supabase.from("incidents").select("id,numero,description,etat")
+    .eq("organization_id", orgId);
+  if (portefeuille) incidentsQuery = incidentsQuery.in("lot_id", [...portefeuille]);
+  const filtreIncident = filtreRecherche(["description", "numero"], texte);
+  const [documents, incidents, relations] = await Promise.all([
+    supabase.rpc("documents_courants", { p_org: orgId, p_lots: portefeuille ? [...portefeuille] : null })
+      .select("id,titre,type").or(filtreRecherche(["titre"], texte)).order("created_at", { ascending: false }).limit(6),
+    portefeuille?.size === 0 ? { data: [], error: null }
+      : incidentsQuery.or(filtreIncident).order("created_at", { ascending: false }).limit(6),
+    supabase.from("artisan_agences").select("artisan_id", { count: "exact" }).eq("organization_id", orgId).limit(1000),
+  ]);
+  for (const d of (documents.data ?? []) as { id: string; titre: string; type: string }[]) resultats.push({
+    id: d.id, type: "Document", titre: d.titre, detail: TYPES_DOCUMENT[d.type] ?? d.type,
+    href: `${base}/documents?sel=${d.id}`,
+  });
+  for (const i of incidents.data ?? []) resultats.push({
+    id: i.id, type: "Incident", titre: `Incident ${i.numero}`, detail: i.description || i.etat,
+    href: `${base}/incidents/${i.id}`,
+  });
+  // Un profil artisan est global ; seules les relations de cette agence sont
+  // recherchées. Le plafond est annoncé, jamais déguisé en liste exhaustive.
+  const artisans = relations.data?.length ? await supabase.from("artisans")
+    .select("id,raison_sociale,siret,email").in("id", relations.data.slice(0,1000).map(r => r.artisan_id))
+    .or(filtreRecherche(["raison_sociale", "siret", "email"], texte)).order("raison_sociale").limit(6)
+    : { data: [], error: null };
+  for (const a of artisans.data ?? []) resultats.push({
+    id: a.id, type: "Artisan", titre: a.raison_sociale, detail: a.email || `SIRET ${a.siret}`,
+    href: `${base}/artisans?vue=tous&sel=${a.id}`,
+  });
+  // L'inner join fait porter la restriction de portefeuille sur le paiement
+  // avant la limite, y compris pour une recherche par note ou mode.
+  let paiementQuery = supabase.from("encaissements")
+    .select("id,bail_id,montant,date_paiement,mode,note,bail:baux!encaissements_bail_id_fkey!inner(lot_id)").eq("organization_id", orgId);
+  if (portefeuille) paiementQuery = paiementQuery.in("bail.lot_id", [...portefeuille]);
+  const filtresPaiement = [filtreRecherche(["note", "mode"], texte)];
+  if (idsPersonnes.length || idsLots.length) {
+    const bauxTrouves = resultats.filter(r => r.type === "Bail").map(r => r.id);
+    if (bauxTrouves.length) filtresPaiement.push(`bail_id.in.(${bauxTrouves.join(",")})`);
+  }
+  if (/^\d{1,12}(?:[.,]\d{1,2})?$/.test(texte)) filtresPaiement.push(`montant.eq.${texte.replace(",", ".")}`);
+  const paiements = portefeuille?.size === 0 ? { data: [], error: null }
+    : await paiementQuery.or(filtresPaiement.join(",")).order("date_paiement", { ascending: false }).limit(6);
+  for (const p of paiements.data ?? []) resultats.push({
+    id: p.id, type: "Paiement", titre: `${eur(Number(p.montant))} · ${formaterDate(p.date_paiement)}`,
+    detail: [p.mode, p.note].filter(Boolean).join(" · ") || "Encaissement enregistré",
+    href: `${base}/baux/${p.bail_id}#loyers`,
+  });
+  return { resultats, ...(lotsNoms.error || biens.error || personnes.error || lotsAdresse.error || erreurBaux || documents.error || incidents.error || relations.error || artisans.error || paiements.error || (relations.count ?? relations.data?.length ?? 0) >= 1000
     ? { erreur: "Certains résultats sont indisponibles. Réessayez ou ouvrez la rubrique concernée." } : {}) };
 }

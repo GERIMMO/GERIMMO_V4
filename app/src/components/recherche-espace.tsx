@@ -19,7 +19,7 @@ export function RechercheEspace({ orgId }: { orgId: string }) {
     return () => window.removeEventListener("keydown", raccourci);
   }, []);
   return <>
-    <button type="button" className="recherche-ouvrir" onClick={() => ouvrir(true)} aria-haspopup="dialog" aria-label="Rechercher un logement, une personne ou un bail">
+    <button type="button" className="recherche-ouvrir" onClick={() => ouvrir(true)} aria-haspopup="dialog" aria-label="Rechercher un logement, une personne, un document, un incident, un artisan ou un paiement">
       <Search className="size-4 shrink-0" aria-hidden="true" />
       <span>Rechercher<span className="hidden lg:inline"> un logement, une personne…</span></span>
       <kbd className="hidden sm:inline">⌘ / Ctrl K</kbd>
@@ -63,7 +63,7 @@ function FenetreRecherche({ orgId, fermer }: { orgId: string; fermer: () => void
       </header>
       <div className="recherche-champ">
         <Search className="size-5 shrink-0" aria-hidden="true" />
-        <input ref={champ} value={saisie} onChange={(e) => saisir(e.target.value)} maxLength={80} autoComplete="off" aria-label="Nom, adresse ou e-mail" placeholder="Nom, adresse ou e-mail…" aria-describedby="recherche-aide" onKeyDown={(e) => {
+        <input ref={champ} value={saisie} onChange={(e) => saisir(e.target.value)} maxLength={80} autoComplete="off" aria-label="Nom, adresse, document, incident ou paiement" placeholder="Nom, document, incident, montant…" aria-describedby="recherche-aide" onKeyDown={(e) => {
           if (e.key === "ArrowDown") { e.preventDefault(); dialog.current?.querySelector<HTMLAnchorElement>("[data-resultat]")?.focus(); }
         }} />
         {saisie && <button type="button" className="recherche-fermer" aria-label="Effacer la recherche" onClick={() => { saisir(""); champ.current?.focus(); }}><X className="size-4" /></button>}
@@ -72,7 +72,7 @@ function FenetreRecherche({ orgId, fermer }: { orgId: string; fermer: () => void
         <p id="recherche-aide" className="text-sm text-muted-foreground">{texte.length < 2 ? "Saisissez au moins 2 caractères, ou accédez directement à une rubrique." : "Les résultats sont limités à vos accès dans cet espace."}</p>
         {chargement && <p role="status" className="flex items-center gap-2 py-5 text-sm"><LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" />Recherche en cours…</p>}
         {resultat?.erreur && <div role="alert" className="err mt-3"><p>{resultat.erreur}</p><button type="button" className="mt-2 underline" onClick={() => recommencer((n) => n + 1)}>Réessayer</button></div>}
-        {texte.length >= 2 && resultat && !resultat.erreur && resultat.resultats.length === 0 && <p role="status" className="py-5">Aucun dossier trouvé. Essayez un nom, une ville ou une adresse e-mail.</p>}
+        {texte.length >= 2 && resultat && !resultat.erreur && resultat.resultats.length === 0 && <p role="status" className="py-5">Aucun dossier trouvé. Essayez un nom, un titre de document, un numéro d’incident ou un montant.</p>}
         {resultat && <ul className="mt-3 divide-y divide-border" onKeyDown={(e) => {
           if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
           const liens = Array.from(e.currentTarget.querySelectorAll<HTMLAnchorElement>("[data-resultat]"));

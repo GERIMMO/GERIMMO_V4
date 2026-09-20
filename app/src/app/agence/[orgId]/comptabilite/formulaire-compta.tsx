@@ -1,4 +1,6 @@
 "use client";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
+import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { InputDateJour } from "@/components/input-date-jour";
 
 import { useActionState } from "react";
@@ -105,18 +107,18 @@ export function RapportsGestion({
                       {r.statut === "a_valider"
                         ? "À valider"
                         : r.versement_montant == null
-                          ? "Envoyé"
+                          ? "Validé"
                           : "Versé"}
                     </span>
-                    {r.statut === "a_valider" ? (
-                      <BoutonEnvoyerRapport orgId={orgId} rapportId={r.id} />
-                    ) : r.versement_montant == null ? (
+                    {r.statut === "a_valider" && <BoutonGenererDocument orgId={orgId} code="rapport_gestion" cibleId={r.id} cheminRetour={`/agence/${orgId}/comptabilite`} libelle="Préparer le PDF pour relecture" size="sm" variant="ghost" />}
+                    <BoutonEnvoyerRapport orgId={orgId} rapportId={r.id} valide={r.statut !== "a_valider"} />
+                    {r.statut !== "a_valider" && (r.versement_montant == null ? (
                       <FormVersement orgId={orgId} rapportId={r.id} />
                     ) : (
                       <span className="montant text-xs text-muted-foreground">
                         versé {eur(r.versement_montant)}
                       </span>
-                    )}
+                    ))}
                   </li>
                 ))}
               </ul>
@@ -155,18 +157,18 @@ function BoutonGenererRapport({ orgId, mandatId, moisCourant }: { orgId: string;
   );
 }
 
-function BoutonEnvoyerRapport({ orgId, rapportId }: { orgId: string; rapportId: string }) {
-  const [etat, action] = useActionState<EtatCompta, FormData>(envoyerRapport.bind(null, orgId, rapportId), {});
+function BoutonEnvoyerRapport({ orgId, rapportId, valide }: { orgId: string; rapportId: string; valide: boolean }) {
+  const { etat, soumettre, enCours } = useActionFormulaire<EtatCompta>(envoyerRapport.bind(null, orgId, rapportId));
   return (
-    <form action={action} className="flex flex-wrap items-center gap-1">
-      <Input
+    <form onSubmit={soumettre} aria-busy={enCours} className="flex flex-wrap items-center gap-1">
+      {!valide && <Input
         aria-label="Commentaire joint au rapport"
         name="commentaire"
         placeholder="commentaire"
-        defaultValue={etat.valeurs?.commentaire}
         className="h-8 w-32 text-xs"
-      />
-      <BoutonEnvoi size="sm" variant="ghost">Valider & envoyer</BoutonEnvoi>
+      />}
+      <BoutonEnvoi size="sm" variant="ghost" enCours={enCours} enCoursTexte="Envoi…">{valide ? "Renvoyer le compte rendu" : "Valider & envoyer le PDF"}</BoutonEnvoi>
+      {etat.documentId && <a className="text-xs underline" href={`/agence/${orgId}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener noreferrer">Consulter le PDF</a>}
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
       {/* Le succès peut porter une réserve (mandant sans email, envoi manqué) */}
       {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}

@@ -70,7 +70,7 @@ for (const persona of PERSONAS) {
             photos,
             boutonsVisibles: commandes.length,
             boutonsSansNom: commandes.filter((el) =>
-              !(el.getAttribute("aria-label") || el.getAttribute("title") || el.innerText || "").trim()
+              !(el.getAttribute("aria-label") || el.getAttribute("title") || el.textContent || "").trim()
             ).length,
             larges,
             titre: document.title,
@@ -108,10 +108,11 @@ for (const persona of PERSONAS) {
       (typeof r.statut === "number" && r.statut >= 400) ||
       r.soft404 === true ||
       !r.h1 ||
+      (typeof r.boutonsSansNom === "number" && r.boutonsSansNom > 0) ||
       (typeof r.overflowPx === "number" && r.overflowPx > 2) ||
       (!String(r.path).startsWith("/quittance/") &&
        !String(r.path).startsWith("/attestation-loyer/") && r.photos === 0)
-    ).map((r) => ({ path: r.path, statut: r.statut, h1: r.h1, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur }));
+    ).map((r) => ({ path: r.path, statut: r.statut, h1: r.h1, boutonsSansNom: r.boutonsSansNom, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur }));
     expect(casses, `Écrans ${persona} cassés ou débordants`).toEqual([]);
   });
 }

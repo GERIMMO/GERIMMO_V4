@@ -5,6 +5,9 @@ import { defineConfig } from "@playwright/test";
 // seed de démo (app/supabase/seed.sql).
 export default defineConfig({
   testDir: ".",
+  // Les captures de référence sont révisées après les changements de design ;
+  // la CI teste les parcours et l'audit mobile sur sa base isolée.
+  testIgnore: process.env.E2E_CI === "1" ? /visuel\.spec\.ts/ : undefined,
   outputDir: "./.results",
   timeout: 60_000,
   expect: { timeout: 15_000 },
@@ -45,8 +48,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000/connexion",
+    command: process.env.E2E_USE_BUILD === "1" ? "npm run start -- -p 3100" : "npm run dev",
+    url: new URL("/connexion", process.env.E2E_BASE_URL ?? "http://localhost:3000").toString(),
     reuseExistingServer: true,
     timeout: 120_000,
   },

@@ -33,7 +33,7 @@ export default async function PageJournal() {
       <EnTetePublic />
       {/* Charte v3 : le journal s'ouvre comme la vitrine, sur blanc lumineux —
           plus d'aplat marine sous le bandeau. */}
-      <header className="vitrine-hero">
+      <header className="vitrine-hero journal-hero">
         <div className="mx-auto w-full max-w-6xl px-4 pt-10 pb-12 sm:px-7 sm:pt-14 sm:pb-16">
           <p className="eyebrow text-[var(--or-texte)]">Journal</p>
           <h1 className="mt-2 max-w-2xl text-balance font-heading text-3xl leading-tight text-[var(--encre)] sm:text-4xl">

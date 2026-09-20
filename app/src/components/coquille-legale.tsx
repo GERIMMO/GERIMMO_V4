@@ -57,6 +57,7 @@ export function CoquilleLegale({
       </header>
 
       <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
+        <div className="repere-visuel repere-visuel-legal" aria-hidden="true" />
         <div>
           <h1>{titre}</h1>
           {chapo && <p className="mt-1 text-sm text-muted-foreground">{chapo}</p>}

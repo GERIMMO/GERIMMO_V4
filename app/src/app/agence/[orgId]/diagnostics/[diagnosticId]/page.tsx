@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 
 /**
@@ -30,9 +30,10 @@ export default async function PageRenvoiDiagnostic(
     .eq("organization_id", orgId)
     .maybeSingle();
 
-  // Ni trouvé, ni visible : la garde d'organisation vaut cloisonnement, et un
-  // diagnostic d'une autre agence doit se lire « introuvable », pas « interdit ».
-  if (!diagnostic) notFound();
+  // Une alerte peut survivre à l'archivage du diagnostic qu'elle ciblait.
+  // Revenir aux alertes permet de traiter ce cas sans laisser un lien en 404.
+  // La destination est identique pour un objet absent ou hors de l'agence.
+  if (!diagnostic) redirect(`/agence/${orgId}/alertes?source_introuvable=diagnostic`);
 
   // Diagnostic d'immeuble : la fiche du bien, sur sa carte diagnostics.
   if (diagnostic.bien_id) {
@@ -48,7 +49,7 @@ export default async function PageRenvoiDiagnostic(
     .eq("id", diagnostic.lot_id as string)
     .eq("organization_id", orgId)
     .maybeSingle();
-  if (!lot?.bien_id) notFound();
+  if (!lot?.bien_id) redirect(`/agence/${orgId}/alertes?source_introuvable=diagnostic`);
 
   redirect(
     `/agence/${orgId}/parc/${lot.bien_id}/lots/${diagnostic.lot_id}#diagnostics`

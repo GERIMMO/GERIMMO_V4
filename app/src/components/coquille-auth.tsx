@@ -57,6 +57,7 @@ export function CoquilleAuth({
           <div className="mb-6 md:hidden">
             <MarqueGerimmo />
           </div>
+          <div className="repere-visuel repere-visuel-public mb-6 md:hidden" aria-hidden="true" />
           <h1 className="!text-[var(--pas-section)]">{titre}</h1>
           {chapo && (
             <p className="mt-1.5 mb-5 text-sm leading-relaxed text-muted-foreground">{chapo}</p>

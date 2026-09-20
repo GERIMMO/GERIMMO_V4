@@ -25,7 +25,7 @@ export default async function PageAlertes(
   const { orgId } = await props.params;
   // « Traiter » depuis le tableau de bord ou la cloche (recette 22/08) : la
   // pop-up de traitement de cette alerte s'ouvre à l'arrivée sur la page.
-  const { traiter } = await props.searchParams;
+  const { traiter, source_introuvable } = await props.searchParams;
   const traiterId = typeof traiter === "string" ? traiter : undefined;
   const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
   const estResponsable = ROLES_RESPONSABLES.includes(role);
@@ -77,6 +77,12 @@ export default async function PageAlertes(
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
+      {source_introuvable === "diagnostic" && (
+        <p role="status" className="mb-4 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-soft-foreground)]">
+          Le diagnostic lié à cette alerte n’est plus disponible dans ce portefeuille.
+          Vérifiez l’alerte avant de la clôturer ou de déposer un nouveau diagnostic.
+        </p>
+      )}
       <p className="mb-2 text-sm text-muted-foreground">
         <Link href={`/agence/${orgId}`} className="hover:underline">
           {organisation.name}

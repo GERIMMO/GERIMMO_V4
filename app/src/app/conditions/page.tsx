@@ -244,12 +244,6 @@ export default function PageConditions() {
           consultables et téléchargeables un par un depuis son espace.
         </p>
         <p>
-          <b className="font-semibold">Engagements supplémentaires</b> —
-          archive documentaire indexée, export du référentiel, maintien de
-          l&apos;accès en lecture seule après suspension :{" "}
-          <AFournir quoi="à arrêter avant publication ; ces fonctions ne sont pas encore écrites" />
-        </p>
-        <p>
           À la résiliation, les données sont conservées{" "}
           <AFournir quoi="durée" /> pour permettre l&apos;export, puis
           supprimées ou anonymisées.

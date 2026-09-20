@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 
 // La barre de la console ne disait jamais où l'on se trouve (constat de l'état
 // des lieux du 11/09) : quatre liens identiques, aucun état actif. Le liseré
@@ -33,6 +34,16 @@ const RATTACHEMENTS: Record<string, string[]> = {
 
 export function NavAdmin() {
   const chemin = usePathname();
+  useEffect(() => {
+    const nav = document.querySelector<HTMLElement>(".admin-nav");
+    const actif = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !actif) return;
+    const navRect = nav.getBoundingClientRect();
+    const actifRect = actif.getBoundingClientRect();
+    if (actifRect.left < navRect.left || actifRect.right > navRect.right) {
+      nav.scrollLeft += actifRect.left - navRect.left - 12;
+    }
+  }, [chemin]);
   return (
     <>
       {ENTREES.map(([href, libelle]) => {
@@ -48,11 +59,7 @@ export function NavAdmin() {
             key={href}
             href={href}
             aria-current={actif ? "page" : undefined}
-            className={`border-b-2 py-1 text-[0.8125rem] transition-colors ${
-              actif
-                ? "border-[var(--marque)] font-semibold text-[var(--marque-sombre)]"
-                : "border-transparent text-[var(--texte-secondaire)] hover:text-[var(--encre)]"
-            }`}
+            className="admin-nav-lien"
           >
             {libelle}
           </Link>

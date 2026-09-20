@@ -32,7 +32,7 @@ const PUCE_TACHE: Record<EtatTache, { classe: string; libelle: string }> = {
   ok: { classe: "puce-loue", libelle: "à l'heure" },
   echec: { classe: "puce-rouge", libelle: "en échec" },
   retard: { classe: "puce-prep", libelle: "en retard" },
-  jamais: { classe: "puce-rouge", libelle: "jamais passée" },
+  jamais: { classe: "puce-rouge", libelle: "aucune exécution" },
 };
 
 export default async function PageSante() {
@@ -75,7 +75,7 @@ export default async function PageSante() {
           <h1>Santé du service</h1>
           <span className="mono-discret">
             {nbManque === 0 && nbAttention === 0
-              ? "Configuration complète"
+              ? "Toutes les variables sont renseignées"
               : `${nbManque} manque${nbManque > 1 ? "s" : ""} · ${nbAttention} à vérifier`}
           </span>
         </div>
@@ -150,7 +150,7 @@ export default async function PageSante() {
                         <time dateTime={t.le}>{formaterDateHeure(t.le)}</time> — {t.bilan}
                       </>
                     ) : (
-                      "Aucune passe consignée : la tâche n'a jamais abouti sur cet environnement."
+                      "Aucune exécution enregistrée dans le journal technique."
                     )}
                   </span>
                 </span>
@@ -161,9 +161,10 @@ export default async function PageSante() {
         )}
         <p className="mt-2 text-xs text-muted-foreground">
           Heures UTC de vercel.json : ajoutez deux heures à Paris l&apos;été, une
-          l&apos;hiver. Une tâche « jamais passée » répond en général 503 avant
-          d&apos;écrire : secret absent, ou service non configuré (Stripe pour les
-          abonnements). Le journal technique est conservé six mois.
+          l&apos;hiver. « Aucune exécution » signifie que le journal ne prouve
+          aucune passe réussie ou échouée. Vérifiez la date prévue, le secret
+          de la tâche et le service concerné avant de conclure à un incident.
+          Le journal technique est conservé six mois.
         </p>
       </section>
 

@@ -74,7 +74,7 @@
   /* Le bleu de marque — l'accent unique */
   --marque: #2457f5;
   --marque-sombre: #1a44cf;     /* survol de l'accent, liens, texte bleu */
-  --marque-clair: #e9efff;      /* fond de sélection, pastille douce */
+  --marque-clair: #dfe9ff;      /* fond de sélection, pastille douce */
   --sur-marque: #ffffff;        /* texte posé sur le bleu */
 
   /* Jetons « or » (ex-laiton) : ils désignent désormais l'accent bleu */
@@ -89,27 +89,27 @@
   --graphite: #17306b;          /* survol des aplats marine */
   --sur-encre: #ffffff;         /* texte posé sur la marine */
   --corps: #151b2b;             /* corps de texte */
-  --texte-secondaire: #5b6478;
+  --texte-secondaire: #4b5870;
   /* #6b7386 jusqu'au 19/09, et il tombait SOUS le seuil AA : 4,44 contre le
      fond de page #f6f7fb, pour un minimum de 4,5 (WCAG 1.4.3). Toutes les
      surtitres, libellés de champ et en-têtes de tableau du produit portent
      cette couleur — axe-core en relevait douze, sur huit écrans. Assombri d'un
      cran : 5,06 sur le fond de page, 5,42 sur une carte, 4,97 sur un rang
      survolé. L'œil ne voit pas la différence ; la norme, si. */
-  --libelle: #626a7d;
+  --libelle: #53617a;
 
   /* Nuances dérivées (promues en jetons le 2026-09-11) */
-  --survol: #f3f5fa;            /* fond d'un rang survolé ou actif */
+  --survol: #edf2ff;            /* fond d'un rang survolé ou actif */
   --survol-critique: #fbe3e3;   /* le même, sur un rang critique */
   --encre-profond: #0a1735;
   --or-sombre: var(--marque-sombre);
 
   /* Gris perle et fonds */
-  --creme: #f6f7fb;             /* fond de page (le nom reste, la crème part) */
+  --creme: #f2f5fb;             /* fond de page (le nom reste, la crème part) */
   --ivoire: #ffffff;            /* fond des cartes */
   --carte: #ffffff;
-  --filet: #e3e7ef;
-  --filet-leger: #eef1f6;
+  --filet: #d9e1ef;
+  --filet-leger: #e9eef7;
   --ardoise: var(--marque-clair); /* fond de sélection, rangs actifs */
   --bleu: var(--marque-sombre); /* liens */
 
@@ -2689,3 +2689,89 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 }
 .assistant-suggestion p { margin: 0; flex: 1 1 320px; }
 .assistant-suggestion b { color: var(--turquoise-texte); font-weight: 600; }
+
+/* Contraste V3 : les mêmes bleu, marine et turquoise, avec une navigation
+   lisible et des surfaces qui marquent davantage la hiérarchie. */
+@layer components {
+  .admin-bandeau {
+    border-top: 4px solid var(--marque);
+    box-shadow: 0 4px 20px color-mix(in srgb, var(--encre) 9%, transparent);
+  }
+  .admin-bandeau-interieur { min-width: 0; }
+  .admin-bandeau-haut {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 18px;
+    padding-block: 9px;
+  }
+  .admin-bandeau-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; }
+  .admin-nav {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding: 0 0 8px;
+  }
+  .admin-nav-lien {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    min-height: 36px;
+    padding: 7px 12px;
+    border-radius: 9px;
+    color: var(--texte-secondaire);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .admin-nav-lien:hover { background: var(--marque-clair); color: var(--marque-sombre); }
+  .admin-nav-lien[aria-current="page"] {
+    background: var(--marque);
+    color: var(--sur-marque);
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--marque) 24%, transparent);
+  }
+  .admin-nav-lien[aria-current="page"]:hover { background: var(--marque-sombre); color: var(--sur-marque); }
+
+  .portail-ecrans .entete-page {
+    background: linear-gradient(115deg, var(--marque-clair), var(--ivoire) 75%);
+    border-left: 5px solid var(--marque);
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--encre) 9%, transparent);
+  }
+  .portail-ecrans .section-ecran > h2 {
+    border-left: 3px solid var(--marque);
+    padding-left: 12px;
+  }
+
+  .loc-late { background: linear-gradient(180deg, var(--marque-clair), var(--ivoire) 32%); }
+  .loc-logo { border-bottom-color: var(--or-filet); }
+  .loc-menu a.actif {
+    background: var(--marque);
+    color: var(--sur-marque);
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--marque) 24%, transparent);
+  }
+  .loc-menu a.actif:hover { background: var(--marque-sombre); color: var(--sur-marque); }
+  .loc-menu a.actif .loc-badge { background: var(--ivoire); color: var(--marque-sombre); }
+  .loc-hero {
+    background: linear-gradient(120deg, var(--ivoire) 45%, var(--marque-clair));
+    border-color: var(--or-filet);
+    box-shadow: 0 10px 28px color-mix(in srgb, var(--encre) 9%, transparent);
+  }
+  .loc-carte.loc-kpi { border-top: 3px solid var(--marque); }
+  .loc-carte.loc-kpi .v { color: var(--marque-sombre); }
+
+  .artisan-bandeau {
+    border-top: 4px solid var(--marque);
+    background: linear-gradient(110deg, var(--ivoire), var(--marque-clair));
+  }
+  .artisan-carte { border-color: var(--filet); }
+  .artisan-corps h1 { letter-spacing: -0.025em; }
+}
+
+@media (max-width: 640px) {
+  .admin-bandeau-haut { align-items: flex-start; }
+  .admin-bandeau-actions { width: 100%; justify-content: space-between; }
+  .admin-nav { margin-inline: -16px; padding-inline: 16px; }
+  .portail-ecrans .entete-page { padding: 18px; }
+}

@@ -8,7 +8,7 @@ import {
 import { CarteMission } from "./carte-mission";
 import { CarteSollicitation } from "./carte-sollicitation";
 import { degreEcheance, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
-import { Avertissement, Carte, Erreur, TitreSection, Vide } from "./ui";
+import { Avertissement, Carte, Erreur, TitreSection } from "./ui";
 
 export const metadata = { title: "Aujourd'hui — Espace artisan" };
 
@@ -86,6 +86,7 @@ export default async function PageArtisanAccueil({
     aPlanifier.length === 0 &&
     enAttenteDuLocataire.length === 0 &&
     aChiffrer.length === 0;
+  const lectureIncertaine = Boolean(agenda.erreur || sollicitations.erreur || pieces.erreur);
 
   return (
     <div className="space-y-6">
@@ -101,7 +102,7 @@ export default async function PageArtisanAccueil({
         </Avertissement>
       )}
 
-      {(agenda.erreur || sollicitations.erreur || pieces.erreur) && (
+      {lectureIncertaine && (
         <Erreur>
           Connexion instable : cette page peut être incomplète. Ne concluez pas
           d&apos;une liste vide qu&apos;il n&apos;y a rien — rechargez dans un instant.
@@ -134,12 +135,23 @@ export default async function PageArtisanAccueil({
         </Carte>
       )}
 
-      {rienAFaire ? (
-        <Vide>
-          Rien ne vous attend pour le moment. Les demandes de devis et les
-          missions arrivent ici.
-        </Vide>
-      ) : (
+      {rienAFaire && !lectureIncertaine ? (
+        <Carte className="border-l-4 border-l-[var(--success)]">
+          <TitreSection>Aucune mission à traiter maintenant</TitreSection>
+          <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
+            Les nouvelles missions et demandes de devis apparaîtront ici. Vous
+            pouvez vérifier vos prochains rendez-vous et vos attestations.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/artisan/agenda" className="btn-secondaire min-h-11">
+              Voir mon agenda
+            </Link>
+            <Link href="/artisan/attestations" className="btn-secondaire min-h-11">
+              Mes attestations
+            </Link>
+          </div>
+        </Carte>
+      ) : rienAFaire ? null : (
         <div className="space-y-6">
           {aRendreCompte.length > 0 && (
             <section>

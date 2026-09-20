@@ -1,4 +1,5 @@
 "use client";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 
 import Link from "next/link";
 import {
@@ -1264,13 +1265,12 @@ function FormulaireDepense({
  * croit envoyer le compte d'un lot.
  */
 function BlocRapport({ lotId, rapport }: { lotId: string; rapport: RapportDuLot | null }) {
-  const [etat, action] = useActionState<EtatEnvoiRapport, FormData>(
+  const { etat, soumettre, enCours } = useActionFormulaire<EtatEnvoiRapport>(
     async (e, formData) => {
       const r = await envoyerRapportDuLot(lotId, e, formData);
       if (r.succes) afficherToast(r.succes);
       return r;
-    },
-    {}
+    }
   );
   if (!rapport) {
     return (
@@ -1282,7 +1282,7 @@ function BlocRapport({ lotId, rapport }: { lotId: string; rapport: RapportDuLot 
   }
   const mois = moisEnFrancais(String(rapport.mois).slice(0, 7));
   return (
-    <form action={action} className="space-y-2 border-t border-border pt-4">
+    <form onSubmit={soumettre} aria-busy={enCours} className="space-y-2 border-t border-border pt-4">
       <p className="eyebrow">Rapport de gestion · {mois}</p>
       <p className="text-sm text-muted-foreground">
         Adressé à {rapport.mandant}
@@ -1294,7 +1294,7 @@ function BlocRapport({ lotId, rapport }: { lotId: string; rapport: RapportDuLot 
       </p>
       {rapport.envoye_le ? (
         <p className="text-sm text-success-soft-foreground">
-          Déjà envoyé le {formaterDate(rapport.envoye_le)}.
+          Validé le {formaterDate(rapport.envoye_le)}. La réception de l’e-mail n’est pas confirmée ici.
         </p>
       ) : (
         <>
@@ -1304,11 +1304,12 @@ function BlocRapport({ lotId, rapport }: { lotId: string; rapport: RapportDuLot 
             </Label>
             <Input id={`rap-com-${lotId}`} name="commentaire" className="h-9 w-full" />
           </div>
-          <BoutonEnvoi size="sm" disabled={Boolean(etat.succes)} enCoursTexte="Envoi…">
-            Envoyer le rapport au propriétaire
-          </BoutonEnvoi>
         </>
       )}
+      <p className="text-xs text-muted-foreground">Le compte rendu complet est joint en PDF. Le propriétaire n’a pas besoin de compte Gerimmo.</p>
+      <BoutonEnvoi size="sm" enCours={enCours} enCoursTexte="Envoi…">
+        {rapport.envoye_le ? "Renvoyer le compte rendu" : "Envoyer le compte rendu en PDF"}
+      </BoutonEnvoi>
       {etat.erreur && (
         <p className="text-sm text-destructive" role="alert">
           {etat.erreur}

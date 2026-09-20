@@ -27,7 +27,7 @@
       "exigences_source": "Gerimmo est une plateforme complète de gestion immobilière et locative pour : super administrateur\nGerimmo, administrateur d’agence, agents immobiliers, propriétaires bailleurs gérés par agence, leurs\nlocataires, propriétaires bailleurs autonomes, leurs locataires et artisans/intervenants.\nLes permissions, données visibles et actions dépendent du rôle. Aucun utilisateur ne doit accéder sans\nautorisation aux données d’un autre utilisateur, propriétaire ou agence.",
       "statut": "Partiel",
       "priorite": "P1",
-      "constat_et_reste": "Rôles et isolation présents, mais le propriétaire mandant ne dispose pas de chemin de portail : cheminEspace retourne null pour ce rôle et les anciens écrans indiquent explicitement aucun accès. Écart P1 au nouveau périmètre ; recette complète des sept personas encore impossible.",
+      "constat_et_reste": "Absence de portail mandant conforme à la clarification du porteur : aucun accès Gerimmo pour les propriétaires sous mandat ; compte rendu mensuel adressé par l’agence. Les rôles connectés conservent leurs droits et leur isolation. La recette complète des accès et de la remise mensuelle reste à terminer.",
       "elements_code_et_tests": [
         "app/src/lib/espace.ts",
         "app/src/lib/portefeuille.ts",
@@ -35,7 +35,11 @@
         "app/tests/api-isolation.test.ts",
         "app/src/app/espaces/page.tsx",
         "app/src/app/agence/[orgId]/mandats/page.tsx",
-        "app/supabase/migrations/20260727_socle_identite_isolation.sql"
+        "app/supabase/migrations/20260727_socle_identite_isolation.sql",
+        "app/src/app/actions/compta.ts",
+        "app/src/app/actions/fiche-lot.ts",
+        "app/src/lib/email.ts",
+        "app/src/lib/echeances.ts"
       ],
       "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
     },
@@ -916,7 +920,7 @@
       "exigences_source": "Espace unique pour biens/lots, occupants, baux, loyers/charges, échéances, documents, incidents,\ninterventions, artisans, dépenses, alertes, historique et communications.\nLe tableau de bord répond d’abord à : Que dois-je faire aujourd’hui ? Qu’est-ce qui est en retard ?\nQu’est-ce qui nécessite mon attention ?",
       "statut": "Partiel",
       "priorite": "P1",
-      "constat_et_reste": "Espace propriétaire autonome présent. Pour le propriétaire géré par agence, seules la fiche mandant et les données de mandat existent ; aucun portail accessible identifié. Définir et implémenter la consultation de son patrimoine/rapports/documents et ses échanges, avec autorisations limitées à ses propres dossiers, puis tester séparément.",
+      "constat_et_reste": "Propriétaire sous mandat sans accès Gerimmo, conformément à la clarification du porteur. Compte rendu enrichi : récapitulatif consolidé, feuillets par bien, dépenses, impayés et incidents distincts du net, annexe des écritures. Préparation pour relecture, PDF joint, archive réutilisée en reprise et contrôle du portefeuille développés dans le lot suivant. Réception réelle et suivi des événements de livraison restant à valider.",
       "elements_code_et_tests": [
         "app/src/app/agence/[orgId]/accueil-proprietaire.tsx",
         "app/src/lib/navigation-espace.ts",
@@ -927,7 +931,14 @@
         "app/tests/cron-relances-route.test.ts",
         "app/src/app/espaces/page.tsx",
         "app/src/app/agence/[orgId]/mandats/page.tsx",
-        "app/supabase/migrations/20260727_socle_identite_isolation.sql"
+        "app/supabase/migrations/20260727_socle_identite_isolation.sql",
+        "app/src/app/actions/compta.ts",
+        "app/src/app/actions/fiche-lot.ts",
+        "app/src/lib/email.ts",
+        "app/src/lib/echeances.ts",
+        "app/src/lib/rapports-mensuels.ts",
+        "app/src/lib/documents/modeles/detail-rapport-gestion.ts",
+        "app/tests/rapports-mensuels-api.test.ts"
       ],
       "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
     },
@@ -1123,11 +1134,12 @@
       "exigences_source": "Recherche autorisée sur personnes, biens, lots, locations, documents, incidents, artisans, paiements et\nagences. Respect strict des permissions.",
       "statut": "Partiel",
       "priorite": "P2",
-      "constat_et_reste": "Recherche actuelle : logements, personnes et baux. Documents, incidents, artisans, paiements et agences ne figurent pas dans cette recherche globale.",
+      "constat_et_reste": "Recherche étendue dans l’espace de gestion aux logements, personnes, baux, documents courants, incidents par référence/description, artisans du carnet et encaissements par mode/note/montant ou dossier trouvé. Droits, erreurs et destinations testés. La recherche transversale des agences en supervision reste à compléter ; la recherche actuelle reste limitée à l’organisation ouverte.",
       "elements_code_et_tests": [
         "app/src/app/actions/recherche-espace.ts",
         "app/src/components/recherche-espace.tsx",
-        "app/tests/recherche-espace.test.ts"
+        "app/tests/recherche-espace.test.ts",
+        "app/tests/recherche-espace-api.test.ts"
       ],
       "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
     },
@@ -1811,5 +1823,7 @@
       ],
       "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
     }
-  ]
+  ],
+  "clarification_porteur": "Clarification du porteur après l’audit : les propriétaires ayant confié leurs biens à une agence n’ont aucun accès à Gerimmo ; ils reçoivent un compte rendu mensuel. Cette consigne explicite prime sur l’interprétation précédente du PDF, dont le texte source reste inchangé.",
+  "suite_v3": "Compte rendu mensuel et recherche étendue : code et tests du lot suivant ; références de publication suivies séparément."
 }

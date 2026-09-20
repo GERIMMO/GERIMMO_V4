@@ -6,6 +6,10 @@
 
 Ce document distingue présence de code, règles testées localement et fonctionnement réel. « Partiel » porte sur toute la section, même lorsqu'une fonction particulière marche. « Absent identifié » signifie non trouvé dans le code inspecté ; une note wiki n'est pas une implémentation. « Non vérifié » concerne une preuve de résultat manquante. Une consigne appliquée à ce lot ne certifie pas tout l'historique du projet.
 
+## Clarification du périmètre
+
+Clarification du porteur après l’audit : les propriétaires ayant confié leurs biens à une agence n’ont aucun accès à Gerimmo ; ils reçoivent un compte rendu mensuel. Cette consigne explicite prime sur l’interprétation précédente du PDF, dont le texte source reste inchangé.
+
 ## Vérifications effectuées
 
 - Dépôt distant actualisé, branche isolée, anciens travaux locaux préservés.
@@ -26,7 +30,7 @@ Ce document distingue présence de code, règles testées localement et fonction
 ## Priorités avant de déclarer la V1 prête
 
 1. **P0 — Preuves de lancement** : restauration isolée d'une sauvegarde réelle, configuration des services et réception des courriers, revue de sécurité et identité éditeur. Leur absence de preuve empêche la clôture ; elle ne signifie pas qu'une fuite ou une panne est démontrée.
-2. **P1 — Portail du propriétaire géré absent et recette complète par rôle** : location après sélection, dossier et documents, encaissement et quittance, incident jusqu'à clôture, messages, alertes et historique. Ajouter les cas erreurs, double clic, droits refusés, autre agence, mobile et session expirée.
+2. **P1 — Compte rendu mensuel au mandant sans accès et recette complète par rôle** : location après sélection, dossier et documents, encaissement et quittance, incident jusqu'à clôture, messages, alertes et historique. Ajouter les cas erreurs, double clic, droits refusés, autre agence, mobile et session expirée.
 3. **P2 — Compléments transverses** : recherche étendue, observabilité par parcours/version, décisions humaines et réduction des frictions.
 4. **P3 — Après V1** : Brain, Founder Brief, études, radar, expériences, jauges économiques, croissance et expansion fondées sur des données réelles.
 
@@ -61,7 +65,7 @@ Travail sur une branche isolée issue de main ; brouillons anciens préservés. 
 
 PDF p. 3 · **Partiel** · P1
 
-Rôles et isolation présents, mais le propriétaire mandant ne dispose pas de chemin de portail : cheminEspace retourne null pour ce rôle et les anciens écrans indiquent explicitement aucun accès. Écart P1 au nouveau périmètre ; recette complète des sept personas encore impossible.
+Absence de portail mandant conforme à la clarification du porteur : aucun accès Gerimmo pour les propriétaires sous mandat ; compte rendu mensuel adressé par l’agence. Les rôles connectés conservent leurs droits et leur isolation. La recette complète des accès et de la remise mensuelle reste à terminer.
 
 Éléments : `app/src/lib/espace.ts`; `app/src/lib/portefeuille.ts`; `app/tests/rpc-etancheite-inter-agences.test.ts`; `app/tests/api-isolation.test.ts`.
 
@@ -445,7 +449,7 @@ Pas de couche Brain intégrant signaux produit, business, territoires, conformit
 
 PDF p. 18 · **Partiel** · P1
 
-Espace propriétaire autonome présent. Pour le propriétaire géré par agence, seules la fiche mandant et les données de mandat existent ; aucun portail accessible identifié. Définir et implémenter la consultation de son patrimoine/rapports/documents et ses échanges, avec autorisations limitées à ses propres dossiers, puis tester séparément.
+Propriétaire sous mandat sans accès Gerimmo, conformément à la clarification du porteur. Compte rendu enrichi : récapitulatif consolidé, feuillets par bien, dépenses, impayés et incidents distincts du net, annexe des écritures. Préparation pour relecture, PDF joint, archive réutilisée en reprise et contrôle du portefeuille développés dans le lot suivant. Réception réelle et suivi des événements de livraison restant à valider.
 
 Éléments : `app/src/app/agence/[orgId]/accueil-proprietaire.tsx`; `app/src/lib/navigation-espace.ts`; `app/tests/navigation-espace.test.ts`; `app/src/app/actions/loyers.ts`; `app/src/lib/quittancement-du-mois.ts`; `app/tests/cycle-mensuel.test.ts`; `app/tests/cron-relances-route.test.ts`.
 
@@ -541,7 +545,7 @@ PDF p. 19 · **Partiel** · P1
 
 PDF p. 20 · **Partiel** · P2
 
-Recherche actuelle : logements, personnes et baux. Documents, incidents, artisans, paiements et agences ne figurent pas dans cette recherche globale.
+Recherche étendue dans l’espace de gestion aux logements, personnes, baux, documents courants, incidents par référence/description, artisans du carnet et encaissements par mode/note/montant ou dossier trouvé. Droits, erreurs et destinations testés. La recherche transversale des agences en supervision reste à compléter ; la recherche actuelle reste limitée à l’organisation ouverte.
 
 Éléments : `app/src/app/actions/recherche-espace.ts`; `app/src/components/recherche-espace.tsx`; `app/tests/recherche-espace.test.ts`.
 
@@ -865,4 +869,8 @@ Les décisions de facturation, les courriers réels, les contrats réels, les dr
 
 Sept rubriques locataire et quatre rubriques artisan ouvertes. Le rendez-vous choisi par le locataire fictif est confirmé sur sa demande et apparaît au même horaire dans l’agenda artisan. Le clic sur la carte visible sélectionne correctement le créneau ; la première tentative de sélection directe du contrôle radio par l’outil n’avait pas abouti. Aucun rendez-vous réel ni courrier externe déclenché.
 
-**Écart P1 confirmé : propriétaire mandant.** `app/src/app/espaces/page.tsx` ne lui associe aucune destination ; `app/src/app/agence/[orgId]/mandats/page.tsx` indique l’ancienne décision « pas d’accès ». Le nouveau cahier devient prioritaire, mais donner arbitrairement le rôle de gestionnaire au mandant exposerait des données étrangères : il faut un portail et des droits dédiés, pas retirer la garde.
+**Correction du constat : propriétaire mandant.** Clarification du porteur après l’audit : les propriétaires ayant confié leurs biens à une agence n’ont aucun accès à Gerimmo ; ils reçoivent un compte rendu mensuel. Cette consigne explicite prime sur l’interprétation précédente du PDF, dont le texte source reste inchangé. Le point à compléter est la remise effective du compte rendu complet sans compte, pas la création d’un portail. Le lot suivant remplace les anciens e-mails limités au net/commentaire par la remise du PDF complet. La réception réelle reste à vérifier.
+
+## Suite V3 — compte rendu et recherche
+
+Les exigences 50 et 62 ont progressé dans un nouveau lot : compte rendu PDF détaillé joint sans connexion du propriétaire et recherche sur sept catégories de dossiers. Le suivi de publication et les limites sont dans le bilan du lot. Les 100 sections ne sont toujours pas intégralement terminées.

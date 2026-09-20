@@ -179,7 +179,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
                           r.versement_date
                             ? `versé ${r.versement_montant != null ? eur(Number(r.versement_montant)) : ""} le ${formaterDate(r.versement_date)}`
                             : r.envoye_le
-                              ? `envoyé le ${formaterDate(r.envoye_le)} · versement à émettre`
+                              ? `validé le ${formaterDate(r.envoye_le)} · versement à émettre`
                               : "généré, à envoyer"
                         }`
                       : "Aucun rapport de gestion encore généré"}

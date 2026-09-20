@@ -18,9 +18,14 @@ function preparer(tables: Record<string, Ligne[]> = {}, erreurs: string[] = []) 
     q.limit = (n: number) => { appels.push(["limit", n]); return Promise.resolve({ data: erreurs.includes(table) ? null : tables[table] ?? [], error: erreurs.includes(table) ? { message: "indisponible" } : null }); };
     return q;
   });
-  mocks.acces.mockResolvedValue({ supabase: { from }, user: { id: "agent" }, role: "agent" });
+  const rpc = vi.fn((nom: string, args: Record<string, unknown>) => {
+    const q = from(nom) as { eq: (k: string,v: unknown) => unknown };
+    q.eq("organization_id", args.p_org);
+    return q;
+  });
+  mocks.acces.mockResolvedValue({ supabase: { from, rpc }, user: { id: "agent" }, role: "agent" });
   mocks.portefeuille.mockResolvedValue(new Set(["lot-visible"]));
-  return { from, lectures };
+  return { from, lectures, rpc };
 }
 beforeEach(() => vi.resetAllMocks());
 
@@ -72,4 +77,27 @@ describe("recherche dans l’espace de gestion", () => {
     expect(filtrePersonnes("Alice Dupont")).toContain('and(prenom.ilike."%Alice%",nom.ilike."%Dupont%")');
     expect(filtrePersonnes("Alice Dupont")).toContain('and(nom.ilike."%Alice%",prenom.ilike."%Dupont%")');
   });
+});
+
+it("retrouve les nouveaux dossiers et applique leurs périmètres avant les plafonds", async () => {
+  const c = preparer({
+    documents_courants: [{ id: "doc", titre: "Rapport de gestion", type: "rapport_gestion" }],
+    incidents: [{ id: "incident", numero: 12, description: "Fuite cuisine", etat: "nouveau" }],
+    artisan_agences: [{ artisan_id: "artisan" }],
+    artisans: [{ id: "artisan", raison_sociale: "Plomberie Test", siret: "123", email: "p@test.fr" }],
+    encaissements: [{ id: "paiement", bail_id: "bail", montant: 400, date_paiement: "2026-09-01", mode: "virement" }],
+  });
+  const r = await rechercherDansEspace("org", "400");
+  expect(r.erreur).toBeUndefined();
+  expect(r.resultats.map(x => x.type)).toEqual(["Document", "Incident", "Artisan", "Paiement"]);
+  expect(r.resultats.map(x => x.href)).toEqual(["/agence/org/documents?sel=doc", "/agence/org/incidents/incident", "/agence/org/artisans?vue=tous&sel=artisan", "/agence/org/baux/bail#loyers"]);
+  expect(c.rpc).toHaveBeenCalledWith("documents_courants", { p_org: "org", p_lots: ["lot-visible"] });
+  expect(c.lectures.find(q => q.table === "incidents")!.appels).toContainEqual(["in", "lot_id", ["lot-visible"]]);
+  expect(c.lectures.find(q => q.table === "encaissements")!.appels).toContainEqual(["in", "bail.lot_id", ["lot-visible"]]);
+  expect(c.lectures.find(q => q.table === "artisans")!.appels).toContainEqual(["in", "id", ["artisan"]]);
+  expect(c.lectures.find(q => q.table === "encaissements")!.appels.find(a => a[0] === "or")![1]).toContain("montant.eq.400");
+});
+it.each(["documents_courants", "incidents", "artisan_agences", "encaissements"])("annonce la lecture indisponible de %s sans cacher les autres résultats", async table => {
+  preparer({ persons: [{ id: "p", nom: "Test" }] }, [table]);
+  expect(await rechercherDansEspace("org", "test")).toMatchObject({ resultats: [expect.objectContaining({ type: "Personne" })], erreur: expect.any(String) });
 });

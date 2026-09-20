@@ -1,3 +1,4 @@
+import { detailRapportGestion } from "./detail-rapport-gestion";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, section, titre, eur, facultatif, echapper } from "../gabarit";
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
@@ -138,7 +139,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (rapport) {
         if (code === "bordereau_versement" && (rapport.versement_montant == null || !rapport.versement_date)) throw new RefusDocument("Enregistrez le versement du rapport avant d’émettre son bordereau.");
         contenu += `${section(code === "rapport_gestion" ? "Situation mensuelle" : "Versement enregistré")}
-          <p>Mois : ${f.date(texte(rapport.mois))} ; état du rapport : ${f.champ(texte(rapport.statut),"état du rapport")} ; net enregistré : ${f.montant(rapport.net as number)}.</p>
+          <p>Mois : ${f.date(texte(rapport.mois))} ; état du rapport : ${rapport.statut === "envoye" ? "Validé" : "À valider"} ; net enregistré : ${f.montant(rapport.net as number)}.</p>
           <p>Versement : ${rapport.versement_montant == null ? "non enregistré" : eur(montant(rapport.versement_montant))} ; date : ${facultatif(texte(rapport.versement_date))}.</p>
           <p>${facultatif(texte(rapport.commentaire))}</p>`;
         if (code === "rapport_gestion") {
@@ -148,7 +149,8 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
           const mouvements = ids.length ? await lireLignes(lire("ecritures").in("lot_id",ids).gte("date_imputation",debut).lt("date_imputation",fin).order("date_imputation")) : [];
           const netActuel = mouvements.reduce((s,e)=>s+(e.sens==="recette"?1:-1)*Math.round(montant(e.montant)*100),0);
           if (Math.abs(netActuel-Math.round(montant(rapport.net)*100))>0) throw new RefusDocument("Le détail comptable ne correspond plus au net du rapport. Vérifiez le rapport avant de générer son PDF.");
-          contenu += lignesTableau(f,mouvements,[["Date","date_imputation","date"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]]);
+          contenu += await detailRapportGestion(db, orgId, f, lots, lignes, mouvements, debut, fin);
+          contenu += mouvements.length ? lignesTableau(f,mouvements,[["Date","date_imputation","date"],["Libellé","libelle","texte"],["Sens","sens","texte"],["Montant","montant","montant"]]) : "<p>Aucune opération comptable enregistrée sur ce mois pour les lots du mandat.</p>";
         }
         contenu += "<p>Ce document restitue les opérations enregistrées. Il ne constitue pas un ordre de virement.</p>";
       } else if (code === "recap_fiscal_agence") {
@@ -167,7 +169,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     }
     const reference = referenceCourte(code.toUpperCase().replaceAll("_","-"),cibleId);
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference,etabliLe:aujourdhui})}${titre(meta.nom,"Document de gestion",[])}
-      ${cartouches([["Dossier",reference],["Destinataire",destinataire||"Organisation"],["Logement",facultatif(logement)]])}${contenu}${faitA(f,exp.ville,aujourdhui)}
+      ${cartouches([["Dossier",reference],["Destinataire",destinataire||"Organisation"],...(logement ? [["Logement",logement] as [string,string]] : [])])}${contenu}${faitA(f,exp.ville,aujourdhui)}
       ${signatures?`<div class="signatures">${cadreSignature("Bailleur / mandataire",echapper(exp.nom))}${cadreSignature("Partie concernée",destinataire)}</div>`:""}`;
     return {document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${cibleId.slice(0,8)}`,liens};
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }

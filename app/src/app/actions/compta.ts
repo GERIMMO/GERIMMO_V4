@@ -3,8 +3,8 @@
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
-import { envoyerEmail } from "@/lib/email";
-import { aujourdhuiParis, eur } from "@/lib/ged";
+import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
+import { aujourdhuiParis } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 
 export type EtatCompta = {
@@ -12,6 +12,7 @@ export type EtatCompta = {
   succes?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
+  documentId?: string;
 };
 
 // Générer le rapport de gestion d'un mandat pour un mois (clôture requise).
@@ -40,38 +41,15 @@ export async function envoyerRapport(
   _etat: EtatCompta,
   formData: FormData
 ): Promise<EtatCompta> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
   const commentaire = String(formData.get("commentaire") ?? "").trim() || null;
-  const { error } = await supabase.rpc("envoyer_rapport", { p_rapport: rapportId, p_commentaire: commentaire });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
-
-  // Email au mandant (best-effort : le rapport est figé quoi qu'il arrive)
-  const { data: rap, error: erreurMandant } = await supabase
-    .from("rapports_gestion")
-    .select("net, mois, mandat:mandats(person:persons(email, nom, prenom))")
-    .eq("id", rapportId)
-    .maybeSingle();
-  const mandant = (rap as { mandat?: { person?: { email?: string; nom?: string; prenom?: string } } } | null)?.mandat?.person;
-  let noteEmail = "";
-  // Un échec de lecture n'est pas un mandant sans email : on le dit tel quel.
-  if (erreurMandant) {
-    noteEmail = " (email non envoyé : le mandant n'a pas pu être lu — réessayez.)";
-  } else if (mandant?.email) {
-    const net = Number((rap as { net: number }).net);
-    const html = `<div style="font-family:sans-serif"><h2>Rapport de gestion</h2>
-      <p>Bonjour${mandant.prenom ? " " + mandant.prenom : ""},</p>
-      <p>Votre rapport de gestion est disponible. Net à reverser : <strong>${eur(net)}</strong>${net < 0 ? " (appel de fonds)" : ""}.</p>
-      ${commentaire ? `<p>${commentaire}</p>` : ""}<p>— Votre agence</p></div>`;
-    const env = await envoyerEmail({ to: mandant.email, subject: "Votre rapport de gestion", html });
-    noteEmail = env.erreur ? ` (email non envoyé : ${env.erreur})` : " Email envoyé au mandant.";
-  } else {
-    noteEmail = " (mandant sans email — remise hors plateforme.)";
-  }
+  const resultat = await remettreRapportMensuel(supabase, user, orgId, rapportId, commentaire, role ?? "");
   revalidatePath(`/agence/${orgId}/comptabilite`);
   revalidatePath(`/agence/${orgId}/mandats`);
-  return { succes: `Rapport envoyé et figé.${noteEmail}` };
+  revalidatePath(`/agence/${orgId}/documents`);
+  return { ...resultat, ...(resultat.erreur ? { valeurs } : {}) };
 }
 
 export async function enregistrerVersement(

@@ -40,7 +40,7 @@ function mockDb(tables=fixture(),failure?:string) {
     for(const op of ["select","eq","is","in","not","or","order","limit","range","gte","lt"]) q[op]=(...args:unknown[])=>{call.ops.push([op,...args]);return q;};
     return q;
   };
-  return {db:{from:query,rpc:query} as unknown as SupabaseClient,calls};
+  return {db:{from:query,rpc:(nom:string,args:unknown)=>{const q=query(nom);calls[calls.length-1].ops.push(["rpc",args]);return q;}} as unknown as SupabaseClient,calls};
 }
 const options={annee:"2026",mois:"2026-01",delai:"15",mensualites:"3",premiere_echeance:"2026-01-31",date_effet:"2026-04-01",date_constat:"2026-04-01",conditions:"Accord signé",destinataire:"Organisme test",allocataire:"123456",sortant:"Sortant",entrant:"Entrant",depot:"Accord entre colocataires",constat:"Mobilier conforme",travaux:"Peinture",intervenant:"Entreprise",periode:"Octobre",prise_en_charge:"Bailleur",consultation:"Sur rendez-vous au bureau",acces:"Contact gestionnaire",visiteur:"Visiteur test",contact:"Email test",rendez_vous:"14 septembre 2026 à 10 h",representant:"Gestionnaire",motif:"Accord mutuel",remise:"Remise sous 30 jours",modifications:"Ajout du lot Jardin"};
 function succes(r:Assemblage) {expect(r).not.toHaveProperty("erreur");if("erreur" in r) throw new Error(r.erreur);return r;}
@@ -61,7 +61,8 @@ describe("Catalogue — documents issus des dossiers",()=>{
     const data=fixture();if(code==="recap_fiscal_meuble") data.lots[0].meuble=true;
     const {db,calls}=mockDb(data);const r=succes(await assemblerComplementGestion(code,db,"org",code==="cloture_mensuelle"?"org":"cible",options));
     expect(r.document.html).toContain(CATALOGUE_DOCUMENTS.find(m=>m.id===code)!.nom);
-    for(const c of calls.filter(c=>!["organizations","artisans"].includes(c.table))) expect(c.ops).toContainEqual(["eq","organization_id","org"]);
+    for(const c of calls.filter(c=>!["organizations","artisans","etat_loyers_bail"].includes(c.table))) expect(c.ops).toContainEqual(["eq","organization_id","org"]);
+    for(const c of calls.filter(c=>c.table==="etat_loyers_bail")) expect(c.ops).toContainEqual(["rpc",{p_bail:"bail"}]);
     expect(r.document.html).not.toMatch(/NaN|Invalid Date|undefined/);
   });
   it("ne transforme pas une panne en bilan vide",async()=>{

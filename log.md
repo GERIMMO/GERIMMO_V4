@@ -5332,3 +5332,17 @@ Reprise sur main 83da9b0, sans écraser les anciens brouillons. Audit initial de
 Validation finale du lot : 1 479 tests réussis dans 144 fichiers, aucun test sauté (PDF activés), build/lint/types réussis. Neuf rubriques agence ouvertes ; génération d’attestation réussie avec sélection et destinataire conservés, génération désactivée sans dossier. Les limites de preuve restent dans le rapport.
 
 Complément de revue : le propriétaire mandant n’a aucun portail (`cheminEspace` retourne null ; ancienne exclusion écrite dans Mandats). Écart P1 explicite aux personas du cahier maître, sans lui attribuer des droits de gestion par défaut. Sept rubriques locataire et quatre artisan ouvertes ; rendez-vous fictif confirmé côté locataire et retrouvé dans l’agenda artisan.
+
+
+## Clarification du porteur après l’audit V3 — propriétaires sous mandat
+
+Clarification du porteur après l’audit : les propriétaires ayant confié leurs biens à une agence n’ont aucun accès à Gerimmo ; ils reçoivent un compte rendu mensuel. Cette consigne explicite prime sur l’interprétation précédente du PDF, dont le texte source reste inchangé. Le constat précédent d’un portail manquant est retiré dans les matrices et le bilan. Aucun accès ni droit modifié. Lecture de compta.ts, fiche-lot.ts et email.ts : génération et validation présentes, mais e-mail réduit au net et au commentaire sans remise du compte rendu complet ; parcours de remise et réception restant à valider. Correction documentaire seulement, aucun courrier envoyé et aucun déploiement applicatif dans cette étape.
+
+
+## [2026-09-20] suite V3 | Compte rendu mensuel et recherche
+
+Le mandant reste sans accès. Préparation du PDF pour relecture, copie archivée avec empreinte, pièce jointe Resend, reprise sans nouveau gel ni nouvelle alerte de versement, protection de double soumission et clé anti-doublon du prestataire. Le statut historique envoyé est présenté comme Validé ; aucune réception affirmée. Modèle g6 : récapitulatif et détail par bien, dépenses, impayés et incidents distincts du net, annexe. Contrôle explicite du portefeuille pour la remise par un agent. Recherche : documents courants, incidents, artisans du carnet et paiements en complément des logements/personnes/baux.
+
+Recette locale : vrai PDF et stockage, transport externe simulé, échec puis reprise sur les mêmes octets ; aucun courrier réel. Le navigateur a confirmé la reprise sur la même URL de PDF et le lien paiement → loyers du bail. Le banc local ignorait les filtres SQL des RPC setof : il les applique maintenant, avec une recherche négative testée. Les preuves finales et la publication sont suivies dans le bilan du lot.
+
+Validation finale de ce lot : 1 513 tests réussis dans 148 fichiers, aucun test sauté ; build, types et lint réussis. Recette navigateur de la relecture, de l’échec et de la reprise d’envoi, des recherches et du lien vers les loyers. Comptabilité mobile à 390 pixels sans débordement. Aucun envoi réel ni changement de schéma. Publication tracée dans le bilan de livraison associé.

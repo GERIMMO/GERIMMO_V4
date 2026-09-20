@@ -12,6 +12,10 @@ Empreinte SHA-256 : `6c0f0e312b9bca3ee3c5d600ff571e692357a855b653a33e64973cd338f
 
 Le document original reste inchangé. Les couleurs existantes sont conservées, conformément à la préférence exprimée par le porteur et compatible avec ce cahier des charges.
 
+## Clarification du porteur après l’audit
+
+Clarification du porteur après l’audit : les propriétaires ayant confié leurs biens à une agence n’ont aucun accès à Gerimmo ; ils reçoivent un compte rendu mensuel. Cette consigne explicite prime sur l’interprétation précédente du PDF, dont le texte source reste inchangé. Aucun portail mandant à créer. La gestion reste dans l’espace agence ; la remise mensuelle complète doit être vérifiée sans imposer de connexion au destinataire.
+
 ## Ordre obligatoire
 
 1. Auditer le code **actuel**, les données et migrations, les parcours, la sécurité, les tests et les services. Classer les écarts P0/P1/P2/P3.
@@ -29,7 +33,7 @@ Une publication réussie ou un grand nombre de tests ne suffit pas à déclarer 
 - Mise en location **après sélection du locataire** : logement suffisamment renseigné, invitation, dossier et pièces manquantes, garant, bail, entrée et archivage. Les visites et candidats non retenus sont hors périmètre (§4).
 - Loyers utilisables sans connexion bancaire obligatoire : réception déclarée, paiement enregistré, quittance si applicable, retard, alertes, suivi et historique (§5, §55).
 - Incidents techniques jusqu'à clôture, devis maîtrisé par l'artisan et rendez-vous coordonné ; les troubles de voisinage sont hors périmètre du traitement des incidents (§6, §56–58). Cette exclusion ne justifie pas à elle seule de retirer une clause contractuelle existante.
-- Informations et actions adaptées aux sept rôles : supervision, administrateur d'agence, agent, propriétaire autonome, propriétaire géré, locataire, artisan. Isolation des portefeuilles et organisations côté serveur et base.
+- Informations et actions adaptées aux rôles connectés : supervision, administrateur d’agence, agent, propriétaire autonome, locataire et artisan. Le propriétaire sous mandat reste un destinataire de compte rendu mensuel, sans accès Gerimmo. Isolation des portefeuilles et organisations côté serveur et base.
 - Documents : origine, dossier, droits, statut, version, échéance et historique ; données manquantes explicites, documents finalisés préservés (§53–54).
 - Tableaux de bord orientés actions, messages et notifications utiles, agenda et alertes menant au bon dossier, recherche respectant les droits (§50–63).
 - Supervision contrôlée, MFA, traçabilité, support et observabilité ; aucun accès supplémentaire implicite pour une automatisation (§7–8, §63–68, §84–88).
@@ -86,3 +90,8 @@ Pour chaque parcours, conserver une preuve : rôle, écran/action, précondition
 ## Suite de la reprise
 
 Le dépôt actuel est maintenant disponible dans une branche isolée. Audit initial de toutes les sections dans `app/docs/audit-cahier-maitre-v3-20260920.md` et JSON associé. Les preuves et limites sont distinctes ; aucune conformité intégrale annoncée.
+
+
+## Suite : compte rendu mensuel et recherche
+
+Le compte rendu est préparé pour relecture puis validé par l’agence, joint en PDF et conservé. Une nouvelle tentative reprend la même copie. Récapitulatif, détail par bien, impayés et incidents distincts du net, annexe des écritures. La recherche retrouve désormais documents, incidents, artisans du carnet et paiements, dans les droits de l’espace ouvert. Aucun envoi automatique au mandant ajouté. Les événements de réception Resend et les preuves de production restent à valider.

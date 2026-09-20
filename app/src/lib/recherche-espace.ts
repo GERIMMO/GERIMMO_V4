@@ -2,7 +2,7 @@ import { motifLitteral } from "@/lib/ged";
 
 export type ResultatRecherche = {
   id: string;
-  type: "Logement" | "Personne" | "Bail";
+  type: "Logement" | "Personne" | "Bail" | "Document" | "Incident" | "Artisan" | "Paiement";
   titre: string;
   detail: string;
   href: string;

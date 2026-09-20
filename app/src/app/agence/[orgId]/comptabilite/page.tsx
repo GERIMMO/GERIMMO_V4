@@ -357,9 +357,9 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         <CardHeader>
           <CardTitle>Rapports de gestion</CardTitle>
           <CardDescription>
-            Un rapport par mandant et par mois, une fois le mois clôturé. Une fois
-            envoyé, il ne bouge plus ;
-            versement suivi, écart alerté.
+            Un compte rendu par propriétaire et par mois, une fois le mois clôturé.
+            Relisez le PDF puis validez son envoi. La copie validée est conservée ;
+            vous pouvez réessayer l’e-mail sans modifier le rapport. Le versement reste suivi séparément.
           </CardDescription>
         </CardHeader>
         <CardContent>

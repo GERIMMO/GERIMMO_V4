@@ -59,9 +59,19 @@ for (const persona of PERSONAS) {
             if (el instanceof HTMLImageElement) return el.complete && el.naturalWidth > 0;
             return /url\([^)]*illustrations\//.test(getComputedStyle(el).backgroundImage);
           }).length;
+          const commandes = Array.from(document.querySelectorAll<HTMLElement>("button, summary, [role='button']"))
+            .filter((el) => {
+              const r = el.getBoundingClientRect();
+              const style = getComputedStyle(el);
+              return r.width > 0 && r.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+            });
           return {
             overflowPx: Math.max(0, doc.scrollWidth - window.innerWidth),
             photos,
+            boutonsVisibles: commandes.length,
+            boutonsSansNom: commandes.filter((el) =>
+              !(el.getAttribute("aria-label") || el.getAttribute("title") || el.innerText || "").trim()
+            ).length,
             larges,
             titre: document.title,
             h1,
@@ -73,6 +83,8 @@ for (const persona of PERSONAS) {
         rapport.push({
           ...ecran,
           statut: reponse?.status() ?? 0,
+          cheminFinal: new URL(page.url()).pathname,
+          redirection: new URL(page.url()).pathname !== ecran.path,
           ...mesure,
           erreursConsole: erreursConsole.slice(0, 5),
         });
@@ -86,14 +98,20 @@ for (const persona of PERSONAS) {
       path.join(SORTIE, `rapport-${persona}.json`),
       JSON.stringify(rapport, null, 2),
     );
+    console.log(
+      `Audit ${persona} : ${rapport.length} écrans, ${rapport.filter((r) => r.redirection).length} redirections, ` +
+      `${rapport.reduce((n, r) => n + Number(r.boutonsVisibles ?? 0), 0)} commandes visibles, ` +
+      `${rapport.reduce((n, r) => n + Number(r.boutonsSansNom ?? 0), 0)} sans nom`,
+    );
     const casses = rapport.filter((r) =>
       r.statut === "erreur" ||
       (typeof r.statut === "number" && r.statut >= 400) ||
       r.soft404 === true ||
+      !r.h1 ||
       (typeof r.overflowPx === "number" && r.overflowPx > 2) ||
       (!String(r.path).startsWith("/quittance/") &&
        !String(r.path).startsWith("/attestation-loyer/") && r.photos === 0)
-    ).map((r) => ({ path: r.path, statut: r.statut, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur }));
+    ).map((r) => ({ path: r.path, statut: r.statut, h1: r.h1, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur }));
     expect(casses, `Écrans ${persona} cassés ou débordants`).toEqual([]);
   });
 }

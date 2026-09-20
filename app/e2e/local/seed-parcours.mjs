@@ -1086,6 +1086,89 @@ if ((creneauxPoses ?? []).length === 0) {
   console.log("· trois créneaux proposés — le locataire a le choix");
 }
 
+// Trois fiches profondes restaient absentes de l'audit des 82 routes : un
+// article publié, son éditeur et une sollicitation encore ouverte. Ces données
+// vivent uniquement dans la base éphémère du parcours E2E.
+const SLUG_ARTICLE_E2E = "e2e-gerer-une-location";
+const article = ok(
+  "recherche article E2E",
+  await superadmin.from("publications").select("id").eq("slug", SLUG_ARTICLE_E2E).maybeSingle()
+);
+if (!article) {
+  ok(
+    "publication article E2E",
+    await superadmin.from("publications").insert({
+      periode: "2026-E2E",
+      statut: "publiee",
+      titre: "Gérer une location, étape par étape",
+      slug: SLUG_ARTICLE_E2E,
+      chapo: "Un article de démonstration pour vérifier la lecture et l’édition du journal.",
+      corps: "Un dossier locatif clair commence par les pièces du bien, le bail et l’état des lieux. " +
+        "Le gestionnaire suit ensuite les loyers et les encaissements, sans perdre le fil des justificatifs. " +
+        "Lorsqu’un incident est déclaré, il le qualifie, consulte un artisan adapté et tient le locataire informé. " +
+        "Ce texte sert uniquement au parcours de test isolé et ne constitue pas un conseil juridique.",
+      seo_description: "Article de démonstration des parcours documentaires Gerimmo.",
+    })
+  );
+}
+
+const DESC_DEVIS_OUVERT = "E2E Demande de devis encore ouverte";
+let incidentDevis = ok(
+  "recherche incident pour devis ouvert",
+  await admin.from("incidents").select("id, etat").eq("organization_id", orgId)
+    .eq("description", DESC_DEVIS_OUVERT).maybeSingle()
+);
+if (!incidentDevis) {
+  const id = ok(
+    "déclaration incident pour devis ouvert",
+    await locataire.rpc("declarer_mon_incident", {
+      p_org: orgId,
+      p_categorie: "plomberie_joint",
+      p_description: DESC_DEVIS_OUVERT,
+      p_piece: "Cuisine",
+      p_anciennete: null,
+      p_urgence: "normale",
+    })
+  );
+  incidentDevis = { id, etat: "declare" };
+}
+if (["declare", "rouvert"].includes(incidentDevis.etat)) {
+  ok("qualification du devis ouvert", await admin.rpc("qualifier_incident", {
+    p_org: orgId,
+    p_incident: incidentDevis.id,
+    p_imputation: "proprietaire",
+    p_justification: "Fuite sur un élément vétuste du réseau de plomberie.",
+  }));
+}
+let consultationDevis = ok(
+  "recherche consultation du devis ouvert",
+  await admin.from("incident_consultations").select("id, statut")
+    .eq("incident_id", incidentDevis.id).eq("statut", "ouverte").maybeSingle()
+);
+if (!consultationDevis) {
+  const id = ok("ouverture consultation du devis", await admin.rpc("ouvrir_consultation", {
+    p_org: orgId,
+    p_incident: incidentDevis.id,
+    p_metier: "plomberie",
+    p_nature: "entretien_courant",
+    p_devis_unique_assume: true,
+    p_validite_jours: 30,
+  }));
+  consultationDevis = { id, statut: "ouverte" };
+}
+const sollicitationDevis = ok(
+  "recherche sollicitation du devis ouvert",
+  await admin.from("incident_sollicitations").select("id")
+    .eq("consultation_id", consultationDevis.id).eq("artisan_id", ficheArtisan.id).maybeSingle()
+);
+if (!sollicitationDevis) {
+  ok("sollicitation du devis ouvert", await admin.rpc("solliciter_artisan", {
+    p_org: orgId,
+    p_consultation: consultationDevis.id,
+    p_artisan: ficheArtisan.id,
+  }));
+}
+
 // ------------------------------------------------------------
 // Le seed referme ce qu'il a ouvert
 // ------------------------------------------------------------

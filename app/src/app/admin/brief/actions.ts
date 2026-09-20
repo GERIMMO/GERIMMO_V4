@@ -10,8 +10,8 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
   const { data: estSuperAdmin, error: erreurAcces } = await supabase.rpc("is_super_admin");
   if (erreurAcces || !estSuperAdmin) return { erreur: "Accès réservé à la supervision." };
 
-  const cle = process.env.OPENAI_API_KEY?.trim();
-  if (!cle) return { erreur: "Configurez OPENAI_API_KEY côté serveur dans Vercel pour activer cette analyse." };
+  const cle = process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim();
+  if (!cle) return { erreur: "Configurez OPENAI_API_KEY ou OPEN_AI_KEY côté serveur dans Vercel pour activer cette analyse." };
 
   const [bugsN1, bugs, idees, devis, propositions, organisations] = await Promise.all([
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").in("etat", ["nouveau", "en_examen", "en_cours"]),

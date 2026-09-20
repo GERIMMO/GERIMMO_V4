@@ -26,7 +26,7 @@ Ce document distingue présence de code, règles testées localement et fonction
 ## Priorités avant de déclarer la V1 prête
 
 1. **P0 — Preuves de lancement** : restauration isolée d'une sauvegarde réelle, configuration des services et réception des courriers, revue de sécurité et identité éditeur. Leur absence de preuve empêche la clôture ; elle ne signifie pas qu'une fuite ou une panne est démontrée.
-2. **P1 — Recette complète par rôle** : location après sélection, dossier et documents, encaissement et quittance, incident jusqu'à clôture, messages, alertes et historique. Ajouter les cas erreurs, double clic, droits refusés, autre agence, mobile et session expirée.
+2. **P1 — Portail du propriétaire géré absent et recette complète par rôle** : location après sélection, dossier et documents, encaissement et quittance, incident jusqu'à clôture, messages, alertes et historique. Ajouter les cas erreurs, double clic, droits refusés, autre agence, mobile et session expirée.
 3. **P2 — Compléments transverses** : recherche étendue, observabilité par parcours/version, décisions humaines et réduction des frictions.
 4. **P3 — Après V1** : Brain, Founder Brief, études, radar, expériences, jauges économiques, croissance et expansion fondées sur des données réelles.
 
@@ -61,7 +61,7 @@ Travail sur une branche isolée issue de main ; brouillons anciens préservés. 
 
 PDF p. 3 · **Partiel** · P1
 
-Rôles et isolation présents ; compléter la recette de bout en bout des sept personas sur Supabase réel.
+Rôles et isolation présents, mais le propriétaire mandant ne dispose pas de chemin de portail : cheminEspace retourne null pour ce rôle et les anciens écrans indiquent explicitement aucun accès. Écart P1 au nouveau périmètre ; recette complète des sept personas encore impossible.
 
 Éléments : `app/src/lib/espace.ts`; `app/src/lib/portefeuille.ts`; `app/tests/rpc-etancheite-inter-agences.test.ts`; `app/tests/api-isolation.test.ts`.
 
@@ -445,7 +445,7 @@ Pas de couche Brain intégrant signaux produit, business, territoires, conformit
 
 PDF p. 18 · **Partiel** · P1
 
-Espace propriétaire et priorités présents ; parcours complet propriétaire autonome et propriétaire géré à valider séparément.
+Espace propriétaire autonome présent. Pour le propriétaire géré par agence, seules la fiche mandant et les données de mandat existent ; aucun portail accessible identifié. Définir et implémenter la consultation de son patrimoine/rapports/documents et ses échanges, avec autorisations limitées à ses propres dossiers, puis tester séparément.
 
 Éléments : `app/src/app/agence/[orgId]/accueil-proprietaire.tsx`; `app/src/lib/navigation-espace.ts`; `app/tests/navigation-espace.test.ts`; `app/src/app/actions/loyers.ts`; `app/src/lib/quittancement-du-mois.ts`; `app/tests/cycle-mensuel.test.ts`; `app/tests/cron-relances-route.test.ts`.
 
@@ -860,3 +860,9 @@ Séquence V1 → preuve → production → instrumentation → acquisition → c
 - Tableau de bord : la tuile des loyers mène désormais à la rubrique Loyers & charges.
 
 Les décisions de facturation, les courriers réels, les contrats réels, les droits critiques et la production de données métier n'ont pas été modifiés pour cette recette.
+
+## Complément de recette locataire et artisan
+
+Sept rubriques locataire et quatre rubriques artisan ouvertes. Le rendez-vous choisi par le locataire fictif est confirmé sur sa demande et apparaît au même horaire dans l’agenda artisan. Le clic sur la carte visible sélectionne correctement le créneau ; la première tentative de sélection directe du contrôle radio par l’outil n’avait pas abouti. Aucun rendez-vous réel ni courrier externe déclenché.
+
+**Écart P1 confirmé : propriétaire mandant.** `app/src/app/espaces/page.tsx` ne lui associe aucune destination ; `app/src/app/agence/[orgId]/mandats/page.tsx` indique l’ancienne décision « pas d’accès ». Le nouveau cahier devient prioritaire, mais donner arbitrairement le rôle de gestionnaire au mandant exposerait des données étrangères : il faut un portail et des droits dédiés, pas retirer la garde.

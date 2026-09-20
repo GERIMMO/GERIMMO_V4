@@ -27,12 +27,15 @@
       "exigences_source": "Gerimmo est une plateforme complète de gestion immobilière et locative pour : super administrateur\nGerimmo, administrateur d’agence, agents immobiliers, propriétaires bailleurs gérés par agence, leurs\nlocataires, propriétaires bailleurs autonomes, leurs locataires et artisans/intervenants.\nLes permissions, données visibles et actions dépendent du rôle. Aucun utilisateur ne doit accéder sans\nautorisation aux données d’un autre utilisateur, propriétaire ou agence.",
       "statut": "Partiel",
       "priorite": "P1",
-      "constat_et_reste": "Rôles et isolation présents ; compléter la recette de bout en bout des sept personas sur Supabase réel.",
+      "constat_et_reste": "Rôles et isolation présents, mais le propriétaire mandant ne dispose pas de chemin de portail : cheminEspace retourne null pour ce rôle et les anciens écrans indiquent explicitement aucun accès. Écart P1 au nouveau périmètre ; recette complète des sept personas encore impossible.",
       "elements_code_et_tests": [
         "app/src/lib/espace.ts",
         "app/src/lib/portefeuille.ts",
         "app/tests/rpc-etancheite-inter-agences.test.ts",
-        "app/tests/api-isolation.test.ts"
+        "app/tests/api-isolation.test.ts",
+        "app/src/app/espaces/page.tsx",
+        "app/src/app/agence/[orgId]/mandats/page.tsx",
+        "app/supabase/migrations/20260727_socle_identite_isolation.sql"
       ],
       "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
     },
@@ -913,7 +916,7 @@
       "exigences_source": "Espace unique pour biens/lots, occupants, baux, loyers/charges, échéances, documents, incidents,\ninterventions, artisans, dépenses, alertes, historique et communications.\nLe tableau de bord répond d’abord à : Que dois-je faire aujourd’hui ? Qu’est-ce qui est en retard ?\nQu’est-ce qui nécessite mon attention ?",
       "statut": "Partiel",
       "priorite": "P1",
-      "constat_et_reste": "Espace propriétaire et priorités présents ; parcours complet propriétaire autonome et propriétaire géré à valider séparément.",
+      "constat_et_reste": "Espace propriétaire autonome présent. Pour le propriétaire géré par agence, seules la fiche mandant et les données de mandat existent ; aucun portail accessible identifié. Définir et implémenter la consultation de son patrimoine/rapports/documents et ses échanges, avec autorisations limitées à ses propres dossiers, puis tester séparément.",
       "elements_code_et_tests": [
         "app/src/app/agence/[orgId]/accueil-proprietaire.tsx",
         "app/src/lib/navigation-espace.ts",
@@ -921,7 +924,10 @@
         "app/src/app/actions/loyers.ts",
         "app/src/lib/quittancement-du-mois.ts",
         "app/tests/cycle-mensuel.test.ts",
-        "app/tests/cron-relances-route.test.ts"
+        "app/tests/cron-relances-route.test.ts",
+        "app/src/app/espaces/page.tsx",
+        "app/src/app/agence/[orgId]/mandats/page.tsx",
+        "app/supabase/migrations/20260727_socle_identite_isolation.sql"
       ],
       "verification": "Lecture du code et/ou des tests référencés ; exécution locale globale détaillée dans le rapport. Aucun statut ne vaut validation complète de production."
     },

@@ -5323,3 +5323,18 @@ fusion** (décision du porteur).
 **Reste au porteur** : Stripe, Resend et SMTP, DNS, modèles collés dans
 Supabase, plan Supabase et test de restauration, faits de l'éditeur, sort des
 données de développement, MFA des personnes.
+
+## [2026-09-20] exploitation | PR #66 fusionnée (préparation du lancement)
+
+Sur « Applique et fusionne » du porteur. Aucune migration à appliquer cette
+fois : la PR ne touchait ni le schéma ni les fonctions.
+
+- **PR #66 fusionnée** dans `main` (commit de fusion 83da9b0), CI verte sur la
+  tête (c9df5a5) : écran « Santé du service », automatique proposé au
+  démarrage, région Vercel Paris, page confidentialité, modèles d'e-mails
+  d'authentification, pages wiki (registre des traitements, procédure de
+  violation, recette de production). Le déploiement de production suit ; les
+  fonctions Vercel s'exécuteront désormais à Paris (`cdg1`).
+- **À faire par le porteur juste après le déploiement** : ouvrir
+  `/admin/sante` en production et lire ce qui manque ; coller les trois
+  modèles d'e-mails dans Supabase Auth ; fournir les faits de l'éditeur.

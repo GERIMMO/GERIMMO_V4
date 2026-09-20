@@ -128,6 +128,7 @@ export default async function LayoutArtisan({
           {fiche ? fiche.raison_sociale : "Espace artisan"}
         </p>
       </header>
+      <div className="repere-visuel repere-visuel-artisan" aria-hidden="true" />
 
       {enAttente && (
         <p

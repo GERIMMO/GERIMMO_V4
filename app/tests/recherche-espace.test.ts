@@ -92,6 +92,11 @@ it("retrouve les nouveaux dossiers et applique leurs périmètres avant les plaf
   expect(r.resultats.map(x => x.type)).toEqual(["Document", "Incident", "Artisan", "Paiement"]);
   expect(r.resultats.map(x => x.href)).toEqual(["/agence/org/documents?sel=doc", "/agence/org/incidents/incident", "/agence/org/artisans?vue=tous&sel=artisan", "/agence/org/baux/bail#loyers"]);
   expect(c.rpc).toHaveBeenCalledWith("documents_courants", { p_org: "org", p_lots: ["lot-visible"] });
+  // Régression constatée sur le vrai PostgREST : trier cette RPC sur une
+  // colonne absente de la projection échoue avec 42703, contrairement au banc local.
+  const documents = c.lectures.find(q => q.table === "documents_courants")!;
+  const selection = String(documents.appels.find(a => a[0] === "select")?.[1]).split(",");
+  for (const tri of documents.appels.filter(a => a[0] === "order")) expect(selection).toContain(tri[1]);
   expect(c.lectures.find(q => q.table === "incidents")!.appels).toContainEqual(["in", "lot_id", ["lot-visible"]]);
   expect(c.lectures.find(q => q.table === "encaissements")!.appels).toContainEqual(["in", "bail.lot_id", ["lot-visible"]]);
   expect(c.lectures.find(q => q.table === "artisans")!.appels).toContainEqual(["in", "id", ["artisan"]]);

@@ -65,7 +65,9 @@ export async function rechercherDansEspace(orgId: string, saisie: string): Promi
   const filtreIncident = filtreRecherche(["description", "numero"], texte);
   const [documents, incidents, relations] = await Promise.all([
     supabase.rpc("documents_courants", { p_org: orgId, p_lots: portefeuille ? [...portefeuille] : null })
-      .select("id,titre,type").or(filtreRecherche(["titre"], texte)).order("created_at", { ascending: false }).limit(6),
+      // PostgREST trie le résultat projeté de cette RPC : la colonne de tri
+      // doit rester sélectionnée, même si elle n'est pas affichée au client.
+      .select("id,titre,type,created_at").or(filtreRecherche(["titre"], texte)).order("created_at", { ascending: false }).limit(6),
     portefeuille?.size === 0 ? { data: [], error: null }
       : incidentsQuery.or(filtreIncident).order("created_at", { ascending: false }).limit(6),
     supabase.from("artisan_agences").select("artisan_id", { count: "exact" }).eq("organization_id", orgId).limit(1000),

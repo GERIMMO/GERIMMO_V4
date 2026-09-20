@@ -5346,3 +5346,7 @@ Le mandant reste sans accès. Préparation du PDF pour relecture, copie archivé
 Recette locale : vrai PDF et stockage, transport externe simulé, échec puis reprise sur les mêmes octets ; aucun courrier réel. Le navigateur a confirmé la reprise sur la même URL de PDF et le lien paiement → loyers du bail. Le banc local ignorait les filtres SQL des RPC setof : il les applique maintenant, avec une recherche négative testée. Les preuves finales et la publication sont suivies dans le bilan du lot.
 
 Validation finale de ce lot : 1 513 tests réussis dans 148 fichiers, aucun test sauté ; build, types et lint réussis. Recette navigateur de la relecture, de l’échec et de la reprise d’envoi, des recherches et du lien vers les loyers. Comptabilité mobile à 390 pixels sans débordement. Aucun envoi réel ni changement de schéma. Publication tracée dans le bilan de livraison associé.
+
+## [2026-09-20] correctif de recette en production | Recherche documentaire
+
+PR 68 publiée et déploiement réussi (`8947836`). La recette authentifiée de la session test a détecté une erreur partielle de recherche que le banc SQL local ne reproduisait pas : PostgREST triait le résultat projeté de documents_courants sans created_at sélectionné (42703). Ajout de cette colonne à la projection, sans élargir le périmètre ni changer les données. Lecture API de production : requête corrigée sans erreur ; ajout d’une assertion de régression. Aucun courrier ni paiement réel déclenché.

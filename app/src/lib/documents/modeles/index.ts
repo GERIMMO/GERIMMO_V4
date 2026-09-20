@@ -52,7 +52,7 @@ export type Modele = {
 };
 
 const complementsBail = Object.fromEntries(CODES_COMPLEMENTS_BAIL.map(code => [code, { typeGed: "courrier", assembler: (db, org, id, options) => assemblerComplementBail(code, db, org, id, options) } satisfies Modele])) as Record<typeof CODES_COMPLEMENTS_BAIL[number], Modele>;
-const complementsGestion = Object.fromEntries(CODES_COMPLEMENTS_GESTION.map(code => [code, { typeGed: "courrier", assembler: (db, org, id, options) => assemblerComplementGestion(code, db, org, id, options) } satisfies Modele])) as Record<typeof CODES_COMPLEMENTS_GESTION[number], Modele>;
+const complementsGestion = Object.fromEntries(CODES_COMPLEMENTS_GESTION.map(code => [code, { typeGed: code === "rapport_gestion" ? "rapport_gestion" : "courrier", assembler: (db, org, id, options) => assemblerComplementGestion(code, db, org, id, options) } satisfies Modele])) as Record<typeof CODES_COMPLEMENTS_GESTION[number], Modele>;
 
 export const MODELES = {
   ...complementsBail,

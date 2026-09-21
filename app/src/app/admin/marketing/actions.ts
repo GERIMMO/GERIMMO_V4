@@ -5,6 +5,34 @@ import { createClient } from "@/lib/supabase/server";
 
 export type EtatCampagne = { erreur?: string; succes?: string };
 
+export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees: FormData): Promise<EtatCampagne> {
+  const supabase = await createClient();
+  const { data: autorise } = await supabase.rpc("is_super_admin");
+  if (autorise !== true) return { erreur: "Accès refusé." };
+  const jour1 = Number(donnees.get("jour_1"));
+  const jour2 = Number(donnees.get("jour_2"));
+  const heure = Number(donnees.get("heure_paris"));
+  const budget = Number(String(donnees.get("budget") ?? "10").replace(",", "."));
+  if (![jour1, jour2].every((j) => Number.isInteger(j) && j >= 1 && j <= 7) || jour1 === jour2) return { erreur: "Choisissez deux jours différents." };
+  if (!Number.isInteger(heure) || heure < 0 || heure > 23) return { erreur: "Heure de publication invalide." };
+  if (!Number.isFinite(budget) || budget < 0 || budget > 1000) return { erreur: "Le budget mensuel doit être compris entre 0 et 1 000 €." };
+  const { data: utilisateur } = await supabase.auth.getUser();
+  const { error } = await supabase.from("marketing_reglages").update({
+    actif: donnees.get("actif") === "on",
+    publication_automatique: donnees.get("publication_automatique") === "on",
+    publicite_active: donnees.get("publicite_active") === "on",
+    publications_semaine: 2,
+    jours_semaine: [jour1, jour2].sort((a, b) => a - b),
+    heure_paris: heure,
+    budget_mensuel_cents: Math.round(budget * 100),
+    modifie_par: utilisateur.user?.id ?? null,
+    modifie_le: new Date().toISOString(),
+  }).eq("singleton", true);
+  if (error) return { erreur: "Les réglages n’ont pas pu être enregistrés." };
+  revalidatePath("/admin/marketing");
+  return { succes: "Pilotage marketing mis à jour." };
+}
+
 export async function programmerCampagne(_etat: EtatCampagne, donnees: FormData): Promise<EtatCampagne> {
   const supabase = await createClient();
   const { data: autorise } = await supabase.rpc("is_super_admin");

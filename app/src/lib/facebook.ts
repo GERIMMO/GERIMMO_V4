@@ -35,6 +35,23 @@ function messageMeta(erreur: unknown): string {
   return `${valeur.error?.message?.trim() || "Meta n’a pas accepté la publication."}${code}`;
 }
 
+async function jetonPourLaPage(pageId: string, jeton: string): Promise<string> {
+  // Un jeton d'utilisateur système Meta lit correctement la Page mais doit être
+  // échangé contre son jeton de Page avant d'écrire. Si l'environnement porte
+  // déjà un jeton de Page, l'appel peut ne rien retourner : on le conserve.
+  try {
+    const url = new URL(`${baseGraph()}/me/accounts`);
+    url.searchParams.set("fields", "id,access_token");
+    url.searchParams.set("access_token", jeton);
+    const reponse = await fetch(url, { signal: AbortSignal.timeout(15_000), cache: "no-store" });
+    if (!reponse.ok) return jeton;
+    const resultat = await reponse.json() as { data?: Array<{ id?: string; access_token?: string }> };
+    return resultat.data?.find((p) => p.id === pageId)?.access_token?.trim() || jeton;
+  } catch {
+    return jeton;
+  }
+}
+
 export async function envoyerSurFacebook(article: ArticleFacebook): Promise<PublicationFacebook> {
   const pageId = process.env.META_FACEBOOK_PAGE_ID?.trim();
   const jeton = process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim();
@@ -42,10 +59,11 @@ export async function envoyerSurFacebook(article: ArticleFacebook): Promise<Publ
     throw new Error("La connexion Facebook de Gerimmo n’est pas encore configurée.");
   }
 
+  const jetonPage = await jetonPourLaPage(pageId, jeton);
   const message = texteFacebook(article);
   const image = article.facebookImageUrl?.trim();
   const chemin = image ? "photos" : "feed";
-  const donnees = new URLSearchParams({ access_token: jeton });
+  const donnees = new URLSearchParams({ access_token: jetonPage });
   if (image) {
     if (!/^https:\/\//i.test(image)) throw new Error("Le visuel Facebook doit utiliser une adresse HTTPS publique.");
     donnees.set("url", image);
@@ -68,4 +86,3 @@ export async function envoyerSurFacebook(article: ArticleFacebook): Promise<Publ
   if (!identifiant) throw new Error("Meta a répondu sans identifiant de publication.");
   return { ...resultat, post_id: identifiant };
 }
-

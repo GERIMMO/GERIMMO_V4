@@ -3,12 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { campagnesFacebook, santeFacebook } from "@/lib/marketing-meta";
 import { ActualisationAuto } from "./actualisation-auto";
 import { FormulaireCampagne } from "./formulaire-campagne";
+import { ReglagesAutomatiques } from "./reglages-automatiques";
 
 export const metadata = { title: "Agent marketing — Gerimmo" };
 export const dynamic = "force-dynamic";
 
 type Campagne = { id: string; nom: string; description: string | null; canal: string; nature: string; objectif: string; statut: string; publication_prevue_le: string | null; budget_cents: number | null; cree_le: string };
 type Publication = { id: string; titre: string; statut: string; slug: string | null; propose_le: string; publie_le: string | null; facebook_post_id: string | null; facebook_publie_le: string | null; facebook_erreur: string | null };
+type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number };
 
 const date = (valeur: string | null) => valeur ? new Date(valeur).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" }) : "Date à choisir";
 const argent = (cents: number | null) => cents == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -16,14 +18,19 @@ const nombre = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
 
 export default async function PageAgentMarketing() {
   const supabase = await createClient();
-  const [campagnesResultat, publicationsResultat, facebook, meta] = await Promise.all([
+  const debutMois = new Date(); debutMois.setUTCDate(1); debutMois.setUTCHours(0,0,0,0);
+  const [campagnesResultat, publicationsResultat, reglagesResultat, mesuresResultat, facebook, meta] = await Promise.all([
     supabase.from("marketing_campagnes").select("id,nom,description,canal,nature,objectif,statut,publication_prevue_le,budget_cents,cree_le").order("publication_prevue_le", { ascending: true, nullsFirst: false }),
     supabase.from("publications").select("id,titre,statut,slug,propose_le,publie_le,facebook_post_id,facebook_publie_le,facebook_erreur").order("propose_le", { ascending: false }).limit(100),
+    supabase.from("marketing_reglages").select("actif,publication_automatique,publicite_active,jours_semaine,heure_paris,budget_mensuel_cents").eq("singleton", true).single(),
+    supabase.from("marketing_mesures").select("depense_cents").gte("mesure_le", debutMois.toISOString()),
     santeFacebook(),
     campagnesFacebook(),
   ]);
   const campagnes = (campagnesResultat.data ?? []) as Campagne[];
   const publications = (publicationsResultat.data ?? []) as Publication[];
+  const reglages = (reglagesResultat.data ?? { actif: true, publication_automatique: true, publicite_active: true, jours_semaine: [2,5], heure_paris: 9, budget_mensuel_cents: 1000 }) as Reglages;
+  const depenseMois = (mesuresResultat.data ?? []).reduce((total, m) => total + Number(m.depense_cents ?? 0), 0);
   const futures = campagnes.filter((c) => ["idee", "planifiee"].includes(c.statut));
   const actives = meta.campagnes.filter((c) => ["ACTIVE", "IN_PROCESS", "PENDING_REVIEW"].includes(c.statut));
   const anciennesMeta = meta.campagnes.filter((c) => !actives.includes(c));
@@ -37,10 +44,12 @@ export default async function PageAgentMarketing() {
       <div className={`kpi ${facebook.erreur ? "rouge" : facebook.configure ? "vert" : "or"}`}><span className="libelle-champ">Page Facebook</span><div className="chiffre">{facebook.erreur ? "À réparer" : facebook.configure ? "Connectée" : "À connecter"}</div><span className="mono-discret sans-majuscules">{facebook.nom ?? facebook.erreur ?? "Jeton Meta manquant"}</span></div>
       <div className="kpi bleu"><span className="libelle-champ">Communauté</span><div className="chiffre">{facebook.abonnes == null ? "—" : nombre(facebook.abonnes)}</div><span className="mono-discret sans-majuscules">abonnés Facebook</span></div>
       <div className="kpi or"><span className="libelle-champ">À venir</span><div className="chiffre">{futures.length + aDiffuser.length + publications.filter((p) => ["proposition", "brouillon"].includes(p.statut)).length}</div><span className="mono-discret sans-majuscules">campagnes et articles</span></div>
-      <div className="kpi vert"><span className="libelle-champ">Publicités en direct</span><div className="chiffre">{meta.configure ? actives.length : "—"}</div><span className="mono-discret sans-majuscules">Meta Ads</span></div>
+      <div className="kpi vert"><span className="libelle-champ">Budget publicité</span><div className="chiffre">{argent(depenseMois)}</div><span className="mono-discret sans-majuscules">sur {argent(reglages.budget_mensuel_cents)} ce mois</span></div>
     </div>
 
-    {(campagnesResultat.error || publicationsResultat.error) && <p role="alert" className="err">Une partie des informations marketing est momentanément indisponible. Rechargez la page.</p>}
+    {(campagnesResultat.error || publicationsResultat.error || reglagesResultat.error || mesuresResultat.error) && <p role="alert" className="err">Une partie des informations marketing est momentanément indisponible. Rechargez la page.</p>}
+
+    <section className="section-ecran"><div className="entete-carte"><div><h2>Pilotage automatique</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Gerimmo prépare et publie deux contenus par semaine. Le plafond publicitaire est une limite absolue, jamais un objectif de dépense.</p></div><span className={`puce ${reglages.actif ? "puce-loue" : "puce-prep"}`}>{reglages.actif ? "Agent actif" : "En pause"}</span></div><div className="mt-4"><ReglagesAutomatiques reglages={reglages} comptePublicitaire={meta.configure} /></div></section>
 
     <section className="section-ecran grid gap-5 lg:grid-cols-[1.2fr_.8fr]"><div><div className="entete-carte"><div><h2>Calendrier à venir</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Ce que Gerimmo publiera ou proposera. Une campagne planifiée ne dépense jamais d’argent sans validation.</p></div><Link href="/admin/publications/nouvelle" className="btn-or text-sm">Créer un article</Link></div>
       <div className="mt-4 divide-y divide-[var(--filet)] border border-[var(--filet)] bg-[var(--ivoire)]">{futures.length === 0 ? <div className="vide-guide"><p className="titre">Aucune campagne programmée</p><p className="explication">Ajoutez la prochaine prise de parole avec le formulaire.</p></div> : futures.map((c) => <article key={c.id} className="p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-heading text-lg">{c.nom}</h3><span className="puce puce-prep">{date(c.publication_prevue_le)}</span></div><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Facebook · {c.nature === "sponsorisee" ? `sponsorisée · ${argent(c.budget_cents)}` : "gratuite"} · objectif {c.objectif}</p>{c.description && <p className="mt-2 text-sm">{c.description}</p>}</article>)}</div></div>

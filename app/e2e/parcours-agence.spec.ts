@@ -30,6 +30,11 @@ test("créer un bien depuis le téléphone : formulaire → fiche du parc", asyn
   await page.getByLabel("Adresse", { exact: true }).fill("12 rue du Téléphone");
   await page.getByLabel("Code postal").fill("69001");
   await page.getByLabel("Ville").fill("Lyon");
+  await page.getByLabel(/Année de construction/).fill("2005");
+  await page.getByLabel(/Parties communes/).fill("Hall et cour intérieure");
+  await page.getByLabel(/Accès TIC/).fill("Fibre optique et TNT");
+  await page.getByLabel(/Surface.*m²/).fill("51");
+  await page.getByLabel("Nombre de pièces").fill("3");
   await page.getByRole("button", { name: /Créer le bien/ }).click();
 
   // La création débouche sur la fiche (ou le parc) où le bien existe

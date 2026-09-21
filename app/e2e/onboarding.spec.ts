@@ -45,20 +45,19 @@ test.describe("côté console", () => {
 test.describe("côté client", () => {
   test.use({ storageState: path.join(__dirname, ".auth", "admin.json") });
 
-  test("le chemin du démarrage s'affiche tant qu'une étape manque", async ({ page }) => {
-    // L'agence de démonstration n'a pas d'adresse : l'étape « identité » reste
-    // à faire, donc le bloc doit être là, avec le geste suivant et lui seul.
+  test("le chemin du démarrage disparaît lorsque les cinq étapes sont terminées", async ({ page }) => {
+    // Le jeu de parcours complète désormais l'identité, le bien, le lot, le
+    // locataire et le bail. Le guide ne doit plus encombrer le tableau de bord.
+    // Le cas incomplet et l'ordre des cinq étapes sont vérifiés au niveau de la
+    // fonction métier dans onboarding-autonome.test.ts.
     await sansSyntheseAlertes(page);
     await page.goto("/espaces");
     await page.waitForURL(/\/agence\//);
     await page.waitForLoadState("networkidle");
 
     const bloc = page.getByRole("region", { name: /Mettre votre premier lot en location/ });
-    await expect(bloc).toBeVisible();
-    await expect(bloc.getByText("Votre identité")).toBeVisible();
-    // Un seul bouton d'action : l'étape suivante, pas les cinq.
-    await expect(bloc.getByRole("link")).toHaveCount(1);
-    await expect(bloc.getByRole("link", { name: "Compléter le profil" })).toBeVisible();
+    await expect(bloc).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
     expect(await debordementHorizontal(page)).toBe(0);
   });
 });

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Gerimmo</title>
+  <desc id="desc">Un toit protège un G formé autour d’une clé.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 50 64 12l52 38M102 39V24h11v24" stroke="#14304F" stroke-width="8"/>
+    <path d="M96 61a39 39 0 1 0 2 31V77H73" stroke="#14304F" stroke-width="9"/>
+    <circle cx="62" cy="59" r="11" stroke="#C9A227" stroke-width="7"/>
+    <path d="M62 70v38m0-20h13m-13 11h9" stroke="#C9A227" stroke-width="8"/>
+  </g>
+</svg>

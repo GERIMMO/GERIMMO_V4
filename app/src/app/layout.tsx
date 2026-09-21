@@ -24,6 +24,11 @@ const interface_ = Figtree({
 export const metadata: Metadata = {
   title: "Gerimmo",
   description: "Gestion locative pour agences et propriétaires",
+  icons: {
+    icon: "/logo/gerimmo-mark.svg",
+    shortcut: "/logo/gerimmo-mark.svg",
+    apple: "/logo/gerimmo-mark.svg",
+  },
 };
 
 export default function RootLayout({

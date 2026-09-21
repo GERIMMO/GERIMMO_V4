@@ -96,6 +96,15 @@ describe("Compte rendu mensuel sans compte propriétaire", () => {
     expect((await remettreRapportMensuel(b.db, user, "org", "rapport", null, "admin_agence")).erreur).toMatch(/rattachement/);
     expect(m.email).not.toHaveBeenCalled();
   });
+  it("ne rend ni n'envoie un compte rendu comportant des champs manquants", async () => {
+    const b = banc();
+    m.assembler.mockResolvedValueOnce({ document: { html: "rapport", manquants: ["adresse du mandant"] }, liens: [] });
+    const retour = await remettreRapportMensuel(b.db, user, "org", "rapport", null, "admin_agence");
+    expect(retour.erreur).toContain("adresse du mandant");
+    expect(m.pdf).not.toHaveBeenCalled();
+    expect(m.depot).not.toHaveBeenCalled();
+    expect(m.email).not.toHaveBeenCalled();
+  });
   it("un échec d’envoi garde la copie et une nouvelle tentative réutilise la même clé", async () => {
     const b = banc("envoye"); archiver(b); m.email.mockResolvedValueOnce({ erreur: "Indisponible" });
     const premier = await remettreRapportMensuel(b.db, user, "org", "rapport", null, "admin_agence");

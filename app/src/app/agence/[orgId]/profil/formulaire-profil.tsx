@@ -65,10 +65,11 @@ export function FormulaireProfilOrganisation({
         <Input id="pr-nom" name="name" required disabled={lectureSeule} defaultValue={valeur("name")} />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="pr-adresse">Adresse</Label>
+        <Label htmlFor="pr-adresse">Adresse *</Label>
         <Input
           id="pr-adresse"
           name="address_line1"
+          required
           disabled={lectureSeule}
           defaultValue={valeur("address_line1")}
           placeholder="12 rue des Lilas"
@@ -76,10 +77,11 @@ export function FormulaireProfilOrganisation({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="pr-cp">Code postal</Label>
+          <Label htmlFor="pr-cp">Code postal *</Label>
           <Input
             id="pr-cp"
             name="postal_code"
+            required
             inputMode="numeric"
             autoComplete="postal-code"
             disabled={lectureSeule}
@@ -87,8 +89,8 @@ export function FormulaireProfilOrganisation({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="pr-ville">Ville</Label>
-          <Input id="pr-ville" name="city" disabled={lectureSeule} defaultValue={valeur("city")} />
+          <Label htmlFor="pr-ville">Ville *</Label>
+          <Input id="pr-ville" name="city" required disabled={lectureSeule} defaultValue={valeur("city")} />
         </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -106,27 +108,29 @@ export function FormulaireProfilOrganisation({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="pr-email">Email de contact</Label>
+          <Label htmlFor="pr-email">Email de contact *</Label>
           <Input
             id="pr-email"
             name="email_contact"
             type="email"
+            required
             disabled={lectureSeule}
             defaultValue={valeur("email_contact")}
           />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="pr-siret">SIRET (facultatif)</Label>
-        <Input id="pr-siret" name="siret" disabled={lectureSeule} defaultValue={valeur("siret")} />
+        <Label htmlFor="pr-siret">SIRET{estProprietaire ? " (facultatif)" : " *"}</Label>
+        <Input id="pr-siret" name="siret" required={!estProprietaire} disabled={lectureSeule} defaultValue={valeur("siret")} />
       </div>
       {!estProprietaire && (
         <>
           <div className="space-y-2">
-            <Label htmlFor="pr-carte-pro">Carte professionnelle (n° et CCI)</Label>
+            <Label htmlFor="pr-carte-pro">Carte professionnelle (n° et CCI) *</Label>
             <Input
               id="pr-carte-pro"
               name="carte_pro"
+              required
               disabled={lectureSeule}
               defaultValue={valeur("carte_pro")}
               placeholder="CPI 7501 2026 000 000 000 — CCI de Paris"
@@ -136,10 +140,11 @@ export function FormulaireProfilOrganisation({
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pr-garantie">Garantie financière (organisme, montant)</Label>
+            <Label htmlFor="pr-garantie">Garantie financière (organisme, montant) *</Label>
             <Input
               id="pr-garantie"
               name="garantie_financiere"
+              required
               disabled={lectureSeule}
               defaultValue={valeur("garantie_financiere")}
               placeholder="Galian, 120 000 €"

@@ -55,6 +55,10 @@ export async function creerPersonne(
   const email = String(formData.get("email") ?? "").trim();
   const telephone = String(formData.get("telephone") ?? "").trim();
   const dateNaissance = String(formData.get("date_naissance") ?? "").trim();
+  const communeNaissance = String(formData.get("commune_naissance") ?? "").trim();
+  const adresse = String(formData.get("address_line1") ?? "").trim();
+  const codePostal = String(formData.get("postal_code") ?? "").trim();
+  const ville = String(formData.get("city") ?? "").trim();
   const role = String(formData.get("role") ?? "").trim();
   const lotId = String(formData.get("lot_id") ?? "").trim();
 
@@ -68,6 +72,12 @@ export async function creerPersonne(
   }
   if (!morale && !prenom) return { erreur: "Le prénom est obligatoire.", valeurs };
   if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
+  if (!morale && (!dateNaissance || !communeNaissance)) {
+    return { erreur: "La date et la commune de naissance sont obligatoires pour établir les contrats.", valeurs };
+  }
+  if (!adresse || !codePostal || !ville) {
+    return { erreur: "L'adresse complète (voie, code postal et ville) est obligatoire pour les documents.", valeurs };
+  }
   if (await emailDejaPris(supabase, orgId, email)) {
     return {
       erreur:
@@ -109,7 +119,12 @@ export async function creerPersonne(
       prenom: morale ? null : prenom,
       email,
       telephone: telephone || null,
-      date_naissance: dateNaissance || null,
+      date_naissance: morale ? null : dateNaissance,
+      commune_naissance: morale ? null : communeNaissance,
+      address_line1: adresse,
+      postal_code: codePostal,
+      city: ville,
+      qualite: morale ? "Personne morale" : "Personne physique",
     })
     .select("id")
     .single();
@@ -274,6 +289,12 @@ export async function modifierPersonne(
   if (actuelle.prenom && !prenom) return { erreur: "Le prénom est obligatoire.", valeurs };
   // L'email reste obligatoire et unique dans l'agence (recette 08/08)
   if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
+  if (actuelle.prenom && (!dateNaissance || !communeNaissance)) {
+    return { erreur: "La date et la commune de naissance sont obligatoires pour établir les contrats.", valeurs };
+  }
+  if (!adresse || !codePostal || !ville) {
+    return { erreur: "L'adresse complète (voie, code postal et ville) est obligatoire pour les documents.", valeurs };
+  }
   if (await emailDejaPris(supabase, orgId, email, personId)) {
     return {
       erreur:

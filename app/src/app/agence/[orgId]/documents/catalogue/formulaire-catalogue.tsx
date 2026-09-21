@@ -23,7 +23,7 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:str
       c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style}/>:
       <input name={c.cle} type={c.type??"text"} step={c.type==="number"?"any":undefined} maxLength={500} className={style} defaultValue={c.cle==="annee"?new Date().getFullYear():undefined}/>}
       {c.aide&&<span className="block text-xs font-normal text-muted-foreground">{c.aide}</span>}</label>)}</div>
-    <p className="text-sm text-muted-foreground">Les informations du dossier sont reprises automatiquement. Vérifiez les champs signalés avant de signer ou partager le document. La génération ne déclenche aucun envoi.</p>
+    <p className="text-sm text-muted-foreground">Les informations du dossier sont reprises automatiquement. Le PDF est créé uniquement lorsque tous ses champs obligatoires sont renseignés. La génération ne déclenche aucun envoi.</p>
     <Button disabled={enCours||!cible||!choix.length} type="submit">{enCours?"Préparation du PDF…":"Générer et ranger dans Documents"}</Button>
     {etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}

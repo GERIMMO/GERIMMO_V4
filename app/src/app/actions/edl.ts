@@ -15,6 +15,39 @@ export type EtatEdl = {
   valeurs?: Record<string, string>;
 };
 
+export async function enregistrerMentionsEdl(
+  orgId: string, bailId: string, edlId: string, type: "entree" | "sortie",
+  _etat: EtatEdl, formData: FormData
+): Promise<EtatEdl> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  if (await edlEstSigne(supabase, orgId, edlId)) return { erreur: "Cet état des lieux est signé — ses mentions sont figées." };
+  const valeurs = valeursDuFormulaire(formData);
+  const texte = (nom: string) => String(formData.get(nom) ?? "").trim();
+  const personnes = texte("personnes_presentes");
+  const observations = texte("observations");
+  if (!personnes || !observations) return { erreur: "Les personnes présentes et les observations sont obligatoires. Indiquez « Néant » si nécessaire.", valeurs };
+  const maj: Record<string, unknown> = { personnes_presentes: personnes, observations };
+  if (type === "entree") {
+    const detecteur = texte("detecteur_fumee_present");
+    const assurance = texte("attestation_assurance_fournie");
+    const etatDetecteur = texte("detecteur_fumee_etat");
+    if (!detecteur || !assurance || !etatDetecteur) return { erreur: "Le détecteur de fumée, son état et l'attestation d'assurance sont obligatoires.", valeurs };
+    maj.detecteur_fumee_present = detecteur === "oui";
+    maj.detecteur_fumee_etat = etatDetecteur;
+    maj.attestation_assurance_fournie = assurance === "oui";
+  } else {
+    const adresse = texte("adresse_restitution_depot");
+    if (!adresse) return { erreur: "L'adresse de restitution du dépôt de garantie est obligatoire.", valeurs };
+    maj.adresse_restitution_depot = adresse;
+  }
+  const { error } = await supabase.from("etats_des_lieux").update(maj)
+    .eq("id", edlId).eq("organization_id", orgId).eq("etat", "brouillon");
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+  return { succes: "Mentions du document enregistrées." };
+}
+
 // Créer un EDL (entrée ou sortie) pour un bail, puis générer sa grille.
 export async function creerEdl(
   orgId: string,
@@ -111,6 +144,29 @@ export async function majGrilleEdl(
     return { id: l.id, etat: etat || null, commentaire: commentaire || null };
   });
   const signer = Boolean(formData.get("signer"));
+
+  if (signer) {
+    const { data: edl, error: erreurMentions } = await supabase
+      .from("etats_des_lieux")
+      .select("type, personnes_presentes, detecteur_fumee_present, detecteur_fumee_etat, attestation_assurance_fournie, adresse_restitution_depot, observations")
+      .eq("id", edlId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (erreurMentions || !edl)
+      return { erreur: "Impossible de vérifier les mentions obligatoires avant la signature." };
+    const communsComplets = Boolean(edl.personnes_presentes?.trim() && edl.observations?.trim());
+    const specifiquesComplets =
+      edl.type === "entree"
+        ? edl.detecteur_fumee_present !== null &&
+          Boolean(edl.detecteur_fumee_etat?.trim()) &&
+          edl.attestation_assurance_fournie !== null
+        : Boolean(edl.adresse_restitution_depot?.trim());
+    if (!communsComplets || !specifiquesComplets)
+      return {
+        erreur:
+          "Complétez et enregistrez d’abord les mentions du document avant de signer l’état des lieux.",
+      };
+  }
 
   const { error } = await supabase.rpc("enregistrer_grille_edl", {
     p_edl: edlId,

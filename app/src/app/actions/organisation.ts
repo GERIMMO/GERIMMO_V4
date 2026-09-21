@@ -30,6 +30,25 @@ export async function modifierProfilOrganisation(
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
 
   const champ = (n: string) => String(formData.get(n) ?? "").trim() || null;
+  const adresse = champ("address_line1");
+  const codePostal = champ("postal_code");
+  const ville = champ("city");
+  const emailContact = champ("email_contact");
+  if (!adresse || !codePostal || !ville || !emailContact) {
+    return { erreur: "L'adresse complète et l'email de contact sont obligatoires pour les documents.", valeurs };
+  }
+  const estAgence = role === "admin_agence";
+  const siret = champ("siret");
+  const cartePro = champ("carte_pro");
+  const garantie = champ("garantie_financiere");
+  const franchiseTva = formData.get("tva_franchise") !== null;
+  const tva = champ("tva_intracom");
+  if (estAgence && (!siret || !cartePro || !garantie)) {
+    return { erreur: "Le SIRET, la carte professionnelle et la garantie financière sont obligatoires pour une agence.", valeurs };
+  }
+  if (estAgence && !franchiseTva && !tva) {
+    return { erreur: "Renseignez le numéro de TVA ou cochez la franchise en base.", valeurs };
+  }
   // Les délais de relance : entiers bornés, et le second après le premier —
   // la base le vérifie aussi, mais une phrase vaut mieux qu'une contrainte.
   const entier = (n: string, defaut: number, min: number, max: number) => {
@@ -45,20 +64,20 @@ export async function modifierProfilOrganisation(
     .from("organizations")
     .update({
       name: nom,
-      address_line1: champ("address_line1"),
-      postal_code: champ("postal_code"),
-      city: champ("city"),
+      address_line1: adresse,
+      postal_code: codePostal,
+      city: ville,
       telephone: champ("telephone"),
-      email_contact: champ("email_contact"),
-      siret: champ("siret"),
-      carte_pro: champ("carte_pro"),
-      garantie_financiere: champ("garantie_financiere"),
+      email_contact: emailContact,
+      siret,
+      carte_pro: cartePro,
+      garantie_financiere: garantie,
       iban: champ("iban"),
       // Mentions de facturation : la facture d'honoraires les exige, et
       // refuse d'émettre tant qu'elles manquent (un numéro consommé sur une
       // facture invalide ne se rattrape pas).
-      tva_intracom: champ("tva_intracom"),
-      tva_franchise: formData.get("tva_franchise") !== null,
+      tva_intracom: tva,
+      tva_franchise: franchiseTva,
       // Accord permanent d'envoi des quittances : une case décochée n'apparaît
       // pas dans le formulaire, d'où la lecture par présence et non par valeur.
       quittances_envoi_auto: formData.get("quittances_envoi_auto") !== null,

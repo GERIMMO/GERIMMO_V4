@@ -220,11 +220,32 @@ export function FormulairePersonne({
             <Input id="p-tel" name="telephone" type="tel" autoComplete="tel" maxLength={40} defaultValue={etat.valeurs?.telephone} />
           </div>
           {!morale && (
-            <div className="space-y-1.5">
-              <Label htmlFor="p-naissance">Date de naissance</Label>
-              <Input id="p-naissance" name="date_naissance" type="date" defaultValue={etat.valeurs?.date_naissance} />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="p-naissance">Date de naissance *</Label>
+                <Input id="p-naissance" name="date_naissance" type="date" required defaultValue={etat.valeurs?.date_naissance} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="p-commune-naissance">Commune de naissance *</Label>
+                <Input id="p-commune-naissance" name="commune_naissance" required maxLength={120} defaultValue={etat.valeurs?.commune_naissance} />
+              </div>
             </div>
           )}
+
+          <div className="space-y-1.5">
+            <Label htmlFor="p-adresse">Adresse *</Label>
+            <Input id="p-adresse" name="address_line1" required maxLength={200} autoComplete="street-address" defaultValue={etat.valeurs?.address_line1} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="p-cp">Code postal *</Label>
+              <Input id="p-cp" name="postal_code" required maxLength={12} inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.postal_code} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="p-ville">Ville *</Label>
+              <Input id="p-ville" name="city" required maxLength={120} autoComplete="address-level2" defaultValue={etat.valeurs?.city} />
+            </div>
+          </div>
 
           {estProprio ? (
             <div className="space-y-1.5">

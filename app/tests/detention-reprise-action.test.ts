@@ -74,6 +74,11 @@ function nouvellePersonne() {
   saisie.set("nouveau_nom", "Martin");
   saisie.set("nouveau_prenom", "Camille");
   saisie.set("nouveau_email", "camille@recette.test");
+  saisie.set("nouveau_date_naissance", "1988-03-12");
+  saisie.set("nouveau_commune_naissance", "Lyon");
+  saisie.set("nouveau_adresse", "12 rue des Tests");
+  saisie.set("nouveau_code_postal", "69003");
+  saisie.set("nouveau_ville", "Lyon");
   saisie.set("quote_part", "50");
   saisie.set("date_debut", "2026-07-01");
   return saisie;

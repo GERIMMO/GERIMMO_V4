@@ -5,6 +5,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
 import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
+import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 export type EtatGeneration = {
   erreur?: string;
@@ -17,9 +18,9 @@ export type EtatGeneration = {
 };
 
 // Générer un document PDF (sprint « Documents-0 ») : assembler le HTML depuis
-// la base, le rendre en PDF, le ranger en GED (empreinte, liens) — il devient
-// visible dans l'onglet Documents. Une donnée absente ne bloque jamais : elle
-// reste en libellé dans le PDF et remonte dans `manquants`.
+// la base, contrôler que chaque champ obligatoire est alimenté, puis seulement
+// rendre le PDF et le ranger en GED. Un document incomplet ne doit jamais
+// devenir une pièce partageable ou signable.
 // `options` : les choix du geste qui ne sont pas des données de fiche —
 // le motif d'un congé, l'objet d'un avenant, le garant d'un cautionnement.
 export async function genererDocument(
@@ -42,6 +43,14 @@ export async function genererDocument(
   try {
     const assemblage = await modele.assembler(supabase, orgId, cibleId, options);
     if ("erreur" in assemblage) return { erreur: assemblage.erreur };
+
+    const refus = refusDocumentIncomplet(assemblage.document);
+    if (refus) {
+      return {
+        ...refus,
+        liens: assemblage.liens,
+      };
+    }
 
     const octets = await rendrePdf(assemblage.document);
     copieDeTravail(`${code}-${cibleId.slice(0, 8)}.pdf`, octets);
@@ -80,15 +89,11 @@ export async function genererDocument(
 
     revalidatePath(cheminRetour.startsWith(`/agence/${orgId}/`) ? cheminRetour : `/agence/${orgId}/documents`);
     revalidatePath(`/agence/${orgId}/documents`);
-    const manquants = assemblage.document.manquants;
     return {
       documentId: depot.documentId,
-      manquants,
+      manquants: [],
       liens: assemblage.liens,
-      succes:
-        manquants.length === 0
-          ? `${assemblage.titreGed} généré — rangé dans Documents.`
-          : `${assemblage.titreGed} généré (${manquants.length} champ${manquants.length > 1 ? "s" : ""} resté${manquants.length > 1 ? "s" : ""} en libellé) — rangé dans Documents.`,
+      succes: `${assemblage.titreGed} généré — tous les champs sont renseignés et le PDF est rangé dans Documents.`,
     };
   } catch (e) {
     // Les refus métier sont retournés avant ce catch ; ce qui l'atteint est

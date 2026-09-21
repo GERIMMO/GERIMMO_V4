@@ -44,6 +44,12 @@ export type DonneesEdl = {
   reference: string;
   dateEdl: string | null;
   signeLe: string | null;
+  personnesPresentes: string | null;
+  detecteurFumeePresent: boolean | null;
+  detecteurFumeeEtat: string | null;
+  attestationAssuranceFournie: boolean | null;
+  adresseRestitutionDepot: string | null;
+  observations: string | null;
   lignes: LigneEdl[];
   compteurs: { type: string; numero: string | null; releve: string | null }[];
   cles: { libelle: string; nombre: number | null; reference: string | null }[];
@@ -101,7 +107,7 @@ export function construireEdl(d: DonneesEdl) {
       ["Locataire", `<div>${d.locatairesNoms}</div>`],
       ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")}`],
       ["Établi le", f.date(d.dateEdl)],
-      ["Personnes présentes", f.champ(null, "bailleur, locataire, tiers…")],
+      ["Personnes présentes", f.champ(d.personnesPresentes, "bailleur, locataire, tiers…")],
     ])}
     <p>Le présent état des lieux est établi contradictoirement et amiablement entre les parties,
     lors de la ${entree ? "remise" : "restitution"} des clés. Il est joint au contrat de location et
@@ -145,9 +151,20 @@ export function construireEdl(d: DonneesEdl) {
     ${
       entree
         ? `${section("Équipements de sécurité")}
-           <p>Détecteur avertisseur autonome de fumée : ${f.champ(null, "présent, absent")} —
-           état constaté : ${f.champ(null, "état constaté")}.<br/>
-           Attestation d'assurance du locataire fournie : ${f.champ(null, "attestation fournie ou non")}.</p>`
+           <p>Détecteur avertisseur autonome de fumée : ${
+             d.detecteurFumeePresent === null
+               ? f.champ(null, "présent, absent")
+               : d.detecteurFumeePresent
+                 ? "présent"
+                 : "absent"
+           } — état constaté : ${f.champ(d.detecteurFumeeEtat, "état constaté")}.<br/>
+           Attestation d'assurance du locataire fournie : ${
+             d.attestationAssuranceFournie === null
+               ? f.champ(null, "attestation fournie ou non")
+               : d.attestationAssuranceFournie
+                 ? "oui"
+                 : "non"
+           }.</p>`
         : `${section("Synthèse")}
            ${
              ecarts.length
@@ -182,11 +199,11 @@ export function construireEdl(d: DonneesEdl) {
                   <td class="d"><b>${eur(totalRetenues)}</b></td></tr></tbody></table>`
                : ""
            }
-           <p>Adresse de restitution du dépôt de garantie : ${f.champ(null, "adresse de restitution du dépôt")}.</p>`
+           <p>Adresse de restitution du dépôt de garantie : ${f.champ(d.adresseRestitutionDepot, "adresse de restitution du dépôt")}.</p>`
     }
 
     ${section("Observations des parties")}
-    <p>${f.champ(null, "observations des parties")}</p>
+    <p>${f.champ(d.observations, "observations des parties")}</p>
     <p class="mentions">${
       entree
         ? "Le locataire peut demander à compléter le présent état des lieux dans les dix jours de sa signature (pour tout élément) et pendant le premier mois de la période de chauffe (pour le chauffage)."
@@ -212,17 +229,17 @@ async function chargerEdl(
   supabase: SupabaseClient,
   orgId: string,
   edlId: string
-): Promise<{ edl: { id: string; bail_id: string; type: "entree" | "sortie"; etat: string; date_edl: string | null; signe_le: string | null }; ctx: ContexteBail } | { erreur: string }> {
+): Promise<{ edl: { id: string; bail_id: string; type: "entree" | "sortie"; etat: string; date_edl: string | null; signe_le: string | null; personnes_presentes: string | null; detecteur_fumee_present: boolean | null; detecteur_fumee_etat: string | null; attestation_assurance_fournie: boolean | null; adresse_restitution_depot: string | null; observations: string | null }; ctx: ContexteBail } | { erreur: string }> {
   const { data: edl } = await supabase
     .from("etats_des_lieux")
-    .select("id, bail_id, type, etat, date_edl, signe_le")
+    .select("id, bail_id, type, etat, date_edl, signe_le, personnes_presentes, detecteur_fumee_present, detecteur_fumee_etat, attestation_assurance_fournie, adresse_restitution_depot, observations")
     .eq("id", edlId)
     .eq("organization_id", orgId)
     .maybeSingle();
   if (!edl) return { erreur: "État des lieux introuvable." };
   const ctx = await chargerContexteBail(supabase, orgId, edl.bail_id);
   if ("erreur" in ctx) return ctx;
-  return { edl: edl as { id: string; bail_id: string; type: "entree" | "sortie"; etat: string; date_edl: string | null; signe_le: string | null }, ctx };
+  return { edl: edl as { id: string; bail_id: string; type: "entree" | "sortie"; etat: string; date_edl: string | null; signe_le: string | null; personnes_presentes: string | null; detecteur_fumee_present: boolean | null; detecteur_fumee_etat: string | null; attestation_assurance_fournie: boolean | null; adresse_restitution_depot: string | null; observations: string | null }, ctx };
 }
 
 export async function assemblerEdl(
@@ -260,6 +277,12 @@ export async function assemblerEdl(
     reference: referenceCourte("EDL", edl.id),
     dateEdl: edl.date_edl,
     signeLe: edl.signe_le,
+    personnesPresentes: edl.personnes_presentes,
+    detecteurFumeePresent: edl.detecteur_fumee_present,
+    detecteurFumeeEtat: edl.detecteur_fumee_etat,
+    attestationAssuranceFournie: edl.attestation_assurance_fournie,
+    adresseRestitutionDepot: edl.adresse_restitution_depot,
+    observations: edl.observations,
     lignes: (lignes ?? []) as LigneEdl[],
     compteurs: (compteurs ?? []) as DonneesEdl["compteurs"],
     cles: (cles ?? []) as DonneesEdl["cles"],

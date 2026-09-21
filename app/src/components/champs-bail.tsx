@@ -58,13 +58,18 @@ export function ChampsBail({
     nom: valeurs?.nouveau_locataire_nom ?? "",
     prenom: valeurs?.nouveau_locataire_prenom ?? "",
     email: valeurs?.nouveau_locataire_email ?? "",
+    dateNaissance: valeurs?.nouveau_locataire_date_naissance ?? "",
+    communeNaissance: valeurs?.nouveau_locataire_commune_naissance ?? "",
+    adresse: valeurs?.nouveau_locataire_adresse ?? "",
+    codePostal: valeurs?.nouveau_locataire_code_postal ?? "",
+    ville: valeurs?.nouveau_locataire_ville ?? "",
   });
   const refNom = useRef<HTMLInputElement>(null);
   const refEmail = useRef<HTMLInputElement>(null);
 
   const annulerNouveau = () => {
     setModaleOuverte(false);
-    setNouveau({ nom: "", prenom: "", email: "" });
+    setNouveau({ nom: "", prenom: "", email: "", dateNaissance: "", communeNaissance: "", adresse: "", codePostal: "", ville: "" });
     setLocataire("");
   };
   // Clic sur le fond : on referme sans perdre une saisie déjà commencée —
@@ -134,6 +139,11 @@ export function ChampsBail({
             <input type="hidden" name="nouveau_locataire_nom" value={nouveau.nom} />
             <input type="hidden" name="nouveau_locataire_prenom" value={nouveau.prenom} />
             <input type="hidden" name="nouveau_locataire_email" value={nouveau.email} />
+            <input type="hidden" name="nouveau_locataire_date_naissance" value={nouveau.dateNaissance} />
+            <input type="hidden" name="nouveau_locataire_commune_naissance" value={nouveau.communeNaissance} />
+            <input type="hidden" name="nouveau_locataire_adresse" value={nouveau.adresse} />
+            <input type="hidden" name="nouveau_locataire_code_postal" value={nouveau.codePostal} />
+            <input type="hidden" name="nouveau_locataire_ville" value={nouveau.ville} />
             {!modaleOuverte && (
               <p className="text-xs text-muted-foreground">
                 Nouveau <b>locataire</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
@@ -183,13 +193,23 @@ export function ChampsBail({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor={`${prefixe}-nouveau-prenom`}>Prénom</Label>
+              <Label htmlFor={`${prefixe}-nouveau-prenom`}>Prénom *</Label>
               <Input
                 id={`${prefixe}-nouveau-prenom`}
                 maxLength={120}
+                required
                 value={nouveau.prenom}
                 onChange={(e) => setNouveau({ ...nouveau, prenom: e.target.value })}
               />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor={`${prefixe}-nouveau-naissance`}>Date de naissance *</Label><Input id={`${prefixe}-nouveau-naissance`} type="date" required value={nouveau.dateNaissance} onChange={(e) => setNouveau({ ...nouveau, dateNaissance: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label htmlFor={`${prefixe}-nouveau-commune`}>Commune de naissance *</Label><Input id={`${prefixe}-nouveau-commune`} required maxLength={120} value={nouveau.communeNaissance} onChange={(e) => setNouveau({ ...nouveau, communeNaissance: e.target.value })} /></div>
+            </div>
+            <div className="space-y-1.5"><Label htmlFor={`${prefixe}-nouveau-adresse`}>Adresse *</Label><Input id={`${prefixe}-nouveau-adresse`} required maxLength={200} value={nouveau.adresse} onChange={(e) => setNouveau({ ...nouveau, adresse: e.target.value })} /></div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor={`${prefixe}-nouveau-cp`}>Code postal *</Label><Input id={`${prefixe}-nouveau-cp`} required maxLength={12} value={nouveau.codePostal} onChange={(e) => setNouveau({ ...nouveau, codePostal: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label htmlFor={`${prefixe}-nouveau-ville`}>Ville *</Label><Input id={`${prefixe}-nouveau-ville`} required maxLength={120} value={nouveau.ville} onChange={(e) => setNouveau({ ...nouveau, ville: e.target.value })} /></div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor={`${prefixe}-nouveau-email`}>Adresse email *</Label>
@@ -228,37 +248,32 @@ export function ChampsBail({
           </div>
         </Modale>
       )}
-      {/* Recette 21/08 : la date d'entrée n'avait aucun champ — elle tombait
-          au jour du clic « Activer », faussant l'échéancier.
-          Audit 11/09 : c'est une MENTION OBLIGATOIRE du contrat (date de prise
-          d'effet, rubriques 1 et 4 du modèle-type — wiki « Mentions
-          obligatoires du bail »). Pas d'attribut `required` pour autant : un
-          brouillon incomplet est le geste normal, c'est le bail qu'on prépare.
-          L'exigence vit à l'activation, en base — l'étoile prévient, la fiche
-          nomme ce qui manque, le dépôt du PDF signé refuse. */}
+      {/* La date d'entrée est une mention obligatoire du contrat et pilote
+          aussi l'échéancier : elle est exigée dès le brouillon. */}
       <div className="space-y-1.5">
         <Label htmlFor={`${prefixe}-debut`}>Date d&apos;entrée *</Label>
         <Input
           id={`${prefixe}-debut`}
           name="date_debut"
           type="date"
+          required
           defaultValue={valeurs?.date_debut ?? defauts.date_debut ?? ""}
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-jour`}>Jour d&apos;échéance</Label>
+        <Label htmlFor={`${prefixe}-jour`}>Jour d&apos;échéance *</Label>
         <Input
           id={`${prefixe}-jour`}
           name="jour_echeance"
           type="number"
           min="1"
           max="28"
+          required
           defaultValue={valeurs?.jour_echeance ?? defauts.jour_echeance ?? 1}
         />
       </div>
-      {/* Mention obligatoire elle aussi (rubrique 5 : « montant HC ») — même
-          traitement que la date d'entrée. Sans loyer, tout ce qui suit est
-          faux : les appels de loyer sortaient à 0,00 € (audit 11/09). */}
+      {/* Sans loyer, charges et dépôt explicites, les appels et le contrat
+          seraient ambigus : 0 doit être saisi lorsque le montant est nul. */}
       <div className="space-y-1.5">
         <Label htmlFor={`${prefixe}-loyer`}>Loyer HC (€) *</Label>
         <Input
@@ -267,17 +282,19 @@ export function ChampsBail({
           type="number"
           step="0.01"
           min="0"
+          required
           defaultValue={valeurs?.loyer_hc ?? defauts.loyer_hc ?? ""}
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-charges`}>Charges (€)</Label>
+        <Label htmlFor={`${prefixe}-charges`}>Charges (€) *</Label>
         <Input
           id={`${prefixe}-charges`}
           name="charges"
           type="number"
           step="0.01"
           min="0"
+          required
           defaultValue={valeurs?.charges ?? defauts.charges ?? ""}
         />
       </div>
@@ -294,13 +311,14 @@ export function ChampsBail({
         </select>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-depot`}>Dépôt de garantie (€)</Label>
+        <Label htmlFor={`${prefixe}-depot`}>Dépôt de garantie (€) *</Label>
         <Input
           id={`${prefixe}-depot`}
           name="depot_garantie"
           type="number"
           step="0.01"
           min="0"
+          required
           defaultValue={valeurs?.depot_garantie ?? defauts.depot_garantie ?? ""}
         />
         <p className="text-xs text-muted-foreground">
@@ -337,9 +355,8 @@ export function ChampsBail({
         <Label htmlFor={`${prefixe}-revision`}>Clause de révision annuelle (IRL)</Label>
       </div>
       <p className="text-xs text-muted-foreground sm:col-span-2">
-        * Mentions obligatoires du contrat. Le brouillon s&apos;enregistre sans
-        elles, mais le bail ne s&apos;activera pas au dépôt du PDF signé tant
-        qu&apos;elles manquent.
+        * Mentions indispensables au contrat et à ses calculs. Saisissez 0
+        lorsqu&apos;un montant est volontairement nul.
       </p>
     </div>
   );

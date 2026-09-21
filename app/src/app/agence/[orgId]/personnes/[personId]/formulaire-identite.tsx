@@ -141,49 +141,54 @@ export function FormulaireIdentite({
           <Input id="ident-tel" name="telephone" type="tel" autoComplete="tel" maxLength={40} defaultValue={etat.valeurs?.telephone ?? telephone ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-naissance">Date de naissance</Label>
+          <Label htmlFor="ident-naissance">Date de naissance{prenom ? " *" : ""}</Label>
           <Input
             id="ident-naissance"
             name="date_naissance"
             type="date"
+            required={Boolean(prenom)}
             defaultValue={etat.valeurs?.date_naissance ?? dateNaissance ?? ""}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-commune-naissance">Commune de naissance</Label>
+          <Label htmlFor="ident-commune-naissance">Commune de naissance{prenom ? " *" : ""}</Label>
           <Input
             id="ident-commune-naissance"
             name="commune_naissance"
             maxLength={120}
+            required={Boolean(prenom)}
             defaultValue={etat.valeurs?.commune_naissance ?? communeNaissance ?? ""}
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="ident-adresse">Adresse</Label>
+          <Label htmlFor="ident-adresse">Adresse *</Label>
           <Input
             id="ident-adresse"
             name="address_line1"
             maxLength={200}
+            required
             defaultValue={etat.valeurs?.address_line1 ?? adresse ?? ""}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-cp">Code postal</Label>
+          <Label htmlFor="ident-cp">Code postal *</Label>
           <Input
             id="ident-cp"
             name="postal_code"
             maxLength={12}
+            required
             inputMode="numeric"
             autoComplete="postal-code"
             defaultValue={etat.valeurs?.postal_code ?? codePostal ?? ""}
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-ville">Ville</Label>
+          <Label htmlFor="ident-ville">Ville *</Label>
           <Input
             id="ident-ville"
             name="city"
             maxLength={120}
+            required
             defaultValue={etat.valeurs?.city ?? ville ?? ""}
           />
         </div>

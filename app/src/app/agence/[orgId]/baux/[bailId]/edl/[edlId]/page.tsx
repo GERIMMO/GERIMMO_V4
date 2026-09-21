@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { GrilleEdl } from "./grille-edl";
 import { BoutonRegenererGrille } from "./bouton-regenerer-grille";
 import { EdlAnnexes, type AnnexesEntree, type Compteur, type Cle } from "./edl-annexes";
+import { EdlMentions } from "./edl-mentions";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { EchecLecture, PageEchecLecture } from "../../../../parc/echec-lecture";
 
@@ -22,7 +23,7 @@ export default async function PageEdl(
 
   const { data: edl, error: erreurEdl } = await supabase
     .from("etats_des_lieux")
-    .select("id, type, etat, date_edl")
+    .select("id, type, etat, date_edl, personnes_presentes, detecteur_fumee_present, detecteur_fumee_etat, attestation_assurance_fournie, adresse_restitution_depot, observations")
     .eq("id", edlId)
     .eq("organization_id", orgId)
     .maybeSingle();
@@ -205,6 +206,32 @@ export default async function PageEdl(
       </div>
 
       <EchecLecture quoi={echecs} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Mentions du document</CardTitle>
+          <CardDescription>
+            Ces informations figurent sur le PDF et doivent être complètes avant la signature.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EdlMentions
+            orgId={orgId}
+            bailId={bailId}
+            edlId={edlId}
+            type={edl.type as "entree" | "sortie"}
+            signe={signe}
+            mentions={{
+              personnes_presentes: edl.personnes_presentes,
+              detecteur_fumee_present: edl.detecteur_fumee_present,
+              detecteur_fumee_etat: edl.detecteur_fumee_etat,
+              attestation_assurance_fournie: edl.attestation_assurance_fournie,
+              adresse_restitution_depot: edl.adresse_restitution_depot,
+              observations: edl.observations,
+            }}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

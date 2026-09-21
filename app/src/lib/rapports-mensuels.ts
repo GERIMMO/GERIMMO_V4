@@ -7,6 +7,7 @@ import { assemblerComplementGestion } from "@/lib/documents/modeles/catalogue-ge
 import { echapper } from "@/lib/documents/gabarit";
 import { sansJargon } from "@/lib/erreurs";
 import { pdfComplet, TAILLE_MAX_OCTETS } from "@/lib/file-type";
+import { refusDocumentIncomplet } from "@/lib/documents/completude";
 
 type Rapport = { id: string; mandat_id: string; mois: string; statut: string };
 export type RemiseRapport = { erreur?: string; succes?: string; documentId?: string };
@@ -72,6 +73,8 @@ export async function remettreRapportMensuel(
     } else {
       const assemblage = await assemblerComplementGestion("rapport_gestion", db, orgId, rapportId);
       if ("erreur" in assemblage) return { erreur: `Rapport validé, PDF non préparé : ${assemblage.erreur}` };
+      const refus = refusDocumentIncomplet(assemblage.document);
+      if (refus) return { erreur: `Rapport validé, PDF non préparé : ${refus.manquants.join(" · ")}. Complétez le dossier puis réessayez.` };
       pdf = await rendrePdf(assemblage.document);
       const depot = await deposerFichierGed(db, user, orgId,
         new File([pdf as BlobPart], `rapport-${rapport.mois.slice(0,7)}.pdf`, { type: "application/pdf" }),

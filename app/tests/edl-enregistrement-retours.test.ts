@@ -3,6 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const banc = vi.hoisted(() => ({
   autorise: true,
   lignes: [{ id: "ligne-test" }] as { id: string }[] | null,
+  mentions: {
+    type: "entree",
+    personnes_presentes: "Bailleur et locataire",
+    detecteur_fumee_present: true,
+    detecteur_fumee_etat: "Fonctionnel",
+    attestation_assurance_fournie: true,
+    adresse_restitution_depot: null,
+    observations: "Néant",
+  } as Record<string, unknown> | null,
   erreurLecture: null as { message: string } | null,
   rpc: vi.fn(),
   revalider: vi.fn(),
@@ -14,12 +23,17 @@ vi.mock("@/lib/ged-acces", () => ({
     user: banc.autorise ? { id: "agent-test" } : null,
     supabase: {
       rpc: banc.rpc,
-      from: () => {
+      from: (table: string) => {
         const lecture = {
           select: () => lecture,
           eq: () => lecture,
+          maybeSingle: async () => ({ data: banc.mentions, error: null }),
           then: (resoudre: (valeur: unknown) => unknown) =>
-            Promise.resolve({ data: banc.lignes, error: banc.erreurLecture }).then(resoudre),
+            Promise.resolve(
+              table === "edl_lignes"
+                ? { data: banc.lignes, error: banc.erreurLecture }
+                : { data: banc.mentions, error: null }
+            ).then(resoudre),
         };
         return lecture;
       },
@@ -33,6 +47,15 @@ beforeEach(() => {
   vi.clearAllMocks();
   banc.autorise = true;
   banc.lignes = [{ id: "ligne-test" }];
+  banc.mentions = {
+    type: "entree",
+    personnes_presentes: "Bailleur et locataire",
+    detecteur_fumee_present: true,
+    detecteur_fumee_etat: "Fonctionnel",
+    attestation_assurance_fournie: true,
+    adresse_restitution_depot: null,
+    observations: "Néant",
+  };
   banc.erreurLecture = null;
   banc.rpc.mockResolvedValue({ error: null });
 });
@@ -88,6 +111,13 @@ describe("Enregistrement EDL : un succès correspond à une grille effectivement
     expect(banc.rpc).toHaveBeenCalledWith("enregistrer_grille_edl", expect.objectContaining({
       p_lignes: [{ id: "ligne-test", etat: null, commentaire: "Observation conservée" }],
     }));
+  });
+
+  it("refuse la signature si une mention obligatoire du PDF manque", async () => {
+    banc.mentions = { ...banc.mentions, observations: null };
+    const resultat = await enregistrer(saisie(true));
+    expect(resultat.erreur).toContain("mentions du document");
+    expect(banc.rpc).not.toHaveBeenCalled();
   });
 
   it("ne renvoie pas de succès après un refus métier", async () => {

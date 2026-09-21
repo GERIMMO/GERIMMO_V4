@@ -19,6 +19,7 @@ const ENTREES: [string, string][] = [
   ["/admin/clients", "Clients"],
   ["/admin/territoire", "Territoire"],
   ["/admin/publications", "Journal"],
+  ["/admin/marketing", "Agent marketing"],
   ["/admin/retours", "Retours et idées"],
   ["/admin/devis", "Demandes de devis"],
   ["/admin/journaux", "Journaux et conservation"],

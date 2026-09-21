@@ -1,12 +1,10 @@
 name: CI
 
-
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
-
 
 jobs:
   verifier:
@@ -37,3 +35,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Vérifier les vulnérabilités connues des dépendances
+        run: npm audit --audit-level=high
+      - name: Préparer les bases de test isolées
+        run: node e2e/local/preparer-ci.mjs
+      - name: Démarrer l’API de test locale
+        run: |
+          node e2e/local/serveur-supabase-local.mjs > /tmp/gerimmo-api.log 2>&1 &
+          for tentative in {1..30}; do
+            if curl --silent --fail http://127.0.0.1:54321/health > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/gerimmo-api.log
+          exit 1
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run typecheck
+      - run: npm test
+      - name: Préparer les parcours navigateur isolés
+        run: |
+          node e2e/local/seed-parcours.mjs
+          npm run e2e:matrice
+      - name: Installer Chromium pour les essais interactifs
+        run: npx playwright install --with-deps chromium
+      - name: Tester les parcours par profil et auditer les écrans mobiles
+        env:
+          E2E_CI: "1"
+          E2E_USE_BUILD: "1"
+          E2E_BASE_URL: http://127.0.0.1:3100
+        run: npm run test:e2e
+      - name: Conserver les résultats du navigateur
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: essais-interactifs
+          path: |
+            app/e2e/.results
+            app/e2e/.audit
+          include-hidden-files: true
+          if-no-files-found: ignore

@@ -101,12 +101,16 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const lot = await lotConcerne(cibleId);
       if ((code === "recap_fiscal_meuble") !== Boolean(lot.meuble)) throw new RefusDocument("Choisissez le récapitulatif correspondant au caractère nu ou meublé du lot.");
       const annee = anneeDocument(options);
+      const interetsEmprunt = Number(options.interets_emprunt);
+      if (code === "recap_fiscal_nu" && (!options.interets_emprunt?.trim() || !Number.isFinite(interetsEmprunt) || interetsEmprunt < 0)) {
+        throw new RefusDocument("Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt.");
+      }
       const ecritures = await lireLignes(lire("ecritures").eq("lot_id",cibleId).gte("date_piece",`${annee}-01-01`).lt("date_piece",`${annee+1}-01-01`).order("date_piece"));
       const baux = await lireLignes(lire("baux").eq("lot_id",cibleId));
       const fiscal = recapitulatifFiscal(ecritures as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
       contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. Périmètre : ${ecritures.length} écritures enregistrées.</p>`;
       if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
-      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.aCompleter?null:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p>`;
+      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p>`;
       contenu += "<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération.</p>";
     } else if (code === "ecriture_rectificative" || code === "cloture_mensuelle") {
       if (code === "ecriture_rectificative") {

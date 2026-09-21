@@ -19,9 +19,9 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:str
     <label className="block space-y-2 text-sm font-medium"><span>Dossier concerné</span><select name="cible" required className={style} value={cible} onChange={e=>setCible(e.target.value)}><option value="">Choisir un dossier</option>{choix.map(c=><option key={c.id} value={c.id}>{c.libelle}</option>)}</select></label>
     <div className="grid gap-4 sm:grid-cols-2">{champs.map(c=><label key={c.cle} className={`block space-y-2 text-sm font-medium ${c.type==="textarea"?"sm:col-span-2":""}`}><span>{c.libelle}</span>
       {c.cle==="garant"?<select key={cible} name={c.cle} className={style} required defaultValue=""><option value="" disabled>Choisir un garant rattaché au dossier</option>{garants.filter(g=>g.bailId===cible).map(g=><option key={g.id} value={g.id}>{g.libelle}</option>)}</select>:
-      c.choix?<select name={c.cle} className={style}>{c.choix.map(v=><option value={v.valeur} key={v.valeur}>{v.libelle}</option>)}</select>:
-      c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style}/>:
-      <input name={c.cle} type={c.type??"text"} step={c.type==="number"?"any":undefined} maxLength={500} className={style} defaultValue={c.cle==="annee"?new Date().getFullYear():undefined}/>}
+      c.choix?<select name={c.cle} className={style} required>{c.choix.map(v=><option value={v.valeur} key={v.valeur}>{v.libelle}</option>)}</select>:
+      c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style} required/>:
+      <input name={c.cle} type={c.type??"text"} step={c.type==="number"?"any":undefined} maxLength={500} className={style} required defaultValue={c.cle==="annee"?new Date().getFullYear():c.cle==="interets_emprunt"?"0":undefined}/>}
       {c.aide&&<span className="block text-xs font-normal text-muted-foreground">{c.aide}</span>}</label>)}</div>
     <p className="text-sm text-muted-foreground">Les informations du dossier sont reprises automatiquement. Le PDF est créé uniquement lorsque tous ses champs obligatoires sont renseignés. La génération ne déclenche aucun envoi.</p>
     <Button disabled={enCours||!cible||!choix.length} type="submit">{enCours?"Préparation du PDF…":"Générer et ranger dans Documents"}</Button>

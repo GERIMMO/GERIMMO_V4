@@ -20,7 +20,7 @@ export const OPTIONS_CATALOGUE: Record<string, ChampCatalogue[]> = {
   ordre_intervention:[{cle:"acces",libelle:"Accès et contact sur place",type:"textarea"}],
   cloture_mensuelle:[{cle:"mois",libelle:"Mois",type:"month"}],
   facture_honoraires:[{cle:"mois",libelle:"Mois facturé",type:"month",aide:"Un mois révolu. Le numéro de facture est attribué définitivement à l’émission."}],
-  recap_fiscal_nu:[annee],recap_fiscal_meuble:[annee],recap_fiscal_agence:[annee],
+  recap_fiscal_nu:[annee,{cle:"interets_emprunt",libelle:"Intérêts d’emprunt de l’année (€)",type:"number",aide:"Indiquez 0 si le logement n’a aucun emprunt. Gerimmo ne peut pas déduire ce montant du livre locatif."}],recap_fiscal_meuble:[annee],recap_fiscal_agence:[annee],
   avenant_mandat:[effet,modifications],avenant_perimetre:[effet,modifications],
   resiliation_mandat:[effet,{cle:"motif",libelle:"Motif et fondement",type:"textarea"},{cle:"remise",libelle:"Remise du dossier et du solde",type:"textarea"}],
 };

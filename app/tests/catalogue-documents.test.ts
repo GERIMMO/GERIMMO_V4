@@ -42,7 +42,7 @@ function mockDb(tables=fixture(),failure?:string) {
   };
   return {db:{from:query,rpc:(nom:string,args:unknown)=>{const q=query(nom);calls[calls.length-1].ops.push(["rpc",args]);return q;}} as unknown as SupabaseClient,calls};
 }
-const options={annee:"2026",mois:"2026-01",delai:"15",mensualites:"3",premiere_echeance:"2026-01-31",date_effet:"2026-04-01",date_constat:"2026-04-01",conditions:"Accord signé",destinataire:"Organisme test",allocataire:"123456",sortant:"Sortant",entrant:"Entrant",depot:"Accord entre colocataires",constat:"Mobilier conforme",travaux:"Peinture",intervenant:"Entreprise",periode:"Octobre",prise_en_charge:"Bailleur",consultation:"Sur rendez-vous au bureau",acces:"Contact gestionnaire",visiteur:"Visiteur test",contact:"Email test",rendez_vous:"14 septembre 2026 à 10 h",representant:"Gestionnaire",motif:"Accord mutuel",remise:"Remise sous 30 jours",modifications:"Ajout du lot Jardin"};
+const options={annee:"2026",interets_emprunt:"0",mois:"2026-01",delai:"15",mensualites:"3",premiere_echeance:"2026-01-31",date_effet:"2026-04-01",date_constat:"2026-04-01",conditions:"Accord signé",destinataire:"Organisme test",allocataire:"123456",sortant:"Sortant",entrant:"Entrant",depot:"Accord entre colocataires",constat:"Mobilier conforme",travaux:"Peinture",intervenant:"Entreprise",periode:"Octobre",prise_en_charge:"Bailleur",consultation:"Sur rendez-vous au bureau",acces:"Contact gestionnaire",visiteur:"Visiteur test",contact:"Email test",rendez_vous:"14 septembre 2026 à 10 h",representant:"Gestionnaire",motif:"Accord mutuel",remise:"Remise sous 30 jours",modifications:"Ajout du lot Jardin"};
 function succes(r:Assemblage) {expect(r).not.toHaveProperty("erreur");if("erreur" in r) throw new Error(r.erreur);return r;}
 beforeEach(()=>{ctx=contexte();ctx.bail.etat="actif";vi.mocked(chargerContexteBail).mockImplementation(async()=>ctx);});
 describe("Catalogue — documents issus des dossiers",()=>{
@@ -102,6 +102,13 @@ describe("Catalogue — documents issus des dossiers",()=>{
   });
   it("la préparation CAF n’usurpe pas le formulaire officiel",async()=>{
     const r=succes(await assemblerComplementBail("attestation_caf",mockDb().db,"org","bail",options));expect(r.document.html).toContain("ne vaut pas formulaire CAF/MSA homologué");
+  });
+  it("exige les intérêts d’emprunt avant le récapitulatif fiscal nu",async()=>{
+    const sansInterets=await assemblerComplementGestion("recap_fiscal_nu",mockDb().db,"org","lot",{annee:"2026"});
+    expect(sansInterets).toEqual({erreur:"Indiquez les intérêts d’emprunt de l’année, ou 0 si le logement n’a aucun emprunt."});
+    const renseigne=succes(await assemblerComplementGestion("recap_fiscal_nu",mockDb().db,"org","lot",{annee:"2026",interets_emprunt:"123.45"}));
+    expect(renseigne.document.manquants).toEqual([]);
+    expect(renseigne.document.html).toContain("123,45");
   });
   it("filtre les reçus, EDL et contrats individuels avant pagination et revérifie au clic",async()=>{
     for(const [id,filtre] of [["recu_partiel",["eq","est_quittance",false]],["edl_sortie",["eq","type","sortie"]],["bail_individuel",["not","chambre_id","is",null]]] as const){

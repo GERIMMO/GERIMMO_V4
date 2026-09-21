@@ -301,33 +301,41 @@ const CSS_DOCUMENT = `
          line-height:1.55; padding:44pt 56pt 0; }
   .entete { display:flex; justify-content:space-between; align-items:flex-end;
             border-bottom:0.75pt solid var(--encre); padding-bottom:8pt; margin-bottom:18pt;
-            font-size:8pt; color:var(--libelle); }
+            font-size:8pt; color:var(--libelle); break-inside:avoid-page; page-break-inside:avoid; }
   .entete .exp-nom { font-weight:700; }
   .cartouche-ref { text-align:right; }
   .mini { font-size:6.5pt; color:var(--libelle); }
   .bloc-titre { border-top:0.75pt solid var(--encre); border-bottom:0.75pt solid var(--encre);
-                text-align:center; padding:16pt 0 14pt; margin-bottom:10pt; }
+                text-align:center; padding:16pt 0 14pt; margin-bottom:10pt;
+                break-inside:avoid-page; page-break-inside:avoid; }
   h1 { font-size:23pt; color:var(--encre); letter-spacing:0.32em; font-weight:700;
        text-transform:uppercase; }
   .sous-titre { color:var(--laiton); font-size:11pt; letter-spacing:0.22em;
                 text-transform:uppercase; margin-top:6pt; }
   .base-legale { text-align:center; font-style:italic; font-size:7pt; color:var(--libelle);
-                 margin:4pt 0 16pt; }
+                 margin:4pt 0 16pt; break-inside:avoid-page; page-break-inside:avoid; }
   h2 { font-size:13pt; color:var(--encre); letter-spacing:0.14em; text-transform:uppercase;
        font-weight:700; border-bottom:0.75pt solid var(--encre); padding-bottom:4pt;
-       margin:20pt 0 10pt; page-break-after:avoid; }
+       margin:20pt 0 10pt; break-after:avoid-page; page-break-after:avoid; }
   h3 { color:var(--laiton); font-size:10.5pt; font-weight:700; margin:12pt 0 6pt;
-       page-break-after:avoid; }
+       break-after:avoid-page; page-break-after:avoid; }
+  h2 + *, h3 + * { break-before:avoid-page; page-break-before:avoid; }
+  p, li { orphans:3; widows:3; break-inside:avoid-page; page-break-inside:avoid; }
   p { margin:6pt 0; text-align:justify; }
+  li { margin:3pt 0; }
   .fusion { font-style:italic; font-size:8pt; color:var(--libelle);
             border-bottom:0.75pt dotted var(--libelle); padding:0 14pt; white-space:nowrap; }
   .v { border-bottom:0.75pt dotted var(--filet); padding:0 2pt; }
   .cartouches { display:grid; grid-template-columns:1fr 1fr; gap:0 28pt;
-                border-top:0.5pt solid var(--filet); margin:14pt 0; }
-  .cartouches .case { border-bottom:0.5pt solid var(--filet); padding:7pt 0 8pt; }
+                border-top:0.5pt solid var(--filet); margin:14pt 0;
+                break-inside:avoid-page; page-break-inside:avoid; }
+  .cartouches .case { border-bottom:0.5pt solid var(--filet); padding:7pt 0 8pt;
+                      break-inside:avoid-page; page-break-inside:avoid; }
   .etiquette { color:var(--laiton); font-size:7.5pt; letter-spacing:0.14em;
                text-transform:uppercase; margin-bottom:3pt; }
   table { width:100%; border-collapse:collapse; margin:8pt 0; }
+  thead { display:table-header-group; }
+  tfoot { display:table-footer-group; }
   th { color:var(--laiton); font-size:7.5pt; letter-spacing:0.14em; text-transform:uppercase;
        text-align:left; font-weight:700; border-bottom:0.75pt solid var(--encre);
        padding:4pt 6pt 4pt 0; }
@@ -335,11 +343,12 @@ const CSS_DOCUMENT = `
        vertical-align:top; }
   th.d, td.d { text-align:right; padding-right:0; }
   th.d + th, td.d + td { padding-left:8pt; }
-  tr { page-break-inside:avoid; }
+  tr, th, td { break-inside:avoid-page; page-break-inside:avoid; }
   .total { font-weight:700; color:var(--encre); border-top:0.75pt solid var(--encre); }
-  .bloc-signataires { break-inside:avoid; }
-  .signatures { display:grid; grid-template-columns:1fr 1fr; gap:16pt; margin-top:12pt; }
-  .signature { page-break-inside:avoid; }
+  .bloc-signataires { break-inside:avoid-page; page-break-inside:avoid; }
+  .signatures { display:grid; grid-template-columns:1fr 1fr; gap:16pt; margin-top:12pt;
+                break-inside:avoid-page; page-break-inside:avoid; }
+  .signature { break-inside:avoid-page; page-break-inside:avoid; }
   .signature .bandeau { background:var(--encre); color:var(--sur-encre); font-weight:700;
                         padding:5pt 10pt; font-size:10pt; }
   .signature .zone { border:0.5pt solid var(--filet); border-top:none; min-height:70pt;
@@ -347,15 +356,17 @@ const CSS_DOCUMENT = `
   .mentions { font-size:8.5pt; color:var(--texte-secondaire); }
   .mentions p { margin:4pt 0; }
   .encadre { border-left:2.25pt solid var(--laiton-filet); background:var(--creme);
-             padding:8pt 12pt; margin:10pt 0; page-break-inside:avoid; }
-  .deux-col { display:grid; grid-template-columns:1fr 1fr; gap:0 28pt; }
+             padding:8pt 12pt; margin:10pt 0; break-inside:avoid-page; page-break-inside:avoid; }
+  .deux-col { display:grid; grid-template-columns:1fr 1fr; gap:0 28pt;
+              break-inside:avoid-page; page-break-inside:avoid; }
   .sig-emetteur { margin-top:14pt; margin-left:auto; width:180pt; text-align:center;
-                  page-break-inside:avoid; }
+                  break-inside:avoid-page; page-break-inside:avoid; }
   .sig-libelle { color:var(--laiton); font-size:7.5pt; letter-spacing:0.14em;
                  text-transform:uppercase; margin-bottom:4pt; }
   .sig-image { max-height:52pt; max-width:170pt; }
   .sig-vide { height:44pt; border-bottom:0.75pt dotted var(--filet); }
   .sig-nom { font-size:8.5pt; color:var(--texte-secondaire); margin-top:3pt; }
-  .saut { page-break-before:always; }
+  img, figure { break-inside:avoid-page; page-break-inside:avoid; }
+  .saut { break-before:page; page-break-before:always; }
   .centre { text-align:center; }
 `;

@@ -12,7 +12,10 @@ const pool = new Pool({ connectionString: process.env.SUPALOCAL_DB ?? "postgres:
 
 const un = async (sql, params = []) => (await pool.query(sql, params)).rows[0] ?? null;
 
-const agence = await un("select id from organizations where type = 'agence' order by created_at limit 1");
+// Le seed des parcours crée ses dossiers profonds dans Agence Alpha. Après les
+// tests SQL, d'autres agences peuvent être plus anciennes : prendre simplement
+// la première amputait alors la matrice de tous les écrans bien/lot/bail/EDL.
+const agence = await un("select id from organizations where type = 'agence' order by (name = 'Agence Alpha') desc, created_at limit 1");
 const pd = await un("select id from organizations where type <> 'agence' order by created_at limit 1");
 const ORG = agence?.id;
 // Préférer le dossier E2E (seed-parcours) : il porte un mandat dont l'agent

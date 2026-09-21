@@ -1,4 +1,5 @@
 -- Les mentions du PDF d'état des lieux doivent venir d'une saisie explicite.
+-- Elles sont saisies avant signature puis figées avec le document.
 alter table public.etats_des_lieux
   add column personnes_presentes text,
   add column detecteur_fumee_present boolean,
@@ -6,6 +7,7 @@ alter table public.etats_des_lieux
   add column attestation_assurance_fournie boolean,
   add column adresse_restitution_depot text,
   add column observations text;
+
 
 create or replace function public.proteger_mentions_edl_signe()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -22,6 +24,8 @@ begin
   return new;
 end $$;
 
+
 create trigger proteger_mentions_edl_signe_trg
 before update on public.etats_des_lieux
 for each row execute function public.proteger_mentions_edl_signe();
+

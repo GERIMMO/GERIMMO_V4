@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
+import { envoyerSurFacebook } from "@/lib/facebook";
 
 export type EtatPublication = {
   erreur?: string;
@@ -61,7 +62,9 @@ export async function enregistrerPublication(
   const corps = String(formData.get("corps") ?? "").trim();
   const seo = String(formData.get("seo_description") ?? "").trim();
   const slugSaisi = String(formData.get("slug") ?? "").trim();
-  const valeurs = { titre, chapo, corps, seo_description: seo, slug: slugSaisi };
+  const facebookTexte = String(formData.get("facebook_texte") ?? "").trim();
+  const facebookImageUrl = String(formData.get("facebook_image_url") ?? "").trim();
+  const valeurs = { titre, chapo, corps, seo_description: seo, slug: slugSaisi, facebook_texte: facebookTexte, facebook_image_url: facebookImageUrl };
 
   if (!titre) return { erreur: "Le titre est obligatoire.", valeurs };
 
@@ -73,6 +76,8 @@ export async function enregistrerPublication(
       corps: corps || null,
       seo_description: seo || null,
       slug: slugSaisi ? versSlug(slugSaisi) : versSlug(titre),
+      facebook_texte: facebookTexte || null,
+      facebook_image_url: facebookImageUrl || null,
       // Une proposition qu'on commence à écrire cesse d'être une proposition.
       statut: "brouillon",
     })
@@ -82,6 +87,44 @@ export async function enregistrerPublication(
   revalidatePath(`/admin/publications/${id}`);
   revalidatePath("/admin/publications");
   return { succes: "Brouillon enregistré." };
+}
+
+/** Diffuse sur la Page Gerimmo l'article déjà paru, une seule fois. */
+export async function publierPublicationFacebook(id: string): Promise<EtatPublication> {
+  const { supabase, autorise } = await garderSuperAdmin();
+  if (!autorise) return { erreur: "Accès refusé." };
+
+  const { data: article, error: erreurLecture } = await supabase
+    .from("publications")
+    .select("titre, chapo, slug, statut, facebook_texte, facebook_image_url, facebook_post_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (erreurLecture || !article) return { erreur: "Article introuvable." };
+  if (article.statut !== "publiee" || !article.slug) return { erreur: "Faites d’abord paraître l’article dans le Journal Gerimmo." };
+  if (article.facebook_post_id) return { succes: "Cet article est déjà publié sur Facebook." };
+
+  try {
+    const resultat = await envoyerSurFacebook({
+      titre: article.titre,
+      chapo: article.chapo,
+      slug: article.slug,
+      facebookTexte: article.facebook_texte,
+      facebookImageUrl: article.facebook_image_url,
+    });
+    const { error } = await supabase.from("publications").update({
+      facebook_post_id: resultat.post_id,
+      facebook_publie_le: new Date().toISOString(),
+      facebook_erreur: null,
+    }).eq("id", id);
+    if (error) return { erreur: "Facebook a publié, mais Gerimmo n’a pas pu enregistrer son identifiant. N’appuyez pas une seconde fois." };
+  } catch (erreur) {
+    const message = erreur instanceof Error ? erreur.message.slice(0, 500) : "La publication Facebook a échoué.";
+    await supabase.from("publications").update({ facebook_erreur: message }).eq("id", id);
+    return { erreur: message };
+  }
+
+  revalidatePath(`/admin/publications/${id}`);
+  return { succes: "Gerimmo a publié l’article sur sa Page Facebook." };
 }
 
 /**

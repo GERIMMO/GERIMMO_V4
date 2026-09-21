@@ -10,6 +10,7 @@ import {
   publierPublication,
   refuserPublication,
   retirerPublication,
+  publierPublicationFacebook,
   type EtatPublication,
 } from "@/app/actions/publications";
 
@@ -22,6 +23,11 @@ type Props = {
   seoDescription: string | null;
   statut: string;
   sources: string[];
+  facebookTexte: string | null;
+  facebookImageUrl: string | null;
+  facebookPostId: string | null;
+  facebookPublieLe: string | null;
+  facebookErreur: string | null;
 };
 
 const MARQUE = /\[\[à compléter\s*:?\s*([^\]]*)\]\]/g;
@@ -52,6 +58,10 @@ export function EditeurPublication(p: Props) {
   );
   const [etatRetrait, actionRetrait] = useActionState<EtatPublication, FormData>(
     async () => retirerPublication(p.id),
+    {}
+  );
+  const [etatFacebook, actionFacebook] = useActionState<EtatPublication, FormData>(
+    async () => publierPublicationFacebook(p.id),
     {}
   );
 
@@ -126,6 +136,24 @@ export function EditeurPublication(p: Props) {
             />
           </div>
         </div>
+
+        <section className="space-y-4 border border-[var(--filet)] bg-[var(--filet-leger)] p-4">
+          <div>
+            <p className="libelle-champ">Diffusion Facebook</p>
+            <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. Le jeton Meta reste uniquement côté serveur.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="facebook_texte" className="libelle-champ">Texte de la publication</Label>
+            <textarea id="facebook_texte" name="facebook_texte" rows={5} defaultValue={p.facebookTexte ?? ""}
+              placeholder="Texte préparé au nom de Gerimmo"
+              className="w-full rounded-[10px] border border-[var(--filet)] bg-white p-3 text-sm leading-relaxed" />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="facebook_image_url" className="libelle-champ">Visuel public (HTTPS)</Label>
+            <Input id="facebook_image_url" name="facebook_image_url" type="url" defaultValue={p.facebookImageUrl ?? ""}
+              placeholder="https://www.gerimmo.app/marketing/visuel.png" />
+          </div>
+        </section>
 
         <div className="flex flex-wrap items-center gap-3">
           <BoutonEnvoi>{paru ? "Enregistrer comme brouillon" : "Enregistrer"}</BoutonEnvoi>
@@ -210,6 +238,26 @@ export function EditeurPublication(p: Props) {
 
         {!paru && etatRetrait.succes && (
           <p role="status" className="text-[12.5px] text-[var(--success)]">{etatRetrait.succes}</p>
+        )}
+
+        {paru && (
+          <div className="border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
+            <p className="libelle-champ">Facebook</p>
+            {p.facebookPostId ? (
+              <p className="mt-1.5 text-[13px] text-[var(--success)]">Publié par Gerimmo{p.facebookPublieLe ? ` le ${new Date(p.facebookPublieLe).toLocaleDateString("fr-FR")}` : ""}.</p>
+            ) : (
+              <form action={actionFacebook} className="mt-2 space-y-2">
+                <BoutonEnvoi variant="outline" className="w-full justify-center">Publier sur Facebook</BoutonEnvoi>
+                <p className="text-[11.5px] text-[var(--texte-secondaire)]">Enregistrez d’abord le texte et le visuel si vous les modifiez.</p>
+              </form>
+            )}
+            {(etatFacebook.succes || etatFacebook.erreur || p.facebookErreur) && (
+              <p role={etatFacebook.erreur || p.facebookErreur ? "alert" : "status"}
+                className={`mt-2 text-[12px] ${etatFacebook.erreur || p.facebookErreur ? "text-[var(--destructive)]" : "text-[var(--success)]"}`}>
+                {etatFacebook.succes || etatFacebook.erreur || p.facebookErreur}
+              </p>
+            )}
+          </div>
         )}
         {etatRetrait.erreur && (
           <p role="alert" className="text-[12.5px] text-[var(--destructive)]">{etatRetrait.erreur}</p>

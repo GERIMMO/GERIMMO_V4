@@ -10,7 +10,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
   const supabase = await createClient();
   const { data: p } = await supabase
     .from("publications")
-    .select("id, titre, slug, chapo, corps, seo_description, statut, sources, periode, veine")
+    .select("id, titre, slug, chapo, corps, seo_description, statut, sources, periode, veine, facebook_texte, facebook_image_url, facebook_post_id, facebook_publie_le, facebook_erreur")
     .eq("id", id)
     .maybeSingle();
 
@@ -37,6 +37,11 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
         seoDescription={p.seo_description}
         statut={p.statut}
         sources={p.sources ?? []}
+        facebookTexte={p.facebook_texte}
+        facebookImageUrl={p.facebook_image_url}
+        facebookPostId={p.facebook_post_id}
+        facebookPublieLe={p.facebook_publie_le}
+        facebookErreur={p.facebook_erreur}
       />
     </main>
   );

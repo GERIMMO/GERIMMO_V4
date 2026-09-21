@@ -121,7 +121,10 @@ export default async function PageJournalAdmin() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-2">
         <h1>Journal</h1>
-        <BoutonChercherSujets />
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link>
+          <BoutonChercherSujets />
+        </div>
       </div>
       <p className="mesure-lecture mb-6 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
         Chaque lundi à 6 h, Gerimmo regarde le calendrier du métier et propose

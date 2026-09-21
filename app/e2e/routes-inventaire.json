@@ -72,6 +72,12 @@
     "dynamic": "publicationId"
   },
   {
+    "path": "/admin/publications/nouvelle",
+    "persona": "superadmin",
+    "label": "Créer un article",
+    "dynamic": ""
+  },
+  {
     "path": "/admin/retours",
     "persona": "superadmin",
     "label": "Retours utilisateurs",

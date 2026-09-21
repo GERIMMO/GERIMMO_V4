@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
   const { data: publication, error: erreurCreation } = await supabase.from("publications").insert({
     periode, statut: "publiee", titre: sujet.titre, slug, chapo: sujet.chapo, corps: sujet.corps,
-    sources: ["fonctionnalites-gerimmo"], seo_description: sujet.chapo.slice(0, 160),
+    sources: [`audience:${sujet.audience}`, "contenu-editorial-gerimmo"], seo_description: sujet.chapo.slice(0, 160),
     facebook_texte: sujet.facebook, facebook_image_url: "https://www.gerimmo.app/marketing/facebook-premier-post.jpg", publie_le: new Date().toISOString(),
   }).select("id,titre,slug,chapo,facebook_texte,facebook_image_url").single();
   if (erreurCreation || !publication) {

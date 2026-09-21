@@ -7,6 +7,7 @@ import { seDeconnecter } from "@/app/actions/auth";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { RechercheSupervision } from "@/components/recherche-supervision";
 
 // La supervision reprend le repère latéral des espaces métier. Les actions de
 // sécurité restent dans l'en-tête, visibles sur chaque écran.
@@ -34,6 +35,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
               Console d&apos;administration
             </Link>
             <div className="admin-bandeau-actions">
+              <RechercheSupervision />
               <SyntheseAlertes alertes={alertes} modeAdmin rappel aujourdhui={aujourdhuiParis()} />
               <Link href="/compte" className="lien-bandeau">Sécurité du compte</Link>
               <form action={seDeconnecter}>

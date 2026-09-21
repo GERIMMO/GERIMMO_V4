@@ -33,7 +33,7 @@ function client({ meuble = true, lotAbsent = false, erreurLot = false, etat = "b
 }
 function donnees(type = "colocation", depot = "1400") {
   const fd = new FormData();
-  Object.entries({ type, depot_garantie: depot, loyer_hc: "700", charges: "100", locataire_principal: "locataire", meuble: "true", lot_id: "lot-injecte" })
+  Object.entries({ type, date_debut: "2026-10-01", depot_garantie: depot, loyer_hc: "700", charges: "100", locataire_principal: "locataire", meuble: "true", lot_id: "lot-injecte" })
     .forEach(([k, v]) => fd.set(k, v));
   return fd;
 }

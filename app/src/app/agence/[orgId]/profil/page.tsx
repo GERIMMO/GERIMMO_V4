@@ -93,8 +93,8 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
       <EnteteReglages titre={titre} mention={organisation.name}>
         Ces informations signent vos documents générés (bail, quittances, états
-        des lieux…) : en-tête, pied de page et « Fait à ». Un champ vide reste
-        en libellé dans le PDF.
+        des lieux…) : en-tête, pied de page et « Fait à ». Un champ obligatoire
+        vide bloque désormais la génération du PDF.
       </EnteteReglages>
 
       {manquants.length > 0 && (

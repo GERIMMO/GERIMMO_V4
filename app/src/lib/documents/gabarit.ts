@@ -7,10 +7,9 @@
 // ne viennent plus des épreuves mais de la charte de l'application — voir
 // le bloc CHARTE ci-dessous.
 //
-// Règle de fusion (décision Tahir 31/08) : une donnée absente n'arrête jamais
-// la génération — le champ s'imprime comme dans l'épreuve, libellé en italique
-// gris sur pointillés, et il est ajouté à la liste des manquants remise à
-// l'utilisateur et à la recette.
+// Règle de fusion : pendant l'assemblage, une donnée absente est matérialisée
+// et collectée. La barrière commune `refusDocumentIncomplet` interdit ensuite
+// le rendu PDF tant que cette liste n'est pas vide.
 
 import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";

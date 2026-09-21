@@ -50,23 +50,25 @@ export function FormulaireLot({
           <Input id="lot-etage" name="etage" maxLength={40} defaultValue={etat.valeurs?.etage ?? lot.etage ?? ""} />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="lot-fiscal">Identifiant fiscal du logement</Label>
+          <Label htmlFor="lot-fiscal">Identifiant fiscal du logement *</Label>
           <Input
             id="lot-fiscal"
             name="identifiant_fiscal"
             maxLength={20}
+            required
             defaultValue={etat.valeurs?.identifiant_fiscal ?? lot.identifiant_fiscal ?? ""}
             placeholder="13 chiffres (avis de taxe foncière) — obligatoire au bail"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lot-surface-form">Surface (m²)</Label>
+          <Label htmlFor="lot-surface-form">Surface (m²) *</Label>
           <Input
             id="lot-surface-form"
             name="surface_m2"
             type="number"
             step="0.01"
             min="0.01"
+            required
             defaultValue={etat.valeurs?.surface_m2 ?? lot.surface_m2 ?? ""}
             disabled={verrouille}
           />
@@ -87,12 +89,13 @@ export function FormulaireLot({
           </p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lot-pieces-form">Pièces</Label>
+          <Label htmlFor="lot-pieces-form">Pièces *</Label>
           <Input
             id="lot-pieces-form"
             name="pieces"
             type="number"
             min={1}
+            required
             defaultValue={etat.valeurs?.pieces ?? lot.pieces ?? ""}
             disabled={verrouille}
           />
@@ -111,31 +114,34 @@ export function FormulaireLot({
         {/* Régimes de chauffage/eau chaude et accessoires : repris tels quels
             dans la désignation du bail (art. 3 loi 89-462) */}
         <div className="space-y-2">
-          <Label htmlFor="lot-chauffage">Chauffage</Label>
+          <Label htmlFor="lot-chauffage">Chauffage *</Label>
           <Input
             id="lot-chauffage"
             name="chauffage"
             maxLength={200}
+            required
             defaultValue={etat.valeurs?.chauffage ?? lot.chauffage ?? ""}
             placeholder="Individuel — électricité"
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="lot-eau-chaude">Eau chaude</Label>
+          <Label htmlFor="lot-eau-chaude">Eau chaude *</Label>
           <Input
             id="lot-eau-chaude"
             name="eau_chaude"
             maxLength={200}
+            required
             defaultValue={etat.valeurs?.eau_chaude ?? lot.eau_chaude ?? ""}
             placeholder="Individuelle — ballon électrique"
           />
         </div>
         <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="lot-locaux-privatifs">Locaux privatifs</Label>
+          <Label htmlFor="lot-locaux-privatifs">Locaux privatifs *</Label>
           <Input
             id="lot-locaux-privatifs"
             name="locaux_privatifs"
             maxLength={300}
+            required
             defaultValue={etat.valeurs?.locaux_privatifs ?? lot.locaux_privatifs ?? ""}
             placeholder="Cave n° 4, parking n° 12…"
           />
@@ -152,12 +158,14 @@ export function FormulaireLot({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="lot-description">Description</Label>
+        <Label htmlFor="lot-description">Autres parties du logement *</Label>
         <textarea
           id="lot-description"
           name="description"
           rows={3}
           maxLength={2000}
+          required
+          placeholder="Balcon, terrasse, jardin… ou Néant"
           defaultValue={etat.valeurs?.description ?? lot.description ?? ""}
           className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm"
         />

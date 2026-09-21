@@ -10,6 +10,7 @@
 import fs from "node:fs";
 import type { Browser } from "puppeteer-core";
 import type { DocumentAssemble } from "./gabarit";
+import { refusDocumentIncomplet } from "./completude";
 
 const CHEMINS_CHROME_LOCAL = [
   process.env.GERIMMO_CHROME,
@@ -57,6 +58,8 @@ async function lancerNavigateur(): Promise<Browser> {
 }
 
 export async function rendrePdf(doc: DocumentAssemble): Promise<Uint8Array> {
+  const refus = refusDocumentIncomplet(doc);
+  if (refus) throw new Error(`Rendu PDF refusé : ${refus.manquants.join(" · ")}`);
   const navigateur = await obtenirNavigateur();
   const page = await navigateur.newPage();
   try {

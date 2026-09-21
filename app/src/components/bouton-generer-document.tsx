@@ -67,9 +67,9 @@ export function BoutonGenererDocument({
         </a>
       )}
       {resultat?.erreur && <span className="text-xs text-destructive">{resultat.erreur}</span>}
-      {resultat && !resultat.erreur && (resultat.manquants?.length ?? 0) > 0 && (
+      {resultat && (resultat.manquants?.length ?? 0) > 0 && (
         <span className="block w-full text-xs text-warning-soft-foreground">
-          À compléter dans le document :{" "}
+          À renseigner avant de générer le PDF :{" "}
           {resultat.manquants!.slice(0, montrerTous ? undefined : 5).map((m, i) => {
             const cible = lienPourManquant(m, orgId, resultat.liens ?? [], code);
             return (

@@ -18,6 +18,7 @@ import { Modale } from "@/components/ui/modale";
 import { nomComplet } from "@/lib/roles-personnes";
 
 type Personne = { id: string; nom: string; prenom: string | null };
+const FICHE_VIDE = { nom: "", prenom: "", email: "", dateNaissance: "", communeNaissance: "", adresse: "", codePostal: "", ville: "" };
 
 export function FormulaireDetention({
   orgId,
@@ -43,7 +44,7 @@ export function FormulaireDetention({
   // Nouvelle personne : saisie en pop-up (recette 13/08), valeurs reportées
   // dans le formulaire via des champs cachés.
   const [modaleOuverte, setModaleOuverte] = useState(false);
-  const [nouveau, setNouveau] = useState({ nom: "", prenom: "", email: "" });
+  const [nouveau, setNouveau] = useState(FICHE_VIDE);
   const [personnesAjoutees, setPersonnesAjoutees] = useState<Personne[]>([]);
   const [etatTraite, setEtatTraite] = useState<EtatParc>();
   const refNom = useRef<HTMLInputElement>(null);
@@ -65,7 +66,7 @@ export function FormulaireDetention({
 
   const annulerNouveau = () => {
     setModaleOuverte(false);
-    setNouveau({ nom: "", prenom: "", email: "" });
+    setNouveau(FICHE_VIDE);
     setChoix("");
   };
 
@@ -96,7 +97,7 @@ export function FormulaireDetention({
     const minuterie = setTimeout(() => {
       setIndivision(false);
       setChoix("");
-      setNouveau({ nom: "", prenom: "", email: "" });
+      setNouveau(FICHE_VIDE);
     }, 0);
     return () => clearTimeout(minuterie);
   }, [etat]);
@@ -185,6 +186,11 @@ export function FormulaireDetention({
             <input type="hidden" name="nouveau_nom" value={nouveau.nom} />
             <input type="hidden" name="nouveau_prenom" value={nouveau.prenom} />
             <input type="hidden" name="nouveau_email" value={nouveau.email} />
+            <input type="hidden" name="nouveau_date_naissance" value={nouveau.dateNaissance} />
+            <input type="hidden" name="nouveau_commune_naissance" value={nouveau.communeNaissance} />
+            <input type="hidden" name="nouveau_adresse" value={nouveau.adresse} />
+            <input type="hidden" name="nouveau_code_postal" value={nouveau.codePostal} />
+            <input type="hidden" name="nouveau_ville" value={nouveau.ville} />
             {!modaleOuverte && (
               <p className="text-xs text-muted-foreground sm:col-span-2">
                 Nouveau <b>propriétaire</b> : {nomComplet(nouveau)} — {nouveau.email}{" "}
@@ -249,6 +255,15 @@ export function FormulaireDetention({
                   value={nouveau.nom}
                   onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
                 />
+              </div>
+              {nouveau.prenom && <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label htmlFor="detention-naissance">Date de naissance *</Label><Input id="detention-naissance" type="date" required value={nouveau.dateNaissance} onChange={(e) => setNouveau({ ...nouveau, dateNaissance: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label htmlFor="detention-commune-naissance">Commune de naissance *</Label><Input id="detention-commune-naissance" required value={nouveau.communeNaissance} onChange={(e) => setNouveau({ ...nouveau, communeNaissance: e.target.value })} /></div>
+              </div>}
+              <div className="space-y-1.5"><Label htmlFor="detention-adresse">Adresse *</Label><Input id="detention-adresse" required value={nouveau.adresse} onChange={(e) => setNouveau({ ...nouveau, adresse: e.target.value })} /></div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label htmlFor="detention-cp">Code postal *</Label><Input id="detention-cp" required value={nouveau.codePostal} onChange={(e) => setNouveau({ ...nouveau, codePostal: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label htmlFor="detention-ville">Ville *</Label><Input id="detention-ville" required value={nouveau.ville} onChange={(e) => setNouveau({ ...nouveau, ville: e.target.value })} /></div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="detention-prenom">Prénom</Label>

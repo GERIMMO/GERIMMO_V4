@@ -96,6 +96,13 @@ function lireChampsBail(
   if (individuel && !/^[0-9a-f-]{36}$/i.test(chambre)) return { erreur: "Choisissez la chambre privative de ce contrat." };
   const type = individuel ? "colocation" : choixType;
 
+  const dateDebut = String(formData.get("date_debut") ?? "").trim();
+  if (!dateDebut) return { erreur: "La date d'entrée est obligatoire." };
+  if (!loyer || !Number.isFinite(Number(loyer)) || Number(loyer) < 0) return { erreur: "Le loyer hors charges est obligatoire." };
+  if (!charges || !Number.isFinite(Number(charges)) || Number(charges) < 0) return { erreur: "Le montant des charges est obligatoire. Saisissez 0 s'il n'y en a pas." };
+  if (!depot || !Number.isFinite(Number(depot)) || Number(depot) < 0) return { erreur: "Le dépôt de garantie est obligatoire. Saisissez 0 s'il n'y en a pas." };
+  if (!/^\d+$/.test(jour) || Number(jour) < 1 || Number(jour) > 28) return { erreur: "Le jour d'échéance doit être compris entre 1 et 28." };
+
   // Plafond légal du dépôt de garantie (audit 09/09, RM-2.1.1 / RM-2.1.2 —
   // wiki « Dépôt de garantie ») : 1 mois HORS CHARGES en nu, 2 en meublé.
   // En colocation, le caractère du logement détermine le plafond du bail
@@ -118,13 +125,13 @@ function lireChampsBail(
       type,
       chambre_id: individuel ? chambre : null,
       locataire_principal: locataire,
-      date_debut: String(formData.get("date_debut") ?? "").trim() || null,
-      loyer_hc: loyer ? Number(loyer) : null,
-      charges: charges ? Number(charges) : null,
+      date_debut: dateDebut,
+      loyer_hc: Number(loyer),
+      charges: Number(charges),
       // Provision (régularisable) ou forfait (définitif — RM-3.9.8)
       charges_mode: formData.get("charges_mode") === "forfait" ? "forfait" : "provision",
-      depot_garantie: depot ? Number(depot) : null,
-      jour_echeance: jour ? Number(jour) : 1,
+      depot_garantie: Number(depot),
+      jour_echeance: Number(jour),
       irl_trimestre: String(formData.get("irl_trimestre") ?? "").trim() || null,
       revision_irl: formData.get("revision_irl") === "on",
     },
@@ -146,8 +153,13 @@ async function resoudreLocatairePrincipal(
   const nom = String(formData.get("nouveau_locataire_nom") ?? "").trim();
   const prenom = String(formData.get("nouveau_locataire_prenom") ?? "").trim();
   const email = String(formData.get("nouveau_locataire_email") ?? "").trim();
-  if (!nom || !email) {
-    return { erreur: "Nouveau locataire : le nom et l'adresse email sont obligatoires." };
+  const dateNaissance = String(formData.get("nouveau_locataire_date_naissance") ?? "").trim();
+  const communeNaissance = String(formData.get("nouveau_locataire_commune_naissance") ?? "").trim();
+  const adresse = String(formData.get("nouveau_locataire_adresse") ?? "").trim();
+  const codePostal = String(formData.get("nouveau_locataire_code_postal") ?? "").trim();
+  const ville = String(formData.get("nouveau_locataire_ville") ?? "").trim();
+  if (!nom || !prenom || !email || !dateNaissance || !communeNaissance || !adresse || !codePostal || !ville) {
+    return { erreur: "Nouveau locataire : l'identité, la naissance, l'adresse complète et l'email sont obligatoires." };
   }
   const { data: existante } = await supabase
     .from("persons")
@@ -164,7 +176,7 @@ async function resoudreLocatairePrincipal(
   }
   const { data: personne, error } = await supabase
     .from("persons")
-    .insert({ organization_id: orgId, nom, prenom: prenom || null, email })
+    .insert({ organization_id: orgId, nom, prenom, email, date_naissance: dateNaissance, commune_naissance: communeNaissance, address_line1: adresse, postal_code: codePostal, city: ville, qualite: "Personne physique" })
     .select("id")
     .single();
   if (error || !personne) {

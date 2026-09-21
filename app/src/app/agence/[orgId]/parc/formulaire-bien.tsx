@@ -223,13 +223,14 @@ export function FormulaireBien({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="bien-annee">Année de construction</Label>
+          <Label htmlFor="bien-annee">Année de construction *</Label>
           <Input
             id="bien-annee"
             name="annee_construction"
             type="number"
             min={1000}
             max={2100}
+            required
             defaultValue={etat.valeurs?.annee_construction ?? bien?.annee_construction ?? ""}
           />
           <p className="text-xs text-muted-foreground">
@@ -264,28 +265,30 @@ export function FormulaireBien({
         </div>
       </div>
 
-      {bien && (
+      {(
         // Repris tels quels dans la désignation du bail (parties communes et
         // accès aux technologies de l'information — art. 3 loi 89-462).
-        // En édition seulement, comme le type : la création reste courte.
+        // Le formulaire les demande dès la création pour éviter un bail incomplet.
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="bien-parties-communes">Parties communes</Label>
+            <Label htmlFor="bien-parties-communes">Parties communes *</Label>
             <Input
               id="bien-parties-communes"
               name="parties_communes"
               maxLength={300}
-              defaultValue={etat.valeurs?.parties_communes ?? bien.parties_communes ?? ""}
+              required
+              defaultValue={etat.valeurs?.parties_communes ?? bien?.parties_communes ?? ""}
               placeholder="Hall, ascenseur, local vélos…"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bien-acces-tic">Accès TIC</Label>
+            <Label htmlFor="bien-acces-tic">Accès TIC *</Label>
             <Input
               id="bien-acces-tic"
               name="acces_tic"
               maxLength={200}
-              defaultValue={etat.valeurs?.acces_tic ?? bien.acces_tic ?? ""}
+              required
+              defaultValue={etat.valeurs?.acces_tic ?? bien?.acces_tic ?? ""}
               placeholder="Fibre optique, TNT…"
             />
           </div>
@@ -346,6 +349,7 @@ export function FormulaireBien({
                       type="number"
                       step="0.01"
                       min="0.01"
+                      required
                       className="w-28"
                     />
                   </div>
@@ -359,6 +363,7 @@ export function FormulaireBien({
                       onChange={(e) => majLot(i, "pieces", e.target.value)}
                       type="number"
                       min={1}
+                      required
                       className="w-20"
                     />
                   </div>
@@ -393,12 +398,13 @@ export function FormulaireBien({
                   type="number"
                   step="0.01"
                   min="0.01"
+                  required
                   defaultValue={etat.valeurs?.surface_m2}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lot-pieces">Nombre de pièces</Label>
-                <Input id="lot-pieces" name="pieces" type="number" min={1} defaultValue={etat.valeurs?.pieces} />
+                <Input id="lot-pieces" name="pieces" type="number" min={1} required defaultValue={etat.valeurs?.pieces} />
               </div>
             </div>
           )}

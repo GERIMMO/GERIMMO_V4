@@ -43,11 +43,29 @@ export async function creerBien(
   const annee = String(formData.get("annee_construction") ?? "").trim();
   const surface = String(formData.get("surface_m2") ?? "").trim();
   const pieces = String(formData.get("pieces") ?? "").trim();
+  const partiesCommunes = String(formData.get("parties_communes") ?? "").trim();
+  const accesTic = String(formData.get("acces_tic") ?? "").trim();
 
   if (!nom) return { erreur: "La référence du bien est obligatoire.", valeurs };
   if (!(type in TYPES_BIEN)) return { erreur: "Type de bien invalide.", valeurs };
   if (!adresse1 || !codePostal || !ville) {
     return { erreur: "L'adresse (voie, code postal, ville) est obligatoire.", valeurs };
+  }
+  if (!annee || !Number.isInteger(Number(annee)) || Number(annee) < 1000 || Number(annee) > 2100) {
+    return { erreur: "L'année de construction est obligatoire pour déterminer les mentions et diagnostics du logement.", valeurs };
+  }
+  if (!partiesCommunes || !accesTic) {
+    return { erreur: "Les parties communes et l'accès aux technologies sont obligatoires. Indiquez « Néant » si nécessaire.", valeurs };
+  }
+  let profilProprietaire: { name: string; address_line1: string | null; postal_code: string | null; city: string | null; email_contact: string | null } | null = null;
+  if (role === "proprietaire_direct") {
+    const { data: profil } = await supabase.from("organizations")
+      .select("name,address_line1,postal_code,city,email_contact")
+      .eq("id", orgId).maybeSingle();
+    profilProprietaire = profil;
+    if (!profil?.address_line1 || !profil.postal_code || !profil.city || !profil.email_contact) {
+      return { erreur: "Complétez d'abord votre identité, votre adresse et votre email dans Mon profil : ils désignent le bailleur dans les documents.", valeurs };
+    }
   }
 
   // Questionnaire progressif : un bien divisé arrive avec sa liste de lots.
@@ -71,6 +89,10 @@ export async function creerBien(
     };
   }
   const premier = lotsSaisis[0];
+  const lotsAValider = lotsSaisis.length > 0 ? lotsSaisis : [{ surface, pieces }];
+  if (lotsAValider.some((lot) => !lot.surface || Number(lot.surface) <= 0 || !lot.pieces || Number(lot.pieces) < 1)) {
+    return { erreur: "La surface habitable et le nombre de pièces sont obligatoires pour chaque lot.", valeurs };
+  }
 
   // Créer un bien = créer son lot unique (RM-0.1.2), atomique en base
   const { data: bienId, error } = await supabase.rpc("creer_bien_avec_lot", {
@@ -91,15 +113,19 @@ export async function creerBien(
   // Revue 23/08 : la case « zone tendue » cochée à la création était ignorée
   // en silence (le RPC ne la connaît pas) — or elle décide du préavis du
   // congé locataire (1 mois vs 3). Posée juste après la création.
-  if (formData.get("zone_tendue") === "on" && bienId) {
+  if (bienId) {
     const { error: erreurZone } = await supabase
       .from("biens")
-      .update({ zone_tendue: true })
+      .update({
+        zone_tendue: formData.get("zone_tendue") === "on",
+        parties_communes: partiesCommunes,
+        acces_tic: accesTic,
+      })
       .eq("id", bienId)
       .eq("organization_id", orgId);
     if (erreurZone) {
       return {
-        erreur: `Bien créé, mais la zone tendue n'a pas pu être enregistrée : ${sansJargon(erreurZone.message)} — cochez-la depuis la fiche du bien.`,
+        erreur: `Bien créé, mais ses informations complémentaires n'ont pas pu être enregistrées : ${sansJargon(erreurZone.message)} — complétez-les depuis la fiche du bien.`,
       };
     }
   }
@@ -122,8 +148,12 @@ export async function creerBien(
         .insert({
           organization_id: orgId,
           account_id: user.id,
-          nom: user.email?.split("@")[0] ?? "Propriétaire",
-          email: user.email ?? null,
+          nom: profilProprietaire?.name ?? user.email?.split("@")[0] ?? "Propriétaire",
+          email: profilProprietaire?.email_contact ?? user.email ?? null,
+          address_line1: profilProprietaire?.address_line1 ?? null,
+          postal_code: profilProprietaire?.postal_code ?? null,
+          city: profilProprietaire?.city ?? null,
+          qualite: "Personne morale",
         })
         .select("id")
         .single();
@@ -230,18 +260,25 @@ export async function modifierBien(
   const valeurs = valeursDuFormulaire(formData);
   const nom = String(formData.get("nom") ?? "").trim();
   const annee = String(formData.get("annee_construction") ?? "").trim();
+  const adresse1 = String(formData.get("address_line1") ?? "").trim();
+  const codePostal = String(formData.get("postal_code") ?? "").trim();
+  const ville = String(formData.get("city") ?? "").trim();
   if (!nom) return { erreur: "La référence du bien est obligatoire.", valeurs };
+  if (!adresse1 || !codePostal || !ville) return { erreur: "L'adresse complète du bien est obligatoire.", valeurs };
+  if (!annee || !Number.isInteger(Number(annee)) || Number(annee) < 1000 || Number(annee) > 2100) {
+    return { erreur: "L'année de construction est obligatoire.", valeurs };
+  }
 
   // L'adresse est verrouillée en base si un lot est loué (trigger RM-0.5.1)
   const { error } = await supabase
     .from("biens")
     .update({
       nom,
-      address_line1: String(formData.get("address_line1") ?? "").trim(),
+      address_line1: adresse1,
       address_line2: String(formData.get("address_line2") ?? "").trim() || null,
-      postal_code: String(formData.get("postal_code") ?? "").trim(),
-      city: String(formData.get("city") ?? "").trim(),
-      annee_construction: annee ? Number(annee) : null,
+      postal_code: codePostal,
+      city: ville,
+      annee_construction: Number(annee),
       copropriete: formData.get("copropriete") === "on",
       zone_tendue: formData.get("zone_tendue") === "on",
       // Désignation du bail (art. 3 loi 89-462) — saisis en édition seulement
@@ -270,6 +307,14 @@ export async function modifierLot(
   const nom = String(formData.get("nom") ?? "").trim();
   const tantieme = String(formData.get("tantieme") ?? "").trim();
   if (!nom) return { erreur: "Le nom du lot est obligatoire.", valeurs };
+  for (const champ of ["identifiant_fiscal", "description", "chauffage", "eau_chaude", "locaux_privatifs"]) {
+    if (!String(formData.get(champ) ?? "").trim()) {
+      return { erreur: "Renseignez tous les champs du logement destinés au bail. Indiquez « Néant » lorsqu'un élément ne s'applique pas.", valeurs };
+    }
+  }
+  if (["surface_m2", "pieces"].some((champ) => formData.has(champ) && !String(formData.get(champ) ?? "").trim())) {
+    return { erreur: "La surface habitable et le nombre de pièces sont obligatoires.", valeurs };
+  }
 
   // Surface, Carrez et pièces sont verrouillées en base si le lot est loué
   // (trigger RM-0.5.1) : le formulaire les désactive alors, elles sont donc
@@ -405,8 +450,15 @@ export async function ajouterDetention(
     const nom = String(formData.get("nouveau_nom") ?? "").trim();
     const prenom = String(formData.get("nouveau_prenom") ?? "").trim();
     const email = String(formData.get("nouveau_email") ?? "").trim();
+    const dateNaissance = String(formData.get("nouveau_date_naissance") ?? "").trim();
+    const communeNaissance = String(formData.get("nouveau_commune_naissance") ?? "").trim();
+    const adresse = String(formData.get("nouveau_adresse") ?? "").trim();
+    const codePostal = String(formData.get("nouveau_code_postal") ?? "").trim();
+    const ville = String(formData.get("nouveau_ville") ?? "").trim();
     if (!nom) return { erreur: "Le nom du nouveau propriétaire est obligatoire.", valeurs };
     if (!email) return { erreur: "L'adresse email du propriétaire est obligatoire.", valeurs };
+    if (!adresse || !codePostal || !ville) return { erreur: "L'adresse complète du propriétaire est obligatoire.", valeurs };
+    if (prenom && (!dateNaissance || !communeNaissance)) return { erreur: "La date et la commune de naissance du propriétaire sont obligatoires.", valeurs };
     const { data: memeEmail } = await supabase
       .from("persons")
       .select("id")
@@ -422,7 +474,7 @@ export async function ajouterDetention(
     }
     const { data: personne, error: erreurPersonne } = await supabase
       .from("persons")
-      .insert({ organization_id: orgId, nom, prenom: prenom || null, email })
+      .insert({ organization_id: orgId, nom, prenom: prenom || null, email, date_naissance: dateNaissance || null, commune_naissance: communeNaissance || null, address_line1: adresse, postal_code: codePostal, city: ville, qualite: prenom ? "Personne physique" : "Personne morale" })
       .select("id, nom, prenom")
       .single();
     if (erreurPersonne) return { erreur: sansJargon(erreurPersonne.message), valeurs };

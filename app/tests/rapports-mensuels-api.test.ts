@@ -29,8 +29,9 @@ describe.skipIf(!actif)("Compte rendu — API, RLS, vrai PDF et archivage", () =
     expect(auth.error).toBeNull(); userId = auth.data.user!.id;
     const org = await db.from("memberships").select("organization_id").eq("account_id", userId).eq("role", "admin_agence").limit(1).single();
     expect(org.error).toBeNull(); orgId = org.data!.organization_id;
+    await sql.query("update public.organizations set address_line1='10 rue de la Recette',postal_code='75001',city='Paris',email_contact='agence@recette.test' where id=$1", [orgId]);
     // Jeu dédié sans mouvement financier ; le rapport à zéro est valide.
-    personId = (await sql.query("insert into public.persons (organization_id,nom,prenom,email) values ($1,'Rapport test','Mensuel','rapport-'||gen_random_uuid()||'@recette.test') returning id", [orgId])).rows[0].id;
+    personId = (await sql.query("insert into public.persons (organization_id,nom,prenom,email,address_line1,postal_code,city,qualite) values ($1,'Rapport test','Mensuel','rapport-'||gen_random_uuid()||'@recette.test','20 rue du Mandant','69003','Lyon','Personne physique') returning id", [orgId])).rows[0].id;
     mandatId = (await sql.query("insert into public.mandats (organization_id,person_id,etat) values ($1,$2,'actif') returning id", [orgId, personId])).rows[0].id;
     bienId = (await sql.query("insert into public.biens (organization_id,nom,type,address_line1,postal_code,city) values ($1,'Bien rapport de recette','appartement','1 rue du Test','75001','Paris') returning id", [orgId])).rows[0].id;
     lotId = (await sql.query("insert into public.lots (organization_id,bien_id,nom) values ($1,$2,'Lot du rapport') returning id", [orgId,bienId])).rows[0].id;

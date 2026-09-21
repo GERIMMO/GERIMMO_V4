@@ -192,3 +192,4 @@
 20260919200000_avantage_parrainage.sql
 20260920030000_relances_loyer_automatiques.sql
 20260921060000_edl_champs_pdf_complets.sql
+20260921070000_fermer_declencheur_mentions_edl.sql

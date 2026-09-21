@@ -26,3 +26,5 @@ end $$;
 create trigger proteger_mentions_edl_signe_trg
 before update on public.etats_des_lieux
 for each row execute function public.proteger_mentions_edl_signe();
+
+revoke execute on function public.proteger_mentions_edl_signe() from public, anon, authenticated;

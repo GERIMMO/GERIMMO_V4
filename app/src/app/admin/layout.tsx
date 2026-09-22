@@ -1,3 +1,4 @@
+import { PresenceSupervision } from "@/components/presence-supervision";
 import Link from "next/link";
 import { aujourdhuiParis } from "@/lib/ged";
 import { NavAdmin } from "./nav-admin";
@@ -20,6 +21,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
 
   return (
     <div className="admin-coquille">
+      <PresenceSupervision />
       <aside className="admin-late">
         <Link href="/admin" className="admin-marque" aria-label="Accueil de la supervision">
           <MarqueGerimmo />

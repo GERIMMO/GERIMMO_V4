@@ -1,3 +1,5 @@
+import { chargerMarque } from "./marque-organisation-serveur";
+import { appliquerMarqueDocument } from "./documents/marque";
 import { createHash } from "node:crypto";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { envoyerEmail } from "@/lib/email";
@@ -75,7 +77,7 @@ export async function remettreRapportMensuel(
       if ("erreur" in assemblage) return { erreur: `Rapport validé, PDF non préparé : ${assemblage.erreur}` };
       const refus = refusDocumentIncomplet(assemblage.document);
       if (refus) return { erreur: `Rapport validé, PDF non préparé : ${refus.manquants.join(" · ")}. Complétez le dossier puis réessayez.` };
-      pdf = await rendrePdf(assemblage.document);
+      pdf = await rendrePdf(appliquerMarqueDocument(assemblage.document, await chargerMarque(db, orgId)));
       const depot = await deposerFichierGed(db, user, orgId,
         new File([pdf as BlobPart], `rapport-${rapport.mois.slice(0,7)}.pdf`, { type: "application/pdf" }),
         "rapport_gestion", titreArchive);
@@ -92,6 +94,7 @@ export async function remettreRapportMensuel(
 
     const mois = rapport.mois.slice(0, 7);
     const resultat = await envoyerEmail({
+      organisation: { db, id: orgId },
       to: email,
       subject: `Votre compte rendu de gestion — ${mois}`,
       html: `<div style="font-family:sans-serif;line-height:1.6"><h2>Votre compte rendu mensuel</h2><p>Bonjour,</p><p>Vous trouverez en pièce jointe votre compte rendu de gestion pour ${echapper(mois)}, avec le détail des opérations enregistrées et le net du rapport.</p><p>Vous pouvez consulter et conserver ce PDF sans compte Gerimmo. Pour toute question, contactez votre agence.</p><p>— Votre agence</p></div>`,

@@ -86,3 +86,25 @@ export async function campagnesFacebook(): Promise<{ configure: boolean; campagn
     return { configure: true, campagnes: [], erreur: messageMetaLisible(erreur, "Résultats Meta momentanément indisponibles.") };
   }
 }
+
+/** Total du compte sur le mois du compte Meta : les relevés historiques ne sont pas additionnés. */
+export async function depenseFacebookDuMois(): Promise<{ cents: number | null; debut?: string; fin?: string; erreur?: string }> {
+  const compte = process.env.META_AD_ACCOUNT_ID?.trim();
+  if (!compte || !process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim()) return { cents: null, erreur: 'La lecture des dépenses Meta reste à connecter.' };
+  try {
+    const resultat = await lireMeta<{ data?: Array<{ spend?: string; account_currency?: string; date_start?: string; date_stop?: string }>; paging?: { next?: string } }>(`${compte}/insights`, {
+      fields: 'spend,account_currency,date_start,date_stop', date_preset: 'this_month', level: 'account', limit: '1',
+    });
+    if (!Array.isArray(resultat.data) || resultat.paging?.next || resultat.data.length > 1) return { cents: null, erreur: 'Le total mensuel Meta ne peut pas encore être confirmé.' };
+    // Une réponse vide ne prouve pas une dépense nulle : accès restreint et absence de données sont possibles.
+    const mesure = resultat.data[0];
+    if (!mesure) return { cents: null, erreur: 'Meta n’a pas encore fourni de relevé pour ce mois.' };
+    if (mesure.account_currency !== 'EUR') return { cents: null, erreur: 'Le compte publicitaire doit fournir ses dépenses en euros pour être comparé au budget.' };
+    if (typeof mesure.spend !== 'string' || !/^\d+(\.\d{1,2})?$/.test(mesure.spend)) return { cents: null, erreur: 'Le montant transmis par Meta doit être vérifié.' };
+    const cents = Math.round(Number(mesure.spend) * 100);
+    if (!Number.isSafeInteger(cents) || cents < 0) return { cents: null, erreur: 'Le montant transmis par Meta doit être vérifié.' };
+    return { cents, debut: mesure.date_start, fin: mesure.date_stop };
+  } catch (erreur) {
+    return { cents: null, erreur: messageMetaLisible(erreur, 'Le total mensuel Meta est momentanément indisponible.') };
+  }
+}

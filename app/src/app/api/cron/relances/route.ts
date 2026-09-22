@@ -94,6 +94,7 @@ export async function GET(request: Request) {
   const echecs: string[] = [];
   for (const l of lignes) {
     const envoi = await envoyerEmail({
+      organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
       subject: sujetRelanceLoyer({ niveau: l.niveau, periode: l.periode }),
       html: corpsRelanceLoyer({

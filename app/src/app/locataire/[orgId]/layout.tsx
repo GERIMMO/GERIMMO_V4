@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
-import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { MarqueOrganisation } from "@/components/marque-organisation";
+import { styleMarque } from "@/lib/marque-organisation";
 import { SidebarLocataire } from "@/components/nav-locataire";
 import { MenuCompte } from "@/components/menu-compte";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -17,6 +18,11 @@ export default async function LayoutLocataire({
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
   const { supabase, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
+  const { data: apparence } = await supabase
+    .from("organizations")
+    .select("logo_url, couleur_primaire, couleur_secondaire, nom_portail")
+    .eq("id", orgId)
+    .maybeSingle();
 
   const [
     { data: pieces, error: ePieces },
@@ -67,11 +73,11 @@ export default async function LayoutLocataire({
   );
 
   return (
-    <div className="loc-app">
+    <div className="loc-app" style={styleMarque(apparence)}>
       <aside className="loc-late">
-        <div className="loc-logo">
-          <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace">
-            <MarqueGerimmo />
+        <div className="loc-logo min-w-0">
+          <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace" className="block min-w-0 max-w-[180px] overflow-hidden">
+            <MarqueOrganisation marque={{ ...apparence, name: organisation.name }} />
           </Link>
           <span className="loc-logo-texte eyebrow">
             Espace locataire

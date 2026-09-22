@@ -113,8 +113,9 @@ describe("les tâches planifiées", () => {
     created_at: new Date(maintenant.getTime() - il_y_a_heures * 3_600_000).toISOString(),
   });
 
-  it("couvre les huit tâches de vercel.json, dans l'ordre de la journée", () => {
+  it("couvre les neuf tâches de vercel.json, dans l'ordre de la journée", () => {
     expect(TACHES.map((t) => t.nom)).toEqual([
+      "orchestrateur",
       "signatures",
       "abonnements",
       "rappels",
@@ -137,11 +138,12 @@ describe("les tâches planifiées", () => {
       etatTaches(dernieresTaches(lignes), maintenant).map((t) => [t.nom, t.etat])
     );
     expect(etats).toEqual({
+      orchestrateur: "jamais",
       signatures: "jamais",
       quittances: "ok",
       appels: "retard",
       rappels: "echec",
-      territoire: "ok", // mensuelle : 20 jours, c'est dans la marge
+      territoire: "retard", // quotidienne : vingt jours sans collecte est un retard
       abonnements: "jamais",
       relances: "jamais",
       marketing: "jamais",

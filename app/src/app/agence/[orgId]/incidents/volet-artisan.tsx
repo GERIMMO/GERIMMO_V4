@@ -1,3 +1,4 @@
+import type { LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
@@ -38,6 +39,7 @@ import {
   BoutonSolliciter,
   FormulaireAnnulationMission,
   FormulaireConsultation,
+  FormulaireDecisionAvenant,
   FormulaireEvaluation,
   FormulaireRendezVous,
   FormulaireRevisionImputation,
@@ -90,6 +92,7 @@ type Devis = {
   artisan_id: string;
   montant_ttc_cents: number;
   description: string;
+  lignes: LigneDevisCalculee[];
   valide_jusqu_au: string;
   document_id: string | null;
   statut: string;
@@ -142,6 +145,17 @@ type Evaluation = {
   source: string;
   note_globale: number;
   retiree_le: string | null;
+};
+
+type Avenant = {
+  id: string;
+  montant_initial_cents: number;
+  nouveau_montant_cents: number;
+  motif: string;
+  lignes: LigneDevisCalculee[];
+  statut: string;
+  demande_le: string;
+  decision_motif: string | null;
 };
 
 type Affectable = {
@@ -223,7 +237,7 @@ export async function VoletArtisan({
     supabase
       .from("incident_devis")
       .select(
-        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, valide_jusqu_au, document_id, statut, depose_le"
+        "id, sollicitation_id, artisan_id, montant_ttc_cents, description, lignes, valide_jusqu_au, document_id, statut, depose_le"
       )
       .eq("organization_id", orgId)
       .eq("incident_id", incidentId)
@@ -333,6 +347,15 @@ export async function VoletArtisan({
   const comptesRendus = (comptesRendusBruts ?? []) as CompteRendu[];
   const photos = (photosBrutes ?? []) as Photo[];
   const evaluations = (evaluationsBrutes ?? []) as Evaluation[];
+  const { data: avenantsBruts, error: erreurAvenants } = mission
+    ? await supabase
+        .from("devis_avenants")
+        .select("id, montant_initial_cents, nouveau_montant_cents, motif, lignes, statut, demande_le, decision_motif")
+        .eq("organization_id", orgId)
+        .eq("intervention_id", mission.id)
+        .order("demande_le", { ascending: false })
+    : { data: [], error: null };
+  const avenants = (avenantsBruts ?? []) as Avenant[];
   const nomArtisan = new Map(
     ((artisansBruts ?? []) as { id: string; raison_sociale: string; telephone: string }[]).map(
       (a) => [a.id, a]
@@ -389,6 +412,7 @@ export async function VoletArtisan({
     erreurAffectables && "les artisans proposables",
     erreurCodePostal && "la zone du bien (la liste ci-dessous n'est alors PAS filtrée par zone)",
     erreurAlerteRevision && "la révision d'imputation en attente",
+    erreurAvenants && "les demandes de dépassement de devis",
   ].filter((q): q is string => Boolean(q));
 
   const compteRenduCourant = mission
@@ -490,6 +514,21 @@ export async function VoletArtisan({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {avenants.map((avenant) => (
+              <div key={avenant.id} className={`rounded-xl border p-4 ${avenant.statut === "a_decider" ? "border-[var(--warning)] bg-[var(--warning-soft)]" : "border-border"}`}>
+                <div className="entete-carte !mb-2">
+                  <p className="font-medium">Dépassement demandé</p>
+                  <span className={`puce ${avenant.statut === "accepte" ? "puce-loue" : avenant.statut === "refuse" ? "puce-rouge" : "puce-prep"}`}>
+                    {avenant.statut === "a_decider" ? "à décider" : avenant.statut === "accepte" ? "accepté" : avenant.statut === "refuse" ? "refusé" : "annulé"}
+                  </span>
+                </div>
+                <p className="text-sm">{montant(avenant.montant_initial_cents)} → <strong>{montant(avenant.nouveau_montant_cents)}</strong></p>
+                <p className="mt-1 text-sm text-muted-foreground">{avenant.motif}</p>
+                <DetailDevis lignes={avenant.lignes} />
+                {avenant.decision_motif && <p className="mt-1 text-xs text-muted-foreground">Décision : {avenant.decision_motif}</p>}
+                {avenant.statut === "a_decider" && <div className="mt-3"><FormulaireDecisionAvenant orgId={orgId} avenantId={avenant.id} /></div>}
+              </div>
+            ))}
             {mission.statut === "refusee" && (
               <div className="err" role="alert">
                 <p className="font-medium">
@@ -951,7 +990,9 @@ function ConsultationOuverte({
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground">« {d.description} »</p>
+                    <p className="whitespace-pre-line text-sm text-muted-foreground">{d.description}</p>
+                    <DetailDevis lignes={d.lignes} />
+                    <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
                     {d.document_id && (
                       <a
                         href={`/agence/${orgId}/documents/${d.document_id}/fichier`}
@@ -1056,4 +1097,11 @@ function ConsultationOuverte({
       </CardContent>
     </Card>
   );
+}
+
+function DetailDevis({ lignes }: { lignes: LigneDevisCalculee[] }) {
+  if (!lignes?.length) return null;
+  return <details className="my-2 text-sm"><summary className="cursor-pointer font-medium">Voir les quantités, les prix et la TVA</summary>
+    <div className="mt-2 overflow-x-auto"><table className="w-full text-left"><thead><tr><th>Travaux</th><th>Quantité</th><th>Prix HT</th><th>TVA</th><th>Total TTC</th></tr></thead><tbody>{lignes.map((l,i) => <tr key={i} className="border-t border-border"><td className="py-2">{l.libelle}</td><td>{l.quantite}</td><td>{montant(l.prix_unitaire_ht_cents)}</td><td>{l.tva_bps/100} %</td><td>{montant(l.montant_ttc_cents)}</td></tr>)}</tbody></table></div>
+  </details>;
 }

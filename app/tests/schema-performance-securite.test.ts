@@ -39,8 +39,10 @@ describe.skipIf(!DB_URL)("Schéma — performance et sécurité", () => {
           where i.indrelid = c.conrelid
             and i.indisvalid
             and i.indisready
-            and c.conkey::smallint[]
-                <@ string_to_array(i.indkey::text, ' ')::smallint[]
+            and i.indpred is null
+            and i.indnkeyatts>=cardinality(c.conkey)
+            and not exists(select 1 from unnest(c.conkey) with ordinality k(attnum,ord)
+              where i.indkey[(k.ord-1)::integer] is distinct from k.attnum)
         )
       order by t.relname, c.conname
     `);
@@ -76,7 +78,7 @@ describe.skipIf(!DB_URL)("Schéma — performance et sécurité", () => {
     expect(rows, JSON.stringify(rows, null, 2)).toEqual([]);
   });
 
-  it("toute fonction SECURITY DEFINER d'écriture exposée possède une garde de périmètre", async () => {
+  it("repère les fonctions exposées sans référence de contexte (ce contrôle ne prouve pas leur sécurité)", async () => {
     const { rows } = await db.query<{ signature: string }>(String.raw`
       with fonctions_ecriture as (
         select

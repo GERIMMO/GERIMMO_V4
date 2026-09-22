@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { verifierGerant } from "@/lib/ged-acces";
+import { couleurValide, domaineValide, emailValide, LOGO_MAX_OCTETS, typeImageLogo } from "@/lib/marque-organisation";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 
 export type EtatProfilOrganisation = {
@@ -49,6 +50,26 @@ export async function modifierProfilOrganisation(
   if (estAgence && !franchiseTva && !tva) {
     return { erreur: "Renseignez le numéro de TVA ou cochez la franchise en base.", valeurs };
   }
+  const couleurPrimaire = champ("couleur_primaire");
+  const couleurSecondaire = champ("couleur_secondaire");
+  if ((couleurPrimaire && !couleurValide(couleurPrimaire)) || (couleurSecondaire && !couleurValide(couleurSecondaire))) {
+    return { erreur: "Choisissez une couleur au format proposé par le sélecteur.", valeurs };
+  }
+  const domaine = champ("domaine_personnalise")?.toLowerCase() || null;
+  const expediteur = champ("email_expediteur")?.toLowerCase() || null;
+  if (!emailValide(emailContact) || (expediteur && !emailValide(expediteur))) return { erreur: "Renseignez une adresse e-mail valide.", valeurs };
+  if (domaine && !domaineValide(domaine)) return { erreur: "Renseignez seulement le nom du site, par exemple espace.votre-agence.fr, sans https ni chemin.", valeurs };
+  if ((champ("nom_portail")?.length ?? 0) > 100) return { erreur: "Le nom affiché est limité à 100 caractères.", valeurs };
+  let logo: string | null | undefined;
+  if (formData.get("retirer_logo") !== null) logo = null;
+  const fichier = formData.get("logo_fichier");
+  if (fichier instanceof File && fichier.size > 0) {
+    if (fichier.size > LOGO_MAX_OCTETS) return { erreur: "Choisissez un logo de moins de 200 Ko.", valeurs };
+    const octets = new Uint8Array(await fichier.arrayBuffer());
+    const type = typeImageLogo(octets);
+    if (!type) return { erreur: "Choisissez une image PNG, JPEG ou WebP. Les autres fichiers ne sont pas acceptés.", valeurs };
+    logo = `data:${type};base64,${Buffer.from(octets).toString("base64")}`;
+  }
   // Les délais de relance : entiers bornés, et le second après le premier —
   // la base le vérifie aussi, mais une phrase vaut mieux qu'une contrainte.
   const entier = (n: string, defaut: number, min: number, max: number) => {
@@ -85,6 +106,14 @@ export async function modifierProfilOrganisation(
       relances_envoi_auto: formData.get("relances_envoi_auto") !== null,
       relance_1_jours: relance1,
       relance_2_jours: relance2,
+      ...(estAgence ? {
+        ...(logo !== undefined ? { logo_url: logo } : {}),
+        couleur_primaire: couleurPrimaire,
+        couleur_secondaire: couleurSecondaire,
+        domaine_personnalise: domaine,
+        email_expediteur: expediteur,
+        nom_portail: champ("nom_portail"),
+      } : {}),
     })
     .eq("id", orgId)
     .select("id");
@@ -93,5 +122,6 @@ export async function modifierProfilOrganisation(
 
   revalidatePath(`/agence/${orgId}/profil`);
   revalidatePath(`/agence/${orgId}`, "layout");
-  return { succes: "Profil enregistré — les prochains documents générés l'utiliseront." };
+  revalidatePath(`/locataire/${orgId}`, "layout");
+  return { succes: "Profil enregistré. Les prochains documents utiliseront votre identité. Toute adresse personnalisée modifiée doit être vérifiée avant activation." };
 }

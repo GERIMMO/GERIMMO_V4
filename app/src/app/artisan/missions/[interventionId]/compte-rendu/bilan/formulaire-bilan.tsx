@@ -3,9 +3,12 @@
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
+  demanderMonAvenant,
   deposerMonCompteRendu,
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
+import type { LigneDevis } from "@/lib/devis-structure";
+import { LignesDevis } from "../../../../lignes-devis";
 import { IMPUTATIONS } from "../../../../libelles";
 import {
   Carte,
@@ -41,15 +44,28 @@ function Envoyer() {
   );
 }
 
+function EnvoyerAvenant() {
+  const { pending } = useFormStatus();
+  return <button type="submit" className={CLASSE_BOUTON_PRINCIPAL} disabled={pending}>{pending ? "Envoi de la demande…" : "Demander l’accord"}</button>;
+}
+
 export function FormulaireBilan({
   interventionId,
   montantDevisCents,
+  lignesInitiales = [],
+  avenants = [],
 }: {
   interventionId: string;
   montantDevisCents: number | null;
+  lignesInitiales?: LigneDevis[];
+  avenants?: {id: string; statut: string; motif: string; nouveau_montant_cents: number; decision_motif: string | null}[];
 }) {
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(
     deposerMonCompteRendu.bind(null, interventionId),
+    {}
+  );
+  const [etatAvenant, actionAvenant] = useActionState<EtatArtisanAction, FormData>(
+    demanderMonAvenant.bind(null, interventionId),
     {}
   );
   const [autreCause, setAutreCause] = useState(false);
@@ -59,8 +75,37 @@ export function FormulaireBilan({
   const idImputation = useId();
   const idNouvelle = useId();
 
+  const euros = (cents: number) => new Intl.NumberFormat("fr-FR", {style:"currency",currency:"EUR"}).format(cents/100);
+  const enAttente = avenants.some(a => a.statut === "a_decider");
   return (
-    <form action={action} className="space-y-5">
+    <div className="space-y-5">
+      {montantDevisCents !== null && <Carte><TitreSection>Budget autorisé : {euros(montantDevisCents)}</TitreSection>
+        {avenants.map(a => <div key={a.id} className="mt-3 border-t border-[var(--filet)] pt-3 text-sm">
+          <p className="font-semibold">{a.statut === "a_decider" ? "Accord attendu" : a.statut === "accepte" ? "Dépassement accepté" : a.statut === "refuse" ? "Dépassement refusé" : "Demande annulée"} · {euros(a.nouveau_montant_cents)}</p>
+          <p>{a.motif}</p>{a.decision_motif && <p className="text-[var(--texte-secondaire)]">Réponse : {a.decision_motif}</p>}
+        </div>)}
+        {enAttente && <p className="mt-3 text-sm">Attendez la réponse avant d’engager les travaux supplémentaires. Le budget autorisé reste le plafond de cette intervention.</p>}
+      </Carte>}
+      {montantDevisCents !== null && !enAttente && (
+        <Carte className="border-l-4 border-l-[var(--warning)]">
+          <TitreSection>Le coût dépasse le devis accepté ?</TitreSection>
+          <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
+            Demandez l&apos;accord avant de terminer. Le nouveau total, la raison et la décision restent dans le dossier.
+          </p>
+          <form action={actionAvenant} className="mt-4 space-y-3">
+            <p className="text-sm">Reprenez le détail complet des travaux, y compris les postes déjà prévus. Le total remplacera le montant autorisé après acceptation.</p>
+            <LignesDevis titre="Nouveau détail complet" initiales={lignesInitiales} />
+            <div className="space-y-1.5">
+              <label className={CLASSE_LIBELLE} htmlFor="motif-avenant">Pourquoi le montant change</label>
+              <textarea id="motif-avenant" name="motif_avenant" rows={3} required minLength={10} className={CLASSE_ZONE_TEXTE} defaultValue={etatAvenant.valeurs?.motif_avenant} />
+            </div>
+            {etatAvenant.erreur && <Erreur>{etatAvenant.erreur}</Erreur>}
+            {etatAvenant.succes && <p className="text-sm text-[var(--success-soft-foreground)]">{etatAvenant.succes}</p>}
+            <EnvoyerAvenant />
+          </form>
+        </Carte>
+      )}
+      <form action={action} className="space-y-5">
       <div className="space-y-1.5">
         <label htmlFor={idTravaux} className={CLASSE_LIBELLE}>
           Ce que vous avez fait
@@ -86,7 +131,7 @@ export function FormulaireBilan({
         </label>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
           {montantDevisCents !== null
-            ? "À renseigner seulement s'il diffère du devis retenu. Un écart n'empêche rien : l'agence l'arbitre."
+            ? "À renseigner seulement s'il diffère du devis retenu. S'il est supérieur, l'avenant doit être accepté avant l'envoi."
             : "Si vous connaissez déjà le montant de votre facture."}
         </p>
         <input
@@ -174,6 +219,7 @@ export function FormulaireBilan({
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
 
       <Envoyer />
-    </form>
+      </form>
+    </div>
   );
 }

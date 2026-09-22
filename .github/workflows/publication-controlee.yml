@@ -1,0 +1,77 @@
+name: Publication contrôlée Gerimmo
+
+# No pull_request_target, workflow_run artifact execution, or candidate checkout.
+# All deployment commands are the reviewed controller already on protected main.
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: "Révision complète (40 caractères) ayant réussi les tests CI"
+        required: true
+        type: string
+      deploiement:
+        description: "Référence Vercel dpl_… prête, construite en production sans domaine attribué"
+        required: true
+        type: string
+      tests:
+        description: "Numéro de l’exécution CI réussie sur cette révision"
+        required: true
+        type: string
+      publier:
+        description: "Publier après contrôle (décoché : vérifier seulement)"
+        type: boolean
+        default: false
+      base_compatible:
+        description: "La base actuelle fonctionne aussi avec la version précédente"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+  deployments: read
+
+concurrency:
+  group: gerimmo-production-release
+  cancel-in-progress: false
+
+jobs:
+  controler:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    environment:
+      name: gerimmo-production
+      url: https://www.gerimmo.app/admin/autonomie
+    steps:
+      - name: Lire uniquement le contrôleur approuvé
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: app/scripts/deploiement
+      - name: Vérifier le contrôleur sans aucun secret
+        run: node --test app/scripts/deploiement/controle.test.mjs
+      - name: Vérifier la version, publier si autorisé, contrôler le résultat
+        env:
+          RELEASE_SHA: ${{ inputs.revision }}
+          RELEASE_DEPLOYMENT_ID: ${{ inputs.deploiement }}
+          RELEASE_CI_RUN_ID: ${{ inputs.tests }}
+          RELEASE_PUBLISH: ${{ inputs.publier }}
+          RELEASE_DATABASE_COMPATIBLE: ${{ inputs.base_compatible }}
+          GERIMMO_RELEASE_ENABLED: ${{ vars.GERIMMO_RELEASE_ENABLED }}
+          GERIMMO_PRODUCTION_ORIGIN: https://www.gerimmo.app
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node app/scripts/deploiement/publier.mjs
+      - name: Conserver le compte rendu
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: controle-publication-${{ github.run_id }}
+          path: publication-resultats/
+          retention-days: 30
+          if-no-files-found: ignore

@@ -1,5 +1,7 @@
 "use server";
 
+import { lireLignesDevis, montantEnCentimes } from "@/lib/devis-structure";
+
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -150,9 +152,7 @@ function rafraichirMission(interventionId: string) {
  * refuser l'un des deux ferait échouer la saisie une fois sur deux.
  */
 function centimes(brut: string): number | null {
-  const propre = brut.replace(/\s| | /g, "").replace(",", ".").replace("€", "");
-  if (!/^\d+(\.\d{1,2})?$/.test(propre)) return null;
-  return Math.round(Number(propre) * 100);
+  return montantEnCentimes(brut);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -368,16 +368,20 @@ export async function deposerMonDevis(
   if (!fiche) return REFUS;
 
   const valeurs = valeursDuFormulaire(formData);
-  const montant = centimes(String(formData.get("montant") ?? ""));
-  const description = String(formData.get("description") ?? "").trim();
+  let calcul: ReturnType<typeof lireLignesDevis>;
+  try { calcul = lireLignesDevis(formData.get("lignes_devis")); }
+  catch (error) { return { erreur: error instanceof Error ? error.message : "Vérifiez les lignes du devis.", valeurs }; }
+  const diagnostic = String(formData.get("diagnostic") ?? "").trim();
+  const prestations = String(formData.get("prestations") ?? "").trim();
+  const delai = String(formData.get("delai") ?? "").trim();
+  const duree = String(formData.get("duree") ?? "").trim();
+  const contraintes = String(formData.get("contraintes") ?? "").trim();
+  const observations = String(formData.get("observations") ?? "").trim();
   const valideJusquAu = String(formData.get("valide_jusqu_au") ?? "").trim();
   const fichier = formData.get("fichier");
 
-  if (montant === null || montant <= 0) {
-    return { erreur: "Indiquez le montant TTC du devis, en euros.", valeurs };
-  }
-  if (!description) {
-    return { erreur: "Décrivez ce que couvre le devis.", valeurs };
+  if (!diagnostic || !prestations || !delai || !duree) {
+    return { erreur: "Complétez le diagnostic, les travaux, le délai et la durée estimée.", valeurs };
   }
 
   // Le chemin de stockage doit être sous le dossier de CETTE agence : on le
@@ -400,10 +404,15 @@ export async function deposerMonDevis(
     piece = prepare;
   }
 
-  const { error } = await supabase.rpc("deposer_devis", {
+  const { error } = await supabase.rpc("deposer_devis_structure", {
     p_sollicitation: sollicitationId,
-    p_montant_ttc_cents: montant,
-    p_description: description,
+    p_lignes: calcul.lignes,
+    p_diagnostic: diagnostic,
+    p_prestations: prestations,
+    p_delai: delai,
+    p_duree: duree,
+    p_contraintes: contraintes || null,
+    p_observations: observations || null,
     p_valide_jusqu_au: valideJusquAu || null,
     p_storage_path: piece?.chemin ?? null,
     p_mime: piece?.mime ?? null,
@@ -671,4 +680,36 @@ export async function deposerMonCompteRendu(
 
   rafraichirMission(interventionId);
   redirect(`/artisan/missions/${interventionId}?termine=1`);
+}
+
+export async function demanderMonAvenant(
+  interventionId: string,
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+  const valeurs = valeursDuFormulaire(formData);
+  let calcul: ReturnType<typeof lireLignesDevis>;
+  try { calcul = lireLignesDevis(formData.get("lignes_devis")); }
+  catch (error) { return { erreur: error instanceof Error ? error.message : "Vérifiez les lignes de l’avenant.", valeurs }; }
+  const montant = calcul.montant_ttc_cents;
+  const motif = String(formData.get("motif_avenant") ?? "").trim();
+  if (montant === null || montant <= 0) {
+    return { erreur: "Indiquez le nouveau total TTC en euros.", valeurs };
+  }
+  if (motif.length < 10) {
+    return { erreur: "Expliquez précisément la raison du dépassement.", valeurs };
+  }
+  const { error } = await supabase.rpc("demander_avenant_devis", {
+    p_intervention: interventionId,
+    p_montant: montant,
+    p_motif: motif,
+    p_lignes: calcul.lignes,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  rafraichirMission(interventionId);
+  return {
+    succes: "Avenant envoyé. Attendez son acceptation avant de terminer l’intervention avec ce montant.",
+  };
 }

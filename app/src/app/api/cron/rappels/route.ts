@@ -24,6 +24,7 @@ import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
+import { orchestrerDossiers } from "@/lib/orchestrateur";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -73,6 +74,10 @@ export async function GET(request: Request) {
       { status: 503 }
     );
   }
+  // La même ronde matinale remet aussi chaque dossier sur sa prochaine étape.
+  // Son éventuel échec ne bloque jamais les rappels déjà dus.
+  const orchestration = await orchestrerDossiers(supabase);
+  if (orchestration.erreur) console.error("[orchestrateur]", orchestration.erreur);
   // Pas de contrôle d'adresse de site ici : le rappel se suffit à lui-même, il
   // ne porte pas de lien. Le locataire n'a rien à ouvrir — il a un rendez-vous.
 
@@ -107,6 +112,7 @@ export async function GET(request: Request) {
       categorie: l.categorie,
     };
     const envoi = await envoyerEmail({
+      organisation: { db: supabase, id: l.organization_id },
       to: l.adresse,
       subject: sujetRappel(rappel),
       html: corpsRappel(rappel),

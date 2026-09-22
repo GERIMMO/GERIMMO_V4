@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import type { LigneDevis } from "@/lib/devis-structure";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../../../../acces";
 import { euros } from "../../../../libelles";
@@ -20,7 +21,7 @@ export const metadata = { title: "Le bilan — Espace artisan" };
 export default async function PageBilan(
   props: PageProps<"/artisan/missions/[interventionId]/compte-rendu/bilan">
 ) {
-  await verifierAccesArtisan();
+  const { supabase } = await verifierAccesArtisan();
   const { interventionId } = await props.params;
 
   const agenda = await chargerAgenda();
@@ -41,6 +42,9 @@ export default async function PageBilan(
   if (!mission.photo_apres_deposee) {
     redirect(`/artisan/missions/${interventionId}/compte-rendu`);
   }
+
+  const { data: budgetBrut, error: erreurBudget } = await supabase.rpc("mon_budget_intervention", { p_intervention: interventionId });
+  const budget = budgetBrut as { plafond_cents: number | null; lignes: LigneDevis[]; avenants: {id: string; statut: string; motif: string; nouveau_montant_cents: number; decision_motif: string | null}[] } | null;
 
   return (
     <div className="space-y-5">
@@ -65,10 +69,13 @@ export default async function PageBilan(
 
       <Succes>Photo du travail réalisé : envoyée.</Succes>
 
-      <FormulaireBilan
+      {erreurBudget && <p role="alert" className="text-sm text-[var(--danger)]">Le budget autorisé n’a pas pu être relu. Rechargez cette page avant de terminer l’intervention.</p>}
+      {!erreurBudget && <FormulaireBilan
         interventionId={interventionId}
-        montantDevisCents={mission.montant_ttc_cents}
-      />
+        montantDevisCents={budget?.plafond_cents ?? mission.montant_ttc_cents}
+        lignesInitiales={budget?.lignes ?? []}
+        avenants={budget?.avenants ?? []}
+      />}
     </div>
   );
 }

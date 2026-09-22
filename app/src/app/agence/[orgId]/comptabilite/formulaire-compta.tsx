@@ -91,7 +91,7 @@ export function RapportsGestion({
             {rs.length > 0 && (
               <ul className="space-y-1 text-sm">
                 {rs.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-center gap-2">
+                  <li key={r.id} id={`rapport-${r.id}`} className="scroll-mt-24 flex flex-wrap items-center gap-2">
                     <span className="sm:w-28 sm:shrink-0">{moisEnFrancais(r.mois)}</span>
                     <span className="montant sm:w-28 sm:shrink-0">net {eur(r.net)}</span>
                     {/* Cycle du rapport : à valider → envoyé → versé */}

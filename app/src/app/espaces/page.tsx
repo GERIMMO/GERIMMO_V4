@@ -96,6 +96,8 @@ export default async function PageEspaces() {
   // Le sélecteur n'est pas perdu pour autant : il reste l'écran des comptes
   // multirôles ordinaires, et la console y ramène.
   if (estSuperAdmin) redirect("/admin");
+  const { data: estRelais } = await supabase.rpc("has_supervision_power", { p_pouvoir: "lecture" });
+
 
   // Locataire sorti (chantier D2) : l'adhésion désactivée garde un accès en
   // LECTURE à son espace — quittances, décompte de restitution, justificatifs.
@@ -147,7 +149,7 @@ export default async function PageEspaces() {
   // L'artisan n'a qu'UNE destination, même avec trois adhésions : elles mènent
   // toutes à son portail, qui réunit les agences. Une page à une seule carte
   // n'apporterait rien — on y entre directement.
-  if (!accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0) {
+  if (!estRelais && !accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0) {
     redirect("/artisan");
   }
 
@@ -155,7 +157,7 @@ export default async function PageEspaces() {
   // admin est déjà parti vers sa console plus haut.
   // `!estArtisan` : un gérant qui est aussi artisan a deux destinations, même
   // si l'une d'elles ne tient pas encore à une adhésion.
-  if (!accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0) {
+  if (!estRelais && !accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -186,7 +188,7 @@ export default async function PageEspaces() {
         <h1 className="mb-6">Mes espaces</h1>
 
         {accesIncomplets && <p role="alert" className="err mb-4">Certains accès n’ont pas pu être chargés. Rechargez la page pour retrouver la liste complète de vos espaces ; les accès affichés restent disponibles.</p>}
-        {!accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
+        {!estRelais && !accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
           <p className="text-muted-foreground">
             {erreurOuverture
               ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
@@ -195,6 +197,7 @@ export default async function PageEspaces() {
         )}
 
         <div className="grid gap-2.5">
+          {estRelais && <Link href="/relais" className="carte-espace"><span><strong className="block">Relais de supervision</strong><span className="block text-sm text-muted-foreground">Suivre les priorités pendant votre délégation temporaire</span></span></Link>}
           {/* L'artisan, en une carte : son portail est inter-agences, et les
               adhésions qu'il porte (une par agence qui l'a sollicité) mènent
               toutes au même endroit. Le nom d'une agence n'aurait pas de sens

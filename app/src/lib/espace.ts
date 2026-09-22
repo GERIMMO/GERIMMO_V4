@@ -20,7 +20,7 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
   // (deux requêtes en cascade auparavant, sur chaque page de l'espace).
   const { data: adhesion } = await supabase
     .from("memberships")
-    .select("role, organisation:organizations(id, name, status, type, essai_fin)")
+    .select("role, organisation:organizations(id, name, status, type, essai_fin, logo_url, couleur_primaire, couleur_secondaire, nom_portail)")
     .eq("account_id", user.id)
     .eq("organization_id", orgId)
     .eq("status", "active")
@@ -34,7 +34,7 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
     if (superAdmin) {
       const { data: org } = await supabase
         .from("organizations")
-        .select("id, name, status, type, essai_fin")
+        .select("id, name, status, type, essai_fin, logo_url, couleur_primaire, couleur_secondaire, nom_portail")
         .eq("id", orgId)
         .maybeSingle();
       if (org) {
@@ -61,6 +61,10 @@ export const verifierAccesEspace = cache(async function verifierAccesEspace(
     status: string;
     type: string;
     essai_fin: string | null;
+    logo_url: string | null;
+    couleur_primaire: string | null;
+    couleur_secondaire: string | null;
+    nom_portail: string | null;
   } | null;
   if (!organisation) notFound();
 

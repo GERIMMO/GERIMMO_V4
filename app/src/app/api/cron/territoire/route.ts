@@ -14,11 +14,12 @@
 // service qui ne sort pas d'ici, lecture seule sur ce que la ronde a besoin de
 // lire. Rien n'est envoyé à personne.
 
+import { actualiserMarchePublic } from "@/lib/sources-territoire";
 import { timingSafeEqual } from "node:crypto";
 import voisinsFichier from "@/data/departements-voisins.json";
 import marcheFichier from "@/data/territoires-marche.json";
 import { evaluerPorte } from "@/lib/porte-sante";
-import { decider, noterCandidats, type Marche, type Voisinage } from "@/lib/score-territoire";
+import { decider, noterCandidats, prioriteTerritoriale, type Marche, type Voisinage } from "@/lib/score-territoire";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache, dernieresTaches, type PasseConsignee } from "@/lib/tache";
 import {
@@ -29,6 +30,8 @@ import {
   type LigneLot,
   type LigneOrganisation,
 } from "@/lib/territoire";
+
+import { artisansVerifiesParDepartement, fusionnerMarche, lireTerritoire, moisPrecedent, publiciteParDepartement, type ArtisanTerritorial, type LigneMarche, type MesurePublicitaire } from "@/lib/mesures-territoire";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -67,11 +70,11 @@ export async function GET(request: Request) {
   }
 
   const depuis24h = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-  const [orgs, biens, lots, baux, passes, erreurs, bugs] = await Promise.all([
-    supabase.from("organizations").select("id, type, status, postal_code, created_at"),
-    supabase.from("biens").select("id, organization_id, postal_code"),
-    supabase.from("lots").select("id, bien_id, etat"),
-    supabase.from("baux").select("id, lot_id, etat"),
+  const [orgs, biens, lots, baux, passes, erreurs, bugs, zones, artisans, mesures, marcheBase] = await Promise.all([
+    lireTerritoire(supabase, "organizations", "id, type, status, postal_code, created_at"),
+    lireTerritoire(supabase, "biens", "id, organization_id, postal_code"),
+    lireTerritoire(supabase, "lots", "id, bien_id, etat"),
+    lireTerritoire(supabase, "baux", "id, lot_id, etat"),
     supabase
       .from("tech_log")
       .select("evenement, details, created_at")
@@ -89,6 +92,10 @@ export async function GET(request: Request) {
       .eq("nature", "bug")
       .eq("gravite", GRAVITE_BLOQUANTE)
       .in("etat", ETATS_OUVERTS),
+    lireTerritoire(supabase, "artisan_zones", "artisan_id, code_postal", ["artisan_id", "code_postal"]),
+    lireTerritoire(supabase, "artisans", "id,statut_plateforme,siret_etat,blacklist_globale_le,visibilite"),
+    lireTerritoire(supabase, "marketing_mesures", "id,campagne_id,meta_ad_id,clics,depense_cents,prospects,details,mesure_le"),
+    supabase.from("territory_market_data").select("departement,logements_locatifs,agences_locales,tension_marche,concurrence,artisans_disponibles,cout_publicitaire_cents,clics_publicitaires,prospects,clients_gagnes,cout_acquisition_cents,cout_prospect_cents,periode_publicite_debut,periode_publicite_fin,observations,mesure_le"),
   ]);
 
   // Sans l'empreinte, la ronde n'a rien à dire : elle le consigne et s'arrête.
@@ -112,7 +119,50 @@ export async function GET(request: Request) {
     baux: (baux.data ?? []) as LigneBail[],
   });
   const regions = empreinteParRegion(empreinte.lignes);
-  const marche = marcheFichier as Marche;
+  // Une panne ne transforme ni les artisans ni les résultats commerciaux en zéros.
+  if (marcheBase.error) {
+    await consignerTache(supabase, "territoire", { erreur: "données territoriales indisponibles", agi: false });
+    return Response.json({ erreur: "Les données territoriales ne sont pas disponibles." }, { status: 503 });
+  }
+  const anciennes = new Map(((marcheBase.data ?? []) as LigneMarche[]).map(l => [l.departement, l]));
+  const reseau = zones.error || artisans.error ? null : artisansVerifiesParDepartement((artisans.data ?? []) as ArtisanTerritorial[], (zones.data ?? []) as { artisan_id: string; code_postal: string }[]);
+  const periode = moisPrecedent();
+  const publicite = mesures.error ? null : publiciteParDepartement((mesures.data ?? []) as MesurePublicitaire[], periode.debut, periode.fin);
+  const maintenant = new Date().toISOString();
+  const actualisation = await actualiserMarchePublic(fusionnerMarche(marcheFichier as Marche, [...anciennes.values()]));
+  const donneesMarche = Object.entries(actualisation.marche.departements).map(([code, m]) => {
+    const ancienne = anciennes.get(code);
+    const ligne = { logements_locatifs: null, agences_locales: null, tension_marche: null, concurrence: null,
+      artisans_disponibles: null, cout_publicitaire_cents: null, clics_publicitaires: null, prospects: null, clients_gagnes: null,
+      cout_acquisition_cents: null, cout_prospect_cents: null, periode_publicite_debut: null, periode_publicite_fin: null,
+      ...ancienne, departement: code, observations: { ...(ancienne?.observations ?? {}) }, mesure_le: maintenant } as LigneMarche;
+    for (const [cle, colonne] of [["logements_loues_prive", "logements_locatifs"], ["agences", "agences_locales"], ["communes_zone_tendue", "tension_marche"]] as const) {
+      const observation = m.observations?.[cle];
+      if (m[cle] != null && observation && (!ligne.observations[cle] || Date.parse(observation.recupere_le) > Date.parse(ligne.observations[cle].recupere_le))) {
+        ligne[colonne] = m[cle]; ligne.observations[cle] = observation;
+      }
+    }
+    if (reseau) {
+      ligne.artisans_disponibles = reseau.get(code) ?? 0;
+      ligne.observations.artisans_disponibles = { source: "Artisans Gerimmo vérifiés et publics", observe_le: maintenant.slice(0,10), recupere_le: maintenant, definition: "Artisans validés, SIRET vérifié, sans exclusion globale, avec une zone déclarée dans ce département. La disponibilité et les assurances restent à vérifier pour chaque mission." };
+    }
+    if (publicite) {
+      const pub = publicite.departements.get(code);
+      ligne.cout_publicitaire_cents = pub?.depense ?? null; ligne.clics_publicitaires = pub?.clics ?? null;
+      ligne.prospects = pub?.prospects ?? null; ligne.clients_gagnes = pub?.clients ?? null;
+      ligne.cout_acquisition_cents = pub?.coutClient ?? null; ligne.cout_prospect_cents = pub?.coutProspect ?? null;
+      ligne.periode_publicite_debut = periode.debut; ligne.periode_publicite_fin = periode.fin;
+      delete ligne.observations.cout_acquisition_cents;
+      if (pub) ligne.observations.cout_acquisition_cents = { source: "Résultats de campagnes avec attribution vérifiée", observe_le: periode.fin, recupere_le: pub.mesureLe, definition: "Dépense divisée par les clients réellement attribués à la campagne sur la même période et le même département." };
+    }
+    return ligne;
+  });
+  const sauvegarde = await supabase.from("territory_market_data").upsert(donneesMarche, { onConflict: "departement" });
+  if (sauvegarde.error) {
+    await consignerTache(supabase, "territoire", { erreur: "enregistrement territorial impossible", agi: false });
+    return Response.json({ erreur: "Les résultats territoriaux n’ont pas pu être enregistrés." }, { status: 500 });
+  }
+  const marche = fusionnerMarche(actualisation.marche, donneesMarche);
   const candidats = noterCandidats({
     empreinte: empreinte.lignes,
     marche,
@@ -143,6 +193,9 @@ export async function GET(request: Request) {
       bauxEnCours: empreinte.lignes.reduce((n, l) => n + l.bauxEnCours, 0),
       nonPlaces: empreinte.sansCodePostal.organisations + empreinte.sansCodePostal.biens + empreinte.horsReferentiel,
     },
+    priorite: decision.prochain ? prioriteTerritoriale(marche.departements[decision.prochain.code]) : null,
+    donnees: { sourcesPubliques: actualisation.bilan, lecturesIndisponibles: [zones.error && "zones artisanales", artisans.error && "artisans", mesures.error && "résultats publicitaires"].filter(Boolean), mesuresPublicitairesIgnorees: publicite?.ignorees ?? null, periode },
+    autorisationDepense: false,
     marcheManquant: marche.sources.filter((s) => !s.recupere_le).map((s) => s.cle),
     // Ce que la ronde FERAIT si la porte est ouverte — rien encore : les gestes
     // d'ouverture sont les briques suivantes. Le dire évite qu'on croie à une

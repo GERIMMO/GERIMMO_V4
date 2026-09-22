@@ -7,6 +7,7 @@ import {
   decider,
   departementsOuverts,
   noterCandidats,
+  prioriteTerritoriale,
   type Marche,
   type Voisinage,
 } from "../src/lib/score-territoire";
@@ -45,7 +46,7 @@ describe("les données de référence versionnées", () => {
     expect(marcheFichier.sources.map((s) => s.cle).sort()).toEqual(["agences", "communes_zone_tendue", "logements_loues_prive"]);
   });
   it("posent des poids qui font 1", () => {
-    expect(POIDS.marche + POIDS.agences + POIDS.tension + POIDS.proximite).toBeCloseTo(1);
+    expect(Object.values(POIDS).reduce((a,b) => a+b, 0)).toBeCloseTo(1);
   });
 });
 
@@ -66,7 +67,7 @@ describe("noter les candidats", () => {
   it("sans aucune donnée de marché, seule la proximité départage — et tout est dit manquant", () => {
     const candidats = noterCandidats({ empreinte, marche: marcheVide(), voisinage });
     expect(candidats).toHaveLength(100);
-    expect(candidats[0].manquants).toEqual(["logements_loues_prive", "agences", "communes_zone_tendue"]);
+    expect(candidats[0].manquants).toEqual(["logements_loues_prive", "agences", "communes_zone_tendue", "artisans_disponibles", "cout_acquisition_cents", "concurrence"]);
     // Les six voisins de l'Essonne sont devant tout le monde ; parmi eux, celui
     // qui a le moins de voisins au total a la plus grande part de voisins ouverts.
     const six = candidats.slice(0, 6).map((c) => c.code).sort();
@@ -116,7 +117,8 @@ describe("noter les candidats", () => {
 describe("décider du prochain département", () => {
   it("reste dans la région courante tant qu'un candidat y dépasse le seuil", () => {
     const empreinte = [ligne("91", { agences: 1, biens: 3, bauxEnCours: 2 })];
-    const candidats = noterCandidats({ empreinte, marche: marcheVide(), voisinage });
+    const marche = marcheVide(); marche.departements["92"].logements_loues_prive = 100;
+    const candidats = noterCandidats({ empreinte, marche, voisinage });
     const d = decider(empreinte, candidats, 10);
     expect(d.regionCourante).toBe("Île-de-France");
     expect(d.changementDeRegion).toBe(false);
@@ -134,7 +136,7 @@ describe("décider du prochain département", () => {
     expect(d.regionCourante).toBe("Île-de-France");
     expect(d.changementDeRegion).toBe(true);
     expect(d.prochain?.code).toBe("45");
-    expect(d.raison).toMatch(/entièrement ouverte/);
+    expect(d.raison).toMatch(/nouvelle région/);
   });
 
   it("change de région quand ce qui reste dans la région est sous le seuil", () => {
@@ -147,7 +149,7 @@ describe("décider du prochain département", () => {
     const d = decider(empreinte, candidats, 90);
     expect(d.changementDeRegion).toBe(true);
     expect(d.prochain?.code).toBe("69");
-    expect(d.raison).toMatch(/sous le seuil de 90/);
+    expect(d.raison).toMatch(/à étudier en priorité/);
   });
 
   it("ouvre le meilleur candidat quand la plateforme n'est nulle part", () => {
@@ -169,5 +171,29 @@ describe("décider du prochain département", () => {
 
   it("expose un seuil par défaut lisible", () => {
     expect(SEUIL_PERTINENCE).toBe(20);
+  });
+});
+
+
+describe("ne pas promettre un lancement sans données", () => {
+  it("ne choisit pas le premier département alphabétique sur un marché vide", () => {
+    const candidats = noterCandidats({ empreinte: [], marche: marcheVide(), voisinage });
+    expect(decider([], candidats).prochain).toBeNull();
+  });
+  it("distingue un réseau inconnu d'un réseau vérifié sans artisan", () => {
+    const m = { logements_loues_prive: 40000, agences: 50, communes_zone_tendue: null };
+    expect(prioriteTerritoriale(m)).toMatchObject({ public: 'donnees', pilotePreparable: false });
+    expect(prioriteTerritoriale({ ...m, artisans_disponibles: 0 })).toMatchObject({ public: 'artisans', pilotePreparable: false });
+    expect(prioriteTerritoriale({ ...m, artisans_disponibles: 4 })).toMatchObject({ public: 'agences', pilotePreparable: true });
+    expect(prioriteTerritoriale({ ...m, agences: 3, artisans_disponibles: 4 })).toMatchObject({ public: 'proprietaires', pilotePreparable: true });
+  });
+  it("le coût par client et la concurrence connus départagent des marchés égaux", () => {
+    const marche = marcheVide();
+    const commun = { logements_loues_prive: 40000, agences: 50, communes_zone_tendue: 8, artisans_disponibles: 4 };
+    marche.departements['91'] = { ...commun, cout_acquisition_cents: 500, concurrence: 2 };
+    marche.departements['92'] = { ...commun, cout_acquisition_cents: 3000, concurrence: 10 };
+    const candidats = noterCandidats({ empreinte: [], marche, voisinage });
+    expect(candidats.find(c=>c.code==='91')!.score).toBeGreaterThan(candidats.find(c=>c.code==='92')!.score);
+    expect(candidats.find(c=>c.code==='91')!.couverture).toBe(100);
   });
 });

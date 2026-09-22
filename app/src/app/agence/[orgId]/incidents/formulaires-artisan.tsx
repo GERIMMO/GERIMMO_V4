@@ -3,6 +3,7 @@
 import { useActionState, useId } from "react";
 import {
   annulerMission,
+  deciderAvenant,
   evaluerArtisan,
   fixerRendezVous,
   ouvrirConsultation,
@@ -36,6 +37,25 @@ function Retour({ etat }: { etat: EtatIncidentAction }) {
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
     </>
+  );
+}
+
+export function FormulaireDecisionAvenant({ orgId, avenantId }: { orgId: string; avenantId: string }) {
+  const [etatAccepte, accepter] = useActionState<EtatIncidentAction, FormData>(deciderAvenant.bind(null, orgId, avenantId, true), {});
+  const [etatRefuse, refuser] = useActionState<EtatIncidentAction, FormData>(deciderAvenant.bind(null, orgId, avenantId, false), {});
+  return (
+    <div className="space-y-2">
+      <form action={accepter} className="space-y-2">
+        <Input name="motif_decision" aria-label="Précision sur la décision" placeholder="Précision facultative" />
+        <BoutonEnvoi enCoursTexte="Acceptation…">Accepter l&apos;avenant</BoutonEnvoi>
+        <Retour etat={etatAccepte} />
+      </form>
+      <form action={refuser} className="space-y-2">
+        <Input name="motif_decision" aria-label="Raison du refus" required minLength={10} maxLength={4000} placeholder="Expliquez le refus à l’artisan" />
+        <BoutonEnvoi variant="outline" enCoursTexte="Refus…">Refuser et conserver le montant autorisé</BoutonEnvoi>
+        <Retour etat={etatRefuse} />
+      </form>
+    </div>
   );
 }
 

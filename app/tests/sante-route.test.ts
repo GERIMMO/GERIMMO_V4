@@ -22,6 +22,7 @@ describe("la route de santé", () => {
       ok: false,
       base: false,
       commit: "0123456",
+      revision: null,
       motif: expect.stringContaining("SUPABASE_SERVICE_ROLE_KEY"),
     });
   });
@@ -30,6 +31,13 @@ describe("la route de santé", () => {
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "");
     const r = await GET(new Request("https://exemple.fr/api/sante"));
-    expect((await r.json()).commit).toBeNull();
+    expect(await r.json()).toMatchObject({ commit: null, revision: null });
+  });
+  it("expose la révision complète pour vérifier la version exacte publiée", async () => {
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
+    const sha = "0123456789abcdef0123456789abcdef01234567";
+    vi.stubEnv("VERCEL_GIT_COMMIT_SHA", sha);
+    const r = await GET(new Request("https://exemple.fr/api/sante"));
+    expect(await r.json()).toMatchObject({ commit: "0123456", revision: sha });
   });
 });

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { MarqueOrganisation } from "@/components/marque-organisation";
 import { Tiroir } from "@/components/ui/tiroir";
 import { IconeTrait } from "@/components/icone-trait";
 import {
@@ -66,6 +66,7 @@ export function BarreLaterale({
   navigation,
   organisations = [],
   essai,
+  marque,
 }: {
   orgId: string;
   /** Le mot sous la marque : « Espace agence », « Mon espace ». */
@@ -75,6 +76,7 @@ export function BarreLaterale({
   organisations?: OrganisationDuSelecteur[];
   /** L'essai en cours, s'il y en a un : jours restants (négatif = terminé) et où l'on paie. */
   essai?: { jours: number; href: string } | null;
+  marque?: { nom?: string | null; logoUrl?: string | null };
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -85,8 +87,8 @@ export function BarreLaterale({
   return (
     <>
       <div className="coquille-marque">
-        <Link href={`/agence/${orgId}`} aria-label="Accueil" className="flex items-center gap-2.5">
-          <MarqueGerimmo />
+        <Link href={`/agence/${orgId}`} aria-label="Accueil" className="flex min-w-0 max-w-full items-center gap-2.5 overflow-hidden">
+          <MarqueOrganisation marque={{ nom_portail: marque?.nom, logo_url: marque?.logoUrl }} />
         </Link>
       </div>
 

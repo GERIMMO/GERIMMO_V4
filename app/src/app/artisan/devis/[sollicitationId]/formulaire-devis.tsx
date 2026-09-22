@@ -7,6 +7,7 @@ import {
   deposerMonDevis,
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
+import { LignesDevis } from "../../lignes-devis";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import {
   CLASSE_BOUTON_PRINCIPAL,
@@ -68,8 +69,8 @@ export function FormulaireDevis({
   );
   const [refusOuvert, setRefusOuvert] = useState(false);
 
-  const idMontant = useId();
-  const idDescription = useId();
+  const idDiagnostic = useId();
+  const idPrestations = useId();
   const idEcheance = useId();
   const idFichier = useId();
   const idMotif = useId();
@@ -78,36 +79,34 @@ export function FormulaireDevis({
     <div className="space-y-6">
       <form action={action} className="space-y-5">
         <div className="space-y-1.5">
-          <label htmlFor={idMontant} className={CLASSE_LIBELLE}>
-            Montant TTC
-          </label>
-          <input
-            id={idMontant}
-            name="montant"
-            type="text"
-            inputMode="decimal"
-            required
-            defaultValue={etat.valeurs?.montant}
-            className={CLASSE_CHAMP}
-          />
-          <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
-            En euros, toutes taxes comprises. La virgule comme le point sont acceptés.
-          </p>
-        </div>
-
-        <div className="space-y-1.5">
-          <label htmlFor={idDescription} className={CLASSE_LIBELLE}>
-            Ce que couvre le devis
+          <label htmlFor={idDiagnostic} className={CLASSE_LIBELLE}>
+            Votre diagnostic
           </label>
           <textarea
-            id={idDescription}
-            name="description"
-            rows={4}
+            id={idDiagnostic}
+            name="diagnostic"
+            rows={3}
             required
-            defaultValue={etat.valeurs?.description}
+            defaultValue={etat.valeurs?.diagnostic}
             className={CLASSE_ZONE_TEXTE}
           />
         </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor={idPrestations} className={CLASSE_LIBELLE}>Travaux proposés</label>
+          <textarea id={idPrestations} name="prestations" rows={4} required defaultValue={etat.valeurs?.prestations} className={CLASSE_ZONE_TEXTE} />
+          <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">Précisez les quantités, les fournitures et ce qui est inclus.</p>
+        </div>
+
+        <LignesDevis />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="space-y-1.5 text-sm"><span className={CLASSE_LIBELLE}>Délai avant intervention</span><input name="delai" required defaultValue={etat.valeurs?.delai} placeholder="Ex. : sous 5 jours" className={CLASSE_CHAMP} /></label>
+          <label className="space-y-1.5 text-sm"><span className={CLASSE_LIBELLE}>Durée estimée</span><input name="duree" required defaultValue={etat.valeurs?.duree} placeholder="Ex. : une demi-journée" className={CLASSE_CHAMP} /></label>
+        </div>
+
+        <div className="space-y-1.5"><label className={CLASSE_LIBELLE}>Contraintes et accès <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea name="contraintes" rows={2} defaultValue={etat.valeurs?.contraintes} className={CLASSE_ZONE_TEXTE} placeholder="Coupure d’eau, stationnement, présence nécessaire…" /></div>
+        <div className="space-y-1.5"><label className={CLASSE_LIBELLE}>Observations <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea name="observations" rows={2} defaultValue={etat.valeurs?.observations} className={CLASSE_ZONE_TEXTE} /></div>
 
         <div className="space-y-1.5">
           <label htmlFor={idEcheance} className={CLASSE_LIBELLE}>

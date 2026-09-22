@@ -50,6 +50,40 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await agir(null,"aal1","service_role");await db.query("update public.appels_loyer set email_envoye_at=now() where id=$1",[appel]);await db.query("update public.appels_loyer set email_envoye_at=now()+interval '1 minute' where id=$1",[appel]);
   const messages=(await db.query("select origine,messages_envoyes from public.automation_events where cle_unique=$1",[`appels_loyer:${appel}:premier_envoi`])).rows;expect(messages).toEqual([{origine:"automatique",messages_envoyes:1}]);
  });
+ const mesurer=async(orgId:string|null=org)=>(await db.query("select public.mesures_automatisation($1) m",[orgId])).rows[0].m;
+ it("agrège plus de mille résultats et exclut ceux de plus de trente jours",async()=>{
+  await db.query("insert into public.automation_events(organization_id,origine,domaine,action,messages_envoyes) select $1,'automatique','message','Test',1 from generate_series(1,1001)",[org]);
+  await db.query("insert into public.automation_events(organization_id,origine,domaine,action,created_at) values($1,'humaine','document','Ancien',now()-interval '31 days'),($1,'humaine','document','Récent',now())",[org]);
+  await agir(admin);const m=await mesurer();expect(m.automatiques).toBe(1001);expect(m.humaines).toBe(1);expect(m.messages).toBe(1001);expect(m.organisations).toHaveLength(1);
+ });
+ it("ne révèle ni résultats ni noms des autres agences",async()=>{
+  await db.query("insert into public.automation_events(organization_id,origine,domaine,action) values($1,'automatique','location','Test A'),($2,'automatique','location','Test B')",[org,autreOrg]);
+  await agir(admin);expect((await mesurer(null)).organisations.map((o:{organization_id:string})=>o.organization_id)).toEqual([org]);const m=await mesurer(autreOrg);expect(m.automatiques).toBe(0);expect(m.organisations).toEqual([]);
+ });
+ it("ne compte que les confirmations de contact récentes",async()=>{
+  await db.query("insert into public.dossier_contacts(organization_id,incident_id,appel_necessaire,note,cree_par,created_at) values($1,$2,false,'Sans appel test',$3,now()-interval '31 days'),($4,$5,true,'Appel test',$6,now())",[org,incident,admin,autreOrg,incidentB,autreAdmin]);
+  await agir(sa);const m=await mesurer(null);expect(m.sans_appel).toBe(0);expect(m.avec_appel).toBe(1);
+ });
+ const quittance=async(mois:number)=>{
+  const appelQ=await id("insert into public.appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance) values($1,$2,(date_trunc('month',now())-make_interval(months=>$3))::date,700,50,750,current_date) returning id",[org,bail,mois]);
+  return id("insert into public.quittances(organization_id,bail_id,appel_id,montant) values($1,$2,$3,750) returning id",[org,bail,appelQ]);
+ };
+ it("compte un envoi groupé par mois terminé et exclut mois courant, trace absente et envoi humain",async()=>{
+  const auto=await quittance(1),manuel=await quittance(2),absent=await quittance(3),courant=await quittance(0);
+  const autreLot=await lot(org),personne=await id("insert into public.persons(organization_id,nom) values($1,'Second locataire fictif') returning id",[org]);
+  const autreBail=await id("insert into public.baux(organization_id,lot_id,locataire_principal,etat,date_debut,loyer_hc,charges) values($1,$2,$3,'brouillon',current_date,700,50) returning id",[org,autreLot,personne]);
+  const autreAppel=await id("insert into public.appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance) values($1,$2,(date_trunc('month',now())-interval '1 month')::date,700,50,750,current_date) returning id",[org,autreBail]);
+  const seconde=await id("insert into public.quittances(organization_id,bail_id,appel_id,montant) values($1,$2,$3,750) returning id",[org,autreBail,autreAppel]);
+  await agir(null,"aal1","service_role");await db.query("update public.quittances set email_envoye_at=now() where id=any($1::uuid[])",[[auto,courant,seconde]]);
+  await db.query("reset role");await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:admin,role:'authenticated',aal:'aal2'})]);await db.query("update public.quittances set email_envoye_at=now() where id=$1",[manuel]);
+  await db.query("select set_config('request.jwt.claims','{}',true)");await db.query("update public.quittances set email_envoye_at=now() where id=$1",[absent]);
+  await agir(admin);expect((await mesurer()).clics_minimum).toBe(1);
+  await db.query("reset role");await db.query("update public.automation_events set created_at=now()-interval '31 days' where cle_unique=$1",[`quittances:${auto}:premier_envoi`]);await agir(admin);expect((await mesurer()).clics_minimum).toBe(0);
+ });
+ it("mesure un document sans conserver son titre ou son chemin",async()=>{
+  await agir(null,"aal1","service_role");const doc=await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,(select enum_range(null::public.document_type))[1],'Contenu privé','chemin-prive','application/pdf',100,gen_random_uuid()::text) returning id",[org]);
+  const e=(await db.query("select origine,action,details from public.automation_events where cle_unique=$1",[`mesure:documents:${doc}:Document classé`])).rows;expect(e).toEqual([{origine:'automatique',action:'Document classé',details:{source:'resultat_metier'}}]);
+ });
  it("réserve création et révocation au permanent avec double vérification",async()=>{
   const sql="select public.creer_relais_supervision($1,7,'Absence temporaire test') id";
   for(const acteur of [null,admin,relais]){await agir(acteur);expect(await refus(sql,[relaisEmail])).toMatch(/permanent/i);}

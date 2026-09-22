@@ -84,6 +84,17 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await agir(null,"aal1","service_role");const doc=await id("insert into public.documents(organization_id,type,titre,storage_path,mime_type,taille_octets,empreinte) values($1,(select enum_range(null::public.document_type))[1],'Contenu privé','chemin-prive','application/pdf',100,gen_random_uuid()::text) returning id",[org]);
   const e=(await db.query("select origine,action,details from public.automation_events where cle_unique=$1",[`mesure:documents:${doc}:Document classé`])).rows;expect(e).toEqual([{origine:'automatique',action:'Document classé',details:{source:'resultat_metier'}}]);
  });
+ it("prépare un rapport une seule fois après clôture, sans le valider ni l’envoyer",async()=>{
+  const mandat=await id("insert into public.mandats(organization_id,person_id,etat,date_debut) select organization_id,locataire_principal,'actif',current_date-interval '2 months' from public.baux where id=$1 returning id",[bail]);
+  await db.query("insert into public.detentions(organization_id,lot_id,person_id,quote_part,date_debut) select organization_id,lot_id,locataire_principal,100,current_date-interval '2 months' from public.baux where id=$1",[bail]);
+  await db.query("insert into public.mandat_lignes(organization_id,mandat_id,lot_id,date_debut) select organization_id,$2,lot_id,current_date-interval '2 months' from public.baux where id=$1",[bail,mandat]);
+  await agir(null,"aal1","service_role");expect((await db.query("select public.preparer_rapports_automatiques() n")).rows[0].n).toBe(0);
+  await db.query("insert into public.clotures_comptables(organization_id,mois) values($1,(date_trunc('month',now())-interval '1 month')::date)",[org]);
+  expect((await db.query("select public.preparer_rapports_automatiques() n")).rows[0].n).toBe(1);expect((await db.query("select public.preparer_rapports_automatiques() n")).rows[0].n).toBe(0);
+  expect((await db.query("select statut,envoye_le,versement_date from public.rapports_gestion where mandat_id=$1",[mandat])).rows).toEqual([{statut:'a_valider',envoye_le:null,versement_date:null}]);
+  await actualiser();expect((await db.query("select id from public.orchestration_cases where dossier_type='rapport' and organization_id=$1",[org])).rows).toHaveLength(1);
+  await agir(admin);expect(await refus("select public.preparer_rapports_automatiques()")).toMatch(/permission|autorisation/i);
+ });
  it("réserve création et révocation au permanent avec double vérification",async()=>{
   const sql="select public.creer_relais_supervision($1,7,'Absence temporaire test') id";
   for(const acteur of [null,admin,relais]){await agir(acteur);expect(await refus(sql,[relaisEmail])).toMatch(/permanent/i);}

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { familleOrganisation } from "@/lib/clients-supervision";
-import { dernieresTaches, type PasseConsignee } from "@/lib/tache";
+import { depuisHeures, dernieresTaches, type PasseConsignee } from "@/lib/tache";
 import { faitsManquants } from "@/lib/editeur";
 import { etatConfiguration, etatTaches, pointsBloquants } from "@/lib/sante-service";
+import { mesurerAutomatisation } from "@/lib/automatisation";
 
 export const metadata = { title: "Console d'administration — Gerimmo" };
 
@@ -91,13 +92,41 @@ function File({
   );
 }
 
+function Equipe({ nom, etat, travail, prochaine, resultat, autorisation, href }: {
+  nom: string;
+  etat: "À jour" | "À surveiller" | "Action attendue";
+  travail: string;
+  prochaine: string;
+  resultat: string;
+  autorisation: string;
+  href: string;
+}) {
+  const classe = etat === "À jour" ? "puce-loue" : etat === "Action attendue" ? "puce-rouge" : "puce-prep";
+  return (
+    <Link href={href} className="group rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 transition hover:-translate-y-0.5 hover:bg-[var(--survol)]">
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-heading text-[16px] text-[var(--encre)]">{nom}</h3>
+        <span className={`puce ${classe}`}>{etat}</span>
+      </div>
+      <dl className="mt-3 space-y-2 text-[12.5px] leading-relaxed">
+        <div><dt className="inline font-semibold text-[var(--encre)]">Travail réalisé : </dt><dd className="inline text-[var(--texte-secondaire)]">{travail}</dd></div>
+        <div><dt className="inline font-semibold text-[var(--encre)]">Prochaine action : </dt><dd className="inline text-[var(--texte-secondaire)]">{prochaine}</dd></div>
+        <div><dt className="inline font-semibold text-[var(--encre)]">Résultat : </dt><dd className="inline text-[var(--texte-secondaire)]">{resultat}</dd></div>
+        <div><dt className="inline font-semibold text-[var(--encre)]">Votre décision : </dt><dd className="inline text-[var(--texte-secondaire)]">{autorisation}</dd></div>
+      </dl>
+      <span className="lien-discret mt-3 inline-block text-[12.5px] group-hover:underline">Ouvrir l’équipe →</span>
+    </Link>
+  );
+}
+
 export default async function PageAdmin() {
   const supabase = await createClient();
+  const depuis30Jours = depuisHeures(30 * 24);
 
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
   // On lit `error` : une console de pilotage qui affiche zéro parce qu'une
   // requête a échoué est pire que pas de console du tout.
-  const [orgs, devis, publications, lots, artisans, retours, contestations, journalTaches] = await Promise.all([
+  const [orgs, devis, publications, lots, artisans, retours, contestations, journalTaches, actionsHumaines, messagesRecents, incidentsRecents, incidentsOuverts] = await Promise.all([
     supabase.from("organizations").select("id, name, status, type, essai_fin").order("name"),
     supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
     supabase.from("publications").select("id, statut"),
@@ -105,7 +134,11 @@ export default async function PageAdmin() {
     supabase.rpc("artisans_a_valider"),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).in("etat", ["nouveau", "en_examen", "en_cours"]).neq("nature", "contestation"),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "contestation").neq("etat", "resolu"),
-    supabase.from("tech_log").select("evenement, details, created_at").like("evenement", "tache_%").order("created_at", { ascending: false }).limit(200),
+    supabase.from("tech_log").select("evenement, details, created_at").like("evenement", "tache_%").gte("created_at", depuis30Jours).order("created_at", { ascending: false }).limit(2000),
+    supabase.from("audit_log").select("id", { count: "exact", head: true }).gte("created_at", depuis30Jours),
+    supabase.from("messages").select("id", { count: "exact", head: true }).gte("created_at", depuis30Jours),
+    supabase.from("incidents").select("id", { count: "exact", head: true }).gte("created_at", depuis30Jours),
+    supabase.from("incidents").select("id", { count: "exact", head: true }).is("clos_le", null),
   ]);
 
   // La santé du service, en une ligne (20/09) : une variable absente ou une
@@ -128,6 +161,16 @@ export default async function PageAdmin() {
   const aEcrire = (publications.data ?? []).filter(
     (p) => p.statut === "proposition" || p.statut === "brouillon"
   ).length;
+  const mesure = mesurerAutomatisation(
+    journalTaches.error ? [] : (journalTaches.data ?? []) as PasseConsignee[],
+    actionsHumaines.error ? 0 : actionsHumaines.count ?? 0,
+    messagesRecents.error ? 0 : messagesRecents.count ?? 0,
+    incidentsRecents.error ? 0 : incidentsRecents.count ?? 0
+  );
+  const objectifAtteint = mesure.taux !== null && mesure.taux >= 90;
+  const nbRetours = retours.error ? null : retours.count ?? 0;
+  const nbArtisans = artisans.error ? null : (artisans.data ?? []).length;
+  const nbIncidents = incidentsOuverts.error ? null : incidentsOuverts.count ?? 0;
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
@@ -150,6 +193,45 @@ export default async function PageAdmin() {
         <span className="lien-discret shrink-0">Ouvrir →</span>
       </Link>
 
+      <section className="section-ecran">
+        <div className="entete-carte mb-4">
+          <div>
+            <p className="libelle-champ">Objectif d’autonomie</p>
+            <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">Automatisation mesurée sur les 30 derniers jours</h2>
+          </div>
+          <span className={`puce ${objectifAtteint ? "puce-loue" : "puce-prep"}`}>
+            {mesure.taux === null ? "Mesure en démarrage" : `${mesure.taux} % sur 90 % visés`}
+          </span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Indicateur libelle="Actions automatiques" valeur={mesure.actionsAutomatiques} accent="bleu" precision="terminées par Gerimmo" />
+          <Indicateur libelle="Interventions humaines" valeur={actionsHumaines.error ? "—" : mesure.interventionsHumaines} accent="or" precision="décisions sensibles tracées" />
+          <Indicateur libelle="Clics évités" valeur={mesure.clicsEvites} accent="vert" precision="3 gestes par action" />
+          <Indicateur libelle="Messages envoyés" valeur={messagesRecents.error ? "—" : mesure.messagesEnvoyes} accent="bleu" precision="automatiques et humains" />
+          <Indicateur libelle="Dossiers sans appel" valeur={incidentsRecents.error ? "—" : mesure.dossiersSansAppel} accent="vert" precision="déclarés entièrement en ligne" />
+        </div>
+        <p className="mt-3 text-xs text-[var(--texte-secondaire)]">Le taux compare les actions terminées automatiquement aux décisions humaines sensibles enregistrées. Gerimmo compte trois clics évités par action : ouvrir le dossier, lancer l’action et vérifier le résultat. La mesure s’affinera à mesure que chaque parcours sera suivi.</p>
+      </section>
+
+      <section className="section-ecran">
+        <div className="entete-carte mb-4">
+          <div>
+            <p className="libelle-champ">Centre de commandement</p>
+            <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">Vos équipes Gerimmo</h2>
+          </div>
+          <span className="mono-discret">7 équipes spécialisées</span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <Equipe nom="Agent exploitation locative" etat="À surveiller" travail={`${organisations.length} organisation${organisations.length > 1 ? "s" : ""} et ${lots.count ?? 0} lot${(lots.count ?? 0) > 1 ? "s" : ""} suivis.`} prochaine="Traiter les échéances et dossiers incomplets." resultat="Baux, loyers et documents regroupés par client." autorisation="Aucune décision sensible en attente ici." href="/admin/clients" />
+          <Equipe nom="Agent incidents et artisans" etat={(nbIncidents ?? 0) + (nbArtisans ?? 0) > 0 ? "À surveiller" : "À jour"} travail={`${nbIncidents ?? "—"} incident${nbIncidents === 1 ? "" : "s"} ouvert${nbIncidents === 1 ? "" : "s"}.`} prochaine="Qualifier les urgences et trouver l’artisan adapté." resultat={`${nbArtisans ?? "—"} inscription${nbArtisans === 1 ? "" : "s"} artisan à examiner.`} autorisation="Validation des nouveaux artisans uniquement." href="/admin/artisans" />
+          <Equipe nom="Agent finance et fiscalité" etat={bloquants > 0 ? "Action attendue" : "À jour"} travail="Paiements, quittances, relances et abonnements contrôlés." prochaine="Reprendre les envois ou paiements signalés en échec." resultat={bloquants > 0 ? `${bloquants} point${bloquants > 1 ? "s" : ""} à traiter dans la santé du service.` : "Aucun blocage détecté."} autorisation="Les paiements et changements de prix restent soumis à votre accord." href="/admin/sante" />
+          <Equipe nom="Agent conformité et documents" etat={faitsManquants().length > 0 ? "Action attendue" : "À jour"} travail="Documents, accès et durées de conservation surveillés." prochaine="Compléter les informations légales manquantes." resultat={`${faitsManquants().length} information${faitsManquants().length > 1 ? "s" : ""} légale${faitsManquants().length > 1 ? "s" : ""} à fournir.`} autorisation="Suppression définitive et publication légale sous votre contrôle." href="/admin/journaux" />
+          <Equipe nom="Agent qualité et corrections" etat={(nbRetours ?? 0) > 0 ? "À surveiller" : "À jour"} travail="Retours utilisateurs et problèmes regroupés par priorité." prochaine="Corriger d’abord les problèmes qui bloquent un utilisateur." resultat={`${nbRetours ?? "—"} retour${nbRetours === 1 ? "" : "s"} ouvert${nbRetours === 1 ? "" : "s"}.`} autorisation="Une modification sensible vous est présentée avant publication." href="/admin/retours" />
+          <Equipe nom="Agent marketing" etat={aEcrire > 0 ? "À surveiller" : "À jour"} travail="Contenus et publications Facebook préparés selon le calendrier." prochaine="Relire les contenus qui attendent une décision." resultat={`${aEcrire} contenu${aEcrire > 1 ? "s" : ""} à traiter.`} autorisation="Budget et publicité payante restent plafonnés par vos réglages." href="/admin/marketing" />
+          <Equipe nom="Agent développement territorial" etat="À surveiller" travail="Présence actuelle et départements voisins comparés." prochaine="Compléter les données de marché avant une ouverture." resultat="Le prochain territoire est classé avec les données disponibles." autorisation="Toute ouverture de département vous est proposée avant activation." href="/admin/territoire" />
+        </div>
+      </section>
+
       {enEchec.length > 0 && (
         <div
           role="alert"
@@ -169,8 +251,8 @@ export default async function PageAdmin() {
         >
           <span className="min-w-0 flex-1">
             <b className="font-semibold">Le service n&apos;est pas prêt</b> : {bloquants} point
-            {bloquants > 1 ? "s" : ""} bloque{bloquants > 1 ? "nt" : ""} — variable absente,
-            tâche jamais passée ou document légal incomplet.
+            {bloquants > 1 ? "s" : ""} bloque{bloquants > 1 ? "nt" : ""} — connexion absente,
+            travail automatique non exécuté ou document légal incomplet.
           </span>
           <span className="shrink-0">Santé du service →</span>
         </Link>

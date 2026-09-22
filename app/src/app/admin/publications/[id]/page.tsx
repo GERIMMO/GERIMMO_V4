@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EditeurPublication } from "./editeur-publication";
+import { sansJargon } from "@/lib/erreurs";
 
 export const metadata = { title: "Écrire — Journal Gerimmo" };
 
@@ -41,7 +42,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
         facebookImageUrl={p.facebook_image_url}
         facebookPostId={p.facebook_post_id}
         facebookPublieLe={p.facebook_publie_le}
-        facebookErreur={p.facebook_erreur}
+        facebookErreur={p.facebook_erreur ? sansJargon(p.facebook_erreur) : null}
       />
     </main>
   );

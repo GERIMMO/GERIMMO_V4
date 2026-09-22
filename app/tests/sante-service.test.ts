@@ -157,7 +157,7 @@ describe("les tâches planifiées", () => {
 
   it("résume un bilan en français, sans jargon de clé", () => {
     expect(resumerBilan({ envoyees: 3, echecs: 0, sans_adresse: ["a", "b"] })).toBe(
-      "envoyees : 3, echecs : 0, sans adresse : 2"
+      "envois réussis : 3, actions à reprendre : 0, adresses manquantes : 2"
     );
     expect(resumerBilan(null)).toBe("—");
     expect(resumerBilan({})).toBe("—");

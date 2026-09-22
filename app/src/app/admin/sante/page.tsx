@@ -77,16 +77,15 @@ export default async function PageSante() {
           <h1>Santé du service</h1>
           <span className="mono-discret">
             {nbPoints === null
-              ? `${nbManque} variable${nbManque > 1 ? "s" : ""} manque${nbManque > 1 ? "nt" : ""} · tâches à vérifier`
+              ? `${nbManque} connexion${nbManque > 1 ? "s" : ""} manque${nbManque > 1 ? "nt" : ""} · travail automatique à vérifier`
               : nbPoints === 0
                 ? "Service prêt"
-                : `${nbPoints} point${nbPoints > 1 ? "s" : ""} à traiter · ${nbManque} variable${nbManque > 1 ? "s" : ""} manquante${nbManque > 1 ? "s" : ""}${nbAttention ? ` · ${nbAttention} à vérifier` : ""}`}
+                : `${nbPoints} point${nbPoints > 1 ? "s" : ""} à traiter · ${nbManque} connexion${nbManque > 1 ? "s" : ""} manquante${nbManque > 1 ? "s" : ""}${nbAttention ? ` · ${nbAttention} à vérifier` : ""}`}
           </span>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Ce qui est posé dans l&apos;environnement, ce que les tâches planifiées
-          ont fait, et ce que les organisations ont laissé à Gerimmo. Aucune valeur
-          n&apos;est affichée ici, seulement leur présence.
+          Les services reliés à Gerimmo, le travail réalisé automatiquement et
+          les points qui demandent votre attention.
         </p>
       </div>
 
@@ -94,7 +93,7 @@ export default async function PageSante() {
       <section className="section-ecran">
         <div className="entete-carte mb-3">
           <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
-            Variables de production
+            Connexions indispensables
           </h2>
           <span className="mono-discret">{configuration.length}</span>
         </div>
@@ -102,8 +101,7 @@ export default async function PageSante() {
           {configuration.map((v) => (
             <li key={v.cle} className="flex flex-wrap items-start gap-x-4 gap-y-1 p-3.5">
               <span className="min-w-0 flex-1">
-                <span className="block font-mono text-[12.5px] text-[var(--encre)]">{v.cle}</span>
-                <span className="block text-[13px] text-[var(--texte-secondaire)]">{v.usage}</span>
+                <span className="block font-medium text-[13.5px] text-[var(--encre)]">{v.usage}</span>
                 {v.detail && (
                   <span className="mt-0.5 block text-[12.5px] text-[var(--texte-secondaire)]">
                     {v.detail}
@@ -115,10 +113,9 @@ export default async function PageSante() {
           ))}
         </ul>
         <p className="mt-2 text-xs text-muted-foreground">
-          Les variables se posent dans Vercel, projet Gerimmo, onglet Environment
-          Variables ; un redéploiement les prend en compte. Les e-mails
-          d&apos;authentification (inscription, mot de passe, invitation) passent
-          par le SMTP réglé dans Supabase Auth, qui ne se voit pas d&apos;ici.
+          Gerimmo vérifie chaque connexion sans afficher de clé ni de donnée
+          confidentielle. Lorsqu&apos;une ligne manque, raccordez le service concerné
+          avant d&apos;activer la fonction.
         </p>
       </section>
 
@@ -126,15 +123,15 @@ export default async function PageSante() {
       <section className="section-ecran">
         <div className="entete-carte mb-3">
           <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
-            Tâches planifiées
+            Travail automatique
           </h2>
           <Link href="/admin/journaux" className="lien-discret text-[12.5px]">
-            Journal technique →
+            Voir l&apos;historique →
           </Link>
         </div>
         {taches === null ? (
           <div className="vide">
-            Le journal technique n&apos;a pas pu être lu : l&apos;état des tâches est
+            L&apos;historique n&apos;a pas pu être lu : l&apos;état du travail automatique est
             inconnu. Rechargez la page.
           </div>
         ) : (
@@ -154,7 +151,7 @@ export default async function PageSante() {
                         <time dateTime={t.le}>{formaterDateHeure(t.le)}</time> — {t.bilan}
                       </>
                     ) : (
-                      "Aucune exécution enregistrée dans le journal technique."
+                      "Gerimmo n’a encore enregistré aucun passage."
                     )}
                   </span>
                 </span>
@@ -164,11 +161,8 @@ export default async function PageSante() {
           </ul>
         )}
         <p className="mt-2 text-xs text-muted-foreground">
-          Heures UTC de vercel.json : ajoutez deux heures à Paris l&apos;été, une
-          l&apos;hiver. « Aucune exécution » signifie que le journal ne prouve
-          aucune passe réussie ou échouée. Vérifiez la date prévue, le secret
-          de la tâche et le service concerné avant de conclure à un incident.
-          Le journal technique est conservé six mois.
+          Une ligne verte confirme un passage récent. Une ligne rouge demande
+          une vérification. L&apos;historique est conservé pendant six mois.
         </p>
       </section>
 
@@ -195,8 +189,8 @@ export default async function PageSante() {
               {manquants.join(", ")}.
             </p>
             <p className="mt-1.5 text-[12.5px] text-[var(--texte-secondaire)]">
-              Ces faits se renseignent dans <code>src/lib/editeur.ts</code>, en un seul
-              endroit pour les trois pages.{" "}
+              Transmettez ces informations une seule fois : Gerimmo les reprendra
+              automatiquement sur les trois pages publiques.{" "}
               <Link href="/mentions-legales" className="lien-discret">
                 Voir la page publique →
               </Link>

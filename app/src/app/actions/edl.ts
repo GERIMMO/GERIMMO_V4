@@ -83,7 +83,7 @@ export async function creerEdl(
   if (error) return { erreur: `Création impossible : ${sansJargon(error.message)}` };
 
   const { error: erreurGrille } = await supabase.rpc("generer_grille_edl", { p_edl: data.id });
-  if (erreurGrille) return { erreur: erreurGrille.message };
+  if (erreurGrille) return { erreur: sansJargon(erreurGrille.message) };
 
   redirect(`/agence/${orgId}/baux/${bailId}/edl/${data.id}`);
 }

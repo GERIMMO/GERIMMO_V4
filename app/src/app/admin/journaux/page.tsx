@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BoutonPurge } from "./bouton-purge";
+import { libelleAccesDocument, libelleActionAudit, libelleEvenement } from "@/lib/libelles-journaux";
 
 export const metadata = { title: "Journaux et conservation — Gerimmo" };
 
@@ -89,9 +90,9 @@ export default async function PageJournaux() {
               Règles de conservation ({(regles ?? []).length})
             </CardTitle>
             <CardDescription>
-              La matrice A2 : chaque durée découle d&apos;une finalité écrite,
-              chaque type a un sort final. Appliquée chaque nuit (03h00) et à
-              la demande ci-dessus.
+              Chaque catégorie possède une durée justifiée et une action prévue
+              à la fin. Gerimmo applique ces règles chaque nuit et lorsque vous
+              lancez le nettoyage ci-dessus.
             </CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto">
@@ -115,7 +116,7 @@ export default async function PageJournaux() {
                       {r.duree_mois === 0
                         ? "Immédiate"
                         : r.duree_mois % 12 === 0
-                          ? `${r.duree_mois / 12} an(s)`
+                          ? `${r.duree_mois / 12} an${r.duree_mois / 12 > 1 ? "s" : ""}`
                           : `${r.duree_mois} mois`}
                     </td>
                     <td className="py-2">{SORTS[r.sort] ?? r.sort}</td>
@@ -130,8 +131,8 @@ export default async function PageJournaux() {
           <CardHeader>
             <CardTitle className="text-base">Journal d&apos;audit</CardTitle>
             <CardDescription>
-              Actions sensibles, conservées 3 ans (traversées super admin,
-              purges…).
+              Consultations et actions sensibles du super administrateur,
+              conservées pendant trois ans.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -141,7 +142,7 @@ export default async function PageJournaux() {
               <ul className="divide-y">
                 {(audit ?? []).map((l, i) => (
                   <li key={i} className="py-2 text-sm">
-                    <span className="font-medium">{l.action}</span>
+                    <span className="font-medium">{libelleActionAudit(l.action)}</span>
                     <span className="ml-2 text-xs text-muted-foreground">
                       {formaterDateHeure(l.created_at)}
                     </span>
@@ -154,19 +155,20 @@ export default async function PageJournaux() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Journal technique</CardTitle>
+            <CardTitle className="text-base">Historique du service</CardTitle>
             <CardDescription>
-              Événements de compte et erreurs, conservés 6 mois.
+              Travail automatique, connexions et difficultés rencontrées,
+              conservés pendant six mois.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {(technique ?? []).length === 0 ? (
-              <div className="vide">Aucun événement technique sur la période conservée.</div>
+              <div className="vide">Aucun événement enregistré sur la période conservée.</div>
             ) : (
               <ul className="divide-y">
                 {(technique ?? []).map((l, i) => (
                   <li key={i} className="py-2 text-sm">
-                    <span className="font-medium">{l.evenement}</span>
+                    <span className="font-medium">{libelleEvenement(l.evenement)}</span>
                     <span className="ml-2 text-xs text-muted-foreground">
                       {formaterDateHeure(l.created_at)}
                     </span>
@@ -199,7 +201,7 @@ export default async function PageJournaux() {
                   } | null;
                   return (
                     <li key={i} className="py-2 text-sm">
-                      <span className="font-medium">{l.action}</span>
+                      <span className="font-medium">{libelleAccesDocument(l.action)}</span>
                       <span className="ml-2 text-muted-foreground">
                         {doc?.titre ?? "(document purgé)"}
                       </span>

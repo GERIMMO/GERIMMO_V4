@@ -339,10 +339,10 @@ export default async function PageTerritoire() {
 
           {sourcesManquantes.length > 0 && (
             <p className="mt-3 text-[13px] text-muted-foreground">
-              Le marché n&apos;est pas encore renseigné pour :{" "}
-              {sourcesManquantes.map((s) => s.libelle.toLowerCase()).join(" · ")}. Tant
-              qu&apos;il manque, seule la proximité départage — et chaque candidat le
-              dit. Script : <code>scripts/territoire/recuperer-marche.mjs</code>.
+              Les données de marché détaillées ne sont pas encore toutes
+              disponibles ({sourcesManquantes.map((s) => s.libelle.toLowerCase()).join(" · ")}).
+              Tant qu&apos;elles manquent, le classement s&apos;appuie surtout sur la
+              proximité et le signale clairement.
             </p>
           )}
 

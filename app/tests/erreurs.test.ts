@@ -31,4 +31,15 @@ describe("sansJargon", () => {
     expect(sansJargon(null)).toBe("Une erreur est survenue.");
     expect(sansJargon("(RM-1.2.3)")).toBe("Une erreur est survenue.");
   });
+
+  it("cache les détails techniques de la base", () => {
+    expect(sansJargon('duplicate key value violates unique constraint "documents_pkey"'))
+      .toContain("Gerimmo n’a pas pu terminer");
+  });
+
+  it("cache une référence brute", () => {
+    expect(sansJargon("PGRST204")).toBe(
+      "Gerimmo n’a pas pu terminer cette action. Réessayez dans un instant ; si le problème continue, signalez-le depuis Aide et retours."
+    );
+  });
 });

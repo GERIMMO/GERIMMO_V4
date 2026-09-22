@@ -16,6 +16,20 @@ export function sansJargon(message: string | null | undefined): string {
   // On ne recolle que le point et la virgule : en français, le deux-points et
   // le point-virgule gardent leur espace insécable devant.
   const propre = message.replace(CODE_INTERNE, "").replace(/\s+([.,])/g, "$1").trim();
+  // Les messages renvoyés par la base, le stockage ou un service extérieur
+  // peuvent contenir des noms de tables, du SQL, des adresses réseau ou des
+  // références réservées au support. Ces détails restent dans les journaux ;
+  // l'utilisateur reçoit une consigne utile et compréhensible.
+  if (
+    /(?:SQLSTATE|PostgREST|postgres|supabase|row-level security|RLS|violates|constraint|duplicate key|foreign key|relation ["']|column ["']|schema cache|JWT|fetch failed|ECONN|ENOTFOUND|\b5\d\d\b|\bPGRST\d+\b)/i.test(
+      propre
+    )
+  ) {
+    return "Gerimmo n’a pas pu terminer cette action. Réessayez dans un instant ; si le problème continue, signalez-le depuis Aide et retours.";
+  }
+  if (/^[a-z0-9_./:-]+$/i.test(propre) || /[a-f0-9]{8}-[a-f0-9-]{27,}/i.test(propre)) {
+    return "Gerimmo n’a pas pu terminer cette action. Réessayez dans un instant.";
+  }
   // Le message ne doit pas se terminer par une ponctuation orpheline
   return propre.replace(/\s*[—–-]\s*$/, "").trim() || "Une erreur est survenue.";
 }

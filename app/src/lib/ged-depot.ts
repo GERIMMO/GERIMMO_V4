@@ -6,6 +6,7 @@ import {
   EXTENSIONS,
   TAILLE_MAX_OCTETS,
 } from "@/lib/file-type";
+import { sansJargon } from "@/lib/erreurs";
 
 export type ResultatDepotGed = {
   documentId?: string;
@@ -102,7 +103,7 @@ export async function preparerFichierGed(
     .from("documents")
     .upload(chemin, octets, { contentType: mime });
   if (erreurUpload) {
-    return { erreur: `Échec du dépôt : ${erreurUpload.message}` };
+    return { erreur: `Le fichier n’a pas pu être déposé : ${sansJargon(erreurUpload.message)}` };
   }
 
   return { fichier: { chemin, mime, taille: fichier.size, empreinte }, avertissement };
@@ -154,7 +155,7 @@ export async function deposerFichierGed(
           : "Ce fichier vient d'être déposé par ailleurs (doublon détecté). Actualisez la liste.",
       };
     }
-    return { erreur: `Échec de l'enregistrement : ${erreurInsert?.message}` };
+    return { erreur: `Le fichier n’a pas pu être enregistré : ${sansJargon(erreurInsert?.message)}` };
   }
 
   // Rattachement minimal (module 12) : toujours l'agence
@@ -165,7 +166,7 @@ export async function deposerFichierGed(
     entite_id: orgId,
   });
   if (erreurLien) {
-    return { erreur: `Document déposé mais rattachement en échec : ${erreurLien.message}` };
+    return { erreur: `Le fichier a été déposé mais n’a pas pu être classé : ${sansJargon(erreurLien.message)}` };
   }
 
   return { documentId: document.id, avertissement: prepare.avertissement };

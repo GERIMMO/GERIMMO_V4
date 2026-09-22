@@ -24,6 +24,35 @@ export type Verification = {
   detail: string | null;
 };
 
+const LIBELLES_BILAN: Record<string, string> = {
+  envoyees: "envois réussis",
+  envoyes: "envois réussis",
+  echecs: "actions à reprendre",
+  echecs_envoi: "envois à reprendre",
+  rappeles: "rappels envoyés",
+  examines: "dossiers examinés",
+  alignees: "mises à jour",
+  resiliees: "abonnements terminés",
+  avoirs_portes: "avoirs reportés",
+  avoirs_en_echec: "avoirs à reprendre",
+  sans_adresse: "adresses manquantes",
+  facebook: "publication sur Facebook",
+  publiciteActive: "publicité autorisée",
+  budgetMensuelCents: "budget mensuel",
+  publiees: "publications diffusées",
+  preparees: "publications préparées",
+  traitees: "actions réalisées",
+  ignores: "actions sans suite nécessaire",
+};
+
+function valeurBilan(cle: string, valeur: string | number | boolean): string {
+  if (cle === "budgetMensuelCents" && typeof valeur === "number") {
+    return `${(valeur / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} par mois`;
+  }
+  if (typeof valeur === "boolean") return valeur ? "oui" : "non";
+  return String(valeur);
+}
+
 type Env = Record<string, string | undefined>;
 
 function valeur(env: Env, cle: string): string {
@@ -188,14 +217,14 @@ export type Tache = {
  * Paris, plutôt que d'afficher une heure fausse la moitié de l'année.
  */
 export const TACHES: Tache[] = [
-  { nom: "signatures", libelle: "Signatures électroniques", role: "Reprise quotidienne si le classement immédiat a échoué", horaire: "3 h 00 UTC", periodicite: "quotidienne" },
-  { nom: "abonnements", libelle: "Abonnements", role: "Relances de prélèvement échoué et alignement des quantités facturées", horaire: "4 h 00 UTC", periodicite: "quotidienne" },
-  { nom: "rappels", libelle: "Rappels de rendez-vous", role: "Rappels d'intervention aux locataires et aux artisans (veille et J-7)", horaire: "6 h 00 UTC", periodicite: "quotidienne" },
-  { nom: "quittances", libelle: "Quittances", role: "Envoi des quittances des termes soldés, pour les organisations qui l'ont activé", horaire: "7 h 00 UTC", periodicite: "quotidienne" },
-  { nom: "appels", libelle: "Avis d'échéance", role: "Envoi des avis du terme à venir, pour les organisations qui l'ont activé", horaire: "7 h 30 UTC", periodicite: "quotidienne" },
-  { nom: "relances", libelle: "Relances d'impayé", role: "Première et seconde relance des loyers en retard, pour les organisations qui l'ont activé", horaire: "7 h 45 UTC", periodicite: "quotidienne" },
-  { nom: "marketing", libelle: "Agent marketing", role: "Préparation et diffusion des contenus planifiés sur les canaux autorisés", horaire: "8 h 00 UTC", periodicite: "quotidienne" },
-  { nom: "territoire", libelle: "Territoire", role: "Expansion mensuelle du territoire couvert", horaire: "le 1ᵉʳ du mois, 5 h 00 UTC", periodicite: "mensuelle" },
+  { nom: "signatures", libelle: "Signatures électroniques", role: "Reprend chaque document qui n'a pas été classé du premier coup", horaire: "Chaque nuit", periodicite: "quotidienne" },
+  { nom: "abonnements", libelle: "Abonnements", role: "Suit les paiements refusés et ajuste la facturation au nombre de biens gérés", horaire: "Chaque nuit", periodicite: "quotidienne" },
+  { nom: "rappels", libelle: "Rappels de rendez-vous", role: "Prévient les locataires et les artisans avant une intervention", horaire: "Chaque matin", periodicite: "quotidienne" },
+  { nom: "quittances", libelle: "Quittances", role: "Envoie les quittances lorsque le loyer est entièrement réglé", horaire: "Chaque matin", periodicite: "quotidienne" },
+  { nom: "appels", libelle: "Avis d'échéance", role: "Envoie l'avis du prochain loyer aux organisations qui le souhaitent", horaire: "Chaque matin", periodicite: "quotidienne" },
+  { nom: "relances", libelle: "Relances d'impayé", role: "Envoie les relances prévues lorsqu'un loyer reste impayé", horaire: "Chaque matin", periodicite: "quotidienne" },
+  { nom: "marketing", libelle: "Agent marketing", role: "Prépare et diffuse les contenus autorisés", horaire: "Chaque matin", periodicite: "quotidienne" },
+  { nom: "territoire", libelle: "Développement territorial", role: "Propose le prochain département à ouvrir selon les chances de réussite", horaire: "Le 1er de chaque mois", periodicite: "mensuelle" },
 ];
 
 export type EtatTache = "ok" | "echec" | "retard" | "jamais";
@@ -217,17 +246,22 @@ export function resumerBilan(bilan: unknown): string {
   if (!bilan || typeof bilan !== "object") return "—";
   const entrees = Object.entries(bilan as Record<string, unknown>);
   if (entrees.length === 0) return "—";
-  return entrees
+  const resume = entrees
     .map(([cle, v]) => {
       if (v === null || v === undefined) return null;
+      const libelle = LIBELLES_BILAN[cle];
+      // Une donnée inconnue reste disponible dans le journal interne, mais
+      // n'est jamais présentée telle quelle au super administrateur.
+      if (!libelle) return null;
       if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") {
-        return `${cle.replace(/_/g, " ")} : ${String(v)}`;
+        return `${libelle} : ${valeurBilan(cle, v)}`;
       }
-      if (Array.isArray(v)) return `${cle.replace(/_/g, " ")} : ${v.length}`;
+      if (Array.isArray(v)) return `${libelle} : ${v.length}`;
       return null;
     })
     .filter(Boolean)
-    .join(", ") || "—";
+    .join(", ");
+  return resume || "Passage terminé";
 }
 
 /**

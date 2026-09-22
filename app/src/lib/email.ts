@@ -51,11 +51,11 @@ export async function envoyerEmail(params: {
           erreur: `Le domaine de l'adresse d'expédition (${EXPEDITEUR}) n'est pas vérifié chez Resend : aucun message ne peut partir tant qu'il ne l'est pas. Vérifiez le domaine, ou réglez RESEND_EXPEDITEUR sur une adresse de test.`,
         };
       }
-      return { erreur: `Resend a refusé l'envoi (${reponse.status}) : ${txt.slice(0, 200)}` };
+      return { erreur: "Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez." };
     }
     const resultat = await reponse.json().catch(() => null);
     return { ...(typeof resultat?.id === "string" ? { id: resultat.id } : {}) };
-  } catch (e) {
-    return { erreur: `Échec réseau de l'envoi : ${e instanceof Error ? e.message : "inconnu"}` };
+  } catch {
+    return { erreur: "L’e-mail n’a pas pu partir car le service est momentanément indisponible. Réessayez dans un instant." };
   }
 }

@@ -43,7 +43,7 @@ export default async function PageBrief() {
   const signaux: Signal[] = [];
   if (valeurs.bugsN1 === null || valeurs.bugsN1 > 0) signaux.push({
     titre: "Vérifier les incidents bloquants",
-    detail: valeurs.bugsN1 === null ? "Le nombre de bugs critiques est indisponible." : `${valeurs.bugsN1} signalement${valeurs.bugsN1 > 1 ? "s" : ""} N1 ouvert${valeurs.bugsN1 > 1 ? "s" : ""}.`,
+    detail: valeurs.bugsN1 === null ? "Le nombre de problèmes bloquants est indisponible." : `${valeurs.bugsN1} problème${valeurs.bugsN1 > 1 ? "s" : ""} bloquant${valeurs.bugsN1 > 1 ? "s" : ""} à corriger.`,
     href: "/admin/retours?nature=bug", action: "Examiner les bugs", niveau: "urgent",
   });
   if (valeurs.alertesCritiques === null || valeurs.alertesCritiques > 0) signaux.push({

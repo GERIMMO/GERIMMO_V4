@@ -105,8 +105,8 @@ export function FormulaireDevis({
           <label className="space-y-1.5 text-sm"><span className={CLASSE_LIBELLE}>Durée estimée</span><input name="duree" required defaultValue={etat.valeurs?.duree} placeholder="Ex. : une demi-journée" className={CLASSE_CHAMP} /></label>
         </div>
 
-        <div className="space-y-1.5"><label className={CLASSE_LIBELLE}>Contraintes et accès <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea name="contraintes" rows={2} defaultValue={etat.valeurs?.contraintes} className={CLASSE_ZONE_TEXTE} placeholder="Coupure d’eau, stationnement, présence nécessaire…" /></div>
-        <div className="space-y-1.5"><label className={CLASSE_LIBELLE}>Observations <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea name="observations" rows={2} defaultValue={etat.valeurs?.observations} className={CLASSE_ZONE_TEXTE} /></div>
+        <div className="space-y-1.5"><label htmlFor="devis-contraintes" className={CLASSE_LIBELLE}>Contraintes et accès <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea id="devis-contraintes" name="contraintes" rows={2} defaultValue={etat.valeurs?.contraintes} className={CLASSE_ZONE_TEXTE} placeholder="Coupure d’eau, stationnement, présence nécessaire…" /></div>
+        <div className="space-y-1.5"><label htmlFor="devis-observations" className={CLASSE_LIBELLE}>Observations <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea id="devis-observations" name="observations" rows={2} defaultValue={etat.valeurs?.observations} className={CLASSE_ZONE_TEXTE} /></div>
 
         <div className="space-y-1.5">
           <label htmlFor={idEcheance} className={CLASSE_LIBELLE}>

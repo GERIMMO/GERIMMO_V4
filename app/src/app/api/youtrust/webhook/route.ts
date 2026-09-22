@@ -1,5 +1,6 @@
 import { clientDeService } from "@/lib/supabase/service";
-import { webhookYoutrustValide } from "@/lib/youtrust";
+import { configurationYoutrust, webhookYoutrustValide } from "@/lib/youtrust";
+import { traiterEvenementSignature } from "@/lib/signature-worker";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,20 @@ export async function POST(request: Request) {
     payload: evenement,
   });
   if (error && error.code !== "23505") return Response.json({ erreur: "Mise en file impossible." }, { status: 500 });
+  // Classement immédiat. La tâche quotidienne du compte Vercel Hobby reprend
+  // automatiquement un éventuel échec de réseau ou de stockage.
+  const config = configurationYoutrust();
+  if (config?.environnement === "production") {
+    await traiterEvenementSignature(supabase, config, {
+      event_id: evenement.event_id,
+      event_name: evenement.event_name,
+      request_id: requestId,
+      tentatives: 0,
+    });
+  }
   return Response.json(error ? { deja_recu: evenement.event_id } : { recu: evenement.event_id }, { status: 202 });
 }
 
 export function GET() {
   return Response.json({ message: "Adresse de réception signée de Youtrust." }, { status: 405 });
 }
-

@@ -1,0 +1,1 @@
+{"type":"object","additionalProperties":false,"required":["resume","fichiers"],"properties":{"resume":{"type":"string"},"fichiers":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["chemin","contenu"],"properties":{"chemin":{"type":"string"},"contenu":{"type":"string"}}}}}}

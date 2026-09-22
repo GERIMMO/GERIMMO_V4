@@ -95,6 +95,41 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await actualiser();expect((await db.query("select id from public.orchestration_cases where dossier_type='rapport' and organization_id=$1",[org])).rows).toHaveLength(1);
   await agir(admin);expect(await refus("select public.preparer_rapports_automatiques()")).toMatch(/permission|autorisation/i);
  });
+ it("réserve les commandes à la supervision et empêche les passages concurrents",async()=>{
+  await agir(admin);expect(await refus("select public.regler_mission('appels',false)")).toMatch(/supervision/i);
+  await agir(sa,'aal1');expect(await refus("select public.regler_mission('appels',false)")).toMatch(/supervision/i);
+  await agir(sa);await db.query("select public.regler_mission('appels',false)");
+  await agir(null,'aal1','service_role');expect((await db.query("select public.commencer_mission('appels') id")).rows[0].id).toBeNull();
+  await agir(sa);await db.query("select public.regler_mission('appels',true)");await agir(null,'aal1','service_role');const passage=await id("select public.commencer_mission('appels') id");expect((await db.query("select public.commencer_mission('appels') id")).rows[0].id).toBeNull();
+  await db.query("update public.agent_passages set expiration=now()-interval '1 second' where id=$1",[passage]);const suivant=await id("select public.commencer_mission('appels') id");expect(suivant).not.toBe(passage);
+  await db.query("select public.terminer_mission($1,true,1)",[passage]);expect((await db.query("select etat from public.agent_passages where id=$1",[passage])).rows[0].etat).toBe('interrompu');
+  await db.query("select public.terminer_mission($1,true,2)",[suivant]);expect((await db.query("select etat,compte from public.agent_passages where id=$1",[suivant])).rows[0]).toEqual({etat:'reussi',compte:2});
+  await agir(admin);expect((await db.query("select * from public.agent_passages")).rows).toEqual([]);
+ });
+ it("ne permet plus de contourner le devis structuré par l’ancien dépôt",async()=>{
+  await agir(admin);expect((await db.query("select has_function_privilege(current_user,'public.deposer_devis(uuid,bigint,text,date,text,text,bigint,text)','execute') autorise")).rows[0].autorise).toBe(false);
+ });
+ it("le plan de continuité n’accorde jamais de nouveaux droits",async()=>{
+  await agir(admin);expect(await refus("select public.enregistrer_plan_continuite($1,7,'Consignes')",[relaisEmail])).toMatch(/supervision/i);
+  await agir(sa);expect(await refus("select public.enregistrer_plan_continuite($1,7,'Consignes')",[relaisEmail])).toMatch(/habilité/i);await db.query("select public.enregistrer_plan_continuite('',7,'Conserver les validations sensibles')");
+  expect((await db.query("select public.etat_continuite() p")).rows[0].p.responsable_habilite).toBe(false);
+
+ });
+ it("prépare une seule idée territoriale sans diffusion ni budget",async()=>{
+  await agir(admin);expect(await refus("select public.preparer_recrutement_territorial('75','artisans','Paris','Compléter les métiers disponibles')")).toMatch(/permission|autorisation/i);
+  await agir(null,'aal1','service_role');const sql="select public.preparer_recrutement_territorial('75','artisans','Paris','Compléter les métiers disponibles') id";
+  const proposition=await id(sql);expect(proposition).toBeTruthy();expect((await db.query(sql)).rows[0].id).toBeNull();
+  expect((await db.query("select statut,budget_cents,meta_campaign_id,publication_prevue_le from public.marketing_campagnes where id=$1",[proposition])).rows[0]).toEqual({statut:'idee',budget_cents:0,meta_campaign_id:null,publication_prevue_le:null});
+ });
+ it("signale une absence une seule fois et exige un remplaçant encore habilité",async()=>{
+  await db.query("insert into public.memberships(account_id,role,status) values($1,'super_admin','active')",[relais]);
+  await agir(sa);await db.query("select public.enregistrer_plan_continuite($1,7,'Continuer les tâches autorisées')",[relaisEmail]);expect((await db.query("select public.etat_continuite() p")).rows[0].p.responsable_habilite).toBe(true);
+  await db.query('reset role');await db.query("insert into public.supervision_presence(account_id,derniere_presence) values($1,now()-interval '8 days') on conflict(account_id) do update set derniere_presence=excluded.derniere_presence",[sa]);
+  await db.query("update public.supervision_presence set derniere_presence=now()-interval '8 days'");
+  await agir(null,'aal1','service_role');await db.query('select public.surveiller_continuite()');const premier=(await db.query('select absence_signalee_le from public.continuity_plan')).rows[0].absence_signalee_le;expect(premier).toBeTruthy();await db.query('select public.surveiller_continuite()');expect((await db.query('select absence_signalee_le from public.continuity_plan')).rows[0].absence_signalee_le).toEqual(premier);
+  await db.query("update public.memberships set status='inactive' where account_id=$1 and role='super_admin'",[relais]);
+  await agir(sa);expect((await db.query('select public.etat_continuite() p')).rows[0].p.responsable_habilite).toBe(false);
+ });
  it("réserve création et révocation au permanent avec double vérification",async()=>{
   const sql="select public.creer_relais_supervision($1,7,'Absence temporaire test') id";
   for(const acteur of [null,admin,relais]){await agir(acteur);expect(await refus(sql,[relaisEmail])).toMatch(/permanent/i);}

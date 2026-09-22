@@ -94,7 +94,7 @@ function File({
 
 function Equipe({ nom, etat, travail, prochaine, resultat, autorisation, href }: {
   nom: string;
-  etat: "À jour" | "À surveiller" | "Action attendue";
+  etat: "À jour" | "À surveiller" | "Action attendue" | "Indisponible";
   travail: string;
   prochaine: string;
   resultat: string;
@@ -109,7 +109,7 @@ function Equipe({ nom, etat, travail, prochaine, resultat, autorisation, href }:
         <span className={`puce ${classe}`}>{etat}</span>
       </div>
       <dl className="mt-3 space-y-2 text-[12.5px] leading-relaxed">
-        <div><dt className="inline font-semibold text-[var(--encre)]">Travail réalisé : </dt><dd className="inline text-[var(--texte-secondaire)]">{travail}</dd></div>
+        <div><dt className="inline font-semibold text-[var(--encre)]">Mission : </dt><dd className="inline text-[var(--texte-secondaire)]">{travail}</dd></div>
         <div><dt className="inline font-semibold text-[var(--encre)]">Prochaine action : </dt><dd className="inline text-[var(--texte-secondaire)]">{prochaine}</dd></div>
         <div><dt className="inline font-semibold text-[var(--encre)]">Résultat : </dt><dd className="inline text-[var(--texte-secondaire)]">{resultat}</dd></div>
         <div><dt className="inline font-semibold text-[var(--encre)]">Votre décision : </dt><dd className="inline text-[var(--texte-secondaire)]">{autorisation}</dd></div>
@@ -150,7 +150,7 @@ export default async function PageAdmin() {
     faitsManquants().length
   );
 
-  const enEchec = [orgs.error, devis.error, publications.error, lots.error, artisans.error, retours.error, contestations.error].filter(Boolean);
+  const enEchec = [journalTaches.error, incidentsOuverts.error, orgs.error, devis.error, publications.error, lots.error, artisans.error, retours.error, contestations.error].filter(Boolean);
   const organisations = (orgs.data ?? []) as Organisation[];
   const parStatut = (s: string) => organisations.filter((o) => o.status === s).length;
   const agences = organisations.filter((o) => familleOrganisation(o.type) === "agence").length;
@@ -194,12 +194,12 @@ export default async function PageAdmin() {
           <span className="mono-discret">7 équipes spécialisées</span>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <Equipe nom="Agent exploitation locative" etat="À surveiller" travail={`${organisations.length} organisation${organisations.length > 1 ? "s" : ""} et ${lots.count ?? 0} lot${(lots.count ?? 0) > 1 ? "s" : ""} suivis.`} prochaine="Traiter les échéances et dossiers incomplets." resultat="Baux, loyers et documents regroupés par client." autorisation="Les décisions attendues sont présentées dans le dossier concerné." href="/admin/autonomie?equipe=bail" />
-          <Equipe nom="Agent incidents et artisans" etat={(nbIncidents ?? 0) + (nbArtisans ?? 0) > 0 ? "À surveiller" : "À jour"} travail={`${nbIncidents ?? "—"} incident${nbIncidents === 1 ? "" : "s"} ouvert${nbIncidents === 1 ? "" : "s"}.`} prochaine="Qualifier les urgences et trouver l’artisan adapté." resultat={`${nbArtisans ?? "—"} inscription${nbArtisans === 1 ? "" : "s"} artisan à examiner.`} autorisation="Validation des nouveaux artisans uniquement." href="/admin/artisans" />
-          <Equipe nom="Agent finance et fiscalité" etat={bloquants > 0 ? "Action attendue" : "À jour"} travail="Paiements, quittances, relances et abonnements contrôlés." prochaine="Reprendre les envois ou paiements signalés en échec." resultat={bloquants > 0 ? `${bloquants} point${bloquants > 1 ? "s" : ""} à traiter dans la santé du service.` : "Aucun blocage détecté."} autorisation="Les paiements et changements de prix restent soumis à votre accord." href="/admin/sante" />
+          <Equipe nom="Agent exploitation locative" etat="À surveiller" travail={`${organisations.length} organisation${organisations.length > 1 ? "s" : ""} et ${lots.count ?? 0} lot${(lots.count ?? 0) > 1 ? "s" : ""} suivis.`} prochaine="Traiter les échéances et dossiers incomplets." resultat="Baux, loyers et documents regroupés par client." autorisation="Les décisions attendues sont présentées dans le dossier concerné." href="/admin/equipes" />
+          <Equipe nom="Agent incidents et artisans" etat={incidentsOuverts.error||artisans.error?"Indisponible":(nbIncidents ?? 0) + (nbArtisans ?? 0) > 0 ? "À surveiller" : "À jour"} travail={`${nbIncidents ?? "—"} incident${nbIncidents === 1 ? "" : "s"} ouvert${nbIncidents === 1 ? "" : "s"}.`} prochaine="Qualifier les urgences et trouver l’artisan adapté." resultat={`${nbArtisans ?? "—"} inscription${nbArtisans === 1 ? "" : "s"} artisan à examiner.`} autorisation="Validation des nouveaux artisans uniquement." href="/admin/artisans" />
+          <Equipe nom="Agent finance et fiscalité" etat={journalTaches.error?"Indisponible":bloquants > 0 ? "Action attendue" : "À jour"} travail="Paiements, quittances, relances et abonnements contrôlés." prochaine="Reprendre les envois ou paiements signalés en échec." resultat={bloquants > 0 ? `${bloquants} point${bloquants > 1 ? "s" : ""} à traiter dans la santé du service.` : "Aucun blocage détecté."} autorisation="Les paiements et changements de prix restent soumis à votre accord." href="/admin/sante" />
           <Equipe nom="Agent conformité et documents" etat={faitsManquants().length > 0 ? "Action attendue" : "À jour"} travail="Documents, accès et durées de conservation surveillés." prochaine="Compléter les informations légales manquantes." resultat={`${faitsManquants().length} information${faitsManquants().length > 1 ? "s" : ""} légale${faitsManquants().length > 1 ? "s" : ""} à fournir.`} autorisation="Suppression définitive et publication légale sous votre contrôle." href="/admin/journaux" />
-          <Equipe nom="Agent qualité et corrections" etat={(nbRetours ?? 0) > 0 ? "À surveiller" : "À jour"} travail="Retours utilisateurs et problèmes regroupés par priorité." prochaine="Corriger d’abord les problèmes qui bloquent un utilisateur." resultat={`${nbRetours ?? "—"} retour${nbRetours === 1 ? "" : "s"} ouvert${nbRetours === 1 ? "" : "s"}.`} autorisation="Une modification sensible vous est présentée avant publication." href="/admin/autonomie#ameliorations" />
-          <Equipe nom="Agent marketing" etat={aEcrire > 0 ? "À surveiller" : "À jour"} travail="Contenus et publications Facebook préparés selon le calendrier." prochaine="Relire les contenus qui attendent une décision." resultat={`${aEcrire} contenu${aEcrire > 1 ? "s" : ""} à traiter.`} autorisation="Budget et publicité payante restent plafonnés par vos réglages." href="/admin/marketing" />
+          <Equipe nom="Agent qualité et corrections" etat={retours.error?"Indisponible":(nbRetours ?? 0) > 0 ? "À surveiller" : "À jour"} travail="Retours utilisateurs et problèmes regroupés par priorité." prochaine="Corriger d’abord les problèmes qui bloquent un utilisateur." resultat={`${nbRetours ?? "—"} retour${nbRetours === 1 ? "" : "s"} ouvert${nbRetours === 1 ? "" : "s"}.`} autorisation="Une modification sensible vous est présentée avant publication." href="/admin/autonomie#ameliorations" />
+          <Equipe nom="Agent marketing" etat={publications.error?"Indisponible":aEcrire > 0 ? "À surveiller" : "À jour"} travail="Contenus et publications Facebook préparés selon le calendrier." prochaine="Relire les contenus qui attendent une décision." resultat={`${aEcrire} contenu${aEcrire > 1 ? "s" : ""} à traiter.`} autorisation="Budget et publicité payante restent plafonnés par vos réglages." href="/admin/marketing" />
           <Equipe nom="Agent développement territorial" etat="À surveiller" travail="Présence actuelle et départements voisins comparés." prochaine="Compléter les données de marché avant une ouverture." resultat="Le prochain territoire est classé avec les données disponibles." autorisation="Toute ouverture de département vous est proposée avant activation." href="/admin/territoire" />
         </div>
       </section>

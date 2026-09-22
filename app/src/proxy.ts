@@ -30,6 +30,7 @@ export async function proxy(request: NextRequest) {
   // vérifie son propre secret (Cron) ou la signature du corps brut (Stripe).
   // Garder la liste exacte : aucun autre chemin /api n'est rendu public.
   if ([
+    "/api/cron/equipes",
     "/api/cron/quittances",
     "/api/cron/appels",
     "/api/cron/rappels",

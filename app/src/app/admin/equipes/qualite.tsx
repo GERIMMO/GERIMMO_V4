@@ -1,0 +1,8 @@
+'use client';
+import {useActionState} from 'react';
+import {demanderCorrection,type RetourMission} from '@/app/actions/equipes';
+import {BoutonEnvoi} from '@/components/ui/bouton-envoi';
+export function AtelierQualite({connecte}:{connecte:boolean}){
+ const [etat,action]=useActionState<RetourMission,FormData>(demanderCorrection,{});
+ return <section className="rounded-2xl border bg-white p-5"><h2 className="text-xl font-semibold">Équipe qualité et corrections</h2><p className="mt-2 text-sm">L’atelier prépare une proposition de correction de l’interface dans une copie séparée. Les accès, la comptabilité, les paiements et la base ne sont pas modifiés par cet atelier. La proposition doit réussir les contrôles et recevoir une validation avant publication.</p><p className="mt-2 font-medium">{connecte?'Connexion configurée — résultat du prochain lancement à vérifier':'Connexion de l’atelier à terminer'}</p><form action={action} className="mt-3 space-y-3"><label className="block text-sm">Correction souhaitée, sans donnée personnelle<textarea name="demande" required minLength={10} maxLength={4000} className="mt-1 min-h-24 w-full rounded-lg border p-3"/></label><BoutonEnvoi disabled={!connecte}>Préparer une proposition</BoutonEnvoi>{etat.erreur&&<p role="alert" className="err">{etat.erreur}</p>}{etat.succes&&<p role="status">{etat.succes}</p>}</form><a className="mt-3 inline-block text-sm underline" href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/atelier-code.yml" target="_blank" rel="noreferrer">Voir les préparations et leur résultat</a></section>;
+}

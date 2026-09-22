@@ -19,6 +19,9 @@ export type DemandeDuDocument = {
   demandee_le: string;
   signee_le: string | null;
   document_retour_id: string | null;
+  prestataire?: string | null;
+  external_status?: string | null;
+  preuve_document_id?: string | null;
 };
 
 // Ce que le document peut vivre depuis sa fiche (audit 09/09) :
@@ -118,11 +121,19 @@ export function CircuitDocument({
                   Ouvrir le signé
                 </Link>
               )}
+              {d.preuve_document_id && (
+                <Link
+                  href={`${lienFermer}${lienFermer.includes("?") ? "&" : "?"}sel=${d.preuve_document_id}`}
+                  className="lien-discret text-xs"
+                >
+                  Dossier de preuve
+                </Link>
+              )}
             </>
           ) : (
             <>
               <span className="text-warning-soft-foreground">
-                En attente de signature — {d.personNom}, demandée le{" "}
+                En attente de {d.prestataire === "youtrust" ? "signature électronique" : "signature"} — {d.personNom}, demandée le{" "}
                 {formaterDate(d.demandee_le)}
               </span>
               <Button

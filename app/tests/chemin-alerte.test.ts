@@ -10,6 +10,12 @@ describe("destination du traitement des alertes", () => {
     expect(cheminFicheAlerte({ type: "signature_retournee", details: { document_id: "doc" } }, "agence"))
       .toBe("/agence/agence/documents?sel=doc");
   });
+  it("ouvre le document d'origine lorsqu'une signature doit être reprise", () => {
+    expect(cheminFicheAlerte({ type: "signature_a_reprendre", details: { document_id: "doc" } }, "agence"))
+      .toBe("/agence/agence/documents?sel=doc");
+    expect(gesteAlerte({ type: "signature_a_reprendre", details: { document_id: "doc" } }, "agence"))
+      .toMatchObject({ libelle: "Reprendre la demande de signature", seFermeSeule: false });
+  });
   it("ouvre les messages de la personne pour un message locataire", () => {
     expect(cheminFicheAlerte({ type: "message_locataire", details: { person_id: "personne" } }, "agence"))
       .toBe("/agence/agence/personnes/personne#messages");

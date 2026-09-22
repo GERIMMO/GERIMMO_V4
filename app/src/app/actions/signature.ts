@@ -6,6 +6,12 @@ import { sansJargon } from "@/lib/erreurs";
 import { verifierGerant } from "@/lib/ged-acces";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { detecterMimeReel, EXTENSIONS } from "@/lib/file-type";
+import {
+  annulerDemandeYoutrust,
+  configurationYoutrust,
+  creerDemandeYoutrust,
+  ErreurYoutrust,
+} from "@/lib/youtrust";
 
 export type EtatSignature = {
   erreur?: string;
@@ -97,18 +103,85 @@ export async function envoyerPourSignature(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
-  const { error } = await supabase.rpc("envoyer_pour_signature", {
+  const { data: demandeId, error } = await supabase.rpc("envoyer_pour_signature", {
     p_org: orgId,
     p_document: documentId,
     p_person: personId,
   });
   if (error) return { erreur: sansJargon(error.message) };
 
+  // La sandbox sert exclusivement aux PDF fictifs du développement. Tant que
+  // l'abonnement API de production n'est pas posé, le parcours manuel éprouvé
+  // reste actif et aucun document client ne quitte Gerimmo.
+  const youtrust = configurationYoutrust();
+  if (youtrust?.environnement === "production" && demandeId) {
+    let demandeExterne: string | null = null;
+    try {
+      const [{ data: document, error: erreurDocument }, { data: personne, error: erreurPersonne }] =
+        await Promise.all([
+          supabase.from("documents").select("titre,storage_path,mime_type").eq("id", documentId).eq("organization_id", orgId).single(),
+          supabase.from("persons").select("nom,prenom,email,telephone").eq("id", personId).eq("organization_id", orgId).single(),
+        ]);
+      if (erreurDocument || !document?.storage_path || document.mime_type !== "application/pdf") {
+        throw new Error("La signature électronique exige un PDF disponible.");
+      }
+      if (erreurPersonne || !personne?.email) {
+        throw new Error("Ajoutez l'adresse email du signataire avant l'envoi.");
+      }
+      const { data: fichier, error: erreurFichier } = await supabase.storage
+        .from("documents")
+        .download(document.storage_path);
+      if (erreurFichier || !fichier) throw new Error("Le PDF à signer est indisponible.");
+
+      const creee = await creerDemandeYoutrust({
+        config: youtrust,
+        pdf: new Uint8Array(await fichier.arrayBuffer()),
+        nomFichier: `${(document.titre ?? "document").replace(/[^a-zA-Z0-9À-ÿ _-]/g, "").slice(0, 80) || "document"}.pdf`,
+        titre: document.titre ?? "Document Gerimmo",
+        referenceExterne: demandeId,
+        signataire: {
+          prenom: personne.prenom ?? "",
+          nom: personne.nom,
+          email: personne.email,
+          telephone: telephoneInternational(personne.telephone),
+        },
+      });
+      demandeExterne = creee.demandeId;
+      const { error: erreurRattachement } = await supabase.rpc("rattacher_signature_youtrust", {
+        p_org: orgId,
+        p_demande: demandeId,
+        p_request: creee.demandeId,
+        p_document: creee.documentId,
+        p_signer: creee.signataireId,
+        p_statut: creee.statut,
+      });
+      if (erreurRattachement) throw new Error(erreurRattachement.message);
+      revalidatePath(`/agence/${orgId}/documents`);
+      return { succes: "Invitation de signature électronique envoyée. Son avancement apparaîtra ici." };
+    } catch (e) {
+      if (demandeExterne) await annulerDemandeYoutrust(youtrust, demandeExterne).catch(() => undefined);
+      await supabase.rpc("annuler_demande_signature", { p_org: orgId, p_demande: demandeId });
+      const detail = e instanceof ErreurYoutrust
+        ? "Youtrust a refusé l'envoi. Vérifiez les coordonnées du signataire."
+        : e instanceof Error ? e.message : "Envoi électronique impossible.";
+      return { erreur: detail };
+    }
+  }
+
   revalidatePath(`/agence/${orgId}/documents`);
   return {
     succes:
       "Envoyé pour signature — le document apparaît dans « À signer » de son espace ; vous serez alerté au retour du signé.",
   };
+}
+
+function telephoneInternational(telephone: string | null): string | null {
+  if (!telephone) return null;
+  const brut = telephone.replace(/[^\d+]/g, "");
+  if (/^\+\d{8,15}$/.test(brut)) return brut;
+  const chiffres = brut.replace(/\D/g, "");
+  if (/^0\d{9}$/.test(chiffres)) return `+33${chiffres.slice(1)}`;
+  return null;
 }
 
 // Annuler une demande en attente (mauvais destinataire, signature obtenue

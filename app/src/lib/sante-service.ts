@@ -170,7 +170,7 @@ export function etatConfiguration(env: Env): Verification[] {
 
 // ── Les tâches planifiées ────────────────────────────────────────────────────
 
-export type Periodicite = "quotidienne" | "mensuelle";
+export type Periodicite = "continue" | "quotidienne" | "mensuelle";
 
 export type Tache = {
   nom: string;
@@ -188,6 +188,7 @@ export type Tache = {
  * Paris, plutôt que d'afficher une heure fausse la moitié de l'année.
  */
 export const TACHES: Tache[] = [
+  { nom: "signatures", libelle: "Signatures électroniques", role: "Classement du PDF signé et de son dossier de preuve", horaire: "toutes les 10 minutes", periodicite: "continue" },
   { nom: "abonnements", libelle: "Abonnements", role: "Relances de prélèvement échoué et alignement des quantités facturées", horaire: "4 h 00 UTC", periodicite: "quotidienne" },
   { nom: "rappels", libelle: "Rappels de rendez-vous", role: "Rappels d'intervention aux locataires et aux artisans (veille et J-7)", horaire: "6 h 00 UTC", periodicite: "quotidienne" },
   { nom: "quittances", libelle: "Quittances", role: "Envoi des quittances des termes soldés, pour les organisations qui l'ont activé", horaire: "7 h 00 UTC", periodicite: "quotidienne" },
@@ -208,7 +209,7 @@ export type PasseDeTache = Tache & {
 
 const HEURE = 3_600_000;
 /** Une quotidienne a 26 h de marge, une mensuelle 32 jours : le retard d'un déploiement ne doit pas alarmer. */
-const MARGES: Record<Periodicite, number> = { quotidienne: 26 * HEURE, mensuelle: 32 * 24 * HEURE };
+const MARGES: Record<Periodicite, number> = { continue: HEURE, quotidienne: 26 * HEURE, mensuelle: 32 * 24 * HEURE };
 
 /** « 3 envoyées, 0 échec » à partir du bilan brut d'une passe. */
 export function resumerBilan(bilan: unknown): string {

@@ -166,6 +166,9 @@ export async function PaneDocument({
       demandee_le: string;
       signee_le: string | null;
       document_retour_id: string | null;
+      prestataire?: string | null;
+      external_status?: string | null;
+      preuve_document_id?: string | null;
     }[]
   ).map((d) => ({
     id: d.id,
@@ -173,6 +176,9 @@ export async function PaneDocument({
     demandee_le: d.demandee_le,
     signee_le: d.signee_le,
     document_retour_id: d.document_retour_id,
+    prestataire: d.prestataire,
+    external_status: d.external_status,
+    preuve_document_id: d.preuve_document_id,
   }));
   const baux = (bauxBruts ?? []) as {
     id: string;

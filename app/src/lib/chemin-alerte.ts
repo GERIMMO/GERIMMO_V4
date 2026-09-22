@@ -96,6 +96,7 @@ const LIBELLES = new Map<string, string>([
   ["piece_deposee", "Contrôler la pièce déposée"],
   ["restitution_echeance", "Ouvrir la restitution"],
   ["signature_retournee", "Contrôler le document signé"],
+  ["signature_a_reprendre", "Reprendre la demande de signature"],
 ]);
 
 type Alerte = { type?: string; details: Record<string, unknown> | null };
@@ -162,7 +163,7 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
   }
 
   // Un document signé retourné se contrôle puis se classe sur sa fiche GED
-  if (type === "signature_retournee") {
+  if (type === "signature_retournee" || type === "signature_a_reprendre") {
     const document = texte(a.details, "document_id");
     if (document) return `/agence/${orgId}/documents?sel=${document}`;
   }

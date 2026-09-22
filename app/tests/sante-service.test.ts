@@ -113,8 +113,9 @@ describe("les tâches planifiées", () => {
     created_at: new Date(maintenant.getTime() - il_y_a_heures * 3_600_000).toISOString(),
   });
 
-  it("couvre les six tâches de vercel.json, dans l'ordre de la journée", () => {
+  it("couvre les sept tâches de vercel.json, dans l'ordre de la journée", () => {
     expect(TACHES.map((t) => t.nom)).toEqual([
+      "signatures",
       "abonnements",
       "rappels",
       "quittances",
@@ -135,6 +136,7 @@ describe("les tâches planifiées", () => {
       etatTaches(dernieresTaches(lignes), maintenant).map((t) => [t.nom, t.etat])
     );
     expect(etats).toEqual({
+      signatures: "jamais",
       quittances: "ok",
       appels: "retard",
       rappels: "echec",

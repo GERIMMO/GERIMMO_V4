@@ -23,6 +23,12 @@ export type DemandeYoutrustCreee = {
   statut: string;
 };
 
+export type SignataireYoutrustLu = {
+  id: string;
+  status: string;
+  signature_link?: string | null;
+};
+
 type Env = Record<string, string | undefined>;
 
 const BASES: Record<EnvironnementYoutrust, string> = {
@@ -84,7 +90,7 @@ export async function creerDemandeYoutrust(params: {
   titre: string;
   referenceExterne: string;
   signataire: SignataireYoutrust;
-  pageSignature: number;
+  pageSignature?: number;
   /** Coordonnées en points sur la page PDF, origine en haut à gauche. */
   position?: { x: number; y: number; largeur?: number };
 }): Promise<DemandeYoutrustCreee> {
@@ -104,7 +110,7 @@ export async function creerDemandeYoutrust(params: {
   const tamponPdf = Uint8Array.from(params.pdf).buffer;
   formulaire.append("file", new Blob([tamponPdf], { type: "application/pdf" }), params.nomFichier);
   formulaire.append("nature", "signable_document");
-  const document = await appel<{ id: string }>(
+  const document = await appel<{ id: string; total_pages?: number }>(
     config,
     `/signature_requests/${demande.id}/documents`,
     { method: "POST", body: formulaire }
@@ -131,7 +137,7 @@ export async function creerDemandeYoutrust(params: {
           {
             type: "signature",
             document_id: document.id,
-            page: params.pageSignature,
+            page: params.pageSignature ?? document.total_pages ?? 1,
             x: position.x,
             y: position.y,
             width: position.largeur ?? 170,
@@ -152,6 +158,59 @@ export async function creerDemandeYoutrust(params: {
     signataireId: signataireCree.id,
     statut: activee.status,
   };
+}
+
+export async function annulerDemandeYoutrust(
+  config: ConfigurationYoutrust,
+  demandeId: string
+): Promise<void> {
+  await appel(config, `/signature_requests/${demandeId}/cancel`, { method: "POST" });
+}
+
+export async function lireSignataireYoutrust(
+  config: ConfigurationYoutrust,
+  demandeId: string,
+  signataireId: string
+): Promise<SignataireYoutrustLu> {
+  return appel(config, `/signature_requests/${demandeId}/signers/${signataireId}`);
+}
+
+async function telecharger(
+  config: ConfigurationYoutrust,
+  chemin: string,
+  accept: string
+): Promise<Uint8Array> {
+  const reponse = await fetch(`${config.baseUrl}${chemin}`, {
+    headers: { Authorization: `Bearer ${config.cleApi}`, Accept: accept },
+  });
+  if (!reponse.ok) {
+    throw new ErreurYoutrust("Le document signé n'est pas disponible.", reponse.status);
+  }
+  return new Uint8Array(await reponse.arrayBuffer());
+}
+
+export function telechargerDocumentSigneYoutrust(
+  config: ConfigurationYoutrust,
+  demandeId: string,
+  documentId: string
+): Promise<Uint8Array> {
+  return telecharger(
+    config,
+    `/signature_requests/${demandeId}/documents/${documentId}/download`,
+    "application/pdf"
+  );
+}
+
+export function telechargerPreuveYoutrust(
+  config: ConfigurationYoutrust,
+  demandeId: string,
+  signataireId: string
+): Promise<Uint8Array> {
+  return telecharger(
+    config,
+    `/signature_requests/${demandeId}/signers/${signataireId}/audit_trails/download`,
+    "application/pdf"
+  );
 }
 
 /** Vérifie l'empreinte HMAC du corps brut envoyée par les webhooks Youtrust. */

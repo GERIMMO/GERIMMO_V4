@@ -19,11 +19,16 @@ describe('Suivi des dossiers sans fausse réussite',()=>{
  it('consigne une actualisation réussie, même sans dossier modifié',async()=>{
   const rpc=vi.fn().mockResolvedValueOnce({data:0,error:null}).mockResolvedValue({error:null});
   expect(await orchestrerDossiers({rpc} as unknown as SupabaseClient)).toEqual({dossiers:0,erreur:null});
-  expect(rpc).toHaveBeenLastCalledWith('log_tech',expect.objectContaining({evenement:'tache_orchestrateur',details:{dossiers:0,erreur:null}}));
+  expect(rpc).toHaveBeenLastCalledWith('log_tech',expect.objectContaining({evenement:'tache_orchestrateur',details:expect.objectContaining({dossiers:0,erreur:null,rapports_prepares:0,preparation_erreur:null})}));
  });
  it('rend lisible le refus et conserve une trace d’échec',async()=>{
-  const rpc=vi.fn().mockResolvedValueOnce({data:null,error:{message:'private database detail'}}).mockResolvedValue({error:null});
+  const rpc=vi.fn().mockResolvedValueOnce({data:0,error:null}).mockResolvedValueOnce({data:null,error:{message:'private database detail'}}).mockResolvedValue({error:null});
   const result=await orchestrerDossiers({rpc} as unknown as SupabaseClient);expect(result.erreur).toMatch(/pas pu/);expect(result.erreur).not.toContain('private');
+ });
+ it('actualise le suivi même si la préparation des rapports est refusée',async()=>{
+  const rpc=vi.fn().mockResolvedValueOnce({data:null,error:{message:'refus'}}).mockResolvedValueOnce({data:2,error:null}).mockResolvedValue({error:null});
+  expect(await orchestrerDossiers({rpc} as unknown as SupabaseClient)).toEqual({dossiers:2,erreur:null});
+  expect(rpc).toHaveBeenLastCalledWith('log_tech',expect.objectContaining({details:expect.objectContaining({preparation_erreur:expect.any(String)})}));
  });
  it('ne coupe pas le service en cas de réseau interrompu',async()=>{
   const rpc=vi.fn().mockRejectedValueOnce(new Error('connexion')).mockResolvedValue({error:null});

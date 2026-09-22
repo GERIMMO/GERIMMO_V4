@@ -291,7 +291,7 @@ export function FormulaireLoyers({
                 <span
                   className={`shrink-0 ${COULEURS_STATUT_APPEL_LOYER[l.statut] ?? COULEURS_STATUT_APPEL_LOYER.attendu}`}
                 >
-                  {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
+                  {STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
                 </span>
                 {(() => {
                   const q = quittanceParAppel.get(l.appel_id);

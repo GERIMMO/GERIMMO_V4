@@ -354,7 +354,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                         <span className="puce puce-rouge">Urgent</span>
                       )}
                       <span className={COULEURS_ETAT_INCIDENT[i.etat] ?? "puce puce-grise"}>
-                        {ETATS_INCIDENT[i.etat] ?? i.etat}
+                        {ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
                       </span>
                     </span>
                     <span className="mono-discret">

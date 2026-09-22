@@ -190,7 +190,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
                     d'écraser celui-ci ou de déborder de l'écran */}
                 <span className="flex shrink-0 flex-wrap items-center gap-2">
                   {m.etat !== "actif" && (
-                    <span className="puce puce-prep">{ETATS_MANDAT[m.etat] ?? m.etat}</span>
+                    <span className="puce puce-prep">{ETATS_MANDAT[m.etat] ?? "État du mandat à vérifier"}</span>
                   )}
                   {r && r.envoye_le && !r.versement_date && (
                     <span className="puce puce-encre">versement attendu</span>

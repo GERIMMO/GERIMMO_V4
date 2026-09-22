@@ -61,7 +61,7 @@ function ActionsLigne({ orgId, ligne: l }: { orgId: string; ligne: LigneQuittanc
   return (
     <>
       <span className={COULEURS_STATUT_APPEL_LOYER[l.statut] ?? "puce puce-grise"}>
-        {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
+        {STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
       </span>
       {l.statut === "paye" ? (
         l.quittance_id ? (

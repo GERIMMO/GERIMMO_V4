@@ -235,7 +235,7 @@ export default async function PageEspaces() {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium">
-                    {LIBELLES[a.role] ?? a.role}
+                    {LIBELLES[a.role] ?? "Accès utilisateur"}
                   </span>
                   <span className="block text-xs text-muted-foreground">
                     {a.organization?.name ?? "Toute la plateforme"}

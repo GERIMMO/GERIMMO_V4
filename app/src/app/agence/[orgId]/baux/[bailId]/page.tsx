@@ -407,7 +407,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
             {/* Le titre porte qui habite où — le type de bail vit dans l'eyebrow */}
             <h1>{locataire ? nomComplet(locataire) : lot?.nom ?? "Bail"}</h1>
             <span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>
-              {ETATS_BAIL[bail.etat] ?? bail.etat}
+              {ETATS_BAIL[bail.etat] ?? "État du contrat à vérifier"}
             </span>
           </div>
         </div>
@@ -854,7 +854,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                   Aucun état des lieux d&apos;entrée
                 </p>
                 <p className="mt-0.5 text-sm text-destructive-soft-foreground">
-                  Le bail est {ETATS_BAIL[bail.etat]?.toLowerCase() ?? bail.etat} : sans
+                  Le bail est {ETATS_BAIL[bail.etat]?.toLowerCase() ?? "dans un état à vérifier"} : sans
                   état des lieux d&apos;entrée signé, la comparaison à la sortie sera
                   plus délicate. Documentez l’état du logement avec les parties
                   et conservez les justificatifs.

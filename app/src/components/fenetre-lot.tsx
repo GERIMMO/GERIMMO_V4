@@ -658,7 +658,7 @@ function OngletResume({
         >
           {multiple ? <div className="space-y-3">{fiche.contrats?.map(c => <div key={c.id} className="rounded-lg border p-3">
             <Link className="lien-discret font-medium" href={`/agence/${orgId}/baux/${c.id}`}>{c.chambre} · {c.locataire} →</Link>
-            <p className="mt-1 text-sm">{eur(Number(c.loyer_hc) + Number(c.charges))} / mois · {ETATS_BAIL[c.etat] ?? c.etat}{c.date_fin ? ` · fin le ${formaterDate(c.date_fin)}` : ""}</p>
+            <p className="mt-1 text-sm">{eur(Number(c.loyer_hc) + Number(c.charges))} / mois · {ETATS_BAIL[c.etat] ?? "État du contrat à vérifier"}{c.date_fin ? ` · fin le ${formaterDate(c.date_fin)}` : ""}</p>
             {Number(c.impaye_echu) > 0 && <p className="text-sm text-destructive">{eur(Number(c.impaye_echu))} restant dû</p>}
           </div>)}</div> : fiche.bail_id ? (
             <>
@@ -1167,7 +1167,7 @@ function LigneTerme({
       <span className="min-w-0 flex-1">
         {moisEnFrancais(String(terme.periode).slice(0, 7))}
         <span className="mono-discret ml-2 normal-case">
-          {STATUTS_APPEL_LOYER[terme.statut] ?? terme.statut}
+          {STATUTS_APPEL_LOYER[terme.statut] ?? "État du paiement à vérifier"}
         </span>
       </span>
       <span className="montant shrink-0 tabular-nums">{eur(reste)}</span>
@@ -1375,7 +1375,7 @@ function OngletMesLoyers({ orgId }: { orgId: string }) {
                     {moisEnFrancais(String(t.periode).slice(0, 7))}
                   </span>
                   <BadgeStatut ton={reste <= 0 ? "ok" : t.statut === "impaye" ? "retard" : "attente"}>
-                    {STATUTS_APPEL_LOYER[t.statut] ?? t.statut}
+                    {STATUTS_APPEL_LOYER[t.statut] ?? "État du paiement à vérifier"}
                   </BadgeStatut>
                   <span className="montant shrink-0 tabular-nums">
                     {reste > 0 ? eur(reste) : eur(t.montant_du)}

@@ -240,7 +240,7 @@ export async function PaneArtisan({
                         {formaterDate(m.terminee_le ?? m.confiee_le)}
                       </span>
                       <span className={COULEURS_INTERVENTION[m.statut] ?? "puce puce-grise"}>
-                        {STATUTS_INTERVENTION[m.statut] ?? m.statut}
+                        {STATUTS_INTERVENTION[m.statut] ?? "État à vérifier"}
                       </span>
                     </span>
                   </div>

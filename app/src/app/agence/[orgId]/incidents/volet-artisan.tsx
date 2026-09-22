@@ -877,7 +877,7 @@ function ConsultationOuverte({
                 <span className="flex shrink-0 items-center gap-2">
                   <span className="mono-discret">{formaterDate(s.envoyee_le)}</span>
                   <span className={COULEURS_SOLLICITATION[s.statut] ?? "puce puce-grise"}>
-                    {STATUTS_SOLLICITATION[s.statut] ?? s.statut}
+                    {STATUTS_SOLLICITATION[s.statut] ?? "État à vérifier"}
                   </span>
                 </span>
               </div>
@@ -920,7 +920,7 @@ function ConsultationOuverte({
                     <div className="entete-carte !mb-0">
                       <b className="min-w-0 truncate text-sm">{nom(d.artisan_id)}</b>
                       <span className={COULEURS_DEVIS[d.statut] ?? "puce puce-grise"}>
-                        {STATUTS_DEVIS[d.statut] ?? d.statut}
+                        {STATUTS_DEVIS[d.statut] ?? "État à vérifier"}
                       </span>
                     </div>
                     <p className="chiffre montant font-heading text-2xl text-[var(--encre)]">

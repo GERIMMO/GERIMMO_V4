@@ -96,7 +96,7 @@ export default async function PagePaiementsLocataire(
           <i
             key={l.periode}
             className={l.statut === "paye" ? "v" : l.statut === "attendu" ? "a" : "r"}
-            title={`${moisLong(l.periode)} — ${STATUTS_APPEL_LOYER[l.statut] ?? l.statut}`}
+            title={`${moisLong(l.periode)} — ${STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}`}
           />
         ))}
       </div>
@@ -108,7 +108,7 @@ export default async function PagePaiementsLocataire(
           ` Reste à régler : ${aRegler
             .map(
               (l) =>
-                `${moisLong(l.periode)} (${(STATUTS_APPEL_LOYER[l.statut] ?? l.statut).toLowerCase()})`
+                `${moisLong(l.periode)} (${(STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier").toLowerCase()})`
             )
             .join(", ")}.`}
       </p>
@@ -235,7 +235,7 @@ export default async function PagePaiementsLocataire(
                   <span
                     className={`shrink-0 ${tagLocataire(COULEURS_STATUT_APPEL_LOYER[l.statut])}`}
                   >
-                    {STATUTS_APPEL_LOYER[l.statut] ?? l.statut}
+                    {STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
                   </span>
                   {l.quittance_id && (
                     // Lien stylé en bouton : hors du filet tactile du socle

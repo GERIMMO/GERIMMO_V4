@@ -90,7 +90,7 @@ export function FormulaireInventaire({
               </span>
               {l.etat && (
                 <span className="puce puce-grise shrink-0">
-                  {LIBELLE_ETAT[l.etat] ?? l.etat}
+                  {LIBELLE_ETAT[l.etat] ?? "État à vérifier"}
                 </span>
               )}
               <BoutonSupprimer orgId={orgId} bailId={bailId} ligneId={l.id} />

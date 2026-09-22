@@ -7,6 +7,7 @@ import {
   adoptionAutomatique,
   etatConfiguration,
   etatTaches,
+  pointsBloquants,
   type Etat,
   type EtatTache,
   type OrganisationPourAdoption,
@@ -61,6 +62,7 @@ export default async function PageSante() {
 
   const nbManque = configuration.filter((v) => v.etat === "manque").length;
   const nbAttention = configuration.filter((v) => v.etat === "attention").length;
+  const nbPoints = taches === null ? null : pointsBloquants(configuration, taches, manquants.length);
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
@@ -74,9 +76,11 @@ export default async function PageSante() {
         <div className="entete-page">
           <h1>Santé du service</h1>
           <span className="mono-discret">
-            {nbManque === 0 && nbAttention === 0
-              ? "Toutes les variables sont renseignées"
-              : `${nbManque} manque${nbManque > 1 ? "s" : ""} · ${nbAttention} à vérifier`}
+            {nbPoints === null
+              ? `${nbManque} variable${nbManque > 1 ? "s" : ""} manque${nbManque > 1 ? "nt" : ""} · tâches à vérifier`
+              : nbPoints === 0
+                ? "Service prêt"
+                : `${nbPoints} point${nbPoints > 1 ? "s" : ""} à traiter · ${nbManque} variable${nbManque > 1 ? "s" : ""} manquante${nbManque > 1 ? "s" : ""}${nbAttention ? ` · ${nbAttention} à vérifier` : ""}`}
           </span>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">

@@ -113,7 +113,7 @@ describe("les tâches planifiées", () => {
     created_at: new Date(maintenant.getTime() - il_y_a_heures * 3_600_000).toISOString(),
   });
 
-  it("couvre les sept tâches de vercel.json, dans l'ordre de la journée", () => {
+  it("couvre les huit tâches de vercel.json, dans l'ordre de la journée", () => {
     expect(TACHES.map((t) => t.nom)).toEqual([
       "signatures",
       "abonnements",
@@ -121,6 +121,7 @@ describe("les tâches planifiées", () => {
       "quittances",
       "appels",
       "relances",
+      "marketing",
       "territoire",
     ]);
   });
@@ -143,6 +144,7 @@ describe("les tâches planifiées", () => {
       territoire: "ok", // mensuelle : 20 jours, c'est dans la marge
       abonnements: "jamais",
       relances: "jamais",
+      marketing: "jamais",
     });
   });
 

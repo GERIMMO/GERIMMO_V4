@@ -295,7 +295,7 @@ export default async function PageTerritoire() {
               {porte.ouverte ? "Porte de santé ouverte" : "Porte de santé fermée"}
             </span>
             {porte.ouverte ? (
-              <span> — les tâches passent, peu d&apos;erreurs, aucun bug bloquant : une ouverture est possible.</span>
+              <span> — les tâches opérationnelles suivies passent, peu d&apos;erreurs, aucun bug bloquant : une ouverture est possible.</span>
             ) : (
               <ul className="mt-1 list-disc pl-5">
                 {porte.motifs.map((m) => (

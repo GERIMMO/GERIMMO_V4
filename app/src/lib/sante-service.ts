@@ -183,7 +183,7 @@ export type Tache = {
 };
 
 /**
- * Les sept tâches de `vercel.json`, dans l'ordre de la journée. L'horaire est
+ * Les huit tâches de `vercel.json`, dans l'ordre de la journée. L'horaire est
  * celui de vercel.json, en UTC : l'écran dit comment le lire à l'heure de
  * Paris, plutôt que d'afficher une heure fausse la moitié de l'année.
  */
@@ -194,6 +194,7 @@ export const TACHES: Tache[] = [
   { nom: "quittances", libelle: "Quittances", role: "Envoi des quittances des termes soldés, pour les organisations qui l'ont activé", horaire: "7 h 00 UTC", periodicite: "quotidienne" },
   { nom: "appels", libelle: "Avis d'échéance", role: "Envoi des avis du terme à venir, pour les organisations qui l'ont activé", horaire: "7 h 30 UTC", periodicite: "quotidienne" },
   { nom: "relances", libelle: "Relances d'impayé", role: "Première et seconde relance des loyers en retard, pour les organisations qui l'ont activé", horaire: "7 h 45 UTC", periodicite: "quotidienne" },
+  { nom: "marketing", libelle: "Agent marketing", role: "Préparation et diffusion des contenus planifiés sur les canaux autorisés", horaire: "8 h 00 UTC", periodicite: "quotidienne" },
   { nom: "territoire", libelle: "Territoire", role: "Expansion mensuelle du territoire couvert", horaire: "le 1ᵉʳ du mois, 5 h 00 UTC", periodicite: "mensuelle" },
 ];
 

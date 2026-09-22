@@ -1,4 +1,5 @@
 import "server-only";
+import { messageMetaLisible } from "@/lib/facebook";
 
 type ErreurMeta = { error?: { message?: string } };
 
@@ -49,7 +50,7 @@ export async function santeFacebook(): Promise<SanteFacebook> {
     });
     return { configure: true, nom: page.name, abonnes: page.followers_count, lien: page.link };
   } catch (erreur) {
-    return { configure: true, erreur: erreur instanceof Error ? erreur.message : "Connexion Facebook indisponible" };
+    return { configure: true, erreur: messageMetaLisible(erreur, "Connexion Facebook momentanément indisponible.") };
   }
 }
 
@@ -82,6 +83,6 @@ export async function campagnesFacebook(): Promise<{ configure: boolean; campagn
       }),
     };
   } catch (erreur) {
-    return { configure: true, campagnes: [], erreur: erreur instanceof Error ? erreur.message : "Résultats Meta indisponibles" };
+    return { configure: true, campagnes: [], erreur: messageMetaLisible(erreur, "Résultats Meta momentanément indisponibles.") };
   }
 }

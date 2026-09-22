@@ -28,11 +28,27 @@ function baseGraph(): string {
     : "https://graph.facebook.com";
 }
 
+export function messageMetaLisible(erreur: unknown, defaut = "Meta n’a pas accepté la demande."): string {
+  const brut = erreur instanceof Error
+    ? erreur.message
+    : erreur && typeof erreur === "object"
+      ? (erreur as { error?: { message?: string } }).error?.message
+      : typeof erreur === "string" ? erreur : "";
+  const message = brut?.trim() ?? "";
+  if (/ads_management|ads_read|ad account owner/i.test(message)) {
+    return "Le compte est relié, mais les autorisations Meta Ads restent à accorder à Gerimmo dans Meta Business.";
+  }
+  if (/access token|oauth|session has expired|invalid token/i.test(message)) {
+    return "L’autorisation Meta a expiré ou n’est plus valide. Renouvelez la connexion de Gerimmo dans Meta Business.";
+  }
+  if (/permission|permissions error/i.test(message)) {
+    return "Meta refuse encore cette action : vérifiez les autorisations accordées à Gerimmo dans Meta Business.";
+  }
+  return message && !/^\(#?\d+\)/.test(message) ? message : defaut;
+}
+
 function messageMeta(erreur: unknown): string {
-  if (!erreur || typeof erreur !== "object") return "Meta n’a pas accepté la publication.";
-  const valeur = erreur as { error?: { message?: string; code?: number } };
-  const code = valeur.error?.code ? ` (code ${valeur.error.code})` : "";
-  return `${valeur.error?.message?.trim() || "Meta n’a pas accepté la publication."}${code}`;
+  return messageMetaLisible(erreur, "Meta n’a pas accepté la publication.");
 }
 
 async function jetonPourLaPage(pageId: string, jeton: string): Promise<string> {

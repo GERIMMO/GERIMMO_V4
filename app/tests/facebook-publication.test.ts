@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { texteFacebook } from "@/lib/facebook";
+import { messageMetaLisible, texteFacebook } from "@/lib/facebook";
 
 describe("publication Facebook Gerimmo", () => {
   beforeEach(() => vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app"));
@@ -15,5 +15,12 @@ describe("publication Facebook Gerimmo", () => {
     expect(texte).toContain("Gerimmo simplifie");
     expect(texte).toContain("https://www.gerimmo.app/journal/bienvenue-gerimmo");
     expect(texte).not.toMatch(/OpenAI|assistant|je publie/i);
+  });
+
+  it("traduit les erreurs techniques Meta en action compréhensible", () => {
+    expect(messageMetaLisible(new Error("(#200) Ad account owner has NOT grant ads_management or ads_read permission")))
+      .toBe("Le compte est relié, mais les autorisations Meta Ads restent à accorder à Gerimmo dans Meta Business.");
+    expect(messageMetaLisible(new Error("Invalid OAuth access token")))
+      .toContain("Renouvelez la connexion");
   });
 });

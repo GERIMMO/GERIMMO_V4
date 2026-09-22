@@ -183,12 +183,12 @@ export type Tache = {
 };
 
 /**
- * Les six tâches de `vercel.json`, dans l'ordre de la journée. L'horaire est
+ * Les sept tâches de `vercel.json`, dans l'ordre de la journée. L'horaire est
  * celui de vercel.json, en UTC : l'écran dit comment le lire à l'heure de
  * Paris, plutôt que d'afficher une heure fausse la moitié de l'année.
  */
 export const TACHES: Tache[] = [
-  { nom: "signatures", libelle: "Signatures électroniques", role: "Classement du PDF signé et de son dossier de preuve", horaire: "toutes les 10 minutes", periodicite: "continue" },
+  { nom: "signatures", libelle: "Signatures électroniques", role: "Reprise quotidienne si le classement immédiat a échoué", horaire: "3 h 00 UTC", periodicite: "quotidienne" },
   { nom: "abonnements", libelle: "Abonnements", role: "Relances de prélèvement échoué et alignement des quantités facturées", horaire: "4 h 00 UTC", periodicite: "quotidienne" },
   { nom: "rappels", libelle: "Rappels de rendez-vous", role: "Rappels d'intervention aux locataires et aux artisans (veille et J-7)", horaire: "6 h 00 UTC", periodicite: "quotidienne" },
   { nom: "quittances", libelle: "Quittances", role: "Envoi des quittances des termes soldés, pour les organisations qui l'ont activé", horaire: "7 h 00 UTC", periodicite: "quotidienne" },

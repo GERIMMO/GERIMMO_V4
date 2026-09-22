@@ -242,7 +242,12 @@ export function etatTaches(
     const d = dernieres[t.nom];
     if (!d) return { ...t, etat: "jamais", le: null, bilan: "aucune passe consignée" };
     const bilan = d.bilan as Record<string, unknown> | null;
-    const enEchec = Boolean(bilan && typeof bilan === "object" && "erreur" in bilan && bilan.erreur);
+    const enEchec = Boolean(bilan && typeof bilan === "object" && Object.entries(bilan).some(([cle, valeur]) => {
+      if (!/(^|_)(erreur|echec)s?$/.test(cle)) return false;
+      if (typeof valeur === "number") return valeur > 0;
+      if (typeof valeur === "string") return valeur.trim() !== "" && valeur !== "0";
+      return Boolean(valeur);
+    }));
     const age = maintenant.getTime() - new Date(d.le).getTime();
     const etat: EtatTache = enEchec ? "echec" : age > MARGES[t.periodicite] ? "retard" : "ok";
     return { ...t, etat, le: d.le, bilan: resumerBilan(d.bilan) };

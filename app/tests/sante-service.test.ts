@@ -148,6 +148,13 @@ describe("les tâches planifiées", () => {
     });
   });
 
+  it("signale aussi un bilan qui contient des échecs partiels", () => {
+    const lignes = [passe("quittances", 3, { envoyees: 0, echecs: 2 })];
+    const quittances = etatTaches(dernieresTaches(lignes), maintenant)
+      .find((t) => t.nom === "quittances");
+    expect(quittances?.etat).toBe("echec");
+  });
+
   it("résume un bilan en français, sans jargon de clé", () => {
     expect(resumerBilan({ envoyees: 3, echecs: 0, sans_adresse: ["a", "b"] })).toBe(
       "envoyees : 3, echecs : 0, sans adresse : 2"

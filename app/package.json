@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "audit:production": "node e2e/audit-production.mjs",
     "e2e:base": "bash e2e/local/preparer-base.sh",
     "e2e:emulateur": "node e2e/local/serveur-supabase-local.mjs",
     "e2e:matrice": "node e2e/local/generer-matrice.mjs"

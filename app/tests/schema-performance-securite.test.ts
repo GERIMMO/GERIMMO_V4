@@ -62,6 +62,20 @@ describe.skipIf(!DB_URL)("Schéma — performance et sécurité", () => {
     expect(rows, JSON.stringify(rows, null, 2)).toEqual([]);
   });
 
+  it("chaque fonction SECURITY DEFINER fixe un search_path vide", async () => {
+    const { rows } = await db.query<{ signature: string; configuration: string[] | null }>(`
+      select p.oid::regprocedure::text as signature, p.proconfig as configuration
+      from pg_catalog.pg_proc p
+      join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.prosecdef
+        and not coalesce(p.proconfig, '{}'::text[]) @> array['search_path=""']
+      order by 1
+    `);
+
+    expect(rows, JSON.stringify(rows, null, 2)).toEqual([]);
+  });
+
   it("toute fonction SECURITY DEFINER d'écriture exposée possède une garde de périmètre", async () => {
     const { rows } = await db.query<{ signature: string }>(String.raw`
       with fonctions_ecriture as (

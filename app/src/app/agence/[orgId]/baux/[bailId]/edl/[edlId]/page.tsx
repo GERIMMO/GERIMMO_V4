@@ -179,7 +179,7 @@ export default async function PageEdl(
         </p>
         <div className="entete-page">
           <h1>
-            État des lieux d&apos;{edl.type === "entree" ? "entrée" : "sortie"}
+            État des lieux {edl.type === "entree" ? "d’entrée" : "de sortie"}
           </h1>
           <span className="flex items-center gap-3">
             <span className={COULEURS_ETAT_EDL[edl.etat] ?? "puce puce-grise"}>

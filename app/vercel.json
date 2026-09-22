@@ -5,35 +5,35 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/quittances",
+      "path": "/api/cron/equipes?mission=quittances",
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/abonnements",
+      "path": "/api/cron/equipes?mission=abonnements",
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/appels",
+      "path": "/api/cron/equipes?mission=appels",
       "schedule": "30 7 * * *"
     },
     {
-      "path": "/api/cron/rappels",
+      "path": "/api/cron/equipes?mission=rappels",
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/territoire",
+      "path": "/api/cron/equipes?mission=territoire",
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/relances",
+      "path": "/api/cron/equipes?mission=relances",
       "schedule": "45 7 * * *"
     },
     {
-      "path": "/api/cron/marketing",
+      "path": "/api/cron/equipes?mission=marketing",
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/signatures",
+      "path": "/api/cron/equipes?mission=signatures",
       "schedule": "0 3 * * *"
     }
   ]

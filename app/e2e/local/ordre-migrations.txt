@@ -203,3 +203,4 @@
 20260922121000_pilotage_dossiers_mesures.sql
 20260922122000_decisions_et_relais.sql
 20260922123000_gardes_pilotage.sql
+20260922150000_mesures_automatisation_completes.sql

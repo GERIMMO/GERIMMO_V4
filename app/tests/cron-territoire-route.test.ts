@@ -60,8 +60,8 @@ describe("chaque tâche déclarée passe le proxy sans session", () => {
     crons: { path: string; schedule: string }[];
   };
 
-  it("déclare la ronde mensuelle, le 1er du mois", () => {
-    expect(vercel.crons.find((c) => c.path === "/api/cron/territoire")?.schedule).toBe("0 5 1 * *");
+  it("déclare la collecte et l’étude territoriale quotidiennes", () => {
+    expect(vercel.crons.find((c) => c.path === "/api/cron/territoire")?.schedule).toBe("0 5 * * *");
   });
 
   it.each(vercel.crons.map((c) => c.path))("%s n'est pas renvoyé vers la connexion", async (path) => {

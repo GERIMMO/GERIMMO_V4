@@ -25,6 +25,7 @@ export type Verification = {
 };
 
 const LIBELLES_BILAN: Record<string, string> = {
+  dossiers: "dossiers mis à jour",
   envoyees: "envois réussis",
   envoyes: "envois réussis",
   echecs: "actions à reprendre",
@@ -217,6 +218,7 @@ export type Tache = {
  * Paris, plutôt que d'afficher une heure fausse la moitié de l'année.
  */
 export const TACHES: Tache[] = [
+  { nom: "orchestrateur", libelle: "Suivi des dossiers", role: "Actualise la prochaine étape des locations, incidents, signatures et comptes rendus", horaire: "Chaque matin", periodicite: "quotidienne" },
   { nom: "signatures", libelle: "Signatures électroniques", role: "Reprend chaque document qui n'a pas été classé du premier coup", horaire: "Chaque nuit", periodicite: "quotidienne" },
   { nom: "abonnements", libelle: "Abonnements", role: "Suit les paiements refusés et ajuste la facturation au nombre de biens gérés", horaire: "Chaque nuit", periodicite: "quotidienne" },
   { nom: "rappels", libelle: "Rappels de rendez-vous", role: "Prévient les locataires et les artisans avant une intervention", horaire: "Chaque matin", periodicite: "quotidienne" },
@@ -224,7 +226,7 @@ export const TACHES: Tache[] = [
   { nom: "appels", libelle: "Avis d'échéance", role: "Envoie l'avis du prochain loyer aux organisations qui le souhaitent", horaire: "Chaque matin", periodicite: "quotidienne" },
   { nom: "relances", libelle: "Relances d'impayé", role: "Envoie les relances prévues lorsqu'un loyer reste impayé", horaire: "Chaque matin", periodicite: "quotidienne" },
   { nom: "marketing", libelle: "Agent marketing", role: "Prépare et diffuse les contenus autorisés", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "territoire", libelle: "Développement territorial", role: "Propose le prochain département à ouvrir selon les chances de réussite", horaire: "Le 1er de chaque mois", periodicite: "mensuelle" },
+  { nom: "territoire", libelle: "Développement territorial", role: "Actualise le marché et prépare la prochaine priorité territoriale", horaire: "Chaque matin", periodicite: "quotidienne" },
 ];
 
 export type EtatTache = "ok" | "echec" | "retard" | "jamais";

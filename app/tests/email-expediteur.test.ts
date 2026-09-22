@@ -58,8 +58,8 @@ describe("l'expéditeur", () => {
     );
     const { envoyerEmail } = await chargerEmail();
     const r = await envoyerEmail({ to: "a@b.fr", subject: "S", html: "<p>x</p>" });
-    expect(r.erreur).toMatch(/n'est pas vérifié chez Resend/);
-    expect(r.erreur).toMatch(/RESEND_EXPEDITEUR/);
+    expect(r.erreur).toMatch(/adresse d’envoi doit encore être vérifiée/);
+    expect(r.erreur).not.toMatch(/RESEND_EXPEDITEUR/);
   });
 
   it("sans clé, ne prétend pas avoir envoyé", async () => {
@@ -79,4 +79,27 @@ it("transmet une pièce jointe et la clé anti-doublon, et conserve la référen
   const requete = fetch.mock.calls[0][1];
   expect(requete.headers["Idempotency-Key"]).toBe("rapport/test");
   expect(JSON.parse(requete.body).attachments).toEqual([{ filename: "rapport.pdf", content: "cGRm" }]);
+});
+
+
+async function emailAvecMarque(marque: Record<string, unknown>) {
+  vi.stubEnv("RESEND_API_KEY", "cle-de-test");
+  vi.stubEnv("RESEND_EXPEDITEUR", "Gerimmo <no-reply@gerimmo.app>");
+  const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: "mail" }), { status: 200 }));
+  vi.stubGlobal("fetch", fetch);
+  const query = { select: () => query, eq: () => query, maybeSingle: async () => ({ data: marque, error: null }) };
+  const db = { from: () => query } as unknown as import("@supabase/supabase-js").SupabaseClient;
+  const { envoyerEmail } = await chargerEmail();
+  await envoyerEmail({ to: "locataire@exemple.fr", subject: "Avis", html: "<p>Loyer</p>", organisation: { db, id: "agence" } });
+  return JSON.parse(fetch.mock.calls[0][1].body);
+}
+it("une adresse seulement enregistrée ne devient jamais un expéditeur", async () => {
+  const mail = await emailAvecMarque({ name: "Agence Alpha", email_contact: "contact@alpha.fr", email_expediteur: "gestion@alpha.fr" });
+  expect(mail.from).toBe("Agence Alpha <no-reply@gerimmo.app>");
+  expect(mail.reply_to).toBe("contact@alpha.fr");
+  expect(mail.html).toContain("Agence Alpha");
+});
+it("une adresse vérifiée porte la marque agence sans injection d’en-tête", async () => {
+  const mail = await emailAvecMarque({ nom_portail: 'Alpha <faux>\r\n', email_expediteur: "gestion@alpha.fr", email_expediteur_verifie_le: "2026-09-22T10:00:00Z" });
+  expect(mail.from).toBe("Alpha faux <gestion@alpha.fr>");
 });

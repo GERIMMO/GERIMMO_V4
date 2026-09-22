@@ -84,7 +84,7 @@ export async function envoyerQuittance(
   };
   const html = corpsQuittance(message);
 
-  const envoi = await envoyerEmail({ to: loc.email, subject: sujetQuittance(message), html });
+  const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: loc.email, subject: sujetQuittance(message), html });
   if (envoi.erreur) {
     console.error("[quittance email] échec:", envoi.erreur);
     return { erreur: envoi.erreur };

@@ -765,3 +765,23 @@ export async function evaluerArtisan(
       "Artisan noté. Votre commentaire reste dans votre agence ; seule la moyenne remonte à son profil.",
   };
 }
+
+export async function deciderAvenant(
+  orgId: string,
+  avenantId: string,
+  accepter: boolean,
+  _etat: EtatIncidentAction,
+  formData: FormData
+): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const motif = String(formData.get("motif_decision") ?? "").trim();
+  const { error } = await supabase.rpc("decider_avenant_devis", {
+    p_avenant: avenantId,
+    p_accepter: accepter,
+    p_motif: motif || null,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  revaliderIncident(orgId);
+  return { succes: accepter ? "Avenant accepté. L’artisan peut terminer au nouveau montant." : "Avenant refusé. Le dernier montant accepté reste le plafond autorisé." };
+}

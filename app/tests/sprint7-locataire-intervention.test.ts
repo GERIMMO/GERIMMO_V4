@@ -392,6 +392,14 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
       `select public.deposer_photo_intervention($1,'apres',$2,'image/jpeg',1000,'emp-apres')`,
       [intervention, `${org}/incidents/apres.jpg`]
     );
+    // Le diagnostic implique un coût supérieur : l'accord précède le bilan.
+    const { rows: [avenant] } = await db.query(
+      "select public.demander_avenant_devis($1,$2,'Travaux complémentaires découverts après diagnostic',$3::jsonb) id",
+      [intervention,51000,JSON.stringify([{libelle:"Travaux après diagnostic",quantite:1,prix_unitaire_ht_cents:51000,tva_bps:0}])]
+    );
+    await agir(gerant);
+    await db.query("select public.decider_avenant_devis($1,true)",[avenant.id]);
+    await agir(cptArtisan);
     await db.query(
       `select public.deposer_compte_rendu($1,'Joint et siphon remplacés, essai concluant',
          'Canalisation percée par vétusté','proprietaire', 51000, false)`,

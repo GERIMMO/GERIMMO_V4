@@ -346,7 +346,8 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
         -- Le support reste ouvert pour signaler précisément un blocage d'accès.
         and c.relname not in ('acces_pieces_log', 'audit_log',
                               'abonnements', 'abonnement_evenements',
-                              'retours_utilisateurs', 'retours_soutiens')
+                              'retours_utilisateurs', 'retours_soutiens',
+                              'automation_events', 'orchestration_cases')
         and not exists (select 1 from pg_trigger t
                         where t.tgrelid = c.oid and t.tgname like 'abonnement\\_%')
       order by c.relname`);

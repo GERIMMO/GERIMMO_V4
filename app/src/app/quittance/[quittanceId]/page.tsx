@@ -1,3 +1,6 @@
+import { MarqueOrganisation } from "@/components/marque-organisation";
+import { styleMarque } from "@/lib/marque-organisation";
+import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -43,6 +46,9 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
   const { quittanceId } = await props.params;
   const q = await chargerQuittance(quittanceId);
   if (!q) notFound();
+  const db = await createClient();
+  const { data: origine } = await db.from("quittances").select("organization_id").eq("id", quittanceId).maybeSingle();
+  const marque = origine?.organization_id ? await chargerMarque(db, origine.organization_id) : null;
 
   const mois = new Date(q.periode).toLocaleDateString("fr-FR", {
     month: "long",
@@ -58,7 +64,8 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
   const solde = Math.round((Number(q.montant_du) - Number(q.montant)) * 100) / 100;
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8">
+    <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8" style={styleMarque(marque)}>
+      {marque && <div className="max-w-[180px]"><MarqueOrganisation marque={marque} /></div>}
       {/* Route racine, hors de tout espace : sans cela, le document est un
           cul-de-sac. Masqué à l'impression — une quittation papier n'a pas de
           bouton « Retour ». */}

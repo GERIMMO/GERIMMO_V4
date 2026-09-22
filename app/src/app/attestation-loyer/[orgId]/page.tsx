@@ -1,3 +1,6 @@
+import { MarqueOrganisation } from "@/components/marque-organisation";
+import { styleMarque } from "@/lib/marque-organisation";
+import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
@@ -21,6 +24,8 @@ export default async function PageAttestationLoyer(
 ) {
   const { orgId } = await props.params;
   const { supabase, personne, organisation } = await verifierAccesEspaceLocataire(orgId);
+
+  const marque = await chargerMarque(supabase, orgId);
 
   const [
     { data: baux, error: eBail },
@@ -150,7 +155,8 @@ export default async function PageAttestationLoyer(
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8">
+    <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8" style={styleMarque(marque)}>
+      {marque && <div className="max-w-[180px]"><MarqueOrganisation marque={marque} /></div>}
       <div className="flex items-start justify-between gap-3 print:hidden">
         <Link href={`/locataire/${orgId}/loyers`} className="lien-discret">
           ‹ Mes paiements

@@ -5,7 +5,8 @@ import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, aujourdhuiParis } from "@/lib/ged";
 import { navigationEspace, type RoleEspace } from "@/lib/navigation-espace";
 import { BarreBasse, BarreLaterale } from "@/components/barre-laterale";
-import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { MarqueOrganisation } from "@/components/marque-organisation";
+import { styleMarque } from "@/lib/marque-organisation";
 import { MenuCompte } from "@/components/menu-compte";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { RechercheEspace } from "@/components/recherche-espace";
@@ -148,7 +149,7 @@ export default async function LayoutAgence({
       ];
 
   return (
-    <div className="coquille">
+    <div className="coquille" style={estProprietaire ? undefined : styleMarque(organisation)}>
       <aside className="coquille-late">
         <BarreLaterale
           orgId={orgId}
@@ -156,13 +157,14 @@ export default async function LayoutAgence({
           navigation={navigation}
           organisations={organisations}
           essai={essai}
+          marque={estProprietaire ? undefined : { nom: organisation.nom_portail || organisation.name, logoUrl: organisation.logo_url }}
         />
       </aside>
       <div className="coquille-corps">
         <header className="coquille-haut">
           {/* Sur téléphone la colonne n'existe plus : la marque monte ici. */}
-          <span className="coquille-marque-mobile">
-            <MarqueGerimmo />
+          <span className="coquille-marque-mobile min-w-0 max-w-[160px]">
+            <MarqueOrganisation marque={estProprietaire ? undefined : organisation} />
           </span>
           <RechercheEspace orgId={orgId} />
           <SyntheseAlertes

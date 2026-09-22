@@ -1,5 +1,7 @@
 "use client";
 
+import { MarqueOrganisation } from "@/components/marque-organisation";
+import { styleMarque } from "@/lib/marque-organisation";
 import { useActionState } from "react";
 import {
   modifierProfilOrganisation,
@@ -27,6 +29,14 @@ type Organisation = {
   relances_envoi_auto: boolean;
   relance_1_jours: number;
   relance_2_jours: number;
+  logo_url: string | null;
+  couleur_primaire: string | null;
+  couleur_secondaire: string | null;
+  domaine_personnalise: string | null;
+  domaine_personnalise_verifie_le: string | null;
+  email_expediteur_verifie_le: string | null;
+  email_expediteur: string | null;
+  nom_portail: string | null;
 };
 
 export function FormulaireProfilOrganisation({
@@ -125,6 +135,20 @@ export function FormulaireProfilOrganisation({
       </div>
       {!estProprietaire && (
         <>
+          <fieldset className="space-y-3 rounded-xl border p-4">
+            <legend className="px-1 text-sm font-semibold">Votre marque sur Gerimmo</legend>
+            <p className="text-xs text-muted-foreground">Ces réglages habillent l’espace agence et le portail locataire avec votre identité.</p>
+            <div className="space-y-2"><Label htmlFor="pr-nom-portail">Nom affiché</Label><Input id="pr-nom-portail" name="nom_portail" disabled={lectureSeule} defaultValue={valeur("nom_portail")} placeholder={organisation.name} maxLength={100} /></div>
+            <div className="space-y-2"><Label htmlFor="pr-logo">Votre logo</Label><Input id="pr-logo" name="logo_fichier" type="file" accept="image/png,image/jpeg,image/webp" disabled={lectureSeule} /><p className="text-xs text-muted-foreground">PNG, JPEG ou WebP, 200 Ko maximum. Le logo sera repris dans le portail, les documents et les e-mails.</p>{organisation.logo_url && <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="retirer_logo" disabled={lectureSeule} />Retirer le logo actuel</label>}</div>
+            <div className="rounded-lg border bg-white p-4" style={styleMarque(organisation)}><p className="mb-3 text-xs text-muted-foreground">Identité actuellement enregistrée</p><div className="max-w-[180px]"><MarqueOrganisation marque={organisation} /></div><div className="mt-3 rounded-lg bg-[var(--marque)] px-4 py-2 text-sm text-white">Votre espace de gestion</div></div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2"><Label htmlFor="pr-couleur-1">Couleur principale</Label><Input id="pr-couleur-1" name="couleur_primaire" type="color" disabled={lectureSeule} defaultValue={valeur("couleur_primaire") || "#2457f5"} className="h-12" /></div>
+              <div className="space-y-2"><Label htmlFor="pr-couleur-2">Couleur foncée</Label><Input id="pr-couleur-2" name="couleur_secondaire" type="color" disabled={lectureSeule} defaultValue={valeur("couleur_secondaire") || "#0f2352"} className="h-12" /></div>
+            </div>
+            <p className="text-xs text-muted-foreground">Les couleurs trop claires sont légèrement foncées à l’affichage pour conserver des textes lisibles.</p>
+            <div className="space-y-2"><Label htmlFor="pr-domaine">Adresse personnalisée</Label><Input id="pr-domaine" name="domaine_personnalise" disabled={lectureSeule} defaultValue={valeur("domaine_personnalise")} placeholder="espace.votre-agence.fr" /><p className="text-xs text-muted-foreground">{organisation.domaine_personnalise_verifie_le ? "Adresse vérifiée. Toute modification demandera une nouvelle vérification." : organisation.domaine_personnalise ? "Enregistrée, à connecter : votre espace reste accessible sur gerimmo.app." : "Facultatif. Le responsable Gerimmo vérifiera votre adresse avant sa mise en service."}</p></div>
+            <div className="space-y-2"><Label htmlFor="pr-expediteur">Adresse d’envoi des emails</Label><Input id="pr-expediteur" name="email_expediteur" type="email" disabled={lectureSeule} defaultValue={valeur("email_expediteur")} placeholder="gestion@votre-agence.fr" /><p className="text-xs text-muted-foreground">{organisation.email_expediteur_verifie_le ? "Expéditeur vérifié et utilisable. Toute modification demandera une nouvelle vérification." : organisation.email_expediteur ? "Enregistrée, à vérifier : les messages partent encore de Gerimmo avec votre identité et votre adresse de réponse." : "Facultatif. Les messages portent déjà votre nom ; l’adresse d’envoi personnalisée nécessite une vérification."}</p></div>
+          </fieldset>
           <div className="space-y-2">
             <Label htmlFor="pr-carte-pro">Carte professionnelle (n° et CCI) *</Label>
             <Input

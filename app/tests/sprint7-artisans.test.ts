@@ -505,6 +505,14 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
       `select public.deposer_photo_intervention($1,'apres',$2,'image/jpeg',100,'emp-apres')`,
       [intervention, `${orgA}/apres.jpg`]
     );
+    // Le diagnostic implique un coût supérieur : l'accord précède le bilan.
+    const { rows: [avenant] } = await db.query(
+      "select public.demander_avenant_devis($1,$2,'Travaux complémentaires découverts après diagnostic',$3::jsonb) id",
+      [intervention,52000,JSON.stringify([{libelle:"Travaux après diagnostic",quantite:1,prix_unitaire_ht_cents:52000,tva_bps:0}])]
+    );
+    await agir(gerantA);
+    await db.query("select public.decider_avenant_devis($1,true)",[avenant.id]);
+    await agir(cptArtisan);
     await db.query(
       `select public.deposer_compte_rendu($1,'Canalisation percée par une vis',
          'Perçage lors de la pose d''une étagère','degradation_fautive',52000,false)`,

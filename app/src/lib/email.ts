@@ -1,3 +1,8 @@
+import { adresseDuSite } from "./site";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { chargerMarque } from "./marque-organisation-serveur";
+import { emailValide, enteteMarqueHtml, liensMarque, nomMarque } from "./marque-organisation";
+
 // Envoi d'emails transactionnels via l'API Resend (quittances, décomptes…).
 // Les emails d'AUTHENTIFICATION (invitation, mot de passe) passent, eux, par le
 // SMTP Resend configuré dans Supabase — pas par ce helper.
@@ -22,10 +27,18 @@ export async function envoyerEmail(params: {
   html: string;
   piecesJointes?: { nom: string; contenuBase64: string }[];
   cleIdempotence?: string;
+  organisation?: { db: SupabaseClient; id: string };
 }): Promise<{ erreur?: string; id?: string }> {
   const cle = process.env.RESEND_API_KEY;
   if (!cle) return { erreur: "Envoi des e-mails non configuré. Contactez l’administrateur." };
   try {
+    const marque = params.organisation ? await chargerMarque(params.organisation.db, params.organisation.id) : null;
+    // Verification fields are server-controlled in the database, never accepted from a form.
+    const adresseVerifiee = marque?.email_expediteur_verifie_le && marque.email_expediteur && emailValide(marque.email_expediteur) ? marque.email_expediteur : null;
+    const nom = marque ? nomMarque(marque).replace(/[<>"\r\n]/g, "").trim() : null;
+    const expediteur = adresseVerifiee ? `${nom} <${adresseVerifiee}>` : nom ? EXPEDITEUR.replace(/^[^<]+(?=\s*<)/, nom + " ") : EXPEDITEUR;
+    const repondreA = marque?.email_contact && emailValide(marque.email_contact) ? marque.email_contact : null;
+    const html = marque ? `${enteteMarqueHtml(marque)}${liensMarque(params.html, marque, adresseDuSite())}` : params.html;
     const reponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -34,10 +47,11 @@ export async function envoyerEmail(params: {
         ...(params.cleIdempotence ? { "Idempotency-Key": params.cleIdempotence } : {}),
       },
       body: JSON.stringify({
-        from: EXPEDITEUR,
+        from: expediteur,
+        ...(repondreA ? { reply_to: repondreA } : {}),
         to: [params.to],
         subject: params.subject,
-        html: params.html,
+        html,
         ...(params.piecesJointes?.length ? { attachments: params.piecesJointes.map(p => ({ filename: p.nom, content: p.contenuBase64 })) } : {}),
       }),
     });
@@ -48,7 +62,7 @@ export async function envoyerEmail(params: {
       // « domain », jamais de ce qu'il faut faire. On le traduit.
       if (/domain/i.test(txt) && reponse.status === 403) {
         return {
-          erreur: `Le domaine de l'adresse d'expédition (${EXPEDITEUR}) n'est pas vérifié chez Resend : aucun message ne peut partir tant qu'il ne l'est pas. Vérifiez le domaine, ou réglez RESEND_EXPEDITEUR sur une adresse de test.`,
+          erreur: "L’adresse d’envoi doit encore être vérifiée auprès du service d’e-mail. Contactez le responsable Gerimmo pour terminer sa connexion.",
         };
       }
       return { erreur: "Le service d’e-mail a refusé l’envoi. Vérifiez l’adresse du destinataire puis réessayez." };

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
+import { chargerMarque } from "@/lib/marque-organisation-serveur";
+import { appliquerMarqueDocument } from "@/lib/documents/marque";
 import { rendrePdf, copieDeTravail } from "@/lib/documents/rendu";
 import { MODELES, type CodeModele, type Modele } from "@/lib/documents/modeles";
 import { refusDocumentIncomplet } from "@/lib/documents/completude";
@@ -52,7 +54,8 @@ export async function genererDocument(
       };
     }
 
-    const octets = await rendrePdf(assemblage.document);
+    const documentMarque = appliquerMarqueDocument(assemblage.document, await chargerMarque(supabase, orgId));
+    const octets = await rendrePdf(documentMarque);
     copieDeTravail(`${code}-${cibleId.slice(0, 8)}.pdf`, octets);
 
     const fichier = new File([octets as BlobPart], `${assemblage.nomFichier}.pdf`, {

@@ -16,6 +16,7 @@ import { useEffect } from "react";
 const ENTREES: [string, string][] = [
   ["/admin", "Supervision"],
   ["/admin/brief", "Brief"],
+  ["/admin/autonomie", "Pilotage autonome"],
   ["/admin/clients", "Clients"],
   ["/admin/territoire", "Territoire"],
   ["/admin/publications", "Journal"],

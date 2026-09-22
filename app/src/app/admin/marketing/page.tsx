@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, CheckCircle2, CircleDollarSign, Lightbulb, Megaphone, PenLine, Radar, Share2, ShieldCheck, Sparkles, TriangleAlert, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { campagnesFacebook, santeFacebook } from "@/lib/marketing-meta";
+import { campagnesFacebook, depenseFacebookDuMois, santeFacebook } from "@/lib/marketing-meta";
 import { sansJargon } from "@/lib/erreurs";
 import { ActualisationAuto } from "./actualisation-auto";
 import { FormulaireCampagne } from "./formulaire-campagne";
@@ -23,7 +23,7 @@ const OBJECTIFS: Record<string, string> = {
   notoriete: "faire connaître Gerimmo",
   trafic: "amener des visiteurs sur le site",
   prospects: "obtenir des demandes de contact",
-  conversions: "obtenir de nouveaux clients",
+  conversion: "obtenir de nouveaux clients",
 };
 const ETATS_PUBLICITE: Record<string, string> = {
   ACTIVE: "En cours",
@@ -51,19 +51,18 @@ function Capacite({ icone, titre, detail, statut }: { icone: React.ReactNode; ti
 
 export default async function PageAgentMarketing() {
   const supabase = await createClient();
-  const debutMois = new Date(); debutMois.setUTCDate(1); debutMois.setUTCHours(0, 0, 0, 0);
-  const [campagnesResultat, publicationsResultat, reglagesResultat, mesuresResultat, facebook, meta] = await Promise.all([
+  const [campagnesResultat, publicationsResultat, reglagesResultat, depenses, facebook, meta] = await Promise.all([
     supabase.from("marketing_campagnes").select("id,nom,description,canal,nature,objectif,statut,publication_prevue_le,budget_cents,cree_le").order("publication_prevue_le", { ascending: true, nullsFirst: false }),
     supabase.from("publications").select("id,titre,statut,slug,propose_le,publie_le,facebook_post_id,facebook_publie_le,facebook_erreur").order("propose_le", { ascending: false }).limit(100),
     supabase.from("marketing_reglages").select("actif,publication_automatique,publicite_active,jours_semaine,heure_paris,budget_mensuel_cents").eq("singleton", true).single(),
-    supabase.from("marketing_mesures").select("depense_cents").gte("mesure_le", debutMois.toISOString()),
+    depenseFacebookDuMois(),
     santeFacebook(),
     campagnesFacebook(),
   ]);
   const campagnes = (campagnesResultat.data ?? []) as Campagne[];
   const publications = (publicationsResultat.data ?? []) as Publication[];
-  const reglages = (reglagesResultat.data ?? { actif: true, publication_automatique: true, publicite_active: true, jours_semaine: [2, 5], heure_paris: 9, budget_mensuel_cents: 1000 }) as Reglages;
-  const depenseMois = (mesuresResultat.data ?? []).reduce((total, m) => total + Number(m.depense_cents ?? 0), 0);
+  const reglages = (reglagesResultat.data ?? { actif: false, publication_automatique: false, publicite_active: false, jours_semaine: [2, 5], heure_paris: 9, budget_mensuel_cents: 0 }) as Reglages;
+  const depenseMois = depenses.cents;
   const futures = campagnes.filter((c) => ["idee", "planifiee"].includes(c.statut));
   const actives = meta.campagnes.filter((c) => ["ACTIVE", "IN_PROCESS", "PENDING_REVIEW"].includes(c.statut));
   const anciennesMeta = meta.campagnes.filter((c) => !actives.includes(c));
@@ -87,7 +86,7 @@ export default async function PageAgentMarketing() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
           <Etape faite={reglages.actif && reglages.publication_automatique} titre="2 prises de parole par semaine" detail={`${jours}, le matin — articles et publications Facebook.`} />
           <Etape faite={facebookOperationnel} titre="Page Facebook reliée" detail={facebookOperationnel ? `${facebook.nom ?? "Gerimmo"} peut publier sans votre présence.` : facebook.erreur ?? "Connexion Facebook à terminer."} />
-          <Etape faite={metaOperationnel} titre="Compte publicitaire relié" detail={metaOperationnel ? `Résultats lus en direct, plafond de ${argent(reglages.budget_mensuel_cents)} par mois.` : meta.erreur ?? "Le compte est enregistré ; les droits Ads ou la facturation restent à terminer."} />
+          <Etape faite={metaOperationnel} titre="Compte publicitaire relié" detail={metaOperationnel ? `Résultats lus en direct, budget autorisé de ${argent(reglages.budget_mensuel_cents)} par mois.` : meta.erreur ?? "Le compte est enregistré ; les droits Ads ou la facturation restent à terminer."} />
         </div>
       </div>
     </section>
@@ -96,7 +95,7 @@ export default async function PageAgentMarketing() {
       <div className="rounded-2xl border border-[#cfe0ff] bg-[#eef4ff] p-5"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-[#214d9b]">Publications à traiter</span><PenLine className="size-5 text-[#2f68d8]" /></div><div className="mt-2 text-3xl font-semibold text-[#183b7b]">{aRelire.length + aDiffuser.length}</div><p className="mt-1 text-xs text-[#49658e]">{aRelire.length} à relire · {aDiffuser.length} à diffuser</p></div>
       <div className="rounded-2xl border border-[#cdebe1] bg-[#edfaf6] p-5"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-[#11664f]">Facebook</span><Share2 className="size-5 text-[#168368]" /></div><div className="mt-2 text-3xl font-semibold text-[#0d5c47]">{parutionsFacebook.length}</div><p className="mt-1 text-xs text-[#477568]">publications envoyées · {facebook.abonnes == null ? "audience en lecture" : `${nombre(facebook.abonnes)} abonnés`}</p></div>
       <div className="rounded-2xl border border-[#f1dfb9] bg-[#fff8e9] p-5"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-[#855614]">Campagnes à venir</span><CalendarDays className="size-5 text-[#bb7b1e]" /></div><div className="mt-2 text-3xl font-semibold text-[#774808]">{futures.length}</div><p className="mt-1 text-xs text-[#8a6b3e]">planning modifiable avant diffusion</p></div>
-      <div className="rounded-2xl border border-[#f0d4d4] bg-[#fff2f2] p-5"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-[#8b3434]">Dépenses ce mois</span><CircleDollarSign className="size-5 text-[#bd4a4a]" /></div><div className="mt-2 text-3xl font-semibold text-[#832d2d]">{argent(depenseMois)}</div><p className="mt-1 text-xs text-[#936060]">plafond absolu : {argent(reglages.budget_mensuel_cents)}</p></div>
+      <div className="rounded-2xl border border-[#f0d4d4] bg-[#fff2f2] p-5"><div className="flex items-center justify-between"><span className="text-sm font-semibold text-[#8b3434]">Dépenses ce mois</span><CircleDollarSign className="size-5 text-[#bd4a4a]" /></div><div className="mt-2 text-3xl font-semibold text-[#832d2d]">{argent(depenseMois)}</div><p className="mt-1 text-xs text-[#936060]">budget autorisé : {argent(reglages.budget_mensuel_cents)}{depenses.erreur && <span className="mt-1 block">{depenses.erreur}</span>}</p></div>
     </section>
 
     <section><div className="mb-4"><p className="libelle-champ">Vos possibilités</p><h2 className="mt-1 font-heading text-2xl text-[var(--bleu)]">Ce que l’équipe marketing Gerimmo prend en charge</h2></div><div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -106,7 +105,7 @@ export default async function PageAgentMarketing() {
       <Capacite icone={<Radar className="size-5" />} titre="Mesure et amélioration" detail="Suivre portée, clics, dépenses et campagnes afin de proposer les prochains sujets et arbitrages." statut={metaOperationnel ? "En direct" : "Autorisation à terminer"} />
     </div></section>
 
-    {(campagnesResultat.error || publicationsResultat.error || reglagesResultat.error || mesuresResultat.error) && <p role="alert" className="err">Une partie des informations marketing est momentanément indisponible. Rechargez la page.</p>}
+    {(campagnesResultat.error || publicationsResultat.error || reglagesResultat.error || depenses.erreur) && <p role="alert" className="err">Une partie des informations marketing est momentanément indisponible. Rechargez la page.</p>}
 
     <section className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
       <div className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">Feuille de route</p><h2>Calendrier éditorial</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Les contenus et campagnes prévus, dans l’ordre de diffusion.</p></div><Link href="/admin/publications/nouvelle" className="btn-or text-sm">Créer un article</Link></div><div className="mt-4 divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--ivoire)]">{futures.length === 0 ? <div className="vide-guide"><p className="titre">Aucune campagne programmée</p><p className="explication">Ajoutez la prochaine prise de parole ou laissez l’agent alimenter le rythme automatique.</p></div> : futures.map((c) => <article key={c.id} className="p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-heading text-lg">{c.nom}</h3><span className="puce puce-prep">{date(c.publication_prevue_le)}</span></div><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Facebook · {c.nature === "sponsorisee" ? `sponsorisée · ${argent(c.budget_cents)}` : "gratuite"} · objectif : {OBJECTIFS[c.objectif] ?? "développer Gerimmo"}</p>{c.description && <p className="mt-2 text-sm">{c.description}</p>}</article>)}</div></div>
@@ -120,7 +119,7 @@ export default async function PageAgentMarketing() {
       <div className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">Publicité payante</p><h2>Résultats Meta Ads</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Portée, clics et dépense, lus directement dans le compte publicitaire.</p></div><CircleDollarSign className="size-6 text-[#b77b22]" /></div>{!meta.configure ? <div className="vide-guide mt-4"><p className="titre">Compte publicitaire à relier</p><p className="explication">Facebook organique continue de fonctionner sans publicité payante.</p></div> : meta.erreur ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4"><div className="flex gap-3"><TriangleAlert className="mt-0.5 size-5 shrink-0 text-amber-700" /><div><p className="font-semibold text-amber-900">Lecture des résultats à terminer</p><p className="mt-1 text-sm text-amber-800">{meta.erreur}</p><p className="mt-2 text-xs text-amber-700">Le compte est rattaché. Il reste à autoriser la lecture publicitaire et à ajouter le moyen de paiement Meta.</p></div></div></div> : actives.length === 0 ? <p className="vide mt-4">Compte relié. Aucune publicité active actuellement.</p> : <div className="mt-4 overflow-x-auto"><table><thead><tr><th>Campagne</th><th>Portée</th><th>Impressions</th><th>Clics</th><th>Dépense</th></tr></thead><tbody>{actives.map((c) => <tr key={c.id}><td>{c.nom}</td><td>{nombre(c.portee)}</td><td>{nombre(c.impressions)}</td><td>{nombre(c.clics)}</td><td>{argent(Math.round(c.depense * 100))}</td></tr>)}</tbody></table></div>}{anciennesMeta.length > 0 && <details className="mt-5"><summary className="cursor-pointer text-sm font-semibold text-[var(--bleu)]">Voir l’historique publicitaire ({anciennesMeta.length})</summary><div className="mt-3 divide-y divide-[var(--filet)] rounded-xl border border-[var(--filet)]">{anciennesMeta.map((c) => <div key={c.id} className="p-4 text-sm"><div className="flex justify-between gap-2"><b>{c.nom}</b><span className="puce puce-grise">{ETATS_PUBLICITE[c.statut] ?? "Terminée"}</span></div><p className="mt-2 text-[var(--texte-secondaire)]">{nombre(c.portee)} personnes · {nombre(c.clics)} clics · {argent(Math.round(c.depense * 100))}</p></div>)}</div></details>}</div>
     </section>
 
-    <section className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">État des connexions</p><h2>Canaux et contrôle</h2></div><ShieldCheck className="size-6 text-[#138567]" /></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4"><div className="flex items-center gap-2"><Share2 className="size-5 text-[#2f68d8]" /><b>Facebook</b></div><p className="mt-2 text-sm text-[var(--texte-secondaire)]">{facebookOperationnel ? "Page reliée avec une autorisation durable" : "Connexion à terminer"}</p></div><div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4"><div className="flex items-center gap-2"><CircleDollarSign className="size-5 text-[#b77b22]" /><b>Meta Ads</b></div><p className="mt-2 text-sm text-[var(--texte-secondaire)]">{metaOperationnel ? "Compte relié et statistiques en direct" : meta.configure ? "Compte relié, autorisation publicitaire à terminer" : "Compte publicitaire non relié"}</p></div><div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 opacity-75"><div className="flex items-center gap-2"><Users className="size-5 text-[#7d8798]" /><b>Instagram</b></div><p className="mt-2 text-sm text-[var(--texte-secondaire)]">En pause selon votre choix</p></div></div></section>
+    <section className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">État des connexions</p><h2>Canaux et contrôle</h2></div><ShieldCheck className="size-6 text-[#138567]" /></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4"><div className="flex items-center gap-2"><Share2 className="size-5 text-[#2f68d8]" /><b>Facebook</b></div><p className="mt-2 text-sm text-[var(--texte-secondaire)]">{facebookOperationnel ? "Page reliée avec une autorisation durable" : "Connexion à terminer"}</p></div><div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4"><div className="flex items-center gap-2"><CircleDollarSign className="size-5 text-[#b77b22]" /><b>Meta Ads</b></div><p className="mt-2 text-sm text-[var(--texte-secondaire)]">{metaOperationnel ? "Compte relié et statistiques en direct" : meta.configure ? "Compte relié, autorisation publicitaire à terminer" : "Compte publicitaire non relié"}</p></div><div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4"><div className="flex items-center gap-2"><Users className="size-5 text-[#7d8798]" /><b>Instagram</b></div><p className="mt-2 text-sm text-[var(--texte-secondaire)]">En pause selon votre choix</p></div></div></section>
     <ActualisationAuto />
   </main>;
 }

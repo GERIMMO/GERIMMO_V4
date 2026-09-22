@@ -1,3 +1,4 @@
+import { BilanContactIncident } from "@/components/bilan-contact-incident";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
@@ -247,6 +248,8 @@ export async function PaneIncident({
 
   return (
     <div className="min-w-0 space-y-4">
+          {incident.etat === "clos" && <BilanContactIncident orgId={orgId} incidentId={incidentId} />}
+
       <EchecLecture quoi={lecturesManquees} />
 
       {/* En-tête du dossier (maquette pageIncident) : eyebrow mono, titre
@@ -383,6 +386,7 @@ export async function PaneIncident({
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0 space-y-4">
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
@@ -595,6 +599,7 @@ export async function PaneIncident({
         </div>
 
         <div className="min-w-0 space-y-4">
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Chronologie</CardTitle>

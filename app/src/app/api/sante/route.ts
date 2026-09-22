@@ -22,12 +22,13 @@ export async function GET(request: Request) {
   // Une variable présente mais vide n'est pas un commit : `""` dirait « quelque
   // chose », alors qu'on ne sait rien.
   const sha = process.env.VERCEL_GIT_COMMIT_SHA;
+  const revision = sha && /^[0-9a-f]{40}$/i.test(sha) ? sha.toLowerCase() : null;
   const commit = sha ? sha.slice(0, 7) : null;
 
   const supabase = clientDeService();
   if (!supabase) {
     return Response.json(
-      { ok: false, base: false, commit, motif: "SUPABASE_SERVICE_ROLE_KEY absente." },
+      { ok: false, base: false, commit, revision, motif: "SUPABASE_SERVICE_ROLE_KEY absente." },
       { status: 503 }
     );
   }
@@ -39,13 +40,13 @@ export async function GET(request: Request) {
     .select("id", { count: "exact", head: true });
   if (erreurBase) {
     return Response.json(
-      { ok: false, base: false, commit, motif: "La base ne répond pas." },
+      { ok: false, base: false, commit, revision, motif: "La base ne répond pas." },
       { status: 503 }
     );
   }
 
   if (!porteurDuSecret(request, process.env.CRON_SECRET)) {
-    return Response.json({ ok: true, base: true, commit });
+    return Response.json({ ok: true, base: true, commit, revision });
   }
 
   const depuis = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
@@ -67,6 +68,7 @@ export async function GET(request: Request) {
     ok: true,
     base: true,
     commit,
+    revision,
     taches: dernieresTaches((passes.data ?? []) as PasseConsignee[]),
     erreurs_ecran_24h: erreurs.error ? null : (erreurs.count ?? 0),
     lectures_en_echec: [passes.error, erreurs.error].filter(Boolean).length,

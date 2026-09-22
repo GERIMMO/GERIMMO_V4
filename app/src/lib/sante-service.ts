@@ -98,6 +98,31 @@ export function etatConfiguration(env: Env): Verification[] {
         : `domaine ${domaine} — à vérifier chez Resend (SPF, DKIM)`,
   });
 
+  // ── Signature électronique : la sandbox peut être reliée sans autoriser
+  // de document réel. Le passage en production reste un choix contractuel.
+  const cleYoutrust = valeur(env, "YOUTRUST_API_KEY");
+  const environnementYoutrust = valeur(env, "YOUTRUST_ENV") || "sandbox";
+  verifications.push({
+    cle: "YOUTRUST_API_KEY",
+    usage: "Signature électronique des baux et contrats",
+    etat: !cleYoutrust ? "manque" : environnementYoutrust === "production" ? "ok" : "attention",
+    detail: !cleYoutrust
+      ? null
+      : environnementYoutrust === "production"
+        ? "environnement réel"
+        : "sandbox : essais uniquement, aucun document réel ne doit être envoyé",
+  });
+  verifications.push({
+    cle: "YOUTRUST_WEBHOOK_SECRET",
+    usage: "Réception sécurisée des signatures terminées",
+    etat: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? "ok" : cleYoutrust ? "attention" : "manque",
+    detail: valeur(env, "YOUTRUST_WEBHOOK_SECRET")
+      ? null
+      : cleYoutrust
+        ? "à poser lors de la création du webhook"
+        : null,
+  });
+
   // ── Tâches planifiées : sans secret, chaque passe répond 503.
   verifications.push({
     cle: "CRON_SECRET",

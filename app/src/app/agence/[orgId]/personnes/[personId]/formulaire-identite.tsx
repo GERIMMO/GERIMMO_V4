@@ -64,6 +64,10 @@ export function FormulaireIdentite({
   codePostal,
   ville,
   qualite,
+  // Arrivée par « Ajouter un email » (?modifier=1) : le formulaire est déjà
+  // ouvert — la consigne sans geste renvoyait chercher le bouton en haut de
+  // page, hors écran au téléphone (24/09).
+  ouvertInitial = false,
 }: {
   orgId: string;
   personId: string;
@@ -77,10 +81,11 @@ export function FormulaireIdentite({
   codePostal: string | null;
   ville: string | null;
   qualite: string | null;
+  ouvertInitial?: boolean;
 }) {
   const action = modifierPersonne.bind(null, orgId, personId);
   const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
-  const [ouvert, setOuvert] = useState(false);
+  const [ouvert, setOuvert] = useState(ouvertInitial);
 
   // Fiche mise à jour : le formulaire se replie, la page se recharge d'elle-même.
   // Repli piloté par la réponse du serveur, pas un état dérivé du rendu.
@@ -105,7 +110,9 @@ export function FormulaireIdentite({
   }
 
   return (
-    <form action={formAction} className="mt-2 max-w-xl space-y-3 border border-border bg-card p-4">
+    // w-full : dans la rangée d'actions, le formulaire ouvert se serrait contre
+    // « Archiver la fiche » — 200 px de large au téléphone (24/09).
+    <form action={formAction} className="mt-2 w-full max-w-xl space-y-3 rounded-lg border border-border bg-card p-4">
       <p className="text-sm font-medium">Modifier la fiche</p>
       {/* En erreur, l'action renvoie la saisie (etat.valeurs) : le reset React
           retombe sur les corrections, pas sur les valeurs d'origine. */}

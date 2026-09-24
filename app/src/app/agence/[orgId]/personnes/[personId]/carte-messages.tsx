@@ -42,11 +42,10 @@ export function CarteMessages({
 
   return (
     <div className="space-y-3">
+      {/* Un fait (24/09) : la description de la carte dit déjà où part le
+          message — l'état vide le redisait, au masculin pour tout le monde. */}
       {messages.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          Aucun échange pour l&apos;instant. Votre message s&apos;affichera dans son
-          espace, avec un badge tant qu&apos;il ne l&apos;a pas lu.
-        </p>
+        <p className="text-sm text-muted-foreground">Aucun échange pour l&apos;instant.</p>
       ) : (
         <div className="space-y-2">
           {messages.map((m) => (
@@ -84,8 +83,10 @@ export function CarteMessages({
           defaultValue={etat.valeurs?.texte}
           rows={2}
           maxLength={4000}
-          placeholder={`Répondre${prenom ? ` à ${prenom}` : ""}…`}
-          className="min-w-52 flex-1 rounded-md border border-input bg-transparent px-3 py-2 text-sm"
+          // « Écrire » tant qu'il n'y a rien à quoi répondre (24/09). Au
+          // téléphone, la saisie prend toute la ligne, le bouton passe dessous.
+          placeholder={`${messages.length > 0 ? "Répondre" : "Écrire"}${prenom ? ` à ${prenom}` : ""}…`}
+          className="min-w-52 flex-1 basis-full rounded-md border border-input bg-transparent px-3 py-2 text-sm sm:basis-auto"
         />
         <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Envoi…">
           Envoyer

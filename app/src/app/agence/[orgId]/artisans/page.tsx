@@ -14,7 +14,8 @@ import {
   STATUTS_PLATEFORME,
 } from "./referentiel";
 
-export const metadata = { title: "Artisans — Gerimmo" };
+// Même nom que l'entrée de menu et le raccourci des incidents (24/09).
+export const metadata = { title: "Carnet d'artisans — Gerimmo" };
 
 // LE CARNET D'ARTISANS DE L'AGENCE.
 //
@@ -74,6 +75,10 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   // l'admin d'agence et au propriétaire direct : « l'agent simple ne
   // désactive pas ». L'écran le dit au lieu de laisser la base refuser.
   const estResponsable = ROLES_RESPONSABLES.includes(role);
+  // Le propriétaire direct n'a pas d'agence (24/09) : l'écran lui parle de
+  // son parc, comme le reste de son espace.
+  const bailleurDirect = role === "proprietaire_direct";
+  const chezVous = bailleurDirect ? "votre parc" : "votre agence";
 
   const { data: relationsBrutes, error: erreurRelations } = await supabase
     .from("artisan_agences")
@@ -120,6 +125,10 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   } as const;
   const visibles = filtres[vue as keyof typeof filtres];
 
+  // Carnet vide (24/09) : ni compteur ni filtres — quatre pastilles à zéro
+  // menant toutes à la même vue vide ne disent rien de plus que « Carnet vide ».
+  const carnetVide = relations.length === 0 && !erreurRelations;
+
   const lecturesManquees = [
     erreurRelations && "votre carnet d'artisans",
     erreurProfils && "les fiches des artisans",
@@ -141,20 +150,30 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-      {/* L'en-tête standard de l'espace (tour du 24/09) : titre et mention,
-          sans fil d'Ariane — le menu dit déjà où l'on est. La phrase d'aide
-          passe sous le filet, comme sur « Loyers & charges ». */}
+      {/* L'en-tête standard de l'espace (tour du 24/09) : titre, mention et
+          action, sans fil d'Ariane — le menu dit déjà où l'on est. La phrase
+          d'aide passe sous le filet, comme sur « Loyers & charges ». */}
       <div className="mb-6">
         <div className="entete-page mb-4">
-          <h1>Artisans</h1>
-          <span className="mono-discret">
-            {erreurRelations
-              ? "carnet indisponible"
-              : `${filtres.actifs.length} actif${filtres.actifs.length > 1 ? "s" : ""} sur ${relations.length}`}
-          </span>
+          <h1>Carnet d&apos;artisans</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="mono-discret">
+              {erreurRelations
+                ? "carnet indisponible"
+                : carnetVide
+                  ? "carnet vide"
+                  : `${filtres.actifs.length} actif${filtres.actifs.length > 1 ? "s" : ""} sur ${relations.length}`}
+            </span>
+            {/* L'action principale dans l'en-tête, comme « Ouvrir un incident »
+                (24/09). Sous 900 px le formulaire vient après toute la liste ;
+                une fiche ouverte le masque : le lien referme la fiche. */}
+            <Link href={`${lien(vue, null)}#nouvel-artisan`} className="btn-or">
+              + Enregistrer un artisan
+            </Link>
+          </div>
         </div>
         <p className="text-sm text-muted-foreground">
-          Votre carnet : les entreprises rattachées à votre agence. On les
+          Votre carnet : les entreprises rattachées à {chezVous}. On les
           sollicite depuis la fiche d&apos;un incident, jamais d&apos;ici.
         </p>
       </div>
@@ -163,31 +182,37 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
 
       <div className={`split${sel ? " detail-actif" : ""}`}>
         <div className="colonne-liste-split volet-liste">
-          <div className="tete-liste">
-            <span className="mono-discret">
-              {compteVue(vue)} {VUES.find((v) => v.cle === vue)!.libelle}
-            </span>
-            {sel && (
-              <Link href={lien(vue, null)} className="lien-discret inline-flex items-center gap-1.5">
-                Fermer
-                <IndicateurLien />
-              </Link>
-            )}
-          </div>
+          {(!carnetVide || sel) && (
+            <div className="tete-liste">
+              {/* Le chiffre est porté par la pastille active et la mention
+                  d'en-tête : ici, seulement le nom de la vue (24/09). */}
+              <span className="mono-discret">
+                {carnetVide ? "" : VUES.find((v) => v.cle === vue)!.libelle}
+              </span>
+              {sel && (
+                <Link href={lien(vue, null)} className="lien-discret inline-flex items-center gap-1.5">
+                  Fermer
+                  <IndicateurLien />
+                </Link>
+              )}
+            </div>
+          )}
           {/* Même grille de filtres que les incidents (tour du 24/09) : en
               flux, la quatrième pastille restait seule sur sa ligne. */}
-          <div className="grid grid-cols-2 gap-1.5 border-b border-border px-3 py-2 sm:max-[900px]:grid-cols-4">
-            {VUES.map((v) => (
-              <Link
-                key={v.cle}
-                href={lien(v.cle, sel)}
-                className={`filtre inline-flex items-center justify-center gap-1.5${vue === v.cle ? " actif" : ""}`}
-              >
-                {v.libelle} · {compteVue(v.cle)}
-                <IndicateurLien />
-              </Link>
-            ))}
-          </div>
+          {!carnetVide && (
+            <div className="grid grid-cols-2 gap-1.5 border-b border-border px-3 py-2 sm:max-[900px]:grid-cols-4">
+              {VUES.map((v) => (
+                <Link
+                  key={v.cle}
+                  href={lien(v.cle, sel)}
+                  className={`filtre inline-flex items-center justify-center gap-1.5${vue === v.cle ? " actif" : ""}`}
+                >
+                  {v.libelle} · {compteVue(v.cle)}
+                  <IndicateurLien />
+                </Link>
+              ))}
+            </div>
+          )}
 
           {visibles.length === 0 && erreurRelations ? (
             <div className="p-3.5">
@@ -200,7 +225,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               </p>
               <p className="explication">
                 {relations.length === 0
-                  ? "Enregistrez une entreprise ci-dessous, ou laissez la recherche d'affectation vous proposer un artisan de l'annuaire Gerimmo depuis la fiche d'un incident."
+                  ? "Enregistrez une entreprise avec le formulaire «\u00a0Enregistrer un artisan\u00a0», ou laissez la recherche d'affectation vous proposer un artisan de l'annuaire Gerimmo depuis la fiche d'un incident."
                   : `Vos ${relations.length} artisans sont dans les autres onglets.`}
               </p>
             </div>
@@ -241,9 +266,9 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
                             COULEURS_PLATEFORME[p.statut_plateforme] ?? "puce puce-grise"
                           }
                         >
-                          {p.statut_plateforme === "valide"
-                            ? "Validé Gerimmo"
-                            : (STATUTS_PLATEFORME[p.statut_plateforme] ?? p.statut_plateforme)}
+                          {/* Même libellé que la fiche (24/09) : le
+                              référentiel est la seule source. */}
+                          {STATUTS_PLATEFORME[p.statut_plateforme] ?? p.statut_plateforme}
                         </span>
                       ) : null}
                     </span>
@@ -268,12 +293,13 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               orgId={orgId}
               artisanId={sel}
               estResponsable={estResponsable}
+              bailleurDirect={bailleurDirect}
               relation={relations.find((r) => r.artisan_id === sel) ?? null}
             />
           </div>
         ) : (
           <div className="min-w-0 space-y-4">
-            <Card>
+            <Card id="nouvel-artisan" className="scroll-mt-20">
               <CardHeader>
                 <CardTitle className="text-base">Enregistrer un artisan</CardTitle>
                 <CardDescription>
@@ -290,9 +316,9 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
                 <p>
                   <b className="text-foreground">Validation Gerimmo.</b> Un artisan
                   n&apos;est proposé à l&apos;affectation qu&apos;une fois validé
-                  par la plateforme et son SIRET vérifié. Cette décision
-                  n&apos;appartient pas à l&apos;agence — elle porte sur le droit
-                  d&apos;exister chez Gerimmo, pas sur un chantier.
+                  par la plateforme et son SIRET vérifié. Cette décision ne
+                  vous appartient pas — elle porte sur le droit d&apos;exister
+                  chez Gerimmo, pas sur un chantier.
                 </p>
                 <p>
                   <b className="text-foreground">Décennale.</b> Vous n&apos;avez pas

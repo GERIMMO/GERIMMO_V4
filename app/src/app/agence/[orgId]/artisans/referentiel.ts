@@ -133,7 +133,9 @@ export const MOMENTS_PHOTO: Record<string, string> = {
 // ── Profil global de l'artisan ────────────────────────────────────────────
 export const STATUTS_PLATEFORME: Record<string, string> = {
   en_attente: "En attente de validation Gerimmo",
-  valide: "Validé par Gerimmo",
+  // Court : la pastille tient dans le rang étroit de la liste, et la fiche
+  // dit la même chose (24/09).
+  valide: "Validé Gerimmo",
   refuse: "Refusé par Gerimmo",
 };
 

@@ -1,6 +1,8 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
-import { formaterDate } from "@/lib/ged";
+import { EnteteFiche } from "@/components/fiche-parc";
+import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -12,8 +14,13 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { TYPES_PIECE_DOSSIER, statutEcheancePiece } from "@/lib/dossier";
-import { ETATS_MANDAT, COULEURS_ETAT_MANDAT } from "@/lib/baux";
-import { nomComplet, initiales } from "@/lib/roles-personnes";
+import {
+  ETATS_BAIL,
+  COULEURS_ETAT_BAIL,
+  ETATS_MANDAT,
+  COULEURS_ETAT_MANDAT,
+} from "@/lib/baux";
+import { nomComplet, rolesDePersonne } from "@/lib/roles-personnes";
 import {
   FormulairePiece,
   FormulaireNouvelleVersion,
@@ -40,11 +47,54 @@ export const metadata = { title: "Fiche personne — Gerimmo" };
 // disparaît en silence est une relance qu'on ne fera jamais.
 const PLAFOND_DEMANDES = 20;
 
+// Une ligne de faits sous le titre (contact, adresse). Le « · » ouvre chaque
+// fait après le premier : au passage à la ligne, il part AVEC son fait au lieu
+// de rester seul en bout de ligne, et un fait ne se coupe jamais en deux
+// (« 06 12 34 56 » / « 78 » au téléphone, relevé du 24/09).
+function LigneFaits({ faits }: { faits: { cle: string; contenu: ReactNode; insecable?: boolean }[] }) {
+  if (faits.length === 0) return null;
+  return (
+    <span className="flex flex-wrap gap-x-2">
+      {faits.map((f, i) => (
+        <span key={f.cle} className={f.insecable ? "whitespace-nowrap" : "[overflow-wrap:anywhere]"}>
+          {i > 0 && (
+            <span aria-hidden className="mr-2">
+              ·
+            </span>
+          )}
+          {f.contenu}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// Un bail vivant vu depuis la fiche d'une personne (carte « Location en cours »)
+type BailVivant = {
+  id: string;
+  etat: string;
+  loyer_hc: number | string | null;
+  charges: number | string | null;
+  date_debut: string | null;
+  lot: UnOuPlusieurs<{ nom: string; bien: UnOuPlusieurs<{ nom: string }> }>;
+};
+// Le mandat que l'en-tête résume : le plus avancé des mandats non résiliés
+const ORDRE_MANDAT = ["actif", "preavis", "a_signer", "brouillon"];
+
+const COLONNES_BAIL_VIVANT =
+  "id, etat, loyer_hc, charges, date_debut, lot:lots!baux_lot_meme_org_fk(nom, bien:biens!lots_bien_id_fkey(nom))";
+
 export default async function PagePersonne(
   props: PageProps<"/agence/[orgId]/personnes/[personId]">
 ) {
   const { orgId, personId } = await props.params;
+  // « Ajouter un email » (carte Accès locataire) ouvre l'édition de la fiche
+  const { modifier } = await props.searchParams;
   const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
+  // 24/09 : la rubrique porte le nom du menu — « Locataires & garants » chez
+  // le propriétaire direct. Le retour disait « Personnes » à un clic de là.
+  const rubrique = estProprietaire ? "Locataires & garants" : "Personnes";
+  const aujourdhui = aujourdhuiParis();
 
   const { data: personne, error: erreurPersonne } = await supabase
     .from("persons")
@@ -61,7 +111,7 @@ export default async function PagePersonne(
       <PageEchecLecture
         titre="Fiche personne"
         quoi={["cette fiche"]}
-        retour={{ href: `/agence/${orgId}/personnes`, libelle: "Personnes" }}
+        retour={{ href: `/agence/${orgId}/personnes`, libelle: rubrique }}
       />
     );
   }
@@ -79,6 +129,10 @@ export default async function PagePersonne(
     { data: detentions, error: erreurDetentions },
     // Mandats de la personne
     { data: mandats, error: erreurMandats },
+    // Ce qu'elle loue ou garantit (24/09) : la fiche d'un locataire ne disait
+    // ni ce qu'il occupe ni où est son bail — Parc → bien → lot → bail.
+    { data: liensBail, error: erreurLiensBail },
+    { data: bauxPrincipal, error: erreurBauxPrincipal },
   ] = await Promise.all([
     supabase.rpc("dossier_personne", { p_person: personId }),
     supabase
@@ -87,18 +141,31 @@ export default async function PagePersonne(
       .eq("organization_id", orgId)
       .eq("entite", "personne")
       .eq("entite_id", personId),
+    // Même règle que la liste des personnes : une détention dont la fin est
+    // encore à venir est une détention en cours (le rôle affiché en dépend).
     supabase
       .from("detentions")
       .select("lot_id, quote_part, date_debut")
       .eq("organization_id", orgId)
       .eq("person_id", personId)
-      .is("date_fin", null),
+      .or(`date_fin.is.null,date_fin.gte.${aujourdhui}`),
     supabase
       .from("mandats")
       .select("id, etat, date_rapport, seuil_delegation, agent_account_id")
       .eq("organization_id", orgId)
       .eq("person_id", personId)
       .order("created_at"),
+    supabase
+      .from("bail_personnes")
+      .select("bail_id, role")
+      .eq("organization_id", orgId)
+      .eq("person_id", personId),
+    supabase
+      .from("baux")
+      .select(COLONNES_BAIL_VIVANT)
+      .eq("organization_id", orgId)
+      .eq("locataire_principal", personId)
+      .in("etat", ["actif", "preavis"]),
   ]);
 
   // « Confié à » (maquette v3, RM-18.1.3) : la liste des gérants de l'agence
@@ -132,12 +199,16 @@ export default async function PagePersonne(
   const idsDossier = (liensDossier ?? []).map((l) => l.document_id);
   const lotIds = [...new Set((detentions ?? []).map((d) => d.lot_id))];
   const mandatIds = (mandats ?? []).map((m) => m.id);
+  const idsBauxLies = [
+    ...new Set(((liensBail ?? []) as { bail_id: string }[]).map((l) => l.bail_id)),
+  ];
   type LotAvecBien = { id: string; nom: string; bien_id: string; bien: UnOuPlusieurs<{ nom: string }> };
   const [
     { data: tousDocs, error: erreurDocs },
     { data: lots, error: erreurLots },
     { data: lignesCouvrantes, error: erreurCouvrantes },
     { data: lignes, error: erreurLignes },
+    { data: bauxLies, error: erreurBauxLies },
   ] = await Promise.all([
       idsDossier.length
         ? supabase.from("documents").select("id, titre, remplace_id, created_at").in("id", idsDossier)
@@ -164,6 +235,15 @@ export default async function PagePersonne(
             .from("mandat_lignes")
             .select("id, mandat_id, lot_id, taux_honoraires, date_fin")
             .in("mandat_id", mandatIds)
+        : Promise.resolve({ data: [], error: null }),
+      // Baux vivants où elle est colocataire ou garante
+      idsBauxLies.length
+        ? supabase
+            .from("baux")
+            .select(COLONNES_BAIL_VIVANT)
+            .eq("organization_id", orgId)
+            .in("id", idsBauxLies)
+            .in("etat", ["actif", "preavis"])
         : Promise.resolve({ data: [], error: null }),
     ]);
   type DocVersion = { id: string; titre: string | null; remplace_id: string | null; created_at: string };
@@ -217,6 +297,76 @@ export default async function PagePersonne(
     return lot ? `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}` : null;
   };
 
+  // Ce que la personne EST (24/09) — mêmes règles et mêmes puces que la liste
+  // (lib/roles-personnes) : la liste disait « Propriétaire mandant », la
+  // fiche ne disait rien, il fallait le deviner aux cartes plus bas.
+  const liensVivants = ((liensBail ?? []) as { bail_id: string; role: string }[]);
+  const bauxLiesVivants = new Set(((bauxLies ?? []) as { id: string }[]).map((b) => b.id));
+  const roleSurBail = (role: string) =>
+    liensVivants.some((l) => l.role === role && bauxLiesVivants.has(l.bail_id));
+  const estLocataire = (bauxPrincipal ?? []).length > 0 || roleSurBail("colocataire");
+  const estGarant = roleSurBail("garant");
+  const avecMoi = (vrai: boolean) => new Set(vrai ? [personId] : []);
+  const roles = rolesDePersonne(
+    personId,
+    {
+      proprietaires: avecMoi((detentions ?? []).length > 0),
+      mandants: avecMoi((mandats ?? []).some((m) => m.etat === "actif")),
+      locataires: avecMoi(estLocataire),
+      garants: avecMoi(estGarant),
+    },
+    estProprietaire
+  );
+  // Même libellé que la puce de la liste pour une fiche sans lien vivant
+  const sansRole = estProprietaire ? "Sans bail en cours" : "Sans rôle en cours";
+  const estSaFiche = personne.account_id === user.id;
+
+  // Les baux vivants, vus depuis la personne : principal, colocataire, garant
+  const roleBail = new Map(liensVivants.map((l) => [l.bail_id, l.role]));
+  const locations = [
+    ...((bauxPrincipal ?? []) as unknown as BailVivant[]).map((b) => ({ ...b, role: "Locataire" })),
+    ...((bauxLies ?? []) as unknown as BailVivant[])
+      .filter((b) => !(bauxPrincipal ?? []).some((p) => p.id === b.id))
+      .map((b) => ({
+        ...b,
+        role: roleBail.get(b.id) === "garant" ? "Garant" : "Colocataire",
+      })),
+  ];
+  const titreLocations = locations.every((l) => l.role === "Garant")
+    ? "Garant de"
+    : locations.some((l) => l.role === "Garant")
+      ? "Baux en cours"
+      : "Location en cours";
+
+  // Faits de l'en-tête : les chiffres qui évitent de lire la suite
+  const mandatCourant = [...(mandats ?? [])]
+    .filter((m) => m.etat !== "resilie")
+    .sort((a, b) => ORDRE_MANDAT.indexOf(a.etat) - ORDRE_MANDAT.indexOf(b.etat))[0];
+  // Un seul lot : la carte juste dessous le montre en entier, le chiffre ne
+  // sert qu'au-delà (même règle que la fiche bien).
+  const faitsEntete = [
+    ...((detentions ?? []).length > 1
+      ? [{ libelle: "Lots détenus", valeur: String((detentions ?? []).length) }]
+      : []),
+    ...(!estProprietaire && mandatCourant
+      ? [{ libelle: "Mandat", valeur: ETATS_MANDAT[mandatCourant.etat] ?? mandatCourant.etat }]
+      : []),
+  ];
+
+  // Ce qui se lisait seulement en ouvrant « Modifier la fiche » (24/09) :
+  // l'adresse et l'état civil s'affichent en lecture, les vides sont omis.
+  const adresse = [
+    personne.address_line1,
+    [personne.postal_code, personne.city].filter(Boolean).join(" "),
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const naissance = personne.date_naissance
+    ? `né(e) le ${formaterDate(personne.date_naissance)}${personne.commune_naissance ? ` à ${personne.commune_naissance}` : ""}`
+    : personne.commune_naissance
+      ? `né(e) à ${personne.commune_naissance}`
+      : null;
+
   // Une fiche personne est faite de dix lectures. Chacune qui échoue enlève
   // en silence une carte entière — dossier vide, aucun mandat, aucun message —
   // et l'écran devient rassurant au lieu d'être exact.
@@ -230,32 +380,63 @@ export default async function PagePersonne(
     erreurDemandes && "les pièces réclamées",
     (erreurLots || erreurLotsManquants || erreurCouvrantes) &&
       "les lots rattachables à un mandat",
+    (erreurLiensBail || erreurBauxPrincipal || erreurBauxLies) &&
+      "les baux (rôles locataire et garant)",
   ].filter((q): q is string => Boolean(q));
+  // Sans ces lectures, « aucun lot à couvrir » serait une affirmation fausse
+  const lotsIllisibles = Boolean(erreurLots || erreurCouvrantes || erreurDetentions);
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
+      {/* 24/09 : l'en-tête commun des fiches (bien, lot) — surtitre, filet,
+          puce de rôle, faits chiffrés — au lieu d'un en-tête fait main qui ne
+          disait pas ce qu'est la personne. */}
       <div>
-        <Link
-          href={`/agence/${orgId}/personnes`}
-          className="text-sm text-muted-foreground hover:underline"
-        >
-          ← Personnes
-        </Link>
-        <div className="mt-1 flex items-center gap-3">
-          {/* Même avatar que la liste des personnes, en plus grand (46 px) */}
-          <span aria-hidden className="avatar" style={{ width: 46, height: 46, fontSize: 14 }}>
-            {initiales(personne.nom, personne.prenom)}
-          </span>
-          <div className="min-w-0">
-            <h1>{nomComplet(personne)}</h1>
-            <p className="text-sm text-muted-foreground">
-              {[personne.email, personne.telephone].filter(Boolean).join(" · ") || "Aucun contact"}
-              {personne.date_naissance ? ` · né(e) le ${formaterDate(personne.date_naissance)}` : ""}
-            </p>
-          </div>
-        </div>
-        <div className="mt-2 flex flex-wrap items-start gap-2">
+        <EnteteFiche
+          retour={{ href: `/agence/${orgId}/personnes`, libelle: rubrique }}
+          surtitre={personne.qualite || (personne.prenom ? "Personne physique" : "Personne morale")}
+          titre={nomComplet(personne)}
+          badge={
+            roles.length > 0 ? (
+              roles.map((r) => (
+                <span key={r.libelle} className={`puce ${r.puce}`}>
+                  {r.libelle}
+                </span>
+              ))
+            ) : (
+              <span className="puce puce-grise">{sansRole}</span>
+            )
+          }
+          sousTitre={
+            <>
+              <LigneFaits
+                faits={
+                  personne.email || personne.telephone
+                    ? [
+                        ...(personne.email ? [{ cle: "email", contenu: personne.email }] : []),
+                        ...(personne.telephone
+                          ? [{ cle: "tel", contenu: personne.telephone, insecable: true }]
+                          : []),
+                      ]
+                    : [{ cle: "contact", contenu: "Sans email ni téléphone" }]
+                }
+              />
+              <LigneFaits
+                faits={[
+                  ...(adresse ? [{ cle: "adresse", contenu: adresse }] : []),
+                  ...(naissance ? [{ cle: "naissance", contenu: naissance }] : []),
+                ]}
+              />
+            </>
+          }
+          faits={faitsEntete}
+        />
+        {/* L'ancre de « Ajouter un email » (carte Accès locataire) */}
+        <div id="identite" className="mt-3 flex scroll-mt-20 flex-wrap items-start gap-2">
           <FormulaireIdentite
+            // Remonté ouvert quand on arrive par « Ajouter un email »
+            key={modifier === "1" ? "ouvert" : "replie"}
+            ouvertInitial={modifier === "1"}
             orgId={orgId}
             personId={personId}
             nom={personne.nom}
@@ -269,11 +450,73 @@ export default async function PagePersonne(
             ville={personne.city}
             qualite={personne.qualite}
           />
-          <BoutonArchiverPersonne orgId={orgId} personId={personId} />
+          {/* Une fiche reliée à un compte ne s'archive pas (le serveur refuse) :
+              deux clics pour finir sur une erreur, c'était un geste en trop. */}
+          {!personne.account_id && (
+            <BoutonArchiverPersonne orgId={orgId} personId={personId} />
+          )}
         </div>
       </div>
 
       <EchecLecture quoi={lecturesManquees} />
+
+      {/* Ce qu'elle loue ou garantit : tout le rang mène au bail (24/09) */}
+      {locations.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{titreLocations}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-border">
+              {locations.map((b) => {
+                const lot = premier(b.lot);
+                const loyerCc =
+                  b.loyer_hc != null ? Number(b.loyer_hc) + Number(b.charges ?? 0) : null;
+                const faitsBail = [
+                  b.role,
+                  loyerCc !== null ? `${eur(loyerCc)} charges comprises` : null,
+                  b.date_debut ? `depuis le ${formaterDate(b.date_debut)}` : null,
+                ].filter((f): f is string => Boolean(f));
+                return (
+                  <li key={b.id}>
+                    <Link
+                      href={`/agence/${orgId}/baux/${b.id}`}
+                      className="-mx-2 flex flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-sm hover:bg-[var(--survol)] sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                    >
+                      <span className="flex flex-wrap items-center gap-2">
+                        {lot ? `${premier(lot.bien)?.nom ?? ""} · ${lot.nom}` : "Lot"}
+                        {b.etat !== "actif" && (
+                          <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
+                            {ETATS_BAIL[b.etat] ?? b.etat}
+                          </span>
+                        )}
+                      </span>
+                      {/* Chaque fait d'un bloc : au téléphone, « depuis le » ne
+                          se sépare plus de sa date. La flèche suit le dernier. */}
+                      <span className="text-xs text-muted-foreground sm:text-sm">
+                        <LigneFaits
+                          faits={faitsBail.map((f, i) => ({
+                            cle: String(i),
+                            insecable: true,
+                            contenu:
+                              i === faitsBail.length - 1 ? (
+                                <>
+                                  {f} <span aria-hidden>→</span>
+                                </>
+                              ) : (
+                                f
+                              ),
+                          }))}
+                        />
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Détentions en cours : la fiche montre ce que la personne possède
           (recette 14/08 — l'assistant crée la détention, la fiche l'affiche) */}
@@ -290,20 +533,22 @@ export default async function PagePersonne(
               {(detentions ?? []).map((d) => (
                 <li key={d.lot_id}>
                   {cheminLot(d.lot_id) ? (
+                    // Au téléphone, libellé puis faits l'un sous l'autre : côte à
+                    // côte, chacun cassait en deux lignes (24/09).
                     <Link
                       href={cheminLot(d.lot_id)!}
-                      className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm hover:bg-[var(--survol)]"
+                      className="-mx-2 flex flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-sm hover:bg-[var(--survol)] sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                     >
                       <span>{libelleLot(d.lot_id)}</span>
-                      <span className="text-muted-foreground">
+                      <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
                         {Number(d.quote_part)} % · depuis le {formaterDate(d.date_debut)}{" "}
                         <span aria-hidden>→</span>
                       </span>
                     </Link>
                   ) : (
-                    <div className="flex items-center justify-between gap-3 py-2 text-sm">
+                    <div className="flex flex-col items-start gap-0.5 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                       <span>{libelleLot(d.lot_id)}</span>
-                      <span className="text-muted-foreground">
+                      <span className="whitespace-nowrap text-xs text-muted-foreground sm:text-sm">
                         {Number(d.quote_part)} % · depuis le {formaterDate(d.date_debut)}
                       </span>
                     </div>
@@ -316,15 +561,22 @@ export default async function PagePersonne(
       )}
 
       {/* Accès locataire : invitation — sans objet sur sa propre fiche
-          (le propriétaire direct se retrouve dans Personnes, audit 06/09) */}
-      {personne.account_id !== user.id && (
+          (le propriétaire direct se retrouve dans Personnes, audit 06/09), et
+          sur celle d'un propriétaire mandant, que l'invitation ferait entrer
+          dans un espace LOCATAIRE (24/09). Une fiche sans rôle la garde :
+          c'est souvent un locataire dont le bail n'est pas encore signé. */}
+      {!estSaFiche && (estLocataire || estGarant || roles.length === 0) && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Accès locataire</CardTitle>
-          <CardDescription>
-            Donnez à cette personne l&apos;accès à son espace (dépôt d&apos;attestation,
-            suivi) via une invitation par email.
-          </CardDescription>
+          {/* Compte déjà créé : la ligne verte du formulaire suffit — inviter
+              à donner un accès déjà donné brouillait l'état. */}
+          {!personne.account_id && (
+            <CardDescription>
+              Donnez à cette personne l&apos;accès à son espace (dépôt d&apos;attestation,
+              suivi) via une invitation par email.
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent>
           <FormulaireInvitation
@@ -344,13 +596,19 @@ export default async function PagePersonne(
         <CardHeader>
           <CardTitle className="text-base">Pièces justificatives</CardTitle>
           <CardDescription>
-            Les pièces suivent la personne, d&apos;un bail à l&apos;autre. Chaque nouveau dépôt
-            d&apos;un même type crée une version — l&apos;ancienne est conservée.
+            {estSaFiche ? "" : "Les pièces suivent la personne, d'un bail à l'autre. "}
+            Chaque nouveau dépôt d&apos;un même type crée une version — l&apos;ancienne
+            est conservée.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* 24/09 : un fait, pas une deuxième explication sous la première */}
           {(pieces ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune pièce déposée. Ajoutez ci-dessous les justificatifs (identité, revenus, assurance).</p>
+            <p className="text-sm text-muted-foreground">
+              {estSaFiche
+                ? "Ajoutez vos pièces : identité, RIB, attestation…"
+                : "Aucune pièce déposée."}
+            </p>
           ) : (
             <ul className="divide-y divide-border">
               {(pieces ?? []).map(
@@ -464,8 +722,9 @@ export default async function PagePersonne(
       </Card>
 
       {/* Pièces réclamées au locataire (RM-0b.2.5) : demande, relance, dépôt
-          depuis son espace — visible dès qu'elle a un espace pour recevoir */}
-      {personne.account_id && (
+          depuis son espace — visible dès qu'elle a un espace pour recevoir,
+          jamais sur sa propre fiche (se réclamer une pièce à soi-même, 24/09) */}
+      {personne.account_id && !estSaFiche && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Pièces réclamées</CardTitle>
@@ -487,8 +746,9 @@ export default async function PagePersonne(
       )}
 
       {/* Messages avec la personne (espace locataire v10) : visibles dès
-          qu'un échange existe, ou qu'elle a un espace pour les recevoir */}
-      {(messages.length > 0 || personne.account_id) && (
+          qu'un échange existe, ou qu'elle a un espace pour les recevoir —
+          pas sur sa propre fiche, où l'on se répondrait à soi-même (24/09) */}
+      {!estSaFiche && (messages.length > 0 || personne.account_id) && (
         <Card id="messages">
           <CardHeader>
             <CardTitle className="text-base">Messages</CardTitle>
@@ -508,8 +768,13 @@ export default async function PagePersonne(
         </Card>
       )}
 
-      {/* Mandats de gestion — un propriétaire direct n'en signe pas (S9a) */}
-      {!estProprietaire && (
+      {/* Mandats de gestion — un propriétaire direct n'en signe pas (S9a).
+          24/09 : ni sur la fiche d'un locataire ou d'un garant qui ne détient
+          aucun lot et n'a jamais eu de mandat — la carte n'y menait qu'à une
+          impasse. Une fiche sans rôle la garde : c'est le chemin d'un
+          propriétaire créé sans lot. */}
+      {!estProprietaire &&
+        ((mandats ?? []).length > 0 || (detentions ?? []).length > 0 || roles.length === 0) && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Mandats de gestion</CardTitle>
@@ -520,7 +785,7 @@ export default async function PagePersonne(
         </CardHeader>
         <CardContent className="space-y-5">
           {(mandats ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun mandat de gestion. C&apos;est lui qui autorise l&apos;agence à gérer les lots de ce propriétaire et fixe les honoraires.</p>
+            <p className="text-sm text-muted-foreground">Aucun mandat de gestion. C&apos;est lui qui autorise l&apos;agence à gérer les lots de cette personne et fixe les honoraires.</p>
           ) : (
             (mandats ?? []).map((m) => {
               const sesLignes = (lignes ?? []).filter((l) => l.mandat_id === m.id);
@@ -530,10 +795,12 @@ export default async function PagePersonne(
               return (
                 <div
                   key={m.id}
-                  className={`border border-border p-3 ${historise ? "bg-muted opacity-70" : ""}`}
+                  className={`rounded-lg border border-border p-3 ${historise ? "bg-muted opacity-70" : ""}`}
                 >
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    {/* flex-wrap : au téléphone, le résumé passe sous la puce
+                        au lieu de s'y serrer en colonne étroite (24/09) */}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <span className={COULEURS_ETAT_MANDAT[m.etat] ?? "puce puce-grise"}>
                         {ETATS_MANDAT[m.etat] ?? m.etat}
                       </span>
@@ -542,9 +809,14 @@ export default async function PagePersonne(
                           Historisé — non modifiable
                         </span>
                       )}
+                      {/* En toutes lettres (24/09) : « Rapport le 10 · seuil 500 € »
+                          ne disait ni « du mois » ni de quoi était le seuil. */}
                       <span className="text-sm text-muted-foreground">
-                        Rapport le {m.date_rapport} · seuil{" "}
-                        {m.seuil_delegation ? `${m.seuil_delegation} €` : "500 € (défaut agence)"}
+                        Rapport de gestion le {m.date_rapport} de chaque mois · délégation
+                        de travaux jusqu&apos;à{" "}
+                        {m.seuil_delegation
+                          ? `${Number(m.seuil_delegation).toLocaleString("fr-FR")}\u00A0€`
+                          : "500\u00A0€ (défaut agence)"}
                       </span>
                     </div>
                     {!historise && (
@@ -579,9 +851,24 @@ export default async function PagePersonne(
                     <ul className="mb-2 space-y-1 text-sm">
                       {sesLignes.map((l) => (
                         <li key={l.id} className="flex items-center justify-between gap-2">
-                          <span>{libelleLot(l.lot_id)}</span>
-                          <span className="flex items-center gap-2 text-muted-foreground">
-                            {l.taux_honoraires} %{l.date_fin ? " (clos)" : ""}
+                          {/* Le lot mène à sa fiche, comme dans « Lots détenus »
+                              (24/09) ; « Retirer » reste hors du lien. */}
+                          {cheminLot(l.lot_id) ? (
+                            <Link
+                              href={cheminLot(l.lot_id)!}
+                              className="-mx-2 min-w-0 flex-1 rounded-lg px-2 py-1 hover:bg-[var(--survol)]"
+                            >
+                              {libelleLot(l.lot_id)}
+                            </Link>
+                          ) : (
+                            <span>{libelleLot(l.lot_id)}</span>
+                          )}
+                          <span className="flex shrink-0 items-center gap-2 text-muted-foreground">
+                            {/* « 7 % », pas « 7.00 % » (24/09) */}
+                            {Number(l.taux_honoraires).toLocaleString("fr-FR", {
+                              maximumFractionDigits: 2,
+                            })}
+                            {"\u00A0"}%{l.date_fin ? " (clos)" : ""}
                             {m.etat === "brouillon" && !l.date_fin && (
                               <BoutonRetirerLigne
                                 orgId={orgId}
@@ -616,7 +903,24 @@ export default async function PagePersonne(
               );
             })
           )}
-          <FormulaireMandat orgId={orgId} personId={personId} />
+          {/* 24/09 : « Nouveau mandat » seulement s'il reste un lot à couvrir —
+              sinon « Créer le mandat » menait à un brouillon vide et à l'impasse
+              « Cette personne ne détient aucun lot ». */}
+          {lotsProposables.length > 0 || lotsIllisibles ? (
+            <FormulaireMandat orgId={orgId} personId={personId} />
+          ) : (detentions ?? []).length === 0 ? (
+            <p className="border-t border-border pt-4 text-sm text-muted-foreground">
+              Cette personne ne détient aucun lot — rattachez-la d&apos;abord à un
+              lot du parc pour lui proposer un mandat.{" "}
+              <Link href={`/agence/${orgId}/parc`} className="lien-discret">
+                Aller au parc
+              </Link>
+            </p>
+          ) : (
+            <p className="border-t border-border pt-4 text-sm text-muted-foreground">
+              Tous les lots détenus sont déjà sous mandat.
+            </p>
+          )}
         </CardContent>
       </Card>
       )}

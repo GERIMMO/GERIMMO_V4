@@ -26,7 +26,9 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
       action={formAction}
       className="flex flex-wrap items-end gap-2 border-t border-border pt-4"
     >
-      <div className="w-44 space-y-1.5">
+      {/* Au téléphone, chaque champ prend la ligne entière (w-full) : des
+          largeurs fixes s'arrêtaient à mi-écran, en dents de scie (24/09). */}
+      <div className="w-full space-y-1.5 sm:w-44">
         <Label htmlFor="piece-type" className="text-xs">
           Type de pièce
         </Label>
@@ -37,7 +39,9 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
           name="type"
           required
           defaultValue={etat.valeurs?.type ?? "piece_identite"}
-          className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          // Même boîte que <Input> (h-8, rounded-lg) : à h-9, le sélecteur
+          // décalait son libellé de 4 px au-dessus des voisins (24/09).
+          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
         >
           {Object.entries(TYPES_PIECE_DOSSIER).map(([valeur, libelle]) => (
             <option key={valeur} value={valeur}>
@@ -52,7 +56,7 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         </Label>
         <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" defaultValue={etat.valeurs?.titre} />
       </div>
-      <div className="w-40 space-y-1.5">
+      <div className="w-full space-y-1.5 sm:w-40">
         <Label htmlFor="piece-expire" className="text-xs">
           Expire le (assurance)
         </Label>
@@ -64,9 +68,15 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         </Label>
         <Input id="piece-fichier" name="fichier" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
-      <BoutonEnvoi size="sm" enCoursTexte="Dépôt…">
-        Déposer
-      </BoutonEnvoi>
+      {/* Sa propre ligne, à droite, de façon voulue : il retombait seul sous
+          « Type de pièce », loin du fichier qu'il valide. En contour, comme
+          les autres envois de la fiche — le seul bouton plein attirait l'œil
+          au milieu de la page sans raison (24/09). */}
+      <div className="flex w-full justify-end">
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Dépôt…">
+          Déposer
+        </BoutonEnvoi>
+      </div>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && (
         <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>
@@ -135,7 +145,7 @@ export function FormulaireNouvelleVersion({
         />
       </div>
       {type === "attestation_assurance" && (
-        <div className="w-40 space-y-1.5">
+        <div className="w-full space-y-1.5 sm:w-40">
           <Label htmlFor={`version-expire-${remplaceId}`} className="text-xs">
             Expire le
           </Label>

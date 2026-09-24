@@ -8,6 +8,7 @@ import {
   type EtatPieceDemandee,
 } from "@/app/actions/pieces-demandees";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { buttonVariants } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { formaterDate } from "@/lib/ged";
 
@@ -132,12 +133,16 @@ export function CartePiecesDemandees({
         </p>
       )}
       <form action={action} className="space-y-2 border-t border-border pt-3">
-        <div className="flex flex-wrap gap-1.5">
+        {/* Des BOUTONS « + RIB »… sous un libellé : en pastilles grises, ils
+            avaient l'apparence exacte des états « en attente » / « reçue »,
+            rien ne disait qu'on pouvait cliquer (24/09). `.puce` = un état. */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Demandes fréquentes :</span>
           {LIBELLES_COURANTS.map(([libelle]) => (
             <button
               key={libelle}
               type="button"
-              className="puce puce-grise cursor-pointer hover:bg-[var(--ardoise)]"
+              className={buttonVariants({ variant: "outline", size: "xs" })}
               onClick={(e) => {
                 const form = e.currentTarget.closest("form");
                 const champ = form?.querySelector<HTMLInputElement>('input[name="libelle"]');
@@ -147,7 +152,7 @@ export function CartePiecesDemandees({
                 if (type && trouve) type.value = trouve[1];
               }}
             >
-              {libelle}
+              <span aria-hidden>+</span> {libelle}
             </button>
           ))}
         </div>
@@ -161,7 +166,8 @@ export function CartePiecesDemandees({
             name="libelle"
             placeholder="Pièce à demander (ex. : RIB)"
             defaultValue={etat.valeurs?.libelle}
-            className="h-9 min-w-44 flex-1 rounded-md border border-input bg-transparent px-3 text-sm"
+            // h-8 rounded-lg : la boîte de <Input>, comme le reste de la fiche
+            className="h-8 min-w-44 flex-1 rounded-lg border border-input bg-transparent px-2.5 text-sm"
           />
           {/* « Type de pièce » tout court est DÉJÀ le nom d'un champ visible
               de la carte juste au-dessus (dépôt d'une pièce) : deux contrôles
@@ -174,21 +180,19 @@ export function CartePiecesDemandees({
             id={idType}
             name="type"
             defaultValue={etat.valeurs?.type ?? "justificatif"}
-            className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+            className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
           >
             <option value="justificatif">Justificatif</option>
             <option value="piece_identite">Pièce d&apos;identité</option>
           </select>
-          <BoutonEnvoi size="sm" variant="outline">
-            Demander
-          </BoutonEnvoi>
+          {/* Taille par défaut (h-8) : à côté d'un champ h-8, le bouton sm
+              paraissait plus petit que son voisin (24/09). */}
+          <BoutonEnvoi variant="outline">Demander</BoutonEnvoi>
         </div>
         {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
         {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-        <p className="text-xs text-muted-foreground">
-          La demande s&apos;affiche dans l&apos;espace du locataire avec un bouton de
-          dépôt ; la pièce déposée rejoint son dossier et la demande se solde.
-        </p>
+        {/* Plus de note de pied (24/09) : elle redisait la description de la
+            carte, en appelant « locataire » ce que celle-ci nomme « personne ». */}
       </form>
     </div>
   );

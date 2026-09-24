@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { inviterLocataire, type EtatInvitation } from "@/app/actions/invitations";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -20,16 +21,29 @@ export function FormulaireInvitation({
 
   if (dejaInvite) {
     return (
+      // Seule ligne de la carte quand le compte existe (24/09) : elle dit
+      // aussi à quoi sert l'espace, ce que disait la description retirée.
       <p className="text-sm text-success-soft-foreground">
-        Compte locataire actif — la personne peut accéder à son espace.
+        Compte locataire actif — la personne accède à son espace (dépôt
+        d&apos;attestation, suivi).
       </p>
     );
   }
   if (!email) {
+    // La consigne porte son geste (24/09) : « Modifier la fiche » est en haut
+    // de page, hors écran au téléphone — le lien y mène, formulaire ouvert.
     return (
-      <p className="text-sm text-muted-foreground">
-        Ajoutez un email à cette fiche pour pouvoir l&apos;inviter comme locataire.
-      </p>
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">
+          Ajoutez un email à cette fiche pour pouvoir l&apos;inviter comme locataire.
+        </p>
+        <Link
+          href={`/agence/${orgId}/personnes/${personId}?modifier=1#identite`}
+          className="lien-discret text-sm"
+        >
+          Ajouter un email
+        </Link>
+      </div>
     );
   }
 

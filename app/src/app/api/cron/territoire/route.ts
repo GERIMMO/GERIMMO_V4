@@ -175,7 +175,16 @@ export async function GET(request: Request) {
     bugsBloquantsOuverts: bugs.error ? null : (bugs.count ?? 0),
   });
 
+  const priorite = decision.prochain ? prioriteTerritoriale(marche.departements[decision.prochain.code]) : null;
+  let recrutementPrepare = 0, preparationErreur = false;
+  if (porte.ouverte && decision.prochain && priorite && priorite.public !== 'donnees') {
+    const preparation = await supabase.rpc('preparer_recrutement_territorial', { p_code: decision.prochain.code, p_cible: priorite.public, p_nom: decision.prochain.nom, p_raison: priorite.raison });
+    preparationErreur = Boolean(preparation.error);
+    recrutementPrepare = preparation.data && !preparation.error ? 1 : 0;
+  }
   const bilan = {
+    preparees: recrutementPrepare,
+    preparation_erreur: preparationErreur,
     porte,
     decision: {
       regionCourante: decision.regionCourante,
@@ -193,14 +202,12 @@ export async function GET(request: Request) {
       bauxEnCours: empreinte.lignes.reduce((n, l) => n + l.bauxEnCours, 0),
       nonPlaces: empreinte.sansCodePostal.organisations + empreinte.sansCodePostal.biens + empreinte.horsReferentiel,
     },
-    priorite: decision.prochain ? prioriteTerritoriale(marche.departements[decision.prochain.code]) : null,
+    priorite,
     donnees: { sourcesPubliques: actualisation.bilan, lecturesIndisponibles: [zones.error && "zones artisanales", artisans.error && "artisans", mesures.error && "résultats publicitaires"].filter(Boolean), mesuresPublicitairesIgnorees: publicite?.ignorees ?? null, periode },
     autorisationDepense: false,
     marcheManquant: marche.sources.filter((s) => !s.recupere_le).map((s) => s.cle),
-    // Ce que la ronde FERAIT si la porte est ouverte — rien encore : les gestes
-    // d'ouverture sont les briques suivantes. Le dire évite qu'on croie à une
-    // ouverture faite.
-    agi: false,
+    // Une idée préparée ne signifie ni campagne diffusée ni département ouvert.
+    agi: recrutementPrepare > 0,
   };
 
   await consignerTache(supabase, "territoire", bilan);

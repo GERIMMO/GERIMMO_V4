@@ -17,6 +17,8 @@ const ENTREES: [string, string][] = [
   ["/admin", "Supervision"],
   ["/admin/brief", "Brief"],
   ["/admin/autonomie", "Pilotage autonome"],
+  ["/admin/equipes", "Mes équipes"],
+  ["/admin/marque-blanche", "Marque blanche"],
   ["/admin/clients", "Clients"],
   ["/admin/territoire", "Territoire"],
   // « Journal » seul se confondait avec « Journaux et conservation ».

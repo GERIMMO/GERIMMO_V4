@@ -18,9 +18,9 @@ export function ReglagesAutomatiques({ reglages, comptePublicitaire }: { reglage
   const [etat, action, attente] = useActionState(enregistrerReglagesMarketing, {} as EtatCampagne);
   return <form action={action} className="space-y-4">
     <div className="grid gap-3 sm:grid-cols-3">
-      <label className={caseACocher}><input type="checkbox" name="actif" defaultChecked={reglages.actif} className="mt-1" /><span><b>Agent actif</b><small className="mt-1 block text-[var(--texte-secondaire)]">Coupe immédiatement toute action marketing.</small></span></label>
-      <label className={caseACocher}><input type="checkbox" name="publication_automatique" defaultChecked={reglages.publication_automatique} className="mt-1" /><span><b>Publication automatique</b><small className="mt-1 block text-[var(--texte-secondaire)]">Deux articles et posts par semaine.</small></span></label>
-      <label className={caseACocher}><input type="checkbox" name="publicite_active" defaultChecked={reglages.publicite_active} className="mt-1" /><span><b>Publicité payante</b><small className="mt-1 block text-[var(--texte-secondaire)]">{comptePublicitaire ? "Active dans la limite mensuelle." : "Prête, en attente du compte Meta Ads."}</small></span></label>
+      <label className={caseACocher}><input type="checkbox" name="actif" defaultChecked={reglages.actif} className="mt-1" /><span><b>Agent actif</b><small className="mt-1 block text-[var(--texte-secondaire)]">Prépare des brouillons à vous soumettre. Aucun envoi automatique.</small></span></label>
+      <div className={caseACocher}><span><b>Votre accord avant diffusion</b><small className="mt-1 block text-[var(--texte-secondaire)]">Chaque article et chaque post attend votre validation.</small></span></div>
+      <div className={caseACocher}><span><b>Publicité sous votre contrôle</b><small className="mt-1 block text-[var(--texte-secondaire)]">{comptePublicitaire ? "Le plafond n’autorise aucune dépense. Chaque campagne doit être validée." : "Compte Meta Ads à connecter avant toute campagne payante."}</small></span></div>
     </div>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <label className="grid gap-1"><span className="libelle-champ">Premier jour</span><select className={champ} name="jour_1" defaultValue={reglages.jours_semaine[0] ?? 2}>{JOURS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>

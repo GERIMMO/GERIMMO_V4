@@ -26,7 +26,7 @@ function versSlug(titre: string): string {
 
 async function garderSuperAdmin() {
   const supabase = await createClient();
-  const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
+  const { data: estSuperAdmin } = await supabase.rpc("is_permanent_super_admin");
   return { supabase, autorise: Boolean(estSuperAdmin) };
 }
 

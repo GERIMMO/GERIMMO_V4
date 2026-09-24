@@ -1,7 +1,6 @@
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache, porteurDuSecret } from "@/lib/tache";
 import { sujetMarketing } from "@/lib/contenu-marketing";
-import { envoyerSurFacebook } from "@/lib/facebook";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -24,8 +23,8 @@ export async function GET(request: Request) {
   const r = reglages as Reglages;
   const paris = maintenantParis();
   const rang = r.jours_semaine.indexOf(paris.jour);
-  if (!r.actif || !r.publication_automatique || rang < 0) {
-    const bilan = { agi: false, raison: !r.actif ? "agent en pause" : !r.publication_automatique ? "publication automatique désactivée" : "jour sans publication", date: paris.date };
+  if (!r.actif || rang < 0) {
+    const bilan = { agi: false, raison: !r.actif ? "agent en pause" : "jour sans préparation", date: paris.date };
     await consignerTache(supabase, "marketing", bilan);
     return Response.json(bilan);
   }
@@ -33,7 +32,8 @@ export async function GET(request: Request) {
   const sujet = sujetMarketing(paris.objet, rang);
   const slug = `${paris.date}-${sujet.cle}`;
   const periode = `marketing-auto-${paris.date}`;
-  const { data: existante } = await supabase.from("publications").select("id,slug,facebook_post_id").eq("slug", slug).maybeSingle();
+  const { data: existante, error: erreurExistante } = await supabase.from("publications").select("id,slug,facebook_post_id").eq("slug", slug).maybeSingle();
+  if (erreurExistante) return Response.json({ erreur: "Les propositions existantes ne peuvent pas être vérifiées." }, { status: 503 });
   if (existante) {
     const bilan = { agi: false, raison: "publication déjà traitée", publication_id: existante.id, facebook: Boolean(existante.facebook_post_id) };
     await consignerTache(supabase, "marketing", bilan);
@@ -41,32 +41,28 @@ export async function GET(request: Request) {
   }
 
   const { data: publication, error: erreurCreation } = await supabase.from("publications").insert({
-    periode, statut: "publiee", titre: sujet.titre, slug, chapo: sujet.chapo, corps: sujet.corps,
+    periode, statut: "brouillon", titre: sujet.titre, slug, chapo: sujet.chapo, corps: sujet.corps,
     sources: [`audience:${sujet.audience}`, "contenu-editorial-gerimmo"], seo_description: sujet.chapo.slice(0, 160),
-    facebook_texte: sujet.facebook, facebook_image_url: "https://www.gerimmo.app/marketing/facebook-premier-post.jpg", publie_le: new Date().toISOString(),
+    facebook_texte: sujet.facebook, facebook_image_url: "https://www.gerimmo.app/marketing/facebook-premier-post.jpg", publie_le: null,
   }).select("id,titre,slug,chapo,facebook_texte,facebook_image_url").single();
   if (erreurCreation || !publication) {
     await consignerTache(supabase, "marketing", { agi: false, erreur: "création article", detail: erreurCreation?.message });
     return Response.json({ erreur: "L’article automatique n’a pas pu être créé." }, { status: 500 });
   }
 
-  await supabase.from("marketing_campagnes").upsert({
-    publication_id: publication.id, nom: publication.titre, description: sujet.facebook, canal: "facebook", nature: "organique", objectif: "notoriete", statut: "active", publication_prevue_le: new Date().toISOString(), budget_cents: 0,
+  const { error: erreurCampagne } = await supabase.from("marketing_campagnes").upsert({
+    publication_id: publication.id, nom: publication.titre, description: sujet.facebook,
+    canal: "facebook", nature: "organique", objectif: "notoriete", statut: "idee",
+    publication_prevue_le: null, budget_cents: 0,
   }, { onConflict: "publication_id" });
 
-  let facebook = false;
-  let erreurFacebook: string | null = null;
-  try {
-    const resultat = await envoyerSurFacebook({ titre: publication.titre, slug: publication.slug, chapo: publication.chapo, facebookTexte: publication.facebook_texte, facebookImageUrl: publication.facebook_image_url });
-    await supabase.from("publications").update({ facebook_post_id: resultat.post_id, facebook_publie_le: new Date().toISOString(), facebook_erreur: null }).eq("id", publication.id);
-    await supabase.from("marketing_campagnes").update({ statut: "terminee", meta_ad_id: resultat.post_id }).eq("publication_id", publication.id);
-    facebook = true;
-  } catch (erreur) {
-    erreurFacebook = erreur instanceof Error ? erreur.message : "Publication Facebook refusée";
-    await supabase.from("publications").update({ facebook_erreur: erreurFacebook }).eq("id", publication.id);
-  }
-
-  const bilan = { agi: true, article: publication.id, slug, facebook, erreurFacebook, budgetMensuelCents: r.budget_mensuel_cents, publiciteActive: r.publicite_active };
+  // Une proposition n'autorise ni la parution dans le journal, ni Facebook,
+  // ni une dépense. Chaque diffusion passe par le bouton de supervision.
+  const bilan = {
+    agi: true, preparees: 1, article: publication.id, slug, facebook: false,
+    accord_requis: true,
+    erreur: erreurCampagne ? "Le brouillon est conservé, mais sa fiche de campagne demande une vérification." : null,
+  };
   await consignerTache(supabase, "marketing", bilan);
-  return Response.json(bilan);
+  return Response.json(bilan, {status: erreurCampagne ? 503 : 200});
 }

@@ -123,7 +123,8 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
     const cas: [string, string, string | null, boolean][] = [
       ["active", "active", null, true],
       ["essai qui court", "essai", "tomorrow", true],
-      ["essai expiré hier", "essai", "yesterday", false],
+      // Essai fini mais rien à payer (aucune unité facturable) : ouvert (24/09).
+      ["essai expiré hier, rien à payer", "essai", "yesterday", true],
       ["essai sans date", "essai", null, true],
       ["suspendue", "suspendue", null, false],
       ["archivée", "archivee", null, false],
@@ -152,6 +153,31 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
       );
       expect(`${libelle}: ${ouverte}`).toBe(`${libelle}: ${attendu}`);
     }
+  });
+
+  it("ferme un essai expiré dès qu'il y a quelque chose à payer, et le rouvre sinon (24/09)", async () => {
+    // Le propriétaire direct : le premier bien est offert à vie (conditions
+    // art. 8.2), le second se paie. Un bien → rien à payer → ouvert ; deux
+    // biens → une unité facturable → fermé jusqu'à la souscription.
+    const {
+      rows: [{ id: org }],
+    } = await db.query<{ id: string }>(
+      `insert into public.organizations (name, status, essai_fin, type)
+       values ('Un bien offert', 'essai', current_date - 1, 'proprietaire_direct') returning id`
+    );
+    const ouverte = async () =>
+      (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
+    const bien = (nom: string) =>
+      db.query(
+        `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
+         values ($1, $2, 'appartement'::public.bien_type, '1 rue X', '75001', 'Paris')`,
+        [org, nom]
+      );
+    await db.query("select public.tache_systeme()");
+    await bien("Le bien offert");
+    expect(await ouverte()).toBe(true);
+    await bien("Le second bien");
+    expect(await ouverte()).toBe(false);
   });
 });
 
@@ -208,8 +234,22 @@ describe("une organisation suspendue ne crée plus", () => {
   });
 
   it("refuse dès que l'essai est expiré, sans attendre un changement de statut", async () => {
-    // Aucun traitement de nuit n'est nécessaire : la date suffit.
-    const org = await creerOrg("Essai fini", "essai", "hier");
+    // Aucun traitement de nuit n'est nécessaire : la date suffit. Il faut
+    // qu'il y ait quelque chose à payer (24/09) : un propriétaire direct à
+    // deux biens, dont un seul est offert.
+    const {
+      rows: [{ id: org }],
+    } = await db.query<{ id: string }>(
+      `insert into public.organizations (name, status, essai_fin, type)
+       values ('Essai fini', 'essai', current_date - 1, 'proprietaire_direct') returning id`
+    );
+    for (const nom of ["Bien offert", "Bien facturé"]) {
+      await semer(
+        `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
+         values ($1, $2, 'appartement'::public.bien_type, '1 rue X', '75001', 'Paris') returning id`,
+        [org, nom]
+      );
+    }
     expect(
       await refusee("insert into public.persons (organization_id, nom) values ($1,'X')", [org])
     ).toMatch(MESSAGE_REFUS);

@@ -129,6 +129,7 @@ export async function GET(request: Request) {
       p_appel: l.appel_id,
     });
     if (erreurMarque) {
+      echecs.push("La confirmation de l’envoi doit être vérifiée.");
       // L'e-mail est parti mais la date n'est pas posée : la prochaine passe le
       // renverra. On le dit au journal plutôt que de le taire.
       console.error("[cron appels] envoyé mais non marqué:", l.appel_id, erreurMarque.message);

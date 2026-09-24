@@ -169,7 +169,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
     );
     await agir(cptArtisan);
     const { rows: [{ id: devis }] } = await db.query(
-      `select public.deposer_devis($1, 48000, 'Remplacement du joint et du siphon') as id`,
+      `select public.deposer_devis_structure($1, jsonb_build_array(jsonb_build_object('libelle','Travaux','quantite',1,'prix_unitaire_ht_cents',48000,'tva_bps',0)), 'Diagnostic de test', 'Remplacement du joint et du siphon', 'Sous 7 jours', 'Une journée', null, null) as id`,
       [sollicitation]
     );
     await agir(gerant);
@@ -557,7 +557,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
 
     await agir(cptArtisan);
     await db.query(
-      `select public.deposer_devis($1, 123456, 'Détartrage complet')`, [sollicitation]
+      `select public.deposer_devis_structure($1, jsonb_build_array(jsonb_build_object('libelle','Travaux','quantite',1,'prix_unitaire_ht_cents',123456,'tva_bps',0)), 'Diagnostic de test', 'Détartrage complet', 'Sous 7 jours', 'Une journée', null, null)`, [sollicitation]
     );
     s = await suiviDe(cptLoc, decor.incident);
     expect(s.etape).toBe("devis_recus");
@@ -594,7 +594,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
     await agir(cptArtisan);
     const chemin = `${org}/devis/${sollicitation}.pdf`;
     await db.query(
-      `select public.deposer_devis($1::uuid, 99900, 'Devis détaillé', null, $2,
+      `select public.deposer_devis_structure($1::uuid, jsonb_build_array(jsonb_build_object('libelle','Travaux','quantite',1,'prix_unitaire_ht_cents',99900,'tva_bps',0)), 'Diagnostic de test', 'Devis détaillé', 'Sous 7 jours', 'Une journée', null, null, null, $2,
          'application/pdf', 2000, $3)`,
       [sollicitation, chemin, `emp-devis-${sollicitation}`]
     );

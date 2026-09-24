@@ -292,7 +292,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     const { rows: mesDemandes } = await db.query(`select * from public.mes_sollicitations()`);
     const demande = mesDemandes.find((d) => d.statut === "envoyee");
     const { rows: [{ d: devis }] } = await db.query(
-      `select public.deposer_devis($1, 45000,'Remplacement du mitigeur',
+      `select public.deposer_devis_structure($1, jsonb_build_array(jsonb_build_object('libelle','Travaux','quantite',1,'prix_unitaire_ht_cents',45000,'tva_bps',0)), 'Diagnostic de test', 'Remplacement du mitigeur', 'Sous 7 jours', 'Une journée', null, null,
          null,null,null,null,null) as d`,
       [demande.sollicitation_id]
     );

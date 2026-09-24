@@ -157,9 +157,9 @@ async function monter(): Promise<Decor> {
   );
   await agir(cptArtisan);
   const {
-    rows: [{ deposer_devis: devis }],
-  } = await db.query<{ deposer_devis: string }>(
-    `select public.deposer_devis($1, 34000, 'Remplacement du flexible', current_date + 20)`,
+    rows: [{ deposer_devis_structure: devis }],
+  } = await db.query<{ deposer_devis_structure: string }>(
+    `select public.deposer_devis_structure($1, jsonb_build_array(jsonb_build_object('libelle','Travaux','quantite',1,'prix_unitaire_ht_cents',34000,'tva_bps',0)), 'Diagnostic de test', 'Remplacement du flexible', 'Sous 7 jours', 'Une journée', null, null, current_date + 20)`,
     [sollicitation]
   );
   await agir(gerant);
@@ -359,9 +359,9 @@ describe.skipIf(!DB_URL)("retirer une mission n'enterre pas l'incident", () => {
     );
     await agir(d.artisan);
     const {
-      rows: [{ deposer_devis: dv2 }],
-    } = await db.query<{ deposer_devis: string }>(
-      `select public.deposer_devis($1, 29000, 'Seconde entreprise', current_date + 20)`,
+      rows: [{ deposer_devis_structure: dv2 }],
+    } = await db.query<{ deposer_devis_structure: string }>(
+      `select public.deposer_devis_structure($1, jsonb_build_array(jsonb_build_object('libelle','Travaux','quantite',1,'prix_unitaire_ht_cents',29000,'tva_bps',0)), 'Diagnostic de test', 'Seconde entreprise', 'Sous 7 jours', 'Une journée', null, null, current_date + 20)`,
       [s2]
     );
     await agir(d.gerant);

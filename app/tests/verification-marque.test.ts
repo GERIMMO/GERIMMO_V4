@@ -1,0 +1,10 @@
+import {afterEach,describe,expect,it,vi} from 'vitest';
+import {domaineVercelValide,domaineResendValide,verifierSiteMarque,verifierExpediteurMarque} from '../src/lib/verification-marque';
+afterEach(()=>vi.unstubAllGlobals());
+describe('Connexions propres aux agences',()=>{
+ it('exige le domaine exact, le bon projet, la production sans redirection',()=>{const p={name:'agence.fr',projectId:'prj_test',verified:true};expect(domaineVercelValide(p,'agence.fr','prj_test')).toBe(true);for(const autre of [{...p,projectId:'autre'},{...p,name:'autre.fr'},{...p,verified:false},{...p,gitBranch:'preview'},{...p,redirect:'autre.fr'},{...p,customEnvironmentId:'test'}])expect(domaineVercelValide(autre,'agence.fr','prj_test')).toBe(false);});
+ it('ne confond pas réception des e-mails et droit d’envoi',()=>{const p={name:'agence.fr',status:'verified',capabilities:{sending:'enabled'}};expect(domaineResendValide(p,'agence.fr')).toBe(true);expect(domaineResendValide({...p,capabilities:{receiving:'enabled',sending:'disabled'}},'agence.fr')).toBe(false);expect(domaineResendValide(p,'autre.fr')).toBe(false);});
+ it('ne contacte jamais un domaine fourni par un utilisateur',async()=>{const f=vi.fn();vi.stubGlobal('fetch',f);await expect(verifierSiteMarque('localhost')).rejects.toThrow();expect(f).not.toHaveBeenCalled();});
+ it('contrôle aussi le raccordement du nom du site',async()=>{const f=vi.fn().mockResolvedValueOnce(Response.json({name:'agence.fr',projectId:'prj_test',verified:true})).mockResolvedValueOnce(Response.json({misconfigured:true}));vi.stubGlobal('fetch',f);expect(await verifierSiteMarque('agence.fr',{VERCEL_TOKEN:'fictif',VERCEL_PROJECT_ID:'prj_test'})).toBe(false);expect(f.mock.calls.every(([url])=>String(url).startsWith('https://api.vercel.com/'))).toBe(true);});
+ it('ne valide pas une liste d’e-mails tronquée',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(Response.json({has_more:true,data:[]})));await expect(verifierExpediteurMarque('contact@agence.fr',{RESEND_API_KEY:'fictif'})).rejects.toThrow(/incomplète/);});
+});

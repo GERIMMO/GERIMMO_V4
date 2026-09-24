@@ -1,0 +1,10 @@
+import {readFile} from 'node:fs/promises';import {validerProposition} from './controle.mjs';
+const e=process.env;
+if(e.GITHUB_REF!=='refs/heads/main'||e.GITHUB_EVENT_NAME!=='workflow_dispatch'||e.GERIMMO_CODEX_ENABLED!=='true'||!e.GERIMMO_CODE_WRITER_TOKEN)throw new Error('Atelier non activé');
+if(!/^[0-9a-f-]{36}$/.test(e.PROPOSITION_ID??'')||e.GITHUB_REPOSITORY!=='GERIMMO/GERIMMO_V4')throw new Error('Destination refusée');
+const texte=await readFile('correction/proposition.json','utf8');if(Buffer.byteLength(texte)>150000)throw new Error('Proposition trop volumineuse');const p=validerProposition(JSON.parse(texte));
+async function gh(path,body){const r=await fetch(`https://api.github.com/repos/GERIMMO/GERIMMO_V4/${path}`,{method:body?'POST':'GET',headers:{Authorization:`Bearer ${e.GERIMMO_CODE_WRITER_TOKEN}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,redirect:'error',signal:AbortSignal.timeout(20000)});if(!r.ok)throw new Error(`GitHub n’a pas confirmé l’opération (${r.status})`);return r.json();}
+const base=await gh('git/ref/heads/main');if(base.object.sha!==e.BASE_SHA)throw new Error('La version de départ a changé. Préparer une nouvelle proposition.');
+const commit=await gh(`git/commits/${e.BASE_SHA}`);const arbre=await gh('git/trees',{base_tree:commit.tree.sha,tree:p.fichiers.map(f=>({path:f.chemin,mode:'100644',type:'blob',content:f.contenu}))});
+const nouveau=await gh('git/commits',{message:`Proposition Gerimmo ${e.PROPOSITION_ID}`,tree:arbre.sha,parents:[e.BASE_SHA]});const branche=`gerimmo/proposition-${e.PROPOSITION_ID}-${e.GITHUB_RUN_ID}`;await gh('git/refs',{ref:`refs/heads/${branche}`,sha:nouveau.sha});
+const pr=await gh('pulls',{head:branche,base:'main',draft:true,title:'Proposition de correction Gerimmo',body:`Proposition : ${e.PROPOSITION_ID}\n\n${p.resume}\n\nCette proposition reste à contrôler : tests complets, préproduction et autorisation avant publication. Aucune fusion automatique.`});console.log(`Proposition conservée : ${pr.html_url}`);

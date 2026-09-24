@@ -91,8 +91,8 @@ export async function GET(request: Request) {
   if (lignes.length === 0) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de
     // cœur que la ronde du matin attend à cette heure-là.
-    await consignerTache(supabase, "rappels", { rappeles: 0, echecs: 0 });
-    return Response.json({ rappeles: 0, echecs: 0 });
+    await consignerTache(supabase, "rappels", { rappeles: 0, echecs: 0, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
+    return Response.json({ rappeles: 0, echecs: 0, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
   }
 
   let rappeles = 0;
@@ -128,6 +128,7 @@ export async function GET(request: Request) {
       p_adresse: l.adresse,
     });
     if (erreurTrace) {
+      echecs.push("La confirmation du rappel doit être vérifiée.");
       // Parti mais non tracé : la prochaine passe le renverra, le même jour au
       // pire. On le dit au journal plutôt que de le taire.
       console.error(
@@ -143,6 +144,6 @@ export async function GET(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
-  await consignerTache(supabase, "rappels", { rappeles, echecs: echecs.length });
-  return Response.json({ rappeles, echecs: echecs.length });
+  await consignerTache(supabase, "rappels", { rappeles, echecs: echecs.length, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
+  return Response.json({ rappeles, echecs: echecs.length, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
 }

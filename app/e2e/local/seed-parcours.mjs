@@ -12,7 +12,7 @@
 //   incidents.ts (declarerMonIncident → declarer_mon_incident +
 //                 joindre_photo_incident, côté locataire),
 //   module 8 artisans (qualifier_incident → ouvrir_consultation →
-//                 solliciter_artisan → deposer_devis → retenir_devis →
+//                 solliciter_artisan → deposer_devis_structure → retenir_devis →
 //                 accepter_mission → proposer_creneaux) : l'incident déclaré
 //                 par le locataire va jusqu'au rendez-vous à choisir.
 //
@@ -1032,11 +1032,16 @@ if (!intervention) {
   );
   if (!devis) {
     const id = ok(
-      "deposer_devis",
-      await artisan.rpc("deposer_devis", {
+      "deposer_devis_structure",
+      await artisan.rpc("deposer_devis_structure", {
         p_sollicitation: sollicitation.id,
-        p_montant_ttc_cents: 34000,
-        p_description: "Remplacement du flexible et du joint, main-d'œuvre comprise.",
+        p_lignes: [{ libelle: "Remplacement du flexible et du joint", quantite: 1, prix_unitaire_ht_cents: 34000, tva_bps: 0 }],
+        p_diagnostic: "Flexible et joint à remplacer.",
+        p_prestations: "Remplacement du flexible et du joint, main-d'œuvre comprise.",
+        p_delai: "Sous sept jours",
+        p_duree: "Une demi-journée",
+        p_contraintes: null,
+        p_observations: null,
         p_valide_jusqu_au: plusMois(1),
       })
     );

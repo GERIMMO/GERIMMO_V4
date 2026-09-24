@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {validerProposition} from './controle.mjs';
+const proposition=(chemin,contenu='export const x=1')=>({resume:'Correction',fichiers:[{chemin,contenu}]});
+test('accepte une proposition limitée aux composants',()=>assert.ok(validerProposition(proposition('app/src/components/avis.tsx'))));
+test('refuse les accès, migrations, chemins détournés et fichiers exécutables',()=>{for(const c of ['.github/workflows/ci.yml','app/src/app/api/route.ts','app/src/components/../../proxy.ts','app/src/components/a.sh','app/.env','/tmp/f.ts'])assert.throws(()=>validerProposition(proposition(c)));});
+test('refuse doublons, volumes et formats inattendus',()=>{assert.throws(()=>validerProposition({resume:'x',fichiers:[]}));const p=proposition('app/src/components/a.ts');p.fichiers.push(p.fichiers[0]);assert.throws(()=>validerProposition(p));assert.throws(()=>validerProposition(proposition('app/src/components/a.ts','x'.repeat(50001))));});

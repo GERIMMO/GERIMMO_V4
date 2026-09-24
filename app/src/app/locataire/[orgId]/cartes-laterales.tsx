@@ -6,10 +6,44 @@ export type Gestionnaire = {
   telephone: string | null;
   email_contact: string | null;
   agent_email: string | null;
+  // Prénom et nom de l'agent du mandat actif (24/09) : la RPC
+  // mon_gestionnaire_locataire ne rendait que son adresse. Tant que sa
+  // nouvelle version n'est pas en base — ou quand l'agent n'a pas de fiche
+  // personne dans l'agence —, ils manquent et l'adresse suffit.
+  agent_prenom?: string | null;
+  agent_nom?: string | null;
 };
 
+/**
+ * « Votre interlocuteur », la même ligne à l'accueil et sur « Mon
+ * gestionnaire » (24/09) : les deux pages l'écrivaient différemment, et
+ * l'adresse, tronquée sur bureau, ne se cliquait pas. Elle passe en lien
+ * mailto et se coupe n'importe où plutôt que de perdre sa fin.
+ */
+export function Interlocuteur({ gestionnaire }: { gestionnaire: Gestionnaire }) {
+  const nom = [gestionnaire.agent_prenom, gestionnaire.agent_nom]
+    .map((m) => m?.trim())
+    .filter(Boolean)
+    .join(" ");
+  const email = gestionnaire.agent_email;
+  if (!nom && !email) return null;
+  return (
+    <>
+      <span className="block text-xs text-muted-foreground">
+        Votre interlocuteur{nom ? ` : ${nom}` : ""}
+      </span>
+      {email && (
+        <a href={`mailto:${email}`} className="lien-discret block [overflow-wrap:anywhere]">
+          {email}
+        </a>
+      )}
+    </>
+  );
+}
+
 // Colonne de droite de l'espace locataire (maquette v10) : qui s'occupe de
-// moi, et quoi faire en cas d'urgence — les deux cartes qui rassurent.
+// moi. La carte d'urgence qui la suivait a cédé la place à ReflexesUrgence,
+// la seule de l'espace (24/09).
 export function CarteGestionnaire({
   orgId,
   gestionnaire,
@@ -36,11 +70,7 @@ export function CarteGestionnaire({
         </span>
         <span className="min-w-0">
           <b className="block text-sm font-semibold">{gestionnaire.agence}</b>
-          {gestionnaire.agent_email && (
-            <span className="block truncate text-xs text-muted-foreground">
-              Votre interlocuteur : {gestionnaire.agent_email}
-            </span>
-          )}
+          <Interlocuteur gestionnaire={gestionnaire} />
         </span>
       </div>
       <div className={`mt-3.5 grid gap-2 ${gestionnaire.telephone ? "grid-cols-2" : "grid-cols-1"}`}>
@@ -59,43 +89,6 @@ export function CarteGestionnaire({
           </a>
         )}
       </div>
-    </div>
-  );
-}
-
-export function CarteUrgence() {
-  return (
-    <div className="loc-carte">
-      <p className="text-xs text-muted-foreground">
-        Une urgence vitale ? En cas de danger, contactez d&apos;abord les secours :
-      </p>
-      <div className="mt-2 flex items-center gap-2.5">
-        <span
-          className="loc-rond"
-          style={{
-            width: 34,
-            height: 34,
-            background: "var(--destructive)",
-            color: "var(--sur-encre)",
-            fontSize: 14,
-          }}
-          aria-hidden
-        >
-          ☎
-        </span>
-        <a href="tel:112" className="text-lg font-bold text-destructive">
-          112
-        </a>
-        <span className="text-xs text-muted-foreground">numéro d&apos;urgence européen</span>
-      </div>
-      <p className="mt-2.5 text-xs text-muted-foreground">
-        Odeur de gaz : aérez, ne touchez aucun interrupteur, appelez Urgence
-        Sécurité Gaz au{" "}
-        <a href="tel:0800473333" className="font-medium text-destructive underline underline-offset-2">
-          0 800 47 33 33
-        </a>{" "}
-        — puis prévenez votre gestionnaire.
-      </p>
     </div>
   );
 }

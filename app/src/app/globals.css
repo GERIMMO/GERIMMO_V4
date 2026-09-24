@@ -841,8 +841,10 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 .loc-menu svg { width: 17px; height: 17px; flex: none; stroke-width: 1.7; fill: none; stroke: currentColor; }
 .loc-badge {
   margin-left: auto;
-  background: var(--destructive);
-  color: var(--ivoire);
+  /* Même pastille que la barre basse du téléphone : bleu = « quelque chose
+     attend » ; le rouge reste réservé au critique (24/09). */
+  background: var(--marque);
+  color: var(--sur-marque);
   font-size: 10.5px;
   font-weight: 600;
   min-width: 18px;
@@ -1127,6 +1129,17 @@ p a {
   font-size: 12px;
   color: var(--bleu);
 }
+/* Un lien AU MILIEU d'une phrase (pages légales, case CGU — 24/09) : la
+   taille du texte, souligné, sans hauteur tactile qui creuserait l'interligne.
+   .lien-discret reste réservé aux liens-actions isolés. */
+.lien-texte {
+  font-size: inherit;
+  color: var(--bleu);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: from-font;
+}
+.lien-texte:hover { color: var(--encre); }
 
 /* Toast de confirmation (maquette .toast) : bandeau encre en bas, centré */
 .toast {
@@ -1441,7 +1454,8 @@ p a {
    contrôles natifs ; .lien-discret gagne une zone de tap décente. */
 @media (pointer: coarse) {
   a.group\/button,
-  .btn-or {
+  .btn-or,
+  .btn-secondaire {
     min-height: var(--cible-tactile);
     align-items: center;
   }
@@ -1760,10 +1774,6 @@ p a {
   padding: 22px;
   background: linear-gradient(135deg, color-mix(in srgb, var(--marque) 16%, var(--ivoire)), color-mix(in srgb, var(--marque) 5%, var(--ivoire)));
   border: 1px solid var(--or-filet);
-}
-.vitrine-cadre-doux {
-  background: linear-gradient(135deg, var(--creme), var(--ivoire));
-  border-color: var(--filet);
 }
 .vitrine-carte {
   background: var(--ivoire);
@@ -2670,20 +2680,6 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
     url('/illustrations/interieur-gerimmo-2026.jpg');
   background-position: center, 58% center;
   background-size: cover;
-}
-.journal-hero {
-  background-image:
-    linear-gradient(90deg, var(--ivoire) 0%, color-mix(in srgb, var(--ivoire) 98%, transparent) 49%, color-mix(in srgb, var(--ivoire) 35%, transparent) 100%),
-    url('/illustrations/interieur-gerimmo-2026.jpg');
-  background-position: center, right center;
-  background-size: cover;
-}
-@media (max-width: 640px) {
-  .journal-hero {
-    background-image:
-      linear-gradient(180deg, var(--ivoire) 0%, color-mix(in srgb, var(--ivoire) 97%, transparent) 70%, color-mix(in srgb, var(--ivoire) 35%, transparent) 100%),
-      url('/illustrations/interieur-gerimmo-2026.jpg');
-  }
 }
 
 /* ==================================================================== */

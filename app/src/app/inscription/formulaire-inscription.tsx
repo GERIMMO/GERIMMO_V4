@@ -37,11 +37,14 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
   return (
     <Card>
       <CardContent className="pt-6">
-        {/* En erreur, la saisie est reposée via etat.valeurs (convention React 19) */}
+        {/* En erreur, la saisie est reposée via etat.valeurs (convention React 19).
+            24/09 : « (facultatif) » sur chaque champ optionnel, rien sur les
+            obligatoires — seul le code de parrainage le disait, et neuf champs
+            paraissaient requis quand cinq ne le sont pas. */}
         <form action={action} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="prenom">Prénom</Label>
+              <Label htmlFor="prenom">Prénom (facultatif)</Label>
               <Input
                 id="prenom"
                 name="prenom"
@@ -61,7 +64,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="ins-adresse">Adresse postale</Label>
+            <Label htmlFor="ins-adresse">Adresse postale (facultatif)</Label>
             <Input id="ins-adresse" name="adresse" autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="12 rue des Lilas" />
             <p className="text-xs text-muted-foreground">
               Elle signera vos documents (baux, quittances…).
@@ -69,26 +72,29 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ins-cp">Code postal</Label>
+              <Label htmlFor="ins-cp">Code postal (facultatif)</Label>
               <Input id="ins-cp" name="code_postal" inputMode="numeric" autoComplete="postal-code" defaultValue={etat.valeurs?.code_postal} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="ins-ville">Ville</Label>
+              <Label htmlFor="ins-ville">Ville (facultatif)</Label>
               <Input id="ins-ville" name="ville" autoComplete="address-level2" defaultValue={etat.valeurs?.ville} />
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="ins-tel">Téléphone</Label>
+              <Label htmlFor="ins-tel">Téléphone (facultatif)</Label>
               <Input id="ins-tel" name="telephone" type="tel" autoComplete="tel" defaultValue={etat.valeurs?.telephone} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="ins-qualite">Vous louez en tant que</Label>
+              {/* Le gabarit du composant Input (24/09) : à côté du téléphone,
+                  le menu faisait 5 px de plus, un autre arrondi, sans anneau
+                  de focus. */}
               <select
                 id="ins-qualite"
                 name="qualite"
                 defaultValue={etat.valeurs?.qualite ?? "Personne physique"}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               >
                 <option>Personne physique</option>
                 <option>SCI</option>
@@ -147,33 +153,36 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               minLength={12}
             />
           </div>
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="cgu"
-              value="1"
-              required
-              className="mt-1"
-              defaultChecked={etat.valeurs?.cgu === "1"}
-            />
-            {/* Le lien manquait : on faisait cocher « j'accepte » sans que
-                rien ne permette de lire ce qu'on acceptait — et, jusqu'au
-                11/09, sans que le document existe. Nouvel onglet : un clic ne
-                doit pas coûter la saisie en cours. */}
-            <span>
-              J&apos;accepte les{" "}
-              <Link
-                href="/conditions"
-                target="_blank"
-                rel="noopener"
-                className="lien-discret"
-              >
-                conditions d&apos;utilisation
-              </Link>
-              . Gerimmo tient un journal de gestion, pas une comptabilité : en
-              cas d&apos;écart, le relevé bancaire fait foi.
-            </span>
-          </label>
+          <div className="space-y-1">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="cgu"
+                value="1"
+                required
+                className="mt-1"
+                aria-describedby="cgu-aide"
+                defaultChecked={etat.valeurs?.cgu === "1"}
+              />
+              {/* Le lien manquait : on faisait cocher « j'accepte » sans que
+                  rien ne permette de lire ce qu'on acceptait — et, jusqu'au
+                  11/09, sans que le document existe. Nouvel onglet : un clic ne
+                  doit pas coûter la saisie en cours. */}
+              <span>
+                J&apos;accepte les{" "}
+                <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">
+                  conditions d&apos;utilisation
+                </Link>
+              </span>
+            </label>
+            {/* 24/09 : l'avertissement quitte le libellé de la case. On ne fait
+                plus accepter d'un même geste le contrat et une phrase de
+                jargon comptable ; il reste lisible, juste dessous. */}
+            <p id="cgu-aide" className="pl-5 text-xs text-muted-foreground">
+              Gerimmo vous aide à suivre vos loyers et vos dépenses ; il ne
+              remplace pas votre relevé bancaire.
+            </p>
+          </div>
           {etat.erreur && (
             <p className="text-sm text-destructive" role="alert">
               {etat.erreur}
@@ -182,10 +191,11 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
           <BoutonEnvoi enCoursTexte="Ouverture…" className="w-full">
             Ouvrir mon espace
           </BoutonEnvoi>
+          {/* Cible de 44 px au doigt (24/09), sans changer l'allure du texte. */}
           <p className="text-center text-sm">
             <Link
               href="/connexion"
-              className="text-muted-foreground underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center text-muted-foreground underline-offset-4 hover:underline"
             >
               J&apos;ai déjà un compte
             </Link>

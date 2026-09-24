@@ -75,6 +75,61 @@ export function documentsIncomplets(editeur: Record<string, FaitEditeur> = EDITE
   return faitsManquants(editeur).length > 0;
 }
 
+// ── Où écrire à l'éditeur ──────────────────────────────────────────────────
+//
+// Tant que `EDITEUR.email` manque, la seule voie ouverte au public est le
+// formulaire de l'accueil, rubrique Agences. Les pages légales l'appelaient
+// « formulaire de contact » : un locataire venu exercer ses droits tombait sur
+// une demande de devis commerciale (relevé du 24/09). Elles le nomment
+// désormais tel qu'il est, et l'adresse prend le relais dès qu'elle est
+// fournie ci-dessus.
+export const FORMULAIRE_ACCUEIL = "/#agences";
+
+/** L'adresse à laquelle écrire, ou `null` : il faut alors passer par le formulaire. */
+export function courrielDeContact(editeur: Record<string, FaitEditeur> = EDITEUR): string | null {
+  return editeur.email || null;
+}
+
+// ── Prestataires (sous-traitants techniques) ───────────────────────────────
+//
+// Une seule liste pour les mentions légales et la page confidentialité : elles
+// décrivaient les mêmes prestataires dans deux tableaux différents — colonnes
+// dans un autre ordre, libellés divergents, Stripe sur une page seulement
+// (relevé du 24/09). `localisation: null` s'affiche en réserve, comme un fait
+// d'éditeur manquant.
+export type Prestataire = { nom: string; role: string; localisation: FaitEditeur };
+
+export const PRESTATAIRES: readonly Prestataire[] = [
+  {
+    nom: "Supabase",
+    role: "Base de données, authentification, stockage des fichiers",
+    localisation: "Région eu-west-3 (Paris, France)",
+  },
+  {
+    nom: "Vercel",
+    role: "Hébergement et diffusion de l'application",
+    // La région des fonctions est fixée dans vercel.json (`regions: ["cdg1"]`) :
+    // sans ce réglage, Vercel exécute le serveur à Washington, et les données
+    // transitent hors UE à chaque page.
+    localisation: "Région cdg1 (Paris, France)",
+  },
+  {
+    nom: "Resend",
+    role: "Envoi des courriels du service (quittances, avis, relances, rappels)",
+    localisation: null,
+  },
+  {
+    nom: "Stripe",
+    role: "Encaissement des abonnements",
+    localisation: "Irlande",
+  },
+];
+
+/** Vrai tant qu'un prestataire n'a pas sa localisation. */
+export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAIRES): boolean {
+  return liste.some((p) => !p.localisation);
+}
+
 // ── Version des conditions générales ───────────────────────────────────────
 //
 // Le contrat peut changer ; ce qui a été accepté, non. On enregistre donc à

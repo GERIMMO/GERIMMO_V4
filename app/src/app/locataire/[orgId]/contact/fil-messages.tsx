@@ -103,11 +103,10 @@ export function FilMessages({
           <button
             key={s}
             type="button"
-            // Le libellé est raccourci pour tenir : le titre et le nom
-            // accessible portent la phrase entière, qui est celle insérée.
-            title={s}
-            aria-label={s}
-            className="filtre hover:!bg-[var(--ardoise)]"
+            // La phrase entière, qui est celle insérée (24/09) : coupée à 42
+            // caractères, elle ne se lisait qu'au survol du title, donc
+            // jamais au doigt. La pastille passe à la ligne au besoin.
+            className="filtre text-left hover:!bg-[var(--ardoise)]"
             onClick={() => {
               if (champ.current) {
                 champ.current.value = s;
@@ -115,7 +114,7 @@ export function FilMessages({
               }
             }}
           >
-            {s.length > 44 ? `${s.slice(0, 42).replace(/\s+\S*$/, "")}…` : s}
+            {s}
           </button>
         ))}
       </div>
@@ -150,10 +149,14 @@ export function FilMessages({
             <span className="text-sm text-success-soft-foreground">{etat.succes}</span>
           )}
         </div>
-        <p className="mt-2.5 text-xs text-muted-foreground">
-          Tout le fil est conservé ici — vous retrouverez toujours ce qui a été
-          dit.
-        </p>
+        {/* Fil vide : la phrase d'accueil, en haut de carte, fait déjà
+            cette promesse — ne pas la répéter sous le bouton (24/09). */}
+        {messages.length > 0 && (
+          <p className="mt-2.5 text-xs text-muted-foreground">
+            Tout le fil est conservé ici — vous retrouverez toujours ce qui a été
+            dit.
+          </p>
+        )}
       </form>
       </>
       )}

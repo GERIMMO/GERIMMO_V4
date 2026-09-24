@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import {
   choisirMonCreneau,
@@ -129,7 +129,7 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
         titre: "Nous cherchons un artisan",
         detail:
           s.nb_artisans_consultes > 0
-            ? `${s.nb_artisans_consultes} artisan${s.nb_artisans_consultes > 1 ? "s" : ""} consulté${s.nb_artisans_consultes > 1 ? "s" : ""} — votre gestionnaire attend leur devis.`
+            ? `${s.nb_artisans_consultes} artisan${s.nb_artisans_consultes > 1 ? "s" : ""} consulté${s.nb_artisans_consultes > 1 ? "s" : ""} — votre gestionnaire attend ${s.nb_artisans_consultes > 1 ? "leurs devis" : "son devis"}.`
             : "Votre gestionnaire consulte des artisans pour cette réparation.",
       };
     case "devis_recus":
@@ -242,6 +242,20 @@ function ChoixDuCreneau({
 }) {
   const idGroupe = useId();
   const [contre, setContre] = useState(false);
+  // « Confirmer » n'est actif qu'une fois un créneau coché (24/09) : plein et
+  // actif d'emblée, il se lisait comme l'action à faire, et l'appui direct
+  // faisait surgir la bulle native « obligatoire », accrochée au bouton radio
+  // masqué — donc à rien de visible.
+  const [creneauCoche, setCreneauCoche] = useState(false);
+  const formulaireChoix = useRef<HTMLFormElement>(null);
+  // Un créneau touché AVANT l'hydratation (réseau lent) est coché dans le DOM
+  // sans qu'onChange ait couru : sans cette relecture au montage, le choix
+  // resterait visible et « Confirmer » éteint. Relevé au navigateur le 24/09.
+  useEffect(() => {
+    if (formulaireChoix.current?.querySelector("input[name=creneau]:checked")) {
+      setCreneauCoche(true);
+    }
+  }, []);
   // Pas de disponibilité pour aujourd'hui ni pour hier : au plus tôt demain,
   // en date locale (toISOString décalerait d'un jour autour de minuit).
   const lendemain = new Date();
@@ -266,11 +280,20 @@ function ChoixDuCreneau({
   return (
     <div className="mt-2.5">
       {creneaux.length > 0 && (
-        <form action={actionChoix}>
+        // Après un refus du serveur, React remet le formulaire à zéro : les
+        // radios se décochent, « Confirmer » doit se désactiver avec eux.
+        <form
+          ref={formulaireChoix}
+          action={actionChoix}
+          onReset={() => setCreneauCoche(false)}
+        >
           <fieldset className="border-0 p-0">
-            <legend className="mb-1.5 text-sm font-medium">
+            <legend className="text-sm font-medium">
               Quel créneau vous arrange&nbsp;?
             </legend>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Choisissez un créneau, puis confirmez.
+            </p>
             <div className="space-y-1.5">
               {creneaux.map((c, i) => (
                 <div key={c.creneau_id}>
@@ -284,10 +307,15 @@ function ChoixDuCreneau({
                     // est un engagement, il se prend d'un geste voulu. Le
                     // navigateur réclame le choix avant d'envoyer.
                     className="peer sr-only"
+                    onChange={() => setCreneauCoche(true)}
                   />
+                  {/* Le rond (::before) dit « choix » avant tout appui (24/09) :
+                      sans lui, les créneaux se lisaient comme des rangées
+                      d'information. Coché, il se remplit à la couleur du
+                      liseré. */}
                   <Label
                     htmlFor={`${idGroupe}-c${i}`}
-                    className="min-h-11 w-full cursor-pointer rounded-[10px] border border-input px-3 py-2.5 text-sm font-normal peer-checked:border-[var(--or)] peer-checked:bg-[var(--ardoise)] peer-checked:font-medium peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)]"
+                    className="min-h-11 w-full cursor-pointer rounded-[10px] border border-input px-3 py-2.5 text-sm font-normal before:size-4 before:shrink-0 before:rounded-full before:border-2 before:border-input peer-checked:border-[var(--or)] peer-checked:bg-[var(--ardoise)] peer-checked:font-medium peer-checked:before:border-[var(--or)] peer-checked:before:bg-[var(--or)] peer-checked:before:shadow-[inset_0_0_0_2px_var(--ardoise)] peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)]"
                   >
                     {plage(c.debut, c.fin)}
                   </Label>
@@ -300,7 +328,12 @@ function ChoixDuCreneau({
               {etatChoix.erreur}
             </p>
           )}
-          <BoutonEnvoi enCoursTexte="Confirmation…" size="lg" className="mt-2.5 min-h-11 w-full">
+          <BoutonEnvoi
+            enCoursTexte="Confirmation…"
+            size="lg"
+            disabled={!creneauCoche}
+            className="mt-2.5 min-h-11 w-full"
+          >
             Confirmer ce rendez-vous
           </BoutonEnvoi>
         </form>

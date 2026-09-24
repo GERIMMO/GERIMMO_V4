@@ -68,7 +68,8 @@ export function SidebarLocataire({
   ];
 
   // Le téléphone : les quatre gestes les plus fréquents d'un locataire, le
-  // reste dans le tiroir « Menu ».
+  // reste dans le tiroir « Menu » — dans l'ORDRE du menu latéral (24/09 :
+  // Paiements passait devant Documents, à l'inverse du bureau).
   const courts = ["Accueil", "Logement", "Documents", "Paiements", "Demandes", "Gestionnaire", "Aide"];
   const principales = entrees.map((e, i) => ({
     href: e.href,
@@ -81,7 +82,7 @@ export function SidebarLocataire({
   const navigation: NavigationEspace = {
     principales,
     secondaires: [],
-    barreBasse: [principales[0], principales[3], principales[4], principales[2]],
+    barreBasse: [principales[0], principales[2], principales[3], principales[4]],
   };
 
   return (

@@ -8,7 +8,7 @@ import { CarteConge } from "./carte-conge";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import type { BailLocataire } from "../types";
 
-export const metadata = { title: "Mon logement — Gerimmo" };
+export const metadata = { title: "Mon logement" };
 
 // « Mon logement » (maquette v10) : le logement, le bail en clair — préavis
 // compris —, le dépôt de garantie expliqué, et le congé qui se donne ici.
@@ -47,7 +47,9 @@ export default async function PageLogementLocataire(
   if (!bail) {
     return (
       <div className="space-y-4">
-        <h1>Mon logement</h1>
+        <div className="entete-page">
+          <h1>Mon logement</h1>
+        </div>
         <div className="loc-carte">
           {aEchoue(eBaux) ? (
             <LectureImpossible quoi="votre logement" />
@@ -68,17 +70,27 @@ export default async function PageLogementLocataire(
   const bailMeuble = bail.type === "meuble" || (bail.type === "colocation" && bail.meuble);
   const preavisMois = bailMeuble || bail.zone_tendue ? 1 : 3;
   const forfait = bail.charges_mode === "forfait";
+  const depotDu = Number(depot?.depot_du ?? 0);
+  const depotRecu = Number(depot?.encaisse ?? 0);
 
   return (
     <FenetreLotProvider orgId={orgId}>
     <div className="space-y-4">
+      {/* L'en-tête porte sa mention, comme ses pages sœurs (24/09) : la carte
+          était vide à droite du titre. */}
       <div className="entete-page">
         <h1>Mon logement</h1>
-        {bail.etat === "preavis" && (
-          // La date de fin est déjà dite deux fois plus bas (ligne « Bail » et
-          // carte de congé) : le bandeau n'en rajoute pas une troisième.
-          <span className="loc-tag ambre">Préavis en cours</span>
-        )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span className="mono-discret">
+            Bail {(TYPES_BAIL[bail.type] ?? "d'habitation").toLowerCase()}
+            {bail.date_debut ? ` · depuis le ${formaterDate(bail.date_debut)}` : ""}
+          </span>
+          {bail.etat === "preavis" && (
+            // La date de fin est déjà dite deux fois plus bas (ligne « Bail » et
+            // carte de congé) : le bandeau n'en rajoute pas une troisième.
+            <span className="loc-tag ambre">Préavis en cours</span>
+          )}
+        </div>
       </div>
 
       {aEchoue(eDepot, eInfos, eIntentions, eEdl) && (
@@ -88,21 +100,23 @@ export default async function PageLogementLocataire(
       <div className="loc-carte">
         {/* Le logement s'ouvre EN FENÊTRE, comme chez son gestionnaire : même
             composant, même forme, portée différente — son bail, ses documents,
-            ses loyers, jamais le propriétaire ni les honoraires de l'agence. */}
+            ses loyers, jamais le propriétaire ni les honoraires de l'agence.
+            24/09 : tout le rang est un bouton, et désormais il le montre —
+            survol, focus, chevron, libellé en couleur de marque. Plus de
+            vignette à initiale ; l'adresse en titre, le nom du lot (saisi par
+            l'agence) en appui. Espaces insécables : « 45 m² » ne se coupe plus
+            entre le nombre et l'unité. */}
         <BoutonLot
           lotId={String(lotId ?? "")}
           href="#bail"
-          className="flex w-full flex-wrap items-center gap-4 text-left"
+          className="-m-2 flex w-[calc(100%+1rem)] items-center gap-4 rounded-xl p-2 text-left transition-colors hover:bg-[var(--survol)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="loc-vignette" style={{ width: 88, height: 68, fontSize: 24 }} aria-hidden>
-            {(bail.ville?.[0] ?? bail.lot_nom[0] ?? "G").toUpperCase()}
-          </span>
           <span className="min-w-0 flex-1">
-            <span className="font-heading block text-lg text-[var(--encre)]">{bail.lot_nom}</span>
+            <span className="font-heading block text-lg text-[var(--encre)]">{bail.adresse || bail.lot_nom}</span>
             <span className="block text-[13px] text-muted-foreground">
               {[
-                bail.adresse,
-                bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")} m²` : null,
+                bail.adresse ? bail.lot_nom : null,
+                bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")}\u00a0m²` : null,
                 bail.pieces != null ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}` : null,
                 bail.etage ? `étage ${bail.etage}` : null,
                 bail.meuble ? "meublé" : null,
@@ -110,9 +124,12 @@ export default async function PageLogementLocataire(
                 .filter(Boolean)
                 .join(" · ")}
             </span>
-            <span className="mono-discret mt-1 block normal-case">
-              Tout mon logement en un coup d’œil →
+            <span className="mt-1 block text-[13px] font-medium text-[var(--marque)]">
+              Tout mon logement en un coup d’œil
             </span>
+          </span>
+          <span aria-hidden className="ml-auto shrink-0 text-xl leading-none text-[var(--marque)]">
+            ›
           </span>
         </BoutonLot>
 
@@ -141,23 +158,36 @@ export default async function PageLogementLocataire(
               {forfait ? "forfait" : "provision"} de charges
             </span>
           </div>
-          {depot && Number(depot.depot_du) > 0 && (
+          {/* Le montant DÛ d'abord, l'état du versement en mention (24/09) :
+              « 0,00 € versé sur 650,00 € » suivi de « cet argent reste le
+              vôtre » laissait croire à un dépôt égaré. */}
+          {depot && depotDu > 0 && (
             <div className="ligne-info">
               <span>Dépôt de garantie</span>
               <span className="montant text-right">
-                {eur(Number(depot.encaisse))}
-                {Number(depot.encaisse) < Number(depot.depot_du)
-                  ? ` versé sur ${eur(Number(depot.depot_du))}`
-                  : ""}
+                {depotRecu <= 0 ? (
+                  <>
+                    {eur(depotDu)}
+                    <span className="text-muted-foreground"> — aucun versement enregistré à ce jour</span>
+                  </>
+                ) : depotRecu < depotDu ? (
+                  `${eur(depotRecu)} reçus sur ${eur(depotDu)}`
+                ) : (
+                  <>
+                    {eur(depotDu)}
+                    <span className="text-muted-foreground"> — reçu</span>
+                  </>
+                )}
               </span>
             </div>
           )}
         </div>
-        {depot && Number(depot.depot_du) > 0 && (
+        {depot && depotDu > 0 && (
           <p className="mt-3 text-xs text-muted-foreground">
-            Cet argent reste le vôtre : il vous est restitué sous 1 mois après
-            un état des lieux de sortie conforme (2 mois si des retenues sont
-            justifiées, pièces à l&apos;appui), l&apos;usure normale déduite.
+            {depotRecu > 0 ? "Cet argent reste le vôtre" : "Une fois versé, cet argent reste le vôtre"}{" "}
+            : il vous est restitué sous 1 mois après un état des lieux de sortie
+            conforme (2 mois si des retenues sont justifiées, pièces à
+            l&apos;appui), l&apos;usure normale déduite.
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-2">
@@ -175,7 +205,8 @@ export default async function PageLogementLocataire(
             href={`/locataire/${orgId}/loyers`}
             className={buttonVariants({ variant: "outline", size: "sm" })}
           >
-            Mes quittances
+            {/* Le nom de la page où il mène (24/09) */}
+            Mes paiements
           </Link>
         </div>
       </div>

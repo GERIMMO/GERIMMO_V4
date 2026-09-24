@@ -27,20 +27,25 @@ export function ApercuTableauDeBord() {
         <span className="mono-discret ml-2 !text-[9px]">Tableau de bord</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      {/* Deux colonnes sur téléphone, trois au-delà (24/09). À 390 px, trois
+          tuiles de 100 px renvoyaient le « € » de 4 180 € seul à la ligne et
+          collaient « OCCUPATION » au filet : la première image du produit
+          qu'on montre était cassée. La taille du chiffre n'est plus forcée,
+          c'est le clamp() de .kpi .chiffre qui la règle sur la tuile. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <div className="kpi vert !p-2.5">
           <span className="libelle-champ">Encaissé</span>
-          <div className="chiffre montant !text-[22px]">4 180 €</div>
+          <div className="chiffre montant whitespace-nowrap">4 180 €</div>
           <span className="mono-discret !text-[9px] sans-majuscules">sur 4 780 € appelés</span>
         </div>
         <div className="kpi or !p-2.5">
           <span className="libelle-champ">Occupation</span>
-          <div className="chiffre !text-[22px]">6/7</div>
+          <div className="chiffre">6/7</div>
           <span className="mono-discret !text-[9px] sans-majuscules">un lot disponible</span>
         </div>
-        <div className="kpi rouge !p-2.5">
+        <div className="kpi rouge col-span-2 !p-2.5 sm:col-span-1">
           <span className="libelle-champ">À traiter</span>
-          <div className="chiffre !text-[22px]">3</div>
+          <div className="chiffre">3</div>
           <span className="mono-discret !text-[9px] sans-majuscules">dont 1 critique</span>
         </div>
       </div>

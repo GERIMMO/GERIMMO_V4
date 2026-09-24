@@ -11,7 +11,8 @@ export default function PageConnexion() {
       sousPromesse="Baux, quittances, régularisations, rapports de gestion et interventions — pour les agences, les propriétaires bailleurs, leurs locataires et les artisans."
       mention="Un seul compte, tous vos espaces"
       titre="Connexion"
-      chapo="Un seul compte, tous vos espaces."
+      // 24/09 : le chapo répétait mot pour mot la mention du panneau.
+      chapo="Agence, propriétaire, locataire ou artisan : la même adresse e-mail ouvre votre espace."
     >
       <Suspense>
         <FormulaireConnexion />

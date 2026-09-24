@@ -1,4 +1,3 @@
-import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
 import { eur, formaterDate } from "@/lib/ged";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
@@ -7,8 +6,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { aEchoue, LectureImpossible, PanneLecture } from "../panne-lecture";
 import { tagLocataire } from "../pastille-locataire";
 import type { BailLocataire } from "../types";
+import { BoutonCopierIban } from "./bouton-copier-iban";
 
-export const metadata = { title: "Mes paiements — Gerimmo" };
+export const metadata = { title: "Mes paiements" };
 
 // « Mes paiements » (maquette v10) : la prochaine échéance, les douze
 // derniers mois en pastilles, les quittances, et les charges expliquées.
@@ -16,7 +16,7 @@ export default async function PagePaiementsLocataire(
   props: PageProps<"/locataire/[orgId]/loyers">
 ) {
   const { orgId } = await props.params;
-  const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, organisation } = await verifierAccesEspaceLocataire(orgId);
 
   const [
     { data: echeancier, error: eEcheancier },
@@ -24,13 +24,24 @@ export default async function PagePaiementsLocataire(
     { data: restitutions, error: eRestitution },
     { data: retenuesRows, error: eRetenues },
     { data: relancesRows, error: eRelances },
+    { data: beneficiaire },
   ] = await Promise.all([
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("ma_restitution_locataire", { p_org: orgId }),
     supabase.rpc("mes_retenues_restitution", { p_org: orgId }),
     supabase.rpc("mes_relances_locataire", { p_org: orgId }),
+    // « À régler par virement » sans coordonnées obligeait à écrire à
+    // l'agence pour réclamer son RIB (24/09). L'IBAN est celui que l'agence a
+    // saisi dans son profil et que le bail imprime déjà (modalités de
+    // paiement) ; même lecture que la marque du layout. Lecture ratée : on
+    // retombe sur le lien vers le gestionnaire, rien de plus.
+    supabase.from("organizations").select("name, nom_portail, iban").eq("id", orgId).maybeSingle(),
   ]);
+  const ibanBrut = String(beneficiaire?.iban ?? "").replace(/\s+/g, "").toUpperCase();
+  const ibanLisible = ibanBrut.replace(/(.{4})/g, "$1 ").trim();
+  const nomBeneficiaire =
+    beneficiaire?.nom_portail?.trim() || beneficiaire?.name || organisation.name;
   const restitution = ((restitutions ?? []) as {
     statut: string;
     date_remise_cles: string;
@@ -72,7 +83,9 @@ export default async function PagePaiementsLocataire(
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const prochaine = lignesLoyer.find((l) => l.statut !== "paye");
   const forfait = bail?.charges_mode === "forfait";
-  const quittances = lignesLoyer.filter((l) => l.quittance_id);
+  // Seuls les mois SOLDÉS ont une quittance ; un paiement partiel n'a qu'un
+  // reçu, et la mention le comptait comme une quittance (24/09).
+  const nbQuittances = lignesLoyer.filter((l) => l.statut === "paye" && l.quittance_id).length;
   // Les 12 derniers mois en pastilles : payé plein, à venir cerclé laiton,
   // impayé rouge — le « parcours » du locataire en un regard.
   const douzeDerniers = lignesLoyer.slice(-12);
@@ -157,11 +170,33 @@ export default async function PagePaiementsLocataire(
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   {eur(Number(bail.loyer_hc ?? 0))} de loyer + {eur(Number(bail.charges ?? 0))} de{" "}
                   {forfait ? "forfait" : "provision"} de charges — à régler par
-                  virement à votre gestionnaire.
+                  virement à{" "}
+                  {ibanBrut ? (
+                    "l'agence, ci-dessous"
+                  ) : (
+                    <Link
+                      href={`/locataire/${orgId}/contact`}
+                      className="font-medium text-[var(--bleu)] underline underline-offset-2"
+                    >
+                      votre gestionnaire
+                    </Link>
+                  )}
+                  .
                   {prochaine.statut === "partiel"
                     ? ` Déjà réglé : ${eur(Number(prochaine.montant_couvert))}.`
                     : ""}
                 </p>
+                {ibanBrut && (
+                  <div className="mt-2.5 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] px-3 py-2.5">
+                    <p className="text-xs text-muted-foreground">Virement à {nomBeneficiaire}</p>
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2">
+                      <span className="font-mono text-sm tracking-wide text-[var(--encre)] [overflow-wrap:anywhere]">
+                        IBAN {ibanLisible}
+                      </span>
+                      <BoutonCopierIban iban={ibanBrut} />
+                    </div>
+                  </div>
+                )}
                 <p className="mt-2 text-[13px] text-muted-foreground">
                   Après paiement intégral, votre quittance est établie et disponible
                   ici — rien à demander. Le premier loyer d&apos;un bail est
@@ -211,11 +246,11 @@ export default async function PagePaiementsLocataire(
           <div className="entete-carte">
             <h3 className="text-base font-medium">Historique des loyers</h3>
             {/* La liste montre TOUS les mois de l'échéancier : dire seulement
-                « N émises » laissait croire à un compte tronqué. */}
+                « N émises » laissait croire à un compte tronqué. Et la mention
+                nomme ce qu'elle compte (24/09). */}
             {!aEchoue(eEcheancier) && lignesLoyer.length > 0 && (
               <span className="mono-discret">
-                {quittances.length} émise{quittances.length > 1 ? "s" : ""} sur{" "}
-                {lignesLoyer.length} mois
+                {nbQuittances} quittance{nbQuittances > 1 ? "s" : ""} sur {lignesLoyer.length} mois
               </span>
             )}
           </div>
@@ -226,30 +261,55 @@ export default async function PagePaiementsLocataire(
               Vos quittances apparaîtront ici après votre premier loyer réglé.
             </p>
           ) : (
+            // Le rang du mois EST le lien vers son document (24/09) : le seul
+            // accès était un « reçu de paiement partiel » fantôme, en
+            // minuscules, retombé seul sur une deuxième ligne — on le prenait
+            // pour une légende. Un mois sans document garde le même gabarit,
+            // sans survol ni chevron. -mx-4 : texte aligné sur le titre.
             <ul className="divide-y divide-border">
-              {[...lignesLoyer].reverse().map((l) => (
-                <li key={l.periode} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                  <span className="w-32 shrink-0 capitalize">{moisLong(l.periode)}</span>
-                  <span className="montant w-24 shrink-0 text-right">{eur(l.montant_du)}</span>
-                  <span className="min-w-0 flex-1" />
-                  <span
-                    className={`shrink-0 ${tagLocataire(COULEURS_STATUT_APPEL_LOYER[l.statut])}`}
-                  >
-                    {STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
-                  </span>
-                  {l.quittance_id && (
-                    // Lien stylé en bouton : hors du filet tactile du socle
-                    // (button/select), d'où le min-h au pointeur grossier
-                    <Link
-                      href={`/quittance/${l.quittance_id}`}
-                      aria-label={`Ouvrir ${l.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(l.statut)} de ${moisLong(l.periode)}`}
-                      className={`shrink-0 pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
+              {[...lignesLoyer].reverse().map((l) => {
+                const contenu = (
+                  <>
+                    <span className="min-w-0 flex-1">
+                      <b className="block truncate font-medium capitalize">{moisLong(l.periode)}</b>
+                      {/* Mois payé en partie : ce qui a été REÇU, pour que le
+                          locataire y retrouve son virement (24/09). */}
+                      <span className="montant block text-[13px] text-muted-foreground">
+                        {l.statut === "partiel"
+                          ? `${eur(Number(l.montant_couvert))} reçus sur ${eur(Number(l.montant_du))}`
+                          : eur(Number(l.montant_du))}
+                      </span>
+                    </span>
+                    <span
+                      className={`shrink-0 ${tagLocataire(COULEURS_STATUT_APPEL_LOYER[l.statut])}`}
                     >
-                      {libelleDocumentLoyer(l.statut)}
-                    </Link>
-                  )}
-                </li>
-              ))}
+                      {STATUTS_APPEL_LOYER[l.statut] ?? "État du paiement à vérifier"}
+                    </span>
+                  </>
+                );
+                return (
+                  <li key={l.periode}>
+                    {l.quittance_id ? (
+                      <Link href={`/quittance/${l.quittance_id}`} className="rang -mx-4 gap-2 text-sm">
+                        {contenu}
+                        {/* Sur téléphone, le chevron seul : le libellé reste
+                            lu par les lecteurs d'écran. */}
+                        <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[var(--marque-sombre)]">
+                          <span className="max-sm:sr-only">
+                            Ouvrir {l.statut === "paye" ? "la" : "le"}{" "}
+                            {l.statut === "paye" ? "quittance" : l.statut === "partiel" ? "reçu" : "justificatif"}{" "}
+                          </span>
+                          <span aria-hidden>›</span>
+                        </span>
+                      </Link>
+                    ) : (
+                      <div className="-mx-4 flex items-center gap-2 border-l-[3px] border-transparent px-4 py-[13px] text-sm">
+                        {contenu}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
           <p className="mt-3 text-xs text-muted-foreground">

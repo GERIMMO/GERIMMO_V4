@@ -9,14 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const champ="w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
-export function FormulaireRetour({ecran,action,cle,organisations,contestation=false}:{ecran:string;action:string;cle:string;organisations:{id:string;nom:string}[];contestation?:boolean}){
+// `retour` et `contexte` ne servent qu'aux liens de l'écran de succès : ni
+// l'un ni l'autre n'est envoyé avec la demande (24/09).
+export function FormulaireRetour({ecran,action,cle,organisations,contestation=false,idee=false,retour='',contexte=''}:{ecran:string;action:string;cle:string;organisations:{id:string;nom:string}[];contestation?:boolean;idee?:boolean;retour?:string;contexte?:string}){
  const [cleEnvoi]=useState(cle);
- const [nature,setNature]=useState(contestation?'contestation':'bug');
+ const [nature,setNature]=useState(contestation?'contestation':idee?'idee':'bug');
  const {etat,soumettre,enCours}=useActionRetour(envoyerRetour);
  if(etat.id)return <div role="status" className="rounded-xl border border-[var(--filet)] bg-[var(--success-soft)] p-5 space-y-3">
   <p className="font-medium">Votre demande est enregistrée.</p><p>La supervision Gerimmo peut maintenant l’examiner. Son suivi conserve toutes les réponses.</p>
-  <Link className="underline" href={`/assistance?sel=${etat.id}#mes-demandes`}>Consulter ma demande</Link>
-  <a className="ml-4 underline" href="/assistance#nouvelle">Nouvelle demande</a>
+  <p className="flex flex-wrap gap-x-4 gap-y-2"><Link className="underline" href={`/assistance?sel=${etat.id}${contexte?`&${contexte}`:''}#mes-demandes`}>Consulter ma demande</Link>
+  <a className="underline" href={`/assistance${contexte?`?${contexte}`:''}#nouvelle`}>Nouvelle demande</a>
+  {retour&&<Link className="underline" href={retour}>← Retour à la page précédente</Link>}</p>
  </div>;
  return <form onSubmit={soumettre} className="space-y-4">
   <input type="hidden" name="cle_envoi" value={cleEnvoi}/><input type="hidden" name="ecran" value={ecran}/><input type="hidden" name="action_origine" value={action}/>
@@ -33,7 +36,11 @@ export function FormulaireRetour({ecran,action,cle,organisations,contestation=fa
    <textarea id="retour-description" name="description" minLength={15} maxLength={6000} required rows={5} className={champ}/></div>
   {nature==='bug'&&<div className="space-y-2"><Label htmlFor="retour-attendu">Le résultat attendu</Label><textarea id="retour-attendu" name="attendu" minLength={5} maxLength={3000} required rows={2} className={champ}/></div>}
   <div className="rounded-lg bg-[var(--creme)] p-3 text-xs text-[var(--texte-secondaire)] space-y-1">
-   <p className="font-medium">Contexte joint à la demande</p><p>Écran : {ecran}</p><p>Dernière interaction : {ACTIONS_RETOUR[action]}</p>
+   <p className="font-medium">Contexte joint à la demande</p>
+   {/* Plus de chemin technique à l'écran (« /agence/[dossier]/… », 24/09) :
+       il ne parlait ni à un locataire ni à un artisan. Il part toujours, seul,
+       dans le champ caché `ecran`. */}
+   <p>La page d’où vous écrivez est jointe automatiquement, sans son contenu.</p><p>Dernière interaction : {ACTIONS_RETOUR[action]}</p>
    <p>Aucune capture d’écran, valeur de champ, pièce, nom de dossier ni paramètre d’URL n’est collecté automatiquement. Évitez les données personnelles dans votre description.</p>
   </div>
   {nature==='bug'&&<p className="text-xs text-muted-foreground">Les signalements de problème et leurs réponses sont conservés six mois, puis supprimés.</p>}

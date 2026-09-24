@@ -25,14 +25,14 @@ export type EtatReinitialisation = { message?: string; erreur?: string };
 // La réponse est TOUJOURS la même, que le compte existe ou non : on ne révèle
 // jamais quelles adresses ont un compte Gerimmo (énumération de comptes).
 const MESSAGE_NEUTRE =
-  "Si un compte existe pour cette adresse, un email de réinitialisation vient d'être envoyé. Pensez à vérifier vos courriers indésirables.";
+  "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé. Pensez à vérifier vos courriers indésirables.";
 
 export async function demanderReinitialisation(
   _etat: EtatReinitialisation,
   formData: FormData
 ): Promise<EtatReinitialisation> {
   const email = String(formData.get("email") ?? "").trim();
-  if (!email) return { erreur: "Saisissez votre adresse email." };
+  if (!email) return { erreur: "Saisissez votre adresse e-mail." };
 
   const origine = (await headers()).get("origin") ?? "";
   const supabase = await createClient();
@@ -70,7 +70,7 @@ export async function definirNouveauMotDePasse(
   if (!user) {
     return {
       erreur:
-        "Session expirée ou lien invalide. Redemandez un email de réinitialisation.",
+        "Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.",
     };
   }
 
@@ -133,7 +133,7 @@ export async function inscrireProprietaire(
   const confirmation = String(formData.get("confirmation") ?? "");
 
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
-  if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
+  if (!email) return { erreur: "L'adresse e-mail est obligatoire.", valeurs };
   if (motDePasse.length < 12) {
     return { erreur: "Le mot de passe doit compter au moins 12 caractères.", valeurs };
   }

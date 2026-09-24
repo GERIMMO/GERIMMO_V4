@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Article, CoquilleLegale, AFournir, Fait } from "@/components/coquille-legale";
-import { CONDITIONS_DATE, CONDITIONS_VERSION, EDITEUR } from "@/lib/editeur";
+import { Article, CoquilleLegale, Fait } from "@/components/coquille-legale";
+import { CONDITIONS_DATE, EDITEUR, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
 
 export const metadata = { title: "Conditions générales — Gerimmo" };
 
@@ -14,11 +14,47 @@ export const metadata = { title: "Conditions générales — Gerimmo" };
 // Le texte n'engage QUE ce que le produit fait réellement, vérifié dans le
 // code : les trois exports promis par le projet de 2025 n'existaient pas, la
 // suspension « en lecture seule » non plus. L'article 9 le dit.
+//
+// La version s'affiche par sa date (24/09) : CONDITIONS_VERSION, au format
+// 2026-09-11, reste la clé enregistrée avec le compte, pas une désignation
+// pour un lecteur.
+
+/**
+ * Les clauses pas encore arrêtées (24/09). `null` = à venir : la clause
+ * s'affiche en réserve à sa place, et l'encadré « en cours de finalisation »
+ * reste tant qu'il en subsiste une — même une fois l'identité de l'éditeur
+ * fournie. Une clause arrêtée s'écrit ici, et nulle part ailleurs.
+ */
+const CLAUSES: Record<
+  | "facturation"
+  | "tva"
+  | "preavisTarif"
+  | "retractation"
+  | "conservation"
+  | "disponibilite"
+  | "plafond"
+  | "delaiMiseEnDemeure"
+  | "preavisModification",
+  FaitEditeur
+> = {
+  facturation: null,
+  tva: null,
+  preavisTarif: null,
+  retractation: null,
+  conservation: null,
+  disponibilite: null,
+  plafond: null,
+  delaiMiseEnDemeure: null,
+  preavisModification: null,
+};
+
 export default function PageConditions() {
   return (
     <CoquilleLegale
       titre="Conditions générales d'utilisation"
-      chapo={`Version ${CONDITIONS_VERSION} — en vigueur depuis le ${CONDITIONS_DATE}.`}
+      chapo={`Version du ${CONDITIONS_DATE}, en vigueur depuis cette date.`}
+      chemin="/conditions"
+      incomplet={documentsIncomplets() || Object.values(CLAUSES).some((c) => !c)}
     >
       <Article titre="1. Objet">
         <p>
@@ -32,11 +68,11 @@ export default function PageConditions() {
         </p>
         <p>
           Elles forment, avec la{" "}
-          <Link href="/confidentialite" className="lien-discret">
+          <Link href="/confidentialite" className="lien-texte">
             page confidentialité
           </Link>{" "}
           et les{" "}
-          <Link href="/mentions-legales" className="lien-discret">
+          <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>
           , l&apos;accord entre le Client et l&apos;Éditeur.
@@ -46,7 +82,7 @@ export default function PageConditions() {
       <Article titre="2. Définitions">
         <p>
           <b className="font-semibold">Éditeur</b> : la société identifiée aux{" "}
-          <Link href="/mentions-legales" className="lien-discret">
+          <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>
           .
@@ -216,21 +252,24 @@ export default function PageConditions() {
         </p>
         <p>
           <b className="font-semibold">8.3 — Facturation.</b>{" "}
-          <AFournir quoi="périodicité, moyen de paiement, émission des factures" />
+          <Fait valeur={CLAUSES.facturation} quoi="périodicité, moyen de paiement, émission des factures" />
         </p>
         <p>
           <b className="font-semibold">8.4 — TVA.</b> Les prix sont indiqués{" "}
-          <AFournir quoi="hors taxes ou toutes taxes comprises" />.
+          <Fait valeur={CLAUSES.tva} quoi="hors taxes ou toutes taxes comprises" />.
         </p>
         <p>
           <b className="font-semibold">8.5 — Révision.</b> Toute évolution
           tarifaire est notifiée au Client{" "}
-          <AFournir quoi="préavis" /> avant sa prise d&apos;effet. Le Client qui
+          <Fait valeur={CLAUSES.preavisTarif} quoi="préavis" /> avant sa prise d&apos;effet. Le Client qui
           la refuse peut résilier sans frais avant cette date.
         </p>
         <p>
           <b className="font-semibold">8.6 — Rétractation.</b>{" "}
-          <AFournir quoi="droit de rétractation du client particulier — article à rédiger avec le formulaire type" />
+          <Fait
+            valeur={CLAUSES.retractation}
+            quoi="droit de rétractation du client particulier — article à rédiger avec le formulaire type"
+          />
         </p>
       </Article>
 
@@ -245,7 +284,7 @@ export default function PageConditions() {
         </p>
         <p>
           À la résiliation, les données sont conservées{" "}
-          <AFournir quoi="durée" /> pour permettre l&apos;export, puis
+          <Fait valeur={CLAUSES.conservation} quoi="durée" /> pour permettre l&apos;export, puis
           supprimées ou anonymisées.
         </p>
       </Article>
@@ -258,14 +297,17 @@ export default function PageConditions() {
           qu&apos;il le peut.
         </p>
         <p>
-          <AFournir quoi="engagement de disponibilité, horaires et canaux du support, délai de première réponse" />
+          <Fait
+            valeur={CLAUSES.disponibilite}
+            quoi="engagement de disponibilité, horaires et canaux du support, délai de première réponse"
+          />
         </p>
       </Article>
 
       <Article titre="11. Données personnelles">
         <p>
           Le traitement des données est décrit dans la{" "}
-          <Link href="/confidentialite" className="lien-discret">
+          <Link href="/confidentialite" className="lien-texte">
             page confidentialité
           </Link>
           .
@@ -322,7 +364,7 @@ export default function PageConditions() {
           </li>
         </ul>
         <p>
-          <AFournir quoi="plafond de responsabilité" />
+          <Fait valeur={CLAUSES.plafond} quoi="plafond de responsabilité" />
         </p>
       </Article>
 
@@ -335,14 +377,15 @@ export default function PageConditions() {
         <p>
           <b className="font-semibold">Par l&apos;Éditeur</b> : en cas de défaut
           de paiement ou de manquement grave, après mise en demeure restée sans
-          effet pendant <AFournir quoi="délai" />.
+          effet pendant <Fait valeur={CLAUSES.delaiMiseEnDemeure} quoi="délai" />.
         </p>
       </Article>
 
       <Article titre="16. Modification des conditions">
         <p>
           L&apos;Éditeur peut modifier les présentes conditions. Toute
-          modification est notifiée au Client <AFournir quoi="préavis" /> avant
+          modification est notifiée au Client{" "}
+          <Fait valeur={CLAUSES.preavisModification} quoi="préavis" /> avant
           sa prise d&apos;effet. Le Client qui la refuse peut résilier sans
           frais avant cette date ; la poursuite de l&apos;utilisation après
           cette date vaut acceptation.
@@ -351,7 +394,7 @@ export default function PageConditions() {
           L&apos;Éditeur conserve <b className="font-semibold">chaque
           version</b> et la date de son acceptation par le Client. La version
           en vigueur est la{" "}
-          <b className="font-semibold">{CONDITIONS_VERSION}</b>.
+          <b className="font-semibold">version du {CONDITIONS_DATE}</b>.
         </p>
       </Article>
 
@@ -368,7 +411,7 @@ export default function PageConditions() {
           <b className="font-semibold">Client consommateur ou
           non-professionnel</b> peut recourir gratuitement au médiateur de la
           consommation désigné aux{" "}
-          <Link href="/mentions-legales" className="lien-discret">
+          <Link href="/mentions-legales" className="lien-texte">
             mentions légales
           </Link>
           , avant toute saisine du juge.

@@ -79,9 +79,12 @@ export function ChoixEspace({
             </div>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" name="cgu" required className="mt-1" />
+              {/* Nouvel onglet (24/09), comme à l'inscription : dans le même
+                  onglet, lire les conditions coûtait la saisie en cours, et
+                  « ← Retour » ramenait sur la vitrine, pas sur ce formulaire. */}
               <span>
                 J&apos;accepte les{" "}
-                <Link href="/conditions" className="underline underline-offset-4">
+                <Link href="/conditions" target="_blank" rel="noopener" className="underline underline-offset-4">
                   conditions d&apos;utilisation
                 </Link>
                 .

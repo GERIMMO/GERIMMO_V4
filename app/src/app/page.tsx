@@ -158,8 +158,11 @@ export default async function PageVitrine() {
                 agences.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
+                {/* 24/09 : une même cible, un même nom. /inscription s'appelait
+                    ici « Commencer », ailleurs « Créer mon compte » ou
+                    « Découvrir la gestion en direct ». */}
                 <Link href="/inscription" className="btn-or !px-5 !py-3 !text-[15px]">
-                  Commencer — 1ᵉʳ bien offert
+                  Créer mon compte — 1ᵉʳ bien offert
                 </Link>
                 <a href="#agences" className="btn-secondaire">
                   Je suis une agence →
@@ -219,9 +222,11 @@ export default async function PageVitrine() {
                 jamais à l&apos;argent qu&apos;il atteste.
               </p>
             </div>
-            <div className="vitrine-cadre vitrine-cadre-doux">
-              <ApercuQuittance />
-            </div>
+            {/* 24/09 : plus de second cadre crème autour de la quittance —
+                la carte a déjà son filet et son ombre, et le cadre, presque
+                de la couleur de la section, n'ajoutait qu'une marge. Seul
+                l'aperçu du héros garde le sien. */}
+            <ApercuQuittance />
           </div>
         </section>
 
@@ -229,9 +234,7 @@ export default async function PageVitrine() {
         <section className="border-y border-[var(--filet)] bg-[var(--ivoire)]">
           <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
             <div className="grid items-center gap-10 lg:grid-cols-[300px_1fr]">
-              <div className="vitrine-cadre vitrine-cadre-doux !p-8">
-                <ApercuMobileIncident />
-              </div>
+              <ApercuMobileIncident />
               <div>
                 <TitreSection
                   sur="Inclus, sans supplément"
@@ -272,7 +275,9 @@ export default async function PageVitrine() {
               <p className="mt-4 text-[15px] leading-relaxed text-[var(--texte-secondaire)]">
                 Le bien, son bail, ses loyers et ses documents restent reliés. Vous retrouvez l&apos;information utile au moment d&apos;agir, sans reconstituer l&apos;historique.
               </p>
-              <Link href="/inscription" className="lien-discret mt-5 self-start">Découvrir la gestion en direct →</Link>
+              <Link href="/inscription" className="btn-secondaire mt-5 self-start">
+                Créer mon compte
+              </Link>
             </div>
           </div>
         </section>
@@ -415,20 +420,20 @@ export default async function PageVitrine() {
                   Tout le journal →
                 </Link>
               </div>
+              {/* 24/09 : la carte entière est le lien. Elle se soulevait au
+                  survol comme un bloc cliquable, mais seul le titre l'était. */}
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {articles.map((a) => (
-                  <article key={a.id} className="vitrine-carte">
-                    <h3 className="font-heading text-[17px] font-bold leading-snug text-[var(--encre)]">
-                      <Link href={`/journal/${a.slug}`} className="hover:text-[var(--marque-sombre)]">
-                        {a.titre}
-                      </Link>
+                  <Link key={a.id} href={`/journal/${a.slug}`} className="vitrine-carte group block">
+                    <h3 className="font-heading text-[17px] font-bold leading-snug text-[var(--encre)] group-hover:text-[var(--marque-sombre)]">
+                      {a.titre}
                     </h3>
                     {a.chapo && (
                       <p className="mt-2 line-clamp-3 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
                         {a.chapo}
                       </p>
                     )}
-                  </article>
+                  </Link>
                 ))}
               </div>
             </div>

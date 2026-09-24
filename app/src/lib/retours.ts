@@ -5,6 +5,8 @@ export const ETATS_RETOUR: Record<string,string> = {
   nouveau: "Reçu", en_examen: "En examen", en_cours: "En cours de traitement", resolu: "Résolu",
   retenue: "Idée retenue", non_retenue: "Non retenue pour le moment", deja_couverte: "Déjà couverte",
 };
+/** Gravité qualifiée par la supervision : le code N1-N3 reste en base, l’écran dit le mot (24/09). */
+export const GRAVITES_RETOUR: Record<string,string> = { N1: "Bloquant", N2: "Majeur", N3: "Mineur" };
 export const ACTIONS_RETOUR: Record<string,string> = {
   navigation: "Navigation", bouton: "Clic sur un bouton", lien: "Ouverture d’un lien", formulaire: "Envoi d’un formulaire", saisie: "Saisie dans un champ",
 };

@@ -117,9 +117,18 @@ export async function proxy(request: NextRequest) {
 
   if (absoluteExpired || inactivityExpired) {
     await supabase.auth.signOut();
+    // La destination est mémorisée ici aussi (24/09), comme pour le visiteur
+    // non connecté : une session qui expire pendant qu'on rédige une demande
+    // sur /assistance ramenait, après reconnexion, sur « Mes espaces » et non
+    // sur l'aide. La racine et les écrans de connexion ne sont pas une
+    // destination : on s'y ferait renvoyer vers /espaces de toute façon.
     const url = request.nextUrl.clone();
+    const demandee = pathname + request.nextUrl.search;
+    const aRetenir = pathname !== "/" && !REDIRECT_SI_CONNECTE.some((p) => pathname.startsWith(p));
     url.pathname = "/connexion";
-    url.search = "?raison=session-expiree";
+    url.search = aRetenir
+      ? `?raison=session-expiree&suite=${encodeURIComponent(demandee)}`
+      : "?raison=session-expiree";
     const redirect = NextResponse.redirect(url);
     response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
     redirect.cookies.delete(ACTIVITY_COOKIE);

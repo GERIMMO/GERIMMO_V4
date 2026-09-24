@@ -41,8 +41,9 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
     : null;
 
   return (
-    <div className="min-h-full bg-[var(--creme)]">
-      <EnTetePublic compact />
+    // flex-col : sans elle, le main.flex-1 ne poussait pas le pied en bas (24/09).
+    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+      <EnTetePublic />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-7 sm:py-14">
         <Link href="/journal" className="lien-discret text-[13px]">
@@ -52,7 +53,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
         <h1 className="mt-3 font-heading text-3xl leading-tight text-[var(--encre)] sm:text-4xl">
           {a.titre}
         </h1>
-        {paruLe && <p className="mono-discret mt-2.5 !text-[10px]">Paru le {paruLe}</p>}
+        {paruLe && <p className="mono-discret mt-2.5">Paru le {paruLe}</p>}
         {a.chapo && (
           <p className="mt-5 border-l-2 border-[var(--or)] pl-4 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
             {a.chapo}
@@ -72,7 +73,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
             vous trouvent, retenues justifiées ligne par ligne.
           </p>
           <Link href="/inscription" className="btn-or mt-4">
-            Commencer — 1ᵉʳ bien offert
+            Créer mon compte — 1ᵉʳ bien offert
           </Link>
         </aside>
       </main>

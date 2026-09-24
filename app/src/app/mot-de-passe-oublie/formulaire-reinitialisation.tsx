@@ -52,8 +52,12 @@ export function FormulaireReinitialisation() {
             <BoutonEnvoi enCoursTexte="Envoi…" className="w-full">
               Envoyer le lien
             </BoutonEnvoi>
-            <p className="text-center text-sm">
-              <Link href="/connexion" className="text-muted-foreground underline-offset-4 hover:underline">
+            {/* Cible de 44 px au doigt (24/09), sans changer l'allure du texte. */}
+            <p className="-mt-2 text-center text-sm">
+              <Link
+                href="/connexion"
+                className="inline-flex min-h-11 items-center text-muted-foreground underline-offset-4 hover:underline"
+              >
                 Retour à la connexion
               </Link>
             </p>

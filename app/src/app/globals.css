@@ -158,6 +158,16 @@
   /* Géométrie v3 : contrôles à 10 px, cartes à 14–16 px */
   --radius: 0.625rem;
 
+  /* Cible tactile minimale : tout ce qui se touche au doigt. */
+  --cible-tactile: 44px;
+
+  /* Mouvement : trois durées, une courbe. Tout mouvement décoratif s'éteint
+     sous prefers-reduced-motion ; aucun rebond, aucune rotation décorative. */
+  --duree-rapide: 0.15s;   /* survol, pression, couleur */
+  --duree: 0.24s;          /* ouverture, dépliage, pastille */
+  --duree-lente: 0.36s;    /* arrivée d'un écran */
+  --courbe: cubic-bezier(0.2, 0.7, 0.2, 1);
+
   --sidebar: var(--creme);
   --sidebar-foreground: var(--corps);
   --sidebar-primary: var(--encre);
@@ -1377,14 +1387,16 @@ p a {
 }
 
 /* Cibles tactiles : au doigt, les contrôles h-6/h-7/h-8 (24-32 px) montent
-   à 40 px minimum — boutons, entrées, sélecteurs, pastilles de filtre.
+   à 44 px minimum (--cible-tactile, règle maison et WCAG 2.5.5) — boutons,
+   entrées, sélecteurs, pastilles de filtre. 40 px jusqu'au 24/09 : l'audit
+   par persona l'a relevé sous le seuil que la charte elle-même fixe.
    `.cible-libre` permet à un contrôle décoratif d'y échapper. */
 @media (pointer: coarse) {
   button:not(.cible-libre),
   [role="button"],
   input:not([type="checkbox"]):not([type="radio"]),
   select {
-    min-height: 40px;
+    min-height: var(--cible-tactile);
   }
   .filtre { padding: 9px 14px; }
   /* LA RÈGLE CI-DESSUS NE COUVRE PAS LES LIENS, et c'est le trou relevé au
@@ -1398,7 +1410,7 @@ p a {
      liens qui SONT des contrôles : une pastille cliquable, un filtre. Une
      `<span class="puce">` qui n'affiche qu'un état garde sa densité. */
   a.puce, button.puce, a.filtre {
-    min-height: 40px;
+    min-height: var(--cible-tactile);
     box-sizing: border-box;
   }
   /* L'avatar est le geste le plus souvent fait au doigt de tout l'en-tête, et
@@ -1503,10 +1515,12 @@ p a {
 @media (pointer: coarse) {
   a.group\/button,
   .btn-or {
-    min-height: 40px;
+    min-height: var(--cible-tactile);
     align-items: center;
   }
-  .lien-discret { padding-block: 8px; display: inline-block; }
+  /* Un lien discret porte souvent une vraie action (« Relancer », « Examiner
+     les inscriptions ») : il reçoit la même cible que les boutons. */
+  .lien-discret { min-height: var(--cible-tactile); display: inline-flex; align-items: center; }
 }
 }
 
@@ -2919,7 +2933,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--marque) 22%, transparent);
   background-image:
-    linear-gradient(90deg, var(--encre) 0%, rgba(28, 63, 184, .93) 43%, rgba(36, 87, 245, .2) 100%),
+    linear-gradient(90deg, var(--encre) 0%, color-mix(in srgb, var(--marque-sombre) 93%, transparent) 43%, color-mix(in srgb, var(--marque) 20%, transparent) 100%),
     url('/illustrations/interieur-gerimmo-2026.jpg');
   background-position: center, center 48%;
   background-size: cover;
@@ -2929,21 +2943,25 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   width: min(912px, calc(100% - 48px));
   align-self: center;
   background-image:
-    linear-gradient(90deg, var(--encre) 0%, rgba(28, 63, 184, .9) 42%, rgba(36, 87, 245, .14) 100%),
+    linear-gradient(90deg, var(--encre) 0%, color-mix(in srgb, var(--marque-sombre) 90%, transparent) 42%, color-mix(in srgb, var(--marque) 14%, transparent) 100%),
     url('/illustrations/intervention-gerimmo-2026.jpg');
 }
 .repere-visuel-locataire { margin-inline: max(24px, calc((100% - 1032px) / 2)); }
+/* Une seule photo par écran : quand la page porte déjà son bandeau photo
+   (accueil de l'agence, « Aujourd'hui » de l'artisan), le repère s'efface —
+   deux bandeaux bleus empilés disaient deux fois la même chose (audit du 24/09). */
+:has(> .repere-visuel):has(.accueil-bandeau, .portail-hero) > .repere-visuel { display: none; }
 .repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0 0 24px; }
 .panneau-marque {
   background-image:
-    linear-gradient(115deg, rgba(23, 48, 107, .96) 0%, rgba(28, 63, 184, .9) 58%, rgba(36, 87, 245, .24) 100%),
+    linear-gradient(115deg, color-mix(in srgb, var(--encre) 96%, transparent) 0%, color-mix(in srgb, var(--marque-sombre) 90%, transparent) 58%, color-mix(in srgb, var(--marque) 24%, transparent) 100%),
     url('/illustrations/interieur-gerimmo-2026.jpg');
   background-position: center, 58% center;
   background-size: cover;
 }
 .journal-hero {
   background-image:
-    linear-gradient(90deg, var(--ivoire) 0%, rgba(255, 255, 255, .98) 49%, rgba(255, 255, 255, .35) 100%),
+    linear-gradient(90deg, var(--ivoire) 0%, color-mix(in srgb, var(--ivoire) 98%, transparent) 49%, color-mix(in srgb, var(--ivoire) 35%, transparent) 100%),
     url('/illustrations/interieur-gerimmo-2026.jpg');
   background-position: center, right center;
   background-size: cover;
@@ -2955,7 +2973,112 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   .repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0 0 20px; }
   .journal-hero {
     background-image:
-      linear-gradient(180deg, var(--ivoire) 0%, rgba(255, 255, 255, .97) 70%, rgba(255, 255, 255, .35) 100%),
+      linear-gradient(180deg, var(--ivoire) 0%, color-mix(in srgb, var(--ivoire) 97%, transparent) 70%, color-mix(in srgb, var(--ivoire) 35%, transparent) 100%),
       url('/illustrations/interieur-gerimmo-2026.jpg');
   }
+}
+
+/* ==================================================================== */
+/* MOUVEMENT — la couche d'animations (24/09/2026)                       */
+/*                                                                      */
+/* Le mouvement sert trois choses et aucune autre : dire qu'un écran    */
+/* est arrivé, qu'un geste a été pris, qu'un contenu s'est ouvert.      */
+/* Durées et courbe : jetons --duree-rapide / --duree / --duree-lente / */
+/* --courbe (:root). Tout ce bloc s'éteint sous prefers-reduced-motion. */
+/* ==================================================================== */
+@keyframes monte-doux {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes deplie-doux {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fenetre-arrive {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes voile-arrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes jauge-remplit { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes pastille-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* 1. Les chiffres arrivent en cascade : tuiles du tableau de bord, KPI,
+        cartes de l'espace locataire. 50 ms d'écart, six rangs au plus —
+        au-delà, la cascade se ferait attendre. */
+  .tuiles > *,
+  .grille-kpi > * {
+    animation: monte-doux var(--duree-lente) var(--courbe) both;
+  }
+  :is(.tuiles, .grille-kpi) > :nth-child(2) { animation-delay: 50ms; }
+  :is(.tuiles, .grille-kpi) > :nth-child(3) { animation-delay: 100ms; }
+  :is(.tuiles, .grille-kpi) > :nth-child(4) { animation-delay: 150ms; }
+  :is(.tuiles, .grille-kpi) > :nth-child(5) { animation-delay: 200ms; }
+  :is(.tuiles, .grille-kpi) > :nth-child(n + 6) { animation-delay: 250ms; }
+
+  /* 2. Ce qui se déplie glisse au lieu de sauter : sections repliées, groupes
+        du plan du jour, statistiques, rubriques du dossier de bail. */
+  details[open] > :not(summary) {
+    animation: deplie-doux var(--duree) var(--courbe) both;
+  }
+
+  /* 3. Une fenêtre se pose : voile en fondu, fenêtre qui monte d'un souffle. */
+  [role="dialog"][aria-modal="true"]:not(.tiroir),
+  .recherche-dialog[open] {
+    animation: fenetre-arrive var(--duree) var(--courbe) both;
+  }
+  div:has(> [role="dialog"][aria-modal="true"]:not(.tiroir)) {
+    animation: voile-arrive var(--duree-rapide) ease both;
+  }
+
+  /* 4. Une jauge se remplit depuis la gauche : complétude, répartition. */
+  .barre i {
+    transform-origin: left center;
+    animation: jauge-remplit 0.6s var(--courbe) 0.1s both;
+  }
+
+  /* 5. Une pastille de compte apparaît d'un petit rebond de taille — le seul
+        « pop » du produit : quelque chose attend. */
+  .coquille-badge {
+    animation: pastille-pop var(--duree) var(--courbe) both;
+  }
+
+  /* 6. Le geste est pris : un bouton s'enfonce d'un pixel à l'appui. Les
+        boutons shadcn le font déjà (active:translate-y-px) ; les boutons
+        maison les rejoignent. */
+  .btn-or:active,
+  .btn-secondaire:active,
+  a.puce:active,
+  button.puce:active,
+  .filtre:active {
+    transform: translateY(1px);
+  }
+
+  /* 7. Les rangs de liste répondent au survol sans à-coup. */
+  .rang,
+  .rang-lot,
+  .rang-alerte {
+    transition: background-color var(--duree-rapide) ease, border-color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease;
+  }
+
+  /* 8. Une flèche de lien avance d'un cran au survol (« Voir tout → »). */
+  .lien-discret svg:last-child,
+  .lien-fleche svg:last-child {
+    transition: transform var(--duree-rapide) ease;
+  }
+  .lien-discret:hover svg:last-child,
+  .lien-fleche:hover svg:last-child {
+    transform: translateX(2px);
+  }
+}
+
+/* La fenêtre prend les angles de la charte, en-tête compris. */
+[role="dialog"][aria-modal="true"]:not(.tiroir) {
+  border-radius: 16px;
+  overflow: clip;
+  box-shadow: var(--ombre-flottante);
 }

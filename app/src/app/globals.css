@@ -2581,8 +2581,14 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 
   /* ——— Titres de page hors coquille : un bandeau clair à filet bleu ———
      (la coquille de l'agence a sa propre règle : un titre sans boîte). */
-  .loc-corps .entete-page,
-
+  .loc-corps .entete-page {
+    border-left: 4px solid var(--marque);
+    border-bottom: 1px solid var(--or-filet);
+    border-radius: 14px;
+    background: linear-gradient(110deg, var(--marque-clair), var(--ivoire) 68%);
+    padding: 20px 22px;
+    box-shadow: var(--ombre-portee);
+  }
   .coquille-corps .entete-page h1,
   .loc-corps .entete-page h1,
   .portail-ecrans .entete-page h1 { color: var(--encre); }

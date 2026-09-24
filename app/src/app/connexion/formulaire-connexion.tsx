@@ -55,7 +55,18 @@ export function FormulaireConnexion() {
       password: motDePasse,
     });
     if (error) {
-      setErreur("Identifiants invalides.");
+      // Trois causes, trois gestes : l'adresse à confirmer, le réseau à
+      // retenter, ou la saisie à corriger. « Identifiants invalides » pour
+      // tout laissait chercher une faute de frappe qui n'existait pas.
+      if (error.code === "email_not_confirmed") {
+        setErreur(
+          "Votre adresse e-mail n'est pas encore confirmée. Ouvrez le lien reçu par e-mail, puis reconnectez-vous."
+        );
+      } else if (error.name === "AuthRetryableFetchError" || error.status === 0) {
+        setErreur("Connexion au serveur impossible. Vérifiez votre accès à Internet et réessayez.");
+      } else {
+        setErreur("Identifiants invalides.");
+      }
       setEnCours(false);
       return;
     }
@@ -81,7 +92,7 @@ export function FormulaireConnexion() {
         )}
         <form onSubmit={seConnecter} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Adresse email</Label>
+            <Label htmlFor="email">Adresse e-mail</Label>
             <Input
               id="email"
               type="email"
@@ -98,12 +109,15 @@ export function FormulaireConnexion() {
               type="password"
               autoComplete="current-password"
               required
-              minLength={12}
               value={motDePasse}
               onChange={(e) => setMotDePasse(e.target.value)}
             />
           </div>
-          {erreur && <p className="text-sm text-destructive">{erreur}</p>}
+          {erreur && (
+            <p className="text-sm text-destructive" role="alert">
+              {erreur}
+            </p>
+          )}
           <Button type="submit" className="w-full" disabled={enCours}>
             {enCours ? <><Spinner /> Connexion…</> : "Se connecter"}
           </Button>

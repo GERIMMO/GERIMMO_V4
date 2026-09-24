@@ -160,6 +160,12 @@ export default async function PageLot(
   }));
 
   const detentionsActives = (detentions ?? []).filter((d) => !d.date_fin);
+  const nbChambres = chambres?.length ?? 0;
+  const colocationPertinente =
+    !["parking", "local", "terrain"].includes(bien.type ?? "") ||
+    nbChambres > 0 ||
+    lot.colocation_loyer_reference != null ||
+    Boolean(erreurChambres);
   const totalQuoteParts = detentionsActives.reduce(
     (s, d) => s + Number(d.quote_part),
     0
@@ -441,7 +447,7 @@ export default async function PageLot(
                         />
                       )}
                       {!d.date_fin && (baux ?? []).length === 0 && (
-                        /* « Corriger » SUPPRIME : au doigt, on l'écarte de
+                        /* Ce bouton SUPPRIME : au doigt, on l'écarte de
                            « Fermer » pour éviter le tap voisin. */
                         <span className="pointer-coarse:ml-2">
                           <BoutonSupprimerDetention
@@ -449,6 +455,8 @@ export default async function PageLot(
                             bienId={bienId}
                             lotId={lotId}
                             detentionId={d.id}
+                            proprietaire={nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
+                            quotePart={Number(d.quote_part)}
                           />
                         </span>
                       )}
@@ -637,10 +645,22 @@ export default async function PageLot(
                 </ul>
               )}
               {detentionsActives.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
-                  de créer un bail.
-                </p>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
+                    de créer un bail.
+                  </p>
+                  {/* Le message dit où aller : la section Détention de cette
+                      fiche, et la création de la fiche du locataire. */}
+                  <p className="flex flex-wrap gap-x-4 gap-y-1">
+                    <a href="#detention" className="lien-discret">
+                      Ajouter un propriétaire →
+                    </a>
+                    <Link href={`/agence/${orgId}/personnes#creer-fiche`} className="lien-discret">
+                      Créer la fiche du locataire →
+                    </Link>
+                  </p>
+                </div>
               ) : (
                 <FormulaireBailLot
                   orgId={orgId}
@@ -653,16 +673,30 @@ export default async function PageLot(
             </div>
           </SectionLot>
 
-          <SectionLot id="chambres" titre="Colocation · contrats individuels" resume={`${chambres?.length ?? 0} chambre(s) préparée(s)`}>
-            {erreurChambres ? <p role="alert">Les chambres n’ont pas pu être chargées. Rechargez la page.</p> : <ChambresLogement orgId={orgId} lotId={lotId} bienId={bienId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} />}
-          </SectionLot>
+          {/* La colocation ne concerne qu'un logement : la section se tait
+              sur un parking, un local ou un terrain — sauf si des chambres ou
+              un plafond y sont déjà saisis (on ne cache pas une donnée). */}
+          {colocationPertinente && (
+            <SectionLot
+              id="chambres"
+              titre="Colocation · contrats individuels"
+              resume={
+                nbChambres === 0
+                  ? "Aucune chambre préparée"
+                  : `${nbChambres} chambre${nbChambres > 1 ? "s" : ""} préparée${nbChambres > 1 ? "s" : ""}`
+              }
+            >
+              {erreurChambres ? <p role="alert" className="err">Les chambres n’ont pas pu être chargées. Rechargez la page.</p> : <ChambresLogement orgId={orgId} lotId={lotId} bienId={bienId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} />}
+            </SectionLot>
+          )}
 
           {/* Charges de copropriété (module 0c) — appels du syndic, ventilés */}
           {bien.copropriete && (
             <SectionLot
               id="charges"
               titre="Charges de copropriété"
-              alerte={appelsCharges.length === 0 ? "Aucun appel saisi" : undefined}
+              // Pas de pastille sur un simple vide : aucun appel saisi n'est
+              // pas une anomalie (le résumé le dit déjà).
               resume={
                 appelsCharges.length === 0
                   ? "Aucun appel de charges saisi"

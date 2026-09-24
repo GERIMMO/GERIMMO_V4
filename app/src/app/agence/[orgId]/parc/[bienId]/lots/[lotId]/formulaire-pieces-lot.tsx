@@ -34,6 +34,29 @@ function BoutonRetirer({ orgId, bienId, lotId, pieceId }: { orgId: string; bienI
   );
 }
 
+// Ajout en un geste d'une pièce courante. Même motif que « Retirer » : l'action
+// passait par un `form action` anonyme qui jetait son retour — un refus de la
+// base (droits, doublon) laissait croire que la pièce était ajoutée.
+function BoutonPieceCourante({ orgId, bienId, lotId, nom }: { orgId: string; bienId: string; lotId: string; nom: string }) {
+  const [etat, formAction] = useActionState<EtatParc, FormData>(
+    ajouterPieceLot.bind(null, orgId, bienId, lotId),
+    {}
+  );
+  return (
+    <form action={formAction} className="flex flex-wrap items-center gap-1.5">
+      <input type="hidden" name="nom" value={nom} />
+      <BoutonEnvoi variant="outline" size="sm">
+        + {nom}
+      </BoutonEnvoi>
+      {etat.erreur && (
+        <p role="alert" className="text-xs text-destructive">
+          {etat.erreur}
+        </p>
+      )}
+    </form>
+  );
+}
+
 function FormProposition({
   orgId,
   bienId,
@@ -110,18 +133,7 @@ export function FormulairePiecesLot({
       {/* Ajout rapide des pièces courantes */}
       <div className="flex flex-wrap gap-1.5">
         {COURANTES.map((nom) => (
-          <form
-            key={nom}
-            action={async () => {
-              const fd = new FormData();
-              fd.set("nom", nom);
-              await ajouterPieceLot(orgId, bienId, lotId, {}, fd);
-            }}
-          >
-            <BoutonEnvoi variant="outline" size="sm">
-              + {nom}
-            </BoutonEnvoi>
-          </form>
+          <BoutonPieceCourante key={nom} orgId={orgId} bienId={bienId} lotId={lotId} nom={nom} />
         ))}
       </div>
 

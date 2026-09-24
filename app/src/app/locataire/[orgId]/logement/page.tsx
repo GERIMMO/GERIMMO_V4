@@ -120,7 +120,7 @@ export default async function PageLogementLocataire(
           <div className="ligne-info">
             <span>Bail</span>
             <span className="text-right">
-              Bail {(TYPES_BAIL[bail.type] ?? bail.type).toLowerCase()}
+              Bail {(TYPES_BAIL[bail.type] ?? "d'habitation").toLowerCase()}
               {bail.date_debut ? ` · depuis le ${formaterDate(bail.date_debut)}` : ""}
               {bail.etat === "preavis" && bail.date_fin
                 ? ` · fin le ${formaterDate(bail.date_fin)}`
@@ -131,7 +131,7 @@ export default async function PageLogementLocataire(
             <span>Préavis si vous partez</span>
             <span className="text-right">
               {preavisMois} mois
-              {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue)") : ""}
+              {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue : secteur où les logements à louer manquent, la loi y réduit le préavis)") : ""}
             </span>
           </div>
           <div className="ligne-info">

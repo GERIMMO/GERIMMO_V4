@@ -6,6 +6,17 @@ import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 
+// Statut de l'organisation (enum public.organization_status) : un compte
+// suspendu ou archivé ne doit pas s'afficher « actif ».
+const TON_GRIS = "bg-[var(--filet-leger)] text-[var(--texte-secondaire)]";
+const STATUTS_ABONNEMENT: Record<string, { libelle: string; ton: string }> = {
+  essai: { libelle: "essai gratuit", ton: "ambre" },
+  active: { libelle: "actif", ton: "vert" },
+  suspendue: { libelle: "suspendu", ton: "rouge" },
+  archivee: { libelle: "clôturé", ton: TON_GRIS },
+};
+const STATUT_ABONNEMENT_INCONNU = { libelle: "à vérifier", ton: TON_GRIS };
+
 // Accueil de l'espace propriétaire (maquette PC v1 du 05/09) : son patrimoine
 // en un regard — lots, encaissé, fiscalité — la liste de ce qui l'attend, et
 // à droite la veille réglementaire (DPE) et son abonnement. Tout est réel :
@@ -24,10 +35,10 @@ export async function AccueilProprietaire({
 }) {
   const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
   const [
-    { data: lots },
-    { count: nbBiens },
-    { data: encaissements },
-    { data: alertesBrutes },
+    { data: lots, error: erreurLots },
+    { count: nbBiens, error: erreurBiens },
+    { data: encaissements, error: erreurEncaissements },
+    { data: alertesBrutes, error: erreurAlertes },
     { data: dpe, error: erreurDpe },
     // « À faire » ne repose plus sur les seules alertes (audit 09/09) : la
     // même source que la fiche bail — impayés, EDL d'entrée, diagnostics
@@ -123,6 +134,14 @@ export async function AccueilProprietaire({
   );
   const lotsAouer = candidats.map((l) => ({ ...l, blocages: blocagesParLot.get(l.id) ?? null }));
 
+  // Une lecture tombée ne rend pas de verdict : ni « tout est en ordre », ni
+  // « 0 € encaissé », ni « 0 lot ». On le dit en tête, et chaque chiffre
+  // concerné s'efface plutôt que d'afficher un zéro trompeur.
+  const lectureEnEchec = [erreurLots, erreurBiens, erreurEncaissements, erreurAlertes, erreurLotsEngages].some(
+    (e) => e != null
+  );
+  const aFaireIncertain = erreurLots != null || erreurAlertes != null || erreurLotsEngages != null;
+
   const nbLots = (lots ?? []).length;
   const loues = (lots ?? []).filter((l) => l.etat === "loue" || l.etat === "preavis").length;
   const vacants = nbLots - loues;
@@ -165,17 +184,27 @@ export async function AccueilProprietaire({
           fois le premier bail actif. */}
       <ParcoursDemarrage supabase={supabase} orgId={orgId} />
 
+      {lectureEnEchec && (
+        <div className="err !mb-0" role="alert">
+          <b className="font-semibold">Lecture impossible pour une partie de votre espace.</b>{" "}
+          Certains chiffres ou actions ci-dessous peuvent manquer : ce n&apos;est pas
+          qu&apos;il n&apos;y a rien, la connexion a échoué. Rechargez la page dans un instant.
+        </div>
+      )}
+
       <div className="loc-hero">
         <span className="loc-vignette" aria-hidden>
           {(organisation.name?.[0] ?? "G").toUpperCase()}
         </span>
         <div className="min-w-0">
           <p className="font-heading text-xl text-[var(--encre)]">
-            {nbLots} lot{nbLots > 1 ? "s" : ""} en gestion directe
+            {erreurLots ? "Vos lots en gestion directe" : `${nbLots} lot${nbLots > 1 ? "s" : ""} en gestion directe`}
           </p>
-          <p className="text-[13px] text-muted-foreground">
-            {loues} loué{loues > 1 ? "s" : ""} · {vacants} vacant{vacants > 1 ? "s" : ""}
-          </p>
+          {!erreurLots && (
+            <p className="text-[13px] text-muted-foreground">
+              {loues} loué{loues > 1 ? "s" : ""} · {vacants} vacant{vacants > 1 ? "s" : ""}
+            </p>
+          )}
           <Link
             href={`/agence/${orgId}/parc`}
             className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-2.5`}
@@ -192,10 +221,10 @@ export async function AccueilProprietaire({
 
       <div className="loc-grille">
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grille-kpi">
             <div className="loc-carte loc-kpi">
               <p className="text-[13px] font-semibold text-[var(--encre)]">Encaissé en {nomMois}</p>
-              <p className="v">{eur(encaisse)}</p>
+              <p className="v">{erreurEncaissements ? "—" : eur(encaisse)}</p>
               <p className="text-xs text-muted-foreground">
                 quittances émises à l&apos;encaissement
               </p>
@@ -205,7 +234,10 @@ export async function AccueilProprietaire({
             </div>
             <div className="loc-carte loc-kpi">
               <p className="text-[13px] font-semibold text-[var(--encre)]">Fiscalité</p>
-              <p className="v" style={{ fontSize: 20 }}>Récap 2044</p>
+              <p className="mt-1.5 font-heading text-lg leading-snug text-[var(--encre)]">
+                Revenus fonciers
+                <span className="block text-sm font-medium text-[var(--texte-secondaire)]">déclaration 2044</span>
+              </p>
               <p className="text-xs text-muted-foreground">
                 alimenté par votre livre, rubrique par rubrique, quote-part comprise
               </p>
@@ -219,7 +251,7 @@ export async function AccueilProprietaire({
             <div className="loc-carte loc-kpi">
               <p className="text-[13px] font-semibold text-[var(--encre)]">Mes lots</p>
               <p className="v">
-                {loues} / {nbLots || "—"}
+                {erreurLots ? "—" : <>{loues} / {nbLots || "—"}</>}
               </p>
               <p className="text-xs text-muted-foreground">
                 lot{nbLots > 1 ? "s" : ""} loué{loues > 1 ? "s" : ""}
@@ -231,7 +263,7 @@ export async function AccueilProprietaire({
                   geste. Le ton passe en attente, et la pastille devient le
                   lien. Le hero porte déjà « Voir mes lots → » : un lien
                   discret ici, pas un second bouton or (charte 04). */}
-              {nbLots === 0 ? (
+              {erreurLots ? null : nbLots === 0 ? (
                 <Link
                   href={`/agence/${orgId}/parc/nouveau`}
                   className="loc-tag ambre mt-2.5 hover:underline"
@@ -256,9 +288,16 @@ export async function AccueilProprietaire({
               </Link>
             </div>
             {aFaireBaux.length === 0 && alertes.length === 0 && lotsAouer.length === 0 ? (
-              <p className="text-sm text-success-soft-foreground">
-                Rien ne vous attend — tout est en ordre.
-              </p>
+              aFaireIncertain ? (
+                <p className="text-sm text-destructive-soft-foreground" role="alert">
+                  Impossible de vérifier ce qui vous attend : la lecture a échoué.
+                  Rechargez la page dans un instant.
+                </p>
+              ) : (
+                <p className="text-sm text-success-soft-foreground">
+                  Rien ne vous attend — tout est en ordre.
+                </p>
+              )
             ) : (
               <ul className="divide-y divide-border">
                 {/* Ce que la fiche de chaque bail affiche comme blocage —
@@ -274,7 +313,7 @@ export async function AccueilProprietaire({
                         <small className="block text-muted-foreground">{a.detail}</small>
                       )}
                     </span>
-                    {a.critique && <span className="puce puce-rouge shrink-0">critique</span>}
+                    {a.critique && <span className="loc-tag rouge shrink-0">critique</span>}
                     <Link
                       href={a.href}
                       className={buttonVariants({ variant: "outline", size: "sm" })}
@@ -339,7 +378,7 @@ export async function AccueilProprietaire({
                       )}
                     </span>
                     {a.criticite === "critique" && (
-                      <span className="puce puce-rouge shrink-0">critique</span>
+                      <span className="loc-tag rouge shrink-0">critique</span>
                     )}
                     <Link
                       href={`/agence/${orgId}/alertes?traiter=${a.id}`}
@@ -392,8 +431,8 @@ export async function AccueilProprietaire({
           <div className="loc-carte">
             <div className="entete-carte !mb-1">
               <h3 className="text-base font-medium">Mon abonnement</h3>
-              <span className={`loc-tag ${organisation.status === "essai" ? "ambre" : "vert"}`}>
-                {organisation.status === "essai" ? "essai gratuit" : "actif"}
+              <span className={`loc-tag ${(STATUTS_ABONNEMENT[organisation.status] ?? STATUT_ABONNEMENT_INCONNU).ton}`}>
+                {(STATUTS_ABONNEMENT[organisation.status] ?? STATUT_ABONNEMENT_INCONNU).libelle}
               </span>
             </div>
             <div className="ligne-info">

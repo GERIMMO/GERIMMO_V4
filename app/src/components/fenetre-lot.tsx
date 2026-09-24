@@ -122,10 +122,16 @@ export function BoutonLot({
 export function FenetreLotProvider({
   orgId,
   lotInitial = null,
+  estProprietaire = false,
   children,
 }: {
   orgId: string;
   lotInitial?: string | null;
+  /**
+   * Espace d'un propriétaire qui gère en direct : il n'y a ni mandat ni
+   * honoraires, les mentions « hors mandat » ne lui disent rien.
+   */
+  estProprietaire?: boolean;
   children: ReactNode;
 }) {
   const [ouvert, setOuvert] = useState<{ id: string; libelle?: string } | null>(
@@ -141,6 +147,7 @@ export function FenetreLotProvider({
           orgId={orgId}
           lotId={ouvert.id}
           libelle={ouvert.libelle}
+          estProprietaire={estProprietaire}
           fermer={() => setOuvert(null)}
         />
       )}
@@ -154,11 +161,13 @@ function FenetreLot({
   orgId,
   lotId,
   libelle,
+  estProprietaire,
   fermer,
 }: {
   orgId: string;
   lotId: string;
   libelle?: string;
+  estProprietaire: boolean;
   fermer: () => void;
 }) {
   const [fiche, setFiche] = useState<FicheLot | null>(null);
@@ -199,8 +208,8 @@ function FenetreLot({
   return (
     <Modale
       tresLarge
-      titre={fiche?.lot_nom ?? libelle ?? "Lot"}
-      entete={<EnteteLot fiche={fiche} libelle={libelle} />}
+      titre={fiche?.lot_nom ?? libelle ?? (locataire ? "Logement" : "Lot")}
+      entete={<EnteteLot fiche={fiche} libelle={libelle} estProprietaire={estProprietaire} />}
       fermer={fermer}
       pied={
         ficheComplete && fiche ? (
@@ -230,7 +239,7 @@ function FenetreLot({
       )}
       {!fiche && !erreur && (
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Spinner /> Lecture du lot…
+          <Spinner /> {locataire ? "Lecture du logement…" : "Lecture du lot…"}
         </p>
       )}
 
@@ -243,7 +252,7 @@ function FenetreLot({
               pour atteindre la comptabilité. */}
           <div
             role="tablist"
-            aria-label="Sections du lot"
+            aria-label={locataire ? "Sections du logement" : "Sections du lot"}
             className="-mx-5 flex gap-1 overflow-x-auto border-b border-border px-5"
           >
             {onglets.map((o) => (
@@ -265,14 +274,14 @@ function FenetreLot({
           </div>
 
           {onglet === "resume" && (
-            <OngletResume orgId={orgId} fiche={fiche} allerA={setOnglet} />
+            <OngletResume orgId={orgId} fiche={fiche} allerA={setOnglet} estProprietaire={estProprietaire} />
           )}
           {onglet === "documents" && <OngletDocuments orgId={orgId} fiche={fiche} fermer={fermer} />}
           {onglet === "compta" &&
             (locataire ? (
               <OngletMesLoyers orgId={orgId} />
             ) : (
-              <OngletComptabilite orgId={orgId} fiche={fiche} rafraichir={rafraichir} />
+              <OngletComptabilite orgId={orgId} fiche={fiche} rafraichir={rafraichir} estProprietaire={estProprietaire} />
             ))}
           {onglet === "historique" && <OngletHistorique lotId={fiche.lot_id} />}
         </>
@@ -283,7 +292,15 @@ function FenetreLot({
 
 /* ── L'en-tête ────────────────────────────────────────────────────────── */
 
-function EnteteLot({ fiche, libelle }: { fiche: FicheLot | null; libelle?: string }) {
+function EnteteLot({
+  fiche,
+  libelle,
+  estProprietaire,
+}: {
+  fiche: FicheLot | null;
+  libelle?: string;
+  estProprietaire: boolean;
+}) {
   const locataire = fiche?.portee === "locataire";
   const impaye = Number(fiche?.impaye_echu ?? 0);
   return (
@@ -293,20 +310,20 @@ function EnteteLot({ fiche, libelle }: { fiche: FicheLot | null; libelle?: strin
           d'illustration ferait croire que c'est celle de ce lot-là. */}
       <span
         aria-hidden
-        className="hidden size-14 shrink-0 items-center justify-center border border-[var(--sur-encre)]/20 bg-[var(--sur-encre)]/10 font-heading text-2xl text-[var(--sur-encre)]/80 sm:flex"
+        className="hidden size-14 shrink-0 items-center justify-center border border-[var(--filet)] bg-[var(--filet-leger)] font-heading text-2xl text-[var(--encre)] sm:flex"
       >
         {(fiche?.ville?.[0] ?? fiche?.lot_nom?.[0] ?? "G").toUpperCase()}
       </span>
       <div className="min-w-0">
-        <p className="mono-discret text-[var(--sur-encre)]/70">
-          {fiche ? `${fiche.lot_nom} · ${fiche.ville}` : "Lot"}
+        <p className="mono-discret text-[var(--texte-secondaire)]">
+          {fiche ? `${fiche.lot_nom} · ${fiche.ville}` : locataire ? "Logement" : "Lot"}
         </p>
-        <h3 className="mt-0.5 truncate text-[var(--sur-encre)]">
-          {fiche ? `${TYPES_BIEN[fiche.bien_type] ?? fiche.bien_type} — ${fiche.adresse}` : (libelle ?? "Chargement…")}
+        <h3 className="mt-0.5 truncate text-[var(--encre)]">
+          {fiche ? `${TYPES_BIEN[fiche.bien_type] ?? "Bien"} — ${fiche.adresse}` : (libelle ?? "Chargement…")}
         </h3>
         {fiche && (
           <>
-            <p className="text-[12.5px] text-[var(--sur-encre)]/70">
+            <p className="text-[12.5px] text-[var(--texte-secondaire)]">
               {[
                 fiche.surface_m2 !== null ? formaterSurface(fiche.surface_m2) : null,
                 fiche.pieces !== null ? `${fiche.pieces} pièce${fiche.pieces > 1 ? "s" : ""}` : null,
@@ -317,13 +334,18 @@ function EnteteLot({ fiche, libelle }: { fiche: FicheLot | null; libelle?: strin
                 .join(" · ")}
             </p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
-              <Pastille ton="neutre">{ETATS_LOT[fiche.lot_etat] ?? fiche.lot_etat}</Pastille>
+              {/* L'état du lot (vacant, loué…) est un vocabulaire de gestion :
+                  le locataire sait qu'il y habite. */}
+              {!locataire && (
+                <Pastille ton="neutre">{ETATS_LOT[fiche.lot_etat] ?? "État à vérifier"}</Pastille>
+              )}
               {impaye > 0 ? (
                 <Pastille ton="alerte">Impayé {eur(impaye)}</Pastille>
               ) : (
                 fiche.bail_id && <Pastille ton="ok">À jour de loyer</Pastille>
               )}
               {!locataire &&
+                !estProprietaire &&
                 (fiche.mandat_id ? (
                   <Pastille ton="neutre">Sous mandat · {Number(fiche.taux_honoraires ?? 0)} %</Pastille>
                 ) : (
@@ -337,12 +359,12 @@ function EnteteLot({ fiche, libelle }: { fiche: FicheLot | null; libelle?: strin
   );
 }
 
-/** Pastille posée SUR l'encre : les tons de la charte n'y seraient pas lisibles. */
+/** Pastille de l'en-tête, posée sur le fond clair de la modale. */
 function Pastille({ ton, children }: { ton: "ok" | "alerte" | "neutre"; children: ReactNode }) {
   const tons = {
-    ok: "bg-[var(--success)]/25 text-[var(--success-soft)]",
-    alerte: "bg-[var(--destructive)]/30 text-[var(--destructive-soft)]",
-    neutre: "bg-[var(--sur-encre)]/12 text-[var(--sur-encre)]/85",
+    ok: "bg-[var(--success-soft)] text-[var(--success-soft-foreground)]",
+    alerte: "bg-[var(--destructive-soft)] text-[var(--destructive-soft-foreground)]",
+    neutre: "bg-[var(--filet-leger)] text-[var(--texte-secondaire)]",
   };
   return (
     <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${tons[ton]}`}>
@@ -597,7 +619,7 @@ function FormulairePartiel({
       </BoutonEnvoi>
       <p className="w-full text-[11.5px] text-muted-foreground">
         Tant que le terme n’est pas soldé, le locataire reçoit un <b>reçu</b>, pas une
-        quittance (RM-3.4.2).
+        quittance.
       </p>
       {etat.erreur && (
         <p className="w-full text-xs text-destructive" role="alert">
@@ -614,10 +636,12 @@ function OngletResume({
   orgId,
   fiche,
   allerA,
+  estProprietaire,
 }: {
   orgId: string;
   fiche: FicheLot;
   allerA: (o: Onglet) => void;
+  estProprietaire: boolean;
 }) {
   const locataire = fiche.portee === "locataire";
   const multiple = (fiche.contrats?.length ?? 0) > 1;
@@ -646,14 +670,14 @@ function OngletResume({
         <Tuile
           libelle="Dans les lieux"
           valeur={fiche.date_debut ? `depuis ${formaterDate(fiche.date_debut).slice(3)}` : "—"}
-          sous={fiche.bail_type ? (TYPES_BAIL[fiche.bail_type] ?? fiche.bail_type) : "aucun bail"}
+          sous={fiche.bail_type ? (TYPES_BAIL[fiche.bail_type] ?? "Bail") : "aucun bail"}
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Carte
           titre={locataire ? "Mon bail" : "Locataire"}
-          badge={fiche.bail_etat && fiche.bail_etat !== "actif" ? (ETATS_BAIL[fiche.bail_etat] ?? fiche.bail_etat) : "occupant"}
+          badge={fiche.bail_etat && fiche.bail_etat !== "actif" ? (ETATS_BAIL[fiche.bail_etat] ?? "à vérifier") : "occupant"}
           ton={fiche.bail_etat === "preavis" ? "attente" : "ok"}
         >
           {multiple ? <div className="space-y-3">{fiche.contrats?.map(c => <div key={c.id} className="rounded-lg border p-3">
@@ -714,6 +738,13 @@ function OngletResume({
               </Link>
               .
             </p>
+          </Carte>
+        ) : estProprietaire ? (
+          // Propriétaire en direct : pas de mandat, pas d'honoraires — la
+          // carte dit seulement à qui appartient le lot.
+          <Carte titre="Propriétaire" or>
+            <Personne nom={fiche.mandant ?? fiche.proprietaires ?? "Propriétaire non renseigné"} lignes={[fiche.mandant_email]} or />
+            <Ligne libelle="Détention" valeur={fiche.proprietaires} />
           </Carte>
         ) : (
           <Carte
@@ -988,7 +1019,7 @@ function OngletDocuments({ orgId, fiche, fermer }: { orgId: string; fiche: Fiche
                     {d.titre}
                   </Link>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {TYPES_DOCUMENT[d.type] ?? d.type} · {d.rattachement} · déposé le{" "}
+                    {TYPES_DOCUMENT[d.type] ?? "Document"} · {d.rattachement} · déposé le{" "}
                     {formaterDate(d.depose_le)}
                   </span>
                 </span>
@@ -1023,10 +1054,12 @@ function OngletComptabilite({
   orgId,
   fiche,
   rafraichir,
+  estProprietaire,
 }: {
   orgId: string;
   fiche: FicheLot;
   rafraichir: () => void;
+  estProprietaire: boolean;
 }) {
   const bailId = fiche.bail_id;
   const [donnees, setDonnees] = useState<{
@@ -1128,7 +1161,9 @@ function OngletComptabilite({
           </div>
 
           <FormulaireDepense orgId={orgId} lotId={fiche.lot_id} relire={relire} />
-          <BlocRapport lotId={fiche.lot_id} rapport={donnees.rapport} />
+          {/* Le rapport de gestion va au mandant : un propriétaire en direct
+              n'a personne à qui l'adresser. */}
+          {!estProprietaire && <BlocRapport lotId={fiche.lot_id} rapport={donnees.rapport} />}
         </>
       )}
     </div>
@@ -1411,7 +1446,7 @@ const COULEURS_NATURE: Record<string, string> = {
 /** Les mots français d'un code métier, pris là où ils vivent déjà. */
 function libelleCode(code: string | null): string | null {
   if (!code) return null;
-  return CATEGORIES_INCIDENT.find((c) => c.slug === code)?.court ?? code;
+  return CATEGORIES_INCIDENT.find((c) => c.slug === code)?.court ?? "Autre";
 }
 
 /**

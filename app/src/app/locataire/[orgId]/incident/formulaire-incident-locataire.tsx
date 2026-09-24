@@ -29,7 +29,7 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
       <div className="loc-carte">
         <h3 className="text-base font-medium">Qui paiera la réparation</h3>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Choisissez une catégorie : Gerimmo vous dit immédiatement si la
+          Choisissez une catégorie : nous vous indiquons immédiatement si la
           réparation est plutôt à votre charge ou à celle du propriétaire, et
           sur quel fondement. Aucune surprise à la sortie.
         </p>
@@ -70,14 +70,14 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
             ) : (
               <p className="text-muted-foreground">
                 Vous n&apos;avancez rien : l&apos;agence missionne l&apos;artisan
-                après qualification.
+                après examen par votre gestionnaire.
               </p>
             )}
           </>
         ) : (
           <>
             <p>
-              <span className="loc-tag bleu">À qualifier par votre gestionnaire</span>
+              <span className="loc-tag bleu">À examiner par votre gestionnaire</span>
             </p>
             <p className="text-muted-foreground">
               La cause ne se déduit pas de la catégorie : votre gestionnaire tranche
@@ -86,8 +86,7 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
           </>
         )}
         <p className="text-xs text-muted-foreground">
-          Repère indicatif — la décision (opposable) revient à votre gestionnaire à la
-          qualification.
+          Repère indicatif — la décision finale revient à votre gestionnaire.
         </p>
       </div>
     </div>
@@ -251,7 +250,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
               id="description"
               name="description"
               rows={3}
-              placeholder="Depuis quand, où exactement, est-ce que cela s'aggrave…"
+              placeholder="Où exactement, est-ce que cela s'aggrave, qu'avez-vous déjà essayé…"
               defaultValue={etat.valeurs?.description}
               className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
             />

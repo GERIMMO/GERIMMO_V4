@@ -5350,3 +5350,40 @@ Validation finale de ce lot : 1 513 tests réussis dans 148 fichiers, aucun test
 ## [2026-09-20] correctif de recette en production | Recherche documentaire
 
 PR 68 publiée et déploiement réussi (`8947836`). La recette authentifiée de la session test a détecté une erreur partielle de recherche que le banc SQL local ne reproduisait pas : PostgREST triait le résultat projeté de documents_courants sans created_at sélectionné (42703). Ajout de cette colonne à la projection, sans élargir le périmètre ni changer les données. Lecture API de production : requête corrigée sans erreur ; ajout d’une assertion de régression. Aucun courrier ni paiement réel déclenché.
+
+## [2026-09-24] implementation | Design — remise au propre : charte, ergonomie par persona, cohérence, animations
+
+**Demande** : « rends propre la charte actuelle, contrôle l'ergonomie par
+persona, la cohérence, le design system et ajoute quelques animations », après
+avoir écarté une charte externe (« je veux une identité forte » — les options
+proposées, terre cuite / vert bouteille / signalétique / encre et corail,
+restent au tiroir).
+
+**Trois audits en lecture du code** (agence + console ; locataire + artisan +
+propriétaire + portes d'entrée ; feuille de style) : 82 défauts d'ergonomie,
+~60 déclarations CSS mortes, 8 classes inutilisées, 30 couleurs en dur, un
+mode sombre sans basculeur, 25 commentaires périmés.
+
+**Fait** (branche `claude/compassionate-euler-qpqjp6`) :
+- `globals.css` : une définition par composant (les couches v4 → v4.3 et
+  « contraste » / « grammaire » fusionnées), jetons `--cible-tactile` 44 px et
+  `--duree-*` / `--courbe`, bloc `.dark` retiré, zéro couleur en dur hors
+  `:root`, repère photo effacé quand la page porte déjà son bandeau photo,
+  couche de mouvement (cascade des tuiles, dépliage, fenêtres, jauges,
+  pastilles, pression, flèches) éteinte sous `prefers-reduced-motion`.
+- ~60 corrections d'ergonomie (détail dans [[Design system Gerimmo]] §4) :
+  codes postaux artisan saisissables au téléphone, accueil propriétaire
+  honnête en cas de panne, jargon et codes internes retirés, alertes dans la
+  barre basse, fenêtre à en-tête blanc, barre basse commune au locataire,
+  titres de la console avec leur taille, couleurs en dur de Marketing et
+  Territoire passées aux jetons.
+- Page [[Design system Gerimmo]] créée ; [[Charte visuelle v3 bleue]] et
+  [[Charte visuelle de l'espace agent]] pointent dessus.
+
+**Vérifié** : typage, lint, 1 562 tests, build de production, captures des
+cinq personas à 1 280 et 390 px avant / après sur le banc local.
+
+**Ouvert** : voie d'entrée d'un compte sans espace, coquille hors couche CSS,
+références visuelles à régénérer, rail tablette au doigt, 22 défauts P2/P3
+structurels, charte des PDF.
+

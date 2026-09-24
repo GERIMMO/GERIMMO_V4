@@ -238,12 +238,13 @@ export function QuittancementMois({
           </tbody>
         </table>
       </div>
+      {/* Imputation du plus ancien au plus récent : RM-3.3.2. */}
       <p className="text-xs text-muted-foreground">
         L&apos;encaissement déclenche tout : quittance émise (un paiement partiel
         produit un reçu, promu en quittance au solde), écriture de recette
         {proprietaire ? " au livre — sans honoraires, jamais" : " et honoraires au taux du mandat"}. Le premier loyer d&apos;un bail est quittancé
         au prorata de la date d&apos;entrée. L&apos;argent s&apos;impute toujours du
-        terme le plus ancien au plus récent (RM-3.3.2) : quand une dette
+        terme le plus ancien au plus récent : quand une dette
         antérieure existe, le bouton dit sur quel terme il ira, et le compte
         rendu dit où il est allé. L&apos;encaissement en un clic vaut virement du
         jour — corrigeable depuis la fiche du bail.

@@ -90,7 +90,11 @@ export function CarteUrgence() {
       </div>
       <p className="mt-2.5 text-xs text-muted-foreground">
         Odeur de gaz : aérez, ne touchez aucun interrupteur, appelez Urgence
-        Sécurité Gaz au 0 800 47 33 33 — puis prévenez votre gestionnaire.
+        Sécurité Gaz au{" "}
+        <a href="tel:0800473333" className="font-medium text-destructive underline underline-offset-2">
+          0 800 47 33 33
+        </a>{" "}
+        — puis prévenez votre gestionnaire.
       </p>
     </div>
   );

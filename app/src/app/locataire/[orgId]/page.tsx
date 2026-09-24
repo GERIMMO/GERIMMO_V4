@@ -392,7 +392,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       ))}
 
       <div className="loc-grille">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grille-kpi">
           <div className="loc-carte loc-kpi">
             <p className="text-[13px] font-semibold text-[var(--encre)]">{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
             {eEcheancier ? (

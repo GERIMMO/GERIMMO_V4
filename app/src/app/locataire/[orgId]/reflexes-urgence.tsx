@@ -10,7 +10,15 @@ export function ReflexesUrgence() {
       <p className="mt-1.5 text-sm text-muted-foreground">
         Fuite importante : fermez d&apos;abord le robinet d&apos;arrêt d&apos;eau.
         Odeur de gaz : aérez, ne touchez aucun interrupteur, appelez Urgence
-        Sécurité Gaz au 0 800 47 33 33. Danger pour les personnes : le 112.
+        Sécurité Gaz au{" "}
+        <a href="tel:0800473333" className="font-medium text-destructive underline underline-offset-2">
+          0 800 47 33 33
+        </a>
+        . Danger pour les personnes : le{" "}
+        <a href="tel:112" className="font-medium text-destructive underline underline-offset-2">
+          112
+        </a>
+        .
         Puis signalez ici — votre gestionnaire est prévenu immédiatement.
       </p>
     </div>

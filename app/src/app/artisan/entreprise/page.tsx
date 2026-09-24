@@ -57,7 +57,7 @@ export default async function PageEntreprise() {
       href: "/artisan/note",
       titre: "Ma note",
       detail: note.note?.publiable
-        ? `${Number(note.note.note_publiee ?? 0).toFixed(1)} sur 5 · ${note.note.nb_evaluations} avis`
+        ? `${Number(note.note.note_publiee ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sur 5 · ${note.note.nb_evaluations} avis`
         : "Pas encore publiée",
       tendu: false,
     },
@@ -112,7 +112,7 @@ export default async function PageEntreprise() {
           </LigneInfo>
           <LigneInfo libelle="Vérification du SIRET">
             <Etiquette ton={fiche.siret_etat === "verifie" ? "ok" : "attente"}>
-              {ETATS_SIRET[fiche.siret_etat] ?? fiche.siret_etat}
+              {ETATS_SIRET[fiche.siret_etat] ?? "Vérification à faire"}
             </Etiquette>
           </LigneInfo>
           <LigneInfo libelle="Inscription">
@@ -125,11 +125,11 @@ export default async function PageEntreprise() {
                     : "attente"
               }
             >
-              {ETATS_PLATEFORME[fiche.statut_plateforme] ?? fiche.statut_plateforme}
+              {ETATS_PLATEFORME[fiche.statut_plateforme] ?? "Statut à vérifier"}
             </Etiquette>
           </LigneInfo>
           <LigneInfo libelle="Mobile">{fiche.telephone ?? "—"}</LigneInfo>
-          <LigneInfo libelle="Courriel">{fiche.email ?? "—"}</LigneInfo>
+          <LigneInfo libelle="Adresse e-mail">{fiche.email ?? "—"}</LigneInfo>
         </div>
         {fiche.statut_motif && (
           <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">

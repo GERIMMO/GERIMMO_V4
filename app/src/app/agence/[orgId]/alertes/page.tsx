@@ -170,12 +170,9 @@ export default async function PageAlertes(
                           {CRITICITES[a.criticite] ?? a.criticite}
                         </span>
                         <span className="font-medium">{a.titre}</span>
-                        {/* Sprint « Alertes & documents » : le type et l'objet
-                            d'origine se lisent sans ouvrir l'alerte */}
-                        <span className="mono-discret">
-                          {a.type}
-                          {a.origine_type ? ` · ${a.origine_type}` : ""}
-                        </span>
+                        {/* Le type et l'objet d'origine s'affichaient en codes
+                            de base (« edl_a_realiser · bail ») : le titre dit
+                            déjà de quoi il s'agit, les codes sont retirés. */}
                       </div>
                       <p className="text-muted-foreground">
                         {/* Sans auteur : fermée par l'événement d'origine (29/08) */}

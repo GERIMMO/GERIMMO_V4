@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { totalMessagesNonLus } from "@/lib/messagerie";
@@ -136,6 +137,11 @@ export default async function LayoutAgence({
       ? { jours: joursRestants(organisation.essai_fin), href: `/agence/${orgId}/abonnement` }
       : null;
 
+  const essaiTermine =
+    organisation.status === "essai" &&
+    Boolean(organisation.essai_fin) &&
+    joursRestants(organisation.essai_fin!) < 0;
+
   const liensCompte = estProprietaire
     ? [
         { href: `/agence/${orgId}/profil`, libelle: "Mon profil" },
@@ -184,10 +190,22 @@ export default async function LayoutAgence({
         </header>
         <div className="repere-visuel repere-visuel-agence" aria-hidden="true" />
         {/* L'essai terminé se dit en clair, une fois, en tête : la barre le
-            porte aussi, mais un essai échu ferme l'écriture — ça se lit. */}
-        {essai && essai.jours < 0 && (
+            porte aussi, mais un essai échu ferme l'écriture — ça se lit. À
+            TOUS les rôles : un agent qui ne peut plus écrire doit savoir
+            pourquoi, et à qui s'adresser. Le responsable, lui, a le lien. */}
+        {essaiTermine && (
           <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
-            Période d&apos;essai terminée — l&apos;abonnement arrive prochainement.
+            Période d&apos;essai terminée —{" "}
+            {estResponsable ? (
+              <>
+                activez l&apos;abonnement pour continuer à saisir.{" "}
+                <Link href={`/agence/${orgId}/abonnement`} className="font-semibold underline underline-offset-2">
+                  Choisir ma formule →
+                </Link>
+              </>
+            ) : (
+              "votre administrateur doit activer l'abonnement pour que la saisie reprenne."
+            )}
           </p>
         )}
         {messagesNonLus === null && (

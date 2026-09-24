@@ -47,7 +47,7 @@ export default async function PageDevisArtisan(props: PageProps<"/artisan/devis"
       <section>
         <TitreSection>À chiffrer ({aChiffrer.length})</TitreSection>
         {aChiffrer.length === 0 ? (
-          <Vide>
+          sollicitations.erreur ? null : <Vide>
             Aucune demande en attente.
             {fiche?.statut_plateforme === "en_attente"
               ? " Votre inscription est encore en cours de validation : aucune agence ne peut vous solliciter avant."

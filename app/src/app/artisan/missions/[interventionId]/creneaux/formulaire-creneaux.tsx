@@ -101,9 +101,6 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
     <form action={action} className="space-y-5">
       <input type="hidden" name="creneaux" value={JSON.stringify(prets)} />
 
-      {etat.succes && <Succes>{etat.succes}</Succes>}
-      {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
-
       {creneaux.map((c, i) => (
         <fieldset
           key={i}
@@ -181,6 +178,9 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
       >
         Ajouter un créneau
       </button>
+
+      {etat.succes && <Succes>{etat.succes}</Succes>}
+      {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
 
       <Envoyer nombre={prets.length} />
     </form>

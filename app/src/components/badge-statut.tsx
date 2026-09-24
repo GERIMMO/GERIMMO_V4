@@ -1,12 +1,12 @@
-// Badge de statut — charte graphique GERIMMO v2, section 04 :
-// « Texte coloré, sans pastille ni fond. Alignés à droite de la ligne. »
-// IBM Plex Mono 9,5 px, capitales, interlettrage 0,12em.
+// Badge de statut : texte coloré, sans pastille ni fond, aligné à droite de
+// la ligne, dans la métrique commune des libellés (11 px, capitales). Quand un
+// statut appelle un geste, préférer la puce (`components/ui/statut.tsx`).
 //
-// Les quatre tons correspondent aux couleurs de statut de la charte :
-//   ok      #4F7A52  à jour, encaissé, signé, valide
-//   attente #A8791F  en attente, relance, bientôt échu
-//   retard  #A2453B  retard, impayé, manquant, expiré
-//   neutre           information sans enjeu (brouillon, hors obligation)
+// Les quatre tons suivent les jetons d'état de la charte :
+//   ok       à jour, encaissé, signé, valide
+//   attente  en attente, relance, bientôt échu
+//   retard   retard, impayé, manquant, expiré
+//   neutre   information sans enjeu (brouillon, hors obligation)
 
 export type TonStatut = "ok" | "attente" | "retard" | "neutre";
 

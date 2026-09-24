@@ -8,7 +8,7 @@ import {
 import { CarteMission } from "./carte-mission";
 import { CarteSollicitation } from "./carte-sollicitation";
 import { degreEcheance, jourLong, PIECES_ARTISAN, texteEcheance, libelle } from "./libelles";
-import { Avertissement, Carte, Erreur, TitreSection } from "./ui";
+import { Avertissement, Carte, CLASSE_BOUTON_SECONDAIRE, Erreur, TitreSection } from "./ui";
 
 export const metadata = { title: "Aujourd'hui — Espace artisan" };
 
@@ -143,10 +143,10 @@ export default async function PageArtisanAccueil({
             pouvez vérifier vos prochains rendez-vous et vos attestations.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <Link href="/artisan/agenda" className="btn-secondaire min-h-11">
+            <Link href="/artisan/agenda" className={`${CLASSE_BOUTON_SECONDAIRE} sm:w-auto`}>
               Voir mon agenda
             </Link>
-            <Link href="/artisan/attestations" className="btn-secondaire min-h-11">
+            <Link href="/artisan/attestations" className={`${CLASSE_BOUTON_SECONDAIRE} sm:w-auto`}>
               Mes attestations
             </Link>
           </div>

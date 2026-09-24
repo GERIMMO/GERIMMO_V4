@@ -94,7 +94,7 @@ export const MOMENTS_PHOTO: Record<string, string> = {
 
 export function libelle(table: Record<string, string>, cle: string | null | undefined): string {
   if (!cle) return "—";
-  return table[cle] ?? cle;
+  return table[cle] ?? "Non précisé";
 }
 
 // ── Formats ────────────────────────────────────────────────────────────────

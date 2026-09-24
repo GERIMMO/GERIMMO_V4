@@ -207,7 +207,7 @@ export function FormulaireMetiersZones({
             id={idZones}
             name="codes_postaux"
             type="text"
-            inputMode="numeric"
+            inputMode="text"
             value={zoneSaisie}
             onChange={(event) => setZoneSaisie(event.target.value)}
             className={CLASSE_CHAMP}

@@ -243,7 +243,6 @@ export default async function PagePaiementsLocataire(
                     <Link
                       href={`/quittance/${l.quittance_id}`}
                       aria-label={`Ouvrir ${l.statut === "paye" ? "la" : "le"} ${libelleDocumentLoyer(l.statut)} de ${moisLong(l.periode)}`}
-                      target="_blank"
                       className={`shrink-0 pointer-coarse:min-h-10 ${buttonVariants({ variant: "ghost", size: "sm" })}`}
                     >
                       {libelleDocumentLoyer(l.statut)}
@@ -274,7 +273,7 @@ export default async function PagePaiementsLocataire(
             {relances.map((r, ix) => (
               <li key={ix} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="min-w-0 flex-1">
-                  {NIVEAUX_RELANCE[r.niveau] ?? r.niveau}
+                  {NIVEAUX_RELANCE[r.niveau] ?? "Relance"}
                   <small className="block text-muted-foreground">
                     envoyée le {formaterDate(r.date_envoi)}
                     {r.date_premiere_presentation

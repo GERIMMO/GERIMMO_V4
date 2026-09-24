@@ -116,7 +116,7 @@ function Section({
   return (
     <section className="section-ecran">
       <div className="entete-carte mb-3">
-        <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">{titre}</h2>
+        <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">{titre}</h2>
         <span className="mono-discret">{compte}</span>
       </div>
       {enTete}

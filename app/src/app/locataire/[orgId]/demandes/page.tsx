@@ -54,7 +54,8 @@ export default async function PageDemandesLocataire(
         <h1>Mes demandes</h1>
         {!aEchoue(eIncidents) && incidents.length > 0 && (
           <span className="mono-discret">
-            {enCours.length} en cours · {incidents.length - enCours.length} clos
+            {enCours.length} en cours · {incidents.length - enCours.length} terminée
+            {incidents.length - enCours.length > 1 ? "s" : ""}
           </span>
         )}
       </div>

@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { BarreBasse } from "@/components/barre-laterale";
+import type { NavigationEspace } from "@/lib/navigation-espace";
 import { cn } from "@/lib/utils";
 
 // Barre latérale de l'espace locataire (maquette v10 du 05/09) : le locataire
-// est chez lui — menu vertical encre, entrée active en laiton, badges sur ce
-// qui l'attend. En mobile, la barre devient un rail d'icônes.
+// est chez lui — menu vertical, entrée active en bleu, badges sur ce qui
+// l'attend. Sur tablette, la barre devient un rail d'icônes ; sur téléphone,
+// une barre basse de quatre entrées + « Menu », la même que celle de l'agence
+// (24/09 : la barre horizontale qui défilait coupait les entrées et empilait
+// deux bandeaux au-dessus du contenu).
 
 const IC: Record<string, string> = {
   maison: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11h13V9"/>',
@@ -53,7 +58,7 @@ export function SidebarLocataire({
     { href: `${base}/loyers`, libelle: "Mes paiements", icone: "carte" },
     {
       href: `${base}/demandes`,
-      libelle: "Mes signalements",
+      libelle: "Mes demandes",
       icone: "outil",
       aussi: `${base}/incident`,
       badge: badgeDemandes,
@@ -62,7 +67,26 @@ export function SidebarLocataire({
     { href: `${base}/faq`, libelle: "Questions fréquentes", icone: "quest" },
   ];
 
+  // Le téléphone : les quatre gestes les plus fréquents d'un locataire, le
+  // reste dans le tiroir « Menu ».
+  const courts = ["Accueil", "Logement", "Documents", "Paiements", "Demandes", "Gestionnaire", "Aide"];
+  const principales = entrees.map((e, i) => ({
+    href: e.href,
+    libelle: e.libelle,
+    icone: e.icone,
+    exact: e.exact,
+    court: courts[i],
+    badge: e.badge,
+  }));
+  const navigation: NavigationEspace = {
+    principales,
+    secondaires: [],
+    barreBasse: [principales[0], principales[3], principales[4], principales[2]],
+  };
+
   return (
+    <>
+    <BarreBasse espace="Mon espace" navigation={navigation} />
     <nav className="loc-menu" aria-label="Mon espace">
       {entrees.map((e) => {
         const active = e.exact
@@ -92,5 +116,6 @@ export function SidebarLocataire({
         );
       })}
     </nav>
+    </>
   );
 }

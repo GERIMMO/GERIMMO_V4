@@ -37,6 +37,8 @@ export type NavigationEspace = {
   principales: EntreeNav[];
   /** Le reste, sous « Plus » : accessible, pas mis en avant. */
   secondaires: EntreeNav[];
+  /** Les quatre de la barre basse du téléphone, choisies par rôle. */
+  barreBasse: EntreeNav[];
 };
 
 export type BadgesEspace = {
@@ -65,12 +67,12 @@ export function navigationEspace({
 
   const tableauDeBord: EntreeNav = { href: base, libelle: "Tableau de bord", icone: "maison", exact: true, court: "Accueil" };
   const incidents: EntreeNav = { href: `${base}/incidents`, libelle: "Incidents", icone: "outil", badge: b.incidents };
-  // « Agenda & alertes » mène à ce qui attend un geste — c'est ce que compte la
-  // pastille. L'agenda reste à un clic, dans « Plus », jusqu'à la fusion des
-  // deux écrans (phase D de la refonte).
+  // « Alertes » mène à ce qui attend un geste — c'est ce que compte la
+  // pastille. L'agenda a sa propre entrée, dans « Plus » : l'annoncer ici
+  // promettait un écran que ce lien n'ouvre pas.
   const alertes: EntreeNav = {
     href: `${base}/alertes`,
-    libelle: "Agenda & alertes",
+    libelle: "Alertes",
     icone: "cloche",
     badge: b.alertes,
     critique: b.critiques > 0,
@@ -81,14 +83,19 @@ export function navigationEspace({
   const statistiques: EntreeNav = { href: `${base}/statistiques`, libelle: "Statistiques", icone: "stats" };
   const documents: EntreeNav = { href: `${base}/documents`, libelle: "Documents", icone: "doc" };
   const abonnement: EntreeNav = { href: `${base}/abonnement`, libelle: "Abonnement", icone: "carte" };
+  // Le carnet d'artisans : la page s'ouvre à tout rôle de l'espace (l'agent la
+  // lit, seul le responsable désactive) — elle n'était atteignable que par URL.
+  const artisans: EntreeNav = { href: `${base}/artisans`, libelle: "Carnet d'artisans", icone: "outil" };
+  const loyers: EntreeNav = { href: `${base}/loyers`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" };
 
   if (role === "proprietaire_direct") {
+    const lots: EntreeNav = { href: `${base}/parc`, libelle: "Mes lots", icone: "cle", court: "Lots" };
     return {
       principales: [
         tableauDeBord,
-        { href: `${base}/parc`, libelle: "Mes lots", icone: "cle", court: "Lots" },
+        lots,
         { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", court: "Locataires" },
-        { href: `${base}/loyers`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" },
+        loyers,
         incidents,
         alertes,
         messages,
@@ -102,30 +109,43 @@ export function navigationEspace({
         abonnement,
         { href: `${base}/faq`, libelle: "Aide", icone: "quest" },
       ],
+      barreBasse: [tableauDeBord, lots, loyers, alertes],
     };
   }
 
   if (role === "agent") {
+    const portefeuille: EntreeNav = { href: `${base}/parc`, libelle: "Mon portefeuille", icone: "parc", court: "Portefeuille" };
     return {
       principales: [
         tableauDeBord,
-        { href: `${base}/parc`, libelle: "Mon portefeuille", icone: "parc", court: "Portefeuille" },
+        portefeuille,
         { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
         incidents,
         alertes,
         messages,
-        parametres,
+        // Les paramètres d'un agent, ce sont ceux de SON compte (mot de passe,
+        // second facteur) : le profil de l'agence, il ne le modifie pas. Il
+        // reste lisible dans « Plus ».
+        { href: "/compte", libelle: "Paramètres", icone: "roue" },
       ],
-      secondaires: [agenda, statistiques],
+      secondaires: [
+        agenda,
+        artisans,
+        statistiques,
+        { href: `${base}/profil`, libelle: "Profil de l'agence", icone: "cles" },
+      ],
+      barreBasse: [tableauDeBord, portefeuille, incidents, alertes],
     };
   }
+
+  const parc: EntreeNav = { href: `${base}/parc`, libelle: "Parc de l'agence", icone: "parc", court: "Parc" };
 
   return {
     principales: [
       tableauDeBord,
-      { href: `${base}/parc`, libelle: "Parc de l'agence", icone: "parc", court: "Parc" },
+      parc,
       { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
-      { href: `${base}/loyers`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" },
+      loyers,
       incidents,
       // « Comptabilité & fiscalité » du brief : la fiscalité (récapitulatif 2044)
       // n'existe que pour le propriétaire direct — l'entrée pointait sur une 404
@@ -138,11 +158,13 @@ export function navigationEspace({
     secondaires: [
       agenda,
       { href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" },
+      artisans,
       documents,
       statistiques,
       abonnement,
       { href: `${base}/administration`, libelle: "Administration", icone: "cles" },
     ],
+    barreBasse: [tableauDeBord, parc, loyers, alertes],
   };
 }
 
@@ -158,8 +180,9 @@ export function entreeActive(entrees: EntreeNav[], chemin: string): EntreeNav | 
 
 /**
  * Les quatre entrées de la barre basse d'un téléphone : les plus fréquentes,
- * pas les premières. Le reste passe par le tiroir « Menu ».
+ * pas les premières — choisies par rôle, alertes comprises (sa pastille est la
+ * seule à dire qu'un geste attend). Le reste passe par le tiroir « Menu ».
  */
 export function entreesBarreBasse(nav: NavigationEspace): EntreeNav[] {
-  return nav.principales.slice(0, 4);
+  return nav.barreBasse;
 }

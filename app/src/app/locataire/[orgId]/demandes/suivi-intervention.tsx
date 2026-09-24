@@ -242,6 +242,11 @@ function ChoixDuCreneau({
 }) {
   const idGroupe = useId();
   const [contre, setContre] = useState(false);
+  // Pas de disponibilité pour aujourd'hui ni pour hier : au plus tôt demain,
+  // en date locale (toISOString décalerait d'un jour autour de minuit).
+  const lendemain = new Date();
+  lendemain.setDate(lendemain.getDate() + 1);
+  const demain = `${lendemain.getFullYear()}-${String(lendemain.getMonth() + 1).padStart(2, "0")}-${String(lendemain.getDate()).padStart(2, "0")}`;
   const [etatChoix, actionChoix] = useActionState<EtatIncidentAction, FormData>(
     choisirMonCreneau.bind(null, orgId),
     {}
@@ -260,12 +265,6 @@ function ChoixDuCreneau({
 
   return (
     <div className="mt-2.5">
-      {etatChoix.erreur && (
-        <p className="err !mb-2" role="alert">
-          {etatChoix.erreur}
-        </p>
-      )}
-
       {creneaux.length > 0 && (
         <form action={actionChoix}>
           <fieldset className="border-0 p-0">
@@ -296,6 +295,11 @@ function ChoixDuCreneau({
               ))}
             </div>
           </fieldset>
+          {etatChoix.erreur && (
+            <p className="err !mt-2.5 !mb-0" role="alert">
+              {etatChoix.erreur}
+            </p>
+          )}
           <BoutonEnvoi enCoursTexte="Confirmation…" size="lg" className="mt-2.5 min-h-11 w-full">
             Confirmer ce rendez-vous
           </BoutonEnvoi>
@@ -319,11 +323,6 @@ function ChoixDuCreneau({
         </button>
       ) : (
         <form action={actionContre} className="mt-2.5">
-          {etatContre.erreur && (
-            <p className="err !mb-2" role="alert">
-              {etatContre.erreur}
-            </p>
-          )}
           <fieldset className="border-0 p-0">
             <legend className="text-sm font-medium">Vos disponibilités</legend>
             <p className="mb-2 text-xs text-muted-foreground">
@@ -341,6 +340,7 @@ function ChoixDuCreneau({
                       type="date"
                       id={`${idGroupe}-d${i}`}
                       name={`date-${i}`}
+                      min={demain}
                       required
                       defaultValue={etatContre.valeurs?.[`date-${i}`]}
                       className="h-11 w-full rounded-md border border-input bg-transparent px-2 text-sm"
@@ -367,6 +367,11 @@ function ChoixDuCreneau({
               ))}
             </div>
           </fieldset>
+          {etatContre.erreur && (
+            <p className="err !mt-2.5 !mb-0" role="alert">
+              {etatContre.erreur}
+            </p>
+          )}
           <div className="mt-2.5 flex flex-wrap gap-2">
             <BoutonEnvoi enCoursTexte="Envoi…" size="lg" className="min-h-11">
               Envoyer mes disponibilités
@@ -452,11 +457,6 @@ function TravailFait({
         </p>
       ) : peutAgir && suivi.intervention_id ? (
         <form onSubmit={action}>
-          {etat.erreur && (
-            <p className="err !mb-2" role="alert">
-              {etat.erreur}
-            </p>
-          )}
           <fieldset disabled={enCours} className="border-0 p-0">
             <legend className="text-sm font-medium">
               Votre avis sur l&apos;intervention
@@ -466,7 +466,8 @@ function TravailFait({
                 vu faire (la base le lui interdit d'ailleurs). Facultatif :
                 rien ici ne bloque son espace (RM-11.1.3/4). */}
             <p className="mb-2 text-xs text-muted-foreground">
-              Facultatif — 1 = très insatisfait, 5 = très satisfait.
+              Donner votre avis est facultatif. Si vous le donnez, choisissez une
+              note : 1 = très insatisfait, 5 = très satisfait.
             </p>
             <div className="flex flex-wrap gap-1.5">
               {[1, 2, 3, 4, 5].map((n) => (
@@ -499,6 +500,11 @@ function TravailFait({
               className="w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm"
             />
           </fieldset>
+          {etat.erreur && (
+            <p className="err !mt-2 !mb-0" role="alert">
+              {etat.erreur}
+            </p>
+          )}
           <BoutonEnvoi enCours={enCours} enCoursTexte="Envoi…" variant="outline" size="lg" className="mt-2 min-h-11">
             Envoyer mon avis
           </BoutonEnvoi>

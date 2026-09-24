@@ -6,13 +6,12 @@ import { useLinkStatus } from "next/link";
 // tant qu'on n'a pas la réponse »). À poser DANS un <Link> — le hook lit le
 // Link ancêtre. Espace réservé pour éviter tout décalage ; le CSS retarde
 // l'apparition (~150 ms) pour que les navigations instantanées ne clignotent
-// pas. Deux formes : « rond » (anneau qui tourne, couleur du texte) et
-// « onglet » (liseré laiton qui bat sous l'onglet — le Link doit être relative).
+// pas. Une forme : un anneau qui tourne, dans la couleur du texte.
 export function IndicateurLien({
   variante = "rond",
   className,
 }: {
-  variante?: "rond" | "onglet";
+  variante?: "rond";
   className?: string;
 }) {
   const { pending } = useLinkStatus();

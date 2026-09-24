@@ -45,7 +45,8 @@ function ChampsMetiersEtZones({
       <fieldset className="space-y-1">
         <legend className="libelle-champ">Métiers *</legend>
         <p className="text-xs text-muted-foreground">
-          Il ne vous sera proposé que dans les métiers cochés (RM-8.3).
+          {/* RM-8.3 */}
+          Il ne vous sera proposé que dans les métiers cochés.
         </p>
         <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
           {Object.entries(METIERS_ARTISAN).map(([valeur, libelle]) => (

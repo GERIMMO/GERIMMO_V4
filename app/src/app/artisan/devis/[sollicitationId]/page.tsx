@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import { chargerFicheArtisan, chargerSollicitations, verifierAccesArtisan } from "../../acces";
@@ -97,8 +98,11 @@ export default async function PageRepondreDevis(
       {decennaleManquante && (
         <Avertissement>
           Ces travaux exigent une décennale valide, et la vôtre ne l&apos;est plus.
-          Elle est revérifiée au moment où l&apos;agence retient un devis : mettez-la
-          à jour, sinon le vôtre ne pourra pas être retenu.
+          Elle est revérifiée au moment où l&apos;agence retient un devis :{" "}
+          <Link href="/artisan/attestations" className="font-semibold underline underline-offset-4">
+            mettez-la à jour
+          </Link>
+          , sinon le vôtre ne pourra pas être retenu.
         </Avertissement>
       )}
 

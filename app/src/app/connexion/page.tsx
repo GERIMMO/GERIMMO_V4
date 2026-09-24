@@ -8,7 +8,7 @@ export default function PageConnexion() {
   return (
     <CoquilleAuth
       promesse="La gestion locative, tenue au carré."
-      sousPromesse="Baux, quittances, régularisations, rapports de gestion et interventions — pour les agences et les propriétaires bailleurs."
+      sousPromesse="Baux, quittances, régularisations, rapports de gestion et interventions — pour les agences, les propriétaires bailleurs, leurs locataires et les artisans."
       mention="Un seul compte, tous vos espaces"
       titre="Connexion"
       chapo="Un seul compte, tous vos espaces."

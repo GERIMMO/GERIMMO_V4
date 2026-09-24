@@ -22,6 +22,28 @@ export const metadata = { title: "Comptabilité — Gerimmo" };
 // TOUT le journal. L'écran doit dire lequel des deux il montre.
 const LIGNES_JOURNAL = 200;
 
+// Les catégories posées par le système sont des codes (« depot_garantie ») :
+// affichés bruts, ils parlaient la langue de la base. Une catégorie saisie à
+// la main passe telle quelle, capitale en tête.
+const LIBELLES_CATEGORIE: Record<string, string> = {
+  loyer: "Loyer",
+  honoraires: "Honoraires",
+  depot_garantie: "Dépôt de garantie",
+  charges: "Charges",
+  travaux: "Travaux",
+  assurance: "Assurance",
+  taxe_fonciere: "Taxe foncière",
+  regularisation_charges: "Régularisation des charges",
+  reversement: "Reversement",
+};
+
+function libelleCategorie(categorie: string): string {
+  const connu = LIBELLES_CATEGORIE[categorie];
+  if (connu) return connu;
+  const texte = categorie.replace(/_/g, " ").trim();
+  return texte ? texte.charAt(0).toUpperCase() + texte.slice(1) : "Sans catégorie";
+}
+
 type Ecriture = {
   id: string;
   categorie: string;
@@ -201,7 +223,10 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             {estProprietaire
               ? "Livre recettes-dépenses"
               : role === "agent"
-                ? "Loyers & charges"
+                ? // « Loyers & charges » doublait le titre de l'écran /loyers ;
+                  // la vue agent, c'est le journal de son portefeuille et ses
+                  // rapports aux propriétaires.
+                  "Écritures & rapports de gestion"
                 : "Comptabilité"}
           </h1>
           <span className="mono-discret">
@@ -213,7 +238,11 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         <p className="text-sm text-muted-foreground">
           {estProprietaire
             ? "Vos encaissements et vos dépenses, sans honoraires. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible. Clôturer un mois est recommandé, jamais imposé."
-            : "Le journal des encaissements et des dépenses de l'agence. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible. Chaque mois se clôture une fois pour toutes."}
+            : `Le journal des encaissements et des dépenses de l'agence. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible.${
+                // La clôture est réservée au responsable : l'annoncer à l'agent
+                // promettait un geste qu'il n'a pas.
+                role === "agent" ? "" : " Chaque mois se clôture une fois pour toutes."
+              }`}
         </p>
         {/* La reprise des comptes ne concerne qu'une agence qui arrive avec un
             portefeuille : on la propose au responsable, et on ne l'affiche plus
@@ -245,7 +274,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           Ces trois chiffres portent TOUT le livre depuis son ouverture : lus
           comme le mois en cours, ils faisaient croire à un mois énorme. La
           portée se lit maintenant sous chaque chiffre. */}
-      <div className="grid gap-3.5 sm:grid-cols-3">
+      <div className="grille-kpi">
         <div className="kpi bleu">
           <span className="eyebrow">Recettes</span>
           <span className="chiffre montant mt-1 block">{eur(recettes)}</span>
@@ -440,7 +469,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                       </span>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="puce puce-grise">{e.categorie}</span>
+                      <span className="puce puce-grise">{libelleCategorie(e.categorie)}</span>
                       {e.contre_ecriture_de && (
                         <span className="text-xs text-muted-foreground">contre-écriture</span>
                       )}
@@ -479,7 +508,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                           {formaterDate(e.date_imputation)}
                         </td>
                         <td>
-                          <span className="puce puce-grise">{e.categorie}</span>
+                          <span className="puce puce-grise">{libelleCategorie(e.categorie)}</span>
                         </td>
                         <td className="text-xs text-muted-foreground">
                           {/* Sans libellé, la ligne commençait par un point médian orphelin. */}

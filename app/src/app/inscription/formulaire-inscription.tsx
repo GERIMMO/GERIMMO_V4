@@ -97,7 +97,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="email">Adresse email</Label>
+            <Label htmlFor="email">Adresse e-mail</Label>
             <Input
               id="email"
               name="email"
@@ -152,6 +152,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               type="checkbox"
               name="cgu"
               value="1"
+              required
               className="mt-1"
               defaultChecked={etat.valeurs?.cgu === "1"}
             />
@@ -173,7 +174,11 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               cas d&apos;écart, le relevé bancaire fait foi.
             </span>
           </label>
-          {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+          {etat.erreur && (
+            <p className="text-sm text-destructive" role="alert">
+              {etat.erreur}
+            </p>
+          )}
           <BoutonEnvoi enCoursTexte="Ouverture…" className="w-full">
             Ouvrir mon espace
           </BoutonEnvoi>

@@ -76,7 +76,7 @@ export default async function LayoutLocataire({
     <div className="loc-app" style={styleMarque(apparence)}>
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
-          <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace" className="block min-w-0 max-w-[180px] overflow-hidden">
+          <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace" className="block min-w-0 max-w-full overflow-hidden">
             <MarqueOrganisation marque={{ ...apparence, name: organisation.name }} />
           </Link>
           <span className="loc-logo-texte eyebrow">

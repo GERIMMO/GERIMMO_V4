@@ -182,23 +182,6 @@ function CarteIncident({
         </p>
       )}
 
-      {etatContestation.erreur && (
-        <p className="err !mb-0" role="alert">
-          {etatContestation.erreur}
-        </p>
-      )}
-      {etatContestation.succes && (
-        <p className="text-success-soft-foreground">{etatContestation.succes}</p>
-      )}
-      {etatPersiste.erreur && (
-        <p className="err !mb-0" role="alert">
-          {etatPersiste.erreur}
-        </p>
-      )}
-      {etatPersiste.succes && (
-        <p className="text-success-soft-foreground">{etatPersiste.succes}</p>
-      )}
-
       <div className="flex flex-wrap gap-3">
         {peutContester &&
           !etatContestation.succes &&
@@ -208,7 +191,7 @@ function CarteIncident({
               onClick={() => setOuvert("contester")}
               className="lien-discret"
             >
-              Contester cette imputation
+              Contester qui paie
             </button>
           ))}
         {peutRouvrir &&
@@ -234,6 +217,15 @@ function CarteIncident({
           valeurInitiale={etatContestation.valeurs?.message}
         />
       )}
+      {/* Le retour s'affiche sous le formulaire qui l'a provoqué */}
+      {etatContestation.erreur && (
+        <p className="err !mb-0" role="alert">
+          {etatContestation.erreur}
+        </p>
+      )}
+      {etatContestation.succes && (
+        <p className="text-success-soft-foreground">{etatContestation.succes}</p>
+      )}
       {ouvert === "persiste" && peutRouvrir && !etatPersiste.succes && (
         <PetitFormulaire
           action={actionPersiste}
@@ -243,6 +235,14 @@ function CarteIncident({
           bouton="Rouvrir"
           valeurInitiale={etatPersiste.valeurs?.motif}
         />
+      )}
+      {etatPersiste.erreur && (
+        <p className="err !mb-0" role="alert">
+          {etatPersiste.erreur}
+        </p>
+      )}
+      {etatPersiste.succes && (
+        <p className="text-success-soft-foreground">{etatPersiste.succes}</p>
       )}
     </div>
   );

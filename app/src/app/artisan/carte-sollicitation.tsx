@@ -87,7 +87,7 @@ export function CarteSollicitation({ ligne }: { ligne: LigneSollicitation }) {
     return (
       <div className="rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5 opacity-90">
         {contenu}
-        {ligne.montant_ttc_cents !== null && <a href={`/api/devis/${ligne.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Ouvrir le détail de mon devis (PDF)</a>}
+        {ligne.montant_ttc_cents !== null && <a href={`/api/devis/${ligne.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold underline">Ouvrir le détail de mon devis (PDF)</a>}
       </div>
     );
   }

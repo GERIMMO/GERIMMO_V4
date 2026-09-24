@@ -112,8 +112,8 @@ export default async function PageAdministration(
           </EncadreLectureImpossible>
         ) : equipe.length === 0 ? (
           <p className="vide">
-            Aucun membre actif dans cette agence. L&apos;invitation
-            d&apos;agents arrive avec le chantier rôles.
+            Aucun membre actif dans cette agence. Bientôt : l&apos;invitation
+            d&apos;agents depuis cet écran.
           </p>
         ) : (
           <ul>
@@ -168,8 +168,8 @@ export default async function PageAdministration(
         )}
         <p className="mesure-lecture mt-3 text-xs text-muted-foreground">
           Le portefeuille d&apos;un agent = les mandats dont il est titulaire.
-          L&apos;invitation d&apos;agents et la délégation d&apos;un
-          portefeuille en absence arrivent avec le chantier rôles.
+          Bientôt : l&apos;invitation d&apos;agents et la délégation d&apos;un
+          portefeuille pendant une absence.
         </p>
       </div>
 
@@ -197,7 +197,7 @@ export default async function PageAdministration(
         )}
         <p className="mt-3 text-xs text-muted-foreground">
           Le décompte et les possibilités de souscription sont détaillés dans
-          « Mon abonnement ». Les mandats en préavis restent comptés tant qu’ils courent.
+          « Abonnement ». Les mandats en préavis restent comptés tant qu’ils courent.
         </p>
       </div>
 
@@ -209,8 +209,8 @@ export default async function PageAdministration(
           Chaque geste sensible (versement, clôture comptable, changement de
           titulaire, validation de pièce…) est horodaté et tracé — qui, quoi, sur
           quel objet. La consultation du journal complet est aujourd&apos;hui
-          réservée au super admin ; son ouverture à l&apos;admin d&apos;agence
-          arrive avec le chantier rôles.
+          réservée à l&apos;équipe Gerimmo. Bientôt : sa consultation par
+          l&apos;administrateur de l&apos;agence.
         </p>
       </div>
     </main>

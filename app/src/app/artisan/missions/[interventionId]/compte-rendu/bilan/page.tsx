@@ -3,7 +3,7 @@ import type { LigneDevis } from "@/lib/devis-structure";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../../../../acces";
 import { euros } from "../../../../libelles";
-import { Etiquette, MarqueAgence, Retour, Succes } from "../../../../ui";
+import { Erreur, Etiquette, MarqueAgence, Retour, Succes } from "../../../../ui";
 import { FormulaireBilan } from "./formulaire-bilan";
 
 export const metadata = { title: "Le bilan — Espace artisan" };
@@ -69,7 +69,7 @@ export default async function PageBilan(
 
       <Succes>Photo du travail réalisé : envoyée.</Succes>
 
-      {erreurBudget && <p role="alert" className="text-sm text-[var(--danger)]">Le budget autorisé n’a pas pu être relu. Rechargez cette page avant de terminer l’intervention.</p>}
+      {erreurBudget && <Erreur>Le budget autorisé n’a pas pu être relu. Rechargez cette page avant de terminer l’intervention.</Erreur>}
       {!erreurBudget && <FormulaireBilan
         interventionId={interventionId}
         montantDevisCents={budget?.plafond_cents ?? mission.montant_ttc_cents}

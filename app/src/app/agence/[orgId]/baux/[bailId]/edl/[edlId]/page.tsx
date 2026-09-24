@@ -249,7 +249,8 @@ export default async function PageEdl(
           {sortieDepuisEntree && (
             <p className="mb-4 text-sm text-muted-foreground">
               La grille de sortie reprend exactement celle de l&apos;état des lieux
-              d&apos;entrée signé — élément par élément (RM-1.13.1).
+              d&apos;entrée signé — élément par élément.
+              {/* RM-1.13.1 */}
             </p>
           )}
           {grilleGenerique && !sortieDepuisEntree && (

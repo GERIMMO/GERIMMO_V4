@@ -26,7 +26,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
         ← Journal
       </Link>
       <div className="entete-page mt-2 mb-6">
-        <h1 className="!text-[var(--pas-section)]">{p.titre}</h1>
+        <h1 className="!text-[length:var(--pas-section)]">{p.titre}</h1>
         <span className="mono-discret">{p.periode}</span>
       </div>
       <EditeurPublication

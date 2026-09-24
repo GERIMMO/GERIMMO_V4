@@ -69,7 +69,7 @@ export default async function PageCreneaux(
             vous en proposer trois à son tour.
           </li>
           <li>
-            Au sixième refus, le rendez-vous se règle avec le gérant, par
+            Au sixième refus, le rendez-vous se règle avec l&apos;agence, par
             téléphone : vous n&apos;avez plus rien à proposer.
           </li>
         </ul>

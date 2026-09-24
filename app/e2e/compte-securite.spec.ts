@@ -23,7 +23,7 @@ async function creerUnCompte(page: Page): Promise<string> {
   await page.goto("/inscription");
   await page.getByLabel("Prénom").fill("Camille");
   await page.getByLabel("Nom", { exact: true }).fill("Recette");
-  await page.getByLabel("Adresse email").fill(email);
+  await page.getByLabel("Adresse e-mail").fill(email);
   await page.getByLabel("Mot de passe", { exact: true }).fill(ANCIEN);
   await page.getByLabel("Confirmer le mot de passe").fill(ANCIEN);
   await page.locator('input[name="cgu"]').check();
@@ -36,7 +36,7 @@ async function creerUnCompte(page: Page): Promise<string> {
 
 async function seConnecter(page: Page, email: string, motDePasse: string) {
   await page.goto("/connexion");
-  await page.getByLabel("Adresse email").fill(email);
+  await page.getByLabel("Adresse e-mail").fill(email);
   await page.getByLabel("Mot de passe").fill(motDePasse);
   await page.getByRole("button", { name: /connexion|se connecter/i }).first().click();
 }

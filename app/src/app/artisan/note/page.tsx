@@ -52,7 +52,7 @@ export default async function PageNote() {
         {note.publiable && moyenne !== null ? (
           <>
             <p className="font-[family-name:var(--font-titres)] text-[2.75rem] leading-none text-[var(--encre)]">
-              {moyenne.toFixed(1)}
+              {moyenne.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
               <span className="text-[1.25rem] text-[var(--texte-secondaire)]"> / 5</span>
             </p>
             <p className="mt-2 text-[0.9375rem] text-[var(--texte-secondaire)]">
@@ -76,7 +76,7 @@ export default async function PageNote() {
 
       <DetailsInformation titre="Comment ma note est calculée">
         <p className="text-[0.9375rem] text-[var(--corps)]">
-          La note actuelle repose sur les appréciations du gérant (qualité, délai et rapport qualité-prix)
+          La note actuelle repose sur les appréciations de l&apos;agence (qualité, délai et rapport qualité-prix)
           et du locataire (son expérience sur place). Quand les deux sont disponibles,
           elles comptent respectivement pour deux tiers et un tiers ; sinon, seule la source disponible est utilisée.
         </p>
@@ -91,12 +91,12 @@ export default async function PageNote() {
         <div>
           <LigneInfo libelle="Délai d'acceptation">
             {note?.delai_acceptation_heures !== null && note?.delai_acceptation_heures !== undefined
-              ? `${Number(note.delai_acceptation_heures).toFixed(1)} h en moyenne`
+              ? `${Number(note.delai_acceptation_heures).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h en moyenne`
               : "Aucune mission acceptée"}
           </LigneInfo>
           <LigneInfo libelle="Délai d'intervention">
             {note?.delai_intervention_jours !== null && note?.delai_intervention_jours !== undefined
-              ? `${Number(note.delai_intervention_jours).toFixed(1)} jour(s) après acceptation`
+              ? `${Number(note.delai_intervention_jours).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} jour(s) après acceptation`
               : "Aucune intervention démarrée"}
           </LigneInfo>
           <LigneInfo libelle="Taux de refus">

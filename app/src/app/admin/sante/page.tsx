@@ -92,7 +92,7 @@ export default async function PageSante() {
       {/* ── Configuration ─────────────────────────────────────────────── */}
       <section className="section-ecran">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Connexions indispensables
           </h2>
           <span className="mono-discret">{configuration.length}</span>
@@ -122,7 +122,7 @@ export default async function PageSante() {
       {/* ── Tâches planifiées ─────────────────────────────────────────── */}
       <section className="section-ecran">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Travail automatique
           </h2>
           <Link href="/admin/journaux" className="lien-discret text-[12.5px]">
@@ -169,7 +169,7 @@ export default async function PageSante() {
       {/* ── Documents légaux ──────────────────────────────────────────── */}
       <section className="section-ecran">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Documents légaux
           </h2>
           <span className={`puce ${manquants.length === 0 ? "puce-loue" : "puce-rouge"}`}>
@@ -202,7 +202,7 @@ export default async function PageSante() {
       {/* ── Envois automatiques ───────────────────────────────────────── */}
       <section className="section-ecran">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Envois automatiques
           </h2>
           <span className="mono-discret">

@@ -1,14 +1,14 @@
 "use client";
 import { useId, useState } from "react";
 import { calculerDevis, montantEnCentimes, type LigneDevis } from "@/lib/devis-structure";
+import { euros } from "./libelles";
 import { CLASSE_BOUTON_SOBRE, CLASSE_CHAMP } from "./ui";
 
 type Saisie = { libelle: string; quantite: string; prix: string; tva: string };
 const vide = (): Saisie => ({ libelle: "", quantite: "1", prix: "", tva: "0" });
-const euros = (cents: number) => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents/100);
 export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: { initiales?: LigneDevis[]; titre?: string }) {
   const id = useId();
-  const [lignes, setLignes] = useState<Saisie[]>(() => initiales.length ? initiales.map(l => ({ libelle: l.libelle, quantite: String(l.quantite), prix: String(l.prix_unitaire_ht_cents/100), tva: String(l.tva_bps) })) : [vide()]);
+  const [lignes, setLignes] = useState<Saisie[]>(() => initiales.length ? initiales.map(l => ({ libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: String(l.tva_bps) })) : [vide()]);
   const donnees = lignes.map(l => ({ libelle: l.libelle, quantite: Number(l.quantite.replace(",", ".")), prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: Number(l.tva) }));
   let total: ReturnType<typeof calculerDevis> | null = null;
   try { total = calculerDevis(donnees); } catch { /* Le formulaire et le serveur expliquent les champs invalides. */ }
@@ -31,7 +31,7 @@ export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: {
       {lignes.length>1 && <button type="button" className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => ls.filter((_,i) => i!==index))}>Retirer cette ligne</button>}
     </div>)}
     <button type="button" disabled={lignes.length>=100} className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => [...ls,vide()])}>Ajouter une prestation ou fourniture</button>
-    <div className="rounded-lg bg-white/70 p-3" aria-live="polite">
+    <div className="rounded-lg bg-[var(--ivoire)] p-3" aria-live="polite">
       {total ? <><p className="text-sm">Total HT : {euros(total.montant_ht_cents)} · TVA : {euros(total.montant_tva_cents)}</p><p className="font-semibold">Total TTC : {euros(total.montant_ttc_cents)}</p></> : <p className="text-sm">Le total apparaîtra une fois les lignes complétées.</p>}
     </div>
   </fieldset>;

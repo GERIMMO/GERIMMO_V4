@@ -86,7 +86,7 @@ export default async function PageBrief() {
       {lecturesEnEchec > 0 && <div role="alert" className="mb-5 border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-sm text-[var(--destructive-soft-foreground)]">{lecturesEnEchec} source{lecturesEnEchec > 1 ? "s sont" : " est"} indisponible{lecturesEnEchec > 1 ? "s" : ""}. Les données manquantes sont signalées ci-dessous.</div>}
 
       <section className="section-ecran">
-        <h2 className="mb-3 font-heading text-[var(--pas-section)] text-[var(--encre)]">À décider maintenant</h2>
+        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">À décider maintenant</h2>
         {signaux.length === 0 ? <p className="text-sm text-muted-foreground">Aucun signal ouvert dans ces files. Consultez la santé du service et le territoire avant de lancer une nouvelle action.</p> : (
           <div className="grid gap-3">
             {signaux.map((signal, i) => {
@@ -108,7 +108,7 @@ export default async function PageBrief() {
       </section>
 
       <section className="section-ecran">
-        <h2 className="mb-3 font-heading text-[var(--pas-section)] text-[var(--encre)]">Croissance : ordre de travail</h2>
+        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Croissance : ordre de travail</h2>
         <p className="mb-4 text-sm text-[var(--texte-secondaire)]">Hypothèse à valider avec conversions et coûts d&apos;acquisition : commencer par les propriétaires qui gèrent eux-mêmes leurs biens, constituer ensuite un réseau d&apos;artisans là où les interventions le justifient, puis développer les agences quand le service et les opérations sont stables.</p>
         <ol className="grid gap-3 sm:grid-cols-3">
           <li className="rounded-lg border border-[var(--filet)] p-4"><b className="text-[var(--encre)]">1. Propriétaires directs</b><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Un dossier de location complet et une valeur immédiate. {valeurs.comptes === null ? "Clients actifs indisponibles." : `${valeurs.comptes} organisation${valeurs.comptes > 1 ? "s" : ""} active${valeurs.comptes > 1 ? "s" : ""} ou en essai, toutes familles confondues.`}</p></li>
@@ -119,13 +119,13 @@ export default async function PageBrief() {
       </section>
 
       <section className="section-ecran">
-        <h2 className="mb-2 font-heading text-[var(--pas-section)] text-[var(--encre)]">Publication et acquisition</h2>
+        <h2 className="mb-2 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Publication et acquisition</h2>
         <p className="text-sm leading-relaxed text-[var(--texte-secondaire)]">Utiliser le journal pour expliquer des cas concrets de gestion locative. Tester d&apos;abord Facebook pour les propriétaires directs dans un seul département, avec une page et une source de demande identifiables ; comparer ensuite Instagram à volume égal. Aucune dépense ni publication sur ces réseaux ne part depuis cet écran. Les résultats et le coût par client doivent être mesurés avant d&apos;étendre la campagne.</p>
         <Link className="lien-discret mt-3 inline-block text-sm" href="/admin/publications">Préparer un article vérifié →</Link>
       </section>
 
       <section className="section-ecran">
-        <h2 className="mb-2 font-heading text-[var(--pas-section)] text-[var(--encre)]">Aide à la décision par l&apos;IA</h2>
+        <h2 className="mb-2 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Aide à la décision par l&apos;IA</h2>
         <p className="mb-4 text-sm text-[var(--texte-secondaire)]">À la demande, l&apos;IA reçoit seulement huit compteurs agrégés, dont les alertes ouvertes, et propose une prochaine vérification. Elle ne lit aucun dossier personnel et ne modifie ni données, ni prix, ni publications.</p>
         <BoutonBriefIA disponible={Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim())} />
       </section>

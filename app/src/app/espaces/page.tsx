@@ -189,11 +189,27 @@ export default async function PageEspaces() {
 
         {accesIncomplets && <p role="alert" className="err mb-4">Certains accès n’ont pas pu être chargés. Rechargez la page pour retrouver la liste complète de vos espaces ; les accès affichés restent disponibles.</p>}
         {!estRelais && !accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
-          <p className="text-muted-foreground">
-            {erreurOuverture
-              ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
-              : "Aucun accès actif n'est associé à votre compte. Rapprochez-vous de votre agence."}
-          </p>
+          <div className="space-y-3">
+            <p className="text-muted-foreground">
+              {erreurOuverture
+                ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
+                : "Aucun accès actif n'est associé à votre compte. Locataire ou propriétaire confié à une agence : rapprochez-vous d'elle, elle vous envoie l'invitation."}
+            </p>
+            {/* Un compte sans espace n'est pas une impasse : l'artisan peut
+                inscrire son entreprise depuis ce même compte. (L'inscription
+                propriétaire, elle, se fait avant la connexion : /inscription
+                renvoie ici un visiteur déjà connecté.) */}
+            {!erreurOuverture && (
+              <Link href="/artisan/inscription" className="carte-espace">
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">Inscrire mon entreprise (artisan)</span>
+                  <span className="block text-xs text-muted-foreground">
+                    Recevoir des demandes de devis et des missions des agences
+                  </span>
+                </span>
+              </Link>
+            )}
+          </div>
         )}
 
         <div className="grid gap-2.5">

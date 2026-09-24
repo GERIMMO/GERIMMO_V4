@@ -19,7 +19,8 @@ const ENTREES: [string, string][] = [
   ["/admin/autonomie", "Pilotage autonome"],
   ["/admin/clients", "Clients"],
   ["/admin/territoire", "Territoire"],
-  ["/admin/publications", "Journal"],
+  // « Journal » seul se confondait avec « Journaux et conservation ».
+  ["/admin/publications", "Articles du journal"],
   ["/admin/marketing", "Agent marketing"],
   ["/admin/retours", "Retours et idées"],
   ["/admin/devis", "Demandes de devis"],
@@ -34,7 +35,9 @@ const RATTACHEMENTS: Record<string, string[]> = {
   "/admin/clients": ["/admin/artisans", "/admin/organisations"],
 };
 
-export function NavAdmin() {
+// Les inscriptions artisan en attente vivent derrière « Clients » : la pastille
+// dit qu'une décision attend, sans qu'il faille ouvrir la supervision.
+export function NavAdmin({ artisansEnAttente = 0 }: { artisansEnAttente?: number }) {
   const chemin = usePathname();
   useEffect(() => {
     const nav = document.querySelector<HTMLElement>(".admin-nav");
@@ -64,6 +67,16 @@ export function NavAdmin() {
             className="admin-nav-lien"
           >
             {libelle}
+            {href === "/admin/clients" && artisansEnAttente > 0 && (
+              <>
+                <span className="coquille-badge ml-2" aria-hidden="true">
+                  {artisansEnAttente > 99 ? "99+" : artisansEnAttente}
+                </span>
+                <span className="sr-only">
+                  , {artisansEnAttente} inscription{artisansEnAttente > 1 ? "s" : ""} artisan en attente
+                </span>
+              </>
+            )}
           </Link>
         );
       })}

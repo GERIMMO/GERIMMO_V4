@@ -17,7 +17,12 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  const alertes = await chargerSyntheseAlertes(supabase, { toutes: true });
+  const [alertes, { data: artisansAValider }] = await Promise.all([
+    chargerSyntheseAlertes(supabase, { toutes: true }),
+    supabase.rpc("artisans_a_valider"),
+  ]);
+  // Lecture en échec : pas de pastille plutôt qu'un zéro affirmé.
+  const artisansEnAttente = Array.isArray(artisansAValider) ? artisansAValider.length : 0;
 
   return (
     <div className="admin-coquille">
@@ -27,7 +32,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           <MarqueGerimmo />
         </Link>
         <nav className="admin-nav" aria-label="Navigation de la supervision">
-          <NavAdmin />
+          <NavAdmin artisansEnAttente={artisansEnAttente} />
         </nav>
       </aside>
       <div className="admin-corps">

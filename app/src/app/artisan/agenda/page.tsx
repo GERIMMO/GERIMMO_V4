@@ -91,7 +91,7 @@ export default async function PageAgendaArtisan() {
       )}
 
       {jours.size === 0 && sansDate.length === 0 ? (
-        <Vide>
+        agenda.erreur ? null : <Vide>
           Aucune intervention à votre agenda. Les missions qu&apos;une agence vous
           confie apparaissent ici, quelle que soit l&apos;agence.
         </Vide>

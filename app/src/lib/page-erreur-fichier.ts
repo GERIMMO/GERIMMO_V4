@@ -9,19 +9,19 @@
  * Avant le 2026-09-11, les trois routes portaient chacune sa propre page, en
  * `system-ui` sur fond gris : un visiteur à qui l'on refusait une pièce
  * tombait sur un écran qui n'avait rien de Gerimmo, au moment précis où il
- * fallait le rassurer. Les valeurs ci-dessous suivent la charte v2 ; si la
- * charte bouge, ce fichier est le seul à suivre.
+ * fallait le rassurer. Les valeurs ci-dessous suivent la charte v3 bleue ; si
+ * la charte bouge, ce fichier est le seul à suivre (resté en v2 jusqu'au 24/09).
  */
 
 // Reflet des jetons de src/app/globals.css — tenus à jour ensemble.
 const CHARTE = {
-  creme: "#faf7f0",
+  creme: "#f2f5fb",
   ivoire: "#ffffff",
-  encre: "#14304f",
-  corps: "#1c2024",
-  texteSecondaire: "#4a4844",
-  filet: "#e4dcca",
-  or: "#c9a227",
+  encre: "#0f2352",
+  corps: "#151b2b",
+  texteSecondaire: "#4b5870",
+  filet: "#d9e1ef",
+  marque: "#2457f5",
 } as const;
 
 function echapper(texte: string): string {
@@ -61,7 +61,7 @@ export function pageErreurFichier(
   main {
     max-width: 26rem; margin: 1rem; padding: 2rem 1.75rem;
     background: ${CHARTE.ivoire}; border: 1px solid ${CHARTE.filet};
-    border-top: 3px solid ${CHARTE.or};
+    border-top: 3px solid ${CHARTE.marque};
   }
   .marque {
     font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;

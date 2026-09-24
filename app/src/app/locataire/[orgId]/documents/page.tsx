@@ -100,7 +100,7 @@ export default async function PageDocumentsLocataire(
     new Date(d).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
   const sousTitre = (p: Piece) =>
     [
-      TYPES_DOCUMENT[p.type] ?? p.type,
+      TYPES_DOCUMENT[p.type] ?? "Document",
       `déposé le ${formaterDate(p.depose_le)}`,
       p.expire_le ? `expire le ${formaterDate(p.expire_le)}` : null,
     ]
@@ -231,7 +231,7 @@ export default async function PageDocumentsLocataire(
         ) : (
           <ul className="divide-y divide-border">
             {pieces.map((p) => {
-              const nom = p.titre || (TYPES_DOCUMENT[p.type] ?? p.type);
+              const nom = p.titre || (TYPES_DOCUMENT[p.type] ?? "Document");
               return (
                 <li
                   key={`${p.source}-${p.document_id}`}

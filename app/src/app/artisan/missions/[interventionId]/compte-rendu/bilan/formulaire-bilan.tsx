@@ -87,9 +87,17 @@ export function FormulaireBilan({
         {enAttente && <p className="mt-3 text-sm">Attendez la réponse avant d’engager les travaux supplémentaires. Le budget autorisé reste le plafond de cette intervention.</p>}
       </Carte>}
       {montantDevisCents !== null && !enAttente && (
-        <Carte className="border-l-4 border-l-[var(--warning)]">
-          <TitreSection>Le coût dépasse le devis accepté ?</TitreSection>
-          <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
+        // Repliée par défaut : la plupart des interventions restent dans le
+        // devis. Rouverte d'office après un envoi pour montrer le résultat.
+        <details
+          className="artisan-carte information-depliable border-l-4 border-l-[var(--warning)]"
+          open={Boolean(etatAvenant.erreur || etatAvenant.succes)}
+        >
+          <summary>
+            Le coût dépasse le devis accepté ?
+            <span aria-hidden className="information-chevron">⌄</span>
+          </summary>
+          <p className="mt-4 text-[0.9375rem] text-[var(--texte-secondaire)]">
             Demandez l&apos;accord avant de terminer. Le nouveau total, la raison et la décision restent dans le dossier.
           </p>
           <form action={actionAvenant} className="mt-4 space-y-3">
@@ -103,7 +111,7 @@ export function FormulaireBilan({
             {etatAvenant.succes && <p className="text-sm text-[var(--success-soft-foreground)]">{etatAvenant.succes}</p>}
             <EnvoyerAvenant />
           </form>
-        </Carte>
+        </details>
       )}
       <form action={action} className="space-y-5">
       <div className="space-y-1.5">

@@ -3,6 +3,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
 import { eur, moisEnFrancais } from "@/lib/ged";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { IconeTrait } from "@/components/icone-trait";
 import { QuittancementMois } from "../comptabilite/quittancement-mois";
@@ -115,6 +116,14 @@ export default async function PageLoyers({ params }: PageProps<"/agence/[orgId]/
                   Le cycle mensuel crée les appels le 1ᵉʳ du mois pour chaque bail actif ; sans
                   bail actif, il n&rsquo;y a rien à quittancer.
                 </p>
+                {/* L'état vide mène au geste qui le remplit : un bail se crée
+                    depuis la fiche d'un lot. */}
+                <Link
+                  href={`/agence/${orgId}/parc`}
+                  className={buttonVariants({ variant: "outline", size: "sm", className: "mt-3" })}
+                >
+                  {estProprietaire ? "Ouvrir mes lots" : "Ouvrir le parc"}
+                </Link>
               </CardContent>
             </Card>
           )}
@@ -143,8 +152,10 @@ export default async function PageLoyers({ params }: PageProps<"/agence/[orgId]/
                           {l.dette_anterieure_reste ? ` · dette antérieure ${eur(Number(l.dette_anterieure_reste))}` : ""}
                         </p>
                       </div>
-                      <Link href={`/agence/${orgId}/baux/${l.bail_id}`} className="lien-discret">
-                        Relancer →
+                      {/* La relance se fait sur le bail, section des loyers :
+                          le lien le dit et y mène directement. */}
+                      <Link href={`/agence/${orgId}/baux/${l.bail_id}#loyers`} className="lien-discret">
+                        Relancer sur le bail →
                       </Link>
                     </li>
                   ))}

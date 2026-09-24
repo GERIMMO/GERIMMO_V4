@@ -319,7 +319,7 @@ function FormDemarrer({
           ? "L’état des lieux de sortie n’est pas encore signé : aucun comparatif ne peut confirmer la conformité."
           : nbEcarts === 0
             ? "Le comparatif d’état des lieux ne relève aucun écart entre l’entrée et la sortie."
-            : `Le comparatif d’état des lieux relève ${nbEcarts} écart${nbEcarts > 1 ? "s" : ""} entre l’entrée et la sortie — le délai est alors de 2 mois (RM-2.4.2).`}
+            : `Le comparatif d’état des lieux relève ${nbEcarts} écart${nbEcarts > 1 ? "s" : ""} entre l’entrée et la sortie — le délai est alors de 2 mois.` /* RM-2.4.2 */}
       </p>
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
@@ -478,8 +478,9 @@ function ChampsRetenue({
           jamais (relevé du 11/09). */}
       {amorti && dureeVie != null && age != null && (
         <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+          {/* RM-2.4.5 */}
           Élément entièrement amorti ({age} ans sur {dureeVie} ans) : aucune retenue
-          possible (RM-2.4.5). Corrigez l&apos;âge ou la durée de vie.
+          possible. Corrigez l&apos;âge ou la durée de vie.
         </p>
       )}
       {!amorti && apercu != null && (

@@ -76,7 +76,7 @@ export function Donut({
         y="27"
         textAnchor="middle"
         style={{
-          font: "3px var(--font-libelles), ui-monospace, monospace",
+          font: "3px var(--font-libelles), system-ui, sans-serif",
           letterSpacing: "0.1em",
           fill: "var(--libelle)",
         }}

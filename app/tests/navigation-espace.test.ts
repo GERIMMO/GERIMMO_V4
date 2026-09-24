@@ -27,7 +27,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
       "Loyers & charges",
       "Incidents",
       "Comptabilité",
-      "Agenda & alertes",
+      "Alertes",
       "Messages",
       "Paramètres",
     ]);
@@ -35,7 +35,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
 
   it("ne retire rien à l'admin : mandats, documents, statistiques, abonnement, administration restent atteignables", () => {
     const c = chemins("admin_agence");
-    for (const p of ["/loyers", "/comptabilite", "/mandats", "/documents", "/statistiques", "/abonnement", "/administration", "/agenda"]) {
+    for (const p of ["/loyers", "/comptabilite", "/mandats", "/documents", "/statistiques", "/abonnement", "/administration", "/agenda", "/artisans", "/profil"]) {
       expect(c, p).toContain(p);
     }
   });
@@ -47,6 +47,12 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     }
     expect(nav("agent").principales.map((e) => e.libelle)).toContain("Mon portefeuille");
     expect(c).toContain("/statistiques");
+    // Rien de retiré : le profil de l'agence reste lisible, le carnet
+    // d'artisans devient atteignable, et « Paramètres » ouvre son compte.
+    expect(c).toContain("/profil");
+    expect(c).toContain("/artisans");
+    expect(c).toContain("/agenda");
+    expect(nav("agent").principales.find((e) => e.libelle === "Paramètres")?.href).toBe("/compte");
   });
 
   it("garde au propriétaire son vocabulaire et sa FAQ", () => {
@@ -63,12 +69,12 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(calme.principales.every((e) => !(e.badge && e.badge > 0))).toBe(true);
 
     const agitee = nav("admin_agence", { alertes: 3, alertesCritiques: 0, incidents: 2, messages: 1 });
-    const alertes = agitee.principales.find((e) => e.libelle === "Agenda & alertes")!;
+    const alertes = agitee.principales.find((e) => e.libelle === "Alertes")!;
     expect(alertes.badge).toBe(3);
     expect(alertes.critique).toBe(false);
 
     const critique = nav("admin_agence", { alertes: 3, alertesCritiques: 1 });
-    expect(critique.principales.find((e) => e.libelle === "Agenda & alertes")!.critique).toBe(true);
+    expect(critique.principales.find((e) => e.libelle === "Alertes")!.critique).toBe(true);
   });
 
   it("allume l'entrée la plus précise, et l'accueil seulement sur son chemin exact", () => {
@@ -82,13 +88,16 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(entreeActive(toutes, `/agence/${ORG}/inconnu`)).toBeNull();
   });
 
-  it("met quatre entrées dans la barre basse du téléphone", () => {
-    expect(entreesBarreBasse(nav("admin_agence"))).toHaveLength(4);
-    expect(entreesBarreBasse(nav("agent")).map((e) => e.libelle)).toEqual([
-      "Tableau de bord",
-      "Mon portefeuille",
-      "Personnes",
-      "Incidents",
-    ]);
+  it("met dans la barre basse du téléphone les quatre entrées les plus fréquentes, alertes comprises", () => {
+    const libelles = (role: RoleEspace) => entreesBarreBasse(nav(role)).map((e) => e.libelle);
+    expect(libelles("admin_agence")).toEqual(["Tableau de bord", "Parc de l'agence", "Loyers & charges", "Alertes"]);
+    expect(libelles("agent")).toEqual(["Tableau de bord", "Mon portefeuille", "Incidents", "Alertes"]);
+    expect(libelles("proprietaire_direct")).toEqual(["Tableau de bord", "Mes lots", "Loyers & charges", "Alertes"]);
+    // La barre basse ne montre que des entrées du menu : aucun chemin qu'elle seule ouvrirait.
+    for (const role of ["admin_agence", "agent", "proprietaire_direct"] as RoleEspace[]) {
+      const n = nav(role);
+      const toutes = [...n.principales, ...n.secondaires];
+      for (const e of entreesBarreBasse(n)) expect(toutes).toContain(e);
+    }
   });
 });

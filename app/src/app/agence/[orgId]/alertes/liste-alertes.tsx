@@ -177,6 +177,15 @@ export function ListeAlertes({
             créée le {formaterDateHeure(a.created_at)} · confiée à{" "}
             {nomAssignation(a, membres)}
           </div>
+          {/* Une rangée grisée sans bouton laissait croire à une panne : on
+              dit pourquoi elle est intouchable, et qui peut agir. */}
+          {grisee && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {estResponsable
+                ? "Confiée à un collègue : en tant que responsable, vous pouvez la réassigner ou la traiter à sa place."
+                : "Confiée à un collègue : lui seul la traite. Un responsable peut la réassigner si besoin."}
+            </p>
+          )}
         </div>
         {/* Une alerte grisée est intouchable — seul le responsable peut la
             rouvrir pour la réassigner ou la traiter à la place d'un absent.

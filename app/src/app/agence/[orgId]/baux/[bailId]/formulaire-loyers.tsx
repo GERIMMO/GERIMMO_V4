@@ -474,7 +474,7 @@ export function FormulaireLoyers({
           </form>
           <p className="text-xs text-muted-foreground">
             Nouveau loyer = loyer × IRL nouveau / IRL de référence. L&apos;indice de
-            référence est celui figé au bail à sa signature (RM-3.8.2) et ne se saisit
+            référence est celui figé au bail à sa signature {/* RM-3.8.2 */} et ne se saisit
             pas ici. Une seule révision par année de bail ; interdit si DPE F/G ; le
             dépôt et les provisions ne changent pas.
           </p>

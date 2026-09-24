@@ -94,14 +94,23 @@ function File({
 
 function Equipe({ nom, etat, travail, prochaine, resultat, autorisation, href }: {
   nom: string;
-  etat: "À jour" | "À surveiller" | "Action attendue";
+  // « Suivi courant » : pas d'indicateur chiffré derrière — la pastille reste
+  // neutre plutôt que d'alerter en permanence.
+  etat: "À jour" | "À surveiller" | "Action attendue" | "Suivi courant";
   travail: string;
   prochaine: string;
   resultat: string;
   autorisation: string;
   href: string;
 }) {
-  const classe = etat === "À jour" ? "puce-loue" : etat === "Action attendue" ? "puce-rouge" : "puce-prep";
+  const classe =
+    etat === "À jour"
+      ? "puce-loue"
+      : etat === "Action attendue"
+        ? "puce-rouge"
+        : etat === "Suivi courant"
+          ? "puce-grise"
+          : "puce-prep";
   return (
     <Link href={href} className="group rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 transition hover:-translate-y-0.5 hover:bg-[var(--survol)]">
       <div className="flex items-start justify-between gap-3">
@@ -166,7 +175,7 @@ export default async function PageAdmin() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>Supervision</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="mono-discret">
             {orgs.error ? "Organisations indisponibles" : `${organisations.length} organisation${organisations.length > 1 ? "s" : ""}`}
           </span>
@@ -177,6 +186,20 @@ export default async function PageAdmin() {
           </Link>
         </div>
       </div>
+
+      {/* L'échec de lecture se dit AVANT les cartes : lu après, il arrivait
+          une fois les chiffres incomplets déjà pris pour argent comptant. */}
+      {enEchec.length > 0 && (
+        <div
+          role="alert"
+          className="mb-6 border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-[13px] text-[var(--destructive-soft-foreground)]"
+        >
+          {enEchec.length} lecture{enEchec.length > 1 ? "s" : ""} de cette page
+          {enEchec.length > 1 ? " ont" : " a"} échoué : les chiffres ci-dessous sont
+          incomplets. Rechargez — s&apos;ils ne reviennent pas, c&apos;est la base qui
+          ne répond pas.
+        </div>
+      )}
 
       <Link href="/admin/brief" className="mb-5 flex items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm text-[var(--encre)] hover:bg-[var(--survol)]">
         <span><b>Brief de pilotage</b><span className="ml-2 text-[var(--texte-secondaire)]">Priorités, signaux utilisateurs et ordre de croissance.</span></span>
@@ -189,32 +212,20 @@ export default async function PageAdmin() {
         <div className="entete-carte mb-4">
           <div>
             <p className="libelle-champ">Centre de commandement</p>
-            <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">Vos équipes Gerimmo</h2>
+            <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Vos équipes Gerimmo</h2>
           </div>
           <span className="mono-discret">7 équipes spécialisées</span>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <Equipe nom="Agent exploitation locative" etat="À surveiller" travail={`${organisations.length} organisation${organisations.length > 1 ? "s" : ""} et ${lots.count ?? 0} lot${(lots.count ?? 0) > 1 ? "s" : ""} suivis.`} prochaine="Traiter les échéances et dossiers incomplets." resultat="Baux, loyers et documents regroupés par client." autorisation="Les décisions attendues sont présentées dans le dossier concerné." href="/admin/autonomie?equipe=bail" />
+          <Equipe nom="Agent exploitation locative" etat="Suivi courant" travail={`${organisations.length} organisation${organisations.length > 1 ? "s" : ""} et ${lots.count ?? 0} lot${(lots.count ?? 0) > 1 ? "s" : ""} suivis.`} prochaine="Traiter les échéances et dossiers incomplets." resultat="Baux, loyers et documents regroupés par client." autorisation="Les décisions attendues sont présentées dans le dossier concerné." href="/admin/autonomie?equipe=bail" />
           <Equipe nom="Agent incidents et artisans" etat={(nbIncidents ?? 0) + (nbArtisans ?? 0) > 0 ? "À surveiller" : "À jour"} travail={`${nbIncidents ?? "—"} incident${nbIncidents === 1 ? "" : "s"} ouvert${nbIncidents === 1 ? "" : "s"}.`} prochaine="Qualifier les urgences et trouver l’artisan adapté." resultat={`${nbArtisans ?? "—"} inscription${nbArtisans === 1 ? "" : "s"} artisan à examiner.`} autorisation="Validation des nouveaux artisans uniquement." href="/admin/artisans" />
           <Equipe nom="Agent finance et fiscalité" etat={bloquants > 0 ? "Action attendue" : "À jour"} travail="Paiements, quittances, relances et abonnements contrôlés." prochaine="Reprendre les envois ou paiements signalés en échec." resultat={bloquants > 0 ? `${bloquants} point${bloquants > 1 ? "s" : ""} à traiter dans la santé du service.` : "Aucun blocage détecté."} autorisation="Les paiements et changements de prix restent soumis à votre accord." href="/admin/sante" />
           <Equipe nom="Agent conformité et documents" etat={faitsManquants().length > 0 ? "Action attendue" : "À jour"} travail="Documents, accès et durées de conservation surveillés." prochaine="Compléter les informations légales manquantes." resultat={`${faitsManquants().length} information${faitsManquants().length > 1 ? "s" : ""} légale${faitsManquants().length > 1 ? "s" : ""} à fournir.`} autorisation="Suppression définitive et publication légale sous votre contrôle." href="/admin/journaux" />
           <Equipe nom="Agent qualité et corrections" etat={(nbRetours ?? 0) > 0 ? "À surveiller" : "À jour"} travail="Retours utilisateurs et problèmes regroupés par priorité." prochaine="Corriger d’abord les problèmes qui bloquent un utilisateur." resultat={`${nbRetours ?? "—"} retour${nbRetours === 1 ? "" : "s"} ouvert${nbRetours === 1 ? "" : "s"}.`} autorisation="Une modification sensible vous est présentée avant publication." href="/admin/autonomie#ameliorations" />
           <Equipe nom="Agent marketing" etat={aEcrire > 0 ? "À surveiller" : "À jour"} travail="Contenus et publications Facebook préparés selon le calendrier." prochaine="Relire les contenus qui attendent une décision." resultat={`${aEcrire} contenu${aEcrire > 1 ? "s" : ""} à traiter.`} autorisation="Budget et publicité payante restent plafonnés par vos réglages." href="/admin/marketing" />
-          <Equipe nom="Agent développement territorial" etat="À surveiller" travail="Présence actuelle et départements voisins comparés." prochaine="Compléter les données de marché avant une ouverture." resultat="Le prochain territoire est classé avec les données disponibles." autorisation="Toute ouverture de département vous est proposée avant activation." href="/admin/territoire" />
+          <Equipe nom="Agent développement territorial" etat="Suivi courant" travail="Présence actuelle et départements voisins comparés." prochaine="Compléter les données de marché avant une ouverture." resultat="Le prochain territoire est classé avec les données disponibles." autorisation="Toute ouverture de département vous est proposée avant activation." href="/admin/territoire" />
         </div>
       </section>
-
-      {enEchec.length > 0 && (
-        <div
-          role="alert"
-          className="mb-6 border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-[13px] text-[var(--destructive-soft-foreground)]"
-        >
-          {enEchec.length} lecture{enEchec.length > 1 ? "s" : ""} de cette page
-          {enEchec.length > 1 ? " ont" : " a"} échoué : les chiffres ci-dessous sont
-          incomplets. Rechargez — s&apos;ils ne reviennent pas, c&apos;est la base qui
-          ne répond pas.
-        </div>
-      )}
 
       {bloquants > 0 && (
         <Link
@@ -248,7 +259,7 @@ export default async function PageAdmin() {
       {/* Files d'attente RÉELLES */}
       <section className="section-ecran">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Ce qui attend une décision
           </h2>
         </div>
@@ -270,7 +281,7 @@ export default async function PageAdmin() {
           <File titre="Retours et idées" compte={retours.error ? null : retours.count ?? 0} explication="Qualifiez les problèmes, répondez aux utilisateurs et examinez les idées lors de la revue mensuelle." href="/admin/retours" action="Ouvrir le suivi" />
           <File titre="Contestations artisan" compte={contestations.error ? null : contestations.count ?? 0} explication="Examinez les demandes de révision dans un suivi privé entre l’artisan et la supervision." href="/admin/retours?nature=contestation" action="Examiner les contestations" />
           <File
-            titre="Journal"
+            titre="Articles du journal"
             compte={publications.error ? null : aEcrire}
             explication="Sujets proposés par le calendrier du métier, à compléter et publier. Un article ne paraît pas tant qu'un fait daté manque."
             href="/admin/publications"
@@ -286,7 +297,7 @@ export default async function PageAdmin() {
           en disant seulement combien ils sont. */}
       <section className="section-ecran">
         <div className="entete-carte mb-3">
-          <h2 className="font-heading text-[var(--pas-section)] text-[var(--encre)]">Clients</h2>
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Clients</h2>
           <span className="mono-discret">{orgs.error ? "—" : organisations.length}</span>
         </div>
         {orgs.error ? (

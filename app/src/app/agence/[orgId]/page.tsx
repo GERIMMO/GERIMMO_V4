@@ -768,7 +768,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             <div className="vide-guide">
               <p className="titre">Aucune action signalée pour ce matin</p>
               <p className="explication">
-                Aucun bail bloqué, aucune alerte confiée, aucun rapport à valider dans cette liste. Les lots en préparation restent à compléter ci-dessous.
+                Aucun bail bloqué, aucune alerte confiée, aucun rapport à valider dans cette liste.
+                {/* La phrase ne renvoie « ci-dessous » que s'il y a des lots à y trouver. */}
+                {enPreparation.length > 0 && " Les lots en préparation restent à compléter ci-dessous."}{" "}
                 Gerimmo pose les alertes tout seul — diagnostic périmé, état des
                 lieux à faire, loyer impayé : elles arriveront ici.
               </p>
@@ -856,7 +858,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         <Card>
           <CardContent>
             <div className="entete-carte">
-              <h3 className="text-[length:var(--pas-sous-titre)]">Lots en préparation</h3>
+              <h2 className="text-[length:var(--pas-sous-titre)]">Lots en préparation</h2>
               {enPreparation.length > 6 && (
                 <Link href={`/agence/${orgId}/parc`} className="lien-discret">
                   Voir les {enPreparation.length}
@@ -916,7 +918,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           <Card>
             <CardContent>
               <div className="entete-carte">
-                <h3 className="text-[length:var(--pas-sous-titre)]">Répartition du parc</h3>
+                <h2 className="text-[length:var(--pas-sous-titre)]">Répartition du parc</h2>
                 <span className="mono-discret">
                   {erreurLots ? "—" : `${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
                 </span>
@@ -939,7 +941,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
           <Card>
             <CardContent>
               <div className="entete-carte">
-                <h3 className="text-[length:var(--pas-sous-titre)]">Encaissements et dépenses</h3>
+                <h2 className="text-[length:var(--pas-sous-titre)]">Encaissements et dépenses</h2>
                 <span className="mono-discret">
                   {portefeuille ? "Mon portefeuille · 6 mois" : "6 mois"}
                 </span>

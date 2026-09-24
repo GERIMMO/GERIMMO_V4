@@ -444,7 +444,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                   {i + 1}
                 </span>
-                <a href={a.href} className="min-w-0 flex-1 underline-offset-2 hover:underline">
+                <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
                   {a.texte}
                 </a>
               </li>
@@ -467,7 +467,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
                       {i + 4}
                     </span>
-                    <a href={a.href} className="min-w-0 flex-1 underline-offset-2 hover:underline">
+                    <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
                       {a.texte}
                     </a>
                   </li>

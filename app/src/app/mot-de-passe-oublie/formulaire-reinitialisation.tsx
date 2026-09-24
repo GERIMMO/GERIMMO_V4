@@ -35,7 +35,7 @@ export function FormulaireReinitialisation() {
         ) : (
           <form action={action} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Adresse email</Label>
+              <Label htmlFor="email">Adresse e-mail</Label>
               <Input
                 id="email"
                 name="email"
@@ -45,7 +45,9 @@ export function FormulaireReinitialisation() {
               />
             </div>
             {etat.erreur && (
-              <p className="text-sm text-destructive">{etat.erreur}</p>
+              <p className="text-sm text-destructive" role="alert">
+                {etat.erreur}
+              </p>
             )}
             <BoutonEnvoi enCoursTexte="Envoi…" className="w-full">
               Envoyer le lien

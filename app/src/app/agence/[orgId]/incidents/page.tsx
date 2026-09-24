@@ -74,10 +74,15 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   // dossiers vivants sont lus sans plafond ; seuls les clos sont bornés.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   if (portefeuille instanceof PortefeuilleIndisponible) {
-    return <div className="space-y-4"><h1>Incidents</h1>
-      <EchecLecture quoi={["votre portefeuille"]} />
-      <p>Votre portefeuille n’a pas pu être chargé. Réessayez pour consulter vos dossiers.</p>
-    </div>;
+    // Même enveloppe que l'écran nominal : sans <main> ni marges, l'échec
+    // collait au bord et sortait du repère de navigation.
+    return (
+      <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 p-4 sm:p-7">
+        <h1>Incidents</h1>
+        <EchecLecture quoi={["votre portefeuille"]} />
+        <p>Votre portefeuille n’a pas pu être chargé. Réessayez pour consulter vos dossiers.</p>
+      </main>
+    );
   }
   const colonnes =
     "id, lot_id, numero, categorie, urgence, etat, created_at, responsable_account_id, lot:lots(nom), declarant:persons(nom, prenom)";
@@ -192,15 +197,14 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
             l&apos;imputation, elle décide de qui paie.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="mono-discret">
             {erreurVivants
               ? "file de travail indisponible"
               : `${enCours.length} en cours · ${aTraiter.length} à traiter`}
           </span>
-          {/* Seule porte d'entrée du carnet d'artisans tant que la barre de
-              navigation (src/components/nav-agence-premium.tsx) n'a pas son
-              entrée — ce fichier appartient à un autre lot. Signalé au rapport. */}
+          {/* Le carnet a son entrée dans « Plus » ; le raccourci reste ici,
+              là où l'on affecte un artisan. */}
           <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
             Carnet d&apos;artisans
           </Link>
@@ -357,11 +361,15 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
                         {ETATS_INCIDENT[i.etat] ?? "État à vérifier"}
                       </span>
                     </span>
-                    <span className="mono-discret">
-                      {i.responsable_account_id
-                        ? (emails.get(i.responsable_account_id) ?? "—").toUpperCase()
-                        : "NON ATTRIBUÉ"}
-                    </span>
+                    {/* Une adresse e-mail garde sa casse : en capitales, elle ne
+                        se relit plus (et .mono-discret capitalise d'office). */}
+                    {i.responsable_account_id ? (
+                      <span className="mono-discret sans-majuscules">
+                        {emails.get(i.responsable_account_id) ?? "—"}
+                      </span>
+                    ) : (
+                      <span className="mono-discret">Non attribué</span>
+                    )}
                   </span>
                 </Link>
               );

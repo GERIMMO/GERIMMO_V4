@@ -153,7 +153,7 @@ export default async function PageAdminOrganisation(
       <p className="mesure-lecture mb-6 text-sm text-[var(--texte-secondaire)]">
         Entrer dans un espace client donne accès à ses données réelles. Chaque
         traversée est inscrite au journal d&apos;audit, conservée trois ans
-        (RM-A1.11) — y compris l&apos;ouverture de cette fiche.
+        {/* RM-A1.11 */} — y compris l&apos;ouverture de cette fiche.
       </p>
 
       <section className="loc-carte">

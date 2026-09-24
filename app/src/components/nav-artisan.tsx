@@ -123,7 +123,7 @@ export function NavArtisan({
                   {nb > 0 && (
                     <span
                       aria-hidden
-                      className="absolute -top-1.5 -right-2.5 min-w-5 rounded-full bg-[var(--destructive)] px-1 text-center text-[11px] leading-5 font-medium text-[var(--ivoire)]"
+                      className="absolute -top-1.5 -right-2.5 min-w-5 rounded-full bg-[var(--marque)] px-1 text-center text-[11px] leading-5 font-medium text-[var(--sur-marque)]"
                     >
                       {nb > 9 ? "9+" : nb}
                     </span>

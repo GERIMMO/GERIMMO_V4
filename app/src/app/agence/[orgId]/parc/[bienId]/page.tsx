@@ -236,7 +236,7 @@ export default async function PageBien(
   const loues = lotsActifs.filter((l) => ["loue", "preavis"].includes(l.etat)).length;
 
   return (
-    <FenetreLotProvider orgId={orgId}>
+    <FenetreLotProvider orgId={orgId} estProprietaire={estProprietaire}>
       <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <EnteteFiche
         retour={{

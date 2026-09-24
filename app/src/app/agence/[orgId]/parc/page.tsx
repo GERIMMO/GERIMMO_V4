@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
-import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { ROLES_RESPONSABLES, eur } from "@/lib/ged";
 import { resumerBlocage } from "@/lib/echeances";
 import { etiqueterNiveau } from "@/lib/diagnostics";
 import {
@@ -172,7 +172,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   return (
     // Le fournisseur enveloppe l'écran : chaque rang de lot y puise de quoi
     // ouvrir la fenêtre, et la fenêtre se monte au-dessus de tout.
-    <FenetreLotProvider orgId={orgId} lotInitial={lotInitial}>
+    <FenetreLotProvider orgId={orgId} lotInitial={lotInitial} estProprietaire={estProprietaire}>
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>
@@ -182,7 +182,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               ? "Mon portefeuille"
               : "Parc de l'agence"}
         </h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {biensVisibles.length} bien{biensVisibles.length > 1 ? "s" : ""} · {nbLots} lot
@@ -396,7 +396,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               <div className="kpi bleu">
                 <span className="eyebrow">Quittancement</span>
                 <span className="chiffre block">
-                  {erreurBaux ? "—" : `${quittancement.toLocaleString("fr-FR")} €`}
+                  {erreurBaux ? "—" : eur(quittancement)}
                 </span>
                 <span className="block text-xs text-muted-foreground">
                   {erreurBaux ? "montants indisponibles" : "par mois, baux en cours"}

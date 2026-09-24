@@ -78,6 +78,10 @@ export function FormulaireSignature({
         <p className="text-sm text-muted-foreground">
           Aucune signature enregistrée — la zone de signature reste vierge sur
           les documents générés.
+          {/* 24/09 : en lecture seule, l'état vide disait le manque sans dire
+              à qui s'adresser — la carte Identité, elle, le dit. */}
+          {lectureSeule &&
+            " Un responsable de l'organisation peut en déposer une depuis cette page."}
         </p>
       )}
 
@@ -126,9 +130,9 @@ export function FormulaireSignature({
             </Label>
             <Input id="sig-fichier" name="fichier" type="file" accept=".png,.jpg,.jpeg" required />
           </div>
-          <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
-            Enregistrer
-          </BoutonEnvoi>
+          {/* 24/09 : même bouton que la carte Identité — petit et en contour,
+              le seul geste du formulaire se lisait comme une action secondaire. */}
+          <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer</BoutonEnvoi>
           {etat.erreur && (
             <p role="alert" className="text-sm text-destructive">
               {etat.erreur}

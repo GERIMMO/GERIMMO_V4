@@ -54,6 +54,8 @@ export function CarteSollicitation({ ligne }: { ligne: LigneSollicitation }) {
         {ligne.code_postal ? ` (${ligne.code_postal})` : ""}
       </p>
       {ligne.description && (
+        // Trois lignes dans la liste : la description entière est sur l'écran
+        // de la demande, à un appui, pour une demande close comme ouverte.
         <p className="mt-2 line-clamp-3 text-[0.9375rem] break-words text-[var(--corps)]">
           {ligne.description}
         </p>
@@ -81,22 +83,24 @@ export function CarteSollicitation({ ligne }: { ligne: LigneSollicitation }) {
     </>
   );
 
-  // Seule une demande encore ouverte mène quelque part : une demande close
-  // n'a pas d'écran, et un lien qui ne fait rien se clique quand même.
-  if (!aChiffrer) {
-    return (
-      <div className="rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5 opacity-90">
-        {contenu}
-        {ligne.montant_ttc_cents !== null && <a href={`/api/devis/${ligne.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold underline">Ouvrir le détail de mon devis (PDF)</a>}
-      </div>
-    );
-  }
+  // Toute la carte mène à la demande, close ou non (tour du 24/09) : une carte
+  // close à l'allure d'une carte ouverte, mais inerte, se touchait sans
+  // effet, et rien ne permettait de relire la demande en entier. L'écran de
+  // la demande en fait un récapitulatif, lien vers le PDF compris.
   return (
     <Link
       href={`/artisan/devis/${ligne.sollicitation_id}`}
       className="block rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5 transition-colors hover:border-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]"
     >
       {contenu}
+      {!aChiffrer && (
+        <p className="mt-2.5 flex items-center gap-1 text-[0.9375rem] font-medium text-[var(--encre)]">
+          Revoir la demande
+          <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current stroke-2">
+            <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </p>
+      )}
     </Link>
   );
 }

@@ -2,6 +2,7 @@ import type { LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
+import { formaterTelephone } from "@/app/artisan/libelles";
 import {
   IMPUTATIONS_INCIDENT,
   categorieIncident,
@@ -172,6 +173,32 @@ type Affectable = {
 
 // Le montant d'un devis, en euros lisibles. Les colonnes sont en centimes.
 const montant = (cents: number | null | undefined) => eur(centsEnEuros(cents));
+
+// Qui a proposé un créneau, dans une phrase (« proposé par l'artisan ») : le
+// libellé seul, « Artisan », ne disait pas qui propose (24/09).
+const PAR_AUTEUR_CRENEAU: Record<string, string> = {
+  artisan: "l'artisan",
+  locataire: "le locataire",
+  agence: "l'agence",
+};
+
+// Celui qui doit répondre à un créneau en attente : l'autre partie (RM-10.2.2 —
+// le locataire choisit parmi les dates de l'artisan, ou contre-propose ; puis
+// l'artisan répond aux siennes).
+const REPOND_AU_CRENEAU: Record<string, string> = {
+  artisan: "du locataire",
+  locataire: "de l'artisan",
+};
+
+// L'heure seule, à Paris : la fin d'un créneau tombe presque toujours le jour
+// de son début — répéter la date alourdissait la ligne (24/09).
+function heureParis(iso: string): string {
+  return new Date(iso).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  });
+}
 
 // RM-9.2.3 : un devis expiré est caduc. On le dit avant que la base ne le
 // refuse — l'agent n'a pas à essayer pour l'apprendre.
@@ -445,6 +472,10 @@ export async function VoletArtisan({
   // L'écart devis → réalisé, dit en clair. Le module 9 le veut « alerté sans
   // blocage » : l'artisan justifie, l'agent tranche. Faute de facture dans le
   // produit, on le signale ici, sur le compte rendu.
+  // Les créneaux qui attendent une réponse, sur la mission courante
+  const creneauxEnAttente = mission
+    ? creneaux.filter((c) => c.intervention_id === mission.id && c.statut === "propose")
+    : [];
   const ecartCents =
     devisRetenu && compteRenduCourant?.montant_final_cents != null
       ? compteRenduCourant.montant_final_cents - devisRetenu.montant_ttc_cents
@@ -503,11 +534,14 @@ export async function VoletArtisan({
               {nomArtisan.get(mission.artisan_id)?.telephone && (
                 <>
                   {" · "}
+                  {/* 24/09 : par paires et en lien bleu — rappeler l'artisan
+                      est le geste courant ; « 0601020304 » gris, souligné au
+                      seul survol, ne disait pas qu'il se compose. */}
                   <a
                     href={`tel:${nomArtisan.get(mission.artisan_id)!.telephone.replace(/\s/g, "")}`}
-                    className="hover:underline"
+                    className="lien-discret whitespace-nowrap"
                   >
-                    {nomArtisan.get(mission.artisan_id)!.telephone}
+                    {formaterTelephone(nomArtisan.get(mission.artisan_id)!.telephone)}
                   </a>
                 </>
               )}
@@ -560,11 +594,20 @@ export async function VoletArtisan({
                 </div>
               )}
               <div className="ligne-info">
-                <span>Rendez-vous</span>
-                <span>
+                {/* shrink-0 / text-right : la valeur, plus longue depuis le
+                    24/09, coupait le libellé en « Rendez- / vous ». */}
+                <span className="shrink-0">Rendez-vous</span>
+                <span className="text-right">
+                  {/* 24/09 : « pas encore fixé » seul laissait croire que
+                      c'était au gestionnaire d'agir ; on dit qui doit choisir
+                      parmi les créneaux en attente. */}
                   {mission.debut_prevu
                     ? `${formaterDateHeure(mission.debut_prevu)} → ${formaterDateHeure(mission.fin_prevue)}`
-                    : "pas encore fixé"}
+                    : creneauxEnAttente.length > 0
+                      ? `pas encore fixé — en attente du choix ${
+                          REPOND_AU_CRENEAU[creneauxEnAttente[0].propose_par] ?? "de l'autre partie"
+                        }`
+                      : "pas encore fixé"}
                 </span>
               </div>
               {mission.acceptee_le && (
@@ -605,9 +648,18 @@ export async function VoletArtisan({
                         <b className="block text-[13px] font-medium text-foreground">
                           {formaterDateHeure(c.debut)}
                         </b>
+                        {/* 24/09 : « tour 1 » était le vocabulaire interne de
+                            la négociation ; il ne paraît plus qu'à partir du
+                            deuxième tour, là où il apprend quelque chose. */}
                         <span className="block text-xs text-muted-foreground">
-                          fin {formaterDateHeure(c.fin)} ·{" "}
-                          {AUTEURS_CRENEAU[c.propose_par] ?? c.propose_par} · tour {c.tour}
+                          jusqu&apos;à{" "}
+                          {formaterDate(c.fin) === formaterDate(c.debut)
+                            ? heureParis(c.fin)
+                            : formaterDateHeure(c.fin)}{" "}
+                          · proposé par{" "}
+                          {PAR_AUTEUR_CRENEAU[c.propose_par] ??
+                            (AUTEURS_CRENEAU[c.propose_par] ?? c.propose_par).toLowerCase()}
+                          {c.tour > 1 ? ` · ${c.tour}ᵉ tour` : ""}
                         </span>
                       </span>
                       <span
@@ -638,7 +690,11 @@ export async function VoletArtisan({
                     (c) => c.intervention_id === mission.id && c.statut === "refuse"
                   ).length >= 6
                     ? "Six créneaux refusés — réglez le rendez-vous au téléphone"
-                    : "Fixer le rendez-vous vous-même"}
+                    : // 24/09 : la conséquence se lit AVANT d'ouvrir — elle
+                      // n'était écrite qu'au pied du formulaire déplié.
+                      creneauxEnAttente.length > 0
+                      ? "Fixer le rendez-vous vous-même (annule les créneaux proposés)"
+                      : "Fixer le rendez-vous vous-même"}
                 </summary>
                 <div className="pt-3">
                   <FormulaireRendezVous orgId={orgId} interventionId={mission.id} />
@@ -874,8 +930,10 @@ function ConsultationOuverte({
       <CardHeader>
         <div className="entete-carte !mb-0">
           <CardTitle className="text-base">Mise en concurrence</CardTitle>
+          {/* 24/09 : « 1 artisan sur 2 » se lisait comme une fraction ; le
+              « 2 » est le plafond de sollicitations en parallèle (RM-9.1.1). */}
           <span className="mono-discret">
-            {vivantes.length} artisan{vivantes.length > 1 ? "s" : ""} sur 2
+            {vivantes.length} sollicité{vivantes.length > 1 ? "s" : ""} · 2 au plus en parallèle
           </span>
         </div>
         <CardDescription>
@@ -903,21 +961,24 @@ function ConsultationOuverte({
         {sollicitations.length > 0 && (
           <div>
             <p className="libelle-champ mb-1">Artisans sollicités</p>
+            {/* Rang empilé (24/09) : le nom — seule information du rang —
+                était tronqué (« Plomberie D… ») par la date et la puce figées
+                à droite. Il a sa ligne entière ; date et statut dessous. */}
             {sollicitations.map((s) => (
               <div key={s.id} className="ligne-info">
-                <span className="min-w-0 truncate">
-                  {nom(s.artisan_id)}
+                <span className="min-w-0 flex-1">
+                  <b className="block text-sm font-medium break-words">{nom(s.artisan_id)}</b>
+                  <span className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                    <span className="mono-discret">{formaterDate(s.envoyee_le)}</span>
+                    <span className={COULEURS_SOLLICITATION[s.statut] ?? "puce puce-grise"}>
+                      {STATUTS_SOLLICITATION[s.statut] ?? "État à vérifier"}
+                    </span>
+                  </span>
                   {s.refus_motif && (
-                    <span className="block text-xs text-muted-foreground">
+                    <span className="mt-1 block text-xs text-muted-foreground">
                       « {s.refus_motif} »
                     </span>
                   )}
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="mono-discret">{formaterDate(s.envoyee_le)}</span>
-                  <span className={COULEURS_SOLLICITATION[s.statut] ?? "puce puce-grise"}>
-                    {STATUTS_SOLLICITATION[s.statut] ?? "État à vérifier"}
-                  </span>
                 </span>
               </div>
             ))}
@@ -967,15 +1028,16 @@ function ConsultationOuverte({
                     </p>
                     <div>
                       <div className="ligne-info">
-                        <span>Note Gerimmo</span>
+                        <span>Note</span>
                         <span>
                           {/* RM-11 : la note n'est publiée qu'au-delà de trois
-                              évaluations — avant, on dit « nouveau », on
-                              n'affiche pas une moyenne de deux avis. */}
+                              évaluations — avant, on dit « pas encore noté », on
+                              n'affiche pas une moyenne de deux avis. 24/09 : sans
+                              nommer la plateforme, l'espace est en marque blanche. */}
                           {fiche?.publiable && fiche.note_publiee != null
                             ? `${fiche.note_publiee} / 5 · ${fiche.nb_evaluations} avis`
                             : fiche
-                              ? "Nouveau sur Gerimmo"
+                              ? "Pas encore noté"
                               : "—"}
                         </span>
                       </div>
@@ -1045,9 +1107,13 @@ function ConsultationOuverte({
               <p className="libelle-champ">
                 Artisans proposables{codePostal ? ` sur le ${codePostal}` : ""}
               </p>
-              <span className="mono-discret">triés par score</span>
+              {/* 24/09 : l'ordre de la base (note publiée d'abord), dit sans
+                  jargon — et seulement au-dessus d'une liste qui a un ordre. */}
+              {restants.length > 0 && (
+                <span className="mono-discret">les mieux notés d&apos;abord</span>
+              )}
             </div>
-            {restants.length === 0 ? (
+            {affectables.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Aucun artisan ne remonte pour ce métier
                 {codePostal ? ` sur le code postal ${codePostal}` : ""}
@@ -1057,17 +1123,31 @@ function ConsultationOuverte({
                 </Link>
                 , ou changez la nature des travaux si vous vous êtes trompé.
               </p>
+            ) : restants.length === 0 ? (
+              // 24/09 : « aucun artisan » quand il y en a un, déjà sollicité
+              // trois lignes plus haut, poussait à corriger la nature des
+              // travaux pour rien. Il n'en reste simplement aucun AUTRE.
+              <p className="text-sm text-muted-foreground">
+                Tous les artisans qui correspondent sont déjà sollicités —
+                attendez leur devis, ou{" "}
+                <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+                  enregistrez une autre entreprise dans votre carnet
+                </Link>{" "}
+                pour mettre en concurrence.
+              </p>
             ) : (
               restants.map((a) => (
                 <div key={a.artisan_id} className="ligne-info">
                   <span className="min-w-0">
-                    <b className="block truncate text-sm font-medium">{a.raison_sociale}</b>
+                    {/* 24/09 : plus de `truncate` — même défaut que les
+                        sollicités, le nom est ce qu'on lit d'abord. */}
+                    <b className="block text-sm font-medium break-words">{a.raison_sociale}</b>
                     <span className="block text-xs text-muted-foreground">
                       {a.publiable && a.note_publiee != null
                         ? `${a.note_publiee} / 5 · ${a.nb_evaluations} avis`
-                        : "Nouveau sur Gerimmo"}
+                        : "Pas encore noté"}
                       {" · "}
-                      {a.telephone}
+                      <span className="whitespace-nowrap">{formaterTelephone(a.telephone)}</span>
                     </span>
                   </span>
                   <span className="flex shrink-0 flex-wrap items-center justify-end gap-2">
@@ -1087,10 +1167,13 @@ function ConsultationOuverte({
                 </div>
               ))
             )}
+            {/* 24/09 : sans « validation Gerimmo » ni « listes noires » — la
+                plateforme ne se nomme pas dans un espace en marque blanche. */}
             <p className="mt-2 text-xs text-muted-foreground">
-              Cette liste est déjà filtrée : métier, zone, validation Gerimmo,
-              listes noires, et décennale valide quand ces travaux l&apos;exigent.
-              Un artisan absent d&apos;ici ne peut pas être sollicité.
+              Ne sont proposés que les artisans du métier et de la zone, validés
+              et non écartés, couverts par une décennale valide quand ces
+              travaux l&apos;exigent. Un artisan absent d&apos;ici ne peut pas
+              être sollicité.
             </p>
           </div>
         )}

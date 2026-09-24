@@ -93,7 +93,7 @@ export async function creerOuRattacherArtisan(
   revalidatePath(`/agence/${orgId}/artisans`);
   return {
     succes:
-      "Artisan enregistré. Si ce SIRET existait déjà chez Gerimmo, sa fiche a été rattachée à votre agence plutôt que dupliquée.",
+      "Artisan enregistré. Si ce SIRET existait déjà chez Gerimmo, sa fiche vous a été rattachée plutôt que dupliquée.",
   };
 }
 

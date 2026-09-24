@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BoutonImprimer } from "@/components/bouton-imprimer";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { eur, formaterDate } from "@/lib/ged";
+import { ImpressionAutomatique } from "./impression-automatique";
 
 type DetailQuittance = {
   emetteur: string;
@@ -42,10 +43,18 @@ export async function generateMetadata(props: {
   return { title: q && !q.est_quittance ? "Reçu — Gerimmo" : "Quittance — Gerimmo" };
 }
 
-export default async function PageQuittance(props: { params: Promise<{ quittanceId: string }> }) {
+export default async function PageQuittance(props: {
+  params: Promise<{ quittanceId: string }>;
+  searchParams: Promise<{ imprimer?: string | string[] }>;
+}) {
   const { quittanceId } = await props.params;
   const q = await chargerQuittance(quittanceId);
   if (!q) notFound();
+  // « Télécharger » (Mes documents, espace locataire) arrive avec ?imprimer=1 :
+  // la feuille d'impression s'ouvre d'elle-même, d'où « Enregistrer en PDF ».
+  // Le reste de la page est identique — l'URL nue reste la lecture à l'écran (24/09).
+  const { imprimer } = await props.searchParams;
+  const imprimerAuChargement = imprimer === "1";
   const db = await createClient();
   const { data: origine } = await db.from("quittances").select("organization_id").eq("id", quittanceId).maybeSingle();
   const marque = origine?.organization_id ? await chargerMarque(db, origine.organization_id) : null;
@@ -65,6 +74,7 @@ export default async function PageQuittance(props: { params: Promise<{ quittance
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8" style={styleMarque(marque)}>
+      {imprimerAuChargement && <ImpressionAutomatique />}
       {marque && <div className="max-w-[180px]"><MarqueOrganisation marque={marque} /></div>}
       {/* Route racine, hors de tout espace : sans cela, le document est un
           cul-de-sac. Masqué à l'impression — une quittation papier n'a pas de

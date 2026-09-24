@@ -6,7 +6,14 @@ import { EchecLecture } from "../documents/echec-lecture";
 import { FormulairePersonne } from "./formulaire-personne";
 import { ListePersonnes, type PersonneListe } from "./liste-personnes";
 
-export const metadata = { title: "Personnes — Gerimmo" };
+// 24/09 : l'onglet porte le nom de la rubrique du menu — « Locataires &
+// garants » chez le propriétaire direct, pas « Personnes ».
+// verifierAccesEspace est sous cache() : la page ne refait pas la lecture.
+export async function generateMetadata(props: PageProps<"/agence/[orgId]/personnes">) {
+  const { orgId } = await props.params;
+  const { estProprietaire } = await verifierAccesEspace(orgId);
+  return { title: `${estProprietaire ? "Locataires & garants" : "Personnes"} — Gerimmo` };
+}
 
 // Les personnes de l'agence. La fiche n'a pas de rôle en propre (module 0b) :
 // il se déduit des détentions, des baux et des mandats — et la liste l'affiche,
@@ -139,7 +146,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
 
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-      <div className="entete-page mb-6">
+      <div className="entete-page">
         <h1>{role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}</h1>
         <div className="flex items-center gap-4">
           <span className="mono-discret">
@@ -165,11 +172,14 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
           orgId={orgId}
           personnes={fiches}
           listeIllisible={Boolean(erreurPersonnes)}
+          estBailleurDirect={role === "proprietaire_direct"}
         />
 
         <aside id="creer-fiche" className="scroll-mt-20">
+          {/* Pas de pt-6 : la carte pose déjà sa marge interne — le titre
+              flottait à 44 px du bord, contre 20 px partout ailleurs (24/09). */}
           <Card>
-            <CardContent className="pt-6">
+            <CardContent>
               <p className="mb-3 text-sm font-medium">Créer une fiche</p>
               <FormulairePersonne
                 orgId={orgId}

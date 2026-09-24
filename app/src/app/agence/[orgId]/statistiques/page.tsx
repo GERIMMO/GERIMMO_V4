@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { eur } from "@/lib/ged";
@@ -40,7 +41,8 @@ export default async function PageStatistiques(
       .from("incidents")
       .select("id, lot_id, etat, imputation, created_at, clos_le")
       .eq("organization_id", orgId),
-    supabase.from("lots").select("id, nom").eq("organization_id", orgId),
+    // bien_id : chaque rang de « Lots les plus signalés » mène à sa fiche.
+    supabase.from("lots").select("id, nom, bien_id").eq("organization_id", orgId),
     // Le devis RETENU, et lui seul : un devis reçu puis écarté n'a jamais
     // engagé un euro, l'additionner gonflerait le coût de l'agence.
     supabase
@@ -66,8 +68,8 @@ export default async function PageStatistiques(
   ].filter((x): x is string => Boolean(x));
   if (lecturesEnEchec.length > 0) {
     return (
-      <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
-        <div className="entete-page mb-4">
+      <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
+        <div className="entete-page">
           <h1>Statistiques</h1>
         </div>
         <div className="err" role="alert">
@@ -87,7 +89,9 @@ export default async function PageStatistiques(
   }
   // lotsDuPortefeuille renvoie déjà null pour tout rôle autre qu'agent
   const perimetre = await lotsDuPortefeuille(supabase, orgId, role, user.id);
-  const nomLot = new Map(((lots ?? []) as { id: string; nom: string }[]).map((l) => [l.id, l.nom]));
+  const lotParId = new Map(
+    ((lots ?? []) as { id: string; nom: string; bien_id: string | null }[]).map((l) => [l.id, l])
+  );
   const incidents = ((incidentsBruts ?? []) as {
     id: string;
     lot_id: string;
@@ -180,6 +184,14 @@ export default async function PageStatistiques(
   }
   const coutsTries = [...coutParImputation.entries()].sort((a, b) => b[1] - a[1]);
 
+  // Le coût constaté PAR LOT (24/09) : « le coût cumulé de ces dépannages est
+  // ci-dessus » renvoyait au total de toute l'agence, pas à celui du lot listé.
+  const coutParLot = new Map<string, number>();
+  for (const id of idsChiffres) {
+    const lotId = incidentsDuPerimetre.get(id)?.lot_id;
+    if (lotId) coutParLot.set(lotId, (coutParLot.get(lotId) ?? 0) + coutConstateCents(id));
+  }
+
   // Ces trois lectures ne conditionnent PAS la page : un écran de statistiques
   // sans les coûts reste utile, alors qu'un écran blanc ne l'est pas. On les
   // nomme dans la carte des coûts, là où le manque se voit.
@@ -190,9 +202,12 @@ export default async function PageStatistiques(
   ].filter((x): x is string => Boolean(x));
 
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-7">
+    // max-w-5xl comme les autres écrans de premier niveau (tour du 24/09).
+    <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
+      {/* Le titre reprend le menu, comme les pages sœurs : la mention « Mon
+          portefeuille » dit déjà le périmètre de l'agent (24/09). */}
       <div className="entete-page">
-        <h1>{perimetre ? "Mes statistiques" : "Statistiques"}</h1>
+        <h1>Statistiques</h1>
         <span className="mono-discret">
           {perimetre ? "Mon portefeuille · " : ""}
           {incidents.length} incident{incidents.length > 1 ? "s" : ""} au total
@@ -204,33 +219,48 @@ export default async function PageStatistiques(
           (.loc-kpi + tailles en dur) pour dire exactement la même chose. Les
           liserés restent catégoriels, jamais évaluatifs : un taux de 20 %
           sous liseré vert se lirait comme une bonne nouvelle. */}
-      <div className="grid gap-3.5 sm:grid-cols-3">
+      {/* `.grille-kpi`, la grille de la charte (Comptabilité, Parc) : entre
+          640 et 900 px, `sm:grid-cols-3` forçait trois tuiles de 190 px
+          (24/09). Une mesure impossible dit « Pas encore mesurable » en
+          toutes lettres : un gros « — » en police de titrage se lisait comme
+          une petite barre. « En cours » mène aux incidents, comme la tuile
+          du tableau de bord. */}
+      <div className="grille-kpi">
         <div className="kpi bleu">
           <span className="eyebrow">Résolus sous 15 jours</span>
-          <span className="chiffre montant mt-1 block">
-            {sous15j !== null ? `${sous15j} %` : "—"}
-          </span>
+          {sous15j !== null ? (
+            <span className="chiffre montant mt-1 block">{sous15j} %</span>
+          ) : (
+            <span className="mt-1 block text-sm text-muted-foreground">Pas encore mesurable</span>
+          )}
+          {/* La base du taux : les clos dont la date de clôture est connue —
+              un clos sans date ne se mesure pas. */}
           <span className="block text-xs text-muted-foreground">
-            sur {delais.length} incident{delais.length > 1 ? "s" : ""} clos et daté
-            {delais.length > 1 ? "s" : ""}
+            sur {delais.length} incident{delais.length > 1 ? "s" : ""} clos
           </span>
         </div>
         <div className="kpi">
           <span className="eyebrow">Délai moyen de clôture</span>
-          <span className="chiffre montant mt-1 block">
-            {delaiMoyen !== null ? `${delaiMoyen.toLocaleString("fr-FR")} j` : "—"}
-          </span>
+          {delaiMoyen !== null ? (
+            <span className="chiffre montant mt-1 block">
+              {delaiMoyen.toLocaleString("fr-FR")} j
+            </span>
+          ) : (
+            <span className="mt-1 block text-sm text-muted-foreground">Pas encore mesurable</span>
+          )}
           <span className="block text-xs text-muted-foreground">
-            du signalement à la clôture
+            {clos.length === 0
+              ? "aucun incident clos pour l’instant"
+              : "du signalement à la clôture"}
           </span>
         </div>
-        <div className="kpi or">
+        <Link href={`/agence/${orgId}/incidents`} className="kpi or">
           <span className="eyebrow">En cours</span>
           <span className="chiffre montant mt-1 block">{enCours}</span>
           <span className="block text-xs text-muted-foreground">
             incident{enCours > 1 ? "s" : ""} ouvert{enCours > 1 ? "s" : ""}
           </span>
-        </div>
+        </Link>
       </div>
 
       {incidents.length === 0 ? (
@@ -283,96 +313,104 @@ export default async function PageStatistiques(
           {/* CE QUE COÛTENT LES INTERVENTIONS — la promesse d'août, tenue.
               Deux montants distincts et nommés : l'engagé (devis retenu) et le
               constaté (montant final du compte rendu). Pas de « payé » : la
-              facture n'existe pas encore dans le produit. */}
-          <Card>
-            <CardHeader>
-              <div className="entete-carte !mb-0">
-                <h2 className="font-heading text-base leading-snug font-medium">
-                  Ce que coûtent les interventions
-                </h2>
-                <span className="mono-discret">
-                  {idsChiffres.length} incident{idsChiffres.length > 1 ? "s" : ""} chiffré
-                  {idsChiffres.length > 1 ? "s" : ""}
-                </span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <EchecLecture quoi={coutsIllisibles} />
-              {idsChiffres.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Aucun devis n&apos;a encore été retenu
-                  {perimetre ? " sur votre portefeuille" : " dans cette agence"}. Dès
-                  la première mission confiée à un artisan, cet écran chiffre le
-                  coût moyen, l&apos;écart entre devis et réalisé, et la part
-                  supportée par chacun.
-                </p>
-              ) : (
-                <>
-                  <div className="grid gap-3.5 sm:grid-cols-3">
-                    <div className="kpi">
-                      <span className="eyebrow">Coût constaté</span>
-                      <span className="chiffre montant mt-1 block">
-                        {eur(centsEnEuros(totalConstateCents))}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        montant final de l&apos;artisan, à défaut le devis retenu
-                      </span>
-                    </div>
-                    <div className="kpi">
-                      <span className="eyebrow">Coût moyen</span>
-                      <span className="chiffre montant mt-1 block">
-                        {eur(centsEnEuros(coutMoyenCents))}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        par incident confié à un artisan
-                      </span>
-                    </div>
-                    <div className="kpi or">
-                      <span className="eyebrow">Écart devis → réalisé</span>
-                      <span className="chiffre montant mt-1 block">
-                        {idsCompares.length
-                          ? `${ecartCents > 0 ? "+" : ""}${eur(centsEnEuros(ecartCents))}`
-                          : "—"}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {idsCompares.length
-                          ? `sur ${idsCompares.length} intervention${idsCompares.length > 1 ? "s" : ""} terminée${idsCompares.length > 1 ? "s" : ""} et chiffrée${idsCompares.length > 1 ? "s" : ""}`
-                          : "aucune intervention n'a encore de montant final"}
-                      </span>
-                    </div>
+              facture n'existe pas encore dans le produit.
+              Les tuiles sont posées à plat sous un titre de section, comme
+              celles du haut de page : dans la carte, cela faisait trois cadres
+              dans un cadre (24/09). La carte ne garde que la répartition. */}
+          <section className="space-y-3 pt-2" aria-labelledby="titre-couts">
+            <div className="entete-carte !mb-0">
+              <h2 id="titre-couts" className="font-heading text-lg leading-snug font-medium">
+                Ce que coûtent les interventions
+              </h2>
+              <span className="mono-discret">
+                {idsChiffres.length} incident{idsChiffres.length > 1 ? "s" : ""} chiffré
+                {idsChiffres.length > 1 ? "s" : ""}
+              </span>
+            </div>
+            <EchecLecture quoi={coutsIllisibles} />
+            {idsChiffres.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Aucun devis n&apos;a encore été retenu
+                {perimetre ? " sur votre portefeuille" : " dans cette agence"}. Dès
+                la première mission confiée à un artisan, cet écran chiffre le
+                coût moyen, l&apos;écart entre devis et réalisé, et la part
+                supportée par chacun.
+              </p>
+            ) : (
+              <>
+                <div className="grille-kpi">
+                  <div className="kpi">
+                    <span className="eyebrow">Coût constaté</span>
+                    <span className="chiffre montant mt-1 block">
+                      {eur(centsEnEuros(totalConstateCents))}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      montant final de l&apos;artisan, à défaut le devis retenu
+                    </span>
                   </div>
-                  <div>
-                    <p className="libelle-champ mb-1">Qui supporte ces montants</p>
-                    {coutsTries.map(([imp, cents]) => (
-                      <div key={imp} className="ligne-info">
-                        <span className="min-w-0 truncate">
-                          {imp === "a_qualifier"
-                            ? "Pas encore qualifié"
-                            : (IMPUTATIONS_INCIDENT[imp] ?? imp)}
-                        </span>
-                        <span className="barre hidden flex-1 self-center sm:block">
-                          <i
-                            style={{
-                              width: `${totalConstateCents ? Math.round((cents / totalConstateCents) * 100) : 0}%`,
-                              background: "var(--encre)",
-                            }}
-                          />
-                        </span>
-                        <span className="montant whitespace-nowrap">
-                          {eur(centsEnEuros(cents))}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="kpi">
+                    <span className="eyebrow">Coût moyen</span>
+                    <span className="chiffre montant mt-1 block">
+                      {eur(centsEnEuros(coutMoyenCents))}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      par incident confié à un artisan
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Seul le devis retenu compte : un devis reçu puis écarté
-                    n&apos;engage rien. Ces montants ne sont pas des factures — la
-                    facturation viendra compléter l&apos;écran.
-                  </p>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                  {/* L'accent ne met en avant qu'un chiffre qui existe. */}
+                  <div className={`kpi${idsCompares.length ? " or" : ""}`}>
+                    <span className="eyebrow">Écart devis → réalisé</span>
+                    {idsCompares.length ? (
+                      <span className="chiffre montant mt-1 block">
+                        {`${ecartCents > 0 ? "+" : ""}${eur(centsEnEuros(ecartCents))}`}
+                      </span>
+                    ) : (
+                      <span className="mt-1 block text-sm text-muted-foreground">
+                        Pas encore mesurable
+                      </span>
+                    )}
+                    <span className="block text-xs text-muted-foreground">
+                      {idsCompares.length
+                        ? `sur ${idsCompares.length} intervention${idsCompares.length > 1 ? "s" : ""} terminée${idsCompares.length > 1 ? "s" : ""} et chiffrée${idsCompares.length > 1 ? "s" : ""}`
+                        : "aucune intervention n'a encore de montant final"}
+                    </span>
+                  </div>
+                </div>
+                <Card>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <p className="libelle-champ mb-1">Qui supporte ces montants</p>
+                      {coutsTries.map(([imp, cents]) => (
+                        <div key={imp} className="ligne-info">
+                          <span className="min-w-0 truncate">
+                            {imp === "a_qualifier"
+                              ? "Pas encore qualifié"
+                              : (IMPUTATIONS_INCIDENT[imp] ?? imp)}
+                          </span>
+                          <span className="barre hidden flex-1 self-center sm:block">
+                            <i
+                              style={{
+                                width: `${totalConstateCents ? Math.round((cents / totalConstateCents) * 100) : 0}%`,
+                                background: "var(--encre)",
+                              }}
+                            />
+                          </span>
+                          <span className="montant whitespace-nowrap">
+                            {eur(centsEnEuros(cents))}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Le fait, sans la feuille de route du produit (24/09). */}
+                    <p className="text-xs text-muted-foreground">
+                      Seul le devis retenu compte : un devis reçu puis écarté
+                      n&apos;engage rien. Ces montants ne sont pas des factures.
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </section>
 
           <Card>
             <CardHeader>
@@ -389,26 +427,44 @@ export default async function PageStatistiques(
               </div>
             </CardHeader>
             <CardContent>
-              {topLots.map(([lotId, n]) => (
-                <div key={lotId} className="ligne-info">
-                  <span className="min-w-0 truncate">{nomLot.get(lotId) ?? "Lot"}</span>
-                  <span className="barre hidden flex-1 self-center sm:block">
-                    <i style={{ width: `${Math.round((n / maxLot) * 100)}%`, background: "var(--encre)" }} />
-                  </span>
-                  <span className="montant whitespace-nowrap">
-                    {n} incident{n > 1 ? "s" : ""}
-                  </span>
-                </div>
-              ))}
+              {/* Chaque rang mène à la fiche du lot — tout le rang, nom, jauge
+                  et compte (24/09) : c'est l'information la plus actionnable
+                  de l'écran. Le coût constaté du lot suit son compte, quand
+                  les montants ont pu être lus. */}
+              {topLots.map(([lotId, n]) => {
+                const lot = lotParId.get(lotId);
+                const cout = coutsIllisibles.length === 0 ? (coutParLot.get(lotId) ?? 0) : 0;
+                const contenu = (
+                  <>
+                    <span className="min-w-0 truncate">{lot?.nom ?? "Lot"}</span>
+                    <span className="barre hidden flex-1 self-center sm:block">
+                      <i style={{ width: `${Math.round((n / maxLot) * 100)}%`, background: "var(--encre)" }} />
+                    </span>
+                    <span className="montant whitespace-nowrap">
+                      {n} incident{n > 1 ? "s" : ""}
+                      {cout > 0 && ` · ${eur(centsEnEuros(cout))}`}
+                    </span>
+                  </>
+                );
+                return lot?.bien_id ? (
+                  <Link
+                    key={lotId}
+                    href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lotId}`}
+                    className="ligne-info -mx-2 px-2 hover:bg-[var(--survol)]"
+                  >
+                    {contenu}
+                  </Link>
+                ) : (
+                  <div key={lotId} className="ligne-info">
+                    {contenu}
+                  </div>
+                );
+              })}
               <p className="mt-3 text-xs text-muted-foreground">
                 Un même lot signalé plusieurs fois pour la même famille de panne :
                 {estProprietaire
                   ? " le signe chiffré qu'un travail de fond s'impose."
-                  : " l'argument chiffré à présenter au propriétaire pour des travaux de fond."}{" "}
-                {/* La phrase qui promettait les coûts « avec les devis
-                    d'artisans » est tenue depuis le 11/09 : elle renvoie
-                    désormais au chiffre, au lieu de l'annoncer. */}
-                Le coût cumulé de ces dépannages est ci-dessus.
+                  : " l'argument chiffré à présenter au propriétaire pour des travaux de fond."}
               </p>
             </CardContent>
           </Card>

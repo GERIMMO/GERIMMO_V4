@@ -29,11 +29,15 @@ export default async function PageJournal() {
   const articles = data ?? [];
 
   return (
-    <div className="min-h-full bg-[var(--creme)]">
+    // flex-col : le body est une colonne flex, et sans elle le main.flex-1 ne
+    // poussait rien — le pied flottait à mi-écran, 200 px de vide dessous (24/09).
+    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
       <EnTetePublic />
       {/* Charte v3 : le journal s'ouvre comme la vitrine, sur blanc lumineux —
-          plus d'aplat marine sous le bandeau. */}
-      <header className="vitrine-hero journal-hero">
+          plus d'aplat marine sous le bandeau. 24/09 : plus de photo non plus.
+          Celle des pages de connexion, sans rapport avec le journal, faisait
+          d'une page secondaire la plus décorée du site. */}
+      <header className="vitrine-hero">
         <div className="mx-auto w-full max-w-6xl px-4 pt-10 pb-12 sm:px-7 sm:pt-14 sm:pb-16">
           <p className="eyebrow text-[var(--or-texte)]">Journal</p>
           <h1 className="mt-2 max-w-2xl text-balance font-heading text-3xl leading-tight text-[var(--encre)] sm:text-4xl">
@@ -64,24 +68,25 @@ export default async function PageJournal() {
           </div>
         ) : (
           <div className="grid gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-3">
+            {/* 24/09 : un seul lien couvre toute la carte. Seuls le titre et
+                « Lire → » réagissaient, deux liens vers la même adresse ;
+                la date et le chapo restaient inertes. */}
             {articles.map((a) => (
               <article key={a.id}>
-                <p className="mono-discret !text-[10px] sans-majuscules">{jour(a.publie_le)}</p>
-                <h2 className="mt-1.5 font-heading text-[19px] leading-snug text-[var(--encre)]">
-                  <Link href={`/journal/${a.slug}`} className="hover:underline">
-                    {a.titre}
-                  </Link>
-                </h2>
-                {a.chapo && (
-                  <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
-                    {a.chapo}
-                  </p>
-                )}
                 <Link
                   href={`/journal/${a.slug}`}
-                  className="lien-discret mt-2.5 inline-block text-[13px]"
+                  className="group -m-3 block rounded-xl p-3 hover:bg-[var(--survol)]"
                 >
-                  Lire →
+                  <p className="mono-discret sans-majuscules">{jour(a.publie_le)}</p>
+                  <h2 className="mt-1.5 font-heading text-[19px] leading-snug text-[var(--encre)] group-hover:underline">
+                    {a.titre}
+                  </h2>
+                  {a.chapo && (
+                    <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
+                      {a.chapo}
+                    </p>
+                  )}
+                  <span className="mt-2.5 inline-block text-[13px] text-[var(--bleu)]">Lire →</span>
                 </Link>
               </article>
             ))}
@@ -89,7 +94,7 @@ export default async function PageJournal() {
         )}
       </main>
 
-      <PiedPublic />
+      <PiedPublic courant="/journal" />
     </div>
   );
 }

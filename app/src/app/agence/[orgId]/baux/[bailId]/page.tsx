@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { RubriqueDossier } from "@/components/rubrique-dossier";
+import { EnteteFiche } from "@/components/fiche-parc";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { formaterDate, eur } from "@/lib/ged";
@@ -392,44 +393,56 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
   return (
     <main className="dossier-bail mx-auto w-full max-w-4xl space-y-[1.125rem] p-4 sm:p-7">
-      <div className="dossier-bail-entete">
-        {lot && (
-          <Link
-            href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`}
-            className="text-sm text-muted-foreground hover:underline"
-          >
-            ← {lot.nom}
-          </Link>
-        )}
-        <p className="eyebrow mt-1">Bail {bail.chambre_id ? `individuel · ${chambre?.nom ?? "chambre"}` : TYPES_BAIL[bail.type] ?? bail.type}</p>
-        <div className="my-3">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Le titre porte qui habite où — le type de bail vit dans l'eyebrow */}
-            <h1>{locataire ? nomComplet(locataire) : lot?.nom ?? "Bail"}</h1>
-            <span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>
-              {ETATS_BAIL[bail.etat] ?? "État du contrat à vérifier"}
-            </span>
-          </div>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {!locataire && <>Locataire : — · </>}
-          {/* « 1050 € HC » : un nombre brut et une abréviation. Le loyer se lit
-              mieux formaté, et « hors charges » s'écrit en toutes lettres. */}
-          {bail.loyer_hc
-            ? `${eur(Number(bail.loyer_hc))} hors charges`
-            : "loyer non fixé"}
-          {bail.charges ? ` + ${eur(Number(bail.charges))} de charges` : ""}
-          {bail.date_fin ? ` · fin le ${formaterDate(bail.date_fin)}` : ""}
-        </p>
-      </div>
+      {/* L'EN-TÊTE DES FICHES DE L'ESPACE (24/09). Le bail avait son bloc
+          maison (`.dossier-bail-entete`) quand le lot et le bien, d'où l'on
+          arrive, partagent EnteteFiche : même retour, même surtitre, et les
+          montants en « faits » chiffrés à droite plutôt qu'en phrase. Le
+          titre porte qui habite où — le type de bail vit dans le surtitre. */}
+      <EnteteFiche
+        retour={
+          lot
+            ? { href: `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`, libelle: lot.nom }
+            : { href: `/agence/${orgId}/parc`, libelle: "Parc" }
+        }
+        surtitre={`Bail ${bail.chambre_id ? `individuel · ${chambre?.nom ?? "chambre"}` : (TYPES_BAIL[bail.type] ?? bail.type).toLowerCase()}`}
+        titre={locataire ? nomComplet(locataire) : lot?.nom ?? "Bail"}
+        badge={
+          <span className={COULEURS_ETAT_BAIL[bail.etat] ?? "puce puce-grise"}>
+            {ETATS_BAIL[bail.etat] ?? "État du contrat à vérifier"}
+          </span>
+        }
+        sousTitre={
+          !locataire || bail.date_fin
+            ? [!locataire && "Locataire : —", bail.date_fin && `fin le ${formaterDate(bail.date_fin)}`]
+                .filter(Boolean)
+                .join(" · ")
+            : undefined
+        }
+        faits={[
+          // « 1050 € HC » : un nombre brut et une abréviation — le loyer se lit
+          // formaté, et « hors charges » s'écrit en toutes lettres.
+          { libelle: "Loyer hors charges", valeur: bail.loyer_hc ? eur(Number(bail.loyer_hc)) : "non fixé" },
+          ...(bail.charges ? [{ libelle: "Charges", valeur: eur(Number(bail.charges)) }] : []),
+          ...(bail.depot_garantie
+            ? [{ libelle: "Dépôt de garantie", valeur: eur(Number(bail.depot_garantie)) }]
+            : []),
+        ]}
+      />
 
-      <nav aria-label="Accès rapide au bail" className="dossier-nav">
-        <a href="#contrat">Contrat & documents</a>
-        {loyersActif && <a href="#loyers">Loyers & paiements</a>}
-        <a href="#edl">États des lieux</a>
-        {loyersActif && <a href="#depot">Dépôt de garantie</a>}
-        {sectionSortie && <a href="#sortie-bail">Départ du locataire</a>}
-      </nav>
+      {/* Sur téléphone, une seule ligne qui défile plutôt que trois lignes de
+          pastilles (~150 px) avant le premier contenu (24/09) : la rangée
+          prend sa largeur naturelle (`w-max`) dans un bandeau défilant qui
+          déborde jusqu'aux bords de l'écran. Dès sm, elle se replie comme
+          avant. */}
+      <div className="max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:[scrollbar-width:none]">
+        <nav aria-label="Accès rapide au bail" className="dossier-nav max-sm:w-max">
+          <a href="#contrat">Contrat & documents</a>
+          {loyersActif && <a href="#loyers">Loyers & paiements</a>}
+          <a href="#edl">États des lieux</a>
+          {loyersActif && <a href="#depot">Dépôt de garantie</a>}
+          {sectionSortie && <a href="#sortie-bail">Départ du locataire</a>}
+        </nav>
+      </div>
       <EchecLecture quoi={echecs} />
 
       {/* La prochaine action évidente, dérivée de l'état du bail */}
@@ -444,7 +457,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
                   {i + 1}
                 </span>
-                <a href={a.href} className="min-w-0 flex-1 underline-offset-2 hover:underline">
+                <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
                   {a.texte}
                 </a>
               </li>
@@ -467,7 +480,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">
                       {i + 4}
                     </span>
-                    <a href={a.href} className="min-w-0 flex-1 underline-offset-2 hover:underline">
+                    <a href={a.href} className="inline-flex min-h-11 min-w-0 flex-1 items-center underline-offset-2 hover:underline">
                       {a.texte}
                     </a>
                   </li>
@@ -864,18 +877,21 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           ) : (
             <ul className="space-y-2">
               {(edls ?? []).map((e) => (
-                <li key={e.id} className="flex items-center gap-3">
-                  <span className="w-20 text-sm font-medium">
-                    {e.type === "entree" ? "Entrée" : "Sortie"}
-                  </span>
-                  <span className={COULEURS_ETAT_EDL[e.etat] ?? "puce puce-grise"}>
-                    {e.etat === "signe" ? "Signé" : "En cours"}
-                  </span>
+                <li key={e.id}>
+                  {/* Tout le rang ouvre la grille, pas seulement le bouton (retour du 24/09). */}
                   <Link
                     href={`/agence/${orgId}/baux/${bailId}/edl/${e.id}`}
-                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                    className="-mx-2 flex items-center gap-3 rounded-lg px-2 hover:bg-[var(--survol)]"
                   >
-                    Ouvrir la grille
+                    <span className="w-20 text-sm font-medium">
+                      {e.type === "entree" ? "Entrée" : "Sortie"}
+                    </span>
+                    <span className={COULEURS_ETAT_EDL[e.etat] ?? "puce puce-grise"}>
+                      {e.etat === "signe" ? "Signé" : "En cours"}
+                    </span>
+                    <span className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                      Ouvrir la grille
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -889,7 +905,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       {loyersActif && (
         <Card id="loyers" className="scroll-mt-20">
           <CardHeader>
-            <CardTitle className="text-base">Loyers & quittances</CardTitle>
+            {/* Le titre de la pastille qui y mène, et du résumé « Au
+                quotidien » : un seul nom pour la rubrique (24/09). */}
+            <CardTitle className="text-base">Loyers & paiements</CardTitle>
             <CardDescription>
               Échéancier, encaissements (imputés du plus ancien au plus récent) et
               quittances (émises après paiement intégral ; un partiel reste un reçu).

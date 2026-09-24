@@ -1,31 +1,35 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { MarqueGerimmo } from "@/components/marque-gerimmo";
-import { faitsManquants, type FaitEditeur } from "@/lib/editeur";
+import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
+import {
+  FORMULAIRE_ACCUEIL,
+  PRESTATAIRES,
+  courrielDeContact,
+  type FaitEditeur,
+} from "@/lib/editeur";
 
 // Coquille des pages légales : mentions légales, conditions générales,
 // confidentialité. Les trois avaient chacune leur en-tête avant le 11/09 —
 // c'est le défaut que le relevé de design nomme « le même problème résolu
 // différemment d'un écran à l'autre ». Elles la partagent désormais.
+//
+// 24/09 : elles prennent aussi l'en-tête et le pied du reste du site public.
+// Leur bandeau propre n'offrait que le logo et un « ← Retour » qui menait
+// toujours à l'accueil ; leur pied, trois liens de 12 px sans zone de toucher.
 
 /**
  * Un fait d'éditeur pas encore fourni.
  *
- * Il s'affiche en toutes lettres, souligné de pointillés : c'est l'idiome que
- * le générateur de documents emploie déjà pour une donnée manquante
- * (lib/documents/gabarit.ts — « le libellé reste en réserve »). Le silence
- * serait pire : une mention légale à laquelle il manque le SIRET doit le dire,
- * pas l'omettre.
+ * Il s'affiche en toutes lettres : le silence serait pire — une mention
+ * légale à laquelle il manque le SIRET doit le dire, pas l'omettre.
+ *
+ * 24/09 : ni pointillés ni info-bulle. Souligné, le manque ressemblait à un
+ * lien, souvent à côté d'un vrai, et ne réagissait pas ; son explication
+ * n'existait qu'au survol, hors d'atteinte du doigt. Il passe en italique,
+ * avec la mention « (à venir) » en clair.
  */
 export function AFournir({ quoi }: { quoi: string }) {
-  return (
-    <span
-      className="text-[var(--libelle)] [text-decoration-line:underline] [text-decoration-style:dotted] [text-underline-offset:3px]"
-      title="Information à fournir avant publication"
-    >
-      {quoi}
-    </span>
-  );
+  return <span className="italic text-[var(--libelle)]">{quoi} (à venir)</span>;
 }
 
 /** Un fait d'éditeur, ou sa réserve s'il manque. */
@@ -33,70 +37,118 @@ export function Fait({ valeur, quoi }: { valeur: FaitEditeur; quoi: string }) {
   return valeur ? <>{valeur}</> : <AFournir quoi={quoi} />;
 }
 
+/**
+ * Où nous écrire, dit tel quel (24/09) : l'adresse de contact dès qu'elle est
+ * fournie, sinon le formulaire de l'accueil sous son vrai nom. Se lit après
+ * « écrivez-nous » : « … à l'adresse x » ou « … depuis le formulaire… ».
+ * `objet` : ce qu'il faut préciser, par exemple « données personnelles ».
+ */
+export function OuNousEcrire({ objet }: { objet?: string }) {
+  const courriel = courrielDeContact();
+  if (courriel) {
+    const sujet = objet ? `?subject=${encodeURIComponent(objet)}` : "";
+    return (
+      <>
+        à l&apos;adresse{" "}
+        <a href={`mailto:${courriel}${sujet}`} className="lien-texte">
+          {courriel}
+        </a>
+        {objet && <> (objet : « {objet} »)</>}
+      </>
+    );
+  }
+  return (
+    <>
+      depuis le{" "}
+      <Link href={FORMULAIRE_ACCUEIL} className="lien-texte">
+        formulaire de l&apos;accueil, rubrique Agences
+      </Link>
+      , en précisant l&apos;objet de votre question{objet && <> (« {objet} »)</>}
+    </>
+  );
+}
+
+/**
+ * Les prestataires du service, en un seul tableau (24/09) : mentions légales
+ * et confidentialité en tenaient chacune une version, qui divergeaient.
+ */
+export function TableauPrestataires() {
+  return (
+    <div className="tableau-defilant">
+      <table className="tableau">
+        <thead>
+          <tr>
+            <th>Prestataire</th>
+            <th>Rôle</th>
+            <th>Localisation</th>
+          </tr>
+        </thead>
+        <tbody>
+          {PRESTATAIRES.map((p) => (
+            <tr key={p.nom}>
+              <td>{p.nom}</td>
+              <td>{p.role}</td>
+              <td>
+                <Fait valeur={p.localisation} quoi="localisation" />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function CoquilleLegale({
   titre,
   chapo,
+  chemin,
+  incomplet,
   children,
 }: {
   titre: string;
   chapo?: ReactNode;
+  /** Le chemin de la page : son lien est marqué dans le pied. */
+  chemin: "/mentions-legales" | "/conditions" | "/confidentialite";
+  /**
+   * Vrai s'il reste une réserve sur la page — fait d'éditeur manquant OU
+   * réserve propre à la page. Chaque page le calcule (24/09) : l'encadré
+   * listait les seuls faits d'éditeur, sans rapport avec ce que la page
+   * affichait, et aurait disparu des conditions alors que leurs propres
+   * clauses restaient à rédiger.
+   */
+  incomplet: boolean;
   children: ReactNode;
 }) {
-  const manquants = faitsManquants();
   return (
-    <div className="min-h-full bg-[var(--creme)]">
-      <header className="bandeau-appli">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3.5 sm:px-7">
-          <Link href="/" aria-label="Retour à l'accueil" className="flex min-h-11 items-center">
-            <MarqueGerimmo />
-          </Link>
-          <Link href="/" className="lien-bandeau">
-            ← Retour
-          </Link>
-        </div>
-      </header>
+    <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
+      <EnTetePublic />
 
-      <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-        <div className="repere-visuel repere-visuel-legal" aria-hidden="true" />
+      <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-6 sm:px-7 sm:py-10">
         <div>
           <h1>{titre}</h1>
           {chapo && <p className="mt-1 text-sm text-muted-foreground">{chapo}</p>}
         </div>
 
-        {/* Tant que l'identité de l'éditeur n'est pas fournie, le document ne
-            remplit pas son office : on le dit au lecteur plutôt que de le lui
-            laisser croire. L'encadré disparaît de lui-même une fois
-            lib/editeur.ts rempli. */}
-        {manquants.length > 0 && (
+        {/* Tant qu'il reste une réserve, le document ne remplit pas son
+            office : on le dit au lecteur plutôt que de le lui laisser croire.
+            Sans compte ni liste (24/09) : la liste des faits d'éditeur
+            envoyait chercher le SIRET sur une page qui n'en parle pas. */}
+        {incomplet && (
           <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
             <p className="text-sm">
               <b className="font-semibold">Document en cours de finalisation.</b>{" "}
-              Il lui manque {manquants.length === 1 ? "une information" : `${manquants.length} informations`} :{" "}
-              {manquants.join(", ")}. Les passages concernés apparaissent{" "}
-              <AFournir quoi="ainsi" /> ci-dessous. En attendant, écrivez-nous
-              depuis le{" "}
-              <Link href="/#agences" className="lien-discret">
-                formulaire de contact
-              </Link>{" "}
-              pour toute question sur ce document.
+              Certaines informations de ce document restent à préciser ; les
+              passages concernés portent ci-dessous la mention « à venir ».
+              Pour toute question sur ce document, écrivez-nous <OuNousEcrire />.
             </p>
           </div>
         )}
 
         {children}
-
-        <nav className="flex flex-wrap gap-4 pt-2 text-xs text-muted-foreground">
-          <Link href="/mentions-legales" className="hover:text-[var(--encre)]">
-            Mentions légales
-          </Link>
-          <Link href="/conditions" className="hover:text-[var(--encre)]">
-            Conditions générales
-          </Link>
-          <Link href="/confidentialite" className="hover:text-[var(--encre)]">
-            Confidentialité
-          </Link>
-        </nav>
       </main>
+
+      <PiedPublic courant={chemin} />
     </div>
   );
 }

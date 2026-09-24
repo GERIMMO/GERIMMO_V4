@@ -3,12 +3,25 @@ import Link from "next/link";
 import { estARenouveler, estExpiree, eur, formaterDate } from "@/lib/ged";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
-import { CarteGestionnaire, CarteUrgence } from "./cartes-laterales";
+import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
+import { ReflexesUrgence } from "./reflexes-urgence";
 import type { BailLocataire } from "./types";
 
-export const metadata = { title: "Mon espace — Gerimmo" };
+// Les cartes indicateurs se cliquent EN ENTIER (24/09), comme les tuiles
+// a.kpi de l'agence : seul le lien de 12 px du bas réagissait, le gros
+// chiffre et le titre restaient inertes. Le lien principal s'étire sur toute
+// la carte (::after) ; les liens secondaires passent au-dessus (z-10).
+const CARTE_KPI =
+  "loc-carte loc-kpi relative transition-[translate,border-color] duration-150 hover:border-[var(--marque)] motion-safe:hover:-translate-y-0.5";
+const LIEN_ETIRE =
+  "lien-discret after:absolute after:inset-0 after:rounded-2xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring";
+const LIEN_KPI_SECONDAIRE = "lien-discret relative z-10";
+
+// Pas de titre propre : celui de l'accueil est le titre par défaut du layout,
+// « Mon espace — <agence> » (24/09 : l'onglet parlait au nom de Gerimmo dans
+// un espace à la marque de l'agence).
 
 // Accueil de l'espace locataire (maquette v10) : l'essentiel du logement en
 // un regard — ce qui l'attend, le logement, le prochain loyer, les documents,
@@ -139,12 +152,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       (i.imputation === "locataire" || i.imputation === "degradation_fautive") &&
       !i.imputation_contestee_le
   );
-  const gestionnaire = ((gestionnaires ?? []) as {
-    agence: string;
-    telephone: string | null;
-    email_contact: string | null;
-    agent_email: string | null;
-  }[])[0];
+  const gestionnaire = ((gestionnaires ?? []) as Gestionnaire[])[0];
   const nbPiecesDemandees = ((piecesDemandees ?? []) as unknown[]).length;
   const nbSignatures = ((signatures ?? []) as unknown[]).length;
   const creneauxAChoisir = (creneaux ?? []) as { intervention_id: string; categorie: string }[];
@@ -295,15 +303,16 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
 
       {bail && (
         <div className="loc-hero">
-          <span className="loc-vignette" aria-hidden>
-            {(bail.ville?.[0] ?? bail.lot_nom[0] ?? "G").toUpperCase()}
-          </span>
+          {/* 24/09 : plus de vignette à initiale (une lettre qui ne disait rien)
+              ni de slogan Gerimmo sous la marque de l'agence. Le titre est
+              l'ADRESSE, que le locataire connaît ; le nom du lot, saisi par
+              l'agence, passe en appui avec les caractéristiques. */}
           <div className="min-w-0">
-            <p className="font-heading text-xl text-[var(--encre)]">{bail.lot_nom}</p>
-            <p className="text-[13px] text-muted-foreground">{bail.adresse}</p>
-            <p className="mt-1 text-[12.5px] text-muted-foreground">
+            <p className="font-heading text-xl text-[var(--encre)]">{bail.adresse || bail.lot_nom}</p>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
               {[
-                bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")} m²` : null,
+                bail.adresse ? bail.lot_nom : null,
+                bail.surface_m2 != null ? `${Number(bail.surface_m2).toLocaleString("fr-FR")}\u00a0m²` : null,
                 bail.pieces != null ? `${bail.pieces} pièce${bail.pieces > 1 ? "s" : ""}` : null,
                 bail.etage ? `étage ${bail.etage}` : null,
                 bail.meuble ? "meublé" : null,
@@ -338,11 +347,6 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               )}
             </div>
           </div>
-          <div className="loc-citation">
-            Un chez-vous plus serein,
-            <br />
-            au quotidien.
-          </div>
         </div>
       )}
 
@@ -350,31 +354,35 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
           <div className="entete-carte !mb-1">
             <h3 className="text-base font-medium">Ce qui vous attend</h3>
-            <span className="loc-tag ambre">
-              {aFaire.length} point{aFaire.length > 1 ? "s" : ""}
-            </span>
+            {/* « 3 points » se lisait comme un score (24/09) */}
+            <span className="loc-tag ambre">{aFaire.length} à faire</span>
           </div>
+          {/* Le rang ENTIER est le lien (24/09) : seul le petit bouton de
+              droite réagissait, le titre et l'explication — 70 % de la
+              largeur — restaient inertes. Survol .rang, comme côté agence ;
+              le geste devient une pastille non cliquable (pas de lien dans
+              le lien). -mx-4 : le rang déborde dans la marge de la carte
+              pour que son texte reste aligné sur le titre. */}
           <ul className="divide-y divide-border">
             {aFaire.map((t) => (
-              <li
-                key={t.cle}
-                className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 text-sm"
-              >
-                <span className="min-w-0 flex-1">
-                  <b className="block font-medium">{t.titre}</b>
-                  <small className="block text-muted-foreground">{t.detail}</small>
-                </span>
-                <Link
-                  href={t.href}
-                  className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                >
-                  {t.action}
+              <li key={t.cle}>
+                <Link href={t.href} className="rang group -mx-4 text-sm">
+                  <span className="min-w-0 flex-1">
+                    <b className="block font-medium">{t.titre}</b>
+                    {/* 13 px et non <small> (≈ 11 px) : c'est la phrase qui dit
+                        la conséquence, pas une note de bas de page (24/09). */}
+                    <span className="block text-[13px] text-muted-foreground">{t.detail}</span>
+                  </span>
+                  <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-[var(--filet)] bg-[var(--carte)] px-2.5 py-1 text-xs font-semibold text-[var(--marque-sombre)] transition-colors group-hover:border-[var(--marque)]">
+                    {t.action}
+                    <span aria-hidden>›</span>
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
           {enRetard && (
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-sm text-muted-foreground">
               Une difficulté de paiement ? Écrivez à votre gestionnaire : une
               solution se trouve toujours plus tôt que tard.
             </p>
@@ -392,8 +400,12 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       ))}
 
       <div className="loc-grille">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="loc-carte loc-kpi">
+        {/* Téléphone (24/09) : une carte par ligne. À deux colonnes de 177 px,
+            « Mes demandes » restait seule à demi-largeur et les liens se
+            cassaient en trois lignes, flèche orpheline comprise. Le ! garde la
+            main sur toute règle .grille-kpi posée hors couche. */}
+        <div className="grille-kpi max-sm:!grid-cols-1">
+          <div className={CARTE_KPI}>
             <p className="text-[13px] font-semibold text-[var(--encre)]">{enRetard ? "Loyer restant à régler" : "Prochain loyer"}</p>
             {eEcheancier ? (
               <div className="mt-2">
@@ -416,11 +428,11 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 Rien à régler pour l&apos;instant.
               </p>
             )}
-            <Link href={`/locataire/${orgId}/loyers`} className="lien-discret mt-3 block">
-              Voir mes paiements →
+            <Link href={`/locataire/${orgId}/loyers`} className={`${LIEN_ETIRE} mt-3 block`}>
+              Voir mes paiements{"\u00a0"}→
             </Link>
           </div>
-          <div className="loc-carte loc-kpi">
+          <div className={CARTE_KPI}>
             <p className="text-[13px] font-semibold text-[var(--encre)]">Mes documents</p>
             {ePieces || eEcheancier ? (
               <div className="mt-2">
@@ -471,16 +483,16 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
             {derniereQuittance?.quittance_id && (
               <Link
                 href={`/quittance/${derniereQuittance.quittance_id}`}
-                className="lien-discret mt-3 block"
+                className={`${LIEN_KPI_SECONDAIRE} mt-3 block`}
               >
-                Dernier document — {libelleDocumentLoyer(derniereQuittance.statut)} de {moisLong(derniereQuittance.periode)} →
+                Dernier document — {libelleDocumentLoyer(derniereQuittance.statut)} de {moisLong(derniereQuittance.periode)}{"\u00a0"}→
               </Link>
             )}
-            <Link href={`/locataire/${orgId}/documents`} className="lien-discret mt-3 block">
-              Voir mes documents →
+            <Link href={`/locataire/${orgId}/documents`} className={`${LIEN_ETIRE} mt-3 block`}>
+              Voir mes documents{"\u00a0"}→
             </Link>
           </div>
-          <div className="loc-carte loc-kpi">
+          <div className={CARTE_KPI}>
             <p className="text-[13px] font-semibold text-[var(--encre)]">Mes demandes</p>
             {eIncidents ? (
               <div className="mt-2">
@@ -503,13 +515,15 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                     même quand l'imputation venait d'être mise à la charge du
                     locataire et que sa fenêtre de contestation était ouverte
                     (relevé 11/09) : à ce moment-là, c'est lui qui a la main.
-                    RM-19.2.3 : le statut se lit depuis l'accueil. */}
-                <span className="loc-tag ambre mt-2.5">
+                    RM-19.2.3 : le statut se lit depuis l'accueil. L'ambre est
+                    la couleur des gestes attendus : sans décision à prendre,
+                    la pastille est bleue et tient sur une ligne (24/09). */}
+                <span className={`loc-tag mt-2.5 ${aContester.length > 0 ? "ambre" : "bleu"}`}>
                   {aContester.length > 1
                     ? "Des décisions vous attendent"
                     : aContester.length === 1
                       ? "Une décision vous attend"
-                      : `Suivie${incidentsEnCours.length > 1 ? "s" : ""} par votre gestionnaire`}
+                      : "Suivi en cours"}
                 </span>
               </>
             )}
@@ -518,26 +532,36 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 était ouvert — c'est-à-dire au moment où un second incident
                 est le plus probable, et où plus aucun écran ne menait au
                 formulaire (relevé 11/09). Bail terminé, /incident n'est qu'un
-                cul-de-sac : on ne propose alors que l'historique. */}
+                cul-de-sac : on ne propose alors que l'historique. La carte
+                entière mène au suivi (24/09) : le lien vers la liste est
+                donc toujours là, même sans demande en cours. */}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
               {adhesionActive && (
-                <Link href={`/locataire/${orgId}/incident`} className="lien-discret">
-                  Signaler un problème →
+                <Link href={`/locataire/${orgId}/incident`} className={LIEN_KPI_SECONDAIRE}>
+                  Signaler un problème{"\u00a0"}→
                 </Link>
               )}
-              {(incidentsEnCours.length > 0 || !adhesionActive) && (
-                <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
-                  Suivre mes demandes
-                  {incidentsEnCours.length > 0 ? ` (${incidentsEnCours.length})` : ""} →
-                </Link>
-              )}
+              <Link
+                href={`/locataire/${orgId}/demandes`}
+                className={LIEN_ETIRE}
+              >
+                {incidentsEnCours.length > 0
+                  ? `Suivre mes demandes (${incidentsEnCours.length})`
+                  : "Voir mes demandes"}
+                {"\u00a0"}→
+              </Link>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
           <CarteGestionnaire orgId={orgId} gestionnaire={gestionnaire} />
-          <CarteUrgence />
+          {/* Une seule carte d'urgence dans l'espace (24/09) : la même que
+              sur « Mes demandes » et le signalement, numéros soulignés tous
+              les deux, et « signalez ici » qui mène au formulaire. */}
+          <ReflexesUrgence
+            hrefSignalement={adhesionActive ? `/locataire/${orgId}/incident` : undefined}
+          />
         </div>
       </div>
     </div>

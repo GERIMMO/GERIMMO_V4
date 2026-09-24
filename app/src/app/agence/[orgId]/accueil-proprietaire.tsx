@@ -1,10 +1,20 @@
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
-import { buttonVariants } from "@/components/ui/button";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
+
+// Statut de l'organisation (enum public.organization_status) : un compte
+// suspendu ou archivé ne doit pas s'afficher « actif ».
+const TON_GRIS = "bg-[var(--filet-leger)] text-[var(--texte-secondaire)]";
+const STATUTS_ABONNEMENT: Record<string, { libelle: string; ton: string }> = {
+  essai: { libelle: "essai gratuit", ton: "ambre" },
+  active: { libelle: "actif", ton: "vert" },
+  suspendue: { libelle: "suspendu", ton: "rouge" },
+  archivee: { libelle: "clôturé", ton: TON_GRIS },
+};
+const STATUT_ABONNEMENT_INCONNU = { libelle: "à vérifier", ton: TON_GRIS };
 
 // Accueil de l'espace propriétaire (maquette PC v1 du 05/09) : son patrimoine
 // en un regard — lots, encaissé, fiscalité — la liste de ce qui l'attend, et
@@ -24,10 +34,10 @@ export async function AccueilProprietaire({
 }) {
   const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
   const [
-    { data: lots },
-    { count: nbBiens },
-    { data: encaissements },
-    { data: alertesBrutes },
+    { data: lots, error: erreurLots },
+    { count: nbBiens, error: erreurBiens },
+    { data: encaissements, error: erreurEncaissements },
+    { data: alertesBrutes, error: erreurAlertes },
     { data: dpe, error: erreurDpe },
     // « À faire » ne repose plus sur les seules alertes (audit 09/09) : la
     // même source que la fiche bail — impayés, EDL d'entrée, diagnostics
@@ -123,6 +133,14 @@ export async function AccueilProprietaire({
   );
   const lotsAouer = candidats.map((l) => ({ ...l, blocages: blocagesParLot.get(l.id) ?? null }));
 
+  // Une lecture tombée ne rend pas de verdict : ni « tout est en ordre », ni
+  // « 0 € encaissé », ni « 0 lot ». On le dit en tête, et chaque chiffre
+  // concerné s'efface plutôt que d'afficher un zéro trompeur.
+  const lectureEnEchec = [erreurLots, erreurBiens, erreurEncaissements, erreurAlertes, erreurLotsEngages].some(
+    (e) => e != null
+  );
+  const aFaireIncertain = erreurLots != null || erreurAlertes != null || erreurLotsEngages != null;
+
   const nbLots = (lots ?? []).length;
   const loues = (lots ?? []).filter((l) => l.etat === "loue" || l.etat === "preavis").length;
   const vacants = nbLots - loues;
@@ -165,121 +183,118 @@ export async function AccueilProprietaire({
           fois le premier bail actif. */}
       <ParcoursDemarrage supabase={supabase} orgId={orgId} />
 
-      <div className="loc-hero">
-        <span className="loc-vignette" aria-hidden>
-          {(organisation.name?.[0] ?? "G").toUpperCase()}
-        </span>
-        <div className="min-w-0">
-          <p className="font-heading text-xl text-[var(--encre)]">
-            {nbLots} lot{nbLots > 1 ? "s" : ""} en gestion directe
-          </p>
-          <p className="text-[13px] text-muted-foreground">
-            {loues} loué{loues > 1 ? "s" : ""} · {vacants} vacant{vacants > 1 ? "s" : ""}
-          </p>
-          <Link
-            href={`/agence/${orgId}/parc`}
-            className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-2.5`}
-          >
-            Voir mes lots →
-          </Link>
+      {lectureEnEchec && (
+        <div className="err !mb-0" role="alert">
+          <b className="font-semibold">Lecture impossible pour une partie de votre espace.</b>{" "}
+          Certains chiffres ou actions ci-dessous peuvent manquer : ce n&apos;est pas
+          qu&apos;il n&apos;y a rien, la connexion a échoué. Rechargez la page dans un instant.
         </div>
-        <div className="loc-citation">
-          Vos biens, tenus
-          <br />
-          au carré.
-        </div>
-      </div>
+      )}
 
+      {/* PLUS DE HERO (24/09). La vignette « P » (l'initiale de
+          l'organisation), le slogan souligné d'or et « 0 loué · 1 vacant »
+          redisaient la tuile « Mes lots » juste en dessous — sur téléphone,
+          une demi-hauteur d'écran pour un chiffre déjà affiché. Son titre
+          (« 1 lot en gestion directe ») passe dans la tuile. */}
       <div className="loc-grille">
         <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="loc-carte loc-kpi">
-              <p className="text-[13px] font-semibold text-[var(--encre)]">Encaissé en {nomMois}</p>
-              <p className="v">{eur(encaisse)}</p>
-              <p className="text-xs text-muted-foreground">
-                quittances émises à l&apos;encaissement
-              </p>
-              <Link href={`/agence/${orgId}/loyers`} className="lien-discret mt-3 block text-[13px]">
-                Voir mes loyers →
-              </Link>
-            </div>
-            <div className="loc-carte loc-kpi">
-              <p className="text-[13px] font-semibold text-[var(--encre)]">Fiscalité</p>
-              <p className="v" style={{ fontSize: 20 }}>Récap 2044</p>
-              <p className="text-xs text-muted-foreground">
-                alimenté par votre livre, rubrique par rubrique, quote-part comprise
-              </p>
-              <Link
-                href={`/agence/${orgId}/comptabilite/fiscal`}
-                className="lien-discret mt-3 block text-[13px]"
-              >
-                Voir mon récapitulatif →
-              </Link>
-            </div>
-            <div className="loc-carte loc-kpi">
-              <p className="text-[13px] font-semibold text-[var(--encre)]">Mes lots</p>
-              <p className="v">
-                {loues} / {nbLots || "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                lot{nbLots > 1 ? "s" : ""} loué{loues > 1 ? "s" : ""}
-              </p>
+          {/* Des tuiles ENTIÈRES cliquables, la tuile de la charte (`a.kpi`,
+              flèche comprise) : seul un lien de 13 px en dernière ligne
+              réagissait, ni le chiffre ni le titre (24/09). */}
+          <div className="grille-kpi">
+            <Link href={`/agence/${orgId}/loyers`} className="kpi bleu">
+              <span className="eyebrow">Encaissé en {nomMois}</span>
+              <span className="chiffre montant block">
+                {erreurEncaissements ? "—" : eur(encaisse)}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {/* Ce que le chiffre compte, pas le mécanisme qui le produit */}
+                {!erreurLots && loues === 0 && encaisse === 0
+                  ? "aucun bail actif : rien à encaisser pour l'instant"
+                  : "loyers encaissés ce mois-ci"}
+              </span>
+            </Link>
+            {/* Un parc vide mène à la création du premier bien : la tuile
+                entière porte le geste (un lien dans un lien n'est pas permis). */}
+            <Link
+              href={`/agence/${orgId}/parc${!erreurLots && nbLots === 0 ? "/nouveau" : ""}`}
+              className={`kpi ${erreurLots ? "" : vacants > 0 || nbLots === 0 ? "ambre" : "vert"}`}
+            >
+              <span className="eyebrow">Mes lots</span>
+              <span className="chiffre block">
+                {erreurLots ? "—" : <>{loues} / {nbLots || "—"}</>}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {erreurLots
+                  ? "vos lots en gestion directe"
+                  : `${nbLots} lot${nbLots > 1 ? "s" : ""} en gestion directe · ${loues} loué${loues > 1 ? "s" : ""}`}
+              </span>
               {/* Relevé du 11/09 : sur un parc VIDE, `vacants` vaut 0 — la
-                  pastille sortait donc en `vert`, couleur de succès, pour dire
-                  « Créez votre premier bien », et n'était qu'un <span> : un
-                  verdict de réussite sur un patrimoine inexistant, sans le
-                  geste. Le ton passe en attente, et la pastille devient le
-                  lien. Le hero porte déjà « Voir mes lots → » : un lien
-                  discret ici, pas un second bouton or (charte 04). */}
-              {nbLots === 0 ? (
-                <Link
-                  href={`/agence/${orgId}/parc/nouveau`}
-                  className="loc-tag ambre mt-2.5 hover:underline"
+                  pastille sortait en `vert` pour dire « Créez votre premier
+                  bien ». Le ton passe en attente. « À louer » et non « à
+                  relouer » (24/09) : un lot qui n'a jamais été loué ne se
+                  reloue pas, et c'est le mot unique pour cette notion. */}
+              {erreurLots ? null : (
+                <span
+                  className={`loc-tag mt-2.5 ${nbLots === 0 || vacants ? "ambre" : "vert"}`}
                 >
-                  Créer mon premier bien →
-                </Link>
-              ) : (
-                <span className={`loc-tag mt-2.5 ${vacants ? "ambre" : "vert"}`}>
-                  {vacants
-                    ? `${vacants} lot${vacants > 1 ? "s" : ""} à relouer`
-                    : "✓ Plein régime"}
+                  {nbLots === 0
+                    ? "Créer mon premier bien"
+                    : vacants
+                      ? `${vacants} lot${vacants > 1 ? "s" : ""} à louer`
+                      : "✓ Plein régime"}
                 </span>
               )}
-            </div>
+            </Link>
+          </div>
+          {/* La fiscalité n'est pas un chiffre : un lien, sous les chiffres,
+              plutôt qu'une tuile de prose déguisée en indicateur (24/09). */}
+          <div>
+            <Link
+              href={`/agence/${orgId}/comptabilite/fiscal`}
+              className="lien-discret text-[13px]"
+            >
+              Mon récapitulatif fiscal (2044)&nbsp;→
+            </Link>
           </div>
 
           <div className="loc-carte border-l-4 border-l-[var(--or)]">
+            {/* Un seul gabarit de titre de carte sur les deux accueils (24/09) */}
             <div className="entete-carte">
-              <h3 className="font-heading text-lg">À faire</h3>
+              <h2 className="text-[length:var(--pas-sous-titre)]">À faire</h2>
               <Link href={`/agence/${orgId}/alertes`} className="lien-discret text-[13px]">
                 Toutes mes alertes →
               </Link>
             </div>
             {aFaireBaux.length === 0 && alertes.length === 0 && lotsAouer.length === 0 ? (
-              <p className="text-sm text-success-soft-foreground">
-                Rien ne vous attend — tout est en ordre.
-              </p>
+              aFaireIncertain ? (
+                <p className="text-sm text-destructive-soft-foreground" role="alert">
+                  Impossible de vérifier ce qui vous attend : la lecture a échoué.
+                  Rechargez la page dans un instant.
+                </p>
+              ) : (
+                <p className="text-sm text-success-soft-foreground">
+                  Rien ne vous attend — tout est en ordre.
+                </p>
+              )
             ) : (
               <ul className="divide-y divide-border">
+                {/* TOUT LE RANG EST LE LIEN (24/09) : seul le petit bouton de
+                    droite réagissait, ni le titre ni le reste du rang. Le
+                    geste devient un mot-flèche discret à droite. */}
                 {/* Ce que la fiche de chaque bail affiche comme blocage —
                     même calcul, même liste (source commune) */}
                 {aFaireBaux.map((a) => (
-                  <li
-                    key={a.cle}
-                    className="flex flex-wrap items-center gap-2 py-2.5 text-sm"
-                  >
-                    <span className="min-w-0 flex-1">
-                      {a.titre}
-                      {a.detail && (
-                        <small className="block text-muted-foreground">{a.detail}</small>
-                      )}
-                    </span>
-                    {a.critique && <span className="puce puce-rouge shrink-0">critique</span>}
-                    <Link
-                      href={a.href}
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
-                    >
-                      Résoudre
+                  <li key={a.cle}>
+                    <Link href={a.href} className="rang px-2 py-2.5 text-sm">
+                      <span className="min-w-0 flex-1">
+                        {a.titre}
+                        {a.detail && (
+                          <small className="block text-muted-foreground">{a.detail}</small>
+                        )}
+                      </span>
+                      {a.critique && <span className="loc-tag rouge shrink-0">critique</span>}
+                      <span className="lien-discret shrink-0">Résoudre&nbsp;→</span>
                     </Link>
                   </li>
                 ))}
@@ -289,27 +304,29 @@ export async function AccueilProprietaire({
                   const bloque = l.blocages !== null && l.blocages.length > 0;
                   const illisible = l.blocages === null;
                   return (
-                    <li key={l.id} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
-                      <span className="min-w-0 flex-1">
-                        {l.nom} —{" "}
-                        {illisible
-                          ? "disponible, aucun bail"
-                          : bloque
-                            ? `${l.blocages!.length} point${l.blocages!.length > 1 ? "s" : ""} à régler avant la mise en location`
-                            : "prêt à louer, aucun bail"}
-                        <small className="block text-muted-foreground">
-                          {illisible
-                            ? "Ce qui reste à faire avant la mise en location n'a pas pu être lu : la fiche du lot le dira."
-                            : bloque
-                              ? l.blocages!.slice(0, 2).join(" · ")
-                              : "Le lot est disponible : il ne lui manque que son bail."}
-                        </small>
-                      </span>
+                    <li key={l.id}>
                       <Link
                         href={`/agence/${orgId}/parc/${l.bien_id}/lots/${l.id}${bloque || illisible ? "" : "#baux"}`}
-                        className={buttonVariants({ variant: "outline", size: "sm" })}
+                        className="rang px-2 py-2.5 text-sm"
                       >
-                        {bloque || illisible ? "Ouvrir le lot" : "Créer le bail"}
+                        <span className="min-w-0 flex-1">
+                          {l.nom} —{" "}
+                          {illisible
+                            ? "disponible, aucun bail"
+                            : bloque
+                              ? `${l.blocages!.length} point${l.blocages!.length > 1 ? "s" : ""} à régler avant la mise en location`
+                              : "prêt à louer, aucun bail"}
+                          <small className="block text-muted-foreground">
+                            {illisible
+                              ? "Ce qui reste à faire avant la mise en location n'a pas pu être lu : la fiche du lot le dira."
+                              : bloque
+                                ? l.blocages!.slice(0, 2).join(" · ")
+                                : "Le lot est disponible : il ne lui manque que son bail."}
+                          </small>
+                        </span>
+                        <span className="lien-discret shrink-0">
+                          {bloque || illisible ? "Ouvrir le lot" : "Créer le bail"}&nbsp;→
+                        </span>
                       </Link>
                     </li>
                   );
@@ -329,23 +346,23 @@ export async function AccueilProprietaire({
                   </li>
                 )}
                 {alertes.map((a) => (
-                  <li key={a.id} className="flex flex-wrap items-center gap-2 py-2.5 text-sm">
-                    <span className="min-w-0 flex-1">
-                      {a.titre}
-                      {a.echeance && (
-                        <small className="block text-muted-foreground">
-                          échéance le {formaterDate(a.echeance)}
-                        </small>
-                      )}
-                    </span>
-                    {a.criticite === "critique" && (
-                      <span className="puce puce-rouge shrink-0">critique</span>
-                    )}
+                  <li key={a.id}>
                     <Link
                       href={`/agence/${orgId}/alertes?traiter=${a.id}`}
-                      className={buttonVariants({ variant: "outline", size: "sm" })}
+                      className="rang px-2 py-2.5 text-sm"
                     >
-                      Traiter
+                      <span className="min-w-0 flex-1">
+                        {a.titre}
+                        {a.echeance && (
+                          <small className="block text-muted-foreground">
+                            échéance le {formaterDate(a.echeance)}
+                          </small>
+                        )}
+                      </span>
+                      {a.criticite === "critique" && (
+                        <span className="loc-tag rouge shrink-0">critique</span>
+                      )}
+                      <span className="lien-discret shrink-0">Traiter&nbsp;→</span>
                     </Link>
                   </li>
                 ))}
@@ -358,7 +375,7 @@ export async function AccueilProprietaire({
           {erreurDpe && (
             <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
               <div className="entete-carte !mb-1">
-                <h3 className="text-base font-medium">Veille réglementaire</h3>
+                <h2 className="text-[length:var(--pas-sous-titre)]">Veille réglementaire</h2>
               </div>
               <p className="mt-1.5 text-sm text-muted-foreground">
                 Les diagnostics de performance énergétique n&apos;ont pas pu être lus.
@@ -370,7 +387,7 @@ export async function AccueilProprietaire({
           {passoires.length > 0 && (
             <div className="loc-carte border-l-4 border-l-[var(--destructive)]">
               <div className="entete-carte !mb-1">
-                <h3 className="text-base font-medium">Veille réglementaire</h3>
+                <h2 className="text-[length:var(--pas-sous-titre)]">Veille réglementaire</h2>
                 <span className="loc-tag rouge">
                   {passoires.length} alerte{passoires.length > 1 ? "s" : ""}
                 </span>
@@ -389,33 +406,39 @@ export async function AccueilProprietaire({
               ))}
             </div>
           )}
-          <div className="loc-carte">
+          {/* La carte entière mène à l'abonnement (24/09) : seul le lien de la
+              dernière ligne réagissait. */}
+          <Link
+            href={`/agence/${orgId}/abonnement`}
+            className="loc-carte block transition-colors hover:border-[var(--marque)]"
+          >
             <div className="entete-carte !mb-1">
-              <h3 className="text-base font-medium">Mon abonnement</h3>
-              <span className={`loc-tag ${organisation.status === "essai" ? "ambre" : "vert"}`}>
-                {organisation.status === "essai" ? "essai gratuit" : "actif"}
+              <h2 className="text-[length:var(--pas-sous-titre)]">Mon abonnement</h2>
+              <span className={`loc-tag ${(STATUTS_ABONNEMENT[organisation.status] ?? STATUT_ABONNEMENT_INCONNU).ton}`}>
+                {(STATUTS_ABONNEMENT[organisation.status] ?? STATUT_ABONNEMENT_INCONNU).libelle}
               </span>
             </div>
+            {/* Un prix ne se coupe pas (24/09) : « 5,99 » d'un côté, « € »
+                seul à la ligne de l'autre. Espace insécable dans le libellé,
+                valeur d'un seul tenant. */}
             <div className="ligne-info">
               <span>1ᵉʳ bien — offert</span>
-              <span>0 €</span>
+              <span className="shrink-0 whitespace-nowrap">0&nbsp;€</span>
             </div>
             {biensPayants > 0 && (
               <div className="ligne-info">
                 <span>
                   {biensPayants} bien{biensPayants > 1 ? "s" : ""} supplémentaire
-                  {biensPayants > 1 ? "s" : ""} × 5,99 €
+                  {biensPayants > 1 ? "s" : ""}{" "}
+                  <span className="whitespace-nowrap">× 5,99&nbsp;€</span>
                 </span>
-                <span>{eur(totalMensuel)}/mois</span>
+                <span className="shrink-0 whitespace-nowrap">{eur(totalMensuel)}/mois</span>
               </div>
             )}
-            <Link
-              href={`/agence/${orgId}/abonnement`}
-              className="lien-discret mt-2.5 block text-[13px]"
-            >
-              Voir mon abonnement →
-            </Link>
-          </div>
+            <span className="lien-discret mt-2.5 block text-[13px]">
+              Voir mon abonnement&nbsp;→
+            </span>
+          </Link>
         </div>
       </div>
     </main>

@@ -15,7 +15,7 @@ export default function ChargementLocataire() {
       </div>
       <div className="squelette h-[132px] w-full !rounded-[14px]" />
       <div className="loc-grille">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grille-kpi">
           {[0, 1, 2].map((i) => (
             <div key={i} className="squelette h-[150px] !rounded-[14px]" />
           ))}

@@ -2,7 +2,17 @@ import Link from "next/link";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../acces";
 import { euros, jourCourt } from "../libelles";
-import { Carte, DetailsInformation, Erreur, Etiquette, MarqueAgence, Retour, TitreSection, Vide } from "../ui";
+import {
+  Carte,
+  DetailsInformation,
+  EnteteSousPage,
+  Erreur,
+  Etiquette,
+  MarqueAgence,
+  Retour,
+  TitreSection,
+  Vide,
+} from "../ui";
 
 export const metadata = { title: "Ma facturation — Espace artisan" };
 
@@ -37,14 +47,15 @@ export default async function PageFacturation() {
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <div className="portail-hero">
-        <p className="portail-surtitre">Toutes agences confondues</p>
-        <h1 className="mt-0.5">
-          Ma facturation
-        </h1>
-      </div>
+      <EnteteSousPage titre="Ma facturation" mention="Toutes agences confondues" />
 
-      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Cet écran suit les interventions facturables, pas les paiements reçus. Transmettez encore votre facture directement à l’agence : son dépôt dans Gerimmo n’est pas disponible.</p>
+      {/* La phrase qui compte le plus de la page : en texte courant, pas en
+          gris secondaire ; « encore » se lisait « une fois de plus » (24/09). */}
+      <p className="text-base text-[var(--corps)]">
+        Cet écran suit les interventions facturables, pas les paiements reçus.
+        Pour l&apos;instant, transmettez votre facture directement à l&apos;agence :
+        son dépôt dans Gerimmo n&apos;est pas encore ouvert.
+      </p>
 
       {agenda.erreur && <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur>}
 
@@ -78,9 +89,10 @@ export default async function PageFacturation() {
       {!agenda.erreur && <section>
         <TitreSection>Interventions terminées ({terminees.length})</TitreSection>
         {terminees.length === 0 ? (
-          <Vide>
+          <Vide action={{ href: "/artisan/agenda", libelle: "Voir mon agenda" }}>
             Aucune intervention terminée pour l&apos;instant. Une intervention
-            apparaît ici dès que vous en avez rendu compte.
+            apparaît ici dès que son compte rendu et la photo du travail
+            réalisé sont déposés.
           </Vide>
         ) : (
           <div className="space-y-3">
@@ -120,7 +132,11 @@ export default async function PageFacturation() {
         )}
       </section>}
 
-      <DetailsInformation titre="Comment transmettre ma facture et être payé">
+      {/* Déplié tant que la page n'a rien d'autre à montrer (24/09). */}
+      <DetailsInformation
+        titre="Comment transmettre ma facture et être payé"
+        ouvert={terminees.length === 0}
+      >
         <ul className="space-y-2 text-[0.9375rem] text-[var(--corps)]">
           <li>
             Adressez votre facture à l&apos;agence en rappelant le devis retenu et
@@ -135,12 +151,6 @@ export default async function PageFacturation() {
             compte rendu et photo compris.
           </li>
         </ul>
-        <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Le dépôt de la facture dans Gerimmo n&apos;est pas encore ouvert : en
-          attendant, adressez-la à l&apos;agence comme vous le faites aujourd&apos;hui.
-          Ce que vous voyez ci-dessus est l&apos;état, du côté de Gerimmo, de ce qui
-          est facturable.
-        </p>
       </DetailsInformation>
     </div>
   );

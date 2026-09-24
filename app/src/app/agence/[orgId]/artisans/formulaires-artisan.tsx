@@ -43,20 +43,23 @@ function ChampsMetiersEtZones({
   return (
     <>
       <fieldset className="space-y-1">
-        <legend className="libelle-champ">Métiers *</legend>
+        {/* Même libellé que les autres champs obligatoires (24/09). */}
+        <legend className="text-sm font-medium">Métiers *</legend>
         <p className="text-xs text-muted-foreground">
-          Il ne vous sera proposé que dans les métiers cochés (RM-8.3).
+          {/* RM-8.3 */}
+          Il ne vous sera proposé que dans les métiers cochés.
         </p>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+        <div className="flex flex-wrap gap-x-4 pt-1">
           {Object.entries(METIERS_ARTISAN).map(([valeur, libelle]) => (
-            // Rangée large : une case native de 13 px se coche mal au doigt
-            <label key={valeur} className="flex items-center gap-2 py-1.5 text-sm">
+            // Rangée de 44 px (règle maison, 24/09) : une case native se
+            // coche mal au doigt, et la règle tactile globale exclut les cases.
+            <label key={valeur} className="flex min-h-11 items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 name="metiers"
                 value={valeur}
                 defaultChecked={coches.has(valeur)}
-                className="size-4 shrink-0 accent-[var(--encre)]"
+                className="size-5 shrink-0 accent-[var(--encre)]"
               />
               {libelle}
             </label>
@@ -64,13 +67,7 @@ function ChampsMetiersEtZones({
         </div>
       </fieldset>
       <div className="space-y-1.5">
-        <Label htmlFor={idCodes}>
-          Zone d&apos;intervention — codes postaux{" "}
-          <span className="text-[var(--destructive)]" aria-hidden>
-            *
-          </span>
-          <span className="sr-only">(obligatoire)</span>
-        </Label>
+        <Label htmlFor={idCodes}>Zone d&apos;intervention — codes postaux *</Label>
         <Input
           id={idCodes}
           name="codes_postaux"
@@ -80,10 +77,9 @@ function ChampsMetiersEtZones({
           required
         />
         <p className="text-xs text-muted-foreground">
-          Séparés par un espace ou une virgule. Comparaison EXACTE au code postal
-          du bien : un artisan sans aucun code postal n&apos;est proposé nulle
-          part — il ne remontera dans aucune liste, sans que rien ne vous
-          l&apos;indique. Mettez au moins celui de son secteur principal.
+          Séparés par un espace ou une virgule. L&apos;artisan n&apos;est proposé
+          que pour un bien dont le code postal figure ici — mettez au moins celui
+          de son secteur principal.
         </p>
       </div>
     </>
@@ -147,11 +143,11 @@ export function FormulaireNouvelArtisan({ orgId }: { orgId: string }) {
       <ChampsMetiersEtZones valeurs={etat.valeurs} />
       <Retour etat={etat} />
       <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer l&apos;artisan</BoutonEnvoi>
+      {/* Une place par idée (24/09) : attestations et visibilité sont dites
+          sous le titre de la carte, pas ici. */}
       <p className="text-xs text-muted-foreground">
-        Le SIRET identifie l&apos;entreprise chez Gerimmo : s&apos;il existe déjà, sa
-        fiche vous est rattachée au lieu d&apos;être dupliquée. C&apos;est ensuite
-        l&apos;artisan qui dépose ses attestations et choisit sa visibilité — vous
-        n&apos;avez pas à collecter ses pièces.
+        Si le SIRET existe déjà chez Gerimmo, sa fiche vous est rattachée au lieu
+        d&apos;être dupliquée.
       </p>
     </form>
   );
@@ -209,9 +205,12 @@ export function BoutonStatutLocal({
 export function FormulaireBlacklistLocale({
   orgId,
   artisanId,
+  chezVous,
 }: {
   orgId: string;
   artisanId: string;
+  /** « votre agence » ou « votre parc » (propriétaire direct, 24/09). */
+  chezVous: string;
 }) {
   const actionLiee = blacklisterArtisanLocal.bind(null, orgId, artisanId);
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(actionLiee, {});
@@ -235,7 +234,7 @@ export function FormulaireBlacklistLocale({
       </BoutonEnvoi>
       <p className="text-xs text-muted-foreground">
         Le motif est conservé trois ans, puis purgé — et la mesure tombe avec
-        lui. Elle n&apos;engage que votre agence. Impossible tant qu&apos;une
+        lui. Elle ne vaut que pour {chezVous}. Impossible tant qu&apos;une
         intervention est en cours.
       </p>
     </form>

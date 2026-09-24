@@ -3,7 +3,7 @@ type: synthesis
 tags: [charte, visuel, ux, design-system, vitrine, marque-blanche]
 status: stable
 created: 2026-09-17
-updated: 2026-09-19
+updated: 2026-09-24
 sources: ["[[2026-08-08-maquette-prototype-cliquable]]", "[[2026-09-04-maquette-v3-prototype]]"]
 ---
 
@@ -17,6 +17,10 @@ discrètes. Cette page fixe les valeurs ; elle supplante la charte v2 pour les
 couleurs et les polices, pas pour les principes d'usage.
 
 > [!info] Statut
+> Depuis le 24/09, les valeurs de référence (jetons, mouvement, cibles) sont
+> tenues dans [[Design system Gerimmo]], qui réunit cette page, la charte v1 et
+> la structure de la maquette v2. Cette page reste la mémoire des décisions.
+>
 > Implémentée dans le code le 17/09 (PR #58) et **validée par le porteur du
 > projet le 18/09** sur la prévisualisation Vercel, puis fusionnée dans `main`.
 > C'est désormais la charte de référence ; les réglages fins se font à l'usage.

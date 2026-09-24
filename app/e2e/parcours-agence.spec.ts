@@ -62,11 +62,13 @@ test("le quittancement du mois s'affiche à 390px avec le bail E2E", async ({ pa
   expect(await debordementHorizontal(page)).toBe(0);
 });
 
-test("le plan du jour s'ouvre replié : on voit les groupes, pas le mur", async ({ page }) => {
+test("le plan du jour : replié devant un mur, ouvert quand il tient à l'écran", async ({ page }) => {
   // DEMANDE DE L'HUMAIN (12/09) : « les listes de choses à faire, je les veux
   // en liste déroulante qui sont par défaut repliée ». L'écran du matin
   // ouvrait sur une colonne de quinze rangées — on ne choisit pas par où
-  // commencer devant un mur.
+  // commencer devant un mur. … SAUF quand il n'y a pas de mur (tour du
+  // 24/09) : jusqu'à cinq actions, le plan arrive ouvert, sinon deux rangs
+  // annoncés deux fois coûtaient un clic pour rien.
   const orgId = await entrerDansEspace(page, "agence");
   await page.goto(`/agence/${orgId}`);
 
@@ -74,20 +76,30 @@ test("le plan du jour s'ouvre replié : on voit les groupes, pas le mur", async 
   const combien = await groupes.count();
   if (combien === 0) test.skip(true, "aucun groupe dans le plan du jour sur ce jeu de données");
 
-  // AUCUN n'est ouvert à l'arrivée — c'est toute la demande.
-  expect(await groupes.evaluateAll((els) => els.filter((e) => (e as HTMLDetailsElement).open).length))
-    .toBe(0);
+  // Le compte de chaque groupe se lit dans son en-tête : il décide de l'état.
+  const total = (await groupes.locator("summary").allInnerTexts())
+    .map((t) => Number((t.match(/(\d+)\s*$/) ?? [])[1] ?? 0))
+    .reduce((a, b) => a + b, 0);
+  const ouverts = () =>
+    groupes.evaluateAll((els) => els.filter((e) => (e as HTMLDetailsElement).open).length);
+  if (total <= 5) {
+    // Pas de mur : tout est ouvert à l'arrivée, aucun clic à faire.
+    expect(await ouverts()).toBe(combien);
+  } else {
+    // Le mur : AUCUN n'est ouvert à l'arrivée — c'est toute la demande.
+    expect(await ouverts()).toBe(0);
+  }
 
-  // Le compte reste lisible replié : on sait ce qu'il y a derrière sans ouvrir.
+  // Le compte reste lisible sur l'en-tête : on sait ce qu'il y a derrière.
   const entete = groupes.first().locator("summary");
   await expect(entete).toBeVisible();
   const cible = await entete.boundingBox();
   expect(Math.round(cible!.height)).toBeGreaterThanOrEqual(40);
 
-  // Et un clic ouvre CELUI-LÀ, pas les autres.
+  // Et un clic ne change que CELUI-LÀ, pas les autres.
+  const avant = await ouverts();
+  const premierOuvert = await groupes.first().evaluate((e) => (e as HTMLDetailsElement).open);
   await entete.click();
-  await expect(groupes.first()).toHaveAttribute("open", "");
-  expect(await groupes.evaluateAll((els) => els.filter((e) => (e as HTMLDetailsElement).open).length))
-    .toBe(1);
+  expect(await ouverts()).toBe(premierOuvert ? avant - 1 : avant + 1);
   expect(await debordementHorizontal(page)).toBe(0);
 });

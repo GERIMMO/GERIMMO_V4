@@ -7,6 +7,7 @@ import { compresserChampFichiers } from "@/lib/compresser-image";
 import { LISTE_PIECES, PIECES_ARTISAN, PORTEE_PIECES } from "../libelles";
 import {
   Carte,
+  CLASSE_AIDE,
   CLASSE_BOUTON_PRINCIPAL,
   CLASSE_CHAMP,
   CLASSE_LIBELLE,
@@ -52,7 +53,8 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
   const dateExigee = type !== "certification";
 
   return (
-    <Carte>
+    // `deposer` : l'ancre visée par l'état vide et par « Encore attendues ».
+    <Carte id="deposer">
       <TitreSection>Déposer une attestation</TitreSection>
       <form action={action} className="space-y-4">
         <div className="space-y-1.5">
@@ -106,7 +108,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
           </div>
         </div>
         {dateExigee && (
-          <p className="-mt-2 text-[0.8125rem] text-[var(--texte-secondaire)]">
+          <p className={`-mt-2 ${CLASSE_AIDE}`}>
             C&apos;est cette date qui fait foi : elle est lue à l&apos;instant où une
             agence cherche un artisan.
           </p>
@@ -130,7 +132,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
             }}
             className={`${CLASSE_CHAMP} py-3 file:mr-3 file:rounded file:border-0 file:bg-[var(--ardoise)] file:px-3 file:py-2 file:text-[var(--encre)]`}
           />
-          <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+          <p className={CLASSE_AIDE}>
             PDF ou photo du document. Elle remplacera la précédente du même type.
           </p>
         </div>

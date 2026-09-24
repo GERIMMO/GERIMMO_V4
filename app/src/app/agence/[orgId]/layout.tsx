@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { compterActionsDuJour } from "@/lib/actions-du-jour";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, aujourdhuiParis } from "@/lib/ged";
@@ -10,6 +12,8 @@ import { styleMarque } from "@/lib/marque-organisation";
 import { MenuCompte } from "@/components/menu-compte";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { RechercheEspace } from "@/components/recherche-espace";
+import { LienAssistance } from "@/components/bouton-assistance";
+import { IconeTrait } from "@/components/icone-trait";
 import { Toasteur } from "@/components/ui/toast";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
@@ -39,6 +43,9 @@ function joursRestants(iso: string): number {
  * Ce que le layout LIT n'a pas bougé : alertes confiées, incidents du
  * portefeuille, gérants pour « Confier à », messages non lus. Seul le chrome
  * change ; les pages gardent leur <main> et leurs marges.
+ *
+ * Une lecture de plus depuis le 24/09 : le plan du jour (lib/actions-du-jour),
+ * pour que la pastille « Alertes » dise le chiffre de la tuile « À faire ».
  */
 export default async function LayoutAgence({
   children,
@@ -48,15 +55,18 @@ export default async function LayoutAgence({
   const { supabase, user, organisation, role, estProprietaire } =
     await verifierAccesEspace(orgId);
 
-  // Revue recette 08/08 : la pop-up de connexion et le badge du menu ne
-  // montrent que les alertes qui me sont confiées, dans l'agence où je me
-  // trouve — l'acteur multi-agences navigue d'une agence à l'autre.
+  // « Mon portefeuille » (RM-18.1.3) d'abord : la pastille Incidents et le
+  // plan du jour se lisent à travers lui — null : je vois tout.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  // Revue recette 08/08 : la pop-up de connexion ne montre que les alertes
+  // qui me sont confiées, dans l'agence où je me trouve — l'acteur
+  // multi-agences navigue d'une agence à l'autre.
   const [
     alertes,
     { data: incidentsOuverts },
     { data: donneesMembres },
     messagesNonLus,
-    portefeuille,
+    actionsDuJour,
   ] = await Promise.all([
     chargerSyntheseAlertes(supabase, { orgId }),
     // Badge maquette : les incidents encore ouverts (tout sauf clos).
@@ -75,7 +85,12 @@ export default async function LayoutAgence({
     supabase.rpc("org_membres_gerants", { org: orgId }),
     // Badge Messages — même appel (mis en cache) que le tableau de bord
     totalMessagesNonLus(supabase, orgId),
-    lotsDuPortefeuille(supabase, orgId, role, user.id),
+    // La pastille « Alertes » compte ce que la tuile « À faire » compte, et ce
+    // que /alertes montre (relevé du 24/09 : « on lit “2 à faire”, on clique,
+    // on n'en trouve qu'un ») : baux bloqués, mes alertes dédoublonnées,
+    // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
+    // suit le relit sans nouvel aller-retour.
+    compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
   ]);
   const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
     (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
@@ -121,8 +136,9 @@ export default async function LayoutAgence({
     role: roleNav,
     badges: {
       incidents: badgeIncidents,
-      alertes: alertes.length,
-      alertesCritiques: alertes.filter((a) => a.criticite === "critique").length,
+      alertes: actionsDuJour.total,
+      // Rouge dès qu'un rang est critique — un impayé sur un bail compris.
+      alertesCritiques: actionsDuJour.critiques,
       messages: messagesNonLus ?? 0,
     },
   });
@@ -135,6 +151,11 @@ export default async function LayoutAgence({
     estResponsable && organisation.status === "essai" && organisation.essai_fin
       ? { jours: joursRestants(organisation.essai_fin), href: `/agence/${orgId}/abonnement` }
       : null;
+
+  const essaiTermine =
+    organisation.status === "essai" &&
+    Boolean(organisation.essai_fin) &&
+    joursRestants(organisation.essai_fin!) < 0;
 
   const liensCompte = estProprietaire
     ? [
@@ -173,6 +194,14 @@ export default async function LayoutAgence({
             estResponsable={estResponsable}
             aujourdhui={aujourdhuiParis()}
           />
+          {/* L'aide, dans la barre plutôt qu'en rond flottant sur le contenu
+              (24/09) : icône seule sous 1 024 px, et sur téléphone
+              (≤ 640 px) elle passe dans le tiroir « Menu » de la barre basse.
+              `!` : `.lien-bandeau` (hors couche) l'emporterait sur `hidden`. */}
+          <LienAssistance title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
+            <IconeTrait nom="quest" className="size-4 shrink-0" />
+            <span className="hidden lg:inline">Aide et retours</span>
+          </LienAssistance>
           <MenuCompte
             initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
             titre={estProprietaire ? "Espace propriétaire" : organisation.name}
@@ -182,12 +211,23 @@ export default async function LayoutAgence({
             liens={liensCompte}
           />
         </header>
-        <div className="repere-visuel repere-visuel-agence" aria-hidden="true" />
         {/* L'essai terminé se dit en clair, une fois, en tête : la barre le
-            porte aussi, mais un essai échu ferme l'écriture — ça se lit. */}
-        {essai && essai.jours < 0 && (
+            porte aussi, mais un essai échu ferme l'écriture — ça se lit. À
+            TOUS les rôles : un agent qui ne peut plus écrire doit savoir
+            pourquoi, et à qui s'adresser. Le responsable, lui, a le lien. */}
+        {essaiTermine && (
           <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
-            Période d&apos;essai terminée — l&apos;abonnement arrive prochainement.
+            Période d&apos;essai terminée —{" "}
+            {estResponsable ? (
+              <>
+                activez l&apos;abonnement pour continuer à saisir.{" "}
+                <Link href={`/agence/${orgId}/abonnement`} className="font-semibold underline underline-offset-2">
+                  Choisir ma formule →
+                </Link>
+              </>
+            ) : (
+              "votre administrateur doit activer l'abonnement pour que la saisie reprenne."
+            )}
           </p>
         )}
         {messagesNonLus === null && (
@@ -197,7 +237,7 @@ export default async function LayoutAgence({
           </p>
         )}
         {children}
-        <BarreBasse espace={espace} navigation={navigation} />
+        <BarreBasse espace={espace} navigation={navigation} orgId={orgId} organisations={organisations} />
       </div>
       <Toasteur />
     </div>

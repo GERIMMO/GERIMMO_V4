@@ -5350,3 +5350,85 @@ Validation finale de ce lot : 1 513 tests réussis dans 148 fichiers, aucun test
 ## [2026-09-20] correctif de recette en production | Recherche documentaire
 
 PR 68 publiée et déploiement réussi (`8947836`). La recette authentifiée de la session test a détecté une erreur partielle de recherche que le banc SQL local ne reproduisait pas : PostgREST triait le résultat projeté de documents_courants sans created_at sélectionné (42703). Ajout de cette colonne à la projection, sans élargir le périmètre ni changer les données. Lecture API de production : requête corrigée sans erreur ; ajout d’une assertion de régression. Aucun courrier ni paiement réel déclenché.
+
+## [2026-09-24] implementation | Design — remise au propre : charte, ergonomie par persona, cohérence, animations
+
+**Demande** : « rends propre la charte actuelle, contrôle l'ergonomie par
+persona, la cohérence, le design system et ajoute quelques animations », après
+avoir écarté une charte externe (« je veux une identité forte » — les options
+proposées, terre cuite / vert bouteille / signalétique / encre et corail,
+restent au tiroir).
+
+**Trois audits en lecture du code** (agence + console ; locataire + artisan +
+propriétaire + portes d'entrée ; feuille de style) : 82 défauts d'ergonomie,
+~60 déclarations CSS mortes, 8 classes inutilisées, 30 couleurs en dur, un
+mode sombre sans basculeur, 25 commentaires périmés.
+
+**Fait** (branche `claude/compassionate-euler-qpqjp6`) :
+- `globals.css` : une définition par composant (les couches v4 → v4.3 et
+  « contraste » / « grammaire » fusionnées), jetons `--cible-tactile` 44 px et
+  `--duree-*` / `--courbe`, bloc `.dark` retiré, zéro couleur en dur hors
+  `:root`, repère photo effacé quand la page porte déjà son bandeau photo,
+  couche de mouvement (cascade des tuiles, dépliage, fenêtres, jauges,
+  pastilles, pression, flèches) éteinte sous `prefers-reduced-motion`.
+- ~60 corrections d'ergonomie (détail dans [[Design system Gerimmo]] §4) :
+  codes postaux artisan saisissables au téléphone, accueil propriétaire
+  honnête en cas de panne, jargon et codes internes retirés, alertes dans la
+  barre basse, fenêtre à en-tête blanc, barre basse commune au locataire,
+  titres de la console avec leur taille, couleurs en dur de Marketing et
+  Territoire passées aux jetons.
+- Page [[Design system Gerimmo]] créée ; [[Charte visuelle v3 bleue]] et
+  [[Charte visuelle de l'espace agent]] pointent dessus.
+
+**Vérifié** : typage, lint, 1 562 tests, build de production, captures des
+cinq personas à 1 280 et 390 px avant / après sur le banc local.
+
+**Ouvert** : voie d'entrée d'un compte sans espace, coquille hors couche CSS,
+références visuelles à régénérer, rail tablette au doigt, 22 défauts P2/P3
+structurels, charte des PDF.
+
+## [2026-09-24] implementation | Retours du porteur sur la version en ligne — bandeau, rangs, menu, agenda
+
+Quatre retours, captures à l'appui, sur `main` déployé : « le bandeau entouré
+est en trop et sur plusieurs pages » ; « dans les lots une partie non cliquable,
+je veux que tout le carré soit cliquable » ; « je dois appuyer sur Plus pour
+Statistiques et Agenda, un clic en trop » ; « l'agenda : un calendrier mensuel
+où je clique sur le jour pour le détail ».
+
+**Fait** (commit `e0cad10`, branche `claude/compassionate-euler-qpqjp6`) :
+- le repère photographique retiré de tous les espaces et pages (11 fichiers)
+  et de la feuille de style ; l'accueil garde son bandeau photo ;
+- `.rang-lot` en pleine largeur : le rang entier se clique ;
+- Agenda et Statistiques en entrées principales pour les trois rôles (admin :
+  onze entrées) ; tests de navigation mis à jour ;
+- **agenda mensuel** : `moisAgenda` / `jourAgenda` (lib), vue « mois » sans
+  pagination (500 au plus) dans `chargerAgendaGestion`, grille de sept
+  colonnes, case du jour en bleu plein, rendez-vous du jour cliqué listés
+  dessous ; tests unitaires ajoutés ;
+- et, en réponse au point ouvert de la veille : **« Que voulez-vous faire ? »**
+  pour un compte connecté sans espace (ouverture de l'espace propriétaire par
+  la RPC `initialiser_espace_proprietaire` après pose du nom en métadonnées),
+  vérifié au navigateur sur un compte neuf du banc.
+
+**Vérifié** : typage, lint, 1 565 tests, captures. Le banc local s'était
+arrêté en entier en cours de route (Postgres, API, serveur) — relancé.
+
+**En cours** : « fais le tour du site pour faire attention à ce genre de
+détail » — 110 pages capturées (six personas, 1 280 et 390 px), relecture
+orchestrée page par page avec double vérification, puis corrections.
+
+## [2026-09-24] implementation | Tour du site — 120 écrans relus par persona, 469 corrections
+
+**Demande** : après ses premiers retours sur la version en ligne (bandeau photo « en trop », rang de lot à moitié cliquable, « Plus » à ouvrir pour Statistiques et Agenda, agenda mensuel), le porteur demande de « faire le tour du site pour faire attention à ce genre de détail ».
+
+**Méthode** : 120 écrans capturés (bureau 1280 px et téléphone 390 px) pour les sept personas (public, agent, admin d'agence, propriétaire direct, locataire, artisan, superadmin) ; un relecteur par page ; 1 176 relevés bruts regroupés en 562 défauts uniques ; chacun jugé par deux regards contradictoires (« est-ce réel dans le code d'aujourd'hui ? », « est-ce voulu, ou hors sujet ? ») : 501 confirmés, 61 écartés ; corrections par lots de fichiers disjoints, chaque correction recapturée ; 469 corrigés, 33 non corrigés (migration, décision du porteur, fichier partagé — listés dans [[Design system Gerimmo]] § 5).
+
+**Ce qui change, en un coup d'œil** : un seul bandeau par écran (fin des heros répétés de l'espace artisan, du journal, des pages de second niveau de la console, du filet dégradé sous la barre haute, de la photo du parcours de démarrage, du hero « P » de l'accueil propriétaire) ; les rangs, cartes et tuiles se cliquent en entier (lots, alertes, mandats, articles, rendez-vous, quittancement, indicateurs locataire et propriétaire) ; le plan du jour s'ouvre seul sous cinq actions ; le livre et les statistiques sortent de « Plus » chez le propriétaire ; le bouton flottant d'aide quitte l'espace agence (barre haute et tiroir « Menu ») et se range là où rien n'est dessous dans les autres espaces ; cibles tactiles de 44 px sur les liens habillés en bouton, les liens de bandeau et les puces ; les pages légales reçoivent l'en-tête et le pied communs ; le geste attendu remonte en haut de la fiche de mission artisan ; les états vides guident au lieu d'aligner des filtres à zéro ; vocabulaire adapté au propriétaire direct (« votre parc », « Mes lots », « Locataires & garants ») ; jargon interne retiré (« pot commun », « décision du 25/07 », « purgées »).
+
+**Vérification** : tests unitaires (1 566), lint, types, suite navigateur (accessibilité axe, audit des 84 écrans, parcours par profil) ; CI de la PR #95 rejouée. Trois tests navigateur adaptés aux décisions du jour (plus de photo obligatoire par écran, « Loyers & charges » au menu de l'agent, calendrier sans rôle grille).
+
+**À trancher par le porteur** : voir [[Design system Gerimmo]] § 5 (abonnement pendant l'essai, lecture seule en fin d'essai pour un bien offert, Comptabilité de l'agent, barre basse à quatre entrées, titres d'onglet en marque blanche, deux migrations prêtes).
+
+## [2026-09-24] decision | Le porteur fait trancher les points ouverts du tour « de manière logique »
+
+Règle appliquée : la promesse déjà faite à l'utilisateur, ou la règle déjà écrite, l'emporte. Abonnement pendant l'essai tenu (Stripe `trial_end`) ; fin d'essai sans rien à payer = compte ouvert (migration `org_ecriture_ouverte`, appliquée) ; « Écritures & rapports » dans le « Plus » de l'agent ; barre basse à quatre entrées et titres d'onglet inchangés ; migrations « nom de l'agent » écartées (manque de modèle) ; libellés gardés ; restes mineurs faits, dont la cohérence du compteur d'alertes. Détail dans [[Design system Gerimmo]] § 5.

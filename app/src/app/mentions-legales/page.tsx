@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Article, CoquilleLegale, AFournir, Fait } from "@/components/coquille-legale";
-import { EDITEUR } from "@/lib/editeur";
+import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
+import { EDITEUR, documentsIncomplets, prestatairesIncomplets, type FaitEditeur } from "@/lib/editeur";
 
 export const metadata = { title: "Mentions légales — Gerimmo" };
 
@@ -10,11 +10,17 @@ export const metadata = { title: "Mentions légales — Gerimmo" };
 //
 // Les faits d'entreprise viennent tous de lib/editeur.ts : tant qu'ils n'y
 // sont pas, la page le dit en toutes lettres au lieu de rendre du vide.
+
+/** Réserve propre à cette page : les coordonnées de chaque prestataire. */
+const COORDONNEES_PRESTATAIRES: FaitEditeur = null;
+
 export default function PageMentionsLegales() {
   return (
     <CoquilleLegale
       titre="Mentions légales"
       chapo="Qui édite ce service, qui l'héberge, et comment nous joindre."
+      chemin="/mentions-legales"
+      incomplet={documentsIncomplets() || prestatairesIncomplets() || !COORDONNEES_PRESTATAIRES}
     >
       <Article titre="Éditeur">
         <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
@@ -61,43 +67,11 @@ export default function PageMentionsLegales() {
           l&apos;Union européenne</b>. Le service s&apos;appuie sur les
           prestataires suivants :
         </p>
-        <div className="tableau-defilant">
-          <table className="tableau">
-            <thead>
-              <tr>
-                <th>Rôle</th>
-                <th>Prestataire</th>
-                <th>Localisation</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Base de données, authentification, stockage des fichiers</td>
-                <td>Supabase</td>
-                <td>Région eu-west-3 (Paris, France)</td>
-              </tr>
-              <tr>
-                <td>Hébergement et diffusion de l&apos;application</td>
-                <td>Vercel</td>
-                {/* La région des fonctions est fixée dans vercel.json
-                    (`regions: ["cdg1"]`) : sans ce réglage, Vercel exécute le
-                    serveur à Washington, et les données transitent hors UE à
-                    chaque page. */}
-                <td>Région cdg1 (Paris, France)</td>
-              </tr>
-              <tr>
-                <td>Envoi des courriels du service</td>
-                <td>Resend</td>
-                <td>
-                  <AFournir quoi="localisation" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {/* La même liste que la page confidentialité (lib/editeur.ts). */}
+        <TableauPrestataires />
         <p className="text-muted-foreground">
           Coordonnées complètes de chaque prestataire :{" "}
-          <AFournir quoi="raison sociale et adresse de chacun" />.
+          <Fait valeur={COORDONNEES_PRESTATAIRES} quoi="raison sociale et adresse de chacun" />.
         </p>
       </Article>
 
@@ -108,7 +82,7 @@ export default function PageMentionsLegales() {
         </p>
         <p>
           Pour vos données personnelles, la marche à suivre est décrite dans la{" "}
-          <Link href="/confidentialite" className="lien-discret">
+          <Link href="/confidentialite" className="lien-texte">
             page confidentialité
           </Link>
           . S&apos;il s&apos;agit des données de votre dossier de gestion

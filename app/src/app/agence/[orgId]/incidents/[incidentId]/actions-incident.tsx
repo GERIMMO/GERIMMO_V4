@@ -36,15 +36,25 @@ function Retour({ etat }: { etat: EtatIncidentAction }) {
 // pré-sélectionné (RM-7.2.1) — et justifie (opposable, RM-7.2.3).
 // `apresSucces` : la pop-up de traitement (recette 22/08) se referme sur le
 // geste abouti — la fiche, elle, reste en place.
+//
+// 24/09 : `imputation` / `justification` rechargent la décision EN PLACE quand
+// on requalifie un dossier déjà qualifié. Ce n'est pas une proposition
+// automatique (RM-7.2.1 vise un conseil déduit de la catégorie) : c'est la
+// décision du gestionnaire lui-même, qu'il maintient ou corrige sans tout
+// ressaisir. Un dossier à qualifier n'en passe pas : rien n'y est coché.
 export function FormulaireQualification({
   orgId,
   incidentId,
   categorie,
+  imputation,
+  justification,
   apresSucces,
 }: {
   orgId: string;
   incidentId: string;
   categorie: string;
+  imputation?: string | null;
+  justification?: string | null;
   apresSucces?: () => void;
 }) {
   const actionLiee = qualifierIncident.bind(null, orgId, incidentId);
@@ -67,7 +77,7 @@ export function FormulaireQualification({
               name="imputation"
               value={valeur}
               required
-              defaultChecked={etat.valeurs?.imputation === valeur}
+              defaultChecked={(etat.valeurs?.imputation ?? imputation) === valeur}
               className="size-4 shrink-0 accent-[var(--encre)]"
             />
             {libelle}
@@ -80,8 +90,10 @@ export function FormulaireQualification({
           id="justification"
           name="justification"
           required
-          rows={2}
-          defaultValue={etat.valeurs?.justification}
+          // 24/09 : trois lignes — l'aide tient sur trois lignes au téléphone
+          // et la troisième était coupée à mi-hauteur.
+          rows={3}
+          defaultValue={etat.valeurs?.justification ?? justification ?? undefined}
           placeholder="Opposable au locataire — le fondement et le constat qui motivent votre décision."
           className={classeTextarea}
         />
@@ -191,6 +203,12 @@ export function FormulaireReouverture({
 
 // Attribution : le responsable choisit dans la liste ; un agent se saisit
 // d'un dossier libre d'un clic (les règles fines sont défendues en base).
+//
+// 24/09 : un seul mot pour un dossier sans responsable, celui de la liste —
+// « non attribué ». « Personne — pot commun » se lisait comme un nom de plus
+// parmi les gestionnaires. Et le responsable a lui aussi son geste en un clic
+// (« Me l'attribuer ») : se saisir d'un dossier ne doit pas demander d'ouvrir
+// le sélecteur pour y chercher sa propre adresse.
 export function FormulaireAttribution({
   orgId,
   incidentId,
@@ -217,34 +235,53 @@ export function FormulaireAttribution({
         <input type="hidden" name="responsable" value={responsable ? "" : monCompte} />
         <Retour etat={etat} />
         <BoutonEnvoi variant="outline" size="sm">
-          {responsable ? "Remettre au pot commun" : "Je le prends en charge"}
+          {responsable ? "Rendre le dossier" : "Je le prends en charge"}
         </BoutonEnvoi>
       </form>
     );
   }
 
   return (
-    <form action={action} className="space-y-2">
+    <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          name="responsable"
-          defaultValue={responsable ?? ""}
-          className={classeSelect}
-          aria-label="Attribuer à"
+        {responsable !== monCompte && (
+          <form action={action}>
+            <input type="hidden" name="responsable" value={monCompte} />
+            <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
+              Me l&apos;attribuer
+            </BoutonEnvoi>
+          </form>
+        )}
+        {/* `key` : le sélecteur est non contrôlé — sans remontage, il
+            garderait l'ancien choix affiché après « Me l'attribuer ». */}
+        <form
+          key={responsable ?? ""}
+          action={action}
+          className="flex min-w-0 flex-1 basis-[240px] flex-wrap items-center gap-2"
         >
-          <option value="">Personne — pot commun</option>
-          {membres.map((m) => (
-            <option key={m.account_id} value={m.account_id}>
-              {m.email}
-            </option>
-          ))}
-        </select>
-        <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
-          Attribuer
-        </BoutonEnvoi>
+          {/* 24/09 : `flex-1 basis-[180px]` — en `w-full` seul, le sélecteur
+              prenait toute la rangée et renvoyait « Attribuer » seul à la
+              ligne, même sur bureau. */}
+          <select
+            name="responsable"
+            defaultValue={responsable ?? ""}
+            className={`${classeSelect} flex-1 basis-[180px]`}
+            aria-label="Attribuer à"
+          >
+            <option value="">— Non attribué —</option>
+            {membres.map((m) => (
+              <option key={m.account_id} value={m.account_id}>
+                {m.email}
+              </option>
+            ))}
+          </select>
+          <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
+            Attribuer
+          </BoutonEnvoi>
+        </form>
       </div>
       <Retour etat={etat} />
-    </form>
+    </div>
   );
 }
 

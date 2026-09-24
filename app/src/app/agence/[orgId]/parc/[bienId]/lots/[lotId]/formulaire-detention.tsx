@@ -345,29 +345,35 @@ export function BoutonCloreDetention({
   );
 }
 
-// Corriger une erreur : supprime la détention (refusé en base si le lot a un bail).
+// Erreur de saisie : supprime la détention (refusé en base si le lot a un bail).
 export function BoutonSupprimerDetention({
   orgId,
   bienId,
   lotId,
   detentionId,
+  proprietaire,
+  quotePart,
 }: {
   orgId: string;
   bienId: string;
   lotId: string;
   detentionId: string;
+  /** Nommés dans la confirmation : on sait ce qu'on efface. */
+  proprietaire: string;
+  quotePart: number;
 }) {
   const actionLiee = supprimerDetention.bind(null, orgId, bienId, lotId, detentionId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
-  // « Corriger » SUPPRIME la ligne (à la différence de « Fermer » qui la
-  // clôt en gardant l'historique) : au doigt, un tap raté ne doit pas
-  // effacer une détention — confirmation d'abord (audit mobile 10/09).
+  // Ce bouton SUPPRIME la ligne (à la différence de « Fermer » qui la clôt en
+  // gardant l'historique) : il le dit dans son libellé — « Corriger » ne
+  // l'annonçait pas. Au doigt, un tap raté ne doit pas effacer une
+  // détention — confirmation d'abord (audit mobile 10/09).
   const [confirme, setConfirme] = useState(false);
   const formulaire = useRef<HTMLFormElement>(null);
   return (
     <form ref={formulaire} action={action} className="shrink-0">
       <Button type="button" size="sm" variant="ghost" onClick={() => setConfirme(true)}>
-        Corriger
+        Supprimer (erreur de saisie)
       </Button>
       {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
       {confirme && (
@@ -396,7 +402,8 @@ export function BoutonSupprimerDetention({
           }
         >
           <p className="text-sm">
-            « Corriger » efface la ligne comme si elle n&apos;avait jamais existé —
+            Supprimer la détention de <b>{proprietaire}</b> ({quotePart} %) ? La
+            ligne est effacée comme si elle n&apos;avait jamais existé —
             réservé aux erreurs de saisie. Pour une détention réelle qui prend
             fin, utilisez « Fermer » : l&apos;historique reste juste.
           </p>

@@ -78,7 +78,10 @@ export function SectionLot({
           </span>
           {!ouvert && (
             <span
-              className={`mt-1 block text-sm ${alerte ? "text-warning-soft-foreground" : "text-muted-foreground"}`}
+              // Résumé en gris même quand la rangée attend un geste (24/09) :
+              // la pastille et le liseré le disent ; un troisième signal ambre
+              // (le résumé orange) redisait le bandeau du haut.
+              className="mt-1 block text-sm text-muted-foreground"
             >
               {resume}
             </span>

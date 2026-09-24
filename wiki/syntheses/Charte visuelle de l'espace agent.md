@@ -3,11 +3,15 @@ type: synthesis
 tags: [charte, visuel, ux, espace-agent, design-system]
 status: stable
 created: 2026-08-03
-updated: 2026-09-17
+updated: 2026-09-24
 sources: ["raw/Gerimmo-V3/docs/03-design-system.md"]
 ---
 
 # Charte visuelle de l'espace agent
+
+> [!info] Réunie dans [[Design system Gerimmo]] le 2026-09-24
+> Les six patterns et les états d'interface ci-dessous restent la règle ; les
+> valeurs vivent dans le design system.
 
 > [!warning] Supplantée une seconde fois le 2026-09-17
 > Refonte décidée par le porteur du projet : blanc et gris perle, **bleu**

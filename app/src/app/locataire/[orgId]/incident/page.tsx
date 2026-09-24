@@ -3,7 +3,9 @@ import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { ReflexesUrgence } from "../reflexes-urgence";
 import { FormulaireIncidentLocataire } from "./formulaire-incident-locataire";
 
-export const metadata = { title: "Nouveau signalement — Gerimmo" };
+// Un seul nom pour la page (24/09) : le bouton qui y mène dit « Signaler un
+// problème », le titre et l'onglet disaient « Nouveau signalement ».
+export const metadata = { title: "Signaler un problème" };
 
 // Déclaration d'incident par le locataire (module 7 + module 19) : deux
 // colonnes façon maquette pLocDeclarer — le formulaire à gauche, l'encart
@@ -27,25 +29,22 @@ export default async function PageSignalerIncident(
 
   return (
     <div className="space-y-4">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          <Link href={`/locataire/${orgId}`} className="hover:underline">
-            Mon espace
-          </Link>{" "}
-          / Signaler un problème
-        </p>
-        <h1>Nouveau signalement</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Votre gestionnaire est prévenu immédiatement et vous saurez qui prend la
-          réparation en charge après son examen.
-        </p>
-        <Link
-          href={`/locataire/${orgId}/demandes`}
-          className="lien-discret mt-2 inline-block"
-        >
-          Suivre mes demandes{enCours > 0 ? ` (${enCours} en cours)` : ""} →
+      {/* L'en-tête standard de l'espace (24/09) : titre, et le suivi à
+          droite. Plus de fil d'Ariane — aucune autre page n'en a, le menu
+          dit où l'on est. « Prévenu immédiatement » n'est plus dit qu'une
+          fois, dans la carte d'urgence. */}
+      <div className="entete-page">
+        <h1>Signaler un problème</h1>
+        <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
+          Suivre mes demandes{enCours > 0 ? ` (${enCours} en cours)` : ""}{"\u00a0"}→
         </Link>
       </div>
+      {adhesionActive && (
+        <p className="text-sm text-muted-foreground">
+          Vous saurez qui prend la réparation en charge après examen par votre
+          gestionnaire.
+        </p>
+      )}
 
       {adhesionActive ? (
         <>

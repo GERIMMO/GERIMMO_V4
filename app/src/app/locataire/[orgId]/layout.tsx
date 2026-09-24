@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { cache } from "react";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { MarqueOrganisation } from "@/components/marque-organisation";
 import { styleMarque } from "@/lib/marque-organisation";
@@ -7,6 +9,32 @@ import { MenuCompte } from "@/components/menu-compte";
 import { nomComplet } from "@/lib/roles-personnes";
 import { estARenouveler } from "@/lib/ged";
 import { aEchoue } from "./panne-lecture";
+
+// L'apparence de l'organisation, lue une fois par requête : la marque de la
+// barre latérale ET le titre de l'onglet en ont besoin.
+const lireApparence = cache(async function lireApparence(orgId: string) {
+  const { supabase } = await verifierAccesEspaceLocataire(orgId);
+  const { data } = await supabase
+    .from("organizations")
+    .select("logo_url, couleur_primaire, couleur_secondaire, nom_portail")
+    .eq("id", orgId)
+    .maybeSingle();
+  return data;
+});
+
+// L'onglet parle au nom de l'agence (24/09) : tous les titres finissaient par
+// « — Gerimmo » dans un espace à son nom, son logo et ses couleurs. Chaque
+// page ne donne plus que son nom court ; l'accueil, qui partage le segment du
+// layout (le modèle ne s'y applique pas), prend le titre par défaut.
+export async function generateMetadata({
+  params,
+}: Pick<LayoutProps<"/locataire/[orgId]">, "params">): Promise<Metadata> {
+  const { orgId } = await params;
+  const { organisation } = await verifierAccesEspaceLocataire(orgId);
+  const apparence = await lireApparence(orgId);
+  const nom = apparence?.nom_portail?.trim() || organisation.name;
+  return { title: { template: `%s — ${nom}`, default: `Mon espace — ${nom}` } };
+}
 
 // Espace locataire — montée en gamme (maquette v10 du 05/09) : navigation
 // latérale encre (le locataire est chez lui), fil de pages sur fond crème,
@@ -18,11 +46,7 @@ export default async function LayoutLocataire({
 }: LayoutProps<"/locataire/[orgId]">) {
   const { orgId } = await params;
   const { supabase, organisation, personne, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
-  const { data: apparence } = await supabase
-    .from("organizations")
-    .select("logo_url, couleur_primaire, couleur_secondaire, nom_portail")
-    .eq("id", orgId)
-    .maybeSingle();
+  const apparence = await lireApparence(orgId);
 
   const [
     { data: pieces, error: ePieces },
@@ -76,7 +100,7 @@ export default async function LayoutLocataire({
     <div className="loc-app" style={styleMarque(apparence)}>
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
-          <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace" className="block min-w-0 max-w-[180px] overflow-hidden">
+          <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace" className="block min-w-0 max-w-full overflow-hidden">
             <MarqueOrganisation marque={{ ...apparence, name: organisation.name }} />
           </Link>
           <span className="loc-logo-texte eyebrow">
@@ -110,7 +134,6 @@ export default async function LayoutLocataire({
             ]}
           />
         </header>
-        <div className="repere-visuel repere-visuel-locataire" aria-hidden="true" />
         {comptesIncertains && (
           <p
             role="alert"
@@ -126,7 +149,11 @@ export default async function LayoutLocataire({
             documents et décompte de restitution.
           </p>
         )}
-        <main className="loc-corps mx-auto">{children}</main>
+        {/* sm:pb-20 : au-delà du téléphone, le bouton flottant « Aide et
+            retours » (bas-droite, 64 px) mordait la dernière carte — l'angle
+            de la carte d'urgence, dans l'axe de « Contacter » (24/09). La
+            marge le laisse sous le contenu en fin de page. */}
+        <main className="loc-corps mx-auto sm:pb-20">{children}</main>
       </div>
     </div>
   );

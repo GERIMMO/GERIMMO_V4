@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, type ReactNode } from "react";
+import Link from "next/link";
 import { changerEtatLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
@@ -32,12 +33,20 @@ const TRANSITIONS: Record<string, { cible: string; libelle: string }[]> = {
 };
 
 // Ce que l'agent doit faire à la place, quand l'état ne se change pas à la main.
-const AILLEURS: Record<string, string> = {
+// UNE PHRASE QUI DIT OÙ ALLER Y MÈNE (24/09) : « passez par le bail » n'avait
+// pas de lien vers le bail. `bail` est ce lien quand la page le connaît.
+const AILLEURS: Record<string, (bail: (texte: string) => ReactNode) => ReactNode> = {
   // Ne redit PAS que le lot est loué : la pastille du titre, le titre de la
   // carte et l'état du bail le disent déjà. Ne reste que la suite à donner.
-  loue: "Pour enregistrer un départ, passez par le bail et son congé.",
-  preavis:
-    "Le locataire a donné congé : son bail court jusqu'au terme du préavis. Quand il aura rendu les clés et que l'état des lieux de sortie sera signé, clôturez le bail depuis sa fiche — le lot redeviendra disponible tout seul.",
+  loue: (bail) => <>Pour enregistrer un départ, passez par {bail("le bail et son congé")}.</>,
+  preavis: (bail) => (
+    <>
+      Le locataire a donné congé : son bail court jusqu&apos;au terme du préavis.
+      Quand il aura rendu les clés et que l&apos;état des lieux de sortie sera
+      signé, clôturez le bail depuis {bail("sa fiche")} — le lot redeviendra
+      disponible tout seul.
+    </>
+  ),
 };
 
 export function BoutonsEtatLot({
@@ -47,6 +56,7 @@ export function BoutonsEtatLot({
   etat,
   bloque = false,
   compact = false,
+  bailHref,
 }: {
   orgId: string;
   bienId: string;
@@ -57,12 +67,18 @@ export function BoutonsEtatLot({
   // évidente à faire.
   bloque?: boolean;
   // Liste de lots : le rappel sur la revérification est affiché une fois pour
-  // toute la carte, pas sous chaque lot.
+  // toute la carte, pas sous chaque lot — et la phrase d'un lot loué ne s'y
+  // répète plus sous chaque rang (24/09).
   compact?: boolean;
+  // Le bail en cours, quand la page le connaît : la phrase y mène.
+  bailHref?: string;
 }) {
   const actionLiee = changerEtatLot.bind(null, orgId, bienId, lotId);
   const [retour, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const transitions = TRANSITIONS[etat] ?? [];
+  const phrase = AILLEURS[etat] && !(compact && etat === "loue") ? AILLEURS[etat] : null;
+  // Rien à proposer ni à dire : pas de bloc vide sous le rang du lot.
+  if (transitions.length === 0 && !phrase && !retour.erreur && !retour.succes) return null;
 
   return (
     <div className="space-y-2">
@@ -83,8 +99,18 @@ export function BoutonsEtatLot({
       {retour.succes && (
         <p className="text-sm text-success-soft-foreground">{retour.succes}</p>
       )}
-      {AILLEURS[etat] && (
-        <p className="text-xs text-muted-foreground">{AILLEURS[etat]}</p>
+      {phrase && (
+        <p className="text-xs text-muted-foreground">
+          {phrase((texte) =>
+            bailHref ? (
+              <Link href={bailHref} className="lien-discret text-xs">
+                {texte}
+              </Link>
+            ) : (
+              texte
+            )
+          )}
+        </p>
       )}
       {/* « ÉTAT ACTUEL : LOUÉ » A DISPARU, et c'est le relevé du 11/09 : la
           pastille du titre disait déjà « Loué », la carte s'intitulait « La

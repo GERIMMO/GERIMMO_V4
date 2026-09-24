@@ -3,6 +3,7 @@ import { ROLES_GERANTS, ROLES_RESPONSABLES } from "@/lib/ged";
 import { FormulaireProfilOrganisation } from "./formulaire-profil";
 import { FormulaireSignature } from "./formulaire-signature";
 import { EncadreLectureImpossible, EnteteReglages } from "./famille-reglages";
+import { BoutonsLienParrainage } from "./bouton-copier-lien";
 import { signatureOrganisation } from "@/lib/documents/modeles/communs";
 import {
   lienDeParrainage,
@@ -27,6 +28,9 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   const { supabase, role, estProprietaire, organisation } = await verifierAccesEspace(orgId);
   const responsable = ROLES_RESPONSABLES.includes(role);
   const titre = estProprietaire ? "Mon profil" : "Profil de l'agence";
+  // 24/09 : côté agence, la barre latérale et la barre haute nomment déjà
+  // l'organisation — la mention à droite du titre ne sert qu'au propriétaire.
+  const mention = estProprietaire ? organisation.name : undefined;
 
   const { data: profil, error: erreurProfil } = await supabase
     .from("organizations")
@@ -39,7 +43,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   if (erreurProfil || !profil) {
     return (
       <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-        <EnteteReglages titre={titre} mention={organisation.name} />
+        <EnteteReglages titre={titre} mention={mention} />
         <EncadreLectureImpossible
           titre={erreurProfil ? "Lecture impossible" : "Fiche introuvable"}
         >
@@ -73,6 +77,8 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
     lignesParrainage.find((p) => p.filleul_organization_id === orgId)?.parrain?.name ?? null;
   const codeParrainage = (profil as { code_parrainage?: string | null }).code_parrainage ?? null;
   const site = adresseDuSite();
+  const lienParrainage =
+    site && codeParrainage ? lienDeParrainage(site, codeParrainage) : null;
 
   // Ce que le parrainage a rapporté À CETTE organisation (19/09). La RLS ne
   // rend que ses propres lignes : un avantage ne se lit pas de l'extérieur.
@@ -86,21 +92,24 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
     !profil.address_line1 && "adresse",
     !profil.city && "ville (le « Fait à » des documents)",
     !profil.email_contact && "email de contact",
-    !profil.telephone && "téléphone",
   ].filter(Boolean) as string[];
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-      <EnteteReglages titre={titre} mention={organisation.name}>
+      <EnteteReglages titre={titre} mention={mention}>
         Ces informations signent vos documents générés (bail, quittances, états
-        des lieux…) : en-tête, pied de page et « Fait à ». Un champ obligatoire
-        vide bloque désormais la génération du PDF.
+        des lieux…) : en-tête, pied de page et «&nbsp;Fait à&nbsp;». Un champ
+        obligatoire vide empêche la génération de ces documents.
       </EnteteReglages>
 
+      {/* 24/09 : l'ordre « à compléter » ne s'adresse qu'à qui peut compléter.
+          L'agent en lecture seule lit ce qui manque, et qui peut le faire. */}
       {manquants.length > 0 && (
         <div className="border-l-[3px] border-l-warning bg-warning-soft p-3">
           <p className="text-sm text-warning-soft-foreground">
-            À compléter pour des documents sans trous : {manquants.join(" · ")}.
+            {responsable
+              ? `À compléter pour des documents complets : ${manquants.join("\u00a0· ")}.`
+              : `Fiche incomplète — à renseigner par un responsable de l'organisation : ${manquants.join("\u00a0· ")}.`}
           </p>
         </div>
       )}
@@ -112,7 +121,7 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
         </div>
         {!responsable && (
           <p className="mesure-lecture mb-4 text-sm text-muted-foreground">
-            Demandez à un responsable de l&apos;organisation pour modifier ces
+            Demandez à un responsable de l&apos;organisation de modifier ces
             informations.
           </p>
         )}
@@ -159,7 +168,9 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
             ))}
           </ul>
         )}
-        <dl className="grid gap-x-8 sm:grid-cols-2">
+        {/* Deux colonnes seulement s'il y a deux entrées (24/09) : seule, la
+            ligne « Votre code » s'arrêtait à mi-carte, filet coupé. */}
+        <dl className={`grid gap-x-8 ${monParrain ? "sm:grid-cols-2" : ""}`}>
           <div className="ligne-info">
             <dt className="text-muted-foreground">Votre code</dt>
             <dd className="montant font-semibold tracking-wider">{codeParrainage ?? "—"}</dd>
@@ -171,11 +182,24 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
             </div>
           )}
         </dl>
-        {site && codeParrainage && (
-          <p className="mt-3 text-[13px] text-muted-foreground">
-            Lien à partager :{" "}
-            <code className="break-all text-[var(--corps)]">{lienDeParrainage(site, codeParrainage)}</code>
-          </p>
+        {lienParrainage && (
+          <div className="mt-3 space-y-2">
+            {/* Le lien reste visible ; sur téléphone il se coupe au « ? »
+                plutôt qu'au milieu de « parrain » (24/09), et les gestes
+                « Copier » / « Partager » sont juste dessous. */}
+            <p className="text-[13px] text-muted-foreground">
+              Lien à partager :{" "}
+              <code className="text-[var(--corps)] [overflow-wrap:anywhere]">
+                {lienParrainage.split("?")[0]}
+                {lienParrainage.includes("?") && (
+                  <>
+                    <wbr />?{lienParrainage.split("?").slice(1).join("?")}
+                  </>
+                )}
+              </code>
+            </p>
+            <BoutonsLienParrainage lien={lienParrainage} />
+          </div>
         )}
       </div>
 

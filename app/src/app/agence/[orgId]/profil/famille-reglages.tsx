@@ -13,6 +13,9 @@ import type { ReactNode } from "react";
 // En-tête commun : titre de page, mention mono à droite (l'organisation où l'on
 // se trouve — la barre haute du propriétaire ne la nomme pas), et une phrase
 // qui dit à quoi sert l'écran, à la mesure de lecture.
+// 24/09 : la mention n'est passée QUE côté propriétaire. Côté agence, la barre
+// latérale et la barre haute nomment déjà l'agence : une troisième fois, à
+// droite du titre, n'apprenait plus rien à personne.
 export function EnteteReglages({
   titre,
   mention,
@@ -61,21 +64,34 @@ export function EncadreLectureImpossible({
   );
 }
 
-// Statut de l'organisation — quatre valeurs en base (essai, active, suspendue,
-// archivee). L'abonnement n'en lisait que deux et repeignait en vert « actif »
-// une organisation SUSPENDUE ou ARCHIVÉE : l'écran mentait sur l'état du compte
-// de celui qui le regardait. Une seule lecture, rendue avec la puce de la
-// charte (l'écran d'administration en avait sa propre copie, en .loc-tag).
-const STATUTS: Record<string, { libelle: string; puce: string }> = {
-  essai: { libelle: "essai gratuit", puce: "puce-prep" },
-  active: { libelle: "active", puce: "puce-loue" },
-  suspendue: { libelle: "suspendue", puce: "puce-rouge" },
-  archivee: { libelle: "archivée", puce: "puce-grise" },
-};
-
-export function statutOrganisation(status: string): {
-  libelle: string;
-  puce: string;
-} {
-  return STATUTS[status] ?? { libelle: status, puce: "puce-grise" };
+// Statut de l'ABONNEMENT, pas de l'organisation (24/09). La puce lisait
+// `organizations.status` : une agence « active » s'y voyait en vert au-dessus
+// d'un bouton « S'abonner » — elle n'avait jamais payé. Le libellé ressemblait
+// en plus à une valeur brute (« active », minuscule, sans sujet). La puce dit
+// désormais où en est le paiement, avec la même priorité que l'écran :
+//   - fermé l'emporte sur tout (la pastille doit dire ce que le bandeau dit :
+//     une puce verte au-dessus d'un bandeau rouge ferait douter des deux) ;
+//   - un prélèvement en échec n'est ni « actif » ni « à souscrire » ;
+//   - puis payé, essai, rien à régler, et enfin à souscrire.
+// Les pages ne l'appellent que si les lectures ont abouti : sur un échec,
+// « À souscrire » serait un mensonge pour qui paie.
+export function statutAbonnement({
+  paye,
+  essai,
+  ferme,
+  enRetard = false,
+  rienAPayer = false,
+}: {
+  paye: boolean;
+  essai: boolean;
+  ferme: boolean;
+  enRetard?: boolean;
+  rienAPayer?: boolean;
+}): { libelle: string; puce: string } {
+  if (ferme) return { libelle: "Lecture seule", puce: "puce-rouge" };
+  if (enRetard) return { libelle: "Paiement en retard", puce: "puce-prep" };
+  if (paye) return { libelle: "Abonnement actif", puce: "puce-loue" };
+  if (essai) return { libelle: "Essai gratuit", puce: "puce-prep" };
+  if (rienAPayer) return { libelle: "Rien à régler", puce: "puce-grise" };
+  return { libelle: "À souscrire", puce: "puce-grise" };
 }

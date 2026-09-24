@@ -119,9 +119,10 @@ export default async function PageAdminOrganisation(
           >
             {initiales(organisation.name)}
           </span>
+          {/* Le nom passe à la ligne au lieu d'être coupé (24/09). */}
           <div className="min-w-0">
-            <h1 className="truncate">{organisation.name}</h1>
-            <p className="mono-discret sans-majuscules !text-[10px]">
+            <h1 className="[overflow-wrap:anywhere] max-sm:text-2xl">{organisation.name}</h1>
+            <p className="mono-discret sans-majuscules">
               {famille === "agence" ? "Agence de gestion" : "Propriétaire bailleur"} · cliente
               depuis le {formaterDate(organisation.created_at)}
             </p>
@@ -153,7 +154,7 @@ export default async function PageAdminOrganisation(
       <p className="mesure-lecture mb-6 text-sm text-[var(--texte-secondaire)]">
         Entrer dans un espace client donne accès à ses données réelles. Chaque
         traversée est inscrite au journal d&apos;audit, conservée trois ans
-        (RM-A1.11) — y compris l&apos;ouverture de cette fiche.
+        {/* RM-A1.11 */} — y compris l&apos;ouverture de cette fiche.
       </p>
 
       <section className="loc-carte">
@@ -183,11 +184,13 @@ export default async function PageAdminOrganisation(
               ? "Franchise en base"
               : organisation.tva_intracom || "Numéro non renseigné"}
           </Info>
-          <Info libelle="Abonnement">
-            {organisation.status === "essai" && organisation.essai_fin
-              ? `Essai jusqu'au ${formaterDate(organisation.essai_fin)}`
-              : LIBELLES_STATUT_ORGANISATION[organisation.status] ?? organisation.status}
-          </Info>
+          {/* La ligne ne sert que pour un essai (24/09) : ailleurs, elle
+              répétait la puce de l'en-tête, au féminin sur « abonnement ». */}
+          {organisation.status === "essai" && organisation.essai_fin && (
+            <Info libelle="Abonnement">
+              Essai jusqu&apos;au {formaterDate(organisation.essai_fin)}
+            </Info>
+          )}
         </dl>
       </section>
 
@@ -217,7 +220,10 @@ export default async function PageAdminOrganisation(
                 {organisation.code_parrainage ?? "—"}
               </span>
             </Info>
-            <Info libelle="Amenée par">{monParrain ?? "Personne"}</Info>
+            {/* Une valeur absente ne se lit pas comme un nom (24/09). */}
+            <Info libelle="Amenée par">
+              {monParrain ?? <span className="text-[var(--texte-secondaire)]">Aucun parrain</span>}
+            </Info>
             <Info libelle="Filleuls">
               {parrainages.error ? "Indisponible" : filleuls}
             </Info>

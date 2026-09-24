@@ -4,6 +4,7 @@ import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate, moisEnFrancais } from "@/lib/ged";
 import { initiales, nomComplet } from "@/lib/roles-personnes";
 import { buttonVariants } from "@/components/ui/button";
+import { IndicateurLien } from "@/components/ui/indicateur-lien";
 
 export const metadata = { title: "Mandats & rapports — Gerimmo" };
 
@@ -54,8 +55,8 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   ].filter((x): x is string => Boolean(x));
   if (lecturesEnEchec.length > 0) {
     return (
-      <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
-        <div className="entete-page mb-4">
+      <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
+        <div className="entete-page">
           <h1>Mandats &amp; rapports</h1>
         </div>
         <div className="err" role="alert">
@@ -110,9 +111,11 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
     return r && r.envoye_le && !r.versement_date;
   }).length;
 
+  // Colonne en max-w-5xl, comme Personnes, Artisans, Incidents ou Alertes :
+  // en 4xl, la liste changeait de largeur d'un écran à l'autre (24/09).
   return (
-    <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
-      <div className="entete-page mb-2">
+    <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
+      <div className="entete-page">
         <h1>Mandats &amp; rapports</h1>
         {/* La requête écarte les mandats résiliés : dire « en cours », sinon
             le compte de tête se lit comme le nombre de mandats de l'agence. */}
@@ -120,9 +123,14 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
           {liste.length} mandat{liste.length > 1 ? "s" : ""} en cours
         </span>
       </div>
+      {/* Une seule explication, en tête (24/09) : le pied la répétait, avec
+          une date de décision interne et un « le mandant reçoit » sans objet. */}
       <p className="mb-6 text-sm text-muted-foreground">
-        Chaque mandat, son mandant, son dernier rapport de gestion et l&apos;état du
-        versement — les gestes se font sur la fiche du mandant.
+        Chaque mandat, son dernier rapport de gestion et l&apos;état du versement.
+        Le rapport se génère, s&apos;envoie et se verse depuis la fiche du
+        mandant ; le mandant le reçoit{" "}
+        <span className="whitespace-nowrap">par e-mail</span> — il n&apos;a pas
+        d&apos;accès à l&apos;application.
       </p>
 
       {enAttenteVersement > 0 && (
@@ -153,6 +161,16 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
             lui qui ouvre les rapports de gestion et les versements. Il se crée
             depuis la fiche du propriétaire mandant, dans Personnes.
           </p>
+          {/* L'état vide mène là où le mandat se crée (24/09). */}
+          <span className="geste">
+            <Link
+              href={`/agence/${orgId}/personnes`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              Ouvrir Personnes
+              <IndicateurLien />
+            </Link>
+          </span>
         </div>
       ) : (
         <div className="colonne-liste">
@@ -161,18 +179,25 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
             const r = dernierRapport.get(m.id);
             const nbLots = lotsParMandat.get(m.id) ?? 0;
             return (
-              <div key={m.id} className="rang">
+              // Tout le rang mène à la fiche du mandant, comme dans Personnes :
+              // seul le bouton « Fiche mandant » était un lien, le reste du rang
+              // promettait un clic au survol sans rien ouvrir (24/09).
+              <Link
+                key={m.id}
+                href={`/agence/${orgId}/personnes/${m.person_id}`}
+                className="rang"
+              >
                 <span aria-hidden className="avatar">
                   {p ? initiales(p.nom, p.prenom) : "◇"}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <b className="block truncate">
-                    {p ? nomComplet(p) : "Mandant"}
-                    <span className="ml-2 text-xs font-normal text-muted-foreground">
-                      {nbLots} lot{nbLots > 1 ? "s" : ""}
-                      {m.date_debut ? ` · depuis le ${formaterDate(m.date_debut)}` : ""}
-                    </span>
-                  </b>
+                  <b className="block truncate">{p ? nomComplet(p) : "Mandant"}</b>
+                  {/* Lots et date sur leur propre ligne, sans troncature : dans le
+                      nom tronqué, la date disparaissait au téléphone (24/09). */}
+                  <span className="block text-xs text-muted-foreground">
+                    {nbLots} lot{nbLots > 1 ? "s" : ""}
+                    {m.date_debut ? ` · depuis le ${formaterDate(m.date_debut)}` : ""}
+                  </span>
                   <span className="montant block text-xs text-muted-foreground">
                     {r
                       ? `Rapport de ${moisEnFrancais(r.mois)} — ${
@@ -185,34 +210,31 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
                       : "Aucun rapport de gestion encore généré"}
                   </span>
                 </span>
-                {/* Puces et action groupées : sous 640px le .rang wrappe (socle
-                    10/09) et le groupe passe entier sous le nom au lieu
-                    d'écraser celui-ci ou de déborder de l'écran */}
-                <span className="flex shrink-0 flex-wrap items-center gap-2">
-                  {m.etat !== "actif" && (
-                    <span className="puce puce-prep">{ETATS_MANDAT[m.etat] ?? "État du mandat à vérifier"}</span>
-                  )}
-                  {r && r.envoye_le && !r.versement_date && (
-                    <span className="puce puce-encre">versement attendu</span>
-                  )}
-                  <Link
-                    href={`/agence/${orgId}/personnes/${m.person_id}`}
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
-                  >
-                    Fiche mandant
-                  </Link>
+                {/* Indication, pas un second lien (pas de lien dans le lien).
+                    Au téléphone, la flèche seule : le libellé prenait la place
+                    du nom. Placée après les puces au bureau (sm:order-1). */}
+                <span className="lien-discret shrink-0 sm:order-1">
+                  <span className="max-sm:hidden">Fiche mandant&nbsp;</span>
+                  <span aria-hidden>→</span>
+                  <IndicateurLien />
                 </span>
-              </div>
+                {/* Au téléphone, les puces passent SOUS le nom (46 px = avatar
+                    34 px + écart 12 px), comme dans Personnes. */}
+                {(m.etat !== "actif" || (r && r.envoye_le && !r.versement_date)) && (
+                  <span className="flex shrink-0 flex-wrap items-center gap-2 max-sm:basis-full max-sm:pl-[46px]">
+                    {m.etat !== "actif" && (
+                      <span className="puce puce-prep">{ETATS_MANDAT[m.etat] ?? "État du mandat à vérifier"}</span>
+                    )}
+                    {r && r.envoye_le && !r.versement_date && (
+                      <span className="puce puce-encre">versement attendu</span>
+                    )}
+                  </span>
+                )}
+              </Link>
             );
           })}
         </div>
       )}
-      <p className="mt-4 text-xs text-muted-foreground">
-        Le rapport mensuel se génère sur la fiche du mandant (encaissé, honoraires
-        au taux du mandat, net) ; son envoi et le versement y sont tracés. Le
-        mandant reçoit — il n&apos;a pas d&apos;accès à l&apos;application (décision
-        du 25/07).
-      </p>
     </main>
   );
 }

@@ -62,7 +62,9 @@ export const LISTE_PIECES = ["decennale", "rc_pro", "urssaf", "kbis", "certifica
 
 export const STATUTS_MISSION: Record<string, string> = {
   proposee: "À accepter",
-  acceptee: "Acceptée — à planifier",
+  // « Rendez-vous à fixer » partout pour cet état (tour du 24/09) : l'accueil,
+  // l'agenda et la fiche disaient « à planifier », « à caler », « à fixer ».
+  acceptee: "Acceptée — rendez-vous à fixer",
   planifiee: "Rendez-vous fixé",
   en_cours: "En cours",
   terminee: "Terminée",
@@ -94,7 +96,7 @@ export const MOMENTS_PHOTO: Record<string, string> = {
 
 export function libelle(table: Record<string, string>, cle: string | null | undefined): string {
   if (!cle) return "—";
-  return table[cle] ?? cle;
+  return table[cle] ?? "Non précisé";
 }
 
 // ── Formats ────────────────────────────────────────────────────────────────
@@ -111,7 +113,7 @@ export function libelle(table: Record<string, string>, cle: string | null | unde
 const FUSEAU = "Europe/Paris";
 
 export function jourCourt(iso: string | null | undefined): string {
-  if (!iso) return "Date à fixer";
+  if (!iso) return "Rendez-vous à fixer";
   return new Date(iso).toLocaleDateString("fr-FR", {
     weekday: "short",
     day: "numeric",
@@ -121,7 +123,7 @@ export function jourCourt(iso: string | null | undefined): string {
 }
 
 export function jourLong(iso: string | null | undefined): string {
-  if (!iso) return "Date à fixer";
+  if (!iso) return "Rendez-vous à fixer";
   return new Date(iso).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -165,6 +167,29 @@ export function dateSimple(iso: string | null | undefined): string {
 export function jourCivil(iso: string | Date): string {
   const d = typeof iso === "string" ? new Date(iso) : iso;
   return d.toLocaleDateString("en-CA", { timeZone: FUSEAU });
+}
+
+/**
+ * SIRET lisible : SIREN en trois groupes de trois, puis le NIC (« 482 917 635
+ * 00017 »). Quatorze chiffres collés ne se vérifient pas d'un coup d'œil.
+ * Une valeur qui n'a pas quatorze chiffres est rendue telle quelle.
+ */
+export function formaterSiret(siret: string | null | undefined): string {
+  if (!siret) return "—";
+  const chiffres = siret.replace(/\s/g, "");
+  if (!/^\d{14}$/.test(chiffres)) return siret;
+  return `${chiffres.slice(0, 3)} ${chiffres.slice(3, 6)} ${chiffres.slice(6, 9)} ${chiffres.slice(9)}`;
+}
+
+/**
+ * Numéro de téléphone français par paires (« 06 01 02 03 04 »). Un numéro
+ * international ou d'une autre longueur est rendu tel quel.
+ */
+export function formaterTelephone(telephone: string | null | undefined): string {
+  if (!telephone) return "—";
+  const chiffres = telephone.replace(/[\s.-]/g, "");
+  if (!/^0\d{9}$/.test(chiffres)) return telephone;
+  return chiffres.replace(/(\d{2})(?=\d)/g, "$1 ");
 }
 
 export function euros(cents: number | null | undefined): string {

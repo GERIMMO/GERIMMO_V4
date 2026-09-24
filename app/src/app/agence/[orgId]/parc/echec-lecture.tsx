@@ -51,7 +51,7 @@ export function PageEchecLecture({
           ← {retour.libelle}
         </Link>
       )}
-      <div className="entete-page mb-4">
+      <div className="entete-page">
         <h1>{titre}</h1>
       </div>
       <EchecLecture quoi={quoi} />

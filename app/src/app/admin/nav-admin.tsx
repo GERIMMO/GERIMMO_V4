@@ -19,7 +19,8 @@ const ENTREES: [string, string][] = [
   ["/admin/autonomie", "Pilotage autonome"],
   ["/admin/clients", "Clients"],
   ["/admin/territoire", "Territoire"],
-  ["/admin/publications", "Journal"],
+  // « Journal » seul se confondait avec « Journaux et conservation ».
+  ["/admin/publications", "Articles du journal"],
   ["/admin/marketing", "Agent marketing"],
   ["/admin/retours", "Retours et idées"],
   ["/admin/devis", "Demandes de devis"],
@@ -34,17 +35,45 @@ const RATTACHEMENTS: Record<string, string[]> = {
   "/admin/clients": ["/admin/artisans", "/admin/organisations"],
 };
 
-export function NavAdmin() {
+// Les inscriptions artisan en attente vivent derrière « Clients » : la pastille
+// dit qu'une décision attend, sans qu'il faille ouvrir la supervision.
+export function NavAdmin({ artisansEnAttente = 0 }: { artisansEnAttente?: number }) {
   const chemin = usePathname();
+  // Sous 900 px, la barre devient une bande qui défile à l'horizontale. Rien
+  // ne disait qu'il existait d'autres entrées hors champ (24/09) : un fondu
+  // s'applique désormais au bord qui cache quelque chose, et l'entrée active
+  // est CENTRÉE, pour qu'une voisine reste visible de chaque côté.
+  useEffect(() => {
+    const nav = document.querySelector<HTMLElement>(".admin-nav");
+    if (!nav) return;
+    const fondu = () => {
+      const debordement = nav.scrollWidth - nav.clientWidth;
+      if (debordement <= 1) {
+        nav.style.removeProperty("mask-image");
+        nav.style.removeProperty("-webkit-mask-image");
+        return;
+      }
+      const debut = nav.scrollLeft > 1 ? "transparent, #000 40px" : "#000";
+      const fin = nav.scrollLeft < debordement - 1 ? "#000 calc(100% - 40px), transparent" : "#000";
+      const masque = `linear-gradient(to right, ${debut}, ${fin})`;
+      nav.style.setProperty("mask-image", masque);
+      nav.style.setProperty("-webkit-mask-image", masque);
+    };
+    fondu();
+    nav.addEventListener("scroll", fondu, { passive: true });
+    window.addEventListener("resize", fondu);
+    return () => {
+      nav.removeEventListener("scroll", fondu);
+      window.removeEventListener("resize", fondu);
+    };
+  }, []);
   useEffect(() => {
     const nav = document.querySelector<HTMLElement>(".admin-nav");
     const actif = nav?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!nav || !actif) return;
+    if (!nav || !actif || nav.scrollWidth <= nav.clientWidth) return;
     const navRect = nav.getBoundingClientRect();
     const actifRect = actif.getBoundingClientRect();
-    if (actifRect.left < navRect.left || actifRect.right > navRect.right) {
-      nav.scrollLeft += actifRect.left - navRect.left - 12;
-    }
+    nav.scrollLeft += actifRect.left + actifRect.width / 2 - (navRect.left + navRect.width / 2);
   }, [chemin]);
   return (
     <>
@@ -64,6 +93,16 @@ export function NavAdmin() {
             className="admin-nav-lien"
           >
             {libelle}
+            {href === "/admin/clients" && artisansEnAttente > 0 && (
+              <>
+                <span className="coquille-badge ml-2" aria-hidden="true">
+                  {artisansEnAttente > 99 ? "99+" : artisansEnAttente}
+                </span>
+                <span className="sr-only">
+                  , {artisansEnAttente} inscription{artisansEnAttente > 1 ? "s" : ""} artisan en attente
+                </span>
+              </>
+            )}
           </Link>
         );
       })}

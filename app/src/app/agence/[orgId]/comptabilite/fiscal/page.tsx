@@ -79,30 +79,40 @@ export default async function PageRecapitulatifFiscal(props: {
     erreurBaux && "la clé de ventilation loyer / charges des baux",
   ].filter((x): x is string => Boolean(x));
 
+  // Le choix de l'année prend la pastille `.filtre` de l'espace, 44 px au
+  // doigt : c'était une rangée de liens soulignés de 36 px (14 px de haut sur
+  // bureau), où logeait aussi le retour au livre (24/09).
   const navigation = (
-    <p className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-      {/* py-2 mobile : cible tactile ≈ 36 px sur ces liens de navigation */}
+    <nav aria-label="Année du récapitulatif" className="mt-3 flex flex-wrap items-center gap-2">
       {anneesProposees.map((a) => (
         <Link
           key={a}
           href={`/agence/${orgId}/comptabilite/fiscal?annee=${a}`}
-          className={`py-2 sm:py-0 ${a === annee ? "font-medium underline underline-offset-4" : "lien-discret"}`}
+          className={`${a === annee ? "filtre actif" : "filtre"} inline-flex items-center pointer-coarse:min-h-11`}
           aria-current={a === annee ? "page" : undefined}
         >
           {a}
         </Link>
       ))}
-      <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret ml-auto py-2 sm:py-0">
-        ← Retour au livre
-      </Link>
-    </p>
+    </nav>
+  );
+  // Même motif que les sous-pages et les fiches de l'espace : le retour
+  // au-dessus du titre, libellé du titre de la page qu'il rouvre (24/09).
+  const retour = (
+    <Link
+      href={`/agence/${orgId}/comptabilite`}
+      className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline"
+    >
+      ← Livre recettes-dépenses
+    </Link>
   );
 
   if (lecturesEnEchec.length > 0) {
     return (
       <main className="mx-auto w-full max-w-4xl space-y-[1.125rem] p-4 sm:p-7">
         <div>
-          <div className="entete-page mb-6">
+          {retour}
+          <div className="entete-page">
             <h1>Récapitulatif fiscal {annee}</h1>
           </div>
           {navigation}
@@ -143,11 +153,18 @@ export default async function PageRecapitulatifFiscal(props: {
   });
   const recettes = recap.rubriques.filter((r) => r.sens === "recette");
   const charges = recap.rubriques.filter((r) => r.sens === "depense");
+  // Une année sans écriture n'est pas un récapitulatif à zéro : c'est un
+  // livre vide pour cette année, et l'écran le dit (24/09 — neuf rubriques à
+  // 0,00 € et une colonne de « — » ne l'apprenaient à personne).
+  const anneeVide = recap.nbEcritures === 0 && recap.meuble.nbEcritures === 0;
 
   return (
     <main className="mx-auto w-full max-w-4xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
-        <div className="entete-page mb-6">
+        {retour}
+        {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
+            l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
+        <div className="entete-page">
           <h1>Récapitulatif fiscal {annee}</h1>
           {/* nbEcritures ne compte QUE les écritures rangées dans la 2044 :
               celles des lots meublés sont totalisées à part (BIC). Annoncer
@@ -166,8 +183,25 @@ export default async function PageRecapitulatifFiscal(props: {
         {navigation}
       </div>
 
+      {anneeVide && (
+        <div className="vide-guide">
+          <p className="titre">Aucune écriture datée de {annee} dans votre livre</p>
+          <p className="explication">
+            Ce récapitulatif restera à 0 € tant que vos loyers encaissés et vos
+            dépenses de {annee} n&apos;y sont pas saisis.
+          </p>
+          <p className="geste">
+            <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret">
+              Ouvrir le livre recettes-dépenses →
+            </Link>
+          </p>
+        </div>
+      )}
+
+      {/* Recettes en vert, charges en neutre : la couleur dit ce qu'on compte
+          (24/09 — `.kpi.or` et `.kpi.bleu` rendaient la même tuile). */}
       <div className="grid gap-3.5 sm:grid-cols-3">
-        <div className="kpi bleu">
+        <div className="kpi vert">
           <span className="eyebrow">Recettes brutes</span>
           <span className="chiffre montant mt-1 block">
             {eur(recap.ventile ? recap.totalRecettesQuotePart : recap.totalRecettes)}
@@ -176,7 +210,7 @@ export default async function PageRecapitulatifFiscal(props: {
             {recap.ventile ? "votre quote-part" : `pièces datées de ${annee}`}
           </span>
         </div>
-        <div className="kpi or">
+        <div className="kpi">
           <span className="eyebrow">Charges déductibles</span>
           <span className="chiffre montant mt-1 block">
             {eur(recap.ventile ? recap.totalChargesQuotePart : recap.totalCharges)}
@@ -230,18 +264,24 @@ export default async function PageRecapitulatifFiscal(props: {
         </Card>
       )}
 
-      <TableauRubriques
-        titre="Recettes"
-        description="Lignes 211 à 212 de la 2044. Chaque encaissement de loyer est ventilé au prorata du bail : la ligne 212 est la part des encaissements correspondant aux provisions de charges du bail, la ligne 211 le reste (loyers hors charges) — leur somme égale le total encaissé."
-        rubriques={recettes}
-        ventile={recap.ventile}
-      />
-      <TableauRubriques
-        titre="Charges déductibles"
-        description="Lignes 221 à 250. Copropriété : les provisions versées au syndic se déduisent l'année de leur paiement (ligne 229) ; après le décompte annuel du syndic — seule base admise — la part récupérable et la part non déductible se réintègrent l'année suivante (ligne 230). Les intérêts d'emprunt ne sont pas suivis par Gerimmo."
-        rubriques={charges}
-        ventile={recap.ventile}
-      />
+      {!anneeVide && (
+        <>
+          <TableauRubriques
+            titre="Recettes"
+            description="Lignes 211 à 212 de la 2044. Chaque encaissement de loyer est ventilé au prorata du bail : la ligne 212 est la part des encaissements correspondant aux provisions de charges du bail, la ligne 211 le reste (loyers hors charges) — leur somme égale le total encaissé."
+            rubriques={recettes}
+            ventile={recap.ventile}
+          />
+          {/* L'organisation parle, pas la marque de l'outil (24/09) : l'espace
+              est aux couleurs de son organisation. */}
+          <TableauRubriques
+            titre="Charges déductibles"
+            description="Lignes 221 à 250. Copropriété : les provisions versées au syndic se déduisent l'année de leur paiement (ligne 229) ; après le décompte annuel du syndic — seule base admise — la part récupérable et la part non déductible se réintègrent l'année suivante (ligne 230). Les intérêts d'emprunt ne sont pas suivis dans le livre : reportez-les depuis le tableau d'amortissement de votre banque."
+            rubriques={charges}
+            ventile={recap.ventile}
+          />
+        </>
+      )}
 
       {recap.fondsTravauxAlur > 0 && (
         <Card>
@@ -259,7 +299,8 @@ export default async function PageRecapitulatifFiscal(props: {
       <p className="text-xs text-muted-foreground">
         Régime micro-foncier : si vos recettes brutes n&apos;excèdent pas
         15 000 €, seule la ligne des recettes vous sert (abattement automatique
-        de 30 %). Le meublé et la SCI relèvent d&apos;autres imprimés, prévus en V2.
+        de 30 %). Le meublé (BIC) et la SCI relèvent d&apos;autres déclarations,
+        que ce récapitulatif ne couvre pas.
       </p>
     </main>
   );
@@ -284,7 +325,10 @@ function TableauRubriques({
       </CardHeader>
       <CardContent>
         {/* Sous sm, chaque rubrique devient une carte empilée : le montant à
-            recopier sur la 2044 se lit sans défilement horizontal. */}
+            recopier sur la 2044 se lit sans défilement horizontal. Une
+            rubrique à compléter dit « à reporter », jamais « … » ; et une
+            rubrique sans catégorie n'affiche pas un « — » isolé sur sa ligne,
+            qui passait pour un rang cassé (24/09). */}
         <ul className="space-y-3 sm:hidden">
           {rubriques.map((r) => (
             <li
@@ -295,21 +339,25 @@ function TableauRubriques({
                 <span className="mono-discret mr-2">{r.code}</span>
                 {r.libelle}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ") || "—"}
-              </p>
-              <p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
-                <span className={ventile ? "" : "font-medium"}>
-                  {ventile ? "Total" : "Montant"} :{" "}
-                  <span className="montant">{r.aCompleter ? "…" : eur(r.montant)}</span>
-                </span>
-                {ventile && (
-                  <span className="font-medium">
-                    Votre quote-part :{" "}
-                    <span className="montant">{r.aCompleter ? "…" : eur(r.montantQuotePart)}</span>
+              {(r.aCompleter || r.categories.length > 0) && (
+                <p className="text-xs text-muted-foreground">
+                  {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ")}
+                </p>
+              )}
+              {!r.aCompleter && (
+                <p className="flex flex-wrap gap-x-4 gap-y-0.5 text-sm">
+                  <span className={ventile ? "" : "font-medium"}>
+                    {ventile ? "Total" : "Montant"} :{" "}
+                    <span className="montant">{eur(r.montant)}</span>
                   </span>
-                )}
-              </p>
+                  {ventile && (
+                    <span className="font-medium">
+                      Votre quote-part :{" "}
+                      <span className="montant">{eur(r.montantQuotePart)}</span>
+                    </span>
+                  )}
+                </p>
+              )}
             </li>
           ))}
         </ul>
@@ -332,10 +380,20 @@ function TableauRubriques({
                   <td className="text-xs text-muted-foreground">
                     {r.aCompleter ? "à compléter par vos soins" : r.categories.join(", ") || "—"}
                   </td>
-                  <td className="nombre montant">{r.aCompleter ? "…" : eur(r.montant)}</td>
+                  <td className="nombre montant">
+                    {r.aCompleter ? (
+                      <span className="text-xs text-muted-foreground">à reporter</span>
+                    ) : (
+                      eur(r.montant)
+                    )}
+                  </td>
                   {ventile && (
                     <td className="nombre montant font-medium">
-                      {r.aCompleter ? "…" : eur(r.montantQuotePart)}
+                      {r.aCompleter ? (
+                        <span className="text-xs font-normal text-muted-foreground">à reporter</span>
+                      ) : (
+                        eur(r.montantQuotePart)
+                      )}
                     </td>
                   )}
                 </tr>

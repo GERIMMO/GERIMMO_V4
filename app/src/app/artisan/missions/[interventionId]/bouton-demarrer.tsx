@@ -6,7 +6,7 @@ import {
   demarrerMonIntervention,
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
-import { CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE, Erreur } from "../../ui";
+import { CLASSE_AIDE, CLASSE_BOUTON_PRINCIPAL, CLASSE_BOUTON_SOBRE, Erreur } from "../../ui";
 
 // « Je suis sur place » : le geste qui ouvre le compte rendu. La base accepte
 // le démarrage depuis « acceptée » comme depuis « planifiée » — un dépannage
@@ -39,7 +39,7 @@ export function BoutonDemarrer({
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
       <Bouton className={sansRendezVous ? CLASSE_BOUTON_SOBRE : CLASSE_BOUTON_PRINCIPAL} />
       {sansRendezVous && (
-        <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+        <p className={CLASSE_AIDE}>
           Si vous intervenez sans attendre le rendez-vous.
         </p>
       )}

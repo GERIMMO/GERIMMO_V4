@@ -81,3 +81,22 @@ describe("dates civiles de l’agenda", () => {
     expect(pageAgenda("-5")).toBe(1); expect(pageAgenda("999999999")).toBe(1);
   });
 });
+describe("calendrier mensuel de l’agenda (24/09)", () => {
+  it("découpe un mois civil à partir du lundi, et retombe sur le mois courant sinon", async () => {
+    const { moisAgenda, jourAgenda } = await import("@/lib/agenda-gestion");
+    const fevrier = moisAgenda("2026-02");
+    expect(fevrier).toMatchObject({ premier: "2026-02-01", suivant: "2026-03-01", precedent: "2026-01-01", decalage: 6 });
+    expect(fevrier.jours).toHaveLength(28);
+    expect(moisAgenda("2026-13", new Date("2026-09-24T10:00:00Z")).mois).toBe("2026-09");
+    expect(moisAgenda(["2026-02"], new Date("2026-09-30T22:30:00Z")).mois).toBe("2026-10");
+    expect(jourAgenda("2026-02-14", fevrier)).toBe("2026-02-14");
+    expect(jourAgenda("2026-03-01", fevrier, new Date("2026-02-20T10:00:00Z"))).toBe("2026-02-20");
+    expect(jourAgenda(undefined, fevrier, new Date("2026-09-24T10:00:00Z"))).toBe("2026-02-01");
+  });
+  it("lit le mois entier sans pagination", async () => {
+    const c = contexte(); await chargerAgendaGestion("alpha", { vue: "mois", mois: "2026-09" });
+    expect(c.appels).toContainEqual(["lt", "debut_prevu", "2026-09-30T22:00:00.000Z"]);
+    expect(c.appels.find(([m]) => m === "or")?.[1]).toContain("fin_prevue.gt.2026-08-31T22:00:00.000Z");
+    expect(c.appels.at(-1)).toEqual(["range", 0, 499]);
+  });
+});

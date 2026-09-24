@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   creerMandat,
@@ -11,6 +11,7 @@ import {
   type EtatMandat,
 } from "@/app/actions/mandats";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
@@ -92,7 +93,8 @@ export function FormulaireLigneMandat({
         {/* Même combobox que le rattachement de personne (recette 21/08) */}
         <ComboboxLot lots={lots} id={`l-lot-${mandatId}`} name="lot_id" requis />
       </div>
-      <div className="w-24 space-y-1.5">
+      {/* Pleine largeur au téléphone, comme le lot au-dessus (24/09) */}
+      <div className="w-full space-y-1.5 sm:w-24">
         <Label htmlFor={`l-taux-${mandatId}`} className="text-xs">
           Taux %
         </Label>
@@ -110,9 +112,8 @@ export function FormulaireLigneMandat({
           defaultValue={etat.valeurs?.taux_honoraires}
         />
       </div>
-      <BoutonEnvoi size="sm" variant="outline">
-        Ajouter
-      </BoutonEnvoi>
+      {/* h-8 comme le champ Taux voisin (24/09) */}
+      <BoutonEnvoi variant="outline">Ajouter</BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );
@@ -148,7 +149,9 @@ export function SelectTitulaireMandat({
         defaultValue={titulaire ?? ""}
         disabled={enCours}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs"
+        // Même boîte que les champs de la fiche (h-8, rounded-lg, text-sm) :
+        // trois hauteurs de contrôle se côtoyaient (24/09).
+        className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm"
       >
         <option value="">Toute l&apos;agence</option>
         {gerants.map((g) => (
@@ -199,9 +202,19 @@ function BoutonRetirer() {
   );
 }
 
+// Les transitions sans retour (le cycle ne remonte pas : actif → préavis →
+// résilié) : ce qu'elles font, dit avant de confirmer.
+const SANS_RETOUR: Record<string, string> = {
+  preavis: "Le mandat passe en préavis, sans retour possible.",
+  resilie: "Le mandat est résilié et historisé, sans retour possible.",
+};
+
 // Boutons de transition d'état du mandat. Un mandat VIDE hors brouillon est
 // une impasse (revue 23/08) : le seul geste proposé est le retour en
 // brouillon, pour le composer — ou l'abandonner proprement.
+// 24/09 : « Mettre en préavis » et « Résilier » demandent une confirmation en
+// deux temps, comme l'archivage de la fiche — un clic, sans cadre ni
+// confirmation, faisait passer un mandat actif en préavis sans retour.
 export function BoutonsEtatMandat({
   orgId,
   personId,
@@ -233,15 +246,35 @@ export function BoutonsEtatMandat({
     transition?.vers ?? etat
   );
   const [etatAction, formAction] = useActionState<EtatMandat, FormData>(action, {});
+  // La confirmation vaut pour l'état où elle a été demandée : une fois le
+  // mandat passé en préavis, « Résilier » ne doit pas arriver déjà armé.
+  const [confirmePour, setConfirmePour] = useState<string | null>(null);
+  const confirmation = confirmePour === etat;
 
   if (!transition) return null;
-  return (
-    <form action={formAction}>
-      <BoutonEnvoi size="sm" variant="ghost">
+  const avertissement = SANS_RETOUR[transition.vers];
+  if (avertissement && !confirmation) {
+    return (
+      <Button type="button" variant="outline" size="sm" onClick={() => setConfirmePour(etat)}>
         {transition.libelle}
+      </Button>
+    );
+  }
+  return (
+    <form action={formAction} className="flex flex-wrap items-center gap-2">
+      {avertissement && (
+        <>
+          <span className="text-xs text-muted-foreground">{avertissement}</span>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmePour(null)}>
+            Annuler
+          </Button>
+        </>
+      )}
+      <BoutonEnvoi size="sm" variant="outline">
+        {avertissement ? "Confirmer" : transition.libelle}
       </BoutonEnvoi>
       {etatAction.erreur && (
-        <p className="text-xs text-destructive">{etatAction.erreur}</p>
+        <p className="w-full text-xs text-destructive">{etatAction.erreur}</p>
       )}
     </form>
   );

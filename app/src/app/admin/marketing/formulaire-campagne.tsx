@@ -5,17 +5,27 @@ import { programmerCampagne, type EtatCampagne } from "./actions";
 
 const ETAT: EtatCampagne = {};
 
-export function FormulaireCampagne() {
+// Les champs portent enfin un cadre (24/09) : sans classe, ils n'avaient ni
+// bordure ni fond et restaient sur la ligne de leur libellé — on ne voyait pas
+// où saisir. Même habillage que les autres formulaires de la console
+// (retours/decisions-retour.tsx).
+const champ = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+// Le même cadre, avec l'unité « € » en suffixe à l'intérieur.
+const champAvecUnite = "flex w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--marque)]";
+
+// Les objectifs viennent de la page, qui les affiche aussi dans le calendrier :
+// une seule table, un seul libellé par objectif (24/09).
+export function FormulaireCampagne({ objectifs }: { objectifs: [string, string][] }) {
   const [etat, action, attente] = useActionState(programmerCampagne, ETAT);
   return (
-    <form action={action} className="grid gap-3 sm:grid-cols-2">
-      <label className="sm:col-span-2"><span className="libelle-champ">Nom de la campagne</span><input name="nom" minLength={3} maxLength={160} required placeholder="Ex. Lancement dans le Nord" /></label>
-      <label><span className="libelle-champ">Date et heure</span><input type="datetime-local" name="publication_prevue_le" required /></label>
-      <label><span className="libelle-champ">Objectif</span><select name="objectif" defaultValue="notoriete"><option value="notoriete">Faire connaître Gerimmo</option><option value="trafic">Amener des visites</option><option value="prospects">Obtenir des contacts</option><option value="conversion">Obtenir des inscriptions</option></select></label>
-      <label><span className="libelle-champ">Diffusion</span><select name="nature" defaultValue="organique"><option value="organique">Publication gratuite</option><option value="sponsorisee">Publicité sponsorisée</option></select></label>
-      <label><span className="libelle-champ">Budget total en euros</span><input name="budget" inputMode="decimal" placeholder="0 pour une publication gratuite" /></label>
-      <label className="sm:col-span-2"><span className="libelle-champ">Message et angle</span><textarea name="description" rows={3} maxLength={1200} placeholder="Ce que Gerimmo doit raconter, à qui et pourquoi." /></label>
-      <div className="sm:col-span-2 flex flex-wrap items-center gap-3"><button className="btn-or" disabled={attente}>{attente ? "Enregistrement…" : "Programmer"}</button>{etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}{etat.succes && <p role="status" className="text-sm text-[var(--success)]">{etat.succes}</p>}</div>
+    <form action={action} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+      <label className="grid gap-1 sm:col-span-2 xl:col-span-1"><span className="libelle-champ">Nom de la campagne</span><input className={champ} name="nom" minLength={3} maxLength={160} required placeholder="Ex. Lancement dans le Nord" /></label>
+      <label className="grid gap-1"><span className="libelle-champ">Date et heure</span><input className={champ} type="datetime-local" name="publication_prevue_le" required /></label>
+      <label className="grid gap-1"><span className="libelle-champ">Objectif</span><select className={champ} name="objectif" defaultValue="notoriete">{objectifs.map(([valeur, libelle]) => <option key={valeur} value={valeur}>{libelle}</option>)}</select></label>
+      <label className="grid gap-1"><span className="libelle-champ">Diffusion</span><select className={champ} name="nature" defaultValue="organique"><option value="organique">Publication gratuite</option><option value="sponsorisee">Publicité sponsorisée</option></select></label>
+      <label className="grid gap-1"><span className="libelle-champ">Budget total</span><span className={champAvecUnite}><input name="budget" inputMode="decimal" placeholder="0 si gratuite" className="min-w-0 flex-1 bg-transparent py-2 outline-none" /><span aria-hidden className="text-[var(--texte-secondaire)]">€</span></span></label>
+      <label className="grid gap-1 sm:col-span-2 xl:col-span-1"><span className="libelle-champ">Message et angle</span><textarea className={champ} name="description" rows={3} maxLength={1200} placeholder="Ce que Gerimmo doit raconter, à qui et pourquoi." /></label>
+      <div className="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-1"><button className="btn-or" disabled={attente}>{attente ? "Enregistrement…" : "Programmer"}</button>{etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}{etat.succes && <p role="status" className="text-sm text-[var(--success)]">{etat.succes}</p>}</div>
     </form>
   );
 }

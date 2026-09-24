@@ -18,10 +18,13 @@ export function RechercheEspace({ orgId }: { orgId: string }) {
     window.addEventListener("keydown", raccourci);
     return () => window.removeEventListener("keydown", raccourci);
   }, []);
+  // « Lot », pas « logement » (24/09) : tout l'espace dit « Lots loués »,
+  // « Lots en préparation », « Mes lots » ; la barre de recherche était seule à
+  // parler de logements.
   return <>
-    <button type="button" className="recherche-ouvrir" onClick={() => ouvrir(true)} aria-haspopup="dialog" aria-label="Rechercher un logement, une personne, un document, un incident, un artisan ou un paiement">
+    <button type="button" className="recherche-ouvrir" onClick={() => ouvrir(true)} aria-haspopup="dialog" aria-label="Rechercher un lot, une personne, un document, un incident, un artisan ou un paiement">
       <Search className="size-4 shrink-0" aria-hidden="true" />
-      <span>Rechercher<span className="hidden lg:inline"> un logement, une personne…</span></span>
+      <span>Rechercher<span className="hidden lg:inline"> un lot, une personne…</span></span>
       <kbd className="hidden sm:inline">⌘ / Ctrl K</kbd>
     </button>
     {ouverte && <FenetreRecherche key={orgId} orgId={orgId} fermer={() => ouvrir(false)} />}
@@ -84,12 +87,12 @@ function FenetreRecherche({ orgId, fermer }: { orgId: string; fermer: () => void
           const Icone = r.type === "Logement" ? Building2 : r.type === "Personne" ? Users : FileText;
           return <li key={`${r.type}-${r.id}`}><Link href={r.href} prefetch={false} onClick={fermer} data-resultat className="recherche-resultat">
             <span className="recherche-icone"><Icone className="size-5" aria-hidden="true" /></span>
-            <span className="min-w-0 flex-1"><span className="eyebrow">{r.type}</span><strong className="block font-medium">{r.titre}</strong><span className="block break-words text-sm text-muted-foreground">{r.detail}</span></span>
+            <span className="min-w-0 flex-1"><span className="eyebrow">{r.type === "Logement" ? "Lot" : r.type}</span><strong className="block font-medium">{r.titre}</strong><span className="block break-words text-sm text-muted-foreground">{r.detail}</span></span>
             <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
           </Link></li>;
         })}</ul>}
         {texte.length < 2 && <div className="recherche-raccourcis">
-          {[{ href: `${base}/parc`, titre: "Logements", detail: "Ouvrir une fiche et ses documents", Icone: Building2 }, { href: `${base}/personnes`, titre: "Personnes", detail: "Retrouver un contact ou son dossier", Icone: Users }, { href: `${base}/alertes`, titre: "À traiter", detail: "Voir vos prochaines actions", Icone: FileText }].map(({ href, titre, detail, Icone }) => <Link key={href} href={href} onClick={fermer} className="recherche-resultat"><Icone className="size-5 shrink-0" aria-hidden="true" /><span><strong className="block font-medium">{titre}</strong><span className="text-sm text-muted-foreground">{detail}</span></span><ArrowUpRight className="ml-auto size-4" aria-hidden="true" /></Link>)}
+          {[{ href: `${base}/parc`, titre: "Lots", detail: "Ouvrir une fiche et ses documents", Icone: Building2 }, { href: `${base}/personnes`, titre: "Personnes", detail: "Retrouver un contact ou son dossier", Icone: Users }, { href: `${base}/alertes`, titre: "À traiter", detail: "Voir vos prochaines actions", Icone: FileText }].map(({ href, titre, detail, Icone }) => <Link key={href} href={href} onClick={fermer} className="recherche-resultat"><Icone className="size-5 shrink-0" aria-hidden="true" /><span><strong className="block font-medium">{titre}</strong><span className="text-sm text-muted-foreground">{detail}</span></span><ArrowUpRight className="ml-auto size-4" aria-hidden="true" /></Link>)}
         </div>}
       </div>
       <footer className="recherche-pied">↑ ↓ pour parcourir · Entrée pour ouvrir · Échap pour fermer</footer>

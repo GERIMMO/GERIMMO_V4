@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { PhotoDecor } from "@/components/photo-decor";
-import { PHOTOS_PREMIER_LOT } from "@/lib/photos-decor";
 import { toutManuel, type ReglagesEnvoi } from "@/lib/envois-automatiques";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -94,13 +92,13 @@ export async function ParcoursDemarrage({
   const faites = etapes.filter((e) => e.faite).length;
   const suivante = etapes.find((e) => !e.faite);
 
+  // Plus de vignette d'intérieur en haut à droite (24/09) : seconde image de
+  // l'accueil après le bandeau, elle ne disait rien. Le compteur et les cinq
+  // étapes suffisent.
   return (
-    <section className="loc-carte parcours-carte border-l-4 border-l-[var(--or)]" aria-labelledby="parcours-titre">
-      <span className="parcours-photo" aria-hidden>
-        <PhotoDecor sources={PHOTOS_PREMIER_LOT} sizes="128px" />
-      </span>
+    <section className="loc-carte border-l-4 border-l-[var(--or)]" aria-labelledby="parcours-titre">
       <div className="entete-carte">
-        <h3 id="parcours-titre">Mettre votre premier lot en location</h3>
+        <h2 id="parcours-titre" className="text-[length:var(--pas-sous-titre)]">Mettre votre premier lot en location</h2>
         <span className="mono-discret">
           {faites} / {etapes.length}
         </span>

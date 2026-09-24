@@ -45,14 +45,18 @@ export async function PaneArtisan({
   orgId,
   artisanId,
   estResponsable,
+  bailleurDirect,
   relation,
 }: {
   orgId: string;
   artisanId: string;
   estResponsable: boolean;
+  /** Propriétaire direct : pas d'agence, on lui parle de son parc (24/09). */
+  bailleurDirect: boolean;
   relation: Relation | null;
 }) {
   const supabase = await createClient();
+  const chezVous = bailleurDirect ? "votre parc" : "votre agence";
 
   const [
     { data: profil, error: erreurProfil },
@@ -84,8 +88,8 @@ export async function PaneArtisan({
       <div className="vide-guide">
         <p className="titre">Fiche non consultable</p>
         <p className="explication">
-          Ce profil n&apos;est plus lisible depuis votre agence : l&apos;artisan
-          s&apos;est remis en privé, ou son profil a été retiré par Gerimmo. Votre
+          Vous ne pouvez plus consulter ce profil : l&apos;artisan s&apos;est
+          remis en privé, ou son profil a été retiré par Gerimmo. Votre
           historique d&apos;interventions, lui, reste dans vos incidents.
         </p>
       </div>
@@ -211,7 +215,7 @@ export async function PaneArtisan({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Interventions dans votre agence</CardTitle>
+              <CardTitle className="text-base">Interventions dans {chezVous}</CardTitle>
               <CardDescription>
                 {missions.length === 0
                   ? "Aucune mission ne lui a encore été confiée."
@@ -221,19 +225,12 @@ export async function PaneArtisan({
             <CardContent>
               {missions.map((m) => {
                 const inc = incidents.get(m.incident_id);
-                return (
-                  <div key={m.id} className="ligne-info">
+                const contenu = (
+                  <>
                     <span className="min-w-0 truncate">
-                      {inc ? (
-                        <Link
-                          href={`/agence/${orgId}/incidents?sel=${inc.id}`}
-                          className="hover:underline"
-                        >
-                          {inc.numero} · {titreIncident(inc.categorie)}
-                        </Link>
-                      ) : (
-                        "Incident hors de votre portefeuille"
-                      )}
+                      {inc
+                        ? `${inc.numero} · ${titreIncident(inc.categorie)}`
+                        : "Incident hors de votre portefeuille"}
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <span className="mono-discret">
@@ -243,6 +240,21 @@ export async function PaneArtisan({
                         {STATUTS_INTERVENTION[m.statut] ?? "État à vérifier"}
                       </span>
                     </span>
+                  </>
+                );
+                // Tout le rang ouvre le dossier (retour du 24/09), pas le seul
+                // numéro souligné.
+                return inc ? (
+                  <Link
+                    key={m.id}
+                    href={`/agence/${orgId}/incidents?sel=${inc.id}`}
+                    className="ligne-info hover:bg-[var(--survol)]"
+                  >
+                    {contenu}
+                  </Link>
+                ) : (
+                  <div key={m.id} className="ligne-info">
+                    {contenu}
                   </div>
                 );
               })}
@@ -253,7 +265,9 @@ export async function PaneArtisan({
         <div className="min-w-0 space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Sa relation avec votre agence</CardTitle>
+              <CardTitle className="text-base">
+                {bailleurDirect ? "Sa relation avec vous" : "Sa relation avec votre agence"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -314,7 +328,11 @@ export async function PaneArtisan({
                   </div>
                   <div className="border-t border-border pt-3">
                     <p className="libelle-champ mb-1.5">Liste noire — geste motivé</p>
-                    <FormulaireBlacklistLocale orgId={orgId} artisanId={artisanId} />
+                    <FormulaireBlacklistLocale
+                      orgId={orgId}
+                      artisanId={artisanId}
+                      chezVous={chezVous}
+                    />
                   </div>
                 </div>
               )}
@@ -330,8 +348,8 @@ export async function PaneArtisan({
                     : `Profil refusé par Gerimmo${profil.statut_motif ? ` : « ${profil.statut_motif} »` : ""}. Il ne vous sera pas proposé.`}
                 </p>
                 <p className="mt-1">
-                  Cette décision est celle de la plateforme, pas de votre agence — à
-                  ne pas confondre avec le choix d&apos;un devis, qui, lui, vous
+                  Cette décision est celle de la plateforme, pas la vôtre — à ne
+                  pas confondre avec le choix d&apos;un devis, qui, lui, vous
                   appartient.
                 </p>
               </CardContent>

@@ -1,9 +1,13 @@
+import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
-import { CarteUrgence, type Gestionnaire } from "../cartes-laterales";
+import { Interlocuteur, type Gestionnaire } from "../cartes-laterales";
 import { aEchoue, PanneLecture } from "../panne-lecture";
+import { ReflexesUrgence } from "../reflexes-urgence";
 import { FilMessages, type MessageFil } from "./fil-messages";
 
-export const metadata = { title: "Mon gestionnaire — Gerimmo" };
+// Le layout ajoute « — <agence> » (24/09 : plus « — Gerimmo » dans un espace
+// à la marque de l'agence).
+export const metadata = { title: "Mon gestionnaire" };
 
 // « Mon gestionnaire » (maquette v10) : le fil de messages avec l'agence —
 // conservé, lu/non lu — et ses coordonnées à côté. Ouvrir la page marque les
@@ -38,7 +42,18 @@ export default async function PageContactLocataire(
 
   return (
     <div className="space-y-4">
-      <h1>Mon gestionnaire</h1>
+      {/* L'en-tête standard de l'espace (24/09) : le titre était posé nu sur
+          le fond, seule page avec « Nouveau signalement » à s'en passer. */}
+      <div className="entete-page">
+        <h1>Mon gestionnaire</h1>
+        {!aEchoue(eFil) && (
+          <span className="mono-discret">
+            {messages.length === 0
+              ? "Aucun message pour l'instant"
+              : `${messages.length} message${messages.length > 1 ? "s" : ""} dans ce fil`}
+          </span>
+        )}
+      </div>
 
       {aEchoue(eGestionnaire, eFil) && (
         <PanneLecture quoi="votre fil de messages" />
@@ -56,10 +71,10 @@ export default async function PageContactLocataire(
           {g && (
             <div className="loc-carte">
               <h3 className="text-base font-medium">{g.agence}</h3>
-              <p className="mt-1 text-[13px] text-muted-foreground">
-                {libelleBailleur}
-                {g.agent_email ? ` · interlocuteur : ${g.agent_email}` : ""}
-              </p>
+              <p className="mt-1 text-[13px] text-muted-foreground">{libelleBailleur}</p>
+              <div className="mt-2">
+                <Interlocuteur gestionnaire={g} />
+              </div>
               <div className="mt-2">
                 {g.email_contact && (
                   <div className="ligne-info">
@@ -81,13 +96,23 @@ export default async function PageContactLocataire(
                   </div>
                 )}
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Pour un problème dans le logement, préférez « Signaler un
-                problème » : votre demande est suivie étape par étape.
-              </p>
+              {/* Le nom de l'action devient l'action (24/09) : le locataire
+                  devait deviner où la trouver. Bail terminé, le formulaire
+                  est fermé : la phrase n'a plus lieu d'être. */}
+              {adhesionActive && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Pour un problème dans le logement, préférez{" "}
+                  <Link href={`/locataire/${orgId}/incident`} className="lien-discret">
+                    Signaler un problème
+                  </Link>{" "}
+                  : votre demande est suivie étape par étape.
+                </p>
+              )}
             </div>
           )}
-          <CarteUrgence />
+          <ReflexesUrgence
+            hrefSignalement={adhesionActive ? `/locataire/${orgId}/incident` : undefined}
+          />
         </div>
       </div>
     </div>

@@ -44,20 +44,34 @@ export default async function PageDevisAdmin() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>Demandes de devis</h1>
+        {/* « 0 en attente / 0 » se lisait comme une fraction (24/09). */}
         <span className="mono-discret">
-          {enAttente.length} en attente / {demandes.length}
+          {demandes.length === 0
+            ? "Aucune demande reçue"
+            : `${enAttente.length} en attente · ${demandes.length} reçue${demandes.length > 1 ? "s" : ""}`}
         </span>
       </div>
 
+      {/* Un état vide qui guide, comme les autres de la console (24/09), et
+          des rangs communs : sans `.rang`, aucun filet ne séparait deux
+          demandes. */}
       {demandes.length === 0 ? (
-        <div className="vide">
-          Aucune demande pour l&apos;instant — elles arrivent depuis le formulaire
-          « agences » du site vitrine.
+        <div className="vide-guide">
+          <p className="titre">Aucune demande de devis</p>
+          <p className="explication">
+            Les demandes arrivent depuis le formulaire « Agences » du site
+            vitrine.
+          </p>
+          <div className="geste">
+            <Link href="/#agences" target="_blank" className="btn-secondaire">
+              Voir le formulaire sur le site
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="colonne-liste">
           {demandes.map((d) => (
-            <div key={d.id} className={`px-4 py-3.5 ${d.traitee_le ? "opacity-60" : ""}`}>
+            <div key={d.id} className={`rang flex-col items-stretch gap-0 ${d.traitee_le ? "opacity-60" : ""}`}>
               <div className="flex flex-wrap items-center gap-2">
                 <b className="text-sm">{d.nom}</b>
                 {d.agence && <span className="text-sm text-muted-foreground">— {d.agence}</span>}

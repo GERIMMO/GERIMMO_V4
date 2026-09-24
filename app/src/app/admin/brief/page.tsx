@@ -74,11 +74,16 @@ export default async function PageBrief() {
     href: "/admin/publications", action: "Relire avant publication", niveau: "suivi",
   });
 
+  // 24/09 : « Situation au… » plutôt que « Données au chargement », mot de
+  // développeur. La date et l'heure sont formatées à part pour la virgule.
+  const maintenant = new Date();
+  const situation = `${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(maintenant)}, ${new Intl.DateTimeFormat("fr-FR", { timeStyle: "short", timeZone: "Europe/Paris" }).format(maintenant)}`;
+
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>Brief de pilotage</h1>
-        <span className="mono-discret">Données au chargement · {new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Paris" }).format(new Date())}</span>
+        <span className="mono-discret">Situation au {situation}</span>
       </div>
       <p className="mesure-lecture mb-6 text-sm text-muted-foreground">
         La prochaine action utile, les signaux à examiner et les hypothèses de croissance au même endroit. Ce brief utilise les dossiers réellement enregistrés ; il ne lance ni correction automatique ni campagne publicitaire.
@@ -86,8 +91,11 @@ export default async function PageBrief() {
       {lecturesEnEchec > 0 && <div role="alert" className="mb-5 border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-sm text-[var(--destructive-soft-foreground)]">{lecturesEnEchec} source{lecturesEnEchec > 1 ? "s sont" : " est"} indisponible{lecturesEnEchec > 1 ? "s" : ""}. Les données manquantes sont signalées ci-dessous.</div>}
 
       <section className="section-ecran">
-        <h2 className="mb-3 font-heading text-[var(--pas-section)] text-[var(--encre)]">À décider maintenant</h2>
-        {signaux.length === 0 ? <p className="text-sm text-muted-foreground">Aucun signal ouvert dans ces files. Consultez la santé du service et le territoire avant de lancer une nouvelle action.</p> : (
+        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">À décider maintenant</h2>
+        {/* 24/09 : l'état vide mène aux deux écrans qu'il recommande. Liens en ligne
+            (soulignés par la règle `p a`) : .lien-discret passerait en bloc de
+            44 px au doigt, au milieu de la phrase. */}
+        {signaux.length === 0 ? <p className="text-sm text-muted-foreground">Aucun signal ouvert dans ces files. Consultez <Link className="text-[var(--bleu)]" href="/admin/sante">la santé du service</Link> et <Link className="text-[var(--bleu)]" href="/admin/territoire">le territoire</Link> avant de lancer une nouvelle action.</p> : (
           <div className="grid gap-3">
             {signaux.map((signal, i) => {
               const classe = "group flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 hover:bg-[var(--survol)]";
@@ -108,25 +116,27 @@ export default async function PageBrief() {
       </section>
 
       <section className="section-ecran">
-        <h2 className="mb-3 font-heading text-[var(--pas-section)] text-[var(--encre)]">Croissance : ordre de travail</h2>
-        <p className="mb-4 text-sm text-[var(--texte-secondaire)]">Hypothèse à valider avec conversions et coûts d&apos;acquisition : commencer par les propriétaires qui gèrent eux-mêmes leurs biens, constituer ensuite un réseau d&apos;artisans là où les interventions le justifient, puis développer les agences quand le service et les opérations sont stables.</p>
+        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Croissance : ordre de travail</h2>
+        <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">Hypothèse à valider avec conversions et coûts d&apos;acquisition : commencer par les propriétaires qui gèrent eux-mêmes leurs biens, constituer ensuite un réseau d&apos;artisans là où les interventions le justifient, puis développer les agences quand le service et les opérations sont stables.</p>
         <ol className="grid gap-3 sm:grid-cols-3">
           <li className="rounded-lg border border-[var(--filet)] p-4"><b className="text-[var(--encre)]">1. Propriétaires directs</b><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Un dossier de location complet et une valeur immédiate. {valeurs.comptes === null ? "Clients actifs indisponibles." : `${valeurs.comptes} organisation${valeurs.comptes > 1 ? "s" : ""} active${valeurs.comptes > 1 ? "s" : ""} ou en essai, toutes familles confondues.`}</p></li>
           <li className="rounded-lg border border-[var(--filet)] p-4"><b className="text-[var(--encre)]">2. Artisans locaux</b><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Renforcer la couverture selon les incidents réels et les zones desservies. Ne pas supposer une demande avant de la mesurer.</p></li>
           <li className="rounded-lg border border-[var(--filet)] p-4"><b className="text-[var(--encre)]">3. Agences</b><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Accélérer après validation du support, des contrats et du traitement des opérations à plus grand volume.</p></li>
         </ol>
-        <div className="mt-4 flex flex-wrap gap-4 text-sm"><Link className="lien-discret" href="/admin/territoire">Comparer les départements →</Link><Link className="lien-discret" href="/admin/clients">Voir les clients →</Link></div>
+        {/* 24/09 : text-sm sur les liens eux-mêmes, sinon les 12 px de .lien-discret
+            l'emportent sur le parent et ces liens sont plus petits que les autres. */}
+        <div className="mt-4 flex flex-wrap gap-4 text-sm"><Link className="lien-discret text-sm" href="/admin/territoire">Comparer les départements →</Link><Link className="lien-discret text-sm" href="/admin/clients">Voir les clients →</Link></div>
       </section>
 
       <section className="section-ecran">
-        <h2 className="mb-2 font-heading text-[var(--pas-section)] text-[var(--encre)]">Publication et acquisition</h2>
-        <p className="text-sm leading-relaxed text-[var(--texte-secondaire)]">Utiliser le journal pour expliquer des cas concrets de gestion locative. Tester d&apos;abord Facebook pour les propriétaires directs dans un seul département, avec une page et une source de demande identifiables ; comparer ensuite Instagram à volume égal. Aucune dépense ni publication sur ces réseaux ne part depuis cet écran. Les résultats et le coût par client doivent être mesurés avant d&apos;étendre la campagne.</p>
+        <h2 className="mb-2 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Publication et acquisition</h2>
+        <p className="mesure-lecture text-sm leading-relaxed text-[var(--texte-secondaire)]">Utiliser le journal pour expliquer des cas concrets de gestion locative. Tester d&apos;abord Facebook pour les propriétaires directs dans un seul département, avec une page et une source de demande identifiables ; comparer ensuite Instagram à volume égal. Aucune dépense ni publication sur ces réseaux ne part depuis cet écran. Les résultats et le coût par client doivent être mesurés avant d&apos;étendre la campagne.</p>
         <Link className="lien-discret mt-3 inline-block text-sm" href="/admin/publications">Préparer un article vérifié →</Link>
       </section>
 
       <section className="section-ecran">
-        <h2 className="mb-2 font-heading text-[var(--pas-section)] text-[var(--encre)]">Aide à la décision par l&apos;IA</h2>
-        <p className="mb-4 text-sm text-[var(--texte-secondaire)]">À la demande, l&apos;IA reçoit seulement huit compteurs agrégés, dont les alertes ouvertes, et propose une prochaine vérification. Elle ne lit aucun dossier personnel et ne modifie ni données, ni prix, ni publications.</p>
+        <h2 className="mb-2 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Aide à la décision par l&apos;IA</h2>
+        <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">À la demande, l&apos;IA reçoit seulement huit compteurs agrégés, dont les alertes ouvertes, et propose une prochaine vérification. Elle ne lit aucun dossier personnel et ne modifie ni données, ni prix, ni publications.</p>
         <BoutonBriefIA disponible={Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim())} />
       </section>
     </main>

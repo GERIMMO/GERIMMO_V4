@@ -132,7 +132,7 @@ test.describe("Côté agence", () => {
     expect(boite!.x + boite!.width).toBeLessThanOrEqual(390);
   });
 
-  test("les deux index ont quitté le menu de l'agent", async ({ page }) => {
+  test("la comptabilité reste hors du menu de l'agent, les loyers y entrent", async ({ page }) => {
     await page.goto(`/agence/${ORG}/parc`);
     // Coquille v4 : au gabarit téléphone, le menu complet vit dans le tiroir
     // qu'ouvre « Menu », pas dans une colonne.
@@ -140,7 +140,9 @@ test.describe("Côté agence", () => {
     const menu = page.getByRole("navigation", { name: /\(tout\)/ });
     await expect(menu.getByRole("link", { name: /Mon portefeuille/ })).toBeVisible();
     await expect(menu.getByRole("link", { name: /Documents/ })).toHaveCount(0);
-    await expect(menu.getByRole("link", { name: /Loyers & charges|Comptabilité/ })).toHaveCount(0);
+    await expect(menu.getByRole("link", { name: /Comptabilité/ })).toHaveCount(0);
+    // « Loyers & charges » est revenu au menu de l'agent (décision du porteur, 24/09).
+    await expect(menu.getByRole("link", { name: /Loyers & charges/ })).toBeVisible();
   });
 });
 

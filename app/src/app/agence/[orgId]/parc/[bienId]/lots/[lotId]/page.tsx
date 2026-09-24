@@ -5,14 +5,10 @@ import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   alertesDecence,
+  alerteDiagnostics,
   formaterSurface,
 } from "@/lib/parc";
-import {
-  diagnosticsExigibles,
-  diagnosticsManquants,
-  alerteDiagnosticsNiveau,
-  LIBELLES_NIVEAU_DIAGNOSTIC,
-} from "@/lib/diagnostics";
+import { diagnosticsExigibles, diagnosticsManquants } from "@/lib/diagnostics";
 import { formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
@@ -70,7 +66,7 @@ export default async function PageLot(
       .maybeSingle(),
     supabase
       .from("biens")
-      .select("id, nom, type, city, annee_construction, copropriete")
+      .select("id, nom, type, address_line1, city, annee_construction, copropriete")
       .eq("id", bienId)
       .eq("organization_id", orgId)
       .maybeSingle(),
@@ -160,6 +156,12 @@ export default async function PageLot(
   }));
 
   const detentionsActives = (detentions ?? []).filter((d) => !d.date_fin);
+  const nbChambres = chambres?.length ?? 0;
+  const colocationPertinente =
+    !["parking", "local", "terrain"].includes(bien.type ?? "") ||
+    nbChambres > 0 ||
+    lot.colocation_loyer_reference != null ||
+    Boolean(erreurChambres);
   const totalQuoteParts = detentionsActives.reduce(
     (s, d) => s + Number(d.quote_part),
     0
@@ -172,6 +174,9 @@ export default async function PageLot(
   const exigiblesBien = diagnosticsExigibles(bien, "bien");
   const manquantsBien = diagnosticsManquants(bien, diagnosticsBien ?? [], "bien");
   const decence = alertesDecence(lot);
+  // « L'immeuble » ne se dit que d'un immeuble (24/09) : sur un appartement,
+  // les diagnostics communs (ERP, termites…) sont ceux « du bien ».
+  const duBien = bien.type === "immeuble" ? "de l’immeuble" : "du bien";
   const verrouille = ["loue", "preavis"].includes(lot.etat);
 
   const nomPersonne = (p: { nom: string; prenom: string | null } | null) =>
@@ -199,7 +204,7 @@ export default async function PageLot(
   };
   noter("les propriétaires du lot", erreurDetentions);
   noter("les diagnostics", erreurDiagnostics);
-  noter("les diagnostics de l’immeuble", erreurDiagnosticsBien);
+  noter(`les diagnostics ${duBien}`, erreurDiagnosticsBien);
   noter("le catalogue d’équipements", erreurCatalogue);
   noter("les équipements du lot", erreurEquipesLot);
   noter("les personnes de l’agence", erreurPersonnes);
@@ -230,7 +235,8 @@ export default async function PageLot(
   if (manquants.length > 0) {
     attention.push({
       cle: "diagnostics",
-      texte: `Diagnostic${manquants.length > 1 ? "s" : ""} du logement à déposer : ${manquants
+      // « du lot », comme la section où mène « Régler » (24/09)
+      texte: `Diagnostic${manquants.length > 1 ? "s" : ""} du lot à déposer : ${manquants
         .map((m) => m.libelle)
         .join(", ")}.`,
       ancre: "diagnostics",
@@ -239,7 +245,7 @@ export default async function PageLot(
   if (manquantsBien.length > 0) {
     attention.push({
       cle: "diagnostics-immeuble",
-      texte: `Diagnostic${manquantsBien.length > 1 ? "s" : ""} de l’immeuble à déposer : ${manquantsBien
+      texte: `Diagnostic${manquantsBien.length > 1 ? "s" : ""} ${duBien} à déposer : ${manquantsBien
         .map((m) => m.libelle)
         .join(", ")}.`,
       ancre: "diagnostics-immeuble",
@@ -262,7 +268,9 @@ export default async function PageLot(
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <EnteteFiche
         retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: bien.nom }}
-        surtitre={bien.city ? `${bien.nom} · ${bien.city}` : bien.nom}
+        // Le nom du bien est dans le lien retour, juste au-dessus : le
+        // surtitre dit l'adresse (24/09).
+        surtitre={[bien.address_line1, bien.city].filter(Boolean).join(" · ") || undefined}
         titre={lot.nom}
         badge={
           <span className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}>
@@ -291,8 +299,15 @@ export default async function PageLot(
           visite, qui occupait à lui seul le premier écran d'un téléphone. */}
       <Card>
         <CardHeader>
+          {/* « Mettre en location » est le bouton qui fait passer un lot en
+              préparation à disponible ; un lot déjà disponible attend son
+              bail : la carte s'intitule alors « Louer ce lot » (24/09). */}
           <CardTitle className="text-base">
-            {bailEnCours ? "La location en cours" : "Mettre en location"}
+            {bailEnCours
+              ? "La location en cours"
+              : lot.etat === "disponible"
+                ? "Louer ce lot"
+                : "Mettre en location"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -304,21 +319,22 @@ export default async function PageLot(
             // milieu : le nom du locataire s'y coupait en trois lignes. Le nom
             // et le geste tiennent une rangée, les faits du bail la suivante.
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              {/* Tout le rang mène au bail, pas seulement le bouton (retour du 24/09) —
+                  la ligne de faits comprise : elle décrit le même bail. */}
+              <Link
+                href={`/agence/${orgId}/baux/${bailEnCours.id}`}
+                className="-mx-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-2 py-1.5 hover:bg-[var(--survol)]"
+              >
                 <span className={COULEURS_ETAT_BAIL[bailEnCours.etat] ?? "puce puce-grise"}>
                   {ETATS_BAIL[bailEnCours.etat] ?? bailEnCours.etat}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {recapLocataire ?? "Locataire non nommé"}
                 </span>
-                <Link
-                  href={`/agence/${orgId}/baux/${bailEnCours.id}`}
-                  className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                >
+                <span className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}>
                   Ouvrir le bail →
-                </Link>
-              </div>
-              <p className="text-xs text-muted-foreground">
+                </span>
+                <span className="basis-full text-xs text-muted-foreground">
                 {[
                   `Bail ${(TYPES_BAIL[bailEnCours.type] ?? bailEnCours.type).toLowerCase()}`,
                   loyerCc !== null ? `${eur(loyerCc)} charges comprises` : null,
@@ -329,7 +345,8 @@ export default async function PageLot(
                 ]
                   .filter(Boolean)
                   .join(" · ")}
-              </p>
+                </span>
+              </Link>
             </div>
           ) : (
             <>
@@ -347,19 +364,21 @@ export default async function PageLot(
               {lot.etat === "disponible" ? (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">
-                    Ce lot est disponible. Vérifiez les éléments à compléter
-                    avant le prochain bail ; il passera en location lorsque ce bail sera activé.
+                    Ce lot est disponible ; il sera loué dès que le bail sera activé.
                   </p>
                   {/* « Plus bas » est une consigne, pas un chemin : le
                       formulaire de bail est la SEULE porte d'entrée de la
                       création d'un bail dans l'application, et l'écran la
                       décrivait au lieu de l'ouvrir. L'ancre déplie la section
                       et y amène (voir section-lot.tsx). */}
+                  {/* UNE ANCRE, PAS LE BOUTON QUI CRÉE (24/09) : deux boutons
+                      bleus « Créer le bail » sur la même fiche, l'un qui
+                      défile, l'autre qui soumet. Le bleu reste au second. */}
                   <a
                     href="#baux"
-                    className={buttonVariants({ variant: "default", size: "sm" })}
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
                   >
-                    Créer le bail →
+                    Remplir le bail ↓
                   </a>
                 </div>
               ) : (
@@ -371,7 +390,13 @@ export default async function PageLot(
               )}
             </>
           )}
-          <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} />
+          <BoutonsEtatLot
+            orgId={orgId}
+            bienId={bienId}
+            lotId={lotId}
+            etat={lot.etat}
+            bailHref={bailEnCours ? `/agence/${orgId}/baux/${bailEnCours.id}` : undefined}
+          />
         </CardContent>
       </Card>
 
@@ -441,7 +466,7 @@ export default async function PageLot(
                         />
                       )}
                       {!d.date_fin && (baux ?? []).length === 0 && (
-                        /* « Corriger » SUPPRIME : au doigt, on l'écarte de
+                        /* Ce bouton SUPPRIME : au doigt, on l'écarte de
                            « Fermer » pour éviter le tap voisin. */
                         <span className="pointer-coarse:ml-2">
                           <BoutonSupprimerDetention
@@ -449,6 +474,8 @@ export default async function PageLot(
                             bienId={bienId}
                             lotId={lotId}
                             detentionId={d.id}
+                            proprietaire={nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
+                            quotePart={Number(d.quote_part)}
                           />
                         </span>
                       )}
@@ -479,17 +506,20 @@ export default async function PageLot(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du lot"
-            alerte={alerteDiagnosticsNiveau(bien, diagnostics ?? [], "lot")}
+            // Le titre dit déjà le niveau : la pastille ne le répète pas
+            // entre parenthèses, et le résumé ne redit pas ce qui manque — le
+            // bandeau du haut le dit, avec « Régler » (24/09).
+            alerte={alerteDiagnostics(manquants.map((m) => m.type), diagnostics ?? [])}
             resume={
               nbDiag === 0
-                ? `Aucun diagnostic ${LIBELLES_NIVEAU_DIAGNOSTIC.lot}`
-                : `${nbDiag} déposé${nbDiag > 1 ? "s" : ""} ${LIBELLES_NIVEAU_DIAGNOSTIC.lot}${manquants.length ? ` · manque : ${manquants.map((m) => m.libelle).join(", ")}` : ""}`
+                ? "Aucun diagnostic déposé"
+                : `${nbDiag} déposé${nbDiag > 1 ? "s" : ""}`
             }
           >
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                DPE, électricité, gaz, plomb, amiante privatif… Ceux de
-                l&apos;immeuble se déposent juste en dessous.
+                DPE, électricité, gaz, plomb, amiante privatif… Ceux {duBien}{" "}
+                se déposent juste en dessous.
               </p>
               <LignesDiagnostics
                 orgId={orgId}
@@ -513,12 +543,12 @@ export default async function PageLot(
               pour l'utilisateur : il ne quitte plus le lot pour le lever. */}
           <SectionLot
             id="diagnostics-immeuble"
-            titre="Diagnostics de l’immeuble"
-            alerte={alerteDiagnosticsNiveau(bien, diagnosticsBien ?? [], "bien")}
+            titre={`Diagnostics ${duBien}`}
+            alerte={alerteDiagnostics(manquantsBien.map((m) => m.type), diagnosticsBien ?? [])}
             resume={
               nbDiagBien === 0
-                ? `Aucun diagnostic ${LIBELLES_NIVEAU_DIAGNOSTIC.bien}`
-                : `${nbDiagBien} déposé${nbDiagBien > 1 ? "s" : ""} ${LIBELLES_NIVEAU_DIAGNOSTIC.bien}${manquantsBien.length ? ` · manque : ${manquantsBien.map((m) => m.libelle).join(", ")}` : ""}`
+                ? "Aucun diagnostic déposé"
+                : `${nbDiagBien} déposé${nbDiagBien > 1 ? "s" : ""}`
             }
           >
             <div className="space-y-3">
@@ -543,9 +573,10 @@ export default async function PageLot(
             id="equipements"
             titre="Équipements"
             resume={
+              // Le logement, pas la case du formulaire (24/09)
               nbEquip === 0
-                ? "Aucun équipement coché"
-                : `${nbEquip} équipement${nbEquip > 1 ? "s" : ""} coché${nbEquip > 1 ? "s" : ""}`
+                ? "Aucun équipement renseigné"
+                : `${nbEquip} équipement${nbEquip > 1 ? "s" : ""} renseigné${nbEquip > 1 ? "s" : ""}`
             }
           >
             <FormulaireEquipementsLot
@@ -616,7 +647,7 @@ export default async function PageLot(
                           <span className="block truncate text-xs text-muted-foreground sm:inline sm:before:content-['_·_']">
                             {[
                               b.loyer_hc != null
-                                ? `${eur(Number(b.loyer_hc) + Number(b.charges ?? 0))} cc`
+                                ? `${eur(Number(b.loyer_hc) + Number(b.charges ?? 0))} charges comprises`
                                 : null,
                               b.date_debut ? `entrée le ${formaterDate(b.date_debut)}` : null,
                               b.date_fin ? `fin le ${formaterDate(b.date_fin)}` : null,
@@ -637,10 +668,22 @@ export default async function PageLot(
                 </ul>
               )}
               {detentionsActives.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
-                  de créer un bail.
-                </p>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
+                    de créer un bail.
+                  </p>
+                  {/* Le message dit où aller : la section Détention de cette
+                      fiche, et la création de la fiche du locataire. */}
+                  <p className="flex flex-wrap gap-x-4 gap-y-1">
+                    <a href="#detention" className="lien-discret">
+                      Ajouter un propriétaire →
+                    </a>
+                    <Link href={`/agence/${orgId}/personnes#creer-fiche`} className="lien-discret">
+                      Créer la fiche du locataire →
+                    </Link>
+                  </p>
+                </div>
               ) : (
                 <FormulaireBailLot
                   orgId={orgId}
@@ -653,16 +696,32 @@ export default async function PageLot(
             </div>
           </SectionLot>
 
-          <SectionLot id="chambres" titre="Colocation · contrats individuels" resume={`${chambres?.length ?? 0} chambre(s) préparée(s)`}>
-            {erreurChambres ? <p role="alert">Les chambres n’ont pas pu être chargées. Rechargez la page.</p> : <ChambresLogement orgId={orgId} lotId={lotId} bienId={bienId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} />}
-          </SectionLot>
+          {/* La colocation ne concerne qu'un logement : la section se tait
+              sur un parking, un local ou un terrain — sauf si des chambres ou
+              un plafond y sont déjà saisis (on ne cache pas une donnée). */}
+          {/* … et elle se tait aussi sur un lot loué en bail unique qui n'a
+              aucune chambre (24/09) : la rangée y était sans objet. */}
+          {colocationPertinente && !(bailEnCours && nbChambres === 0) && (
+            <SectionLot
+              id="chambres"
+              titre="Colocation · contrats individuels"
+              resume={
+                nbChambres === 0
+                  ? "Aucune chambre préparée"
+                  : `${nbChambres} chambre${nbChambres > 1 ? "s" : ""} préparée${nbChambres > 1 ? "s" : ""}`
+              }
+            >
+              {erreurChambres ? <p role="alert" className="err">Les chambres n’ont pas pu être chargées. Rechargez la page.</p> : <ChambresLogement orgId={orgId} lotId={lotId} bienId={bienId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} />}
+            </SectionLot>
+          )}
 
           {/* Charges de copropriété (module 0c) — appels du syndic, ventilés */}
           {bien.copropriete && (
             <SectionLot
               id="charges"
               titre="Charges de copropriété"
-              alerte={appelsCharges.length === 0 ? "Aucun appel saisi" : undefined}
+              // Pas de pastille sur un simple vide : aucun appel saisi n'est
+              // pas une anomalie (le résumé le dit déjà).
               resume={
                 appelsCharges.length === 0
                   ? "Aucun appel de charges saisi"

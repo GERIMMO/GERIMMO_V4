@@ -54,7 +54,9 @@ function champ(html: string, nom: string) {
 function formulaireEnvoi(html: string) {
   // Le même état simulé sert aux autres formulaires : regarder uniquement
   // le formulaire du bouton d'envoi évite un succès trouvé ailleurs.
-  return html.match(/<form\b[\s\S]*?<\/form>/g)?.find((form) => />Envoy(?:er|é)<\/button>/.test(form)) ?? "";
+  // Le bouton nomme le document (24/09) : « Envoyer la quittance » /
+  // « Envoyée » pour une quittance, « Envoyer le reçu » / « Envoyé » pour un reçu.
+  return html.match(/<form\b[\s\S]*?<\/form>/g)?.find((form) => />(?:Envoyer (?:la quittance|le reçu)|Envoyée?)<\/button>/.test(form)) ?? "";
 }
 
 describe("Loyers : les saisies et retours restent compréhensibles", () => {
@@ -77,7 +79,7 @@ describe("Loyers : les saisies et retours restent compréhensibles", () => {
     etatSimule.valeur = { succes: "Quittance envoyée, mais la mémorisation a échoué." };
     const envoi = formulaireEnvoi(rendre());
     expect(envoi).toContain("Quittance envoyée, mais la mémorisation a échoué.");
-    expect(envoi).toMatch(/<button\b[^>]*disabled=""[^>]*>Envoyé<\/button>/);
+    expect(envoi).toMatch(/<button\b[^>]*disabled=""[^>]*>Envoyée<\/button>/);
     expect(envoi).toContain('role="status"');
   });
 
@@ -85,7 +87,7 @@ describe("Loyers : les saisies et retours restent compréhensibles", () => {
     etatSimule.valeur = { erreur: "Envoi refusé" };
     const envoi = formulaireEnvoi(rendre());
     expect(envoi).toContain("Envoi refusé");
-    expect(envoi).toContain(">Envoyer</button>");
+    expect(envoi).toContain(">Envoyer la quittance</button>");
     expect(envoi).not.toContain('disabled=""');
   });
 });

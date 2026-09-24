@@ -65,7 +65,16 @@ export function NavArtisan({
 
   const entrees = [
     { href: "/artisan", libelle: "Aujourd'hui", icone: "jour", exact: true, badge: aFaireMaintenant },
-    { href: "/artisan/agenda", libelle: "Agenda", icone: "agenda", badge: 0 },
+    {
+      href: "/artisan/agenda",
+      libelle: "Agenda",
+      icone: "agenda",
+      // 24/09 : la fiche d'une mission (et ses créneaux, son compte rendu) vit
+      // sous /artisan/missions ; sans ce rattachement, aucun onglet n'y était
+      // allumé et l'artisan venu de son agenda perdait son repère.
+      aussi: ["/artisan/missions"],
+      badge: 0,
+    },
     { href: "/artisan/devis", libelle: "Devis", icone: "devis", badge: devisAChiffrer },
     {
       href: "/artisan/entreprise",
@@ -103,7 +112,7 @@ export function NavArtisan({
                   nb > 0
                     ? `${e.libelle}, ${nb} en attente`
                     : e.point
-                      ? `${e.libelle}, une attestation à renouveler`
+                      ? `${e.libelle}, attestations à déposer ou à renouveler`
                       : undefined
                 }
                 className={`relative flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 text-center transition-colors ${
@@ -123,7 +132,7 @@ export function NavArtisan({
                   {nb > 0 && (
                     <span
                       aria-hidden
-                      className="absolute -top-1.5 -right-2.5 min-w-5 rounded-full bg-[var(--destructive)] px-1 text-center text-[11px] leading-5 font-medium text-[var(--ivoire)]"
+                      className="absolute -top-1.5 -right-2.5 min-w-5 rounded-full bg-[var(--marque)] px-1 text-center text-[11px] leading-5 font-medium text-[var(--sur-marque)]"
                     >
                       {nb > 9 ? "9+" : nb}
                     </span>

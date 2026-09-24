@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
-import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { ROLES_RESPONSABLES, eur } from "@/lib/ged";
 import { resumerBlocage } from "@/lib/echeances";
 import { etiqueterNiveau } from "@/lib/diagnostics";
 import {
@@ -16,7 +16,6 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireEquipementCatalogue } from "./formulaire-equipement-catalogue";
@@ -172,9 +171,9 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
   return (
     // Le fournisseur enveloppe l'écran : chaque rang de lot y puise de quoi
     // ouvrir la fenêtre, et la fenêtre se monte au-dessus de tout.
-    <FenetreLotProvider orgId={orgId} lotInitial={lotInitial}>
+    <FenetreLotProvider orgId={orgId} lotInitial={lotInitial} estProprietaire={estProprietaire}>
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-      <div className="entete-page mb-6">
+      <div className="entete-page">
         <h1>
           {estProprietaire
             ? "Mes lots"
@@ -182,9 +181,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
               ? "Mon portefeuille"
               : "Parc de l'agence"}
         </h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          {/* Plus de préfixe « Mon portefeuille · » (24/09) : il répétait le
+              titre posé sur la même ligne, et l'entrée active du menu. */}
           <span className="mono-discret">
-            {portefeuille ? "Mon portefeuille · " : ""}
             {biensVisibles.length} bien{biensVisibles.length > 1 ? "s" : ""} · {nbLots} lot
             {nbLots > 1 ? "s" : ""}
           </span>
@@ -205,12 +205,15 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   tombait sur « page introuvable » (relevé au balayage des
                   boutons, 12/09). Un chemin qu'on propose doit mener quelque
                   part : on aligne le lien sur la garde, pas l'inverse. */}
+              {/* Le lien porte le titre de l'écran qu'il ouvre (24/09) :
+                  « Importer mes lots » pour le propriétaire, « Reprendre le
+                  parc » pour l'agence. */}
               {ROLES_RESPONSABLES.includes(role) && (
                 <Link
                   href={`/agence/${orgId}/parc/import`}
                   className="lien-discret text-[13px]"
                 >
-                  Reprendre un parc
+                  {estProprietaire ? "Importer mes lots" : "Reprendre le parc"}
                 </Link>
               )}
               <Link href={`/agence/${orgId}/parc/nouveau`} className="btn-or">
@@ -283,7 +286,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         // Vue scindée mobile (socle 10/09) : `detail-actif` masque la liste
         // sous 900px quand une sélection existe — le détail remplace la liste
         // au lieu d'être rendu dessous, avec un lien retour en tête.
-        <div className={`split${selectionBien ? " detail-actif" : ""}`}>
+        // Colonne de liste portée à 380 px ICI seulement (24/09) : à 340 px,
+        // adresse et nom du lot se coupaient ; à 400 px, les trois tuiles du
+        // volet droit passaient sur deux rangées à 1280 px. Les autres vues
+        // scindées (incidents, artisans, documents) gardent la règle commune.
+        <div
+          className={`split min-[901px]:grid-cols-[minmax(0,380px)_minmax(0,1fr)] ${selectionBien ? "detail-actif" : ""}`}
+        >
           <div className="colonne-liste-split volet-liste">
             <div className="tete-liste">
               <span className="mono-discret">Lots</span>
@@ -304,9 +313,17 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   href={`/agence/${orgId}/parc?sel=bien:${bien.id}`}
                   className={`tete-groupe${selectionBien?.id === bien.id ? " actif" : ""}`}
                 >
+                  {/* Deux lignes plutôt qu'une coupe (24/09) : l'adresse
+                      perdait son code postal et sa ville — ce qui distingue
+                      deux immeubles homonymes. Le texte entier en `title`. */}
                   <span className="min-w-0">
-                    <b className="block truncate text-[13.5px] font-medium">{bien.nom}</b>
-                    <span className="mono-discret block truncate normal-case">
+                    <b className="block truncate text-[13.5px] font-medium" title={bien.nom}>
+                      {bien.nom}
+                    </b>
+                    <span
+                      className="mono-discret line-clamp-2 normal-case"
+                      title={`${TYPES_BIEN[bien.type] ?? bien.type} · ${bien.address_line1}, ${bien.postal_code} ${bien.city}`}
+                    >
                       {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1},{" "}
                       {bien.postal_code} {bien.city}
                     </span>
@@ -331,7 +348,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
                     className="rang-lot"
                   >
-                    <span className="min-w-0 flex-1 truncate text-left text-[13px]">
+                    <span
+                      className="line-clamp-2 min-w-0 flex-1 text-left text-[13px]"
+                      title={lot.nom}
+                    >
                       {lot.nom}
                       {lot.surface_m2 !== null && (
                         <span className="text-muted-foreground">
@@ -362,9 +382,16 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           ) : (
           /* Des dossiers à ouvrir, puis les points de préparation vérifiés. */
           <div className="min-w-0 space-y-3.5">
-            <p className="text-sm text-muted-foreground">
-              Sélectionnez un bien ou un lot dans la liste pour le lire ici, ou
-              traitez ce qui bloque ci-dessous.
+            {/* Sous 900px la liste est au-dessus et rien ne s'ouvre « ici » :
+                l'invite ne parle qu'à la vue scindée (même règle que les
+                incidents ; tour du 24/09). */}
+            {/* Un lot s'ouvre dans une fenêtre, seul un bien se lit « ici »
+                (24/09) ; et « ce qui bloque ci-dessous » ne se dit que s'il y
+                a quelque chose dessous. */}
+            <p className="text-sm text-muted-foreground max-[900px]:hidden">
+              Sélectionnez un bien pour le lire ici ; un lot s&apos;ouvre dans une
+              fenêtre.
+              {!erreurBlocages && totalBlocages > 0 && " Ce qui bloque la mise en location se traite ci-dessous."}
             </p>
             {/* `grille-kpi` compte ses colonnes d'après la place dont elle
                 dispose : ces tuiles vivent dans le volet droit d'une vue
@@ -388,33 +415,72 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   {/* Ce compteur agrège les BLOCAGES de mise en location (dont
                       les diagnostics, chacun à son niveau) — pas les compteurs
                       « manquants » des fiches, qui couvrent aussi le non bloquant. */}
+                  {/* Même mot que la fiche bien : « à régler » (24/09) */}
                   {erreurBlocages
                     ? "blocages non lus"
-                    : `${totalBlocages} point${totalBlocages > 1 ? "s" : ""} sur ces lots`}
+                    : totalBlocages === 0
+                      ? "rien à régler"
+                      : `${totalBlocages} élément${totalBlocages > 1 ? "s" : ""} à régler`}
                 </span>
               </div>
               <div className="kpi bleu">
-                <span className="eyebrow">Quittancement</span>
+                {/* Le mot du menu, pas le jargon d'agence (24/09) */}
+                <span className="eyebrow">Loyers &amp; charges</span>
                 <span className="chiffre block">
-                  {erreurBaux ? "—" : `${quittancement.toLocaleString("fr-FR")} €`}
+                  {erreurBaux ? "—" : eur(quittancement)}
                 </span>
                 <span className="block text-xs text-muted-foreground">
                   {erreurBaux ? "montants indisponibles" : "par mois, baux en cours"}
                 </span>
               </div>
             </div>
-            <div className="grille-cartes">
+            {/* TOUT EST LOUÉ (24/09) : les deux cartes ci-dessous n'avaient
+                alors rien à dire (« 0 disponible », « 0 au total »), ne
+                menaient nulle part et s'étiraient à la hauteur l'une de
+                l'autre. Une phrase, et le seul geste qui reste. */}
+            {disponibles.length === 0 && enPreparation.length === 0 ? (
+              <Card>
+                <CardContent>
+                  {/* Le geste « + Ajouter un bien » est déjà dans l'en-tête de
+                      la page : pas de doublon ici (deux liens identiques sur un
+                      même écran, relevé du 24/09). */}
+                  <p className="text-sm text-muted-foreground">
+                    {estProprietaire
+                      ? "Tous vos lots sont loués"
+                      : portefeuille
+                        ? "Tout votre portefeuille est loué"
+                        : "Tout le parc est loué"}{" "}
+                    : aucun lot à préparer ni à remettre en location.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+            // `items-start` : une carte courte ne s'étire plus à la hauteur de
+            // sa voisine (jusqu'à 330 px de vide sous trois lignes, 24/09).
+            <div className="grille-cartes items-start">
               <Card>
                 <CardContent>
                   <div className="entete-carte">
-                    <h3 className="text-[1.05rem]">Prochaines mises en location</h3>
+                    <h2 className="text-[length:var(--pas-sous-titre)]">Prochaines mises en location</h2>
                     <span className="mono-discret">{disponibles.length} disponible{disponibles.length > 1 ? "s" : ""}</span>
                   </div>
-                  <p className="mb-3 text-sm text-muted-foreground">
-                    {disponibles.length > 0
-                      ? "Ouvrez la fiche pour vérifier les diagnostics, les propriétaires et préparer le bail. Le statut disponible ne garantit pas que le dossier est à jour."
-                      : "Aucun lot disponible actuellement. Les lots en préparation restent à compléter avant leur mise en location."}
-                  </p>
+                  {disponibles.length > 0 ? (
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      Ouvrez la fiche pour vérifier les diagnostics, les propriétaires
+                      et préparer le bail. Le statut disponible ne garantit pas que le
+                      dossier est à jour.
+                    </p>
+                  ) : (
+                    // Une phrase nue renvoyait aux lots en préparation sans y
+                    // mener (24/09) : le lien y mène.
+                    <p className="text-sm text-muted-foreground">
+                      Aucun lot disponible pour l&apos;instant.{" "}
+                      <a href="#preparer-lots" className="lien-discret text-[13px]">
+                        Voir {enPreparation.length > 1 ? `les ${enPreparation.length} lots` : "le lot"} en
+                        préparation&nbsp;→
+                      </a>
+                    </p>
+                  )}
                   <div className="space-y-2">
                     {disponibles.slice(0, 3).map((lot) => (
                       <Link key={lot.id} href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
@@ -425,12 +491,16 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   </div>
                 </CardContent>
               </Card>
-              <Card>
+              <Card id="preparer-lots" className="scroll-mt-20">
                 <CardContent>
                   <div className="entete-carte">
-                    <h3 className="text-[1.05rem]">Préparer les nouveaux lots</h3>
+                    <h2 className="text-[length:var(--pas-sous-titre)]">Préparer les nouveaux lots</h2>
+                    {/* « au total » ne se rattachait à rien : même mot que la
+                        tuile et la fiche bien (24/09). */}
                     {!erreurBlocages && (
-                      <span className="mono-discret">{totalBlocages} au total</span>
+                      <span className="mono-discret">
+                        {totalBlocages === 0 ? "rien à régler" : `${totalBlocages} à régler`}
+                      </span>
                     )}
                   </div>
                   {erreurBlocages ? (
@@ -469,16 +539,28 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 </CardContent>
               </Card>
             </div>
+            )}
           </div>
           )}
         </div>
       )}
 
-      <details className="mt-8 rounded-xl border border-border bg-card">
-        <summary className="cursor-pointer px-5 py-4 text-sm font-medium">Catalogue d’équipements <span className="ml-2 text-xs font-normal text-muted-foreground">Préparer les futurs états des lieux</span></summary>
-      <Card className="border-0 shadow-none">
+      {/* Le dépliage de la charte (`information-depliable`, 24/09) : chevron
+          maison au lieu du triangle natif, et plus de titre répété à
+          l'ouverture — le résumé EST le titre. Sur téléphone, le sous-titre
+          forme sa propre ligne au lieu de se couper après « futurs ». */}
+      <details className="information-depliable mt-8 rounded-xl border border-border bg-card">
+        <summary className="px-5 py-2 text-sm">
+          <span className="min-w-0">
+            Catalogue d’équipements
+            <span className="block text-xs font-normal text-muted-foreground sm:ml-2 sm:inline">
+              Préparer les futurs états des lieux
+            </span>
+          </span>
+          <span aria-hidden className="information-chevron">⌄</span>
+        </summary>
+      <Card className="border-0 pt-1 shadow-none">
         <CardHeader>
-          <CardTitle className="text-base">Catalogue d&apos;équipements</CardTitle>
           <CardDescription>
             {estProprietaire ? "Votre liste" : "La liste de l'agence"}, cochée
             ensuite sur chaque lot — elle prépare la grille d&apos;état des lieux.
@@ -545,10 +627,24 @@ function LotsDuMotif({ orgId, lots }: { orgId: string; lots: LotBloque[] }) {
     <div className="mt-1.5 space-y-1.5">
       <div className="flex flex-wrap gap-1.5">{visibles.map(lien)}</div>
       {reste.length > 0 && (
-        <details>
-          <summary className="mono-discret cursor-pointer list-none normal-case">
+        // UNE PASTILLE QUI SE DÉPLIE (24/09), et non une légende grise de
+        // 11 px, identique au « 68 au total » qui, lui, ne se clique pas :
+        // rien n'indiquait qu'elle cachait quatorze liens. Chevron qui
+        // tourne à l'ouverture, cible tactile de la règle maison.
+        <details className="group">
+          <summary className="puce puce-grise cursor-pointer list-none pointer-coarse:min-h-[var(--cible-tactile)] [&::-webkit-details-marker]:hidden">
             + {reste.length} autre{reste.length > 1 ? "s" : ""} lot
             {reste.length > 1 ? "s" : ""}
+            <svg
+              aria-hidden
+              viewBox="0 0 24 24"
+              width="12"
+              height="12"
+              className="transition-transform group-open:rotate-180 motion-reduce:transition-none"
+            >
+              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </summary>
           <div className="mt-1.5 flex flex-wrap gap-1.5">{reste.map(lien)}</div>
         </details>

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 
 /**
@@ -38,7 +39,11 @@ export function CoquilleAuth({
   return (
     <main className="grid min-h-full flex-1 md:grid-cols-[1.05fr_1fr]">
       <div className="panneau-marque hidden flex-col justify-between p-13 text-[var(--sur-marque)] md:flex">
-        <MarqueGerimmo surEncre />
+        {/* La marque ramène à la vitrine (24/09), comme sur la vitrine, le
+            journal et les pages légales : c'était ici le seul logo inerte. */}
+        <Link href="/" aria-label="Gerimmo — accueil" className="inline-flex min-h-11 items-center self-start">
+          <MarqueGerimmo surEncre />
+        </Link>
         <div>
           {/* Le panneau porte la promesse, pas le titre de la page : deux h1
               dans un même document se disputeraient la structure. */}
@@ -49,16 +54,19 @@ export function CoquilleAuth({
             {sousPromesse}
           </p>
         </div>
-        <p className="mono-discret text-[var(--sur-marque)]/70">{mention}</p>
+        {/* Pleine opacité (24/09) : à 70 %, sur la zone claire de la photo,
+            c'était le texte le moins lisible de la page. */}
+        <p className="mono-discret text-[var(--sur-marque)]">{mention}</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-8">
         <div className="w-full" style={{ maxWidth: largeur }}>
           <div className="mb-6 md:hidden">
-            <MarqueGerimmo />
+            <Link href="/" aria-label="Gerimmo — accueil" className="inline-flex min-h-11 items-center">
+              <MarqueGerimmo />
+            </Link>
           </div>
-          <div className="repere-visuel repere-visuel-public mb-6 md:hidden" aria-hidden="true" />
-          <h1 className="!text-[var(--pas-section)]">{titre}</h1>
+          <h1 className="!text-[length:var(--pas-section)]">{titre}</h1>
           {chapo && (
             <p className="mt-1.5 mb-5 text-sm leading-relaxed text-muted-foreground">{chapo}</p>
           )}

@@ -49,6 +49,9 @@ function enInstant(jour: string, heure: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+// Le libellé du bouton ne change plus : le compte de ce qui manque s'écrivait
+// en blanc sur le bouton désactivé, délavé à 60 %, illisible au soleil. Il
+// se lit maintenant au-dessus, en texte courant (tour du 24/09).
 function Envoyer({ nombre }: { nombre: number }) {
   const { pending } = useFormStatus();
   return (
@@ -57,11 +60,7 @@ function Envoyer({ nombre }: { nombre: number }) {
       className={CLASSE_BOUTON_PRINCIPAL}
       disabled={pending || nombre < 3}
     >
-      {pending
-        ? "Envoi…"
-        : nombre < 3
-          ? `Encore ${3 - nombre} créneau${3 - nombre > 1 ? "x" : ""} à remplir`
-          : `Envoyer ${nombre} créneaux`}
+      {pending ? "Envoi…" : "Envoyer les créneaux"}
     </button>
   );
 }
@@ -101,18 +100,15 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
     <form action={action} className="space-y-5">
       <input type="hidden" name="creneaux" value={JSON.stringify(prets)} />
 
-      {etat.succes && <Succes>{etat.succes}</Succes>}
-      {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
-
       {creneaux.map((c, i) => (
-        <fieldset
-          key={i}
-          className="rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5"
-        >
-          <legend className="px-1.5 text-[0.9375rem] font-medium text-[var(--encre)]">
+        // Le même habillage que les autres cartes de l'espace (24/09). La
+        // légende reste, pour l'accessibilité, mais flotte dans la carte comme
+        // un titre de section au lieu de couper le filet.
+        <fieldset key={i} className="artisan-carte min-w-0">
+          <legend className="float-left mb-3 w-full p-0 font-[family-name:var(--font-titres)] text-[1.0625rem] font-medium text-[var(--encre)]">
             Créneau {i + 1}
           </legend>
-          <div className="space-y-3">
+          <div className="clear-both space-y-3">
             <div className="space-y-1">
               <label
                 htmlFor={`${base}-jour-${i}`}
@@ -181,6 +177,22 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
       >
         Ajouter un créneau
       </button>
+
+      {etat.succes && <Succes>{etat.succes}</Succes>}
+      {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
+
+      {/* Avant le bouton, et non dessous : c'est l'effet de l'envoi, il se
+          lit avant de toucher (24/09). */}
+      <div className="space-y-2">
+        <p className="text-[0.9375rem] text-[var(--corps)]">
+          Une nouvelle proposition remplace celle qui était encore en attente.
+        </p>
+        {prets.length < 3 && (
+          <p className="text-base text-[var(--corps)]">
+            Encore {3 - prets.length} créneau{3 - prets.length > 1 ? "x" : ""} à remplir
+          </p>
+        )}
+      </div>
 
       <Envoyer nombre={prets.length} />
     </form>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { chargerNote, chargerPieces, verifierAccesArtisan } from "../acces";
-import { degreEcheance, METIERS } from "../libelles";
-import { Carte, Etiquette, LigneInfo, TitreSection } from "../ui";
+import { degreEcheance, formaterSiret, formaterTelephone, METIERS } from "../libelles";
+import { CLASSE_AIDE, Carte, EnteteSousPage, Etiquette, LigneInfo, TitreSection } from "../ui";
 import { FormulaireMetiersZones, ReglageVisibilite } from "./reglages-entreprise";
 
 export const metadata = { title: "Mon entreprise — Espace artisan" };
@@ -37,15 +37,22 @@ export default async function PageEntreprise() {
     )
   ).length;
 
+  // Aucune attestation n'est pas un compteur neutre : sans elles, l'artisan
+  // n'est proposé à personne. La ligne le dit, dans la couleur d'alerte, et
+  // l'onglet porte le même point (gabarit) — tour du 24/09.
+  const aucunePiece = !pieces.erreur && pieces.lignes.length === 0;
   const raccourcis = [
     {
       href: "/artisan/attestations",
       titre: "Mes attestations",
-      detail:
-        piecesTendues > 0
-          ? `${piecesTendues} à renouveler`
-          : `${pieces.lignes.length} déposée${pieces.lignes.length > 1 ? "s" : ""}`,
-      tendu: piecesTendues > 0,
+      detail: pieces.erreur
+        ? "Liste illisible à l'instant — ouvrez pour vérifier"
+        : aucunePiece
+          ? "Aucune attestation déposée — à déposer pour être proposé aux agences"
+          : piecesTendues > 0
+            ? `${piecesTendues} à renouveler`
+            : `${pieces.lignes.length} déposée${pieces.lignes.length > 1 ? "s" : ""}`,
+      tendu: aucunePiece || piecesTendues > 0,
     },
     {
       href: "/artisan/facturation",
@@ -57,7 +64,7 @@ export default async function PageEntreprise() {
       href: "/artisan/note",
       titre: "Ma note",
       detail: note.note?.publiable
-        ? `${Number(note.note.note_publiee ?? 0).toFixed(1)} sur 5 · ${note.note.nb_evaluations} avis`
+        ? `${Number(note.note.note_publiee ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} sur 5 · ${note.note.nb_evaluations} avis`
         : "Pas encore publiée",
       tendu: false,
     },
@@ -65,12 +72,12 @@ export default async function PageEntreprise() {
 
   return (
     <div className="space-y-6">
-      <div className="portail-hero">
-        <p className="portail-surtitre">Mon entreprise</p>
-        <h1 className="mt-0.5">
-          {fiche.raison_sociale}
-        </h1>
-      </div>
+      {/* Le nom de l'onglet en titre, comme les pages sœurs : la raison
+          sociale est déjà écrite dans le bandeau, juste au-dessus (24/09). */}
+      <EnteteSousPage
+        titre="Mon entreprise"
+        mention="Vos attestations, votre facturation, votre note et votre fiche"
+      />
 
       <nav aria-label="Mon entreprise" className="space-y-3">
         {raccourcis.map((r) => (
@@ -108,11 +115,13 @@ export default async function PageEntreprise() {
         <TitreSection>Ma fiche</TitreSection>
         <div>
           <LigneInfo libelle="SIRET">
-            <span className="font-[family-name:var(--font-libelles)]">{fiche.siret}</span>
+            <span className="font-[family-name:var(--font-libelles)] tabular-nums">
+              {formaterSiret(fiche.siret)}
+            </span>
           </LigneInfo>
           <LigneInfo libelle="Vérification du SIRET">
             <Etiquette ton={fiche.siret_etat === "verifie" ? "ok" : "attente"}>
-              {ETATS_SIRET[fiche.siret_etat] ?? fiche.siret_etat}
+              {ETATS_SIRET[fiche.siret_etat] ?? "Vérification à faire"}
             </Etiquette>
           </LigneInfo>
           <LigneInfo libelle="Inscription">
@@ -125,21 +134,34 @@ export default async function PageEntreprise() {
                     : "attente"
               }
             >
-              {ETATS_PLATEFORME[fiche.statut_plateforme] ?? fiche.statut_plateforme}
+              {ETATS_PLATEFORME[fiche.statut_plateforme] ?? "Statut à vérifier"}
             </Etiquette>
           </LigneInfo>
-          <LigneInfo libelle="Mobile">{fiche.telephone ?? "—"}</LigneInfo>
-          <LigneInfo libelle="Courriel">{fiche.email ?? "—"}</LigneInfo>
+          <LigneInfo libelle="Mobile">{formaterTelephone(fiche.telephone)}</LigneInfo>
+          <LigneInfo libelle="Adresse e-mail">{fiche.email ?? "—"}</LigneInfo>
         </div>
+        {/* « Motif » se lit comme un refus : sous une inscription validée,
+            c'est un commentaire (24/09). */}
         {fiche.statut_motif && (
           <p className="mt-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Motif communiqué par Gerimmo : {fiche.statut_motif}
+            {fiche.statut_plateforme === "valide"
+              ? "Commentaire de Gerimmo"
+              : "Motif communiqué par Gerimmo"}{" "}
+            : {fiche.statut_motif}
           </p>
         )}
-        <p className="mt-3 text-[0.8125rem] text-[var(--texte-secondaire)]">
-          Raison sociale et SIRET se corrigent auprès de Gerimmo : ils
-          identifient votre entreprise sur toute la plateforme, pas seulement
-          chez une agence.
+        {/* La phrase mène à qui corrige : sans lien, l'artisan qui voyait une
+            erreur n'avait aucun moyen de la signaler (24/09). */}
+        <p className={`mt-3 ${CLASSE_AIDE}`}>
+          Raison sociale et SIRET se corrigent{" "}
+          <Link
+            href="/assistance?ecran=%2Fartisan%2Fentreprise&action=lien&retour=%2Fartisan%2Fentreprise"
+            className="font-medium text-[var(--encre)] underline underline-offset-4"
+          >
+            auprès de Gerimmo
+          </Link>{" "}
+          : ils identifient votre entreprise sur toute la plateforme, pas
+          seulement chez une agence.
         </p>
       </Carte>
 

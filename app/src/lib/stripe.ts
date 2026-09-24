@@ -187,11 +187,55 @@ export async function assurerClientStripe(
   }
 }
 
+/** Stripe Checkout refuse un `trial_end` à moins de 48 h de la demande. */
+export const DELAI_MINIMAL_ESSAI_STRIPE_S = 48 * 3600;
+
+/**
+ * La fin d'essai à passer à Stripe — ou rien.
+ *
+ * SOUSCRIRE PENDANT L'ESSAI NE FAIT PAS PAYER PLUS TÔT (décision du 24/09). La
+ * page de paiement enregistre la carte, et le premier prélèvement part à la
+ * fin de l'essai que la base connaît, pas avant. C'est une promesse que
+ * l'écran fait ; elle se calcule donc ICI, une fois, et l'écran appelle la
+ * même fonction pour savoir s'il a le droit de la faire.
+ *
+ * Deux règles, lisibles dans le résultat :
+ * - `essai_fin` est une DATE (« AAAA-MM-JJ », colonne `date`) : l'essai court
+ *   jusqu'à ce jour INCLUS — c'est ainsi que la base compte les jours
+ *   restants. La fin envoyée est donc minuit (UTC) du lendemain ; débiter au
+ *   matin du dernier jour, ce serait raccourcir l'essai d'un jour. Un instant
+ *   complet, avec heure, est pris tel quel.
+ * - Stripe Checkout refuse un `trial_end` à moins de 48 h. En deçà — ou
+ *   l'essai passé — on ne pose rien : la carte est débitée à la validation,
+ *   et l'écran le dit tel quel. Mieux vaut un prélèvement immédiat annoncé
+ *   qu'une page de paiement qui ne s'ouvre pas.
+ *
+ * En secondes Unix, l'unité de Stripe. `maintenantMs` n'existe que pour les
+ * tests : une règle qui dépend de l'heure se vérifie à heure fixe.
+ */
+export function finEssaiPourStripe(
+  essaiFin: string | null | undefined,
+  maintenantMs: number = Date.now()
+): number | undefined {
+  if (!essaiFin) return undefined;
+  const debutMs = new Date(essaiFin).getTime();
+  if (Number.isNaN(debutMs)) return undefined;
+  const fin = Math.floor(debutMs / 1000) + (essaiFin.length === 10 ? 86_400 : 0);
+  const plancher = Math.floor(maintenantMs / 1000) + DELAI_MINIMAL_ESSAI_STRIPE_S;
+  return fin > plancher ? fin : undefined;
+}
+
 /**
  * La page de paiement hébergée par Stripe.
  *
  * Hébergée, et c'est un choix : le formulaire de carte ne touche jamais nos
  * serveurs. Rien à stocker, rien à sécuriser, rien à mettre en conformité.
+ *
+ * `essaiFin` (24/09) : la fin d'essai de l'organisation, quand elle est encore
+ * en essai. Passée à Stripe en `trial_end`, elle fait naître la souscription
+ * en `trialing` — que la base tient déjà pour payée (migrations
+ * 20260911300000 et 20260912090000) — et retient le premier prélèvement
+ * jusqu'à cette date.
  */
 export async function creerSessionPaiement(
   stripe: Stripe,
@@ -202,6 +246,8 @@ export async function creerSessionPaiement(
     orgId: string;
     retourOk: string;
     retourAnnule: string;
+    /** Fin de l'essai en cours (« AAAA-MM-JJ » ou instant complet), sinon rien. */
+    essaiFin?: string | null;
   }
 ): Promise<Reussite<{ url: string }> | Echec> {
   if (params.quantite < 1) {
@@ -210,6 +256,9 @@ export async function creerSessionPaiement(
       erreur: "Il n'y a rien à payer pour l'instant.",
     };
   }
+  // Posée seulement quand Stripe l'acceptera (voir `finEssaiPourStripe`) ;
+  // sinon la clé n'apparaît pas du tout dans ce qu'on envoie.
+  const trialEnd = finEssaiPourStripe(params.essaiFin);
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -220,7 +269,10 @@ export async function creerSessionPaiement(
       // Sans cela, une agence ne peut pas récupérer sa TVA ni justifier la
       // dépense : l'adresse de facturation est obligatoire sur une facture.
       billing_address_collection: "required",
-      subscription_data: { metadata: { organization_id: params.orgId } },
+      subscription_data: {
+        metadata: { organization_id: params.orgId },
+        ...(trialEnd ? { trial_end: trialEnd } : {}),
+      },
       client_reference_id: params.orgId,
     });
     if (!session.url) {

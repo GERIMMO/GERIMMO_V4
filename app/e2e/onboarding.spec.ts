@@ -98,9 +98,11 @@ test.describe("reprendre un parc", () => {
     });
     await page.getByRole("button", { name: "Contrôler le fichier" }).click();
 
-    // Le verdict s'affiche, ligne par ligne, sans rien écrire.
-    await expect(page.getByRole("cell", { name: "prête" })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "à corriger" })).toBeVisible();
+    // Le verdict s'affiche, ligne par ligne, sans rien écrire. Une liste de
+    // rangées depuis le 24/09 (le tableau n'avait que le détail cliquable).
+    const verdict = page.getByRole("list", { name: /Résultat ligne par ligne/ });
+    await expect(verdict.getByText("prête", { exact: true })).toBeVisible();
+    await expect(verdict.getByText("à corriger", { exact: true })).toBeVisible();
     await expect(page.getByText(/Type de bien inconnu/)).toBeVisible();
     // Et l'import ne devient possible qu'après ce contrôle.
     await expect(page.getByRole("button", { name: /^Importer/ })).toBeVisible();

@@ -1,4 +1,4 @@
-export const VUES_AGENDA = ["semaine", "a-planifier", "a-verifier"] as const;
+export const VUES_AGENDA = ["mois", "semaine", "a-planifier", "a-verifier"] as const;
 export type VueAgenda = typeof VUES_AGENDA[number];
 export const TAILLE_PAGE_AGENDA = 30;
 
@@ -30,4 +30,32 @@ export function vueAgenda(saisie: unknown): VueAgenda {
 }
 export function pageAgenda(saisie: unknown) {
   return typeof saisie === "string" && /^\d{1,4}$/.test(saisie) ? Math.max(1, Number(saisie)) : 1;
+}
+
+/**
+ * Un mois civil (24/09 : l'agenda devient un calendrier mensuel, on clique un
+ * jour pour lire ses rendez-vous). `decalage` = nombre de cases vides avant le
+ * 1er, la semaine commençant le lundi.
+ */
+export function moisAgenda(saisie: unknown, maintenant = new Date()) {
+  const valide = typeof saisie === "string" && /^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/.test(saisie);
+  const mois = valide ? (saisie as string) : jourParis(maintenant).slice(0, 7);
+  const premier = `${mois}-01`;
+  const d = new Date(`${premier}T12:00:00Z`);
+  const utc = (delta: number, jour = 1) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + delta, jour, 12)).toISOString().slice(0, 10);
+  const nbJours = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0, 12)).getUTCDate();
+  return {
+    mois,
+    premier,
+    suivant: utc(1),
+    precedent: utc(-1),
+    jours: Array.from({ length: nbJours }, (_, i) => decalerJour(premier, i)),
+    decalage: (d.getUTCDay() + 6) % 7,
+  };
+}
+/** Le jour ouvert dans le calendrier : celui demandé s'il est du mois, sinon aujourd'hui, sinon le 1er. */
+export function jourAgenda(saisie: unknown, mois: { jours: string[] }, maintenant = new Date()): string {
+  if (typeof saisie === "string" && mois.jours.includes(saisie)) return saisie;
+  const aujourdhui = jourParis(maintenant);
+  return mois.jours.includes(aujourdhui) ? aujourdhui : mois.jours[0];
 }

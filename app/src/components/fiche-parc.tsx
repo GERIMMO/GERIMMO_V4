@@ -41,11 +41,18 @@ export function EnteteFiche({
     <div>
       <Link
         href={retour.href}
-        className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline"
+        className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
       >
         ← {retour.libelle}
       </Link>
-      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+      {/* LE FILET SOUS TOUTE LA RANGÉE (24/09). Il était posé sur le seul
+          titre, dans la colonne de gauche : il s'arrêtait après le badge et
+          laissait les faits de droite (« Loyer charges comprises », « Surface »)
+          sans trait, quand les pages liste de l'espace tirent le leur d'un
+          bord à l'autre (`.coquille-corps .entete-page`). Même filet, même
+          retrait (16 px), même écart avant la suite (24 px, le `mb-6` des
+          listes) : un seul style d'en-tête dans l'espace. */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b border-[var(--trait)] pb-4">
         <div className="min-w-0">
           {surtitre && <p className="eyebrow mt-1">{surtitre}</p>}
           {/* PAS `.entete-page` ICI. Cette classe est celle de la barre de
@@ -55,12 +62,12 @@ export function EnteteFiche({
               elle produisait une boîte blanche ajustée au mot — « Lot unique »
               flottant dans un cadre qui s'arrêtait après son badge (capture du
               19/09). Le titre n'a besoin que d'une rangée. */}
-          <div className="mt-1 mb-4 flex flex-wrap items-center gap-3 border-b border-[var(--filet)] pb-3">
+          <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1>{titre}</h1>
             {badge}
           </div>
           {sousTitre && (
-            <p className="text-sm text-muted-foreground">{sousTitre}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{sousTitre}</p>
           )}
         </div>
         {faits && faits.length > 0 && (
@@ -85,6 +92,12 @@ export function EnteteFiche({
  * le DPE » sans savoir où le déposer ne fait gagner personne. Rien à signaler =
  * rien d'affiché — un bandeau vert « tout va bien » sur chaque fiche apprend à
  * ne plus regarder le bandeau.
+ *
+ * TOUTE LA RANGÉE EST LE LIEN (24/09). Seul le petit « Régler » souligné
+ * l'était : la phrase, qui dit pourtant quoi régler, restait une zone morte,
+ * et sur téléphone « Régler » partait seul à la ligne en cible de 20 px de
+ * haut. La rangée entière mène désormais à la section, 44 px de haut au
+ * doigt ; un point sans section où se régler reste une simple phrase.
  */
 export function AttentionFiche({
   points,
@@ -97,17 +110,22 @@ export function AttentionFiche({
       aria-label="Ce qui attend un geste"
       className="border-l-[3px] border-l-warning bg-warning-soft px-4 py-3 text-sm text-warning-soft-foreground"
     >
-      <ul className="space-y-1">
+      <ul>
         {points.map((p) => (
-          <li key={p.cle} className="flex flex-wrap items-baseline gap-x-2">
-            <span>{p.texte}</span>
-            {p.ancre && (
+          <li key={p.cle}>
+            {p.ancre ? (
               <a
                 href={`#${p.ancre}`}
-                className="shrink-0 font-medium underline underline-offset-2"
+                className="-mx-2 flex min-h-11 items-center justify-between gap-3 rounded-md px-2 py-1 hover:bg-warning/10 sm:min-h-9 pointer-coarse:min-h-11"
               >
-                Régler
+                <span>{p.texte}</span>{" "}
+                <span className="shrink-0 font-medium">
+                  <span className="underline underline-offset-2">Régler</span>{" "}
+                  <span aria-hidden="true">→</span>
+                </span>
               </a>
+            ) : (
+              <p className="flex min-h-9 items-center py-1">{p.texte}</p>
             )}
           </li>
         ))}
@@ -143,7 +161,14 @@ export function FaitsFiche({ faits }: { faits: Fait[] }) {
       )}
       {vides.length > 0 && (
         <p className="text-xs text-muted-foreground">
-          Non renseigné : {vides.map((f) => f.libelle.toLowerCase()).join(", ")}.
+          {/* Seule l'initiale passe en minuscule (24/09) : `toLowerCase()` sur
+              tout le libellé écrivait « surface carrez », or Carrez est un nom
+              propre (la loi Carrez). */}
+          Non renseigné :{" "}
+          {vides
+            .map((f) => f.libelle.charAt(0).toLowerCase() + f.libelle.slice(1))
+            .join(", ")}
+          .
         </p>
       )}
     </div>

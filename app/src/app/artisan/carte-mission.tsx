@@ -18,14 +18,26 @@ import { Etiquette, MarqueAgence } from "./ui";
 export function CarteMission({
   ligne,
   aFaire,
+  origine,
 }: {
   ligne: LigneAgenda;
   /** Ce que la mission attend de lui, en toutes lettres. Rien si elle n'attend rien. */
   aFaire?: string;
+  /**
+   * L'écran d'où la carte s'ouvre, quand ce n'est pas l'agenda : la fiche de
+   * mission y renvoie par son lien retour au lieu de l'agenda (tour du 24/09).
+   */
+  origine?: "aujourdhui";
 }) {
   const planifiee = Boolean(ligne.debut_prevu);
-  const ton =
-    ligne.statut === "proposee"
+  // Des dates sont chez le locataire : l'artisan n'a RIEN à faire. Lui dire
+  // « à fixer » l'enverrait reproposer, ce qui annule les dates en cours
+  // (RM-10.4.1). L'étiquette, la ligne de créneau et la consigne le disent
+  // donc toutes trois, sans flèche ni couleur d'action (tour du 24/09).
+  const attendLocataire = ligne.statut === "acceptee" && ligne.creneaux_en_attente > 0;
+  const ton = attendLocataire
+    ? "attente"
+    : ligne.statut === "proposee"
       ? "alerte"
       : ligne.statut === "en_cours"
         ? "attente"
@@ -35,12 +47,14 @@ export function CarteMission({
 
   return (
     <Link
-      href={`/artisan/missions/${ligne.intervention_id}`}
+      href={`/artisan/missions/${ligne.intervention_id}${origine ? `?de=${origine}` : ""}`}
       className="block rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5 transition-colors hover:border-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <MarqueAgence nom={ligne.agence_nom} />
-        <Etiquette ton={ton}>{libelle(STATUTS_MISSION, ligne.statut)}</Etiquette>
+        <Etiquette ton={ton}>
+          {attendLocataire ? "En attente du locataire" : libelle(STATUTS_MISSION, ligne.statut)}
+        </Etiquette>
       </div>
 
       <p
@@ -48,13 +62,18 @@ export function CarteMission({
           planifiee ? "text-[var(--encre)]" : "text-[var(--texte-secondaire)]"
         }`}
       >
-        {creneauTexte(ligne.debut_prevu, ligne.fin_prevue)}
+        {attendLocataire
+          ? "Dates proposées — réponse du locataire attendue"
+          : creneauTexte(ligne.debut_prevu, ligne.fin_prevue)}
       </p>
 
       {/* La référence du dossier : c'est le mot commun entre l'artisan et
           l'agence quand il appelle depuis le chantier. Elle n'était que sur la
-          fiche de mission, un écran plus loin. */}
-      <p className="mono-discret sans-majuscules mt-2">{ligne.incident_numero}</p>
+          fiche de mission, un écran plus loin. Nommée et à 15 px (24/09) : nue
+          et en 11 px, c'était le plus petit texte de la carte. */}
+      <p className="mt-2 text-[0.9375rem] tabular-nums text-[var(--texte-secondaire)]">
+        Dossier {ligne.incident_numero}
+      </p>
 
       <p className="mt-1 text-base font-medium text-[var(--corps)]">
         {titreIncident(ligne.categorie)}
@@ -73,14 +92,17 @@ export function CarteMission({
         {ligne.etage ? ` · ${ligne.etage}` : ""}
       </p>
 
-      {aFaire && (
-        <p className="mt-2.5 flex items-center gap-1.5 text-[0.9375rem] font-medium text-[var(--or-texte)]">
-          <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current stroke-2">
-            <path d="M5 12h13M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {aFaire}
-        </p>
-      )}
+      {aFaire &&
+        (attendLocataire ? (
+          <p className="mt-2.5 text-[0.9375rem] text-[var(--texte-secondaire)]">{aFaire}</p>
+        ) : (
+          <p className="mt-2.5 flex items-center gap-1.5 text-[0.9375rem] font-medium text-[var(--or-texte)]">
+            <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current stroke-2">
+              <path d="M5 12h13M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {aFaire}
+          </p>
+        ))}
     </Link>
   );
 }

@@ -5,6 +5,7 @@ import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { eur, formaterDate, formaterDateHeure } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
+import { formaterTelephone } from "@/app/artisan/libelles";
 import {
   CANAUX_INCIDENT,
   COULEURS_ETAT_INCIDENT,
@@ -163,6 +164,13 @@ export async function PaneIncident({
   // donc ouverte à l'état qualifié (réponse à une contestation).
   const etatIncident = incident.etat as EtatIncident;
   const aQualifier = transitionIncidentPossible(etatIncident, "qualifie");
+  // 24/09 : ouverte ne veut pas dire « requise ». Un dossier déjà qualifié
+  // affichait « votre décision est requise » et un formulaire vide sous la
+  // puce « Qualifié ». La décision n'est requise qu'avant la qualification, ou
+  // quand le locataire la conteste (la requalification efface la contestation
+  // en base) ; sinon on montre la décision, et « Requalifier » se déplie.
+  const decisionRequise =
+    etatIncident !== "qualifie" || Boolean(incident.imputation_contestation);
   const motifsCloture = transitionIncidentPossible(etatIncident, "clos")
     ? (MOTIFS_CLOTURE_PAR_ETAT[etatIncident] ?? [])
     : [];
@@ -207,7 +215,7 @@ export async function PaneIncident({
       case "attribution":
         return d.responsable
           ? `à ${emails.get(String(d.responsable)) ?? "un gestionnaire"}`
-          : "remis au pot commun";
+          : "rendu (non attribué)";
       // Gestes du cycle artisan. On ne détaille QUE ce que l'événement porte
       // lui-même : les identifiants d'artisan resteraient des UUID sans une
       // lecture de plus, et une chronologie n'a pas à coûter une requête par
@@ -296,9 +304,14 @@ export async function PaneIncident({
                     {" · "}
                     {/* Le numéro est de la saisie libre : les espaces cassent `tel:` sur
                         certains combinés. Même nettoyage que les deux autres liens
-                        d'appel du produit (espace locataire). */}
-                    <a href={`tel:${declarant.telephone.replace(/\s/g, "")}`} className="hover:underline">
-                      {declarant.telephone}
+                        d'appel du produit (espace locataire). 24/09 : affiché par
+                        paires et en lien bleu — rappeler est le geste courant, un
+                        « 0601020304 » gris ne disait pas qu'il se compose. */}
+                    <a
+                      href={`tel:${declarant.telephone.replace(/\s/g, "")}`}
+                      className="lien-discret whitespace-nowrap"
+                    >
+                      {formaterTelephone(declarant.telephone)}
                     </a>
                   </>
                 )}
@@ -329,9 +342,18 @@ export async function PaneIncident({
               <span className="text-muted-foreground">
                 {incident.responsable_account_id
                   ? `Suivi par ${emails.get(incident.responsable_account_id) ?? "un gestionnaire"}`
-                  : "Sans responsable : personne ne le suit."}
+                  : "Non attribué : personne ne le suit."}
               </span>
-              <div className="max-w-sm min-w-[240px] flex-1">
+              {/* 24/09 : côté responsable, « Me l'attribuer », le sélecteur
+                  et « Attribuer » tiennent sur une rangée au bureau. Faute de
+                  22rem à côté du texte, le bloc passe à la ligne ENTIER plutôt
+                  que de s'y tasser et d'empiler ses trois commandes. L'agent
+                  n'a qu'un bouton : il reste sur la ligne du texte. */}
+              <div
+                className={`max-w-lg flex-1 ${
+                  estResponsable ? "min-w-[min(100%,22rem)]" : "min-w-[240px]"
+                }`}
+              >
                 <FormulaireAttribution
                   orgId={orgId}
                   incidentId={incidentId}
@@ -355,7 +377,10 @@ export async function PaneIncident({
               const fait = n < positionFlux;
               const courant = n === positionFlux;
               return (
-                <span key={f} className="min-w-[58px] flex-1">
+                // flex-auto + nowrap (24/09) : chaque segment prend au moins
+                // la largeur de son libellé — « À QUALIFIER » se pliait seul
+                // sur deux lignes à 390 px.
+                <span key={f} className="flex-auto">
                   <span
                     className="block h-1"
                     style={{
@@ -367,7 +392,7 @@ export async function PaneIncident({
                     }}
                   />
                   <span
-                    className="mono-discret block"
+                    className="mono-discret block whitespace-nowrap"
                     style={{
                       // 8.5px de la maquette : illisible sur téléphone (audit 09/09)
                       fontSize: "11px",
@@ -427,28 +452,19 @@ export async function PaneIncident({
                   ))}
                 </div>
               )}
-              <div>
-                <div className="ligne-info">
-                  <span>Pièce</span>
-                  <span>{incident.piece ?? "—"}</span>
-                </div>
+              {/* 24/09 : pièce, canal et date de déclaration sont déjà dans
+                  l'en-tête du dossier, juste au-dessus. Ne reste que ce qu'il
+                  ne dit pas — l'ancienneté, quand le locataire l'a donnée. */}
+              {incident.anciennete && (
                 <div className="ligne-info">
                   <span>Ancienneté</span>
-                  <span>{incident.anciennete ?? "—"}</span>
+                  <span>{incident.anciennete}</span>
                 </div>
-                <div className="ligne-info">
-                  <span>Canal</span>
-                  <span>{CANAUX_INCIDENT[incident.canal] ?? incident.canal}</span>
-                </div>
-                <div className="ligne-info">
-                  <span>Déclaré le</span>
-                  <span>{formaterDateHeure(incident.created_at)}</span>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
 
-          {aQualifier ? (
+          {aQualifier && decisionRequise ? (
             <Card className="border-l-[3px] border-l-[var(--or)]">
               <CardHeader>
                 <p className="eyebrow" style={{ color: "var(--or-texte)" }}>
@@ -482,10 +498,17 @@ export async function PaneIncident({
                     )}
                   </div>
                 )}
+                {/* Sur contestation, la décision en place est rechargée :
+                    la maintenir ne doit pas obliger à la ressaisir. À
+                    qualifier (déclaré, rouvert), rien n'est coché (RM-7.2.1). */}
                 <FormulaireQualification
                   orgId={orgId}
                   incidentId={incidentId}
                   categorie={incident.categorie}
+                  imputation={etatIncident === "qualifie" ? incident.imputation : null}
+                  justification={
+                    etatIncident === "qualifie" ? incident.imputation_justification : null
+                  }
                 />
                 {/* Une fois l'imputation tranchée, le geste suivant est la
                     clôture — sa carte est au bas de la même colonne et l'agent
@@ -494,6 +517,53 @@ export async function PaneIncident({
                     clôture garde son motif et son commentaire (RM-7.6.1) et la
                     base refuse de toute façon les motifs de l'autre état. */}
                 {incident.imputation && motifsCloture.length > 0 && (
+                  <a href="#cloture" className="lien-discret">
+                    Passer à la clôture ↓
+                  </a>
+                )}
+              </CardContent>
+            </Card>
+          ) : aQualifier ? (
+            // Qualifié, sans contestation : la décision est prise. Même titre
+            // neutre que la carte des états suivants ; la requalification
+            // reste à portée, repliée et préremplie (24/09).
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Qualification — qui paie</CardTitle>
+                <CardDescription>Décidée par le gestionnaire, opposable au locataire.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {incident.imputation && (
+                  <div className="space-y-1 text-sm">
+                    <p>
+                      <span
+                        className={COULEURS_IMPUTATION[incident.imputation] ?? "puce puce-grise"}
+                      >
+                        {IMPUTATIONS_INCIDENT[incident.imputation]}
+                      </span>
+                    </p>
+                    {incident.imputation_justification && (
+                      <p className="text-muted-foreground">
+                        « {incident.imputation_justification} »
+                      </p>
+                    )}
+                  </div>
+                )}
+                <details className="border-t border-border pt-3">
+                  <summary className="cursor-pointer text-sm font-medium">
+                    Requalifier
+                  </summary>
+                  <div className="pt-3">
+                    <FormulaireQualification
+                      orgId={orgId}
+                      incidentId={incidentId}
+                      categorie={incident.categorie}
+                      imputation={incident.imputation}
+                      justification={incident.imputation_justification}
+                    />
+                  </div>
+                </details>
+                {motifsCloture.length > 0 && (
                   <a href="#cloture" className="lien-discret">
                     Passer à la clôture ↓
                   </a>
@@ -559,11 +629,17 @@ export async function PaneIncident({
               <CardTitle className="text-base">
                 {incident.etat === "clos" ? "Incident clos" : "Clôture"}
               </CardTitle>
-              <CardDescription>
-                {incident.etat === "clos"
-                  ? `${MOTIFS_CLOTURE[incident.cloture_motif ?? ""] ?? "—"} · le ${formaterDateHeure(incident.clos_le)}`
-                  : "Un incident peut se clore sans artisan — un conseil au téléphone suffit parfois."}
-              </CardDescription>
+              {/* 24/09 : « peut se clore sans artisan » n'est dit que si la
+                  clôture est ouverte. Pendant une intervention, il contredisait
+                  la phrase juste dessous (« la clôture attend le compte
+                  rendu ») : le corps de la carte dit alors seul pourquoi. */}
+              {(incident.etat === "clos" || motifsCloture.length > 0) && (
+                <CardDescription>
+                  {incident.etat === "clos"
+                    ? `${MOTIFS_CLOTURE[incident.cloture_motif ?? ""] ?? "—"} · le ${formaterDateHeure(incident.clos_le)}`
+                    : "Un incident peut se clore sans artisan — un conseil au téléphone suffit parfois."}
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               {incident.etat === "clos" ? (

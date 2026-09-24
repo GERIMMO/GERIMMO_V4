@@ -5,12 +5,15 @@ import { chargerAgenda, verifierAccesArtisan } from "../../../acces";
 import {
   Avertissement,
   Carte,
+  CLASSE_AIDE,
   CLASSE_BOUTON_PRINCIPAL,
   CLASSE_BOUTON_SOBRE,
+  EnteteSousPage,
   Etiquette,
   MarqueAgence,
   Retour,
   TitreSection,
+  Vide,
 } from "../../../ui";
 import { PhotoChantier } from "./photo-chantier";
 
@@ -52,19 +55,16 @@ export default async function PageComptePhoto(
       <Retour href={`/artisan/missions/${interventionId}`}>La mission</Retour>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <MarqueAgence nom={mission.agence_nom} />
+        {/* La pastille garde la taille de la fiche de mission : l'en-tête ne
+            rétrécit pas au moment où l'on entre dans l'action (24/09). */}
+        <MarqueAgence nom={mission.agence_nom} taille="grande" />
         <Etiquette ton="encre">Étape 1 sur 2</Etiquette>
       </div>
 
-      <div>
-        <h1 className="text-[1.375rem] leading-tight text-[var(--encre)]">
-          La photo du travail réalisé
-        </h1>
-        <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          {titreIncident(mission.categorie)}
-          {mission.ville ? ` · ${mission.ville}` : ""}
-        </p>
-      </div>
+      <EnteteSousPage
+        titre="La photo du travail réalisé"
+        mention={`${titreIncident(mission.categorie)}${mission.ville ? ` · ${mission.ville}` : ""}`}
+      />
 
       {mission.statut !== "en_cours" && (
         <Avertissement>
@@ -89,9 +89,7 @@ export default async function PageComptePhoto(
           Continuer — le bilan
         </Link>
       ) : (
-        <p className="rounded-lg border border-dashed border-border px-4 py-4 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Une fois la photo envoyée, touchez « Continuer — le bilan ».
-        </p>
+        <Vide>Une fois la photo envoyée, touchez « Continuer — le bilan ».</Vide>
       )}
 
       <Carte>
@@ -115,7 +113,7 @@ export default async function PageComptePhoto(
             titre="Photo pendant"
           />
         </div>
-        <p className="mt-3 text-[0.8125rem] text-[var(--texte-secondaire)]">
+        <p className={`mt-3 ${CLASSE_AIDE}`}>
           Dix photos au maximum pour cette intervention.
         </p>
       </Carte>

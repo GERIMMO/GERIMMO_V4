@@ -14,8 +14,8 @@ const AU_SERVEUR = () => false;
 
 // Modale unique de la charte (maquette .voile/.modale, recette 22/08) : le
 // dépôt portait trois implémentations divergentes — voile encre 35 %, boîte
-// crème à angles vifs, en-tête pleine largeur coloré (encre, ou rouge pour le
-// critique/danger) avec surtitre mono + h3, corps en dessous. Escape et clic
+// crème à angles vifs, en-tête clair à filet bas (liseré rouge en tête pour
+// le critique/danger) avec surtitre mono + h3, corps en dessous. Escape et clic
 // sur le voile ferment.
 export function Modale({
   titre,
@@ -125,17 +125,26 @@ export function Modale({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* En-tête clair, séparé du corps par un filet : un aplat sombre
+            pesait plus lourd que le contenu. Le critique garde son signal
+            par un liseré rouge en tête et un surtitre rouge. */}
         <div
-          className={`flex items-start justify-between gap-3 px-5 py-3.5 text-[var(--sur-encre)] ${
-            variante === "critique" ? "bg-[var(--destructive)]" : "bg-[var(--encre)]"
+          className={`flex items-start justify-between gap-3 border-b border-[var(--filet)] bg-[var(--ivoire)] px-5 py-3.5 text-[var(--encre)] ${
+            variante === "critique" ? "border-t-4 border-t-[var(--destructive)]" : ""
           }`}
         >
           {entete ?? (
             <div>
               {surtitre && (
-                <p className="mono-discret text-[var(--sur-encre)]/75">{surtitre}</p>
+                <p
+                  className={`mono-discret ${
+                    variante === "critique" ? "text-[var(--destructive)]" : "text-[var(--texte-secondaire)]"
+                  }`}
+                >
+                  {surtitre}
+                </p>
               )}
-              <h3 className="mt-0.5 text-[var(--sur-encre)]">{titre}</h3>
+              <h3 className="mt-0.5 text-[var(--encre)]">{titre}</h3>
             </div>
           )}
           {/* Fermeture au doigt : Escape n'existe pas sur mobile et le tap
@@ -144,7 +153,7 @@ export function Modale({
             type="button"
             onClick={fermer}
             aria-label="Fermer"
-            className="-mr-2 -mt-1 flex size-10 shrink-0 items-center justify-center text-[var(--sur-encre)]/80 transition-colors hover:text-[var(--sur-encre)]"
+            className="-mr-2 -mt-1 flex size-10 shrink-0 items-center justify-center text-[var(--texte-secondaire)] transition-colors hover:text-[var(--encre)]"
           >
             <svg viewBox="0 0 16 16" className="size-4" aria-hidden="true">
               <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />

@@ -7,14 +7,10 @@ import {
   ETATS_LOT,
   COULEURS_ETAT_LOT,
   MODES_CLE,
+  alerteDiagnostics,
   formaterSurface,
 } from "@/lib/parc";
-import {
-  diagnosticsExigibles,
-  diagnosticsManquants,
-  alerteDiagnosticsNiveau,
-  LIBELLES_NIVEAU_DIAGNOSTIC,
-} from "@/lib/diagnostics";
+import { diagnosticsExigibles, diagnosticsManquants } from "@/lib/diagnostics";
 import { formaterDate } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
 import {
@@ -49,7 +45,14 @@ export default async function PageBien(
   props: PageProps<"/agence/[orgId]/parc/[bienId]">
 ) {
   const { orgId, bienId } = await props.params;
-  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  // Le lien retour porte le nom de l'entrée du menu (24/09) : « ← Parc »
+  // ne se lisait nulle part ailleurs.
+  const libelleParc = estProprietaire
+    ? "Mes lots"
+    : role === "agent"
+      ? "Mon portefeuille"
+      : "Parc de l'agence";
 
   const [
     { data: bien, error: erreurBien },
@@ -117,7 +120,7 @@ export default async function PageBien(
       <PageEchecLecture
         titre="Fiche bien"
         quoi={["le bien"]}
-        retour={{ href: `/agence/${orgId}/parc`, libelle: "Parc" }}
+        retour={{ href: `/agence/${orgId}/parc`, libelle: libelleParc }}
       />
     );
   if (!bien) notFound();
@@ -156,6 +159,15 @@ export default async function PageBien(
   // (lib/diagnostics, audit 09/09) ; ceux du lot sont sur sa fiche.
   const exigiblesBien = diagnosticsExigibles(bien, "bien");
   const manquants = diagnosticsManquants(bien, diagnostics ?? [], "bien");
+  // « L'immeuble » ne se dit que d'un immeuble (24/09) : sur un appartement
+  // (copropriété : non), « diagnostic de l'immeuble à déposer » désignait
+  // pour le lecteur autre chose que son bien.
+  const estImmeuble = bien.type === "immeuble";
+  const niveauBien = estImmeuble ? "à l’immeuble" : "au bien";
+  const alerteDiagnosticsBien = alerteDiagnostics(
+    manquants.map((m) => m.type),
+    diagnostics ?? []
+  );
   const infosRenseignees = !!infos && Object.values(infos).some((v) => v);
 
   // Ce que la base n'a pas rendu — un manque affiché n'est alors pas un manque.
@@ -205,7 +217,7 @@ export default async function PageBien(
   if (manquants.length > 0) {
     attention.push({
       cle: "diagnostics",
-      texte: `Diagnostic${manquants.length > 1 ? "s" : ""} de l’immeuble à déposer : ${manquants
+      texte: `Diagnostic${manquants.length > 1 ? "s" : ""} ${estImmeuble ? "de l’immeuble" : "du bien"} à déposer : ${manquants
         .map((m) => m.libelle)
         .join(", ")}.`,
       ancre: "diagnostics",
@@ -236,13 +248,10 @@ export default async function PageBien(
   const loues = lotsActifs.filter((l) => ["loue", "preavis"].includes(l.etat)).length;
 
   return (
-    <FenetreLotProvider orgId={orgId}>
+    <FenetreLotProvider orgId={orgId} estProprietaire={estProprietaire}>
       <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <EnteteFiche
-        retour={{
-          href: `/agence/${orgId}/parc`,
-          libelle: estProprietaire ? "Mes lots" : "Parc",
-        }}
+        retour={{ href: `/agence/${orgId}/parc`, libelle: libelleParc }}
         surtitre={TYPES_BIEN[bien.type] ?? bien.type}
         titre={bien.nom}
         sousTitre={
@@ -286,10 +295,14 @@ export default async function PageBien(
               lots. Sur un bien entièrement loué, elle est lue mille fois pour
               ne rien dire — et une phrase qu'on apprend à sauter apprend aussi
               à sauter celles qui comptent. */}
+          {/* Sur un bien à lot unique, la phrase exposait le modèle (bien /
+              lot) à qui ne possède qu'un T2 (24/09) : elle dit seulement où
+              agir. */}
           {loues < lotsActifs.length && (
             <CardDescription>
-              Le bail porte toujours sur un lot, jamais sur le bien. La mise en
-              location se fait ici, lot par lot.
+              {lotsActifs.length === 1
+                ? "La mise en location se fait depuis le lot ci-dessous."
+                : "Le bail porte toujours sur un lot, jamais sur le bien. La mise en location se fait ici, lot par lot."}
             </CardDescription>
           )}
         </CardHeader>
@@ -308,13 +321,29 @@ export default async function PageBien(
               const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
               return (
                 <li key={lot.id} className="space-y-2 py-3">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                  {/* Depuis le 12/09, le lot s'ouvre EN FENÊTRE : locataire,
+                      propriétaire, documents et comptabilité sans quitter le
+                      bien. La fiche complète reste au pied de la fenêtre.
+                      Depuis le 24/09, c'est TOUT le rang qui ouvre, pas le seul
+                      bouton (« je veux que tout le carré soit cliquable ») ;
+                      un bouton ne prend pas la largeur tout seul, d'où w-[…]. */}
+                  <BoutonLot
+                    lotId={lot.id}
+                    libelle={lot.nom}
+                    href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
+                    className="-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--survol)]"
+                  >
                     <span
                       className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
                     >
                       {ETATS_LOT[lot.etat] ?? lot.etat}
                     </span>
-                    <span className="min-w-0 flex-1 truncate font-medium">{lot.nom}</span>
+                    {/* Sur téléphone, le nom — seul identifiant du rang —
+                        prend sa propre ligne, en tête, au lieu d'être coupé à
+                        quelques lettres (« E2E Lo… », 24/09). */}
+                    <span className="min-w-0 basis-full font-medium max-sm:order-first sm:flex-1 sm:basis-auto sm:truncate">
+                      {lot.nom}
+                    </span>
                     <span className="shrink-0 text-xs text-muted-foreground">
                       {formaterSurface(lot.surface_m2)}
                       {lot.pieces ? ` · ${lot.pieces} pièce${lot.pieces > 1 ? "s" : ""}` : ""}
@@ -322,17 +351,18 @@ export default async function PageBien(
                     {blocages.length > 0 && (
                       <BadgeStatut ton="attente">{blocages.length} à régler</BadgeStatut>
                     )}
-                    {/* Depuis le 12/09, le lot s'ouvre EN FENÊTRE : locataire,
-                        propriétaire, documents et comptabilité sans quitter le
-                        bien. La fiche complète reste au pied de la fenêtre. */}
-                    <BoutonLot
-                      lotId={lot.id}
-                      href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
-                      className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
+                    {/* Le rang entier ouvre le lot : sur téléphone, le
+                        pseudo-bouton ne faisait que voler la place du nom. */}
+                    <span
+                      className={buttonVariants({
+                        variant: "outline",
+                        size: "sm",
+                        className: "hidden shrink-0 sm:inline-flex",
+                      })}
                     >
                       Voir le lot →
-                    </BoutonLot>
-                  </div>
+                    </span>
+                  </BoutonLot>
 
                   {/* Points propres à ce lot — repliés, la ligne reste lisible */}
                   {propres.length > 0 && (
@@ -387,18 +417,19 @@ export default async function PageBien(
           <SectionLot
             id="diagnostics"
             titre="Diagnostics du bien"
-            alerte={alerteDiagnosticsNiveau(bien, diagnostics ?? [], "bien")}
+            alerte={alerteDiagnosticsBien ? `${alerteDiagnosticsBien} (${niveauBien})` : undefined}
+            // Plus de « · manque … » : le bandeau du haut le dit déjà, avec
+            // « Régler » ; la rangée garde sa pastille (24/09).
             resume={
-              `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""} ${LIBELLES_NIVEAU_DIAGNOSTIC.bien}` +
-              (manquants.length > 0
-                ? ` · manque ${manquants.map((m) => m.libelle).join(", ")}`
-                : "")
+              (diagnostics ?? []).length === 0
+                ? "Aucun diagnostic déposé"
+                : `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""} ${niveauBien}`
             }
           >
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
                 ERP, amiante des parties communes, termites… Les diagnostics du
-                logement (DPE…) se déposent sur la fiche du lot.
+                lot (DPE…) se déposent sur sa fiche.
               </p>
               <LignesDiagnostics
                 orgId={orgId}
@@ -412,42 +443,39 @@ export default async function PageBien(
           </SectionLot>
 
           {/* Propriétaires mandants du bien (recette 21/08) : qui possède
-              quoi, sans ouvrir chaque fiche lot */}
-          <SectionLot
-            titre={estProprietaire ? "Détention du bien" : "Propriétaires mandants"}
-            resume={
-              proprietairesBien.length === 0
-                ? "Aucun"
-                : proprietairesBien.map((p) => p.nom).join(", ")
-            }
-          >
+              quoi, sans ouvrir chaque fiche lot. PLUS REPLIÉS (24/09) : la
+              rangée nommait le propriétaire sans mener à lui — déplier, puis
+              cliquer le nom, pour une liste en lecture seule qui tient à
+              l'écran. Chaque propriétaire est un rang entier cliquable. */}
+          <div className="border-t border-border py-3">
+            <p className="text-sm font-medium">
+              {estProprietaire ? "Détention du bien" : "Propriétaires mandants"}
+            </p>
             {proprietairesBien.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Aucune détention en cours — elles se règlent sur la fiche de
                 chaque lot.
               </p>
             ) : (
-              <ul className="divide-y divide-border text-sm">
+              <ul className="-mx-2 mt-1 text-sm">
                 {proprietairesBien.map((p) => (
-                  <li
-                    key={p.id}
-                    className="flex flex-wrap items-baseline justify-between gap-2 py-2"
-                  >
+                  <li key={p.id}>
                     <Link
                       href={`/agence/${orgId}/personnes/${p.id}`}
-                      className="font-medium hover:underline"
+                      className="rang flex-wrap gap-x-3 gap-y-0.5 rounded-md px-2 py-2"
                     >
-                      {p.nom}
+                      <span className="min-w-0 font-medium">{p.nom}</span>
+                      <span className="text-muted-foreground sm:ml-auto">{p.detail}</span>
                     </Link>
-                    <span className="text-muted-foreground">{p.detail}</span>
                   </li>
                 ))}
               </ul>
             )}
-          </SectionLot>
+          </div>
 
-          {/* Découpage en lots */}
-          {!(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) ? (
+          {/* Découpage en lots — seulement là où il s'applique : sur un bien
+              non découpable, la rangée ne s'ouvrait que pour le dire (24/09). */}
+          {!(TYPES_NON_DECOUPABLES as readonly string[]).includes(bien.type) && (
             <SectionLot
               titre="Découpage en lots"
               resume={`${lotsActifs.length} lot${lotsActifs.length > 1 ? "s" : ""}`}
@@ -459,14 +487,6 @@ export default async function PageBien(
                 </p>
                 <FormulaireDecoupage orgId={orgId} bienId={bienId} />
               </div>
-            </SectionLot>
-          ) : (
-            <SectionLot titre="Découpage en lots" resume="Non découpable">
-              <p className="text-sm text-muted-foreground">
-                Un bien de type « {TYPES_BIEN[bien.type]} » est déjà l&apos;unité
-                locative : il ne se découpe pas en lots. Pour un bâtiment entier,
-                créer un bien de type <strong>Immeuble</strong>.
-              </p>
             </SectionLot>
           )}
 
@@ -525,7 +545,9 @@ export default async function PageBien(
           {/* Informations pratiques destinées au locataire */}
           <SectionLot
             titre="Informations pratiques (locataire)"
-            resume={infosRenseignees ? "Renseignées" : "À compléter"}
+            // Rubrique facultative : un résumé neutre, pas l'injonction d'un
+            // manque (24/09).
+            resume={infosRenseignees ? "Renseignées" : "Non renseignées"}
           >
             <FormulaireInfosPratiques
               orgId={orgId}

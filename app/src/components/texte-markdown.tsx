@@ -94,7 +94,7 @@ export function TexteMarkdown({ contenu }: { contenu: string }) {
           return (
             <h3
               key={cle}
-              className="font-heading text-[var(--pas-sous-titre)] text-[var(--encre)]"
+              className="font-heading text-[length:var(--pas-sous-titre)] text-[var(--encre)]"
             >
               {enLigne(brut.slice(4), cle)}
             </h3>
@@ -104,7 +104,7 @@ export function TexteMarkdown({ contenu }: { contenu: string }) {
           return (
             <h2
               key={cle}
-              className="mt-8 font-heading text-[var(--pas-section)] text-[var(--encre)]"
+              className="mt-8 font-heading text-[length:var(--pas-section)] text-[var(--encre)]"
             >
               {enLigne(brut.slice(3), cle)}
             </h2>

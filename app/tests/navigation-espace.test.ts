@@ -17,9 +17,9 @@ const chemins = (role: RoleEspace) => {
 };
 
 describe("La navigation v4 préserve les accès de chaque rôle", () => {
-  it("donne neuf entrées principales à l'admin d'agence, pas une de plus", () => {
+  it("donne onze entrées principales à l'admin d'agence, agenda et statistiques comprises (24/09)", () => {
     const n = nav("admin_agence");
-    expect(n.principales).toHaveLength(9);
+    expect(n.principales).toHaveLength(11);
     expect(n.principales.map((e) => e.libelle)).toEqual([
       "Tableau de bord",
       "Parc de l'agence",
@@ -27,26 +27,54 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
       "Loyers & charges",
       "Incidents",
       "Comptabilité",
-      "Agenda & alertes",
+      "Alertes",
+      "Agenda",
+      "Statistiques",
       "Messages",
       "Paramètres",
     ]);
   });
 
+  it("ne cache plus l'agenda ni les statistiques sous « Plus », pour aucun rôle", () => {
+    for (const role of ["admin_agence", "agent", "proprietaire_direct"] as RoleEspace[]) {
+      const libelles = nav(role).principales.map((e) => e.libelle);
+      expect(libelles, role).toContain("Agenda");
+      expect(libelles, role).toContain("Statistiques");
+    }
+  });
+
   it("ne retire rien à l'admin : mandats, documents, statistiques, abonnement, administration restent atteignables", () => {
     const c = chemins("admin_agence");
-    for (const p of ["/loyers", "/comptabilite", "/mandats", "/documents", "/statistiques", "/abonnement", "/administration", "/agenda"]) {
+    for (const p of ["/loyers", "/comptabilite", "/mandats", "/documents", "/statistiques", "/abonnement", "/administration", "/agenda", "/artisans", "/profil"]) {
       expect(c, p).toContain(p);
     }
   });
 
-  it("allège l'agent comme le 12/09 l'a décidé : ni comptabilité, ni documents, ni abonnement, ni administration", () => {
+  it("allège l'agent comme le 12/09 l'a décidé : ni documents, ni abonnement, ni administration ; la comptabilité seulement sous « Plus »", () => {
     const c = chemins("agent");
-    for (const p of ["/loyers", "/comptabilite", "/comptabilite/fiscal", "/documents", "/abonnement", "/administration", "/mandats"]) {
+    for (const p of ["/comptabilite/fiscal", "/documents", "/abonnement", "/administration", "/mandats"]) {
       expect(c, p).not.toContain(p);
     }
-    expect(nav("agent").principales.map((e) => e.libelle)).toContain("Mon portefeuille");
+    // Décision du porteur (24/09) : la comptabilité reste hors du menu PRINCIPAL
+    // de l'agent, mais « Écritures & rapports » entre dans son groupe « Plus » —
+    // son tableau de bord et son fil d'activité l'envoient sur /comptabilite
+    // pour valider un rapport de gestion, et la validation n'existe que là.
+    const n = nav("agent");
+    expect(n.principales.map((e) => e.href)).not.toContain(`/agence/${ORG}/comptabilite`);
+    expect(n.secondaires.map((e) => e.href)).toContain(`/agence/${ORG}/comptabilite`);
+    expect(entreeActive([...n.principales, ...n.secondaires], `/agence/${ORG}/comptabilite`)?.libelle).toBe(
+      "Écritures & rapports"
+    );
+    expect(n.principales.map((e) => e.libelle)).toContain("Mon portefeuille");
+    // Loyers & charges : au menu de l'agent depuis le 24/09 (décision du porteur).
+    expect(nav("agent").principales.map((e) => e.libelle)).toContain("Loyers & charges");
     expect(c).toContain("/statistiques");
+    // Rien de retiré : le profil de l'agence reste lisible, le carnet
+    // d'artisans devient atteignable, et « Paramètres » ouvre son compte.
+    expect(c).toContain("/profil");
+    expect(c).toContain("/artisans");
+    expect(c).toContain("/agenda");
+    expect(nav("agent").principales.find((e) => e.libelle === "Paramètres")?.href).toBe("/compte");
   });
 
   it("garde au propriétaire son vocabulaire et sa FAQ", () => {
@@ -56,6 +84,9 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(libelles).toContain("Locataires & garants");
     expect(libelles).toContain("Aide");
     expect(chemins("proprietaire_direct")).not.toContain("/administration");
+    // Le carnet d'artisans a son entrée dans « Plus » (24/09) : il n'était
+    // atteignable que par le lien de l'en-tête d'Incidents.
+    expect(chemins("proprietaire_direct")).toContain("/artisans");
   });
 
   it("ne pose une pastille que sur ce qui attend, et rouge seulement si c'est critique", () => {
@@ -63,12 +94,12 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(calme.principales.every((e) => !(e.badge && e.badge > 0))).toBe(true);
 
     const agitee = nav("admin_agence", { alertes: 3, alertesCritiques: 0, incidents: 2, messages: 1 });
-    const alertes = agitee.principales.find((e) => e.libelle === "Agenda & alertes")!;
+    const alertes = agitee.principales.find((e) => e.libelle === "Alertes")!;
     expect(alertes.badge).toBe(3);
     expect(alertes.critique).toBe(false);
 
     const critique = nav("admin_agence", { alertes: 3, alertesCritiques: 1 });
-    expect(critique.principales.find((e) => e.libelle === "Agenda & alertes")!.critique).toBe(true);
+    expect(critique.principales.find((e) => e.libelle === "Alertes")!.critique).toBe(true);
   });
 
   it("allume l'entrée la plus précise, et l'accueil seulement sur son chemin exact", () => {
@@ -82,13 +113,16 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(entreeActive(toutes, `/agence/${ORG}/inconnu`)).toBeNull();
   });
 
-  it("met quatre entrées dans la barre basse du téléphone", () => {
-    expect(entreesBarreBasse(nav("admin_agence"))).toHaveLength(4);
-    expect(entreesBarreBasse(nav("agent")).map((e) => e.libelle)).toEqual([
-      "Tableau de bord",
-      "Mon portefeuille",
-      "Personnes",
-      "Incidents",
-    ]);
+  it("met dans la barre basse du téléphone les quatre entrées les plus fréquentes, alertes comprises", () => {
+    const libelles = (role: RoleEspace) => entreesBarreBasse(nav(role)).map((e) => e.libelle);
+    expect(libelles("admin_agence")).toEqual(["Tableau de bord", "Parc de l'agence", "Loyers & charges", "Alertes"]);
+    expect(libelles("agent")).toEqual(["Tableau de bord", "Mon portefeuille", "Incidents", "Alertes"]);
+    expect(libelles("proprietaire_direct")).toEqual(["Tableau de bord", "Mes lots", "Loyers & charges", "Alertes"]);
+    // La barre basse ne montre que des entrées du menu : aucun chemin qu'elle seule ouvrirait.
+    for (const role of ["admin_agence", "agent", "proprietaire_direct"] as RoleEspace[]) {
+      const n = nav(role);
+      const toutes = [...n.principales, ...n.secondaires];
+      for (const e of entreesBarreBasse(n)) expect(toutes).toContain(e);
+    }
   });
 });

@@ -8,6 +8,7 @@ import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { sansJargon } from "@/lib/erreurs";
+import { ChoixEspace } from "./choix-espace";
 
 export const metadata = { title: "Mes espaces — Gerimmo" };
 
@@ -183,17 +184,30 @@ export default async function PageEspaces() {
       </header>
 
       <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
-        <div className="repere-visuel repere-visuel-legal mb-6" aria-hidden="true" />
         <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
-        <h1 className="mb-6">Mes espaces</h1>
+        <h1 className="mb-6">
+          {adhesions.length === 0 && anciens.length === 0 && !estArtisan && !estRelais && !accesIncomplets
+            ? "Que voulez-vous faire ?"
+            : "Mes espaces"}
+        </h1>
 
         {accesIncomplets && <p role="alert" className="err mb-4">Certains accès n’ont pas pu être chargés. Rechargez la page pour retrouver la liste complète de vos espaces ; les accès affichés restent disponibles.</p>}
+        {/* Un compte sans espace n'est pas une impasse (24/09) : il choisit ce
+            qu'il vient faire — ouvrir son espace propriétaire ici même,
+            inscrire son entreprise d'artisan, ou attendre l'invitation de
+            son agence. */}
         {!estRelais && !accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
-          <p className="text-muted-foreground">
-            {erreurOuverture
-              ? `Votre espace propriétaire n'a pas pu être ouvert : ${erreurOuverture}`
-              : "Aucun accès actif n'est associé à votre compte. Rapprochez-vous de votre agence."}
-          </p>
+          <>
+            {erreurOuverture && (
+              <p role="alert" className="err mb-4">
+                Votre espace propriétaire n&apos;a pas pu être ouvert : {erreurOuverture}
+              </p>
+            )}
+            <ChoixEspace
+              nomInitial={typeof user.user_metadata?.nom === "string" ? user.user_metadata.nom : undefined}
+              prenomInitial={typeof user.user_metadata?.prenom === "string" ? user.user_metadata.prenom : undefined}
+            />
+          </>
         )}
 
         <div className="grid gap-2.5">

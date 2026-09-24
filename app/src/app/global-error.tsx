@@ -28,7 +28,7 @@ export default function ErreurGlobale({
           padding: "48px 24px",
           fontFamily: "system-ui, sans-serif",
           color: "#151b2b",
-          background: "#f6f7fb",
+          background: "#f2f5fb",
         }}
       >
         <main style={{ maxWidth: 560, margin: "0 auto" }}>
@@ -54,7 +54,7 @@ export default function ErreurGlobale({
             Réessayer
           </button>
           {error.digest && (
-            <p style={{ marginTop: 16, fontSize: 12, color: "#5b6478" }}>réf. {error.digest}</p>
+            <p style={{ marginTop: 16, fontSize: 12, color: "#4b5870" }}>réf. {error.digest}</p>
           )}
         </main>
       </body>

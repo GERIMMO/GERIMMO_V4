@@ -25,14 +25,14 @@ export type EtatReinitialisation = { message?: string; erreur?: string };
 // La réponse est TOUJOURS la même, que le compte existe ou non : on ne révèle
 // jamais quelles adresses ont un compte Gerimmo (énumération de comptes).
 const MESSAGE_NEUTRE =
-  "Si un compte existe pour cette adresse, un email de réinitialisation vient d'être envoyé. Pensez à vérifier vos courriers indésirables.";
+  "Si un compte existe pour cette adresse, un e-mail de réinitialisation vient d'être envoyé. Pensez à vérifier vos courriers indésirables.";
 
 export async function demanderReinitialisation(
   _etat: EtatReinitialisation,
   formData: FormData
 ): Promise<EtatReinitialisation> {
   const email = String(formData.get("email") ?? "").trim();
-  if (!email) return { erreur: "Saisissez votre adresse email." };
+  if (!email) return { erreur: "Saisissez votre adresse e-mail." };
 
   const origine = (await headers()).get("origin") ?? "";
   const supabase = await createClient();
@@ -70,7 +70,7 @@ export async function definirNouveauMotDePasse(
   if (!user) {
     return {
       erreur:
-        "Session expirée ou lien invalide. Redemandez un email de réinitialisation.",
+        "Session expirée ou lien invalide. Redemandez un e-mail de réinitialisation.",
     };
   }
 
@@ -133,7 +133,7 @@ export async function inscrireProprietaire(
   const confirmation = String(formData.get("confirmation") ?? "");
 
   if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
-  if (!email) return { erreur: "L'adresse email est obligatoire.", valeurs };
+  if (!email) return { erreur: "L'adresse e-mail est obligatoire.", valeurs };
   if (motDePasse.length < 12) {
     return { erreur: "Le mot de passe doit compter au moins 12 caractères.", valeurs };
   }
@@ -212,4 +212,50 @@ export async function inscrireProprietaire(
     };
   }
   redirect("/espaces");
+}
+
+// ============================================================
+// Ouvrir un espace propriétaire depuis un compte DÉJÀ connecté (24/09)
+// ============================================================
+//
+// Un compte peut exister sans aucun espace : invitation expirée, inscription
+// interrompue avant la confirmation, compte créé pour autre chose. Jusqu'ici
+// « Mes espaces » lui disait « rapprochez-vous de votre agence » — une impasse
+// pour quelqu'un qui gère ses propres biens. La même fonction que l'inscription
+// (`initialiser_espace_proprietaire`, idempotente) s'appelle ici depuis le
+// compte connecté ; elle lit le nom dans les métadonnées, qu'on pose d'abord.
+
+export type EtatOuvertureEspace = { erreur?: string; valeurs?: Record<string, string> };
+
+export async function ouvrirEspaceProprietaire(
+  _etat: EtatOuvertureEspace,
+  formData: FormData
+): Promise<EtatOuvertureEspace> {
+  const valeurs = valeursDuFormulaire(formData);
+  const nom = String(formData.get("nom") ?? "").trim();
+  const prenom = String(formData.get("prenom") ?? "").trim();
+  if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
+  if (!formData.get("cgu")) {
+    return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
+  }
+
+  const supabase = await createClient();
+  const { error: erreurProfil } = await supabase.auth.updateUser({
+    data: {
+      nom,
+      prenom,
+      espace: "proprietaire_direct",
+      qualite: String(formData.get("qualite") ?? "").trim(),
+      cgu_version: CONDITIONS_VERSION,
+      cgu_acceptee_le: new Date().toISOString(),
+    },
+  });
+  if (erreurProfil) return { erreur: sansJargon(erreurProfil.message), valeurs };
+
+  const { data: orgId, error } = await supabase.rpc("initialiser_espace_proprietaire");
+  // Refus métier (adresse d'un mandant — exclusivité PD/PM) : dit tel quel.
+  if (error || !orgId) {
+    return { erreur: error ? sansJargon(error.message) : "L'espace n'a pas pu être ouvert. Réessayez dans un instant.", valeurs };
+  }
+  redirect(`/agence/${orgId}`);
 }

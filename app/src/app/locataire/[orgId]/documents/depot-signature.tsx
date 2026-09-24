@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/signature-locataire";
 import { formaterDate } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { buttonVariants } from "@/components/ui/button";
 
 // Une demande de signature : télécharger le document, le signer, déposer le
 // signé — la demande se solde toute seule et le gestionnaire est prévenu.
@@ -42,10 +43,11 @@ export function DepotSignature({
           </small>
         </span>
         <a
-          href={`/locataire/${orgId}/documents/${demande.document_id}/fichier`}
+          href={`/locataire/${orgId}/documents/${demande.document_id}/fichier?mode=telechargement`}
           target="_blank"
           rel="noreferrer"
-          className="lien-discret"
+          aria-label={`Télécharger ${demande.titre ?? "le document"}`}
+          className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
         >
           Télécharger
         </a>

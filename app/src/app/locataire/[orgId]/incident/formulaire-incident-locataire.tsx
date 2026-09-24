@@ -21,15 +21,22 @@ const classeSelect =
 // apercuImput) : le REPÈRE juridique de la catégorie choisie — une
 // information, jamais une décision. Le gérant tranche à la qualification
 // (RM-7.2.1) et la mention finale le rappelle.
-function EncartQuiPaiera({ slug }: { slug: string }) {
+//
+// `plat` (24/09) : sur téléphone, l'encart s'insère DANS la carte du
+// formulaire. Une carte dans la carte (filet, ombre, double marge) repoussait
+// le champ suivant de 160 px ; il devient un panneau à fond ardoise, et il ne
+// paraît qu'une fois la catégorie choisie — avant, une ligne d'aide sous le
+// sélecteur suffit.
+function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean }) {
   const categorie = categorieIncident(slug);
 
   if (!categorie) {
+    if (plat) return null;
     return (
       <div className="loc-carte">
         <h3 className="text-base font-medium">Qui paiera la réparation</h3>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Choisissez une catégorie : Gerimmo vous dit immédiatement si la
+          Choisissez une catégorie : nous vous indiquons immédiatement si la
           réparation est plutôt à votre charge ou à celle du propriétaire, et
           sur quel fondement. Aucune surprise à la sortie.
         </p>
@@ -47,9 +54,13 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
     : "";
 
   return (
-    <div className={`loc-carte ${bordure}`}>
-      <h3 className="text-base font-medium">Qui paiera la réparation</h3>
-      <div className="mt-2.5 space-y-2.5 text-sm">
+    <div
+      className={`${plat ? "rounded-[10px] bg-[var(--ardoise)] p-3.5" : "loc-carte"} ${bordure}`}
+    >
+      <h3 className={plat ? "text-sm font-medium" : "text-base font-medium"}>
+        Qui paiera la réparation
+      </h3>
+      <div className={`${plat ? "mt-2" : "mt-2.5"} space-y-2.5 text-sm`}>
         {repere ? (
           <>
             <p>
@@ -70,14 +81,18 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
             ) : (
               <p className="text-muted-foreground">
                 Vous n&apos;avancez rien : l&apos;agence missionne l&apos;artisan
-                après qualification.
+                après examen par votre gestionnaire.
               </p>
             )}
           </>
         ) : (
           <>
             <p>
-              <span className="loc-tag bleu">À qualifier par votre gestionnaire</span>
+              {/* .loc-tag.bleu a le fond ardoise : sur le panneau plat, la
+                  pastille se fondrait dans le fond — on la remet sur blanc. */}
+              <span className={`loc-tag bleu${plat ? " !bg-[var(--carte)]" : ""}`}>
+                À examiner par votre gestionnaire
+              </span>
             </p>
             <p className="text-muted-foreground">
               La cause ne se déduit pas de la catégorie : votre gestionnaire tranche
@@ -86,8 +101,7 @@ function EncartQuiPaiera({ slug }: { slug: string }) {
           </>
         )}
         <p className="text-xs text-muted-foreground">
-          Repère indicatif — la décision (opposable) revient à votre gestionnaire à la
-          qualification.
+          Repère indicatif — la décision finale revient à votre gestionnaire.
         </p>
       </div>
     </div>
@@ -159,7 +173,11 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
   }
 
   return (
-    <div className="deux-col">
+    // .loc-grille plutôt que .deux-col (24/09) : la colonne latérale fait
+    // 300 px comme sur l'accueil et Mon gestionnaire, au lieu de ≈ 400 px.
+    // Même seuil d'empilement (860 px) : les bascules min-[861px] /
+    // max-[860px] ci-dessous restent justes.
+    <div className="loc-grille">
       <div className="loc-carte">
         <h3 className="text-base font-medium">Votre signalement</h3>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -198,7 +216,9 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
               sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts).
               La catégorie, pilotée, garde sa valeur d'elle-même. */}
-          <div className="space-y-1.5">
+          {/* flex + gap plutôt que space-y : la ligne d'aide, masquée sur
+              bureau, ne laisse pas de marge fantôme sous le sélecteur. */}
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="categorie">De quoi s&apos;agit-il ? *</Label>
             <select
               id="categorie"
@@ -217,14 +237,22 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
                 </option>
               ))}
             </select>
+            {!categorieIncident(categorie) && (
+              <p className="text-xs text-muted-foreground min-[861px]:hidden">
+                Selon la catégorie, nous vous disons tout de suite qui paie.
+              </p>
+            )}
           </div>
 
-          {/* Sous 861 px (.deux-col empilée), l'encart de droite passerait
+          {/* Sous 861 px (.loc-grille empilée), l'encart de droite passerait
               sous le bouton d'envoi : on le montre ici, juste sous le choix
-              qui le pilote. */}
-          <div className="min-[861px]:hidden">
-            <EncartQuiPaiera slug={categorie} />
-          </div>
+              qui le pilote — en panneau plat, et seulement une fois la
+              catégorie choisie (24/09). */}
+          {categorieIncident(categorie) && (
+            <div className="min-[861px]:hidden">
+              <EncartQuiPaiera slug={categorie} plat />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="piece">Dans quelle pièce ?</Label>
@@ -241,7 +269,10 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
           <div className="space-y-1.5">
             {/* RM-19.2.2 : une photo suffit — la description est facultative
                 (le serveur exige au moins l'un des deux) */}
-            <Label htmlFor="description">
+            {/* block (24/09) : le Label commun est en flex, et le texte et la
+                parenthèse devenaient deux colonnes côte à côte sur téléphone,
+                « mots » orphelin sous « Décrivez en quelques ». */}
+            <Label htmlFor="description" className="block leading-snug">
               Décrivez en quelques mots{" "}
               <span className="font-normal text-muted-foreground">
                 (facultatif si vous joignez une photo)
@@ -251,7 +282,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
               id="description"
               name="description"
               rows={3}
-              placeholder="Depuis quand, où exactement, est-ce que cela s'aggrave…"
+              placeholder="Où exactement, est-ce que cela s'aggrave, qu'avez-vous déjà essayé…"
               defaultValue={etat.valeurs?.description}
               className="w-full rounded-md border border-input bg-transparent px-2.5 py-2 text-sm"
             />

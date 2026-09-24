@@ -1,8 +1,10 @@
-import Link from "next/link";
 import { aujourdhuiParis } from "@/lib/ged";
 import { verifierAccesEspace } from "@/lib/espace";
-import { CRITICITES, COULEURS_CRITICITE, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
+import { CRITICITES, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
 import { estConfieeAMoi } from "@/lib/alertes";
+import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
+import { sansAlertesDoublonnees } from "@/lib/actions-attendues";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import {
   Card,
   CardContent,
@@ -11,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormulaireAlerte } from "./formulaire-alerte";
+import { GroupeActions, LienGeste, type RangDuJour } from "./groupe-actions";
 import { ListeAlertes, type AlerteRang } from "./liste-alertes";
 
 export const metadata = { title: "Alertes — Gerimmo" };
@@ -18,6 +21,15 @@ export const metadata = { title: "Alertes — Gerimmo" };
 // L'historique n'est pas paginé : on en montre les plus récentes, et la carte
 // le dit plutôt que de laisser croire qu'il n'y a que celles-là.
 const FERMEES_AFFICHEES = 30;
+
+// L'étiquette de niveau des alertes fermées reprend les aplats de la liste
+// ouverte (`.rang-alerte.critique .etiquette-alerte`…) : la même « Normale »
+// était une étiquette pleine en haut de page et un texte ambre nu dans
+// « Fermées récemment » (24/09). L'informative garde le fond neutre.
+const APLAT_CRITICITE: Record<string, string> = {
+  critique: "bg-destructive text-[var(--ivoire)]",
+  normale: "bg-[var(--warning-soft-foreground)] text-[var(--ivoire)]",
+};
 
 export default async function PageAlertes(
   props: PageProps<"/agence/[orgId]/alertes">
@@ -29,12 +41,23 @@ export default async function PageAlertes(
   const traiterId = typeof traiter === "string" ? traiter : undefined;
   const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
   const estResponsable = ROLES_RESPONSABLES.includes(role);
+  // « Mon portefeuille » (RM-18.1.3) : le plan du jour se lit à travers lui,
+  // comme sur l'accueil — null : je vois tout.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
-  // Trois lectures indépendantes : en parallèle plutôt qu'en cascade
+  // Quatre lectures indépendantes : en parallèle plutôt qu'en cascade
   const [
     { data: ouvertes, error: erreurOuvertes },
     { data: fermees, error: erreurFermees },
     { data: donneesMembres, error: erreurMembres },
+    // LE MÊME CALCUL QUE LA TUILE « À FAIRE » ET LA PASTILLE « ALERTES »
+    // (relevé du 24/09 : « on lit “2 à faire”, on clique, on n'en trouve
+    // qu'un »). Le compte de cette page additionnait la table des alertes,
+    // toutes affectations confondues ; la tuile, elle, comptait les baux
+    // bloqués, mes alertes et les rapports à valider. Un seul chiffre, et ce
+    // qu'il compte se trouve sur cette page. Mémorisé par requête : le layout
+    // l'a déjà demandé pour la pastille.
+    { plan, attendues, erreurs },
   ] = await Promise.all([
       supabase
         .from("alerts")
@@ -53,6 +76,7 @@ export default async function PageAlertes(
         .order("closed_at", { ascending: false })
         .limit(FERMEES_AFFICHEES),
       supabase.rpc("org_membres_gerants", { org: orgId }),
+      chargerActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
     ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;
@@ -60,54 +84,89 @@ export default async function PageAlertes(
     role: string;
   }[];
 
-  const rangs = (ouvertes ?? []) as AlerteRang[];
-  const nbMiennes = rangs.filter((a) => estConfieeAMoi(a, user.id)).length;
-  const nbCritiques = rangs.filter((a) => a.criticite === "critique").length;
+  // Une alerte qui répète un item calculé (l'EDL d'entrée posée à l'activation
+  // du bail) ne s'affiche pas deux fois : le rang « Sur un bail » fait foi,
+  // comme sur l'accueil — sinon la page montrait un rang de plus que le compte.
+  const rangs = sansAlertesDoublonnees(
+    (ouvertes ?? []) as (AlerteRang & { type: string })[],
+    attendues
+  );
+  // Les alertes confiées à d'autres restent lisibles en bas de la table,
+  // grisées — mais elles n'attendent rien de moi : hors du compte.
+  const nbAutres = rangs.filter((a) => !estConfieeAMoi(a, user.id)).length;
+  const compteIllisible = Boolean(erreurOuvertes) || erreurs.alertes;
+
+  // Les rangs que seul l'accueil montrait, rendus par le même composant : les
+  // baux à débloquer, et les rapports de gestion à valider (dus sous quinze
+  // jours ou en retard). Le geste est un lien — l'écran qui résout.
+  const surLesBaux: RangDuJour[] = plan.surLesBaux.map((a) => ({
+    ...a,
+    action: (
+      <LienGeste href={a.href} critique={a.criticite === "critique"}>
+        Résoudre
+      </LienGeste>
+    ),
+  }));
+  const rapports: RangDuJour[] = [...plan.enRetard, ...plan.aVenir]
+    .filter((a): a is Extract<ActionDuJour, { source: "rapport" }> => a.source === "rapport")
+    .map((a) => ({ ...a, action: <LienGeste href={a.href}>Valider</LienGeste> }));
+  const actionsAuDessus = surLesBaux.length + rapports.length;
 
   // PAR QUOI COMMENCER — la phrase du bandeau (gabarit du 12/09). L'écran
   // ouvrait sur le mot « Alertes » et un compteur en mono de 11 px : il disait
   // COMBIEN, jamais par quoi s'y prendre.
-  const parQuoi = erreurOuvertes
+  const parQuoi = compteIllisible
     ? "La liste n’a pas pu être lue — ce n’est pas une journée sans alerte."
-    : rangs.length === 0
-      ? "Rien à traiter. Gerimmo repose les alertes tout seul, chaque nuit."
-      : nbCritiques > 0
-        ? `${nbCritiques} critique${nbCritiques > 1 ? "s" : ""} — à faire en premier.`
+    : plan.critiques > 0
+        ? `${plan.critiques} critique${plan.critiques > 1 ? "s" : ""} — à faire en premier.`
         : "Rien de critique : il ne reste que du courant.";
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
+    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
       {source_introuvable === "diagnostic" && (
         <p role="status" className="mb-4 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-soft-foreground)]">
           Le diagnostic lié à cette alerte n’est plus disponible dans ce portefeuille.
           Vérifiez l’alerte avant de la clôturer ou de déposer un nouveau diagnostic.
         </p>
       )}
-      <p className="mb-2 text-sm text-muted-foreground">
-        <Link href={`/agence/${orgId}`} className="hover:underline">
-          {organisation.name}
-        </Link>{" "}
-        / Alertes
-      </p>
-      <div className="bandeau-jour mb-6">
-        <p className="mono-discret text-[var(--sur-encre)]/60">Plan du jour</p>
-        {/* Un <h1> reste un <h1> : le bandeau change son habillage, pas son
-            rang dans le document. */}
-        <h1 className="compte text-[var(--sur-encre)]">
-          {erreurOuvertes
-            ? "Alertes"
-            : rangs.length === 0
-              ? "Votre journée est dégagée"
-              : `${rangs.length} alerte${rangs.length > 1 ? "s" : ""} à traiter`}
-        </h1>
-        <p className="par-quoi">{parQuoi}</p>
-        {/* Le partage « pour vous / pour d'autres » ne se dit que s'il y a
-            vraiment deux camps : « 0 confiée à d'autres » n'apprend rien. */}
-        {!erreurOuvertes && rangs.length - nbMiennes > 0 && (
-          <p className="par-quoi">
-            {`${nbMiennes} pour vous · ${rangs.length - nbMiennes} confiée${
-              rangs.length - nbMiennes > 1 ? "s" : ""
-            } à d’autres`}
+      {/* L'en-tête standard de l'espace (tour du 24/09) : le bandeau bleu
+          « Plan du jour » était un second hero hors accueil, et le fil
+          d'Ariane redisait le menu. Ce qu'il disait reste : le compte devient
+          la mention, la phrase « par quoi commencer » passe sous le filet. */}
+      <div className="mb-6">
+        {/* L'écart sous le filet est celui de .entete-page (24/09). */}
+        <div className="entete-page">
+          <h1>Alertes</h1>
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Le chiffre de la tuile « À faire » et de la pastille : ce que
+                cette page liste, et rien d'autre. */}
+            <span className="mono-discret">
+              {compteIllisible
+                ? "liste indisponible"
+                : plan.total === 0
+                  ? "rien à traiter"
+                  : `${plan.total} à traiter`}
+            </span>
+            {/* Sous md, la carte de création est empilée après toute la
+                liste : ce raccourci y mène directement. Même seuil que
+                « Personnes » (24/09) : entre 768 et 1 023 px, la carte était
+                à côté de la liste sur l'une et dessous sur l'autre. */}
+            <span className="md:hidden">
+              <a href="#creer-alerte" className="btn-or">
+                + Créer une alerte
+              </a>
+            </span>
+          </div>
+        </div>
+        {/* Sans rien à traiter, la phrase se tait (24/09) : « rien à
+            traiter » est déjà la mention, et la carte vide dit le reste. */}
+        {(compteIllisible || plan.total > 0 || nbAutres > 0) && (
+          <p className="text-sm text-muted-foreground">
+            {parQuoi}
+            {/* Les alertes des collègues ne se disent que s'il y en a :
+                « 0 confiée à d'autres » n'apprend rien. */}
+            {!compteIllisible && nbAutres > 0 &&
+              ` ${nbAutres} confiée${nbAutres > 1 ? "s" : ""} à d’autres, en bas de la liste.`}
           </p>
         )}
       </div>
@@ -115,13 +174,43 @@ export default async function PageAlertes(
       {/* `min-w-0` SUR LES DEUX COLONNES, et ce n'est pas décoratif (mesure au
           navigateur, 12/09). Un élément de grille vaut `min-width: auto` par
           défaut : il refuse de devenir plus étroit que son contenu. Le `select`
-          « Assigné à » prend la largeur de sa plus longue option — une adresse
+          « Confier à » prend la largeur de sa plus longue option — une adresse
           e-mail — et poussait la page à 469 px de large sur un téléphone de
           390. Le navigateur ne débordait pas : il DÉZOOMAIT, et tout l'écran
           se lisait 17 % plus petit que partout ailleurs. Le parc et le tableau
           de bord, eux, tenaient dans leurs 390 px. */}
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-6">
+          {/* CE QUE LA PASTILLE COMPTE SE TROUVE ICI (24/09). « Alertes · 2 »
+              dans la barre, un seul rang sur cette page : le compte
+              additionnait les baux bloqués et les rapports à valider, que
+              seul l'accueil montrait. Les mêmes rangs, le même composant,
+              au-dessus de la table — ouverts : on vient ici pour tout voir. */}
+          {actionsAuDessus > 0 && (
+            <div className="colonne-liste">
+              <GroupeActions
+                titre="À débloquer sur les baux"
+                actions={surLesBaux}
+                total={surLesBaux.length}
+                ouvert
+              />
+              <GroupeActions
+                titre="Rapports de gestion à valider"
+                actions={rapports}
+                total={rapports.length}
+                ouvert
+              />
+            </div>
+          )}
+          {/* Une lecture en échec ne se déguise pas en « rien à valider ». */}
+          {erreurs.rapports && (
+            <p className="err" role="alert">
+              Impossible de lire les rapports de gestion à valider — ce
+              n&apos;est pas une liste vide, c&apos;est une lecture qui a
+              échoué. Rechargez dans un instant.
+            </p>
+          )}
+
           {/* Une lecture en échec ne se déguise pas en « aucune alerte » :
               l'écran vide et l'écran illisible ne disent pas la même chose. */}
           {erreurOuvertes ? (
@@ -140,15 +229,20 @@ export default async function PageAlertes(
               monCompte={user.id}
               estResponsable={estResponsable}
               ouvrirAlerteId={traiterId}
+              actionsAuDessus={actionsAuDessus}
             />
           )}
 
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Fermées récemment</CardTitle>
+              {/* « Les 30 dernières » au-dessus de deux alertes se lisait comme
+                  faux : le plafond ne se dit que s'il est atteint (24/09). */}
               <CardDescription>
-                Les {FERMEES_AFFICHEES} dernières. Conservées 1 an après
-                fermeture (règle de conservation), puis purgées.
+                {(fermees ?? []).length >= FERMEES_AFFICHEES
+                  ? `Les ${FERMEES_AFFICHEES} dernières. `
+                  : ""}
+                Gardées un an après leur fermeture, puis supprimées.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -166,16 +260,13 @@ export default async function PageAlertes(
                   {(fermees ?? []).map((a) => (
                     <li key={a.id} className="space-y-0.5 py-2 text-sm">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className={`badge-statut ${COULEURS_CRITICITE[a.criticite] ?? ""}`}>
+                        <span className={`etiquette-alerte ${APLAT_CRITICITE[a.criticite] ?? ""}`}>
                           {CRITICITES[a.criticite] ?? a.criticite}
                         </span>
                         <span className="font-medium">{a.titre}</span>
-                        {/* Sprint « Alertes & documents » : le type et l'objet
-                            d'origine se lisent sans ouvrir l'alerte */}
-                        <span className="mono-discret">
-                          {a.type}
-                          {a.origine_type ? ` · ${a.origine_type}` : ""}
-                        </span>
+                        {/* Le type et l'objet d'origine s'affichaient en codes
+                            de base (« edl_a_realiser · bail ») : le titre dit
+                            déjà de quoi il s'agit, les codes sont retirés. */}
                       </div>
                       <p className="text-muted-foreground">
                         {/* Sans auteur : fermée par l'événement d'origine (29/08) */}
@@ -190,7 +281,7 @@ export default async function PageAlertes(
           </Card>
         </div>
 
-        <Card className="h-fit min-w-0">
+        <Card id="creer-alerte" className="h-fit min-w-0 scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Créer une alerte</CardTitle>
             <CardDescription>
@@ -200,7 +291,7 @@ export default async function PageAlertes(
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Sans la liste des gérants, « Assigné à » serait vide et le
+            {/* Sans la liste des gérants, « Confier à » serait vide et le
                 formulaire refuserait l'envoi sans jamais dire pourquoi. */}
             {erreurMembres && (
               <p className="err" role="alert">

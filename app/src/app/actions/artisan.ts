@@ -372,7 +372,14 @@ export async function deposerMonDevis(
   try { calcul = lireLignesDevis(formData.get("lignes_devis")); }
   catch (error) { return { erreur: error instanceof Error ? error.message : "Vérifiez les lignes du devis.", valeurs }; }
   const diagnostic = String(formData.get("diagnostic") ?? "").trim();
-  const prestations = String(formData.get("prestations") ?? "").trim();
+  // Les travaux ne se saisissent plus qu'une fois, ligne par ligne (24/09) :
+  // le champ libre « Travaux proposés » doublait le détail chiffré. Le texte
+  // attendu par `deposer_devis_structure` (1 à 6 000 caractères) se déduit
+  // donc des libellés, sans toucher à la RPC.
+  const prestations = calcul.lignes
+    .map((l) => l.libelle)
+    .join(" ; ")
+    .slice(0, 6000);
   const delai = String(formData.get("delai") ?? "").trim();
   const duree = String(formData.get("duree") ?? "").trim();
   const contraintes = String(formData.get("contraintes") ?? "").trim();
@@ -380,8 +387,8 @@ export async function deposerMonDevis(
   const valideJusquAu = String(formData.get("valide_jusqu_au") ?? "").trim();
   const fichier = formData.get("fichier");
 
-  if (!diagnostic || !prestations || !delai || !duree) {
-    return { erreur: "Complétez le diagnostic, les travaux, le délai et la durée estimée.", valeurs };
+  if (!diagnostic || !delai || !duree) {
+    return { erreur: "Complétez le diagnostic, le délai et la durée estimée.", valeurs };
   }
 
   // Le chemin de stockage doit être sous le dossier de CETTE agence : on le

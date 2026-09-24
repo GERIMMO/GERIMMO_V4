@@ -116,9 +116,9 @@ for (const persona of PERSONAS) {
       r.soft404 === true ||
       !r.h1 ||
       (typeof r.boutonsSansNom === "number" && r.boutonsSansNom > 0) ||
-      (typeof r.overflowPx === "number" && r.overflowPx > 2) ||
-      (!String(r.path).startsWith("/quittance/") &&
-       !String(r.path).startsWith("/attestation-loyer/") && r.photos === 0)
+      (typeof r.overflowPx === "number" && r.overflowPx > 2)
+      // Plus d'exigence de photo par écran (24/09) : le porteur a retiré le
+      // bandeau photo des espaces, « en trop ». Le compte reste au rapport.
     ).map((r) => ({ path: r.path, statut: r.statut, h1: r.h1, boutonsSansNom: r.boutonsSansNom, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur }));
     expect(casses, `Écrans ${persona} cassés ou débordants`).toEqual([]);
   });

@@ -275,7 +275,7 @@ export function ChampsBail({
       {/* Sans loyer, charges et dépôt explicites, les appels et le contrat
           seraient ambigus : 0 doit être saisi lorsque le montant est nul. */}
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-loyer`}>Loyer HC (€) *</Label>
+        <Label htmlFor={`${prefixe}-loyer`}>Loyer hors charges (€) *</Label>
         <Input
           id={`${prefixe}-loyer`}
           name="loyer_hc"
@@ -324,11 +324,13 @@ export function ChampsBail({
         <p className="text-xs text-muted-foreground">
           Maximum : 1 mois de loyer hors charges en location nue, 2 en meublé.
           {type === "colocation_individuelle" ? " Le plafond s’applique au loyer de cette chambre." : " En contrat commun, le plafond s’applique au loyer du logement entier."}
-          Le caractère meublé est repris de la fiche du lot pour les colocations.
+          {/* L'espace se dit : JSX avale le saut de ligne après l'accolade
+              (« entier.Le caractère », relevé du 24/09). */}
+          {" "}Le caractère meublé est repris de la fiche du lot pour les colocations.
         </p>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-irl`}>Trimestre IRL de référence</Label>
+        <Label htmlFor={`${prefixe}-irl`}>Trimestre de l&apos;indice de référence des loyers (IRL)</Label>
         <select
           id={`${prefixe}-irl`}
           name="irl_trimestre"
@@ -343,7 +345,9 @@ export function ChampsBail({
           ))}
         </select>
       </div>
-      <div className="flex items-center gap-2 pt-6">
+      {/* `pt-6` aligne la case sur les champs voisins en deux colonnes ; en
+          une seule (téléphone) ce vide la décrochait du champ précédent (24/09). */}
+      <div className="flex items-center gap-2 sm:pt-6">
         <input
           id={`${prefixe}-revision`}
           name="revision_irl"
@@ -352,7 +356,7 @@ export function ChampsBail({
           defaultChecked={valeurs ? valeurs.revision_irl === "on" : defauts.revision_irl ?? true}
           className="size-4"
         />
-        <Label htmlFor={`${prefixe}-revision`}>Clause de révision annuelle (IRL)</Label>
+        <Label htmlFor={`${prefixe}-revision`}>Révision annuelle du loyer (IRL)</Label>
       </div>
       <p className="text-xs text-muted-foreground sm:col-span-2">
         * Mentions indispensables au contrat et à ses calculs. Saisissez 0

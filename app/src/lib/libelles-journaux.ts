@@ -6,6 +6,24 @@ const ACTIONS: Record<string, string> = {
   purge_fichier: "Suppression définitive d’un fichier arrivé à échéance",
   connexion: "Connexion à Gerimmo",
   deconnexion: "Déconnexion de Gerimmo",
+  // Les codes que l'application écrit sans libellé jusqu'au 24/09 : ils
+  // tombaient sur le libellé de repli, qui ne disait pas ce qui s'était passé
+  // (migrations `…rouvrir_detention`, `…s6_ecritures_fondation`,
+  // `…s9a_proprietaire_direct` et suivantes).
+  detention_rouverte: "Détention d’un lot rouverte",
+  mois_reouvert: "Mois comptable rouvert",
+  inscription_proprietaire: "Inscription d’un propriétaire bailleur",
+  organisation_ouverte: "Ouverture d’une organisation",
+  abonnement_statut: "Changement de statut d’abonnement",
+  paiement_en_defaut: "Paiement d’abonnement en défaut",
+  paiement_regularise: "Paiement d’abonnement régularisé",
+  avantage_parrainage: "Avantage de parrainage accordé",
+  devis_document_consulte: "Consultation d’un document de devis",
+  ouverture_session_artisan: "Entrée dans la session d’un artisan",
+  fermeture_session_artisan: "Sortie de la session d’un artisan",
+  relais_supervision_cree: "Relais de supervision ouvert",
+  relais_supervision_revoque: "Relais de supervision retiré",
+  developpement_decide: "Décision sur une amélioration du logiciel",
 };
 
 const TACHES: Record<string, string> = {
@@ -27,7 +45,9 @@ export function libelleActionAudit(action: string | null | undefined): string {
   if (/consult|lecture|voir|open/i.test(action)) return "Consultation d’une information protégée";
   if (/modif|update|change/i.test(action)) return "Modification d’une information protégée";
   if (/creat|ajout|insert/i.test(action)) return "Création d’une information protégée";
-  return "Action de supervision enregistrée";
+  // Un code inconnu se DIT inconnu (24/09) : « Action de supervision
+  // enregistrée » laissait croire à un libellé voulu.
+  return "Action enregistrée (libellé manquant)";
 }
 
 export function libelleEvenement(evenement: string | null | undefined): string {

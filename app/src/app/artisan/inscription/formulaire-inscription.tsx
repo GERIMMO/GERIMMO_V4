@@ -109,7 +109,7 @@ export function FormulaireInscription() {
 
       <div className="space-y-1.5">
         <label htmlFor={idEmail} className={CLASSE_LIBELLE}>
-          Courriel{" "}
+          Adresse e-mail{" "}
           <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span>
         </label>
         <input
@@ -164,7 +164,7 @@ export function FormulaireInscription() {
           id={idZones}
           name="codes_postaux"
           type="text"
-          inputMode="numeric"
+          inputMode="text"
           defaultValue={etat.valeurs?.codes_postaux}
           className={CLASSE_CHAMP}
         />

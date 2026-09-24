@@ -6,8 +6,10 @@ import { METIERS, PIECES_ARTISAN } from "@/app/artisan/libelles";
 import { DecisionArtisan } from "@/app/admin/artisans/decision-artisan";
 import { RetourDecisionsArtisan } from "@/app/admin/artisans/retour-decisions";
 import { BoutonEntrerSession } from "./bouton-entrer";
+import { LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
 import {
   initiales,
+  LIBELLES_DECISION_ARTISAN,
   LIBELLES_SIRET,
   LIBELLES_STATUT_ARTISAN,
   LIBELLES_VISIBILITE,
@@ -85,7 +87,7 @@ export default async function PageFicheArtisan(
       .order("created_at", { ascending: false }),
     supabase
       .from("artisan_agences")
-      .select("organization:organizations(id, name)")
+      .select("organization:organizations(id, name, status)")
       .eq("artisan_id", artisanId),
   ]);
 
@@ -93,7 +95,7 @@ export default async function PageFicheArtisan(
   const listeZones = (zones.data ?? []).map((z) => z.code_postal);
   const listePieces = (pieces.data ?? []) as Piece[];
   const listeAgences = (agences.data ?? []) as unknown as {
-    organization: { id: string; name: string } | null;
+    organization: { id: string; name: string; status: string } | null;
   }[];
 
   return (
@@ -111,9 +113,11 @@ export default async function PageFicheArtisan(
             >
               {initiales(artisan.raison_sociale)}
             </span>
+            {/* Le nom passe à la ligne au lieu d'être coupé (24/09) : c'est le
+                sujet de la page. */}
             <div className="min-w-0">
-              <h1 className="truncate">{artisan.raison_sociale}</h1>
-              <p className="mono-discret sans-majuscules !text-[10px]">
+              <h1 className="[overflow-wrap:anywhere] max-sm:text-2xl">{artisan.raison_sociale}</h1>
+              <p className="mono-discret sans-majuscules">
                 Artisan · inscrit le {formaterDate(artisan.created_at)}
               </p>
             </div>
@@ -153,13 +157,8 @@ export default async function PageFicheArtisan(
               {listeZones.length > 0 ? listeZones.join(" · ") : "Non renseignées"}
             </Info>
           </dl>
-          {artisan.statut_motif && (
-            <p className="mesure-lecture mt-4 border-l-[3px] border-l-[var(--filet)] pl-3 text-sm text-[var(--texte-secondaire)]">
-              Motif de la dernière décision
-              {artisan.statut_decide_le ? ` (${formaterDate(artisan.statut_decide_le)})` : ""} :{" "}
-              {artisan.statut_motif}
-            </p>
-          )}
+          {/* Le motif de la dernière décision ne se répète plus ici (24/09) :
+              l'historique porte déjà le motif et la date. */}
         </section>
 
         <section className="loc-carte mt-4">
@@ -205,32 +204,55 @@ export default async function PageFicheArtisan(
             <h3>Agences qui le sollicitent</h3>
             <span className="mono-discret">{agences.error ? "—" : listeAgences.length}</span>
           </div>
+          {/* Tout le rang est le lien (24/09) : seul le nom réagissait au clic,
+              le reste de la largeur était inerte. La liste commune pose le
+              filet entre deux rangs, jamais sous le dernier. */}
           {listeAgences.length === 0 ? (
             <p className="text-sm text-[var(--texte-secondaire)]">
               Aucune agence ne l&apos;a encore sollicité.
             </p>
           ) : (
-            <ul className="space-y-1">
+            <div className="colonne-liste">
               {listeAgences.map(
                 (a) =>
                   a.organization && (
-                    <li key={a.organization.id} className="ligne-info">
-                      <Link
-                        href={`/admin/organisations/${a.organization.id}`}
-                        className="lien-discret"
-                      >
+                    <Link
+                      key={a.organization.id}
+                      href={`/admin/organisations/${a.organization.id}`}
+                      className="rang"
+                    >
+                      <span className="min-w-0 flex-1 text-[14px] text-[var(--corps)]">
                         {a.organization.name}
-                      </Link>
-                    </li>
+                      </span>
+                      <span
+                        className={`puce ${
+                          a.organization.status === "active"
+                            ? "puce-loue"
+                            : a.organization.status === "essai"
+                              ? "puce-prep"
+                              : a.organization.status === "suspendue"
+                                ? "puce-rouge"
+                                : "puce-grise"
+                        }`}
+                      >
+                        {LIBELLES_STATUT_ORGANISATION[a.organization.status] ?? a.organization.status}
+                      </span>
+                    </Link>
                   )
               )}
-            </ul>
+            </div>
           )}
         </section>
 
         <section className="loc-carte mt-4">
+          {/* « Décider » seulement quand une décision est possible (24/09) :
+              pour un artisan validé, la carte ne propose aucun geste. */}
           <div className="entete-carte">
-            <h3>Décider</h3>
+            <h3>
+              {artisan.statut_plateforme === "en_attente" || artisan.statut_plateforme === "refuse"
+                ? "Décider"
+                : "Statut de l'inscription"}
+            </h3>
           </div>
           <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">
             La validation appartient à Gerimmo. Elle ne modifie ni la visibilité
@@ -281,7 +303,7 @@ export default async function PageFicheArtisan(
               {validations.data.map((v) => (
                 <li key={v.id} className="border-t border-[var(--filet)] pt-3 text-sm first:border-t-0 first:pt-0">
                   <p>
-                    <b>{LIBELLES_STATUT_ARTISAN[v.decision] ?? v.decision}</b>
+                    <b>{LIBELLES_DECISION_ARTISAN[v.decision] ?? LIBELLES_STATUT_ARTISAN[v.decision] ?? "Décision enregistrée"}</b>
                     {` · ${formaterDate(v.created_at)}`}
                   </p>
                   {v.motif && (

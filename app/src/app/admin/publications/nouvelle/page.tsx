@@ -6,7 +6,7 @@ export const metadata = { title: "Nouvel article — Gerimmo" };
 export default function PageNouvelArticle() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4 sm:p-7">
-      <Link href="/admin/publications" className="lien-discret text-sm">← Journal</Link>
+      <Link href="/admin/publications" className="lien-discret text-sm">← Tous les articles</Link>
       <div className="entete-page mt-3">
         <h1>Créer un article</h1>
       </div>

@@ -8,7 +8,13 @@ describe("libellés des journaux", () => {
 
   it("ne montre jamais un code inconnu", () => {
     expect(libelleEvenement("internal_worker_x17")).toBe("Événement du service enregistré");
-    expect(libelleActionAudit("rpc_private_x17")).toBe("Action de supervision enregistrée");
+    expect(libelleActionAudit("rpc_private_x17")).toBe("Action enregistrée (libellé manquant)");
+  });
+
+  it("nomme les actions sensibles écrites par l'application", () => {
+    expect(libelleActionAudit("detention_rouverte")).toBe("Détention d’un lot rouverte");
+    expect(libelleActionAudit("mois_reouvert")).toBe("Mois comptable rouvert");
+    expect(libelleActionAudit("inscription_proprietaire")).toBe("Inscription d’un propriétaire bailleur");
   });
 
   it("explique les accès aux documents", () => {

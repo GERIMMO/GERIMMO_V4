@@ -1,7 +1,7 @@
 import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../acces";
 import { CarteMission } from "../carte-mission";
 import { jourCivil, jourLong } from "../libelles";
-import { Carte, Erreur, TitreSection, Vide } from "../ui";
+import { Carte, EnteteSousPage, Erreur, TitreSection, Vide } from "../ui";
 
 export const metadata = { title: "Mon agenda — Espace artisan" };
 
@@ -35,13 +35,15 @@ export const metadata = { title: "Mon agenda — Espace artisan" };
  */
 function consigne(l: LigneAgenda): string {
   if (l.statut === "proposee") return "Accepter ou refuser";
+  // Même formule que l'accueil ; la carte la rend sans flèche, ce n'est pas
+  // un geste de l'artisan (24/09).
   if (l.creneaux_en_attente > 0)
-    return `${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} proposée${l.creneaux_en_attente > 1 ? "s" : ""} — au locataire de choisir`;
+    return `${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} au choix du locataire`;
   return "Proposer trois créneaux au locataire";
 }
 
 export default async function PageAgendaArtisan() {
-  await verifierAccesArtisan();
+  const { fiche } = await verifierAccesArtisan();
   const agenda = await chargerAgenda();
 
   const sansDate = agenda.lignes.filter(
@@ -63,10 +65,7 @@ export default async function PageAgendaArtisan() {
 
   return (
     <div className="space-y-6">
-      <div className="portail-hero">
-        <p className="portail-surtitre">Toutes agences confondues</p>
-        <h1 className="mt-0.5">Mon agenda</h1>
-      </div>
+      <EnteteSousPage titre="Mon agenda" mention="Toutes agences confondues" />
 
       {agenda.erreur && (
         <Erreur>
@@ -91,10 +90,17 @@ export default async function PageAgendaArtisan() {
       )}
 
       {jours.size === 0 && sansDate.length === 0 ? (
-        <Vide>
-          Aucune intervention à votre agenda. Les missions qu&apos;une agence vous
-          confie apparaissent ici, quelle que soit l&apos;agence.
-        </Vide>
+        agenda.erreur ? null : (
+          // Un état vide qui mène quelque part (24/09) : ce sont les
+          // attestations qui ouvrent les affectations.
+          <Vide action={{ href: "/artisan/attestations", libelle: "Mes attestations" }}>
+            Aucune intervention à votre agenda. Les missions qu&apos;une agence vous
+            confie apparaissent ici, quelle que soit l&apos;agence.
+            {fiche.statut_plateforme === "en_attente"
+              ? " Votre inscription est encore en cours de validation : aucune agence ne peut vous solliciter avant."
+              : ""}
+          </Vide>
+        )
       ) : (
         [...jours.entries()].map(([cle, lignes]) => (
           <section key={cle}>

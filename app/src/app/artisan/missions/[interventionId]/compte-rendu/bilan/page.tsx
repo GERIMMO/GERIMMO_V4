@@ -3,7 +3,7 @@ import type { LigneDevis } from "@/lib/devis-structure";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan } from "../../../../acces";
 import { euros } from "../../../../libelles";
-import { Etiquette, MarqueAgence, Retour, Succes } from "../../../../ui";
+import { EnteteSousPage, Erreur, Etiquette, MarqueAgence, Retour, Succes } from "../../../../ui";
 import { FormulaireBilan } from "./formulaire-bilan";
 
 export const metadata = { title: "Le bilan — Espace artisan" };
@@ -53,23 +53,23 @@ export default async function PageBilan(
       </Retour>
 
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <MarqueAgence nom={mission.agence_nom} />
+        {/* Même taille de pastille que la fiche de mission (24/09). */}
+        <MarqueAgence nom={mission.agence_nom} taille="grande" />
         <Etiquette ton="encre">Étape 2 sur 2</Etiquette>
       </div>
 
-      <div>
-        <h1 className="text-[1.375rem] leading-tight text-[var(--encre)]">Le bilan</h1>
-        <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          {titreIncident(mission.categorie)}
-          {mission.montant_ttc_cents !== null
+      <EnteteSousPage
+        titre="Le bilan"
+        mention={`${titreIncident(mission.categorie)}${
+          mission.montant_ttc_cents !== null
             ? ` · devis retenu ${euros(mission.montant_ttc_cents)} TTC`
-            : ""}
-        </p>
-      </div>
+            : ""
+        }`}
+      />
 
       <Succes>Photo du travail réalisé : envoyée.</Succes>
 
-      {erreurBudget && <p role="alert" className="text-sm text-[var(--danger)]">Le budget autorisé n’a pas pu être relu. Rechargez cette page avant de terminer l’intervention.</p>}
+      {erreurBudget && <Erreur>Le budget autorisé n’a pas pu être relu. Rechargez cette page avant de terminer l’intervention.</Erreur>}
       {!erreurBudget && <FormulaireBilan
         interventionId={interventionId}
         montantDevisCents={budget?.plafond_cents ?? mission.montant_ttc_cents}

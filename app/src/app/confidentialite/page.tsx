@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { AFournir, Article, CoquilleLegale, Fait } from "@/components/coquille-legale";
-import { EDITEUR } from "@/lib/editeur";
+import { Article, CoquilleLegale, OuNousEcrire, TableauPrestataires } from "@/components/coquille-legale";
+import { documentsIncomplets, prestatairesIncomplets } from "@/lib/editeur";
 
 export const metadata = { title: "Confidentialité — Gerimmo" };
 
@@ -21,6 +20,8 @@ export default function PageConfidentialite() {
     <CoquilleLegale
       titre="Confidentialité"
       chapo="Ce que nous faisons de vos données, et ce que nous n'en faisons pas."
+      chemin="/confidentialite"
+      incomplet={documentsIncomplets() || prestatairesIncomplets()}
     >
       <Article titre="Qui est responsable de quoi">
         <p>
@@ -97,41 +98,8 @@ export default function PageConfidentialite() {
           l&apos;Union européenne</b>, chez les prestataires suivants, chacun
           pour la part qui le concerne :
         </p>
-        <div className="tableau-defilant">
-          <table className="tableau">
-            <thead>
-              <tr>
-                <th>Prestataire</th>
-                <th>Ce qu&apos;il traite</th>
-                <th>Localisation</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Supabase</td>
-                <td>Base de données, authentification, fichiers déposés</td>
-                <td>Région eu-west-3 (Paris, France)</td>
-              </tr>
-              <tr>
-                <td>Vercel</td>
-                <td>Exécution et diffusion de l&apos;application</td>
-                <td>Région cdg1 (Paris, France)</td>
-              </tr>
-              <tr>
-                <td>Resend</td>
-                <td>Envoi des courriels du service (quittances, avis, relances, rappels)</td>
-                <td>
-                  <AFournir quoi="localisation" />
-                </td>
-              </tr>
-              <tr>
-                <td>Stripe</td>
-                <td>Encaissement des abonnements</td>
-                <td>Irlande</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        {/* La même liste que les mentions légales (lib/editeur.ts). */}
+        <TableauPrestataires />
         <p>
           Au sein de Gerimmo, seule la supervision technique peut accéder aux
           données en dehors de votre organisation ; cet accès exige un second
@@ -262,21 +230,15 @@ export default function PageConfidentialite() {
           gestion locative, à votre agence ou à votre propriétaire bailleur,
           depuis la messagerie de votre espace. Pour votre compte, la
           facturation, l&apos;annuaire des artisans ou une demande envoyée
-          depuis le site, à Gerimmo :{" "}
-          <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> ou, sans
-          compte, depuis le{" "}
-          <Link href="/#agences" className="lien-discret">
-            formulaire de contact
-          </Link>{" "}
-          (mentionnez « données personnelles »). Chaque demande reçoit une
-          réponse dans le mois, après vérification de l&apos;identité du
-          demandeur.
+          depuis le site, à Gerimmo, <OuNousEcrire objet="données personnelles" />.
+          Chaque demande reçoit une réponse dans le mois, après vérification de
+          l&apos;identité du demandeur.
         </p>
         <p>
           Si vous estimez que vos droits ne sont pas respectés, vous pouvez
           saisir la Commission nationale de l&apos;informatique et des libertés
           (CNIL), 3 place de Fontenoy, 75007 Paris —{" "}
-          <a href="https://www.cnil.fr" className="lien-discret" rel="noreferrer">
+          <a href="https://www.cnil.fr" className="lien-texte" rel="noreferrer">
             www.cnil.fr
           </a>
           .

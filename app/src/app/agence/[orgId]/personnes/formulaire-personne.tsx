@@ -7,6 +7,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ComboboxLot } from "@/components/combobox-lot";
+import { IconeTrait } from "@/components/icone-trait";
 
 export type LotRattachable = {
   id: string;
@@ -17,6 +18,7 @@ type Role = {
   cle: string;
   libelle: string;
   sous: string;
+  /** Nom dans la famille d'icônes au trait (IconeTrait) */
   icone: string;
 };
 
@@ -28,19 +30,21 @@ type Role = {
 // Assistant « Créer une fiche » (maquette, retour recette 08/08) — deux
 // étapes : le rôle d'abord (le choix avance tout seul, on peut revenir),
 // l'identité ensuite. Une seule fiche par personne, quel que soit son rôle.
+// 24/09 : les glyphes ⌂ ◈ ⚖ (12 px, selon la police) cèdent la place aux
+// icônes au trait du reste de l'espace.
 const ROLES: Role[] = [
-  { cle: "locataire", libelle: "Locataire", sous: "Occupe un logement", icone: "⌂" },
+  { cle: "locataire", libelle: "Locataire", sous: "Occupe un logement", icone: "maison" },
   {
     cle: "proprietaire_mandant",
     libelle: "Propriétaire mandant",
     sous: "Confie la gestion à l'agence",
-    icone: "◈",
+    icone: "cles",
   },
   {
     cle: "garant",
     libelle: "Garant",
     sous: "Se porte caution d'un locataire",
-    icone: "⚖",
+    icone: "gens",
   },
 ];
 
@@ -132,7 +136,7 @@ export function FormulairePersonne({
                 setRole(r.cle);
                 setEtape(2); // le choix du rôle avance tout seul
               }}
-              className={`flex w-full items-start gap-3.5 border bg-card px-4 py-3.5 text-left transition-all hover:-translate-y-px hover:border-[var(--encre)] ${
+              className={`flex w-full items-start gap-3.5 rounded-xl border bg-card px-4 py-3.5 text-left transition-all hover:-translate-y-px hover:border-[var(--encre)] ${
                 role === r.cle
                   ? "border-l-[3px] border-[var(--encre)] bg-[var(--survol)]"
                   : "border-border"
@@ -140,9 +144,9 @@ export function FormulairePersonne({
             >
               <span
                 aria-hidden
-                className="flex size-10 shrink-0 items-center justify-center bg-[var(--ardoise)] text-[var(--encre)]"
+                className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[var(--ardoise)] text-[var(--encre)]"
               >
-                {r.icone}
+                <IconeTrait nom={r.icone} className="size-5" />
               </span>
               <span>
                 <b className="block font-medium">{r.libelle}</b>
@@ -152,9 +156,12 @@ export function FormulairePersonne({
               </span>
             </button>
           ))}
+          {/* 24/09 : le propriétaire direct ne crée que locataires et garants —
+              « un propriétaire peut être locataire ailleurs » ne le concerne pas. */}
           <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-            Une seule fiche par personne, quel que soit son rôle. Un
-            propriétaire peut être locataire ailleurs.
+            {estBailleurDirect
+              ? "Une seule fiche par personne : un garant peut aussi être locataire d'un autre logement."
+              : "Une seule fiche par personne, quel que soit son rôle. Un propriétaire peut être locataire ailleurs."}
           </p>
         </div>
       )}

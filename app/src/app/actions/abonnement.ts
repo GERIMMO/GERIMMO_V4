@@ -87,6 +87,8 @@ export async function demarrerAbonnement(
   if (erreurEtat) return { erreur: sansJargon(erreurEtat.message) };
 
   const etat = ((etatBrut ?? []) as {
+    statut: string;
+    essai_fin: string | null;
     unites_facturees: number;
     en_ligne_possible: boolean;
     unite: string;
@@ -136,6 +138,12 @@ export async function demarrerAbonnement(
   if (erreurPose) return { erreur: sansJargon(erreurPose.message) };
 
   const retour = `${origine}/agence/${orgId}/abonnement`;
+  // SOUSCRIRE PENDANT L'ESSAI NE FAIT PAS PAYER PLUS TÔT (décision du 24/09) :
+  // la fin d'essai part chez Stripe, qui n'y débite la carte qu'à cette date.
+  // Elle n'a de sens que pour un compte encore en essai — un compte actif ou
+  // suspendu n'a pas d'essai à reporter, et un essai déjà passé est écarté par
+  // l'adaptateur lui-même. La base tient `trialing` pour payé depuis les
+  // migrations 20260911300000 et 20260912090000 : rien à migrer.
   const session = await creerSessionPaiement(stripe, {
     prix: tarif.prix,
     customer: client.customer,
@@ -143,6 +151,7 @@ export async function demarrerAbonnement(
     orgId,
     retourOk: `${retour}?paiement=ok`,
     retourAnnule: `${retour}?paiement=annule`,
+    essaiFin: etat?.statut === "essai" ? etat.essai_fin : null,
   });
   if (!session.ok) return { erreur: session.erreur };
   redirect(session.url);

@@ -17,7 +17,6 @@ import {
   CardDescription,
   CardHeader,
 } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireEquipementCatalogue } from "./formulaire-equipement-catalogue";
 import { PaneParc, lireSelection } from "./pane-parc";
@@ -441,7 +440,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 l'autre. Une phrase, et le seul geste qui reste. */}
             {disponibles.length === 0 && enPreparation.length === 0 ? (
               <Card>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3">
+                <CardContent>
+                  {/* Le geste « + Ajouter un bien » est déjà dans l'en-tête de
+                      la page : pas de doublon ici (deux liens identiques sur un
+                      même écran, relevé du 24/09). */}
                   <p className="text-sm text-muted-foreground">
                     {estProprietaire
                       ? "Tous vos lots sont loués"
@@ -450,12 +452,6 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                         : "Tout le parc est loué"}{" "}
                     : aucun lot à préparer ni à remettre en location.
                   </p>
-                  <Link
-                    href={`/agence/${orgId}/parc/nouveau`}
-                    className={buttonVariants({ variant: "outline", size: "sm", className: "pointer-coarse:min-h-10" })}
-                  >
-                    + Ajouter un bien
-                  </Link>
                 </CardContent>
               </Card>
             ) : (

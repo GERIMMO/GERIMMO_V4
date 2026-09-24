@@ -210,4 +210,7 @@
 20260922222000_devis_structure_obligatoire.sql
 20260922223000_preparer_recrutement_territorial.sql
 20260924200000_essai_fini_rien_a_payer.sql
-
+20260925010000_suivi_dossiers_complet.sql
+20260925011000_etudes_territoriales.sql
+20260925012000_veille_reglementaire.sql
+20260925013000_marketing_images_et_diffusion.sql

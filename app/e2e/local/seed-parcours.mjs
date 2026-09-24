@@ -25,7 +25,9 @@ import { createClient } from "@supabase/supabase-js";
 import { createHash, randomUUID } from "node:crypto";
 import { totp } from "./mfa-local.mjs";
 
-const URL_LOCALE = "http://127.0.0.1:54321";
+const URL_LOCALE = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+const cibleLocale = new URL(URL_LOCALE);
+if (cibleLocale.protocol !== "http:" || !["127.0.0.1", "localhost"].includes(cibleLocale.hostname)) throw new Error("Le seed exige l’émulateur local.");
 const CLE_ANON = "cle-locale";
 const MDP = "Gerimmo-Demo-2026";
 

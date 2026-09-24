@@ -1,0 +1,9 @@
+import type {SujetMarketing} from './contenu-marketing';
+import {sourceVeille} from './veille-reglementaire';
+export function sujetDeVeille(info:{id:string;titre:string;source_url:string;source_nom:string;publie_source_le:string|null}):SujetMarketing{
+ const url=sourceVeille(info.source_url);if(!url)throw new Error('Source officielle requise.');
+ // Le relais automatique rapporte le sujet officiel, pas les conclusions IA non relues.
+ const titre=info.titre.replace(/[\[\]<>]/g,'').slice(0,250);
+ const date=info.publie_source_le?new Date(info.publie_source_le).toLocaleDateString('fr-FR',{timeZone:'Europe/Paris'}):null;
+ return {cle:'veille-'+info.id,audience:'professionnels',titre:`À lire dans la veille : ${titre}`,chapo:`${info.source_nom} propose une information sur ce sujet. Consultez le texte officiel pour connaître les situations concernées et les conditions applicables.`,corps:`## L’information à consulter\n\n${titre}\n\nSource : [${info.source_nom}](${url})${date?' — publiée le '+date:''}.\n\n## Avant d’agir\n\nLisez les conditions, les dates et les éventuelles exceptions dans la source officielle. Une actualité peut annoncer une évolution future ou ne concerner que certaines situations : ce relais ne signifie pas qu’une nouvelle obligation s’applique à tous.\n\n## Garder le lien avec votre dossier\n\nDans Gerimmo, conservez les documents utiles avec le logement, le bail ou l’intervention concernés. Une information bien rattachée facilite les vérifications et évite les recherches répétées.\n\nCe partage est un repère documentaire. L’étude d’une situation particulière peut demander un professionnel compétent.`,facebook:`Veille Gerimmo · ${titre}\n\n${info.source_nom}${date?' · '+date:''}\nSource officielle : ${url}\n\nConsultez les conditions et les dates dans la source pour savoir si votre situation est concernée.`};
+}

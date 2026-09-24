@@ -64,8 +64,12 @@ function verifier(jeton) {
 }
 
 // ── Catalogue (clés étrangères, clés primaires, fonctions) ─────────────────
-const catalogue = { fks: [], fkParNom: new Map(), pks: new Map(), fns: new Map() };
+const catalogue = { fks: [], fkParNom: new Map(), pks: new Map(), fns: new Map(), colonnes: new Map() };
 async function chargerCatalogue() {
+  const {rows: colonnes} = await pool.query(`select c.relname as table_nom,a.attname as colonne,format_type(a.atttypid,a.atttypmod) as type
+    from pg_attribute a join pg_class c on c.oid=a.attrelid join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname='public' and a.attnum>0 and not a.attisdropped`);
+  catalogue.colonnes = new Map(colonnes.map(c=>[`${c.table_nom}.${c.colonne}`,c.type]));
   const { rows: fks } = await pool.query(`
     select c.conname as nom,
            tf.relname as table_source,
@@ -474,7 +478,7 @@ async function ecrireTable(claims, table, url, entetes, corps, methode) {
       const valeurs = [];
       const rangs = objets.map((o) => {
         const cases = cols.map((c) => {
-          valeurs.push(o[c] === undefined ? null : preparerValeur(o[c]));
+          valeurs.push(o[c] === undefined ? null : preparerValeur(o[c], catalogue.colonnes.get(`${table}.${c}`)));
           return `$${valeurs.length}`;
         });
         return `(${cases.join(", ")})`;
@@ -501,7 +505,7 @@ async function ecrireTable(claims, table, url, entetes, corps, methode) {
         const cols = Object.keys(corps);
         if (!cols.length) return { lignes: [], statut: 204 };
         const set = cols.map((c) => {
-          params.push(preparerValeur(corps[c]));
+          params.push(preparerValeur(corps[c], catalogue.colonnes.get(`${table}.${c}`)));
           return `"${c}" = $${params.length}`;
         }).join(", ");
         const r = await client.query(`update "${table}" set ${set}${where}${retour}`, params);
@@ -529,7 +533,7 @@ async function ecrireTable(claims, table, url, entetes, corps, methode) {
  * Un tableau destiné à un `jsonb` (créneaux d'intervention) reste, lui,
  * sérialisé : c'est bien du JSON qu'on veut y mettre.
  *
- * Sans type (écritures de table), on garde l'ancien comportement.
+ * Les écritures de table utilisent également le type lu dans le catalogue.
  */
 function preparerValeur(v, type) {
   if (v === null || typeof v !== "object") return v;

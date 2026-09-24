@@ -387,7 +387,7 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
         and c.relname not in ('acces_pieces_log', 'audit_log',
                               'abonnements', 'abonnement_evenements',
                               'retours_utilisateurs', 'retours_soutiens',
-                              'automation_events', 'orchestration_cases')
+                              'automation_events', 'orchestration_cases', 'orchestration_history')
         and not exists (select 1 from pg_trigger t
                         where t.tgrelid = c.oid and t.tgname like 'abonnement\\_%')
       order by c.relname`);

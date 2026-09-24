@@ -19,7 +19,8 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
   const { data: utilisateur } = await supabase.auth.getUser();
   const { error } = await supabase.from("marketing_reglages").update({
     actif: donnees.get("actif") === "on",
-    publication_automatique: false,
+    publication_automatique: donnees.get("publication_automatique") === "on",
+    diffusion_version: 1,
     publicite_active: false,
     publications_semaine: 2,
     jours_semaine: [jour1, jour2].sort((a, b) => a - b),

@@ -64,13 +64,14 @@ export function SidebarLocataire({
       badge: badgeDemandes,
     },
     { href: `${base}/contact`, libelle: "Mon gestionnaire", icone: "bulle", badge: badgeMessages },
+    { href: "/veille?public=locataire", libelle: "Les règles à connaître", icone: "doc" },
     { href: `${base}/faq`, libelle: "Questions fréquentes", icone: "quest" },
   ];
 
   // Le téléphone : les quatre gestes les plus fréquents d'un locataire, le
   // reste dans le tiroir « Menu » — dans l'ORDRE du menu latéral (24/09 :
   // Paiements passait devant Documents, à l'inverse du bureau).
-  const courts = ["Accueil", "Logement", "Documents", "Paiements", "Demandes", "Gestionnaire", "Aide"];
+  const courts = ["Accueil", "Logement", "Documents", "Paiements", "Demandes", "Gestionnaire", "Règles", "Aide"];
   const principales = entrees.map((e, i) => ({
     href: e.href,
     libelle: e.libelle,

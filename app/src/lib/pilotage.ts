@@ -4,7 +4,7 @@ export function resumerMesures(stats:StatAutomatisation[]|null) {
   const total=stats.reduce((a,s)=>({automatiques:a.automatiques+Number(s.actions_automatiques),humaines:a.humaines+Number(s.interventions_humaines),messages:a.messages+Number(s.messages_envoyes)}),{automatiques:0,humaines:0,messages:0});
   return {...total,taux:total.automatiques+total.humaines===0?null:Math.round(100*total.automatiques/(total.automatiques+total.humaines))};
 }
-export const ETATS_DEVELOPPEMENT:Record<string,string>={detectee:"Besoin repéré",a_etudier:"À étudier",en_developpement:"Amélioration en préparation",en_test:"Contrôles en cours",preproduction:"Version de démonstration à vérifier",autorisation:"Votre accord est attendu",publiee:"Disponible en ligne",annulee:"Non retenue",retour_arriere:"Version précédente rétablie"};
+export const ETATS_DEVELOPPEMENT:Record<string,string>={detectee:"Besoin repéré",a_etudier:"À étudier",en_developpement:"Amélioration en préparation",en_test:"Contrôles en cours",preproduction:"Version autorisée, publication à effectuer",autorisation:"Votre accord est attendu",publiee:"Disponible en ligne",annulee:"Non retenue",retour_arriere:"Version précédente rétablie"};
 export const ETATS_DOSSIER:Record<string,string>={a_faire:"Action attendue",en_cours:"En cours",en_attente:"Étape suivante en attente",termine:"Terminé",bloque:"À débloquer"};
 export const TYPES_DOSSIER:Record<string,string>={bail:"Location",loyer:"Loyer",incident:"Incident",document:"Signature et document",intervention:"Intervention",rapport:"Compte rendu mensuel"};
 export function lienDossier(c:{organization_id:string;dossier_type:string;dossier_id:string;lien_action?:string|null}) {

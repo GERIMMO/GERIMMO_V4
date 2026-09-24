@@ -103,6 +103,9 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
   if (article.statut !== "publiee" || !article.slug) return { erreur: "Faites d’abord paraître l’article dans le Journal Gerimmo." };
   if (article.facebook_post_id) return { succes: "Cet article est déjà publié sur Facebook." };
 
+  const reservation = await supabase.rpc('reserver_diffusion_facebook', {p_id:id,p_automatique:false});
+  if(reservation.error || reservation.data !== true) return {erreur:'Un envoi est déjà engagé ou ne peut pas être confirmé. Vérifiez Facebook avant une nouvelle tentative.'};
+
   try {
     const resultat = await envoyerSurFacebook({
       titre: article.titre,

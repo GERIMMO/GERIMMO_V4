@@ -771,6 +771,8 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 /* Rang de lot (maquette .rang-lot) : indenté sous son bien, filet vertical */
 .rang-lot {
   display: flex;
+  width: 100%; /* tout le rang se clique, pas seulement le texte (retour du 24/09) */
+  text-align: left;
   align-items: center;
   gap: 10px;
   padding: 8px 14px 8px 26px;
@@ -1691,6 +1693,35 @@ p a {
 .agenda-vide h2 { font-size:20px; }
 .agenda-vide p { color:var(--texte-secondaire); font-size:14px; }
 @media (max-width:700px) { .agenda-rendezvous { flex-direction:column; gap:14px; padding:18px; } .agenda-horaire { flex-basis:auto; } }
+/* Le calendrier mensuel (24/09) : sept colonnes, une case par jour, le
+   chiffre dit combien de rendez-vous commencent ce jour-là ; la case ouverte
+   est en bleu plein, aujourd'hui porte un filet bleu. */
+.agenda-calendrier { display:grid; grid-template-columns:repeat(7, minmax(0, 1fr)); gap:6px; }
+.agenda-nom-jour { padding:4px 0 6px; text-align:center; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--libelle); }
+.agenda-jour {
+  position:relative; display:flex; flex-direction:column; justify-content:space-between; min-height:64px; padding:8px 10px;
+  border:1px solid var(--filet); border-radius:12px; background:var(--carte); color:var(--corps);
+  transition:background var(--duree-rapide) ease, border-color var(--duree-rapide) ease, transform var(--duree-rapide) ease;
+}
+.agenda-jour:hover { border-color:var(--marque); background:var(--survol); }
+.agenda-jour.aujourdhui { border-color:var(--marque); box-shadow:inset 0 0 0 1px var(--marque); }
+.agenda-jour.aujourdhui .agenda-jour-numero { color:var(--marque-sombre); }
+.agenda-jour.occupe { background:var(--marque-clair); }
+.agenda-jour.actif, .agenda-jour.actif:hover { background:var(--marque); border-color:var(--marque); color:var(--sur-marque); box-shadow:0 6px 16px color-mix(in srgb, var(--marque) 30%, transparent); }
+.agenda-jour.actif .agenda-jour-numero { color:var(--sur-marque); }
+.agenda-jour-numero { font-family:var(--font-titres), system-ui, sans-serif; font-variant-numeric:tabular-nums; font-size:15px; font-weight:600; }
+.agenda-jour-compte {
+  align-self:flex-end; min-width:22px; height:22px; padding:0 6px; border-radius:11px; display:inline-flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; background:var(--marque); color:var(--sur-marque);
+}
+.agenda-jour.actif .agenda-jour-compte { background:var(--sur-marque); color:var(--marque); }
+@media (max-width:640px) {
+  .agenda-calendrier { gap:4px; }
+  .agenda-jour { min-height:48px; padding:5px 6px; border-radius:9px; }
+  .agenda-jour-numero { font-size:13px; }
+  .agenda-jour-compte { min-width:18px; height:18px; font-size:11px; padding:0 4px; }
+}
+@media (prefers-reduced-motion: reduce) { .agenda-jour { transition:none; } }
 
 /* ==================================================================== */
 /* Charte v3 — bleu (17/09/2026) : mouvement et vitrine                  */
@@ -2648,34 +2679,6 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 }
 
 
-/* Repère photographique discret dans chaque espace : le bleu reste la couleur
-   dominante, et les titres/actions conservent leur propre surface lisible. */
-.repere-visuel {
-  height: 94px;
-  flex: none;
-  margin: 14px 24px 0;
-  border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--marque) 22%, transparent);
-  background-image:
-    linear-gradient(90deg, var(--encre) 0%, color-mix(in srgb, var(--marque-sombre) 93%, transparent) 43%, color-mix(in srgb, var(--marque) 20%, transparent) 100%),
-    url('/illustrations/interieur-gerimmo-2026.jpg');
-  background-position: center, center 48%;
-  background-size: cover;
-  box-shadow: 0 8px 22px color-mix(in srgb, var(--encre) 13%, transparent);
-}
-.repere-visuel-artisan {
-  width: min(912px, calc(100% - 48px));
-  align-self: center;
-  background-image:
-    linear-gradient(90deg, var(--encre) 0%, color-mix(in srgb, var(--marque-sombre) 90%, transparent) 42%, color-mix(in srgb, var(--marque) 14%, transparent) 100%),
-    url('/illustrations/intervention-gerimmo-2026.jpg');
-}
-.repere-visuel-locataire { margin-inline: max(24px, calc((100% - 1032px) / 2)); }
-/* Une seule photo par écran : quand la page porte déjà son bandeau photo
-   (accueil de l'agence, « Aujourd'hui » de l'artisan), le repère s'efface —
-   deux bandeaux bleus empilés disaient deux fois la même chose (audit du 24/09). */
-:has(> .repere-visuel):has(.accueil-bandeau, .portail-hero) > .repere-visuel { display: none; }
-.repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0 0 24px; }
 .panneau-marque {
   background-image:
     linear-gradient(115deg, color-mix(in srgb, var(--encre) 96%, transparent) 0%, color-mix(in srgb, var(--marque-sombre) 90%, transparent) 58%, color-mix(in srgb, var(--marque) 24%, transparent) 100%),
@@ -2691,10 +2694,6 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   background-size: cover;
 }
 @media (max-width: 640px) {
-  .repere-visuel { height: 72px; margin: 10px 16px 0; border-radius: 10px; }
-  .repere-visuel-locataire { margin-inline: 16px; }
-  .repere-visuel-artisan { width: calc(100% - 32px); }
-  .repere-visuel-public, .repere-visuel-legal { width: 100%; margin: 0 0 20px; }
   .journal-hero {
     background-image:
       linear-gradient(180deg, var(--ivoire) 0%, color-mix(in srgb, var(--ivoire) 97%, transparent) 70%, color-mix(in srgb, var(--ivoire) 35%, transparent) 100%),

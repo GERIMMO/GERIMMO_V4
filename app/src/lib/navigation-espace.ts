@@ -2,8 +2,9 @@
 //
 // PRINCIPE (refonte v4, 19/09) : même accès qu'avant, nouvel ordre, nouveaux
 // noms. Rien de ce qu'un rôle pouvait atteindre ne disparaît ; ce qui change,
-// c'est ce qui est mis en avant. Neuf entrées principales au plus — celles que
-// le porteur du projet a nommées — et un groupe « Plus » replié pour le reste.
+// c'est ce qui est mis en avant. Les entrées principales sont celles que le
+// porteur du projet a nommées (agenda et statistiques ajoutés le 24/09 : un
+// clic de trop dans « Plus »), et un groupe « Plus » replié pour le reste.
 //
 // CE QUE CE MODULE PRÉSERVE, décision par décision :
 //  · l'agent ne voit ni Comptabilité ni Documents dans son menu (12/09) : il
@@ -98,11 +99,11 @@ export function navigationEspace({
         loyers,
         incidents,
         alertes,
+        agenda,
         messages,
         parametres,
       ],
       secondaires: [
-        agenda,
         { href: `${base}/comptabilite`, libelle: "Livre recettes-dépenses", icone: "livre" },
         { href: `${base}/comptabilite/fiscal`, libelle: "Fiscalité", icone: "livre" },
         documents,
@@ -122,6 +123,8 @@ export function navigationEspace({
         { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
         incidents,
         alertes,
+        agenda,
+        statistiques,
         messages,
         // Les paramètres d'un agent, ce sont ceux de SON compte (mot de passe,
         // second facteur) : le profil de l'agence, il ne le modifie pas. Il
@@ -129,9 +132,7 @@ export function navigationEspace({
         { href: "/compte", libelle: "Paramètres", icone: "roue" },
       ],
       secondaires: [
-        agenda,
         artisans,
-        statistiques,
         { href: `${base}/profil`, libelle: "Profil de l'agence", icone: "cles" },
       ],
       barreBasse: [tableauDeBord, portefeuille, incidents, alertes],
@@ -152,15 +153,17 @@ export function navigationEspace({
       // pour l'agence (audit du 20/09).
       { href: `${base}/comptabilite`, libelle: "Comptabilité", icone: "livre" },
       alertes,
+      // Agenda et statistiques sortent de « Plus » (retour du porteur, 24/09) :
+      // un clic de trop pour deux écrans consultés tous les jours.
+      agenda,
+      statistiques,
       messages,
       parametres,
     ],
     secondaires: [
-      agenda,
       { href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" },
       artisans,
       documents,
-      statistiques,
       abonnement,
       { href: `${base}/administration`, libelle: "Administration", icone: "cles" },
     ],

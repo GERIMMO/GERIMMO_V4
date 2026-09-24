@@ -213,3 +213,49 @@ export async function inscrireProprietaire(
   }
   redirect("/espaces");
 }
+
+// ============================================================
+// Ouvrir un espace propriétaire depuis un compte DÉJÀ connecté (24/09)
+// ============================================================
+//
+// Un compte peut exister sans aucun espace : invitation expirée, inscription
+// interrompue avant la confirmation, compte créé pour autre chose. Jusqu'ici
+// « Mes espaces » lui disait « rapprochez-vous de votre agence » — une impasse
+// pour quelqu'un qui gère ses propres biens. La même fonction que l'inscription
+// (`initialiser_espace_proprietaire`, idempotente) s'appelle ici depuis le
+// compte connecté ; elle lit le nom dans les métadonnées, qu'on pose d'abord.
+
+export type EtatOuvertureEspace = { erreur?: string; valeurs?: Record<string, string> };
+
+export async function ouvrirEspaceProprietaire(
+  _etat: EtatOuvertureEspace,
+  formData: FormData
+): Promise<EtatOuvertureEspace> {
+  const valeurs = valeursDuFormulaire(formData);
+  const nom = String(formData.get("nom") ?? "").trim();
+  const prenom = String(formData.get("prenom") ?? "").trim();
+  if (!nom) return { erreur: "Le nom est obligatoire.", valeurs };
+  if (!formData.get("cgu")) {
+    return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
+  }
+
+  const supabase = await createClient();
+  const { error: erreurProfil } = await supabase.auth.updateUser({
+    data: {
+      nom,
+      prenom,
+      espace: "proprietaire_direct",
+      qualite: String(formData.get("qualite") ?? "").trim(),
+      cgu_version: CONDITIONS_VERSION,
+      cgu_acceptee_le: new Date().toISOString(),
+    },
+  });
+  if (erreurProfil) return { erreur: sansJargon(erreurProfil.message), valeurs };
+
+  const { data: orgId, error } = await supabase.rpc("initialiser_espace_proprietaire");
+  // Refus métier (adresse d'un mandant — exclusivité PD/PM) : dit tel quel.
+  if (error || !orgId) {
+    return { erreur: error ? sansJargon(error.message) : "L'espace n'a pas pu être ouvert. Réessayez dans un instant.", valeurs };
+  }
+  redirect(`/agence/${orgId}`);
+}

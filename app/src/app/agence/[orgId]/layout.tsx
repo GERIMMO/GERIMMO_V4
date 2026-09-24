@@ -188,7 +188,6 @@ export default async function LayoutAgence({
             liens={liensCompte}
           />
         </header>
-        <div className="repere-visuel repere-visuel-agence" aria-hidden="true" />
         {/* L'essai terminé se dit en clair, une fois, en tête : la barre le
             porte aussi, mais un essai échu ferme l'écriture — ça se lit. À
             TOUS les rôles : un agent qui ne peut plus écrire doit savoir

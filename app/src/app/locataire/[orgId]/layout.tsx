@@ -110,7 +110,6 @@ export default async function LayoutLocataire({
             ]}
           />
         </header>
-        <div className="repere-visuel repere-visuel-locataire" aria-hidden="true" />
         {comptesIncertains && (
           <p
             role="alert"

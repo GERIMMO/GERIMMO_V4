@@ -17,9 +17,9 @@ const chemins = (role: RoleEspace) => {
 };
 
 describe("La navigation v4 préserve les accès de chaque rôle", () => {
-  it("donne neuf entrées principales à l'admin d'agence, pas une de plus", () => {
+  it("donne onze entrées principales à l'admin d'agence, agenda et statistiques comprises (24/09)", () => {
     const n = nav("admin_agence");
-    expect(n.principales).toHaveLength(9);
+    expect(n.principales).toHaveLength(11);
     expect(n.principales.map((e) => e.libelle)).toEqual([
       "Tableau de bord",
       "Parc de l'agence",
@@ -28,9 +28,19 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
       "Incidents",
       "Comptabilité",
       "Alertes",
+      "Agenda",
+      "Statistiques",
       "Messages",
       "Paramètres",
     ]);
+  });
+
+  it("ne cache plus l'agenda ni les statistiques sous « Plus », pour aucun rôle", () => {
+    for (const role of ["admin_agence", "agent", "proprietaire_direct"] as RoleEspace[]) {
+      const libelles = nav(role).principales.map((e) => e.libelle);
+      expect(libelles, role).toContain("Agenda");
+      if (role !== "proprietaire_direct") expect(libelles, role).toContain("Statistiques");
+    }
   });
 
   it("ne retire rien à l'admin : mandats, documents, statistiques, abonnement, administration restent atteignables", () => {

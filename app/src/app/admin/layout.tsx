@@ -51,7 +51,6 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
             </div>
           </div>
         </header>
-        <div className="repere-visuel repere-visuel-admin" aria-hidden="true" />
         <div className="portail-ecrans min-w-0 flex-1">{children}</div>
       </div>
     </div>

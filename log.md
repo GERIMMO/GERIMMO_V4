@@ -5428,3 +5428,7 @@ orchestrée page par page avec double vérification, puis corrections.
 **Vérification** : tests unitaires (1 566), lint, types, suite navigateur (accessibilité axe, audit des 84 écrans, parcours par profil) ; CI de la PR #95 rejouée. Trois tests navigateur adaptés aux décisions du jour (plus de photo obligatoire par écran, « Loyers & charges » au menu de l'agent, calendrier sans rôle grille).
 
 **À trancher par le porteur** : voir [[Design system Gerimmo]] § 5 (abonnement pendant l'essai, lecture seule en fin d'essai pour un bien offert, Comptabilité de l'agent, barre basse à quatre entrées, titres d'onglet en marque blanche, deux migrations prêtes).
+
+## [2026-09-24] decision | Le porteur fait trancher les points ouverts du tour « de manière logique »
+
+Règle appliquée : la promesse déjà faite à l'utilisateur, ou la règle déjà écrite, l'emporte. Abonnement pendant l'essai tenu (Stripe `trial_end`) ; fin d'essai sans rien à payer = compte ouvert (migration `org_ecriture_ouverte`, appliquée) ; « Écritures & rapports » dans le « Plus » de l'agent ; barre basse à quatre entrées et titres d'onglet inchangés ; migrations « nom de l'agent » écartées (manque de modèle) ; libellés gardés ; restes mineurs faits, dont la cohérence du compteur d'alertes. Détail dans [[Design system Gerimmo]] § 5.

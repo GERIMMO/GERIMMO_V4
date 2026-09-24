@@ -224,16 +224,18 @@ Ce que le tour a fixé comme règles, en plus des principes du § 1 :
 > - **PDF** : ils gardent leur charte (bleu, or, ivoire). Aligner ou non reste
 >   une décision du porteur.
 
-### Après le tour du 24/09 — à trancher par le porteur
+### Après le tour du 24/09 — les décisions (prises le soir même, à la demande du porteur)
 
-- **Abonnement pendant l'essai (P1).** La page promettait que souscrire pendant l'essai ne fait pas payer plus tôt, alors que la session Stripe part sans période d'essai. La page ne le promet plus ; pour tenir la promesse, `lib/stripe.ts` (`creerSessionPaiement`) doit recevoir `trial_end` = fin de l'essai. Décision de facturation.
-- **Fin d'essai et bien offert.** La base met en lecture seule à la fin de l'essai même un propriétaire qui ne gère qu'un bien, alors que la FAQ, les conditions (art. 8.2) et « Mon abonnement » disent le premier bien offert à vie. Contradiction à lever d'un côté ou de l'autre.
-- **Comptabilité de l'agent.** Décision du 12/09 : l'agent n'a plus de page Comptabilité. Pourtant son tableau de bord l'y envoie (« Valider » un rapport de gestion) et « Loyers & charges », revenu à son menu, porte les mêmes gestes. Rendre l'entrée, ou retirer les liens.
-- **Barre basse à quatre entrées.** L'agent n'y a pas « Loyers & charges », l'admin pas « Incidents » : l'arbitrage suit la règle « quatre entrées + Menu ». Passer à cinq ou six serre les cibles.
-- **Titres d'onglet en marque blanche.** Les 27 pages de l'espace agence suffixent « — Gerimmo » ; un `generateMetadata` du layout pourrait mettre le nom de l'organisation. Un vérificateur l'a jugé acceptable pour l'équipe d'une agence.
-- **Deux migrations prêtes, non appliquées** (schéma uniquement via MCP) : `org_membres_gerants` renvoyant un nom (fiche personne « Confié à ») et `mon_gestionnaire_locataire` avec le prénom et le nom de l'agent (espace locataire).
-- **Libellés à confirmer** : « Sans rôle en cours » (agence) / « Sans bail en cours » (propriétaire) pour une fiche sans rôle ; carte « Mandats » masquée sur la fiche d'un locataire ; « Fiche mandant » réduit à la flèche sur téléphone ; « Conservé 5 ans » ; « Validé Gerimmo » ; le compteur « Encore N créneaux » au-dessus du bouton.
-- **Restes non corrigés** : le composant `mesure-autonomie` de la console (grille, libellés, titre paramétrable) ; l'impression de la quittance depuis « Mes documents » (`?imprimer=1`) ; le placeholder « 12 rue des Lilas » du formulaire de bien ; les libellés « Loyer HC » et « Trimestre IRL » du formulaire de bail.
+Le porteur a demandé de trancher « de manière logique » : à chaque fois, la promesse déjà faite à l'utilisateur ou la règle déjà écrite l'emporte.
+
+- **Abonnement pendant l'essai** — *tenu* : la session Stripe reçoit `trial_end` (fin de l'essai, si elle est à plus de 48 h) ; la carte n'est débitée qu'à la fin de l'essai, et la page le redit avec la date. Sous 48 h, prélèvement immédiat et phrase adaptée.
+- **Fin d'essai et bien offert** — *les conditions l'emportent* : `org_ecriture_ouverte` laisse l'écriture ouverte quand la quantité facturable est nulle (propriétaire d'un seul bien, agence sans lot sous mandat actif — personne ne doit rien). Migration `20260924200000_essai_fini_rien_a_payer`, appliquée ; tests SQL mis à jour.
+- **Comptabilité de l'agent** — *la décision du 12/09 tient, sans impasse* : hors du menu principal, mais « Écritures & rapports » dans son groupe « Plus », puisque la validation des rapports de gestion n'existe que là et que son tableau de bord l'y envoie.
+- **Barre basse à quatre entrées** — *inchangée* : la règle du § 3 ; « Menu » s'allume et porte les compteurs des entrées qu'il cache.
+- **Titres d'onglet « — Gerimmo »** — *inchangés* dans l'espace agence (l'équipe d'une agence se sert de l'outil Gerimmo).
+- **Migrations « nom de l'agent »** — *non appliquées* : les comptes d'agent n'ont pas de nom en base (`accounts` ne porte qu'un e-mail), la tuyauterie resterait vide. À traiter comme un manque de modèle (un nom d'affichage sur le compte ou l'adhésion).
+- **Libellés** — *gardés* : « Sans rôle en cours » / « Sans bail en cours », carte « Mandats » masquée sur la fiche d'un locataire, « Fiche mandant » réduit à la flèche sur téléphone, « Conservé 5 ans », « Validé Gerimmo », compteur de créneaux au-dessus du bouton.
+- **Restes** — *faits* : `mesure-autonomie` de la console (liste sous 640 px, grille, titre paramétrable, « Par activité » ouvert, libellés lisibles), impression de la quittance depuis « Mes documents » (`?imprimer=1`), « ex. 12 rue des Lilas », libellés du formulaire de bail (« Loyer hors charges », « Trimestre de l'indice de référence des loyers (IRL) », « Révision annuelle du loyer (IRL) »), dates des diagnostics affichées en français ; et le **compteur d'alertes** : l'accueil, le badge « Alertes » et la page Alertes lisent le même calcul (`lib/actions-du-jour.ts`), la page montrant aussi les rangs « À débloquer sur les baux ».
 
 ## Relations
 

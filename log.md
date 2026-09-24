@@ -5387,3 +5387,33 @@ cinq personas à 1 280 et 390 px avant / après sur le banc local.
 références visuelles à régénérer, rail tablette au doigt, 22 défauts P2/P3
 structurels, charte des PDF.
 
+## [2026-09-24] implementation | Retours du porteur sur la version en ligne — bandeau, rangs, menu, agenda
+
+Quatre retours, captures à l'appui, sur `main` déployé : « le bandeau entouré
+est en trop et sur plusieurs pages » ; « dans les lots une partie non cliquable,
+je veux que tout le carré soit cliquable » ; « je dois appuyer sur Plus pour
+Statistiques et Agenda, un clic en trop » ; « l'agenda : un calendrier mensuel
+où je clique sur le jour pour le détail ».
+
+**Fait** (commit `e0cad10`, branche `claude/compassionate-euler-qpqjp6`) :
+- le repère photographique retiré de tous les espaces et pages (11 fichiers)
+  et de la feuille de style ; l'accueil garde son bandeau photo ;
+- `.rang-lot` en pleine largeur : le rang entier se clique ;
+- Agenda et Statistiques en entrées principales pour les trois rôles (admin :
+  onze entrées) ; tests de navigation mis à jour ;
+- **agenda mensuel** : `moisAgenda` / `jourAgenda` (lib), vue « mois » sans
+  pagination (500 au plus) dans `chargerAgendaGestion`, grille de sept
+  colonnes, case du jour en bleu plein, rendez-vous du jour cliqué listés
+  dessous ; tests unitaires ajoutés ;
+- et, en réponse au point ouvert de la veille : **« Que voulez-vous faire ? »**
+  pour un compte connecté sans espace (ouverture de l'espace propriétaire par
+  la RPC `initialiser_espace_proprietaire` après pose du nom en métadonnées),
+  vérifié au navigateur sur un compte neuf du banc.
+
+**Vérifié** : typage, lint, 1 565 tests, captures. Le banc local s'était
+arrêté en entier en cours de route (Postgres, API, serveur) — relancé.
+
+**En cours** : « fais le tour du site pour faire attention à ce genre de
+détail » — 110 pages capturées (six personas, 1 280 et 390 px), relecture
+orchestrée page par page avec double vérification, puis corrections.
+

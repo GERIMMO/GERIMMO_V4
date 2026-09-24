@@ -117,9 +117,12 @@ avancent au survol. Jamais de rotation décorative, jamais de rebond ailleurs.
 
 | Primitive | Classe / composant | Règle |
 |---|---|---|
-| Coquille des espaces | `.coquille`, `barre-laterale.tsx` | Colonne 232 px → rail d'icônes < 1024 px → **barre basse de 4 entrées + tiroir « Menu »** < 640 px. Les 4 entrées sont **choisies par rôle** (`navigation-espace.ts`), pas les 4 premières |
+| Coquille des espaces | `.coquille`, `barre-laterale.tsx` | Colonne 232 px → rail d'icônes < 1024 px → **barre basse de 4 entrées + tiroir « Menu »** < 640 px. Les 4 entrées sont **choisies par rôle** (`navigation-espace.ts`), pas les 4 premières. **Agenda et Statistiques sont des entrées principales** (retour du porteur, 24/09 : « un clic en trop » derrière « Plus ») |
 | Espace locataire | `.loc-*`, `nav-locataire.tsx` | Même barre basse que l'agence sur téléphone (24/09) ; nom de l'agence et « Espace locataire » l'un sous l'autre |
-| Bandeau d'accueil | `.accueil-bandeau` | Encre → bleu, texte blanc ; photo à droite sous un voile qui s'ouvre vers elle ; sans photo, des anneaux. Il **remplace** le repère photo de la coquille (une seule photo par écran) |
+| Bandeau d'accueil | `.accueil-bandeau` | Encre → bleu, texte blanc ; photo à droite sous un voile qui s'ouvre vers elle ; sans photo, des anneaux. **C'est la seule photo d'un espace** : le « repère photographique » qui coiffait chaque page a été retiré partout (retour du porteur, 24/09 : « le bandeau est en trop ») |
+| Agenda | `agenda/page.tsx`, `.agenda-calendrier`, `.agenda-jour` | **Calendrier mensuel** : une case par jour, le chiffre dit combien de rendez-vous commencent ce jour-là, un clic sur le jour lit ses rendez-vous dessous (retour du porteur, 24/09). Les vues « Dates à confirmer » et « À vérifier » restent des listes |
+| Rang de liste | `.rang`, `.rang-lot` | **Tout le rang se clique** (`width: 100%`), jamais seulement le texte (retour du porteur, 24/09 : « je veux que tout le carré soit cliquable ») |
+| Compte sans espace | `espaces/choix-espace.tsx` | « Que voulez-vous faire ? » : ouvrir son espace propriétaire en une étape (même RPC idempotente que l'inscription), inscrire son entreprise d'artisan, ou apprendre que l'agence invite |
 | Tuile de chiffre | `.tuile.{ok,attention,probleme,accent,neutre}` | Fond, chiffre et pastille d'icône au ton de l'état ; grille `auto-fit` sur la largeur du **conteneur** |
 | KPI (fiches) | `.kpi.{vert,ambre,rouge,bleu}` + `.grille-kpi` | Liseré gauche 4 px, jamais `sm:grid-cols-3` |
 | Assistant | `.assistant`, `.assistant-tete` | En-tête bleu plein : c'est lui qui parle. Il explique et propose, il ne décide pas |
@@ -192,9 +195,6 @@ captures des cinq personas à 1 280 et 390 px avant / après.
 ## 5. Ce qui reste ouvert
 
 > [!warning] Points à trancher / à faire
-> - **Un compte sans espace** : « Créer mon espace propriétaire » ne peut pas
->   pointer sur `/inscription` (le proxy renvoie tout compte connecté vers
->   `/espaces`). Il faut décider d'une voie d'entrée pour un compte existant.
 > - **La coquille est hors couche CSS** : ses règles priment sur les
 >   utilitaires des pages. La faire entrer dans `@layer components` est un
 >   chantier à part, écran par écran, avec le garde-fou visuel.

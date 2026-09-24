@@ -37,7 +37,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
     <div className="admin-coquille max-[900px]:grid-rows-[auto_minmax(0,1fr)]">
       <PresenceSupervision />
       <aside className="admin-late">
-        <Link href="/admin" className="admin-marque" aria-label="Accueil de la supervision">
+        <Link href="/admin/brief" className="admin-marque" aria-label="Accueil de la supervision">
           <MarqueGerimmo />
         </Link>
         <nav className="admin-nav" aria-label="Navigation de la supervision">
@@ -49,7 +49,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           <div className="admin-bandeau-interieur">
             {/* « Supervision », le nom de la barre et du titre (24/09). Sur
                 téléphone, le logo et l'onglet allumé disent déjà où l'on est. */}
-            <Link href="/admin" className="admin-contexte max-sm:hidden">
+            <Link href="/admin/brief" className="admin-contexte max-sm:hidden">
               Supervision
             </Link>
             <div className="admin-bandeau-actions">

@@ -64,7 +64,7 @@ export function SidebarLocataire({
       badge: badgeDemandes,
     },
     { href: `${base}/contact`, libelle: "Mon gestionnaire", icone: "bulle", badge: badgeMessages },
-    { href: "/veille?public=locataire", libelle: "Les règles à connaître", icone: "doc" },
+    { href: `/veille?public=locataire&retour=${encodeURIComponent(base)}`, libelle: "Les règles à connaître", icone: "doc" },
     { href: `${base}/faq`, libelle: "Questions fréquentes", icone: "quest" },
   ];
 
@@ -93,7 +93,7 @@ export function SidebarLocataire({
       {entrees.map((e) => {
         const active = e.exact
           ? pathname === e.href
-          : pathname.startsWith(e.href) || (e.aussi ? pathname.startsWith(e.aussi) : false);
+          : (pathname === e.href.split("?")[0] || pathname.startsWith(`${e.href.split("?")[0]}/`)) || (e.aussi ? pathname.startsWith(e.aussi) : false);
         const nb = e.badge ?? 0;
         return (
           <Link

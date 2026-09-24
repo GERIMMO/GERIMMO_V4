@@ -48,6 +48,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
           {periode ? ` · ${periode}` : ""}
         </span>
       </div>
+      {p.facebook_erreur && <p role="alert" className="err mb-5">{sansJargon(p.facebook_erreur)}</p>}
       <EditeurPublication
         id={p.id}
         titre={p.titre}

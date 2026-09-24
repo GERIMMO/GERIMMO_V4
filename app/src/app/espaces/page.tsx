@@ -36,7 +36,7 @@ type Adhesion = {
 };
 
 function cheminEspace(a: Adhesion): string | null {
-  if (a.role === "super_admin") return "/admin";
+  if (a.role === "super_admin") return "/admin/brief";
   // Le propriétaire direct partage les écrans de l'espace agence dès le S2
   // (parcours communs du plan) ; ses écrans propres arrivent au S9
   if (["admin_agence", "agent", "proprietaire_direct"].includes(a.role))
@@ -96,7 +96,7 @@ export default async function PageEspaces() {
   //
   // Le sélecteur n'est pas perdu pour autant : il reste l'écran des comptes
   // multirôles ordinaires, et la console y ramène.
-  if (estSuperAdmin) redirect("/admin");
+  if (estSuperAdmin) redirect("/admin/brief");
   const { data: estRelais } = await supabase.rpc("has_supervision_power", { p_pouvoir: "lecture" });
 
 

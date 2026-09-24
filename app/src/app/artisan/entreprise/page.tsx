@@ -170,7 +170,7 @@ export default async function PageEntreprise() {
         codesPostaux={fiche.codes_postaux ?? []}
       />
 
-      <Link href="/veille?public=artisan" className="btn-secondaire">Les règles à connaître pour mon activité</Link>
+      <Link href="/veille?public=artisan&retour=%2Fartisan%2Fentreprise" className="btn-secondaire">Les règles à connaître pour mon activité</Link>
 
       <ReglageVisibilite
         visibilite={fiche.visibilite}

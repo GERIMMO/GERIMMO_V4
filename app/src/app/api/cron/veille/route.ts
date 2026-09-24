@@ -1,3 +1,4 @@
+import {messageEtudeIA} from '@/lib/erreur-ia';
 import {lireSourceEtude,etudierVeille,type SourceEtude} from '@/lib/analyse-veille';
 import {FLUX_VEILLE,lireFluxVeille,chargerFluxVeille} from '@/lib/veille-reglementaire';
 import {porteurDuSecret,consignerTache} from '@/lib/tache';
@@ -19,7 +20,7 @@ export async function GET(request:Request){
   const sources:SourceEtude[]=[];
   await Promise.all(attente.map(async info=>{try{sources.push({id:info.id,titre:info.titre,url:info.source_url,texte:await lireSourceEtude(info.source_url)});}catch{echecs.push('Lecture d’une source officielle');await db.from('regulatory_watch').update({analyse_erreur:'La source officielle doit être relue avant de préparer une étude.',analyse_tentee_le:new Date().toISOString()}).eq('id',info.id);}}));
   if(sources.length)try{for(const analyse of await etudierVeille(sources)){const {error}=await db.rpc('conserver_etude_veille',{p_id:analyse.id,p_analyse:analyse});if(error)echecs.push('Enregistrement d’une étude');else etudiees++;}}
-  catch{echecs.push('Analyse des conséquences à reprendre');for(const source of sources)await db.from('regulatory_watch').update({analyse_erreur:'L’étude n’a pas abouti. Vérifiez la connexion de l’IA ; aucun résultat n’est présenté comme validé.',analyse_tentee_le:new Date().toISOString()}).eq('id',source.id);}
+  catch(e){echecs.push('Analyse des conséquences à reprendre');for(const source of sources)await db.from('regulatory_watch').update({analyse_erreur:messageEtudeIA(e),analyse_tentee_le:new Date().toISOString()}).eq('id',source.id);}
  }
  await consignerTache(db,'veille',{preparees,etudiees,echecs,sources:FLUX_VEILLE.length});
  return Response.json({preparees,etudiees,echecs},{status:echecs.length?503:200});

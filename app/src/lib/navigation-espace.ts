@@ -113,7 +113,7 @@ export function navigationEspace({
         messages,
       ],
       secondaires: [
-        {href:'/veille?public=bailleur',libelle:'Les règles à connaître',icone:'livre'},
+        {href:`/veille?public=bailleur&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
         parametres,
         { href: `${base}/comptabilite/fiscal`, libelle: "Fiscalité", icone: "livre" },
         documents,
@@ -149,7 +149,7 @@ export function navigationEspace({
         { href: "/compte", libelle: "Paramètres", icone: "roue" },
       ],
       secondaires: [
-        {href:'/veille?public=agence',libelle:'Les règles à connaître',icone:'livre'},
+        {href:`/veille?public=agence&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
         artisans,
         // La comptabilité reste hors de son menu principal : ses écritures et
         // ses rapports de gestion sont sous « Plus » (24/09). Son tableau de
@@ -185,7 +185,7 @@ export function navigationEspace({
       parametres,
     ],
     secondaires: [
-      {href:'/veille?public=agence',libelle:'Les règles à connaître',icone:'livre'},
+      {href:`/veille?public=agence&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
       { href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" },
       artisans,
       documents,
@@ -200,7 +200,7 @@ export function navigationEspace({
 export function entreeActive(entrees: EntreeNav[], chemin: string): EntreeNav | null {
   let meilleure: EntreeNav | null = null;
   for (const e of entrees) {
-    const touche = e.exact ? chemin === e.href : chemin === e.href || chemin.startsWith(`${e.href}/`);
+    const touche = e.exact ? chemin === e.href.split("?")[0] : chemin === e.href.split("?")[0] || chemin.startsWith(`${e.href.split("?")[0]}/`);
     if (touche && (!meilleure || e.href.length > meilleure.href.length)) meilleure = e;
   }
   return meilleure;

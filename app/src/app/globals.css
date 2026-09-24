@@ -2786,3 +2786,24 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 /* Administration → fiche du mandant, ancre « Confié à » : sous la barre haute
    fixe du téléphone, le champ arrivait caché (24/09). */
 select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
+
+/* Navigation de supervision : destinations regroupées, accessibles sans défilement horizontal. */
+.admin-menu-groupes { width: 100%; min-width: 0; }
+.admin-menu-groupe { border-top: 1px solid var(--filet); margin-top: 5px; padding-top: 5px; }
+.admin-menu-groupe > summary { cursor: pointer; padding: 12px 8px; font-size: 13px; font-weight: 650; color: var(--encre); min-height: 44px; }
+.admin-menu-groupe > div { padding-left: 6px; }
+@media (max-width: 900px) {
+  .admin-nav:has(.admin-menu-groupes) { overflow: visible; display: block; }
+  .admin-menu-groupes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; align-items: start; }
+  .admin-menu-groupes > .admin-nav-lien { grid-column: 1 / -1; }
+  .admin-menu-groupes .admin-nav-lien { white-space: normal; width: 100%; }
+  .admin-menu-groupe[open] { grid-column: 1 / -1; }
+  .admin-menu-groupe > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.admin-menu-conteneur { width: 100%; min-width: 0; }
+.admin-menu-mobile { display: none; }
+@media (max-width: 900px) {
+ .admin-menu-mobile { display: flex; min-height: 44px; width: 100%; align-items: center; padding: 8px 12px; font-weight: 650; color: var(--encre); }
+ .admin-menu-groupes.ferme { display: none; }
+}

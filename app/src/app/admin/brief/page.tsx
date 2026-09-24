@@ -6,7 +6,7 @@ import { dernieresTaches, type PasseConsignee } from "@/lib/tache";
 import { BoutonBriefIA } from "./bouton-ia";
 import { OuvrirAlertes } from "./ouvrir-alertes";
 
-export const metadata = { title: "Brief de pilotage — Gerimmo" };
+export const metadata = { title: "Aujourd’hui — Gerimmo" };
 
 type Signal = { titre: string; detail: string; href?: string; action: string; niveau: "urgent" | "attention" | "suivi" };
 
@@ -18,7 +18,7 @@ export default async function PageBrief() {
   // L'accès super admin est contrôlé par le layout. Chaque lecture conserve son
   // état d'erreur : une source indisponible ne devient jamais un faux zéro.
   const supabase = await createClient();
-  const [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques] = await Promise.all([
+  const [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques, artisans, evolutions, veille, missions] = await Promise.all([
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").in("etat", ["nouveau", "en_examen", "en_cours"]),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").in("etat", ["nouveau", "en_examen", "en_cours"]),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "idee").in("etat", ["nouveau", "en_examen"]),
@@ -27,6 +27,10 @@ export default async function PageBrief() {
     supabase.from("organizations").select("id", { count: "exact", head: true }).in("status", ["active", "essai"]),
     supabase.from("tech_log").select("evenement, details, created_at").like("evenement", "tache_%").order("created_at", { ascending: false }).limit(200),
     supabase.from("alerts").select("id", { count: "exact", head: true }).eq("statut", "ouverte").eq("criticite", "critique"),
+    supabase.rpc("artisans_a_valider"),
+    supabase.from("development_proposals").select("id", { count: "exact", head: true }).eq("statut", "autorisation"),
+    supabase.from("regulatory_watch").select("id", { count: "exact", head: true }).eq("statut", "a_examiner").not("analyse_le", "is", null),
+    supabase.from("agent_passages").select("mission,etat,debut").order("debut", { ascending: false }).limit(200),
   ]);
 
   const configuration = etatConfiguration(process.env);
@@ -35,12 +39,15 @@ export default async function PageBrief() {
     taches.error ? [] : etatTaches(dernieresTaches((taches.data ?? []) as PasseConsignee[]), new Date()),
     faitsManquants().length
   );
-  const lecturesEnEchec = [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques].filter((r) => r.error).length;
+  const lecturesEnEchec = [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques, artisans, evolutions, veille, missions].filter((r) => r.error).length;
   const valeurs = {
     bugsN1: nombre(bugsN1), bugs: nombre(bugs), idees: nombre(idees),
     devis: nombre(devis), brouillons: nombre(brouillons), comptes: nombre(comptes), alertesCritiques: nombre(alertesCritiques),
   };
   const signaux: Signal[] = [];
+  const validationsArtisans = artisans.error ? null : Array.isArray(artisans.data) ? artisans.data.length : 0;
+  const evolutionsAttendues = nombre(evolutions), etudesARelire = nombre(veille);
+
   if (valeurs.bugsN1 === null || valeurs.bugsN1 > 0) signaux.push({
     titre: "Vérifier les incidents bloquants",
     detail: valeurs.bugsN1 === null ? "Le nombre de problèmes bloquants est indisponible." : `${valeurs.bugsN1} problème${valeurs.bugsN1 > 1 ? "s" : ""} bloquant${valeurs.bugsN1 > 1 ? "s" : ""} à corriger.`,
@@ -58,10 +65,19 @@ export default async function PageBrief() {
     detail: taches.error ? "L'historique des tâches est indisponible." : `${sante} point${sante > 1 ? "s" : ""} de configuration ou de contrôle à traiter.`,
     href: "/admin/sante", action: "Voir les contrôles", niveau: "urgent",
   });
+  if (validationsArtisans === null || validationsArtisans > 0) signaux.push({
+    titre: "Valider les artisans", detail: validationsArtisans === null ? "La liste des inscriptions est indisponible." : `${validationsArtisans} inscription(s) à examiner avant autorisation.`, href: "/admin/artisans", action: "Examiner les inscriptions", niveau: "attention",
+  });
+  if (evolutionsAttendues === null || evolutionsAttendues > 0) signaux.push({
+    titre: "Décider des évolutions préparées", detail: evolutionsAttendues === null ? "Les décisions attendues sont indisponibles." : `${evolutionsAttendues} proposition(s) attendent votre accord sur une version précise.`, href: "/admin/autonomie#ameliorations", action: "Examiner les propositions", niveau: "attention",
+  });
+  if (etudesARelire === null || etudesARelire > 0) signaux.push({
+    titre: "Relire les études réglementaires", detail: etudesARelire === null ? "Les études à relire sont indisponibles." : `${etudesARelire} étude(s) préparée(s) attendent votre décision pour les utilisateurs.`, href: "/admin/veille", action: "Relire les études", niveau: "attention",
+  });
   if (valeurs.devis === null || valeurs.devis > 0) signaux.push({
     titre: "Répondre aux demandes commerciales",
     detail: valeurs.devis === null ? "La file des devis est indisponible." : `${valeurs.devis} demande${valeurs.devis > 1 ? "s" : ""} en attente.`,
-    href: "/admin/devis", action: "Ouvrir les devis", niveau: "attention",
+    href: "/admin/devis", action: "Voir les demandes commerciales", niveau: "attention",
   });
   if (valeurs.idees === null || valeurs.idees > 0 || (valeurs.bugs ?? 0) > 0) signaux.push({
     titre: "Trier les retours utilisateurs",
@@ -82,7 +98,7 @@ export default async function PageBrief() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Brief de pilotage</h1>
+        <h1>Aujourd’hui</h1>
         <span className="mono-discret">Situation au {situation}</span>
       </div>
       <p className="mesure-lecture mb-6 text-sm text-muted-foreground">
@@ -115,6 +131,12 @@ export default async function PageBrief() {
         )}
       </section>
 
+      <section className="section-ecran">
+        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Le travail des équipes</h2>
+        <p className="text-sm text-muted-foreground">Les urgences et décisions passent d’abord. Les opérations déjà autorisées continuent pendant vos rendez-vous commerciaux.</p>
+        <p className="mt-3 text-sm">{missions.error ? "Le suivi des équipes est indisponible : leur bon fonctionnement ne peut pas être confirmé." : !missions.data?.length ? "Aucun passage enregistré pour le moment. Vérifiez les équipes avant de vous absenter." : "Consultez le dernier résultat de chaque équipe et ses éventuelles difficultés. Un passage terminé ne signifie pas que tous les dossiers sont résolus."}</p>
+        <div className="mt-4 flex flex-wrap gap-3"><Link href="/admin/equipes" className="btn-secondaire">Vérifier mes équipes</Link><Link href="/admin/autonomie" className="btn-secondaire">Étudier les dossiers</Link><Link href="/admin/marketing" className="btn-secondaire">Suivre les publications</Link></div>
+      </section>
       <section className="section-ecran">
         <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Croissance : ordre de travail</h2>
         <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">Hypothèse à valider avec conversions et coûts d&apos;acquisition : commencer par les propriétaires qui gèrent eux-mêmes leurs biens, constituer ensuite un réseau d&apos;artisans là où les interventions le justifient, puis développer les agences quand le service et les opérations sont stables.</p>

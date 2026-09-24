@@ -502,5 +502,41 @@
     "persona": "superadmin",
     "label": "Sécurité des données",
     "dynamic": ""
+  },
+  {
+    "path": "/admin/veille",
+    "persona": "superadmin",
+    "label": "Veille à superviser",
+    "dynamic": ""
+  },
+  {
+    "path": "/veille?public=artisan",
+    "persona": "artisan",
+    "label": "Règles pour les artisans",
+    "dynamic": ""
+  },
+  {
+    "path": "/veille?public=bailleur",
+    "persona": "proprietaire",
+    "label": "Règles pour les bailleurs",
+    "dynamic": ""
+  },
+  {
+    "path": "/veille?public=locataire",
+    "persona": "locataire",
+    "label": "Règles pour les locataires",
+    "dynamic": ""
+  },
+  {
+    "path": "/veille?public=agence",
+    "persona": "admin-agence",
+    "label": "Règles pour les agences",
+    "dynamic": ""
+  },
+  {
+    "path": "/veille?public=agence",
+    "persona": "agent",
+    "label": "Règles pour les agents",
+    "dynamic": ""
   }
 ]

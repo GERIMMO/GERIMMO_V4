@@ -130,6 +130,14 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
 it("la veille apparaît une seule fois et vise le public du profil",()=>{
  for(const role of ['admin_agence','agent','proprietaire_direct'] as RoleEspace[]){
   const entrees=chemins(role).filter(p=>p.startsWith('/veille'));
-  expect(entrees).toEqual([role==='proprietaire_direct'?'/veille?public=bailleur':'/veille?public=agence']);
+  expect(entrees).toHaveLength(1);
+  const cible=new URL(entrees[0], 'https://gerimmo.app');
+  expect(cible.searchParams.get('public')).toBe(role==='proprietaire_direct'?'bailleur':'agence');
+  expect(cible.searchParams.get('retour')).toBe(`/agence/${ORG}`);
  }
+});
+
+it('retrouve une destination filtrée sans confondre sa requête avec le chemin', () => {
+  const lien = {href:'/veille?public=bailleur',libelle:'Les règles à connaître',icone:'livre'};
+  expect(entreeActive([lien], '/veille')).toBe(lien);
 });

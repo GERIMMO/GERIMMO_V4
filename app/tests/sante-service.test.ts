@@ -113,7 +113,7 @@ describe("les tâches planifiées", () => {
     created_at: new Date(maintenant.getTime() - il_y_a_heures * 3_600_000).toISOString(),
   });
 
-  it("couvre les neuf tâches de vercel.json, dans l'ordre de la journée", () => {
+  it("couvre les tâches suivies, y compris la veille", () => {
     expect(TACHES.map((t) => t.nom)).toEqual([
       "orchestrateur",
       "signatures",
@@ -122,6 +122,7 @@ describe("les tâches planifiées", () => {
       "quittances",
       "appels",
       "relances",
+      "veille",
       "marketing",
       "territoire",
     ]);
@@ -147,6 +148,7 @@ describe("les tâches planifiées", () => {
       abonnements: "jamais",
       relances: "jamais",
       marketing: "jamais",
+      veille: "jamais",
     });
   });
 

@@ -225,6 +225,7 @@ export const TACHES: Tache[] = [
   { nom: "quittances", libelle: "Quittances", role: "Envoie les quittances lorsque le loyer est entièrement réglé", horaire: "Chaque matin", periodicite: "quotidienne" },
   { nom: "appels", libelle: "Avis d'échéance", role: "Envoie l'avis du prochain loyer aux organisations qui le souhaitent", horaire: "Chaque matin", periodicite: "quotidienne" },
   { nom: "relances", libelle: "Relances d'impayé", role: "Envoie les relances prévues lorsqu'un loyer reste impayé", horaire: "Chaque matin", periodicite: "quotidienne" },
+  { nom: "veille", libelle: "Veille réglementaire", role: "Collecte les actualités officielles et prépare leur étude", horaire: "Chaque matin", periodicite: "quotidienne" },
   { nom: "marketing", libelle: "Agent marketing", role: "Prépare et diffuse les contenus autorisés", horaire: "Chaque matin", periodicite: "quotidienne" },
   { nom: "territoire", libelle: "Développement territorial", role: "Actualise le marché et prépare la prochaine priorité territoriale", horaire: "Chaque matin", periodicite: "quotidienne" },
 ];
@@ -263,7 +264,7 @@ export function resumerBilan(bilan: unknown): string {
     })
     .filter(Boolean)
     .join(", ");
-  return resume || "Passage terminé";
+  return resume || ((bilan as Record<string, unknown>).erreur ? "Action à reprendre : ouvrir le dossier concerné pour connaître la difficulté." : "Passage terminé");
 }
 
 /**

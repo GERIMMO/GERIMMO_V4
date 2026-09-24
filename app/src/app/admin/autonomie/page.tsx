@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { MesureAutonomie } from '@/components/mesure-autonomie';
 import { ETATS_DEVELOPPEMENT, ETATS_DOSSIER, TYPES_DOSSIER, lienDossier } from '@/lib/pilotage';
 import { ActualiserDossiers, DecisionAmelioration, FormulaireDelegation, RevoquerDelegation } from './formulaire-delegation';
-export const metadata={title:'Pilotage autonome — Gerimmo'};
+export const metadata={title:'Dossiers et évolutions — Gerimmo'};
 const carte='rounded-2xl border border-border bg-white p-5 shadow-sm';
 const filtres:Record<string,string>={tous:'Tous les dossiers',bail:'Locations',loyer:'Loyers en retard',incident:'Incidents',intervention:'Interventions',document:'Documents',rapport:'Finance et rapports'};
 const risques:Record<string,string>={faible:'Impact limité',moyen:'À examiner',eleve:'Impact important',critique:'Priorité critique'};
@@ -29,7 +29,7 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
   {/* L'en-tête commun de la console (24/09) : le bandeau dégradé « Vos
       équipes Gerimmo » disparaît, et le titre reprend enfin le nom de
       l'entrée de barre. L'actualisation, geste principal, monte ici. */}
-  <div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><h1>Pilotage autonome</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">Le travail en cours et les décisions à prendre : la prochaine étape de chaque dossier, les améliorations préparées et le relais prévu en votre absence.</p></div><div className="flex flex-wrap items-center gap-3"><span className="mono-discret">Actualisé chaque matin</span><ActualiserDossiers /></div></div>
+  <div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><h1>Dossiers et évolutions</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">Le travail en cours et les décisions à prendre : la prochaine étape de chaque dossier, les améliorations préparées et le relais prévu en votre absence.</p></div><div className="flex flex-wrap items-center gap-3"><span className="mono-discret">Actualisé chaque matin</span><ActualiserDossiers /></div></div>
   {/* Les ancres portent le nom des sections visées ; « Marketing » et
       « Territoires » doublaient la barre sous d'autres noms (24/09). */}
   <Link href="/admin/equipes" className="btn-secondaire">Commander les équipes</Link>

@@ -275,18 +275,18 @@ export default async function PageAdmin() {
       )}
 
       <Link href="/admin/brief" className="mb-5 flex items-center justify-between gap-3 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm text-[var(--encre)] hover:bg-[var(--survol)]">
-        <span><b>Brief de pilotage</b><span className="ml-2 text-[var(--texte-secondaire)]">Priorités, signaux utilisateurs et ordre de croissance.</span></span>
+        <span><b>Aujourd’hui</b><span className="ml-2 text-[var(--texte-secondaire)]">Priorités, signaux utilisateurs et ordre de croissance.</span></span>
         <span className="lien-discret shrink-0">Ouvrir →</span>
       </Link>
 
       <MesureAutonomie titre="Ce que Gerimmo automatise, toutes organisations" />
 
-      {/* « Pilotage autonome » : le nom de l'entrée de barre, de la page et de
+      {/* « Dossiers et évolutions » : le nom de l'entrée de barre, de la page et de
           cette section (24/09). « Centre de commandement » et « Vos équipes
           Gerimmo » en étaient deux autres. */}
       <section className="section-ecran">
         <div className="entete-carte mb-4">
-          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Pilotage autonome</h2>
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Dossiers et évolutions</h2>
           <Link href="/admin/autonomie" className="lien-discret text-[12.5px]">
             7 équipes spécialisées →
           </Link>

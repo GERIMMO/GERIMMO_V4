@@ -1,3 +1,4 @@
+import {GET as veille} from '../veille/route';
 import {GET as appels} from '../appels/route';
 import {GET as quittances} from '../quittances/route';
 import {GET as relances} from '../relances/route';
@@ -10,8 +11,8 @@ import {porteurDuSecret} from '@/lib/tache';
 import {clientDeService} from '@/lib/supabase/service';
 import {estMission} from '@/lib/missions';
 import {executerMission} from '@/lib/execution-mission';
-export const dynamic='force-dynamic';export const maxDuration=60;
-const traitements={appels,quittances,relances,rappels,abonnements,signatures,marketing,territoire};
+export const dynamic='force-dynamic';export const maxDuration=180;
+const traitements={veille,appels,quittances,relances,rappels,abonnements,signatures,marketing,territoire};
 export async function GET(request:Request){
  if(!porteurDuSecret(request,process.env.CRON_SECRET))return Response.json({erreur:'Non autorisé.'},{status:401});
  const cle=new URL(request.url).searchParams.get('mission')??'';

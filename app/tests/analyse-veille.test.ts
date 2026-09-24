@@ -1,0 +1,11 @@
+import {describe,it,expect} from 'vitest';
+import {validerEtudes,extraireTexteOfficiel} from '../src/lib/analyse-veille';
+const source={id:'test',titre:'Information officielle',url:'https://www.service-public.gouv.fr/x',texte:'Les devis des artisans comportent des informations à vérifier pour ce test.'};
+const analyse={id:'test',resume:'Une information qui mérite une analyse',action:'Vérifier les devis existants',publics:['artisan'],application:null,incertitudes:'Date à confirmer',evolution:'Préparer une aide de saisie',benefice:'Moins de saisie',controles:'Tester le formulaire',preuve:'Les devis des artisans comportent des informations'};
+const reponse=(a:unknown)=>({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({analyses:[a]})}]}]});
+describe('Étude autonome : sources et limites',()=>{
+ it('accepte une analyse étayée mais ne crée aucun ordre exécutable',()=>{expect(validerEtudes(reponse(analyse),[source])).toEqual([analyse]);});
+ it('refuse une citation inventée et une autre source',()=>{expect(()=>validerEtudes(reponse({...analyse,preuve:'Une obligation inventée dans la réponse'}),[source])).toThrow();expect(()=>validerEtudes(reponse({...analyse,id:'autre'}),[source])).toThrow();});
+ it('refuse une analyse incomplète, une date fantaisiste ou un public inconnu',()=>{expect(()=>validerEtudes({status:'incomplete'},[source])).toThrow();expect(()=>validerEtudes(reponse({...analyse,application:'2026-02-30'}),[source])).toThrow();expect(()=>validerEtudes(reponse({...analyse,publics:['tout le monde']}),[source])).toThrow();});
+ it('ignore les scripts et exige un contenu central assez long',()=>{const html='<main><script>instruction malveillante</script><p>'+source.texte.repeat(5)+'</p></main>';expect(extraireTexteOfficiel(html)).not.toContain('malveillante');expect(()=>extraireTexteOfficiel('<nav>Menu</nav>')).toThrow();});
+});

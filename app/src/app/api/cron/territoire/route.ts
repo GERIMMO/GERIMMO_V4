@@ -14,6 +14,7 @@
 // service qui ne sort pas d'ici, lecture seule sur ce que la ronde a besoin de
 // lire. Rien n'est envoyé à personne.
 
+import {appliquerEtudes,type EtudeTerritoriale} from '@/lib/etudes-territoriales';
 import { actualiserMarchePublic } from "@/lib/sources-territoire";
 import { timingSafeEqual } from "node:crypto";
 import voisinsFichier from "@/data/departements-voisins.json";
@@ -162,7 +163,9 @@ export async function GET(request: Request) {
     await consignerTache(supabase, "territoire", { erreur: "enregistrement territorial impossible", agi: false });
     return Response.json({ erreur: "Les résultats territoriaux n’ont pas pu être enregistrés." }, { status: 500 });
   }
-  const marche = fusionnerMarche(actualisation.marche, donneesMarche);
+  const etudes=await supabase.from('territory_studies_latest').select('*');
+  if(etudes.error){await consignerTache(supabase,'territoire',{erreur:'Études complémentaires indisponibles',agi:false});return Response.json({erreur:'Les études doivent être relues avant de proposer un recrutement.'},{status:503});}
+  const marche = appliquerEtudes(fusionnerMarche(actualisation.marche, donneesMarche),(etudes.data??[]) as EtudeTerritoriale[]);
   const candidats = noterCandidats({
     empreinte: empreinte.lignes,
     marche,

@@ -33,14 +33,24 @@ export async function demanderCorrection(_etat:RetourMission,form:FormData):Prom
  const db=await createClient();const {data:ok,error}=await db.rpc('is_permanent_super_admin');
  if(error||ok!==true)return {erreur:'Accès réservé à la supervision.'};
  const demande=String(form.get('demande')??'').trim();
- if(demande.length<10||demande.length>4000)return {erreur:'Décrivez la correction en 10 à 4 000 caractères.'};
+ if(demande.length<10||demande.length>12000)return {erreur:'Décrivez la correction en 10 à 12 000 caractères.'};
  if(!process.env.GITHUB_AGENT_TOKEN||process.env.GERIMMO_CODEX_ENABLED!=='true')return {erreur:'L’atelier doit être connecté et activé avant de lancer une préparation.'};
- const {data:p,error:creation}=await db.from('development_proposals').insert({source:'supervision',titre:demande.slice(0,100),probleme:demande,statut:'a_etudier',risque:'moyen',autorisation_requise:true}).select('id').single();
- if(creation||!p)return {erreur:'La demande n’a pas pu être enregistrée.'};
+ const existante=String(form.get('proposition')??'');
+ let p:{id:string}|null=null;
+ if(existante){
+  if(!/^[0-9a-f-]{36}$/.test(existante))return {erreur:'Proposition inconnue.'};
+  const prise=await db.from('development_proposals').update({statut:'en_developpement',probleme:demande,autorisation_requise:true}).eq('id',existante).in('statut',['a_etudier','detectee']).select('id').maybeSingle();
+  if(prise.error||!prise.data)return {erreur:'Cette proposition est déjà en préparation ou a changé. Actualisez le suivi.'};
+  p=prise.data;
+ }else{
+ const {data:creee,error:creation}=await db.from('development_proposals').insert({source:'supervision',titre:demande.slice(0,100),probleme:demande,statut:'a_etudier',risque:'moyen',autorisation_requise:true}).select('id').single();
+ if(creation||!creee)return {erreur:'La demande n’a pas pu être enregistrée.'};
+ p=creee;
+ }
  try{
   const r=await fetch('https://api.github.com/repos/GERIMMO/GERIMMO_V4/actions/workflows/atelier-code.yml/dispatches',{method:'POST',headers:{Authorization:`Bearer ${process.env.GITHUB_AGENT_TOKEN}`,Accept:'application/vnd.github+json','Content-Type':'application/json'},body:JSON.stringify({ref:'main',inputs:{proposition:p.id,demande}}),redirect:'error',signal:AbortSignal.timeout(15000)});
   if(!r.ok)return {erreur:'La demande est conservée mais l’atelier n’a pas confirmé son lancement. Vérifiez sa connexion.'};
   await db.from('development_proposals').update({statut:'en_developpement'}).eq('id',p.id);
-  revalidatePath('/admin/autonomie');return {succes:'L’atelier a accepté la demande. La proposition sera visible dans GitHub ; elle devra être testée et validée avant publication.'};
+  revalidatePath('/admin/autonomie');revalidatePath('/admin/equipes');return {succes:'L’atelier a accepté la demande. Retrouvez sa préparation, ses contrôles et sa démonstration dans le pilotage. Votre accord sera demandé avant publication.'};
  }catch{return {erreur:'La demande est conservée. Le lancement n’est pas confirmé : vérifiez l’atelier avant de réessayer.'};}
 }

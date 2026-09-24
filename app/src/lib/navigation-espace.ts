@@ -113,6 +113,7 @@ export function navigationEspace({
         messages,
       ],
       secondaires: [
+        {href:'/veille?public=bailleur',libelle:'Les règles à connaître',icone:'livre'},
         parametres,
         { href: `${base}/comptabilite/fiscal`, libelle: "Fiscalité", icone: "livre" },
         documents,
@@ -148,6 +149,7 @@ export function navigationEspace({
         { href: "/compte", libelle: "Paramètres", icone: "roue" },
       ],
       secondaires: [
+        {href:'/veille?public=agence',libelle:'Les règles à connaître',icone:'livre'},
         artisans,
         // La comptabilité reste hors de son menu principal : ses écritures et
         // ses rapports de gestion sont sous « Plus » (24/09). Son tableau de
@@ -183,6 +185,7 @@ export function navigationEspace({
       parametres,
     ],
     secondaires: [
+      {href:'/veille?public=agence',libelle:'Les règles à connaître',icone:'livre'},
       { href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" },
       artisans,
       documents,

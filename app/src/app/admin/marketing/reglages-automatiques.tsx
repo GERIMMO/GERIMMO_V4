@@ -18,8 +18,8 @@ export function ReglagesAutomatiques({ reglages, comptePublicitaire }: { reglage
   const [etat, action, attente] = useActionState(enregistrerReglagesMarketing, {} as EtatCampagne);
   return <form action={action} className="space-y-4">
     <div className="grid gap-3 sm:grid-cols-3">
-      <label className={caseACocher}><input type="checkbox" name="actif" defaultChecked={reglages.actif} className="mt-1" /><span><b>Agent actif</b><small className="mt-1 block text-[var(--texte-secondaire)]">Prépare des brouillons à vous soumettre. Aucun envoi automatique.</small></span></label>
-      <div className={caseACocher}><span><b>Votre accord avant diffusion</b><small className="mt-1 block text-[var(--texte-secondaire)]">Chaque article et chaque post attend votre validation.</small></span></div>
+      <label className={caseACocher}><input type="checkbox" name="actif" defaultChecked={reglages.actif} className="mt-1" /><span><b>Agent actif</b><small className="mt-1 block text-[var(--texte-secondaire)]">Prépare deux sujets par semaine et crée un visuel original pour chacun.</small></span></label>
+      <label className={caseACocher}><input type="checkbox" name="publication_automatique" defaultChecked={reglages.publication_automatique} className="mt-1"/><span><b>Publier automatiquement</b><small className="mt-1 block text-[var(--texte-secondaire)]">Journal et Facebook. Décochez pour conserver les prochains contenus en brouillon.</small></span></label>
       <div className={caseACocher}><span><b>Publicité sous votre contrôle</b><small className="mt-1 block text-[var(--texte-secondaire)]">{comptePublicitaire ? "Le plafond n’autorise aucune dépense. Chaque campagne doit être validée." : "Compte Meta Ads à connecter avant toute campagne payante."}</small></span></div>
     </div>
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -30,6 +30,6 @@ export function ReglagesAutomatiques({ reglages, comptePublicitaire }: { reglage
       <div className="grid gap-1"><span className="libelle-champ">Créneau</span><p className={`${champ} text-[var(--texte-secondaire)]`}>Le matin</p><input type="hidden" name="heure_paris" value={reglages.heure_paris} /></div>
       <label className="grid gap-1"><span className="libelle-champ">Plafond mensuel</span><span className={champAvecUnite}><input name="budget" type="number" min="0" max="1000" step="0.01" defaultValue={(reglages.budget_mensuel_cents/100).toFixed(2)} className="min-w-0 flex-1 bg-transparent py-2 outline-none" /><span aria-hidden className="text-[var(--texte-secondaire)]">€</span></span></label>
     </div>
-    <div className="flex flex-wrap items-center gap-3"><button className="btn-or" disabled={attente}>{attente ? "Enregistrement…" : "Enregistrer les réglages"}</button>{etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}{etat.succes && <p role="status" className="text-sm text-[var(--success)]">{etat.succes}</p>}</div>
+    <p className="text-xs text-[var(--texte-secondaire)]">Chaque illustration est créée pour son sujet. La création d’images utilise votre connexion IA et sa facturation, distincte du plafond publicitaire Meta.</p><div className="flex flex-wrap items-center gap-3"><button className="btn-or" disabled={attente}>{attente ? "Enregistrement…" : "Enregistrer les réglages"}</button>{etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}{etat.succes && <p role="status" className="text-sm text-[var(--success)]">{etat.succes}</p>}</div>
   </form>;
 }

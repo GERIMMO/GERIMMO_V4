@@ -126,3 +126,10 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     }
   });
 });
+
+it("la veille apparaît une seule fois et vise le public du profil",()=>{
+ for(const role of ['admin_agence','agent','proprietaire_direct'] as RoleEspace[]){
+  const entrees=chemins(role).filter(p=>p.startsWith('/veille'));
+  expect(entrees).toEqual([role==='proprietaire_direct'?'/veille?public=bailleur':'/veille?public=agence']);
+ }
+});

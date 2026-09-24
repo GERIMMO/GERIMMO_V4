@@ -35,6 +35,10 @@
     {
       "path": "/api/cron/equipes?mission=signatures",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/equipes?mission=veille",
+      "schedule": "0 9 * * *"
     }
   ]
 }

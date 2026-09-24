@@ -1,0 +1,9 @@
+'use client';
+import {useActionState} from 'react';
+import {deciderVeille} from '@/app/actions/veille';
+import {PUBLICS_VEILLE} from '@/lib/veille-reglementaire';
+import {BoutonEnvoi} from '@/components/ui/bouton-envoi';
+export function DecisionVeille({id,resume,actionConseil,publics,date}:{id:string;resume:string|null;actionConseil:string|null;publics:string[];date:string|null}){
+ const [etat,action]=useActionState(deciderVeille.bind(null,id),{});const champ='mt-1 w-full rounded-lg border p-3';
+ return <form action={action} className="mt-4 space-y-3"><label className="block">Ce qui change<textarea name="resume" minLength={20} maxLength={2000} defaultValue={resume??''} className={champ}/></label><label className="block">Ce que l’utilisateur doit prévoir<textarea name="action" minLength={10} maxLength={2000} defaultValue={actionConseil??''} className={champ}/></label><fieldset><legend>Personnes concernées</legend><div className="mt-2 flex flex-wrap gap-3">{Object.entries(PUBLICS_VEILLE).map(([k,v])=><label key={k} className="inline-flex items-center gap-2 text-sm"><input name="publics" type="checkbox" value={k} defaultChecked={publics.includes(k)}/>{v}</label>)}</div></fieldset><label className="block">Date d’application confirmée dans la source<input type="date" name="application" defaultValue={date??''} className={champ}/></label><p className="text-xs text-muted-foreground">Laissez vide si aucune date unique n’est confirmée. La carte demandera alors de vérifier la date selon la situation. Cette validation ne modifie aucun bail ni modèle de document.</p><div className="flex flex-wrap gap-3"><BoutonEnvoi name="decision" value="publier">Valider et informer les utilisateurs</BoutonEnvoi><BoutonEnvoi name="decision" value="ecarter" variant="outline" formNoValidate>Écarter ou retirer</BoutonEnvoi></div>{etat.erreur&&<p role="alert" className="err">{etat.erreur}</p>}{etat.succes&&<p role="status">{etat.succes}</p>}</form>;
+}

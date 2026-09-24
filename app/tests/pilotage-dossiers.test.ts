@@ -149,4 +149,74 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await db.query("insert into public.supervision_delegations(account_id,commence_le,termine_le,pouvoirs,motif,cree_par) values($1,now()-interval '2 days',now()-interval '1 day',array['lecture'],'Relais expiré de test',$2)",[relais,sa]);
   await agir(relais);expect(await refus("select * from public.resume_relais_supervision()")).toMatch(/pas actif/i);
  });
+ it("suit un impayé puis ferme le suivi après règlement, sans envoyer de relance",async()=>{
+  const actif=await id("insert into public.baux(organization_id,lot_id,locataire_principal,etat,date_debut,loyer_hc,charges) select organization_id,lot_id,locataire_principal,'actif',current_date-60,700,50 from public.baux where id=$1 returning id",[bail]);
+  await db.query("insert into public.appels_loyer(organization_id,bail_id,periode,montant_du,date_echeance) values($1,$2,current_date-40,750,current_date-40)",[org,actif]);
+  await agir(null,'aal1','service_role');await actualiser();
+  const c=(await db.query("select id,etat,mode,rang_priorite from public.orchestration_cases where dossier_type='loyer' and dossier_id=$1",[actif])).rows[0];
+  expect(c).toMatchObject({etat:'a_faire',mode:'humaine',rang_priorite:1});
+  expect((await db.query("select id from public.relances where bail_id=$1",[actif])).rows).toHaveLength(0);
+  await db.query("insert into public.encaissements(organization_id,bail_id,montant) values($1,$2,750)",[org,actif]);await actualiser();
+  expect((await db.query("select etat from public.orchestration_cases where id=$1",[c.id])).rows[0].etat).toBe('termine');
+  expect((await db.query("select etat from public.orchestration_history where case_id=$1 order by id",[c.id])).rows.map(x=>x.etat)).toEqual(['a_faire','termine']);
+ });
+ it("conserve les étapes une seule fois et protège l’historique des autres agences",async()=>{
+  await agir(null,'aal1','service_role');await actualiser();await actualiser();
+  const c=(await db.query("select id from public.orchestration_cases where dossier_id=$1",[incident])).rows[0].id;
+  expect((await db.query("select id from public.orchestration_history where case_id=$1",[c])).rows).toHaveLength(1);
+  await agir(autreAdmin);expect((await db.query("select id from public.orchestration_history where case_id=$1",[c])).rows).toHaveLength(0);
+  expect(await refus("select public.actualiser_orchestration_socle()")).toMatch(/permission|autorisation/i);
+  await agir(admin);expect((await db.query("select id from public.orchestration_history where case_id=$1",[c])).rows).toHaveLength(1);
+  expect(await refus("insert into public.orchestration_history(case_id,organization_id,action,etat,priorite) values($1,$2,'Faux','termine','normale')",[c,org])).toMatch(/permission|autorisation/i);
+ });
+ it("la veille reste privée jusqu’à validation, et une évolution ne lance aucun développement",async()=>{
+  await agir(null,'aal1','service_role');
+  const veille=await id("insert into public.regulatory_watch(source_url,titre,source_nom) values('https://www.service-public.gouv.fr/particuliers/actualites/'||gen_random_uuid(),'Information DPE de test','Service Public') returning id");
+  await agir(admin);expect((await db.query("select id from public.regulatory_watch_published where id=$1",[veille])).rows).toHaveLength(0);
+  expect(await refus("select public.decider_veille($1,true,'Résumé de test suffisamment long','Action de test à prévoir',array['artisan'],null)",[veille])).toMatch(/supervision/);
+  await agir(sa);await db.query("select public.decider_veille($1,true,'Résumé de test suffisamment long','Action de test à prévoir',array['artisan'],null)",[veille]);
+  await agir(null,'aal1','service_role');
+  // A second item is still private; its study cannot publish it.
+  const info=await id("insert into public.regulatory_watch(source_url,titre,source_nom) values('https://www.service-public.gouv.fr/particuliers/actualites/'||gen_random_uuid(),'Information artisan de test','Service Public') returning id");
+  const analyse={id:info,resume:'Résumé à vérifier du texte',evolution:'Simplifier la saisie des diagnostics pour éviter les erreurs',benefice:'Éviter les doubles saisies',controles:'Vérifier les anciens dossiers',incertitudes:'Champ à confirmer'};
+  await db.query("select public.conserver_etude_veille($1,$2)",[info,analyse]);await db.query("select public.conserver_etude_veille($1,$2)",[info,analyse]);
+  const propositions=(await db.query("select statut,autorisation_requise,autorisee_le from public.development_proposals where source='veille_reglementaire' and source_id=$1",[info])).rows;
+  expect(propositions).toEqual([{statut:'a_etudier',autorisation_requise:true,autorisee_le:null}]);
+  expect((await db.query("select statut from public.regulatory_watch where id=$1",[info])).rows[0].statut).toBe('a_examiner');
+  await agir(admin);expect((await db.query("select etude from public.regulatory_watch where id=$1",[veille])).rows).toHaveLength(0);
+  expect(await refus("select etude from public.regulatory_watch_published")).toMatch(/column|colonne/i);
+  await agir(admin);expect((await db.query("select id from public.regulatory_watch_published where id=$1",[veille])).rows).toHaveLength(1);
+  await agir(sa);await db.query("select public.decider_veille($1,false,null,null,null,null)",[veille]);await agir(admin);expect((await db.query("select id from public.regulatory_watch_published where id=$1",[veille])).rows).toHaveLength(0);
+ });
+ it("les études territoriales exigent un superviseur, des dates réelles et une preuve",async()=>{
+  const sql="select public.enregistrer_etude_territoriale('75','acquisition',2,2000,current_date-30,current_date,'Rapport vérifié','Attribution vérifiée des clients et des dépenses au même département')";
+  await agir(admin);expect(await refus(sql)).toMatch(/supervision/);
+  await agir(sa,'aal1');expect(await refus(sql)).toMatch(/supervision/);
+  await agir(sa);await db.query(sql);expect((await db.query("select valeur,clients,depense_cents from public.territory_studies_latest where departement='75'")).rows[0]).toEqual({valeur:1000,clients:2,depense_cents:2000});
+  expect(await refus("select public.enregistrer_etude_territoriale('75','acquisition',0,2000,current_date-30,current_date,'Rapport vérifié','Attribution vérifiée des clients et des dépenses au même département')")).toMatch(/résultats/);
+  expect(await refus("select public.enregistrer_etude_territoriale('75','concurrence',2,0,current_date,current_date+1,'Rapport vérifié','Concurrents identifiés et méthode explicitée')")).toMatch(/dates/);
+  await agir(admin);expect((await db.query("select * from public.territory_studies_latest")).rows).toHaveLength(0);
+ });
+ it("la diffusion automatique exige une image unique et respecte la pause et les réservations",async()=>{
+  await agir(null,'aal1','service_role');
+  const pub=await id("insert into public.publications(statut,periode,titre,slug,chapo,corps,marketing_jour) values('brouillon','test','Article fictif',gen_random_uuid()::text,'Introduction fictive',repeat('Contenu fictif. ',30),current_date) returning id");
+  expect((await db.query("select public.publier_article_automatique($1) ok",[pub])).rows[0].ok).toBe(false);
+  expect((await db.query("select public.reserver_visuel_marketing($1) ok",[pub])).rows[0].ok).toBe(true);
+  expect((await db.query("select public.reserver_visuel_marketing($1) ok",[pub])).rows[0].ok).toBe(false);
+  await db.query("update public.publications set image_empreinte=repeat('a',64),facebook_image_url='https://exemple.test/image.jpg' where id=$1",[pub]);
+  await db.query("update public.marketing_reglages set actif=false where singleton");
+  expect((await db.query("select public.publier_article_automatique($1) ok",[pub])).rows[0].ok).toBe(false);
+  await db.query("update public.marketing_reglages set actif=true,publication_automatique=true,diffusion_version=1 where singleton");
+  expect((await db.query("select public.publier_article_automatique($1) ok",[pub])).rows[0].ok).toBe(true);
+  await agir(admin);expect(await refus("select public.reserver_diffusion_facebook($1,false)",[pub])).toMatch(/supervision/);
+  expect(await refus("select public.reserver_diffusion_facebook($1,true)",[pub])).toMatch(/marketing/);
+  await agir(null,'aal1','service_role');
+  expect((await db.query("select public.reserver_diffusion_facebook($1,true) ok",[pub])).rows[0].ok).toBe(true);
+  expect((await db.query("select public.reserver_diffusion_facebook($1,true) ok",[pub])).rows[0].ok).toBe(false);
+  expect(await refus("insert into public.publications(periode,titre,image_empreinte) values('test','Autre article',repeat('a',64))")).toMatch(/unique|duplicate|doublon/i);
+  await db.query("insert into public.marketing_campagnes(nom,publication_id) values('Campagne fictive',$1) on conflict(publication_id) do update set nom=excluded.nom",[pub]);
+  await db.query("insert into public.marketing_campagnes(nom,publication_id) values('Campagne fictive',$1) on conflict(publication_id) do update set nom=excluded.nom",[pub]);
+  expect((await db.query("select id from public.marketing_campagnes where publication_id=$1",[pub])).rows).toHaveLength(1);
+ });
+
 });

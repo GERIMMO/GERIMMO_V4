@@ -192,6 +192,20 @@ jour même, dont les plus graves :
 Vérification : typage, lint, 1 562 tests unitaires, build de production, et
 captures des cinq personas à 1 280 et 390 px avant / après.
 
+### Le tour du site du 24/09 — 120 écrans, 469 corrections
+
+Après les premiers retours du porteur sur la version en ligne, tout le site a été relu écran par écran, persona par persona : 120 écrans capturés à 1280 px et 390 px, 1 176 relevés bruts, 562 défauts uniques, 501 confirmés par deux vérificateurs indépendants (réel dans le code du jour ? voulu ?), 469 corrigés et recapturés. Par zone : public 34, locataire 45, artisan 36, console 92, accueil et parc 47, personnes 46, argent 60, suivi 56, réglages 40, composants partagés 13.
+
+Ce que le tour a fixé comme règles, en plus des principes du § 1 :
+
+- **Un seul bandeau par écran.** Le bandeau d'accueil d'un espace est la seule surface colorée pleine largeur ; toute page de second niveau porte l'en-tête standard (titre, mention, action, filet). Supprimés : les heros de l'espace artisan, du journal, de la console, le filet dégradé sous la barre haute (`.coquille-haut::after`), la photo du parcours de démarrage, le hero « P » de l'accueil propriétaire, la tête teintée de l'assistant.
+- **Tout le carré se clique.** Un rang, une carte, une tuile qui mène quelque part est un lien entier (`.rang`, `.rang-lot`, `.agenda-rendezvous`, cartes d'article, tuiles KPI) ; le mot-flèche à droite reste un signe, pas la seule zone active.
+- **Pas de clic pour rien.** Le plan du jour s'ouvre seul jusqu'à cinq actions (`SEUIL_PLAN_OUVERT`) ; chez le propriétaire, le livre et les statistiques sont au menu principal, Paramètres dans « Plus » ; « Menu » s'allume quand la page vit dessous ; le sélecteur d'organisation est dans le tiroir sur téléphone.
+- **L'aide sans recouvrir.** Le rond flottant « Aide et retours » n'est plus dans l'espace agence (barre haute + tiroir « Menu ») ; ailleurs il se pose là où rien n'est dessous (au-dessus de la barre d'onglets artisan, dans la gouttière de la console, masqué sur le téléphone locataire dont le tiroir l'a).
+- **44 px au doigt, partout.** `pointer-coarse:min-h-11` sur les tailles de `<Button>` ; `.btn-secondaire`, `a.lien-bandeau`, `summary.puce`, les liens de la barre haute rejoignent le filet tactile de `globals.css` ; `.lien-texte` pour un lien au milieu d'une phrase (taille du texte, sans hauteur tactile qui creuserait l'interligne).
+- **Les mots du persona.** Le propriétaire direct lit « votre parc », « Mes lots », « Locataires & garants », jamais « votre agence » ni « mandat » ; un état a un seul nom (« Rendez-vous à fixer ») ; les codes internes ne s'affichent pas (« Bloquant / Majeur / Mineur » plutôt que N1-N3, « document_test » retiré du dépôt).
+- **Les chiffres tiennent.** `eur()` pose une espace insécable avant « € » ; la valeur d'une `.ligne-info` ne se coupe jamais ; trois tuiles sur téléphone font 2 + 1 pleine largeur (`.tuiles`, `.grille-kpi`).
+
 ## 5. Ce qui reste ouvert
 
 > [!warning] Points à trancher / à faire
@@ -209,6 +223,17 @@ captures des cinq personas à 1 280 et 390 px avant / après.
 >   dossier de bail, recherche et pagination des listes de la console.
 > - **PDF** : ils gardent leur charte (bleu, or, ivoire). Aligner ou non reste
 >   une décision du porteur.
+
+### Après le tour du 24/09 — à trancher par le porteur
+
+- **Abonnement pendant l'essai (P1).** La page promettait que souscrire pendant l'essai ne fait pas payer plus tôt, alors que la session Stripe part sans période d'essai. La page ne le promet plus ; pour tenir la promesse, `lib/stripe.ts` (`creerSessionPaiement`) doit recevoir `trial_end` = fin de l'essai. Décision de facturation.
+- **Fin d'essai et bien offert.** La base met en lecture seule à la fin de l'essai même un propriétaire qui ne gère qu'un bien, alors que la FAQ, les conditions (art. 8.2) et « Mon abonnement » disent le premier bien offert à vie. Contradiction à lever d'un côté ou de l'autre.
+- **Comptabilité de l'agent.** Décision du 12/09 : l'agent n'a plus de page Comptabilité. Pourtant son tableau de bord l'y envoie (« Valider » un rapport de gestion) et « Loyers & charges », revenu à son menu, porte les mêmes gestes. Rendre l'entrée, ou retirer les liens.
+- **Barre basse à quatre entrées.** L'agent n'y a pas « Loyers & charges », l'admin pas « Incidents » : l'arbitrage suit la règle « quatre entrées + Menu ». Passer à cinq ou six serre les cibles.
+- **Titres d'onglet en marque blanche.** Les 27 pages de l'espace agence suffixent « — Gerimmo » ; un `generateMetadata` du layout pourrait mettre le nom de l'organisation. Un vérificateur l'a jugé acceptable pour l'équipe d'une agence.
+- **Deux migrations prêtes, non appliquées** (schéma uniquement via MCP) : `org_membres_gerants` renvoyant un nom (fiche personne « Confié à ») et `mon_gestionnaire_locataire` avec le prénom et le nom de l'agent (espace locataire).
+- **Libellés à confirmer** : « Sans rôle en cours » (agence) / « Sans bail en cours » (propriétaire) pour une fiche sans rôle ; carte « Mandats » masquée sur la fiche d'un locataire ; « Fiche mandant » réduit à la flèche sur téléphone ; « Conservé 5 ans » ; « Validé Gerimmo » ; le compteur « Encore N créneaux » au-dessus du bouton.
+- **Restes non corrigés** : le composant `mesure-autonomie` de la console (grille, libellés, titre paramétrable) ; l'impression de la quittance depuis « Mes documents » (`?imprimer=1`) ; le placeholder « 12 rue des Lilas » du formulaire de bien ; les libellés « Loyer HC » et « Trimestre IRL » du formulaire de bail.
 
 ## Relations
 

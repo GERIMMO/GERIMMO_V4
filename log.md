@@ -5417,3 +5417,14 @@ arrêté en entier en cours de route (Postgres, API, serveur) — relancé.
 détail » — 110 pages capturées (six personas, 1 280 et 390 px), relecture
 orchestrée page par page avec double vérification, puis corrections.
 
+## [2026-09-24] implementation | Tour du site — 120 écrans relus par persona, 469 corrections
+
+**Demande** : après ses premiers retours sur la version en ligne (bandeau photo « en trop », rang de lot à moitié cliquable, « Plus » à ouvrir pour Statistiques et Agenda, agenda mensuel), le porteur demande de « faire le tour du site pour faire attention à ce genre de détail ».
+
+**Méthode** : 120 écrans capturés (bureau 1280 px et téléphone 390 px) pour les sept personas (public, agent, admin d'agence, propriétaire direct, locataire, artisan, superadmin) ; un relecteur par page ; 1 176 relevés bruts regroupés en 562 défauts uniques ; chacun jugé par deux regards contradictoires (« est-ce réel dans le code d'aujourd'hui ? », « est-ce voulu, ou hors sujet ? ») : 501 confirmés, 61 écartés ; corrections par lots de fichiers disjoints, chaque correction recapturée ; 469 corrigés, 33 non corrigés (migration, décision du porteur, fichier partagé — listés dans [[Design system Gerimmo]] § 5).
+
+**Ce qui change, en un coup d'œil** : un seul bandeau par écran (fin des heros répétés de l'espace artisan, du journal, des pages de second niveau de la console, du filet dégradé sous la barre haute, de la photo du parcours de démarrage, du hero « P » de l'accueil propriétaire) ; les rangs, cartes et tuiles se cliquent en entier (lots, alertes, mandats, articles, rendez-vous, quittancement, indicateurs locataire et propriétaire) ; le plan du jour s'ouvre seul sous cinq actions ; le livre et les statistiques sortent de « Plus » chez le propriétaire ; le bouton flottant d'aide quitte l'espace agence (barre haute et tiroir « Menu ») et se range là où rien n'est dessous dans les autres espaces ; cibles tactiles de 44 px sur les liens habillés en bouton, les liens de bandeau et les puces ; les pages légales reçoivent l'en-tête et le pied communs ; le geste attendu remonte en haut de la fiche de mission artisan ; les états vides guident au lieu d'aligner des filtres à zéro ; vocabulaire adapté au propriétaire direct (« votre parc », « Mes lots », « Locataires & garants ») ; jargon interne retiré (« pot commun », « décision du 25/07 », « purgées »).
+
+**Vérification** : tests unitaires (1 566), lint, types, suite navigateur (accessibilité axe, audit des 84 écrans, parcours par profil) ; CI de la PR #95 rejouée. Trois tests navigateur adaptés aux décisions du jour (plus de photo obligatoire par écran, « Loyers & charges » au menu de l'agent, calendrier sans rôle grille).
+
+**À trancher par le porteur** : voir [[Design system Gerimmo]] § 5 (abonnement pendant l'essai, lecture seule en fin d'essai pour un bien offert, Comptabilité de l'agent, barre basse à quatre entrées, titres d'onglet en marque blanche, deux migrations prêtes).

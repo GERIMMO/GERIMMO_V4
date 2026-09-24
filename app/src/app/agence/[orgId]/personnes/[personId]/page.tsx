@@ -210,6 +210,12 @@ export default async function PagePersonne(
     const lot = lotsManquants.find((l) => l.id === id);
     return lot ? `${premier(lot.bien)?.nom ?? ""} · ${lot.nom}` : id.slice(0, 8);
   };
+  // La fiche du lot, où se règlent les quote-parts : tout le rang y mène
+  // (retour du 24/09), pas seulement un mot.
+  const cheminLot = (id: string) => {
+    const lot = lotsDetenus.find((l) => l.id === id) ?? lotsManquants.find((l) => l.id === id);
+    return lot ? `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}` : null;
+  };
 
   // Une fiche personne est faite de dix lectures. Chacune qui échoue enlève
   // en silence une carte entière — dossier vide, aucun mandat, aucun message —
@@ -282,11 +288,26 @@ export default async function PagePersonne(
           <CardContent>
             <ul className="divide-y divide-border">
               {(detentions ?? []).map((d) => (
-                <li key={d.lot_id} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span>{libelleLot(d.lot_id)}</span>
-                  <span className="text-muted-foreground">
-                    {Number(d.quote_part)} % · depuis le {formaterDate(d.date_debut)}
-                  </span>
+                <li key={d.lot_id}>
+                  {cheminLot(d.lot_id) ? (
+                    <Link
+                      href={cheminLot(d.lot_id)!}
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-2 text-sm hover:bg-[var(--survol)]"
+                    >
+                      <span>{libelleLot(d.lot_id)}</span>
+                      <span className="text-muted-foreground">
+                        {Number(d.quote_part)} % · depuis le {formaterDate(d.date_debut)}{" "}
+                        <span aria-hidden>→</span>
+                      </span>
+                    </Link>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3 py-2 text-sm">
+                      <span>{libelleLot(d.lot_id)}</span>
+                      <span className="text-muted-foreground">
+                        {Number(d.quote_part)} % · depuis le {formaterDate(d.date_debut)}
+                      </span>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

@@ -221,19 +221,12 @@ export async function PaneArtisan({
             <CardContent>
               {missions.map((m) => {
                 const inc = incidents.get(m.incident_id);
-                return (
-                  <div key={m.id} className="ligne-info">
+                const contenu = (
+                  <>
                     <span className="min-w-0 truncate">
-                      {inc ? (
-                        <Link
-                          href={`/agence/${orgId}/incidents?sel=${inc.id}`}
-                          className="hover:underline"
-                        >
-                          {inc.numero} · {titreIncident(inc.categorie)}
-                        </Link>
-                      ) : (
-                        "Incident hors de votre portefeuille"
-                      )}
+                      {inc
+                        ? `${inc.numero} · ${titreIncident(inc.categorie)}`
+                        : "Incident hors de votre portefeuille"}
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <span className="mono-discret">
@@ -243,6 +236,21 @@ export async function PaneArtisan({
                         {STATUTS_INTERVENTION[m.statut] ?? "État à vérifier"}
                       </span>
                     </span>
+                  </>
+                );
+                // Tout le rang ouvre le dossier (retour du 24/09), pas le seul
+                // numéro souligné.
+                return inc ? (
+                  <Link
+                    key={m.id}
+                    href={`/agence/${orgId}/incidents?sel=${inc.id}`}
+                    className="ligne-info hover:bg-[var(--survol)]"
+                  >
+                    {contenu}
+                  </Link>
+                ) : (
+                  <div key={m.id} className="ligne-info">
+                    {contenu}
                   </div>
                 );
               })}

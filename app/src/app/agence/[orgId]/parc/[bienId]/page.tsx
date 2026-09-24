@@ -308,7 +308,18 @@ export default async function PageBien(
               const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
               return (
                 <li key={lot.id} className="space-y-2 py-3">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm">
+                  {/* Depuis le 12/09, le lot s'ouvre EN FENÊTRE : locataire,
+                      propriétaire, documents et comptabilité sans quitter le
+                      bien. La fiche complète reste au pied de la fenêtre.
+                      Depuis le 24/09, c'est TOUT le rang qui ouvre, pas le seul
+                      bouton (« je veux que tout le carré soit cliquable ») ;
+                      un bouton ne prend pas la largeur tout seul, d'où w-[…]. */}
+                  <BoutonLot
+                    lotId={lot.id}
+                    libelle={lot.nom}
+                    href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
+                    className="-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--survol)]"
+                  >
                     <span
                       className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}
                     >
@@ -322,17 +333,10 @@ export default async function PageBien(
                     {blocages.length > 0 && (
                       <BadgeStatut ton="attente">{blocages.length} à régler</BadgeStatut>
                     )}
-                    {/* Depuis le 12/09, le lot s'ouvre EN FENÊTRE : locataire,
-                        propriétaire, documents et comptabilité sans quitter le
-                        bien. La fiche complète reste au pied de la fenêtre. */}
-                    <BoutonLot
-                      lotId={lot.id}
-                      href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
-                      className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                    >
+                    <span className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}>
                       Voir le lot →
-                    </BoutonLot>
-                  </div>
+                    </span>
+                  </BoutonLot>
 
                   {/* Points propres à ce lot — repliés, la ligne reste lisible */}
                   {propres.length > 0 && (

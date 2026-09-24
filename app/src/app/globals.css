@@ -2304,11 +2304,15 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 .tuile.attention { background: linear-gradient(160deg, var(--warning-soft), color-mix(in srgb, var(--warning-soft) 40%, var(--surface)) 75%); }
 .tuile.probleme { background: linear-gradient(160deg, var(--destructive-soft), color-mix(in srgb, var(--destructive-soft) 40%, var(--surface)) 75%); }
 
-.tuile .lib { display: flex; align-items: center; gap: 6px; padding-right: 38px; font-size: 12.5px; color: var(--texte-2); }
+/* Le point de statut reste devant le PREMIER mot quand le libellé se plie sur
+   deux ou trois lignes (tuile de 170 px sur téléphone) : aligné en haut, pas
+   au milieu du bloc (tour du 24/09). */
+.tuile .lib { display: flex; align-items: flex-start; gap: 6px; padding-right: 38px; font-size: 12.5px; line-height: 1.3; color: var(--texte-2); }
 .tuile .lib::before {
   content: "";
   width: 7px;
   height: 7px;
+  margin-top: 5px;
   border-radius: 50%;
   background: var(--texte-3);
   flex: none;

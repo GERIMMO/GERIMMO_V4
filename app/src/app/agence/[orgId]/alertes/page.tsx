@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { aujourdhuiParis } from "@/lib/ged";
 import { verifierAccesEspace } from "@/lib/espace";
 import { CRITICITES, COULEURS_CRITICITE, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
@@ -76,40 +75,47 @@ export default async function PageAlertes(
         : "Rien de critique : il ne reste que du courant.";
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
+    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
       {source_introuvable === "diagnostic" && (
         <p role="status" className="mb-4 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning-soft-foreground)]">
           Le diagnostic lié à cette alerte n’est plus disponible dans ce portefeuille.
           Vérifiez l’alerte avant de la clôturer ou de déposer un nouveau diagnostic.
         </p>
       )}
-      <p className="mb-2 text-sm text-muted-foreground">
-        <Link href={`/agence/${orgId}`} className="hover:underline">
-          {organisation.name}
-        </Link>{" "}
-        / Alertes
-      </p>
-      <div className="bandeau-jour mb-6">
-        <p className="mono-discret text-[var(--sur-encre)]/60">Plan du jour</p>
-        {/* Un <h1> reste un <h1> : le bandeau change son habillage, pas son
-            rang dans le document. */}
-        <h1 className="compte text-[var(--sur-encre)]">
-          {erreurOuvertes
-            ? "Alertes"
-            : rangs.length === 0
-              ? "Votre journée est dégagée"
-              : `${rangs.length} alerte${rangs.length > 1 ? "s" : ""} à traiter`}
-        </h1>
-        <p className="par-quoi">{parQuoi}</p>
-        {/* Le partage « pour vous / pour d'autres » ne se dit que s'il y a
-            vraiment deux camps : « 0 confiée à d'autres » n'apprend rien. */}
-        {!erreurOuvertes && rangs.length - nbMiennes > 0 && (
-          <p className="par-quoi">
-            {`${nbMiennes} pour vous · ${rangs.length - nbMiennes} confiée${
+      {/* L'en-tête standard de l'espace (tour du 24/09) : le bandeau bleu
+          « Plan du jour » était un second hero hors accueil, et le fil
+          d'Ariane redisait le menu. Ce qu'il disait reste : le compte devient
+          la mention, la phrase « par quoi commencer » passe sous le filet. */}
+      <div className="mb-6">
+        <div className="entete-page mb-4">
+          <h1>Alertes</h1>
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="mono-discret">
+              {erreurOuvertes
+                ? "liste indisponible"
+                : rangs.length === 0
+                  ? "rien à traiter"
+                  : `${rangs.length} à traiter`}
+            </span>
+            {/* Sous lg, la carte de création est empilée après toute la
+                liste : ce raccourci y mène directement (même motif que
+                « Personnes »). */}
+            <span className="lg:hidden">
+              <a href="#creer-alerte" className="btn-or">
+                + Créer une alerte
+              </a>
+            </span>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {parQuoi}
+          {/* Le partage « pour vous / pour d'autres » ne se dit que s'il y a
+              vraiment deux camps : « 0 confiée à d'autres » n'apprend rien. */}
+          {!erreurOuvertes && rangs.length - nbMiennes > 0 &&
+            ` ${nbMiennes} pour vous · ${rangs.length - nbMiennes} confiée${
               rangs.length - nbMiennes > 1 ? "s" : ""
-            } à d’autres`}
-          </p>
-        )}
+            } à d’autres.`}
+        </p>
       </div>
 
       {/* `min-w-0` SUR LES DEUX COLONNES, et ce n'est pas décoratif (mesure au
@@ -187,7 +193,7 @@ export default async function PageAlertes(
           </Card>
         </div>
 
-        <Card className="h-fit min-w-0">
+        <Card id="creer-alerte" className="h-fit min-w-0 scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Créer une alerte</CardTitle>
             <CardDescription>

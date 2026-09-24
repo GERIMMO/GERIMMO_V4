@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, Clock3, ArrowUpRight } from "lucide-react";
+import { verifierAccesEspace } from "@/lib/espace";
 import { chargerAgendaGestion, type RendezVousGestion } from "@/app/actions/agenda-gestion";
 import { jourParis, TAILLE_PAGE_AGENDA } from "@/lib/agenda-gestion";
 import { premier } from "@/lib/postgrest";
@@ -51,6 +52,9 @@ export default async function PageAgenda({ params, searchParams }: {
   searchParams: Promise<{ vue?: string; mois?: string; jour?: string; page?: string }>;
 }) {
   const { orgId } = await params;
+  // cache() : même lecture que le layout et que l'action, pour la mention
+  // « Mon portefeuille » de l'agent (comme Loyers, Statistiques, Messages).
+  const { role } = await verifierAccesEspace(orgId);
   const sp = await searchParams;
   const agenda = await chargerAgendaGestion(orgId, { ...sp, vue: sp.vue ?? "mois" });
   const base = `/agence/${orgId}`;
@@ -70,9 +74,18 @@ export default async function PageAgenda({ params, searchParams }: {
   const duJour = parJour.get(agenda.jour) ?? [];
 
   return <main className="mx-auto w-full max-w-5xl space-y-5 p-4 sm:p-7">
-    <div className="portail-hero">
-      <p className="portail-surtitre">Le suivi des interventions</p><h1>Mon agenda</h1>
-      <p className="mt-2 text-sm">Qui intervient, où et quand : les rendez-vous de vos dossiers, réunis au même endroit.</p>
+    {/* L'en-tête standard de l'espace (tour du 24/09) : le hero bleu était
+        le seul de son genre hors accueil. Titre, mention, une phrase — comme
+        « Loyers & charges ». */}
+    <div>
+      <div className="entete-page mb-4">
+        <h1>Agenda</h1>
+        <span className="mono-discret">
+          {role === "agent" ? "Mon portefeuille · " : ""}
+          {agenda.vue === "mois" ? moisLong(agenda.mois.premier) : `${agenda.total} intervention${agenda.total > 1 ? "s" : ""}`}
+        </span>
+      </div>
+      <p className="text-sm text-muted-foreground">Qui intervient, où et quand : les rendez-vous de vos dossiers, réunis au même endroit.</p>
     </div>
     <nav className="dossier-nav" aria-label="Vues de l’agenda">
       {VUES.map((v) => <Link key={v.id} href={lien(v.id)} aria-current={agenda.vue === v.id ? "page" : undefined} className={agenda.vue === v.id ? "agenda-onglet-actif" : ""}>{v.nom}</Link>)}

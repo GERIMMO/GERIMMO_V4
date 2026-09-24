@@ -66,7 +66,7 @@ export default async function PageStatistiques(
   ].filter((x): x is string => Boolean(x));
   if (lecturesEnEchec.length > 0) {
     return (
-      <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
+      <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page mb-4">
           <h1>Statistiques</h1>
         </div>
@@ -190,7 +190,8 @@ export default async function PageStatistiques(
   ].filter((x): x is string => Boolean(x));
 
   return (
-    <main className="mx-auto w-full max-w-4xl space-y-4 p-4 sm:p-7">
+    // max-w-5xl comme les autres écrans de premier niveau (tour du 24/09).
+    <main className="mx-auto w-full max-w-5xl space-y-4 p-4 sm:p-7">
       <div className="entete-page">
         <h1>{perimetre ? "Mes statistiques" : "Statistiques"}</h1>
         <span className="mono-discret">

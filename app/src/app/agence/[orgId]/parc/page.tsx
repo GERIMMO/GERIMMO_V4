@@ -362,7 +362,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
           ) : (
           /* Des dossiers à ouvrir, puis les points de préparation vérifiés. */
           <div className="min-w-0 space-y-3.5">
-            <p className="text-sm text-muted-foreground">
+            {/* Sous 900px la liste est au-dessus et rien ne s'ouvre « ici » :
+                l'invite ne parle qu'à la vue scindée (même règle que les
+                incidents ; tour du 24/09). */}
+            <p className="text-sm text-muted-foreground max-[900px]:hidden">
               Sélectionnez un bien ou un lot dans la liste pour le lire ici, ou
               traitez ce qui bloque ci-dessous.
             </p>

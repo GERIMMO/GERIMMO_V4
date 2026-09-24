@@ -864,18 +864,21 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           ) : (
             <ul className="space-y-2">
               {(edls ?? []).map((e) => (
-                <li key={e.id} className="flex items-center gap-3">
-                  <span className="w-20 text-sm font-medium">
-                    {e.type === "entree" ? "Entrée" : "Sortie"}
-                  </span>
-                  <span className={COULEURS_ETAT_EDL[e.etat] ?? "puce puce-grise"}>
-                    {e.etat === "signe" ? "Signé" : "En cours"}
-                  </span>
+                <li key={e.id}>
+                  {/* Tout le rang ouvre la grille, pas seulement le bouton (retour du 24/09). */}
                   <Link
                     href={`/agence/${orgId}/baux/${bailId}/edl/${e.id}`}
-                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                    className="-mx-2 flex items-center gap-3 rounded-lg px-2 hover:bg-[var(--survol)]"
                   >
-                    Ouvrir la grille
+                    <span className="w-20 text-sm font-medium">
+                      {e.type === "entree" ? "Entrée" : "Sortie"}
+                    </span>
+                    <span className={COULEURS_ETAT_EDL[e.etat] ?? "puce puce-grise"}>
+                      {e.etat === "signe" ? "Signé" : "En cours"}
+                    </span>
+                    <span className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                      Ouvrir la grille
+                    </span>
                   </Link>
                 </li>
               ))}

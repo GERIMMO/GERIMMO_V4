@@ -69,7 +69,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   };
   const vue = VUES.some((v) => v.cle === vueBrute) ? vueBrute! : "actifs";
   const sel = typeof selBrut === "string" && selBrut ? selBrut : null;
-  const { supabase, role, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, role } = await verifierAccesEspace(orgId);
   // artisan_statut_local et artisan_blacklist_locale sont réservées à
   // l'admin d'agence et au propriétaire direct : « l'agent simple ne
   // désactive pas ». L'écran le dit au lieu de laisser la base refuser.
@@ -140,26 +140,23 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
-      <div className="entete-page mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <Link href={`/agence/${orgId}`} className="hover:underline">
-              {organisation.name}
-            </Link>{" "}
-            / Artisans
-          </p>
+    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
+      {/* L'en-tête standard de l'espace (tour du 24/09) : titre et mention,
+          sans fil d'Ariane — le menu dit déjà où l'on est. La phrase d'aide
+          passe sous le filet, comme sur « Loyers & charges ». */}
+      <div className="mb-6">
+        <div className="entete-page mb-4">
           <h1>Artisans</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Votre carnet : les entreprises rattachées à votre agence. On les
-            sollicite depuis la fiche d&apos;un incident, jamais d&apos;ici.
-          </p>
+          <span className="mono-discret">
+            {erreurRelations
+              ? "carnet indisponible"
+              : `${filtres.actifs.length} actif${filtres.actifs.length > 1 ? "s" : ""} sur ${relations.length}`}
+          </span>
         </div>
-        <span className="mono-discret">
-          {erreurRelations
-            ? "carnet indisponible"
-            : `${filtres.actifs.length} actif${filtres.actifs.length > 1 ? "s" : ""} sur ${relations.length}`}
-        </span>
+        <p className="text-sm text-muted-foreground">
+          Votre carnet : les entreprises rattachées à votre agence. On les
+          sollicite depuis la fiche d&apos;un incident, jamais d&apos;ici.
+        </p>
       </div>
 
       <EchecLecture quoi={lecturesManquees} />
@@ -177,12 +174,14 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               </Link>
             )}
           </div>
-          <div className="flex flex-wrap gap-1.5 border-b border-border px-3 py-2">
+          {/* Même grille de filtres que les incidents (tour du 24/09) : en
+              flux, la quatrième pastille restait seule sur sa ligne. */}
+          <div className="grid grid-cols-2 gap-1.5 border-b border-border px-3 py-2 sm:max-[900px]:grid-cols-4">
             {VUES.map((v) => (
               <Link
                 key={v.cle}
                 href={lien(v.cle, sel)}
-                className={`filtre inline-flex items-center gap-1.5${vue === v.cle ? " actif" : ""}`}
+                className={`filtre inline-flex items-center justify-center gap-1.5${vue === v.cle ? " actif" : ""}`}
               >
                 {v.libelle} · {compteVue(v.cle)}
                 <IndicateurLien />

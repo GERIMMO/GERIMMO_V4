@@ -67,7 +67,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   };
   const vue = VUES.some((v) => v.cle === vueBrute) ? vueBrute! : "en-cours";
   const sel = typeof selBrut === "string" && selBrut ? selBrut : null;
-  const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, user, role } = await verifierAccesEspace(orgId);
 
   // Revue 23/08 : un plafond global faisait sortir les plus VIEUX dossiers —
   // précisément ceux que la file « À traiter » ne doit jamais perdre. Les
@@ -77,7 +77,7 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
     // Même enveloppe que l'écran nominal : sans <main> ni marges, l'échec
     // collait au bord et sortait du repère de navigation.
     return (
-      <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 p-4 sm:p-7">
+      <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 p-4 sm:p-7">
         <h1>Incidents</h1>
         <EchecLecture quoi={["votre portefeuille"]} />
         <p>Votre portefeuille n’a pas pu être chargé. Réessayez pour consulter vos dossiers.</p>
@@ -182,36 +182,33 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
-      <div className="entete-page mb-6">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            <Link href={`/agence/${orgId}`} className="hover:underline">
-              {organisation.name}
-            </Link>{" "}
-            / Incidents
-          </p>
+    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
+      {/* L'en-tête standard de l'espace (tour du 24/09) : le titre, la
+          mention, l'action — sans fil d'Ariane, le menu dit déjà où l'on est.
+          La phrase d'aide passe sous le filet, comme sur « Loyers & charges ». */}
+      <div className="mb-6">
+        <div className="entete-page mb-4">
           <h1>Incidents</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Déclarés par le locataire ou saisis par le gestionnaire — qualifiez
-            l&apos;imputation, elle décide de qui paie.
-          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="mono-discret">
+              {erreurVivants
+                ? "file de travail indisponible"
+                : `${enCours.length} en cours · ${aTraiter.length} à traiter`}
+            </span>
+            {/* Le carnet a son entrée dans « Plus » ; le raccourci reste ici,
+                là où l'on affecte un artisan. */}
+            <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
+              Carnet d&apos;artisans
+            </Link>
+            <Link href={`/agence/${orgId}/incidents/nouveau`} className="btn-or">
+              Ouvrir un incident
+            </Link>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="mono-discret">
-            {erreurVivants
-              ? "file de travail indisponible"
-              : `${enCours.length} en cours · ${aTraiter.length} à traiter`}
-          </span>
-          {/* Le carnet a son entrée dans « Plus » ; le raccourci reste ici,
-              là où l'on affecte un artisan. */}
-          <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
-            Carnet d&apos;artisans
-          </Link>
-          <Link href={`/agence/${orgId}/incidents/nouveau`} className="btn-or">
-            Ouvrir un incident
-          </Link>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Déclarés par le locataire ou saisis par le gestionnaire — qualifiez
+          l&apos;imputation, elle décide de qui paie.
+        </p>
       </div>
 
       <EchecLecture quoi={lecturesManquees} />
@@ -263,12 +260,16 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
               </Link>
             )}
           </div>
-          <div className="flex flex-wrap gap-1.5 border-b border-border px-3 py-2">
+          {/* Quatre filtres en grille, deux par rangée : en flux, « Tous »
+              restait seul sur sa ligne, dans la colonne de 340 px comme sur
+              téléphone (tour du 24/09). Entre 640 et 900 px la colonne prend
+              toute la largeur : les quatre tiennent sur une rangée. */}
+          <div className="grid grid-cols-2 gap-1.5 border-b border-border px-3 py-2 sm:max-[900px]:grid-cols-4">
             {VUES.map((v) => (
               <Link
                 key={v.cle}
                 href={lien(v.cle, sel)}
-                className={`filtre inline-flex items-center gap-1.5${vue === v.cle ? " actif" : ""}`}
+                className={`filtre inline-flex items-center justify-center gap-1.5${vue === v.cle ? " actif" : ""}`}
               >
                 {v.libelle} · {compteVue(v.cle)}
                 {/* Changer de vue ne recharge que le contenu : l'anneau dit

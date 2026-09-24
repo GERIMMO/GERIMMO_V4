@@ -144,18 +144,23 @@ export default async function PageLoyers({ params }: PageProps<"/agence/[orgId]/
               ) : (
                 <ul className="divide-y divide-border">
                   {impayes.map((l) => (
-                    <li key={l.appel_id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-                      <div className="min-w-0">
-                        <p className="font-medium">{l.locataire ?? "Locataire"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {l.lot_nom} · reste {eur(Number(l.montant_du) - Number(l.montant_couvert))}
-                          {l.dette_anterieure_reste ? ` · dette antérieure ${eur(Number(l.dette_anterieure_reste))}` : ""}
-                        </p>
-                      </div>
+                    <li key={l.appel_id}>
                       {/* La relance se fait sur le bail, section des loyers :
-                          le lien le dit et y mène directement. */}
-                      <Link href={`/agence/${orgId}/baux/${l.bail_id}#loyers`} className="lien-discret">
-                        Relancer sur le bail →
+                          le lien le dit et y mène directement — et c'est TOUT
+                          le rang qui se clique, pas ces trois mots (retour du
+                          24/09 : « je veux que tout le carré soit cliquable »). */}
+                      <Link
+                        href={`/agence/${orgId}/baux/${l.bail_id}#loyers`}
+                        className="-mx-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2.5 hover:bg-[var(--survol)]"
+                      >
+                        <span className="min-w-0">
+                          <span className="block font-medium">{l.locataire ?? "Locataire"}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {l.lot_nom} · reste {eur(Number(l.montant_du) - Number(l.montant_couvert))}
+                            {l.dette_anterieure_reste ? ` · dette antérieure ${eur(Number(l.dette_anterieure_reste))}` : ""}
+                          </span>
+                        </span>
+                        <span className="lien-discret">Relancer sur le bail →</span>
                       </Link>
                     </li>
                   ))}

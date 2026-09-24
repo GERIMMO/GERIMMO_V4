@@ -583,7 +583,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // l'assistant disent déjà combien, et quoi, sans un clic.
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-7 sm:py-7">
+    // max-w-5xl : la même largeur que le parc, les personnes, les loyers —
+    // le bord du contenu ne saute plus d'un écran à l'autre (tour du 24/09).
+    <main className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-7 sm:py-7">
       {/* 0. L'accueil humain */}
       <div className="entete-page accueil-bandeau items-end">
         <PhotoDecor sources={PHOTOS_ACCUEIL} sizes="(max-width: 640px) 100vw, 60vw" priority className="accueil-photo" />

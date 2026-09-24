@@ -310,20 +310,21 @@ export default async function PageLot(
             // milieu : le nom du locataire s'y coupait en trois lignes. Le nom
             // et le geste tiennent une rangée, les faits du bail la suivante.
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              {/* Tout le rang mène au bail, pas seulement le bouton (retour du 24/09). */}
+              <Link
+                href={`/agence/${orgId}/baux/${bailEnCours.id}`}
+                className="-mx-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-2 py-1.5 hover:bg-[var(--survol)]"
+              >
                 <span className={COULEURS_ETAT_BAIL[bailEnCours.etat] ?? "puce puce-grise"}>
                   {ETATS_BAIL[bailEnCours.etat] ?? bailEnCours.etat}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {recapLocataire ?? "Locataire non nommé"}
                 </span>
-                <Link
-                  href={`/agence/${orgId}/baux/${bailEnCours.id}`}
-                  className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}
-                >
+                <span className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}>
                   Ouvrir le bail →
-                </Link>
-              </div>
+                </span>
+              </Link>
               <p className="text-xs text-muted-foreground">
                 {[
                   `Bail ${(TYPES_BAIL[bailEnCours.type] ?? bailEnCours.type).toLowerCase()}`,

@@ -21,7 +21,7 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
     // gestionnaire y lisait « aucun locataire ne m'écrit ». C'est l'encart
     // d'échec de la zone qui parle, comme partout ailleurs.
     return (
-      <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
+      <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page mb-6">
           <h1>Messages</h1>
         </div>
@@ -41,7 +41,9 @@ export default async function PageMessages(props: PageProps<"/agence/[orgId]/mes
   const nonLus = fils.reduce((s, f) => s + f.non_lus, 0);
 
   return (
-    <main className="mx-auto w-full max-w-4xl p-4 sm:p-7">
+    // max-w-5xl comme les autres écrans de premier niveau : Messages était
+    // visiblement plus étroite (tour du 24/09).
+    <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>Messages</h1>
         <span className="mono-discret">

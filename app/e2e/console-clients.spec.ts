@@ -19,13 +19,15 @@ test.beforeEach(async ({ page }) => {
 
 test("la supervision arrive sur sa console, pas sur un sélecteur d'espaces", async ({ page }) => {
   await page.goto("/espaces");
-  await page.waitForURL(/\/admin$/, { timeout: 20_000 });
-  await expect(page.getByRole("heading", { name: "Supervision" })).toBeVisible();
+  await page.waitForURL(/\/admin\/brief$/, { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Aujourd’hui" })).toBeVisible();
 });
 
 test("« Clients » réunit les trois familles et met en avant ce qui attend", async ({ page }) => {
   await page.goto("/admin");
-  await page.getByRole("link", { name: "Clients", exact: true }).first().click();
+  await page.getByRole("button", { name: "Menu supervision", exact: true }).click();
+  await page.locator("summary").filter({ hasText: "Clients et partenaires" }).click();
+  await page.getByRole("link", { name: "Agences, bailleurs et artisans", exact: true }).click();
   await page.waitForURL(/\/admin\/clients/);
 
   await expect(page.getByRole("heading", { name: "Clients", level: 1 })).toBeVisible();

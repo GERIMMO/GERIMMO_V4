@@ -3,7 +3,7 @@ import { formaterDateHeure } from "@/lib/ged";
 import { createClient } from "@/lib/supabase/server";
 import { BoutonDevisTraite } from "./bouton-traite";
 
-export const metadata = { title: "Demandes de devis — Gerimmo" };
+export const metadata = { title: "Demandes commerciales — Gerimmo" };
 
 // Les demandes de devis déposées sur le site vitrine (agences). La vitrine
 // promet une réponse sous 48 h ouvrées : cette page est l'endroit où la
@@ -19,7 +19,7 @@ export default async function PageDevisAdmin() {
   if (error) {
     return (
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-        <h1>Demandes de devis</h1>
+        <h1>Demandes commerciales</h1>
         <div className="vide mt-4">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
@@ -43,7 +43,7 @@ export default async function PageDevisAdmin() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Demandes de devis</h1>
+        <h1>Demandes commerciales</h1>
         {/* « 0 en attente / 0 » se lisait comme une fraction (24/09). */}
         <span className="mono-discret">
           {demandes.length === 0
@@ -52,12 +52,13 @@ export default async function PageDevisAdmin() {
         </span>
       </div>
 
+      <p className="mb-5 text-sm text-muted-foreground">Les demandes reçues depuis le site pour devenir client de Gerimmo. Les devis d’intervention des artisans se trouvent dans les dossiers d’incident.</p>
       {/* Un état vide qui guide, comme les autres de la console (24/09), et
           des rangs communs : sans `.rang`, aucun filet ne séparait deux
           demandes. */}
       {demandes.length === 0 ? (
         <div className="vide-guide">
-          <p className="titre">Aucune demande de devis</p>
+          <p className="titre">Aucune demande commerciale</p>
           <p className="explication">
             Les demandes arrivent depuis le formulaire « Agences » du site
             vitrine.

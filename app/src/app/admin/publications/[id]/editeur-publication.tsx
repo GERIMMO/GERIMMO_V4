@@ -207,7 +207,7 @@ export function EditeurPublication(p: Props) {
         <section className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--filet-leger)] p-4 shadow-[var(--ombre-portee)]">
           <div>
             <p className="libelle-champ">Diffusion Facebook</p>
-            <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. Le jeton Meta reste uniquement côté serveur.</p>
+            <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. La diffusion utilise la Page Facebook connectée à Gerimmo.</p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="facebook_texte" className="libelle-champ">Texte de la publication</Label>
@@ -216,7 +216,7 @@ export function EditeurPublication(p: Props) {
               className="w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 text-base leading-relaxed sm:text-sm" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="facebook_image_url" className="libelle-champ">Visuel public (HTTPS)</Label>
+            <Label htmlFor="facebook_image_url" className="libelle-champ">Adresse de l’image à publier</Label>
             <Input id="facebook_image_url" name="facebook_image_url" type="url" defaultValue={p.facebookImageUrl ?? ""}
               placeholder="https://www.gerimmo.app/marketing/visuel.png" />
           </div>
@@ -348,7 +348,7 @@ export function EditeurPublication(p: Props) {
             <ul className="mt-1.5 space-y-1">
               {p.sources.map((s) => (
                 <li key={s} className="text-[12px] text-[var(--texte-secondaire)]">
-                  {s.replace(/^wiki\//, "").replace(/\.md$/, "")}
+                  {s === "contenu-editorial-gerimmo" ? "Conseils pratiques de Gerimmo" : s.startsWith("audience:") ? `Public concerné : ${s.slice(9)}` : s.replace(/^wiki\//, "").replace(/\.md$/, "")}
                 </li>
               ))}
             </ul>

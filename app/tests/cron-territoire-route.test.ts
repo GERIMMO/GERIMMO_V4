@@ -55,18 +55,21 @@ describe("la ronde refuse plutôt que de s'ouvrir", () => {
   });
 });
 
-describe("chaque tâche déclarée passe le proxy sans session", () => {
-  const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf-8")) as {
-    crons: { path: string; schedule: string }[];
-  };
-
-  it("déclare la collecte et l’étude territoriale quotidiennes", () => {
-    expect(vercel.crons.find((c) => c.path === "/api/cron/territoire")?.schedule).toBe("0 5 * * *");
+describe("arrêt des tâches programmées", () => {
+  it("ne déclare aucun travail automatique", () => {
+    const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf-8"));
+    expect(vercel.crons).toEqual([]);
   });
-
-  it.each(vercel.crons.map((c) => c.path))("%s n'est pas renvoyé vers la connexion", async (path) => {
-    const r = await proxy(new NextRequest(`https://gerimmo.test${path}`));
+  it.each(["quittances", "appels", "rappels", "abonnements", "territoire", "relances", "marketing", "signatures", "orchestrateur", "equipes?mission=marketing", "inconnue"])("%s attend l’accord même avec le secret du planificateur", async (mission) => {
+    const r = await proxy(new NextRequest(`https://gerimmo.test/api/cron/${mission}`, {headers:{authorization:"Bearer secret", "x-superadmin-approved":"true"}}));
+    expect(r.status).toBe(403);
     expect(r.headers.get("location")).toBeNull();
+    expect(r.headers.get("x-middleware-next")).toBeNull();
+    expect(mocks.client).not.toHaveBeenCalled();
+    expect(await r.json()).toMatchObject({suspendu:true});
+  });
+  it.each(["/api/stripe/webhook","/api/youtrust/webhook","/api/sante"])("conserve le fonctionnement de %s", async (path) => {
+    const r = await proxy(new NextRequest(`https://gerimmo.test${path}`));
     expect(r.headers.get("x-middleware-next")).toBe("1");
     expect(mocks.client).not.toHaveBeenCalled();
   });

@@ -67,10 +67,10 @@ describe("la route refuse plutôt que de s'ouvrir", () => {
   });
 });
 
-describe("le contrôle d'authentification laisse passer les tâches", () => {
+describe("les tâches attendent un accord individuel", () => {
   it("/api/cron/appels ne part pas vers /connexion", async () => {
     const r = await proxy(new NextRequest("https://exemple.fr/api/cron/appels"));
-    expect(r.status).toBe(200);
+    expect(r.status).toBe(403);
     expect(r.headers.get("location")).toBeNull();
   });
 });

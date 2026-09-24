@@ -3,38 +3,5 @@
   "regions": [
     "cdg1"
   ],
-  "crons": [
-    {
-      "path": "/api/cron/quittances",
-      "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/abonnements",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/appels",
-      "schedule": "30 7 * * *"
-    },
-    {
-      "path": "/api/cron/rappels",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/territoire",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/relances",
-      "schedule": "45 7 * * *"
-    },
-    {
-      "path": "/api/cron/marketing",
-      "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/signatures",
-      "schedule": "0 3 * * *"
-    }
-  ]
+  "crons": []
 }

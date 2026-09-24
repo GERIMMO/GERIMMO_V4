@@ -66,6 +66,11 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
         {/* Le bas de page passe au-dessus du bouton flottant « Aide et
             retours » (24/09) : sans cette réserve, la dernière ligne restait
             dessous. */}
+        <aside role="status" className="mx-4 mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <strong>Les agents sont en pause.</strong>{" "}
+          Aucun travail programmé ne démarre. La validation de chaque action est en préparation.{" "}
+          <Link href="/admin/controle-agents" className="font-semibold underline">Comprendre ce qui est arrêté</Link>
+        </aside>
         <div className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">{children}</div>
       </div>
     </div>

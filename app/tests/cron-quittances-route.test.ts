@@ -71,12 +71,12 @@ describe("la route refuse plutôt que de s'ouvrir", () => {
   });
 });
 
-describe("le contrôle d'authentification laisse passer les tâches", () => {
+describe("les tâches attendent un accord individuel", () => {
   it("/api/cron/* ne part pas vers /connexion", async () => {
     // Une tâche planifiée n'a pas de session : sans cette exception, le proxy
     // la redirigerait vers la page de connexion et rien ne partirait jamais.
     const r = await proxy(new NextRequest("https://exemple.fr/api/cron/quittances"));
-    expect(r.status).toBe(200);
+    expect(r.status).toBe(403);
     expect(r.headers.get("location")).toBeNull();
   });
 });

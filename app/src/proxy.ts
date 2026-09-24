@@ -26,6 +26,15 @@ const PUBLIC_PATHS = [
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
 export async function proxy(request: NextRequest) {
+  // Décision de supervision du 24/09 : aucune passe autonome n'est autorisée.
+  // Le secret du planificateur n'est pas l'accord humain sur une action précise.
+  // Intercepter aussi les anciennes URL et les futures routes de ce périmètre.
+  if (request.nextUrl.pathname === "/api/cron" || request.nextUrl.pathname.startsWith("/api/cron/")) {
+    return NextResponse.json(
+      { suspendu: true, message: "Les agents attendent votre accord. Aucun traitement programmé n’a été lancé." },
+      { status: 403, headers: { "Cache-Control": "no-store" } }
+    );
+  }
   // Ces appels viennent de serveurs, sans cookie de connexion. Chaque route
   // vérifie son propre secret (Cron) ou la signature du corps brut (Stripe).
   // Garder la liste exacte : aucun autre chemin /api n'est rendu public.
@@ -171,7 +180,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Tout sauf les ressources statiques
+    // Toutes les tâches, y compris un chemin contenant un suffixe de fichier.\n    "/api/cron/:path*",\n    // Tout sauf les ressources statiques
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

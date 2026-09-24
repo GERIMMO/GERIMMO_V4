@@ -34,6 +34,19 @@ export const LIBELLES_STATUT_ARTISAN: Record<string, string> = {
   refuse: "Refusé",
 };
 
+/**
+ * Les décisions de l'historique (`artisan_validations.decision`), qui ne sont
+ * PAS des statuts : « validation » s'affichait tel qu'en base, en minuscules,
+ * faute de clé dans la table des statuts (24/09).
+ */
+export const LIBELLES_DECISION_ARTISAN: Record<string, string> = {
+  validation: "Inscription validée",
+  refus: "Inscription refusée",
+  remise_en_attente: "Remise en attente",
+  blacklist_globale: "Écarté de la plateforme",
+  levee_blacklist: "Réintégré",
+};
+
 export const LIBELLES_SIRET: Record<string, string> = {
   verifie: "SIRET vérifié",
   non_verifie: "SIRET non vérifié",
@@ -86,11 +99,17 @@ export function cheminEspaceClient(client: {
   return client.famille === "artisan" ? null : `/agence/${client.id}`;
 }
 
+// Les mots qui ne font pas un nom : sans eux, « Parc de Claire Moreau »
+// donnait « PD », comme tous les parcs de propriétaires bailleurs (24/09).
+const MOTS_OUTILS = new Set(["de", "du", "des", "d", "la", "le", "les", "l", "et"]);
+
 /** Les initiales d'une pastille, à partir d'un nom d'entreprise ou de personne. */
 export function initiales(nom: string | null | undefined): string {
-  const mots = (nom ?? "").trim().split(/\s+/).filter(Boolean);
-  if (mots.length === 0) return "◇";
-  return mots
+  const tous = (nom ?? "").trim().replace(/^parc\s+(de|du|des|d['’])\s*/i, "").split(/[\s'’]+/).filter(Boolean);
+  const mots = tous.filter((m) => !MOTS_OUTILS.has(m.toLowerCase()));
+  const retenus = mots.length > 0 ? mots : tous;
+  if (retenus.length === 0) return "◇";
+  return retenus
     .slice(0, 2)
     .map((m) => m[0])
     .join("")

@@ -42,9 +42,13 @@ export default async function InscriptionsArtisan({ searchParams }: {
     : { data: [], error: null };
 
   return <RetourDecisionsArtisan><main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-    <div className="entete-page mb-6"><div><h1>Inscriptions artisan</h1><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
-    <p className="mb-5 border-l-2 border-[var(--or)] pl-3 text-sm text-[var(--texte-secondaire)]">La validation appartient à Gerimmo. Elle ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p>
-    {file.error ? <p role="alert" className="vide">Impossible de charger les inscriptions. Rechargez pour réessayer.</p> : inscriptions.length === 0 ? <div className="vide-guide"><p className="titre">Aucune inscription en attente</p><p className="explication">Les nouvelles inscriptions apparaîtront ici pour examen.</p></div> : <div className="space-y-5">{inscriptions.map((artisan) => <section key={artisan.artisan_id} className="border border-[var(--filet)] bg-[var(--ivoire)] p-4 sm:p-5">
+    {/* 24/09 : même retour vers la liste que les fiches artisan et organisation,
+        rattachées elles aussi à l'entrée « Clients ». La note à liseré qui
+        suivait l'en-tête est fondue dans sa phrase d'appui : un seul bloc ;
+        mesure-lecture garde la mention « en attente » à droite du titre. */}
+    <Link href="/admin/clients" className="lien-discret text-sm">← Tous les clients</Link>
+    <div className="entete-page mt-2 mb-6"><div><h1>Inscriptions artisan</h1><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée. La validation ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
+    {file.error ? <p role="alert" className="vide">Impossible de charger les inscriptions. Rechargez pour réessayer.</p> : inscriptions.length === 0 ? <div className="vide-guide"><p className="titre">Aucune inscription en attente</p><p className="explication">Les nouvelles inscriptions apparaîtront ici pour examen.</p><div className="geste"><Link href="/admin/clients" className="btn-secondaire">Voir les artisans inscrits</Link></div></div> : <div className="space-y-5">{inscriptions.map((artisan) => <section key={artisan.artisan_id} className="border border-[var(--filet)] bg-[var(--ivoire)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-heading text-xl text-[var(--encre)]">{artisan.raison_sociale}</h2><p className="mt-1 text-sm">{(artisan.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier non renseigné"}</p></div><span className="puce puce-prep">Depuis le {date(artisan.inscrit_le)}</span></div>
       <dl className="my-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="libelle-champ">SIRET</dt><dd>{artisan.siret} · {ETATS_SIRET[artisan.siret_etat] ?? artisan.siret_etat}</dd></div><div><dt className="libelle-champ">Contact</dt><dd>{artisan.email || "Email non renseigné"}{artisan.telephone && ` · ${artisan.telephone}`}</dd></div></dl>
       {artisan.siret_etat !== "verifie" && <div className="mb-4 border border-[var(--filet)] p-3"><DecisionArtisan artisanId={artisan.artisan_id} operation="verifier_siret" /></div>}
@@ -55,7 +59,9 @@ export default async function InscriptionsArtisan({ searchParams }: {
       <details className="mt-4 border-t border-[var(--filet)] pt-3"><summary className="cursor-pointer text-sm">Refuser cette inscription</summary><div className="mt-3"><DecisionArtisan artisanId={artisan.artisan_id} operation="refus" /></div></details>
       {artisan.purge_prevue_le && <p className="mt-3 text-xs text-[var(--texte-secondaire)]">Sans suite, échéance de conservation prévue le {date(artisan.purge_prevue_le)}.</p>}
     </section>)}</div>}
-    <details id="decisions" open={recherche.page !== undefined} className="mt-7 border border-[var(--filet)] bg-[var(--ivoire)] p-4">
+    {/* 24/09 : ouvert d'emblée. Sans inscription en attente, l'historique est
+        le seul contenu de l'écran ; le replier coûtait un clic à chaque visite. */}
+    <details id="decisions" open className="mt-7 border border-[var(--filet)] bg-[var(--ivoire)] p-4">
       <summary className="cursor-pointer font-heading text-lg">Décisions récentes</summary>
       <p className="mt-2 text-xs text-[var(--texte-secondaire)]">Les inscriptions validées ou refusées, de la plus récente à la plus ancienne. Un refus peut être réexaminé.</p>
       {decisions.error ? <p role="alert" className="mt-3 text-sm text-[var(--destructive)]">Historique indisponible. Les décisions ne peuvent pas être consultées pour le moment. <Link href="/admin/artisans?page=1#decisions" className="lien-discret">Réessayer</Link></p> : <>

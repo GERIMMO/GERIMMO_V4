@@ -54,6 +54,10 @@ describe("Les clients vus de la supervision", () => {
     expect(initiales("Martin")).toBe("M");
     expect(initiales("")).toBe("◇");
     expect(initiales(null)).toBe("◇");
+    // Les parcs de propriétaires bailleurs ne se ressemblent plus tous (24/09).
+    expect(initiales("Parc de Claire Moreau")).toBe("CM");
+    expect(initiales("Parc d'Anne Durand")).toBe("AD");
+    expect(initiales("Maison de la Plomberie")).toBe("MP");
   });
 
   it("garde /admin/clients lisible dans le journal des retours, sans le nom du client", () => {

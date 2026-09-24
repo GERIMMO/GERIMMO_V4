@@ -81,11 +81,11 @@ function LigneClient({
   enEvidence?: boolean;
 }) {
   return (
+    // Le rang commun de la console (24/09) : même survol, même liseré, même
+    // filet que les autres listes. Le liseré or reste pour ce qui attend.
     <Link
       href={href}
-      className={`flex items-center gap-3 border-b border-[var(--filet-leger)] px-4 py-3 last:border-b-0 hover:bg-[var(--survol)] ${
-        enEvidence ? "border-l-[3px] border-l-[var(--or)]" : ""
-      }`}
+      className={`rang ${enEvidence ? "border-l-[var(--or)]" : ""}`}
     >
       <span
         aria-hidden
@@ -95,7 +95,7 @@ function LigneClient({
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14px] text-[var(--corps)]">{nom}</span>
-        <span className="mono-discret sans-majuscules block !text-[10px]">{detail}</span>
+        <span className="mono-discret sans-majuscules block">{detail}</span>
       </span>
       <span className="shrink-0">{puce}</span>
     </Link>
@@ -164,7 +164,7 @@ export default async function PageClients() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <div>
+        <div className="min-w-0 flex-[1_1_20rem]">
           <h1>Clients</h1>
           <p className="mt-2 text-sm text-[var(--texte-secondaire)]">
             Les agences et les propriétaires bailleurs sont des clients de
@@ -227,7 +227,7 @@ export default async function PageClients() {
             explication="Les artisans s'inscrivent eux-mêmes depuis le site ; leur dossier arrive ici pour vérification."
           />
         ) : (
-          <div className="border border-[var(--filet)] bg-[var(--ivoire)]">
+          <div className="colonne-liste">
             {artisans.map((a) => (
               <LigneClient
                 key={a.id}
@@ -256,7 +256,7 @@ export default async function PageClients() {
 
       <Section
         titre="Agences"
-        compte={orgs.error ? "indisponible" : `${agences.length}`}
+        compte={orgs.error ? "indisponible" : `${agences.length} agence${agences.length > 1 ? "s" : ""}`}
       >
         {orgs.error ? (
           <p role="alert" className="vide">
@@ -268,7 +268,7 @@ export default async function PageClients() {
             explication="Une agence s'ouvre ici après contrat — le bouton « Ouvrir une organisation » en haut de cet écran."
           />
         ) : (
-          <div className="border border-[var(--filet)] bg-[var(--ivoire)]">
+          <div className="colonne-liste">
             {agences.map((o) => (
               <LigneClient
                 key={o.id}
@@ -292,7 +292,7 @@ export default async function PageClients() {
 
       <Section
         titre="Propriétaires bailleurs"
-        compte={orgs.error ? "indisponible" : `${proprietaires.length}`}
+        compte={orgs.error ? "indisponible" : `${proprietaires.length} propriétaire${proprietaires.length > 1 ? "s" : ""}`}
       >
         {orgs.error ? (
           <p role="alert" className="vide">
@@ -304,7 +304,7 @@ export default async function PageClients() {
             explication="Un propriétaire ouvre son espace lui-même depuis le site : son organisation naît à sa première connexion."
           />
         ) : (
-          <div className="border border-[var(--filet)] bg-[var(--ivoire)]">
+          <div className="colonne-liste">
             {proprietaires.map((o) => (
               <LigneClient
                 key={o.id}
@@ -318,7 +318,7 @@ export default async function PageClients() {
                     : null,
                 ]
                   .filter(Boolean)
-                  .join(" · ") || `inscrit le ${formaterDate(o.created_at)}`}
+                  .join(" · ") || `client depuis le ${formaterDate(o.created_at)}`}
                 puce={<PuceStatutOrg statut={o.status} />}
               />
             ))}

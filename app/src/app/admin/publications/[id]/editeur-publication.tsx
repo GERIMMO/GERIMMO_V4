@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import Link from "next/link";
+import { useActionState, useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
+import { ExternalLink } from "lucide-react";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -36,11 +38,38 @@ function listerTrous(corps: string): string[] {
   return [...corps.matchAll(MARQUE)].map((m) => m[1].trim());
 }
 
+const ID_FORMULAIRE = "formulaire-article";
+// Un bouton désactivé doit en avoir l'air : les classes communes ne le
+// disent pas encore (proposition de règle partagée, 24/09).
+const DESACTIVE = "disabled:pointer-events-none disabled:opacity-50";
+
+// Les boutons communs de la console (24/09) : `.btn-or` pour l'action
+// principale, `.btn-secondaire` pour les autres. Deux habillages différents
+// côte à côte (« Voir dans le journal » en .btn-or 13 px, « Enregistrer » en
+// bouton plat de 32 px) faisaient deux styles pour des gestes voisins.
+function Soumettre({
+  classe,
+  disabled,
+  children,
+}: {
+  classe: string;
+  disabled?: boolean;
+  children: React.ReactNode;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className={`${classe} w-full justify-center ${DESACTIVE}`} disabled={pending || disabled}>
+      {pending && <Spinner />}
+      {children}
+    </button>
+  );
+}
+
 export function EditeurPublication(p: Props) {
   const [corps, setCorps] = useState(p.corps ?? "");
   const [chapo, setChapo] = useState(p.chapo ?? "");
   const [modificationsNonEnregistrees, setModificationsNonEnregistrees] = useState(false);
-  const [etat, action] = useActionState<EtatPublication, FormData>(
+  const [etat, action, enregistrement] = useActionState<EtatPublication, FormData>(
     async (e, fd) => {
       const resultat = await enregistrerPublication(p.id, e, fd);
       if (resultat.succes) setModificationsNonEnregistrees(false);
@@ -74,10 +103,47 @@ export function EditeurPublication(p: Props) {
   const pret = trous.length === 0 && controles.length === 0;
   const paru = p.statut === "publiee";
 
+  // Quitter l'éditeur avec des modifications non enregistrées demande
+  // confirmation (24/09) : elles étaient perdues sans avertissement.
+  useEffect(() => {
+    if (!modificationsNonEnregistrees) return;
+    const retenir = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", retenir);
+    return () => window.removeEventListener("beforeunload", retenir);
+  }, [modificationsNonEnregistrees]);
+
+  // Le bouton d'enregistrement vit dans la colonne d'actions, qui reste
+  // visible au défilement sur bureau (24/09) : il fallait descendre tout le
+  // formulaire pour l'atteindre. Sur téléphone, les actions passent en tête
+  // et le bouton reste aussi au pied du formulaire, là où l'on finit d'écrire.
+  const libelleEnregistrer = paru ? "Enregistrer comme brouillon" : "Enregistrer";
+  const boutonEnregistrer = (
+    <button
+      type="submit"
+      form={ID_FORMULAIRE}
+      className={`${paru ? "btn-or" : "btn-secondaire"} w-full justify-center ${DESACTIVE}`}
+      disabled={enregistrement}
+    >
+      {enregistrement && <Spinner />}
+      {enregistrement ? "Enregistrement…" : libelleEnregistrer}
+    </button>
+  );
+  const retourEnregistrement = (
+    <>
+      {paru && <p className="text-[12.5px] leading-snug text-[var(--texte-secondaire)]">L’enregistrement retire l’article du journal. Vous pourrez le faire paraître à nouveau après relecture.</p>}
+      {etat.succes && !paru && <p role="status" className="text-[12.5px] text-[var(--success)]">{etat.succes}</p>}
+      {etat.erreur && <p role="alert" className="text-[12.5px] text-[var(--destructive)]">{etat.erreur}</p>}
+    </>
+  );
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_280px] lg:items-start">
       {/* ------------------------------------------------ Colonne d'écriture */}
       <form
+        id={ID_FORMULAIRE}
         action={action}
         onChange={() => setModificationsNonEnregistrees(true)}
         onReset={(event) => event.preventDefault()}
@@ -104,13 +170,14 @@ export function EditeurPublication(p: Props) {
 
         <div className="space-y-1.5">
           <Label htmlFor="corps" className="libelle-champ">Corps de l&apos;article (markdown)</Label>
+          {/* La hauteur suit le texte (24/09) : 26 lignes fixes laissaient
+              580 px de blanc sous cinq lignes écrites. */}
           <textarea
             id="corps"
             name="corps"
-            rows={26}
             value={corps}
             onChange={(e) => setCorps(e.target.value)}
-            className="w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 font-mono text-base leading-relaxed sm:text-[13px]"
+            className="min-h-56 w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 font-mono text-base leading-relaxed [field-sizing:content] sm:text-[13px]"
           />
         </div>
 
@@ -137,7 +204,7 @@ export function EditeurPublication(p: Props) {
           </div>
         </div>
 
-        <section className="space-y-4 border border-[var(--filet)] bg-[var(--filet-leger)] p-4">
+        <section className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--filet-leger)] p-4 shadow-[var(--ombre-portee)]">
           <div>
             <p className="libelle-champ">Diffusion Facebook</p>
             <p className="mt-1 text-[12px] text-[var(--texte-secondaire)]">Gerimmo ajoute automatiquement le lien de l’article. Le jeton Meta reste uniquement côté serveur.</p>
@@ -146,7 +213,7 @@ export function EditeurPublication(p: Props) {
             <Label htmlFor="facebook_texte" className="libelle-champ">Texte de la publication</Label>
             <textarea id="facebook_texte" name="facebook_texte" rows={5} defaultValue={p.facebookTexte ?? ""}
               placeholder="Texte préparé au nom de Gerimmo"
-              className="w-full rounded-[10px] border border-[var(--filet)] bg-white p-3 text-sm leading-relaxed" />
+              className="w-full rounded-[10px] border border-[var(--filet)] bg-[var(--ivoire)] p-3 text-base leading-relaxed sm:text-sm" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="facebook_image_url" className="libelle-champ">Visuel public (HTTPS)</Label>
@@ -155,19 +222,20 @@ export function EditeurPublication(p: Props) {
           </div>
         </section>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <BoutonEnvoi>{paru ? "Enregistrer comme brouillon" : "Enregistrer"}</BoutonEnvoi>
-          {paru && <p className="text-[13px] text-[var(--texte-secondaire)]">L’enregistrement retire l’article du journal. Vous pourrez le faire paraître à nouveau après relecture.</p>}
-          {etat.succes && !paru && <span className="text-[13px] text-[var(--success)]">{etat.succes}</span>}
-          {etat.erreur && <span className="text-[13px] text-[var(--destructive)]">{etat.erreur}</span>}
+        <div className="space-y-2 sm:max-w-xs lg:hidden">
+          {boutonEnregistrer}
+          {retourEnregistrement}
         </div>
       </form>
 
       {/* ------------------------------------------------- Colonne de contrôle */}
-      <aside className="space-y-4">
+      {/* Sous `lg`, l'état et les actions passent en tête (24/09) : il
+          fallait défiler 1 600 px pour savoir que l'article était paru. Sur
+          bureau, la colonne reste collée sous le bandeau. */}
+      <aside className="order-first space-y-4 lg:sticky lg:top-24 lg:order-none lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
         {/* Ce qui reste à fournir : le vrai travail de l'article */}
         <div
-          className={`border p-3.5 ${
+          className={`rounded-xl border p-3.5 shadow-[var(--ombre-portee)] ${
             !pret
               ? "border-[var(--warning)] bg-[var(--warning-soft)]"
               : "border-[var(--filet)] bg-[var(--ivoire)]"
@@ -207,11 +275,15 @@ export function EditeurPublication(p: Props) {
         </div>
 
         {/* Parution */}
+        <div className="hidden space-y-2 lg:block">
+          {boutonEnregistrer}
+          {retourEnregistrement}
+        </div>
         {!paru ? (
           <form action={actionParution} className="space-y-2">
-            <BoutonEnvoi className="w-full justify-center" disabled={!pret}>
+            <Soumettre classe="btn-or" disabled={!pret}>
               Faire paraître
-            </BoutonEnvoi>
+            </Soumettre>
             {etatParution.erreur && (
               <p className="text-[12.5px] leading-snug text-[var(--destructive)]">
                 {etatParution.erreur}
@@ -220,15 +292,21 @@ export function EditeurPublication(p: Props) {
           </form>
         ) : (
           <div className="space-y-2">
+            {/* Le journal public s'ouvre dans un nouvel onglet (24/09) :
+                l'éditeur reste ouvert, et la saisie en cours avec lui. */}
             {p.slug && (
-              <Link href={`/journal/${p.slug}`} className="btn-or w-full justify-center">
-                Voir dans le journal
-              </Link>
+              <a
+                href={`/journal/${p.slug}`}
+                target="_blank"
+                rel="noopener"
+                className="btn-secondaire w-full justify-center"
+              >
+                Voir dans le journal <ExternalLink className="size-4" aria-hidden />
+                <span className="sr-only">(nouvel onglet)</span>
+              </a>
             )}
             <form action={actionRetrait}>
-              <BoutonEnvoi variant="outline" className="w-full justify-center">
-                Retirer du journal
-              </BoutonEnvoi>
+              <Soumettre classe="btn-secondaire">Retirer du journal</Soumettre>
             </form>
             {etatRetrait.succes && (
               <p className="text-[12.5px] text-[var(--success)]">{etatRetrait.succes}</p>
@@ -241,13 +319,13 @@ export function EditeurPublication(p: Props) {
         )}
 
         {paru && (
-          <div className="border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
+          <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3.5 shadow-[var(--ombre-portee)]">
             <p className="libelle-champ">Facebook</p>
             {p.facebookPostId ? (
               <p className="mt-1.5 text-[13px] text-[var(--success)]">Publié par Gerimmo{p.facebookPublieLe ? ` le ${new Date(p.facebookPublieLe).toLocaleDateString("fr-FR")}` : ""}.</p>
             ) : (
               <form action={actionFacebook} className="mt-2 space-y-2">
-                <BoutonEnvoi variant="outline" className="w-full justify-center">Publier sur Facebook</BoutonEnvoi>
+                <Soumettre classe="btn-secondaire">Publier sur Facebook</Soumettre>
                 <p className="text-[11.5px] text-[var(--texte-secondaire)]">Enregistrez d’abord le texte et le visuel si vous les modifiez.</p>
               </form>
             )}
@@ -265,7 +343,7 @@ export function EditeurPublication(p: Props) {
 
         {/* Sources : d'où vient la règle */}
         {p.sources.length > 0 && (
-          <div className="border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
+          <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
             <p className="libelle-champ">Appuyé sur</p>
             <ul className="mt-1.5 space-y-1">
               {p.sources.map((s) => (
@@ -279,7 +357,7 @@ export function EditeurPublication(p: Props) {
 
         {/* Écarter */}
         {!paru && (
-          <details className="border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
+          <details className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3.5">
             <summary className="libelle-champ cursor-pointer">Écarter ce sujet</summary>
             <form action={actionRefus} className="mt-2.5 space-y-2">
               <Input name="motif" placeholder="Pourquoi ?" aria-label="Motif du refus" required />

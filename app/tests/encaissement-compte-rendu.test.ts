@@ -122,6 +122,10 @@ verifierBaseDeTest(DB_URL);
 const JUILLET = "2026-07-01";
 const AOUT = "2026-08-01";
 
+// 24/09 : `eur()` tient le montant et « € » par une espace INSÉCABLE (U+00A0),
+// pour que le symbole ne parte plus seul à la ligne — d'où les `\u00A0` des
+// chaînes attendues dans ce fichier.
+
 // Deux termes de 500 €, rien d'encaissé : l'état d'avant.
 const AVANT: EtatAppel[] = [
   { appel_id: "a-juillet", periode: JUILLET, montant_du: 500, montant_couvert: 0 },
@@ -138,7 +142,7 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
     ];
     const rendu = compteRenduEncaissement(500, AVANT, apres);
 
-    expect(rendu).toContain("juillet 2026 soldé, 500,00 € → quittance");
+    expect(rendu).toContain("juillet 2026 soldé, 500,00\u00A0€ → quittance");
     expect(rendu).not.toContain("août");
     expect(rendu).toContain("RM-3.3.2");
   });
@@ -150,7 +154,7 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
     ];
     const rendu = compteRenduEncaissement(300, AVANT, apres);
 
-    expect(rendu).toContain("juillet 2026 réglé en partie, 300,00 € (reste 200,00 €) → reçu");
+    expect(rendu).toContain("juillet 2026 réglé en partie, 300,00\u00A0€ (reste 200,00\u00A0€) → reçu");
     expect(rendu).toContain("la quittance ne libère qu'au solde (RM-3.4.2)");
     expect(rendu).not.toContain("→ quittance");
   });
@@ -163,7 +167,7 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
     const rendu = compteRenduEncaissement(800, AVANT, apres);
 
     expect(rendu).toContain(
-      "juillet 2026 soldé, 500,00 € → quittance ; août 2026 réglé en partie, 300,00 € (reste 200,00 €) → reçu"
+      "juillet 2026 soldé, 500,00\u00A0€ → quittance ; août 2026 réglé en partie, 300,00\u00A0€ (reste 200,00\u00A0€) → reçu"
     );
   });
 
@@ -174,7 +178,7 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
     ];
     const rendu = compteRenduEncaissement(1200, AVANT, apres);
 
-    expect(rendu).toContain("200,00 € en avance sur le prochain appel");
+    expect(rendu).toContain("200,00\u00A0€ en avance sur le prochain appel");
   });
 
   it("sur un bail sans échéancier, dit que l'argent attend le prochain appel", () => {
@@ -182,7 +186,7 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
     // imputer n'est pas rien à dire.
     const rendu = compteRenduEncaissement(100, [], []);
     expect(rendu).toContain("aucun terme à couvrir");
-    expect(rendu).toContain("100,00 € en avance sur le prochain appel");
+    expect(rendu).toContain("100,00\u00A0€ en avance sur le prochain appel");
   });
 
   it("ignore le centime d'arrondi du numeric : ce n'est pas une imputation", () => {
@@ -342,7 +346,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
 
     // Et c'est ce que le compte rendu dit désormais, mot pour mot.
     const rendu = compteRenduEncaissement(reste, avant, apres);
-    expect(rendu).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00 € → quittance`);
+    expect(rendu).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00\u00A0€ → quittance`);
     expect(rendu).not.toContain(moisEnFrancais(moisAffiche));
   });
 
@@ -400,7 +404,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     );
     const apres = await etatLoyers();
     const rendu = compteRenduEncaissement(500, avant, apres);
-    expect(rendu).toContain(`${moisEnFrancais(moisAffiche)} soldé, 500,00 € → quittance`);
+    expect(rendu).toContain(`${moisEnFrancais(moisAffiche)} soldé, 500,00\u00A0€ → quittance`);
 
     const [apresPaiement] = await lire(moisAffiche);
     expect(apresPaiement.statut).toBe("paye");
@@ -424,7 +428,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche));
 
     expect(resultat.erreur).toBeUndefined();
-    expect(resultat.succes).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00 € → quittance`);
+    expect(resultat.succes).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00\u00A0€ → quittance`);
     expect(resultat.succes).not.toContain(moisEnFrancais(moisAffiche));
     expect(resultat.succes).not.toContain("aucun reçu ni quittance à émettre");
   });
@@ -438,7 +442,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     );
     const resultat = await encaisserReste(org, bail, await appelDuMois(moisAffiche));
 
-    expect(resultat.succes).toContain(`${moisEnFrancais(moisAffiche)} soldé, 500,00 € → quittance`);
+    expect(resultat.succes).toContain(`${moisEnFrancais(moisAffiche)} soldé, 500,00\u00A0€ → quittance`);
     const [ligne] = await lire(moisAffiche);
     expect(ligne.statut).toBe("paye");
     expect(ligne.est_quittance).toBe(true);
@@ -457,7 +461,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     const resultat = await ajouterEncaissement(org, bail, {}, saisie);
 
     expect(resultat.erreur).toBeUndefined();
-    expect(resultat.succes).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00 € → quittance`);
+    expect(resultat.succes).toContain(`${moisEnFrancais(moisAnterieur)} soldé, 500,00\u00A0€ → quittance`);
     expect(resultat.succes).not.toContain("aucun reçu ni quittance à émettre");
 
     const {
@@ -599,9 +603,9 @@ describe("L'écran de quittancement — il dit ce qu'il vient de faire, et ne pr
 
   it("promet le terme que la base servira VRAIMENT, et chiffre la dette antérieure", () => {
     const html = rendre(ligneAvecDetteAnterieure);
-    expect(libelleDuBouton(html)).toContain("500,00 €");
+    expect(libelleDuBouton(html)).toContain("500,00\u00A0€");
     expect(libelleDuBouton(html)).toContain("juillet 2026");
-    expect(html).toContain("500,00 € de dette antérieure");
+    expect(html).toContain("500,00\u00A0€ de dette antérieure");
   });
 
   it("GESTE LÉGITIME : sans dette antérieure, le bouton garde son libellé simple", () => {
@@ -610,17 +614,17 @@ describe("L'écran de quittancement — il dit ce qu'il vient de faire, et ne pr
       dette_anterieure_periode: null,
       dette_anterieure_reste: null,
     });
-    expect(libelleDuBouton(html)).toBe("Encaisser 500,00 €");
+    expect(libelleDuBouton(html)).toBe("Encaisser 500,00\u00A0€");
     expect(html).not.toContain("de dette antérieure");
   });
 
   it("AFFICHE le compte rendu que l'action lui rend — il n'est plus jeté", () => {
     etatSimule.valeur = {
-      succes: "500,00 € encaissés · imputés du terme le plus ancien au plus récent (RM-3.3.2) : juillet 2026 soldé, 500,00 € → quittance.",
+      succes: "500,00\u00A0€ encaissés · imputés du terme le plus ancien au plus récent (RM-3.3.2) : juillet 2026 soldé, 500,00\u00A0€ → quittance.",
     };
     try {
       expect(corpsDesLignes(rendre(ligneAvecDetteAnterieure))).toContain(
-        "juillet 2026 soldé, 500,00 € → quittance"
+        "juillet 2026 soldé, 500,00\u00A0€ → quittance"
       );
     } finally {
       etatSimule.valeur = {};
@@ -630,7 +634,7 @@ describe("L'écran de quittancement — il dit ce qu'il vient de faire, et ne pr
   it("le compte rendu SURVIT au basculement de la ligne en « payé »", () => {
     // C'est là que le message disparaissait : l'encaissement réussi retire le
     // bouton de l'arbre, et l'état qu'il portait partait avec lui.
-    etatSimule.valeur = { succes: "500,00 € encaissés · juillet 2026 soldé, 500,00 € → quittance." };
+    etatSimule.valeur = { succes: "500,00\u00A0€ encaissés · juillet 2026 soldé, 500,00\u00A0€ → quittance." };
     try {
       const lignes = corpsDesLignes(
         rendre({
@@ -644,7 +648,7 @@ describe("L'écran de quittancement — il dit ce qu'il vient de faire, et ne pr
         })
       );
       expect(lignes).not.toContain("Encaisser");
-      expect(lignes).toContain("juillet 2026 soldé, 500,00 € → quittance");
+      expect(lignes).toContain("juillet 2026 soldé, 500,00\u00A0€ → quittance");
     } finally {
       etatSimule.valeur = {};
     }

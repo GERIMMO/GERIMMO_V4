@@ -77,6 +77,28 @@ function grouper(lignes: Ligne[]): { titre: string; lignes: Ligne[] }[] {
   return groupes;
 }
 
+// L'ancre d'une pièce : son rang dans la grille (les titres de pièce sont
+// libres, et peuvent se répéter d'un lot à l'autre).
+const ancrePiece = (i: number) => `edl-piece-${i}`;
+
+// Une grille de 42 lignes sur six pièces se parcourt sur ~3 000 px : une
+// ligne d'ancres en tête mène droit à la cuisine (24/09).
+function AncresPieces({ titres }: { titres: string[] }) {
+  if (titres.length < 2) return null;
+  return (
+    <nav aria-label="Aller à une pièce" className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
+      {titres.map((t, i) => (
+        <span key={ancrePiece(i)} className="inline-flex items-center gap-x-1">
+          {i > 0 && <span aria-hidden className="text-muted-foreground">·</span>}
+          <a href={`#${ancrePiece(i)}`} className="lien-discret">
+            {t}
+          </a>
+        </span>
+      ))}
+    </nav>
+  );
+}
+
 /**
  * CE QUI EST SAISI AVANT L'HYDRATATION NE DOIT PAS DISPARAÎTRE.
  *
@@ -267,11 +289,15 @@ export function GrilleEdl({
   const degradees = reference ? lignes.filter(estDegrade).length : 0;
 
   if (signe) {
+    const groupesSignes = grouper(lignes);
     return (
       <div className="space-y-3">
-        {grouper(lignes).map((g) => (
-          <div key={g.titre} className="space-y-1">
-            <p className="mono-discret">{g.titre}</p>
+        <AncresPieces titres={groupesSignes.map((g) => g.titre)} />
+        {groupesSignes.map((g, i) => (
+          <div key={g.titre} id={ancrePiece(i)} className="scroll-mt-20 space-y-1">
+            {/* Le nom de la pièce est le repère de la grille : un titre, pas
+                un sur-titre gris de 11 px plus pâle que ses lignes (24/09). */}
+            <h3 className="text-[15px] font-semibold text-foreground">{g.titre}</h3>
             {g.lignes.map((l) => (
               <div key={l.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-border py-1.5 text-sm">
                 <span className="min-w-0 flex-1 sm:w-40 sm:flex-none sm:truncate">{l.libelle}</span>
@@ -301,6 +327,7 @@ export function GrilleEdl({
     setEtats((prev) => ({ ...prev, [l.id]: r.etat! }));
     setCommentaires((prev) => ({ ...prev, [l.id]: r.commentaire ?? "" }));
   };
+  const groupes = grouper(lignes);
 
   return (
     <div className="space-y-4">
@@ -382,15 +409,18 @@ export function GrilleEdl({
         className="space-y-3"
       >
         <fieldset disabled={enCoursMaj} className="space-y-3 min-w-0">
-        {grouper(lignes).map((g) => {
+        <AncresPieces titres={groupes.map((g) => g.titre)} />
+        {groupes.map((g, i) => {
           const reprenables = reference
             ? g.lignes.filter((l) => referenceDe(l)?.etat)
             : [];
           return (
-          <div key={g.titre} className="space-y-1">
+          <div key={g.titre} id={ancrePiece(i)} className="scroll-mt-20 space-y-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="mono-discret">{g.titre}</p>
-              <span className="flex items-center gap-3">
+              {/* Le nom de la pièce est le repère de la grille : un titre, pas
+                  un sur-titre gris de 11 px plus pâle que ses lignes (24/09). */}
+              <h3 className="text-[15px] font-semibold text-foreground">{g.titre}</h3>
+              <span className="flex flex-wrap items-center gap-3">
                 {/* Maquette v3 : toute la section conforme à l'entrée d'un geste */}
                 {reprenables.length > 0 && (
                   <button
@@ -403,7 +433,13 @@ export function GrilleEdl({
                     Toute la section : conforme à l&apos;entrée
                   </button>
                 )}
-                {/* Toute la section d'un coup, puis on ajuste ligne à ligne */}
+                {/* Toute la section d'un coup, puis on ajuste ligne à ligne. Ce
+                    que fait le contrôle se lit à l'écran, plus seulement dans
+                    son aria-label : « Toute la section… » passait pour un
+                    libellé tronqué (24/09). Même amorce que « Toute la
+                    section : conforme à l'entrée ». */}
+                <label className="flex items-center gap-1.5">
+                <span className="mono-discret">Toute la section :</span>
                 <select
                   value=""
                   aria-label={`Appliquer un état à toute la section ${g.titre}`}
@@ -416,32 +452,43 @@ export function GrilleEdl({
                       return suivant;
                     });
                   }}
-                  className="h-7 rounded-md border border-input bg-transparent px-1.5 text-xs text-muted-foreground"
+                  className="h-7 rounded-lg border border-input bg-transparent px-1.5 text-xs text-muted-foreground"
                 >
-                  <option value="">Toute la section…</option>
+                  <option value="">— état —</option>
                   {Object.entries(ETATS_ELEMENT).map(([v, lib]) => (
                     <option key={v} value={v}>
                       {lib}
                     </option>
                   ))}
                 </select>
+                </label>
               </span>
             </div>
             {g.lignes.map((l) => {
               const r = reference ? referenceDe(l) : null;
+              // UNE LIGNE PAR ÉLÉMENT DÈS sm (24/09), comme la vue signée :
+              // libellé | état | commentaire. Chaque élément en occupait deux
+              // dans une colonne à moitié vide (~79 px), et la grille faisait
+              // 3 300 px. Le rappel de l'entrée (sortie comparée) passe dessous
+              // sur bureau, AVANT la saisie sur téléphone.
               return (
                 <div
                   key={l.id}
-                  className={`space-y-1.5 border-b border-border py-2 ${
+                  className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-border py-2 ${
                     etats[l.id] ? "" : "border-l-2 border-l-destructive pl-2"
                   }`}
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium">{l.libelle}</span>
+                  <span
+                    className="basis-full text-sm font-medium sm:w-40 sm:flex-none sm:basis-auto sm:truncate"
+                    title={l.libelle}
+                  >
+                    {l.libelle}
+                  </span>
+                  {(reference || estDegrade(l)) && (
+                    <div className="flex basis-full flex-wrap items-center gap-2 sm:order-last">
                     {estDegrade(l) && (
                       <span className="puce puce-rouge">Dégradé depuis l&apos;entrée</span>
                     )}
-                  </div>
                   {reference && (
                     <div className="edl-rappel">
                       {r?.etat ? (
@@ -460,7 +507,9 @@ export function GrilleEdl({
                       )}
                     </div>
                   )}
-                  <div className="flex flex-wrap items-center gap-2">
+                    </div>
+                  )}
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
                     <select
                       name={`etat_${l.id}`}
                       aria-label={`État — ${l.libelle}`}
@@ -468,7 +517,7 @@ export function GrilleEdl({
                       onChange={(e) =>
                         setEtats((prev) => ({ ...prev, [l.id]: e.target.value }))
                       }
-                      className="h-8 w-28 rounded-md border border-input bg-transparent px-2 text-sm"
+                      className="h-8 w-28 rounded-lg border border-input bg-transparent px-2 text-sm"
                     >
                       <option value="">— état —</option>
                       {Object.entries(ETATS_ELEMENT).map(([v, lib]) => (
@@ -484,7 +533,7 @@ export function GrilleEdl({
                       onChange={(e) =>
                         setCommentaires((prev) => ({ ...prev, [l.id]: e.target.value }))
                       }
-                      placeholder={reference ? "observation de sortie" : "commentaire"}
+                      placeholder={reference ? "Observation de sortie" : "Commentaire"}
                       className="h-8 min-w-40 flex-1 text-sm"
                     />
                     {r?.etat && (
@@ -505,11 +554,21 @@ export function GrilleEdl({
           </div>
           );
         })}
-        {/* La grille se remplit debout, téléphone en main : en étroit, la barre
-            Enregistrer/avancement reste collée en bas du viewport */}
-        <div className="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-border bg-card py-3 sm:static sm:bg-transparent sm:pb-0">
-          {/* Compteur d'avancement (maquette v3) : où on en est avant de signer */}
-          <span className="barre" style={{ width: 120, height: 7 }}>
+        {/* La grille se remplit debout, téléphone en main : la barre
+            Enregistrer/avancement reste collée en bas de l'écran, À TOUTES LES
+            LARGEURS (24/09) — sur bureau, l'action principale et l'état de
+            synchronisation (permanent, RM-19.1.6) n'apparaissaient qu'au bas
+            d'une page de 3 300 px.
+            Sur téléphone, elle se pose AU-DESSUS de la barre de navigation
+            basse (64 px, fixe, z-30 ; même seuil de 640 px que la coquille) :
+            collée à bottom: 0, son bas passait dessous. Et elle tient en deux
+            lignes — avancement + synchronisation, puis les deux boutons — au
+            lieu de quatre à cinq qui mangeaient un quart de l'écran. */}
+        <div className="sticky bottom-0 z-20 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border bg-card py-2.5 sm:py-3 [@media(max-width:640px)]:bottom-[calc(64px_+_env(safe-area-inset-bottom,0px))]">
+          {/* Compteur d'avancement (maquette v3) : où on en est avant de signer.
+              En étroit, la jauge prend la place que lui laissent le compteur
+              et la synchronisation, pour tenir sur la première ligne. */}
+          <span className="barre min-w-10 flex-1 sm:w-[120px] sm:flex-none" style={{ height: 7 }}>
             <i
               style={{
                 width: `${lignes.length ? Math.round(((lignes.length - manquantes) / lignes.length) * 100) : 0}%`,
@@ -518,42 +577,51 @@ export function GrilleEdl({
             />
           </span>
           <span className="mono-discret">
-            {lignes.length - manquantes}/{lignes.length} renseignée
-            {lignes.length - manquantes > 1 ? "s" : ""}
+            {lignes.length - manquantes}/{lignes.length}
+            <span className="hidden sm:inline">
+              {" "}renseignée{lignes.length - manquantes > 1 ? "s" : ""}
+            </span>
+            {/* En étroit, le nombre de lignes sans état tient dans le
+                compteur ; la phrase complète reste pour le bureau. */}
+            {!grilleVide && manquantes > 0 && (
+              <span className="sm:hidden"> · {manquantes} sans état</span>
+            )}
             {degradees > 0
               ? ` · ${degradees} dégradé${degradees > 1 ? "s" : ""}`
               : ""}
           </span>
-          <BoutonEnvoi enCours={enCoursMaj} enCoursTexte="Enregistrement…" size="sm" variant="outline">
-            Enregistrer la grille
-          </BoutonEnvoi>
-          {/* Un seul geste : la signature enregistre la grille puis la fige.
-              En sortie comparée, une confirmation annonce d'abord ce que les
-              écarts déclencheront (maquette v3). */}
-          {reference ? (
-            <>
-              <Button
-                type="button"
+          <span className="order-2 flex basis-full flex-wrap items-center gap-2 sm:order-none sm:basis-auto">
+            <BoutonEnvoi enCours={enCoursMaj} enCoursTexte="Enregistrement…" size="sm" variant="outline">
+              Enregistrer la grille
+            </BoutonEnvoi>
+            {/* Un seul geste : la signature enregistre la grille puis la fige.
+                En sortie comparée, une confirmation annonce d'abord ce que les
+                écarts déclencheront (maquette v3). */}
+            {reference ? (
+              <>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={enCoursMaj || manquantes > 0 || grilleVide}
+                  onClick={() => setConfirmeSignature(true)}
+                >
+                  Enregistrer et signer
+                </Button>
+                <button type="submit" name="signer" value="1" ref={boutonSigner} hidden />
+              </>
+            ) : (
+              <BoutonEnvoi
+                enCours={enCoursMaj}
+                enCoursTexte="…"
+                name="signer"
+                value="1"
                 size="sm"
-                disabled={enCoursMaj || manquantes > 0 || grilleVide}
-                onClick={() => setConfirmeSignature(true)}
+                disabled={manquantes > 0 || grilleVide}
               >
                 Enregistrer et signer
-              </Button>
-              <button type="submit" name="signer" value="1" ref={boutonSigner} hidden />
-            </>
-          ) : (
-            <BoutonEnvoi
-              enCours={enCoursMaj}
-              enCoursTexte="…"
-              name="signer"
-              value="1"
-              size="sm"
-              disabled={manquantes > 0 || grilleVide}
-            >
-              Enregistrer et signer
-            </BoutonEnvoi>
-          )}
+              </BoutonEnvoi>
+            )}
+          </span>
           {/* Indicateur permanent de synchronisation (RM-19.1.6, bloquant) :
               l'agent sait toujours si sa saisie a quitté l'appareil */}
           <span
@@ -579,21 +647,23 @@ export function GrilleEdl({
                 : "Synchronisé"}
           </span>
           {grilleVide ? (
-            <span className="text-sm text-warning-soft-foreground">
+            <span className="order-3 text-sm text-warning-soft-foreground sm:order-none">
               Grille vide : il n&apos;y a rien à signer — générez-la d&apos;abord.
             </span>
           ) : (
             manquantes > 0 && (
-              <span className="text-sm text-warning-soft-foreground">
+              <span className="hidden text-sm text-warning-soft-foreground sm:inline">
                 {manquantes} ligne{manquantes > 1 ? "s" : ""} sans état (en rouge) —
                 la signature attendra.
               </span>
             )
           )}
           {etatMaj.succes && (
-            <span className="text-sm text-success-soft-foreground">{etatMaj.succes}</span>
+            <span className="order-3 text-sm text-success-soft-foreground sm:order-none">{etatMaj.succes}</span>
           )}
-          {etatMaj.erreur && <span className="text-sm text-destructive">{etatMaj.erreur}</span>}
+          {etatMaj.erreur && (
+            <span className="order-3 text-sm text-destructive sm:order-none">{etatMaj.erreur}</span>
+          )}
         </div>
         {confirmeSignature && (
           <Modale

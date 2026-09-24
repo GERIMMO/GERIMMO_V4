@@ -146,7 +146,7 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
 
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-      <div className="entete-page mb-6">
+      <div className="entete-page">
         <h1>{role === "proprietaire_direct" ? "Locataires & garants" : "Personnes"}</h1>
         <div className="flex items-center gap-4">
           <span className="mono-discret">

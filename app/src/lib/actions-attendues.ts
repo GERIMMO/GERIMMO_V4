@@ -150,6 +150,11 @@ export async function actionsAttendues(
     const lot = premier(bail.lot);
     const bien = premier(lot?.bien ?? null);
     const nomLot = lot?.nom ?? "Lot";
+    // Sur la fiche d'UN bail, le lot est déjà en tête de page : le répéter à
+    // chaque étape de « À faire maintenant » allongeait les lignes (trois sur
+    // téléphone) sans rien apprendre (24/09). L'accueil, qui mêle tous les
+    // baux, garde le nom du lot.
+    const surLeLot = bailId ? "" : ` — ${nomLot}`;
 
     // Impayés : les appels échus, couverts du plus ancien au plus récent par
     // le total encaissé — même imputation qu'etat_loyers_bail (SQL).
@@ -160,7 +165,7 @@ export async function actionsAttendues(
     if (reste > 0) {
       impayes.push({
         cle: `impaye-${bail.id}`,
-        titre: `Loyer impayé — ${nomLot}`,
+        titre: `Loyer impayé${surLeLot}`,
         detail: `${eur(reste)} échus non couverts`,
         href: `/agence/${orgId}/baux/${bail.id}#loyers`,
         critique: true,
@@ -171,7 +176,7 @@ export async function actionsAttendues(
     if (!bailsAvecEdl.has(bail.id)) {
       edls.push({
         cle: `edl-${bail.id}`,
-        titre: `État des lieux d'entrée à signer — ${nomLot}`,
+        titre: `État des lieux d'entrée à signer${surLeLot}`,
         detail: "Décrire l’état du logement avec le locataire à la remise des clés",
         href: `/agence/${orgId}/baux/${bail.id}#edl`,
         critique: false,
@@ -189,7 +194,7 @@ export async function actionsAttendues(
       ) {
         diags.push({
           cle: `dpe-${lot.id}`,
-          titre: `DPE absent ou expiré — ${nomLot}`,
+          titre: `DPE absent ou expiré${surLeLot}`,
           detail: "Obligatoire en habitation (au lot)",
           href: `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}#diagnostics`,
           critique: false,

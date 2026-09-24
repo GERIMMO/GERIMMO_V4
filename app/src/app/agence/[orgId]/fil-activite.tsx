@@ -210,27 +210,35 @@ export async function FilActivite({
     .sort((a, b) => (a.ts < b.ts ? 1 : -1))
     .slice(0, 5);
   if (recents.length === 0) return null;
+  // « Nouveau » ne s'écrit que s'il DISTINGUE (24/09) : posé sur chaque rang,
+  // il ne disait rien que « il y a 3 h » ne dise déjà — et en rouge, il
+  // alarmait jusque sur un loyer reçu. Ton encre, jamais le ton critique.
+  const nbRecents = recents.filter((e) => estRecent(e.ts)).length;
+  const nouveauDistingue = nbRecents > 0 && nbRecents < recents.length;
 
   return (
     <Card>
       <CardContent>
         <div className="entete-carte">
-          <h3 className="text-[1.05rem]">Ce qui vient de se passer</h3>
+          {/* Un seul gabarit de titre de carte sur l'accueil (24/09) */}
+          <h2 className="text-[length:var(--pas-sous-titre)]">Ce qui vient de se passer</h2>
           <span className="mono-discret en-direct">En direct</span>
         </div>
         <div className="divide-y divide-border">
           {recents.map((e) => (
             <Link key={e.cle} href={e.href} className="rang !border-l-0 !px-0">
               <span className={`avatar shrink-0 ${tonDe(e.cle)}`}>{e.initiales}</span>
-              {/* En étroit, deux lignes plutôt qu'un titre amputé du montant */}
+              {/* Deux lignes à toutes les largeurs (24/09) : sur bureau, la
+                  coupe à une ligne amputait le titre que le téléphone
+                  affichait en entier. */}
               <span className="min-w-0 flex-1">
-                <b className="line-clamp-2 text-[13.5px] font-medium sm:line-clamp-1">{e.titre}</b>
+                <b className="line-clamp-2 text-[13.5px] font-medium">{e.titre}</b>
                 <span className="line-clamp-2 text-xs text-muted-foreground sm:line-clamp-1">{e.detail}</span>
               </span>
-              {estRecent(e.ts) && (
+              {nouveauDistingue && estRecent(e.ts) && (
                 <>
-                  <span className="puce puce-rouge shrink-0 max-sm:hidden">Nouveau</span>
-                  <span className="size-2 shrink-0 rounded-full bg-destructive sm:hidden">
+                  <span className="puce puce-encre shrink-0 max-sm:hidden">Nouveau</span>
+                  <span className="size-2 shrink-0 rounded-full bg-[var(--encre)] sm:hidden">
                     <span className="sr-only">Nouveau</span>
                   </span>
                 </>

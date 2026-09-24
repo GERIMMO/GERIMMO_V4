@@ -3,7 +3,7 @@ import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   ajouterEcriture,
   passerContreEcriture,
@@ -15,6 +15,7 @@ import {
   type EtatCompta,
 } from "@/app/actions/compta";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, moisEnFrancais } from "@/lib/ged";
@@ -47,11 +48,17 @@ export function RapportsGestion({
   mandats,
   rapports,
   moisCourant,
+  moisClotures,
+  peutCloturer,
 }: {
   orgId: string;
   mandats: MandatCompta[];
   rapports: RapportCompta[];
   moisCourant: string;
+  // « AAAA-MM » des mois clôturés : un rapport ne se génère que sur l'un d'eux
+  moisClotures: string[];
+  // L'agent n'a pas le geste de clôture : on lui dit qui peut débloquer
+  peutCloturer: boolean;
 }) {
   // Un mandat en préavis ou résilié ne génère plus de rapport, mais ses
   // rapports non versés restent visibles jusqu'au solde.
@@ -79,7 +86,7 @@ export function RapportsGestion({
     <div className="space-y-4">
       {visibles.map(({ m, actif, rs }) => {
         return (
-          <div key={m.id} className="space-y-2 border border-border p-3">
+          <div key={m.id} className="space-y-2 rounded-lg border border-border p-3">
             <p className="text-sm font-medium">
               {m.mandant_nom}
               {!actif && (
@@ -124,7 +131,13 @@ export function RapportsGestion({
               </ul>
             )}
             {actif && (
-              <BoutonGenererRapport orgId={orgId} mandatId={m.id} moisCourant={moisCourant} />
+              <BoutonGenererRapport
+                orgId={orgId}
+                mandatId={m.id}
+                moisCourant={moisCourant}
+                moisClotures={moisClotures}
+                peutCloturer={peutCloturer}
+              />
             )}
           </div>
         );
@@ -133,24 +146,53 @@ export function RapportsGestion({
   );
 }
 
-function BoutonGenererRapport({ orgId, mandatId, moisCourant }: { orgId: string; mandatId: string; moisCourant: string }) {
+function BoutonGenererRapport({
+  orgId,
+  mandatId,
+  moisCourant,
+  moisClotures,
+  peutCloturer,
+}: {
+  orgId: string;
+  mandatId: string;
+  moisCourant: string;
+  moisClotures: string[];
+  peutCloturer: boolean;
+}) {
   const [etat, action] = useActionState<EtatCompta, FormData>(genererRapport.bind(null, orgId, mandatId), {});
+  // Le mois choisi est suivi : un mois non clôturé menait À COUP SÛR au refus
+  // « Mois non clôturé », que rien n'annonçait (24/09). Le bouton attend donc
+  // un mois clos, et la phrase dessous dit qui peut le clore.
+  const [mois, setMois] = useState(etat.valeurs?.mois ?? dernierMoisRevolu(moisCourant));
+  const clos = moisClotures.includes(mois);
+  const nomMois = mois ? moisEnFrancais(mois) : "";
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Ces champs en ligne n'ont pas la place d'une étiquette visible : ils
           en portent une pour le lecteur d'écran, jamais rien du tout — un
-          formulaire d'ARGENT ne se devine pas au seul texte de son bouton. */}
+          formulaire d'ARGENT ne se devine pas au seul texte de son bouton.
+          Largeur bornée dès sm : le bouton reste à côté du champ, comme celui
+          de la clôture (24/09). */}
       <Input
         aria-label="Mois du rapport de gestion"
         name="mois"
         type="month"
-        defaultValue={etat.valeurs?.mois ?? dernierMoisRevolu(moisCourant)}
-        className="h-8 text-xs"
+        value={mois}
+        onChange={(e) => setMois(e.target.value)}
+        className="h-8 w-full text-xs sm:w-44"
       />
-      <BoutonEnvoi size="sm" variant="outline">
+      <BoutonEnvoi size="sm" variant="outline" disabled={!clos}>
         Générer le rapport
       </BoutonEnvoi>
+      {mois && !clos && (
+        <p className="w-full text-xs text-muted-foreground">
+          {nomMois.charAt(0).toUpperCase() + nomMois.slice(1)} n&apos;est pas clôturé —{" "}
+          {peutCloturer
+            ? "clôturez-le d'abord (ci-dessus)."
+            : "la clôture revient au responsable de l'agence."}
+        </p>
+      )}
       {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
       {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
     </form>
@@ -208,8 +250,12 @@ export function FormulaireEcriture({
   orgId,
   lots,
   estProprietaire = false,
+  estAgent = false,
 }: {
   estProprietaire?: boolean;
+  // L'agent lit un journal filtré sur son portefeuille : une écriture sans
+  // lot y disparaîtrait aussitôt (24/09). Pour lui, le lot est obligatoire.
+  estAgent?: boolean;
   orgId: string;
   lots: { id: string; nom: string }[];
 }) {
@@ -222,17 +268,25 @@ export function FormulaireEcriture({
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
           Sous sm, chaque champ prend sa pleine largeur : une colonne lisible
           plutôt que des rangées irrégulières. */}
+      {/* « Sens » et « Imputation » parlaient comptable : l'étiquette dit
+          ce qu'on choisit (24/09). */}
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-sens" className="text-xs">Sens</Label>
+        <Label htmlFor="ec-sens" className="text-xs">Recette ou dépense</Label>
         <select id="ec-sens" name="sens" defaultValue={etat.valeurs?.sens ?? "depense"} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto">
           <option value="recette">Recette</option>
           <option value="depense">Dépense</option>
         </select>
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-lot" className="text-xs">Lot (recommandé)</Label>
-        <select id="ec-lot" name="lot_id" defaultValue={etat.valeurs?.lot_id ?? ""} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto sm:max-w-48">
-          <option value="">— Aucun lot —</option>
+        <Label htmlFor="ec-lot" className="text-xs">{estAgent ? "Lot" : "Lot (recommandé)"}</Label>
+        <select id="ec-lot" name="lot_id" required={estAgent} defaultValue={etat.valeurs?.lot_id ?? ""} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto sm:max-w-48">
+          {estAgent ? (
+            <option value="" disabled>
+              Choisir un lot…
+            </option>
+          ) : (
+            <option value="">— Aucun lot —</option>
+          )}
           {lots.map((l) => (
             <option key={l.id} value={l.id}>{l.nom}</option>
           ))}
@@ -251,7 +305,7 @@ export function FormulaireEcriture({
         <InputDateJour id="ec-piece"   className="h-9 w-full sm:w-auto" name="date_piece" />
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-imput" className="text-xs">Imputation</Label>
+        <Label htmlFor="ec-imput" className="text-xs">Date d&apos;imputation</Label>
         <InputDateJour id="ec-imput"   className="h-9 w-full sm:w-auto" name="date_imputation" />
       </div>
       {/* Seul champ du formulaire à n'avoir eu qu'un placeholder : il porte
@@ -260,11 +314,17 @@ export function FormulaireEcriture({
         <Label htmlFor="ec-libelle" className="text-xs">Libellé (facultatif)</Label>
         <Input id="ec-libelle" name="libelle" defaultValue={etat.valeurs?.libelle} className="h-9 w-full sm:w-40" />
       </div>
-      <BoutonEnvoi size="sm" variant="outline">
+      {/* L'action propre de la carte est le bouton plein ; le contour reste
+          aux gestes secondaires (24/09). */}
+      <BoutonEnvoi size="sm">
         {"Ajouter l'écriture"}
       </BoutonEnvoi>
       <p className="w-full text-xs text-muted-foreground">
-        {estProprietaire ? "Rattachez l’écriture à un lot pour retrouver la dépense dans son suivi." : "Sans lot, l’écriture n’entre dans aucun rapport de gestion ni dans le périmètre d’un agent."}
+        {estProprietaire
+          ? "Rattachez l’écriture à un lot pour retrouver la dépense dans son suivi."
+          : estAgent
+            ? "Le lot est obligatoire : sans lot, l’écriture n’apparaîtrait ni dans votre journal ni dans aucun rapport de gestion."
+            : "Sans lot, l’écriture n’entre dans aucun rapport de gestion ni dans le portefeuille d’un agent."}
       </p>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
     </form>
@@ -284,12 +344,15 @@ export function FormulaireVentilation({
   );
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
-      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
-      <div className="space-y-1">
+      {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08).
+          Même recette que la saisie d'une écriture, juste au-dessus (24/09) :
+          sous sm, chaque champ prend sa pleine largeur — une colonne lisible
+          plutôt que des rangées irrégulières. */}
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="v-bien" className="text-xs">Bien</Label>
         {/* max-w : un nom de bien long ne doit pas élargir la page (le select
             natif prend sinon la largeur de sa plus longue option) */}
-        <select id="v-bien" name="bien_id" defaultValue={etat.valeurs?.bien_id ?? ""} className="h-9 max-w-48 rounded-md border border-input bg-transparent px-2 text-sm">
+        <select id="v-bien" name="bien_id" defaultValue={etat.valeurs?.bien_id ?? ""} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto sm:max-w-48">
           <option value="" disabled>Choisir…</option>
           {biens.map((b) => (
             <option key={b.id} value={b.id}>{b.nom}</option>
@@ -299,24 +362,25 @@ export function FormulaireVentilation({
       {/* Trois champs sur cinq n'avaient qu'un placeholder — qui disparaît dès
           la première frappe et n'est pas une étiquette. Le formulaire de
           ventilation étiquette maintenant comme celui de l'écriture. */}
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="v-cat" className="text-xs">Catégorie</Label>
-        <Input id="v-cat" name="categorie" placeholder="travaux…" defaultValue={etat.valeurs?.categorie} className="h-9 w-36" />
+        <Input id="v-cat" name="categorie" placeholder="travaux…" defaultValue={etat.valeurs?.categorie} className="h-9 w-full sm:w-36" />
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="v-montant" className="text-xs">Montant (€)</Label>
-        <Input id="v-montant" name="montant" type="number" inputMode="decimal" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-28" />
+        <Input id="v-montant" name="montant" type="number" inputMode="decimal" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-full sm:w-28" />
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="v-piece" className="text-xs">Date pièce</Label>
-        <InputDateJour id="v-piece"   className="h-9" name="date_piece" />
+        <InputDateJour id="v-piece" className="h-9 w-full sm:w-auto" name="date_piece" />
       </div>
-      <div className="space-y-1">
+      <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="v-libelle" className="text-xs">Libellé (facultatif)</Label>
-        <Input id="v-libelle" name="libelle" defaultValue={etat.valeurs?.libelle} className="h-9 w-36" />
+        <Input id="v-libelle" name="libelle" defaultValue={etat.valeurs?.libelle} className="h-9 w-full sm:w-36" />
       </div>
-      <BoutonEnvoi size="sm" variant="outline">
-        Ventiler la dépense
+      {/* « Ventiler » est du vocabulaire de comptable (24/09). */}
+      <BoutonEnvoi size="sm">
+        Répartir la dépense
       </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>}
@@ -346,7 +410,7 @@ export function FormulaireCloture({ orgId, moisCourant }: { orgId: string; moisC
           className="h-9"
         />
       </div>
-      <BoutonEnvoi size="sm" variant="outline">
+      <BoutonEnvoi size="sm">
         Clôturer le mois
       </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
@@ -360,22 +424,36 @@ export function BoutonContre({ orgId, ecritureId }: { orgId: string; ecritureId:
     passerContreEcriture.bind(null, orgId, ecritureId),
     {}
   );
+  // EN DEUX TEMPS (24/09). Un champ « motif » vide sur chaque ligne faisait
+  // du livre un formulaire, et « Annuler » seul se lisait « annuler la
+  // saisie ». Au repos, la ligne ne porte que « Annuler l'écriture » ; le
+  // motif et la confirmation n'apparaissent qu'une fois ce geste choisi.
+  // L'étiquette de la ligne produite, elle, dit « annulation ».
+  const [ouvert, setOuvert] = useState(false);
+  if (!ouvert && !etat.erreur)
+    return (
+      <Button type="button" size="sm" variant="ghost" onClick={() => setOuvert(true)}>
+        Annuler l&apos;écriture
+      </Button>
+    );
   return (
-    // « Contre-écriture » côtoyait des lignes elles-mêmes étiquetées
-    // « contre-écriture » : le même mot pour l'action et pour son résultat.
-    // Le bouton dit ce qu'il fait, l'étiquette dit ce que la ligne est.
-    <form action={action} className="flex flex-wrap items-center gap-1">
+    <form action={action} className="flex flex-wrap items-center justify-end gap-1">
       <Input
         aria-label="Motif de l’annulation"
         name="motif"
-        placeholder="motif"
+        placeholder="Motif de l’annulation"
         defaultValue={etat.valeurs?.motif}
-        className="h-8 w-28 text-xs"
+        autoFocus
+        required
+        className="h-8 w-44 text-xs"
       />
-      <BoutonEnvoi size="sm" variant="ghost">
-        Annuler
+      <BoutonEnvoi size="sm" variant="outline">
+        Confirmer
       </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      <Button type="button" size="sm" variant="ghost" onClick={() => setOuvert(false)}>
+        Renoncer
+      </Button>
+      {etat.erreur && <span className="w-full text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
 }

@@ -39,7 +39,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     for (const role of ["admin_agence", "agent", "proprietaire_direct"] as RoleEspace[]) {
       const libelles = nav(role).principales.map((e) => e.libelle);
       expect(libelles, role).toContain("Agenda");
-      if (role !== "proprietaire_direct") expect(libelles, role).toContain("Statistiques");
+      expect(libelles, role).toContain("Statistiques");
     }
   });
 
@@ -74,6 +74,9 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(libelles).toContain("Locataires & garants");
     expect(libelles).toContain("Aide");
     expect(chemins("proprietaire_direct")).not.toContain("/administration");
+    // Le carnet d'artisans a son entrée dans « Plus » (24/09) : il n'était
+    // atteignable que par le lien de l'en-tête d'Incidents.
+    expect(chemins("proprietaire_direct")).toContain("/artisans");
   });
 
   it("ne pose une pastille que sur ce qui attend, et rouge seulement si c'est critique", () => {

@@ -10,7 +10,7 @@ export default function ChargementAgence() {
       aria-busy="true"
       aria-label="Chargement de la page"
     >
-      <div className="entete-page mb-6">
+      <div className="entete-page">
         <div>
           <div className="squelette h-3.5 w-44" />
           <div className="squelette mt-3 h-8 w-64" />

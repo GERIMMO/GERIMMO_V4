@@ -11,6 +11,8 @@ import { styleMarque } from "@/lib/marque-organisation";
 import { MenuCompte } from "@/components/menu-compte";
 import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { RechercheEspace } from "@/components/recherche-espace";
+import { LienAssistance } from "@/components/bouton-assistance";
+import { IconeTrait } from "@/components/icone-trait";
 import { Toasteur } from "@/components/ui/toast";
 
 // Jours entre aujourd'hui (Paris) et une date ISO — négatif si elle est passée.
@@ -179,6 +181,14 @@ export default async function LayoutAgence({
             estResponsable={estResponsable}
             aujourdhui={aujourdhuiParis()}
           />
+          {/* L'aide, dans la barre plutôt qu'en rond flottant sur le contenu
+              (24/09) : icône seule sous 1 024 px, et sur téléphone
+              (≤ 640 px) elle passe dans le tiroir « Menu » de la barre basse.
+              `!` : `.lien-bandeau` (hors couche) l'emporterait sur `hidden`. */}
+          <LienAssistance title="Aide et retours" className="lien-bandeau justify-center pointer-coarse:min-w-11 max-[641px]:!hidden">
+            <IconeTrait nom="quest" className="size-4 shrink-0" />
+            <span className="hidden lg:inline">Aide et retours</span>
+          </LienAssistance>
           <MenuCompte
             initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
             titre={estProprietaire ? "Espace propriétaire" : organisation.name}
@@ -214,7 +224,7 @@ export default async function LayoutAgence({
           </p>
         )}
         {children}
-        <BarreBasse espace={espace} navigation={navigation} />
+        <BarreBasse espace={espace} navigation={navigation} orgId={orgId} organisations={organisations} />
       </div>
       <Toasteur />
     </div>

@@ -9,6 +9,14 @@ import { Label } from "@/components/ui/label";
 
 type Personne = { id: string; nom: string; prenom: string | null };
 
+// Le type de test (purge immédiate) est interne : proposé au dépôt, il faisait
+// disparaître aussitôt le document de qui le choisissait (24/09).
+// Écarté ici tant qu'il figure dans TYPES_DEPOSABLES ; comparaison sur des
+// chaînes, pour rester valable le jour où la liste ne le contiendra plus.
+const TYPES_PROPOSES = (TYPES_DEPOSABLES as readonly string[]).filter(
+  (t) => t !== "document_test"
+);
+
 export function FormulaireDepot({
   orgId,
   personnes,
@@ -50,7 +58,7 @@ export function FormulaireDepot({
           defaultValue={etat.valeurs?.type}
           className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
         >
-          {TYPES_DEPOSABLES.map((t) => (
+          {TYPES_PROPOSES.map((t) => (
             <option key={t} value={t}>
               {TYPES_DOCUMENT[t]}
             </option>

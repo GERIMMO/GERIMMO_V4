@@ -324,7 +324,9 @@ export function ChampsBail({
         <p className="text-xs text-muted-foreground">
           Maximum : 1 mois de loyer hors charges en location nue, 2 en meublé.
           {type === "colocation_individuelle" ? " Le plafond s’applique au loyer de cette chambre." : " En contrat commun, le plafond s’applique au loyer du logement entier."}
-          Le caractère meublé est repris de la fiche du lot pour les colocations.
+          {/* L'espace se dit : JSX avale le saut de ligne après l'accolade
+              (« entier.Le caractère », relevé du 24/09). */}
+          {" "}Le caractère meublé est repris de la fiche du lot pour les colocations.
         </p>
       </div>
       <div className="space-y-1.5">
@@ -343,7 +345,9 @@ export function ChampsBail({
           ))}
         </select>
       </div>
-      <div className="flex items-center gap-2 pt-6">
+      {/* `pt-6` aligne la case sur les champs voisins en deux colonnes ; en
+          une seule (téléphone) ce vide la décrochait du champ précédent (24/09). */}
+      <div className="flex items-center gap-2 sm:pt-6">
         <input
           id={`${prefixe}-revision`}
           name="revision_irl"

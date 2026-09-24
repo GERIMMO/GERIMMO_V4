@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
+import { ecranSansDonnees } from "@/lib/retours";
 import { EnteteReglages } from "../profil/famille-reglages";
 
 export const metadata = { title: "Questions fréquentes — Gerimmo" };
@@ -13,11 +15,11 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Comment mes locataires me joignent-ils ?",
-    "Chaque locataire a son espace : il vous écrit depuis « Mon gestionnaire » (vous répondez depuis sa fiche), signale un incident photo à l'appui, dépose ses pièces quand vous les réclamez, et peut donner son congé en ligne — vous êtes alerté à chaque fois.",
+    "Chaque locataire a son espace : il vous écrit depuis «\u00a0Mon gestionnaire\u00a0» (vous répondez depuis sa fiche), signale un incident photo à l'appui, dépose ses pièces quand vous les réclamez, et peut donner son congé en ligne — vous êtes alerté à chaque fois.",
   ],
   [
     "Ma SCI et mon nom propre sont-ils mélangés ?",
-    "Jamais : chaque organisation a ses lots, son livre et sa fiscalité. Si vous en avez plusieurs, la bascule se fait dans la barre de gauche — tout suit.",
+    "Jamais : chaque organisation a ses lots, son livre et sa fiscalité. Si vous en avez plusieurs, la bascule se fait par le sélecteur d'organisation (en haut de la barre de gauche sur ordinateur, dans « Menu » sur téléphone) — tout suit.",
   ],
   [
     "Le meublé est-il dans le récapitulatif fiscal ?",
@@ -25,11 +27,16 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Un lot en indivision, comment je déclare ?",
-    "Le récapitulatif ajoute une colonne « votre quote-part » : chaque rubrique est ventilée à votre pourcentage de détention — c'est cette colonne qui se recopie sur votre 2044, chaque indivisaire déclarant la sienne.",
+    "Le récapitulatif ajoute une colonne «\u00a0votre quote-part\u00a0» : chaque rubrique est ventilée à votre pourcentage de détention — c'est cette colonne qui se recopie sur votre 2044, chaque indivisaire déclarant la sienne.",
   ],
+  // 24/09 : la réponse taisait l'essai que la barre latérale décompte — le
+  // propriétaire ne savait pas ce qui s'arrête au bout. La règle dite ici est
+  // celle des conditions (art. 8.2) et de « Mon abonnement ». Attention : la
+  // base (org_ecriture_ouverte) ne fait pas encore l'exception du bien unique
+  // — écart signalé le 24/09.
   [
     "Combien ça coûte ?",
-    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 5,99 € par mois, tout compris, sans engagement — un bien retiré n'est plus compté le mois suivant.",
+    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 5,99 € par mois, tout compris, sans engagement — un bien retiré n'est plus compté le mois suivant. L'essai gratuit de 14 jours ouvre la formule complète. À son terme, sans souscription, le compte passe en lecture seule, sauf si vous ne gérez qu'un bien : il reste offert et votre compte reste ouvert. Le détail est dans «\u00a0Mon abonnement\u00a0».",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
@@ -45,9 +52,11 @@ export default async function PageFaqProprietaire(props: PageProps<"/agence/[org
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
       <EnteteReglages titre="Questions fréquentes" mention={organisation.name}>
+        {/* 24/09 : la phrase finissait sur « chaque réponse vérifiée contre le
+            comportement réel de l'application » — le commentaire du code
+            recopié à l'écran, qui laissait entendre l'inverse. */}
         Ce que Gerimmo fait seul, ce qu&apos;il ne fait pas, et ce que coûte
-        votre abonnement — chaque réponse vérifiée contre le comportement réel
-        de l&apos;application.
+        votre abonnement.
       </EnteteReglages>
 
       <div className="loc-carte">
@@ -63,6 +72,18 @@ export default async function PageFaqProprietaire(props: PageProps<"/agence/[org
             </div>
           ))}
         </dl>
+        {/* 24/09 : la FAQ se terminait sans issue. Même lien que « Aide et
+            retours » de la barre du haut : l'écran part anonymisé avec la
+            demande, le chemin réel ne sert qu'au retour. */}
+        <p className="mt-3.5 border-t border-border pt-3.5 text-sm text-muted-foreground">
+          Votre question n&apos;est pas là ?{" "}
+          <Link
+            href={`/assistance?ecran=${encodeURIComponent(ecranSansDonnees(`/agence/${orgId}/faq`))}&action=lien&retour=${encodeURIComponent(`/agence/${orgId}/faq`)}`}
+            className="lien-discret whitespace-nowrap"
+          >
+            Écrivez-nous — Aide et retours
+          </Link>
+        </p>
       </div>
     </main>
   );

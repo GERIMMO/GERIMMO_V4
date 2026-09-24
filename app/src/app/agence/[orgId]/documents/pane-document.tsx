@@ -25,6 +25,16 @@ const PLAFOND_BAUX = 100;
 
 type Lien = { entite: string; entite_id: string };
 
+// La puce de conservation, nommée (24/09) : « 5 ans » nu, à côté de « Bail
+// signé », se lisait comme la durée du bail. Courte aussi : « Conservation :
+// 5 ans » mangeait la colonne de la liste et tronquait les titres. Partagée
+// par les rangs de la liste et l'en-tête de la fiche.
+export function puceConservation(mois: number | null | undefined): string {
+  if (mois === 0) return "Purge immédiate";
+  if (mois === null || mois === undefined) return "Conservation —";
+  return `Conservé ${dureeConservation(mois)}`;
+}
+
 type Doc = {
   id: string;
   type: string;
@@ -69,7 +79,7 @@ export async function PaneDocument({
   if (erreurDoc) {
     return (
       <PanneauEchecLecture
-        quoi={["cette pièce"]}
+        quoi={["ce document"]}
         lienFermer={lienFermer}
         libelleFermer="Revenir à la vue d'ensemble"
       />
@@ -78,10 +88,10 @@ export async function PaneDocument({
   if (!doc) {
     return (
       <div className="vide-guide">
-        <p className="titre">Pièce introuvable</p>
+        <p className="titre">Document introuvable</p>
         <p className="explication">
-          Elle a peut-être été remplacée par une version plus récente, ou
-          purgée en application de sa règle de conservation.
+          Il a peut-être été remplacé par une version plus récente, ou purgé
+          en application de sa règle de conservation.
         </p>
         <span className="geste">
           <Link href={lienFermer} className="lien-discret">
@@ -258,14 +268,14 @@ export async function PaneDocument({
         <div className="entete-page">
           <div>
             <span className="eyebrow">
-              {(TYPES_DOCUMENT[doc.type] ?? doc.type).toUpperCase()} · DÉPOSÉE LE{" "}
+              {(TYPES_DOCUMENT[doc.type] ?? doc.type).toUpperCase()} · DÉPOSÉ LE{" "}
               {formaterDate(doc.created_at)}
             </span>
-            <h2 className="mt-0.5 text-lg font-medium">{doc.titre ?? "Pièce purgée"}</h2>
+            <h2 className="mt-0.5 text-lg font-medium">{doc.titre ?? "Document purgé"}</h2>
           </div>
         </div>
         <Card>
-          <CardContent className="pt-5">
+          <CardContent>
             <p className="text-sm text-muted-foreground">
               Document purgé le {formaterDate(doc.purged_at)} en application de sa
               règle de conservation (RGPD). Seule cette fiche de traçabilité
@@ -299,15 +309,18 @@ export async function PaneDocument({
       <div className="entete-page">
         <div>
           <span className="eyebrow">
-            {(TYPES_DOCUMENT[doc.type] ?? doc.type).toUpperCase()} · DÉPOSÉE LE{" "}
+            {(TYPES_DOCUMENT[doc.type] ?? doc.type).toUpperCase()} · DÉPOSÉ LE{" "}
             {formaterDate(doc.created_at)}
           </span>
           <h2 className="font-heading mt-0.5 text-xl font-semibold text-[var(--encre)]">
             {doc.titre ?? "Sans titre"}
           </h2>
         </div>
-        <span className={`puce ${aRenouveler ? "puce-rouge" : "puce-grise"}`}>
-          {aRenouveler ? "à renouveler" : dureeConservation(regle?.duree_mois)}
+        <span
+          className={`puce ${aRenouveler ? "puce-rouge" : "puce-grise"}`}
+          title={aRenouveler ? undefined : "Durée de conservation du document"}
+        >
+          {aRenouveler ? "à renouveler" : puceConservation(regle?.duree_mois)}
         </span>
       </div>
 
@@ -316,7 +329,7 @@ export async function PaneDocument({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={fichier}
-          alt={`Aperçu — ${doc.titre ?? "pièce"}`}
+          alt={`Aperçu — ${doc.titre ?? "document"}`}
           className="max-h-96 w-full border border-border bg-[var(--ardoise)] object-contain"
         />
       ) : (
@@ -334,19 +347,20 @@ export async function PaneDocument({
           </a>
           <iframe
             src={fichier}
-            title={`Aperçu — ${doc.titre ?? "pièce"}`}
+            title={`Aperçu — ${doc.titre ?? "document"}`}
             className="hidden h-96 w-full border border-border bg-[var(--ardoise)] md:block"
           />
         </>
       )}
 
+      {/* CardContent sans pt-5 : la Card pose déjà sa marge (24/09) */}
       <div className="deux-col">
         <Card>
-          <CardContent className="pt-5">
+          <CardContent>
             <h3 className="text-base font-medium">Rattachements</h3>
             <p className="mt-1.5 mb-3 text-sm text-muted-foreground">
-              Cette pièce apparaît sur chacune de ces fiches. Elle n&apos;est
-              stockée qu&apos;une fois.
+              Ce document apparaît sur chacune de ces fiches. Il n&apos;est
+              stocké qu&apos;une fois.
             </p>
             <div className="mb-3.5 flex flex-wrap gap-1.5">
               {doc.liens.map((l) => (
@@ -384,7 +398,7 @@ export async function PaneDocument({
         </Card>
 
         <Card>
-          <CardContent className="pt-5">
+          <CardContent>
             <h3 className="mb-2 text-base font-medium">Cycle de vie</h3>
             <div className="ligne-info">
               <span>Type</span>
@@ -416,7 +430,7 @@ export async function PaneDocument({
             )}
             {doc.verifie_le && (
               <div className="ligne-info">
-                <span>Validée le</span>
+                <span>Validé le</span>
                 <span>{formaterDate(doc.verifie_le)}</span>
               </div>
             )}
@@ -436,7 +450,7 @@ export async function PaneDocument({
 
       {anterieures.length > 0 && (
         <Card>
-          <CardContent className="pt-5">
+          <CardContent>
             <h3 className="mb-2 text-base font-medium">Versions antérieures</h3>
             <ul className="divide-y divide-border text-sm">
               {anterieures.map((v) => (
@@ -444,8 +458,8 @@ export async function PaneDocument({
                   <span className="min-w-0 flex-1 truncate">
                     {v.titre ?? "Sans titre"}
                     <small className="ml-2 text-muted-foreground">
-                      déposée le {formaterDate(v.created_at)}
-                      {v.purged_at ? " · purgée" : ""}
+                      déposé le {formaterDate(v.created_at)}
+                      {v.purged_at ? " · purgé" : ""}
                     </small>
                   </span>
                   {!v.purged_at && (

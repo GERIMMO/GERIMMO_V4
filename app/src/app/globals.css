@@ -421,10 +421,6 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 .rang-section.a-completer {
   border-left: 3px solid var(--warning);
   padding-left: 11px;
-  background: color-mix(in srgb, var(--warning-soft) 30%, transparent);
-}
-.rang-section.a-completer:hover {
-  background: color-mix(in srgb, var(--warning-soft) 60%, transparent);
 }
 
 /* ------------------------------------------------------------------ */
@@ -501,7 +497,8 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 
 @container (max-width: 33rem) {
   .rang-echeance { grid-template-columns: minmax(0, 1fr) auto; }
-  .rang-echeance .puce { justify-self: end; }
+  .rang-echeance > :first-child { grid-row: span 2; }
+  .rang-echeance .puce { grid-column: 2; justify-self: end; }
   .actions-terme {
     grid-column: 1 / -1;
     padding-left: 0;
@@ -586,32 +583,6 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
 .rang-alerte.critique .consequence-alerte { color: var(--destructive); }
 .rang-alerte.normale .consequence-alerte { color: var(--warning-soft-foreground); }
 
-/* LE BANDEAU DU PLAN DU JOUR (gabarit 12/09) : le compte en chiffres de
-   titrage sur l'encre, et une phrase qui dit par quoi commencer. L'écran
-   d'avant ouvrait sur le mot « Alertes » et un compteur en mono de 11 px. */
-.bandeau-jour {
-  /* Le dégradé se DÉRIVE de l'encre au lieu de poser un second bleu en dur :
-     une agence en marque blanche (module 17) change sa couleur, et le bandeau
-     change avec elle. */
-  background: linear-gradient(120deg, var(--marque), var(--marque-sombre));
-  color: var(--sur-marque);
-  padding: 20px 24px;
-  border-radius: 16px;
-}
-.bandeau-jour .compte {
-  font-family: var(--font-titres), system-ui, sans-serif;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  font-size: 27px;
-  line-height: 1.15;
-  margin-top: 2px;
-  font-variant-numeric: lining-nums tabular-nums;
-}
-.bandeau-jour .par-quoi {
-  font-size: 13px;
-  color: color-mix(in oklch, var(--sur-marque), transparent 18%);
-  margin-top: 4px;
-}
 /* Alerte confiée à quelqu'un d'autre : grisée, aucune action possible */
 .rang-alerte.grisee {
   border-left-color: var(--filet);
@@ -1140,6 +1111,26 @@ p a {
   text-decoration-thickness: from-font;
 }
 .lien-texte:hover { color: var(--encre); }
+/* Console : un titre de page est un titre, pas une carte (24/09) — même
+   doctrine que `.coquille-corps .entete-page` dans l'espace agence. */
+.portail-ecrans .entete-page {
+  padding: 0 0 16px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--trait);
+  border-radius: 0;
+  box-shadow: none;
+}
+/* Un bouton désactivé en a l'air : ni relief ni survol (Brief, éditeur). */
+.btn-or:disabled,
+.btn-secondaire:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-or:disabled:hover { background: var(--or); }
+.btn-secondaire:disabled:hover { border-color: var(--filet); background: var(--ivoire); }
 
 /* Toast de confirmation (maquette .toast) : bandeau encre en bas, centré */
 .toast {
@@ -1283,6 +1274,13 @@ p a {
   font-size: 13px;
 }
 .ligne-info > span:first-child { color: var(--texte-secondaire); }
+  .ligne-info > span:last-child { white-space: nowrap; flex: none; }
+  /* Les précisions sous une rangée (« 8 lots × 2,00 € ») : 11,5 px comme
+     `.rang small`, pas les 83 % par défaut de <small> (24/09). */
+  .ligne-info small { display: block; font-size: 11.5px; color: var(--texte-secondaire); }
+  /* Sous-section d'un formulaire dans une carte : un filet dessus, un
+     sur-titre en légende, pas de cadre emboîté (Profil, 24/09). */
+  .sous-section { border-top: 1px solid var(--filet); padding-top: 16px; }
 
 /* Grille deux colonnes 1.4fr / 1fr (maquette .deux-col) */
 .deux-col {
@@ -1357,7 +1355,7 @@ p a {
      (« Reprenez-le depuis un tableur ») deviendrait une barre. Seuls les
      liens qui SONT des contrôles : une pastille cliquable, un filtre. Une
      `<span class="puce">` qui n'affiche qu'un état garde sa densité. */
-  a.puce, button.puce, a.filtre {
+  a.puce, button.puce, summary.puce, a.filtre {
     min-height: var(--cible-tactile);
     box-sizing: border-box;
   }
@@ -1454,6 +1452,7 @@ p a {
    contrôles natifs ; .lien-discret gagne une zone de tap décente. */
 @media (pointer: coarse) {
   a.group\/button,
+  a.lien-bandeau,
   .btn-or,
   .btn-secondaire {
     min-height: var(--cible-tactile);
@@ -1605,7 +1604,7 @@ p a {
 @layer components {
 /* Habillage commun : les couleurs de marque restent celles des jetons. */
 .loc-corps { padding-top: 32px; }
-.portail-ecrans .entete-page, .loc-corps > .entete-page, .loc-corps > div > .entete-page {
+.loc-corps > .entete-page, .loc-corps > div > .entete-page {
   padding: 22px 24px;
   background: var(--carte);
   border: 1px solid var(--filet);
@@ -1676,11 +1675,6 @@ p a {
 @media (max-width:600px) { .recherche-ouvrir { gap:7px; padding:8px; } .recherche-entete { padding:14px 16px; } .recherche-entete h2 { font-size:24px; } .recherche-resultats { padding:14px 12px; } .recherche-pied { display:none; } }
 
 /* Le dossier suit trois temps : préparer, gérer, terminer. */
-/* L'en-tête du bail est un en-tête de page comme les autres : un titre, sa
-   puce d'état, une ligne de repères, un filet dessous — plus d'aplat bleu
-   (décision du porteur, 24/09 : un seul bandeau, celui de l'accueil). */
-.dossier-bail-entete { padding:0 0 16px; border-bottom:1px solid var(--trait); }
-.dossier-bail-entete h1 { color:var(--encre); }
 .dossier-nav { display:flex; flex-wrap:wrap; gap:8px; }
 .dossier-nav a { padding:10px 13px; min-height:44px; border:1px solid var(--filet); border-radius:10px; background:var(--carte); color:var(--encre); font-size:12px; }
 .dossier-nav a:hover,.dossier-nav a:focus-visible { background:var(--ardoise); border-color:var(--or); }
@@ -1698,14 +1692,20 @@ p a {
 
 /* Rendez-vous : la date précède le dossier, sans grille vide sur mobile. */
 .dossier-nav a.agenda-onglet-actif { background:var(--marque); color:var(--sur-marque); border-color:var(--marque); }
+/* Les chevrons de mois ne sont pas des onglets : pas de pilule blanche. */
+.agenda-nav-mois a { display:inline-flex; align-items:center; justify-content:center; min-width:44px; background:transparent; }
 .agenda-periode { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; }
 .agenda-periode h2 { font-size:22px; margin:4px 0; }
 .agenda-rendezvous { display:flex; gap:24px; padding:22px; border:1px solid var(--filet); border-left:3px solid var(--or); border-radius:14px; background:var(--carte); }
-.agenda-rendezvous h2 { font-size:18px; overflow-wrap:anywhere; }
+/* La carte est un lien entier (24/09) : un retour au survol et au clavier. */
+.agenda-rendezvous { transition: background var(--duree-rapide) ease, border-color var(--duree-rapide) ease; }
+.agenda-rendezvous:hover { background: var(--survol); }
+.agenda-rendezvous:focus-visible { outline: 2px solid var(--marque); outline-offset: 2px; }
+.agenda-rendezvous h2, .agenda-rendezvous h3 { font-size:18px; overflow-wrap:anywhere; }
 .agenda-horaire { flex:0 0 190px; display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--encre); }
 .agenda-horaire svg { flex-shrink:0; margin-top:2px; }
 .agenda-vide { display:flex; align-items:flex-start; flex-direction:column; gap:12px; padding:30px; background:var(--carte); border:1px solid var(--filet); border-radius:10px; }
-.agenda-vide h2 { font-size:20px; }
+.agenda-vide h2, .agenda-vide h3 { font-size:20px; }
 .agenda-vide p { color:var(--texte-secondaire); font-size:14px; }
 @media (max-width:700px) { .agenda-rendezvous { flex-direction:column; gap:14px; padding:18px; } .agenda-horaire { flex-basis:auto; } }
 /* Le calendrier mensuel (24/09) : sept colonnes, une case par jour, le
@@ -2038,7 +2038,7 @@ a:focus-visible > .carte-espace {
 .coquille-essai b { font-weight: 600; color: var(--texte); }
 .coquille-essai.termine b { color: var(--warning-soft-foreground); }
 
-/* ——— L'en-tête : 56 px, blanc, un filet dégradé bleu → turquoise. ——— */
+/* ——— L'en-tête : 56 px, blanc, un filet gris dessous (24/09 : le dégradé bleu → turquoise, pur ornement, est retiré — un seul bandeau par écran). ——— */
 .coquille-haut {
   position: sticky;
   top: 0;
@@ -2051,15 +2051,6 @@ a:focus-visible > .carte-espace {
   background: var(--surface);
   border-bottom: 1px solid var(--trait);
 }
-.coquille-haut::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  background: linear-gradient(90deg, var(--marque), var(--turquoise) 45%, transparent 78%);
-}
 .coquille-haut .recherche-ouvrir {
   min-height: 34px;
   padding: 6px 10px;
@@ -2071,6 +2062,12 @@ a:focus-visible > .carte-espace {
 }
 .coquille-haut .recherche-ouvrir:hover { border-color: var(--trait); background: var(--survol); }
 .coquille-haut .lien-bandeau { min-height: 34px; padding: 6px 10px; border-radius: 8px; font-size: 13px; }
+  /* Sur écran tactile ou téléphone, « Rechercher », « Alertes » et « Aide »
+     de la barre haute reçoivent la cible de 44 px (24/09). */
+  @media (pointer: coarse), (max-width: 640px) {
+    .coquille-haut .recherche-ouvrir,
+    .coquille-haut .lien-bandeau { min-height: var(--cible-tactile); }
+  }
 .coquille-haut .loc-avat { width: 30px; height: 30px; font-size: 11px; }
 .coquille-marque-mobile { display: none; }
 
@@ -2180,9 +2177,11 @@ a:focus-visible > .carte-espace {
     color: var(--texte-2);
     position: relative;
   }
-  .coquille-basse a.actif { color: var(--marque); }
+  .coquille-basse a.actif,
+  .coquille-basse button.actif { color: var(--marque); }
   .coquille-basse svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-  .coquille-basse a.actif svg {
+  .coquille-basse a.actif svg,
+  .coquille-basse button.actif svg {
     width: 28px;
     height: 28px;
     padding: 5px;
@@ -2295,6 +2294,14 @@ a:focus-visible > .carte-espace {
    ordre, ambre attention, rouge problème, bleu argent / action, turquoise
    information. La grille compte sur SA largeur, pas sur celle de la fenêtre. */
 .tuiles { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); }
+/* Téléphone (24/09) : deux colonnes au plus, la dernière tuile impaire prend
+   toute la ligne (3 tuiles = 2 + 1). Chaque piste vaut au moins la moitié de
+   la ligne et 10 rem : dans un bloc étroit (fiche bail), une seule colonne. */
+@media (max-width: 640px) {
+  .grille-kpi { grid-template-columns: repeat(auto-fit, minmax(min(100%, max(10rem, calc(50% - 7px))), 1fr)); }
+  .tuiles { grid-template-columns: repeat(auto-fit, minmax(min(100%, max(10.5rem, calc(50% - 6px))), 1fr)); }
+  :is(.tuiles, .grille-kpi) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 .tuile {
   position: relative;
   display: block;
@@ -2393,7 +2400,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  background: var(--survol);
+  background: var(--surface); align-items: center;
   border-bottom: 1px solid var(--trait);
 }
 .assistant-tete .rond {
@@ -2477,24 +2484,6 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
-/* Le parcours de démarrage : un intérieur, en vignette, en haut à droite —
-   sous l'en-tête et son compteur, à droite des premières étapes. Sur
-   téléphone les étapes prennent toute la largeur : la photo du bandeau suffit. */
-.parcours-carte { position: relative; }
-.parcours-photo {
-  position: absolute;
-  right: 22px;
-  top: 58px;
-  width: 128px;
-  height: 92px;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: var(--ombre-portee);
-  pointer-events: none;
-}
-.parcours-photo:empty { display: none; }
-.parcours-photo img { object-fit: cover; }
-@media (max-width: 640px) { .parcours-photo { display: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   .tiroir-voile, .tiroir, .coquille-corps > main, .en-direct::before { animation: none; }
@@ -2593,14 +2582,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   /* ——— Titres de page hors coquille : un bandeau clair à filet bleu ———
      (la coquille de l'agence a sa propre règle : un titre sans boîte). */
   .loc-corps .entete-page,
-  .portail-ecrans .entete-page {
-    border-left: 4px solid var(--marque);
-    border-bottom: 1px solid var(--or-filet);
-    border-radius: 14px;
-    background: linear-gradient(110deg, var(--marque-clair), var(--ivoire) 68%);
-    padding: 20px 22px;
-    box-shadow: var(--ombre-portee);
-  }
+
   .coquille-corps .entete-page h1,
   .loc-corps .entete-page h1,
   .portail-ecrans .entete-page h1 { color: var(--encre); }
@@ -2662,15 +2644,14 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   .admin-late { position: relative; height: auto; border-right: 0; border-bottom: 1px solid var(--filet); }
   .admin-marque { min-height: 52px; }
   .admin-nav { flex-direction: row; flex: none; gap: 5px; overflow-x: auto; overflow-y: hidden; padding: 8px 12px; }
-  .admin-nav-lien { width: auto; min-height: 38px; flex: none; white-space: nowrap; }
+  .admin-nav-lien { width: auto; min-height: var(--cible-tactile); flex: none; white-space: nowrap; }
   .admin-bandeau-interieur { min-height: 52px; padding-inline: 16px; }
 }
 
 @media (max-width: 640px) {
   .admin-bandeau-interieur { align-items: flex-start; flex-wrap: wrap; padding-block: 9px; }
   .admin-bandeau-actions { width: 100%; justify-content: space-between; }
-  .loc-corps .entete-page,
-  .portail-ecrans .entete-page { padding: 16px; }
+  .loc-corps .entete-page { padding: 16px; }
 }
 
 
@@ -2795,3 +2776,7 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   .btn-secondaire:hover,
   a:hover > [data-slot="card"] { transform: none; }
 }
+
+/* Administration → fiche du mandant, ancre « Confié à » : sous la barre haute
+   fixe du téléphone, le champ arrivait caché (24/09). */
+select[id^="m-titulaire-"] { scroll-margin-top: 96px; }

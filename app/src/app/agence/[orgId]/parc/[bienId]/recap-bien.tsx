@@ -27,20 +27,13 @@ export function RecapBien({
     );
   }
 
-  const adresse = [
-    bien.address_line1,
-    bien.address_line2,
-    `${bien.postal_code} ${bien.city}`,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
   // Le type, l'adresse et le nombre de lots sont déjà dans l'en-tête de la
   // fiche : les répéter ici ne fait que trois lignes de plus à traverser.
+  // L'adresse y restait pourtant en première ligne, sous le même titre qui
+  // l'affiche déjà — retirée le 24/09.
   // `null` = non renseigné : FaitsFiche réunit ces champs en une phrase au lieu
   // d'une colonne de tirets (relevé du 11/09).
   const faits: Fait[] = [
-    { libelle: "Adresse", valeur: adresse },
     {
       libelle: "Année de construction",
       valeur: bien.annee_construction ? String(bien.annee_construction) : null,

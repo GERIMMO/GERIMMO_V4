@@ -438,7 +438,7 @@ export async function attribuerIncident(
 
   revalidatePath(`/agence/${orgId}/incidents`);
   revalidatePath(`/agence/${orgId}`);
-  return { succes: responsable ? "Dossier attribué." : "Dossier remis au pot commun." };
+  return { succes: responsable ? "Dossier attribué." : "Dossier rendu : plus personne ne le porte pour l'instant." };
 }
 
 // Photos complémentaires depuis la fiche agence (constat sur place)

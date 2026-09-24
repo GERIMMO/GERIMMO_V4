@@ -1,7 +1,7 @@
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate, moisEnFrancais, aujourdhuiParis } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FormulaireEcriture,
   FormulaireVentilation,
@@ -16,7 +16,22 @@ import { QuittancementMois } from "./quittancement-mois";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 
-export const metadata = { title: "Comptabilité — Gerimmo" };
+// Un seul libellé pour l'onglet, le h1 et le h1 de la branche d'erreur : il
+// suit le rôle, comme le menu (24/09 — l'onglet disait « Comptabilité » à
+// l'agent et au propriétaire, dont l'écran porte un autre titre).
+function titreComptabilite(role: string, estProprietaire: boolean): string {
+  if (estProprietaire) return "Livre recettes-dépenses";
+  // « Loyers & charges » doublait le titre de l'écran /loyers ; la vue agent,
+  // c'est le journal de son portefeuille et ses rapports aux propriétaires.
+  if (role === "agent") return "Écritures & rapports de gestion";
+  return "Comptabilité";
+}
+
+export async function generateMetadata(props: { params: Promise<{ orgId: string }> }) {
+  const { orgId } = await props.params;
+  const { role, estProprietaire } = await verifierAccesEspace(orgId);
+  return { title: `${titreComptabilite(role, estProprietaire)} — Gerimmo` };
+}
 
 // Le journal affiché est paginé ; les totaux, eux, se calculent en base sur
 // TOUT le journal. L'écran doit dire lequel des deux il montre.
@@ -74,6 +89,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
     { data: mandatsRaw, error: erreurMandats },
     { data: rapports, error: erreurRapports },
     { data: totaux, error: erreurTotaux },
+    { data: reprisesBasculees },
   ] = await Promise.all([
     supabase
       .from("ecritures")
@@ -107,6 +123,18 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       p_org: orgId,
       p_lots: portefeuille ? Array.from(portefeuille) : null,
     }),
+    // La balance d'ouverture déjà reprise : le lien vers la reprise mènerait
+    // à un écran qui la refuse (24/09). Lecture non bloquante — en échec, le
+    // lien reste proposé, et la page de reprise dit elle-même où l'on en est.
+    !estProprietaire && role === "admin_agence"
+      ? supabase
+          .from("reprises_portefeuille")
+          .select("basculee_le, date_bascule")
+          .eq("organization_id", orgId)
+          .eq("statut", "basculee")
+          .order("cree_le", { ascending: false })
+          .limit(1)
+      : Promise.resolve({ data: null }),
   ]);
 
   // Un échec de lecture ne doit pas se déguiser en journal vide (audit 09/09).
@@ -127,8 +155,8 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   if (lecturesEnEchec.length > 0) {
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-        <div className="entete-page mb-4">
-          <h1>Comptabilité</h1>
+        <div className="entete-page">
+          <h1>{titreComptabilite(role, estProprietaire)}</h1>
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -200,6 +228,10 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
 
   // Repère de tête : où en est la comptabilité — clôtures triées du plus récent
   const dernierCloture = [...moisClotures][0];
+  const repriseFaite = ((reprisesBasculees ?? []) as {
+    basculee_le: string | null;
+    date_bascule: string | null;
+  }[])[0];
 
   // Quittancement du mois (maquette v3) : le mois courant, ou à défaut le
   // dernier mois qui porte des appels (en début de mois, les échéanciers ne
@@ -218,45 +250,45 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   return (
     <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
       <div>
-        <div className="entete-page mb-6">
-          <h1>
-            {estProprietaire
-              ? "Livre recettes-dépenses"
-              : role === "agent"
-                ? // « Loyers & charges » doublait le titre de l'écran /loyers ;
-                  // la vue agent, c'est le journal de son portefeuille et ses
-                  // rapports aux propriétaires.
-                  "Écritures & rapports de gestion"
-                : "Comptabilité"}
-          </h1>
+        {/* La marge sous l'en-tête est celle de `.entete-page`, commune à
+            l'espace : plus de mb-4 / mb-6 posés page par page (24/09). */}
+        <div className="entete-page">
+          <h1>{titreComptabilite(role, estProprietaire)}</h1>
           <span className="mono-discret">
             {portefeuille ? "Mon portefeuille · " : ""}
             {dernierCloture ? `${moisEnFrancais(dernierCloture)} clôturé · ` : ""}
             {moisEnFrancais(moisCourant)} ouvert
           </span>
         </div>
+        {/* Un seul mot pour la même notion : « annulation » — dans cette
+            phrase, dans la note des totaux, sur les lignes du journal et sur
+            le bouton (24/09 : « écriture inverse », « contre-écriture » et
+            « Annuler » se côtoyaient). La clôture, elle, s'explique dans sa
+            propre carte. */}
         <p className="text-sm text-muted-foreground">
           {estProprietaire
-            ? "Vos encaissements et vos dépenses, sans honoraires. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible. Clôturer un mois est recommandé, jamais imposé."
-            : `Le journal des encaissements et des dépenses de l'agence. Une écriture ne se modifie pas : on l'annule par une écriture inverse, qui reste visible.${
-                // La clôture est réservée au responsable : l'annoncer à l'agent
-                // promettait un geste qu'il n'a pas.
-                role === "agent" ? "" : " Chaque mois se clôture une fois pour toutes."
-              }`}
+            ? "Vos encaissements et vos dépenses, sans honoraires. Une écriture ne se modifie pas : on l'annule par une écriture d'annulation, qui reste visible."
+            : "Le journal des encaissements et des dépenses de l'agence. Une écriture ne se modifie pas : on l'annule par une écriture d'annulation, qui reste visible."}
         </p>
         {/* La reprise des comptes ne concerne qu'une agence qui arrive avec un
             portefeuille : on la propose au responsable, et on ne l'affiche plus
-            une fois la balance d'ouverture passée. */}
-        {!estProprietaire && role === "admin_agence" && (
-          <p className="mt-2 text-sm">
-            <a
-              href={`/agence/${orgId}/comptabilite/reprise`}
-              className="lien-discret inline-block py-2 sm:py-0"
-            >
-              Reprendre mes comptes — balance d&apos;ouverture →
-            </a>
-          </p>
-        )}
+            une fois la balance d'ouverture passée — la mention la remplace. */}
+        {!estProprietaire && role === "admin_agence" &&
+          (repriseFaite ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Balance d&apos;ouverture reprise le{" "}
+              {formaterDate(repriseFaite.basculee_le ?? repriseFaite.date_bascule ?? "")}.
+            </p>
+          ) : (
+            <p className="mt-2 text-sm">
+              <a
+                href={`/agence/${orgId}/comptabilite/reprise`}
+                className="lien-discret inline-block py-2 sm:py-0"
+              >
+                Reprendre mes comptes — balance d&apos;ouverture →
+              </a>
+            </p>
+          ))}
         {/* S9a : seul le propriétaire direct bénéficie de l'aide fiscale */}
         {estProprietaire && (
           <p className="mt-2 text-sm">
@@ -274,13 +306,16 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           Ces trois chiffres portent TOUT le livre depuis son ouverture : lus
           comme le mois en cours, ils faisaient croire à un mois énorme. La
           portée se lit maintenant sous chaque chiffre. */}
+      {/* Recettes en vert, comme le « +montant » du journal ; dépenses en
+          neutre : `.kpi.or` et `.kpi.bleu` rendaient la même tuile pour deux
+          quantités opposées (24/09). */}
       <div className="grille-kpi">
-        <div className="kpi bleu">
+        <div className="kpi vert">
           <span className="eyebrow">Recettes</span>
           <span className="chiffre montant mt-1 block">{eur(recettes)}</span>
           <span className="block text-xs text-muted-foreground">depuis l&apos;origine</span>
         </div>
-        <div className="kpi or">
+        <div className="kpi">
           <span className="eyebrow">Dépenses</span>
           <span className="chiffre montant mt-1 block">{eur(depenses)}</span>
           <span className="block text-xs text-muted-foreground">depuis l&apos;origine</span>
@@ -291,16 +326,24 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           <span className="block text-xs text-muted-foreground">recettes moins dépenses</span>
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Totaux de tout le livre depuis son ouverture — hors dépôt de garantie
-        (qui ne fait que transiter) et hors écritures annulées par contre-écriture.
-        Ils ne se limitent pas au mois en cours, ni aux lignes du journal
-        ci-dessous.
-      </p>
+      {/* Repliée (24/09) : « depuis l'origine », sous chaque chiffre, dit
+          déjà l'essentiel ; le détail des exclusions reste à un clic. */}
+      <details className="information-depliable -mt-2 text-xs text-muted-foreground">
+        <summary className="justify-start gap-1.5 text-sm">
+          Ce que comptent ces totaux
+          <span aria-hidden className="information-chevron">⌄</span>
+        </summary>
+        <p className="mt-1">
+          Tout le livre depuis son ouverture — hors dépôt de garantie (qui ne
+          fait que transiter) et hors écritures annulées. Ils ne se limitent pas
+          au mois en cours, ni aux lignes du journal ci-dessous.
+        </p>
+      </details>
 
       {/* Quittancement du mois : les gestes (encaisser, envoyer, relancer) sont
-          sur « Loyers & charges » depuis le 20/09. L'agent, dont le menu ne
-          porte pas cet écran (décision du 12/09), garde le bloc ici. */}
+          sur « Loyers & charges » depuis le 20/09. L'agent garde le bloc
+          complet ici (décision du 12/09, antérieure au retour de « Loyers &
+          charges » dans son menu le 24/09). */}
       {erreurQuittancement ? (
         <Card>
           <CardContent className="pt-5">
@@ -312,51 +355,85 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           </CardContent>
         </Card>
       ) : role === "agent" ? (
-        lignesQuittancement.length > 0 && (
+        lignesQuittancement.length > 0 ? (
+          // En-tête et corps viennent du composant, posés directement dans la
+          // carte comme ceux des cartes voisines (24/09).
           <Card>
-            <CardContent className="pt-5">
-              <QuittancementMois
-                orgId={orgId}
-                mois={moisQuittancement}
-                moisLabel={moisEnFrancais(moisQuittancement)}
-                lignes={lignesQuittancement}
-                proprietaire={estProprietaire}
-              />
-            </CardContent>
+            <QuittancementMois
+              orgId={orgId}
+              mois={moisQuittancement}
+              moisLabel={moisEnFrancais(moisQuittancement)}
+              lignes={lignesQuittancement}
+              proprietaire={estProprietaire}
+            />
           </Card>
+        ) : (
+          // Un portefeuille sans appel ce mois-ci se dit : la carte disparaissait
+          // sans un mot, là où l'admin lit « Aucun appel de loyer » (24/09).
+          <div className="vide-guide">
+            <p className="titre">Aucun appel de loyer dans votre portefeuille ce mois-ci</p>
+            <p className="explication">
+              Les appels se créent avec l&apos;échéancier de chaque bail : un bail
+              actif de votre portefeuille fait apparaître ici son terme du mois.
+            </p>
+            <p className="geste">
+              <Link href={`/agence/${orgId}/loyers`} className="lien-discret">
+                Ouvrir Loyers &amp; charges →
+              </Link>
+            </p>
+          </div>
         )
       ) : (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-5">
-            <div>
-              <p className="font-medium">Quittancement de {moisEnFrancais(moisQuittancement)}</p>
-              <p className="text-sm text-muted-foreground">
+        // TOUTE LA CARTE MÈNE À « LOYERS & CHARGES » (24/09) : elle n'a qu'une
+        // destination, et seul son bouton se cliquait — titre, phrase et blanc
+        // de la carte étaient une zone morte. Le bouton plein, seul de la
+        // page, était de plus une simple navigation : il devient l'affordance
+        // discrète d'une carte entièrement cliquable (survol : `a:hover >
+        // [data-slot=card]`).
+        <Link href={`/agence/${orgId}/loyers`} className="block rounded-[14px]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quittancement de {moisEnFrancais(moisQuittancement)}</CardTitle>
+              {/* col-start-1 : sur téléphone, l'affordance passe sous la phrase
+                  et la phrase reste sous le titre (sinon la grille la logeait
+                  dans la colonne de droite, à côté du titre). */}
+              <CardDescription className="col-start-1">
                 {lignesQuittancement.length === 0
-                  ? "Aucun appel de loyer ce mois-ci."
-                  : `${lignesQuittancement.filter((l) => Number(l.montant_couvert) >= Number(l.montant_du)).length} sur ${lignesQuittancement.length} encaissé${lignesQuittancement.length > 1 ? "s" : ""} en entier`}
+                  ? "Aucun appel de loyer ce mois-ci"
+                  : (() => {
+                      const regles = lignesQuittancement.filter(
+                        (l) => Number(l.montant_couvert) >= Number(l.montant_du)
+                      ).length;
+                      return `${regles} sur ${lignesQuittancement.length} réglé${regles > 1 ? "s" : ""} en entier`;
+                    })()}
                 {" — "}encaisser, envoyer les quittances et relancer se font sur « Loyers &amp; charges ».
-              </p>
-            </div>
-            <Link href={`/agence/${orgId}/loyers`} className="btn-or">
-              Loyers &amp; charges →
-            </Link>
-          </CardContent>
-        </Card>
+              </CardDescription>
+              <CardAction className="max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:justify-self-start">
+                <span className="lien-discret">Loyers &amp; charges →</span>
+              </CardAction>
+            </CardHeader>
+          </Card>
+        </Link>
       )}
 
       <Card>
         <CardHeader>
           <CardTitle>Saisir une écriture</CardTitle>
           <CardDescription>
-            Deux dates : celle de la pièce justificative, et le mois sur lequel
-            l&apos;écriture compte.
+            Deux dates : celle de la pièce justificative, et celle à laquelle
+            l&apos;écriture compte (son mois comptable).
             {estProprietaire
               ? " Les loyers encaissés s'inscrivent tout seuls."
               : " Les honoraires, eux, se créent tout seuls à chaque encaissement de loyer."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <FormulaireEcriture orgId={orgId} lots={lotsEcriture} estProprietaire={estProprietaire} />
+          <FormulaireEcriture
+            orgId={orgId}
+            lots={lotsEcriture}
+            estProprietaire={estProprietaire}
+            estAgent={role === "agent"}
+          />
           <div className="border-t border-border pt-4">
             <p className="mb-2 text-sm font-medium">
               Dépense sur tout le bien, répartie entre ses lots
@@ -366,19 +443,33 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
               biens={(biens ?? []) as { id: string; nom: string }[]}
             />
           </div>
-          {/* La clôture est un geste d'admin — la base la refuse à l'agent */}
-          {role !== "agent" && (
-            <div className="border-t border-border pt-4">
-              <FormulaireCloture orgId={orgId} moisCourant={moisCourant} />
-              {moisClotures.size > 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Mois déjà clôturés : {[...moisClotures].map(moisEnFrancais).join(", ")}
-                </p>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* LA CLÔTURE A SA PROPRE CARTE (24/09). Le geste le plus lourd de la
+          page — irréversible — était posé sans titre au fond de « Saisir une
+          écriture ». Elle vient juste avant les rapports qu'elle débloque.
+          C'est un geste d'admin : la base la refuse à l'agent. */}
+      {role !== "agent" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Clôturer un mois</CardTitle>
+            <CardDescription>
+              {estProprietaire
+                ? "Fige les écritures du dernier mois révolu ; irréversible. Recommandé, jamais imposé."
+                : "Fige les écritures du dernier mois révolu et débloque ses rapports de gestion ; irréversible."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <FormulaireCloture orgId={orgId} moisCourant={moisCourant} />
+            <p className="text-xs text-muted-foreground">
+              {moisClotures.size > 0
+                ? `Mois déjà clôturés : ${[...moisClotures].map(moisEnFrancais).join(", ")}`
+                : "Aucun mois clôturé pour l’instant."}
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Un rapport se rend à un mandant : le propriétaire direct n'en a pas */}
       {!estProprietaire && (
@@ -397,6 +488,8 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             mandats={mandats}
             rapports={(rapports ?? []) as RapportCompta[]}
             moisCourant={moisCourant}
+            moisClotures={[...moisClotures]}
+            peutCloturer={role !== "agent"}
           />
         </CardContent>
       </Card>
@@ -407,21 +500,25 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
           <div className="entete-carte !mb-0">
             <CardTitle>Journal</CardTitle>
             {/* Deux portées : l'année en cours, celle que l'agent demande neuf
-                fois sur dix, et la totalité pour l'expert-comptable. */}
-            <span className="flex items-center gap-3">
-              <a
-                href={`/agence/${orgId}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
-                className="lien-discret py-2 sm:py-0"
-              >
-                Exporter {anneeCourante}
-              </a>
-              <a
-                href={`/agence/${orgId}/comptabilite/export`}
-                className="lien-discret py-2 sm:py-0"
-              >
-                Tout exporter
-              </a>
-            </span>
+                fois sur dix, et la totalité pour l'expert-comptable. Un journal
+                vide n'a rien à exporter : pas de lien vers un fichier vide
+                (24/09). */}
+            {lignes.length > 0 && (
+              <span className="flex items-center gap-3">
+                <a
+                  href={`/agence/${orgId}/comptabilite/export?du=${anneeCourante}-01-01&au=${anneeCourante}-12-31`}
+                  className="lien-discret py-2 sm:py-0"
+                >
+                  Exporter {anneeCourante}
+                </a>
+                <a
+                  href={`/agence/${orgId}/comptabilite/export`}
+                  className="lien-discret py-2 sm:py-0"
+                >
+                  Tout exporter
+                </a>
+              </span>
+            )}
           </div>
           {/* Le journal s'arrêtait à 200 lignes sans le dire : un livre de
               trois ans passait pour complet. Et pour un agent, le plafond
@@ -471,7 +568,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="puce puce-grise">{libelleCategorie(e.categorie)}</span>
                       {e.contre_ecriture_de && (
-                        <span className="text-xs text-muted-foreground">contre-écriture</span>
+                        <span className="text-xs text-muted-foreground">annulation</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -527,7 +624,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                             <BoutonContre orgId={orgId} ecritureId={e.id} />
                           )}
                           {e.contre_ecriture_de && (
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">contre-écriture</span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">annulation</span>
                           )}
                         </td>
                       </tr>

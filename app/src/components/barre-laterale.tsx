@@ -6,6 +6,7 @@ import { useState } from "react";
 import { MarqueOrganisation } from "@/components/marque-organisation";
 import { Tiroir } from "@/components/ui/tiroir";
 import { IconeTrait } from "@/components/icone-trait";
+import { LienAssistance } from "@/components/bouton-assistance";
 import {
   entreeActive,
   entreesBarreBasse,
@@ -156,15 +157,24 @@ export function BarreLaterale({
 export function BarreBasse({
   espace,
   navigation,
+  orgId,
+  organisations = [],
 }: {
   espace: string;
   navigation: NavigationEspace;
+  orgId?: string;
+  /** Sur téléphone, la bascule SCI / nom propre vit dans le tiroir « Menu » (24/09). */
+  organisations?: OrganisationDuSelecteur[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [ouvert, setOuvert] = useState(false);
   const toutes = [...navigation.principales, ...navigation.secondaires];
   const active = entreeActive(toutes, pathname);
   const rapides = entreesBarreBasse(navigation);
+  // La page vit sous « Menu » (Agenda, Statistiques…) : c'est « Menu » qui
+  // s'allume, sinon aucun onglet ne dit où l'on est (24/09).
+  const dansMenu = active != null && !rapides.includes(active);
   const resteACompter = toutes
     .filter((e) => !rapides.includes(e))
     .reduce((s, e) => s + (e.badge ?? 0), 0);
@@ -186,7 +196,17 @@ export function BarreBasse({
             <Badge e={e} />
           </Link>
         ))}
-        <button type="button" onClick={() => setOuvert(true)} aria-haspopup="dialog" aria-expanded={ouvert}>
+        {/* `data-assistance` : sur téléphone, « Menu » est le chemin vers l'aide ;
+            l'ouvrir ne remplace pas la dernière action rapportée avec la demande. */}
+        <button
+          type="button"
+          onClick={() => setOuvert(true)}
+          aria-haspopup="dialog"
+          aria-expanded={ouvert}
+          data-assistance
+          className={dansMenu ? "actif" : undefined}
+          aria-label={dansMenu ? `Menu, page actuelle : ${active.libelle}` : undefined}
+        >
           <Icone nom="menu" />
           <span>Menu</span>
           {resteACompter > 0 && (
@@ -198,10 +218,42 @@ export function BarreBasse({
       </nav>
       {ouvert && (
         <Tiroir titre="Menu" fermer={() => setOuvert(false)}>
+          {orgId && organisations.length > 1 && (
+            <div className="px-3 pb-2">
+              {/* Un id distinct de celui de la barre latérale : les deux barres
+                  sont dans le DOM en même temps. */}
+              <label htmlFor="selecteur-organisation-menu" className="sr-only">
+                Organisation
+              </label>
+              <select
+                id="selecteur-organisation-menu"
+                value={orgId}
+                onChange={(ev) => {
+                  setOuvert(false);
+                  router.push(`/agence/${ev.target.value}`);
+                }}
+                className="w-full rounded-lg border border-[var(--trait)] bg-[var(--surface)] px-2 py-1.5 text-[12.5px] text-[var(--texte)]"
+              >
+                {organisations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <nav className="coquille-menu" aria-label={`${espace} (tout)`}>
             {toutes.map((e) => (
               <Entree key={e.href} e={e} active={e === active} onClick={() => setOuvert(false)} />
             ))}
+            {/* L'aide, en dernier et à part de l'espace (24/09) : le rond
+                flottant mordait les champs et les montants alignés à droite. */}
+            <div className="mt-1 border-t border-[var(--trait-doux)] pt-1">
+              <LienAssistance onClick={() => setOuvert(false)}>
+                <Icone nom="quest" />
+                <span className="lib">Aide et retours</span>
+              </LienAssistance>
+            </div>
           </nav>
         </Tiroir>
       )}

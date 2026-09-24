@@ -31,7 +31,7 @@ test.describe("Côté agent", () => {
     const orgId = await entrerDansEspace(page, "agence");
     await page.goto(`/agence/${orgId}/parc/import`);
     // La garde du serveur est la vraie : masquer le lien ne protège rien.
-    await expect(page.locator("body")).not.toContainText("Reprendre mon parc");
+    await expect(page.locator("body")).not.toContainText("Reprendre le parc");
   });
 });
 
@@ -41,11 +41,11 @@ test.describe("Côté admin d'agence", () => {
   test("le responsable, lui, garde le lien ET la page", async ({ page }) => {
     const orgId = await entrerDansEspace(page, "agence");
     await page.goto(`/agence/${orgId}/parc`);
-    const lien = page.getByRole("link", { name: /Reprendre un parc/ });
+    const lien = page.getByRole("link", { name: /Reprendre le parc/ });
     await expect(lien).toBeVisible();
 
     await lien.click();
     await expect(page).toHaveURL(/\/parc\/import$/);
-    await expect(page.getByRole("heading", { name: "Reprendre mon parc" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Reprendre le parc" })).toBeVisible();
   });
 });

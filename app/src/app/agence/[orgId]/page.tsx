@@ -74,12 +74,15 @@ function GroupeActions({
   actions,
   total,
   reste,
+  ouvert = false,
 }: {
   titre: string;
   actions: ActionDuJour[];
   total: number;
   // Ce qui n'est pas affiché se dit : une liste tronquée en silence ment.
   reste?: ReactNode;
+  // Ouvert à l'arrivée quand le plan tient à l'écran (voir SEUIL_PLAN_OUVERT)
+  ouvert?: boolean;
 }) {
   if (actions.length === 0) return null;
   // UNE ÉTIQUETTE IDENTIQUE SUR TOUTE UNE LISTE N'INFORME PAS, ELLE ALLONGE.
@@ -99,8 +102,11 @@ function GroupeActions({
        son compte — et s'ouvre d'un clic sur celui qu'on décide de traiter.
        `<details>` natif : pas d'état à porter, l'ouverture marche au clavier
        comme au doigt, et le contenu replié n'est pas lu par un lecteur
-       d'écran tant qu'il est fermé. */
-    <details className="groupe-plan">
+       d'écran tant qu'il est fermé.
+       … SAUF QUAND IL N'Y A PAS DE MUR (24/09) : deux actions annoncées deux
+       fois, et cachées derrière un dépliage fermé, coûtaient un clic pour
+       rien. Sous le seuil, les groupes arrivent ouverts. */
+    <details className="groupe-plan" open={ouvert || undefined}>
       <summary className="tete-groupe">
         <span className="libelle-champ">{titre}</span>
         <span className="flex items-center gap-2.5">
@@ -230,6 +236,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // expirées — même source que la fiche, pour que le tableau de bord ne
     // dise jamais « tout est à jour » quand un bail est bloqué.
     attendues,
+    { data: etapesDemarrage },
   ] = await Promise.all([
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
     // « À traiter » se calcule sur MES alertes (revue recette 08/08) : celles
@@ -282,6 +289,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     // Même appel (mis en cache) que le badge du layout — un seul aller-retour
     totalMessagesNonLus(supabase, orgId),
     actionsAttendues(supabase, orgId, { portefeuille }),
+    // Où en est le démarrage : décide de la PLACE du parcours (24/09) — en
+    // tête tant que le premier bail n'est pas en cours, une ligne après
+    // l'assistant ensuite. Même fonction que le composant du parcours.
+    estResponsable
+      ? supabase.rpc("parcours_demarrage", { p_org: orgId })
+      : Promise.resolve({ data: null, error: null }),
   ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;
@@ -361,6 +374,9 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // démarrage ne le redit pas sur le même écran.
   const assistantProposeAutomatique = estResponsable && nbLoues > 0 && envoisEteints.length > 0;
   const enPreparation = lotsActifs.filter((l) => l.etat === "brouillon");
+  // Vide, la carte « Lots en préparation » ne s'affiche pas ; un échec de
+  // lecture, lui, se dit toujours (voir LectureImpossible).
+  const carteLotsEnPreparation = Boolean(erreurLots) || enPreparation.length > 0;
   const tauxOccupation = lotsActifs.length
     ? Math.round((nbLoues / lotsActifs.length) * 100)
     : 0;
@@ -544,6 +560,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     .filter((x) => !x.echeance || x.echeance >= aujourdhui)
     .sort(parUrgence);
   const nbActions = surLesBaux.length + enRetard.length + aVenir.length;
+  // Le repli du 12/09 visait un mur de quinze rangées ; jusqu'à cinq actions,
+  // le plan tient à l'écran et s'ouvre à l'arrivée (24/09).
+  const SEUIL_PLAN_OUVERT = 5;
+  const ouvrirPlan = nbActions <= SEUIL_PLAN_OUVERT;
   // « À venir » se coupe à six rangs — et le dit, avec l'endroit où voir le reste.
   const PLAFOND_A_VENIR = 6;
   // … sauf l'incident à qualifier. Relevé du 11/09 : `incident_creer` insère son
@@ -578,9 +598,39 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     !erreurAppels && !erreurEncaissements && totalAppele > 0
       ? Math.round((totalEncaisse / totalAppele) * 100)
       : null;
-  // Les groupes restent REPLIÉS à l'arrivée (demande du 12/09 : « des listes
-  // déroulantes par défaut repliées ») : la phrase d'accueil et l'en-tête de
-  // l'assistant disent déjà combien, et quoi, sans un clic.
+  // Au-delà de SEUIL_PLAN_OUVERT, les groupes restent REPLIÉS à l'arrivée
+  // (demande du 12/09 : « des listes déroulantes par défaut repliées ») : la
+  // phrase d'accueil et l'en-tête de l'assistant disent déjà combien.
+
+  // Le démarrage (24/09) : une fois le premier bail en cours, le parcours en
+  // cinq étapes n'a plus rien à apprendre — il occupait tout le premier écran
+  // pour une seule étape restante, sous un titre (« Mettre votre premier lot
+  // en location ») que l'état démentait. Il se réduit à UNE ligne, après les
+  // chiffres et l'assistant.
+  const etapes = (etapesDemarrage ?? []) as { etape: string; faite: boolean }[];
+  const premierBailEnCours = etapes.some((e) => e.etape === "bail" && e.faite);
+  const etapesRestantes = premierBailEnCours ? etapes.filter((e) => !e.faite) : [];
+  const FIN_DE_MISE_EN_PLACE: Record<string, { quoi: string; geste: string; href: string }> = {
+    identite: {
+      quoi: "complétez l'identité de l'agence",
+      geste: "Compléter le profil",
+      href: `/agence/${orgId}/profil`,
+    },
+    bien: { quoi: "ajoutez un premier bien", geste: "Ajouter un bien", href: `/agence/${orgId}/parc/nouveau` },
+    lot_pret: {
+      quoi: "levez ce qui bloque la mise en location de vos lots",
+      geste: "Lever ce qui bloque",
+      href: `/agence/${orgId}/parc`,
+    },
+    locataire: {
+      quoi: "créez la fiche d'un locataire et invitez-le dans son espace",
+      geste: "Créer sa fiche",
+      href: `/agence/${orgId}/personnes#creer-fiche`,
+    },
+  };
+  const finDeMiseEnPlace = etapesRestantes.length
+    ? FIN_DE_MISE_EN_PLACE[etapesRestantes[0].etape]
+    : undefined;
 
   return (
     // max-w-5xl : la même largeur que le parc, les personnes, les loyers —
@@ -623,11 +673,11 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         </div>
       )}
 
-      {/* Le chemin du démarrage — AVANT tout le reste tant qu'il reste une
-          étape, et invisible ensuite. Une agence qui vient d'ouvrir n'a ni
+      {/* Le chemin du démarrage — AVANT tout le reste tant que le premier
+          bail n'est pas en cours. Une agence qui vient d'ouvrir n'a ni
           action ni chiffre : ce qu'elle attend, c'est de savoir par où
-          commencer. */}
-      {ROLES_RESPONSABLES.includes(role) && (
+          commencer. Ensuite, une ligne après l'assistant (voir plus bas). */}
+      {estResponsable && !premierBailEnCours && (
         <div className="mt-6">
           <ParcoursDemarrage
             supabase={supabase}
@@ -726,20 +776,18 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       {/* 2. L'assistant : ce que Gerimmo a repéré, et le geste pour chaque
           chose. Il explique, il propose, il ne décide pas. */}
       <section className="assistant mt-6" aria-labelledby="assistant-titre">
+        {/* UN TITRE DE CARTE, PLUS UNE PHRASE (24/09). La tête de l'assistant
+            redisait, sur un second fond teinté, la phrase du bandeau
+            (« 2 éléments nécessitent votre attention ») : deux bandeaux, la
+            même information deux fois. La phrase reste au seul bandeau ; ici,
+            le titre et le compte, comme toute carte de l'accueil. */}
         <div className="assistant-tete">
-          <span className="rond" aria-hidden>G</span>
-          <p id="assistant-titre">
-            {planIllisible ? (
-              "Gerimmo n'a pas pu lire ce que vous avez à traiter."
-            ) : planVide ? (
-              <>Gerimmo ne signale <b>aucune alerte en attente</b>.</>
-            ) : (
-              <>
-                Gerimmo a repéré <b>{elementsEnAttente} élément{elementsEnAttente > 1 ? "s" : ""}</b>{" "}
-                {elementsEnAttente > 1 ? "qui nécessitent" : "qui nécessite"} votre attention.
-              </>
+          <h2 id="assistant-titre" className="text-[length:var(--pas-sous-titre)]">
+            À traiter aujourd&apos;hui
+            {!planIllisible && !planVide && (
+              <span className="font-normal text-[var(--texte-3)]"> · {elementsEnAttente}</span>
             )}
-          </p>
+          </h2>
           <Link href={`/agence/${orgId}/alertes`} className="lien-discret">
             Tout voir&nbsp;→
           </Link>
@@ -796,16 +844,19 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
               titre="À débloquer sur les baux"
               actions={surLesBaux}
               total={surLesBaux.length}
+              ouvert={ouvrirPlan}
             />
             <GroupeActions
               titre="En retard"
               actions={enRetard}
               total={enRetard.length}
+              ouvert={ouvrirPlan}
             />
             <GroupeActions
               titre="À venir"
               actions={aVenirVisibles}
               total={aVenir.length}
+              ouvert={ouvrirPlan}
               reste={
                 aVenir.length > aVenirVisibles.length ? (
                   <Link href={`/agence/${orgId}/alertes`} className="rang">
@@ -849,14 +900,37 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         )}
       </section>
 
-      {/* 3. Ce qui s'est passé, et ce qui se prépare. */}
-      <section className="mt-6 grid gap-[var(--rythme-4)] lg:grid-cols-[1.6fr_1fr]">
+      {finDeMiseEnPlace && (
+        <div className="colonne-liste mt-6">
+          <Link href={finDeMiseEnPlace.href} className="rang">
+            <span className="min-w-0 flex-1 text-sm">
+              <b>Finir la mise en place</b> : {finDeMiseEnPlace.quoi}
+              {etapesRestantes.length > 1 &&
+                ` (et ${etapesRestantes.length - 1} autre étape${etapesRestantes.length > 2 ? "s" : ""})`}
+              .
+            </span>
+            <span className="lien-discret">
+              {finDeMiseEnPlace.geste}&nbsp;→
+              <IndicateurLien />
+            </span>
+          </Link>
+        </div>
+      )}
+
+      {/* 3. Ce qui s'est passé, et ce qui se prépare. La carte des lots en
+          préparation ne s'affiche que si elle a quelque chose à dire (24/09) :
+          vide, elle occupait une colonne pour une phrase — le fil d'activité
+          voisin, lui, disparaît déjà quand il est vide. */}
+      <section
+        className={`mt-6 grid gap-[var(--rythme-4)] ${carteLotsEnPreparation ? "lg:grid-cols-[1.6fr_1fr]" : ""}`}
+      >
         <FilActivite
           supabase={supabase}
           orgId={orgId}
           portefeuille={portefeuille}
           agentId={user.id}
         />
+        {carteLotsEnPreparation && (
         <Card>
           <CardContent>
             <div className="entete-carte">
@@ -870,8 +944,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             </div>
             {erreurLots ? (
               <LectureImpossible quoi="les lots en préparation" />
-            ) : enPreparation.length === 0 ? (
-              <p className="vide">Aucun lot en préparation.</p>
             ) : (
               <ul className="divide-y divide-border">
                 {enPreparation.slice(0, 6).map((l) => {
@@ -880,17 +952,23 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
                     ? cibleBlocage(motif, { orgId, bienId: l.bien_id, lotId: l.id })
                     : null;
                   return (
-                    <li key={l.id} className="flex items-center gap-3 py-2.5">
-                      <span className="puce puce-grise shrink-0">{l.nom}</span>
+                    <li key={l.id}>
+                      {/* TOUT LE RANG SE CLIQUE (24/09) : la pastille du lot
+                          était hors du lien, et seul le texte du motif
+                          menait à la fiche. */}
                       <Link
                         href={cible?.href ?? `/agence/${orgId}/parc/${l.bien_id}/lots/${l.id}`}
-                        className="min-w-0 flex-1 truncate text-sm hover:underline"
+                        className="rang px-2 py-2.5"
                       >
-                        {erreurBlocages
-                          ? "Blocages illisibles — ouvrir la fiche du lot"
-                          : motif
-                            ? resumerBlocage(motif)
-                            : "Prêt à publier"}
+                        <span className="puce puce-grise shrink-0">{l.nom}</span>
+                        <span className="min-w-0 flex-1 truncate text-sm">
+                          {erreurBlocages
+                            ? "Blocages illisibles — ouvrir la fiche du lot"
+                            : motif
+                              ? resumerBlocage(motif)
+                              : "Prêt à publier"}
+                        </span>
+                        <IndicateurLien />
                       </Link>
                     </li>
                   );
@@ -899,6 +977,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             )}
           </CardContent>
         </Card>
+        )}
       </section>
 
       {/* 4. Les statistiques, repliées : elles racontent, elles ne demandent
@@ -912,8 +991,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
             </svg>
           </span>
           <span className="whitespace-nowrap">Statistiques du mois</span>
-          <span className="text-[12.5px] font-normal text-[var(--texte-3)]">
-            · répartition du parc, encaissements et dépenses sur 6 mois
+          {/* Sur téléphone, le sous-titre forme sa propre ligne, sans le « · »
+              orphelin qui l'ouvrait (24/09) ; en ligne, le séparateur revient. */}
+          <span className="basis-full pl-[22px] text-[12.5px] font-normal text-[var(--texte-3)] sm:basis-auto sm:pl-0">
+            <span className="hidden sm:inline">· </span>répartition du parc, encaissements et dépenses sur 6 mois
           </span>
         </summary>
         <div className="mt-3 grid gap-[var(--rythme-4)] md:grid-cols-2">

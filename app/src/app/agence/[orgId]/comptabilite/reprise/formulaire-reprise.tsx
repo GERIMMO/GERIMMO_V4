@@ -57,7 +57,9 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
               inputMode="decimal"
               required
               defaultValue={etat.tresorerieAnnoncee ?? ""}
-              placeholder="42000"
+              // Un exemple se dit exemple : « 42000 » seul passait pour une
+              // valeur déjà saisie (24/09).
+              placeholder="ex. 42 000"
             />
             <p className="text-xs text-muted-foreground">
               Ce que vous recevez réellement. Le détail du fichier devra le
@@ -88,8 +90,21 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
         {etat.fichier && <input type="hidden" name="nom_fichier" value={etat.fichier} />}
         {etat.reprise && <input type="hidden" name="reprise" value={etat.reprise} />}
 
+        {/* L'irréversibilité se lit LÀ où l'on clique « Basculer », pas
+            seulement dans les notes du bas de page (24/09). */}
+        <p className="text-sm">
+          <b>La bascule est définitive</b> : après elle, on corrige par écritures
+          rectificatives, pas par une seconde reprise — c&apos;est ce qu&apos;exige
+          une comptabilité, et ce qui vous protège.
+        </p>
         <div className="flex flex-wrap items-center gap-2">
-          <BoutonEnvoi variant="outline" enCoursTexte="Lecture…">
+          {/* « Contrôler » est le geste qui fait avancer le parcours : bouton
+              plein. Dès que « Basculer » (plein) apparaît à côté, il repasse
+              en contour — un seul bouton plein à la fois (24/09). */}
+          <BoutonEnvoi
+            variant={etat.controle && juste ? "outline" : "default"}
+            enCoursTexte="Lecture…"
+          >
             Contrôler la balance
           </BoutonEnvoi>
           {/* La bascule n'apparaît que si le compte tombe juste : proposer un

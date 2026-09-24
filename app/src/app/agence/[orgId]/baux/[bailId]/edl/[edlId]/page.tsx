@@ -11,6 +11,7 @@ import { BoutonRegenererGrille } from "./bouton-regenerer-grille";
 import { EdlAnnexes, type AnnexesEntree, type Compteur, type Cle } from "./edl-annexes";
 import { EdlMentions } from "./edl-mentions";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { nomComplet } from "@/lib/roles-personnes";
 import { EchecLecture, PageEchecLecture } from "../../../../parc/echec-lecture";
 
 export const metadata = { title: "État des lieux — Gerimmo" };
@@ -108,16 +109,24 @@ export default async function PageEdl(
   // depuis les pièces du lot n'ont pas de sens ici (audit vie du bail 09/09).
   const sortieDepuisEntree = edl.type === "sortie" && Boolean(entree) && toutesLignes.length > 0;
 
-  const { data: bail, error: erreurBailLot } = grilleGenerique
-    ? await supabase
-        .from("baux")
-        .select("lot:lots(id, bien_id)")
-        .eq("id", bailId)
-        .maybeSingle()
-    : { data: null, error: null };
-  const lotDuBail = premier(
-    (bail as { lot: UnOuPlusieurs<{ id: string; bien_id: string }> } | null)?.lot
-  );
+  // Le lot et le locataire du bail, lus à chaque fois (24/09) : l'en-tête ne
+  // disait ni le logement ni l'occupant, et un agent arrivé de l'agenda ou
+  // d'une alerte devait repasser par « ← Bail » pour vérifier qu'il était au
+  // bon endroit. Le lot sert aussi à la grille générique, plus bas.
+  const { data: bail, error: erreurBailLot } = await supabase
+    .from("baux")
+    .select(
+      "lot:lots!baux_lot_meme_org_fk(id, nom, bien_id), locataire:persons!baux_locataire_meme_org_fk(nom, prenom)"
+    )
+    .eq("id", bailId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  const contexteBail = bail as {
+    lot: UnOuPlusieurs<{ id: string; nom: string; bien_id: string }>;
+    locataire: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
+  } | null;
+  const lotDuBail = premier(contexteBail?.lot ?? null);
+  const locataireDuBail = premier(contexteBail?.locataire ?? null);
   const lotId = lotDuBail?.id ?? null;
   const bienId = lotDuBail?.bien_id ?? null;
 
@@ -144,7 +153,7 @@ export default async function PageEdl(
   noter("les relevés de compteurs", erreurCompteurs);
   noter("les clés remises", erreurCles);
   noter("l’état des lieux d’entrée de référence", erreurEntree);
-  noter("le lot rattaché au bail", erreurBailLot);
+  noter("le lot et le locataire du bail", erreurBailLot);
 
   // Les annexes se renseignent en UN envoi. La structure arrive déjà remplie
   // (generer_grille_edl recopie les compteurs et les clés de l'entrée signée
@@ -171,11 +180,14 @@ export default async function PageEdl(
           href={`/agence/${orgId}/baux/${bailId}`}
           className="text-sm text-muted-foreground hover:underline"
         >
-          ← Bail
+          ← Bail{locataireDuBail ? ` · ${nomComplet(locataireDuBail)}` : ""}
         </Link>
+        {/* Le surtitre porte le logement (24/09) : il répétait le titre
+            (« Entrée » puis « État des lieux d'entrée »). */}
         <p className="eyebrow mt-1">
           {edl.type === "entree" ? "Entrée" : "Sortie"}
           {edl.date_edl ? ` · ${formaterDate(edl.date_edl)}` : ""}
+          {lotDuBail?.nom ? ` · ${lotDuBail.nom}` : ""}
         </p>
         <div className="entete-page">
           <h1>

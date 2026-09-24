@@ -160,7 +160,7 @@ export default async function LayoutArtisan({
         </p>
       )}
 
-      {/* pb-28 : la barre d'onglets est fixe et recouvrirait le dernier bouton
+      {/* pb-32 : la barre d'onglets est fixe et recouvrirait le dernier bouton
           de la page — le compte rendu finit précisément par un bouton. */}
       <main className="artisan-corps mx-auto w-full max-w-[960px] flex-1 px-4 pt-6 pb-28 sm:px-7 sm:pt-8">
         {children}

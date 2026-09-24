@@ -3,9 +3,10 @@
 import { eur, formaterDate } from "@/lib/ged";
 import { InputDateJour } from "@/components/input-date-jour";
 
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 import { encaisserDepot, supprimerEncaissementDepot, type EtatDepot } from "@/app/actions/depot";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Button } from "@/components/ui/button";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,28 +54,36 @@ export function FormulaireDepot({
 
   return (
     <div className="space-y-4">
-      <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
-        <div>
-          <dt className="text-xs text-muted-foreground">Dépôt dû</dt>
-          <dd className="font-medium">{eur(depotDu)}</dd>
+      {/* Le même triplet que les loyers, juste au-dessus, dans les mêmes
+          tuiles et avec les mêmes mots (24/09) : trois libellés gris de 12 px
+          ici, des tuiles colorées là, pour dû / encaissé / reste. */}
+      <div className="grille-kpi">
+        <div className="kpi">
+          <span className="eyebrow">Dû</span>
+          <span className="chiffre block">{eur(depotDu)}</span>
+          <span className="block text-xs text-muted-foreground">dépôt prévu au bail</span>
         </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Encaissé</dt>
-          <dd className="font-medium">{eur(encaisse)}</dd>
+        <div className="kpi vert">
+          <span className="eyebrow">Encaissé</span>
+          <span className="chiffre block">{eur(encaisse)}</span>
+          <span className="block text-xs text-muted-foreground">
+            {encaissements.length} encaissement{encaissements.length > 1 ? "s" : ""}
+          </span>
         </div>
-        <div>
-          <dt className="text-xs text-muted-foreground">Reste dû</dt>
-          <dd className="font-medium">{eur(reste)}</dd>
+        <div className={`kpi ${reste > 0 ? "rouge" : "vert"}`}>
+          <span className="eyebrow">Reste dû</span>
+          <span className="chiffre block">{eur(Math.max(0, reste))}</span>
+          <span className="block text-xs text-muted-foreground">
+            {reste > 0 ? "à percevoir" : "dépôt intégralement encaissé"}
+          </span>
         </div>
-      </dl>
+      </div>
 
-      {reste <= 0 ? (
-        <p className="text-sm text-success-soft-foreground">Dépôt intégralement encaissé.</p>
-      ) : encaisse > 0 ? (
+      {reste > 0 && encaisse > 0 && (
         <p className="text-sm text-warning-soft-foreground">
           Encaissement partiel : reste {eur(reste)} à percevoir.
         </p>
-      ) : null}
+      )}
 
       {encaissements.length > 0 && (
         <ul className="divide-y divide-border border border-border">
@@ -207,20 +216,40 @@ function BoutonSupprimer({
     async (_etat, formData) => supprimerEncaissementDepot(orgId, bailId, encId, formData),
     {}
   );
+  // La contre-passation du dépôt est une correction comptable : elle porte le
+  // motif de son auteur (RM-A6.6), saisi ici et inscrit au journal. En deux
+  // temps, comme le retrait d'un encaissement de loyer (24/09) : pas de champ
+  // « motif » vide sur la ligne au repos.
+  const [ouvert, setOuvert] = useState(false);
+  if (!ouvert && !etat.erreur)
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        className="text-xs text-destructive"
+        onClick={() => setOuvert(true)}
+      >
+        Retirer l&apos;encaissement
+      </Button>
+    );
   return (
-    // La contre-passation du dépôt est une correction comptable : elle porte le
-    // motif de son auteur (RM-A6.6), saisi ici et inscrit au journal.
     <form action={action} className="flex flex-wrap items-center justify-end gap-1">
       <Input
         name="motif"
-        placeholder="motif"
+        placeholder="Motif du retrait"
         aria-label="Motif du retrait"
-        className="h-7 w-28 text-xs"
+        autoFocus
+        required
+        className="h-7 w-40 text-xs"
       />
-      <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
-        Retirer
+      <BoutonEnvoi size="sm" variant="outline" className="text-xs text-destructive">
+        Confirmer
       </BoutonEnvoi>
-      {etat.erreur && <span className="block text-xs text-destructive">{etat.erreur}</span>}
+      <Button type="button" size="sm" variant="ghost" className="text-xs" onClick={() => setOuvert(false)}>
+        Renoncer
+      </Button>
+      {etat.erreur && <span className="block w-full text-right text-xs text-destructive">{etat.erreur}</span>}
     </form>
   );
 }

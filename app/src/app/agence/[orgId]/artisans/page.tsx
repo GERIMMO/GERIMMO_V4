@@ -154,7 +154,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
           action, sans fil d'Ariane — le menu dit déjà où l'on est. La phrase
           d'aide passe sous le filet, comme sur « Loyers & charges ». */}
       <div className="mb-6">
-        <div className="entete-page mb-4">
+        <div className="entete-page">
           <h1>Carnet d&apos;artisans</h1>
           <div className="flex flex-wrap items-center gap-3">
             <span className="mono-discret">

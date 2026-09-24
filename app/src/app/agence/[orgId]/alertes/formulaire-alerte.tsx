@@ -17,7 +17,7 @@ export function FormulaireAlerte({
 }: {
   orgId: string;
   membres: Membre[];
-  // Seul le responsable de l'agence peut assigner à tout le monde
+  // Seul le responsable de l'agence peut confier à tout le monde
   estResponsable: boolean;
 }) {
   const actionLiee = creerAlerte.bind(null, orgId);
@@ -57,38 +57,46 @@ export function FormulaireAlerte({
             </option>
           ))}
         </select>
-        <p className="text-xs text-muted-foreground">
-          Une alerte informative ne s&apos;escalade jamais.
-        </p>
+        {/* « Ne s'escalade jamais » retiré (24/09) : la note sous la liste dit
+            déjà que les informatives ne remontent jamais, et le propriétaire
+            en gestion directe n'a personne vers qui remonter. */}
       </div>
       <div className="space-y-2">
         <Label htmlFor="echeance">Échéance (facultatif)</Label>
         <Input id="echeance" name="echeance" type="date" defaultValue={etat.valeurs?.echeance} />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="assignee">Assigné à</Label>
-        <select
-          id="assignee"
-          name="assignee"
-          required
-          defaultValue={etat.valeurs?.assignee ?? ""}
-          className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
-        >
-          <option value="" disabled>
-            — Choisir —
-          </option>
-          {/* Seul le responsable de l'agence peut assigner à tout le monde */}
-          {estResponsable && <option value={ASSIGNATION_TOUS}>Tout le monde</option>}
-          {membres.map((m) => (
-            <option key={m.account_id} value={m.account_id}>
-              {m.email}
+      {/* Seul dans l'espace (le propriétaire en gestion directe, le plus
+          souvent) : l'alerte lui revient d'office. Choisir son propre e-mail
+          dans une liste d'une ligne était un clic en trop à chaque création
+          (24/09). « Confier », le verbe du reste de l'écran. */}
+      {membres.length === 1 ? (
+        <input type="hidden" name="assignee" value={membres[0].account_id} />
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="assignee">Confier à</Label>
+          <select
+            id="assignee"
+            name="assignee"
+            required
+            defaultValue={etat.valeurs?.assignee ?? ""}
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="" disabled>
+              — Choisir —
             </option>
-          ))}
-        </select>
-        <p className="text-xs text-muted-foreground">
-          Une alerte est toujours assignée à au moins une personne.
-        </p>
-      </div>
+            {/* Seul le responsable de l'agence peut confier à tout le monde */}
+            {estResponsable && <option value={ASSIGNATION_TOUS}>Tout le monde</option>}
+            {membres.map((m) => (
+              <option key={m.account_id} value={m.account_id}>
+                {m.email}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Une alerte est toujours confiée à au moins une personne.
+          </p>
+        </div>
+      )}
       {/* Bloc d'erreur de la charte (.err), comme partout ailleurs */}
       {etat.erreur && (
         <p className="err mb-0" role="alert">

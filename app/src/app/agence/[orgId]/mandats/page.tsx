@@ -56,7 +56,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   if (lecturesEnEchec.length > 0) {
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-        <div className="entete-page mb-4">
+        <div className="entete-page">
           <h1>Mandats &amp; rapports</h1>
         </div>
         <div className="err" role="alert">
@@ -115,7 +115,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   // en 4xl, la liste changeait de largeur d'un écran à l'autre (24/09).
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
-      <div className="entete-page mb-2">
+      <div className="entete-page">
         <h1>Mandats &amp; rapports</h1>
         {/* La requête écarte les mandats résiliés : dire « en cours », sinon
             le compte de tête se lit comme le nombre de mandats de l'agence. */}

@@ -6,7 +6,7 @@ import { eur, formaterDate } from "@/lib/ged";
 import {
   EncadreLectureImpossible,
   EnteteReglages,
-  statutOrganisation,
+  statutAbonnement,
 } from "../profil/famille-reglages";
 
 export const metadata = { title: "Mon abonnement — Gerimmo" };
@@ -96,15 +96,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
   const tranches = (tranchesBrut ?? []) as Tranche[];
   const total = etat?.mensuel ?? 0;
   const ferme = etat ? !etat.ecriture_ouverte : false;
-  // LA PASTILLE DOIT DIRE CE QUE L'ÉCRAN DIT. Une organisation en défaut de
-  // paiement garde le statut « active » — elle PAIE, c'est sa carte qui a
-  // échoué — mais son écriture est fermée. Afficher une pastille verte au-dessus
-  // d'un bandeau rouge « lecture seule » ferait douter de l'un ou de l'autre.
-  const statutBrut = statutOrganisation(organisation.status);
-  const statut =
-    ferme && organisation.status === "active"
-      ? { libelle: "lecture seule", puce: "puce-rouge" }
-      : statutBrut;
+  const enEssai = etat?.statut === "essai";
   const jours = etat?.jours_essai_restants ?? null;
 
   // Retour de Stripe. `annule` n'est pas une erreur : le client a fermé la page
@@ -117,10 +109,30 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
   const rienAPayer = (etat?.unites_facturees ?? 0) < 1;
   // Au-delà du seuil, l'abonnement ne se souscrit plus d'un clic.
   const surDevis = etat ? !etat.en_ligne_possible : false;
+  // LA PASTILLE DOIT DIRE CE QUE L'ÉCRAN DIT. Elle lisait le statut de
+  // l'organisation : une agence « active » s'y voyait en vert au-dessus d'un
+  // bouton « S'abonner » (relevé du 24/09). Elle lit désormais l'abonnement
+  // lui-même — et se tait quand l'une des deux lectures a échoué, plutôt que
+  // d'annoncer « À souscrire » à qui paie déjà.
+  const statut =
+    erreurEtat || erreurPaiement
+      ? null
+      : statutAbonnement({
+          paye: paiement?.paye ?? false,
+          essai: enEssai,
+          ferme,
+          enRetard: paiement?.paiement_en_retard ?? false,
+          rienAPayer,
+        });
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
-      <EnteteReglages titre="Mon abonnement" mention={organisation.name}>
+      {/* 24/09 : le nom de l'agence est déjà dans la barre latérale et dans
+          la barre haute — la mention ne sert qu'au propriétaire. */}
+      <EnteteReglages
+        titre="Mon abonnement"
+        mention={estAgence ? undefined : organisation.name}
+      >
         {estAgence
           ? "Ce que vous payez, lot par lot, et l'état de votre compte."
           : "Ce que vous payez, bien par bien, et l'état de votre compte."}
@@ -134,9 +146,9 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">Merci, votre paiement est enregistré.</b>{" "}
             <span className="text-muted-foreground">
-              Votre compte s&apos;ouvre dès que Stripe nous le confirme — quelques
-              secondes en général. Si cette page dit encore le contraire dans une
-              minute, rechargez-la.
+              Votre compte s&apos;ouvre dès que notre prestataire de paiement
+              nous le confirme — quelques secondes en général. Si cette page
+              dit encore le contraire dans une minute, rechargez-la.
             </span>
           </p>
         </div>
@@ -251,7 +263,9 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
       <div className="loc-carte">
         <div className="entete-carte">
           <h3>Formule Gerimmo</h3>
-          <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
+          {statut && (
+            <span className={`puce ${statut.puce}`}>{statut.libelle}</span>
+          )}
         </div>
         {/* DEUX PUBLICS, DEUX LECTURES. Un propriétaire gère une poignée de
             biens : la liste nominative lui montre lequel est offert, c'est le
@@ -349,7 +363,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
         <p className="mesure-lecture mt-3 text-xs text-muted-foreground">
           {estAgence
             ? "Un tarif dégressif par tranches, tout compris, sans engagement : baux, quittances, incidents, artisans, comptabilité de gérance et relevés. Chaque lot est facturé au tarif de sa tranche — signer un lot de plus ne fait jamais changer de palier. Un mandat résilié n'est plus compté le mois suivant."
-            : "Un prix par bien, tout compris, sans engagement : baux, quittances, incidents, livre et fiscalité. Un bien retiré n'est plus compté le mois suivant."}
+            : "Un prix par bien, tout compris, sans engagement : baux, quittances, incidents, livre recettes-dépenses et fiscalité. Un bien retiré n'est plus compté le mois suivant."}
         </p>
 
         {/* LES DEUX GESTES, ET UN SEUL À LA FOIS. Proposer « S'abonner » à qui
@@ -401,10 +415,18 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
               </>
             ) : (
               <>
+                {/* 24/09 : la phrase promettait que souscrire pendant l'essai ne
+                    le raccourcissait pas — or la page de paiement ne porte
+                    aucune période d'essai, et le premier prélèvement part à la
+                    validation. L'écran dit ce qui se passe réellement ; la
+                    promesse ne reviendra qu'avec l'essai reporté chez le
+                    prestataire de paiement. */}
                 <p className="mesure-lecture text-sm text-muted-foreground">
                   {ferme
                     ? "Votre compte rouvre dès le premier paiement, avec toutes vos données là où vous les avez laissées."
-                    : "Vous pouvez souscrire dès maintenant : le prélèvement ne démarre qu'à la validation, et votre essai n'en est pas raccourci."}
+                    : enEssai
+                      ? "Le premier prélèvement part à la validation du paiement, même pendant l'essai. Pour que rien ne s'interrompe, souscrivez avant sa fin."
+                      : "Le premier prélèvement part à la validation du paiement."}
                 </p>
                 <BoutonSouscrire
                   orgId={orgId}
@@ -424,7 +446,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
         )}
       </div>
 
-      {!ferme && etat?.statut === "essai" && etat.essai_fin && (
+      {!ferme && enEssai && etat?.essai_fin && (
         <div className="loc-carte border-l-4 border-l-[var(--or)]">
           <p className="mesure-lecture text-sm">
             <b className="font-semibold">
@@ -439,11 +461,14 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
               Passé cette date, le compte passe en lecture seule : vous gardez
               l&apos;accès à tout ce qui s&apos;y trouve et à vos exports, mais
               vous ne pouvez plus rien saisir de nouveau.
+              {/* La phrase sur la souscription vit dans la carte, à côté du
+                  bouton : la redire ici, 190 px plus bas, faisait deux fois la
+                  même promesse (24/09). */}
               {rienAPayer
                 ? estAgence
                   ? " Tant qu'aucun lot n'est sous mandat actif, rien n'est à régler."
                   : " Tant que vous ne gérez qu'un bien, rien n'est à régler : votre compte reste ouvert."
-                : " Souscrire maintenant ne raccourcit pas votre essai."}
+                : ""}
             </span>
           </p>
         </div>

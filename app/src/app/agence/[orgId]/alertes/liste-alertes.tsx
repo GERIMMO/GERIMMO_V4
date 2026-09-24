@@ -135,7 +135,7 @@ export function ListeAlertes({
     return (
       <button
         type="button"
-        className={`filtre ${filtre === cle ? "actif" : ""}`}
+        className={`filtre inline-flex items-center justify-center gap-1.5 ${filtre === cle ? "actif" : ""}`}
         aria-pressed={filtre === cle}
         onClick={() => setFiltre(cle)}
       >
@@ -144,14 +144,34 @@ export function ListeAlertes({
     );
   };
 
+  // TOUT LE RANG EST CLIQUABLE (24/09, « je veux que tout le carré soit
+  // cliquable ») : le rang s'éclairait au survol mais seul le petit bouton
+  // menait quelque part. Le geste principal du rang — « Traiter », ou
+  // « Confier / traiter » pour le responsable sur une alerte grisée — étend
+  // sa zone de clic au rang entier par une surcouche (`after:inset-0`, le rang
+  // est `relative`) ; le bouton secondaire passe au-dessus (`relative z-10`).
+  // `translate-none` n'est pas décoratif : l'enfoncement de 1 px des boutons
+  // ferait du bouton le repère de sa propre surcouche pendant l'appui — elle
+  // se rétracterait sous le pointeur et le clic, relâché ailleurs, se perdrait.
+  const surcouche = "after:absolute after:inset-0 active:not-aria-[haspopup]:translate-none";
+
   const rang = (a: AlerteRang, grisee: boolean) => {
     const fiche = ficheDe(a);
+    // Le contexte (`details.libelle`) est souvent déjà dans le titre — « État
+    // des lieux d'entrée — Lot · Locataire » puis « Lot · Locataire » : il ne
+    // s'affiche que s'il apprend quelque chose (24/09).
+    const libelle =
+      typeof a.details?.libelle === "string" && !a.titre.includes(a.details.libelle)
+        ? a.details.libelle
+        : null;
     return (
       <div
         key={a.id}
-        className={`rang-alerte flex-wrap gap-y-2 ${grisee ? "grisee" : a.criticite === "critique" ? "critique" : a.criticite === "normale" ? "normale" : ""}`}
+        className={`rang-alerte relative flex-wrap gap-y-2 ${grisee ? "grisee" : a.criticite === "critique" ? "critique" : a.criticite === "normale" ? "normale" : ""}`}
       >
-        <div className="min-w-0 flex-1">
+        {/* Sous 640 px, le texte prend toute la largeur et les boutons passent
+            dessous : à côté d'eux, il s'écrasait sur 150 px (24/09). */}
+        <div className="min-w-0 flex-1 basis-full sm:basis-0">
           {/* Le niveau en ÉTIQUETTE, et l'objet de l'alerte en premier poids.
               Avant le 12/09, « NORMALE · CONFIÉE À TOUT LE MONDE » s'affichait
               au même poids que le titre, à l'identique sur chaque rang : la
@@ -165,9 +185,9 @@ export function ListeAlertes({
               Deux lignes plutôt qu'une coupe nette : sur un téléphone,
               `truncate` réduisait « Doublon possible : un incident du même
               type… » à « Doublon possible : un i… », qui n'apprend rien. */}
-          {typeof a.details?.libelle === "string" && (
+          {libelle && (
             <div className="line-clamp-2 text-[13px] text-muted-foreground">
-              {a.details.libelle}
+              {libelle}
             </div>
           )}
           {consequence(a, reference) && (
@@ -182,42 +202,48 @@ export function ListeAlertes({
           {grisee && (
             <p className="mt-1 text-xs text-muted-foreground">
               {estResponsable
-                ? "Confiée à un collègue : en tant que responsable, vous pouvez la réassigner ou la traiter à sa place."
-                : "Confiée à un collègue : lui seul la traite. Un responsable peut la réassigner si besoin."}
+                ? "Confiée à un collègue : en tant que responsable, vous pouvez la confier à quelqu’un d’autre ou la traiter à sa place."
+                : "Confiée à un collègue : lui seul la traite. Un responsable peut la confier à quelqu’un d’autre si besoin."}
             </p>
           )}
         </div>
         {/* Une alerte grisée est intouchable — seul le responsable peut la
-            rouvrir pour la réassigner ou la traiter à la place d'un absent.
+            rouvrir pour la confier à un autre ou la traiter à la place d'un absent.
             Une alerte incident emmène au dossier, dans l'onglet Incidents. */}
         {(!grisee || estResponsable) &&
           (fiche && !grisee ? (
             <span className="flex shrink-0 items-center gap-2.5">
               <Link
                 href={fiche}
+                // Le nom accessible dit QUELLE alerte : le lien couvre le rang.
+                aria-label={`Traiter : ${a.titre}`}
                 className={buttonVariants({
                   variant: a.criticite === "critique" ? "destructive" : "outline",
                   size: "sm",
-                  // Un <a> échappe au min-height tactile posé sur button/select
-                  className: "pointer-coarse:min-h-10",
+                  // 44 px au doigt, comme le bouton voisin (--cible-tactile) :
+                  // min-h-10 écrasait la règle tactile de la charte (24/09).
+                  className: `pointer-coarse:min-h-11 ${surcouche}`,
                 })}
               >
                 Traiter
                 <IndicateurLien />
               </Link>
-              {/* La modale reste atteignable : confier à quelqu'un, ou fermer
+              {/* La modale reste atteignable : confier à quelqu'un, ou clore
                   une alerte dont le geste n'aura jamais lieu (LRAR jamais
                   envoyée, pièce vérifiée hors ligne…) — audit 06/09.
-                  Libellé visible : le title ne se découvre pas au tactile. */}
+                  Libellé visible : le title ne se découvre pas au tactile.
+                  « Confier », le verbe de la modale et du rang (24/09) —
+                  « Assigner » en était un second, et taisait « clore ». */}
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                aria-label="Assigner ou fermer l'alerte"
-                title="Assigner ou fermer"
+                className="relative z-10"
+                aria-label="Confier ou clore l'alerte"
+                title="Confier ou clore l'alerte"
                 onClick={() => setOuverte(a)}
               >
-                Assigner
+                Confier / clore
               </Button>
             </span>
           ) : (
@@ -225,9 +251,10 @@ export function ListeAlertes({
               type="button"
               variant={!grisee && a.criticite === "critique" ? "destructive" : "outline"}
               size="sm"
+              className={surcouche}
               onClick={() => setOuverte(a)}
             >
-              {grisee ? "Réassigner" : "Traiter"}
+              {grisee ? "Confier / traiter" : "Traiter"}
             </Button>
           ))}
       </div>
@@ -236,12 +263,18 @@ export function ListeAlertes({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {pastille("toutes", "Toutes")}
-        {pastille("critique", "Critiques")}
-        {pastille("normale", "Normales")}
-        {pastille("informative", "Informatives")}
-      </div>
+      {/* Pas de filtres au-dessus d'une liste vide : quatre pastilles à zéro
+          ne filtraient rien et menaient à un second état vide (24/09).
+          Deux par rangée sous 640 px : en flux, « Informatives » restait
+          seule sur sa ligne — même motif que les filtres d'Incidents. */}
+      {alertes.length > 0 && (
+        <div className="mb-4 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
+          {pastille("toutes", "Toutes")}
+          {pastille("critique", "Critiques")}
+          {pastille("normale", "Normales")}
+          {pastille("informative", "Informatives")}
+        </div>
+      )}
 
       {miennes.length === 0 && autres.length === 0 ? (
         <div className="vide-guide">
@@ -252,7 +285,10 @@ export function ListeAlertes({
           </p>
           <p className="explication">
             {filtre === "toutes"
-              ? "Gerimmo pose les alertes tout seul : diagnostic périmé, état des lieux à faire, rapport à valider. Celles que vous créez à la main servent à ce qui ne rentre pas dans ces cases."
+              ? /* Les exemples (« diagnostic périmé, état des lieux… ») et
+                   « ce qui ne rentre pas dans ces cases » sont dits par la
+                   carte « Créer une alerte », juste à côté (24/09). */
+                "Gerimmo pose les alertes tout seul : elles s’afficheront ici dès qu’il y aura quelque chose à faire."
               : "Le filtre est peut-être trop étroit — les autres niveaux, eux, ont peut-être de quoi faire."}
           </p>
           {filtre !== "toutes" && (

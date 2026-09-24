@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useActionState, useId } from "react";
+import { useFormStatus } from "react-dom";
 import { importerParc, type EtatImport } from "@/app/actions/import-parc";
-import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 
 export function FormulaireImport({ orgId }: { orgId: string }) {
   const [etat, action] = useActionState<EtatImport, FormData>(
@@ -18,7 +19,7 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
   const erreurs = resultats.filter((r) => r.statut === "erreur");
   const baux = ok.filter((r) => r.bail_id).length;
   // Après la bascule, la question n'est plus « est-ce que ça passe » mais
-  // « qu'est-ce qui a été créé » : le tableau change de sens, pas de forme.
+  // « qu'est-ce qui a été créé » : la liste change de sens, pas de forme.
   const apresBascule = resultats.length > 0 && etat.controle === false;
 
   return (
@@ -46,15 +47,15 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
         {etat.fichier && <input type="hidden" name="nom_fichier" value={etat.fichier} />}
 
         <div className="flex flex-wrap items-center gap-2">
-          <BoutonEnvoi variant="outline" enCoursTexte="Lecture…">
+          <EnvoiImport classe="btn-secondaire" enCoursTexte="Lecture…">
             Contrôler le fichier
-          </BoutonEnvoi>
+          </EnvoiImport>
           {/* La bascule n'apparaît qu'APRÈS un contrôle : on ne fait pas
               basculer un parc sur un fichier que personne n'a regardé. */}
           {etat.controle && ok.length > 0 && (
-            <BoutonEnvoi name="bascule" value="1" enCoursTexte="Import…">
+            <EnvoiImport classe="btn-or" name="bascule" value="1" enCoursTexte="Import…">
               Importer {ok.length} ligne{ok.length > 1 ? "s" : ""}
-            </BoutonEnvoi>
+            </EnvoiImport>
           )}
         </div>
 
@@ -95,44 +96,44 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
                 : `${erreurs.length} ligne${erreurs.length > 1 ? "s" : ""} à corriger dans votre fichier avant d'importer — les autres passeront.`}
           </p>
 
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-sm">
-              <caption className="sr-only">
-                Résultat ligne par ligne de {apresBascule ? "l'import" : "la lecture du fichier"}
-              </caption>
-              <thead>
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th scope="col" className="py-1.5 pr-3 font-normal">Ligne</th>
-                  <th scope="col" className="py-1.5 pr-3 font-normal">État</th>
-                  <th scope="col" className="py-1.5 font-normal">Détail</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resultats.map((r) => (
-                  <tr key={r.ligne} className="border-t border-[var(--filet)] align-top">
-                    <td className="py-2 pr-3 tabular-nums">{r.ligne}</td>
-                    <td className="py-2 pr-3">
-                      <span className={`puce ${r.statut === "ok" ? "puce-loue" : "puce-rouge"}`}>
-                        {r.statut === "ok" ? (apresBascule ? "créée" : "prête") : "à corriger"}
-                      </span>
-                    </td>
-                    <td className="py-2">
-                      {r.lot_id ? (
-                        <Link
-                          href={`/agence/${orgId}/parc/${r.bien_id}/lots/${r.lot_id}`}
-                          className="lien-discret"
-                        >
-                          {r.message}
-                        </Link>
-                      ) : (
-                        r.message
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Une rangée par ligne du fichier, comme les listes de lots. Une
+              ligne créée ouvre son lot, et c'est TOUTE la rangée qui mène à
+              la fiche (24/09) : dans l'ancien tableau, seul le texte de la
+              colonne « Détail » était le lien, « Ligne » et « État » restaient
+              des zones mortes. Une ligne sans lot (contrôle, ou refusée)
+              reste une phrase, sans l'effet de survol d'un lien. */}
+          <ol
+            className="colonne-liste mt-3"
+            aria-label={`Résultat ligne par ligne de ${apresBascule ? "l'import" : "la lecture du fichier"}`}
+          >
+            {resultats.map((r) => {
+              const contenu = (
+                <>
+                  <span className="min-w-0 flex-1">
+                    <b className="block break-words">{r.message}</b>
+                    <small className="block tabular-nums">Ligne {r.ligne}</small>
+                  </span>
+                  <span className={`puce shrink-0 ${r.statut === "ok" ? "puce-loue" : "puce-rouge"}`}>
+                    {r.statut === "ok" ? (apresBascule ? "créée" : "prête") : "à corriger"}
+                  </span>
+                </>
+              );
+              return (
+                // Le filet entre rangées est porté par le <li> : dans son
+                // <li>, chaque `.rang` est aussi le dernier enfant, et
+                // `.rang:last-child` lui retire le sien.
+                <li key={r.ligne} className="border-b border-[var(--filet)] last:border-b-0">
+                  {r.lot_id && r.bien_id ? (
+                    <Link href={`/agence/${orgId}/parc/${r.bien_id}/lots/${r.lot_id}`} className="rang">
+                      {contenu}
+                    </Link>
+                  ) : (
+                    <div className="rang hover:border-l-transparent hover:bg-transparent">{contenu}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
 
           {apresBascule && baux > 0 && (
             <p className="mt-3 text-xs text-muted-foreground">
@@ -144,5 +145,41 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
         </section>
       )}
     </div>
+  );
+}
+
+/**
+ * Le bouton d'envoi de cette page, sur les classes de la page (24/09).
+ *
+ * « Télécharger le gabarit » est un `.btn-or` (40 px, rayon 10 px) ; les deux
+ * envois passaient par BoutonEnvoi, donc par <Button> (32 px, rayon 8 px) :
+ * trois styles de bouton d'une carte à l'autre. Poser `.btn-or` sur <Button>
+ * ne suffit pas — ses utilitaires (`h-8`, `rounded-lg`, `px-2.5`) l'emportent
+ * sur les composants de globals.css. On garde donc le comportement de
+ * BoutonEnvoi (désactivé et roue pendant l'envoi, libellé d'attente) sur un
+ * <button> natif, qui monte en outre à 44 px au doigt comme tout bouton.
+ */
+function EnvoiImport({
+  classe,
+  enCoursTexte,
+  children,
+  ...props
+}: Omit<React.ComponentProps<"button">, "className" | "type"> & {
+  classe: "btn-or" | "btn-secondaire";
+  enCoursTexte: string;
+}) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      // `.btn-secondaire` est en 14 px, `.btn-or` en 13 px : deux pixels de
+      // hauteur d'écart entre deux boutons posés côte à côte. Même corps ici.
+      className={`${classe} text-[13px] disabled:pointer-events-none disabled:opacity-50`}
+      {...props}
+    >
+      {pending && <Spinner />}
+      {pending ? enCoursTexte : children}
+    </button>
   );
 }

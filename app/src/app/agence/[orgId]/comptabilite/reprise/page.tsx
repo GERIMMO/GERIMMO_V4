@@ -42,19 +42,35 @@ export default async function PageRepriseComptable(
     basculee_le: string | null;
   }[];
   const basculee = passees.find((r) => r.statut === "basculee");
+  const dateReprise = basculee ? basculee.basculee_le ?? basculee.date_bascule : null;
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-5 p-4 sm:p-7">
+      {/* L'en-tête standard des sous-pages (24/09) : le retour au-dessus du
+          titre, libellé du titre de la page qu'il rouvre (comme « ← lot » sur
+          les fiches), puis le titre, sa mention et le filet de
+          `.entete-page` — le Récapitulatif fiscal fait de même. */}
       <div>
-        <Link href={`/agence/${orgId}/comptabilite`} className="lien-discret text-[13px]">
+        <Link
+          href={`/agence/${orgId}/comptabilite`}
+          className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline"
+        >
           ← Comptabilité
         </Link>
-        <h1 className="mt-2">Reprendre mes comptes</h1>
-        <p className="mesure-lecture mt-1 text-sm text-muted-foreground">
-          La balance d&apos;ouverture de {organisation.name} : ce que vous
-          détenez au jour de la bascule. Dépôts de garantie, avances des
-          locataires, fonds des propriétaires — une ligne par solde, et le
-          compte doit tomber juste.
+        <div className="entete-page">
+          <h1>Reprendre mes comptes</h1>
+          <span className="mono-discret">
+            Balance d&apos;ouverture ·{" "}
+            {dateReprise ? `reprise le ${formaterDate(dateReprise)}` : "aucune reprise"}
+          </span>
+        </div>
+        {/* « de Agence Alpha » : le nom s'insérait sans élision. La phrase le
+            place désormais en sujet, et nomme les quatre natures de la liste. */}
+        <p className="mesure-lecture text-sm text-muted-foreground">
+          Votre balance d&apos;ouverture : ce que {organisation.name} détient au
+          jour de la bascule. Dépôts de garantie, soldes des locataires,
+          provisions pour charges et fonds des propriétaires — une ligne par
+          solde, et le compte doit tomber juste.
         </p>
       </div>
 
@@ -78,37 +94,53 @@ export default async function PageRepriseComptable(
           de votre outil actuel — les en-têtes sont reconnus sans accents ni
           casse, et les colonnes inconnues sont ignorées, pas refusées.
         </p>
-        <a href={`/agence/${orgId}/comptabilite/reprise/modele`} className="btn-or mt-3">
+        {/* Le gabarit est un exemple : bouton secondaire. Le geste qui fait
+            avancer le parcours, « Contrôler la balance », porte le plein
+            (24/09). */}
+        <a href={`/agence/${orgId}/comptabilite/reprise/modele`} className="btn-secondaire mt-3">
           Télécharger le gabarit
         </a>
 
-        <dl className="mt-4 space-y-2 text-[13px]">
+        {/* Ces quatre mots sont des VALEURS à recopier dans la colonne
+            « type », pas des titres : l'amorce le dit et la police de code le
+            montre. Code au-dessus de sa description sur téléphone, colonne
+            alignée sur bureau (24/09). */}
+        <p className="mt-4 text-sm">
+          Dans la colonne <code className="mono-discret sans-majuscules">type</code>,
+          écrivez l&apos;un de ces quatre mots, tel quel :
+        </p>
+        <dl className="mt-2 space-y-2 text-[13px]">
           {TYPES_SOLDE.map(([cle, quoi]) => (
-            <div key={cle} className="flex flex-wrap gap-x-2">
-              <dt className="font-[family-name:var(--font-libelles)] font-semibold text-[var(--corps)]">
-                {cle}
+            <div key={cle} className="grid gap-x-3 sm:grid-cols-[10rem_1fr]">
+              <dt>
+                <code className="mono-discret sans-majuscules text-[var(--corps)]">{cle}</code>
               </dt>
               <dd className="text-muted-foreground">{quoi}</dd>
             </div>
           ))}
         </dl>
 
-        <details className="mt-4">
-          <summary className="cursor-pointer text-sm">Les colonnes, une par une</summary>
-          <ul className="mt-2 space-y-1 text-[13px] text-muted-foreground">
-            {COLONNES.map(([cle, libelle, requise]) => (
-              <li key={cle}>
-                <span className={requise ? "font-medium text-[var(--corps)]" : ""}>{libelle}</span>
-                {requise && <span className="text-[var(--destructive)]"> — obligatoire</span>}
-              </li>
-            ))}
-          </ul>
-          <p className="mt-2 text-[13px] text-muted-foreground">
-            Le locataire se retrouve par son email, ou par le nom de son lot (et
-            de son bien). Le propriétaire, par son email. Un dépôt exige son
-            détenteur : sans lui, personne ne sait qui le rendra.
-          </p>
-        </details>
+        {/* Ouvert, et non plus replié derrière « Les colonnes, une par une » :
+            c'est ce qu'il faut lire pour préparer le fichier (24/09). */}
+        <h4 className="mt-5 text-sm font-semibold text-[var(--encre)]">Les colonnes du fichier</h4>
+        <ul className="mt-2 grid gap-x-6 gap-y-1 text-[13px] text-muted-foreground sm:grid-cols-2">
+          {COLONNES.map(([cle, libelle, requise]) => (
+            <li key={cle}>
+              <span className={requise ? "font-medium text-[var(--corps)]" : ""}>
+                {/* Le libellé de la colonne « type » énumère les quatre codes
+                    (il sert aussi d'en-tête au gabarit CSV) : ici, la liste
+                    juste au-dessus les donne déjà. */}
+                {cle === "type" ? "Type — l'une des quatre natures ci-dessus" : libelle}
+              </span>
+              {requise && <span className="text-[var(--destructive)]"> — obligatoire</span>}
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[13px] text-muted-foreground">
+          Le locataire se retrouve par son email, ou par le nom de son lot (et
+          de son bien). Le propriétaire, par son email. Un dépôt exige son
+          détenteur : sans lui, personne ne sait qui le rendra.
+        </p>
       </section>
 
       <section className="loc-carte">
@@ -123,24 +155,26 @@ export default async function PageRepriseComptable(
         <FormulaireReprise orgId={orgId} />
       </section>
 
-      <div className="mesure-lecture space-y-2 text-xs text-muted-foreground">
+      {/* Les conséquences les plus lourdes de la reprise ne sont pas des
+          mentions légales : elles quittent le 12 px gris hors carte pour une
+          carte lisible (24/09). L'irréversibilité de la bascule, elle, se dit
+          dans la carte 2, au-dessus du bouton « Basculer » — là où l'on clique. */}
+      <section className="loc-carte space-y-2 text-sm">
+        <div className="entete-carte">
+          <h3>À savoir avant de basculer</h3>
+        </div>
         <p>
           <b>Une dette de locataire n&apos;est pas écrite au compte.</b> Elle
-          serait un appel de loyer pour une période que Gerimmo n&apos;a pas
-          connue : elle polluerait l&apos;échéancier et déclencherait des
-          quittances fausses. Elle est enregistrée dans la balance, signalée, et
-          reste à traiter par le parcours de relance.
+          serait un appel de loyer pour une période que vos comptes ici
+          n&apos;ont pas connue : elle polluerait l&apos;échéancier et
+          déclencherait des quittances fausses. Elle est enregistrée dans la
+          balance, signalée, et reste à traiter par le parcours de relance.
         </p>
         <p>
           <b>Un dépôt détenu par le propriétaire</b> est enregistré lui aussi,
           mais n&apos;entre pas dans votre trésorerie : vous ne l&apos;avez pas.
         </p>
-        <p>
-          <b>La bascule est définitive.</b> Après elle, on corrige par écritures
-          rectificatives — c&apos;est ce qu&apos;exige une comptabilité, et ce
-          qui vous protège.
-        </p>
-      </div>
+      </section>
     </main>
   );
 }

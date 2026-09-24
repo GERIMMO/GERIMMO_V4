@@ -26,8 +26,9 @@ export const TYPES_DEPOSABLES = [
   "attestation_assurance",
   "courrier",
   "autre",
-  "document_test",
 ] as const;
+// « document_test » (purge immédiate) reste dans TYPES_DOCUMENT pour afficher
+// d'anciennes lignes, mais ne se propose plus au dépôt (24/09).
 
 // Le type pilote seul les droits d'accès (module 12) : qui voit la pièce,
 // au-delà de l'agence. Affiché sur la fiche de pièce (maquette pageDocument).
@@ -120,12 +121,16 @@ export function formaterDate(iso: string | null | undefined): string {
 // Un montant en euros, à la française : espace insécable avant le symbole,
 // virgule décimale, deux décimales toujours. Douze fichiers en avaient chacun
 // leur copie ; une seule suffit.
+//
+// 24/09 : l'espace était une espace ORDINAIRE, donc sécable — au téléphone,
+// « € » partait seul en début de ligne (« reste 650,00 » / « €) » sur la fiche
+// bail). U+00A0, comme Intl.NumberFormat fr-FR, les tient ensemble.
 export function eur(montant: number | string | null | undefined): string {
   if (montant === null || montant === undefined || montant === "") return "—";
   return `${Number(montant).toLocaleString("fr-FR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })} €`;
+  })}\u00A0€`;
 }
 
 // Un mois comptable arrive en « 2026-06 » ou « 2026-06-01 » selon la table.

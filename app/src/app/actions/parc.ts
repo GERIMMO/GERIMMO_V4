@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { deposerFichierGed } from "@/lib/ged-depot";
-import { aujourdhuiParis, motifLitteral } from "@/lib/ged";
+import { aujourdhuiParis, formaterDate, motifLitteral } from "@/lib/ged";
 import { piecesHabituelles } from "@/lib/pieces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import {
@@ -639,7 +639,7 @@ export async function deposerDiagnostic(
     orgId,
     fichier,
     "diagnostic",
-    `${referentiel.libelle} — ${realisation}`
+    `${referentiel.libelle} — ${formaterDate(realisation)}`
   );
   if (depot.erreur || !depot.documentId) {
     return { erreur: depot.erreur ?? "Échec du dépôt du fichier.", valeurs };

@@ -189,8 +189,11 @@ export function EdlAnnexes({
           </ul>
         )}
         {!signe && (
-          <form key={versionC} onSubmit={formCompteur}><fieldset disabled={enCoursC} className="flex flex-wrap items-end gap-2">
-            {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08) */}
+          <form key={versionC} onSubmit={formCompteur}><fieldset disabled={enCoursC} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
+            {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08).
+                Deux colonnes régulières sur téléphone (les largeurs fixes,
+                pensées pour une seule ligne, cassaient en rangées bancales),
+                une ligne dès sm ; « Ajouter » à la hauteur des champs (24/09). */}
             <Label htmlFor={idTypeCompteur} className="sr-only">
               Type de compteur
             </Label>
@@ -198,7 +201,7 @@ export function EdlAnnexes({
               id={idTypeCompteur}
               name="type"
               defaultValue={etatC.valeurs?.type ?? ""}
-              className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+              className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
             >
               <option value="" disabled>
                 Type…
@@ -209,13 +212,13 @@ export function EdlAnnexes({
                 </option>
               ))}
             </select>
-            <Input name="numero" aria-label="Numéro du compteur" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-36" />
-            <Input name="releve" aria-label="Relevé du compteur" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-28" />
-            <BoutonEnvoi enCours={enCoursC} enCoursTexte="Ajout…" size="sm" variant="outline">
+            <Input name="numero" aria-label="Numéro du compteur" placeholder="N° compteur" defaultValue={etatC.valeurs?.numero} className="h-9 w-full sm:w-36" />
+            <Input name="releve" aria-label="Relevé du compteur" type="number" step="0.001" placeholder="Relevé" defaultValue={etatC.valeurs?.releve} className="h-9 w-full sm:w-28" />
+            <BoutonEnvoi enCours={enCoursC} enCoursTexte="Ajout…" size="sm" variant="outline" className="h-9">
               Ajouter
             </BoutonEnvoi>
-            {etatC.succes && <p role="status" className="w-full text-sm text-success-soft-foreground">{etatC.succes}</p>}
-            {etatC.erreur && <p className="w-full text-sm text-destructive">{etatC.erreur}</p>}
+            {etatC.succes && <p role="status" className="col-span-2 w-full text-sm text-success-soft-foreground">{etatC.succes}</p>}
+            {etatC.erreur && <p className="col-span-2 w-full text-sm text-destructive">{etatC.erreur}</p>}
           </fieldset></form>
         )}
       </div>
@@ -271,8 +274,9 @@ export function EdlAnnexes({
           </ul>
         )}
         {!signe && (
-          <form key={versionK} onSubmit={formCle}><fieldset disabled={enCoursK} className="flex flex-wrap items-end gap-2">
-            {/* En erreur, la saisie est reposée via etatK.valeurs (recette 22/08) */}
+          <form key={versionK} onSubmit={formCle}><fieldset disabled={enCoursK} className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
+            {/* En erreur, la saisie est reposée via etatK.valeurs (recette 22/08).
+                Même grille que l'ajout d'un compteur (24/09). */}
             <Label htmlFor={idTypeCle} className="sr-only">
               Type de clé ou de badge
             </Label>
@@ -280,7 +284,7 @@ export function EdlAnnexes({
               id={idTypeCle}
               name="libelle"
               defaultValue={etatK.valeurs?.libelle ?? ""}
-              className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+              className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto"
             >
               <option value="" disabled>
                 Type de clé…
@@ -294,13 +298,13 @@ export function EdlAnnexes({
             <Label htmlFor={idNombreCles} className="sr-only">
               Nombre de clés ou badges remis
             </Label>
-            <Input id={idNombreCles} name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-20" />
-            <Input name="reference" aria-label="Référence de la clé" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-36" />
-            <BoutonEnvoi enCours={enCoursK} enCoursTexte="Ajout…" size="sm" variant="outline">
+            <Input id={idNombreCles} name="nombre" type="number" min="0" defaultValue={etatK.valeurs?.nombre ?? 1} className="h-9 w-full sm:w-20" />
+            <Input name="reference" aria-label="Référence de la clé" placeholder="Référence" defaultValue={etatK.valeurs?.reference} className="h-9 w-full sm:w-36" />
+            <BoutonEnvoi enCours={enCoursK} enCoursTexte="Ajout…" size="sm" variant="outline" className="h-9">
               Ajouter
             </BoutonEnvoi>
-            {etatK.succes && <p role="status" className="w-full text-sm text-success-soft-foreground">{etatK.succes}</p>}
-            {etatK.erreur && <p className="w-full text-sm text-destructive">{etatK.erreur}</p>}
+            {etatK.succes && <p role="status" className="col-span-2 w-full text-sm text-success-soft-foreground">{etatK.succes}</p>}
+            {etatK.erreur && <p className="col-span-2 w-full text-sm text-destructive">{etatK.erreur}</p>}
           </fieldset></form>
         )}
       </div>

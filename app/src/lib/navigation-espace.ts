@@ -86,27 +86,34 @@ export function navigationEspace({
   const abonnement: EntreeNav = { href: `${base}/abonnement`, libelle: "Abonnement", icone: "carte" };
   // Le carnet d'artisans : la page s'ouvre à tout rôle de l'espace (l'agent la
   // lit, seul le responsable désactive) — elle n'était atteignable que par URL.
+  // Le propriétaire direct l'a aussi dans « Plus » (24/09) : il n'y arrivait
+  // que par le petit lien de l'en-tête d'Incidents.
   const artisans: EntreeNav = { href: `${base}/artisans`, libelle: "Carnet d'artisans", icone: "outil" };
   const loyers: EntreeNav = { href: `${base}/loyers`, libelle: "Loyers & charges", icone: "euro", court: "Loyers" };
 
   if (role === "proprietaire_direct") {
     const lots: EntreeNav = { href: `${base}/parc`, libelle: "Mes lots", icone: "cle", court: "Lots" };
     return {
+      // Tour du 24/09 : le livre (l'écran d'argent du bailleur, vers lequel
+      // Loyers et Fiscalité renvoient) et les statistiques sortent de « Plus » ;
+      // Paramètres, déjà atteignable par le menu du compte, y entre.
       principales: [
         tableauDeBord,
         lots,
         { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", court: "Locataires" },
         loyers,
+        { href: `${base}/comptabilite`, libelle: "Livre recettes-dépenses", icone: "livre", court: "Livre" },
         incidents,
         alertes,
         agenda,
+        statistiques,
         messages,
-        parametres,
       ],
       secondaires: [
-        { href: `${base}/comptabilite`, libelle: "Livre recettes-dépenses", icone: "livre" },
+        parametres,
         { href: `${base}/comptabilite/fiscal`, libelle: "Fiscalité", icone: "livre" },
         documents,
+        artisans,
         abonnement,
         { href: `${base}/faq`, libelle: "Aide", icone: "quest" },
       ],

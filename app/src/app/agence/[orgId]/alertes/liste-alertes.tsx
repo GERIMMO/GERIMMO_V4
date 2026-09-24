@@ -64,6 +64,7 @@ export function ListeAlertes({
   estProprietaire = false,
   ouvrirAlerteId,
   aujourdhui,
+  actionsAuDessus = 0,
 }: {
   orgId: string;
   alertes: AlerteRang[];
@@ -76,6 +77,10 @@ export function ListeAlertes({
   // « Traiter » une alerte générique depuis un lien : la pop-up s'ouvre
   // d'emblée sur cette alerte.
   ouvrirAlerteId?: string;
+  // Les rangs que la page affiche AU-DESSUS de cette table (baux à débloquer,
+  // rapports à valider — 24/09) : sans alerte, on ne dit pas « journée
+  // dégagée » sous une liste de choses à faire.
+  actionsAuDessus?: number;
 }) {
   const reference = dateDeReference(aujourdhui);
   const router = useRouter();
@@ -279,17 +284,21 @@ export function ListeAlertes({
       {miennes.length === 0 && autres.length === 0 ? (
         <div className="vide-guide">
           <p className="titre">
-            {filtre === "toutes"
-              ? "Votre journée est dégagée"
-              : "Aucune alerte à ce niveau"}
+            {filtre !== "toutes"
+              ? "Aucune alerte à ce niveau"
+              : actionsAuDessus > 0
+                ? "Aucune alerte ouverte"
+                : "Votre journée est dégagée"}
           </p>
           <p className="explication">
-            {filtre === "toutes"
-              ? /* Les exemples (« diagnostic périmé, état des lieux… ») et
+            {filtre !== "toutes"
+              ? "Le filtre est peut-être trop étroit — les autres niveaux, eux, ont peut-être de quoi faire."
+              : actionsAuDessus > 0
+                ? "Ce qui vous attend est listé au-dessus ; Gerimmo posera ici les alertes dès qu’il y aura autre chose à faire."
+              : /* Les exemples (« diagnostic périmé, état des lieux… ») et
                    « ce qui ne rentre pas dans ces cases » sont dits par la
                    carte « Créer une alerte », juste à côté (24/09). */
-                "Gerimmo pose les alertes tout seul : elles s’afficheront ici dès qu’il y aura quelque chose à faire."
-              : "Le filtre est peut-être trop étroit — les autres niveaux, eux, ont peut-être de quoi faire."}
+                "Gerimmo pose les alertes tout seul : elles s’afficheront ici dès qu’il y aura quelque chose à faire."}
           </p>
           {filtre !== "toutes" && (
             <span className="geste">

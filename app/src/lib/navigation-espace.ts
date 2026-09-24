@@ -7,9 +7,12 @@
 // clic de trop dans « Plus »), et un groupe « Plus » replié pour le reste.
 //
 // CE QUE CE MODULE PRÉSERVE, décision par décision :
-//  · l'agent ne voit ni Comptabilité ni Documents dans son menu (12/09) : il
-//    ne pose qu'une question, « qu'est-ce que j'ai sur CE lot ? », et la
-//    fenêtre du lot y répond ;
+//  · l'agent ne voit ni Comptabilité ni Documents dans son menu principal
+//    (12/09) : il ne pose qu'une question, « qu'est-ce que j'ai sur CE lot ? »,
+//    et la fenêtre du lot y répond. La comptabilité reste hors de son menu
+//    principal : ses écritures et ses rapports de gestion sont sous « Plus »
+//    (24/09) — son tableau de bord et son fil d'activité l'y envoient pour
+//    « Valider » un rapport de gestion, et la validation n'existe que là ;
 //  · « Mon abonnement » et « Administration » n'apparaissent qu'au responsable ;
 //  · le propriétaire direct garde son vocabulaire (« Mes lots », « Locataires &
 //    garants ») et sa FAQ.
@@ -130,7 +133,9 @@ export function navigationEspace({
         { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
         // Loyers & charges entre au menu de l'agent (décision du porteur,
         // 24/09) : l'écran est quotidien, et il ne se trouvait que par la
-        // tuile de l'accueil. La comptabilité reste hors de son menu.
+        // tuile de l'accueil. La comptabilité reste hors de son menu
+        // principal : ses écritures et ses rapports de gestion sont sous
+        // « Plus » (24/09), voir plus bas.
         loyers,
         incidents,
         alertes,
@@ -144,6 +149,12 @@ export function navigationEspace({
       ],
       secondaires: [
         artisans,
+        // La comptabilité reste hors de son menu principal : ses écritures et
+        // ses rapports de gestion sont sous « Plus » (24/09). Son tableau de
+        // bord et son fil d'activité l'envoient ici (« Valider » un rapport de
+        // gestion), et la validation des rapports n'existe que sur cet écran :
+        // le lien devait exister quelque part dans le menu.
+        { href: `${base}/comptabilite`, libelle: "Écritures & rapports", icone: "livre" },
         { href: `${base}/profil`, libelle: "Profil de l'agence", icone: "cles" },
       ],
       barreBasse: [tableauDeBord, portefeuille, incidents, alertes],

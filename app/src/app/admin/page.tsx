@@ -279,7 +279,7 @@ export default async function PageAdmin() {
         <span className="lien-discret shrink-0">Ouvrir →</span>
       </Link>
 
-      <MesureAutonomie />
+      <MesureAutonomie titre="Ce que Gerimmo automatise, toutes organisations" />
 
       {/* « Pilotage autonome » : le nom de l'entrée de barre, de la page et de
           cette section (24/09). « Centre de commandement » et « Vos équipes

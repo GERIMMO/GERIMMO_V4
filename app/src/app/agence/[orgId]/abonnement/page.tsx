@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonSouscrire } from "./boutons-abonnement";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate } from "@/lib/ged";
+import { finEssaiPourStripe } from "@/lib/stripe";
 import {
   EncadreLectureImpossible,
   EnteteReglages,
@@ -98,6 +99,12 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
   const ferme = etat ? !etat.ecriture_ouverte : false;
   const enEssai = etat?.statut === "essai";
   const jours = etat?.jours_essai_restants ?? null;
+  // 24/09 : souscrire pendant l'essai ne fait pas payer plus tôt — la carte
+  // n'est débitée qu'à la fin de l'essai. L'écran ne le promet que si
+  // `demarrerAbonnement` le tiendra : même fonction, même règle (Stripe
+  // refuse une fin d'essai à moins de 48 h ; en deçà, le prélèvement part à
+  // la validation, et la phrase le dit tel quel).
+  const debitDiffere = enEssai && finEssaiPourStripe(etat?.essai_fin) !== undefined;
 
   // Retour de Stripe. `annule` n'est pas une erreur : le client a fermé la page
   // de paiement, ce qui est son droit — on le lui dit sans le gronder.
@@ -415,18 +422,24 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
               </>
             ) : (
               <>
-                {/* 24/09 : la phrase promettait que souscrire pendant l'essai ne
-                    le raccourcissait pas — or la page de paiement ne porte
-                    aucune période d'essai, et le premier prélèvement part à la
-                    validation. L'écran dit ce qui se passe réellement ; la
-                    promesse ne reviendra qu'avec l'essai reporté chez le
-                    prestataire de paiement. */}
+                {/* 24/09, matin : la phrase promettait que souscrire pendant
+                    l'essai ne le raccourcissait pas, alors que la page de
+                    paiement ne portait aucune période d'essai. 24/09, soir :
+                    la fin d'essai part chez Stripe (`trial_end`), et la
+                    promesse revient — exacte, datée, et seulement quand elle
+                    sera tenue. À moins de 48 h de la fin, Stripe la refuse :
+                    l'écran garde alors la phrase du prélèvement immédiat. La
+                    date a la forme de celle de l'encadré d'essai, juste
+                    dessous : deux écritures d'un même jour se lisent comme
+                    deux jours. */}
                 <p className="mesure-lecture text-sm text-muted-foreground">
                   {ferme
                     ? "Votre compte rouvre dès le premier paiement, avec toutes vos données là où vous les avez laissées."
-                    : enEssai
-                      ? "Le premier prélèvement part à la validation du paiement, même pendant l'essai. Pour que rien ne s'interrompe, souscrivez avant sa fin."
-                      : "Le premier prélèvement part à la validation du paiement."}
+                    : debitDiffere && etat?.essai_fin
+                      ? `Vous pouvez souscrire dès maintenant : votre carte ne sera débitée qu'à la fin de l'essai, le ${formaterDate(etat.essai_fin)}.`
+                      : enEssai
+                        ? "Le premier prélèvement part à la validation du paiement, même pendant l'essai. Pour que rien ne s'interrompe, souscrivez avant sa fin."
+                        : "Le premier prélèvement part à la validation du paiement."}
                 </p>
                 <BoutonSouscrire
                   orgId={orgId}

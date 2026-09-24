@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ActionsDocument } from "./actions-document";
 import { FormulaireRemplacer } from "./formulaire-remplacer";
 import { FormulaireRattacher, type FichesRattachables } from "./formulaire-rattacher";
+import { titreAffiche } from "./titre-document";
 
 // Les baux proposés au rattachement sont bornés — le sélecteur le DIT quand
 // il atteint le plafond, au lieu de laisser croire que l'agence n'en a pas
@@ -271,7 +272,7 @@ export async function PaneDocument({
               {(TYPES_DOCUMENT[doc.type] ?? doc.type).toUpperCase()} · DÉPOSÉ LE{" "}
               {formaterDate(doc.created_at)}
             </span>
-            <h2 className="mt-0.5 text-lg font-medium">{doc.titre ?? "Document purgé"}</h2>
+            <h2 className="mt-0.5 text-lg font-medium">{titreAffiche(doc.titre) ?? "Document purgé"}</h2>
           </div>
         </div>
         <Card>
@@ -313,7 +314,7 @@ export async function PaneDocument({
             {formaterDate(doc.created_at)}
           </span>
           <h2 className="font-heading mt-0.5 text-xl font-semibold text-[var(--encre)]">
-            {doc.titre ?? "Sans titre"}
+            {titreAffiche(doc.titre) ?? "Sans titre"}
           </h2>
         </div>
         <span
@@ -329,7 +330,7 @@ export async function PaneDocument({
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={fichier}
-          alt={`Aperçu — ${doc.titre ?? "document"}`}
+          alt={`Aperçu — ${titreAffiche(doc.titre) ?? "document"}`}
           className="max-h-96 w-full border border-border bg-[var(--ardoise)] object-contain"
         />
       ) : (
@@ -347,7 +348,7 @@ export async function PaneDocument({
           </a>
           <iframe
             src={fichier}
-            title={`Aperçu — ${doc.titre ?? "document"}`}
+            title={`Aperçu — ${titreAffiche(doc.titre) ?? "document"}`}
             className="hidden h-96 w-full border border-border bg-[var(--ardoise)] md:block"
           />
         </>
@@ -435,7 +436,7 @@ export async function PaneDocument({
               </div>
             )}
             <div className="mt-4 flex flex-wrap items-start gap-2">
-              <ActionsDocument orgId={orgId} documentId={doc.id} titre={doc.titre} />
+              <ActionsDocument orgId={orgId} documentId={doc.id} titre={titreAffiche(doc.titre)} />
               {!remplaceePar && (
                 <FormulaireRemplacer
                   orgId={orgId}
@@ -456,7 +457,7 @@ export async function PaneDocument({
               {anterieures.map((v) => (
                 <li key={v.id} className="flex items-center justify-between gap-3 py-2">
                   <span className="min-w-0 flex-1 truncate">
-                    {v.titre ?? "Sans titre"}
+                    {titreAffiche(v.titre) ?? "Sans titre"}
                     <small className="ml-2 text-muted-foreground">
                       déposé le {formaterDate(v.created_at)}
                       {v.purged_at ? " · purgé" : ""}
@@ -465,7 +466,7 @@ export async function PaneDocument({
                   {!v.purged_at && (
                     <Link
                       href={`${lienFermer}${lienFermer.includes("?") ? "&" : "?"}sel=${v.id}`}
-                      aria-label={`Ouvrir la version « ${v.titre ?? "sans titre"} » du ${formaterDate(v.created_at)}`}
+                      aria-label={`Ouvrir la version « ${titreAffiche(v.titre) ?? "sans titre"} » du ${formaterDate(v.created_at)}`}
                       className="lien-discret -my-2 inline-flex shrink-0 items-center gap-1.5 py-2"
                     >
                       Ouvrir

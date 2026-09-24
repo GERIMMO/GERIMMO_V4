@@ -22,6 +22,7 @@ import { IndicateurLien } from "@/components/ui/indicateur-lien";
 import { FormulaireDepot } from "./formulaire-depot";
 import { EchecLecture } from "./echec-lecture";
 import { PaneDocument, puceConservation } from "./pane-document";
+import { titreAffiche } from "./titre-document";
 
 export const metadata = { title: "Documents — Gerimmo" };
 
@@ -443,7 +444,7 @@ export default async function PageDocuments(
                       aria-current={actif ? "true" : undefined}
                     >
                       <span className="min-w-0 flex-1">
-                        <b className="block truncate">{d.titre ?? "Sans titre"}</b>
+                        <b className="block truncate">{titreAffiche(d.titre) ?? "Sans titre"}</b>
                         <small className="block truncate">
                           {TYPES_DOCUMENT[d.type] ?? d.type}
                           {" · "}
@@ -522,7 +523,7 @@ export default async function PageDocuments(
                               className="flex items-center justify-between gap-3 py-2 hover:underline pointer-coarse:min-h-11"
                             >
                               <span className="min-w-0 flex-1 truncate">
-                                {d.titre ?? "Sans titre"}
+                                {titreAffiche(d.titre) ?? "Sans titre"}
                                 <small className="ml-2 text-muted-foreground">
                                   expire le {formaterDate(d.expire_le)}
                                 </small>

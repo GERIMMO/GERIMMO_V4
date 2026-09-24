@@ -65,7 +65,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
           </div>
           <div className="space-y-2">
             <Label htmlFor="ins-adresse">Adresse postale (facultatif)</Label>
-            <Input id="ins-adresse" name="adresse" autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="12 rue des Lilas" />
+            <Input id="ins-adresse" name="adresse" autoComplete="street-address" defaultValue={etat.valeurs?.adresse} placeholder="ex. 12 rue des Lilas" />
             <p className="text-xs text-muted-foreground">
               Elle signera vos documents (baux, quittances…).
             </p>

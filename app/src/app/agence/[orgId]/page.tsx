@@ -1,19 +1,15 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
-import {
-  afficherEcheance,
-  echeanceRapport,
-  resumerBlocage,
-} from "@/lib/echeances";
+import { resumerBlocage } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
-import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
+import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { lotsDuPortefeuille, PortefeuilleIndisponible } from "@/lib/portefeuille";
 import { totalMessagesNonLus } from "@/lib/messagerie";
-import { CRITICITES, ORDRE_CRITICITE, ROLES_RESPONSABLES, eur, aujourdhuiParis } from "@/lib/ged";
+import { ROLES_RESPONSABLES, eur, aujourdhuiParis } from "@/lib/ged";
 import { TraiterAlerte } from "./alertes/traiter-alerte";
-import { nomComplet } from "@/lib/roles-personnes";
+import { GroupeActions, LienGeste, type RangDuJour } from "./alertes/groupe-actions";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
@@ -28,19 +24,6 @@ import { PHOTOS_ACCUEIL } from "@/lib/photos-decor";
 
 export const metadata = { title: "Tableau de bord — Gerimmo" };
 
-type Alerte = {
-  id: string;
-  type: string;
-  criticite: string;
-  titre: string;
-  echeance: string | null;
-  details: Record<string, unknown> | null;
-  created_at: string;
-  assignee_account_id: string | null;
-  assigned_all: boolean;
-  escalades: unknown;
-};
-
 // Une lecture qui échoue ne doit JAMAIS ressembler à du vide : un parc sans
 // biens rassure, une connexion perdue non. Chaque bloc dit lequel des deux
 // il montre (correctif transverse du relevé 11/09).
@@ -53,121 +36,9 @@ function LectureImpossible({ quoi }: { quoi: string }) {
   );
 }
 
-// Les rangées du plan du jour : une seule et même rangée de la charte
-// (.rang-alerte), quelle que soit la source de l'action.
-type ActionDuJour = {
-  cle: string;
-  // Le type de l'alerte dont la rangée vient, quand elle vient d'une alerte :
-  // c'est lui qui décide de ce qui a le droit de passer sous la coupe de
-  // « À venir » (voir PLAFOND_A_VENIR).
-  type?: string;
-  nature: string;
-  criticite: "critique" | "normale" | "informative";
-  titre: string;
-  detail: string | null;
-  echeance: string | null;
-  action: ReactNode;
-};
-
-function GroupeActions({
-  titre,
-  actions,
-  total,
-  reste,
-  ouvert = false,
-}: {
-  titre: string;
-  actions: ActionDuJour[];
-  total: number;
-  // Ce qui n'est pas affiché se dit : une liste tronquée en silence ment.
-  reste?: ReactNode;
-  // Ouvert à l'arrivée quand le plan tient à l'écran (voir SEUIL_PLAN_OUVERT)
-  ouvert?: boolean;
-}) {
-  if (actions.length === 0) return null;
-  // UNE ÉTIQUETTE IDENTIQUE SUR TOUTE UNE LISTE N'INFORME PAS, ELLE ALLONGE.
-  // Même règle que l'écran Alertes (12/09) : ce qui ne distingue pas cette
-  // rangée-là des autres ne s'affiche pas. Le groupe « À venir » alignait
-  // quatre fois « ALERTE NORMALE » sous un en-tête qui disait déjà de quoi il
-  // s'agissait — et depuis que l'étiquette est un aplat, c'était devenu
-  // l'élément le plus voyant de l'écran. Deux natures différentes dans le même
-  // groupe (« Bail bloqué » / « Sur un bail ») : là, elle distingue, on la
-  // garde.
-  const etiquetteUtile =
-    actions.length === 1 || new Set(actions.map((a) => a.nature)).size > 1;
-  return (
-    /* REPLIÉS PAR DÉFAUT (demande de l'humain, 12/09). L'écran du matin
-       ouvrait sur une colonne de quinze rangées : on ne choisit pas par où
-       commencer devant un mur. Chaque groupe se réduit à sa ligne — son nom et
-       son compte — et s'ouvre d'un clic sur celui qu'on décide de traiter.
-       `<details>` natif : pas d'état à porter, l'ouverture marche au clavier
-       comme au doigt, et le contenu replié n'est pas lu par un lecteur
-       d'écran tant qu'il est fermé.
-       … SAUF QUAND IL N'Y A PAS DE MUR (24/09) : deux actions annoncées deux
-       fois, et cachées derrière un dépliage fermé, coûtaient un clic pour
-       rien. Sous le seuil, les groupes arrivent ouverts. */
-    <details className="groupe-plan" open={ouvert || undefined}>
-      <summary className="tete-groupe">
-        <span className="libelle-champ">{titre}</span>
-        <span className="flex items-center gap-2.5">
-          <span className="libelle-champ">{total}</span>
-          <span className="chevron-groupe" aria-hidden>
-            <svg viewBox="0 0 24 24" width="14" height="14">
-              <path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" strokeWidth="2"
-                    strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </span>
-        </span>
-      </summary>
-      {actions.map((a) => {
-        const ech = afficherEcheance(a.echeance);
-        return (
-          <div key={a.cle} className={`rang-alerte flex-wrap gap-y-2 ${a.criticite}`}>
-            <div className="min-w-0 flex-1">
-              {/* MÊME LANGAGE QUE L'ÉCRAN ALERTES (gabarit « plan du jour » du
-                  12/09). Le plan du jour était resté au dessin d'avant : la
-                  nature en mono gris, au même poids que le titre, et à
-                  l'identique sur chaque rangée — la seule chose qui
-                  distinguait deux actions était la plus discrète de la ligne.
-                  Elle devient une étiquette en aplat, et le titre reprend son
-                  poids. */}
-              {etiquetteUtile && (
-                <span className="etiquette-alerte">{a.nature}</span>
-              )}
-              <div
-                className={`${etiquetteUtile ? "mt-1.5" : ""} text-[14.5px] font-semibold leading-snug`}
-              >
-                {a.titre}
-              </div>
-              {/* Deux lignes plutôt qu'une coupe nette : sur un téléphone,
-                  `truncate` réduisait « Doublon possible : un incident du même
-                  type… » à « Doublon possible : un i… », qui n'apprend rien. */}
-              {a.detail && !a.titre.includes(a.detail) && (
-                <div className="line-clamp-2 text-[13px] text-muted-foreground">
-                  {a.detail}
-                </div>
-              )}
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              {/* « SANS ÉCHÉANCE » NE S'AFFICHE PLUS. Il s'écrivait sur chaque
-                  rangée qui n'en a pas — six fois le même mot sur l'écran du
-                  matin. Une mention identique partout n'informe pas, elle
-                  allonge ; l'échéance ne se dit que lorsqu'elle distingue
-                  cette action-là des autres. */}
-              {ech && (
-                <span className={`text-[length:var(--pas-appui)] ${ech.classe}`}>
-                  {ech.texte}
-                </span>
-              )}
-              {a.action}
-            </div>
-          </div>
-        );
-      })}
-      {reste}
-    </details>
-  );
-}
+// (Les rangées du plan du jour — `GroupeActions`, une seule et même rangée de
+//  la charte quelle que soit la source — vivent dans ./alertes/groupe-actions
+//  depuis le 24/09 : la page Alertes les affiche aussi.)
 
 // Tableau de bord de l'espace agence. Il répond à une seule question : « que
 // dois-je faire aujourd'hui ? » — d'où le plan du jour EN PREMIER (les quatre
@@ -222,8 +93,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
   const [
     { data: lots, error: erreurLots },
-    { data: alertesBrutes, error: erreurAlertes },
-    { data: rapports, error: erreurRapports },
     { data: appelsMois, error: erreurAppels },
     { data: encaissementsMois, error: erreurEncaissements },
     { data: ecrituresSixMois, error: erreurEcritures },
@@ -231,32 +100,15 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     { data: incidentsEnCours, error: erreurIncidents },
     { data: donneesMembres, error: erreurMembres },
     messagesNonLus,
-    // Ce que la fiche de chaque bail affiche comme blocage (audit 09/09) :
-    // impayés, EDL d'entrée non signé, diagnostics obligatoires, pièces
-    // expirées — même source que la fiche, pour que le tableau de bord ne
-    // dise jamais « tout est à jour » quand un bail est bloqué.
-    attendues,
+    // Le plan du jour — baux bloqués (même source que la fiche du bail, audit
+    // 09/09), mes alertes, rapports à valider — vient du calcul que la
+    // pastille « Alertes » et /alertes lisent aussi (24/09) : trois écrans, un
+    // seul chiffre. Mémorisé par requête : le layout l'a déjà demandé, la
+    // base n'est pas interrogée deux fois.
+    { plan, erreurs: { alertes: erreurAlertes, rapports: erreurRapports } },
     { data: etapesDemarrage },
   ] = await Promise.all([
     supabase.from("lots").select("id, nom, etat, bien_id").eq("organization_id", orgId),
-    // « À traiter » se calcule sur MES alertes (revue recette 08/08) : celles
-    // qui me sont confiées nominativement, plus celles à tout le monde.
-    supabase
-      .from("alerts")
-      .select(
-        "id, type, criticite, titre, echeance, details, created_at, assignee_account_id, assigned_all, escalades"
-      )
-      .eq("organization_id", orgId)
-      .eq("statut", "ouverte")
-      .or(`assigned_all.eq.true,assignee_account_id.eq.${user.id}`),
-    supabase
-      .from("rapports_gestion")
-      .select(
-        "id, mois, statut, mandat:mandats(date_rapport, agent_account_id, person:persons(nom, prenom))"
-      )
-      .eq("organization_id", orgId)
-      .eq("statut", "a_valider")
-      .order("mois"),
     // KPI « Encaissé » (maquette) : le quittancement du mois en cours —
     // le lot du bail embarqué pour le filtre « mon portefeuille »
     supabase
@@ -288,7 +140,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
     supabase.rpc("org_membres_gerants", { org: orgId }),
     // Même appel (mis en cache) que le badge du layout — un seul aller-retour
     totalMessagesNonLus(supabase, orgId),
-    actionsAttendues(supabase, orgId, { portefeuille }),
+    chargerActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
     // Où en est le démarrage : décide de la PLACE du parcours (24/09) — en
     // tête tant que le premier bail n'est pas en cours, une ligne après
     // l'assistant ensuite. Même fonction que le composant du parcours.
@@ -352,10 +204,6 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   }
   const historiqueVide = historique.every((m) => m.a === 0 && m.b === 0);
 
-  // Une alerte qui répète un item calculé (EDL d'entrée posée à l'activation)
-  // ne s'affiche pas deux fois : l'item calculé fait foi.
-  const alertes = sansAlertesDoublonnees((alertesBrutes ?? []) as Alerte[], attendues);
-
   // Tuile Incidents : l'imputation décide de qui paie (module 7) —
   // « pas encore tranché » est la file d'attente de qualification.
   const dossiersIncidents = (
@@ -402,164 +250,63 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // ---------------------------------------------------------------- Plan du jour
   // Quatre sources d'action vivaient côte à côte sur cet écran — une tuile, une
   // liste « à traiter », un agenda « cette semaine », des puces de raccourci —
-  // et la même alerte s'y lisait deux fois, rendue de deux façons. Elles sont
-  // toutes calculées ici : une seule liste, une seule rangée, l'urgence en tête.
+  // et la même alerte s'y lisait deux fois, rendue de deux façons. Une seule
+  // liste, une seule rangée, l'urgence en tête. Le calcul (lib/actions-du-jour,
+  // 24/09) est celui de la pastille « Alertes » et de /alertes ; ici, chaque
+  // rang reçoit son geste.
   const aujourdhui = aujourdhuiParis();
-  const niveau = (c: string): ActionDuJour["criticite"] =>
-    c === "critique" ? "critique" : c === "normale" ? "normale" : "informative";
 
-  // Contexte d'une alerte : le lot concerné et le montant en jeu, tirés du
-  // détail que chaque alerte transporte.
-  const detailAlerte = (a: Alerte) => {
-    const d = (a.details ?? {}) as Record<string, unknown>;
-    const lot = typeof d.lot_id === "string" ? nomsLots.get(d.lot_id) : undefined;
-    const montant =
-      typeof d.solde === "number"
-        ? d.solde
-        : typeof d.montant === "number"
-          ? d.montant
-          : typeof d.net === "number"
-            ? d.net
-            : null;
-    const libelle = typeof d.libelle === "string" ? d.libelle : null;
-    return (
-      [lot?.nom, libelle, montant !== null ? eur(montant) : null]
-        .filter(Boolean)
-        .join(" · ") || null
-    );
+  // Le nom du lot devant le contexte que l'alerte transporte : seul cet écran
+  // connaît le parc.
+  const detailAvecLot = (a: ActionDuJour): string | null => {
+    if (a.source !== "alerte") return a.detail;
+    const lotId = a.alerte.details?.lot_id;
+    const lot = typeof lotId === "string" ? nomsLots.get(lotId) : undefined;
+    return [lot?.nom, a.detail].filter(Boolean).join(" · ") || null;
   };
 
-  const surLesBaux: ActionDuJour[] = attendues.map((a) => ({
-    cle: a.cle,
-    nature: a.critique ? "Bail bloqué" : "Sur un bail",
-    criticite: a.critique ? "critique" : "normale",
-    titre: a.titre,
-    detail: a.detail,
-    echeance: null,
-    action: (
-      <Link
-        href={a.href}
-        className={buttonVariants({
-          size: "sm",
-          variant: a.critique ? "destructive" : "outline",
-          // Un <a> échappe au min-height tactile posé sur button/select
-          className: "pointer-coarse:min-h-10",
-        })}
-      >
-        Résoudre
-        <IndicateurLien />
-      </Link>
-    ),
-  }));
-
-  const datees: ActionDuJour[] = alertes.map((a) => ({
-    cle: `a-${a.id}`,
-    type: a.type,
-    nature: `Alerte ${(CRITICITES[a.criticite] ?? a.criticite).toLowerCase()}`,
-    criticite: niveau(a.criticite),
-    titre: a.titre,
-    detail: detailAlerte(a),
-    echeance: a.echeance,
-    // Recette 24/08 : la pop-up s'ouvre SUR le tableau de bord ; une alerte
-    // incident, elle, emmène au dossier dans l'onglet Incidents.
-    action:
-      typeof a.details?.incident_id === "string" ? (
-        <Link
-          href={`/agence/${orgId}/incidents?sel=${a.details.incident_id}`}
-          className={buttonVariants({
-            size: "sm",
-            variant: a.criticite === "critique" ? "destructive" : "outline",
-            className: "pointer-coarse:min-h-10",
-          })}
-        >
+  // Le geste d'un rang : un lien vers l'écran qui résout (bail, rapport,
+  // alerte incident) ou — recette 24/08 — la pop-up « Traiter » ouverte SUR le
+  // tableau de bord.
+  const geste = (a: ActionDuJour): ReactNode => {
+    if (a.source === "bail") {
+      return (
+        <LienGeste href={a.href} critique={a.criticite === "critique"}>
+          Résoudre
+        </LienGeste>
+      );
+    }
+    if (a.source === "rapport") return <LienGeste href={a.href}>Valider</LienGeste>;
+    if (a.href) {
+      return (
+        <LienGeste href={a.href} critique={a.criticite === "critique"}>
           Traiter
-          <IndicateurLien />
-        </Link>
-      ) : (
-        <TraiterAlerte
-          orgId={orgId}
-          alerte={a}
-          membres={membres}
-          estResponsable={estResponsable}
-          aujourdhui={aujourdhuiParis()}
-          className={buttonVariants({
-            size: "sm",
-            variant: a.criticite === "critique" ? "destructive" : "outline",
-          })}
-        >
-          Traiter
-        </TraiterAlerte>
-      ),
-  }));
-
-  for (const r of (rapports ?? []) as unknown as {
-    id: string;
-    mois: string;
-    mandat: UnOuPlusieurs<{
-      date_rapport: number;
-      agent_account_id: string | null;
-      person: UnOuPlusieurs<{ nom: string; prenom: string | null }>;
-    }>;
-  }[]) {
-    const m = premier(r.mandat);
-    // Portefeuille : les rapports des mandats confiés à un autre agent sortent
-    // du plan ; un mandat sans titulaire reste l'affaire de tous.
-    if (portefeuille && m?.agent_account_id && m.agent_account_id !== user.id) continue;
-    const p = premier(m?.person);
-    // Un rapport n'est pas dû le premier jour du mois qu'il couvre, mais le jour
-    // convenu au mandat, le mois suivant. Prendre `mois` tel quel faisait
-    // apparaître le rapport de juin dans « cette semaine » au mois d'août.
-    const echeance = echeanceRapport(r.mois, m?.date_rapport ?? 10);
-    const e = afficherEcheance(echeance);
-    // Les rapports en retard restent affichés : les masquer reviendrait à faire
-    // disparaître du travail qui reste à faire.
-    if (!e || (!e.depassee && e.jours > 15)) continue;
-    datees.push({
-      cle: `r-${r.id}`,
-      nature: "Rapport de gestion",
-      // Le retard se lit à l'échéance et au groupe, pas au fond de la rangée :
-      // le rouge reste réservé à ce qui est critique, sinon il n'alerte plus.
-      criticite: "normale",
-      titre: `Rapport de ${new Date(r.mois).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" })}`,
-      detail: `${p ? nomComplet(p) : "Mandant"} · à valider avant envoi`,
-      echeance,
-      action: (
-        <Link
-          href={`/agence/${orgId}/comptabilite`}
-          className={buttonVariants({
-            size: "sm",
-            variant: "outline",
-            className: "pointer-coarse:min-h-10",
-          })}
-        >
-          Valider
-          <IndicateurLien />
-        </Link>
-      ),
-    });
-  }
-
-  // Tri par urgence réelle : l'échéance d'abord (les sans-date en fin), puis la
-  // criticité, puis le titre pour que l'ordre ne bouge pas d'un rendu à l'autre.
-  const parUrgence = (a: ActionDuJour, b: ActionDuJour) => {
-    if (a.echeance && b.echeance) {
-      const parDate = a.echeance.localeCompare(b.echeance);
-      if (parDate !== 0) return parDate;
-    } else if (a.echeance !== b.echeance) {
-      return a.echeance ? -1 : 1;
+        </LienGeste>
+      );
     }
     return (
-      (ORDRE_CRITICITE[a.criticite] ?? 9) - (ORDRE_CRITICITE[b.criticite] ?? 9) ||
-      a.titre.localeCompare(b.titre)
+      <TraiterAlerte
+        orgId={orgId}
+        alerte={a.alerte}
+        membres={membres}
+        estResponsable={estResponsable}
+        aujourdhui={aujourdhui}
+        className={buttonVariants({
+          size: "sm",
+          variant: a.criticite === "critique" ? "destructive" : "outline",
+        })}
+      >
+        Traiter
+      </TraiterAlerte>
     );
   };
-  const enRetard = datees
-    .filter((x) => x.echeance && x.echeance < aujourdhui)
-    .sort(parUrgence);
-  const aVenir = datees
-    .filter((x) => !x.echeance || x.echeance >= aujourdhui)
-    .sort(parUrgence);
-  const nbActions = surLesBaux.length + enRetard.length + aVenir.length;
+  const rangs = (liste: ActionDuJour[]): RangDuJour[] =>
+    liste.map((a) => ({ ...a, detail: detailAvecLot(a), action: geste(a) }));
+
+  const surLesBaux = rangs(plan.surLesBaux);
+  const enRetard = rangs(plan.enRetard);
+  const aVenir = rangs(plan.aVenir);
+  const nbActions = plan.total;
   // Le repli du 12/09 visait un mur de quinze rangées ; jusqu'à cinq actions,
   // le plan tient à l'écran et s'ouvre à l'arrivée (24/09).
   const SEUIL_PLAN_OUVERT = 5;

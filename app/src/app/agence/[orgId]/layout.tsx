@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
+import { compterActionsDuJour } from "@/lib/actions-du-jour";
 import { totalMessagesNonLus } from "@/lib/messagerie";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, aujourdhuiParis } from "@/lib/ged";
@@ -42,6 +43,9 @@ function joursRestants(iso: string): number {
  * Ce que le layout LIT n'a pas bougé : alertes confiées, incidents du
  * portefeuille, gérants pour « Confier à », messages non lus. Seul le chrome
  * change ; les pages gardent leur <main> et leurs marges.
+ *
+ * Une lecture de plus depuis le 24/09 : le plan du jour (lib/actions-du-jour),
+ * pour que la pastille « Alertes » dise le chiffre de la tuile « À faire ».
  */
 export default async function LayoutAgence({
   children,
@@ -51,15 +55,18 @@ export default async function LayoutAgence({
   const { supabase, user, organisation, role, estProprietaire } =
     await verifierAccesEspace(orgId);
 
-  // Revue recette 08/08 : la pop-up de connexion et le badge du menu ne
-  // montrent que les alertes qui me sont confiées, dans l'agence où je me
-  // trouve — l'acteur multi-agences navigue d'une agence à l'autre.
+  // « Mon portefeuille » (RM-18.1.3) d'abord : la pastille Incidents et le
+  // plan du jour se lisent à travers lui — null : je vois tout.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
+  // Revue recette 08/08 : la pop-up de connexion ne montre que les alertes
+  // qui me sont confiées, dans l'agence où je me trouve — l'acteur
+  // multi-agences navigue d'une agence à l'autre.
   const [
     alertes,
     { data: incidentsOuverts },
     { data: donneesMembres },
     messagesNonLus,
-    portefeuille,
+    actionsDuJour,
   ] = await Promise.all([
     chargerSyntheseAlertes(supabase, { orgId }),
     // Badge maquette : les incidents encore ouverts (tout sauf clos).
@@ -78,7 +85,12 @@ export default async function LayoutAgence({
     supabase.rpc("org_membres_gerants", { org: orgId }),
     // Badge Messages — même appel (mis en cache) que le tableau de bord
     totalMessagesNonLus(supabase, orgId),
-    lotsDuPortefeuille(supabase, orgId, role, user.id),
+    // La pastille « Alertes » compte ce que la tuile « À faire » compte, et ce
+    // que /alertes montre (relevé du 24/09 : « on lit “2 à faire”, on clique,
+    // on n'en trouve qu'un ») : baux bloqués, mes alertes dédoublonnées,
+    // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
+    // suit le relit sans nouvel aller-retour.
+    compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
   ]);
   const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
     (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
@@ -124,8 +136,9 @@ export default async function LayoutAgence({
     role: roleNav,
     badges: {
       incidents: badgeIncidents,
-      alertes: alertes.length,
-      alertesCritiques: alertes.filter((a) => a.criticite === "critique").length,
+      alertes: actionsDuJour.total,
+      // Rouge dès qu'un rang est critique — un impayé sur un bail compris.
+      alertesCritiques: actionsDuJour.critiques,
       messages: messagesNonLus ?? 0,
     },
   });

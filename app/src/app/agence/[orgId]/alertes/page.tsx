@@ -2,6 +2,9 @@ import { aujourdhuiParis } from "@/lib/ged";
 import { verifierAccesEspace } from "@/lib/espace";
 import { CRITICITES, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
 import { estConfieeAMoi } from "@/lib/alertes";
+import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
+import { sansAlertesDoublonnees } from "@/lib/actions-attendues";
+import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import {
   Card,
   CardContent,
@@ -10,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormulaireAlerte } from "./formulaire-alerte";
+import { GroupeActions, LienGeste, type RangDuJour } from "./groupe-actions";
 import { ListeAlertes, type AlerteRang } from "./liste-alertes";
 
 export const metadata = { title: "Alertes — Gerimmo" };
@@ -37,12 +41,23 @@ export default async function PageAlertes(
   const traiterId = typeof traiter === "string" ? traiter : undefined;
   const { supabase, user, role, organisation } = await verifierAccesEspace(orgId);
   const estResponsable = ROLES_RESPONSABLES.includes(role);
+  // « Mon portefeuille » (RM-18.1.3) : le plan du jour se lit à travers lui,
+  // comme sur l'accueil — null : je vois tout.
+  const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
 
-  // Trois lectures indépendantes : en parallèle plutôt qu'en cascade
+  // Quatre lectures indépendantes : en parallèle plutôt qu'en cascade
   const [
     { data: ouvertes, error: erreurOuvertes },
     { data: fermees, error: erreurFermees },
     { data: donneesMembres, error: erreurMembres },
+    // LE MÊME CALCUL QUE LA TUILE « À FAIRE » ET LA PASTILLE « ALERTES »
+    // (relevé du 24/09 : « on lit “2 à faire”, on clique, on n'en trouve
+    // qu'un »). Le compte de cette page additionnait la table des alertes,
+    // toutes affectations confondues ; la tuile, elle, comptait les baux
+    // bloqués, mes alertes et les rapports à valider. Un seul chiffre, et ce
+    // qu'il compte se trouve sur cette page. Mémorisé par requête : le layout
+    // l'a déjà demandé pour la pastille.
+    { plan, attendues, erreurs },
   ] = await Promise.all([
       supabase
         .from("alerts")
@@ -61,6 +76,7 @@ export default async function PageAlertes(
         .order("closed_at", { ascending: false })
         .limit(FERMEES_AFFICHEES),
       supabase.rpc("org_membres_gerants", { org: orgId }),
+      chargerActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
     ]);
   const membres = (donneesMembres ?? []) as {
     account_id: string;
@@ -68,17 +84,41 @@ export default async function PageAlertes(
     role: string;
   }[];
 
-  const rangs = (ouvertes ?? []) as AlerteRang[];
-  const nbMiennes = rangs.filter((a) => estConfieeAMoi(a, user.id)).length;
-  const nbCritiques = rangs.filter((a) => a.criticite === "critique").length;
+  // Une alerte qui répète un item calculé (l'EDL d'entrée posée à l'activation
+  // du bail) ne s'affiche pas deux fois : le rang « Sur un bail » fait foi,
+  // comme sur l'accueil — sinon la page montrait un rang de plus que le compte.
+  const rangs = sansAlertesDoublonnees(
+    (ouvertes ?? []) as (AlerteRang & { type: string })[],
+    attendues
+  );
+  // Les alertes confiées à d'autres restent lisibles en bas de la table,
+  // grisées — mais elles n'attendent rien de moi : hors du compte.
+  const nbAutres = rangs.filter((a) => !estConfieeAMoi(a, user.id)).length;
+  const compteIllisible = Boolean(erreurOuvertes) || erreurs.alertes;
+
+  // Les rangs que seul l'accueil montrait, rendus par le même composant : les
+  // baux à débloquer, et les rapports de gestion à valider (dus sous quinze
+  // jours ou en retard). Le geste est un lien — l'écran qui résout.
+  const surLesBaux: RangDuJour[] = plan.surLesBaux.map((a) => ({
+    ...a,
+    action: (
+      <LienGeste href={a.href} critique={a.criticite === "critique"}>
+        Résoudre
+      </LienGeste>
+    ),
+  }));
+  const rapports: RangDuJour[] = [...plan.enRetard, ...plan.aVenir]
+    .filter((a): a is Extract<ActionDuJour, { source: "rapport" }> => a.source === "rapport")
+    .map((a) => ({ ...a, action: <LienGeste href={a.href}>Valider</LienGeste> }));
+  const actionsAuDessus = surLesBaux.length + rapports.length;
 
   // PAR QUOI COMMENCER — la phrase du bandeau (gabarit du 12/09). L'écran
   // ouvrait sur le mot « Alertes » et un compteur en mono de 11 px : il disait
   // COMBIEN, jamais par quoi s'y prendre.
-  const parQuoi = erreurOuvertes
+  const parQuoi = compteIllisible
     ? "La liste n’a pas pu être lue — ce n’est pas une journée sans alerte."
-    : nbCritiques > 0
-        ? `${nbCritiques} critique${nbCritiques > 1 ? "s" : ""} — à faire en premier.`
+    : plan.critiques > 0
+        ? `${plan.critiques} critique${plan.critiques > 1 ? "s" : ""} — à faire en premier.`
         : "Rien de critique : il ne reste que du courant.";
 
   return (
@@ -98,12 +138,14 @@ export default async function PageAlertes(
         <div className="entete-page">
           <h1>Alertes</h1>
           <div className="flex flex-wrap items-center gap-4">
+            {/* Le chiffre de la tuile « À faire » et de la pastille : ce que
+                cette page liste, et rien d'autre. */}
             <span className="mono-discret">
-              {erreurOuvertes
+              {compteIllisible
                 ? "liste indisponible"
-                : rangs.length === 0
+                : plan.total === 0
                   ? "rien à traiter"
-                  : `${rangs.length} à traiter`}
+                  : `${plan.total} à traiter`}
             </span>
             {/* Sous md, la carte de création est empilée après toute la
                 liste : ce raccourci y mène directement. Même seuil que
@@ -116,17 +158,15 @@ export default async function PageAlertes(
             </span>
           </div>
         </div>
-        {/* Sans alerte ouverte, la phrase se tait (24/09) : « rien à
+        {/* Sans rien à traiter, la phrase se tait (24/09) : « rien à
             traiter » est déjà la mention, et la carte vide dit le reste. */}
-        {(erreurOuvertes || rangs.length > 0) && (
+        {(compteIllisible || plan.total > 0 || nbAutres > 0) && (
           <p className="text-sm text-muted-foreground">
             {parQuoi}
-            {/* Le partage « pour vous / pour d'autres » ne se dit que s'il y a
-                vraiment deux camps : « 0 confiée à d'autres » n'apprend rien. */}
-            {!erreurOuvertes && rangs.length - nbMiennes > 0 &&
-              ` ${nbMiennes} pour vous · ${rangs.length - nbMiennes} confiée${
-                rangs.length - nbMiennes > 1 ? "s" : ""
-              } à d’autres.`}
+            {/* Les alertes des collègues ne se disent que s'il y en a :
+                « 0 confiée à d'autres » n'apprend rien. */}
+            {!compteIllisible && nbAutres > 0 &&
+              ` ${nbAutres} confiée${nbAutres > 1 ? "s" : ""} à d’autres, en bas de la liste.`}
           </p>
         )}
       </div>
@@ -141,6 +181,36 @@ export default async function PageAlertes(
           de bord, eux, tenaient dans leurs 390 px. */}
       <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
         <div className="min-w-0 space-y-6">
+          {/* CE QUE LA PASTILLE COMPTE SE TROUVE ICI (24/09). « Alertes · 2 »
+              dans la barre, un seul rang sur cette page : le compte
+              additionnait les baux bloqués et les rapports à valider, que
+              seul l'accueil montrait. Les mêmes rangs, le même composant,
+              au-dessus de la table — ouverts : on vient ici pour tout voir. */}
+          {actionsAuDessus > 0 && (
+            <div className="colonne-liste">
+              <GroupeActions
+                titre="À débloquer sur les baux"
+                actions={surLesBaux}
+                total={surLesBaux.length}
+                ouvert
+              />
+              <GroupeActions
+                titre="Rapports de gestion à valider"
+                actions={rapports}
+                total={rapports.length}
+                ouvert
+              />
+            </div>
+          )}
+          {/* Une lecture en échec ne se déguise pas en « rien à valider ». */}
+          {erreurs.rapports && (
+            <p className="err" role="alert">
+              Impossible de lire les rapports de gestion à valider — ce
+              n&apos;est pas une liste vide, c&apos;est une lecture qui a
+              échoué. Rechargez dans un instant.
+            </p>
+          )}
+
           {/* Une lecture en échec ne se déguise pas en « aucune alerte » :
               l'écran vide et l'écran illisible ne disent pas la même chose. */}
           {erreurOuvertes ? (
@@ -159,6 +229,7 @@ export default async function PageAlertes(
               monCompte={user.id}
               estResponsable={estResponsable}
               ouvrirAlerteId={traiterId}
+              actionsAuDessus={actionsAuDessus}
             />
           )}
 

@@ -2,14 +2,18 @@
  * L'adaptateur Stripe, sans toucher à Stripe.
  *
  * Ce qui est testé ici est ce qui décide TOUT SEUL : faut-il tenter un appel,
- * que dire quand il échoue, où lire la fin de période. Le reste — créer une
- * session, ouvrir le portail — n'est qu'un passe-plat vers une API tierce, et
- * un test qui simule cette API ne vérifierait que la simulation.
+ * que dire quand il échoue, où lire la fin de période, quelle fin d'essai
+ * poser. Le reste — ouvrir le portail — n'est qu'un passe-plat vers une API
+ * tierce, et un test qui simule cette API ne vérifierait que la simulation.
+ * La page de paiement, elle, décide quelque chose depuis le 24/09 (la fin
+ * d'essai) : on regarde donc ce qu'elle envoie, sans regarder ce qui revient.
  */
 import { afterEach, describe, expect, it } from "vitest";
 import {
   configurationStripe,
+  creerSessionPaiement,
   finDePeriode,
+  finEssaiPourStripe,
   lireErreurStripe,
   prixPour,
   quantiteFacturee,
@@ -246,5 +250,103 @@ describe("porter un avoir au solde du client", () => {
     const r = await crediterClientStripe(stripe as never, base);
     expect(r.ok).toBe(false);
     expect((r as { erreur: string }).erreur).toBeTruthy();
+  });
+});
+
+// ── La fin d'essai passée à Stripe : souscrire ne fait pas payer plus tôt ──
+describe("la fin d'essai à donner à Stripe (décision du 24/09)", () => {
+  // Un « maintenant » fixe : le 24/09/2026 à midi UTC. Une règle qui dépend de
+  // l'heure se vérifie à heure fixe, sinon le test change d'avis à 48 h de la
+  // date qu'il cite.
+  const maintenant = Date.UTC(2026, 8, 24, 12, 0, 0);
+  const HEURE = 3600 * 1000;
+
+  it("une date sans heure court jusqu'à ce jour INCLUS : la fin est minuit du lendemain", () => {
+    // `essai_fin` est une colonne `date` : « 2026-10-08 » veut dire que le 8
+    // est encore un jour d'essai — c'est ainsi que la base compte les jours
+    // restants. Débiter le 8 à minuit du matin raccourcirait l'essai d'un jour.
+    expect(finEssaiPourStripe("2026-10-08", maintenant)).toBe(Date.UTC(2026, 9, 9) / 1000);
+  });
+
+  it("un instant complet, avec heure, est pris tel quel", () => {
+    const iso = "2026-10-08T15:30:00.000Z";
+    expect(finEssaiPourStripe(iso, maintenant)).toBe(Math.floor(new Date(iso).getTime() / 1000));
+  });
+
+  it("à moins de 48 h de la fin, rien n'est posé : Stripe refuserait la session", () => {
+    // Le 24 à midi, un essai qui finit le 25 (donc minuit le 26) est à 36 h :
+    // trop court pour Stripe. Mieux vaut un prélèvement immédiat, annoncé,
+    // qu'une page de paiement qui ne s'ouvre pas.
+    expect(finEssaiPourStripe("2026-09-25", maintenant)).toBeUndefined();
+    // Le 26 (minuit le 27, soit 60 h) passe.
+    expect(finEssaiPourStripe("2026-09-26", maintenant)).toBe(Date.UTC(2026, 8, 27) / 1000);
+  });
+
+  it("la borne est stricte : 48 h pile n'est pas « plus de 48 h »", () => {
+    const pile = new Date(maintenant + 48 * HEURE).toISOString();
+    expect(finEssaiPourStripe(pile, maintenant)).toBeUndefined();
+    const juste = new Date(maintenant + 48 * HEURE + 1000).toISOString();
+    expect(finEssaiPourStripe(juste, maintenant)).toBe((maintenant + 48 * HEURE + 1000) / 1000);
+  });
+
+  it("un essai passé, absent ou illisible ne pose rien", () => {
+    expect(finEssaiPourStripe("2026-09-01", maintenant)).toBeUndefined();
+    expect(finEssaiPourStripe(null, maintenant)).toBeUndefined();
+    expect(finEssaiPourStripe(undefined, maintenant)).toBeUndefined();
+    expect(finEssaiPourStripe("", maintenant)).toBeUndefined();
+    expect(finEssaiPourStripe("pas une date", maintenant)).toBeUndefined();
+  });
+});
+
+describe("la page de paiement porte la fin d'essai — quand elle le peut", () => {
+  function faux() {
+    const appels: Record<string, unknown>[] = [];
+    const stripe = {
+      checkout: {
+        sessions: {
+          create: async (corps: Record<string, unknown>) => {
+            appels.push(corps);
+            return { url: "https://checkout.stripe.test/s" };
+          },
+        },
+      },
+    };
+    return { stripe, appels };
+  }
+  const base = {
+    prix: "price_bien",
+    customer: "cus_1",
+    quantite: 1,
+    orgId: "org-1",
+    retourOk: "https://x/ok",
+    retourAnnule: "https://x/annule",
+  };
+  const dateDans = (jours: number) =>
+    new Date(Date.now() + jours * 86_400_000).toISOString().slice(0, 10);
+
+  it("un essai lointain part en `trial_end`, l'organisation restant en métadonnée", async () => {
+    const { stripe, appels } = faux();
+    const essaiFin = dateDans(30);
+    const r = await creerSessionPaiement(stripe as never, { ...base, essaiFin });
+    expect(r).toEqual({ ok: true, url: "https://checkout.stripe.test/s" });
+    expect(appels[0].mode).toBe("subscription");
+    expect(appels[0].subscription_data).toEqual({
+      metadata: { organization_id: "org-1" },
+      trial_end: Math.floor(new Date(essaiFin).getTime() / 1000) + 86_400,
+    });
+  });
+
+  it("sans essai, ou trop près de sa fin, la clé `trial_end` n'apparaît pas du tout", async () => {
+    // Pas `trial_end: undefined` : ce qu'on envoie doit se lire tel quel dans
+    // le journal des requêtes de Stripe.
+    const { stripe, appels } = faux();
+    await creerSessionPaiement(stripe as never, base);
+    await creerSessionPaiement(stripe as never, { ...base, essaiFin: null });
+    await creerSessionPaiement(stripe as never, { ...base, essaiFin: dateDans(0) });
+    expect(appels).toHaveLength(3);
+    for (const corps of appels) {
+      expect(corps.subscription_data).toEqual({ metadata: { organization_id: "org-1" } });
+      expect("trial_end" in (corps.subscription_data as object)).toBe(false);
+    }
   });
 });

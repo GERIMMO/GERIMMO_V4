@@ -489,7 +489,7 @@ export function FormulaireLoyers({
       {/* Révision IRL */}
       {revisionIrl && (
         <div className="space-y-2 border-t border-border pt-4">
-          <p className="text-sm font-medium">Révision annuelle (IRL)</p>
+          <p className="text-sm font-medium">Révision annuelle du loyer (IRL)</p>
           {revisions.length > 0 && (
             <ul className="text-xs text-muted-foreground">
               {revisions.map((r) => (

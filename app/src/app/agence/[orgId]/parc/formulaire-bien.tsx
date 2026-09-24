@@ -129,7 +129,7 @@ export function FormulaireBien({
             required
             maxLength={120}
             defaultValue={etat.valeurs?.nom ?? bien?.nom}
-            placeholder="12 rue des Lilas"
+            placeholder="ex. 12 rue des Lilas"
           />
         </div>
         <div className="space-y-2">

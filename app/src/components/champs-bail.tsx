@@ -275,7 +275,7 @@ export function ChampsBail({
       {/* Sans loyer, charges et dépôt explicites, les appels et le contrat
           seraient ambigus : 0 doit être saisi lorsque le montant est nul. */}
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-loyer`}>Loyer HC (€) *</Label>
+        <Label htmlFor={`${prefixe}-loyer`}>Loyer hors charges (€) *</Label>
         <Input
           id={`${prefixe}-loyer`}
           name="loyer_hc"
@@ -330,7 +330,7 @@ export function ChampsBail({
         </p>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-irl`}>Trimestre IRL de référence</Label>
+        <Label htmlFor={`${prefixe}-irl`}>Trimestre de l&apos;indice de référence des loyers (IRL)</Label>
         <select
           id={`${prefixe}-irl`}
           name="irl_trimestre"
@@ -356,7 +356,7 @@ export function ChampsBail({
           defaultChecked={valeurs ? valeurs.revision_irl === "on" : defauts.revision_irl ?? true}
           className="size-4"
         />
-        <Label htmlFor={`${prefixe}-revision`}>Clause de révision annuelle (IRL)</Label>
+        <Label htmlFor={`${prefixe}-revision`}>Révision annuelle du loyer (IRL)</Label>
       </div>
       <p className="text-xs text-muted-foreground sm:col-span-2">
         * Mentions indispensables au contrat et à ses calculs. Saisissez 0

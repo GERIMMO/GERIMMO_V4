@@ -45,16 +45,62 @@ export const CLASSE_ZONE_TEXTE =
 
 export const CLASSE_LIBELLE = "block text-[0.9375rem] font-medium text-[var(--encre)]";
 
+/**
+ * Une ligne d'aide sous un champ ou un bouton. 15 px, comme l'aide de
+ * « Quelle attestation » : il en existait une seconde taille, à 13 px, trop
+ * petite pour le plein soleil (tour du 24/09).
+ */
+export const CLASSE_AIDE = "text-[0.9375rem] text-[var(--texte-secondaire)]";
+
+/**
+ * L'en-tête d'une page de second niveau : le titre, une mention, une action
+ * éventuelle, le filet dessous — l'en-tête standard des espaces (`.entete-page`).
+ * Décision du 24/09 : un seul bandeau par écran, celui de l'accueil ; les
+ * autres pages n'ont plus de grand aplat photographié pour un titre d'un ou
+ * deux mots. `children` porte ce qui se lit avec le titre (le créneau d'une
+ * mission, l'étiquette « Urgent »).
+ */
+export function EnteteSousPage({
+  titre,
+  mention,
+  action,
+  children,
+}: {
+  titre: React.ReactNode;
+  mention?: React.ReactNode;
+  action?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="entete-page">
+      <div className="min-w-0">
+        <h1 className="text-[1.375rem] leading-tight text-[var(--encre)]">{titre}</h1>
+        {mention && (
+          <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">{mention}</p>
+        )}
+        {children}
+      </div>
+      {action}
+    </div>
+  );
+}
+
 export function Carte({
   children,
   className = "",
+  id,
 }: {
   children: React.ReactNode;
   className?: string;
+  /** Une ancre, quand un lien de la page y mène (« Déposer ma décennale »). */
+  id?: string;
 }) {
   return (
     <section
-      className={`artisan-carte ${className}`}
+      id={id}
+      // scroll-mt : le bandeau du haut est collant, l'ancre ne doit pas
+      // s'arrêter dessous.
+      className={`artisan-carte ${id ? "scroll-mt-28" : ""} ${className}`}
     >
       {children}
     </section>
@@ -127,11 +173,27 @@ export function MarqueAgence({
   );
 }
 
-export function Vide({ children }: { children: React.ReactNode }) {
+/**
+ * Un état vide. Il dit ce qui manque ET, quand un geste le débloque, mène à
+ * ce geste : un constat seul laissait l'artisan chercher la suite (tour du
+ * 24/09). Une seule définition — trois copies à la main avaient trois hauteurs.
+ */
+export function Vide({
+  children,
+  action,
+}: {
+  children: React.ReactNode;
+  action?: { href: string; libelle: string };
+}) {
   return (
-    <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
-      {children}
-    </p>
+    <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
+      <p>{children}</p>
+      {action && (
+        <Link href={action.href} className={`${CLASSE_BOUTON_SOBRE} mx-auto mt-4 sm:w-fit`}>
+          {action.libelle}
+        </Link>
+      )}
+    </div>
   );
 }
 
@@ -201,9 +263,21 @@ export function LigneInfo({
   );
 }
 
-/** Les explications secondaires se lisent à la demande, même sans JavaScript. */
-export function DetailsInformation({ titre, children }: { titre: string; children: React.ReactNode }) {
-  return <details className="artisan-carte information-depliable">
+/**
+ * Les explications secondaires se lisent à la demande, même sans JavaScript.
+ * `ouvert` les déplie d'emblée quand la page n'a rien d'autre à montrer : on
+ * ne fait pas cliquer pour lire la seule information utile (tour du 24/09).
+ */
+export function DetailsInformation({
+  titre,
+  ouvert = false,
+  children,
+}: {
+  titre: string;
+  ouvert?: boolean;
+  children: React.ReactNode;
+}) {
+  return <details open={ouvert} className="artisan-carte information-depliable">
     <summary>{titre}<span aria-hidden className="information-chevron">⌄</span></summary>
     <div className="mt-4">{children}</div>
   </details>;

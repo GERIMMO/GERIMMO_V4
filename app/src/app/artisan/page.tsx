@@ -40,7 +40,7 @@ export default async function PageArtisanAccueil({
   const aRendreCompte = agenda.lignes.filter(
     (l) => l.statut === "en_cours" && !l.compte_rendu_depose
   );
-  // « À caler » = ce sur quoi l'artisan doit agir. Une mission dont les dates
+  // « À fixer » = ce sur quoi l'artisan doit agir. Une mission dont les dates
   // sont posées attend le LOCATAIRE : la ranger ici enverrait l'artisan
   // reproposer, ce qui rend caduques les dates en cours et fait repartir le
   // ping-pong (RM-10.4.1).
@@ -163,6 +163,7 @@ export default async function PageArtisanAccueil({
                   <CarteMission
                     key={l.intervention_id}
                     ligne={l}
+                    origine="aujourdhui"
                     aFaire="Photo du travail réalisé, puis compte rendu"
                   />
                 ))}
@@ -178,6 +179,7 @@ export default async function PageArtisanAccueil({
                   <CarteMission
                     key={l.intervention_id}
                     ligne={l}
+                    origine="aujourdhui"
                     aFaire="Accepter ou refuser"
                   />
                 ))}
@@ -187,12 +189,13 @@ export default async function PageArtisanAccueil({
 
           {aPlanifier.length > 0 && (
             <section>
-              <TitreSection>Rendez-vous à caler ({aPlanifier.length})</TitreSection>
+              <TitreSection>Rendez-vous à fixer ({aPlanifier.length})</TitreSection>
               <div className="space-y-3">
                 {aPlanifier.map((l) => (
                   <CarteMission
                     key={l.intervention_id}
                     ligne={l}
+                    origine="aujourdhui"
                     aFaire="Proposer trois créneaux au locataire"
                   />
                 ))}
@@ -210,6 +213,7 @@ export default async function PageArtisanAccueil({
                   <CarteMission
                     key={l.intervention_id}
                     ligne={l}
+                    origine="aujourdhui"
                     aFaire={`${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} au choix du locataire`}
                   />
                 ))}
@@ -235,7 +239,7 @@ export default async function PageArtisanAccueil({
           <TitreSection>Prochaines interventions</TitreSection>
           <div className="space-y-3">
             {aVenir.map((l) => (
-              <CarteMission key={l.intervention_id} ligne={l} />
+              <CarteMission key={l.intervention_id} ligne={l} origine="aujourdhui" />
             ))}
           </div>
           <Link

@@ -2629,21 +2629,11 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   .loc-carte.loc-kpi .v { color: var(--marque-sombre); }
   .loc-corps .loc-carte.loc-kpi { background: linear-gradient(155deg, var(--ivoire), var(--marque-clair)); }
 
-  /* ——— Portail artisan ——— */
-  .artisan-bandeau {
-    border-top: 4px solid var(--marque);
-    background: linear-gradient(110deg, var(--ivoire), var(--marque-clair));
-  }
+  /* ——— Portail artisan ———
+     Tour du 24/09 : plus de surcharge du bandeau (le blanc commun de
+     .bandeau-appli suffit) ni de photo sur le hero de l'accueil — un seul
+     bandeau par écran, celui de base (aplat de marque). */
   .artisan-corps h1 { letter-spacing: -0.025em; }
-  .artisan-app .portail-hero {
-    min-height: 152px;
-    background-image:
-      linear-gradient(90deg, var(--encre) 0%, color-mix(in srgb, var(--graphite) 94%, transparent) 45%, color-mix(in srgb, var(--marque) 38%, transparent) 100%),
-      url('/illustrations/intervention-gerimmo-2026.jpg');
-    background-position: center, 68% 50%;
-    background-size: cover;
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--encre) 18%, transparent);
-  }
 
   /* ——— Chiffres clés (.kpi) et tableaux ——— */
   .kpi {

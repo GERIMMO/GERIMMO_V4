@@ -12,11 +12,13 @@ import {
 import {
   Avertissement,
   Carte,
+  EnteteSousPage,
   Erreur,
   Etiquette,
   Retour,
   Succes,
   TitreSection,
+  Vide,
 } from "../ui";
 import { FormulairePiece } from "./formulaire-piece";
 
@@ -49,24 +51,26 @@ const TON_ECHEANCE: Record<DegreEcheance, "ok" | "attente" | "alerte" | "neutre"
  */
 export default async function PageAttestations(props: PageProps<"/artisan/attestations">) {
   const { fiche } = await verifierAccesArtisan();
-  const { inscrit } = await props.searchParams;
+  const { inscrit, type } = await props.searchParams;
   const pieces = await chargerPieces();
 
   const deposees = new Map(pieces.lignes.map((p) => [p.type, p]));
   const manquantes = LISTE_PIECES.filter(
     (t) => t !== "certification" && !deposees.has(t)
   );
+  // La pièce choisie dans « Encore attendues » arrive par l'adresse
+  // (`?type=kbis#deposer`) : le formulaire s'ouvre dessus au lieu de la
+  // première manquante. Une valeur inconnue est ignorée.
+  const typeDemande =
+    typeof type === "string" && (LISTE_PIECES as readonly string[]).includes(type)
+      ? type
+      : undefined;
 
   return (
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <div className="portail-hero">
-        <p className="portail-surtitre">Valables pour toutes les agences</p>
-        <h1 className="mt-0.5">
-          Mes attestations
-        </h1>
-      </div>
+      <EnteteSousPage titre="Mes attestations" mention="Valables pour toutes les agences" />
 
       {inscrit && (
         <Succes>
@@ -90,64 +94,91 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
         </Avertissement>
       )}
 
-      <section className="space-y-3">
+      {/* Une carte, comme les deux blocs suivants, et des lignes plutôt que
+          des boîtes dans la carte (tour du 24/09). */}
+      <Carte>
         <TitreSection>Déposées</TitreSection>
         {pieces.lignes.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Aucune attestation déposée pour l&apos;instant.
-          </p>
+          pieces.erreur ? null : (
+            <Vide action={{ href: "#deposer", libelle: "Déposer ma décennale" }}>
+              Aucune attestation pour l&apos;instant. Commencez par votre
+              décennale : c&apos;est elle qui conditionne les affectations.
+            </Vide>
+          )
         ) : (
-          pieces.lignes.map((p) => {
-            const degre = degreEcheance(p.jours_avant_echeance, p.expiree);
-            return (
-              <div
-                key={p.piece_id}
-                className="rounded-lg border-2 border-[var(--filet)] bg-[var(--ivoire)] p-3.5"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <p className="min-w-0 text-base font-medium text-[var(--corps)]">
-                    {libelle(PIECES_ARTISAN, p.type)}
-                  </p>
-                  <Etiquette ton={TON_ECHEANCE[degre]}>
-                    {texteEcheance(p.jours_avant_echeance, p.expiree)}
-                  </Etiquette>
-                </div>
-                <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">
-                  {p.emise_le ? `Émise le ${dateSimple(p.emise_le)}. ` : ""}
-                  {p.expire_le ? `Valable jusqu'au ${dateSimple(p.expire_le)}.` : ""}
-                </p>
-                {p.type === "decennale" && p.expiree && (
-                  <p className="mt-2 text-[0.9375rem] text-[var(--destructive-soft-foreground)]">
-                    Vous n&apos;êtes plus proposé pour les travaux qui exigent une
-                    décennale. Vos interventions en cours ne sont pas
-                    interrompues, et un nouveau dépôt vous rétablit
-                    immédiatement.
-                  </p>
-                )}
-                <Link
-                  href={`/artisan/attestations/${p.piece_id}/fichier`}
-                  className="mt-2 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+          <ul>
+            {pieces.lignes.map((p) => {
+              const degre = degreEcheance(p.jours_avant_echeance, p.expiree);
+              return (
+                <li
+                  key={p.piece_id}
+                  className="border-b border-[var(--filet-leger)] py-3 first:pt-0 last:border-b-0 last:pb-0"
                 >
-                  Ouvrir le document
-                </Link>
-              </div>
-            );
-          })
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="min-w-0 text-base font-medium text-[var(--corps)]">
+                      {libelle(PIECES_ARTISAN, p.type)}
+                    </p>
+                    <Etiquette ton={TON_ECHEANCE[degre]}>
+                      {texteEcheance(p.jours_avant_echeance, p.expiree)}
+                    </Etiquette>
+                  </div>
+                  <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">
+                    {p.emise_le ? `Émise le ${dateSimple(p.emise_le)}. ` : ""}
+                    {p.expire_le ? `Valable jusqu'au ${dateSimple(p.expire_le)}.` : ""}
+                  </p>
+                  {p.type === "decennale" && p.expiree && (
+                    <p className="mt-2 text-[0.9375rem] text-[var(--destructive-soft-foreground)]">
+                      Vous n&apos;êtes plus proposé pour les travaux qui exigent une
+                      décennale. Vos interventions en cours ne sont pas
+                      interrompues, et un nouveau dépôt vous rétablit
+                      immédiatement.
+                    </p>
+                  )}
+                  <Link
+                    href={`/artisan/attestations/${p.piece_id}/fichier`}
+                    className="mt-1 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+                  >
+                    Ouvrir le document
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         )}
-      </section>
+      </Carte>
 
+      {/* Chaque pièce attendue mène au formulaire, déjà réglé sur elle : il
+          fallait descendre et la rechoisir dans la liste (tour du 24/09). */}
       {manquantes.length > 0 && (
         <Carte className="border-l-4 border-l-[var(--warning)]">
           <TitreSection>Encore attendues</TitreSection>
-          <ul className="space-y-1 text-[0.9375rem] text-[var(--corps)]">
+          <ul className="-mx-2">
             {manquantes.map((t) => (
-              <li key={t}>{PIECES_ARTISAN[t]}</li>
+              <li key={t}>
+                <Link
+                  href={`/artisan/attestations?type=${t}#deposer`}
+                  className="flex min-h-11 items-center justify-between gap-3 rounded-lg px-2 py-2 text-[0.9375rem] text-[var(--corps)] transition-colors hover:bg-[var(--survol)] hover:text-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]"
+                >
+                  <span className="min-w-0">{PIECES_ARTISAN[t]}</span>
+                  <span className="flex shrink-0 items-center gap-1 font-medium text-[var(--encre)]">
+                    Déposer
+                    <svg viewBox="0 0 24 24" aria-hidden className="size-4 fill-none stroke-current stroke-2">
+                      <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </Link>
+              </li>
             ))}
           </ul>
         </Carte>
       )}
 
-      <FormulairePiece typeSuggere={manquantes[0]} />
+      {/* La `key` remet la liste « Quelle attestation » sur la pièce demandée
+          quand on en choisit une autre dans « Encore attendues ». */}
+      <FormulairePiece
+        key={typeDemande ?? "suggeree"}
+        typeSuggere={typeDemande ?? manquantes[0]}
+      />
 
       <Carte>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">

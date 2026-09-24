@@ -1,5 +1,14 @@
 import { chargerNote, verifierAccesArtisan } from "../acces";
-import { Carte, DetailsInformation, Erreur, LigneInfo, Retour, TitreSection } from "../ui";
+import {
+  Carte,
+  CLASSE_AIDE,
+  DetailsInformation,
+  EnteteSousPage,
+  Erreur,
+  LigneInfo,
+  Retour,
+  TitreSection,
+} from "../ui";
 import { Contestation } from "./contestation";
 
 export const metadata = { title: "Ma note — Espace artisan" };
@@ -36,11 +45,10 @@ export default async function PageNote() {
     <div className="space-y-6">
       <Retour href="/artisan/entreprise">Mon entreprise</Retour>
 
-      <div className="portail-hero">
-        <p className="portail-surtitre">Votre réputation professionnelle</p>
-        <h1>Ma note</h1>
-        <p className="portail-introduction">Comprenez votre évaluation et retrouvez les indicateurs de vos interventions.</p>
-      </div>
+      <EnteteSousPage
+        titre="Ma note"
+        mention="Comprenez votre évaluation et retrouvez les indicateurs de vos interventions."
+      />
 
       {(erreur || !note) && (
         <Erreur>
@@ -108,7 +116,7 @@ export default async function PageNote() {
             {note?.pieces_expirees ?? 0}
           </LigneInfo>
         </div>
-        <p className="mt-3 text-[0.8125rem] text-[var(--texte-secondaire)]">
+        <p className={`mt-3 ${CLASSE_AIDE}`}>
           Ces mesures sont les vôtres : personne d&apos;autre que vous n&apos;y a accès
           dans ce détail. Les rendez-vous manqués ne sont pas encore mesurés.
         </p>

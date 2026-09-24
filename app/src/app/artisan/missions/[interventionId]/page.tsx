@@ -11,8 +11,11 @@ import {
 } from "../../libelles";
 import {
   Carte,
+  CLASSE_AIDE,
   CLASSE_BOUTON_PRINCIPAL,
   CLASSE_BOUTON_SECONDAIRE,
+  CLASSE_BOUTON_SOBRE,
+  EnteteSousPage,
   Etiquette,
   LigneInfo,
   MarqueAgence,
@@ -44,13 +47,23 @@ export default async function PageMission(
 ) {
   await verifierAccesArtisan();
   const { interventionId } = await props.params;
-  const { termine } = await props.searchParams;
+  const { termine, de } = await props.searchParams;
+  // Le retour ramène d'où l'on vient : la même carte s'ouvre depuis
+  // « Aujourd'hui » et depuis l'agenda (tour du 24/09).
+  const depuisAujourdhui = de === "aujourdhui";
 
   const agenda = await chargerAgenda();
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
 
   const vivante = ["acceptee", "planifiee", "en_cours"].includes(mission.statut);
+  // Des dates sont chez le locataire : rien n'attend l'artisan, et reproposer
+  // annulerait ces dates (RM-10.4.1). Même lecture que la carte de l'agenda.
+  const attendLocataire = mission.statut === "acceptee" && mission.creneaux_en_attente > 0;
+  // L'itinéraire n'est un bouton que lorsqu'on s'y rend : avant le
+  // rendez-vous, un bouton de 56 px en tête de fiche prenait la place du
+  // geste attendu (24/09).
+  const surLeDepart = mission.statut === "planifiee" || mission.statut === "en_cours";
   const occupant = [mission.occupant_prenom, mission.occupant_nom]
     .filter(Boolean)
     .join(" ");
@@ -63,7 +76,11 @@ export default async function PageMission(
 
   return (
     <div className="space-y-5">
-      <Retour href="/artisan/agenda">Mon agenda</Retour>
+      {depuisAujourdhui ? (
+        <Retour href="/artisan">Aujourd&apos;hui</Retour>
+      ) : (
+        <Retour href="/artisan/agenda">Mon agenda</Retour>
+      )}
 
       {termine && (
         <Succes>
@@ -76,32 +93,105 @@ export default async function PageMission(
         <MarqueAgence nom={mission.agence_nom} taille="grande" />
         <Etiquette
           ton={
-            mission.statut === "proposee"
-              ? "alerte"
-              : mission.statut === "terminee"
-                ? "ok"
-                : mission.statut === "en_cours"
-                  ? "attente"
-                  : "encre"
+            attendLocataire
+              ? "attente"
+              : mission.statut === "proposee"
+                ? "alerte"
+                : mission.statut === "terminee"
+                  ? "ok"
+                  : mission.statut === "en_cours"
+                    ? "attente"
+                    : "encre"
           }
         >
-          {libelle(STATUTS_MISSION, mission.statut)}
+          {attendLocataire
+            ? "En attente du locataire"
+            : libelle(STATUTS_MISSION, mission.statut)}
         </Etiquette>
       </div>
 
-      <div>
-        <h1 className="text-[1.375rem] leading-tight text-[var(--encre)]">
-          {titreIncident(mission.categorie)}
-        </h1>
-        <p className="mt-1 text-[1.0625rem] font-medium text-[var(--corps)]">
-          {creneauTexte(mission.debut_prevu, mission.fin_prevue)}
-        </p>
+      {/* Le créneau ne s'écrit que s'il existe : sans lui, l'étiquette dit
+          déjà « rendez-vous à fixer », 40 px plus haut (24/09). */}
+      <EnteteSousPage titre={titreIncident(mission.categorie)}>
+        {mission.debut_prevu && (
+          <p className="mt-1 text-[1.0625rem] font-medium text-[var(--corps)]">
+            {creneauTexte(mission.debut_prevu, mission.fin_prevue)}
+          </p>
+        )}
         {mission.urgence === "urgente" && (
           <p className="mt-2">
             <Etiquette ton="alerte">Urgent</Etiquette>
           </p>
         )}
-      </div>
+      </EnteteSousPage>
+
+      {/* Le geste attendu maintenant, sous le titre : rendu en bas, sous
+          « Où », « Quoi » et « Sur place », il n'apparaissait qu'en faisant
+          défiler (tour du 24/09). */}
+      {mission.statut === "proposee" && (
+        <AccepterOuRefuser interventionId={mission.intervention_id} />
+      )}
+
+      {mission.statut === "acceptee" && attendLocataire && (
+        <div className="space-y-3">
+          <p className="text-base text-[var(--corps)]">
+            {mission.creneaux_en_attente} date{mission.creneaux_en_attente > 1 ? "s" : ""}{" "}
+            proposée{mission.creneaux_en_attente > 1 ? "s" : ""} au locataire : c&apos;est à
+            lui de choisir. En proposer d&apos;autres annulerait celles-ci.
+          </p>
+          <Link
+            href={`/artisan/missions/${mission.intervention_id}/creneaux`}
+            className={CLASSE_BOUTON_SOBRE}
+          >
+            Proposer d&apos;autres créneaux
+          </Link>
+          <BoutonDemarrer interventionId={mission.intervention_id} sansRendezVous />
+        </div>
+      )}
+
+      {mission.statut === "acceptee" && !attendLocataire && (
+        <div className="space-y-3">
+          <Link
+            href={`/artisan/missions/${mission.intervention_id}/creneaux`}
+            className={CLASSE_BOUTON_PRINCIPAL}
+          >
+            Proposer des créneaux
+          </Link>
+          <p className={CLASSE_AIDE}>
+            Vous proposez en premier, trois créneaux au minimum. Le locataire
+            choisit, ou vous en propose trois à son tour.
+          </p>
+          <BoutonDemarrer interventionId={mission.intervention_id} sansRendezVous />
+        </div>
+      )}
+
+      {mission.statut === "planifiee" && (
+        <div className="space-y-3">
+          <BoutonDemarrer interventionId={mission.intervention_id} />
+          <Link
+            href={`/artisan/missions/${mission.intervention_id}/creneaux`}
+            className={CLASSE_BOUTON_SECONDAIRE}
+          >
+            Déplacer le rendez-vous
+          </Link>
+        </div>
+      )}
+
+      {mission.statut === "en_cours" && (
+        <div className="space-y-3">
+          <Link
+            href={`/artisan/missions/${mission.intervention_id}/compte-rendu`}
+            className={CLASSE_BOUTON_PRINCIPAL}
+          >
+            Rendre compte du travail
+          </Link>
+          <p className={CLASSE_AIDE}>
+            Deux écrans : la photo du travail réalisé, puis ce que vous avez
+            fait. Sans le compte rendu, l&apos;intervention ne peut pas être
+            terminée — et sans elle, l&apos;agence ne peut pas facturer.
+          </p>
+        </div>
+      )}
 
       {/* Où aller — en gros, et cliquable : sur un chantier, on ouvre l'itinéraire. */}
       <Carte>
@@ -126,7 +216,11 @@ export default async function PageMission(
             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adresse)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className={`${CLASSE_BOUTON_SECONDAIRE} mt-3`}
+            className={
+              surLeDepart
+                ? `${CLASSE_BOUTON_SECONDAIRE} mt-3`
+                : "mt-2 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+            }
           >
             Ouvrir l&apos;itinéraire
           </a>
@@ -163,59 +257,10 @@ export default async function PageMission(
               Appeler {mission.occupant_telephone}
             </a>
           )}
-          <p className="mt-2 text-[0.8125rem] text-[var(--texte-secondaire)]">
+          <p className={`mt-2 ${CLASSE_AIDE}`}>
             Ce contact vous est ouvert le temps de la mission, et refermé à la fin.
           </p>
         </Carte>
-      )}
-
-      {/* Le geste attendu maintenant — un seul, en bas, à portée de pouce. */}
-      {mission.statut === "proposee" && (
-        <AccepterOuRefuser interventionId={mission.intervention_id} />
-      )}
-
-      {mission.statut === "acceptee" && (
-        <div className="space-y-3">
-          <Link
-            href={`/artisan/missions/${mission.intervention_id}/creneaux`}
-            className={CLASSE_BOUTON_PRINCIPAL}
-          >
-            Proposer des créneaux
-          </Link>
-          <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Vous proposez en premier, trois créneaux au minimum. Le locataire
-            choisit, ou vous en propose trois à son tour.
-          </p>
-          <BoutonDemarrer interventionId={mission.intervention_id} sansRendezVous />
-        </div>
-      )}
-
-      {mission.statut === "planifiee" && (
-        <div className="space-y-3">
-          <BoutonDemarrer interventionId={mission.intervention_id} />
-          <Link
-            href={`/artisan/missions/${mission.intervention_id}/creneaux`}
-            className={CLASSE_BOUTON_SECONDAIRE}
-          >
-            Déplacer le rendez-vous
-          </Link>
-        </div>
-      )}
-
-      {mission.statut === "en_cours" && (
-        <div className="space-y-3">
-          <Link
-            href={`/artisan/missions/${mission.intervention_id}/compte-rendu`}
-            className={CLASSE_BOUTON_PRINCIPAL}
-          >
-            Rendre compte du travail
-          </Link>
-          <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Deux écrans : la photo du travail réalisé, puis ce que vous avez
-            fait. Sans le compte rendu, l&apos;intervention ne peut pas être
-            terminée — et sans elle, l&apos;agence ne peut pas facturer.
-          </p>
-        </div>
       )}
 
       {mission.statut === "terminee" && (

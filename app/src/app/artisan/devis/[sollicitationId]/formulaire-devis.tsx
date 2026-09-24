@@ -10,6 +10,7 @@ import {
 import { LignesDevis } from "../../lignes-devis";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import {
+  CLASSE_AIDE,
   CLASSE_BOUTON_PRINCIPAL,
   CLASSE_BOUTON_REFUS,
   CLASSE_BOUTON_SOBRE,
@@ -70,7 +71,6 @@ export function FormulaireDevis({
   const [refusOuvert, setRefusOuvert] = useState(false);
 
   const idDiagnostic = useId();
-  const idPrestations = useId();
   const idEcheance = useId();
   const idFichier = useId();
   const idMotif = useId();
@@ -88,16 +88,14 @@ export function FormulaireDevis({
             rows={3}
             required
             defaultValue={etat.valeurs?.diagnostic}
+            placeholder="Ex. : cartouche du mitigeur usée, joint à remplacer"
             className={CLASSE_ZONE_TEXTE}
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor={idPrestations} className={CLASSE_LIBELLE}>Travaux proposés</label>
-          <textarea id={idPrestations} name="prestations" rows={4} required defaultValue={etat.valeurs?.prestations} className={CLASSE_ZONE_TEXTE} />
-          <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">Précisez les quantités, les fournitures et ce qui est inclus.</p>
-        </div>
-
+        {/* Les travaux se disent une seule fois, ligne par ligne : la zone
+            « Travaux proposés » redemandait en texte libre ce que le détail
+            chiffre juste en dessous (tour du 24/09). */}
         <LignesDevis />
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -106,7 +104,7 @@ export function FormulaireDevis({
         </div>
 
         <div className="space-y-1.5"><label htmlFor="devis-contraintes" className={CLASSE_LIBELLE}>Contraintes et accès <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea id="devis-contraintes" name="contraintes" rows={2} defaultValue={etat.valeurs?.contraintes} className={CLASSE_ZONE_TEXTE} placeholder="Coupure d’eau, stationnement, présence nécessaire…" /></div>
-        <div className="space-y-1.5"><label htmlFor="devis-observations" className={CLASSE_LIBELLE}>Observations <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea id="devis-observations" name="observations" rows={2} defaultValue={etat.valeurs?.observations} className={CLASSE_ZONE_TEXTE} /></div>
+        <div className="space-y-1.5"><label htmlFor="devis-observations" className={CLASSE_LIBELLE}>Observations <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span></label><textarea id="devis-observations" name="observations" rows={2} defaultValue={etat.valeurs?.observations} className={CLASSE_ZONE_TEXTE} placeholder="Ex. : robinet d’arrêt général à changer prochainement" /></div>
 
         <div className="space-y-1.5">
           <label htmlFor={idEcheance} className={CLASSE_LIBELLE}>
@@ -119,7 +117,7 @@ export function FormulaireDevis({
             defaultValue={etat.valeurs?.valide_jusqu_au ?? echeanceParDefaut}
             className={CLASSE_CHAMP}
           />
-          <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+          <p className={CLASSE_AIDE}>
             Passée cette date, le devis est caduc et ne peut plus être retenu.
           </p>
         </div>
@@ -140,7 +138,7 @@ export function FormulaireDevis({
             }}
             className={`${CLASSE_CHAMP} py-3 file:mr-3 file:rounded file:border-0 file:bg-[var(--ardoise)] file:px-3 file:py-2 file:text-[var(--encre)]`}
           />
-          <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
+          <p className={CLASSE_AIDE}>
             PDF ou photo. Un seul devis par demande, et il ne se remplace pas
             une fois envoyé : joignez le document si vous l&apos;avez déjà.
           </p>

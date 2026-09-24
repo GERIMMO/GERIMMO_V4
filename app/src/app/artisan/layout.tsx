@@ -53,10 +53,16 @@ export default async function LayoutArtisan({
   // l'assurance tombe, l'artisan est déjà retiré des listes d'affectation
   // pour les travaux qui l'exigent (RM-8.2.2). RM-8.2.5 échelonne J-60/J-30/
   // J-7/J+0 ; l'onglet s'allume au deuxième seuil, le détail est sur la page.
-  const piecesAAJour = !(pieces?.lignes ?? []).some((p) => {
-    const degre = degreEcheance(p.jours_avant_echeance, p.expiree);
-    return degre === "expiree" || degre === "critique" || degre === "proche";
-  });
+  // Aucune pièce déposée allume aussi le point (tour du 24/09) : une liste
+  // vide passait pour « à jour », alors que sans attestation l'artisan n'est
+  // proposé à personne. Une lecture en échec, elle, n'allume rien.
+  const aucunePiece = Boolean(pieces && !pieces.erreur && pieces.lignes.length === 0);
+  const piecesAAJour =
+    !aucunePiece &&
+    !(pieces?.lignes ?? []).some((p) => {
+      const degre = degreEcheance(p.jours_avant_echeance, p.expiree);
+      return degre === "expiree" || degre === "critique" || degre === "proche";
+    });
 
   // RM-8.2 / pivot du 2026-09-04 : tant que la plateforme n'a pas validé
   // l'inscription, aucune agence ne peut solliciter l'artisan. Le lui taire
@@ -82,12 +88,15 @@ export default async function LayoutArtisan({
           >
             <MarqueGerimmo />
           </Link>
+          {/* Icône ET libellé dès 640 px (24/09) : un bouclier ne dit pas
+              « mot de passe », et l'infobulle n'apparaît pas au doigt. Sur
+              téléphone, l'icône seule garde la place de la marque. */}
           <div className="flex shrink-0 items-center gap-1">
             <Link
               href="/espaces"
               title="Mes espaces"
               aria-label="Mes espaces"
-              className="lien-bandeau size-11 justify-center"
+              className="lien-bandeau min-h-11 min-w-11 justify-center sm:px-3"
             >
               <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
                 <rect x="4" y="4" width="7" height="7" rx="1.5" />
@@ -95,6 +104,7 @@ export default async function LayoutArtisan({
                 <rect x="4" y="13" width="7" height="7" rx="1.5" />
                 <rect x="13" y="13" width="7" height="7" rx="1.5" />
               </svg>
+              <span className="hidden sm:inline">Mes espaces</span>
             </Link>
             {/* Mot de passe et second facteur : l'artisan a un compte comme
                 tout le monde, et son bandeau n'en portait aucun chemin. */}
@@ -102,24 +112,26 @@ export default async function LayoutArtisan({
               href="/compte"
               title="Sécurité du compte"
               aria-label="Sécurité du compte"
-              className="lien-bandeau size-11 justify-center"
+              className="lien-bandeau min-h-11 min-w-11 justify-center sm:px-3"
             >
               <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
                 <path d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 8.5-4.1-.9-7-4.3-7-8.5V6l7-3z" strokeLinejoin="round" />
                 <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
+              <span className="hidden sm:inline">Sécurité du compte</span>
             </Link>
             <form action={seDeconnecter}>
               <button
                 type="submit"
                 title="Se déconnecter"
                 aria-label="Se déconnecter"
-                className="lien-bandeau size-11 justify-center"
+                className="lien-bandeau min-h-11 min-w-11 justify-center sm:px-3"
               >
                 <svg viewBox="0 0 24 24" aria-hidden className="size-5 fill-none stroke-current stroke-[1.6]">
                   <path d="M9 4h-4v16h4" strokeLinecap="round" />
                   <path d="M13 8l4 4-4 4M17 12H8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
+                <span className="hidden sm:inline">Se déconnecter</span>
               </button>
             </form>
           </div>

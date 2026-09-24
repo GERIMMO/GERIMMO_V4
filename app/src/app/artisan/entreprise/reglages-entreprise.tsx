@@ -8,7 +8,7 @@ import {
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
 import { LISTE_METIERS, METIERS } from "../libelles";
-import {
+import { CLASSE_AIDE,
   Carte,
   CLASSE_BOUTON_SECONDAIRE,
   CLASSE_CHAMP,
@@ -91,7 +91,7 @@ export function ReglageVisibilite({
           />
         </form>
       )}
-      <p className="mt-2 text-[0.8125rem] text-[var(--texte-secondaire)]">
+      <p className={`mt-2 ${CLASSE_AIDE}`}>
         Vous seul décidez de ce réglage : ni une agence, ni Gerimmo ne peuvent le
         changer.
       </p>
@@ -149,7 +149,7 @@ export function FormulaireMetiersZones({
         >
           Modifier
         </button>
-        <p className="mt-2 text-[0.8125rem] text-[var(--texte-secondaire)]">
+        <p className={`mt-2 ${CLASSE_AIDE}`}>
           Vous n&apos;êtes proposé que dans vos métiers, et pour les communes de
           votre zone.
         </p>

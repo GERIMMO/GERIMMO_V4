@@ -97,7 +97,16 @@ export default async function PageDocuments(
     .order("created_at", { ascending: false })
     .limit(PLAFOND_LISTE);
   if (recherche.type) requete = requete.eq("type", recherche.type);
-  if (recherche.q) requete = requete.ilike("titre", `%${motifLitteral(recherche.q)}%`);
+  if (recherche.q) {
+    // Un titre de diagnostic déposé avant le 24/09 porte sa date en AAAA-MM-JJ
+    // (« DPE — 2026-09-24 ») alors que l'écran l'affiche en français : une
+    // recherche « 24/09/2026 » retrouve les deux écritures. La date seule est
+    // faite de chiffres, donc sans risque pour la syntaxe du filtre `or`.
+    const date = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(recherche.q.trim());
+    requete = date
+      ? requete.or(`titre.ilike.%${date[1]}/${date[2]}/${date[3]}%,titre.ilike.%${date[3]}-${date[2]}-${date[1]}%`)
+      : requete.ilike("titre", `%${motifLitteral(recherche.q)}%`);
+  }
   if (recherche.du) requete = requete.gte("created_at", recherche.du);
   if (recherche.au) requete = requete.lte("created_at", `${recherche.au}T23:59:59`);
 

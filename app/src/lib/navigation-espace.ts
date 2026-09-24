@@ -121,6 +121,10 @@ export function navigationEspace({
         tableauDeBord,
         portefeuille,
         { href: `${base}/personnes`, libelle: "Personnes", icone: "gens" },
+        // Loyers & charges entre au menu de l'agent (décision du porteur,
+        // 24/09) : l'écran est quotidien, et il ne se trouvait que par la
+        // tuile de l'accueil. La comptabilité reste hors de son menu.
+        loyers,
         incidents,
         alertes,
         agenda,

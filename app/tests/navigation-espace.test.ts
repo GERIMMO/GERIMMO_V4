@@ -52,10 +52,12 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
 
   it("allège l'agent comme le 12/09 l'a décidé : ni comptabilité, ni documents, ni abonnement, ni administration", () => {
     const c = chemins("agent");
-    for (const p of ["/loyers", "/comptabilite", "/comptabilite/fiscal", "/documents", "/abonnement", "/administration", "/mandats"]) {
+    for (const p of ["/comptabilite", "/comptabilite/fiscal", "/documents", "/abonnement", "/administration", "/mandats"]) {
       expect(c, p).not.toContain(p);
     }
     expect(nav("agent").principales.map((e) => e.libelle)).toContain("Mon portefeuille");
+    // Loyers & charges : au menu de l'agent depuis le 24/09 (décision du porteur).
+    expect(nav("agent").principales.map((e) => e.libelle)).toContain("Loyers & charges");
     expect(c).toContain("/statistiques");
     // Rien de retiré : le profil de l'agence reste lisible, le carnet
     // d'artisans devient atteignable, et « Paramètres » ouvre son compte.

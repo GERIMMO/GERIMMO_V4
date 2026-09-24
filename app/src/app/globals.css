@@ -1662,10 +1662,11 @@ p a {
 @media (max-width:600px) { .recherche-ouvrir { gap:7px; padding:8px; } .recherche-entete { padding:14px 16px; } .recherche-entete h2 { font-size:24px; } .recherche-resultats { padding:14px 12px; } .recherche-pied { display:none; } }
 
 /* Le dossier suit trois temps : préparer, gérer, terminer. */
-.dossier-bail-entete { padding:24px; background:linear-gradient(135deg, var(--marque), var(--marque-sombre) 70%, var(--encre)); color:var(--sur-marque); border-radius:16px; }
-.dossier-bail-entete h1 { color:var(--sur-marque); }
-.dossier-bail-entete .text-muted-foreground { color:color-mix(in srgb,var(--sur-marque) 82%,transparent); }
-.dossier-bail-entete .eyebrow { color:color-mix(in srgb,var(--sur-marque) 80%,transparent); }
+/* L'en-tête du bail est un en-tête de page comme les autres : un titre, sa
+   puce d'état, une ligne de repères, un filet dessous — plus d'aplat bleu
+   (décision du porteur, 24/09 : un seul bandeau, celui de l'accueil). */
+.dossier-bail-entete { padding:0 0 16px; border-bottom:1px solid var(--trait); }
+.dossier-bail-entete h1 { color:var(--encre); }
 .dossier-nav { display:flex; flex-wrap:wrap; gap:8px; }
 .dossier-nav a { padding:10px 13px; min-height:44px; border:1px solid var(--filet); border-radius:10px; background:var(--carte); color:var(--encre); font-size:12px; }
 .dossier-nav a:hover,.dossier-nav a:focus-visible { background:var(--ardoise); border-color:var(--or); }
@@ -1679,7 +1680,7 @@ p a {
 .dossier-rubrique[open] > summary { border-bottom:1px solid var(--filet); border-radius:10px 10px 0 0; background:var(--survol); }
 .dossier-rubrique[open] .dossier-chevron { transform:rotate(180deg); }
 .dossier-rubrique-contenu { padding:16px; }
-@media (max-width:600px) { .dossier-bail-entete { padding:18px; } .dossier-rubrique > summary { padding:16px; } .dossier-rubrique-contenu { padding:10px; } }
+@media (max-width:600px) { .dossier-rubrique > summary { padding:16px; } .dossier-rubrique-contenu { padding:10px; } }
 
 /* Rendez-vous : la date précède le dossier, sans grille vide sur mobile. */
 .dossier-nav a.agenda-onglet-actif { background:var(--marque); color:var(--sur-marque); border-color:var(--marque); }
@@ -2366,7 +2367,9 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
 .tuile.probleme .ico { --ton: var(--destructive); }
 
 /* L'assistant — « Gerimmo a repéré… ». Il explique, il propose, il ne décide
-   pas. C'est lui qui parle : il parle en bleu. */
+   pas. Sa tête est une surface claire à filet, le rond « G » seul en bleu :
+   le bandeau d'accueil reste la seule grande surface colorée de l'écran
+   (décision du porteur, 24/09 : « un seul bandeau »). */
 .assistant {
   border: 1px solid var(--or-filet);
   border-radius: 14px;
@@ -2374,16 +2377,14 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   box-shadow: var(--ombre-portee);
   overflow: clip;
 }
-.coquille-corps .assistant {
-  border-color: transparent;
-  box-shadow: 0 10px 30px color-mix(in srgb, var(--marque) 18%, transparent);
-}
+.coquille-corps .assistant { border-color: var(--trait); }
 .assistant-tete {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  background: linear-gradient(100deg, var(--marque) 0%, var(--marque-sombre) 100%);
+  background: var(--survol);
+  border-bottom: 1px solid var(--trait);
 }
 .assistant-tete .rond {
   flex: none;
@@ -2392,25 +2393,15 @@ a.tuile:hover { box-shadow: var(--ombre-flottante); transform: translateY(-2px);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--sur-marque);
-  color: var(--marque);
+  background: var(--marque);
+  color: var(--sur-marque);
   font-family: var(--font-titres), system-ui, sans-serif;
   font-weight: 800;
   font-size: 13px;
-  box-shadow:
-    0 0 0 4px color-mix(in srgb, var(--sur-marque) 26%, transparent),
-    0 6px 16px color-mix(in srgb, var(--encre) 22%, transparent);
 }
-.assistant-tete p { margin: 0; font-size: 14px; color: var(--sur-marque); }
-.assistant-tete b { color: var(--sur-marque); }
-.assistant-tete p b { font-weight: 600; }
+.assistant-tete p { margin: 0; font-size: 14px; color: var(--texte); }
+.assistant-tete p b { font-weight: 600; color: var(--encre); }
 .assistant-tete .lien-discret { margin-left: auto; white-space: nowrap; align-self: center; }
-.assistant-tete a.lien-discret {
-  color: var(--sur-marque);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: color-mix(in srgb, var(--sur-marque) 60%, transparent);
-}
 .assistant .colonne-liste { border: 0; border-radius: 0; }
 .assistant .tete-groupe { background: var(--surface); }
 /* Les groupes du plan du jour, allégés : plus de fond gris sur l'en-tête,

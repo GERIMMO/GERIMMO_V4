@@ -13,8 +13,8 @@ export function BoutonBriefIA({ disponible }: { disponible: boolean }) {
   if (!disponible) {
     return (
       <p className="rounded-lg border border-dashed border-[var(--filet)] bg-[var(--ivoire)] p-3 text-sm text-[var(--texte-secondaire)]">
-        L&apos;analyse par l&apos;IA s&apos;active avec une clé OpenAI dans la
-        configuration du serveur (variable <code>OPENAI_API_KEY</code>).
+        L&apos;analyse attend la connexion du service d’intelligence artificielle.
+        Vos priorités et vos dossiers restent accessibles.
       </p>
     );
   }

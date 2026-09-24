@@ -11,7 +11,7 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
   if (erreurAcces || !estSuperAdmin) return { erreur: "Accès réservé à la supervision." };
 
   const cle = process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim();
-  if (!cle) return { erreur: "Configurez OPENAI_API_KEY ou OPEN_AI_KEY côté serveur dans Vercel pour activer cette analyse." };
+  if (!cle) return { erreur: "Le service d’intelligence artificielle doit être connecté pour activer cette analyse." };
 
   const [bugsN1, bugs, idees, devis, propositions, organisations, alertesCritiques, alertes] = await Promise.all([
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").in("etat", ["nouveau", "en_examen", "en_cours"]),
@@ -56,7 +56,7 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
       }),
       signal: AbortSignal.timeout(30_000),
     });
-    if (!reponse.ok) return { erreur: reponse.status === 401 ? "La clé OpenAI a été refusée. Vérifiez-la dans Vercel." : "L'analyse IA est momentanément indisponible. Réessayez plus tard." };
+    if (!reponse.ok) return { erreur: reponse.status === 401 ? "La connexion au service d’intelligence artificielle doit être rétablie." : "L'analyse IA est momentanément indisponible. Réessayez plus tard." };
     const analyse = extraireAnalyseBrief(await reponse.json());
     if (!analyse) return { erreur: "La réponse de l'IA n'a pas le format attendu. Aucun résultat n'a été retenu." };
     return { analyse, genereLe: new Date().toISOString() };

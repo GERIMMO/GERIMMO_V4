@@ -134,7 +134,9 @@ export default async function PageSante() {
                 {v.etat !== "ok" && (
                   // La commande de la ligne : la variable et où la trouver, ou le geste quand ce n'est pas une variable (crédit IA).
                   <span className="mt-1 block text-[12.5px] text-[var(--encre)]">
-                    {v.commande ?? <>À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>}
+                    {v.commande ?? (v.etat === "attention"
+                      ? <>Posée. Pour passer en production : remplacer la valeur de <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>
+                      : <>À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>)}
                   </span>
                 )}
               </span>

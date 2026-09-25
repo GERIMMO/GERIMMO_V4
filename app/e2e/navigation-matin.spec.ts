@@ -18,7 +18,8 @@ test.describe('Tour du matin de la supervision',()=>{
  test('le menu complet est accessible sur ordinateur sans ouvrir le bouton mobile',async({page})=>{
   await page.setViewportSize({width:1440,height:960});await page.goto('/admin/brief');
   await expect(page.getByRole('link',{name:'Aujourd’hui',exact:true})).toBeVisible();
-  await page.locator('summary').filter({hasText:'Dossiers et décisions'}).click();
+  // Menu fixe (25/09) : les rubriques sont toujours déployées, rien à ouvrir.
+  await expect(page.getByRole('heading',{name:'Dossiers et décisions'})).toBeVisible();
   await expect(page.getByRole('link',{name:'Artisans à valider',exact:true})).toBeVisible();
  });
  test('la santé conduit directement au résultat des traitements',async({page})=>{

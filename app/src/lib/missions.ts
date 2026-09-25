@@ -26,6 +26,20 @@ export const MISSIONS={
 } as const satisfies Record<string,{nom:string;equipe:Equipe;heure:string;lien:string}>;
 export type Mission=keyof typeof MISSIONS;
 export function estMission(cle:string):cle is Mission{return Object.hasOwn(MISSIONS,cle);}
+// 25/09 (audit C8/C35) : UNE table de libellés pour toute tâche consignée dans
+// le journal (`tache_<cle>`), lue par Santé, Équipes, Journaux et l'accueil.
+// L'orchestrateur n'est pas une mission commandable (route cron à part), mais
+// il porte le même nom partout.
+export const TACHES_SUIVIES={
+ ...Object.fromEntries((Object.keys(MISSIONS) as Mission[]).map(m=>[m,{nom:MISSIONS[m].nom,equipe:MISSIONS[m].equipe}])),
+ orchestrateur:{nom:'Suivi des dossiers',equipe:'exploitation'},
+} as Record<Mission|'orchestrateur',{nom:string;equipe:Equipe}>;
+export type TacheSuivie=keyof typeof TACHES_SUIVIES;
+export function estTacheSuivie(cle:string):cle is TacheSuivie{return Object.hasOwn(TACHES_SUIVIES,cle);}
+/** Le nom d'une tâche du journal, ou un repli honnête. */
+export function libelleTache(cle:string):string{return estTacheSuivie(cle)?TACHES_SUIVIES[cle].nom:'Travail automatique de Gerimmo';}
+/** « Équipe Finance et fiscalité » pour une tâche connue, sinon null. */
+export function equipeDeLaTache(cle:string):Equipe|null{return estTacheSuivie(cle)?TACHES_SUIVIES[cle].equipe:null;}
 export function missionsDeLEquipe(equipe:Equipe):Mission[]{return (Object.keys(MISSIONS) as Mission[]).filter(m=>MISSIONS[m].equipe===equipe);}
 // Ce que le passage garde de sa réponse : des comptes et des drapeaux, jamais un
 // texte (un message d'erreur peut porter une adresse ou un secret).

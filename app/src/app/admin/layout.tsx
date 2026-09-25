@@ -1,7 +1,7 @@
 import { PresenceSupervision } from "@/components/presence-supervision";
 import Link from "next/link";
 import { aujourdhuiParis } from "@/lib/ged";
-import { NavAdmin } from "./nav-admin";
+import { BoutonMenuSupervision, ColonneSupervision, MenuSupervisionProvider, NavAdmin } from "./nav-admin";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MenuCompte } from "@/components/menu-compte";
@@ -9,51 +9,55 @@ import { SyntheseAlertes } from "@/components/synthese-alertes";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { RechercheSupervision } from "@/components/recherche-supervision";
+import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
+import { faitsManquants } from "@/lib/editeur";
 
 // La supervision reprend le repère latéral des espaces métier. Les actions de
 // sécurité restent dans l'en-tête, visibles sur chaque écran.
 // 24/09 : « Sécurité du compte » et « Se déconnecter » passent dans le menu du
-// compte, le même que dans les espaces agence et locataire. À 390 px, le
-// bandeau tenait sur trois lignes (235 à 300 px avant le titre de la page) ;
-// il tient désormais sur une seule.
+// compte, le même que dans les espaces agence et locataire.
+// 25/09 (audit C26, C6) : au téléphone, UNE barre — logo, menu, décisions,
+// alertes, compte ; la recherche est dans le menu. Le badge « À décider » lit
+// le même calcul que l'accueil et le point du matin.
 export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
   const supabase = await createClient();
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  const [alertes, { data: artisansAValider }, { data: utilisateur }] = await Promise.all([
+  const [alertes, decisions, { data: utilisateur }] = await Promise.all([
     chargerSyntheseAlertes(supabase, { toutes: true }),
-    supabase.rpc("artisans_a_valider"),
+    chargerDecisionsAttendues(supabase, process.env, faitsManquants().length),
     supabase.auth.getUser(),
   ]);
   const courriel = utilisateur.user?.email ?? "";
   // Lecture en échec : pas de pastille plutôt qu'un zéro affirmé.
-  const artisansEnAttente = Array.isArray(artisansAValider) ? artisansAValider.length : 0;
+  const artisansEnAttente = decisions.artisans ?? 0;
 
   return (
-    // Sous 900 px, la colonne devient une rangée : elle garde la hauteur de son
-    // contenu et le corps prend le reste (24/09). Sans rangées explicites, une
-    // page courte laissait 45 à 160 px de vide entre les onglets et le bandeau.
-    <div className="admin-coquille max-[900px]:grid-rows-[auto_minmax(0,1fr)]">
-      <PresenceSupervision />
-      <aside className="admin-late">
-        <Link href="/admin/brief" className="admin-marque" aria-label="Accueil de la supervision">
-          <MarqueGerimmo />
-        </Link>
-        <nav className="admin-nav" aria-label="Navigation de la supervision">
-          <NavAdmin artisansEnAttente={artisansEnAttente} />
-        </nav>
-      </aside>
-      <div className="admin-corps">
-        <header className="bandeau-appli admin-bandeau">
+    <MenuSupervisionProvider>
+      {/* Sous 900 px, la colonne devient une rangée : elle garde la hauteur de son
+          contenu et le corps prend le reste (24/09). */}
+      {/* Ordinateur : colonne + corps. Téléphone : barre haute, puis le menu
+          (seulement ouvert), puis le corps — un seul menu dans la page. */}
+      <div className="admin-coquille min-[901px]:grid-rows-[auto_minmax(0,1fr)] max-[900px]:grid-rows-[auto_auto_minmax(0,1fr)]">
+        <PresenceSupervision />
+        <header className="bandeau-appli admin-bandeau min-[901px]:col-start-2 min-[901px]:row-start-1 max-[900px]:row-start-1">
           <div className="admin-bandeau-interieur">
-            {/* « Supervision », le nom de la barre et du titre (24/09). Sur
-                téléphone, le logo et l'onglet allumé disent déjà où l'on est. */}
-            <Link href="/admin/brief" className="admin-contexte max-sm:hidden">
+            {/* « Supervision », le nom de la barre (24/09). Au téléphone, le
+                logo prend sa place et le bouton du menu le suit. */}
+            <Link href="/admin/brief" className="admin-contexte max-[900px]:hidden">
               Supervision
             </Link>
-            <div className="admin-bandeau-actions">
-              <RechercheSupervision />
+            <div className="admin-bandeau-actions w-full max-[640px]:flex-nowrap!">
+              <Link href="/admin/brief" className="hidden shrink-0 max-[900px]:flex" aria-label="Accueil de la supervision">
+                <MarqueGerimmo className="[&>span]:hidden" />
+              </Link>
+              <BoutonMenuSupervision />
+              <RechercheSupervision masquerSousMobile />
+              <Link href="/admin/brief" className="lien-bandeau ml-auto" aria-label={decisions.total > 0 ? `${decisions.total} décision${decisions.total > 1 ? "s" : ""} à prendre aujourd’hui` : "Aujourd’hui : rien à décider"}>
+                <span className="max-[640px]:hidden">À décider</span>
+                <span className={`puce ml-1.5 max-[640px]:ml-0 ${decisions.total > 0 ? "puce-prep" : "puce-grise"}`}>{decisions.total}</span>
+              </Link>
               <SyntheseAlertes alertes={alertes} modeAdmin rappel aujourdhui={aujourdhuiParis()} />
               <MenuCompte
                 initiales={(courriel[0] ?? "◇").toUpperCase()}
@@ -63,11 +67,21 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
             </div>
           </div>
         </header>
-        {/* Le bas de page passe au-dessus du bouton flottant « Aide et
-            retours » (24/09) : sans cette réserve, la dernière ligne restait
-            dessous. */}
-        <div className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">{children}</div>
+        <ColonneSupervision>
+          <Link href="/admin/brief" className="admin-marque max-[900px]:hidden!" aria-label="Accueil de la supervision">
+            <MarqueGerimmo />
+          </Link>
+          <nav className="admin-nav" aria-label="Navigation de la supervision">
+            <NavAdmin artisansEnAttente={artisansEnAttente} decisions={decisions.total} />
+          </nav>
+        </ColonneSupervision>
+        <div className="admin-corps min-[901px]:col-start-2 min-[901px]:row-start-2 max-[900px]:row-start-3">
+          {/* Le bas de page passe au-dessus du bouton flottant « Aide et
+              retours » (24/09) : sans cette réserve, la dernière ligne restait
+              dessous. */}
+          <div className="portail-ecrans min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))]">{children}</div>
+        </div>
       </div>
-    </div>
+    </MenuSupervisionProvider>
   );
 }

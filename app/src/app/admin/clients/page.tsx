@@ -10,7 +10,8 @@ import {
   trierArtisans,
 } from "@/lib/clients-supervision";
 
-export const metadata = { title: "Clients — Console Gerimmo" };
+// Le nom de l'entrée de menu (audit 25/09, C8).
+export const metadata = { title: "Agences, bailleurs et artisans — Gerimmo" };
 
 /**
  * LES CLIENTS, EN UN SEUL ÉCRAN (demande du porteur du projet, 19/09).
@@ -165,7 +166,7 @@ export default async function PageClients() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <h1>Clients</h1>
+          <h1>Agences, bailleurs et artisans</h1>
           <p className="mt-2 text-sm text-[var(--texte-secondaire)]">
             Les agences et les propriétaires bailleurs sont des clients de
             l&apos;abonnement ; les artisans sont des inscrits dont

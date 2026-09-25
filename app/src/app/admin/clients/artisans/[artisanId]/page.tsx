@@ -127,6 +127,16 @@ export default async function PageFicheArtisan(
           </span>
         </div>
 
+        {/* Une validation sans aucune pièce contredit la règle de l'écran (audit
+            25/09, C13). L'écran le dit ; aucune opération de suspension n'existe
+            encore côté base, on ne l'invente pas. */}
+        {artisan.statut_plateforme === "valide" && !pieces.error && listePieces.length === 0 && (
+          <div role="alert" className="mb-6 border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-[13px] text-[var(--warning-soft-foreground)]">
+            <b>Validé sans justificatif</b> : aucune décennale ni RC pro n&apos;est déposée alors que
+            l&apos;inscription est validée. Demandez les pièces à l&apos;artisan ; la validation ne peut pas
+            être suspendue depuis cet écran pour l&apos;instant.
+          </div>
+        )}
         {artisan.blacklist_globale_le && (
           <div
             role="alert"

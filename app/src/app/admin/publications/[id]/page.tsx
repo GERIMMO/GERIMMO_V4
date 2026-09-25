@@ -5,7 +5,8 @@ import { EditeurPublication } from "./editeur-publication";
 import { sansJargon } from "@/lib/erreurs";
 import { libellePeriode } from "@/lib/periode-publication";
 
-export const metadata = { title: "Écrire un article — Supervision" };
+// Un article existant se MODIFIE (audit 25/09, C18) ; « Écrire » est la page « nouvelle ».
+export const metadata = { title: "Modifier l’article — Supervision" };
 
 const ETATS: Record<string, string> = {
   proposition: "Proposition",
@@ -42,7 +43,7 @@ export default async function PagePublication({ params }: PageProps<"/admin/publ
         ← Tous les articles
       </Link>
       <div className="entete-page mt-2 mb-6">
-        <h1>Écrire un article</h1>
+        <h1>Modifier l’article</h1>
         <span className="mono-discret">
           {etat}
           {periode ? ` · ${periode}` : ""}

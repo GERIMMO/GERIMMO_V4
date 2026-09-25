@@ -4,7 +4,8 @@ import { METIERS, PIECES_ARTISAN } from "@/app/artisan/libelles";
 import { DecisionArtisan } from "./decision-artisan";
 import { RetourDecisionsArtisan } from "./retour-decisions";
 
-export const metadata = { title: "Inscriptions artisan — Gerimmo" };
+// Le nom de l'entrée de menu (audit 25/09, C8).
+export const metadata = { title: "Artisans à valider — Gerimmo" };
 
 type Inscription = { artisan_id: string; raison_sociale: string; siret: string; siret_etat: string; telephone: string | null; email: string | null; metiers: string[] | null; nb_pieces: number; decennale_valide: boolean; rc_pro_deposee: boolean; inscrit_le: string; purge_prevue_le: string | null };
 type Piece = { id: string; artisan_id: string; type: string; expire_le: string | null };
@@ -46,8 +47,9 @@ export default async function InscriptionsArtisan({ searchParams }: {
         rattachées elles aussi à l'entrée « Clients ». La note à liseré qui
         suivait l'en-tête est fondue dans sa phrase d'appui : un seul bloc ;
         mesure-lecture garde la mention « en attente » à droite du titre. */}
-    <Link href="/admin/clients" className="lien-discret text-sm">← Tous les clients</Link>
-    <div className="entete-page mt-2 mb-6"><div><h1>Inscriptions artisan</h1><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée. La validation ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
+    {/* Pas de « ← Tous les clients » (audit 25/09, C14) : la page est rangée
+        sous « Dossiers et décisions », le menu suffit. */}
+    <div className="entete-page mb-6"><div><h1>Artisans à valider</h1><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">Vérifiez l’entreprise, relisez les justificatifs, puis prenez une décision motivée. La validation ne modifie ni la visibilité choisie par l’artisan, ni les contrôles d’assurance appliqués à chaque intervention.</p></div><span className="mono-discret">{file.error ? "File indisponible" : `${inscriptions.length} en attente`}</span></div>
     {file.error ? <p role="alert" className="vide">Impossible de charger les inscriptions. Rechargez pour réessayer.</p> : inscriptions.length === 0 ? <div className="vide-guide"><p className="titre">Aucune inscription en attente</p><p className="explication">Les nouvelles inscriptions apparaîtront ici pour examen.</p><div className="geste"><Link href="/admin/clients" className="btn-secondaire">Voir les artisans inscrits</Link></div></div> : <div className="space-y-5">{inscriptions.map((artisan) => <section key={artisan.artisan_id} className="border border-[var(--filet)] bg-[var(--ivoire)] p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-2"><div><h2 className="font-heading text-xl text-[var(--encre)]">{artisan.raison_sociale}</h2><p className="mt-1 text-sm">{(artisan.metiers ?? []).map((m) => METIERS[m] ?? m).join(" · ") || "Métier non renseigné"}</p></div><span className="puce puce-prep">Depuis le {date(artisan.inscrit_le)}</span></div>
       <dl className="my-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="libelle-champ">SIRET</dt><dd>{artisan.siret} · {ETATS_SIRET[artisan.siret_etat] ?? artisan.siret_etat}</dd></div><div><dt className="libelle-champ">Contact</dt><dd>{artisan.email || "Email non renseigné"}{artisan.telephone && ` · ${artisan.telephone}`}</dd></div></dl>

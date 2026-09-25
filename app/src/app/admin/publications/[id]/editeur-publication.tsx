@@ -116,25 +116,27 @@ export function EditeurPublication(p: Props) {
   }, [modificationsNonEnregistrees]);
 
   // Le bouton d'enregistrement vit dans la colonne d'actions, qui reste
-  // visible au défilement sur bureau (24/09) : il fallait descendre tout le
-  // formulaire pour l'atteindre. Sur téléphone, les actions passent en tête
-  // et le bouton reste aussi au pied du formulaire, là où l'on finit d'écrire.
-  const libelleEnregistrer = paru ? "Enregistrer comme brouillon" : "Enregistrer";
+  // visible au défilement sur bureau (24/09). Sur téléphone, les actions passent
+  // en tête et le bouton reste aussi au pied du formulaire.
+  // 25/09 (audit C17) : « Enregistrer » est le geste principal et laisse un
+  // article paru EN LIGNE. « Passer en brouillon » et « Retirer du journal »
+  // sont secondaires et demandent une confirmation.
+  const [confirmation, setConfirmation] = useState<"brouillon" | "retrait" | null>(null);
   const boutonEnregistrer = (
     <button
       type="submit"
       form={ID_FORMULAIRE}
-      className={`${paru ? "btn-or" : "btn-secondaire"} w-full justify-center ${DESACTIVE}`}
+      className={`btn-or w-full justify-center ${DESACTIVE}`}
       disabled={enregistrement}
     >
       {enregistrement && <Spinner />}
-      {enregistrement ? "Enregistrement…" : libelleEnregistrer}
+      {enregistrement ? "Enregistrement…" : "Enregistrer"}
     </button>
   );
   const retourEnregistrement = (
     <>
-      {paru && <p className="text-[12.5px] leading-snug text-[var(--texte-secondaire)]">L’enregistrement retire l’article du journal. Vous pourrez le faire paraître à nouveau après relecture.</p>}
-      {etat.succes && !paru && <p role="status" className="text-[12.5px] text-[var(--success)]">{etat.succes}</p>}
+      {paru && <p className="text-[12.5px] leading-snug text-[var(--texte-secondaire)]">L’article reste en ligne ; la version enregistrée remplace la précédente dans le journal.</p>}
+      {etat.succes && <p role="status" className="text-[12.5px] text-[var(--success)]">{etat.succes}</p>}
       {etat.erreur && <p role="alert" className="text-[12.5px] text-[var(--destructive)]">{etat.erreur}</p>}
     </>
   );
@@ -222,7 +224,9 @@ export function EditeurPublication(p: Props) {
           </div>
         </section>
 
-        <div className="space-y-2 sm:max-w-xs lg:hidden">
+        {/* Au téléphone, le bouton reste collé en bas de l'écran (audit C18) :
+            il arrivait à 2 000 px sous le formulaire. */}
+        <div className="sticky bottom-[calc(72px+env(safe-area-inset-bottom,0px))] z-10 space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3 shadow-[var(--ombre-portee)] sm:max-w-xs lg:hidden">
           {boutonEnregistrer}
           {retourEnregistrement}
         </div>
@@ -305,9 +309,26 @@ export function EditeurPublication(p: Props) {
                 <span className="sr-only">(nouvel onglet)</span>
               </a>
             )}
-            <form action={actionRetrait}>
-              <Soumettre classe="btn-secondaire">Retirer du journal</Soumettre>
-            </form>
+            {confirmation === null && (
+              <div className="flex flex-col gap-2">
+                <button type="button" className="btn-secondaire w-full justify-center" onClick={() => setConfirmation("brouillon")}>Passer en brouillon</button>
+                <button type="button" className="btn-secondaire w-full justify-center" onClick={() => setConfirmation("retrait")}>Retirer du journal</button>
+              </div>
+            )}
+            {confirmation === "brouillon" && (
+              <div role="group" aria-label="Confirmer le passage en brouillon" className="space-y-2 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] p-3 text-[12.5px] text-[var(--warning-soft-foreground)]">
+                <p>L’article quitte le journal et redevient un brouillon, avec vos modifications en cours. Vous pourrez le faire paraître à nouveau.</p>
+                <button type="submit" form={ID_FORMULAIRE} name="passer_en_brouillon" value="oui" className={`btn-or w-full justify-center ${DESACTIVE}`} disabled={enregistrement} onClick={() => setConfirmation(null)}>Confirmer le passage en brouillon</button>
+                <button type="button" className="btn-secondaire w-full justify-center" onClick={() => setConfirmation(null)}>Annuler</button>
+              </div>
+            )}
+            {confirmation === "retrait" && (
+              <form action={actionRetrait} className="space-y-2 rounded-xl border border-[var(--warning)] bg-[var(--warning-soft)] p-3 text-[12.5px] text-[var(--warning-soft-foreground)]">
+                <p>L’article est retiré du journal public et conservé ici, dans « Retirés ». Les modifications non enregistrées ne sont pas gardées.</p>
+                <Soumettre classe="btn-or">Confirmer le retrait</Soumettre>
+                <button type="button" className="btn-secondaire w-full justify-center" onClick={() => setConfirmation(null)}>Annuler</button>
+              </form>
+            )}
             {etatRetrait.succes && (
               <p className="text-[12.5px] text-[var(--success)]">{etatRetrait.succes}</p>
             )}

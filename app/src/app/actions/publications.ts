@@ -68,6 +68,14 @@ export async function enregistrerPublication(
 
   if (!titre) return { erreur: "Le titre est obligatoire.", valeurs };
 
+  // Enregistrer un article PARU le laisse en ligne (audit 25/09, C17) : le
+  // bouton principal dépubliait sans le dire. « Passer en brouillon » est un
+  // geste distinct, explicite.
+  const { data: actuel } = await supabase.from("publications").select("statut, slug").eq("id", id).maybeSingle();
+  const paru = actuel?.statut === "publiee";
+  const passerEnBrouillon = formData.get("passer_en_brouillon") === "oui";
+  const statut = paru && !passerEnBrouillon ? "publiee" : "brouillon";
+
   const { error } = await supabase
     .from("publications")
     .update({
@@ -79,14 +87,19 @@ export async function enregistrerPublication(
       facebook_texte: facebookTexte || null,
       facebook_image_url: facebookImageUrl || null,
       // Une proposition qu'on commence à écrire cesse d'être une proposition.
-      statut: "brouillon",
+      statut,
     })
     .eq("id", id);
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   revalidatePath(`/admin/publications/${id}`);
   revalidatePath("/admin/publications");
-  return { succes: "Brouillon enregistré." };
+  if (paru) {
+    revalidatePath("/journal");
+    revalidatePath("/");
+    if (actuel?.slug) revalidatePath(`/journal/${actuel.slug}`);
+  }
+  return { succes: statut === "publiee" ? "Modifications enregistrées. L’article reste en ligne." : paru ? "Article passé en brouillon : il n’est plus dans le journal." : "Brouillon enregistré." };
 }
 
 /** Diffuse sur la Page Gerimmo l'article déjà paru, une seule fois. */

@@ -25,7 +25,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      <p className="mb-3 text-sm"><Link href={`/admin/brief${jour === jourDuPoint() ? "" : `?jour=${jour}`}`} className="lien-discret text-sm">← Le point du matin</Link></p>
+      <p className="mb-3 text-sm"><Link href={`/admin/brief${jour === jourDuPoint() ? "" : `?jour=${jour}`}`} className="lien-discret text-sm">← Aujourd’hui</Link></p>
       <div className="entete-page mb-6">
         <h1>Équipe {EQUIPES[equipe].nom}</h1>
         <span className="mono-discret">{dateLongue(jour)}</span>

@@ -9,7 +9,10 @@ import {
 } from "@/app/actions/recherche-supervision";
 import { normaliserRecherche } from "@/lib/recherche-espace";
 
-export function RechercheSupervision() {
+// `masquerSousMobile` (25/09, audit C26) : dans la console, le bouton quitte la
+// barre haute au téléphone ; le menu envoie l'événement `gerimmo:ouvrir-recherche`
+// et la fenêtre s'ouvre ici — une seule fenêtre, un seul raccourci clavier.
+export function RechercheSupervision({ masquerSousMobile = false }: { masquerSousMobile?: boolean }) {
   const [ouverte, ouvrir] = useState(false);
   useEffect(() => {
     const raccourci = (event: KeyboardEvent) => {
@@ -18,11 +21,13 @@ export function RechercheSupervision() {
         ouvrir(true);
       }
     };
+    const depuisLeMenu = () => ouvrir(true);
     window.addEventListener("keydown", raccourci);
-    return () => window.removeEventListener("keydown", raccourci);
+    window.addEventListener("gerimmo:ouvrir-recherche", depuisLeMenu);
+    return () => { window.removeEventListener("keydown", raccourci); window.removeEventListener("gerimmo:ouvrir-recherche", depuisLeMenu); };
   }, []);
   return <>
-    <button type="button" className="recherche-ouvrir" onClick={() => ouvrir(true)} aria-haspopup="dialog" aria-label="Rechercher une agence, un propriétaire ou un artisan">
+    <button type="button" className={`recherche-ouvrir${masquerSousMobile ? " max-[640px]:hidden!" : ""}`} onClick={() => ouvrir(true)} aria-haspopup="dialog" aria-label="Rechercher une agence, un propriétaire ou un artisan">
       <Search className="size-4 shrink-0" aria-hidden="true" />
       <span>Rechercher<span className="hidden xl:inline"> un client…</span></span>
       <kbd className="hidden 2xl:inline">⌘ / Ctrl K</kbd>

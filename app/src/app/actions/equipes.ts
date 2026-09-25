@@ -45,7 +45,7 @@ export async function enregistrerContinuite(_etat:RetourMission,form:FormData):P
  if(!Number.isInteger(jours)||jours<1||jours>90||consignes.length>3000)return {erreur:'Indiquez un délai de 1 à 90 jours et des consignes courtes.'};
  const {error:e}=await db.rpc('enregistrer_plan_continuite',{p_email:email,p_jours:jours,p_consignes:consignes});
  if(e)return {erreur:'Vérifiez que le remplaçant est un autre superviseur permanent déjà habilité.'};
- revalidatePath('/admin/equipes');return {succes:'Le plan de continuité est enregistré.'};
+ revalidatePath('/admin/autonomie');revalidatePath('/admin/equipes');return {succes:'Le plan de continuité est enregistré.'};
 }
 // Les mêmes connexions que l'écran « Équipe qualité » (25/09) : préparer
 // (GitHub), vérifier la démonstration (Vercel) et l'autorisation de l'atelier.

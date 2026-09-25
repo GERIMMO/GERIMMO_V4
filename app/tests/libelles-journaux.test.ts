@@ -3,7 +3,7 @@ import { libelleAccesDocument, libelleActionAudit, libelleEvenement } from "../s
 
 describe("libellés des journaux", () => {
   it("traduit les tâches automatiques", () => {
-    expect(libelleEvenement("tache_quittances_succes")).toBe("Envoi des quittances");
+    expect(libelleEvenement("tache_quittances_succes")).toBe("Quittances");
     expect(libelleEvenement("tache_veille")).toBe("Veille réglementaire");
     expect(libelleEvenement("tache_orchestrateur")).toBe("Suivi des dossiers");
   });

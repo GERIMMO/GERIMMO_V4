@@ -2,23 +2,30 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
 import { faitsManquants } from "@/lib/editeur";
+import { EQUIPES } from "@/lib/missions";
 import {
   adoptionAutomatique,
   chargerSante,
   type Etat,
   type EtatTache,
   type OrganisationPourAdoption,
+  type Prestataire,
 } from "@/lib/sante-service";
+import { LancerMission } from "./lancer-mission";
 
-export const metadata = { title: "Santé du service — Gerimmo" };
+// Le nom de l'entrée de menu (audit 25/09, C8).
+export const metadata = { title: "Santé et connexions — Gerimmo" };
 
 // Ce qui est posé, ce qui tourne, ce qui manque — sur un seul écran.
 //
 // Né de la préparation du lancement (20/09) : la tâche des abonnements
 // n'avait jamais tourné en production, faute de Stripe, et rien ne le disait.
-// Cet écran se lit chaque matin la première semaine, puis quand un doute
-// naît. Il ne montre JAMAIS une valeur d'environnement : la présence d'un
-// secret est une information, le secret n'en est pas une ici.
+// Il ne montre JAMAIS une valeur d'environnement : la présence d'un secret est
+// une information, le secret n'en est pas une ici.
+//
+// 25/09 (audit C5) : chaque ligne rouge porte la commande qui la règle — le nom
+// de la variable et le prestataire chez qui l'obtenir, « Lancer maintenant »
+// pour une tâche, ou l'aveu qu'aucun écran ne règle encore le point.
 
 const PUCE_ETAT: Record<Etat, { classe: string; libelle: string }> = {
   ok: { classe: "puce-loue", libelle: "posée" },
@@ -34,6 +41,17 @@ const PUCE_TACHE: Record<EtatTache, { classe: string; libelle: string }> = {
   // Comme la sandbox Youtrust dans la liste des connexions (25/09) : à
   // vérifier, pas en échec — la connexion manquante est déjà comptée plus haut.
   non_configuree: { classe: "puce-prep", libelle: "non configurée — à vérifier" },
+};
+
+// Où la valeur s'obtient, sans lien inventé : le tableau de bord du prestataire
+// la fournit, et elle se pose dans les variables d'environnement du projet
+// Vercel (production), puis redéploiement.
+const OU_OBTENIR: Record<Prestataire, string> = {
+  Stripe: "tableau de bord Stripe (Développeurs → Clés API / Webhooks / Produits)",
+  Resend: "tableau de bord Resend (Clés API / Domaines)",
+  Yousign: "espace Yousign (API / Webhooks)",
+  Vercel: "à choisir par le responsable technique",
+  Supabase: "tableau de bord Supabase (Réglages du projet → API)",
 };
 
 export default async function PageSante() {
@@ -53,14 +71,11 @@ export default async function PageSante() {
   const adoption = orgs.error
     ? null
     : adoptionAutomatique((orgs.data ?? []) as OrganisationPourAdoption[]);
+  const cronPose = configuration.find((v) => v.cle === "CRON_SECRET")?.etat === "ok";
 
   const nbManque = configuration.filter((v) => v.etat === "manque").length;
   const nbAttention = configuration.filter((v) => v.etat === "attention").length;
   const nbPoints = taches === null ? null : sante.bloquants;
-  // Le total se détaille (24/09) : « 20 points à traiter · 10 connexions
-  // manquantes » ne disait pas d'où venaient les dix autres, et « 1 à
-  // vérifier » ne comptait pas dans les vingt. Même décompte que
-  // pointsBloquants (lib/sante-service.ts).
   const nbJamais = taches?.filter((t) => t.etat === "jamais").length ?? 0;
   const nbEchec = taches?.filter((t) => t.etat === "echec").length ?? 0;
   const nbNonConfigurees = taches?.filter((t) => t.etat === "non_configuree").length ?? 0;
@@ -80,14 +95,12 @@ export default async function PageSante() {
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-      {/* Un seul en-tête, sans fil d'Ariane (24/09) : il répétait le
-          bandeau et l'onglet allumé. */}
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <h1>Santé du service</h1>
+          <h1>Santé et connexions</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Les services reliés à Gerimmo, le travail réalisé automatiquement et
-            les points qui demandent votre attention.
+            Les services reliés à Gerimmo, le travail réalisé automatiquement et,
+            pour chaque point rouge, la commande qui le règle.
           </p>
         </div>
         <span className="mono-discret sans-majuscules max-w-full whitespace-normal">
@@ -117,6 +130,12 @@ export default async function PageSante() {
                     {v.detail}
                   </span>
                 )}
+                {v.etat !== "ok" && (
+                  // La commande de la ligne : la variable, et où la trouver.
+                  <span className="mt-1 block text-[12.5px] text-[var(--encre)]">
+                    À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.
+                  </span>
+                )}
               </span>
               <span className={`puce ${PUCE_ETAT[v.etat].classe}`}>{PUCE_ETAT[v.etat].libelle}</span>
             </li>
@@ -124,8 +143,8 @@ export default async function PageSante() {
         </ul>
         <p className="mt-2 text-xs text-muted-foreground">
           Gerimmo vérifie chaque connexion sans afficher de clé ni de donnée
-          confidentielle. Lorsqu&apos;une connexion manque, raccordez le service concerné
-          avant d&apos;activer la fonction.
+          confidentielle. Aucun écran de Gerimmo ne pose une variable : elle se
+          pose chez Vercel, puis le service est redéployé.
         </p>
       </section>
 
@@ -147,11 +166,11 @@ export default async function PageSante() {
         ) : (
           <ul className="divide-y divide-[var(--filet)] border border-[var(--filet)] bg-[var(--ivoire)]">
             {taches.map((t) => (
-              <li key={t.nom} className="flex flex-wrap items-start gap-x-4 gap-y-1 p-3.5">
+              <li key={t.nom} className="flex flex-wrap items-start gap-x-4 gap-y-2 p-3.5">
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-medium text-[13.5px] text-[var(--encre)]">{t.libelle}</span>
-                    <span className="mono-discret sans-majuscules">{t.horaire}</span>
+                    <span className="mono-discret sans-majuscules">Équipe {EQUIPES[t.equipe].nom} · {t.horaire}</span>
                   </span>
                   <span className="block text-[13px] text-[var(--texte-secondaire)]">{t.role}</span>
                   <span className="mt-0.5 block text-[12.5px] text-[var(--texte-secondaire)]">
@@ -164,6 +183,16 @@ export default async function PageSante() {
                       "Gerimmo n’a encore enregistré aucun passage."
                     )}
                   </span>
+                  {/* La commande de la ligne (audit C5). */}
+                  {(t.etat === "jamais" || t.etat === "echec" || t.etat === "retard") && (
+                    <span className="mt-2 block">
+                      {t.commandable ? (
+                        cronPose ? <LancerMission mission={t.nom} /> : <span className="text-[12.5px] text-[var(--encre)]">« Lancer maintenant » sera possible une fois <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">CRON_SECRET</code> posé (ci-dessus).</span>
+                      ) : (
+                        <Link href="/admin/autonomie" className="lien-discret text-[12.5px]">Actualiser les prochaines étapes dans Dossiers et évolutions →</Link>
+                      )}
+                    </span>
+                  )}
                 </span>
                 <span className={`puce ${PUCE_TACHE[t.etat].classe}`}>{PUCE_TACHE[t.etat].libelle}</span>
               </li>
@@ -173,7 +202,7 @@ export default async function PageSante() {
         <p className="mt-2 text-xs text-muted-foreground">
           Une pastille verte confirme un passage récent. Une pastille rouge
           demande une vérification. L&apos;historique est conservé pendant six mois.
-          {" "}{NOTE_FUSEAU}
+          {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Pause et reprise des missions →</Link>
         </p>
       </section>
 
@@ -193,10 +222,6 @@ export default async function PageSante() {
             conditions et confidentialité sont publiables.
           </p>
         ) : (
-          // Où et comment compléter (24/09) : la phrase énumérait huit faits
-          // et demandait de les « transmettre une seule fois », sans dire où.
-          // Ils sont des constantes de lib/editeur.ts : aucun formulaire ne
-          // les saisit.
           <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3.5 text-sm">
             <p>
               Les mentions légales, les conditions et la page confidentialité
@@ -216,10 +241,11 @@ export default async function PageSante() {
                 );
               })}
             </ul>
-            <p className="mt-3 text-[12.5px] text-[var(--texte-secondaire)]">
-              Préparez les informations exactes de votre entreprise pour
-              finaliser ces documents avant l&apos;ouverture commerciale.
-              Leur mise à jour sera reprise sur les trois pages publiques.
+            {/* Pas d'invention (audit C5) : aucun écran ne saisit ces faits. */}
+            <p className="mt-3 text-[12.5px] text-[var(--encre)]">
+              Aucun écran de Gerimmo ne les saisit encore : ils se renseignent
+              dans la configuration du service par le responsable technique, puis
+              les trois pages publiques les reprennent.
             </p>
             <p className="mt-1.5">
               <Link href="/mentions-legales" className="lien-discret text-[12.5px]">
@@ -237,8 +263,6 @@ export default async function PageSante() {
             Envois automatiques
           </h2>
           <span className="mono-discret">
-            {/* « Vivantes » était un mot interne (24/09) : la console dit
-                « active » et « en essai ». */}
             {adoption ? `${adoption.vivantes} organisation${adoption.vivantes > 1 ? "s" : ""} active${adoption.vivantes > 1 ? "s" : ""} ou en essai` : "—"}
           </span>
         </div>
@@ -249,7 +273,7 @@ export default async function PageSante() {
             {[
               ["Avis d'échéance", adoption.appels],
               ["Quittances", adoption.quittances],
-              ["Relances d'impayé", adoption.relances],
+              ["Relances de loyers", adoption.relances],
               ["Tout à la main", adoption.toutManuel],
             ].map(([libelle, n]) => (
               <div key={String(libelle)} className={`kpi ${libelle === "Tout à la main" && Number(n) > 0 ? "ambre" : "bleu"}`}>
@@ -266,6 +290,8 @@ export default async function PageSante() {
           Chaque organisation active ses envois dans son profil ; l&apos;assistant
           et le parcours de démarrage le lui proposent. Une organisation « tout à
           la main » clique là où Gerimmo pourrait faire seul.
+          {/* La commande de la section (audit C36) : les organisations, pas un chiffre seul. */}
+          {" "}<Link href="/admin/clients" className="lien-discret">Voir les organisations →</Link>
         </p>
       </section>
     </main>

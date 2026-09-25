@@ -6,9 +6,9 @@ test.describe('Tour du matin de la supervision',()=>{
  test.beforeEach(async({page})=>{await sansSyntheseAlertes(page);});
  test('arrive sur Aujourd’hui et retrouve les destinations dans le menu mobile',async({page})=>{
   await page.goto('/espaces');await expect(page).toHaveURL(/\/admin\/brief/);
-  await expect(page.getByRole('heading',{name:'Le point du matin',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Aujourd’hui',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();
-  await page.locator('summary').filter({hasText:'Développement commercial'}).click();
+  await page.getByRole('navigation',{name:'Navigation de la supervision'}).locator('summary').filter({hasText:'Développement commercial'}).click();
   await page.getByRole('link',{name:'Demandes commerciales',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Demandes commerciales',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Menu supervision',exact:true})).toHaveAttribute('aria-expanded','false');
@@ -23,7 +23,7 @@ test.describe('Tour du matin de la supervision',()=>{
  });
  test('la santé conduit directement au résultat des traitements',async({page})=>{
   await page.goto('/admin/sante');
-  const contenu=page.getByRole('main').filter({has:page.getByRole('heading',{name:'Santé du service',exact:true})});
+  const contenu=page.getByRole('main').filter({has:page.getByRole('heading',{name:'Santé et connexions',exact:true})});
   await expect(contenu).toBeVisible();
   await expect(contenu).not.toContainText('lib/editeur.ts');
   await page.getByRole('link',{name:'Voir l’historique →'}).or(page.getByRole('link',{name:"Voir l'historique →"})).click();

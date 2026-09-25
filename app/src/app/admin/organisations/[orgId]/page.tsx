@@ -98,12 +98,18 @@ export default async function PageAdminOrganisation(
     lignesParrainage.find((p) => p.filleul_organization_id === orgId)?.parrain?.name ?? null;
 
   const famille = familleOrganisation(organisation.type);
-  const adresse = [
-    organisation.address_line1,
-    [organisation.postal_code, organisation.city].filter(Boolean).join(" "),
-  ]
-    .filter(Boolean)
-    .join(", ");
+  // Sept « Non renseignée » ne disent qu'une chose (audit 25/09, C12) : l'identité
+  // n'est pas remplie. Une ligne le dit, avec le geste ; les champs remplis s'affichent.
+  const champs: [string, string | null | undefined][] = [
+    ["Adresse", [organisation.address_line1, [organisation.postal_code, organisation.city].filter(Boolean).join(" ")].filter(Boolean).join(", ") || null],
+    ["Email de contact", organisation.email_contact],
+    ["Téléphone", organisation.telephone],
+    ["SIRET", organisation.siret],
+    ...(famille === "agence" ? ([["Carte professionnelle", organisation.carte_pro], ["Garantie financière", organisation.garantie_financiere]] as [string, string | null][]) : []),
+    ["TVA", organisation.tva_franchise ? "Franchise en base" : organisation.tva_intracom],
+  ];
+  const renseignes = champs.filter(([, v]) => v);
+  const manquants = champs.filter(([, v]) => !v).map(([l]) => l.toLowerCase());
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
@@ -164,26 +170,14 @@ export default async function PageAdminOrganisation(
             Ouvrir son profil →
           </Link>
         </div>
+        {manquants.length > 0 && (
+          <p className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--filet)] bg-[var(--filet-leger)] p-3 text-sm">
+            <span>{renseignes.length === 0 ? "Identité non renseignée" : `À compléter : ${manquants.join(", ")}`}</span>
+            <Link href={`/agence/${orgId}/profil`} className="btn-secondaire">Compléter</Link>
+          </p>
+        )}
         <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
-          <Info libelle="Adresse">{adresse || "Non renseignée"}</Info>
-          <Info libelle="Email de contact">{organisation.email_contact || "Non renseigné"}</Info>
-          <Info libelle="Téléphone">{organisation.telephone || "Non renseigné"}</Info>
-          <Info libelle="SIRET">{organisation.siret || "Non renseigné"}</Info>
-          {famille === "agence" && (
-            <>
-              <Info libelle="Carte professionnelle">
-                {organisation.carte_pro || "Non renseignée"}
-              </Info>
-              <Info libelle="Garantie financière">
-                {organisation.garantie_financiere || "Non renseignée"}
-              </Info>
-            </>
-          )}
-          <Info libelle="TVA">
-            {organisation.tva_franchise
-              ? "Franchise en base"
-              : organisation.tva_intracom || "Numéro non renseigné"}
-          </Info>
+          {renseignes.map(([libelle, valeur]) => <Info key={libelle} libelle={libelle}>{valeur}</Info>)}
           {/* La ligne ne sert que pour un essai (24/09) : ailleurs, elle
               répétait la puce de l'en-tête, au féminin sur « abonnement ». */}
           {organisation.status === "essai" && organisation.essai_fin && (

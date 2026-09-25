@@ -93,11 +93,13 @@ function Section({
   explication,
   publications,
   vide,
+  pied,
 }: {
   titre: string;
   explication: string;
   publications: Publication[];
   vide?: React.ReactNode;
+  pied?: React.ReactNode;
 }) {
   if (publications.length === 0 && !vide) return null;
   return (
@@ -118,6 +120,7 @@ function Section({
           ))}
         </div>
       )}
+      {publications.length > 0 && pied}
     </section>
   );
 }
@@ -143,18 +146,20 @@ export default async function PageJournalAdmin() {
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-2">
         <h1>Articles du journal</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link>
-          <BoutonChercherSujets />
-        </div>
+        <Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link>
       </div>
-      <p className="mesure-lecture mb-6 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
-        Chaque lundi à 6 h, Gerimmo regarde le calendrier du métier et propose
-        les sujets dont c&apos;est le moment. Une proposition apporte un angle, un
-        plan et sa source dans le référentiel — <strong>jamais un chiffre</strong>.
-        Les faits datés sont laissés en blanc, et un article ne peut pas paraître
-        tant qu&apos;il en reste un.
-      </p>
+      {/* Un seul « Chercher des sujets » (audit 25/09, C16) : dans la section
+          « À écrire », là où le résultat arrive. La doctrine se replie. */}
+      <details className="mb-6 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
+        <summary className="cursor-pointer">Comment les sujets arrivent</summary>
+        <p className="mesure-lecture mt-2">
+          Chaque lundi à 6 h, Gerimmo regarde le calendrier du métier et propose
+          les sujets dont c&apos;est le moment. Une proposition apporte un angle, un
+          plan et sa source dans le référentiel — <strong>jamais un chiffre</strong>.
+          Les faits datés sont laissés en blanc, et un article ne peut pas paraître
+          tant qu&apos;il en reste un.
+        </p>
+      </details>
 
       {error && <div role="alert" className="err">Le journal n’a pas pu être chargé. Rechargez la page : ce n’est pas une file vide.</div>}
 
@@ -179,6 +184,7 @@ export default async function PageJournalAdmin() {
           titre="À écrire"
           explication="Le sujet est arrivé à son moment. Ouvrez-le pour compléter les faits datés et l'amener à parution."
           publications={propositions}
+          pied={propositions.length > 0 ? <div className="mt-3"><BoutonChercherSujets /></div> : undefined}
           vide={
             <div className="vide-guide">
               <p className="titre">Aucun sujet en attente</p>

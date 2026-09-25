@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {useState} from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
 const GROUPES = [
@@ -12,17 +12,48 @@ const GROUPES = [
   { titre: "Réglages et sécurité", entrees: [["/admin/sante", "Santé et connexions"], ["/admin/journaux", "Historique et conservation"], ["/admin/autonomie#continuite", "Relais en mon absence"]] },
 ];
 
-export function NavAdmin({ artisansEnAttente = 0 }: { artisansEnAttente?: number }) {
-  const chemin = usePathname();
+// 25/09 (audit C26) : au téléphone, trois barres se superposaient avant le
+// contenu (logo, « Menu supervision », recherche/alertes). Le bouton du menu
+// vit désormais DANS la barre haute ; le panneau s'ouvre dessous. L'état est
+// partagé par ce contexte entre le bouton (bandeau) et le panneau.
+const MenuSupervision = createContext<{ ouvert: boolean; basculer: () => void; fermer: () => void }>({ ouvert: false, basculer: () => {}, fermer: () => {} });
+
+export function MenuSupervisionProvider({ children }: { children: ReactNode }) {
   const [ouvert, setOuvert] = useState(false);
+  return <MenuSupervision.Provider value={{ ouvert, basculer: () => setOuvert((o) => !o), fermer: () => setOuvert(false) }}>{children}</MenuSupervision.Provider>;
+}
+
+/** Le bouton du menu, posé dans la barre haute ; visible sous 900 px seulement (classe commune). */
+export function BoutonMenuSupervision() {
+  const { ouvert, basculer } = useContext(MenuSupervision);
+  return <button type="button" className="admin-menu-mobile w-auto! shrink-0" aria-label={ouvert ? "Fermer le menu" : "Menu supervision"} aria-expanded={ouvert} aria-controls="menu-supervision" onClick={basculer}>{ouvert ? "Fermer" : "Menu"}</button>;
+}
+
+/** La colonne latérale : toujours là sur ordinateur ; au téléphone, seulement quand le menu est ouvert (un seul menu dans la page). */
+export function ColonneSupervision({ children }: { children: ReactNode }) {
+  const { ouvert } = useContext(MenuSupervision);
+  return <aside id="menu-supervision" className={`admin-late min-[901px]:col-start-1 min-[901px]:row-start-1 min-[901px]:row-span-2 max-[900px]:row-start-2${ouvert ? "" : " max-[900px]:hidden!"}`}>{children}</aside>;
+}
+
+function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: number; decisions: number; auClic?: () => void }) {
+  const chemin = usePathname();
   const actif = (href: string) => !href.includes("#") && (href === "/admin" ? chemin === href : chemin === href || chemin.startsWith(`${href}/`) || href === "/admin/clients" && chemin.startsWith("/admin/organisations/"));
-  return <div className="admin-menu-conteneur">
-    <button type="button" className="admin-menu-mobile" aria-expanded={ouvert} aria-controls="menu-supervision" onClick={() => setOuvert(!ouvert)}>{ouvert ? "Fermer le menu" : "Menu supervision"}</button>
-    <div id="menu-supervision" className={`admin-menu-groupes ${ouvert ? "ouvert" : "ferme"}`} key={chemin} onClick={e => {if ((e.target as HTMLElement).closest("a")) setOuvert(false);}}>
-    <Link href="/admin/brief" className="admin-nav-lien" aria-current={actif("/admin/brief") ? "page" : undefined}>Aujourd’hui</Link>
-    {GROUPES.map(g => <details key={g.titre} open={g.entrees.some(([href]) => actif(href))} className="admin-menu-groupe">
+  return <div className="admin-menu-groupes" key={chemin} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) auClic?.(); }}>
+    {/* Le même chiffre que la barre haute et l'accueil (lib/decisions-attendues.ts). */}
+    <Link href="/admin/brief" className="admin-nav-lien" aria-current={actif("/admin/brief") ? "page" : undefined}>Aujourd’hui{decisions > 0 && <span className="coquille-badge ml-2" aria-hidden title={`${decisions} décision${decisions > 1 ? "s" : ""} attendue${decisions > 1 ? "s" : ""}`}>{decisions}</span>}</Link>
+    {GROUPES.map((g) => <details key={g.titre} open={g.entrees.some(([href]) => actif(href))} className="admin-menu-groupe">
       <summary>{g.titre}{g.titre === "Dossiers et décisions" && artisansEnAttente > 0 && <span className="coquille-badge ml-2" aria-label={`${artisansEnAttente} artisans à valider`}>{artisansEnAttente}</span>}</summary>
       <div>{g.entrees.map(([href, libelle]) => <Link key={href} href={href} className="admin-nav-lien" aria-current={actif(href) ? "page" : undefined}>{libelle}</Link>)}</div>
     </details>)}
-  </div></div>;
+  </div>;
+}
+
+/** La navigation de la colonne latérale (ordinateur). */
+export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number; decisions?: number }) {
+  const { fermer } = useContext(MenuSupervision);
+  return <div className="admin-menu-conteneur">
+    {/* Au téléphone, la recherche vit dans le menu (audit C26) ; la fenêtre est celle de la barre haute. */}
+    <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}>Rechercher un client…</button>
+    <Groupes artisansEnAttente={artisansEnAttente} decisions={decisions} auClic={fermer} />
+  </div>;
 }

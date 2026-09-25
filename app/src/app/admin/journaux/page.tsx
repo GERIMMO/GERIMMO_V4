@@ -28,7 +28,8 @@ function pageDe(valeur: string | undefined): number {
   return Number.isInteger(n) && n >= 1 && n <= PAGE_MAX ? n : 1;
 }
 
-export const metadata = { title: "Journaux et conservation — Gerimmo" };
+// Le nom de l'entrée de menu (audit 25/09, C8).
+export const metadata = { title: "Historique et conservation — Gerimmo" };
 
 const SORTS: Record<string, string> = {
   suppression: "Suppression",
@@ -45,6 +46,12 @@ type Regle = {
   duree_mois: number;
   sort: string;
 };
+
+// La finalité se lit sans la trace de décision interne « (décision 2026-07-25 :
+// gestion + 5 ans) » que la base conserve (audit 25/09, C11).
+function finalite(texte: string): string {
+  return texte.replace(/\s*\(décision [^)]*\)/g, "").trim();
+}
 
 function duree(mois: number): string {
   if (mois === 0) return "Immédiate";
@@ -168,7 +175,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
   if (e1 || e2 || e3 || e4 || e5) {
     return (
       <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-        <h1>Journaux et conservation</h1>
+        <h1>Historique et conservation</h1>
         <div className="vide mt-4">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
@@ -198,11 +205,18 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-      {/* Un seul en-tête, comme les autres pages de la console (24/09) : le
-          fil d'Ariane répétait le bandeau et l'onglet allumé. */}
-      <BoutonPurge fichiersEnAttente={enAttente ?? 0}>
-        <h1>Journaux et conservation</h1>
-      </BoutonPurge>
+      {/* Un seul en-tête (24/09). Les journaux — le motif de la visite — viennent
+          en premier (audit 25/09, C11) ; les règles et le nettoyage, en bas. */}
+      <div className="entete-page mb-6">
+        <div className="min-w-0 flex-[1_1_20rem]">
+          <h1>Historique et conservation</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Les actions sensibles, le travail automatique et les consultations de
+            pièces, puis les règles qui fixent combien de temps tout cela est gardé.
+          </p>
+        </div>
+        <a href="#conservation" className="lien-discret text-sm">Règles et nettoyage ↓</a>
+      </div>
 
       <FiltresJournaux
         filtres={filtres}
@@ -211,72 +225,6 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">
-              Règles de conservation ({toutes.length})
-            </CardTitle>
-            <CardDescription>
-              Chaque catégorie possède une durée justifiée et une action prévue
-              à la fin. Gerimmo applique ces règles chaque nuit et lorsque vous
-              lancez le nettoyage ci-dessus.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Sur téléphone, une règle par carte : sans largeur minimale, le
-                tableau écrasait ses colonnes mot par mot (24/09). */}
-            <div className="space-y-4 sm:hidden">
-              {groupes.map(([groupe, liste]) => (
-                <div key={groupe}>
-                  <p className="libelle-champ mb-1">{groupe}</p>
-                  <ul className="divide-y">
-                    {liste.map((r) => (
-                      <li key={r.id} className="py-2.5 text-sm">
-                        <p className="font-medium">{r.libelle}</p>
-                        <p className="mt-0.5 text-muted-foreground">{r.finalite}</p>
-                        <p className="mt-1 text-[13px]">
-                          {r.declencheur} · {duree(r.duree_mois)} · {SORTS[r.sort] ?? r.sort}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-            <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="libelle-champ py-2 pr-4 font-normal">Type de donnée</th>
-                    <th className="libelle-champ py-2 pr-4 font-normal">Finalité</th>
-                    <th className="libelle-champ py-2 pr-4 font-normal">Déclencheur</th>
-                    <th className="libelle-champ py-2 pr-4 font-normal">Durée</th>
-                    <th className="libelle-champ py-2 font-normal">Sort final</th>
-                  </tr>
-                </thead>
-                {groupes.map(([groupe, liste]) => (
-                  <tbody key={groupe}>
-                    <tr className="border-b bg-[var(--filet-leger)]">
-                      <th colSpan={5} scope="colgroup" className="py-1.5 pl-2 text-left text-[13px] font-semibold text-[var(--encre)]">
-                        {groupe}
-                      </th>
-                    </tr>
-                    {liste.map((r) => (
-                      <tr key={r.id} className="border-b last:border-0">
-                        <td className="py-2 pr-4 font-medium">{r.libelle}</td>
-                        <td className="py-2 pr-4 text-muted-foreground">{r.finalite}</td>
-                        <td className="py-2 pr-4 text-muted-foreground">{r.declencheur}</td>
-                        <td className="py-2 pr-4">{duree(r.duree_mois)}</td>
-                        <td className="py-2">{SORTS[r.sort] ?? r.sort}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                ))}
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Journal d&apos;audit</CardTitle>
@@ -416,6 +364,75 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
               </ul>
             )}
             <PagesJournal cle="p_acces" page={pages.acces} suite={suite.acces} filtres={filtres} pages={pages} />
+          </CardContent>
+        </Card>
+        <Card id="conservation" className="scroll-mt-6 lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Conservation et nettoyage</CardTitle>
+            <CardDescription>
+              Gerimmo applique chaque nuit les règles ci-dessous. Le nettoyage
+              manuel les applique tout de suite et supprime les fichiers en attente
+              {enAttente ? ` (${enAttente} en attente)` : ""}.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <BoutonPurge fichiersEnAttente={enAttente ?? 0} />
+            <details>
+              <summary className="cursor-pointer text-sm font-medium">Règles de conservation ({toutes.length})</summary>
+              <div className="mt-3">
+            {/* Sur téléphone, une règle par carte : sans largeur minimale, le
+                tableau écrasait ses colonnes mot par mot (24/09). */}
+            <div className="space-y-4 sm:hidden">
+              {groupes.map(([groupe, liste]) => (
+                <div key={groupe}>
+                  <p className="libelle-champ mb-1">{groupe}</p>
+                  <ul className="divide-y">
+                    {liste.map((r) => (
+                      <li key={r.id} className="py-2.5 text-sm">
+                        <p className="font-medium">{r.libelle}</p>
+                        <p className="mt-0.5 text-muted-foreground">{finalite(r.finalite)}</p>
+                        <p className="mt-1 text-[13px]">
+                          {r.declencheur} · {duree(r.duree_mois)} · {SORTS[r.sort] ?? r.sort}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left">
+                    <th className="libelle-champ py-2 pr-4 font-normal">Type de donnée</th>
+                    <th className="libelle-champ py-2 pr-4 font-normal">Finalité</th>
+                    <th className="libelle-champ py-2 pr-4 font-normal">Déclencheur</th>
+                    <th className="libelle-champ py-2 pr-4 font-normal">Durée</th>
+                    <th className="libelle-champ py-2 font-normal">Sort final</th>
+                  </tr>
+                </thead>
+                {groupes.map(([groupe, liste]) => (
+                  <tbody key={groupe}>
+                    <tr className="border-b bg-[var(--filet-leger)]">
+                      <th colSpan={5} scope="colgroup" className="py-1.5 pl-2 text-left text-[13px] font-semibold text-[var(--encre)]">
+                        {groupe}
+                      </th>
+                    </tr>
+                    {liste.map((r) => (
+                      <tr key={r.id} className="border-b last:border-0">
+                        <td className="py-2 pr-4 font-medium">{r.libelle}</td>
+                        <td className="py-2 pr-4 text-muted-foreground">{finalite(r.finalite)}</td>
+                        <td className="py-2 pr-4 text-muted-foreground">{r.declencheur}</td>
+                        <td className="py-2 pr-4">{duree(r.duree_mois)}</td>
+                        <td className="py-2">{SORTS[r.sort] ?? r.sort}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                ))}
+              </table>
+            </div>
+              </div>
+            </details>
           </CardContent>
         </Card>
       </div>

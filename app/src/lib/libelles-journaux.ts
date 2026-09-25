@@ -1,3 +1,5 @@
+import { TACHES_SUIVIES } from "./missions";
+
 const ACTIONS: Record<string, string> = {
   consultation_organisation: "Consultation d’une organisation",
   traversee_espace: "Consultation d’un espace client par la supervision",
@@ -29,18 +31,11 @@ const ACTIONS: Record<string, string> = {
   developpement_decide: "Décision sur une amélioration du logiciel",
 };
 
-const TACHES: Record<string, string> = {
-  orchestrateur: "Suivi des dossiers",
-  signatures: "Classement des signatures terminées",
-  abonnements: "Suivi des abonnements",
-  rappels: "Envoi des rappels de rendez-vous",
-  quittances: "Envoi des quittances",
-  appels: "Envoi des avis d’échéance",
-  relances: "Envoi des relances d’impayé",
-  marketing: "Travail de l’agent marketing",
-  territoire: "Étude du développement territorial",
-  veille: "Veille réglementaire",
-};
+// Les noms des tâches viennent de la table partagée (lib/missions.ts, 25/09) :
+// Santé, Équipes et Journaux disaient trois noms pour la même mission.
+const TACHES: Record<string, string> = Object.fromEntries(
+  Object.entries(TACHES_SUIVIES).map(([cle, t]) => [cle, t.nom])
+);
 
 /** Traduit une trace interne sans jamais exposer son code brut à l'écran. */
 export function libelleActionAudit(action: string | null | undefined): string {

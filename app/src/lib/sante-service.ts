@@ -67,6 +67,10 @@ const LIBELLES_BILAN: Record<string, string> = {
   avoirs_en_echec: "avoirs à reprendre",
   sans_adresse: "adresses manquantes",
   facebook: "publication sur Facebook",
+  octets: "octets de base",
+  fichiers: "fichiers copiés",
+  prefixe: "dossier",
+  etape: "arrêt à l’étape",
   publiciteActive: "publicité autorisée",
   budgetMensuelCents: "budget mensuel",
   publiees: "publications diffusées",
@@ -240,7 +244,7 @@ export function etatConfiguration(env: Env): Verification[] {
 
 // ── Les tâches planifiées ────────────────────────────────────────────────────
 
-export type Periodicite = "continue" | "quotidienne" | "mensuelle";
+export type Periodicite = "continue" | "quotidienne" | "hebdomadaire" | "mensuelle";
 
 export type Tache = {
   nom: string;
@@ -268,6 +272,7 @@ const ROLES: Record<keyof typeof TACHES_SUIVIES, [role: string, horaire: string]
   veille: ["Collecte les actualités officielles et prépare leur étude", "Chaque matin"],
   marketing: ["Prépare et diffuse les contenus autorisés", "Chaque matin"],
   territoire: ["Actualise le marché et prépare la prochaine priorité territoriale", "Chaque matin"],
+  sauvegarde: ["Copie chiffrée de la base et des fichiers chez Scaleway, relue après dépôt (chantier GitHub)", "Chaque dimanche"],
 };
 
 /**
@@ -276,15 +281,16 @@ const ROLES: Record<keyof typeof TACHES_SUIVIES, [role: string, horaire: string]
  * disait « Relances de loyers ».
  */
 export const TACHES: Tache[] = (
-  ["orchestrateur", "signatures", "abonnements", "rappels", "quittances", "appels", "relances", "veille", "marketing", "territoire"] as const
+  ["orchestrateur", "signatures", "abonnements", "rappels", "quittances", "appels", "relances", "veille", "marketing", "territoire", "sauvegarde"] as const
 ).map((nom) => ({
   nom,
   libelle: TACHES_SUIVIES[nom].nom,
   equipe: TACHES_SUIVIES[nom].equipe,
   role: ROLES[nom][0],
   horaire: ROLES[nom][1],
-  periodicite: "quotidienne" as const,
-  commandable: nom !== "orchestrateur",
+  // La sauvegarde ne tourne pas sur Vercel : hebdomadaire, relançable depuis GitHub seulement.
+  periodicite: nom === "sauvegarde" ? ("hebdomadaire" as const) : ("quotidienne" as const),
+  commandable: nom !== "orchestrateur" && nom !== "sauvegarde",
 }));
 
 // « non_configuree » (25/09) : la passe a eu lieu mais le service qu'elle
@@ -303,7 +309,7 @@ export type PasseDeTache = Tache & {
 
 const HEURE = 3_600_000;
 /** Une quotidienne a 26 h de marge, une mensuelle 32 jours : le retard d'un déploiement ne doit pas alarmer. */
-const MARGES: Record<Periodicite, number> = { continue: HEURE, quotidienne: 26 * HEURE, mensuelle: 32 * 24 * HEURE };
+const MARGES: Record<Periodicite, number> = { continue: HEURE, quotidienne: 26 * HEURE, hebdomadaire: 8 * 24 * HEURE, mensuelle: 32 * 24 * HEURE };
 
 /** « 3 envoyées, 0 échec » à partir du bilan brut d'une passe. */
 export function resumerBilan(bilan: unknown, tache?: string): string {
@@ -410,7 +416,8 @@ export function pointsBloquants(
 ): number {
   return (
     configuration.filter((v) => v.etat === "manque").length +
-    taches.filter((t) => t.etat === "jamais" || t.etat === "echec").length +
+    // Une sauvegarde en retard est un risque, pas une gêne : elle bloque comme un échec.
+    taches.filter((t) => t.etat === "jamais" || t.etat === "echec" || (t.periodicite === "hebdomadaire" && t.etat === "retard")).length +
     (faitsEditeurManquants > 0 ? 1 : 0)
   );
 }

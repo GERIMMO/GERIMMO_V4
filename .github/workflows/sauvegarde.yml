@@ -141,14 +141,46 @@ jobs:
           aws s3 ls "s3://${SCW_BUCKET}/${JOUR}/" --recursive --endpoint-url "$POINT" | awk '{print $3" octets  "$4}'
 
       - name: Vérifier la copie distante
+        id: relecture
         working-directory: app
         env:
           GERIMMO_BACKUP_KEY: ${{ secrets.GERIMMO_BACKUP_KEY }}
         run: |
           set -euo pipefail
-          node scripts/sauvegarde/base.mjs verifier "$RUNNER_TEMP/relecture/base-$JOUR"
-          node scripts/sauvegarde/fichiers.mjs verifier "$RUNNER_TEMP/relecture/fichiers-$JOUR"
+          BASE=$(node scripts/sauvegarde/base.mjs verifier "$RUNNER_TEMP/relecture/base-$JOUR")
+          FICHIERS=$(node scripts/sauvegarde/fichiers.mjs verifier "$RUNNER_TEMP/relecture/fichiers-$JOUR")
+          echo "$BASE"; echo "$FICHIERS"
+          echo "octets=$(node -pe 'JSON.parse(process.argv[1]).octets' "$BASE")" >> "$GITHUB_OUTPUT"
+          echo "fichiers=$(node -pe 'JSON.parse(process.argv[1]).fichiers' "$FICHIERS")" >> "$GITHUB_OUTPUT"
           echo "✓ sauvegarde ${JOUR} déposée et relue"
+
+      # L'ALERTE VIT DANS GERIMMO, PAS DANS UNE BOÎTE MAIL (demande du porteur,
+      # 25/09 : « je ne lis pas souvent mes mails »). Quoi qu'il arrive, le
+      # passage est consigné dans `tech_log` sous `tache_sauvegarde`, comme les
+      # tâches de nuit : la page Santé le montre, un échec ou un retard de plus
+      # de huit jours devient un point bloquant compté dans « À décider ».
+      # Le bilan ne contient que des nombres et un nom d'étape : jamais un
+      # message d'erreur (il pourrait citer un hôte ou un chemin).
+      - name: Consigner le passage dans Gerimmo
+        if: always()
+        env:
+          SERVICE: ${{ secrets.GERIMMO_BACKUP_SERVICE_KEY }}
+          ISSUE: ${{ job.status }}
+          OCTETS: ${{ steps.relecture.outputs.octets }}
+          FICHIERS: ${{ steps.relecture.outputs.fichiers }}
+        run: |
+          set -u
+          if [ -z "${SERVICE:-}" ]; then echo "clé de service absente : rien à consigner"; exit 0; fi
+          if [ "$ISSUE" = "success" ]; then
+            BILAN="{\"echecs\":0,\"octets\":${OCTETS:-0},\"fichiers\":${FICHIERS:-0},\"prefixe\":\"${JOUR:-}\"}"
+          else
+            BILAN="{\"echecs\":1,\"etape\":\"$ISSUE\",\"prefixe\":\"${JOUR:-}\"}"
+          fi
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "https://${REF}.supabase.co/rest/v1/tech_log" \
+            -H "apikey: $SERVICE" -H "Authorization: Bearer $SERVICE" -H "Content-Type: application/json" -H "Prefer: return=minimal" \
+            -d "{\"evenement\":\"tache_sauvegarde\",\"details\":$BILAN}")
+          echo "journal Gerimmo : HTTP $code"
+          [ "$code" = "201" ] || { echo "::warning::le passage n'a pas pu être consigné dans Gerimmo (HTTP $code)"; }
 
       - name: Effacer les copies locales
         if: always()

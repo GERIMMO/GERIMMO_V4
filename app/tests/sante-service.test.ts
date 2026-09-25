@@ -127,6 +127,7 @@ describe("les tâches planifiées", () => {
       "veille",
       "marketing",
       "territoire",
+      "sauvegarde",
     ]);
   });
 
@@ -136,6 +137,7 @@ describe("les tâches planifiées", () => {
       passe("appels", 30),
       passe("rappels", 4, { erreur: "lecture impossible" }),
       passe("territoire", 20 * 24),
+      passe("sauvegarde", 6 * 24, { echecs: 0, octets: 1583743, fichiers: 62 }),
     ];
     const etats = Object.fromEntries(
       etatTaches(dernieresTaches(lignes), maintenant).map((t) => [t.nom, t.etat])
@@ -151,7 +153,19 @@ describe("les tâches planifiées", () => {
       relances: "jamais",
       marketing: "jamais",
       veille: "jamais",
+      sauvegarde: "ok", // hebdomadaire : six jours, c'est à l'heure
     });
+  });
+
+  it("une sauvegarde en retard ou en échec est un point bloquant, comme un échec de tâche (25/09)", () => {
+    const enRetard = etatTaches(dernieresTaches([passe("sauvegarde", 9 * 24, { echecs: 0 })]), maintenant).find((t) => t.nom === "sauvegarde")!;
+    expect(enRetard.etat).toBe("retard");
+    expect(pointsBloquants([], [enRetard], 0)).toBe(1);
+    const enEchec = etatTaches(dernieresTaches([passe("sauvegarde", 2, { echecs: 1, etape: "failure" })]), maintenant).find((t) => t.nom === "sauvegarde")!;
+    expect(enEchec.etat).toBe("echec");
+    expect(enEchec.commandable).toBe(false);
+    const quotidienneEnRetard = etatTaches(dernieresTaches([passe("appels", 30)]), maintenant).find((t) => t.nom === "appels")!;
+    expect(pointsBloquants([], [quotidienneEnRetard], 0)).toBe(0);
   });
 
   it("signale aussi un bilan qui contient des échecs partiels", () => {

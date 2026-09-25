@@ -13,7 +13,7 @@ Ce document dit ce qui existe, ce qui a été essayé, et ce qui **n'existe pas 
 
 ## Ce qui n'est pas fait
 
-- **Première sauvegarde réelle prise le 25/09/2026 à 23:08 (Paris)** par le chantier GitHub, préfixe `20260925-2108/` du bucket Scaleway `gerimmo-sauvegardes` : base 1,58 Mo (pg_dump 17, intégrité vérifiée), 62 fichiers du Storage (intégrité vérifiée), relecture depuis Scaleway vérifiée. Le passage hebdomadaire est armé (dimanche à l'aube).
+- **Première sauvegarde réelle prise le 25/09/2026 à 23:08 (Paris)** par le chantier GitHub, préfixe `20260925-2108/` du bucket Scaleway `gerimmo-sauvegardes` : base 1,58 Mo (pg_dump 17, intégrité vérifiée), 62 fichiers du Storage (intégrité vérifiée), relecture depuis Scaleway vérifiée. Le passage hebdomadaire est armé (dimanche à l'aube). Règle de cycle de vie posée le 25/09 sur le bucket : expiration des objets après 90 jours, envois incomplets purgés après 7 jours (douze copies hebdomadaires glissantes).
 - **Planification écrite, pas encore armée** : le chantier GitHub `sauvegarde.yml` (25/09) lance les deux programmes chaque dimanche dès que le compartiment Scaleway et les secrets sont posés (§ ci-dessous). Vercel n'héberge pas ce genre de tâche (durée, `pg_dump` absent).
 - **Destination choisie le 25/09 : Scaleway Object Storage (Paris), compte séparé** ; à configurer par le porteur (§ ci-dessous).
 - **Les sauvegardes de la plateforme Supabase** (quotidiennes ou PITR selon le plan) ne sont pas vérifiées par le code : leur existence dépend du plan du projet et se lit dans le tableau de bord Supabase (Database > Backups). L'écran Santé ne les connaît pas.

@@ -15,6 +15,7 @@ import {
   etatConfiguration,
   etatTaches,
   pointsBloquants,
+  verificationCreditIA,
   resumerBilan,
   TACHES,
 } from "../src/lib/sante-service";
@@ -32,6 +33,7 @@ const COMPLET = {
   YOUTRUST_WEBHOOK_SECRET: "ytwh_xxx",
   CRON_SECRET: "un-secret",
   SUPABASE_SERVICE_ROLE_KEY: "service",
+  OPENAI_API_KEY: "sk-xxx",
   NEXT_PUBLIC_SITE_URL: "https://gerimmo.app",
 };
 
@@ -58,6 +60,7 @@ describe("les variables de production", () => {
       "YOUTRUST_WEBHOOK_SECRET",
       "CRON_SECRET",
       "SUPABASE_SERVICE_ROLE_KEY",
+      "OPENAI_API_KEY",
       "NEXT_PUBLIC_SITE_URL",
     ]);
     // L'expéditeur absent n'est pas un manque : le repli est l'adresse cible.
@@ -302,6 +305,22 @@ describe("le chargement partagé par les trois pages (25/09)", () => {
     const sante = await chargerSante(c.db, COMPLET, 0, maintenant);
     expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET), etatTaches({}, maintenant), 0));
     expect(sante.bloquants).toBe(TACHES.length);
+  });
+
+  it("un crédit IA épuisé est une connexion manquante, en clair, jusqu'à la passe suivante réussie (25/09)", async () => {
+    const refus = { evenement: "tache_marketing", details: { erreur: "Le compte IA n’a plus de crédit. Ajoutez des crédits chez OpenAI avant de relancer." }, created_at: "2026-09-25T20:00:00.000Z" };
+    const reussite = { evenement: "tache_veille", details: { echecs: [], etudiees: 3 }, created_at: "2026-09-25T22:00:00.000Z" };
+    const rouge = verificationCreditIA([refus]);
+    expect(rouge.etat).toBe("manque");
+    expect(rouge.prestataire).toBe("OpenAI");
+    expect(rouge.commande).toMatch(/Recharger/);
+    expect(verificationCreditIA([refus, reussite]).etat).toBe("ok");
+    expect(verificationCreditIA([]).etat).toBe("ok");
+    // Compté dans les points bloquants, donc dans « À décider ».
+    const c = client([refus]);
+    const sante = await chargerSante(c.db, COMPLET, 0, maintenant);
+    expect(sante.configuration.find((v) => v.usage === "Crédit du compte IA")?.etat).toBe("manque");
+    expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET), etatTaches({}, maintenant), 0) + 1);
   });
 });
 

@@ -72,7 +72,9 @@ export async function rendrePdf(doc: DocumentAssemble): Promise<Uint8Array> {
       displayHeaderFooter: true,
       headerTemplate: "<span></span>",
       footerTemplate: doc.piedHtml,
-      // Le haut de page vit dans le corps (44 pt) ; le bas est réservé au pied
+      // Le gabarit réserve 44 pt en haut de CHAQUE page via @page ;
+      // un padding du corps seul ne protégeait que la première feuille.
+      // Le bas est réservé au pied.
       margin: { top: "0", bottom: "58px", left: "0", right: "0" },
     });
     return new Uint8Array(pdf);

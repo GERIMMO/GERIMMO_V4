@@ -58,13 +58,18 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm run typecheck
-      - run: npm test
+      - name: Installer Chromium pour les PDF et les essais interactifs
+        run: npx playwright install --with-deps chromium
+      - name: Tester la logique et produire les documents PDF
+        run: |
+          export GERIMMO_CHROME="$(node -p "require('@playwright/test').chromium.executablePath()")"
+          export GERIMMO_CATALOGUE_PDF_DIR="$RUNNER_TEMP/gerimmo-pdfs"
+          export GERIMMO_TEST_PDF=1
+          npm test
       - name: Préparer les parcours navigateur isolés
         run: |
           node e2e/local/seed-parcours.mjs
           npm run e2e:matrice
-      - name: Installer Chromium pour les essais interactifs
-        run: npx playwright install --with-deps chromium
       - name: Tester les parcours par profil et auditer les écrans mobiles
         env:
           E2E_CI: "1"
@@ -80,4 +85,15 @@ jobs:
             app/e2e/.results
             app/e2e/.audit
           include-hidden-files: true
+          if-no-files-found: ignore
+      - name: Conserver les épreuves PDF de recette
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epreuves-pdf
+          path: |
+            ${{ runner.temp }}/gerimmo-pdfs
+            /tmp/gerimmo-contrats-individuels
+            /tmp/gerimmo-recette-colocation
+            app/tmp/pdfs
           if-no-files-found: ignore

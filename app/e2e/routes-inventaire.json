@@ -538,5 +538,269 @@
     "persona": "agent",
     "label": "Règles pour les agents",
     "dynamic": ""
+  },
+  {
+    "path": "/admin/autonomie",
+    "persona": "superadmin",
+    "label": "Pilotage et autorisations",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/equipes",
+    "persona": "superadmin",
+    "label": "Travail et commandes des équipes",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/marketing",
+    "persona": "superadmin",
+    "label": "Agent marketing",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/marque-blanche",
+    "persona": "superadmin",
+    "label": "Marque blanche",
+    "dynamic": ""
+  },
+  {
+    "path": "/relais",
+    "persona": "superadmin",
+    "label": "Relais de supervision",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG",
+    "persona": "admin-agence",
+    "label": "Tableau de bord agence (partagé propriétaire) — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/agenda",
+    "persona": "admin-agence",
+    "label": "Agenda de l’agence — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/alertes",
+    "persona": "admin-agence",
+    "label": "Alertes — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/artisans",
+    "persona": "admin-agence",
+    "label": "Réseau d’artisans — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/baux/BAIL",
+    "persona": "admin-agence",
+    "label": "Fiche d'un bail — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/baux/BAIL/edl/EDL",
+    "persona": "admin-agence",
+    "label": "État des lieux d'un bail — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/comptabilite",
+    "persona": "admin-agence",
+    "label": "Comptabilité (quittancement, encaissements) — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/diagnostics/DIAGNOSTIC",
+    "persona": "admin-agence",
+    "label": "Diagnostic et alerte associée — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/documents",
+    "persona": "admin-agence",
+    "label": "GED — documents de l'organisation — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/documents/catalogue",
+    "persona": "admin-agence",
+    "label": "Catalogue documentaire — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/incidents",
+    "persona": "admin-agence",
+    "label": "Liste des incidents — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/incidents/INCIDENT",
+    "persona": "admin-agence",
+    "label": "Détail d'un incident — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/incidents/nouveau",
+    "persona": "admin-agence",
+    "label": "Déclaration d'un incident — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/loyers",
+    "persona": "admin-agence",
+    "label": "Loyers et charges — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/messages",
+    "persona": "admin-agence",
+    "label": "Messagerie — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/parc",
+    "persona": "admin-agence",
+    "label": "Parc / portefeuille de biens — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/parc/BIEN",
+    "persona": "admin-agence",
+    "label": "Fiche d'un bien — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/parc/BIEN/lots/LOT",
+    "persona": "admin-agence",
+    "label": "Fiche d'un lot — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/parc/nouveau",
+    "persona": "admin-agence",
+    "label": "Ajout d'un bien — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/personnes",
+    "persona": "admin-agence",
+    "label": "Annuaire des personnes — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/personnes/PERSONNE",
+    "persona": "admin-agence",
+    "label": "Fiche personne — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/profil",
+    "persona": "admin-agence",
+    "label": "Profil de l'agence / du propriétaire — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/statistiques",
+    "persona": "admin-agence",
+    "label": "Statistiques — responsable",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG",
+    "persona": "proprietaire",
+    "label": "Accueil du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/parc",
+    "persona": "proprietaire",
+    "label": "Mes lots",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/parc/nouveau",
+    "persona": "proprietaire",
+    "label": "Ajouter un bien",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/personnes",
+    "persona": "proprietaire",
+    "label": "Locataires et garants",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/loyers",
+    "persona": "proprietaire",
+    "label": "Loyers du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/comptabilite",
+    "persona": "proprietaire",
+    "label": "Livre recettes-dépenses",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/incidents",
+    "persona": "proprietaire",
+    "label": "Incidents du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/incidents/nouveau",
+    "persona": "proprietaire",
+    "label": "Déclarer un incident",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/alertes",
+    "persona": "proprietaire",
+    "label": "Alertes du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/agenda",
+    "persona": "proprietaire",
+    "label": "Agenda du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/statistiques",
+    "persona": "proprietaire",
+    "label": "Statistiques du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/messages",
+    "persona": "proprietaire",
+    "label": "Messages du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/profil",
+    "persona": "proprietaire",
+    "label": "Paramètres du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/documents",
+    "persona": "proprietaire",
+    "label": "Documents du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/documents/catalogue",
+    "persona": "proprietaire",
+    "label": "Catalogue du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/artisans",
+    "persona": "proprietaire",
+    "label": "Carnet d’artisans du bailleur",
+    "dynamic": ""
   }
 ]

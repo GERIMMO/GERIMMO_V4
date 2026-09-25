@@ -32,6 +32,8 @@ for (const persona of PERSONAS) {
     for (const ecran of ecrans) {
       const page = await context.newPage();
       const erreursConsole: string[] = [];
+      const erreursPage: string[] = [];
+      page.on("pageerror", (e) => erreursPage.push(e.message.slice(0, 300)));
       page.on("console", (m) => {
         if (m.type() === "error") erreursConsole.push(m.text().slice(0, 300));
       });
@@ -91,9 +93,10 @@ for (const persona of PERSONAS) {
           ...ecran,
           statut: reponse?.status() ?? 0,
           cheminFinal: new URL(page.url()).pathname,
-          redirection: new URL(page.url()).pathname !== ecran.path,
+          redirection: new URL(page.url()).pathname !== new URL(ecran.path, page.url()).pathname,
           ...mesure,
           erreursConsole: erreursConsole.slice(0, 5),
+          erreursPage: erreursPage.slice(0, 5),
         });
       } catch (err) {
         rapport.push({ ...ecran, statut: "erreur", erreur: String(err).slice(0, 300) });
@@ -115,11 +118,13 @@ for (const persona of PERSONAS) {
       (typeof r.statut === "number" && r.statut >= 400) ||
       r.soft404 === true ||
       !r.h1 ||
+      (Array.isArray(r.erreursPage) && r.erreursPage.length > 0) ||
+      (Array.isArray(r.erreursConsole) && r.erreursConsole.length > 0) ||
       (typeof r.boutonsSansNom === "number" && r.boutonsSansNom > 0) ||
       (typeof r.overflowPx === "number" && r.overflowPx > 2)
       // Plus d'exigence de photo par écran (24/09) : le porteur a retiré le
       // bandeau photo des espaces, « en trop ». Le compte reste au rapport.
-    ).map((r) => ({ path: r.path, statut: r.statut, h1: r.h1, boutonsSansNom: r.boutonsSansNom, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur }));
+    ).map((r) => ({ path: r.path, statut: r.statut, h1: r.h1, boutonsSansNom: r.boutonsSansNom, soft404: r.soft404, overflowPx: r.overflowPx, photos: r.photos, erreur: r.erreur, erreursPage: r.erreursPage, erreursConsole: r.erreursConsole }));
     expect(casses, `Écrans ${persona} cassés ou débordants`).toEqual([]);
   });
 }

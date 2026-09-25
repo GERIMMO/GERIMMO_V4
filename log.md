@@ -5466,3 +5466,7 @@ Question posée par le porteur sur le « voir comme » ; réponse : « je ne veu
 ## [2026-09-25] mise en production | Fiche de débogage d'un compte (PR #110)
 
 Migration `dossier_compte_supervision` appliquée en production, PR #110 fusionnée (`e92b112`), déploiement Vercel réussi. Point de fin de journée remis au porteur : ce qui reste (faits légaux, Santé au vert, essai de bout en bout, sauvegardes Scaleway à armer, fichiers de démonstration du Storage, archive de purge, Stripe réel).
+
+## [2026-09-25] mise en production | Sauvegardes armées : première copie chiffrée chez Scaleway
+
+Compte Scaleway, bucket `gerimmo-sauvegardes` (Paris, privé), application IAM `gerimmo-sauvegarde` avec `ObjectStorageFullAccess`, clé d'API, secrets et variable GitHub posés par le porteur ; premier passage du chantier `sauvegarde.yml` déclenché et réussi (base 1,58 Mo, 62 fichiers, relecture depuis Scaleway vérifiée). Reste : règle de cycle de vie à 90 jours sur le bucket, exercice de restauration, renouvellement de la clé d'API en septembre 2027. Même soirée : crédit OpenAI rechargé (20 €) ; quittances et publications au vert ; veille corrigée (PR #111, citation tolérante, budget de réponse, motif journalisé) ; fiche de débogage d'un compte en ligne (PR #110) ; archive de purge supprimée.

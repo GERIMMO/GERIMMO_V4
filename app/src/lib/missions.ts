@@ -33,7 +33,9 @@ export function estMission(cle:string):cle is Mission{return Object.hasOwn(MISSI
 export const TACHES_SUIVIES={
  ...Object.fromEntries((Object.keys(MISSIONS) as Mission[]).map(m=>[m,{nom:MISSIONS[m].nom,equipe:MISSIONS[m].equipe}])),
  orchestrateur:{nom:'Suivi des dossiers',equipe:'exploitation'},
-} as Record<Mission|'orchestrateur',{nom:string;equipe:Equipe}>;
+ // La sauvegarde hebdomadaire (chantier GitHub, 25/09) consigne son passage comme les autres.
+ sauvegarde:{nom:'Sauvegarde hebdomadaire',equipe:'conformite'},
+} as Record<Mission|'orchestrateur'|'sauvegarde',{nom:string;equipe:Equipe}>;
 export type TacheSuivie=keyof typeof TACHES_SUIVIES;
 export function estTacheSuivie(cle:string):cle is TacheSuivie{return Object.hasOwn(TACHES_SUIVIES,cle);}
 /** Le nom d'une tâche du journal, ou un repli honnête. */

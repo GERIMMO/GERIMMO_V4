@@ -188,6 +188,8 @@ export default async function PageSante() {
                     <span className="mt-2 block">
                       {t.commandable ? (
                         cronPose ? <LancerMission mission={t.nom} /> : <span className="text-[12.5px] text-[var(--encre)]">« Lancer maintenant » sera possible une fois <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">CRON_SECRET</code> posé (ci-dessus).</span>
+                      ) : t.nom === "sauvegarde" ? (
+                        <a href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/sauvegarde.yml" target="_blank" rel="noreferrer" className="lien-discret text-[12.5px]">Relancer la sauvegarde depuis GitHub (Run workflow) →</a>
                       ) : (
                         <Link href="/admin/autonomie" className="lien-discret text-[12.5px]">Actualiser les prochaines étapes dans Dossiers et évolutions →</Link>
                       )}

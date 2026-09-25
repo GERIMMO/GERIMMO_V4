@@ -46,7 +46,14 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   await page.goto("/admin/brief");
   // Au téléphone (une seule barre, 25/09), la recherche vit dans le menu.
   const menu = page.getByRole("button", { name: "Menu supervision" });
-  if (await menu.isVisible()) await menu.click();
+  if (await menu.isVisible()) {
+    // Sur la construction de production, un clic parti avant l'hydratation ne
+    // bascule rien : on clique jusqu'à ce que le menu soit réellement ouvert.
+    await expect(async () => {
+      await menu.click();
+      await expect(page.locator("#menu-supervision")).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+  }
   // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
   await page.locator("button:visible", { hasText: /Rechercher/ }).first().click();
   await page.getByLabel("Nom, ville, email ou SIRET").fill("admin.alpha");

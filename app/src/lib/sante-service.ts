@@ -25,7 +25,7 @@ export type Etat = "ok" | "attention" | "manque";
  * nom de la variable ET le prestataire chez qui on la trouve. La variable se
  * pose dans les réglages du projet Vercel ; rien ici n'est un lien inventé.
  */
-export type Prestataire = "Stripe" | "Resend" | "Yousign" | "Vercel" | "Supabase";
+export type Prestataire = "Stripe" | "Resend" | "Yousign" | "Vercel" | "Supabase" | "OpenAI";
 
 export type Verification = {
   /** Le nom de la variable, tel qu'il se lit dans Vercel. */
@@ -37,9 +37,15 @@ export type Verification = {
   detail: string | null;
   /** Chez qui la valeur s'obtient. */
   prestataire: Prestataire;
+  /**
+   * La commande de la ligne quand ce n'est pas une variable à poser (25/09 :
+   * le crédit du compte IA se recharge, il ne se configure pas).
+   */
+  commande?: string;
 };
 
 const PRESTATAIRE_PAR_CLE: Record<string, Prestataire> = {
+  OPENAI_API_KEY: "OpenAI",
   STRIPE_SECRET_KEY: "Stripe",
   STRIPE_WEBHOOK_SECRET: "Stripe",
   STRIPE_PRIX_BIEN: "Stripe",
@@ -232,6 +238,14 @@ export function etatConfiguration(env: Env): Verification[] {
     etatSite = "manque";
     detailSite = "aucune adresse : les e-mails partiront sans lien";
   }
+  // L'assistant IA (veille, publications, aide à la décision du matin) : la
+  // clé manquait à cette liste alors que trois tâches en dépendent (25/09).
+  verifications.push({
+    cle: "OPENAI_API_KEY",
+    usage: "Assistant IA : veille réglementaire, publications, aide à la décision",
+    etat: valeur(env, "OPENAI_API_KEY") || valeur(env, "OPEN_AI_KEY") ? "ok" : "manque",
+    detail: null,
+  });
   verifications.push({
     cle: "NEXT_PUBLIC_SITE_URL",
     usage: "Liens dans les e-mails et pied des documents",
@@ -476,6 +490,50 @@ export async function chargerEtatTaches(
   return etatTaches(dernieres, maintenant);
 }
 
+// ── Le crédit du compte IA ───────────────────────────────────────────────────
+// Le porteur ne lit pas ses mails (25/09) : un crédit OpenAI à zéro doit se
+// voir dans Gerimmo, en clair, pas seulement comme « en échec » sur deux
+// tâches. Le dernier événement IA du journal tranche : si c'est un refus pour
+// crédit ou plafond, la ligne est rouge (et bloquante) ; dès qu'une passe
+// réussit après la recharge, elle repasse au vert.
+const EVENEMENTS_IA = ["tache_marketing", "tache_veille", "veille_analyse_echec"] as const;
+const REFUS_CREDIT = /cr[ée]dit|plafond|quota|billing/i;
+
+export function verificationCreditIA(lignes: LigneJournal[]): Verification {
+  const recentes = lignes
+    .filter((l) => (EVENEMENTS_IA as readonly string[]).includes(l.evenement))
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const derniere = recentes[0];
+  const texte = derniere ? JSON.stringify(derniere.details ?? {}) : "";
+  const refus = Boolean(derniere) && REFUS_CREDIT.test(texte);
+  return {
+    cle: "OPENAI_API_KEY",
+    usage: "Crédit du compte IA",
+    etat: refus ? "manque" : "ok",
+    detail: refus
+      ? `Le service IA a refusé pour crédit ou plafond épuisé (dernier refus le ${new Date(derniere!.created_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Paris" })}). La veille, les publications et l’aide à la décision s’arrêtent tant qu’il n’est pas rechargé.`
+      : derniere
+        ? "Aucun refus pour crédit au dernier passage des tâches IA."
+        : "Aucune tâche IA n’a encore tourné.",
+    prestataire: "OpenAI",
+    commande: refus ? "Recharger le crédit sur la plateforme OpenAI (Facturation → Add to credit balance), puis « Lancer maintenant » sur la tâche en échec." : undefined,
+  };
+}
+
+async function lireEvenementsIA(db: ClientQuiLitLeJournal, maintenant: Date): Promise<LigneJournal[] | null> {
+  const depuis = new Date(maintenant.getTime() - 7 * 24 * HEURE).toISOString();
+  const { data, error } = await (db.from("tech_log") as ChaineJournal)
+    .select("evenement, details, created_at")
+    .like("evenement", "%")
+    .gte("created_at", depuis)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) return null;
+  return (Array.isArray(data) ? data : []).filter(
+    (l): l is LigneJournal => Boolean(l) && typeof l === "object" && typeof (l as LigneJournal).evenement === "string" && typeof (l as LigneJournal).created_at === "string"
+  );
+}
+
 export type Sante = {
   configuration: Verification[];
   /** `null` : le journal n'a pas pu être lu. */
@@ -501,8 +559,8 @@ export async function chargerSante(
   faitsEditeurManquants: number,
   maintenant: Date = new Date()
 ): Promise<Sante> {
-  const configuration = etatConfiguration(env);
-  const taches = await chargerEtatTaches(db, maintenant);
+  const [taches, evenementsIA] = await Promise.all([chargerEtatTaches(db, maintenant), lireEvenementsIA(db, maintenant)]);
+  const configuration = [...etatConfiguration(env), ...(evenementsIA ? [verificationCreditIA(evenementsIA)] : [])];
   return {
     configuration,
     taches,

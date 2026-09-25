@@ -52,6 +52,7 @@ const OU_OBTENIR: Record<Prestataire, string> = {
   Yousign: "espace Yousign (API / Webhooks)",
   Vercel: "à choisir par le responsable technique",
   Supabase: "tableau de bord Supabase (Réglages du projet → API)",
+  OpenAI: "plateforme OpenAI (Clés API ; le crédit se recharge dans Facturation)",
 };
 
 export default async function PageSante() {
@@ -122,7 +123,7 @@ export default async function PageSante() {
         </div>
         <ul className="divide-y divide-[var(--filet)] border border-[var(--filet)] bg-[var(--ivoire)]">
           {configuration.map((v) => (
-            <li key={v.cle} className="flex flex-wrap items-start gap-x-4 gap-y-1 p-3.5">
+            <li key={`${v.cle}:${v.usage}`} className="flex flex-wrap items-start gap-x-4 gap-y-1 p-3.5">
               <span className="min-w-0 flex-1">
                 <span className="block font-medium text-[13.5px] text-[var(--encre)]">{v.usage}</span>
                 {v.detail && (
@@ -131,9 +132,9 @@ export default async function PageSante() {
                   </span>
                 )}
                 {v.etat !== "ok" && (
-                  // La commande de la ligne : la variable, et où la trouver.
+                  // La commande de la ligne : la variable et où la trouver, ou le geste quand ce n'est pas une variable (crédit IA).
                   <span className="mt-1 block text-[12.5px] text-[var(--encre)]">
-                    À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.
+                    {v.commande ?? <>À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>}
                   </span>
                 )}
               </span>

@@ -40,7 +40,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - name: Tester les contrôles de publication sans connexion externe
-        run: node --test scripts/deploiement/controle.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
+        run: node --test scripts/deploiement/controle.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs scripts/vercel/variables.test.mjs
       - run: npm ci
       - name: Vérifier les vulnérabilités connues des dépendances
         run: npm audit --audit-level=high

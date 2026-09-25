@@ -41,18 +41,31 @@ test("créer un bien depuis le téléphone : formulaire → fiche du parc", asyn
   await expect(page.locator("body")).toContainText(nom, { timeout: 20_000 });
 });
 
-test("traiter une alerte : la modale s'ouvre et se ferme au doigt (croix)", async ({ page }) => {
+test("créer, ouvrir, fermer puis traiter une alerte au doigt", async ({ page }) => {
   const orgId = await entrerDansEspace(page, "agence");
   await page.goto(`/agence/${orgId}/alertes`);
-  const traiter = page.getByRole("link", { name: /^Traiter/ }).first();
-  if ((await traiter.count()) === 0) {
-    test.skip(true, "aucune alerte ouverte à traiter dans le jeu de données");
-  }
+  const titre = `E2E alerte à vérifier ${Date.now()}`;
+  await page.getByRole("textbox", { name: "Titre", exact: true }).fill(titre);
+  await page.getByRole("combobox", { name: "Confier à", exact: true }).selectOption({ label: "Tout le monde" });
+  await page.getByRole("button", { name: "Créer l'alerte", exact: true }).click();
+  const rang = page.locator('.rang-alerte').filter({ hasText: titre });
+  const traiter = rang.getByRole("button", { name: "Traiter", exact: true });
+  await expect(traiter).toBeVisible();
   await traiter.click();
-  // La page de traitement (ou modale) doit être fermable sans Escape :
-  // toute Modale porte désormais un bouton « Fermer » (croix) — on vérifie
-  // sur la synthèse d'alertes si elle s'ouvre, sinon le test reste navigation.
-  await expect(page.locator("body")).not.toContainText("Erreur");
+  const modale = page.getByRole("dialog", { name: titre, exact: true });
+  await expect(modale).toBeVisible();
+  await modale.getByRole("button", { name: "Fermer", exact: true }).click();
+  await expect(modale).toBeHidden();
+  await expect(traiter).toBeVisible();
+  await traiter.click();
+  await modale.getByRole("textbox", { name: "Marquer traitée — ce qui a été fait", exact: true }).fill("Contrôle fictif terminé sur le banc de recette.");
+  await modale.getByRole("button", { name: "Valider", exact: true }).click();
+  await expect(modale).toBeHidden();
+  await expect(rang).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Alertes", exact: true })).toBeVisible();
+  await expect(page.locator('.rang-alerte').filter({ hasText: titre })).toHaveCount(0);
+  await expect(page.getByText(titre, { exact: true })).toBeVisible();
 });
 
 test("le quittancement du mois s'affiche à 390px avec le bail E2E", async ({ page }) => {
@@ -73,8 +86,8 @@ test("le plan du jour : replié devant un mur, ouvert quand il tient à l'écran
   await page.goto(`/agence/${orgId}`);
 
   const groupes = page.locator("details.groupe-plan");
+  await expect(groupes.first()).toBeVisible();
   const combien = await groupes.count();
-  if (combien === 0) test.skip(true, "aucun groupe dans le plan du jour sur ce jeu de données");
 
   // Le compte de chaque groupe se lit dans son en-tête : il décide de l'état.
   const total = (await groupes.locator("summary").allInnerTexts())

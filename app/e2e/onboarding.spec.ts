@@ -22,11 +22,12 @@ test.describe("côté console", () => {
   test("le formulaire porte ce qu'il faut, et tient dans 390 px", async ({ page }) => {
     await sansSyntheseAlertes(page);
     await page.goto("/admin/organisations/nouvelle");
-    await page.waitForSelector("h1");
+    const formulaire = page.getByRole("main").filter({ has: page.getByRole("heading", { name: "Ouvrir une organisation", exact: true }) });
+    await expect(formulaire).toBeVisible();
 
     // Les trois décisions du geste : qui, quel type, et comment ça démarre.
-    await expect(page.getByLabel("Nom de l'organisation")).toBeVisible();
-    await expect(page.getByLabel("Adresse du premier responsable")).toBeVisible();
+    await expect(formulaire.getByRole("textbox", { name: "Nom de l'organisation", exact: true })).toBeVisible();
+    await expect(formulaire.getByRole("textbox", { name: "Adresse du premier responsable", exact: true })).toBeVisible();
     await expect(page.getByRole("radio", { name: /Agence de gestion/ })).toBeVisible();
     await expect(
       page.getByRole("radio", { name: /Propriétaire en gestion directe/ })

@@ -40,12 +40,18 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - name: Tester les contrôles de publication sans connexion externe
-        run: node --test scripts/deploiement/controle.test.mjs scripts/atelier/controle.test.mjs
+        run: node --test scripts/deploiement/controle.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
       - run: npm ci
       - name: Vérifier les vulnérabilités connues des dépendances
         run: npm audit --audit-level=high
       - name: Préparer les bases de test isolées
         run: node e2e/local/preparer-ci.mjs
+      - name: Vérifier les jointures et l'isolation avec 300 lots fictifs
+        env:
+          GERIMMO_CHARGE_DB: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_charge_automatique
+        run: |
+          node --input-type=module -e 'import {Client} from "pg"; const c=new Client({connectionString:process.env.SUPABASE_DB_URL}); await c.connect(); await c.query("create database gerimmo_ci_charge_automatique template gerimmo_ci_sql"); await c.end();'
+          node scripts/recette/charge-300-lots.mjs
       - name: Démarrer l’API de test locale
         run: |
           node e2e/local/serveur-supabase-local.mjs > /tmp/gerimmo-api.log 2>&1 &
@@ -84,6 +90,7 @@ jobs:
           path: |
             app/e2e/.results
             app/e2e/.audit
+            app/tmp/charge
           include-hidden-files: true
           if-no-files-found: ignore
       - name: Conserver les épreuves PDF de recette

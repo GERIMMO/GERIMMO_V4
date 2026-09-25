@@ -52,7 +52,7 @@ export function EnteteFiche({
           bord à l'autre (`.coquille-corps .entete-page`). Même filet, même
           retrait (16 px), même écart avant la suite (24 px, le `mb-6` des
           listes) : un seul style d'en-tête dans l'espace. */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-3 border-b border-[var(--trait)] pb-4">
+      <div className="entete-page mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
         <div className="min-w-0">
           {surtitre && <p className="eyebrow mt-1">{surtitre}</p>}
           {/* PAS `.entete-page` ICI. Cette classe est celle de la barre de

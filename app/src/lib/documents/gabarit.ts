@@ -15,7 +15,7 @@ import { createHash } from "node:crypto";
 import { CSS_POLICES } from "./polices";
 import { domaineDuSite } from "@/lib/site";
 
-export const VERSION_MODELES = "2026.11-g6";
+export const VERSION_MODELES = "2026.11-g7";
 
 // ------------------------------------------------------------------
 // La charte, en valeurs imprimables
@@ -299,6 +299,10 @@ const CSS_DOCUMENT = `
   html { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   body { font-family:'Caladea', Georgia, serif; font-size:10.5pt; color:var(--texte);
          line-height:1.55; padding:44pt 56pt 0; }
+  @media print {
+    @page { margin-top:44pt; }
+    body { padding-top:0; }
+  }
   .entete { display:flex; justify-content:space-between; align-items:flex-end;
             border-bottom:0.75pt solid var(--encre); padding-bottom:8pt; margin-bottom:18pt;
             font-size:8pt; color:var(--libelle); break-inside:avoid-page; page-break-inside:avoid; }

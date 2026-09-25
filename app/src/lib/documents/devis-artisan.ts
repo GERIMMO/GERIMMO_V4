@@ -30,8 +30,5 @@ export function assemblerDevisArtisan(d: DevisArtisanDocument) {
     section("Travaux proposés")+paragraphes(d.description)+
     (prix ? section("Détail du prix")+prix : "")+sommes+
     `<p class="mention">Toute augmentation du total nécessite une demande complémentaire et un accord enregistré avant les travaux supplémentaires. Ce récapitulatif reprend le devis transmis dans Gerimmo ; les pièces jointes et les accords restent dans le dossier.</p>`;
-  const document=assemblerPage({f,titreDocument:"Détail du devis",nomPied:"Devis artisan",reference,corps});
-  // La marge de page se répète ; un padding du body ne protège que la première.
-  document.html=document.html.replace("</style>","@page { margin-top:44pt; } body { padding-top:0; }</style>");
-  return document;
+  return assemblerPage({f,titreDocument:"Détail du devis",nomPied:"Devis artisan",reference,corps});
 }

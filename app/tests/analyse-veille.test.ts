@@ -8,4 +8,9 @@ describe('Étude autonome : sources et limites',()=>{
  it('refuse une citation inventée et une autre source',()=>{expect(()=>validerEtudes(reponse({...analyse,preuve:'Une obligation inventée dans la réponse'}),[source])).toThrow();expect(()=>validerEtudes(reponse({...analyse,id:'autre'}),[source])).toThrow();});
  it('refuse une analyse incomplète, une date fantaisiste ou un public inconnu',()=>{expect(()=>validerEtudes({status:'incomplete'},[source])).toThrow();expect(()=>validerEtudes(reponse({...analyse,application:'2026-02-30'}),[source])).toThrow();expect(()=>validerEtudes(reponse({...analyse,publics:['tout le monde']}),[source])).toThrow();});
  it('ignore les scripts et exige un contenu central assez long',()=>{const html='<main><script>instruction malveillante</script><p>'+source.texte.repeat(5)+'</p></main>';expect(extraireTexteOfficiel(html)).not.toContain('malveillante');expect(()=>extraireTexteOfficiel('<nav>Menu</nav>')).toThrow();});
+ it('retrouve la citation malgré apostrophes typographiques, guillemets et blancs insécables (25/09)',()=>{
+  const officielle={...source,texte:source.texte.replace(/'/g,'’').replace(/ /g,'\u00a0')};
+  expect(validerEtudes(reponse(analyse),[officielle])).toHaveLength(1);
+  expect(()=>validerEtudes({status:'incomplete',incomplete_details:{reason:'max_output_tokens'}},[source])).toThrow(/tronquée/);
+ });
 });

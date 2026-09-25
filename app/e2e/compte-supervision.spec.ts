@@ -47,7 +47,8 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   // Au téléphone (une seule barre, 25/09), la recherche vit dans le menu.
   const menu = page.getByRole("button", { name: "Menu supervision" });
   if (await menu.isVisible()) await menu.click();
-  await page.getByRole("button", { name: /Rechercher/ }).first().click();
+  // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
+  await page.locator("button:visible", { hasText: /Rechercher/ }).first().click();
   await page.getByLabel("Nom, ville, email ou SIRET").fill("admin.alpha");
   const resultat = page.locator("[data-resultat]").filter({ hasText: "Compte" }).first();
   await expect(resultat).toBeVisible();

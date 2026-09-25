@@ -23,7 +23,9 @@ test.describe('Tour du matin de la supervision',()=>{
  });
  test('la santé conduit directement au résultat des traitements',async({page})=>{
   await page.goto('/admin/sante');
-  await expect(page.locator('main')).not.toContainText('lib/editeur.ts');
+  const contenu=page.getByRole('main').filter({has:page.getByRole('heading',{name:'Santé du service',exact:true})});
+  await expect(contenu).toBeVisible();
+  await expect(contenu).not.toContainText('lib/editeur.ts');
   await page.getByRole('link',{name:'Voir l’historique →'}).or(page.getByRole('link',{name:"Voir l'historique →"})).click();
   await expect(page).toHaveURL(/\/admin\/journaux#historique-service$/);
   await expect(page.locator('#historique-service')).toBeInViewport();

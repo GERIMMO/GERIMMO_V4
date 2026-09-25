@@ -14,8 +14,8 @@ Ce document dit ce qui existe, ce qui a été essayé, et ce qui **n'existe pas 
 ## Ce qui n'est pas fait
 
 - **Aucune sauvegarde n'a encore été prise sur le projet de production.** Ni fichiers, ni base.
-- **Rien n'est planifié** : aucun workflow GitHub, aucun cron n'appelle ces programmes. Ils s'exécutent à la main, ou depuis un planificateur externe qui détient les secrets. Vercel n'héberge pas ce genre de tâche (durée, `pg_dump` absent).
-- **Aucune destination indépendante** (stockage tiers, autre compte) n'est choisie ni configurée.
+- **Planification écrite, pas encore armée** : le chantier GitHub `sauvegarde.yml` (25/09) lance les deux programmes chaque dimanche dès que le compartiment Scaleway et les secrets sont posés (§ ci-dessous). Vercel n'héberge pas ce genre de tâche (durée, `pg_dump` absent).
+- **Destination choisie le 25/09 : Scaleway Object Storage (Paris), compte séparé** ; à configurer par le porteur (§ ci-dessous).
 - **Les sauvegardes de la plateforme Supabase** (quotidiennes ou PITR selon le plan) ne sont pas vérifiées par le code : leur existence dépend du plan du projet et se lit dans le tableau de bord Supabase (Database > Backups). L'écran Santé ne les connaît pas.
 - **La restauration n'est pas outillée** : `extraire` déchiffre sur disque ; l'import dans un projet Supabase (base par `pg_restore`, fichiers par l'API Storage avec leurs droits) reste manuel et **n'a jamais été exercé**.
 - Les variables `GERIMMO_BACKUP_*` sont documentées dans `.env.example` mais **ne sont posées nulle part**.
@@ -39,6 +39,45 @@ node scripts/sauvegarde/base.mjs extraire /dossier/prive/base-AAAAMMJJ /dossier/
 Règles communes : le dossier de destination doit être neuf (rien n'est écrasé) ; un fichier de plus de 64 Mo arrête la copie des fichiers ; le bilan affiché ne contient que des nombres et des empreintes ; le mot de passe de la base est transmis à `pg_dump` par l'environnement du processus enfant, pas en argument. Les deux copies ne sont pas une capture instantanée commune : les prendre pendant une période sans écriture, et noter l'heure.
 
 Le dump est au format `custom` de PostgreSQL, sans propriétaires ni droits (`--no-owner --no-privileges`) : il se réimporte sur un projet Supabase neuf avec `pg_restore --no-owner --no-privileges --dbname=…`, puis les migrations du dépôt (`supabase/migrations/`) s'appliquent pour vérifier que le schéma correspond. Les schémas internes de Supabase ne sont pas exportés : ils appartiennent au projet cible.
+
+## La destination choisie (25/09) : Scaleway Object Storage, Paris
+
+Décision du porteur : la copie hebdomadaire part chez **Scaleway** (stockage
+objet compatible S3, région `fr-par`), sur un **compte séparé** de tout le
+reste. Le chantier GitHub `.github/workflows/sauvegarde.yml` s'en charge
+chaque dimanche à l'aube et à la demande (onglet Actions → « Sauvegarde
+hebdomadaire » → Run workflow). Il ne fait rien tant que la variable
+`SCW_BUCKET` n'est pas posée.
+
+Ce que le porteur fait une fois, dans cet ordre (une demi-heure) :
+
+1. **Compte Scaleway** à son nom, double authentification activée.
+2. **Compartiment** (Object Storage → Créer un bucket) : région Paris,
+   visibilité privée, nom par exemple `gerimmo-sauvegardes`. Dans les
+   réglages du bucket : **règle de cycle de vie** « expirer les objets après
+   90 jours » (douze copies hebdomadaires glissantes) ; pas de versionnage.
+3. **Clé d'API** (IAM → Clés d'API) rattachée à une application IAM dédiée,
+   avec une politique limitée à ce seul bucket (ObjectStorageFullAccess sur le
+   projet suffit ; plus fin si l'écran le permet). Noter la clé d'accès et la
+   clé secrète : la secrète ne se réaffiche pas.
+4. **Secrets GitHub** (dépôt → Settings → Secrets and variables → Actions) :
+   `GERIMMO_BACKUP_KEY` (64 caractères hexadécimaux, `openssl rand -hex 32`,
+   à conserver aussi dans un gestionnaire de mots de passe : sans elle, rien ne
+   se restaure), `GERIMMO_BACKUP_SERVICE_KEY` (clé service_role du projet
+   Supabase, tableau de bord → Project Settings → API), `SCW_ACCESS_KEY`,
+   `SCW_SECRET_KEY`. `SUPABASE_DB_PASSWORD` existe déjà (chantier des
+   migrations).
+5. **Variables GitHub** (même écran, onglet Variables) : `SCW_BUCKET` (le nom
+   du bucket) ; `SCW_REGION` seulement si différent de `fr-par`.
+6. **Premier passage à la main** : Actions → Sauvegarde hebdomadaire → Run
+   workflow. Le journal affiche les tailles, le nombre de fichiers et la
+   relecture depuis Scaleway. Noter la date ici.
+7. **Exercice de restauration** sur un projet Supabase de secours (§ suivant,
+   point 6) avant de rétablir la mention sur la page Confidentialité.
+
+Chaque passage crée un préfixe daté `AAAAMMJJ-HHMM/` contenant
+`base-…/` et `fichiers-…/` ; rien n'est jamais écrasé. En cas d'échec, GitHub
+envoie un e-mail au propriétaire du dépôt.
 
 ## Ce qu'il reste à faire, dans l'ordre
 

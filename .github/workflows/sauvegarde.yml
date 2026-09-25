@@ -1,0 +1,155 @@
+# Sauvegarde hebdomadaire de Gerimmo vers un stockage objet Scaleway (Paris).
+#
+# CE QUE FAIT CE CHANTIER. Chaque dimanche à l'aube (et à la demande), il
+# exporte la base de production (pg_dump des schémas public, auth, storage)
+# et copie les fichiers du Storage, chiffre le tout avec AES-256-GCM
+# (scripts/sauvegarde/), vérifie les archives, les dépose dans un compartiment
+# Scaleway Object Storage, puis les relit depuis Scaleway pour vérifier que la
+# copie distante est intacte. Rien n'est écrasé : chaque passage a son dossier
+# daté. Le bilan affiché ne contient que des nombres et des empreintes.
+#
+# POURQUOI SCALEWAY, ET PAS SUPABASE OU VERCEL. La copie doit survivre à la
+# perte du compte Supabase ou à une erreur d'exploitation : elle vit chez un
+# autre fournisseur, en France, sur un compte séparé, avec une clé d'accès en
+# écriture. La clé de chiffrement, elle, ne quitte pas les secrets GitHub :
+# sans elle, la copie ne se lit pas.
+#
+# LE POOLER, PAS LA CONNEXION DIRECTE (même raison que migrations.yml) :
+# `db.<ref>.supabase.co` ne répond qu'en IPv6 ; les machines de GitHub n'ont
+# que de l'IPv4. Le pooler en mode session (port 5432) convient à pg_dump.
+# pg_dump doit être de la version du serveur (17) : le client PGDG est installé.
+#
+# CONSERVATION. Le compartiment porte une règle de cycle de vie côté Scaleway
+# (suppression après 90 jours) : douze copies hebdomadaires glissantes. Ce
+# chantier n'efface jamais rien.
+#
+# SECRETS ATTENDUS (Settings → Secrets and variables → Actions) :
+#   GERIMMO_BACKUP_KEY          64 caractères hexadécimaux (openssl rand -hex 32)
+#   SUPABASE_DB_PASSWORD        mot de passe de la base (déjà utilisé par migrations.yml)
+#   GERIMMO_BACKUP_SERVICE_KEY  clé service_role du projet Supabase
+#   SCW_ACCESS_KEY / SCW_SECRET_KEY  clé d'API Scaleway limitée au compartiment
+# VARIABLES (même écran, onglet Variables) :
+#   SCW_BUCKET  nom du compartiment (ex. gerimmo-sauvegardes)
+#   SCW_REGION  région, fr-par par défaut
+#
+# RESTAURATION : docs/sauvegarde-et-restauration.md.
+
+name: Sauvegarde hebdomadaire
+
+on:
+  schedule:
+    # Dimanche 03:20 à Paris en été (01:20 UTC) ; 02:20 en hiver.
+    - cron: "20 1 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sauvegarde-production
+  cancel-in-progress: false
+
+jobs:
+  sauvegarder:
+    # Tant que le compartiment n'est pas nommé dans les variables, le chantier
+    # ne fait rien (pas d'échec hebdomadaire pour une configuration absente).
+    if: ${{ vars.SCW_BUCKET != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      REF: rddlxunppddzpsaatdaz
+      REGION_SUPABASE: eu-west-3
+      SCW_REGION: ${{ vars.SCW_REGION || 'fr-par' }}
+      SCW_BUCKET: ${{ vars.SCW_BUCKET }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Client PostgreSQL 17 (même version que le serveur)
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: Garde-fous
+        env:
+          CLE: ${{ secrets.GERIMMO_BACKUP_KEY }}
+          MDP: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SERVICE: ${{ secrets.GERIMMO_BACKUP_SERVICE_KEY }}
+          ACCES: ${{ secrets.SCW_ACCESS_KEY }}
+          SECRET: ${{ secrets.SCW_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          manque=0
+          for v in CLE MDP SERVICE ACCES SECRET SCW_BUCKET; do
+            if [ -z "${!v:-}" ]; then echo "✗ secret ou variable absent : $v" >&2; manque=1; fi
+          done
+          [ "$manque" = 0 ] || exit 1
+          if ! [[ "$CLE" =~ ^[0-9a-fA-F]{64}$ ]]; then echo "✗ GERIMMO_BACKUP_KEY doit faire 64 caractères hexadécimaux" >&2; exit 1; fi
+
+      - name: Dépendances (client Supabase pour la copie des fichiers)
+        working-directory: app
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Exporter la base et copier les fichiers (chiffrés)
+        working-directory: app
+        env:
+          GERIMMO_BACKUP_KEY: ${{ secrets.GERIMMO_BACKUP_KEY }}
+          MDP: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          GERIMMO_BACKUP_SOURCE_URL: https://${{ env.REF }}.supabase.co
+          GERIMMO_BACKUP_SERVICE_KEY: ${{ secrets.GERIMMO_BACKUP_SERVICE_KEY }}
+        run: |
+          set -euo pipefail
+          # Le mot de passe est encodé pour l'URL (base.mjs le décode et le passe à pg_dump par PGPASSWORD).
+          GERIMMO_BACKUP_DB_URL="postgresql://postgres.${REF}:$(node -p 'encodeURIComponent(process.env.MDP)')@aws-0-${REGION_SUPABASE}.pooler.supabase.com:5432/postgres"
+          export GERIMMO_BACKUP_DB_URL
+          JOUR="$(date -u +%Y%m%d-%H%M)"
+          echo "JOUR=$JOUR" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/sauvegarde"
+          node scripts/sauvegarde/base.mjs exporter "$RUNNER_TEMP/sauvegarde/base-$JOUR"
+          node scripts/sauvegarde/fichiers.mjs sauvegarder "$RUNNER_TEMP/sauvegarde/fichiers-$JOUR"
+          echo "— vérification locale"
+          node scripts/sauvegarde/base.mjs verifier "$RUNNER_TEMP/sauvegarde/base-$JOUR"
+          node scripts/sauvegarde/fichiers.mjs verifier "$RUNNER_TEMP/sauvegarde/fichiers-$JOUR"
+          du -sh "$RUNNER_TEMP/sauvegarde"/*
+
+      - name: Déposer sur Scaleway Object Storage
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.SCW_REGION }}
+          AWS_EC2_METADATA_DISABLED: "true"
+        run: |
+          set -euo pipefail
+          POINT="https://s3.${SCW_REGION}.scw.cloud"
+          # Jamais d'écrasement : le préfixe daté doit être vide.
+          if [ -n "$(aws s3 ls "s3://${SCW_BUCKET}/${JOUR}/" --endpoint-url "$POINT" 2>/dev/null)" ]; then
+            echo "✗ le préfixe ${JOUR}/ existe déjà dans le compartiment" >&2; exit 1
+          fi
+          aws s3 cp "$RUNNER_TEMP/sauvegarde/" "s3://${SCW_BUCKET}/${JOUR}/" --recursive --only-show-errors --endpoint-url "$POINT"
+          echo "— relecture depuis Scaleway"
+          mkdir -p "$RUNNER_TEMP/relecture"
+          aws s3 cp "s3://${SCW_BUCKET}/${JOUR}/" "$RUNNER_TEMP/relecture/" --recursive --only-show-errors --endpoint-url "$POINT"
+          echo "— objets déposés"
+          aws s3 ls "s3://${SCW_BUCKET}/${JOUR}/" --recursive --endpoint-url "$POINT" | awk '{print $3" octets  "$4}'
+
+      - name: Vérifier la copie distante
+        working-directory: app
+        env:
+          GERIMMO_BACKUP_KEY: ${{ secrets.GERIMMO_BACKUP_KEY }}
+        run: |
+          set -euo pipefail
+          node scripts/sauvegarde/base.mjs verifier "$RUNNER_TEMP/relecture/base-$JOUR"
+          node scripts/sauvegarde/fichiers.mjs verifier "$RUNNER_TEMP/relecture/fichiers-$JOUR"
+          echo "✓ sauvegarde ${JOUR} déposée et relue"
+
+      - name: Effacer les copies locales
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/sauvegarde" "$RUNNER_TEMP/relecture"

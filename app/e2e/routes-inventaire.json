@@ -20,8 +20,14 @@
   {
     "path": "/admin/brief",
     "persona": "superadmin",
-    "label": "Brief de supervision",
+    "label": "Le point du matin",
     "dynamic": ""
+  },
+  {
+    "path": "/admin/brief/[equipe]",
+    "persona": "superadmin",
+    "label": "Le point du matin — détail d’une équipe",
+    "dynamic": "equipe"
   },
   {
     "path": "/admin/clients",

@@ -6,7 +6,7 @@ test.describe('Tour du matin de la supervision',()=>{
  test.beforeEach(async({page})=>{await sansSyntheseAlertes(page);});
  test('arrive sur Aujourd’hui et retrouve les destinations dans le menu mobile',async({page})=>{
   await page.goto('/espaces');await expect(page).toHaveURL(/\/admin\/brief/);
-  await expect(page.getByRole('heading',{name:'Aujourd’hui',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Le point du matin',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();
   await page.locator('summary').filter({hasText:'Développement commercial'}).click();
   await page.getByRole('link',{name:'Demandes commerciales',exact:true}).click();

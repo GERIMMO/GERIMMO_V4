@@ -151,6 +151,6 @@ export default async function PageAgentMarketing() {
       <Capacite icone={<Megaphone className="size-5" />} titre="Diffusion" detail="Deux sujets par semaine, un nouveau visuel par post, diffusion automatique activable ou mise en pause depuis cet écran." statut={facebookOperationnel ? "Connectée" : "À finaliser"} operationnel={facebookOperationnel} />
       <Capacite icone={<Radar className="size-5" />} titre="Mesure et amélioration" detail="Suivre portée, clics, dépenses et campagnes afin de proposer les prochains sujets et arbitrages." statut={metaOperationnel ? "En direct" : "Autorisation à terminer"} operationnel={metaOperationnel} />
     </div></details>
-    <ActualisationAuto />
+    <ActualisationAuto actualiseLe={new Date().toISOString()} />
   </main>;
 }

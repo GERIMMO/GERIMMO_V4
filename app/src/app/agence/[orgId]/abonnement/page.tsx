@@ -96,6 +96,14 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
   const paiement = ((paiementBrut ?? []) as EtatPaiement[])[0] ?? null;
   const tranches = (tranchesBrut ?? []) as Tranche[];
   const total = etat?.mensuel ?? 0;
+  // Le prix de chaque bien payant, lu dans les tranches de la base (25/09 :
+  // la liste nominative écrivait « 5,99 €/mois » en dur à côté d'un total lu
+  // en base). Le n-ième bien payant prend le prix de la tranche qui le
+  // contient ; un bien que la base ne compte pas (lecture en échec) n'a pas de
+  // prix affiché plutôt qu'un prix inventé.
+  const prixParBienPayant: number[] = tranches.flatMap((tr) =>
+    Array.from({ length: Math.max(0, tr.unites) }, () => tr.prix_unitaire)
+  );
   const ferme = etat ? !etat.ecriture_ouverte : false;
   const enEssai = etat?.statut === "essai";
   const jours = etat?.jours_essai_restants ?? null;
@@ -327,11 +335,13 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
               </div>
             </div>
           )
-        ) : erreurBiens ? (
+        ) : erreurBiens || erreurEtat ? (
           <EncadreLectureImpossible>
-            Vos biens n&apos;ont pas pu être lus — ce n&apos;est pas un parc
-            vide, et un total affiché ici serait faux. Rechargez la page dans
-            un instant : rien n&apos;est prélevé entre-temps.
+            {erreurBiens
+              ? "Vos biens n'ont pas pu être lus — ce n'est pas un parc vide, et un total affiché ici serait faux."
+              : "Votre décompte n'a pas pu être lu — un total affiché ici serait faux."}{" "}
+            Rechargez la page dans un instant : rien n&apos;est prélevé
+            entre-temps.
           </EncadreLectureImpossible>
         ) : liste.length === 0 ? (
           <div className="vide-guide">
@@ -357,7 +367,11 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
                   )}
                 </span>
                 <span className="montant">
-                  {ix === 0 ? "0 €" : "5,99 €/mois"}
+                  {ix === 0
+                    ? "0 €"
+                    : prixParBienPayant[ix - 1] !== undefined
+                      ? `${eur(prixParBienPayant[ix - 1])}/mois`
+                      : "—"}
                 </span>
               </div>
             ))}

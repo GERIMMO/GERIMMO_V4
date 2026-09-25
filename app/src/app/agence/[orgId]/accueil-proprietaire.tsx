@@ -35,7 +35,8 @@ export async function AccueilProprietaire({
   const moisCourant = `${aujourdhuiParis().slice(0, 7)}-01`;
   const [
     { data: lots, error: erreurLots },
-    { count: nbBiens, error: erreurBiens },
+    { data: etatAbonnementBrut, error: erreurAbonnement },
+    { data: tranchesBrut },
     { data: encaissements, error: erreurEncaissements },
     { data: alertesBrutes, error: erreurAlertes },
     { data: dpe, error: erreurDpe },
@@ -51,7 +52,12 @@ export async function AccueilProprietaire({
       .select("id, nom, etat, bien_id")
       .eq("organization_id", orgId)
       .neq("etat", "archive"),
-    supabase.from("biens").select("*", { count: "exact", head: true }).eq("organization_id", orgId),
+    // Le décompte de l'abonnement vient de la base, comme sur la page
+    // Abonnement (25/09) : l'accueil comptait les biens et multipliait par un
+    // 5,99 en dur — deux calculs du même montant finissent par diverger, et la
+    // grille (`tarif_tranches`) vit en base.
+    supabase.rpc("etat_abonnement", { p_org: orgId }),
+    supabase.rpc("detail_tranches_abonnement", { p_org: orgId }),
     supabase
       .from("encaissements")
       .select("montant")
@@ -136,7 +142,7 @@ export async function AccueilProprietaire({
   // Une lecture tombée ne rend pas de verdict : ni « tout est en ordre », ni
   // « 0 € encaissé », ni « 0 lot ». On le dit en tête, et chaque chiffre
   // concerné s'efface plutôt que d'afficher un zéro trompeur.
-  const lectureEnEchec = [erreurLots, erreurBiens, erreurEncaissements, erreurAlertes, erreurLotsEngages].some(
+  const lectureEnEchec = [erreurLots, erreurAbonnement, erreurEncaissements, erreurAlertes, erreurLotsEngages].some(
     (e) => e != null
   );
   const aFaireIncertain = erreurLots != null || erreurAlertes != null || erreurLotsEngages != null;
@@ -155,10 +161,17 @@ export async function AccueilProprietaire({
     classe_dpe: string;
     lot: UnOuPlusieurs<{ nom: string; etat: string }>;
   }[]).map((d) => ({ classe: d.classe_dpe, lot: premier(d.lot) }));
-  // Grille tarifaire actée (05/09, remplace celle du 25/07) : 1ᵉʳ bien offert,
-  // 5,99 €/bien/mois ensuite
-  const biensPayants = Math.max(0, (nbBiens ?? 0) - 1);
-  const totalMensuel = biensPayants * 5.99;
+  // Grille tarifaire actée (05/09) : 1ᵉʳ bien offert, un prix par bien
+  // ensuite — le prix est celui de la base, tranche par tranche.
+  const etatAbonnement =
+    ((etatAbonnementBrut ?? []) as { unites_facturees: number; mensuel: number }[])[0] ?? null;
+  const tranches = (tranchesBrut ?? []) as {
+    rang: number;
+    unites: number;
+    prix_unitaire: number;
+    sous_total: number;
+  }[];
+  const biensPayants = etatAbonnement?.unites_facturees ?? 0;
   const aujourdhui = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
@@ -425,15 +438,42 @@ export async function AccueilProprietaire({
               <span>1ᵉʳ bien — offert</span>
               <span className="shrink-0 whitespace-nowrap">0&nbsp;€</span>
             </div>
-            {biensPayants > 0 && (
-              <div className="ligne-info">
-                <span>
-                  {biensPayants} bien{biensPayants > 1 ? "s" : ""} supplémentaire
-                  {biensPayants > 1 ? "s" : ""}{" "}
-                  <span className="whitespace-nowrap">× 5,99&nbsp;€</span>
-                </span>
-                <span className="shrink-0 whitespace-nowrap">{eur(totalMensuel)}/mois</span>
-              </div>
+            {erreurAbonnement ? (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Le montant n&apos;a pas pu être lu — ce n&apos;est pas 0 € : la
+                page Abonnement le dira.
+              </p>
+            ) : (
+              biensPayants > 0 &&
+              etatAbonnement &&
+              (tranches.length > 0 ? (
+                <>
+                  {tranches.map((tr) => (
+                    <div key={tr.rang} className="ligne-info">
+                      <span>
+                        {tr.unites} bien{tr.unites > 1 ? "s" : ""} supplémentaire
+                        {tr.unites > 1 ? "s" : ""}{" "}
+                        <span className="whitespace-nowrap">× {eur(tr.prix_unitaire)}</span>
+                      </span>
+                      <span className="shrink-0 whitespace-nowrap">{eur(tr.sous_total)}/mois</span>
+                    </div>
+                  ))}
+                  {tranches.length > 1 && (
+                    <div className="ligne-info font-medium">
+                      <span>Total mensuel</span>
+                      <span className="shrink-0 whitespace-nowrap">{eur(etatAbonnement.mensuel)}/mois</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="ligne-info">
+                  <span>
+                    {biensPayants} bien{biensPayants > 1 ? "s" : ""} supplémentaire
+                    {biensPayants > 1 ? "s" : ""}
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap">{eur(etatAbonnement.mensuel)}/mois</span>
+                </div>
+              ))
             )}
             <span className="lien-discret mt-2.5 block text-[13px]">
               Voir mon abonnement&nbsp;→

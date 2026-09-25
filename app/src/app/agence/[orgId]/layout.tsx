@@ -61,12 +61,23 @@ export default async function LayoutAgence({
   // Revue recette 08/08 : la pop-up de connexion ne montre que les alertes
   // qui me sont confiées, dans l'agence où je me trouve — l'acteur
   // multi-agences navigue d'une agence à l'autre.
+  // L'essai est-il échu ? La date seule ne dit pas si l'écriture est fermée
+  // (25/09) : depuis le 24/09, un essai fini sans rien à payer — propriétaire
+  // d'un seul bien, agence sans mandat actif — laisse l'écriture ouverte
+  // (`org_ecriture_ouverte`). On lit donc `etat_abonnement`, comme la page
+  // Abonnement, mais seulement quand la question se pose.
+  const essaiEchu =
+    organisation.status === "essai" &&
+    Boolean(organisation.essai_fin) &&
+    joursRestants(organisation.essai_fin!) < 0;
+
   const [
     alertes,
     { data: incidentsOuverts },
     { data: donneesMembres },
     messagesNonLus,
     actionsDuJour,
+    { data: etatAbonnementBrut },
   ] = await Promise.all([
     chargerSyntheseAlertes(supabase, { orgId }),
     // Badge maquette : les incidents encore ouverts (tout sauf clos).
@@ -91,7 +102,16 @@ export default async function LayoutAgence({
     // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
     // suit le relit sans nouvel aller-retour.
     compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
+    essaiEchu
+      ? supabase.rpc("etat_abonnement", { p_org: orgId })
+      : Promise.resolve({ data: null }),
   ]);
+  const etatAbonnement =
+    ((etatAbonnementBrut ?? []) as { ecriture_ouverte: boolean; unites_facturees: number }[])[0] ??
+    null;
+  // Fermée seulement si la base le dit : une lecture en échec ne ferme rien à
+  // l'écran (la base, elle, refuse déjà les écritures si c'est le cas).
+  const ecritureFermee = essaiEchu && etatAbonnement?.ecriture_ouverte === false;
   const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
     (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
   ).length;
@@ -147,15 +167,24 @@ export default async function LayoutAgence({
   // L'essai, en une ligne au pied de la barre — plus de bandeau plein écran
   // au-dessus de chaque page. Réservé au responsable : un agent n'a pas à
   // connaître la facture de son agence.
+  // Essai fini, écriture ouverte : rien à régler, et la barre le dit en ton
+  // neutre plutôt qu'en rouge « terminé » (25/09). Sans lecture de l'état,
+  // on n'affirme ni l'un ni l'autre.
+  const rienARegler =
+    essaiEchu && etatAbonnement && etatAbonnement.ecriture_ouverte
+      ? organisation.type === "agence"
+        ? "Rien à régler tant qu'aucun lot n'est sous mandat actif"
+        : "Rien à régler tant que vous ne gérez qu'un bien"
+      : null;
   const essai =
     estResponsable && organisation.status === "essai" && organisation.essai_fin
-      ? { jours: joursRestants(organisation.essai_fin), href: `/agence/${orgId}/abonnement` }
+      ? {
+          jours: joursRestants(organisation.essai_fin),
+          href: `/agence/${orgId}/abonnement`,
+          ecritureFermee,
+          rienARegler,
+        }
       : null;
-
-  const essaiTermine =
-    organisation.status === "essai" &&
-    Boolean(organisation.essai_fin) &&
-    joursRestants(organisation.essai_fin!) < 0;
 
   const liensCompte = estProprietaire
     ? [
@@ -211,11 +240,12 @@ export default async function LayoutAgence({
             liens={liensCompte}
           />
         </header>
-        {/* L'essai terminé se dit en clair, une fois, en tête : la barre le
-            porte aussi, mais un essai échu ferme l'écriture — ça se lit. À
-            TOUS les rôles : un agent qui ne peut plus écrire doit savoir
-            pourquoi, et à qui s'adresser. Le responsable, lui, a le lien. */}
-        {essaiTermine && (
+        {/* L'essai terminé se dit en clair, une fois, en tête — mais seulement
+            s'il FERME l'écriture (25/09 : le propriétaire d'un seul bien lisait
+            « la saisie est suspendue » alors qu'il pouvait saisir). À TOUS les
+            rôles : un agent qui ne peut plus écrire doit savoir pourquoi, et à
+            qui s'adresser. Le responsable, lui, a le lien. */}
+        {ecritureFermee && (
           <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
             Période d&apos;essai terminée —{" "}
             {estResponsable ? (

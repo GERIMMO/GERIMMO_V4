@@ -172,8 +172,9 @@ export function regrouperActionsDuJour({
     href: a.href,
   }));
 
-  // Une alerte qui répète un item calculé (EDL d'entrée posée à l'activation)
-  // ne s'affiche pas deux fois : l'item calculé fait foi.
+  // Une alerte qui répète un item calculé (EDL d'entrée posée à l'activation,
+  // impayé, diagnostic ou pièce expirés reposés chaque nuit) ne s'affiche pas
+  // deux fois : l'item calculé fait foi (25/09 : un impayé comptait pour deux).
   const datees: ActionDuJour[] = sansAlertesDoublonnees(alertes, attendues).map((a) => ({
     cle: `a-${a.id}`,
     source: "alerte",

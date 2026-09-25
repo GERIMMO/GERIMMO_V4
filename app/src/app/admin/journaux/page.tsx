@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { formaterDateHeure } from "@/lib/ged";
+import { borneJourParis, formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
 import {
   Card,
   CardContent,
@@ -10,8 +10,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BoutonPurge } from "./bouton-purge";
-import { libelleAccesDocument, libelleActionAudit, libelleEvenement } from "@/lib/libelles-journaux";
+import { codesConnusJournaux, detailsExpurges, libelleAccesDocument, libelleActionAudit, libelleEvenement } from "@/lib/libelles-journaux";
 import { resumerBilan } from "@/lib/sante-service";
+import { FiltresJournaux, PagesJournal } from "./filtres";
+
+// Filtres et pagination (25/09) : quinze lignes par journal, sans filtre, ne
+// permettaient pas de déboguer — une visite d'agence par la supervision suffit
+// à faire disparaître les décisions du journal d'audit.
+const PAR_PAGE = 50;
+const PAGE_MAX = 1000;
+
+type Filtres = { type: string; org: string; depuis: string; jusqu: string };
+type Params = Partial<Filtres> & { p_audit?: string; p_technique?: string; p_acces?: string };
+
+function pageDe(valeur: string | undefined): number {
+  const n = Number(valeur);
+  return Number.isInteger(n) && n >= 1 && n <= PAGE_MAX ? n : 1;
+}
 
 export const metadata = { title: "Journaux et conservation — Gerimmo" };
 
@@ -58,42 +73,96 @@ const nomDe = (lien: unknown, champ: "name" | "email"): string | null => {
   return typeof valeur === "string" && valeur ? valeur : null;
 };
 
-export default async function PageJournaux() {
+export default async function PageJournaux({ searchParams }: { searchParams: Promise<Params> }) {
   const supabase = await createClient();
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  // Qui a agi, et sur quelle organisation (24/09) : deux consultations
-  // identiques ne se distinguaient pas, et `organization_id` était lu sans
-  // être affiché.
+  const p = await searchParams;
+  // Le type est un fragment de code (« tache_ », « traversee »…), borné et sans
+  // caractère de motif ; l'organisation un identifiant ; les dates des jours de
+  // Paris. Ce qui ne passe pas est ignoré, pas deviné.
+  const filtres: Filtres = {
+    type: String(p.type ?? "").trim().replace(/[%*,.()]/g, "").slice(0, 60),
+    org: /^[0-9a-f-]{36}$/i.test(String(p.org ?? "")) ? String(p.org) : "",
+    depuis: borneJourParis(String(p.depuis ?? "")) ? String(p.depuis) : "",
+    jusqu: borneJourParis(String(p.jusqu ?? ""), true) ? String(p.jusqu) : "",
+  };
+  const pages = { audit: pageDe(p.p_audit), technique: pageDe(p.p_technique), acces: pageDe(p.p_acces) };
+  const debutIso = filtres.depuis ? borneJourParis(filtres.depuis) : null;
+  const finIso = filtres.jusqu ? borneJourParis(filtres.jusqu, true) : null;
+  // PostgREST : `_` est un joker de `ilike`, on l'échappe.
+  const motifType = filtres.type ? `%${filtres.type.replace(/_/g, "\\_")}%` : null;
+
+  // Une page de 50 lignes lue avec une de plus : elle dit s'il y a une suite,
+  // sans compter toute la table.
+  // Le générateur de requêtes de Supabase est trop profond pour être typé au
+  // travers d'un aide générique : la requête entre en `unknown`, les lignes
+  // sortent dans le type annoncé par l'appelant.
+  type Requete = {
+    ilike: (c: string, v: string) => Requete;
+    eq: (c: string, v: string) => Requete;
+    gte: (c: string, v: string) => Requete;
+    lte: (c: string, v: string) => Requete;
+    range: (a: number, b: number) => PromiseLike<{ data: unknown; error: unknown }>;
+  };
+  const borner = <T,>(q: unknown, page: number, colonneType: string, avecOrg: boolean) => {
+    let r = q as Requete;
+    if (motifType) r = r.ilike(colonneType, motifType);
+    if (avecOrg && filtres.org) r = r.eq("organization_id", filtres.org);
+    if (debutIso) r = r.gte("created_at", debutIso);
+    if (finIso) r = r.lte("created_at", finIso);
+    return r.range((page - 1) * PAR_PAGE, page * PAR_PAGE) as PromiseLike<{ data: T[] | null; error: unknown }>;
+  };
+  type LigneAudit = { action: string; details: unknown; created_at: string; organisation: unknown; compte: unknown };
+  type LigneTechnique = { evenement: string; details: unknown; created_at: string };
+  type LigneAcces = { action: string; account_id: string | null; created_at: string; document: unknown; organisation: unknown };
+
   const [
     { data: regles, error: e1 },
-    { data: audit, error: e2 },
-    { data: technique, error: e3 },
-    { data: acces, error: e4 },
+    { data: auditBrut, error: e2 },
+    { data: techniqueBrut, error: e3 },
+    { data: accesBrut, error: e4 },
     { count: enAttente, error: e5 },
+    { data: organisations },
   ] = await Promise.all([
     supabase.from("retention_rules").select("*").order("data_type"),
-    supabase
-      .from("audit_log")
-      .select("action, details, created_at, organisation:organizations(name), compte:accounts(email)")
-      .order("created_at", { ascending: false })
-      .limit(15),
-    supabase
-      .from("tech_log")
-      .select("evenement, details, created_at")
-      .order("created_at", { ascending: false })
-      .limit(15),
-    supabase
-      .from("acces_pieces_log")
-      .select("action, account_id, created_at, document:documents(type, titre), organisation:organizations(name)")
-      .order("created_at", { ascending: false })
-      .limit(15),
+    borner<LigneAudit>(
+      supabase
+        .from("audit_log")
+        .select("action, details, created_at, organisation:organizations(name), compte:accounts(email)")
+        .order("created_at", { ascending: false }),
+      pages.audit, "action", true
+    ),
+    borner<LigneTechnique>(
+      supabase
+        .from("tech_log")
+        .select("evenement, details, created_at")
+        .order("created_at", { ascending: false }),
+      pages.technique, "evenement", false
+    ),
+    borner<LigneAcces>(
+      supabase
+        .from("acces_pieces_log")
+        .select("action, account_id, created_at, document:documents(type, titre), organisation:organizations(name)")
+        .order("created_at", { ascending: false }),
+      pages.acces, "action", true
+    ),
     supabase
       .from("purge_fichiers")
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null),
+    supabase.from("organizations").select("id, name").order("name").limit(500),
   ]);
+  const audit = (auditBrut ?? []).slice(0, PAR_PAGE);
+  const technique = (techniqueBrut ?? []).slice(0, PAR_PAGE);
+  const acces = (accesBrut ?? []).slice(0, PAR_PAGE);
+  const suite = {
+    audit: (auditBrut ?? []).length > PAR_PAGE,
+    technique: (techniqueBrut ?? []).length > PAR_PAGE,
+    acces: (accesBrut ?? []).length > PAR_PAGE,
+  };
+  const filtreActif = Boolean(filtres.type || filtres.org || filtres.depuis || filtres.jusqu);
   // Écran de conformité RGPD : un échec de lecture ne doit pas se déguiser en
   // journaux vides (audit 09/09)
   if (e1 || e2 || e3 || e4 || e5) {
@@ -111,7 +180,7 @@ export default async function PageJournaux() {
   // L'auteur d'un accès aux pièces : la table ne porte pas de lien vers les
   // comptes, on lit leurs adresses à part. Une lecture en échec laisse la
   // ligne sans auteur plutôt que de bloquer la page.
-  const idsComptes = [...new Set((acces ?? []).map((l) => l.account_id).filter(Boolean))] as string[];
+  const idsComptes = [...new Set(acces.map((l) => l.account_id).filter(Boolean))] as string[];
   const { data: comptes } = idsComptes.length
     ? await supabase.from("accounts").select("id, email").in("id", idsComptes)
     : { data: [] as { id: string; email: string }[] };
@@ -134,6 +203,12 @@ export default async function PageJournaux() {
       <BoutonPurge fichiersEnAttente={enAttente ?? 0}>
         <h1>Journaux et conservation</h1>
       </BoutonPurge>
+
+      <FiltresJournaux
+        filtres={filtres}
+        organisations={(organisations ?? []) as { id: string; name: string }[]}
+        codes={codesConnusJournaux()}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="lg:col-span-2">
@@ -214,11 +289,11 @@ export default async function PageJournaux() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {(audit ?? []).length === 0 ? (
-              <div className="vide">Aucune action sensible journalisée pour l&apos;instant.</div>
+            {audit.length === 0 ? (
+              <div className="vide">{filtreActif ? "Aucune action ne correspond à ces filtres." : "Aucune action sensible journalisée pour l'instant."}</div>
             ) : (
               <ul className="divide-y">
-                {(audit ?? []).map((l, i) => {
+                {audit.map((l, i) => {
                   const organisation = nomDe(l.organisation, "name");
                   const auteur = nomDe(l.compte, "email");
                   const precision = detailsAudit(l.details);
@@ -228,7 +303,7 @@ export default async function PageJournaux() {
                       {organisation && <span className="text-muted-foreground"> · {organisation}</span>}
                       {auteur && <span className="text-muted-foreground [overflow-wrap:anywhere]"> · {auteur}</span>}
                       <span className="ml-2 text-xs text-muted-foreground">
-                        {formaterDateHeure(l.created_at)}
+                        {formaterDateHeureParis(l.created_at)}
                       </span>
                       {precision && (
                         <span className="mt-0.5 block text-xs text-muted-foreground">{precision}</span>
@@ -238,6 +313,7 @@ export default async function PageJournaux() {
                 })}
               </ul>
             )}
+            <PagesJournal cle="p_audit" page={pages.audit} suite={suite.audit} filtres={filtres} pages={pages} />
           </CardContent>
         </Card>
 
@@ -253,7 +329,15 @@ export default async function PageJournaux() {
           <CardContent>
             {/* Un historique vide n'est pas un bon signe (24/09) : le travail
                 de nuit doit y laisser une trace. L'état vide dit où vérifier. */}
-            {(technique ?? []).length === 0 ? (
+            {filtres.org && (
+              <p className="mb-2 text-xs text-muted-foreground">
+                L&apos;historique du service n&apos;est pas rattaché à une organisation : le filtre
+                d&apos;organisation ne s&apos;y applique pas.
+              </p>
+            )}
+            {technique.length === 0 && filtreActif ? (
+              <div className="vide">Aucun événement ne correspond à ces filtres.</div>
+            ) : technique.length === 0 ? (
               <div className="vide-guide">
                 <p className="titre">Aucun événement sur six mois</p>
                 <p className="explication">
@@ -268,23 +352,28 @@ export default async function PageJournaux() {
               </div>
             ) : (
               <ul className="divide-y">
-                {(technique ?? []).map((l, i) => (
-                  <li key={i} className="py-2 text-sm">
-                    <span className="font-medium">{libelleEvenement(l.evenement)}</span>
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      {formaterDateHeure(l.created_at)}
-                    </span>
-                    {l.evenement?.startsWith("tache_") && (
+                {technique.map((l, i) => {
+                  const tache = l.evenement?.startsWith("tache_") ? l.evenement.slice("tache_".length) : null;
+                  // Un événement hors tâche montre son détail expurgé (25/09) :
+                  // compteurs, oui/non, codes courts — jamais un texte libre.
+                  const detail = tache ? resumerBilan(l.details, tache) : detailsExpurges(l.details);
+                  return (
+                    <li key={i} className="py-2 text-sm">
+                      <span className="font-medium">{libelleEvenement(l.evenement)}</span>
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {formaterDateHeureParis(l.created_at)}
+                      </span>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {resumerBilan(l.details, l.evenement.slice("tache_".length)) === "—"
-                          ? "Aucun résultat détaillé enregistré pour ce passage."
-                          : resumerBilan(l.details, l.evenement.slice("tache_".length))}
+                        {tache
+                          ? detail === "—" ? "Aucun résultat détaillé enregistré pour ce passage." : detail
+                          : detail ?? `Code interne : ${l.evenement}`}
                       </p>
-                    )}
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
             )}
+            <PagesJournal cle="p_technique" page={pages.technique} suite={suite.technique} filtres={filtres} pages={pages} />
           </CardContent>
         </Card>
 
@@ -299,11 +388,11 @@ export default async function PageJournaux() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {(acces ?? []).length === 0 ? (
-              <div className="vide">Aucune consultation de pièce tracée pour l&apos;instant.</div>
+            {acces.length === 0 ? (
+              <div className="vide">{filtreActif ? "Aucune consultation ne correspond à ces filtres." : "Aucune consultation de pièce tracée pour l'instant."}</div>
             ) : (
               <ul className="divide-y">
-                {(acces ?? []).map((l, i) => {
+                {acces.map((l, i) => {
                   const doc = l.document as unknown as {
                     type: string;
                     titre: string | null;
@@ -319,16 +408,18 @@ export default async function PageJournaux() {
                       {organisation && <span className="text-muted-foreground"> · {organisation}</span>}
                       {auteur && <span className="text-muted-foreground [overflow-wrap:anywhere]"> · {auteur}</span>}
                       <span className="ml-2 text-xs text-muted-foreground">
-                        {formaterDateHeure(l.created_at)}
+                        {formaterDateHeureParis(l.created_at)}
                       </span>
                     </li>
                   );
                 })}
               </ul>
             )}
+            <PagesJournal cle="p_acces" page={pages.acces} suite={suite.acces} filtres={filtres} pages={pages} />
           </CardContent>
         </Card>
       </div>
+      <p className="mt-4 text-xs text-muted-foreground">{NOTE_FUSEAU}</p>
     </main>
   );
 }

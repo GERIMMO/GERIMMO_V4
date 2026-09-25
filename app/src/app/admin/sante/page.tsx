@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { dernieresTaches, type PasseConsignee } from "@/lib/tache";
-import { formaterDateHeure } from "@/lib/ged";
+import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
 import { faitsManquants } from "@/lib/editeur";
 import {
   adoptionAutomatique,
-  etatConfiguration,
-  etatTaches,
-  pointsBloquants,
+  chargerSante,
   type Etat,
   type EtatTache,
   type OrganisationPourAdoption,
@@ -34,48 +31,49 @@ const PUCE_TACHE: Record<EtatTache, { classe: string; libelle: string }> = {
   echec: { classe: "puce-rouge", libelle: "en échec" },
   retard: { classe: "puce-prep", libelle: "en retard" },
   jamais: { classe: "puce-rouge", libelle: "aucune exécution" },
+  // Comme la sandbox Youtrust dans la liste des connexions (25/09) : à
+  // vérifier, pas en échec — la connexion manquante est déjà comptée plus haut.
+  non_configuree: { classe: "puce-prep", libelle: "non configurée — à vérifier" },
 };
 
 export default async function PageSante() {
   const supabase = await createClient();
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
-  const [journal, orgs] = await Promise.all([
-    supabase
-      .from("tech_log")
-      .select("evenement, details, created_at")
-      .like("evenement", "tache_%")
-      .order("created_at", { ascending: false })
-      .limit(200),
+  const manquants = faitsManquants();
+  // Le même calcul que /admin et /admin/brief (25/09) : une seule requête du
+  // journal, une seule fenêtre, un seul chiffre.
+  const [sante, orgs] = await Promise.all([
+    chargerSante(supabase, process.env, manquants.length),
     supabase
       .from("organizations")
       .select("status, quittances_envoi_auto, appels_envoi_auto, relances_envoi_auto"),
   ]);
 
-  const configuration = etatConfiguration(process.env);
-  const taches = journal.error
-    ? null
-    : etatTaches(dernieresTaches((journal.data ?? []) as PasseConsignee[]), new Date());
+  const { configuration, taches } = sante;
   const adoption = orgs.error
     ? null
     : adoptionAutomatique((orgs.data ?? []) as OrganisationPourAdoption[]);
-  const manquants = faitsManquants();
 
   const nbManque = configuration.filter((v) => v.etat === "manque").length;
   const nbAttention = configuration.filter((v) => v.etat === "attention").length;
-  const nbPoints = taches === null ? null : pointsBloquants(configuration, taches, manquants.length);
+  const nbPoints = taches === null ? null : sante.bloquants;
   // Le total se détaille (24/09) : « 20 points à traiter · 10 connexions
   // manquantes » ne disait pas d'où venaient les dix autres, et « 1 à
   // vérifier » ne comptait pas dans les vingt. Même décompte que
   // pointsBloquants (lib/sante-service.ts).
   const nbJamais = taches?.filter((t) => t.etat === "jamais").length ?? 0;
   const nbEchec = taches?.filter((t) => t.etat === "echec").length ?? 0;
+  const nbNonConfigurees = taches?.filter((t) => t.etat === "non_configuree").length ?? 0;
   const detailPoints = [
     nbManque > 0 && `${nbManque} connexion${nbManque > 1 ? "s" : ""} manquante${nbManque > 1 ? "s" : ""}`,
     nbJamais > 0 && `${nbJamais} tâche${nbJamais > 1 ? "s" : ""} jamais exécutée${nbJamais > 1 ? "s" : ""}`,
     nbEchec > 0 && `${nbEchec} tâche${nbEchec > 1 ? "s" : ""} en échec`,
     manquants.length > 0 && "documents légaux incomplets",
   ].filter(Boolean).join(", ");
-  const aVerifier = nbAttention > 0 ? ` · ${nbAttention} connexion${nbAttention > 1 ? "s" : ""} à vérifier` : "";
+  const aVerifier = [
+    nbAttention > 0 && `${nbAttention} connexion${nbAttention > 1 ? "s" : ""} à vérifier`,
+    nbNonConfigurees > 0 && `${nbNonConfigurees} tâche${nbNonConfigurees > 1 ? "s" : ""} sans service relié`,
+  ].filter(Boolean).map((x) => ` · ${x}`).join("");
   // Les huit faits exigés, fournis ou non : `faitsManquants({})` les rend
   // tous, dans l'ordre de lib/editeur.ts.
   const faitsExiges = faitsManquants({});
@@ -160,7 +158,7 @@ export default async function PageSante() {
                     {t.le ? (
                       <>
                         Dernière passe le{" "}
-                        <time dateTime={t.le}>{formaterDateHeure(t.le)}</time> — {t.bilan}
+                        <time dateTime={t.le}>{formaterDateHeureParis(t.le)}</time> — {t.bilan}
                       </>
                     ) : (
                       "Gerimmo n’a encore enregistré aucun passage."
@@ -175,6 +173,7 @@ export default async function PageSante() {
         <p className="mt-2 text-xs text-muted-foreground">
           Une pastille verte confirme un passage récent. Une pastille rouge
           demande une vérification. L&apos;historique est conservé pendant six mois.
+          {" "}{NOTE_FUSEAU}
         </p>
       </section>
 

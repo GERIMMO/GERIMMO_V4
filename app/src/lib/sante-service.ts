@@ -10,7 +10,11 @@
 // le secret n'en est pas une ici.
 //
 // Ces fonctions sont pures pour être vérifiables : la page ne fait que les
-// appeler avec `process.env` et les lignes du journal technique.
+// appeler avec `process.env` et les lignes du journal technique. La seule
+// exception est `chargerSante` (25/09), qui porte LA requête du journal : trois
+// pages (/admin, /admin/brief, /admin/sante) la faisaient chacune à leur façon
+// (30 jours et 2 000 lignes ici, 200 lignes sans fenêtre là) et n'affichaient
+// pas le même nombre de « points bloquants ».
 
 export type Etat = "ok" | "attention" | "manque";
 
@@ -241,7 +245,11 @@ export const TACHES: Tache[] = [
   { nom: "territoire", libelle: "Développement territorial", role: "Actualise le marché et prépare la prochaine priorité territoriale", horaire: "Chaque matin", periodicite: "quotidienne" },
 ];
 
-export type EtatTache = "ok" | "echec" | "retard" | "jamais";
+// « non_configuree » (25/09) : la passe a eu lieu mais le service qu'elle
+// sert n'est pas relié (Stripe absent, Youtrust en sandbox). Ce n'est pas un
+// échec ni une absence d'exécution : la ligne de configuration le dit déjà,
+// et elle seule compte dans les points bloquants.
+export type EtatTache = "ok" | "echec" | "retard" | "jamais" | "non_configuree";
 
 export type PasseDeTache = Tache & {
   etat: EtatTache;
@@ -303,6 +311,14 @@ export function etatTaches(
       return Boolean(valeur);
     }));
     const age = maintenant.getTime() - new Date(d.le).getTime();
+    if (bilan && typeof bilan === "object" && bilan.non_configuree === true && !enEchec) {
+      return {
+        ...t,
+        etat: age > MARGES[t.periodicite] ? "retard" : "non_configuree",
+        le: d.le,
+        bilan: "service non configuré ou en mode essai : la passe n'a rien traité — voir les connexions ci-dessus",
+      };
+    }
     const etat: EtatTache = enEchec ? "echec" : age > MARGES[t.periodicite] ? "retard" : "ok";
     return { ...t, etat, le: d.le, bilan: resumerBilan(d.bilan, t.nom) };
   });
@@ -340,7 +356,11 @@ export function adoptionAutomatique(orgs: OrganisationPourAdoption[]): Adoption 
   };
 }
 
-/** Ce que la page de supervision résume en une ligne : combien de points bloquent. */
+/**
+ * Ce que la page de supervision résume en une ligne : combien de points
+ * bloquent. Une tâche « non configurée » ne compte pas : sa connexion
+ * manquante est déjà comptée par la configuration.
+ */
 export function pointsBloquants(
   configuration: Verification[],
   taches: PasseDeTache[],
@@ -351,4 +371,94 @@ export function pointsBloquants(
     taches.filter((t) => t.etat === "jamais" || t.etat === "echec").length +
     (faitsEditeurManquants > 0 ? 1 : 0)
   );
+}
+
+// ── Le chargement partagé ───────────────────────────────────────────────────
+
+/** Fenêtre et volume de lecture du journal, identiques pour toutes les pages. */
+export const FENETRE_JOURNAL_HEURES = 30 * 24;
+const LIMITE_JOURNAL = 2000;
+
+type LigneJournal = { evenement: string; details: unknown; created_at: string };
+
+/**
+ * Le strict nécessaire d'un client Supabase pour lire le journal des tâches :
+ * `from`. La chaîne de la requête n'est pas typée ici — le générateur de
+ * Supabase est trop profond pour un type structurel — elle l'est en privé.
+ */
+export type ClientQuiLitLeJournal = { from: (table: string) => unknown };
+
+type ChaineJournal = {
+  select: (colonnes: string) => ChaineJournal;
+  like: (colonne: string, motif: string) => ChaineJournal;
+  gte: (colonne: string, valeur: string) => ChaineJournal;
+  order: (colonne: string, options: { ascending: boolean }) => ChaineJournal;
+  limit: (n: number) => PromiseLike<{ data: unknown; error: unknown }>;
+};
+
+/**
+ * L'état de chaque tâche, lu du journal — la même requête pour /admin,
+ * /admin/brief et /admin/sante (25/09). `null` quand la lecture a échoué :
+ * une console qui affiche zéro parce qu'une requête a échoué est pire que pas
+ * de console.
+ */
+export async function chargerEtatTaches(
+  db: ClientQuiLitLeJournal,
+  maintenant: Date = new Date()
+): Promise<PasseDeTache[] | null> {
+  const depuis = new Date(maintenant.getTime() - FENETRE_JOURNAL_HEURES * HEURE).toISOString();
+  const { data, error } = await (db.from("tech_log") as ChaineJournal)
+    .select("evenement, details, created_at")
+    .like("evenement", "tache_%")
+    .gte("created_at", depuis)
+    .order("created_at", { ascending: false })
+    .limit(LIMITE_JOURNAL);
+  if (error) return null;
+  const dernieres: Record<string, { le: string; bilan: unknown }> = {};
+  // Le générateur de requêtes de Supabase rend `data` sans type utile ici :
+  // on ne garde que les lignes de la forme attendue.
+  const lignes = (Array.isArray(data) ? data : []).filter(
+    (l): l is LigneJournal => Boolean(l) && typeof l === "object" && typeof (l as LigneJournal).evenement === "string" && typeof (l as LigneJournal).created_at === "string"
+  );
+  for (const l of lignes) {
+    const nom = l.evenement.slice("tache_".length);
+    if (!(nom in dernieres)) dernieres[nom] = { le: l.created_at, bilan: l.details };
+  }
+  return etatTaches(dernieres, maintenant);
+}
+
+export type Sante = {
+  configuration: Verification[];
+  /** `null` : le journal n'a pas pu être lu. */
+  taches: PasseDeTache[] | null;
+  faitsEditeurManquants: number;
+  /**
+   * Le chiffre du bandeau. Quand le journal est illisible, il compte tout de
+   * même les connexions manquantes et l'éditeur incomplet : ce sont des faits
+   * sûrs. `tachesIllisibles` dit à la page qu'il en manque peut-être.
+   */
+  bloquants: number;
+  tachesIllisibles: boolean;
+};
+
+/**
+ * La santé complète, en un appel, pour les trois pages qui l'affichent.
+ * `faitsEditeurManquants` vient de `faitsManquants().length` (lib/editeur) :
+ * il est passé en paramètre pour garder ce fichier sans dépendance d'écran.
+ */
+export async function chargerSante(
+  db: ClientQuiLitLeJournal,
+  env: Env,
+  faitsEditeurManquants: number,
+  maintenant: Date = new Date()
+): Promise<Sante> {
+  const configuration = etatConfiguration(env);
+  const taches = await chargerEtatTaches(db, maintenant);
+  return {
+    configuration,
+    taches,
+    faitsEditeurManquants,
+    bloquants: pointsBloquants(configuration, taches ?? [], faitsEditeurManquants),
+    tachesIllisibles: taches === null,
+  };
 }

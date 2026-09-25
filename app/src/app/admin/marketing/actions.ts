@@ -15,13 +15,15 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
   const budget = Number(String(donnees.get("budget") ?? "10").replace(",", "."));
   if (![jour1, jour2].every((j) => Number.isInteger(j) && j >= 1 && j <= 7) || jour1 === jour2) return { erreur: "Choisissez deux jours différents." };
   if (!Number.isInteger(heure) || heure < 0 || heure > 23) return { erreur: "Heure de préparation invalide." };
-  if (!Number.isFinite(budget) || budget < 0 || budget > 1000) return { erreur: "Le budget mensuel doit être compris entre 0 et 1 000 €." };
+  if (!Number.isFinite(budget) || budget < 0 || budget > 1000) return { erreur: "Le seuil d’alerte mensuel doit être compris entre 0 et 1 000 €." };
   const { data: utilisateur } = await supabase.auth.getUser();
+  // `publicite_active` n'est plus écrasé (25/09) : aucun geste de l'écran ne
+  // le règle, il garde sa valeur en base. Le montant saisi est un seuil
+  // d'alerte sur les dépenses Meta constatées, pas un budget qu'on engage.
   const { error } = await supabase.from("marketing_reglages").update({
     actif: donnees.get("actif") === "on",
     publication_automatique: donnees.get("publication_automatique") === "on",
     diffusion_version: 1,
-    publicite_active: false,
     publications_semaine: 2,
     jours_semaine: [jour1, jour2].sort((a, b) => a - b),
     heure_paris: heure,
@@ -34,6 +36,13 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
   return { succes: "Pilotage marketing mis à jour." };
 }
 
+// Une INTENTION éditoriale, pas une campagne (25/09). Le formulaire
+// enregistrait des lignes « planifiee » que rien ne lisait jamais : la
+// mission marketing suit son propre rythme (deux jours par semaine) et la
+// publicité payante n'est pas ouverte (droits Meta Ads en attente). La ligne
+// notée ici est une note de travail affichée telle quelle, sans promesse de
+// diffusion ; une campagne sponsorisée est refusée tant que la publicité
+// n'existe pas comme geste.
 export async function programmerCampagne(_etat: EtatCampagne, donnees: FormData): Promise<EtatCampagne> {
   const supabase = await createClient();
   const { data: autorise } = await supabase.rpc("is_permanent_super_admin");
@@ -44,28 +53,24 @@ export async function programmerCampagne(_etat: EtatCampagne, donnees: FormData)
   const date = String(donnees.get("publication_prevue_le") ?? "").trim();
   const objectif = String(donnees.get("objectif") ?? "notoriete");
   const nature = String(donnees.get("nature") ?? "organique");
-  const budget = String(donnees.get("budget") ?? "").replace(",", ".").trim();
-  if (nom.length < 3) return { erreur: "Donnez un nom précis à la campagne." };
-  if (!date || Number.isNaN(Date.parse(date))) return { erreur: "Choisissez une date de publication." };
+  if (nom.length < 3) return { erreur: "Donnez un nom précis à l’intention." };
+  if (!date || Number.isNaN(Date.parse(date))) return { erreur: "Choisissez la date visée." };
   if (!['notoriete', 'trafic', 'prospects', 'conversion'].includes(objectif)) return { erreur: "Objectif invalide." };
-  if (!['organique', 'sponsorisee'].includes(nature)) return { erreur: "Type de diffusion invalide." };
-  const euros = budget ? Number(budget) : 0;
-  if (!Number.isFinite(euros) || euros < 0) return { erreur: "Le budget doit être un montant positif." };
-  if (nature === "sponsorisee" && euros <= 0) return { erreur: "Indiquez un budget pour une campagne sponsorisée." };
+  if (nature !== "organique") return { erreur: "La publicité payante n’est pas encore ouverte : les droits Meta Ads sont en attente. Seule une publication gratuite peut être notée." };
 
   const { data: utilisateur } = await supabase.auth.getUser();
   const { error } = await supabase.from("marketing_campagnes").insert({
     nom,
     description: description || null,
     objectif,
-    nature,
+    nature: "organique",
     canal: "facebook",
-    statut: "planifiee",
+    statut: "idee",
     publication_prevue_le: new Date(date).toISOString(),
-    budget_cents: Math.round(euros * 100),
+    budget_cents: 0,
     cree_par: utilisateur.user?.id ?? null,
   });
-  if (error) return { erreur: "La campagne n’a pas pu être enregistrée." };
+  if (error) return { erreur: "L’intention n’a pas pu être enregistrée." };
   revalidatePath("/admin/marketing");
-  return { succes: "Campagne ajoutée au calendrier." };
+  return { succes: "Intention notée. Elle n’est pas diffusée automatiquement : préparez l’article depuis « Créer un article » à la date visée." };
 }

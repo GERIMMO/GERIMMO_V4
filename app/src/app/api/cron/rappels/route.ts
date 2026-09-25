@@ -31,7 +31,6 @@ import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
-import { orchestrerDossiers } from "@/lib/orchestrateur";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -81,10 +80,8 @@ export async function GET(request: Request) {
       { status: 503 }
     );
   }
-  // La même ronde matinale remet aussi chaque dossier sur sa prochaine étape.
-  // Son éventuel échec ne bloque jamais les rappels déjà dus.
-  const orchestration = await orchestrerDossiers(supabase);
-  if (orchestration.erreur) console.error("[orchestrateur]", orchestration.erreur);
+  // 25/09 : la remise des dossiers sur leur prochaine étape a sa propre
+  // tâche planifiée (/api/cron/orchestrateur, 05:45) : plus rejouée ici.
   // Pas de contrôle d'adresse de site ici : le rappel se suffit à lui-même, il
   // ne porte pas de lien. Le locataire n'a rien à ouvrir — il a un rendez-vous.
 
@@ -104,7 +101,7 @@ export async function GET(request: Request) {
   if (lignes.length === 0) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de
     // cœur que la ronde du matin attend à cette heure-là.
-    const bilan = { rappeles: 0, echecs: 0, gestes, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 };
+    const bilan = { rappeles: 0, echecs: 0, gestes };
     await consignerTache(supabase, "rappels", bilan);
     return Response.json(bilan);
   }
@@ -158,7 +155,7 @@ export async function GET(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
-  const bilan = { rappeles, echecs: echecs.length, gestes, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 };
+  const bilan = { rappeles, echecs: echecs.length, gestes };
   await consignerTache(supabase, "rappels", bilan);
   return Response.json(bilan);
 }

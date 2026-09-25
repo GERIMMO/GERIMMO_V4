@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { familleOrganisation } from "@/lib/clients-supervision";
-import { depuisHeures, dernieresTaches, type PasseConsignee } from "@/lib/tache";
 import { faitsManquants } from "@/lib/editeur";
-import { etatConfiguration, etatTaches, pointsBloquants } from "@/lib/sante-service";
+import { chargerSante } from "@/lib/sante-service";
 import { MesureAutonomie } from "@/components/mesure-autonomie";
 
 // « Supervision » partout : la barre, le titre et l'onglet (24/09).
@@ -139,12 +138,11 @@ function Equipe({ nom, etat, travail, prochaine, resultat, autorisation, href, l
 
 export default async function PageAdmin() {
   const supabase = await createClient();
-  const depuis30Jours = depuisHeures(30 * 24);
 
   // Le layout /admin a déjà vérifié is_super_admin ; la RLS reste la garde de fond.
   // On lit `error` : une console de pilotage qui affiche zéro parce qu'une
   // requête a échoué est pire que pas de console du tout.
-  const [orgs, devis, publications, lots, artisans, retours, contestations, journalTaches, incidentsOuverts] = await Promise.all([
+  const [orgs, devis, publications, lots, artisans, retours, contestations, sante, incidentsOuverts] = await Promise.all([
     supabase.from("organizations").select("id, name, status, type, essai_fin").order("name"),
     supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
     supabase.from("publications").select("id, statut"),
@@ -152,7 +150,9 @@ export default async function PageAdmin() {
     supabase.rpc("artisans_a_valider"),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).in("etat", ["nouveau", "en_examen", "en_cours"]).neq("nature", "contestation"),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "contestation").neq("etat", "resolu"),
-    supabase.from("tech_log").select("evenement, details, created_at").like("evenement", "tache_%").gte("created_at", depuis30Jours).order("created_at", { ascending: false }).limit(2000),
+    // Le même calcul que /admin/sante et /admin/brief (25/09) : les trois pages
+    // comptaient les « points bloquants » chacune avec sa fenêtre.
+    chargerSante(supabase, process.env, faitsManquants().length),
     supabase.from("incidents").select("id", { count: "exact", head: true }).is("clos_le", null),
   ]);
 
@@ -160,10 +160,8 @@ export default async function PageAdmin() {
   // tâche qui n'a jamais tourné ne se voit pas d'ici, et c'est ici qu'on
   // regarde. Le détail vit sur /admin/sante ; la supervision dit seulement
   // combien de points bloquent, et se tait quand tout est en place.
-  const taches = journalTaches.error
-    ? null
-    : etatTaches(dernieresTaches((journalTaches.data ?? []) as PasseConsignee[]), new Date());
-  const bloquants = pointsBloquants(etatConfiguration(process.env), taches ?? [], faitsManquants().length);
+  const taches = sante.taches;
+  const bloquants = sante.bloquants;
   // La carte finance porte un chiffre de SON domaine (24/09) : les envois
   // d'argent en échec. Les « points bloquants » (connexions, tâches jamais
   // exécutées, mentions légales) ne relèvent pas d'elle et vivent dans le
@@ -172,7 +170,7 @@ export default async function PageAdmin() {
   const envoisEnEchec =
     taches === null ? null : taches.filter((t) => TACHES_FINANCE.includes(t.nom) && t.etat === "echec").length;
 
-  const enEchec = [journalTaches.error, incidentsOuverts.error, orgs.error, devis.error, publications.error, lots.error, artisans.error, retours.error, contestations.error].filter(Boolean);
+  const enEchec = [sante.tachesIllisibles, incidentsOuverts.error, orgs.error, devis.error, publications.error, lots.error, artisans.error, retours.error, contestations.error].filter(Boolean);
   const organisations = (orgs.data ?? []) as Organisation[];
   const parStatut = (s: string) => organisations.filter((o) => o.status === s).length;
   const agences = organisations.filter((o) => familleOrganisation(o.type) === "agence").length;
@@ -297,7 +295,7 @@ export default async function PageAdmin() {
           <Equipe nom="Agent finance et fiscalité" etat={envoisEnEchec === null ? "Indisponible" : envoisEnEchec !== null && envoisEnEchec > 0 ? "Action attendue" : "Suivi courant"} travail="Paiements, quittances, relances et abonnements contrôlés." prochaine="Reprendre les envois ou paiements signalés en échec." resultat={envoisEnEchec === null ? "Envois automatiques momentanément illisibles." : envoisEnEchec > 0 ? `${envoisEnEchec} envoi${envoisEnEchec > 1 ? "s" : ""} automatique${envoisEnEchec > 1 ? "s" : ""} en échec (quittances, avis, relances ou abonnements).` : "Aucun envoi de quittance, d’avis, de relance ou d’abonnement en échec."} autorisation="Les paiements et changements de prix restent soumis à votre accord." href="/admin/sante" libelleLien="Voir la santé du service" />
           <Equipe nom="Agent conformité et documents" etat={faitsManquants().length > 0 ? "Action attendue" : "À jour"} travail="Documents, accès et durées de conservation surveillés." prochaine="Compléter les informations légales manquantes." resultat={`${faitsManquants().length} information${faitsManquants().length > 1 ? "s" : ""} légale${faitsManquants().length > 1 ? "s" : ""} à fournir.`} autorisation="Suppression définitive et publication légale sous votre contrôle." href="/admin/journaux" libelleLien="Voir les journaux" />
           <Equipe nom="Agent qualité et corrections" etat={retours.error ? "Indisponible" : (nbRetours ?? 0) > 0 ? "À surveiller" : "À jour"} travail="Retours utilisateurs et problèmes regroupés par priorité." prochaine="Corriger d’abord les problèmes qui bloquent un utilisateur." resultat={`${nbRetours ?? "—"} retour${nbRetours === 1 ? "" : "s"} ouvert${nbRetours === 1 ? "" : "s"}.`} autorisation="Une modification sensible vous est présentée avant publication." href="/admin/autonomie#ameliorations" libelleLien="Voir les améliorations" />
-          <Equipe nom="Agent marketing" etat={publications.error ? "Indisponible" : aEcrire > 0 ? "À surveiller" : "À jour"} travail="Contenus et publications Facebook préparés selon le calendrier." prochaine="Relire les contenus qui attendent une décision." resultat={`${aEcrire} contenu${aEcrire > 1 ? "s" : ""} à traiter.`} autorisation="Budget et publicité payante restent plafonnés par vos réglages." href="/admin/marketing" libelleLien="Ouvrir le marketing" />
+          <Equipe nom="Agent marketing" etat={publications.error ? "Indisponible" : aEcrire > 0 ? "À surveiller" : "À jour"} travail="Contenus et publications Facebook préparés selon le calendrier." prochaine="Relire les contenus qui attendent une décision." resultat={`${aEcrire} contenu${aEcrire > 1 ? "s" : ""} à traiter.`} autorisation="La publicité payante n’est pas ouverte ; le seuil d’alerte surveille les dépenses Meta constatées." href="/admin/marketing" libelleLien="Ouvrir le marketing" />
           <Equipe nom="Agent développement territorial" etat="Suivi courant" travail="Présence actuelle et départements voisins comparés." prochaine="Compléter les données de marché avant une ouverture." resultat="Le prochain territoire est classé avec les données disponibles." autorisation="Toute ouverture de département vous est proposée avant activation." href="/admin/territoire" libelleLien="Ouvrir le territoire" />
         </div>
       </section>

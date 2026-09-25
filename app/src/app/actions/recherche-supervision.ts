@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { filtreRecherche, normaliserRecherche } from "@/lib/recherche-espace";
+import { familleOrganisation, LIBELLES_STATUT_ARTISAN } from "@/lib/clients-supervision";
 
 export type ResultatRechercheSupervision = {
   id: string;
@@ -14,6 +15,15 @@ export type ResultatRechercheSupervision = {
 export type ReponseRechercheSupervision = {
   resultats: ResultatRechercheSupervision[];
   erreur?: string;
+};
+
+// Les statuts en français plutôt que leur code (25/09) : « essai » et
+// « en_attente » s'affichaient bruts.
+const STATUTS_ORGANISATION: Record<string, string> = {
+  active: "Active",
+  essai: "En essai",
+  suspendue: "Suspendue",
+  inactive: "Inactive",
 };
 
 /** Recherche transversale réservée à la supervision, sans entrer dans un client. */
@@ -48,7 +58,9 @@ export async function rechercherDansSupervision(
       id: o.id,
       type: "Organisation",
       titre: o.name,
-      detail: [o.type === "agence" ? "Agence" : "Propriétaire direct", o.city, o.email_contact, o.status]
+      // Le même classement que la page Clients (25/09) : une organisation sans
+      // `type` est une agence, pas un propriétaire direct.
+      detail: [familleOrganisation(o.type) === "agence" ? "Agence" : "Propriétaire bailleur", o.city, o.email_contact, STATUTS_ORGANISATION[o.status] ?? null]
         .filter(Boolean)
         .join(" · "),
       href: `/admin/organisations/${o.id}`,
@@ -59,7 +71,7 @@ export async function rechercherDansSupervision(
       id: a.id,
       type: "Artisan",
       titre: a.raison_sociale,
-      detail: [a.email, a.siret ? `SIRET ${a.siret}` : null, a.statut_plateforme]
+      detail: [a.email, a.siret ? `SIRET ${a.siret}` : null, LIBELLES_STATUT_ARTISAN[a.statut_plateforme] ?? null]
         .filter(Boolean)
         .join(" · "),
       href: `/admin/clients/artisans/${a.id}`,

@@ -7,7 +7,12 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 function preparer(options: { autorise?: boolean; erreur?: string } = {}) {
   const lectures: { table: string; appels: unknown[][] }[] = [];
   const lignes: Record<string, Record<string, unknown>[]> = {
-    organizations: [{ id: "org", name: "Agence Alpha", type: "agence", status: "active", city: "Paris", email_contact: "alpha@test.fr" }],
+    organizations: [
+      { id: "org", name: "Agence Alpha", type: "agence", status: "active", city: "Paris", email_contact: "alpha@test.fr" },
+      // Sans `type` : une agence, comme sur la page Clients (25/09).
+      { id: "sans-type", name: "Alpha Gestion", type: null, status: "essai", city: null, email_contact: null },
+      { id: "direct", name: "Alpha Bailleur", type: "proprietaire_direct", status: "active", city: null, email_contact: null },
+    ],
     artisans: [{ id: "artisan", raison_sociale: "Plomberie Alpha", statut_plateforme: "valide", email: "artisan@test.fr", siret: "123" }],
   };
   const from = vi.fn((table: string) => {
@@ -41,8 +46,15 @@ describe("recherche transversale de la supervision", () => {
     const r = await rechercherDansSupervision(" alpha ");
     expect(r.resultats.map((x) => x.href)).toEqual([
       "/admin/organisations/org",
+      "/admin/organisations/sans-type",
+      "/admin/organisations/direct",
       "/admin/clients/artisans/artisan",
     ]);
+    // Le même classement que Clients, et des statuts en français.
+    expect(r.resultats[1].detail).toBe("Agence · En essai");
+    expect(r.resultats[2].detail).toBe("Propriétaire bailleur · Active");
+    expect(r.resultats[3].detail).toContain("Validé");
+    expect(r.resultats[3].detail).not.toContain("valide ");
     for (const lecture of c.lectures) {
       expect(lecture.appels.find((a) => a[0] === "or")?.[1]).toContain("alpha");
       expect(lecture.appels).toContainEqual(["limit", 8]);

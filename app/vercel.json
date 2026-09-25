@@ -17,6 +17,10 @@
       "schedule": "30 7 * * *"
     },
     {
+      "path": "/api/cron/orchestrateur",
+      "schedule": "45 5 * * *"
+    },
+    {
       "path": "/api/cron/equipes?mission=rappels",
       "schedule": "0 6 * * *"
     },

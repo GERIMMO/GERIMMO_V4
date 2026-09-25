@@ -3,7 +3,10 @@ export class ErreurIA extends Error {}
 export async function expliquerRefusIA(r: Response): Promise<ErreurIA> {
  const body = await r.json().catch(() => null);
  const code = body?.error?.code;
- if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached') return new ErreurIA('Le crédit ou le plafond de dépenses du compte IA est atteint. Vérifiez sa facturation avant de relancer.');
+ if (code === 'credit_balance_exhausted') return new ErreurIA('Le compte IA n’a plus de crédit. Ajoutez des crédits chez OpenAI avant de relancer.');
+ if (['organization_spend_limit_exceeded', 'project_spend_limit_exceeded'].includes(code)) return new ErreurIA('Le plafond de dépenses du compte IA est atteint. Vérifiez le budget autorisé avant de relancer.');
+ if (code === 'organization_usage_limit_exceeded') return new ErreurIA('Le plafond d’utilisation accordé par OpenAI est atteint. Vérifiez les limites du compte avant de relancer.');
+ if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached' || body?.error?.type === 'insufficient_quota') return new ErreurIA('Le crédit ou le plafond de dépenses du compte IA est atteint. Vérifiez sa facturation avant de relancer.');
  if (r.status === 401) return new ErreurIA('La connexion de Gerimmo au service IA est refusée. Vérifiez la clé enregistrée dans les connexions du service.');
  if (r.status === 403) return new ErreurIA('Le compte IA n’a pas l’autorisation nécessaire. Vérifiez ses accès et sa validation auprès du prestataire.');
  if (r.status === 404 || code === 'model_not_found') return new ErreurIA('Le modèle IA configuré n’est pas accessible à ce compte. Vérifiez le modèle et ses autorisations.');

@@ -3,7 +3,7 @@ type: synthesis
 tags: [design-system, charte, ux, ergonomie, animation, marque-blanche, personas]
 status: stable
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-09-25
 sources: ["[[Charte visuelle v3 bleue]]", "[[Charte visuelle de l'espace agent]]", "[[2026-08-08-maquette-prototype-cliquable]]", "[[Marque blanche]]"]
 ---
 
@@ -207,6 +207,9 @@ Ce que le tour a fixé comme règles, en plus des principes du § 1 :
 - **Les chiffres tiennent.** `eur()` pose une espace insécable avant « € » ; la valeur d'une `.ligne-info` ne se coupe jamais ; trois tuiles sur téléphone font 2 + 1 pleine largeur (`.tuiles`, `.grille-kpi`).
 
 ## 5. Ce qui reste ouvert
+
+> [!info] Suite du 25/09
+> Le tour d'écrans a été refait le 25/09 sur 134 écrans après la nuit de travail du porteur avec ChatGPT : 129 défauts uniques, ≈110 corrigés (dont le bandeau photo réapparu sur chaque en-tête, retiré). Relevé, corrections et restes dans [[Audit complet du 25 septembre 2026]].
 
 > [!warning] Points à trancher / à faire
 > - **La coquille est hors couche CSS** : ses règles priment sur les

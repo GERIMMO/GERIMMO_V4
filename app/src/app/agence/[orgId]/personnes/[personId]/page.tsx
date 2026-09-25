@@ -481,7 +481,10 @@ export default async function PagePersonne(
                   <li key={b.id}>
                     <Link
                       href={`/agence/${orgId}/baux/${b.id}`}
-                      className="-mx-2 flex flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-sm hover:bg-[var(--survol)] sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                      // `.rang` (25/09) : le rang de liste de l'espace, avec son
+                      // liseré de survol — la flèche n'était plus seule à dire
+                      // qu'il se clique.
+                      className="rang -mx-2 flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                     >
                       <span className="flex flex-wrap items-center gap-2">
                         {lot ? `${premier(lot.bien)?.nom ?? ""} · ${lot.nom}` : "Lot"}

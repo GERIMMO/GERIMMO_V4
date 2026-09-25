@@ -70,19 +70,26 @@ export async function GET(request: Request) {
     return Response.json({ erreur: "Non autorisé." }, { status: 401 });
   }
 
-  const reglages = configurationStripe();
-  if (!reglages.pret) {
-    // 503 et non 200 : la tâche est branchée mais ne peut rien faire. Un 200
-    // la ferait passer pour saine dans le tableau de bord de Vercel, et
-    // personne ne verrait que la facturation dérive.
-    return Response.json({ erreur: reglages.motif }, { status: 503 });
-  }
   const supabase = clientDeService();
   if (!supabase) {
     return Response.json(
       { erreur: "SUPABASE_SERVICE_ROLE_KEY absente : la synchronisation est désactivée." },
       { status: 503 }
     );
+  }
+  const reglages = configurationStripe();
+  if (!reglages.pret) {
+    // Consigné, puis 200 (25/09). Le 503 d'avant partait AVANT tout journal :
+    // Santé disait « aucune exécution » à vie et Équipes « À vérifier » chaque
+    // nuit, pour une connexion absente que la ligne de configuration signale
+    // déjà. La passe dit qu'elle n'a rien pu faire ; c'est Santé qui classe
+    // ce cas comme non bloquant, à côté de la sandbox Youtrust.
+    await consignerTache(supabase, "abonnements", {
+      ignores: 0,
+      non_configuree: true,
+      motif: "stripe_absent",
+    });
+    return Response.json({ ignores: 0, non_configuree: true, motif: reglages.motif });
   }
 
   // ── D'ABORD LES RELANCES, ET C'EST VOLONTAIRE. Elles ont une échéance :

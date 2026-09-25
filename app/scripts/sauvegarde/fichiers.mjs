@@ -9,12 +9,13 @@ export function lireCle(texte) {
   if (!/^[a-f0-9]{64}$/i.test(texte ?? '')) throw new Error('La clé de sauvegarde doit contenir 64 caractères hexadécimaux.');
   return Buffer.from(texte,'hex');
 }
-function chiffrer(octets,cle) {
+// Exportées le 25/09 pour l'export de la base (base.mjs) : même format GERIMMO1.
+export function chiffrer(octets,cle) {
   const nonce=randomBytes(12),chiffreur=createCipheriv('aes-256-gcm',cle,nonce);
   const contenu=Buffer.concat([chiffreur.update(octets),chiffreur.final()]);
   return Buffer.concat([Buffer.from('GERIMMO1'),nonce,chiffreur.getAuthTag(),contenu]);
 }
-function dechiffrer(octets,cle) {
+export function dechiffrer(octets,cle) {
   if (octets.length<36 || octets.subarray(0,8).toString()!=='GERIMMO1') throw new Error('Archive non reconnue.');
   const d=createDecipheriv('aes-256-gcm',cle,octets.subarray(8,20));d.setAuthTag(octets.subarray(20,36));
   try {return Buffer.concat([d.update(octets.subarray(36)),d.final()]);}catch {throw new Error('Clé incorrecte ou sauvegarde altérée.');}

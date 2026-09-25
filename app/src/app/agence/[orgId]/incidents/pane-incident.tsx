@@ -261,8 +261,12 @@ export async function PaneIncident({
       <EchecLecture quoi={lecturesManquees} />
 
       {/* En-tête du dossier (maquette pageIncident) : eyebrow mono, titre
-          court, sous-ligne lot · pièce · déclarant ; les puces à droite. */}
-      <div className="entete-page">
+          court, sous-ligne lot · pièce · déclarant ; les puces à droite.
+          PAS `.entete-page` (25/09) : cette classe est celle du titre de la
+          page « Incidents », juste au-dessus — le dossier en portait une
+          seconde, avec son filet pleine largeur (« un seul bandeau par
+          écran »). Un en-tête de dossier, dans son volet. */}
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2 pb-1">
         <div className="min-w-0">
           <p className="eyebrow">
             {incident.numero} · {CANAUX_INCIDENT[incident.canal] ?? incident.canal} ·{" "}

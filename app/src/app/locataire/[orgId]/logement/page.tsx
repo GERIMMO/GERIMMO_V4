@@ -124,12 +124,12 @@ export default async function PageLogementLocataire(
                 .filter(Boolean)
                 .join(" · ")}
             </span>
+            {/* Un seul signe de clic pour un seul déclencheur (25/09, D44) :
+                le libellé porte la flèche, plus de chevron à part qui
+                ressemblait à un second lien. */}
             <span className="mt-1 block text-[13px] font-medium text-[var(--marque)]">
-              Tout mon logement en un coup d’œil
+              Tout mon logement en un coup d’œil&nbsp;→
             </span>
-          </span>
-          <span aria-hidden className="ml-auto shrink-0 text-xl leading-none text-[var(--marque)]">
-            ›
           </span>
         </BoutonLot>
 
@@ -163,19 +163,22 @@ export default async function PageLogementLocataire(
               vôtre » laissait croire à un dépôt égaré. */}
           {depot && depotDu > 0 && (
             <div className="ligne-info">
-              <span>Dépôt de garantie</span>
-              <span className="montant text-right">
+              {/* Le libellé ne se coupe pas en trois lignes à 390 px (25/09, D28) */}
+              <span className="shrink-0 whitespace-nowrap">Dépôt de garantie</span>
+              <span className="montant min-w-0 text-right">
+                {/* La mention passe sous le montant (D28) : sur une ligne,
+                    elle sortait de la carte à 390 px. */}
                 {depotRecu <= 0 ? (
                   <>
                     {eur(depotDu)}
-                    <span className="text-muted-foreground"> — aucun versement enregistré à ce jour</span>
+                    <span className="block text-xs font-normal text-muted-foreground">aucun versement enregistré à ce jour</span>
                   </>
                 ) : depotRecu < depotDu ? (
                   `${eur(depotRecu)} reçus sur ${eur(depotDu)}`
                 ) : (
                   <>
                     {eur(depotDu)}
-                    <span className="text-muted-foreground"> — reçu</span>
+                    <span className="block text-xs font-normal text-muted-foreground">reçu</span>
                   </>
                 )}
               </span>

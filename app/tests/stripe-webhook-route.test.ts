@@ -76,6 +76,12 @@ describe("la route refuse plutôt que de s'ouvrir", () => {
     // Le message reste muet sur ce qui cloche : celui qui teste sa signature
     // n'a pas à être aidé.
     expect(corps.erreur).toBe("Signature refusée.");
+    // Et aucun en-tête ne le trahit non plus (audit 25/09, S7) : le motif
+    // exact va au journal serveur, pas à l'appelant.
+    expect(r.headers.get("x-motif")).toBeNull();
+    for (const [nom, valeur] of r.headers) {
+      expect(`${nom}: ${valeur}`.toLowerCase()).not.toMatch(/timestamp|signature|secret|whsec/);
+    }
   });
 
   it("un corps vide avec une signature vide reste refusé", async () => {

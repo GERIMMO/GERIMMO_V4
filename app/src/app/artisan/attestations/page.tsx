@@ -100,7 +100,10 @@ export default async function PageAttestations(props: PageProps<"/artisan/attest
         <TitreSection>Déposées</TitreSection>
         {pieces.lignes.length === 0 ? (
           pieces.erreur ? null : (
-            <Vide action={{ href: "#deposer", libelle: "Déposer ma décennale" }}>
+            // 25/09 (A4) : une seule entrée vers le formulaire — la liste
+            // « Encore attendues » juste dessous, qui règle la pièce choisie.
+            // Le bouton « Déposer ma décennale » faisait un troisième chemin.
+            <Vide>
               Aucune attestation pour l&apos;instant. Commencez par votre
               décennale : c&apos;est elle qui conditionne les affectations.
             </Vide>

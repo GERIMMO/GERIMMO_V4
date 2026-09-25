@@ -2,6 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { extraireAnalyseBrief, FORMAT_BRIEF_IA, type AnalyseBrief } from "@/lib/brief-ia";
+import { revalidatePath } from "next/cache";
+import { sansJargon } from "@/lib/erreurs";
+import { genererPointsDuMatin } from "@/lib/point-du-matin";
+import { deciderAmelioration } from "@/app/actions/autonomie";
+import { publierPublication, refuserPublication } from "@/app/actions/publications";
+import { traiterInscriptionArtisan } from "@/app/actions/supervision-artisans";
 
 export type EtatBriefIA = { erreur?: string; analyse?: AnalyseBrief; genereLe?: string };
 
@@ -63,4 +69,100 @@ export async function analyserBriefIA(): Promise<EtatBriefIA> {
   } catch {
     return { erreur: "L'analyse IA n'a pas abouti. Les données du brief restent accessibles sans elle." };
   }
+}
+
+// ── Le point du matin (25/09) ───────────────────────────────────────────────
+
+export type EtatDecision = { erreur?: string; succes?: string };
+
+async function superviseurPermanent() {
+  const supabase = await createClient();
+  const { data: ok, error } = await supabase.rpc("is_permanent_super_admin");
+  return { supabase, ok: !error && ok === true };
+}
+
+/** « Préparer le point maintenant » : la même génération que la fin d'un passage, sous les droits du superviseur. */
+export async function preparerPointDuMatin(): Promise<EtatDecision> {
+  const { supabase, ok } = await superviseurPermanent();
+  if (!ok) return { erreur: "Cette action demande votre compte de supervision et sa double vérification." };
+  const resultat = await genererPointsDuMatin(supabase);
+  revalidatePath("/admin/brief");
+  if (resultat.erreur) return { erreur: resultat.erreur };
+  return { succes: "Le point de ce matin est prêt." };
+}
+
+export async function marquerPointLu(id: string): Promise<void> {
+  const { supabase, ok } = await superviseurPermanent();
+  if (ok) await supabase.rpc("marquer_point_lu", { p_id: id });
+}
+
+type Decision = { id: string; source: string; source_id: string | null; statut: string; cle: string };
+
+/** Applique l'effet métier par les actions et fonctions existantes (leurs gardes restent), puis trace la décision dans le point. */
+export async function deciderDecisionDuMatin(id: string, validee: boolean, motif: string, attestation = false): Promise<EtatDecision> {
+  const { supabase, ok } = await superviseurPermanent();
+  if (!ok) return { erreur: "Cette décision demande votre compte de supervision et sa double vérification." };
+  motif = motif.trim().slice(0, 1000);
+  if (!validee && motif.length < 3) return { erreur: "Dites pourquoi : le motif est conservé avec le refus." };
+  const { data: decision, error } = await supabase.from("decisions_du_matin").select("id,source,source_id,statut,cle").eq("id", id).maybeSingle<Decision>();
+  if (error || !decision) return { erreur: "Cette décision est introuvable." };
+  if (decision.statut !== "en_attente") return { erreur: "Cette décision est déjà tranchée." };
+  if (!decision.source_id) return { erreur: "Cette décision se prend sur son écran." };
+
+  let effet: EtatDecision;
+  switch (decision.source) {
+    case "developpement": {
+      const { data: p } = await supabase.from("development_proposals").select("revision").eq("id", decision.source_id).maybeSingle();
+      if (!p?.revision) return { erreur: "Aucune version précise n’est attachée : ouvrez le suivi des évolutions." };
+      effet = await deciderAmelioration(decision.source_id, p.revision, validee);
+      break;
+    }
+    case "publication": {
+      if (validee) {
+        const { data: pub } = await supabase.from("publications").select("corps").eq("id", decision.source_id).maybeSingle();
+        if (!pub?.corps || pub.corps.trim().length < 200 || pub.corps.includes("[[")) return { erreur: "Le texte n’est pas complet : relisez-le dans l’éditeur avant de le faire paraître." };
+        effet = await publierPublication(decision.source_id);
+      } else {
+        const fd = new FormData(); fd.set("motif", motif);
+        effet = await refuserPublication(decision.source_id, {}, fd);
+      }
+      break;
+    }
+    case "artisan": {
+      const fd = new FormData();
+      fd.set("operation", validee ? "validation" : "refus");
+      if (validee) { if (!attestation) return { erreur: "Confirmez avoir relu les justificatifs avant de valider l’inscription." }; fd.set("pieces_relues", "oui"); }
+      else fd.set("motif", motif);
+      effet = await traiterInscriptionArtisan(decision.source_id, {}, fd);
+      break;
+    }
+    case "retour": {
+      const { data: r } = await supabase.from("retours_utilisateurs").select("nature,gravite,version,etat").eq("id", decision.source_id).maybeSingle();
+      if (!r) return { erreur: "Ce retour est introuvable." };
+      const idee = r.nature === "idee";
+      if (!validee && !idee) return { erreur: "Un bug ne se refuse pas depuis le point : traitez-le sur l’écran des retours." };
+      const reponse = motif.length >= 5 ? motif : validee ? (idee ? "Votre idée est retenue par l’équipe Gerimmo. Nous vous tiendrons informé de sa mise en place." : "Votre signalement est pris en charge par l’équipe Gerimmo.") : motif;
+      const reexamen = new Date(); reexamen.setMonth(reexamen.getMonth() + 6);
+      const { error: e } = await supabase.rpc("traiter_retour", { p_retour: decision.source_id, p_version: r.version, p_etat: validee ? (idee ? "retenue" : "en_cours") : "non_retenue", p_gravite: r.gravite, p_reponse: reponse, p_reexamen: validee ? null : reexamen.toISOString().slice(0, 10) });
+      effet = e ? { erreur: sansJargon(e.message) } : { succes: validee ? "Le retour est pris en charge et l’auteur en est informé." : "L’idée n’est pas retenue ; elle sera réexaminée dans six mois." };
+      revalidatePath("/admin/retours");
+      break;
+    }
+    case "veille": {
+      const { data: v } = await supabase.from("regulatory_watch").select("etude,resume,action_conseillee,publics,application_le").eq("id", decision.source_id).maybeSingle();
+      if (!v) return { erreur: "Cette information est introuvable." };
+      const etude = (v.etude ?? {}) as { resume?: string; action?: string; publics?: string[]; application?: string | null };
+      const { error: e } = await supabase.rpc("decider_veille", { p_id: decision.source_id, p_publier: validee, p_resume: v.resume ?? etude.resume ?? "", p_action: v.action_conseillee ?? etude.action ?? "", p_publics: v.publics?.length ? v.publics : etude.publics ?? [], p_application: v.application_le ?? etude.application ?? null });
+      effet = e ? { erreur: "L’étude n’est pas complète : relisez-la sur l’écran de la veille." } : { succes: validee ? "L’information est diffusée aux utilisateurs concernés." : "L’information est écartée." };
+      revalidatePath("/admin/veille"); revalidatePath("/veille");
+      break;
+    }
+    default:
+      return { erreur: "Cette décision se prend sur son écran." };
+  }
+  if (effet.erreur) return effet;
+  const { error: trace } = await supabase.rpc("decider_point_du_matin", { p_id: id, p_validee: validee, p_motif: motif || null });
+  revalidatePath("/admin/brief");
+  if (trace) return { succes: `${effet.succes ?? "Décision appliquée."} Sa trace dans le point doit être vérifiée.` };
+  return { succes: effet.succes ?? (validee ? "Décision validée." : "Décision refusée.") };
 }

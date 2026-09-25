@@ -18,6 +18,12 @@ import {
 import { verifierArtisanAction } from "@/app/artisan/acces";
 import type { LigneAgenda, LigneSollicitation } from "@/app/artisan/acces";
 import { LISTE_METIERS } from "@/app/artisan/libelles";
+import {
+  notifierCreneauxAChoisir,
+  notifierDevisRecu,
+  notifierEnCoulisses,
+  notifierMissionRefusee,
+} from "@/lib/notifications";
 
 /**
  * Actions du portail artisan.
@@ -33,6 +39,12 @@ import { LISTE_METIERS } from "@/app/artisan/libelles";
  * d'utilisateur et nomment la règle (« Ajoutez la photo du travail réalisé… ») :
  * ils sont affichés TELS QUELS, `sansJargon` ne retirant que la référence
  * interne au référentiel.
+ *
+ * PRÉVENIR L'AUTRE CÔTÉ (25/09). Un devis déposé, une mission refusée, des
+ * créneaux proposés : quelqu'un attend ce geste sans le voir. L'e-mail part
+ * par `notifierEnCoulisses`, APRÈS le succès de la RPC (qui a prouvé le lien
+ * artisan ↔ dossier) et AVANT toute redirection (`redirect` lève). Son échec
+ * ne fait jamais échouer l'action : le geste existe dès que la base l'a écrit.
  */
 
 export type EtatArtisanAction = {
@@ -411,7 +423,7 @@ export async function deposerMonDevis(
     piece = prepare;
   }
 
-  const { error } = await supabase.rpc("deposer_devis_structure", {
+  const { data: devisId, error } = await supabase.rpc("deposer_devis_structure", {
     p_sollicitation: sollicitationId,
     p_lignes: calcul.lignes,
     p_diagnostic: diagnostic,
@@ -427,6 +439,13 @@ export async function deposerMonDevis(
     p_empreinte: piece?.empreinte ?? null,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  if (typeof devisId === "string") {
+    const org = sollicitation.organization_id;
+    await notifierEnCoulisses(supabase, { evenement: "devis_recu", objet: devisId, org }, (service) =>
+      notifierDevisRecu(service, org, devisId)
+    );
+  }
 
   revalidatePath("/artisan");
   revalidatePath("/artisan/devis");
@@ -474,11 +493,22 @@ export async function refuserMaMission(
     };
   }
 
+  // Lue AVANT le refus : une mission refusée sort de l'agenda, et c'est ici
+  // qu'on apprend l'organisation à prévenir (jamais du formulaire).
+  const mission = await maMission(supabase, interventionId);
+
   const { error } = await supabase.rpc("refuser_mission", {
     p_intervention: interventionId,
     p_motif: motif,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  if (mission) {
+    const org = mission.organization_id;
+    await notifierEnCoulisses(supabase, { evenement: "mission_refusee", objet: interventionId, org }, (service) =>
+      notifierMissionRefusee(service, org, interventionId)
+    );
+  }
 
   rafraichirMission(interventionId);
   redirect("/artisan?refus=1");
@@ -539,6 +569,14 @@ export async function proposerMesCreneaux(
     p_creneaux: complets,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  const mission = await maMission(supabase, interventionId);
+  if (mission) {
+    const org = mission.organization_id;
+    await notifierEnCoulisses(supabase, { evenement: "creneaux_proposes", objet: interventionId, org }, (service) =>
+      notifierCreneauxAChoisir(service, org, interventionId)
+    );
+  }
 
   rafraichirMission(interventionId);
   return {

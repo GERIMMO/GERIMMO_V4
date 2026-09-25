@@ -454,7 +454,9 @@ export default async function PageDocuments(
                     >
                       <span className="min-w-0 flex-1">
                         <b className="block truncate">{titreAffiche(d.titre) ?? "Sans titre"}</b>
-                        <small className="block truncate">
+                        {/* Le détail passe à la ligne au lieu d'être tronqué
+                            (25/09 : « · 160… » à 1280 px comme à 390 px). */}
+                        <small className="block">
                           {TYPES_DOCUMENT[d.type] ?? d.type}
                           {" · "}
                           {formaterDate(d.created_at)}
@@ -474,6 +476,10 @@ export default async function PageDocuments(
                         >
                           {puceConservation(dureesParType.get(d.type))}
                         </span>
+                        {/* Le rang se clique en entier ; la flèche le dit
+                            (25/09 : sans elle, la puce passait pour le seul
+                            contenu de droite et rien n'invitait à ouvrir). */}
+                        <span aria-hidden className="text-muted-foreground">→</span>
                       </span>
                     </Link>
                   );

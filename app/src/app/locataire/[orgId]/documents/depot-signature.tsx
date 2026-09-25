@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/signature-locataire";
 import { formaterDate } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { ChampFichier } from "@/components/champ-fichier";
 import { buttonVariants } from "@/components/ui/button";
 
 // Une demande de signature : télécharger le document, le signer, déposer le
@@ -53,13 +54,14 @@ export function DepotSignature({
         </a>
       </div>
       <form action={action} className="mt-2 flex flex-wrap items-center gap-2">
-        <input
-          type="file"
+        {/* Champ fichier en français (25/09, D10) */}
+        <ChampFichier
+          id={`signature-${demande.id}`}
           name="fichier"
           required
           accept=".pdf,.jpg,.jpeg,.png"
           aria-label={`Document signé — ${demande.titre ?? "document"}`}
-          className="text-sm"
+          className="w-full sm:w-auto sm:max-w-72"
         />
         <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
           Déposer le signé

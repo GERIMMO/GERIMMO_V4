@@ -120,7 +120,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               name="code_parrainage"
               autoComplete="off"
               autoCapitalize="characters"
-              placeholder="3FA2B9C0"
+              placeholder="Ex. : ABCD1234"
               maxLength={12}
               defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""}
             />
@@ -171,7 +171,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               <span>
                 J&apos;accepte les{" "}
                 <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">
-                  conditions d&apos;utilisation
+                  conditions générales d&apos;utilisation (CGU)
                 </Link>
               </span>
             </label>

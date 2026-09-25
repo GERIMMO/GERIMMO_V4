@@ -46,11 +46,10 @@ export default async function PageContactLocataire(
           le fond, seule page avec « Nouveau signalement » à s'en passer. */}
       <div className="entete-page">
         <h1>Mon gestionnaire</h1>
-        {!aEchoue(eFil) && (
+        {/* La puce ne redit pas l'état vide (25/09, D26) : un chiffre, ou rien */}
+        {!aEchoue(eFil) && messages.length > 0 && (
           <span className="mono-discret">
-            {messages.length === 0
-              ? "Aucun message pour l'instant"
-              : `${messages.length} message${messages.length > 1 ? "s" : ""} dans ce fil`}
+            {messages.length} message{messages.length > 1 ? "s" : ""} dans ce fil
           </span>
         )}
       </div>

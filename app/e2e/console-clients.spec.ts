@@ -30,7 +30,7 @@ test("« Clients » réunit les trois familles et met en avant ce qui attend", a
   await page.getByRole("link", { name: "Agences, bailleurs et artisans", exact: true }).click();
   await page.waitForURL(/\/admin\/clients/);
 
-  await expect(page.getByRole("heading", { name: "Clients", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agences, bailleurs et artisans", level: 1 })).toBeVisible();
   // Les trois parties demandées, dans cet ordre : les artisans d'abord, parce
   // que ce sont les seuls à porter une file de décisions.
   const sections = page.getByRole("heading", { level: 2 });

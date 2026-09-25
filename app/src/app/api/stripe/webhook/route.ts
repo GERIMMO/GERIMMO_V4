@@ -79,8 +79,11 @@ export async function POST(request: Request) {
   } catch (e) {
     // 400 : Stripe ne réessaie pas une signature invalide, et c'est correct —
     // elle ne deviendra pas valide. Le message reste volontairement muet sur
-    // ce qui cloche : celui qui teste sa signature n'a pas à être aidé.
-    return Response.json({ erreur: "Signature refusée." }, { status: 400, headers: { "x-motif": lireErreurStripe(e).slice(0, 120) } });
+    // ce qui cloche : celui qui teste sa signature n'a pas à être aidé. Le
+    // motif va au journal serveur, plus dans un en-tête de réponse (audit
+    // 25/09, S7 : l'en-tête x-motif contredisait cette ligne).
+    console.error("[stripe webhook] signature refusée:", lireErreurStripe(e).slice(0, 200));
+    return Response.json({ erreur: "Signature refusée." }, { status: 400 });
   }
 
   if (!SUIVIS.has(evenement.type)) {

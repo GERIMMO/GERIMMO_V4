@@ -57,21 +57,24 @@ export function CarteMission({
         </Etiquette>
       </div>
 
-      <p
-        className={`mt-3 text-[1.0625rem] font-medium ${
-          planifiee ? "text-[var(--encre)]" : "text-[var(--texte-secondaire)]"
-        }`}
-      >
-        {attendLocataire
-          ? "Dates proposées — réponse du locataire attendue"
-          : creneauTexte(ligne.debut_prevu, ligne.fin_prevue)}
-      </p>
+      {/* 25/09 (A2) : quand les dates sont chez le locataire, l'étiquette le
+          dit déjà — la carte ne le répète plus en titre, elle s'ouvre sur les
+          travaux et l'adresse. */}
+      {!attendLocataire && (
+        <p
+          className={`mt-3 text-[1.0625rem] font-medium ${
+            planifiee ? "text-[var(--encre)]" : "text-[var(--texte-secondaire)]"
+          }`}
+        >
+          {creneauTexte(ligne.debut_prevu, ligne.fin_prevue)}
+        </p>
+      )}
 
       {/* La référence du dossier : c'est le mot commun entre l'artisan et
           l'agence quand il appelle depuis le chantier. Elle n'était que sur la
           fiche de mission, un écran plus loin. Nommée et à 15 px (24/09) : nue
           et en 11 px, c'était le plus petit texte de la carte. */}
-      <p className="mt-2 text-[0.9375rem] tabular-nums text-[var(--texte-secondaire)]">
+      <p className={`${attendLocataire ? "mt-3" : "mt-2"} text-[0.9375rem] tabular-nums text-[var(--texte-secondaire)]`}>
         Dossier {ligne.incident_numero}
       </p>
 
@@ -92,9 +95,20 @@ export function CarteMission({
         {ligne.etage ? ` · ${ligne.etage}` : ""}
       </p>
 
+      {/* 25/09 (A1) : la carte entière est le lien, mais une carte sans flèche
+          se lisait comme un simple constat. Le signe reste discret (encre, pas
+          la couleur d'action) : il dit « s'ouvre », pas « à faire ». */}
       {aFaire &&
         (attendLocataire ? (
-          <p className="mt-2.5 text-[0.9375rem] text-[var(--texte-secondaire)]">{aFaire}</p>
+          <p className="mt-2.5 flex items-center justify-between gap-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
+            <span>{aFaire}</span>
+            <span className="flex shrink-0 items-center gap-1 font-medium text-[var(--encre)]">
+              Voir
+              <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current stroke-2">
+                <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </p>
         ) : (
           <p className="mt-2.5 flex items-center gap-1.5 text-[0.9375rem] font-medium text-[var(--or-texte)]">
             <svg viewBox="0 0 24 24" aria-hidden className="size-4 shrink-0 fill-none stroke-current stroke-2">

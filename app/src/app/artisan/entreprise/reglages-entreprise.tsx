@@ -11,6 +11,7 @@ import { LISTE_METIERS, METIERS } from "../libelles";
 import { CLASSE_AIDE,
   Carte,
   CLASSE_BOUTON_SECONDAIRE,
+  CLASSE_BOUTON_SOBRE,
   CLASSE_CHAMP,
   CLASSE_LIBELLE,
   Erreur,
@@ -18,10 +19,16 @@ import { CLASSE_AIDE,
   TitreSection,
 } from "../ui";
 
-function BoutonEnregistrer({ libelleBouton }: { libelleBouton: string }) {
+function BoutonEnregistrer({
+  libelleBouton,
+  classe = CLASSE_BOUTON_SECONDAIRE,
+}: {
+  libelleBouton: string;
+  classe?: string;
+}) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className={CLASSE_BOUTON_SECONDAIRE} disabled={pending}>
+    <button type="submit" className={classe} disabled={pending}>
       {pending ? "Enregistrement…" : libelleBouton}
     </button>
   );
@@ -84,7 +91,11 @@ export function ReglageVisibilite({
             name="visibilite"
             value={publique ? "privee" : "publique"}
           />
+          {/* 25/09 (A9) : un réglage rare, en bouton sobre à sa largeur — pas
+              un contour bleu pleine largeur qui se lisait comme l'action de
+              la page. */}
           <BoutonEnregistrer
+            classe={`${CLASSE_BOUTON_SOBRE} sm:w-auto`}
             libelleBouton={
               publique ? "Repasser mon profil en privé" : "Rendre mon profil public"
             }
@@ -103,9 +114,12 @@ export function ReglageVisibilite({
 export function FormulaireMetiersZones({
   metiers,
   codesPostaux,
+  complement,
 }: {
   metiers: string[];
   codesPostaux: string[];
+  /** Ce qui se lit avec les métiers (le lien vers les règles du métier, 25/09). */
+  complement?: React.ReactNode;
 }) {
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(
     mettreAJourMetiersZones,
@@ -121,7 +135,24 @@ export function FormulaireMetiersZones({
   if (!ouvert) {
     return (
       <Carte>
-        <TitreSection>Mes métiers et ma zone</TitreSection>
+        {/* 25/09 (A9) : « Modifier » en lien discret dans le titre — en bouton
+            contour pleine largeur, il passait pour l'action principale de la
+            page. */}
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h2 className="text-[1.0625rem] font-medium text-[var(--encre)]">Mes métiers et ma zone</h2>
+          <button
+            type="button"
+            className="-my-2 inline-flex min-h-11 shrink-0 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+            onClick={() => {
+              setMetiersChoisis(metiers);
+              setZoneSaisie(codesPostaux.join(", "));
+              setAfficherResultat(false);
+              setOuvert(true);
+            }}
+          >
+            Modifier
+          </button>
+        </div>
         <p className="text-base text-[var(--corps)]">
           {metiers.length > 0
             ? metiers.map((m) => METIERS[m] ?? m).join(" · ")
@@ -137,22 +168,11 @@ export function FormulaireMetiersZones({
             <Succes>{etat.succes}</Succes>
           </div>
         )}
-        <button
-          type="button"
-          className={`${CLASSE_BOUTON_SECONDAIRE} mt-3`}
-          onClick={() => {
-            setMetiersChoisis(metiers);
-            setZoneSaisie(codesPostaux.join(", "));
-            setAfficherResultat(false);
-            setOuvert(true);
-          }}
-        >
-          Modifier
-        </button>
         <p className={`mt-2 ${CLASSE_AIDE}`}>
           Vous n&apos;êtes proposé que dans vos métiers, et pour les communes de
           votre zone.
         </p>
+        {complement}
       </Carte>
     );
   }

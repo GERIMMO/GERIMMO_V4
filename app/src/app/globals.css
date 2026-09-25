@@ -2808,57 +2808,15 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
  .admin-menu-groupes.ferme { display: none; }
 }
 
-/* Un seul en-tête illustré par page, sans modifier l'ordre des actions.
-   Les photos sont décoratives : les titres et les commandes restent du texte.
-   Les couleurs d'une agence continuent de provenir de sa propre charte. */
-:is(.coquille-corps, .portail-ecrans) { --visuel-espace: url('/illustrations/quartier-gerimmo-2026.jpg'); }
-.loc-corps { --visuel-espace: url('/illustrations/interieur-gerimmo-2026.jpg'); }
-.artisan-corps { --visuel-espace: url('/illustrations/intervention-gerimmo-2026.jpg'); }
-:is(.coquille-corps, .portail-ecrans, .loc-corps, .artisan-corps) .entete-page {
-  position: relative;
-  isolation: isolate;
-  min-height: 104px;
-  padding: 20px;
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--marque) 18%, var(--filet));
-  border-left: 4px solid var(--marque);
-  border-radius: 16px;
-  background: var(--surface);
-  box-shadow: 0 4px 18px color-mix(in srgb, var(--marque) 6%, transparent);
-}
-:is(.coquille-corps, .portail-ecrans, .loc-corps, .artisan-corps) .entete-page::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: 0;
-  border-radius: 12px;
-  background-image: linear-gradient(90deg, var(--surface) 22%, color-mix(in srgb, var(--surface) 94%, transparent) 55%, color-mix(in srgb, var(--surface) 24%, transparent)), var(--visuel-espace);
-  background-position: center, right 48%;
-  background-size: cover;
-}
-:is(.coquille-corps, .portail-ecrans, .loc-corps, .artisan-corps) .entete-page > :is(div, h1, p, span, dl) {
-  background-color: color-mix(in srgb, var(--surface) 94%, transparent);
-  border-radius: 6px;
-  padding: 3px 5px;
-}
-.artisan-corps .portail-hero {
-  background-image: linear-gradient(90deg, var(--marque-sombre), color-mix(in srgb, var(--marque) 85%, transparent) 55%, color-mix(in srgb, var(--marque) 15%, transparent)), var(--visuel-espace);
-  background-size: cover;
-  background-position: center;
-}
-@media (max-width: 640px) {
-  :is(.coquille-corps, .portail-ecrans, .loc-corps, .artisan-corps) .entete-page {
-    padding: 14px;
-    gap: 12px;
-    min-height: 96px;
-  }
-}
-@media print {
-  :is(.coquille-corps, .portail-ecrans, .loc-corps, .artisan-corps) .entete-page::before { display: none; }
-}
+/* 25/09 : le bloc « en-tête illustré » ajouté le 25/09 au matin est retiré.
+   Il remettait une photo et une boîte blanche sur chaque .entete-page (à
+   rebours de la décision du 24/09 : un seul bandeau par écran, celui de
+   l'accueil) et rendait le bandeau d'accueil illisible (texte blanc sur voile
+   blanc). L'en-tête standard reste un titre nu à filet dessous. */
 
-.portail-ecrans main > header:not(.entete-page) {
-  background-image: linear-gradient(90deg, var(--marque-sombre), color-mix(in srgb, var(--marque) 90%, transparent) 65%, color-mix(in srgb, var(--marque) 55%, transparent)), var(--visuel-espace);
-  background-size: cover;
-  background-position: center;
+/* 25/09 (A5, C33) — le rond « Aide et retours » ne se pose, sur téléphone,
+   qu'au bas de la page (components/bouton-assistance.tsx). La console lui
+   réserve alors 72 px sous son contenu : rien n'est dessous. */
+@media (max-width: 639px) {
+  .admin-corps { padding-bottom: 72px; }
 }

@@ -97,20 +97,22 @@ export default async function PageNote() {
       {!erreur && note && <Carte>
         <TitreSection>Ma fiabilité, en détail</TitreSection>
         <div>
+          {/* 25/09 (A15) : une moyenne sur rien n'est pas « 0,0 h », c'est
+              « pas encore mesuré » — le même mot pour les trois lignes. */}
           <LigneInfo libelle="Délai d'acceptation">
-            {note?.delai_acceptation_heures !== null && note?.delai_acceptation_heures !== undefined
+            {Number(note?.delai_acceptation_heures ?? 0) > 0
               ? `${Number(note.delai_acceptation_heures).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} h en moyenne`
-              : "Aucune mission acceptée"}
+              : "Pas encore mesuré"}
           </LigneInfo>
           <LigneInfo libelle="Délai d'intervention">
-            {note?.delai_intervention_jours !== null && note?.delai_intervention_jours !== undefined
+            {Number(note?.delai_intervention_jours ?? 0) > 0
               ? `${Number(note.delai_intervention_jours).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} jour(s) après acceptation`
-              : "Aucune intervention démarrée"}
+              : "Pas encore mesuré"}
           </LigneInfo>
           <LigneInfo libelle="Taux de refus">
             {note?.taux_refus !== null && note?.taux_refus !== undefined
               ? `${Math.round(Number(note.taux_refus) * 100)} %`
-              : "—"}
+              : "Pas encore mesuré"}
           </LigneInfo>
           <LigneInfo libelle="Attestations expirées">
             {note?.pieces_expirees ?? 0}
@@ -123,7 +125,16 @@ export default async function PageNote() {
       </Carte>}
 
       {/* Le droit à l'intervention humaine — présenté comme un droit (RM-A2.11),
-          avec, avant le geste, l'information que Gerimmo doit à l'artisan. */}
+          avec, avant le geste, l'information que Gerimmo doit à l'artisan.
+          25/09 (A16) : tant que rien n'est noté, il n'y a rien à contester —
+          une ligne le dit, sans bouton. */}
+      {!erreur && note && note.nb_evaluations === 0 ? (
+        <p className={CLASSE_AIDE}>
+          Vous pourrez contester votre note dès qu&apos;une évaluation aura été
+          déposée : elle est alors réexaminée par une personne de Gerimmo, jamais
+          par l&apos;agence qui vous a noté.
+        </p>
+      ) : (
       <Carte className="border-l-4 border-l-[var(--or)]">
         <TitreSection>Contester votre note est un droit</TitreSection>
         <p className="text-[0.9375rem] text-[var(--corps)]">
@@ -150,6 +161,7 @@ export default async function PageNote() {
           <Contestation />
         </div>
       </Carte>
+      )}
     </div>
   );
 }

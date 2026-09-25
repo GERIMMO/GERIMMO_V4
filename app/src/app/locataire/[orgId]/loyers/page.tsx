@@ -292,13 +292,16 @@ export default async function PagePaiementsLocataire(
                     {l.quittance_id ? (
                       <Link href={`/quittance/${l.quittance_id}`} className="rang -mx-4 gap-2 text-sm">
                         {contenu}
-                        {/* Sur téléphone, le chevron seul : le libellé reste
-                            lu par les lecteurs d'écran. */}
+                        {/* Sur téléphone, un mot reste (25/09, D45) : le chevron
+                            seul, 12 px, ne disait pas que la ligne s'ouvre. Le
+                            verbe est lu par les lecteurs d'écran partout. */}
                         <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-[var(--marque-sombre)]">
                           <span className="max-sm:sr-only">
                             Ouvrir {l.statut === "paye" ? "la" : "le"}{" "}
-                            {l.statut === "paye" ? "quittance" : l.statut === "partiel" ? "reçu" : "justificatif"}{" "}
                           </span>
+                          <span className="capitalize sm:normal-case">
+                            {l.statut === "paye" ? "quittance" : l.statut === "partiel" ? "reçu" : "justificatif"}
+                          </span>{" "}
                           <span aria-hidden>›</span>
                         </span>
                       </Link>
@@ -316,12 +319,41 @@ export default async function PagePaiementsLocataire(
             Vos quittances et reçus de paiement restent disponibles ici pendant toute la durée du
             bail — utiles pour la CAF ou un futur dossier de location.
           </p>
-          <Link
-            href={`/attestation-loyer/${orgId}`}
-            className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-3 pointer-coarse:min-h-10`}
-          >
-            Attestation de bon paiement
-          </Link>
+          {/* PAS DE CLIC POUR RIEN (25/09, D38) : la page d'attestation
+              répondait « indisponible — 1 loyer reste dû » alors que cette
+              page sait déjà quel mois reste à régler. Même règle que
+              /attestation-loyer : un mois échu impayé ou partiel la bloque. */}
+          {(() => {
+            const enSouffrance = lignesLoyer.filter(
+              (l) => l.statut === "impaye" || l.statut === "partiel"
+            );
+            if (enSouffrance.length === 0) {
+              return (
+                <Link
+                  href={`/attestation-loyer/${orgId}`}
+                  className={`${buttonVariants({ variant: "outline", size: "sm" })} mt-3 pointer-coarse:min-h-10`}
+                >
+                  Attestation de bon paiement
+                </Link>
+              );
+            }
+            const dernier = enSouffrance[enSouffrance.length - 1];
+            return (
+              <p className="mt-3 text-xs text-muted-foreground">
+                <span
+                  aria-disabled="true"
+                  className={`${buttonVariants({ variant: "outline", size: "sm" })} pointer-events-none opacity-60`}
+                >
+                  Attestation de bon paiement
+                </span>
+                <span className="mt-1.5 block">
+                  Disponible dès que {moisLong(dernier.periode)}
+                  {enSouffrance.length > 1 ? ` et ${enSouffrance.length - 1} autre mois` : ""} sera
+                  soldé{enSouffrance.length > 1 ? "s" : ""}.
+                </span>
+              </p>
+            );
+          })()}
         </div>
       </div>
 

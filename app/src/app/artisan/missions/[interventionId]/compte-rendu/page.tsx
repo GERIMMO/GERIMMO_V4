@@ -15,6 +15,7 @@ import {
   TitreSection,
   Vide,
 } from "../../../ui";
+import { BoutonDemarrer } from "../bouton-demarrer";
 import { PhotoChantier } from "./photo-chantier";
 
 export const metadata = { title: "Photo du travail — Espace artisan" };
@@ -38,6 +39,7 @@ export default async function PageComptePhoto(
 ) {
   await verifierAccesArtisan();
   const { interventionId } = await props.params;
+  const { raison } = await props.searchParams;
 
   const agenda = await chargerAgenda();
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
@@ -66,61 +68,82 @@ export default async function PageComptePhoto(
         mention={`${titreIncident(mission.categorie)}${mission.ville ? ` · ${mission.ville}` : ""}`}
       />
 
-      {mission.statut !== "en_cours" && (
-        <Avertissement>
-          Démarrez l&apos;intervention avant d&apos;en rendre compte : le bouton est
-          sur la page de la mission.
-        </Avertissement>
-      )}
-
-      <PhotoChantier
-        interventionId={interventionId}
-        moment="apres"
-        dejaEnvoyee={mission.photo_apres_deposee}
-        titre="Photographier le travail terminé"
-        aide="Sans elle, l'intervention ne peut pas être terminée — donc pas de facture."
-      />
-
-      {mission.photo_apres_deposee ? (
-        <Link
-          href={`/artisan/missions/${interventionId}/compte-rendu/bilan`}
-          className={CLASSE_BOUTON_PRINCIPAL}
-        >
-          Continuer — le bilan
-        </Link>
+      {/* 25/09 (A11) : tant que l'intervention n'est pas démarrée, l'écran
+          n'offre PAS les zones photo — une photo « du travail terminé » d'un
+          travail non commencé n'a pas de sens, et le bilan serait refusé. Le
+          geste qui débloque est ici même, pas « sur la page de la mission ». */}
+      {mission.statut !== "en_cours" ? (
+        <>
+          <Avertissement>
+            Démarrez l&apos;intervention avant d&apos;en rendre compte : les photos
+            et le bilan s&apos;ouvrent ensuite.
+          </Avertissement>
+          <BoutonDemarrer interventionId={interventionId} />
+          <Link href={`/artisan/missions/${interventionId}`} className={CLASSE_BOUTON_SOBRE}>
+            Revenir à la mission
+          </Link>
+        </>
       ) : (
-        <Vide>Une fois la photo envoyée, touchez « Continuer — le bilan ».</Vide>
+        <>
+          {/* 25/09 (A12) : renvoyé du bilan faute de photo, l'artisan lit
+              pourquoi au lieu de retomber sur l'écran sans un mot. */}
+          {raison === "photo" && !mission.photo_apres_deposee && (
+            <Avertissement>
+              La photo du travail terminé manque : le bilan ne s&apos;ouvre
+              qu&apos;une fois qu&apos;elle est envoyée.
+            </Avertissement>
+          )}
+
+          <PhotoChantier
+            interventionId={interventionId}
+            moment="apres"
+            dejaEnvoyee={mission.photo_apres_deposee}
+            titre="Photographier le travail terminé"
+            aide="Sans elle, l'intervention ne peut pas être terminée — donc pas de facture."
+          />
+
+          {mission.photo_apres_deposee ? (
+            <Link
+              href={`/artisan/missions/${interventionId}/compte-rendu/bilan`}
+              className={CLASSE_BOUTON_PRINCIPAL}
+            >
+              Continuer — le bilan
+            </Link>
+          ) : (
+            <Vide>Une fois la photo envoyée, touchez « Continuer — le bilan ».</Vide>
+          )}
+
+          <Carte>
+            <TitreSection>Avant et pendant (facultatif)</TitreSection>
+            <p className="mb-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
+              Utile quand l&apos;état d&apos;origine explique le prix, ou quand on découvre
+              autre chose en ouvrant. Le locataire consulte ces photos avant de vous
+              noter.
+            </p>
+            <div className="space-y-4">
+              <PhotoChantier
+                interventionId={interventionId}
+                moment="avant"
+                dejaEnvoyee={false}
+                titre="Photo avant"
+              />
+              <PhotoChantier
+                interventionId={interventionId}
+                moment="pendant"
+                dejaEnvoyee={false}
+                titre="Photo pendant"
+              />
+            </div>
+            <p className={`mt-3 ${CLASSE_AIDE}`}>
+              Dix photos au maximum pour cette intervention.
+            </p>
+          </Carte>
+
+          <Link href={`/artisan/missions/${interventionId}`} className={CLASSE_BOUTON_SOBRE}>
+            Reprendre plus tard
+          </Link>
+        </>
       )}
-
-      <Carte>
-        <TitreSection>Avant et pendant (facultatif)</TitreSection>
-        <p className="mb-3 text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Utile quand l&apos;état d&apos;origine explique le prix, ou quand on découvre
-          autre chose en ouvrant. Le locataire consulte ces photos avant de vous
-          noter.
-        </p>
-        <div className="space-y-4">
-          <PhotoChantier
-            interventionId={interventionId}
-            moment="avant"
-            dejaEnvoyee={false}
-            titre="Photo avant"
-          />
-          <PhotoChantier
-            interventionId={interventionId}
-            moment="pendant"
-            dejaEnvoyee={false}
-            titre="Photo pendant"
-          />
-        </div>
-        <p className={`mt-3 ${CLASSE_AIDE}`}>
-          Dix photos au maximum pour cette intervention.
-        </p>
-      </Carte>
-
-      <Link href={`/artisan/missions/${interventionId}`} className={CLASSE_BOUTON_SOBRE}>
-        Reprendre plus tard
-      </Link>
     </div>
   );
 }

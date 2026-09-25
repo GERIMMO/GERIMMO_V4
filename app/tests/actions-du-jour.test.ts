@@ -82,6 +82,15 @@ describe("regrouperActionsDuJour — le compte", () => {
     expect(plan.aVenir).toHaveLength(1);
     expect(plan.total).toBe(3);
     expect(plan.total).toBe(plan.surLesBaux.length + plan.enRetard.length + plan.aVenir.length);
+    // Le blocage sur le bail et le rapport échu sont tous deux en retard ;
+    // l'alerte du 30/09 ne l'est pas.
+    expect(plan.retards).toBe(2);
+  });
+
+  it("compte un impayé sur un bail comme un retard, même sans échéance", () => {
+    const plan = regrouper({ attendues: [attendue({ cle: "impaye-b1", critique: true })] });
+    expect(plan.enRetard).toHaveLength(0);
+    expect(plan.retards).toBe(1);
   });
 
   it("dit zéro quand rien n'attend", () => {
@@ -108,6 +117,57 @@ describe("regrouperActionsDuJour — le compte", () => {
       ],
     });
     expect(plan.total).toBe(2);
+    expect(plan.aVenir.map((a) => a.cle)).toEqual(["a-a2"]);
+  });
+
+  // 25/09 : la tâche de nuit pose une alerte `loyer_impaye` par bail impayé ;
+  // l'item calculé « Loyer impayé » disait déjà la même chose — on lisait
+  // « 2 à faire », deux critiques, pour un seul loyer.
+  it("compte UNE fois l'impayé : l'alerte loyer_impaye du même bail cède la place à l'item calculé", () => {
+    const plan = regrouper({
+      attendues: [attendue({ cle: "impaye-b1", critique: true })],
+      alertes: [
+        alerte({ id: "a1", type: "loyer_impaye", criticite: "critique", details: { bail_id: "b1", montant_du: 650 } }),
+      ],
+    });
+    expect(plan.total).toBe(1);
+    expect(plan.critiques).toBe(1);
+    expect(plan.surLesBaux.map((a) => a.cle)).toEqual(["impaye-b1"]);
+    expect(plan.aVenir).toHaveLength(0);
+  });
+
+  it("garde l'alerte loyer_impaye d'un AUTRE bail, et celle dont le bail n'est pas dans les items", () => {
+    const plan = regrouper({
+      attendues: [attendue({ cle: "impaye-b1", critique: true })],
+      alertes: [alerte({ id: "a2", type: "loyer_impaye", criticite: "critique", details: { bail_id: "b2" } })],
+    });
+    expect(plan.total).toBe(2);
+    expect(plan.critiques).toBe(2);
+  });
+
+  it("compte UNE fois le diagnostic expiré : l'alerte diagnostic_expiration reconnue par son diagnostic_id", () => {
+    const plan = regrouper({
+      attendues: [attendue({ cle: "dpe-lot1", diagnosticIds: ["diag-1"] }), attendue({ cle: "erp-bien1", diagnosticIds: [] })],
+      alertes: [
+        alerte({ id: "a1", type: "diagnostic_expiration", criticite: "critique", details: { diagnostic_id: "diag-1", seuil: "J+0" } }),
+        // Un autre diagnostic, pas encore expiré (J-30) : rien ne le remplace.
+        alerte({ id: "a2", type: "diagnostic_expiration", details: { diagnostic_id: "diag-9", seuil: "J-30" } }),
+      ],
+    });
+    expect(plan.total).toBe(3);
+    expect(plan.aVenir.map((a) => a.cle)).toEqual(["a-a2"]);
+  });
+
+  it("compte UNE fois la pièce expirée : l'alerte assurance_expiration du même document s'efface", () => {
+    const plan = regrouper({
+      attendues: [attendue({ cle: "piece-doc1" })],
+      alertes: [
+        alerte({ id: "a1", type: "assurance_expiration", criticite: "critique", details: { document_id: "doc1", seuil: "J+0" } }),
+        alerte({ id: "a2", type: "assurance_expiration", details: { document_id: "doc2", seuil: "J-15" } }),
+      ],
+    });
+    expect(plan.total).toBe(2);
+    expect(plan.critiques).toBe(0);
     expect(plan.aVenir.map((a) => a.cle)).toEqual(["a-a2"]);
   });
 });

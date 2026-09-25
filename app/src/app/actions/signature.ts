@@ -12,10 +12,13 @@ import {
   creerDemandeYoutrust,
   ErreurYoutrust,
 } from "@/lib/youtrust";
+// 25/09 : le signataire est prévenu par e-mail dans le parcours manuel.
+import { notifierSignatureDemandee } from "@/lib/notifications";
 
 export type EtatSignature = {
   erreur?: string;
   succes?: string;
+  avertissement?: string;
 };
 
 // Signature préenregistrée de l'organisation (chantier documentaire 08/09) :
@@ -168,10 +171,21 @@ export async function envoyerPourSignature(
     }
   }
 
+  // Parcours manuel : jusqu'ici, seul Youtrust en production écrivait au
+  // signataire. Le locataire l'apprend désormais par e-mail, avec le lien.
+  const envoi = demandeId
+    ? await notifierSignatureDemandee(supabase, orgId, personId, documentId, String(demandeId))
+    : { envoyee: false, motif: "introuvable" as const };
   revalidatePath(`/agence/${orgId}/documents`);
   return {
-    succes:
-      "Envoyé pour signature — le document apparaît dans « À signer » de son espace ; vous serez alerté au retour du signé.",
+    succes: envoi.envoyee
+      ? "Envoyé pour signature — le signataire est prévenu par e-mail ; le document apparaît dans « À signer » de son espace et vous serez alerté au retour du signé."
+      : "Envoyé pour signature — le document apparaît dans « À signer » de son espace ; vous serez alerté au retour du signé.",
+    avertissement: envoi.envoyee
+      ? undefined
+      : envoi.motif === "sans_adresse"
+        ? "Le signataire n'a pas d'adresse e-mail : il ne verra la demande qu'en ouvrant son espace."
+        : "L'e-mail au signataire n'a pas pu partir ; la demande reste visible dans son espace.",
   };
 }
 

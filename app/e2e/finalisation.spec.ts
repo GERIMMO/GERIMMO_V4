@@ -32,7 +32,8 @@ test.describe('Études, validation et visibilité par profil',()=>{
    await expect(carte.getByLabel('Ce qui change')).toHaveValue(/Étude fictive/);
    await carte.getByRole('button',{name:'Valider et informer les utilisateurs'}).click();await expect(page.getByRole('heading',{name:titre,exact:true})).toHaveCount(0);
    await lecture.reload();await lecture.screenshot({path:'e2e/.results/veille-utilisateur.png',fullPage:true});await expect(lecture.getByRole('heading',{name:titre,exact:true})).toBeVisible();await expect(lecture.locator('body')).not.toContainText('Tester un dossier complet');
-   await lecture.getByRole('link',{name:'Locataires',exact:true}).click();await expect(lecture.getByRole('heading',{name:titre,exact:true})).toHaveCount(0);
+   // L'artisan lit la veille dans sa coquille (/artisan/regles, 25/09), sans filtre d'autres publics : la lecture « locataire » se fait par l'adresse publique.
+   await lecture.goto('/veille?public=locataire');await expect(lecture.getByRole('heading',{name:titre,exact:true})).toHaveCount(0);
    await page.goto('/admin/autonomie#ameliorations');const proposition=page.locator('article').filter({has:page.getByRole('heading',{name:'Adapter Gerimmo : '+titre,exact:true})});
    await expect(proposition).toContainText('Éviter une nouvelle saisie');
    await proposition.getByText('Autoriser la préparation d’une correction',{exact:true}).click();
@@ -57,12 +58,18 @@ test.describe('Études, validation et visibilité par profil',()=>{
   }finally{await db.query('delete from public.territory_studies where source=$1',[source]);}
  });
  test('la supervision contrôle le mode automatique, et l’artisan trouve la veille',async({page,browser})=>{
-  await page.goto('/admin/marketing');await expect(page.getByLabel('Publier automatiquement')).toBeChecked();
-  await page.getByLabel('Publier automatiquement').uncheck();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
-  await page.reload();await expect(page.getByLabel('Publier automatiquement')).not.toBeChecked();
-  await page.getByLabel('Publier automatiquement').check();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
+  await page.goto('/admin/marketing');const auto=page.getByLabel('Publier automatiquement');
+  if(await auto.isDisabled()){
+   // Sans Page Facebook reliée (audit 25/09, C21) : la case est décochée et désactivée, et le dit.
+   await expect(auto).not.toBeChecked();await expect(page.getByText('la Page Facebook n’est pas reliée')).toBeVisible();
+  }else{
+   await expect(auto).toBeChecked();
+   await auto.uncheck();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
+   await page.reload();await expect(page.getByLabel('Publier automatiquement')).not.toBeChecked();
+   await page.getByLabel('Publier automatiquement').check();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');
+  }
   const artisan=await browser.newContext({storageState:'e2e/.auth/artisan.json'});const ecran=await artisan.newPage();await sansSyntheseAlertes(ecran);
-  try{await ecran.goto('/artisan/entreprise');await ecran.getByRole('link',{name:'Les règles à connaître pour mon activité'}).click();await expect(ecran).toHaveURL(/veille\?public=artisan/);}finally{await artisan.close();}
+  try{await ecran.goto('/artisan/entreprise');await ecran.getByRole('link',{name:'Les règles à connaître pour mon activité'}).click();await expect(ecran).toHaveURL(/\/artisan\/regles/);}finally{await artisan.close();}
  });
 
 });

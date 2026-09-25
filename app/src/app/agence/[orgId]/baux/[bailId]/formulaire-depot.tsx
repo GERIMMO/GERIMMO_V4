@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MODES_PAIEMENT } from "./formulaire-loyers";
 
 export type EncaissementDepot = {
   id: string;
@@ -92,7 +93,7 @@ export function FormulaireDepot({
               <span className="w-24 shrink-0 text-right font-medium">{eur(e.montant)}</span>
               <span className="text-xs text-muted-foreground">
                 {formaterDate(e.date_encaissement)}
-                {e.moyen ? ` · ${e.moyen}` : ""} · versé par {nom(e.versant_person_id, e.versant_libelle)}
+                {e.moyen ? ` · ${MODES_PAIEMENT[e.moyen] ?? e.moyen}` : ""} · versé par {nom(e.versant_person_id, e.versant_libelle)}
               </span>
               <span className="ml-auto flex flex-wrap items-center justify-end gap-2">
                 {/* Documents-0 : le reçu de dépôt (20) */}
@@ -167,8 +168,21 @@ function FormEncaisser({
           <InputDateJour id="dep-date"   className="h-9" name="date" />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="dep-moyen" className="text-xs">Moyen</Label>
-          <Input id="dep-moyen" name="moyen" placeholder="virement, chèque…" defaultValue={etat.valeurs?.moyen} className="h-9 w-36" />
+          {/* Le même sélecteur que l'encaissement du loyer (25/09) : un champ
+              libre ici et une liste là-bas, pour le même objet. */}
+          <Label htmlFor="dep-moyen" className="text-xs">Payé par</Label>
+          <select
+            id="dep-moyen"
+            name="moyen"
+            defaultValue={etat.valeurs?.moyen ?? "virement"}
+            className="h-9 w-36 rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            {Object.entries(MODES_PAIEMENT).map(([valeur, libelle]) => (
+              <option key={valeur} value={valeur}>
+                {libelle}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-2">

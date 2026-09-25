@@ -109,6 +109,12 @@ const RAIL_DE_L_ETAPE: Record<string, number> = {
   terminee: 3,
 };
 
+/** L'étape, en deux mots, pour la pastille de la carte (25/09, D43) ; null si l'étape est inconnue. */
+export function etapeCourte(etape: string): string | null {
+  const rail = RAIL_DE_L_ETAPE[etape];
+  return rail === undefined ? null : RAILS[rail];
+}
+
 /** L'étape réelle, dans les mots du locataire — jamais le vocabulaire interne. */
 function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detail: string } {
   const artisan = s.artisan ?? "L'artisan";

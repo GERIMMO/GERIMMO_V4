@@ -18,12 +18,21 @@ export async function GET(request: Request) {
   if (!memeSecret(request.headers.get("authorization") ?? "", `Bearer ${secret}`)) {
     return Response.json({ erreur: "Non autorisé." }, { status: 401 });
   }
-  const config = configurationYoutrust();
-  if (!config || config.environnement !== "production") {
-    return Response.json({ erreur: "Youtrust production non configuré." }, { status: 503 });
-  }
   const supabase = clientDeService();
   if (!supabase) return Response.json({ erreur: "Base indisponible." }, { status: 503 });
+  const config = configurationYoutrust();
+  if (!config || config.environnement !== "production") {
+    // Consigné AVANT de s'arrêter (25/09) : le 503 sans journal laissait la
+    // tâche « aucune exécution » à vie dans Santé et « À vérifier » chaque
+    // nuit dans Équipes, alors que la sandbox est un choix, dit par la ligne
+    // de configuration. La passe est un 200 sans rien traiter.
+    await consignerTache(supabase, "signatures", {
+      ignores: 0,
+      non_configuree: true,
+      motif: config ? "youtrust_sandbox" : "youtrust_absent",
+    });
+    return Response.json({ ignores: 0, non_configuree: true, motif: "Youtrust production non configuré." });
+  }
   const { data, error } = await supabase.from("signature_evenements")
     .select("event_id,event_name,request_id,tentatives")
     .in("etat", ["a_traiter", "echec"]).lt("tentatives", 20)

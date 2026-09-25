@@ -40,6 +40,8 @@ const ids = {
   DIAGNOSTIC: (await un("select id from diagnostics where organization_id = $1 and archived_at is null limit 1", [ORG]))?.id,
   SOLLICITATION: (await un("select id from incident_sollicitations where statut = 'envoyee' order by envoyee_le desc limit 1"))?.id,
   INTERVENTION: (await un("select id from incident_interventions order by confiee_le desc limit 1"))?.id,
+  // Les équipes du point du matin sont fixes (lib/missions.ts) : la première.
+  EQUIPE: "exploitation",
 };
 const lot = await un(
   "select l.id, l.bien_id from lots l join biens b on b.id = l.bien_id where l.organization_id = $1 order by (b.nom like 'E2E%') desc, l.created_at limit 1",
@@ -58,7 +60,7 @@ for (const route of inventaire) {
   // L'espace « propriétaire » réutilise les routes /agence avec l'organisation PD
   if (route.persona === "proprietaire") chemin = chemin.replace("/agence/ORG", `/agence/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION)\b/g, (m) => {
+  chemin = chemin.replace(/\b(ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

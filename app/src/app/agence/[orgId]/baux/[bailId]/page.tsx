@@ -434,7 +434,9 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           prend sa largeur naturelle (`w-max`) dans un bandeau défilant qui
           déborde jusqu'aux bords de l'écran. Dès sm, elle se replie comme
           avant. */}
-      <div className="max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:[scrollbar-width:none]">
+      {/* 25/09 : le fondu du bord droit dit que la rangée défile — sans lui,
+          « États des lieu » paraissait coupé. */}
+      <div className="max-sm:-mx-4 max-sm:overflow-x-auto max-sm:px-4 max-sm:[scrollbar-width:none] max-sm:[mask-image:linear-gradient(to_right,black_calc(100%-40px),transparent)]">
         <nav aria-label="Accès rapide au bail" className="dossier-nav max-sm:w-max">
           <a href="#contrat">Contrat & documents</a>
           {loyersActif && <a href="#loyers">Loyers & paiements</a>}

@@ -75,8 +75,17 @@ export function BarreLaterale({
   navigation: NavigationEspace;
   /** Le propriétaire qui a plusieurs organisations (SCI, nom propre) choisit ici. */
   organisations?: OrganisationDuSelecteur[];
-  /** L'essai en cours, s'il y en a un : jours restants (négatif = terminé) et où l'on paie. */
-  essai?: { jours: number; href: string } | null;
+  /**
+   * L'essai en cours, s'il y en a un : jours restants (négatif = terminé) et
+   * où l'on paie. Terminé, il ne rougit que si l'écriture est fermée (25/09) ;
+   * `rienARegler` porte la phrase neutre quand il n'y a rien à payer.
+   */
+  essai?: {
+    jours: number;
+    href: string;
+    ecritureFermee?: boolean;
+    rienARegler?: string | null;
+  } | null;
   marque?: { nom?: string | null; logoUrl?: string | null };
 }) {
   const pathname = usePathname();
@@ -139,12 +148,27 @@ export function BarreLaterale({
 
       {essai && (
         <div className="coquille-pied">
-          <Link href={essai.href} className={`coquille-essai${essai.jours < 0 ? " termine" : ""}`}>
-            <span>
-              Essai gratuit
-              <br />
-              <b>{essai.jours < 0 ? "terminé" : `${essai.jours} jour${essai.jours > 1 ? "s" : ""} restant${essai.jours > 1 ? "s" : ""}`}</b>
-            </span>
+          <Link
+            href={essai.href}
+            className={`coquille-essai${essai.jours < 0 && essai.ecritureFermee ? " termine" : ""}`}
+          >
+            {essai.jours < 0 ? (
+              <span>
+                Essai terminé
+                <br />
+                {essai.ecritureFermee ? (
+                  <b>saisie suspendue</b>
+                ) : (
+                  <small className="text-muted-foreground">{essai.rienARegler ?? "voir mon abonnement"}</small>
+                )}
+              </span>
+            ) : (
+              <span>
+                Essai gratuit
+                <br />
+                <b>{`${essai.jours} jour${essai.jours > 1 ? "s" : ""} restant${essai.jours > 1 ? "s" : ""}`}</b>
+              </span>
+            )}
             <span aria-hidden>›</span>
           </Link>
         </div>

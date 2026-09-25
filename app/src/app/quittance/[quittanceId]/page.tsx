@@ -1,5 +1,5 @@
 import { MarqueOrganisation } from "@/components/marque-organisation";
-import { styleMarque } from "@/lib/marque-organisation";
+import { nomMarque, styleMarque, type MarqueOrganisation as Marque } from "@/lib/marque-organisation";
 import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import { cache } from "react";
 import type { Metadata } from "next";
@@ -33,14 +33,25 @@ const chargerQuittance = cache(async (quittanceId: string): Promise<DetailQuitta
   return ((data ?? []) as DetailQuittance[])[0] ?? null;
 });
 
+// La marque de l'organisation qui émet le document, lue une fois pour la page
+// et son titre. Sans marque lisible, le nom de l'émetteur du document sert de
+// marque : le locataire ne lit jamais « Gerimmo » (25/09, D04).
+const chargerMarqueQuittance = cache(async (quittanceId: string): Promise<Marque | null> => {
+  const db = await createClient();
+  const { data: origine } = await db.from("quittances").select("organization_id").eq("id", quittanceId).maybeSingle();
+  return origine?.organization_id ? chargerMarque(db, origine.organization_id) : null;
+});
+
 // Le titre de l'onglet suit la nature du document : un reçu partiel n'est pas
-// une quittance (audit 09/09).
+// une quittance (audit 09/09) — et il porte le nom de l'émetteur, pas Gerimmo.
 export async function generateMetadata(props: {
   params: Promise<{ quittanceId: string }>;
 }): Promise<Metadata> {
   const { quittanceId } = await props.params;
-  const q = await chargerQuittance(quittanceId);
-  return { title: q && !q.est_quittance ? "Reçu — Gerimmo" : "Quittance — Gerimmo" };
+  const [q, marque] = await Promise.all([chargerQuittance(quittanceId), chargerMarqueQuittance(quittanceId)]);
+  const nature = q && !q.est_quittance ? "Reçu" : "Quittance";
+  const emetteur = marque ? nomMarque(marque) : q?.emetteur;
+  return { title: emetteur ? `${nature} — ${emetteur}` : nature };
 }
 
 export default async function PageQuittance(props: {
@@ -55,9 +66,7 @@ export default async function PageQuittance(props: {
   // Le reste de la page est identique — l'URL nue reste la lecture à l'écran (24/09).
   const { imprimer } = await props.searchParams;
   const imprimerAuChargement = imprimer === "1";
-  const db = await createClient();
-  const { data: origine } = await db.from("quittances").select("organization_id").eq("id", quittanceId).maybeSingle();
-  const marque = origine?.organization_id ? await chargerMarque(db, origine.organization_id) : null;
+  const marque = (await chargerMarqueQuittance(quittanceId)) ?? { name: q.emetteur };
 
   const mois = new Date(q.periode).toLocaleDateString("fr-FR", {
     month: "long",
@@ -75,12 +84,15 @@ export default async function PageQuittance(props: {
   return (
     <main className="mx-auto w-full max-w-2xl space-y-6 p-5 sm:p-8" style={styleMarque(marque)}>
       {imprimerAuChargement && <ImpressionAutomatique />}
-      {marque && <div className="max-w-[180px]"><MarqueOrganisation marque={marque} /></div>}
+      {/* L'en-tête de marque, toujours (25/09, D11) : sans logo lisible, le
+          nom de l'émetteur — jamais une page nue. */}
+      <div className="max-w-[180px]"><MarqueOrganisation marque={marque} /></div>
       {/* Route racine, hors de tout espace : sans cela, le document est un
           cul-de-sac. Masqué à l'impression — une quittation papier n'a pas de
-          bouton « Retour ». */}
+          bouton « Retour ». Un vrai bouton (D11) : le seul chemin de sortie
+          était un lien de 12 px. */}
       <div className="print:hidden">
-        <BoutonRetour libelle="Retour" />
+        <BoutonRetour libelle="Retour à mes paiements" className="btn-secondaire" />
       </div>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
         <div>
@@ -159,9 +171,11 @@ export default async function PageQuittance(props: {
           : `Ce reçu constate un paiement partiel de ${mois}. Il ne vaut pas quittance : un solde de ${eur(solde)} reste dû.`}
       </p>
 
+      {/* Plus de « Document généré par Gerimmo » (25/09, D04) sur un document
+          à la marque de l'agence : le locataire ne lit jamais ce nom. */}
       <p className="text-xs text-muted-foreground print:hidden">
-        Document généré par Gerimmo. « Imprimer ou enregistrer » ouvre la feuille
-        d&apos;impression de votre appareil, d&apos;où vous pouvez l&apos;enregistrer en PDF.
+        « Imprimer ou enregistrer » ouvre la feuille d&apos;impression de votre appareil,
+        d&apos;où vous pouvez l&apos;enregistrer en PDF.
       </p>
     </main>
   );

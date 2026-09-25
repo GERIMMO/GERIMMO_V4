@@ -19,6 +19,14 @@
 // perdrait une quittance au premier échec réseau : marquée partie, jamais
 // reçue, et plus aucune tâche ne la reprendrait. Dans ce sens-ci, le pire cas
 // est un double envoi — désagréable, pas préjudiciable.
+//
+// LES ÉCHECS SE LISENT EN BASE (audit 25/09, R2). Deux quittances échouaient
+// chaque matin depuis deux jours et le bilan consigné ne disait que
+// `echecs: 2` : le motif partait en console, que personne ne relit. Chaque
+// échec est désormais consigné avec l'identifiant de la quittance, celui de
+// l'organisation et le motif tel que `envoyerEmail` le rend — un libellé
+// déjà exempt d'adresse et de contenu. Une quittance envoyée mais non marquée
+// est consignée à part : elle repartira demain, et il faut le savoir.
 
 import { envoyerEmail } from "@/lib/email";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
@@ -43,6 +51,11 @@ type Ligne = {
   montant: number;
   est_quittance: boolean;
 };
+
+/** Un échec tel qu'il se consigne : de quoi retrouver le dossier, jamais l'adresse. */
+type EchecConsigne = { quittance_id: string; organization_id: string; motif: string };
+/** Au-delà, le bilan dirait la même chose vingt fois : le compteur suffit. */
+const LIMITE_DETAIL = 20;
 
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
 function memeSecret(fourni: string, attendu: string): boolean {
@@ -99,7 +112,8 @@ export async function GET(request: Request) {
   }
 
   let envoyees = 0;
-  const echecs: string[] = [];
+  const echecs: EchecConsigne[] = [];
+  const marquageEchecs: EchecConsigne[] = [];
   for (const l of lignes) {
     const envoi = await envoyerEmail({
       organisation: { db: supabase, id: l.organization_id },
@@ -117,7 +131,7 @@ export async function GET(request: Request) {
       }),
     });
     if (envoi.erreur) {
-      echecs.push(envoi.erreur);
+      echecs.push({ quittance_id: l.quittance_id, organization_id: l.organization_id, motif: envoi.erreur });
       continue;
     }
     const { error: erreurMarque } = await supabase.rpc("marquer_quittance_envoyee", {
@@ -125,15 +139,23 @@ export async function GET(request: Request) {
     });
     if (erreurMarque) {
       // L'e-mail est parti mais la date n'est pas posée : la prochaine passe
-      // le renverra. On le dit au journal plutôt que de le taire.
-      console.error("[cron quittances] envoyée mais non marquée:", l.quittance_id, erreurMarque.message);
+      // le renverra. On le dit au bilan plutôt que de le taire.
+      marquageEchecs.push({ quittance_id: l.quittance_id, organization_id: l.organization_id, motif: erreurMarque.message.slice(0, 200) });
     }
     envoyees += 1;
   }
 
-  if (echecs.length > 0) {
-    console.error("[cron quittances] échecs:", [...new Set(echecs)].join(" · "));
+  const bilan = {
+    envoyees,
+    echecs: echecs.length,
+    ...(echecs.length ? { echecs_detail: echecs.slice(0, LIMITE_DETAIL) } : {}),
+    // Nom en `_echecs` : l'écran Santé y voit une tâche en échec, à raison —
+    // un double envoi se prépare.
+    ...(marquageEchecs.length ? { marquage_echecs: marquageEchecs.slice(0, LIMITE_DETAIL) } : {}),
+  };
+  if (echecs.length > 0 || marquageEchecs.length > 0) {
+    console.error("[cron quittances] échecs:", JSON.stringify({ echecs, marquageEchecs }));
   }
-  await consignerTache(supabase, "quittances", { envoyees, echecs: echecs.length });
-  return Response.json({ envoyees, echecs: echecs.length });
+  await consignerTache(supabase, "quittances", bilan);
+  return Response.json(bilan);
 }

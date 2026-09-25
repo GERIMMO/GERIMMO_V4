@@ -101,7 +101,12 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
         (l) => l.etat !== "archive" && (!portefeuille || portefeuille.has(l.id))
       ),
     }))
-    .filter((bien) => bien.lotsVisibles.length > 0);
+    // UN BIEN SANS LOT VISIBLE RESTE LISTÉ (25/09, D01) : l'abonnement le
+    // facturait, l'accueil le comptait (« 2 biens »), et Mes lots n'en montrait
+    // qu'un — le second n'existait nulle part où l'on puisse agir. Seul le
+    // portefeuille d'un agent le masque encore : hors de ses mandats, il ne
+    // peut rien en faire (RM-18.1.3).
+    .filter((bien) => bien.lotsVisibles.length > 0 || !portefeuille);
   const nbLots = biensVisibles.reduce((n, b) => n + b.lotsVisibles.length, 0);
   const nbLoues = biensVisibles.reduce(
     (n, b) => n + b.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length,
@@ -329,18 +334,35 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     </span>
                   </span>
                   <span className="puce puce-encre shrink-0">
-                    {bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length}
-                    /{bien.lotsVisibles.length} loué
-                    {bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis")
-                      .length > 1
-                      ? "s"
-                      : ""}
+                    {bien.lotsVisibles.length === 0
+                      ? "aucun lot"
+                      : `${bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length}/${bien.lotsVisibles.length} loué${
+                          bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis")
+                            .length > 1
+                            ? "s"
+                            : ""
+                        }`}
                   </span>
                   <IndicateurLien />
                 </Link>
                 {/* Le rang du lot n'est plus un lien : il OUVRE la fenêtre,
                     sur place. Hors fenêtre (navigateur sans JS), BoutonLot
                     retombe sur le lien vers la fiche complète. */}
+                {/* Le rang « aucun lot » porte un geste (D01) : la fiche du
+                    bien, où l'on retrouve ses lots archivés et d'où l'on agit. */}
+                {bien.lotsVisibles.length === 0 && (
+                  <Link href={`/agence/${orgId}/parc/${bien.id}`} className="rang-lot">
+                    <span className="min-w-0 flex-1 text-[13px]">
+                      Aucun lot actif
+                      <span className="block text-xs text-muted-foreground">
+                        {estProprietaire
+                          ? "Ce bien compte dans votre abonnement tant qu'il existe."
+                          : "Ce bien n'a plus de lot en gestion."}
+                      </span>
+                    </span>
+                    <span className="lien-discret shrink-0 text-xs">Ouvrir le bien&nbsp;→</span>
+                  </Link>
+                )}
                 {bien.lotsVisibles.map((lot) => (
                   <BoutonLot
                     key={lot.id}
@@ -416,11 +438,16 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                       les diagnostics, chacun à son niveau) — pas les compteurs
                       « manquants » des fiches, qui couvrent aussi le non bloquant. */}
                   {/* Même mot que la fiche bien : « à régler » (24/09) */}
+                  {/* Sans lot en préparation, « rien à régler » sonnait comme un
+                      verdict sur tout le parc — alors qu'un lot disponible peut
+                      encore bloquer (25/09, D03). On dit ce que compte la tuile. */}
                   {erreurBlocages
                     ? "blocages non lus"
-                    : totalBlocages === 0
-                      ? "rien à régler"
-                      : `${totalBlocages} élément${totalBlocages > 1 ? "s" : ""} à régler`}
+                    : enPreparation.length === 0
+                      ? "aucun lot en préparation"
+                      : totalBlocages === 0
+                        ? "rien à régler"
+                        : `${totalBlocages} élément${totalBlocages > 1 ? "s" : ""} à régler`}
                 </span>
               </div>
               <div className="kpi bleu">
@@ -497,7 +524,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                     <h2 className="text-[length:var(--pas-sous-titre)]">Préparer les nouveaux lots</h2>
                     {/* « au total » ne se rattachait à rien : même mot que la
                         tuile et la fiche bien (24/09). */}
-                    {!erreurBlocages && (
+                    {!erreurBlocages && enPreparation.length > 0 && (
                       <span className="mono-discret">
                         {totalBlocages === 0 ? "rien à régler" : `${totalBlocages} à régler`}
                       </span>

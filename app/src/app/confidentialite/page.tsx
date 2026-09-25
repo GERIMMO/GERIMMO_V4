@@ -95,8 +95,10 @@ export default function PageConfidentialite() {
       <Article titre="Où vos données sont hébergées, et qui y accède">
         <p>
           Vos données sont hébergées <b className="font-semibold">dans
-          l&apos;Union européenne</b>, chez les prestataires suivants, chacun
-          pour la part qui le concerne :
+          l&apos;Union européenne</b> (base, fichiers, application). Certains
+          services annexes sont rendus par des prestataires établis hors de
+          l&apos;Union : la colonne « Localisation » le dit pour chacun, et la
+          colonne « Rôle » précise ce qui lui est transmis, et seulement cela.
         </p>
         {/* La même liste que les mentions légales (lib/editeur.ts). */}
         <TableauPrestataires />

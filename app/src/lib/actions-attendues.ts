@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { aujourdhuiParis, estExpiree, eur, formaterDate } from "@/lib/ged";
 import { diagnosticsExigibles, obligatoireEnDefaut } from "@/lib/diagnostics";
+import { statutDiagnostic } from "@/lib/parc";
 
 // Actions attendues sur les baux en cours — LA source commune (audit 09/09,
 // P2). L'accueil du propriétaire disait « tout est en ordre » pendant que la
@@ -23,6 +24,12 @@ export type ActionAttendue = {
   detail: string | null;
   href: string;
   critique: boolean;
+  /**
+   * Les diagnostics expirés que porte un item « DPE/ERP absent ou expiré » :
+   * l'alerte `diagnostic_expiration` ne connaît que son `diagnostic_id`, pas
+   * le lot ni le bien — c'est par là qu'on la reconnaît (25/09).
+   */
+  diagnosticIds?: string[];
 };
 
 type BailEnCours = {
@@ -101,7 +108,7 @@ export async function actionsAttendues(
     bailIds.length
       ? supabase
           .from("diagnostics")
-          .select("type, lot_id, bien_id, date_expiration")
+          .select("id, type, lot_id, bien_id, date_expiration")
           .eq("organization_id", orgId)
           .in("type", ["dpe", "erp"])
           .is("archived_at", null)
@@ -135,11 +142,18 @@ export async function actionsAttendues(
     appelsParBail.set(a.bail_id, liste);
   }
   const lignesDiagnostics = (diagnostics ?? []) as {
+    id: string;
     type: string;
     lot_id: string | null;
     bien_id: string | null;
     date_expiration: string | null;
   }[];
+  // Les diagnostics d'un type déjà expirés parmi ceux déposés : ce sont eux
+  // que la tâche de nuit a signalés par une alerte.
+  const expires = (type: string, deposes: typeof lignesDiagnostics) =>
+    deposes
+      .filter((d) => d.type === type && statutDiagnostic(d.date_expiration) === "expire")
+      .map((d) => d.id);
 
   const impayes: ActionAttendue[] = [];
   const edls: ActionAttendue[] = [];
@@ -198,6 +212,7 @@ export async function actionsAttendues(
           detail: "Obligatoire en habitation (au lot)",
           href: `/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}#diagnostics`,
           critique: false,
+          diagnosticIds: expires("dpe", deposesLot),
         });
       }
       if (!biensSignales.has(bien.id)) {
@@ -210,6 +225,7 @@ export async function actionsAttendues(
             detail: "État des risques, validité 6 mois (à l'immeuble)",
             href: `/agence/${orgId}/parc/${bien.id}#diagnostics`,
             critique: false,
+            diagnosticIds: expires("erp", deposesBien),
           });
         }
       }
@@ -236,18 +252,41 @@ export async function actionsAttendues(
   return [...impayes, ...edls, ...diags, ...pieces];
 }
 
-// Une alerte ouverte peut porter la même nouvelle qu'un item calculé (l'alerte
-// « edl_entree » posée à l'activation du bail) : on ne l'affiche pas deux fois.
+// Une alerte ouverte peut porter la même nouvelle qu'un item calculé : on ne
+// l'affiche pas deux fois, l'item calculé fait foi. Longtemps limité à l'EDL
+// d'entrée (alerte posée à l'activation du bail), le dédoublonnage couvre
+// depuis le 25/09 tout ce que les tâches de nuit reposent chaque jour — un
+// impayé donnait « Bail bloqué » ET « Alerte critique » pour le même loyer :
+//   - loyer_impaye (details.bail_id)            ↔ impaye-<bail_id> ;
+//   - edl_entree (details.bail_id)              ↔ edl-<bail_id> ;
+//   - assurance_expiration (details.document_id) ↔ piece-<document_id> ;
+//   - diagnostic_expiration (details.diagnostic_id) ↔ l'item DPE/ERP qui
+//     porte ce diagnostic parmi ses `diagnosticIds`.
+// Une alerte de seuil anticipé (J-30, J-15…) n'a pas d'item calculé en face,
+// puisque rien n'est encore expiré : elle reste affichée.
+const CLE_PAR_TYPE_ALERTE: Record<string, { champ: string; prefixe: string }> = {
+  edl_entree: { champ: "bail_id", prefixe: "edl" },
+  loyer_impaye: { champ: "bail_id", prefixe: "impaye" },
+  assurance_expiration: { champ: "document_id", prefixe: "piece" },
+};
+
 export function sansAlertesDoublonnees<
   T extends { type: string; details: Record<string, unknown> | null }
 >(alertes: T[], actions: ActionAttendue[]): T[] {
   const cles = new Set(actions.map((a) => a.cle));
-  return alertes.filter(
-    (a) =>
-      !(
-        a.type === "edl_entree" &&
-        typeof a.details?.bail_id === "string" &&
-        cles.has(`edl-${a.details.bail_id}`)
-      )
-  );
+  const diagnosticsCouverts = new Set(actions.flatMap((a) => a.diagnosticIds ?? []));
+  const identifiant = (a: T, champ: string): string | null => {
+    const v = a.details?.[champ];
+    return typeof v === "string" ? v : null;
+  };
+  return alertes.filter((a) => {
+    if (a.type === "diagnostic_expiration") {
+      const id = identifiant(a, "diagnostic_id");
+      return !(id && diagnosticsCouverts.has(id));
+    }
+    const regle = CLE_PAR_TYPE_ALERTE[a.type];
+    if (!regle) return true;
+    const id = identifiant(a, regle.champ);
+    return !(id && cles.has(`${regle.prefixe}-${id}`));
+  });
 }

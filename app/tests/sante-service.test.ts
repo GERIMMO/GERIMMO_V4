@@ -9,6 +9,8 @@
 import { describe, expect, it } from "vitest";
 import {
   adoptionAutomatique,
+  chargerEtatTaches,
+  chargerSante,
   domaineDeLAdresse,
   etatConfiguration,
   etatTaches,
@@ -222,6 +224,70 @@ describe("l'adoption des envois automatiques", () => {
       { status: "archivee", quittances_envoi_auto: null, appels_envoi_auto: null, relances_envoi_auto: null },
     ]);
     expect(a).toEqual({ vivantes: 2, quittances: 1, appels: 0, relances: 0, toutManuel: 1 });
+  });
+});
+
+describe("une passe sans service relié (25/09)", () => {
+  const maintenant = new Date("2026-09-20T10:00:00.000Z");
+  const passe = (nom: string, il_y_a_heures: number, bilan: unknown) => ({
+    evenement: `tache_${nom}`,
+    details: bilan,
+    created_at: new Date(maintenant.getTime() - il_y_a_heures * 3_600_000).toISOString(),
+  });
+
+  it("est « non configurée », comme la sandbox : à vérifier, pas bloquante", () => {
+    const lignes = [passe("signatures", 3, { ignores: 0, non_configuree: true, motif: "youtrust_sandbox" })];
+    const taches = etatTaches(dernieresTaches(lignes), maintenant);
+    const signatures = taches.find((t) => t.nom === "signatures")!;
+    expect(signatures.etat).toBe("non_configuree");
+    expect(signatures.bilan).toMatch(/non configuré/);
+    expect(signatures.bilan).not.toContain("youtrust_sandbox");
+    expect(pointsBloquants([], [signatures], 0)).toBe(0);
+  });
+
+  it("redevient un retard si elle cesse de consigner", () => {
+    const lignes = [passe("abonnements", 40, { ignores: 0, non_configuree: true })];
+    expect(etatTaches(dernieresTaches(lignes), maintenant).find((t) => t.nom === "abonnements")?.etat).toBe("retard");
+  });
+});
+
+describe("le chargement partagé par les trois pages (25/09)", () => {
+  const maintenant = new Date("2026-09-20T10:00:00.000Z");
+  const client = (lignes: unknown[] | null, error: unknown = null) => {
+    const appels: unknown[][] = [];
+    const q = {
+      select: (...a: unknown[]) => { appels.push(["select", ...a]); return q; },
+      like: (...a: unknown[]) => { appels.push(["like", ...a]); return q; },
+      gte: (...a: unknown[]) => { appels.push(["gte", ...a]); return q; },
+      order: (...a: unknown[]) => { appels.push(["order", ...a]); return q; },
+      limit: async (...a: unknown[]) => { appels.push(["limit", ...a]); return { data: lignes, error }; },
+    };
+    return { db: { from: (table: string) => { appels.push(["from", table]); return q; } }, appels };
+  };
+
+  it("lit le journal des tâches sur trente jours, du plus récent au plus ancien", async () => {
+    const c = client([{ evenement: "tache_quittances", details: { envoyees: 1, echecs: 0 }, created_at: "2026-09-20T07:00:00.000Z" }]);
+    const taches = await chargerEtatTaches(c.db, maintenant);
+    expect(c.appels).toContainEqual(["from", "tech_log"]);
+    expect(c.appels).toContainEqual(["like", "evenement", "tache_%"]);
+    expect(c.appels).toContainEqual(["gte", "created_at", "2026-08-21T10:00:00.000Z"]);
+    expect(taches?.find((t) => t.nom === "quittances")?.etat).toBe("ok");
+    expect(taches?.find((t) => t.nom === "appels")?.etat).toBe("jamais");
+  });
+
+  it("rend null quand la lecture échoue, et le bandeau compte tout de même les faits sûrs", async () => {
+    const c = client(null, { message: "indisponible" });
+    const sante = await chargerSante(c.db, { ...COMPLET, CRON_SECRET: "" }, 2, maintenant);
+    expect(sante.taches).toBeNull();
+    expect(sante.tachesIllisibles).toBe(true);
+    expect(sante.bloquants).toBe(2);
+  });
+
+  it("donne le même chiffre qu'un calcul à la main", async () => {
+    const c = client([]);
+    const sante = await chargerSante(c.db, COMPLET, 0, maintenant);
+    expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET), etatTaches({}, maintenant), 0));
+    expect(sante.bloquants).toBe(TACHES.length);
   });
 });
 

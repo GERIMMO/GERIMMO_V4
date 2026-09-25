@@ -5,7 +5,7 @@ import { ACTIONS_RETOUR, ETATS_RETOUR, GRAVITES_RETOUR, moisRevue, pageRetour, t
 import { CloreRevue, DecisionRetour, RegrouperIdees } from "./decisions-retour";
 
 // Même nom que l'entrée de la barre (24/09) : les contestations artisan restent une puce de la file.
-export const metadata = { title: "Retours et idées — Gerimmo" };
+export const metadata = { title: "Retours des utilisateurs — Gerimmo" };
 const NATURES: Record<string, string> = { tous: "Tous", bug: "Problèmes", question: "Questions", idee: "Idées", contestation: "Contestations artisan" };
 type Ligne = { retour: RetourUtilisateur; organisation: string | null; soutiens: number; organisations: number; premiere: string | null; total: number };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -46,8 +46,10 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
   const mention = file.error ? "File indisponible" : !lignes.length && page > 1 ? null : `${total} demande${total > 1 ? "s" : ""}`;
 
   return <main className="mx-auto w-full max-w-4xl p-4 sm:p-7 space-y-5">
-    <div className="entete-page"><div><h1>Retours et idées</h1><p className="mt-2 text-sm text-muted-foreground">Répondre aux utilisateurs, qualifier les problèmes et préparer la revue des idées.</p></div>{mention && <span className="mono-discret">{mention}</span>}</div>
-    <nav aria-label="Files de retours" className="flex flex-wrap gap-2">{Object.entries(NATURES).map(([k, v]) => <Link key={k} href={adresse(1, k)} aria-current={nature === k ? "page" : undefined} className={`filtre inline-flex items-center${nature === k ? " actif" : ""}`}>{v}</Link>)}</nav>
+    <div className="entete-page"><div><h1>Retours des utilisateurs</h1><p className="mt-2 text-sm text-muted-foreground">Répondre aux utilisateurs, qualifier les problèmes et préparer la revue des idées.</p></div>{mention && <span className="mono-discret">{mention}</span>}</div>
+    {/* Rien à filtrer sur une liste vide (audit 25/09, C19) : puces et
+        sélecteurs n'apparaissent que s'il y a des demandes ou un filtre actif. */}
+    {(total > 0 || filtreActif || file.error) && <nav aria-label="Files de retours" className="flex flex-wrap gap-2">{Object.entries(NATURES).map(([k, v]) => <Link key={k} href={adresse(1, k)} aria-current={nature === k ? "page" : undefined} className={`filtre inline-flex items-center${nature === k ? " actif" : ""}`}>{v}</Link>)}</nav>}
     {nature === "idee" && <section className="rounded-xl border border-[var(--or)] bg-[var(--ivoire)] p-4 text-sm">
       <h2 className="font-heading text-lg">Revue de {new Date(mois + "T12:00:00").toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}</h2>
       {revue.error ? <p>Le bilan de la revue est indisponible.</p> : revue.data ? <><p className="mt-2">Revue terminée le {new Date(revue.data.cree_le).toLocaleDateString("fr-FR")}.</p><p className="mt-2 whitespace-pre-wrap">{revue.data.bilan}</p></> : <><p className="mt-2">La revue mensuelle est à faire. Examinez les idées et leurs dates de réexamen, puis consignez le bilan.</p><CloreRevue /></>}
@@ -55,12 +57,12 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
       <p className="mt-3 text-xs text-muted-foreground">Classement sur tout l’historique : organisations distinctes, soutiens uniques, puis ancienneté. Regrouper des idées conserve la confidentialité de leurs descriptions.</p>
     </section>}
     {/* Libellé au-dessus du sélecteur : à 390 px, État et Organisation tiennent sur une ligne et « Filtrer » prend la suivante (24/09). */}
-    <form className="flex flex-wrap items-end gap-3 text-sm">
+    {(total > 0 || filtreActif || file.error) && <form className="flex flex-wrap items-end gap-3 text-sm">
       <input type="hidden" name="nature" value={nature} />
       <label className="flex min-w-[10rem] flex-1 flex-col gap-1"><span>État</span><select name="etat" defaultValue={etat} className="w-full rounded border bg-white p-2"><option value="">Tous</option>{Object.entries(ETATS_RETOUR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       <label className="flex min-w-[10rem] flex-1 flex-col gap-1"><span>Organisation</span><select name="org" defaultValue={org} className="w-full rounded border bg-white p-2"><option value="">Toutes</option>{(organisations.data ?? []).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
       <button type="submit" className="btn-or w-full justify-center sm:w-auto">Filtrer</button>
-    </form>
+    </form>}
     {erreur && <p role="alert" className="err">Une partie du suivi est indisponible. Rechargez avant de prendre une décision.</p>}
     {!file.error && !lignes.length && (page > 1
       ? <div className="vide-guide"><p className="titre">Cette page est vide</p><p className="explication">La liste compte moins de pages : reprenez depuis la première.</p><div className="geste"><Link href={adresse(1)} className="btn-secondaire">Revenir à la première page</Link></div></div>

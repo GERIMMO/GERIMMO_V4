@@ -7,12 +7,22 @@ import { createClient } from "@/lib/supabase/server";
 import { verifierGerant } from "@/lib/ged-acces";
 import { detecterMimeReel, pdfComplet, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+// 25/09 : le locataire est prévenu par e-mail de la demande et de la relance.
+import { notifierPieceDemandee } from "@/lib/notifications";
 
 export type EtatPieceDemandee = {
   erreur?: string;
   succes?: string;
+  avertissement?: string;
   valeurs?: Record<string, string>;
 };
+
+// Le mot juste sur ce qui n'est pas parti — l'écran le montre, l'action le dit.
+function avertissementEnvoi(motif: string | undefined): string {
+  return motif === "sans_adresse"
+    ? "Le locataire n'a pas d'adresse e-mail : il ne verra la demande qu'en ouvrant son espace."
+    : "L'e-mail au locataire n'a pas pu partir ; la demande reste visible dans son espace.";
+}
 
 // Pièces réclamées au locataire (RM-0b.2.5) : le gérant demande, le locataire
 // dépose depuis son espace, la demande se solde toute seule.
@@ -33,17 +43,27 @@ export async function demanderPieceLocataire(
   if (!["piece_identite", "justificatif", "attestation_assurance"].includes(type))
     return { erreur: "Type de pièce invalide.", valeurs };
 
-  const { error } = await supabase.from("pieces_demandees").insert({
-    organization_id: orgId,
-    person_id: personId,
-    type,
-    libelle,
-    note: note || null,
-    demandee_par: user.id,
-  });
+  const { data: demande, error } = await supabase
+    .from("pieces_demandees")
+    .insert({
+      organization_id: orgId,
+      person_id: personId,
+      type,
+      libelle,
+      note: note || null,
+      demandee_par: user.id,
+    })
+    .select("id")
+    .single();
   if (error) return { erreur: sansJargon(error.message), valeurs };
+  const envoi = await notifierPieceDemandee(supabase, orgId, personId, { id: demande.id, libelle, note: note || null }, false);
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
-  return { succes: "Demande envoyée — elle s'affiche dans l'espace du locataire." };
+  return {
+    succes: envoi.envoyee
+      ? "Demande envoyée — le locataire est prévenu par e-mail et la voit dans son espace."
+      : "Demande envoyée — elle s'affiche dans l'espace du locataire.",
+    avertissement: envoi.envoyee ? undefined : avertissementEnvoi(envoi.motif),
+  };
 }
 
 export async function relancerPieceDemandee(
@@ -53,14 +73,26 @@ export async function relancerPieceDemandee(
 ): Promise<EtatPieceDemandee> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase
+  // 25/09 : « Relancer » envoie réellement — la date seule ne relançait personne.
+  const { data: demande, error } = await supabase
     .from("pieces_demandees")
     .update({ relancee_le: new Date().toISOString() })
     .eq("id", demandeId)
-    .eq("organization_id", orgId);
+    .eq("organization_id", orgId)
+    .eq("person_id", personId)
+    .is("satisfaite_le", null)
+    .select("id, libelle, note")
+    .maybeSingle();
   if (error) return { erreur: sansJargon(error.message) };
+  if (!demande) return { erreur: "Cette demande est introuvable ou déjà satisfaite." };
+  const envoi = await notifierPieceDemandee(supabase, orgId, personId, demande, true);
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
-  return { succes: "Relance notée — le locataire la voit sur sa demande." };
+  return {
+    succes: envoi.envoyee
+      ? "Relance envoyée par e-mail — le locataire la voit aussi sur sa demande."
+      : "Relance notée — le locataire la voit sur sa demande.",
+    avertissement: envoi.envoyee ? undefined : avertissementEnvoi(envoi.motif),
+  };
 }
 
 export async function annulerPieceDemandee(

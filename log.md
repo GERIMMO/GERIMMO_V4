@@ -5432,3 +5432,19 @@ orchestrée page par page avec double vérification, puis corrections.
 ## [2026-09-24] decision | Le porteur fait trancher les points ouverts du tour « de manière logique »
 
 Règle appliquée : la promesse déjà faite à l'utilisateur, ou la règle déjà écrite, l'emporte. Abonnement pendant l'essai tenu (Stripe `trial_end`) ; fin d'essai sans rien à payer = compte ouvert (migration `org_ecriture_ouverte`, appliquée) ; « Écritures & rapports » dans le « Plus » de l'agent ; barre basse à quatre entrées et titres d'onglet inchangés ; migrations « nom de l'agent » écartées (manque de modèle) ; libellés gardés ; restes mineurs faits, dont la cohérence du compteur d'alertes. Détail dans [[Design system Gerimmo]] § 5.
+
+## [2026-09-25] implementation | Nuit du 24 au 25/09 — travail du porteur avec ChatGPT (non journalisé ici)
+
+Douze fusions sur `main` pendant la nuit (122 fichiers) : console de supervision, missions automatiques, marketing, marque blanche, pages légales, bandeau illustré par page. Aucune entrée de journal ni page wiki n'accompagne ce travail : cette ligne en garde la trace ; l'audit du jour en est la relecture.
+
+## [2026-09-25] audit | Audit complet de l'application — code, production, 134 écrans par persona
+
+**Demande** : « un audit extrêmement complet pour détecter les bugs, incohérences, améliorations possibles, problèmes d'affichage… remets en question les boutons, les menus, les infos, les interactions » ; la partie utilisateur doit se gérer seule au maximum ; la console doit recevoir chaque matin le point de plusieurs équipes d'agents, à valider ou refuser, avec contrôle et supervision sur tout, pour une heure de travail par matin. Carte blanche, « corrige ce que tu peux ».
+
+**Méthode** : trois audits de code en parallèle (console, espaces utilisateurs, préparation à la production), puis 134 écrans capturés à 1 280 et 390 px pour sept personas et relus page par page ; corrections par lots de fichiers disjoints, chaque lot vérifié (types, lint, tests, recaptures) et commité sur la PR #108.
+
+**Relevé** : console 13 bugs / 14 incohérences / 9 écarts / 22 améliorations ; utilisateurs 9 / 8 / 10 / 14 ; production 43 points (12 P1) ; écrans 129 défauts uniques (12 P1).
+
+**Fait** (dix lots) : le **point du matin** (bilan par passage, point daté par équipe, décisions à valider ou refuser, page « Aujourd'hui » qui ouvre sur ce qui attend, un seul calcul des décisions pour badge, menu et pages) ; console remise dans l'ordre (un seul écran de début de journée, Santé avec la commande qui règle chaque ligne, une table de libellés, éditeur d'article qui garde l'article en ligne, une barre au téléphone, heure de Paris) ; **notifications sortantes** en marque blanche pour tous les événements qui touchent un tiers ; production (en-têtes de sécurité, échecs de nuit exploitables, prestataires déclarés, export chiffré de sauvegarde) ; alertes et actions du jour fusionnées ; écrans agence, propriétaire, locataire, artisan, public corrigés (≈110 défauts) ; bandeau photo de la nuit retiré. Deux migrations : `point_du_matin`, `documents_portefeuille_bail_diagnostic`. Détail dans [[Audit complet du 25 septembre 2026]].
+
+**Non fait / au porteur** : faits légaux (`EDITEUR` vide, 14 champs « à venir »), Stripe réel, domaine Resend, Yousign, OpenAI, Meta, sauvegardes programmées avec destination externe, données de développement en production, variables Vercel, contrôle de toutes les sessions (seule la traversée artisan existe), migrations à appliquer en production à la fusion. Le connecteur Vercel autorisé n'est utilisable que dans une nouvelle session.

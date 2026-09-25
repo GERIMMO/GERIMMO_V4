@@ -1,13 +1,44 @@
 import Link from "next/link";
+import { cache } from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { seDeconnecter } from "@/app/actions/auth";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { MarqueOrganisation } from "@/components/marque-organisation";
+import { nomMarque, styleMarque, type MarqueOrganisation as Marque } from "@/lib/marque-organisation";
+import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import { formaterDateHeure } from "@/lib/ged";
 import { FormulaireMotDePasse } from "./formulaire-mot-de-passe";
 import { SecondFacteur } from "./second-facteur";
 
-export const metadata = { title: "Sécurité du compte — Gerimmo" };
+// LA MARQUE DU LOCATAIRE (25/09, D04). Cet écran est hors de tout espace, et
+// il affichait le logo GERIMMO — au locataire d'une agence en marque blanche,
+// qui ne doit jamais lire ce nom. Quand le compte n'a QUE des adhésions de
+// locataire, l'en-tête et l'onglet portent la marque de son organisation ; un
+// compte qui a aussi un espace agence ou propriétaire garde Gerimmo. Lu une
+// fois par requête : la page et son titre en ont besoin.
+const lireMarqueLocataire = cache(async function lireMarqueLocataire(): Promise<Marque | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("memberships")
+    .select("role, organization_id")
+    .eq("account_id", user.id)
+    .eq("status", "active");
+  const adhesions = (data ?? []) as { role: string; organization_id: string }[];
+  // Une lecture tombée ne décide rien : on garde l'en-tête neutre.
+  if (error || adhesions.length === 0 || adhesions.some((a) => a.role !== "locataire")) return null;
+  return chargerMarque(supabase, adhesions[0].organization_id);
+});
+
+export async function generateMetadata(): Promise<Metadata> {
+  const marque = await lireMarqueLocataire();
+  return { title: marque ? `Sécurité du compte — ${nomMarque(marque)}` : "Sécurité du compte — Gerimmo" };
+}
 
 /**
  * SÉCURITÉ DU COMPTE — l'écran qui manquait (19/09).
@@ -40,18 +71,23 @@ export default async function PageCompte() {
     .eq("status", "active")
     .limit(1)
     .maybeSingle();
+  const marque = await lireMarqueLocataire();
 
   return (
-    <div className="flex min-h-full flex-1 flex-col">
+    <div className="flex min-h-full flex-1 flex-col" style={styleMarque(marque)}>
       <header className="bandeau-appli">
-        <div className="mx-auto flex w-full max-w-2xl items-center justify-between px-4 py-3 sm:px-7">
-          <MarqueGerimmo />
-          <div className="flex items-center gap-3">
-            <Link href="/espaces" className="lien-bandeau">
+        {/* Les deux liens ne se coupent pas sur deux lignes à 390 px (25/09,
+            D28) : ils restent d'un tenant, c'est la marque qui cède la place. */}
+        <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3 sm:px-7">
+          <div className="min-w-0 max-w-[180px]">
+            {marque ? <MarqueOrganisation marque={marque} /> : <MarqueGerimmo />}
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <Link href="/espaces" className="lien-bandeau whitespace-nowrap">
               Mes espaces
             </Link>
             <form action={seDeconnecter}>
-              <button type="submit" className="lien-bandeau">
+              <button type="submit" className="lien-bandeau whitespace-nowrap">
                 Se déconnecter
               </button>
             </form>

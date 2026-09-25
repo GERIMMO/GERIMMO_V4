@@ -10,9 +10,22 @@
 // le secret n'en est pas une ici.
 //
 // Ces fonctions sont pures pour être vérifiables : la page ne fait que les
-// appeler avec `process.env` et les lignes du journal technique.
+// appeler avec `process.env` et les lignes du journal technique. La seule
+// exception est `chargerSante` (25/09), qui porte LA requête du journal : trois
+// pages (/admin, /admin/brief, /admin/sante) la faisaient chacune à leur façon
+// (30 jours et 2 000 lignes ici, 200 lignes sans fenêtre là) et n'affichaient
+// pas le même nombre de « points bloquants ».
+
+import { TACHES_SUIVIES, type Equipe } from "./missions";
 
 export type Etat = "ok" | "attention" | "manque";
+
+/**
+ * Qui détient la valeur à poser (audit 25/09, C5) : chaque ligne rouge dit le
+ * nom de la variable ET le prestataire chez qui on la trouve. La variable se
+ * pose dans les réglages du projet Vercel ; rien ici n'est un lien inventé.
+ */
+export type Prestataire = "Stripe" | "Resend" | "Yousign" | "Vercel" | "Supabase";
 
 export type Verification = {
   /** Le nom de la variable, tel qu'il se lit dans Vercel. */
@@ -22,6 +35,22 @@ export type Verification = {
   etat: Etat;
   /** Ce qu'on peut dire sans divulguer la valeur : un domaine, un mode. */
   detail: string | null;
+  /** Chez qui la valeur s'obtient. */
+  prestataire: Prestataire;
+};
+
+const PRESTATAIRE_PAR_CLE: Record<string, Prestataire> = {
+  STRIPE_SECRET_KEY: "Stripe",
+  STRIPE_WEBHOOK_SECRET: "Stripe",
+  STRIPE_PRIX_BIEN: "Stripe",
+  STRIPE_PRIX_LOT_AGENCE: "Stripe",
+  RESEND_API_KEY: "Resend",
+  RESEND_EXPEDITEUR: "Resend",
+  YOUTRUST_API_KEY: "Yousign",
+  YOUTRUST_WEBHOOK_SECRET: "Yousign",
+  CRON_SECRET: "Vercel",
+  SUPABASE_SERVICE_ROLE_KEY: "Supabase",
+  NEXT_PUBLIC_SITE_URL: "Vercel",
 };
 
 const LIBELLES_BILAN: Record<string, string> = {
@@ -82,7 +111,7 @@ export function domaineDeLAdresse(adresse: string): string | null {
  * liste de lancement : ce qui bloque en premier, en premier.
  */
 export function etatConfiguration(env: Env): Verification[] {
-  const verifications: Verification[] = [];
+  const verifications: Omit<Verification, "prestataire">[] = [];
 
   // ── Stripe : sans lui, l'essai de 14 jours ferme l'écriture sans issue.
   const cleStripe = valeur(env, "STRIPE_SECRET_KEY");
@@ -206,7 +235,7 @@ export function etatConfiguration(env: Env): Verification[] {
     detail: detailSite,
   });
 
-  return verifications;
+  return verifications.map((v) => ({ ...v, prestataire: PRESTATAIRE_PAR_CLE[v.cle] ?? "Vercel" }));
 }
 
 // ── Les tâches planifiées ────────────────────────────────────────────────────
@@ -215,33 +244,54 @@ export type Periodicite = "continue" | "quotidienne" | "mensuelle";
 
 export type Tache = {
   nom: string;
+  /** Le nom partagé (lib/missions.ts) : le même que sur Équipes et Journaux. */
   libelle: string;
+  /** L'équipe qui porte la tâche, pour le point du matin. */
+  equipe: Equipe;
   /** Ce que la passe fait, en une ligne. */
   role: string;
   /** L'heure UTC de vercel.json — Vercel ne connaît pas l'heure de Paris. */
   horaire: string;
   periodicite: Periodicite;
+  /** Vrai quand « Lancer maintenant » existe (route /api/cron/equipes). */
+  commandable: boolean;
+};
+
+const ROLES: Record<keyof typeof TACHES_SUIVIES, [role: string, horaire: string]> = {
+  orchestrateur: ["Actualise la prochaine étape des locations, incidents, signatures et comptes rendus", "Chaque matin"],
+  signatures: ["Reprend chaque document qui n'a pas été classé du premier coup", "Chaque nuit"],
+  abonnements: ["Suit les paiements refusés et ajuste la facturation au nombre de biens gérés", "Chaque nuit"],
+  rappels: ["Prévient les locataires et les artisans avant une intervention", "Chaque matin"],
+  quittances: ["Envoie les quittances lorsque le loyer est entièrement réglé", "Chaque matin"],
+  appels: ["Envoie l'avis du prochain loyer aux organisations qui le souhaitent", "Chaque matin"],
+  relances: ["Envoie les relances prévues lorsqu'un loyer reste impayé", "Chaque matin"],
+  veille: ["Collecte les actualités officielles et prépare leur étude", "Chaque matin"],
+  marketing: ["Prépare et diffuse les contenus autorisés", "Chaque matin"],
+  territoire: ["Actualise le marché et prépare la prochaine priorité territoriale", "Chaque matin"],
 };
 
 /**
- * Les huit tâches de `vercel.json`, dans l'ordre de la journée. L'horaire est
- * celui de vercel.json, en UTC : l'écran dit comment le lire à l'heure de
- * Paris, plutôt que d'afficher une heure fausse la moitié de l'année.
+ * Les dix tâches de `vercel.json`, dans l'ordre de la journée. Le nom vient de
+ * la table partagée (25/09) : Santé disait « Relances d'impayé » là où Équipes
+ * disait « Relances de loyers ».
  */
-export const TACHES: Tache[] = [
-  { nom: "orchestrateur", libelle: "Suivi des dossiers", role: "Actualise la prochaine étape des locations, incidents, signatures et comptes rendus", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "signatures", libelle: "Signatures électroniques", role: "Reprend chaque document qui n'a pas été classé du premier coup", horaire: "Chaque nuit", periodicite: "quotidienne" },
-  { nom: "abonnements", libelle: "Abonnements", role: "Suit les paiements refusés et ajuste la facturation au nombre de biens gérés", horaire: "Chaque nuit", periodicite: "quotidienne" },
-  { nom: "rappels", libelle: "Rappels de rendez-vous", role: "Prévient les locataires et les artisans avant une intervention", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "quittances", libelle: "Quittances", role: "Envoie les quittances lorsque le loyer est entièrement réglé", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "appels", libelle: "Avis d'échéance", role: "Envoie l'avis du prochain loyer aux organisations qui le souhaitent", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "relances", libelle: "Relances d'impayé", role: "Envoie les relances prévues lorsqu'un loyer reste impayé", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "veille", libelle: "Veille réglementaire", role: "Collecte les actualités officielles et prépare leur étude", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "marketing", libelle: "Agent marketing", role: "Prépare et diffuse les contenus autorisés", horaire: "Chaque matin", periodicite: "quotidienne" },
-  { nom: "territoire", libelle: "Développement territorial", role: "Actualise le marché et prépare la prochaine priorité territoriale", horaire: "Chaque matin", periodicite: "quotidienne" },
-];
+export const TACHES: Tache[] = (
+  ["orchestrateur", "signatures", "abonnements", "rappels", "quittances", "appels", "relances", "veille", "marketing", "territoire"] as const
+).map((nom) => ({
+  nom,
+  libelle: TACHES_SUIVIES[nom].nom,
+  equipe: TACHES_SUIVIES[nom].equipe,
+  role: ROLES[nom][0],
+  horaire: ROLES[nom][1],
+  periodicite: "quotidienne" as const,
+  commandable: nom !== "orchestrateur",
+}));
 
-export type EtatTache = "ok" | "echec" | "retard" | "jamais";
+// « non_configuree » (25/09) : la passe a eu lieu mais le service qu'elle
+// sert n'est pas relié (Stripe absent, Youtrust en sandbox). Ce n'est pas un
+// échec ni une absence d'exécution : la ligne de configuration le dit déjà,
+// et elle seule compte dans les points bloquants.
+export type EtatTache = "ok" | "echec" | "retard" | "jamais" | "non_configuree";
 
 export type PasseDeTache = Tache & {
   etat: EtatTache;
@@ -303,6 +353,14 @@ export function etatTaches(
       return Boolean(valeur);
     }));
     const age = maintenant.getTime() - new Date(d.le).getTime();
+    if (bilan && typeof bilan === "object" && bilan.non_configuree === true && !enEchec) {
+      return {
+        ...t,
+        etat: age > MARGES[t.periodicite] ? "retard" : "non_configuree",
+        le: d.le,
+        bilan: "service non configuré ou en mode essai : la passe n'a rien traité — voir les connexions ci-dessus",
+      };
+    }
     const etat: EtatTache = enEchec ? "echec" : age > MARGES[t.periodicite] ? "retard" : "ok";
     return { ...t, etat, le: d.le, bilan: resumerBilan(d.bilan, t.nom) };
   });
@@ -340,7 +398,11 @@ export function adoptionAutomatique(orgs: OrganisationPourAdoption[]): Adoption 
   };
 }
 
-/** Ce que la page de supervision résume en une ligne : combien de points bloquent. */
+/**
+ * Ce que la page de supervision résume en une ligne : combien de points
+ * bloquent. Une tâche « non configurée » ne compte pas : sa connexion
+ * manquante est déjà comptée par la configuration.
+ */
 export function pointsBloquants(
   configuration: Verification[],
   taches: PasseDeTache[],
@@ -351,4 +413,94 @@ export function pointsBloquants(
     taches.filter((t) => t.etat === "jamais" || t.etat === "echec").length +
     (faitsEditeurManquants > 0 ? 1 : 0)
   );
+}
+
+// ── Le chargement partagé ───────────────────────────────────────────────────
+
+/** Fenêtre et volume de lecture du journal, identiques pour toutes les pages. */
+export const FENETRE_JOURNAL_HEURES = 30 * 24;
+const LIMITE_JOURNAL = 2000;
+
+type LigneJournal = { evenement: string; details: unknown; created_at: string };
+
+/**
+ * Le strict nécessaire d'un client Supabase pour lire le journal des tâches :
+ * `from`. La chaîne de la requête n'est pas typée ici — le générateur de
+ * Supabase est trop profond pour un type structurel — elle l'est en privé.
+ */
+export type ClientQuiLitLeJournal = { from: (table: string) => unknown };
+
+type ChaineJournal = {
+  select: (colonnes: string) => ChaineJournal;
+  like: (colonne: string, motif: string) => ChaineJournal;
+  gte: (colonne: string, valeur: string) => ChaineJournal;
+  order: (colonne: string, options: { ascending: boolean }) => ChaineJournal;
+  limit: (n: number) => PromiseLike<{ data: unknown; error: unknown }>;
+};
+
+/**
+ * L'état de chaque tâche, lu du journal — la même requête pour /admin,
+ * /admin/brief et /admin/sante (25/09). `null` quand la lecture a échoué :
+ * une console qui affiche zéro parce qu'une requête a échoué est pire que pas
+ * de console.
+ */
+export async function chargerEtatTaches(
+  db: ClientQuiLitLeJournal,
+  maintenant: Date = new Date()
+): Promise<PasseDeTache[] | null> {
+  const depuis = new Date(maintenant.getTime() - FENETRE_JOURNAL_HEURES * HEURE).toISOString();
+  const { data, error } = await (db.from("tech_log") as ChaineJournal)
+    .select("evenement, details, created_at")
+    .like("evenement", "tache_%")
+    .gte("created_at", depuis)
+    .order("created_at", { ascending: false })
+    .limit(LIMITE_JOURNAL);
+  if (error) return null;
+  const dernieres: Record<string, { le: string; bilan: unknown }> = {};
+  // Le générateur de requêtes de Supabase rend `data` sans type utile ici :
+  // on ne garde que les lignes de la forme attendue.
+  const lignes = (Array.isArray(data) ? data : []).filter(
+    (l): l is LigneJournal => Boolean(l) && typeof l === "object" && typeof (l as LigneJournal).evenement === "string" && typeof (l as LigneJournal).created_at === "string"
+  );
+  for (const l of lignes) {
+    const nom = l.evenement.slice("tache_".length);
+    if (!(nom in dernieres)) dernieres[nom] = { le: l.created_at, bilan: l.details };
+  }
+  return etatTaches(dernieres, maintenant);
+}
+
+export type Sante = {
+  configuration: Verification[];
+  /** `null` : le journal n'a pas pu être lu. */
+  taches: PasseDeTache[] | null;
+  faitsEditeurManquants: number;
+  /**
+   * Le chiffre du bandeau. Quand le journal est illisible, il compte tout de
+   * même les connexions manquantes et l'éditeur incomplet : ce sont des faits
+   * sûrs. `tachesIllisibles` dit à la page qu'il en manque peut-être.
+   */
+  bloquants: number;
+  tachesIllisibles: boolean;
+};
+
+/**
+ * La santé complète, en un appel, pour les trois pages qui l'affichent.
+ * `faitsEditeurManquants` vient de `faitsManquants().length` (lib/editeur) :
+ * il est passé en paramètre pour garder ce fichier sans dépendance d'écran.
+ */
+export async function chargerSante(
+  db: ClientQuiLitLeJournal,
+  env: Env,
+  faitsEditeurManquants: number,
+  maintenant: Date = new Date()
+): Promise<Sante> {
+  const configuration = etatConfiguration(env);
+  const taches = await chargerEtatTaches(db, maintenant);
+  return {
+    configuration,
+    taches,
+    faitsEditeurManquants,
+    bloquants: pointsBloquants(configuration, taches ?? [], faitsEditeurManquants),
+    tachesIllisibles: taches === null,
+  };
 }

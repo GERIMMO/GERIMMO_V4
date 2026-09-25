@@ -175,7 +175,7 @@ export function navigationEspace({
       // « Comptabilité & fiscalité » du brief : la fiscalité (récapitulatif 2044)
       // n'existe que pour le propriétaire direct — l'entrée pointait sur une 404
       // pour l'agence (audit du 20/09).
-      { href: `${base}/comptabilite`, libelle: "Comptabilité", icone: "livre" },
+      { href: `${base}/comptabilite`, libelle: "Écritures & rapports", icone: "livre" },
       alertes,
       // Agenda et statistiques sortent de « Plus » (retour du porteur, 24/09) :
       // un clic de trop pour deux écrans consultés tous les jours.

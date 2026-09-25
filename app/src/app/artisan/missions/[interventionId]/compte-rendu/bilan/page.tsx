@@ -36,11 +36,13 @@ export default async function PageBilan(
   // « après » s'accepte dès `acceptee` : sans ce renvoi, l'artisan remplissait
   // les quatre champs du bilan pour se faire refuser à l'envoi. Constat du
   // 11/09 — on le renvoie là où se trouve le bouton « Démarrer ».
+  // 25/09 (A12) : le renvoi dit pourquoi (`?raison=`) — silencieux, il
+  // ramenait l'artisan à son point de départ sans un mot.
   if (mission.statut !== "en_cours") {
-    redirect(`/artisan/missions/${interventionId}`);
+    redirect(`/artisan/missions/${interventionId}?raison=demarrer`);
   }
   if (!mission.photo_apres_deposee) {
-    redirect(`/artisan/missions/${interventionId}/compte-rendu`);
+    redirect(`/artisan/missions/${interventionId}/compte-rendu?raison=photo`);
   }
 
   const { data: budgetBrut, error: erreurBudget } = await supabase.rpc("mon_budget_intervention", { p_intervention: interventionId });

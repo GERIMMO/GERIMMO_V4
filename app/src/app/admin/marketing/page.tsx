@@ -4,6 +4,7 @@ import { ArrowRight, Lightbulb, Megaphone, PenLine, Radar, TriangleAlert } from 
 import { createClient } from "@/lib/supabase/server";
 import { campagnesFacebook, depenseFacebookDuMois, santeFacebook } from "@/lib/marketing-meta";
 import { sansJargon } from "@/lib/erreurs";
+import { formaterDateHeureLongueParis } from "@/lib/heure-paris";
 import { ActualisationAuto } from "./actualisation-auto";
 import { FormulaireCampagne } from "./formulaire-campagne";
 import { ReglagesAutomatiques } from "./reglages-automatiques";
@@ -16,7 +17,8 @@ type Publication = { id: string; titre: string; statut: string; slug: string | n
 type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number };
 
 const JOURS: Record<number, string> = { 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi", 5: "vendredi", 6: "samedi", 7: "dimanche" };
-const date = (valeur: string | null) => valeur ? new Date(valeur).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" }) : "Date à choisir";
+// À l'heure de Paris (25/09) : sans fuseau, le serveur affichait l'heure UTC.
+const date = (valeur: string | null) => formaterDateHeureLongueParis(valeur, "Date à choisir");
 const argent = (cents: number | null) => cents == null ? "—" : new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
 const nombre = (n: number) => new Intl.NumberFormat("fr-FR").format(n);
 // UNE seule table d'objectifs (24/09) : le formulaire proposait « Obtenir des
@@ -85,7 +87,9 @@ export default async function PageAgentMarketing() {
   const facebookOperationnel = facebook.configure && !facebook.erreur;
   const metaOperationnel = meta.configure && !meta.erreur;
   const jours = reglages.jours_semaine.map((jour) => JOURS[jour]).filter(Boolean).join(" et ") || "mardi et vendredi";
-  const prochaineAction = aDiffuser[0] ?? aRelire[0] ?? null;
+  // La prochaine action se nomme (audit 25/09, C21) : relire tel article,
+  // diffuser tel autre — ou relier la Page si c'est elle qui manque.
+  const prochaine = aDiffuser[0] ? (facebookOperationnel ? { href: `/admin/publications/${aDiffuser[0].id}`, libelle: `Diffuser « ${aDiffuser[0].titre} »` } : { href: "#canaux", libelle: "Relier la Page Facebook" }) : aRelire[0] ? { href: `/admin/publications/${aRelire[0].id}`, libelle: `Relire « ${aRelire[0].titre} »` } : null;
   const aTraiter = aRelire.length + aDiffuser.length;
   // La tuile des dépenses ne rougit que si le plafond est dépassé (24/09) :
   // elle était rouge en permanence, sans dépense ni dépassement.
@@ -98,8 +102,8 @@ export default async function PageAgentMarketing() {
     <div className="entete-page">
       <div className="min-w-0 flex-[1_1_20rem]"><h1>Agent marketing</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">L’agent choisit des sujets utiles, prépare les articles, les diffuse sur Facebook et centralise les résultats. Vous gardez ici les décisions, le budget et l’historique.</p></div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="mono-discret">{reglages.actif ? `Deux sujets ${jours}, le matin · ${reglages.publication_automatique ? "diffusion automatique" : "brouillons à valider"}` : "Préparation des brouillons en pause"}</span>
-        {prochaineAction && <Link href={`/admin/publications/${prochaineAction.id}`} className="btn-secondaire">Traiter la prochaine action <ArrowRight className="size-4" /></Link>}
+        <span className="mono-discret">{reglages.actif ? `Deux sujets ${jours}, le matin · ${reglages.publication_automatique && facebookOperationnel ? "diffusion automatique" : "brouillons à valider"}` : "Préparation des brouillons en pause"}</span>
+        {prochaine && <Link href={prochaine.href} className="btn-secondaire max-w-full"><span className="truncate">{prochaine.libelle}</span> <ArrowRight className="size-4 shrink-0" /></Link>}
         <Link href="/admin/publications/nouvelle" className="btn-or"><PenLine className="size-4" /> Créer un article</Link>
       </div>
     </div>
@@ -114,8 +118,8 @@ export default async function PageAgentMarketing() {
     <section aria-label="Situation marketing" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Link href="#publications" className={`kpi ${aTraiter > 0 ? "ambre" : ""}`}><span className="libelle-champ">Publications à traiter</span><div className="chiffre montant">{aTraiter}</div><span className="mono-discret sans-majuscules">{aRelire.length} à relire · {aDiffuser.length} à diffuser</span></Link>
       <div className={`kpi ${facebookOperationnel ? "" : "ambre"}`}><span className="libelle-champ">Facebook</span><div className="chiffre montant">{parutionsFacebook.length}</div><span className="mono-discret sans-majuscules">publications envoyées · {facebookOperationnel ? (facebook.abonnes == null ? "audience en lecture" : `${nombre(facebook.abonnes)} abonnés`) : "Page à relier"}</span></div>
-      <Link href="#calendrier" className="kpi"><span className="libelle-champ">Campagnes à venir</span><div className="chiffre montant">{futures.length}</div><span className="mono-discret sans-majuscules">planning modifiable avant diffusion</span></Link>
-      <div className={`kpi ${depassement ? "rouge" : depenses.erreur ? "ambre" : ""}`}><span className="libelle-champ">Dépenses ce mois</span><div className="chiffre montant">{argent(depenseMois)}</div><span className="mono-discret sans-majuscules">budget autorisé : {argent(reglages.budget_mensuel_cents)}{depenses.erreur && <span className="mt-1 block">{depenses.erreur}</span>}</span></div>
+      <Link href="#calendrier" className="kpi"><span className="libelle-champ">Intentions éditoriales</span><div className="chiffre montant">{futures.length}</div><span className="mono-discret sans-majuscules">notes de travail, sans diffusion automatique</span></Link>
+      <div className={`kpi ${depassement ? "rouge" : depenses.erreur ? "ambre" : ""}`}><span className="libelle-champ">Dépenses ce mois</span><div className="chiffre montant">{argent(depenseMois)}</div><span className="mono-discret sans-majuscules">seuil d’alerte : {argent(reglages.budget_mensuel_cents)}{depenses.erreur && <span className="mt-1 block">{depenses.erreur}</span>}</span></div>
     </section>
 
     {/* Le travail du jour d'abord (24/09) : la publication « À diffuser »
@@ -124,20 +128,22 @@ export default async function PageAgentMarketing() {
 
     <section className="grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
       <section className="section-ecran rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4"><h2>Vous gardez le dernier mot</h2><p className="mt-2 text-sm">Le mode automatique diffuse deux publications par semaine avec un visuel original : Gerimmo, ses fonctionnalités, conseils et relais de la veille officielle. Vous pouvez le suspendre à tout moment. Les études internes ne sont pas publiées comme des règles vérifiées ; les posts de veille renvoient à leur source. Les développements du logiciel et les campagnes payantes restent soumis à votre accord.</p><Link href="/admin/publications" className="btn-secondaire mt-3">Examiner les propositions</Link></section>
-      <div id="calendrier" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">Feuille de route</p><h2>Calendrier éditorial</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Les campagnes prévues, dans l’ordre de diffusion.</p></div></div><div className="mt-4 divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--ivoire)]">{futures.length === 0 ? <div className="vide-guide"><p className="titre">Aucune campagne programmée</p><p className="explication">Le rythme automatique suit les deux jours choisis dans les réglages. Les campagnes supplémentaires se préparent ici.</p><div className="geste"><a className="btn-secondaire" href="#programmer">Programmer une campagne</a></div></div> : futures.map((c) => <article key={c.id} className="p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-heading text-lg">{c.nom}</h3><span className="puce puce-prep">{date(c.publication_prevue_le)}</span></div><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Facebook · {c.nature === "sponsorisee" ? `sponsorisée · ${argent(c.budget_cents)}` : "gratuite"} · objectif : {objectif(c.objectif)}</p>{c.description && <p className="mt-2 text-sm">{c.description}</p>}</article>)}</div></div>
+      {/* Des intentions, pas un calendrier de diffusion (25/09) : rien ne lisait
+          ces lignes, la tuile promettait une diffusion qui n'avait pas lieu. */}
+      <div id="calendrier" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">Feuille de route</p><h2>Intentions éditoriales</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Vos notes de sujets à traiter, par date visée. Elles ne sont pas diffusées automatiquement : l’agent suit son rythme hebdomadaire, et un article se crée à la main depuis « Créer un article ».</p></div></div><div className="mt-4 divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--ivoire)]">{futures.length === 0 ? <div className="vide-guide"><p className="titre">Aucune intention notée</p><p className="explication">Le rythme automatique suit les deux jours choisis dans les réglages. Les sujets que vous voulez voir traités se notent ici.</p><div className="geste"><a className="btn-secondaire" href="#programmer">Noter une intention</a></div></div> : futures.map((c) => <article key={c.id} className="p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-heading text-lg">{c.nom}</h3><span className="puce puce-prep">{date(c.publication_prevue_le)}</span></div><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Facebook · {c.nature === "sponsorisee" ? `sponsorisée (publicité non ouverte) · ${argent(c.budget_cents)}` : "gratuite"} · objectif : {objectif(c.objectif)}{c.statut === "planifiee" && " · notée avant le 25/09, sans diffusion automatique"}</p>{c.description && <p className="mt-2 text-sm">{c.description}</p>}</article>)}</div></div>
       {/* Un en-tête de carte comme les autres sections (24/09) : l'action de
           création de la page n'avait pas à se replier derrière un triangle. */}
-      <div id="programmer" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">Nouvelle campagne</p><h2>Programmer une campagne</h2><p className="mt-1 text-sm leading-relaxed text-[var(--texte-secondaire)]">Choisissez le message, le public, la date et le budget. Une campagne sponsorisée reste en préparation tant que les droits Ads et le moyen de paiement ne sont pas opérationnels.</p></div></div><FormulaireCampagne objectifs={OBJECTIFS} /></div>
+      <details id="programmer" className="section-ecran group scroll-mt-6"><summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden"><div className="entete-carte"><div><p className="libelle-champ">Nouvelle intention</p><h2>Noter une intention éditoriale</h2><p className="mt-1 text-sm leading-relaxed text-[var(--texte-secondaire)]">Le message, l’objectif et la date visée. La publicité payante n’est pas encore ouverte : les droits Meta Ads sont en attente.</p></div><span className="btn-secondaire"><span className="group-open:hidden">Noter</span><span className="hidden group-open:inline">Fermer</span></span></div></summary><div className="mt-4"><FormulaireCampagne objectifs={OBJECTIFS} /></div></details>
     </section>
 
-    <section className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">Automatisation et garde-fous</p><h2>Rythme, diffusion et budget</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Vous pouvez tout mettre en pause instantanément. Le plafond est une limite maximale, jamais un objectif de dépense.</p></div><span className={`puce ${reglages.actif ? "puce-loue" : "puce-prep"}`}>{reglages.actif ? "Agent actif" : "En pause"}</span></div><div className="mt-4"><ReglagesAutomatiques reglages={reglages} comptePublicitaire={metaOperationnel} /></div></section>
+    <section className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">Automatisation et garde-fous</p><h2>Rythme, diffusion et seuil d’alerte</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Vous pouvez tout mettre en pause instantanément. Le seuil d’alerte surveille les dépenses Meta constatées ; Gerimmo n’engage aucune dépense publicitaire.</p></div><span className={`puce ${reglages.actif ? "puce-loue" : "puce-prep"}`}>{reglages.actif ? "Agent actif" : "En pause"}</span></div><div className="mt-4"><ReglagesAutomatiques reglages={reglages} comptePublicitaire={metaOperationnel} pageReliee={facebookOperationnel} /></div></section>
 
     {/* L'état des canaux, en un seul endroit, avec le moyen de les relier
         (24/09). Instagram n'a aucun réglage : il n'est pas « en pause selon
         votre choix », il n'est pas proposé. */}
-    <section className="section-ecran"><div className="entete-carte"><div><p className="libelle-champ">État des connexions</p><h2>Canaux et contrôle</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">La Page Facebook permet les publications gratuites. Le compte publicitaire sert aux campagnes payantes et à leurs résultats. Chaque connexion a son propre état.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-3">
+    <section id="canaux" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">État des connexions</p><h2>Canaux et contrôle</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">La Page Facebook permet les publications gratuites. Le compte publicitaire sert aux campagnes payantes et à leurs résultats. Chaque connexion a son propre état.</p></div></div><div className="mt-4 grid gap-3 sm:grid-cols-3">
       <Canal nom="Facebook" relie={facebookOperationnel} detail={facebookOperationnel ? `${facebook.nom ?? "La Page Gerimmo"} peut publier sans votre présence.` : facebook.configure ? `Connexion à vérifier : ${facebook.erreur ?? "la Page ne répond pas"}.` : "À relier par la configuration du service (jeton Meta de la Page)."} />
-      <Canal nom="Meta Ads" relie={metaOperationnel} detail={metaOperationnel ? `Compte relié et statistiques en direct, budget autorisé de ${argent(reglages.budget_mensuel_cents)} par mois.` : meta.configure ? "Compte relié : les droits publicitaires ou le moyen de paiement restent à terminer." : "À relier par la configuration du service (compte publicitaire Meta). Facebook gratuit fonctionne sans lui."} />
+      <Canal nom="Meta Ads" relie={metaOperationnel} detail={metaOperationnel ? `Compte relié et statistiques en direct, seuil d’alerte de ${argent(reglages.budget_mensuel_cents)} par mois. La publicité payante n’est pas ouverte depuis Gerimmo.` : meta.configure ? "Compte relié : les droits publicitaires ou le moyen de paiement restent à terminer." : "À relier par la configuration du service (compte publicitaire Meta). Facebook gratuit fonctionne sans lui."} />
       <Canal nom="Instagram" relie={null} detail="Non proposé pour l’instant." />
     </div></section>
 

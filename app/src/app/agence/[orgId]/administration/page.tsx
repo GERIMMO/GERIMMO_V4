@@ -188,8 +188,10 @@ export default async function PageAdministration(
           </EncadreLectureImpossible>
         ) : equipe.length === 0 ? (
           <p className="vide">
-            Aucun membre actif dans cette agence. Pour ajouter un agent,{" "}
-            <Link href="/assistance">écrivez au support</Link>.
+            Aucun membre actif dans cette agence. L&apos;invitation d&apos;un agent
+            depuis cet écran n&apos;existe pas encore :{" "}
+            <Link href="/assistance" className="lien-texte">demandez-la au support</Link>{" "}
+            avec son adresse e-mail.
           </p>
         ) : (
           <ul>
@@ -274,13 +276,23 @@ export default async function PageAdministration(
         )}
         <p className="mesure-lecture mt-3 text-xs text-muted-foreground">
           Le portefeuille d&apos;un agent = les mandats qui lui sont confiés.
-          {equipeLue && equipe.length > 0 && (
-            <>
-              {" "}Pour ajouter un agent,{" "}
-              <Link href="/assistance">écrivez au support</Link>.
-            </>
-          )}
         </p>
+        {/* 25/09 : « écrivez au support » en pied de carte passait pour une
+            consigne alors que c'est un manque du produit. Dit tel quel, avec
+            le geste qui marche aujourd'hui (une demande, l'adresse de l'agent)
+            et une cible de 44 px. L'invitation sur place viendra avec le
+            chantier rôles (S9b). */}
+        {equipeLue && equipe.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+            <p className="text-sm text-muted-foreground">
+              Ajouter un agent ne se fait pas encore ici : envoyez-nous son
+              adresse e-mail, l&apos;équipe Gerimmo crée son accès.
+            </p>
+            <Link href="/assistance" className="btn-secondaire shrink-0">
+              Demander l&apos;ajout d&apos;un agent
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="loc-carte">
@@ -319,17 +331,17 @@ export default async function PageAdministration(
         </p>
       </div>
 
-      <div className="loc-carte">
-        <div className="entete-carte">
-          <h3>Journal d&apos;audit</h3>
-        </div>
-        <p className="mesure-lecture text-sm text-muted-foreground">
-          Chaque geste sensible (versement, clôture comptable, mandat confié à
-          un autre agent, validation de pièce…) est horodaté et tracé — qui,
-          quoi, sur quel objet. La consultation du journal complet est aujourd&apos;hui
-          réservée à l&apos;équipe Gerimmo.
-        </p>
-      </div>
+      {/* 25/09 : plus de carte « Journal d'audit » — une carte sans bouton ni
+          lien, trois lignes pour dire qu'on ne peut rien y faire. L'information
+          reste, en note de page, tant que le journal de l'organisation n'est
+          pas consultable ici. */}
+      <p className="mesure-lecture text-xs text-muted-foreground">
+        Chaque geste sensible (versement, clôture comptable, mandat confié à un
+        autre agent, validation de pièce…) est horodaté et tracé — qui, quoi,
+        sur quel objet. La consultation de ce journal est aujourd&apos;hui
+        réservée à l&apos;équipe Gerimmo ; demandez-la depuis{" "}
+        <Link href="/assistance" className="lien-texte">Aide et retours</Link>.
+      </p>
     </main>
   );
 }

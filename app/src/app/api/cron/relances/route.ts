@@ -21,6 +21,10 @@
 //     deux fonctions appelées sont accordées au seul `service_role`.
 //  3. Chacune ne rend ou n'écrit que le strict nécessaire : de quoi composer un
 //     e-mail, et une ligne de relance.
+//
+// Les échecs se consignent avec leur motif et l'identifiant du bail (audit
+// 25/09, R2) : le bilan portait déjà un `details` en texte libre, il porte
+// désormais la même structure que les quittances et les avis d'échéance.
 import { envoyerEmail } from "@/lib/email";
 import { corpsRelanceLoyer, sujetRelanceLoyer, type NiveauRelanceAuto } from "@/lib/relance-loyer-email";
 import { clientDeService } from "@/lib/supabase/service";
@@ -41,6 +45,10 @@ type Ligne = {
   reste: number | string;
   jours_retard: number;
 };
+
+/** Un échec tel qu'il se consigne : de quoi retrouver le dossier, jamais l'adresse. */
+type EchecConsigne = { bail_id: string; organization_id: string; niveau: NiveauRelanceAuto; etape: "envoi" | "consignation"; motif: string };
+const LIMITE_DETAIL = 20;
 
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
 function memeSecret(fourni: string, attendu: string): boolean {
@@ -91,7 +99,7 @@ export async function GET(request: Request) {
   }
 
   let envoyees = 0;
-  const echecs: string[] = [];
+  const echecs: EchecConsigne[] = [];
   for (const l of lignes) {
     const envoi = await envoyerEmail({
       organisation: { db: supabase, id: l.organization_id },
@@ -109,7 +117,7 @@ export async function GET(request: Request) {
       }),
     });
     if (envoi.erreur) {
-      echecs.push(envoi.erreur);
+      echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: envoi.erreur });
       continue;
     }
     // Envoyé : on consigne. Un échec ici laisse la relance sans trace — le
@@ -120,13 +128,14 @@ export async function GET(request: Request) {
       p_note: `E-mail automatique à ${l.destinataire} — reste ${Number(l.reste).toFixed(2)} € sur le terme du ${l.periode}`,
     });
     if (erreurTrace) {
-      echecs.push(`consignation ${l.bail_id}: ${erreurTrace.message}`);
+      echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "consignation", motif: erreurTrace.message.slice(0, 200) });
       continue;
     }
     envoyees++;
   }
 
-  const bilan = { envoyees, echecs: echecs.length, ...(echecs.length ? { details: echecs.slice(0, 20) } : {}) };
+  const bilan = { envoyees, echecs: echecs.length, ...(echecs.length ? { echecs_detail: echecs.slice(0, LIMITE_DETAIL) } : {}) };
+  if (echecs.length > 0) console.error("[cron relances] échecs:", JSON.stringify(echecs));
   await consignerTache(supabase, "relances", bilan);
   return Response.json(bilan);
 }

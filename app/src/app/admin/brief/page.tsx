@@ -1,166 +1,178 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { faitsManquants } from "@/lib/editeur";
-import { etatConfiguration, etatTaches, pointsBloquants } from "@/lib/sante-service";
-import { dernieresTaches, type PasseConsignee } from "@/lib/tache";
+import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
+import { EQUIPES, estEquipe, missionsDeLEquipe, type Equipe } from "@/lib/missions";
+import { jourDuPoint } from "@/lib/point-du-matin";
+import { formaterDateHeureParis, NOTE_FUSEAU } from "@/lib/heure-paris";
 import { BoutonBriefIA } from "./bouton-ia";
 import { OuvrirAlertes } from "./ouvrir-alertes";
+import { DecisionMatin } from "./decision-matin";
+import { PreparerPoint } from "./preparer-point";
+import { dateLongue, lirePoints, type PointLu } from "./lecture";
 
+// Le nom de l'entrée de menu (audit 25/09, C8) : « Aujourd'hui ».
 export const metadata = { title: "Aujourd’hui — Gerimmo" };
 
-type Signal = { titre: string; detail: string; href?: string; action: string; niveau: "urgent" | "attention" | "suivi" };
+type Signal = { titre: string; detail: string; href?: string; action: string };
 
 function nombre(resultat: { count: number | null; error: unknown }) {
   return resultat.error ? null : resultat.count ?? 0;
 }
+const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
-export default async function PageBrief() {
-  // L'accès super admin est contrôlé par le layout. Chaque lecture conserve son
-  // état d'erreur : une source indisponible ne devient jamais un faux zéro.
+// 25/09 (audit C1, C2, C3, C7, C31) : UN écran de début de journée. En tête, ce
+// qui attend une décision, avec ses boutons ; puis chaque équipe avec son
+// dernier passage (heure de Paris), ses résultats et ce qu'elle soumet ; puis
+// les jours précédents. La stratégie et les compteurs sans décision n'y sont
+// plus.
+export default async function PageBrief({ searchParams }: { searchParams: Promise<{ jour?: string; equipe?: string }> }) {
+  const p = await searchParams;
+  const aujourdhui = jourDuPoint();
+  const jour = p.jour && /^\d{4}-\d{2}-\d{2}$/.test(p.jour) ? p.jour : aujourdhui;
+  const filtreEquipe: Equipe | undefined = p.equipe && estEquipe(p.equipe) ? p.equipe : undefined;
   const supabase = await createClient();
-  const [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques, artisans, evolutions, veille, missions] = await Promise.all([
+  const depuis = new Date(`${aujourdhui}T12:00:00Z`); depuis.setDate(depuis.getDate() - 14);
+  const [duJour, historique, decisions, bugsN1, devis, contestations, alertesCritiques] = await Promise.all([
+    lirePoints(supabase, { jour, limite: 20 }),
+    lirePoints(supabase, { depuis: depuis.toISOString().slice(0, 10), equipe: filtreEquipe, limite: 120 }),
+    // Le même calcul que la barre haute et l'accueil (lib/decisions-attendues.ts).
+    chargerDecisionsAttendues(supabase, process.env, faitsManquants().length),
     supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").in("etat", ["nouveau", "en_examen", "en_cours"]),
-    supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").in("etat", ["nouveau", "en_examen", "en_cours"]),
-    supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "idee").in("etat", ["nouveau", "en_examen"]),
     supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
-    supabase.from("publications").select("id", { count: "exact", head: true }).in("statut", ["proposition", "brouillon"]),
-    supabase.from("organizations").select("id", { count: "exact", head: true }).in("status", ["active", "essai"]),
-    supabase.from("tech_log").select("evenement, details, created_at").like("evenement", "tache_%").order("created_at", { ascending: false }).limit(200),
+    supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "contestation").neq("etat", "resolu"),
     supabase.from("alerts").select("id", { count: "exact", head: true }).eq("statut", "ouverte").eq("criticite", "critique"),
-    supabase.rpc("artisans_a_valider"),
-    supabase.from("development_proposals").select("id", { count: "exact", head: true }).eq("statut", "autorisation"),
-    supabase.from("regulatory_watch").select("id", { count: "exact", head: true }).eq("statut", "a_examiner").not("analyse_le", "is", null),
-    supabase.from("agent_passages").select("mission,etat,debut").order("debut", { ascending: false }).limit(200),
   ]);
 
-  const configuration = etatConfiguration(process.env);
-  const sante = pointsBloquants(
-    configuration,
-    taches.error ? [] : etatTaches(dernieresTaches((taches.data ?? []) as PasseConsignee[]), new Date()),
-    faitsManquants().length
-  );
-  const lecturesEnEchec = [bugsN1, bugs, idees, devis, brouillons, comptes, taches, alertesCritiques, artisans, evolutions, veille, missions].filter((r) => r.error).length;
-  const valeurs = {
-    bugsN1: nombre(bugsN1), bugs: nombre(bugs), idees: nombre(idees),
-    devis: nombre(devis), brouillons: nombre(brouillons), comptes: nombre(comptes), alertesCritiques: nombre(alertesCritiques),
-  };
+  const points = duJour.points ?? [];
+  const decisionsEnAttente = points.flatMap((pt) => pt.decisions.filter((d) => d.statut === "en_attente"));
+  const estAujourdhui = jour === aujourdhui;
+  // Historique : les jours précédents, un rang par point ; le jour affiché est exclu.
+  const jours = new Map<string, PointLu[]>();
+  for (const pt of historique.points ?? []) { if (pt.jour === jour) continue; jours.set(pt.jour, [...(jours.get(pt.jour) ?? []), pt]); }
+
+  // Les signaux qui ne passent par aucune équipe, chacun avec sa commande.
+  const valeurs = { bugsN1: nombre(bugsN1), devis: nombre(devis), contestations: nombre(contestations), alertesCritiques: nombre(alertesCritiques) };
   const signaux: Signal[] = [];
-  const validationsArtisans = artisans.error ? null : Array.isArray(artisans.data) ? artisans.data.length : 0;
-  const evolutionsAttendues = nombre(evolutions), etudesARelire = nombre(veille);
+  if (decisions.santeBloquants > 0 || decisions.tachesIllisibles) signaux.push({ titre: "Rétablir la santé du service", detail: decisions.tachesIllisibles ? "L’historique des tâches est indisponible : l’état du travail automatique est inconnu." : `${pluriel(decisions.santeBloquants, "point")} bloque${decisions.santeBloquants > 1 ? "nt" : ""} : chaque ligne porte la commande qui le règle.`, href: "/admin/sante", action: "Ouvrir la santé" });
+  if (!decisions.pointPrepare && (decisions.artisans === null || decisions.artisans > 0)) signaux.push({ titre: "Valider les inscriptions d’artisans", detail: decisions.artisans === null ? "Le nombre d’inscriptions en attente est indisponible." : `${pluriel(decisions.artisans, "inscription")} à examiner ; le point du matin les portera une fois préparé.`, href: "/admin/artisans", action: "Examiner" });
+  if (valeurs.alertesCritiques === null || valeurs.alertesCritiques > 0) signaux.push({ titre: "Examiner les alertes critiques", detail: valeurs.alertesCritiques === null ? "Le nombre d’alertes critiques est indisponible." : `${pluriel(valeurs.alertesCritiques, "alerte")} critique${valeurs.alertesCritiques > 1 ? "s" : ""} ouverte${valeurs.alertesCritiques > 1 ? "s" : ""}, toutes organisations confondues.`, action: "Ouvrir les alertes" });
+  if (valeurs.bugsN1 === null || valeurs.bugsN1 > 0) signaux.push({ titre: "Vérifier les problèmes bloquants", detail: valeurs.bugsN1 === null ? "Le nombre de problèmes bloquants est indisponible." : `${pluriel(valeurs.bugsN1, "problème")} bloquant${valeurs.bugsN1 > 1 ? "s" : ""} signalé${valeurs.bugsN1 > 1 ? "s" : ""} par des utilisateurs.`, href: "/admin/retours?nature=bug", action: "Examiner" });
+  if (valeurs.contestations === null || valeurs.contestations > 0) signaux.push({ titre: "Répondre aux contestations d’artisans", detail: valeurs.contestations === null ? "Le nombre de contestations est indisponible." : `${pluriel(valeurs.contestations, "contestation")} de note en cours.`, href: "/admin/retours?nature=contestation", action: "Examiner" });
+  if (valeurs.devis === null || valeurs.devis > 0) signaux.push({ titre: "Répondre aux demandes commerciales", detail: valeurs.devis === null ? "La file des demandes est indisponible." : `${pluriel(valeurs.devis, "demande")} d’agence en attente d’une réponse.`, href: "/admin/devis", action: "Répondre" });
+  const lecturesEnEchec = [bugsN1, devis, contestations, alertesCritiques].filter((r) => r.error).length + decisions.indisponibles.length;
+  const rienADecider = decisionsEnAttente.length === 0 && signaux.length === 0;
 
-  if (valeurs.bugsN1 === null || valeurs.bugsN1 > 0) signaux.push({
-    titre: "Vérifier les incidents bloquants",
-    detail: valeurs.bugsN1 === null ? "Le nombre de problèmes bloquants est indisponible." : `${valeurs.bugsN1} problème${valeurs.bugsN1 > 1 ? "s" : ""} bloquant${valeurs.bugsN1 > 1 ? "s" : ""} à corriger.`,
-    href: "/admin/retours?nature=bug", action: "Examiner les bugs", niveau: "urgent",
-  });
-  if (valeurs.alertesCritiques === null || valeurs.alertesCritiques > 0) signaux.push({
-    titre: "Examiner les alertes critiques",
-    detail: valeurs.alertesCritiques === null
-      ? "Le nombre d'alertes critiques est indisponible. Ouvrez la file pour vérifier."
-      : `${valeurs.alertesCritiques} alerte${valeurs.alertesCritiques > 1 ? "s" : ""} critique${valeurs.alertesCritiques > 1 ? "s" : ""} ouverte${valeurs.alertesCritiques > 1 ? "s" : ""}, toutes organisations confondues.`,
-    action: "Ouvrir les alertes", niveau: "urgent",
-  });
-  if (sante > 0 || taches.error) signaux.push({
-    titre: "Rétablir la santé du service",
-    detail: taches.error ? "L'historique des tâches est indisponible." : `${sante} point${sante > 1 ? "s" : ""} de configuration ou de contrôle à traiter.`,
-    href: "/admin/sante", action: "Voir les contrôles", niveau: "urgent",
-  });
-  if (validationsArtisans === null || validationsArtisans > 0) signaux.push({
-    titre: "Valider les artisans", detail: validationsArtisans === null ? "La liste des inscriptions est indisponible." : `${validationsArtisans} inscription(s) à examiner avant autorisation.`, href: "/admin/artisans", action: "Examiner les inscriptions", niveau: "attention",
-  });
-  if (evolutionsAttendues === null || evolutionsAttendues > 0) signaux.push({
-    titre: "Décider des évolutions préparées", detail: evolutionsAttendues === null ? "Les décisions attendues sont indisponibles." : `${evolutionsAttendues} proposition(s) attendent votre accord sur une version précise.`, href: "/admin/autonomie#ameliorations", action: "Examiner les propositions", niveau: "attention",
-  });
-  if (etudesARelire === null || etudesARelire > 0) signaux.push({
-    titre: "Relire les études réglementaires", detail: etudesARelire === null ? "Les études à relire sont indisponibles." : `${etudesARelire} étude(s) préparée(s) attendent votre décision pour les utilisateurs.`, href: "/admin/veille", action: "Relire les études", niveau: "attention",
-  });
-  if (valeurs.devis === null || valeurs.devis > 0) signaux.push({
-    titre: "Répondre aux demandes commerciales",
-    detail: valeurs.devis === null ? "La file des devis est indisponible." : `${valeurs.devis} demande${valeurs.devis > 1 ? "s" : ""} en attente.`,
-    href: "/admin/devis", action: "Voir les demandes commerciales", niveau: "attention",
-  });
-  if (valeurs.idees === null || valeurs.idees > 0 || (valeurs.bugs ?? 0) > 0) signaux.push({
-    titre: "Trier les retours utilisateurs",
-    detail: `Bugs ouverts : ${valeurs.bugs ?? "indisponible"} · idées à examiner : ${valeurs.idees ?? "indisponible"}.`,
-    href: "/admin/retours", action: "Ouvrir les retours", niveau: "attention",
-  });
-  if (valeurs.brouillons === null || valeurs.brouillons > 0) signaux.push({
-    titre: "Préparer le contenu éditorial",
-    detail: valeurs.brouillons === null ? "La file éditoriale est indisponible." : `${valeurs.brouillons} proposition${valeurs.brouillons > 1 ? "s" : ""} ou brouillon${valeurs.brouillons > 1 ? "s" : ""}.`,
-    href: "/admin/publications", action: "Relire avant publication", niveau: "suivi",
-  });
-
-  // 24/09 : « Situation au… » plutôt que « Données au chargement », mot de
-  // développeur. La date et l'heure sont formatées à part pour la virgule.
-  const maintenant = new Date();
-  const situation = `${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(maintenant)}, ${new Intl.DateTimeFormat("fr-FR", { timeStyle: "short", timeZone: "Europe/Paris" }).format(maintenant)}`;
+  const lienJour = (j: string, e?: Equipe) => `/admin/brief?${new URLSearchParams({ ...(j !== aujourdhui ? { jour: j } : {}), ...(e ? { equipe: e } : {}) }).toString()}`.replace(/\?$/, "");
+  const dernierPassage = (pt: PointLu) => pt.contenu.passages.map((x) => x.debut).sort().at(-1) ?? null;
 
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
         <h1>Aujourd’hui</h1>
-        <span className="mono-discret">Situation au {situation}</span>
+        <span className="mono-discret">Le point du matin · {dateLongue(jour)}</span>
       </div>
-      <p className="mesure-lecture mb-6 text-sm text-muted-foreground">
-        La prochaine action utile, les signaux à examiner et les hypothèses de croissance au même endroit. Ce brief utilise les dossiers réellement enregistrés ; il ne lance ni correction automatique ni campagne publicitaire.
-      </p>
-      {lecturesEnEchec > 0 && <div role="alert" className="mb-5 border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-sm text-[var(--destructive-soft-foreground)]">{lecturesEnEchec} source{lecturesEnEchec > 1 ? "s sont" : " est"} indisponible{lecturesEnEchec > 1 ? "s" : ""}. Les données manquantes sont signalées ci-dessous.</div>}
+      {duJour.erreur && <p role="alert" className="err mb-5">Le point du matin est indisponible. Aucun état ne peut être confirmé.</p>}
+      {lecturesEnEchec > 0 && <p role="alert" className="err mb-5">{pluriel(lecturesEnEchec, "lecture")} de cette page {lecturesEnEchec > 1 ? "ont" : "a"} échoué : ce qui manque n’est pas un zéro.</p>}
 
-      <section className="section-ecran">
-        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">À décider maintenant</h2>
-        {/* 24/09 : l'état vide mène aux deux écrans qu'il recommande. Liens en ligne
-            (soulignés par la règle `p a`) : .lien-discret passerait en bloc de
-            44 px au doigt, au milieu de la phrase. */}
-        {signaux.length === 0 ? <p className="text-sm text-muted-foreground">Aucun signal ouvert dans ces files. Consultez <Link className="text-[var(--bleu)]" href="/admin/sante">la santé du service</Link> et <Link className="text-[var(--bleu)]" href="/admin/territoire">le territoire</Link> avant de lancer une nouvelle action.</p> : (
-          <div className="grid gap-3">
-            {signaux.map((signal, i) => {
-              const classe = "group flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 hover:bg-[var(--survol)]";
-              const contenu = <>
-              <div className="min-w-0">
-                <span className="mono-discret">{i === 0 ? "Priorité 1" : `Priorité ${i + 1}`} · {signal.niveau === "urgent" ? "service" : signal.niveau === "attention" ? "opérations" : "croissance"}</span>
-                <h3 className="mt-1 font-semibold text-[var(--encre)]">{signal.titre}</h3>
-                <p className="mt-1 text-sm text-[var(--texte-secondaire)]">{signal.detail}</p>
+      {/* ── Ce qui attend une décision, en premier ─────────────────────── */}
+      <section className="section-ecran" id="a-decider">
+        <div className="entete-carte mb-3">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">À décider</h2>
+          <span className={`puce ${decisions.total > 0 ? "puce-prep" : "puce-grise"}`}>{decisions.total > 0 ? `${pluriel(decisions.total, "décision")} attendue${decisions.total > 1 ? "s" : ""}` : "Rien à trancher"}</span>
+        </div>
+        {rienADecider ? (
+          <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm text-[var(--encre)]"><b>Rien n’attend votre décision.</b> Les équipes continuent le travail autorisé.</div>
+        ) : (
+          <div className="grid gap-4">
+            {points.filter((pt) => pt.decisions.some((d) => d.statut === "en_attente")).map((pt) => (
+              <div key={pt.id}>
+                <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Équipe {pt.nom}</p>
+                <ul className="grid gap-3">{pt.decisions.filter((d) => d.statut === "en_attente").map((d) => <DecisionMatin key={d.id} decision={d} />)}</ul>
               </div>
-              <span className="lien-discret text-sm group-hover:underline">{signal.action} →</span>
-              </>;
-              return signal.href
-                ? <Link key={signal.titre} href={signal.href} className={classe}>{contenu}</Link>
-                : <OuvrirAlertes key={signal.titre} className={classe}>{contenu}</OuvrirAlertes>;
-            })}
+            ))}
+            {signaux.length > 0 && (
+              <div className="grid gap-2">
+                {decisionsEnAttente.length > 0 && <p className="eyebrow text-[var(--marque-sombre)]">Hors équipes</p>}
+                {signaux.map((signal) => {
+                  const classe = "group flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 hover:bg-[var(--survol)]";
+                  const contenu = <><div className="min-w-0"><h3 className="font-semibold text-[var(--encre)]">{signal.titre}</h3><p className="mt-1 text-sm text-[var(--texte-secondaire)]">{signal.detail}</p></div><span className="btn-secondaire shrink-0">{signal.action} →</span></>;
+                  return signal.href ? <Link key={signal.titre} href={signal.href} className={classe}>{contenu}</Link> : <OuvrirAlertes key={signal.titre} className={classe}>{contenu}</OuvrirAlertes>;
+                })}
+              </div>
+            )}
           </div>
         )}
       </section>
 
+      {/* ── Les équipes : dernier passage, résultats, à valider ─────────── */}
       <section className="section-ecran">
-        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Le travail des équipes</h2>
-        <p className="text-sm text-muted-foreground">Les urgences et décisions passent d’abord. Les opérations déjà autorisées continuent pendant vos rendez-vous commerciaux.</p>
-        <p className="mt-3 text-sm">{missions.error ? "Le suivi des équipes est indisponible : leur bon fonctionnement ne peut pas être confirmé." : !missions.data?.length ? "Aucun passage enregistré pour le moment. Vérifiez les équipes avant de vous absenter." : "Consultez le dernier résultat de chaque équipe et ses éventuelles difficultés. Un passage terminé ne signifie pas que tous les dossiers sont résolus."}</p>
-        <div className="mt-4 flex flex-wrap gap-3"><Link href="/admin/equipes" className="btn-secondaire">Vérifier mes équipes</Link><Link href="/admin/autonomie" className="btn-secondaire">Étudier les dossiers</Link><Link href="/admin/marketing" className="btn-secondaire">Suivre les publications</Link></div>
-      </section>
-      <section className="section-ecran">
-        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Croissance : ordre de travail</h2>
-        <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">Hypothèse à valider avec conversions et coûts d&apos;acquisition : commencer par les propriétaires qui gèrent eux-mêmes leurs biens, constituer ensuite un réseau d&apos;artisans là où les interventions le justifient, puis développer les agences quand le service et les opérations sont stables.</p>
-        <ol className="grid gap-3 sm:grid-cols-3">
-          <li className="rounded-lg border border-[var(--filet)] p-4"><b className="text-[var(--encre)]">1. Propriétaires directs</b><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Un dossier de location complet et une valeur immédiate. {valeurs.comptes === null ? "Clients actifs indisponibles." : `${valeurs.comptes} organisation${valeurs.comptes > 1 ? "s" : ""} active${valeurs.comptes > 1 ? "s" : ""} ou en essai, toutes familles confondues.`}</p></li>
-          <li className="rounded-lg border border-[var(--filet)] p-4"><b className="text-[var(--encre)]">2. Artisans locaux</b><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Renforcer la couverture selon les incidents réels et les zones desservies. Ne pas supposer une demande avant de la mesurer.</p></li>
-          <li className="rounded-lg border border-[var(--filet)] p-4"><b className="text-[var(--encre)]">3. Agences</b><p className="mt-2 text-sm text-[var(--texte-secondaire)]">Accélérer après validation du support, des contrats et du traitement des opérations à plus grand volume.</p></li>
-        </ol>
-        {/* 24/09 : text-sm sur les liens eux-mêmes, sinon les 12 px de .lien-discret
-            l'emportent sur le parent et ces liens sont plus petits que les autres. */}
-        <div className="mt-4 flex flex-wrap gap-4 text-sm"><Link className="lien-discret text-sm" href="/admin/territoire">Comparer les départements →</Link><Link className="lien-discret text-sm" href="/admin/clients">Voir les clients →</Link></div>
+        <div className="entete-carte mb-3">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Les équipes</h2>
+          {estAujourdhui && points.length > 0 && <PreparerPoint libelle="Actualiser le point" />}
+        </div>
+        {!duJour.erreur && points.length === 0 && (
+          <div className="vide-guide">
+            <p className="titre">{estAujourdhui ? "Le point de ce matin n’est pas encore préparé." : "Aucun point ce jour-là."}</p>
+            <p className="explication">Il s’assemble automatiquement à la fin de chaque passage de nuit.{estAujourdhui ? " Vous pouvez le préparer maintenant à partir des données du moment." : ""}</p>
+            {estAujourdhui && <div className="geste"><PreparerPoint /></div>}
+          </div>
+        )}
+        {points.length > 0 && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {points.map((pt) => {
+              const attente = pt.decisions.filter((d) => d.statut === "en_attente").length;
+              const passage = dernierPassage(pt);
+              const sansMission = missionsDeLEquipe(pt.equipe).length === 0;
+              return (
+                <Link key={pt.id} href={`/admin/brief/${pt.equipe}${estAujourdhui ? "" : `?jour=${jour}`}`} className="group rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 transition-colors hover:bg-[var(--survol)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-heading text-[16px] text-[var(--encre)]">{pt.nom}</h3>
+                    <span className={`puce ${attente > 0 ? "puce-prep" : pt.contenu.echecs.length > 0 ? "puce-rouge" : pt.statut === "a_lire" ? "puce-encre" : "puce-grise"}`}>{attente > 0 ? `${attente} à valider` : pt.contenu.echecs.length > 0 ? `${pluriel(pt.contenu.echecs.length, "échec")}` : pt.statut === "a_lire" ? "À lire" : "Lu"}</span>
+                  </div>
+                  <dl className="mt-3 space-y-1 text-[12.5px] leading-relaxed">
+                    <div><dt className="inline font-semibold text-[var(--encre)]">Dernier passage : </dt><dd className="inline text-[var(--texte-secondaire)]">{passage ? formaterDateHeureParis(passage) : sansMission ? "aucun passage planifié (décisions seulement)" : "aucun dans les dernières 24 heures"}</dd></div>
+                    <div><dt className="inline font-semibold text-[var(--encre)]">Résultats : </dt><dd className="inline text-[var(--texte-secondaire)]">{pluriel(pt.contenu.realisations.length, "résultat")} · {pluriel(pt.contenu.echecs.length, "échec")}</dd></div>
+                    <div><dt className="inline font-semibold text-[var(--encre)]">À valider : </dt><dd className="inline text-[var(--texte-secondaire)]">{attente > 0 ? pluriel(attente, "décision") : "rien"}</dd></div>
+                  </dl>
+                  <span className="lien-discret mt-3 inline-block text-[12.5px] group-hover:underline">Voir le point de l’équipe →</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+        <p className="mt-2 text-xs text-muted-foreground">{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Commandes des équipes →</Link></p>
       </section>
 
+      {/* ── Jours précédents ───────────────────────────────────────────── */}
       <section className="section-ecran">
-        <h2 className="mb-2 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Publication et acquisition</h2>
-        <p className="mesure-lecture text-sm leading-relaxed text-[var(--texte-secondaire)]">Utiliser le journal pour expliquer des cas concrets de gestion locative. Tester d&apos;abord Facebook pour les propriétaires directs dans un seul département, avec une page et une source de demande identifiables ; comparer ensuite Instagram à volume égal. Aucune dépense ni publication sur ces réseaux ne part depuis cet écran. Les résultats et le coût par client doivent être mesurés avant d&apos;étendre la campagne.</p>
-        <Link className="lien-discret mt-3 inline-block text-sm" href="/admin/publications">Préparer un article vérifié →</Link>
+        <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Jours précédents</h2>
+        {jours.size > 0 || filtreEquipe ? (
+          <nav aria-label="Filtrer l’historique par équipe" className="mb-3 flex flex-wrap gap-2">
+            <Link href={lienJour(jour)} className={`filtre${!filtreEquipe ? " actif" : ""}`}>Toutes les équipes</Link>
+            {(Object.keys(EQUIPES) as Equipe[]).map((e) => <Link key={e} href={lienJour(jour, e)} className={`filtre${filtreEquipe === e ? " actif" : ""}`}>{EQUIPES[e].nom}</Link>)}
+          </nav>
+        ) : null}
+        {historique.erreur ? <p role="alert" className="err">L’historique est indisponible.</p> : jours.size === 0 ? <p className="text-sm text-muted-foreground">Aucun autre point sur les quatorze derniers jours{filtreEquipe ? " pour cette équipe" : ""}.</p> : (
+          <div className="colonne-liste">
+            {[...jours.entries()].map(([j, pts]) => pts.map((pt) => {
+              const attente = pt.decisions.filter((d) => d.statut === "en_attente").length;
+              return (
+                <Link key={pt.id} href={`/admin/brief/${pt.equipe}?jour=${j}`} className="rang w-full">
+                  <div className="min-w-0 flex-1"><b>{dateLongue(j)} · {pt.nom}</b><br /><small>{pluriel(pt.contenu.realisations.length, "résultat")} · {pluriel(pt.contenu.echecs.length, "échec")} · {pluriel(pt.decisions.length, "décision")}{attente > 0 ? ` (${attente} en attente)` : ""} · {pt.statut === "lu" ? "lu" : "non lu"}</small></div>
+                  <span className="lien-discret text-sm">Détail →</span>
+                </Link>
+              );
+            }))}
+          </div>
+        )}
       </section>
 
-      <section className="section-ecran">
-        <h2 className="mb-2 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Aide à la décision par l&apos;IA</h2>
-        <p className="mesure-lecture mb-4 text-sm text-[var(--texte-secondaire)]">À la demande, l&apos;IA reçoit seulement huit compteurs agrégés, dont les alertes ouvertes, et propose une prochaine vérification. Elle ne lit aucun dossier personnel et ne modifie ni données, ni prix, ni publications.</p>
-        <BoutonBriefIA disponible={Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim())} />
-      </section>
+      {/* L'analyse IA n'apparaît que si le service est relié (audit C31) :
+          annoncer une fonction inactive n'aide aucune décision. */}
+      {Boolean(process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim()) && (
+        <section className="section-ecran"><BoutonBriefIA disponible /></section>
+      )}
     </main>
   );
 }

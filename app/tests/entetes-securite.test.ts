@@ -48,11 +48,18 @@ describe("politique de sécurité du contenu", () => {
     expect(csp["img-src"]).toEqual(expect.arrayContaining(["'self'", "data:", "blob:", "https:"]));
   });
 
-  it("hors développement, n'admet pas eval et force https", () => {
+  it("hors développement, n'admet pas eval ; force https seulement sur Vercel", () => {
     // Les tests tournent avec NODE_ENV=test : c'est la politique de production qu'on lit ici.
     expect(process.env.NODE_ENV).not.toBe("development");
     expect(csp["script-src"]).not.toContain("'unsafe-eval'");
+    // La CI et le banc servent la construction en http (25/09) : pas de
+    // montée forcée hors Vercel, sinon Chromium refuse les ressources.
+    const vercel = process.env.VERCEL;
+    delete process.env.VERCEL;
+    expect(politiqueDeSecurite()).not.toContain("upgrade-insecure-requests");
+    process.env.VERCEL = "1";
     expect(politiqueDeSecurite()).toContain("upgrade-insecure-requests");
+    if (vercel === undefined) delete process.env.VERCEL; else process.env.VERCEL = vercel;
   });
 });
 

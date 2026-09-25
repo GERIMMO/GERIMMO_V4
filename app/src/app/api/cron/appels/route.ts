@@ -18,6 +18,10 @@
 //     deux fonctions appelées sont accordées au seul `service_role`.
 //  3. Chacune ne rend ou n'écrit que le strict nécessaire : de quoi composer un
 //     e-mail, et une date d'envoi.
+//
+// Les échecs se consignent avec leur motif et l'identifiant de l'appel (audit
+// 25/09, R2), comme pour les quittances : `echecs: n` seul ne permettait pas
+// de savoir quel avis reprendre ni pourquoi.
 
 import { envoyerEmail } from "@/lib/email";
 import { corpsAvisEcheance, sujetAvisEcheance } from "@/lib/appel-email";
@@ -45,6 +49,10 @@ type Ligne = {
   prorata: boolean;
   arriere: number;
 };
+
+/** Un échec tel qu'il se consigne : de quoi retrouver le dossier, jamais l'adresse. */
+type EchecConsigne = { appel_id: string; organization_id: string; motif: string };
+const LIMITE_DETAIL = 20;
 
 /** Comparaison à temps constant, sans fuir la longueur du secret. */
 function memeSecret(fourni: string, attendu: string): boolean {
@@ -99,7 +107,8 @@ export async function GET(request: Request) {
   }
 
   let envoyes = 0;
-  const echecs: string[] = [];
+  const echecs: EchecConsigne[] = [];
+  const marquageEchecs: EchecConsigne[] = [];
   for (const l of lignes) {
     const envoi = await envoyerEmail({
       organisation: { db: supabase, id: l.organization_id },
@@ -122,24 +131,30 @@ export async function GET(request: Request) {
       }),
     });
     if (envoi.erreur) {
-      echecs.push(envoi.erreur);
+      echecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: envoi.erreur });
       continue;
     }
     const { error: erreurMarque } = await supabase.rpc("marquer_appel_envoye", {
       p_appel: l.appel_id,
     });
     if (erreurMarque) {
-      echecs.push("La confirmation de l’envoi doit être vérifiée.");
       // L'e-mail est parti mais la date n'est pas posée : la prochaine passe le
-      // renverra. On le dit au journal plutôt que de le taire.
-      console.error("[cron appels] envoyé mais non marqué:", l.appel_id, erreurMarque.message);
+      // renverra. On le dit au bilan plutôt que de le taire.
+      marquageEchecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: erreurMarque.message.slice(0, 200) });
     }
     envoyes += 1;
   }
 
-  if (echecs.length > 0) {
-    console.error("[cron appels] échecs:", [...new Set(echecs)].join(" · "));
+  const bilan = {
+    envoyes,
+    // Un avis parti mais non marqué compte comme échec : il repartira demain.
+    echecs: echecs.length + marquageEchecs.length,
+    ...(echecs.length ? { echecs_detail: echecs.slice(0, LIMITE_DETAIL) } : {}),
+    ...(marquageEchecs.length ? { marquage_echecs: marquageEchecs.slice(0, LIMITE_DETAIL) } : {}),
+  };
+  if (bilan.echecs > 0) {
+    console.error("[cron appels] échecs:", JSON.stringify({ echecs, marquageEchecs }));
   }
-  await consignerTache(supabase, "appels", { envoyes, echecs: echecs.length });
-  return Response.json({ envoyes, echecs: echecs.length });
+  await consignerTache(supabase, "appels", bilan);
+  return Response.json(bilan);
 }

@@ -99,6 +99,12 @@ export function courrielDeContact(editeur: Record<string, FaitEditeur> = EDITEUR
 // d'éditeur manquant.
 export type Prestataire = { nom: string; role: string; localisation: FaitEditeur };
 
+//
+// Audit 25/09 (C2) : le code envoyait des données à Yousign, OpenAI et Meta
+// sans que les pages légales les nomment. Le rôle décrit ce qui leur est
+// transmis, tel que le code l'établit (lib/youtrust.ts, lib/analyse-veille.ts,
+// lib/visuel-marketing.ts, admin/brief, admin/publications, lib/facebook.ts).
+// La localisation n'est écrite que lorsqu'elle est certaine ; sinon `null`.
 export const PRESTATAIRES: readonly Prestataire[] = [
   {
     nom: "Supabase",
@@ -122,6 +128,21 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     nom: "Stripe",
     role: "Encaissement des abonnements",
     localisation: "Irlande",
+  },
+  {
+    nom: "Yousign",
+    role: "Signature électronique des baux : le document à signer, le nom, l'adresse électronique et le téléphone de chaque signataire",
+    localisation: "France",
+  },
+  {
+    nom: "OpenAI",
+    role: "Assistance rédactionnelle de la supervision (veille réglementaire, brouillons et illustrations du Journal) : textes éditoriaux et actualités publiques, sans donnée de locataire ni de bailleur",
+    localisation: "États-Unis (transfert hors UE)",
+  },
+  {
+    nom: "Meta (Facebook)",
+    role: "Publication des articles du Journal sur la page Facebook de Gerimmo : titre, texte et illustration de l'article, sans donnée personnelle",
+    localisation: "Irlande, avec transfert vers les États-Unis",
   },
 ];
 

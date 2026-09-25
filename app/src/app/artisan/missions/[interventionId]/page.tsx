@@ -10,11 +10,11 @@ import {
   STATUTS_MISSION,
 } from "../../libelles";
 import {
+  Avertissement,
   Carte,
   CLASSE_AIDE,
   CLASSE_BOUTON_PRINCIPAL,
   CLASSE_BOUTON_SECONDAIRE,
-  CLASSE_BOUTON_SOBRE,
   EnteteSousPage,
   Etiquette,
   LigneInfo,
@@ -47,7 +47,7 @@ export default async function PageMission(
 ) {
   await verifierAccesArtisan();
   const { interventionId } = await props.params;
-  const { termine, de } = await props.searchParams;
+  const { termine, de, raison } = await props.searchParams;
   // Le retour ramène d'où l'on vient : la même carte s'ouvre depuis
   // « Aujourd'hui » et depuis l'agenda (tour du 24/09).
   const depuisAujourdhui = de === "aujourdhui";
@@ -87,6 +87,15 @@ export default async function PageMission(
           Compte rendu envoyé. L&apos;intervention est terminée et l&apos;agence peut
           facturer.
         </Succes>
+      )}
+
+      {/* 25/09 (A12) : renvoyé du bilan sans avoir démarré, l'artisan lisait
+          la même fiche sans un mot. La raison du retour s'écrit. */}
+      {raison === "demarrer" && mission.statut !== "en_cours" && (
+        <Avertissement>
+          Le bilan ne s&apos;ouvre qu&apos;une fois l&apos;intervention démarrée : le
+          bouton est ci-dessous.
+        </Avertissement>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -132,21 +141,32 @@ export default async function PageMission(
         <AccepterOuRefuser interventionId={mission.intervention_id} />
       )}
 
+      {/* 25/09 (A10) : l'état d'abord — rien n'attend l'artisan, le
+          locataire choisit. Les deux gestes possibles restent, en liens
+          discrets : deux boutons de même poids laissaient croire qu'il
+          fallait faire quelque chose. */}
       {mission.statut === "acceptee" && attendLocataire && (
-        <div className="space-y-3">
+        <Carte className="border-l-4 border-l-[var(--warning)]">
+          <TitreSection>Rien à faire pour l&apos;instant : le locataire choisit</TitreSection>
           <p className="text-base text-[var(--corps)]">
             {mission.creneaux_en_attente} date{mission.creneaux_en_attente > 1 ? "s" : ""}{" "}
-            proposée{mission.creneaux_en_attente > 1 ? "s" : ""} au locataire : c&apos;est à
-            lui de choisir. En proposer d&apos;autres annulerait celles-ci.
+            proposée{mission.creneaux_en_attente > 1 ? "s" : ""} au locataire. Vous serez
+            prévenu de son choix.
           </p>
-          <Link
-            href={`/artisan/missions/${mission.intervention_id}/creneaux`}
-            className={CLASSE_BOUTON_SOBRE}
-          >
-            Proposer d&apos;autres créneaux
-          </Link>
-          <BoutonDemarrer interventionId={mission.intervention_id} sansRendezVous />
-        </div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1">
+            <Link
+              href={`/artisan/missions/${mission.intervention_id}/creneaux`}
+              className="inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+            >
+              Proposer d&apos;autres créneaux
+            </Link>
+            <BoutonDemarrer interventionId={mission.intervention_id} sansRendezVous discret />
+          </div>
+          <p className={`mt-1 ${CLASSE_AIDE}`}>
+            Proposer d&apos;autres dates annule celles en attente ; démarrer sans
+            rendez-vous n&apos;a de sens que pour un dépannage sans attendre.
+          </p>
+        </Carte>
       )}
 
       {mission.statut === "acceptee" && !attendLocataire && (

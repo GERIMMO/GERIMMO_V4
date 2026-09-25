@@ -2813,3 +2813,10 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
    rebours de la décision du 24/09 : un seul bandeau par écran, celui de
    l'accueil) et rendait le bandeau d'accueil illisible (texte blanc sur voile
    blanc). L'en-tête standard reste un titre nu à filet dessous. */
+
+/* 25/09 (A5, C33) — le rond « Aide et retours » ne se pose, sur téléphone,
+   qu'au bas de la page (components/bouton-assistance.tsx). La console lui
+   réserve alors 72 px sous son contenu : rien n'est dessous. */
+@media (max-width: 639px) {
+  .admin-corps { padding-bottom: 72px; }
+}

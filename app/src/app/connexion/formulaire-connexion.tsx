@@ -12,7 +12,14 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Card, CardContent } from "@/components/ui/card";
 
-const MESSAGES: Record<string, { texte: string; ton: "info" | "succes" }> = {
+type Message = {
+  texte: string;
+  ton: "info" | "succes" | "attention";
+  /** Le geste qui règle le message, à un appui (25/09, P8). */
+  lien?: { href: string; libelle: string };
+};
+
+const MESSAGES: Record<string, Message> = {
   "session-expiree": {
     texte: "Votre session a expiré, veuillez vous reconnecter.",
     ton: "info",
@@ -21,10 +28,12 @@ const MESSAGES: Record<string, { texte: string; ton: "info" | "succes" }> = {
     texte: "Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe.",
     ton: "succes",
   },
+  // Un lien mort est une erreur, pas une information : ton d'attention, et le
+  // geste qui la règle est dans le message plutôt que trois lignes plus bas.
   "lien-invalide": {
-    texte:
-      "Ce lien est invalide, expiré ou déjà utilisé. Redemandez un e-mail de réinitialisation.",
-    ton: "info",
+    texte: "Ce lien est invalide, expiré ou déjà utilisé.",
+    ton: "attention",
+    lien: { href: "/mot-de-passe-oublie", libelle: "Redemander un e-mail de réinitialisation" },
   },
 };
 
@@ -48,7 +57,7 @@ function messageDeSuite(suite: string | null) {
 export function FormulaireConnexion() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const message =
+  const message: Message | undefined =
     MESSAGES[searchParams.get("raison") ?? ""] ?? messageDeSuite(searchParams.get("suite"));
 
   const [email, setEmail] = useState("");
@@ -99,13 +108,24 @@ export function FormulaireConnexion() {
       <CardContent className="pt-6">
         {message && (
           <p
+            role={message.ton === "attention" ? "alert" : undefined}
             className={`mb-4 rounded-md p-3 text-sm ${
               message.ton === "succes"
                 ? "bg-success-soft text-success-soft-foreground"
-                : "bg-accent text-accent-foreground"
+                : message.ton === "attention"
+                  ? "border-l-4 border-warning bg-warning-soft text-warning-soft-foreground"
+                  : "bg-accent text-accent-foreground"
             }`}
           >
             {message.texte}
+            {message.lien && (
+              <>
+                {" "}
+                <Link href={message.lien.href} className="font-medium underline underline-offset-4">
+                  {message.lien.libelle}
+                </Link>
+              </>
+            )}
           </p>
         )}
         <form onSubmit={seConnecter} className="space-y-4">
@@ -150,15 +170,37 @@ export function FormulaireConnexion() {
               Mot de passe oublié ?
             </Link>
           </p>
-          <p className="border-t border-border pt-2 text-center text-sm text-muted-foreground">
-            Propriétaire bailleur ?{" "}
-            <Link
-              href="/inscription"
-              className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
-            >
-              Ouvrir mon espace
-            </Link>
-          </p>
+          {/* 25/09 (P6) : une porte par persona sans compte — l'artisan et
+              l'agence n'en avaient aucune ici. */}
+          <div className="space-y-1 border-t border-border pt-2 text-center text-sm text-muted-foreground">
+            <p>
+              Propriétaire bailleur ?{" "}
+              <Link
+                href="/inscription"
+                className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
+              >
+                Ouvrir mon espace
+              </Link>
+            </p>
+            <p>
+              Artisan ?{" "}
+              <Link
+                href="/artisan/inscription"
+                className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
+              >
+                Inscrire mon entreprise
+              </Link>
+            </p>
+            <p>
+              Agence ?{" "}
+              <Link
+                href="/#agences"
+                className="inline-flex min-h-11 items-center text-foreground underline underline-offset-4"
+              >
+                Demander un devis
+              </Link>
+            </p>
+          </div>
         </form>
       </CardContent>
     </Card>

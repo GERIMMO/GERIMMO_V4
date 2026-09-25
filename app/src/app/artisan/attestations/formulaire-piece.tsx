@@ -3,6 +3,7 @@
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { deposerMaPiece, type EtatArtisanAction } from "@/app/actions/artisan";
+import { ChampFichier } from "@/components/champ-fichier";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import { LISTE_PIECES, PIECES_ARTISAN, PORTEE_PIECES } from "../libelles";
 import {
@@ -118,10 +119,11 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
           <label htmlFor={idFichier} className={CLASSE_LIBELLE}>
             L&apos;attestation
           </label>
-          <input
+          {/* 25/09 (A6) : le champ maison, en français quel que soit le
+              navigateur — un champ natif affichait « Choose File ». */}
+          <ChampFichier
             id={idFichier}
             name="fichier"
-            type="file"
             accept="application/pdf,image/jpeg,image/png"
             required
             onChange={(e) => {
@@ -130,7 +132,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
               // un envoi qui aboutit et un envoi qu'on abandonne.
               void compresserChampFichiers(e.currentTarget);
             }}
-            className={`${CLASSE_CHAMP} py-3 file:mr-3 file:rounded file:border-0 file:bg-[var(--ardoise)] file:px-3 file:py-2 file:text-[var(--encre)]`}
+            className={`${CLASSE_CHAMP} min-h-13 py-2`}
           />
           <p className={CLASSE_AIDE}>
             PDF ou photo du document. Elle remplacera la précédente du même type.

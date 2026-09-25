@@ -8,6 +8,7 @@ import {
   type EtatArtisanAction,
 } from "@/app/actions/artisan";
 import { LignesDevis } from "../../lignes-devis";
+import { ChampFichier } from "@/components/champ-fichier";
 import { compresserChampFichiers } from "@/lib/compresser-image";
 import {
   CLASSE_AIDE,
@@ -127,16 +128,16 @@ export function FormulaireDevis({
             Le devis en pièce jointe{" "}
             <span className="font-normal text-[var(--texte-secondaire)]">(facultatif)</span>
           </label>
-          <input
+          {/* 25/09 (A6) : champ maison, libellé en français partout. */}
+          <ChampFichier
             id={idFichier}
             name="fichier"
-            type="file"
             accept="application/pdf,image/jpeg,image/png"
             onChange={(e) => {
               // Photo d'un devis manuscrit : compressée comme les autres.
               void compresserChampFichiers(e.currentTarget);
             }}
-            className={`${CLASSE_CHAMP} py-3 file:mr-3 file:rounded file:border-0 file:bg-[var(--ardoise)] file:px-3 file:py-2 file:text-[var(--encre)]`}
+            className={`${CLASSE_CHAMP} min-h-13 py-2`}
           />
           <p className={CLASSE_AIDE}>
             PDF ou photo. Un seul devis par demande, et il ne se remplace pas

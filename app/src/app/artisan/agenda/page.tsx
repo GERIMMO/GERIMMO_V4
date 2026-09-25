@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../acces";
 import { CarteMission } from "../carte-mission";
 import { jourCivil, jourLong } from "../libelles";
@@ -22,6 +23,12 @@ export const metadata = { title: "Mon agenda — Espace artisan" };
  * Et puisque les agences se mélangent, LA MARQUE DE L'AGENCE EST SUR CHAQUE
  * LIGNE (RM-19.3.3 / RM-17.3.2), pas en tête d'écran : c'est elle qui dit,
  * à 14 h, pour qui on travaille.
+ *
+ * 25/09 (A3) : un artisan vient ici pour savoir QUAND. L'écran s'ouvre donc
+ * sur la semaine qui vient — sept cases, une par jour, le chiffre dit combien
+ * de rendez-vous y commencent — puis les rendez-vous fixés, jour par jour.
+ * Les missions sans date passent en second : elles n'ont pas de « quand ».
+ * Aucune lecture nouvelle : tout vient de `mon_agenda_artisan`.
  */
 /**
  * Ce qui reste à faire sur une mission sans date — et par qui.
@@ -40,6 +47,19 @@ function consigne(l: LigneAgenda): string {
   if (l.creneaux_en_attente > 0)
     return `${l.creneaux_en_attente} date${l.creneaux_en_attente > 1 ? "s" : ""} au choix du locataire`;
   return "Proposer trois créneaux au locataire";
+}
+
+const JOURS_COURTS = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+
+/** Les sept jours à partir d'aujourd'hui, en clé civile (AAAA-MM-JJ). */
+function semaineAVenir(): Date[] {
+  const depart = new Date();
+  depart.setHours(12, 0, 0, 0);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(depart);
+    d.setDate(depart.getDate() + i);
+    return d;
+  });
 }
 
 export default async function PageAgendaArtisan() {
@@ -62,16 +82,110 @@ export default async function PageAgendaArtisan() {
   }
 
   const aujourdhui = jourCivil(new Date());
+  // Les journées passées (interventions terminées, ou dont le rendez-vous est
+  // derrière) se lisent après celles qui viennent : on regarde devant soi.
+  const joursAVenir = [...jours.entries()].filter(([cle]) => cle >= aujourdhui);
+  const joursPasses = [...jours.entries()].filter(([cle]) => cle < aujourdhui);
+  const semaine = semaineAVenir();
 
   return (
     <div className="space-y-6">
-      <EnteteSousPage titre="Mon agenda" mention="Toutes agences confondues" />
+      <EnteteSousPage titre="Mon agenda" mention={jourLong(new Date().toISOString())} />
 
       {agenda.erreur && (
         <Erreur>
           Votre agenda n&apos;a pas pu être lu à l&apos;instant. Ne partez pas sur
           une journée vide : rechargez dans un instant.
         </Erreur>
+      )}
+
+      {/* La semaine qui vient, en sept cases. Une case avec des rendez-vous
+          mène à sa journée ; les autres ne se cliquent pas (rien dessous). */}
+      {!agenda.erreur && (
+        <Carte>
+          <TitreSection>Les 7 prochains jours</TitreSection>
+          <ol className="grid grid-cols-7 gap-1.5" aria-label="Rendez-vous des sept prochains jours">
+            {semaine.map((d) => {
+              const cle = jourCivil(d);
+              const nombre = jours.get(cle)?.length ?? 0;
+              const estAujourdhui = cle === aujourdhui;
+              const contenu = (
+                <>
+                  <span className="text-[0.75rem] uppercase tracking-wide text-[var(--texte-secondaire)]">
+                    {JOURS_COURTS[d.getDay()]}
+                  </span>
+                  <span className="text-[1.0625rem] font-medium tabular-nums text-[var(--encre)]">
+                    {d.getDate()}
+                  </span>
+                  <span
+                    className={`text-[0.8125rem] tabular-nums ${
+                      nombre > 0 ? "font-medium text-[var(--marque-sombre)]" : "text-[var(--libelle)]"
+                    }`}
+                    aria-label={
+                      nombre > 0
+                        ? `${nombre} rendez-vous`
+                        : "aucun rendez-vous"
+                    }
+                  >
+                    {nombre > 0 ? `${nombre} rdv` : "—"}
+                  </span>
+                </>
+              );
+              const cadre = `flex min-h-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-lg border-2 px-1 py-2 ${
+                estAujourdhui
+                  ? "border-[var(--marque)] bg-[var(--marque-clair)]"
+                  : "border-[var(--filet-leger)] bg-[var(--ivoire)]"
+              }`;
+              return (
+                <li key={cle}>
+                  {nombre > 0 ? (
+                    <Link
+                      href={`#jour-${cle}`}
+                      className={`${cadre} transition-colors hover:border-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--or)]`}
+                    >
+                      {contenu}
+                    </Link>
+                  ) : (
+                    <div className={cadre}>{contenu}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </Carte>
+      )}
+
+      {joursAVenir.length > 0 ? (
+        joursAVenir.map(([cle, lignes]) => (
+          <section key={cle} id={`jour-${cle}`} className="scroll-mt-28">
+            <TitreSection>
+              {cle === aujourdhui ? "Aujourd'hui — " : ""}
+              {jourLong(lignes[0].debut_prevu)}
+            </TitreSection>
+            <div className="space-y-3">
+              {lignes.map((l) => (
+                <CarteMission key={l.intervention_id} ligne={l} />
+              ))}
+            </div>
+          </section>
+        ))
+      ) : agenda.erreur ? null : sansDate.length > 0 ? (
+        // Rien de fixé, mais des missions attendent une date : l'état vide
+        // renvoie à la liste juste dessous plutôt qu'ailleurs.
+        <Vide>
+          Aucun rendez-vous fixé pour l&apos;instant. Les missions ci-dessous en
+          attendent un.
+        </Vide>
+      ) : (
+        // Un état vide qui mène quelque part (24/09) : ce sont les
+        // attestations qui ouvrent les affectations.
+        <Vide action={{ href: "/artisan/attestations", libelle: "Mes attestations" }}>
+          Aucune intervention à votre agenda. Les missions qu&apos;une agence vous
+          confie apparaissent ici, quelle que soit l&apos;agence.
+          {fiche.statut_plateforme === "en_attente"
+            ? " Votre inscription est encore en cours de validation : aucune agence ne peut vous solliciter avant."
+            : ""}
+        </Vide>
       )}
 
       {sansDate.length > 0 && (
@@ -89,32 +203,24 @@ export default async function PageAgendaArtisan() {
         </section>
       )}
 
-      {jours.size === 0 && sansDate.length === 0 ? (
-        agenda.erreur ? null : (
-          // Un état vide qui mène quelque part (24/09) : ce sont les
-          // attestations qui ouvrent les affectations.
-          <Vide action={{ href: "/artisan/attestations", libelle: "Mes attestations" }}>
-            Aucune intervention à votre agenda. Les missions qu&apos;une agence vous
-            confie apparaissent ici, quelle que soit l&apos;agence.
-            {fiche.statut_plateforme === "en_attente"
-              ? " Votre inscription est encore en cours de validation : aucune agence ne peut vous solliciter avant."
-              : ""}
-          </Vide>
-        )
-      ) : (
-        [...jours.entries()].map(([cle, lignes]) => (
-          <section key={cle}>
-            <TitreSection>
-              {cle === aujourdhui ? "Aujourd'hui — " : ""}
-              {jourLong(lignes[0].debut_prevu)}
-            </TitreSection>
-            <div className="space-y-3">
-              {lignes.map((l) => (
-                <CarteMission key={l.intervention_id} ligne={l} />
-              ))}
-            </div>
-          </section>
-        ))
+      {joursPasses.length > 0 && (
+        <section>
+          <TitreSection>Journées passées</TitreSection>
+          <div className="space-y-6">
+            {joursPasses.map(([cle, lignes]) => (
+              <div key={cle} id={`jour-${cle}`} className="scroll-mt-28">
+                <p className="mb-3 text-[0.9375rem] font-medium text-[var(--texte-secondaire)]">
+                  {jourLong(lignes[0].debut_prevu)}
+                </p>
+                <div className="space-y-3">
+                  {lignes.map((l) => (
+                    <CarteMission key={l.intervention_id} ligne={l} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <Carte>

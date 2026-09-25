@@ -181,18 +181,15 @@ export function FormulaireCreneaux({ interventionId }: { interventionId: string 
       {etat.succes && <Succes>{etat.succes}</Succes>}
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
 
-      {/* Avant le bouton, et non dessous : c'est l'effet de l'envoi, il se
-          lit avant de toucher (24/09). */}
-      <div className="space-y-2">
-        <p className="text-[0.9375rem] text-[var(--corps)]">
-          Une nouvelle proposition remplace celle qui était encore en attente.
+      {/* Le compte de ce qui manque, avant le bouton (24/09). L'effet d'une
+          nouvelle proposition (elle remplace celle en attente) ne se dit plus
+          ici : le bandeau ambre de la page le dit déjà quand c'est le cas
+          (25/09, A14). */}
+      {prets.length < 3 && (
+        <p className="text-base text-[var(--corps)]">
+          Encore {3 - prets.length} créneau{3 - prets.length > 1 ? "x" : ""} à remplir
         </p>
-        {prets.length < 3 && (
-          <p className="text-base text-[var(--corps)]">
-            Encore {3 - prets.length} créneau{3 - prets.length > 1 ? "x" : ""} à remplir
-          </p>
-        )}
-      </div>
+      )}
 
       <Envoyer nombre={prets.length} />
     </form>

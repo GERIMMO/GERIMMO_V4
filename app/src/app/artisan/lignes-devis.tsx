@@ -10,11 +10,14 @@ const CLASSE_CELLULE = "flex flex-col justify-end gap-1.5";
 const DANS_UNE_CARTE = "in-[.artisan-carte]:rounded-none in-[.artisan-carte]:border-0 in-[.artisan-carte]:bg-transparent in-[.artisan-carte]:p-0 in-[.artisan-carte]:shadow-none";
 
 type Saisie = { libelle: string; quantite: string; prix: string; tva: string };
-const vide = (): Saisie => ({ libelle: "", quantite: "1", prix: "", tva: "0" });
+// 25/09 (A7) : PAS de taux de TVA par défaut. « 0 % » pré-choisi partait tel
+// quel dans un devis que l'artisan n'avait pas relu ; le taux dépend de son
+// régime et des travaux, et lui seul le sait. Le choix est obligatoire.
+const vide = (): Saisie => ({ libelle: "", quantite: "1", prix: "", tva: "" });
 export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: { initiales?: LigneDevis[]; titre?: string }) {
   const id = useId();
   const [lignes, setLignes] = useState<Saisie[]>(() => initiales.length ? initiales.map(l => ({ libelle: l.libelle, quantite: String(l.quantite).replace(".", ","), prix: (l.prix_unitaire_ht_cents/100).toFixed(2).replace(".", ","), tva: String(l.tva_bps) })) : [vide()]);
-  const donnees = lignes.map(l => ({ libelle: l.libelle, quantite: Number(l.quantite.replace(",", ".")), prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: Number(l.tva) }));
+  const donnees = lignes.map(l => ({ libelle: l.libelle, quantite: Number(l.quantite.replace(",", ".")), prix_unitaire_ht_cents: montantEnCentimes(l.prix), tva_bps: l.tva === "" ? Number.NaN : Number(l.tva) }));
   let total: ReturnType<typeof calculerDevis> | null = null;
   try { total = calculerDevis(donnees); } catch { /* Le formulaire et le serveur expliquent les champs invalides. */ }
   const modifier = (index: number, cle: keyof Saisie, valeur: string) => setLignes(ls => ls.map((l, i) => i===index ? {...l, [cle]: valeur} : l));
@@ -36,16 +39,19 @@ export function LignesDevis({ initiales = [], titre = "Détail des travaux" }: {
         <label className={CLASSE_CELLULE}><span className={CLASSE_LIBELLE}>Quantité</span><input required aria-label={`Ligne ${index+1} : quantité`} inputMode="decimal" className={CLASSE_CHAMP} value={ligne.quantite} onChange={e => modifier(index,"quantite",e.target.value)} /></label>
         <label className={CLASSE_CELLULE}><span className={CLASSE_LIBELLE}>Prix unitaire HT (€)</span><input required aria-label={`Ligne ${index+1} : prix unitaire HT`} inputMode="decimal" className={CLASSE_CHAMP} value={ligne.prix} onChange={e => modifier(index,"prix",e.target.value)} placeholder="0,00" /></label>
         {/* Téléphone : la TVA prend toute la ligne, sinon « 0 % / non applicable » se tronque. */}
-        <label className={`${CLASSE_CELLULE} col-span-2 sm:col-span-1`}><span className={CLASSE_LIBELLE}>TVA</span><select aria-label={`Ligne ${index+1} : TVA`} className={CLASSE_CHAMP} value={ligne.tva} onChange={e => modifier(index,"tva",e.target.value)}>
-          <option value="0">0 % / non applicable</option><option value="210">2,1 %</option><option value="550">5,5 %</option><option value="1000">10 %</option><option value="2000">20 %</option>
+        <label className={`${CLASSE_CELLULE} col-span-2 sm:col-span-1`}><span className={CLASSE_LIBELLE}>TVA</span><select required aria-label={`Ligne ${index+1} : TVA`} className={CLASSE_CHAMP} value={ligne.tva} onChange={e => modifier(index,"tva",e.target.value)}>
+          <option value="" disabled>Choisir un taux</option><option value="0">0 % / non applicable</option><option value="210">2,1 %</option><option value="550">5,5 %</option><option value="1000">10 %</option><option value="2000">20 %</option>
         </select></label>
       </div>
       {lignes.length>1 && <button type="button" className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => ls.filter((_,i) => i!==index))}>Retirer cette ligne</button>}
     </div>)}
     <button type="button" disabled={lignes.length>=100} className={CLASSE_BOUTON_SOBRE} onClick={() => setLignes(ls => [...ls,vide()])}>Ajouter une prestation ou fourniture</button>
-    {/* Le total est du texte, pas une boîte : posé dans un cadre blanc, il passait pour un champ désactivé. */}
+    {/* Le total est du texte, pas une boîte : posé dans un cadre blanc, il passait pour un champ désactivé.
+        25/09 (A8) : il s'affiche à 0,00 € dès le départ — l'artisan voit le format attendu avant de saisir. */}
     <div aria-live="polite">
-      {total ? <><p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Total HT : {euros(total.montant_ht_cents)} · TVA : {euros(total.montant_tva_cents)}</p><p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {euros(total.montant_ttc_cents)}</p></> : <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Le total apparaîtra une fois les lignes complétées.</p>}
+      <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">Total HT : {euros(total?.montant_ht_cents ?? 0)} · TVA : {euros(total?.montant_tva_cents ?? 0)}</p>
+      <p className="text-[1.0625rem] font-semibold text-[var(--encre)]">Total TTC : {euros(total?.montant_ttc_cents ?? 0)}</p>
+      {!total && <p className="mt-1 text-[0.9375rem] text-[var(--texte-secondaire)]">Le total se met à jour à mesure que les lignes se complètent (prestation, prix et taux de TVA).</p>}
     </div>
   </fieldset>;
 }

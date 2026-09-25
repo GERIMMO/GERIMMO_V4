@@ -165,12 +165,20 @@ export default async function PageEntreprise() {
         </p>
       </Carte>
 
+      {/* 25/09 (A9) : le lien vers les règles vit dans la carte des métiers,
+          ce sont elles qu'il concerne ; isolé entre deux cartes, il flottait. */}
       <FormulaireMetiersZones
         metiers={(fiche.metiers ?? []).filter((m) => m in METIERS)}
         codesPostaux={fiche.codes_postaux ?? []}
+        complement={
+          <Link
+            href="/artisan/regles"
+            className="mt-2 inline-flex min-h-11 items-center gap-1 text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+          >
+            Les règles à connaître pour mon activité
+          </Link>
+        }
       />
-
-      <Link href="/veille?public=artisan&retour=%2Fartisan%2Fentreprise" className="btn-secondaire">Les règles à connaître pour mon activité</Link>
 
       <ReglageVisibilite
         visibilite={fiche.visibilite}

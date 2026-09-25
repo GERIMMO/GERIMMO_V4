@@ -24,8 +24,17 @@ export default function PagePanneArtisan() {
         Votre fiche n&apos;a pas pu être lue à l&apos;instant. Rien n&apos;est perdu — ni
         vos attestations, ni vos missions.
       </Erreur>
+      {/* 25/09 (A17) : « signalez-le » mène à l'aide, au lieu de le laisser
+          chercher le rond « Aide et retours ». */}
       <p className="text-base text-[var(--corps)]">
-        Réessayez dans un instant. Si cela persiste, signalez-le à Gerimmo.
+        Réessayez dans un instant. Si cela persiste,{" "}
+        <Link
+          href="/assistance?ecran=%2Fartisan%2Fpanne&action=lien&retour=%2Fartisan"
+          className="font-medium text-[var(--encre)] underline underline-offset-4"
+        >
+          signalez-le à Gerimmo
+        </Link>
+        .
       </p>
       <Link href="/artisan" className={CLASSE_BOUTON_PRINCIPAL}>
         Réessayer

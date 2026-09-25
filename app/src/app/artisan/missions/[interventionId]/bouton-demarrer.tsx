@@ -25,15 +25,26 @@ function Bouton({ className }: { className: string }) {
 export function BoutonDemarrer({
   interventionId,
   sansRendezVous = false,
+  discret = false,
 }: {
   interventionId: string;
   sansRendezVous?: boolean;
+  /** En lien texte, quand l'écran dit déjà qu'il n'y a rien à faire (25/09, A10). */
+  discret?: boolean;
 }) {
   const [etat, action] = useActionState<EtatArtisanAction, FormData>(
     demarrerMonIntervention.bind(null, interventionId),
     {}
   );
 
+  if (discret) {
+    return (
+      <form action={action} className="inline">
+        {etat.erreur && <Erreur>{etat.erreur}</Erreur>}
+        <Bouton className="inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4 disabled:opacity-60" />
+      </form>
+    );
+  }
   return (
     <form action={action} className="space-y-2">
       {etat.erreur && <Erreur>{etat.erreur}</Erreur>}

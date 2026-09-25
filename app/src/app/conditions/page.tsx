@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Article, CoquilleLegale, Fait } from "@/components/coquille-legale";
 import { CONDITIONS_DATE, EDITEUR, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
 
-export const metadata = { title: "Conditions générales — Gerimmo" };
+export const metadata = { title: "Conditions générales d'utilisation — Gerimmo" };
 
 // Le contrat que la case d'inscription fait accepter.
 //

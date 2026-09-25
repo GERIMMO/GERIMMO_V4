@@ -343,10 +343,14 @@ export default async function PageVitrine() {
                 Le locataire décrit le problème et joint ses photos. Le gestionnaire qualifie la demande, organise l&apos;intervention et conserve les échanges dans le dossier.
               </p>
             </div>
+            {/* 25/09 (P2) : chargée d'emblée — différée, la moitié droite de
+                la carte restait vide tant que l'image n'était pas défilée
+                (relevé sur les captures pleine page). */}
             <Image
               src="/illustrations/intervention-gerimmo-2026.jpg"
               width={1536}
               height={1024}
+              loading="eager"
               sizes="(max-width: 1024px) 100vw, 55vw"
               alt="Artisan intervenant sous un évier dans un logement"
               className="h-full max-h-[350px] w-full object-cover lg:max-h-none"
@@ -422,7 +426,17 @@ export default async function PageVitrine() {
               </div>
               {/* 24/09 : la carte entière est le lien. Elle se soulevait au
                   survol comme un bloc cliquable, mais seul le titre l'était. */}
-              <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              {/* 25/09 (P3) : la grille suit le nombre d'articles — un seul
+                  article ne laisse plus deux tiers de vide. */}
+              <div
+                className={`mt-8 grid gap-4 ${
+                  articles.length >= 3
+                    ? "sm:grid-cols-3"
+                    : articles.length === 2
+                      ? "sm:grid-cols-2"
+                      : "max-w-2xl"
+                }`}
+              >
                 {articles.map((a) => (
                   <Link key={a.id} href={`/journal/${a.slug}`} className="vitrine-carte group block">
                     <h3 className="font-heading text-[17px] font-bold leading-snug text-[var(--encre)] group-hover:text-[var(--marque-sombre)]">

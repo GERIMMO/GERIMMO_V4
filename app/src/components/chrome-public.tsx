@@ -18,9 +18,12 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
 export function EnTetePublic() {
   return (
     <div className="sticky top-0 z-30 border-b border-[var(--filet)] bg-[var(--ivoire)]/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-7">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-7">
+        {/* Sous 640 px, le mot-marque se resserre (14 px, interlettrage
+            réduit) : c'est ce qui laisse « Se connecter · Créer mon compte »
+            tenir sur une ligne à 390 px sans déborder (25/09, P1). */}
         <Link href="/" aria-label="Gerimmo — accueil" className="flex min-h-11 shrink-0 items-center">
-          <MarqueGerimmo />
+          <MarqueGerimmo className="max-sm:gap-2 max-sm:[&>span]:text-[0.9rem] max-sm:[&>span]:tracking-[0.12em]" />
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           {/* Sous 640 px, le trio logo + connexion + action ne tient pas dans la
@@ -35,16 +38,18 @@ export function EnTetePublic() {
           >
             Journal
           </Link>
+          {/* 25/09 (P1) : les mêmes mots à toutes les largeurs — le pied de
+              page dit « Se connecter · Créer mon compte », l'en-tête du
+              téléphone disait « Connexion · S'inscrire ». À 390 px, 13 px et
+              des marges resserrées tiennent sur une ligne. */}
           <Link
             href="/connexion"
-            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-2 text-[13.5px] font-medium text-[var(--texte-secondaire)] hover:bg-[var(--survol)] hover:text-[var(--encre)] sm:px-3"
+            className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg px-1 text-[13px] font-medium text-[var(--texte-secondaire)] hover:bg-[var(--survol)] hover:text-[var(--encre)] sm:px-3 sm:text-[13.5px]"
           >
-            <span className="sm:hidden">Connexion</span>
-            <span className="hidden sm:inline">Se connecter</span>
+            Se connecter
           </Link>
-          <Link href="/inscription" className="btn-or whitespace-nowrap !px-3 !py-2 text-[13px] sm:!px-4">
-            <span className="sm:hidden">S&apos;inscrire</span>
-            <span className="hidden sm:inline">Créer mon compte</span>
+          <Link href="/inscription" className="btn-or whitespace-nowrap !px-2.5 !py-2 text-[13px] sm:!px-4">
+            Créer mon compte
           </Link>
         </nav>
       </div>
@@ -59,7 +64,9 @@ const LIENS_PIED: [string, string][] = [
   ["/inscription", "Créer mon compte"],
   ["/#agences", "Devis agence"],
   ["/mentions-legales", "Mentions légales"],
-  ["/conditions", "Conditions générales"],
+  // Un seul nom pour le document : « Conditions générales d'utilisation »,
+  // « CGU » partout où la place manque (25/09, P5).
+  ["/conditions", "CGU"],
   ["/confidentialite", "Confidentialité"],
 ];
 

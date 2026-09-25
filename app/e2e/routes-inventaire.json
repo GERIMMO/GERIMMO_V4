@@ -516,7 +516,7 @@
     "dynamic": ""
   },
   {
-    "path": "/veille?public=artisan",
+    "path": "/artisan/regles",
     "persona": "artisan",
     "label": "Règles pour les artisans",
     "dynamic": ""

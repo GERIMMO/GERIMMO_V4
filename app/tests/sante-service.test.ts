@@ -159,6 +159,27 @@ describe("les tâches planifiées", () => {
     expect(quittances?.etat).toBe("echec");
   });
 
+  it("une liste d'échecs vide ne déclenche pas de fausse alerte", () => {
+    const lignes = [passe("veille", 3, { preparees: 5, etudiees: 2, echecs: [] })];
+    const veille = etatTaches(dernieresTaches(lignes), maintenant).find((t) => t.nom === "veille");
+    expect(veille).toMatchObject({ etat: "ok", bilan: "nouvelles actualités collectées : 5, actualités étudiées : 2, actions à reprendre : 0" });
+  });
+
+  it("conserve l'alerte pour une liste d'échecs non vide", () => {
+    const lignes = [passe("veille", 3, { preparees: 5, echecs: ["source privée"] })];
+    const veille = etatTaches(dernieresTaches(lignes), maintenant).find((t) => t.nom === "veille");
+    expect(veille?.etat).toBe("echec");
+    expect(veille?.bilan).toBe("nouvelles actualités collectées : 5, actions à reprendre : 1");
+  });
+
+  it("distingue les publications, actualités collectées et propositions territoriales", () => {
+    expect(resumerBilan({ preparees: 62 }, "veille")).toBe("nouvelles actualités collectées : 62");
+    expect(resumerBilan({ preparees: 1 }, "territoire")).toBe("propositions de recrutement préparées : 1");
+    expect(resumerBilan({ preparees: 2 }, "marketing")).toBe("publications préparées : 2");
+    expect(resumerBilan({ preparees: 2 }, "constructor")).toBe("éléments préparés : 2");
+    expect(resumerBilan({ preparees: 2 })).toBe("éléments préparés : 2");
+  });
+
   it("résume un bilan en français, sans jargon de clé", () => {
     expect(resumerBilan({ envoyees: 3, echecs: 0, sans_adresse: ["a", "b"] })).toBe(
       "envois réussis : 3, actions à reprendre : 0, adresses manquantes : 2"

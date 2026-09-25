@@ -67,7 +67,11 @@ export function politiqueDeSecurite(): string {
   const texte = Object.entries(directives)
     .map(([nom, valeurs]) => `${nom} ${valeurs.join(" ")}`)
     .join("; ");
-  return developpement ? texte : `${texte}; upgrade-insecure-requests`;
+  // « upgrade-insecure-requests » seulement là où le site est servi en HTTPS
+  // (Vercel) : la CI et le banc local servent la construction de production en
+  // http, et Chromium y répondait par ERR_SSL_PROTOCOL_ERROR sur les
+  // ressources (audit-ecrans, 25/09).
+  return developpement || process.env.VERCEL !== "1" ? texte : `${texte}; upgrade-insecure-requests`;
 }
 
 export const ENTETES_SECURITE: { key: string; value: string }[] = [

@@ -8,23 +8,23 @@
   {
     "path": "/admin",
     "persona": "superadmin",
-    "label": "Console d'administration (accueil)",
+    "label": "Vue d’ensemble de la supervision",
     "dynamic": ""
   },
   {
     "path": "/admin/artisans",
     "persona": "superadmin",
-    "label": "Validation des artisans",
+    "label": "Artisans à valider",
     "dynamic": ""
   },
   {
     "path": "/admin/brief",
     "persona": "superadmin",
-    "label": "Le point du matin",
+    "label": "Aujourd’hui — le point du matin",
     "dynamic": ""
   },
   {
-    "path": "/admin/brief/[equipe]",
+    "path": "/admin/brief/EQUIPE",
     "persona": "superadmin",
     "label": "Le point du matin — détail d’une équipe",
     "dynamic": "equipe"
@@ -50,7 +50,7 @@
   {
     "path": "/admin/journaux",
     "persona": "superadmin",
-    "label": "Journaux d'audit",
+    "label": "Historique et conservation",
     "dynamic": ""
   },
   {
@@ -86,13 +86,13 @@
   {
     "path": "/admin/retours",
     "persona": "superadmin",
-    "label": "Retours utilisateurs",
+    "label": "Retours des utilisateurs",
     "dynamic": ""
   },
   {
     "path": "/admin/sante",
     "persona": "superadmin",
-    "label": "Santé du service",
+    "label": "Santé et connexions",
     "dynamic": ""
   },
   {
@@ -554,7 +554,7 @@
   {
     "path": "/admin/equipes",
     "persona": "superadmin",
-    "label": "Travail et commandes des équipes",
+    "label": "Travail et commandes",
     "dynamic": ""
   },
   {
@@ -566,7 +566,7 @@
   {
     "path": "/admin/marque-blanche",
     "persona": "superadmin",
-    "label": "Marque blanche",
+    "label": "Personnalisation des agences",
     "dynamic": ""
   },
   {

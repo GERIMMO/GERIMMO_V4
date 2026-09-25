@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Building2, LoaderCircle, Search, Wrench, X } from "lucide-react";
+import { ArrowUpRight, Building2, LoaderCircle, Search, UserRound, Wrench, X } from "lucide-react";
 import {
   rechercherDansSupervision,
   type ReponseRechercheSupervision,
@@ -75,12 +75,12 @@ function FenetreRecherche({ fermer }: { fermer: () => void }) {
         {saisie && <button type="button" className="recherche-fermer" aria-label="Effacer la recherche" onClick={() => { saisir(""); champ.current?.focus(); }}><X className="size-4" /></button>}
       </div>
       <div className="recherche-resultats" aria-busy={chargement}>
-        <p id="recherche-supervision-aide" className="text-sm text-muted-foreground">{texte.length < 2 ? "Saisissez au moins 2 caractères." : "Agences, propriétaires directs et artisans inscrits."}</p>
+        <p id="recherche-supervision-aide" className="text-sm text-muted-foreground">{texte.length < 2 ? "Saisissez au moins 2 caractères." : "Agences, propriétaires directs, artisans inscrits et comptes (par adresse)."}</p>
         {chargement && <p role="status" className="flex items-center gap-2 py-5 text-sm"><LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden="true" />Recherche en cours…</p>}
         {resultat?.erreur && <div role="alert" className="err mt-3"><p>{resultat.erreur}</p><button type="button" className="mt-2 underline" onClick={() => recommencer((n) => n + 1)}>Réessayer</button></div>}
         {texte.length >= 2 && resultat && !resultat.erreur && resultat.resultats.length === 0 && <p role="status" className="py-5">Aucun client trouvé.</p>}
         {resultat && <ul className="mt-3 divide-y divide-border">{resultat.resultats.map((r) => {
-          const Icone = r.type === "Organisation" ? Building2 : Wrench;
+          const Icone = r.type === "Organisation" ? Building2 : r.type === "Compte" ? UserRound : Wrench;
           return <li key={`${r.type}-${r.id}`}><Link href={r.href} prefetch={false} onClick={fermer} data-resultat className="recherche-resultat">
             <span className="recherche-icone"><Icone className="size-5" aria-hidden="true" /></span>
             <span className="min-w-0 flex-1"><span className="eyebrow">{r.type}</span><strong className="block font-medium">{r.titre}</strong><span className="block break-words text-sm text-muted-foreground">{r.detail}</span></span>

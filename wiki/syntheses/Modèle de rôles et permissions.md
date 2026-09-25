@@ -3,7 +3,7 @@ type: synthesis
 tags: [roles, permissions, rbac, multi-tenant]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-09-25
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
 ---
 
@@ -66,6 +66,12 @@ périmétrés à ce qui leur est partagé.
 `is_super_admin()`, `has_organization_role()`, `is_active_organization_member()`,
 `can_manage_users()` (super_admin + admin agence), `can_manage_organization()` (+ propriétaire sur
 sa propre org), `can_access_profile()` (+ agent), `can_manage_rent()`.
+
+## La supervision : tout voir, agir en son nom, tout est journalisé (décision du 25/09)
+
+Le porteur a tranché la question du « voir comme » : **pas d'emprunt d'identité**. Le super administrateur reste lui-même, voit toutes les tables d'organisation (la RLS le laisse passer en lecture), entre dans n'importe quel espace d'agence ou de propriétaire avec ses propres droits (traversée inscrite au journal d'audit à chaque page et à chaque action, `log_sa_access`), et chaque écriture porte son compte. Pour les artisans, la traversée de session existante (30 min, bandeau rouge, journal) reste le seul cas où la supervision agit « comme » l'utilisateur.
+
+Pour déboguer, la console a désormais une **fiche par compte** (`/admin/comptes/[id]`, RPC `dossier_compte_supervision`, superviseur permanent en AAL2 seulement) : état de connexion (dernière connexion, adresse confirmée, second facteur, blocage), rôles et espaces avec l'entrée sous l'identité de la supervision, fiches locataire, fiche artisan, journal d'audit et journal technique du compte. La recherche ⌘K trouve un compte par son adresse. Une conception alternative (réécriture de l'identité par la pré-requête PostgREST) a été écrite puis écartée sur cette décision.
 
 ## Types d'organisation
 `agency` / `independent_owner` / `internal` (voir [[Organisation]]). Les offres d'[[Abonnement]] ont

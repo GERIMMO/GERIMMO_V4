@@ -6,7 +6,7 @@ import { familleOrganisation, LIBELLES_STATUT_ARTISAN } from "@/lib/clients-supe
 
 export type ResultatRechercheSupervision = {
   id: string;
-  type: "Organisation" | "Artisan";
+  type: "Organisation" | "Artisan" | "Compte";
   titre: string;
   detail: string;
   href: string;
@@ -37,7 +37,7 @@ export async function rechercherDansSupervision(
   const texte = normaliserRecherche(saisie);
   if (texte.length < 2) return { resultats: [] };
 
-  const [organisations, artisans] = await Promise.all([
+  const [organisations, artisans, comptes] = await Promise.all([
     supabase
       .from("organizations")
       .select("id,name,type,status,city,email_contact,siret")
@@ -50,6 +50,8 @@ export async function rechercherDansSupervision(
       .or(filtreRecherche(["raison_sociale", "email", "siret"], texte))
       .order("raison_sociale")
       .limit(8),
+    // Les comptes, par adresse (25/09) : la fiche de débogage s'ouvre depuis ⌘K.
+    supabase.rpc("rechercher_comptes_supervision", { p_texte: saisie.trim() }),
   ]);
 
   const resultats: ResultatRechercheSupervision[] = [];
@@ -75,6 +77,16 @@ export async function rechercherDansSupervision(
         .filter(Boolean)
         .join(" · "),
       href: `/admin/clients/artisans/${a.id}`,
+    });
+  }
+
+  for (const c of ((Array.isArray(comptes.data) ? comptes.data : []) as { account_id: string; email: string; roles: string | null; derniere_connexion: string | null }[])) {
+    resultats.push({
+      id: c.account_id,
+      type: "Compte",
+      titre: c.email,
+      detail: [c.roles ?? "aucun rôle", c.derniere_connexion ? `dernière connexion ${new Date(c.derniere_connexion).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}` : "jamais connecté"].join(" · "),
+      href: `/admin/comptes/${c.account_id}`,
     });
   }
 

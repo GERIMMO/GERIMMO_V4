@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Manrope, Figtree } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { BoutonAssistance } from "@/components/bouton-assistance";
 
@@ -9,16 +9,28 @@ import { BoutonAssistance } from "@/components/bouton-assistance";
 // pastilles. La v2 en avait trois (Cormorant, Instrument, Plex Mono) et une
 // serif à empattements qui datait le produit ; les libellés en capitales
 // monospace partent avec elle.
-const titres = Manrope({
+// LES POLICES SONT DANS LE DÉPÔT (26/09). `next/font/google` les téléchargeait
+// chez Google à chaque construction, et ce téléchargement a fait échouer deux
+// mises en production (24/09 et 25/09, « Turbopack build failed » sur
+// manrope…module.css). Les mêmes fichiers variables (latin et latin étendu,
+// licence OFL, dossier `polices/`) sont servis d'ici : la construction ne
+// dépend plus d'aucun réseau, et le rendu est identique.
+const titres = localFont({
   variable: "--font-titres",
-  subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  src: [
+    { path: "./polices/manrope-latin-wght-normal.woff2", weight: "200 800", style: "normal" },
+    { path: "./polices/manrope-latin-ext-wght-normal.woff2", weight: "200 800", style: "normal" },
+  ],
+  display: "swap",
 });
 
-const interface_ = Figtree({
+const interface_ = localFont({
   variable: "--font-interface",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  src: [
+    { path: "./polices/figtree-latin-wght-normal.woff2", weight: "300 900", style: "normal" },
+    { path: "./polices/figtree-latin-ext-wght-normal.woff2", weight: "300 900", style: "normal" },
+  ],
+  display: "swap",
 });
 
 export const metadata: Metadata = {

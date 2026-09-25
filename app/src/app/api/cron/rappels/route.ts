@@ -18,8 +18,15 @@
 //
 // On envoie, PUIS on trace — un rappel tracé mais jamais reçu ne serait plus
 // jamais repris, alors qu'un double rappel n'est que redondant.
+//
+// DEPUIS LE 25/09, LA MÊME RONDE RAPPELLE AUSSI LES GESTES QUI N'ONT PAS ÉTÉ
+// FAITS : créneau non choisi (locataire, J+3), mission non acceptée (artisan,
+// J+2), pièce demandée sans dépôt (locataire, J+7), devis non chiffré
+// (artisan, J+3). Une seule relance par objet, tracée dans `tech_log` — voir
+// `envoyerRappelsGestes`. Mêmes verrous, même journal, même clé de service.
 
 import { envoyerEmail } from "@/lib/email";
+import { envoyerRappelsGestes, type BilanRappelsGestes } from "@/lib/notifications";
 import { corpsRappel, sujetRappel } from "@/lib/rappel-email";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
@@ -88,11 +95,18 @@ export async function GET(request: Request) {
     return Response.json({ erreur: "Lecture impossible." }, { status: 500 });
   }
   const lignes = (data ?? []) as Ligne[];
+  // Les rappels de gestes partent même sans rendez-vous à rappeler. Leur
+  // échec ne prive pas les rendez-vous de leur rappel : bilan vide et compté.
+  const gestes = await envoyerRappelsGestes(supabase).catch((e): BilanRappelsGestes => {
+    console.error("[cron rappels] rappels de gestes :", e instanceof Error ? e.message : e);
+    return { envoyes: 0, echecs: -1, sans_adresse: 0, non_consignes: 0, par_type: { creneau_non_choisi: 0, mission_non_acceptee: 0, piece_demandee: 0, devis_non_chiffre: 0 } };
+  });
   if (lignes.length === 0) {
     // Une passe sans rien à faire se consigne aussi : c'est le battement de
     // cœur que la ronde du matin attend à cette heure-là.
-    await consignerTache(supabase, "rappels", { rappeles: 0, echecs: 0, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
-    return Response.json({ rappeles: 0, echecs: 0, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
+    const bilan = { rappeles: 0, echecs: 0, gestes, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 };
+    await consignerTache(supabase, "rappels", bilan);
+    return Response.json(bilan);
   }
 
   let rappeles = 0;
@@ -144,6 +158,7 @@ export async function GET(request: Request) {
   if (echecs.length > 0) {
     console.error("[cron rappels] échecs:", [...new Set(echecs)].join(" · "));
   }
-  await consignerTache(supabase, "rappels", { rappeles, echecs: echecs.length, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
-  return Response.json({ rappeles, echecs: echecs.length, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 });
+  const bilan = { rappeles, echecs: echecs.length, gestes, orchestration_erreur: Boolean(orchestration.erreur), rapports_prepares: orchestration.rapports_prepares ?? 0 };
+  await consignerTache(supabase, "rappels", bilan);
+  return Response.json(bilan);
 }

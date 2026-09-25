@@ -9,6 +9,15 @@ import { verifierGerant, verifierLocataire } from "@/lib/ged-acces";
 import { detecterMimeReel, EXTENSIONS, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { categorieIncident, MOTIFS_CLOTURE, PIECES_INCIDENT } from "@/lib/incidents";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+// 25/09 : les e-mails qui préviennent l'artisan et l'agence. Aucun ne fait
+// échouer le geste métier — ils journalisent et l'action rend son succès.
+import {
+  notifierDevisDemande,
+  notifierIncidentUrgentDeclare,
+  notifierMissionAnnulee,
+  notifierMissionConfiee,
+  notifierRendezVousFixe,
+} from "@/lib/notifications";
 
 export type EtatIncidentAction = {
   erreur?: string;
@@ -195,6 +204,16 @@ export async function declarerMonIncident(
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
   const avertissement = await joindrePhotos(supabase, orgId, incidentId, photos.fichiers ?? []);
+
+  // 25/09 : « votre gérant est prévenu immédiatement » n'était vrai qu'à sa
+  // prochaine connexion. Pour une urgence, l'agence reçoit l'e-mail maintenant.
+  if (champs.urgence === "urgente") {
+    await notifierIncidentUrgentDeclare(supabase, orgId, incidentId, {
+      categorie: champs.categorie ?? "",
+      piece: champs.piece || null,
+      description: champs.description || null,
+    });
+  }
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
@@ -588,8 +607,19 @@ export async function solliciterArtisan(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
+  // 25/09 : l'artisan est prévenu par e-mail, pas seulement par son portail.
+  const envoi = await notifierDevisDemande(supabase, orgId, consultationId, artisanId);
   revaliderIncident(orgId);
-  return { succes: "Demande de devis envoyée — l'artisan la voit dans son espace." };
+  return {
+    succes: envoi.envoyee
+      ? "Demande de devis envoyée — l'artisan est prévenu par e-mail et la voit dans son espace."
+      : "Demande de devis envoyée — l'artisan la voit dans son espace.",
+    avertissement: envoi.envoyee
+      ? undefined
+      : envoi.motif === "sans_adresse"
+        ? "L'artisan n'a pas d'adresse e-mail : il n'a pas été prévenu. Contactez-le directement."
+        : "L'e-mail à l'artisan n'a pas pu partir ; il verra la demande dans son espace.",
+  };
 }
 
 // LA SECONDE APPROBATION — la sélection opérationnelle. Elle appartient à
@@ -611,10 +641,18 @@ export async function retenirDevis(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
+  // 25/09 : la mission lui est signifiée par e-mail — un artisan qui n'ouvre
+  // pas son portail ne laisse plus le dossier mourir.
+  const envoi = await notifierMissionConfiee(supabase, orgId, devisId);
   revaliderIncident(orgId);
   return {
     succes:
       "Devis retenu — la mission est confiée à l'artisan, l'autre devis est écarté. Il proposera ses créneaux après acceptation.",
+    avertissement: envoi.envoyee
+      ? undefined
+      : envoi.motif === "sans_adresse"
+        ? "L'artisan n'a pas d'adresse e-mail : il n'a pas été prévenu. Contactez-le directement."
+        : "L'e-mail à l'artisan n'a pas pu partir ; il verra la mission dans son espace.",
   };
 }
 
@@ -649,10 +687,21 @@ export async function fixerRendezVous(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
+  // 25/09 : les deux parties reçoivent la date par e-mail (RM-10.4.1 : le
+  // rendez-vous a été réglé au téléphone, l'écrit le confirme).
+  const envois = await notifierRendezVousFixe(supabase, orgId, interventionId);
+  const manques = [
+    ...(envois.artisan.envoyee ? [] : ["l'artisan"]),
+    ...(envois.locataire.envoyee ? [] : ["le locataire"]),
+  ];
   revaliderIncident(orgId);
   return {
     succes:
       "Rendez-vous fixé — l'artisan et le locataire le voient dans leur espace, les créneaux en attente tombent.",
+    avertissement:
+      manques.length > 0
+        ? `L'e-mail de confirmation n'est pas parti vers ${manques.join(" ni ")} (adresse manquante ou service indisponible).`
+        : undefined,
   };
 }
 
@@ -722,8 +771,15 @@ export async function annulerMission(
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
+  // 25/09 : l'artisan apprend l'annulation par e-mail — sinon il se déplace.
+  const envoi = await notifierMissionAnnulee(supabase, orgId, interventionId, motif);
   revaliderIncident(orgId);
-  return { succes: "Mission annulée — l'incident revient en attente d'affectation." };
+  return {
+    succes: "Mission annulée — l'incident revient en attente d'affectation.",
+    avertissement: envoi.envoyee
+      ? undefined
+      : "L'e-mail d'annulation à l'artisan n'a pas pu partir : prévenez-le directement.",
+  };
 }
 
 // Module 11 : le gérant note sur trois critères (50 % du score composite) —

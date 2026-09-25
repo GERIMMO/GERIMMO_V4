@@ -5,10 +5,13 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+// 25/09 : la réponse du gestionnaire est annoncée par e-mail au locataire.
+import { notifierReponseGestionnaire } from "@/lib/notifications";
 
 export type EtatMessage = {
   erreur?: string;
   succes?: string;
+  avertissement?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
   valeurs?: Record<string, string>;
 };
@@ -59,10 +62,22 @@ export async function repondreMessagePersonne(
     p_texte: texte,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+  // Le locataire n'a plus à deviner qu'une réponse l'attend : un e-mail, sans
+  // le texte (il reste dans l'espace), avec le lien vers le fil.
+  const envoi = await notifierReponseGestionnaire(supabase, orgId, personId);
   // La réponse ferme l'alerte et solde les non-lus : liste des personnes,
   // badge de la barre latérale (layout) et fiche se rafraîchissent ensemble
   revalidatePath(`/agence/${orgId}`, "layout");
   revalidatePath(`/agence/${orgId}/personnes`);
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
-  return { succes: "Réponse envoyée — le locataire la verra dans son espace." };
+  return {
+    succes: envoi.envoyee
+      ? "Réponse envoyée — le locataire est prévenu par e-mail et la lira dans son espace."
+      : "Réponse envoyée — le locataire la verra dans son espace.",
+    avertissement: envoi.envoyee
+      ? undefined
+      : envoi.motif === "sans_adresse"
+        ? "Le locataire n'a pas d'adresse e-mail : il ne sera prévenu qu'en ouvrant son espace."
+        : "L'e-mail d'annonce n'a pas pu partir ; la réponse reste lisible dans son espace.",
+  };
 }

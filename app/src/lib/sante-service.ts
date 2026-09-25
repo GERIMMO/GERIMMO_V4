@@ -41,7 +41,7 @@ const LIBELLES_BILAN: Record<string, string> = {
   publiciteActive: "publicité autorisée",
   budgetMensuelCents: "budget mensuel",
   publiees: "publications diffusées",
-  preparees: "publications préparées",
+  preparees: "éléments préparés",
   traitees: "actions réalisées",
   traites: "actions réalisées",
   etudiees: "actualités étudiées",
@@ -256,14 +256,19 @@ const HEURE = 3_600_000;
 const MARGES: Record<Periodicite, number> = { continue: HEURE, quotidienne: 26 * HEURE, mensuelle: 32 * 24 * HEURE };
 
 /** « 3 envoyées, 0 échec » à partir du bilan brut d'une passe. */
-export function resumerBilan(bilan: unknown): string {
+export function resumerBilan(bilan: unknown, tache?: string): string {
   if (!bilan || typeof bilan !== "object" || Array.isArray(bilan)) return "—";
   const entrees = Object.entries(bilan as Record<string, unknown>);
   if (entrees.length === 0) return "—";
   const resume = entrees
     .map(([cle, v]) => {
       if (v === null || v === undefined) return null;
-      const libelle = Object.hasOwn(LIBELLES_BILAN, cle) ? LIBELLES_BILAN[cle] : null;
+      const libelle = cle === "preparees"
+        ? tache === "veille" ? "nouvelles actualités collectées"
+          : tache === "territoire" ? "propositions de recrutement préparées"
+            : tache === "marketing" ? "publications préparées"
+              : LIBELLES_BILAN.preparees
+        : Object.hasOwn(LIBELLES_BILAN, cle) ? LIBELLES_BILAN[cle] : null;
       // Une donnée inconnue reste disponible dans le journal interne, mais
       // n'est jamais présentée telle quelle au super administrateur.
       if (!libelle) return null;
@@ -292,13 +297,14 @@ export function etatTaches(
     const bilan = d.bilan as Record<string, unknown> | null;
     const enEchec = Boolean(bilan && typeof bilan === "object" && Object.entries(bilan).some(([cle, valeur]) => {
       if (!/(^|_)(erreur|echec)s?$/.test(cle)) return false;
+      if (Array.isArray(valeur)) return valeur.length > 0;
       if (typeof valeur === "number") return valeur > 0;
       if (typeof valeur === "string") return valeur.trim() !== "" && valeur !== "0";
       return Boolean(valeur);
     }));
     const age = maintenant.getTime() - new Date(d.le).getTime();
     const etat: EtatTache = enEchec ? "echec" : age > MARGES[t.periodicite] ? "retard" : "ok";
-    return { ...t, etat, le: d.le, bilan: resumerBilan(d.bilan) };
+    return { ...t, etat, le: d.le, bilan: resumerBilan(d.bilan, t.nom) };
   });
 }
 

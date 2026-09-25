@@ -276,9 +276,9 @@ export default async function PageJournaux() {
                     </span>
                     {l.evenement?.startsWith("tache_") && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {resumerBilan(l.details) === "—"
+                        {resumerBilan(l.details, l.evenement.slice("tache_".length)) === "—"
                           ? "Aucun résultat détaillé enregistré pour ce passage."
-                          : resumerBilan(l.details)}
+                          : resumerBilan(l.details, l.evenement.slice("tache_".length))}
                       </p>
                     )}
                   </li>

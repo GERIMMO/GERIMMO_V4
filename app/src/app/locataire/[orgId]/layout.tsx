@@ -126,8 +126,9 @@ export default async function LayoutLocataire({
                 ? `${(personne.prenom?.[0] ?? "").toUpperCase()}${(personne.nom?.[0] ?? "").toUpperCase()}`
                 : "◇"
             }
+            // Plus de « Locataire » sous le nom (25/09, D39) : la barre
+            // latérale dit déjà « Espace locataire ».
             titre={personne ? nomComplet(personne) : organisation.name}
-            sousTitre="Locataire"
             liens={[
               { href: "/compte", libelle: "Sécurité du compte" },
               { href: "/espaces", libelle: "Mes espaces" },
@@ -149,11 +150,9 @@ export default async function LayoutLocataire({
             documents et décompte de restitution.
           </p>
         )}
-        {/* sm:pb-20 : au-delà du téléphone, le bouton flottant « Aide et
-            retours » (bas-droite, 64 px) mordait la dernière carte — l'angle
-            de la carte d'urgence, dans l'axe de « Contacter » (24/09). La
-            marge le laisse sous le contenu en fin de page. */}
-        <main className="loc-corps mx-auto sm:pb-20">{children}</main>
+        {/* Plus de marge basse réservée au rond flottant (25/09, D40) : l'aide
+            vit dans la barre latérale, le rond n'existe plus chez le locataire. */}
+        <main className="loc-corps mx-auto">{children}</main>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
   PIECES_INCIDENT,
 } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -21,7 +22,7 @@ const classeSelect =
 
 // Repère juridique de la catégorie choisie : une information pour l'agent,
 // jamais une pré-sélection (RM-7.2.1)
-export function RepereJuridique({ slug }: { slug: string }) {
+export function RepereJuridique({ slug, estProprietaire = false }: { slug: string; estProprietaire?: boolean }) {
   const repere = categorieIncident(slug)?.repere;
   if (!repere) return null;
   return (
@@ -30,7 +31,9 @@ export function RepereJuridique({ slug }: { slug: string }) {
       <span className="font-medium">
         {IMPUTATIONS_INCIDENT[repere.charge]?.toLowerCase()}
       </span>{" "}
-      — {repere.fondement}. C&apos;est vous qui tranchez à la qualification.
+      — {repere.fondement}.{" "}
+      {/* « qualification » est un mot d'agence (25/09, D06) */}
+      {estProprietaire ? "C'est vous qui décidez qui paie." : "C'est vous qui tranchez à la qualification."}
     </p>
   );
 }
@@ -38,9 +41,11 @@ export function RepereJuridique({ slug }: { slug: string }) {
 export function FormulaireIncident({
   orgId,
   lots,
+  estProprietaire = false,
 }: {
   orgId: string;
   lots: { id: string; libelle: string }[];
+  estProprietaire?: boolean;
 }) {
   const actionLiee = ouvrirIncident.bind(null, orgId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
@@ -89,7 +94,7 @@ export function FormulaireIncident({
             </option>
           ))}
         </select>
-        <RepereJuridique slug={categorie} />
+        <RepereJuridique slug={categorie} estProprietaire={estProprietaire} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -143,7 +148,16 @@ export function FormulaireIncident({
 
       <div className="space-y-1.5">
         <Label htmlFor="photos">Photos (5 max, JPEG ou PNG)</Label>
-        <Input id="photos" name="photos" type="file" accept="image/jpeg,image/png" multiple onChange={(e) => void compresserChampFichiers(e.currentTarget)} />
+        {/* Champ fichier habillé en français (25/09, D10) : le natif rendait
+            « Choose Files / No file chosen » sur un navigateur en anglais. */}
+        <ChampFichier
+          id="photos"
+          name="photos"
+          accept="image/jpeg,image/png"
+          multiple
+          vide="Aucune photo choisie"
+          onChange={(e) => void compresserChampFichiers(e.currentTarget)}
+        />
       </div>
 
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
@@ -152,8 +166,8 @@ export function FormulaireIncident({
         <p className="text-sm text-warning-soft-foreground">{etat.avertissement}</p>
       )}
       <div className="flex items-center gap-3">
-        <BoutonEnvoi enCoursTexte="Ouverture…">
-          Ouvrir l&apos;incident
+        <BoutonEnvoi enCoursTexte="Envoi…">
+          Déclarer l&apos;incident
         </BoutonEnvoi>
         <span className="text-xs text-muted-foreground">* champs obligatoires</span>
       </div>

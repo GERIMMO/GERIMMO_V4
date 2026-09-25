@@ -213,6 +213,23 @@ export default async function PageStatistiques(
           {incidents.length} incident{incidents.length > 1 ? "s" : ""} au total
         </span>
       </div>
+      {/* L'écran ne mesure que les incidents (25/09, D15) : on le dit au
+          propriétaire, et on l'envoie là où se lisent ses loyers plutôt que de
+          le laisser chercher un taux d'occupation qui n'est pas ici. */}
+      {estProprietaire && (
+        <p className="text-sm text-muted-foreground">
+          Le suivi chiffré de vos incidents : délais, qui paie, lots qui reviennent.
+          Vos loyers encaissés et attendus se lisent dans{" "}
+          <Link href={`/agence/${orgId}/loyers`} className="lien-discret">
+            Loyers &amp; charges
+          </Link>
+          , votre bilan annuel dans{" "}
+          <Link href={`/agence/${orgId}/comptabilite/fiscal`} className="lien-discret">
+            Fiscalité
+          </Link>
+          .
+        </p>
+      )}
 
       {/* .kpi / .eyebrow / .chiffre : la tuile de la charte, celle du tableau
           de bord et de la comptabilité. Cet écran en avait sa propre version
@@ -267,9 +284,12 @@ export default async function PageStatistiques(
         <div className="vide-guide">
           <p className="titre">Aucun incident à mesurer</p>
           <p className="explication">
+            {/* Le propriétaire lit « votre parc », jamais « cette agence » (25/09, D04) */}
             {perimetre
               ? "Aucun incident n'a encore été signalé sur les lots de votre portefeuille."
-              : "Aucun incident n'a encore été signalé dans cette agence."}{" "}
+              : estProprietaire
+                ? "Aucun incident n'a encore été signalé sur votre parc."
+                : "Aucun incident n'a encore été signalé dans cette agence."}{" "}
             Dès le premier signalement, cet écran chiffre le délai de clôture,
             la répartition des imputations et les lots qui reviennent le plus
             souvent.
@@ -331,7 +351,7 @@ export default async function PageStatistiques(
             {idsChiffres.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Aucun devis n&apos;a encore été retenu
-                {perimetre ? " sur votre portefeuille" : " dans cette agence"}. Dès
+                {perimetre ? " sur votre portefeuille" : estProprietaire ? " sur votre parc" : " dans cette agence"}. Dès
                 la première mission confiée à un artisan, cet écran chiffre le
                 coût moyen, l&apos;écart entre devis et réalisé, et la part
                 supportée par chacun.

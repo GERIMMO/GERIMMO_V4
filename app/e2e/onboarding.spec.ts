@@ -56,7 +56,7 @@ test.describe("côté client", () => {
     await page.waitForURL(/\/agence\//);
     await page.waitForLoadState("networkidle");
 
-    const bloc = page.getByRole("region", { name: /Mettre votre premier lot en location/ });
+    const bloc = page.getByRole("region", { name: /Mettre votre premier (lot|bien) en location/ });
     await expect(bloc).toHaveCount(0);
     await expect(page.getByRole("heading", { name: /Bonjour/ })).toBeVisible();
     expect(await debordementHorizontal(page)).toBe(0);

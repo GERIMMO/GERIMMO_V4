@@ -32,6 +32,13 @@ const LIBELLES: Record<string, { titre: string; geste: string }> = {
   locataire: { titre: "Un locataire", geste: "Créer sa fiche" },
   bail: { titre: "Le bail", geste: "Créer le bail" },
 };
+// Chez le propriétaire direct, « bien » et « lot » se disputaient l'écran
+// (25/09, D16) : pour qui possède un appartement, c'est la même chose. Un seul
+// mot à l'écran, le lot reste un concept de code.
+const LIBELLES_PROPRIETAIRE: Record<string, { titre: string; geste: string }> = {
+  ...LIBELLES,
+  lot_pret: { titre: "Un bien en état d'être loué", geste: "Lever ce qui bloque" },
+};
 
 function lien(orgId: string, e: Etape): string {
   switch (e.etape) {
@@ -57,12 +64,16 @@ export async function ParcoursDemarrage({
   supabase,
   orgId,
   automatiqueProposeAilleurs = false,
+  estProprietaire = false,
 }: {
   supabase: SupabaseClient;
   orgId: string;
   /** Vrai quand l'écran qui porte le bloc propose déjà l'automatique (l'assistant du tableau de bord) : on ne le dit pas deux fois. */
   automatiqueProposeAilleurs?: boolean;
+  /** Propriétaire direct : « bien » à l'écran, jamais « lot ». */
+  estProprietaire?: boolean;
 }) {
+  const libelles = estProprietaire ? LIBELLES_PROPRIETAIRE : LIBELLES;
   const [{ data, error }, reglages] = await Promise.all([
     supabase.rpc("parcours_demarrage", { p_org: orgId }),
     // Les trois envois automatiques (audit du 20/09, proposition n° 7) : le
@@ -98,7 +109,9 @@ export async function ParcoursDemarrage({
   return (
     <section className="loc-carte border-l-4 border-l-[var(--or)]" aria-labelledby="parcours-titre">
       <div className="entete-carte">
-        <h2 id="parcours-titre" className="text-[length:var(--pas-sous-titre)]">Mettre votre premier lot en location</h2>
+        <h2 id="parcours-titre" className="text-[length:var(--pas-sous-titre)]">
+          Mettre votre premier {estProprietaire ? "bien" : "lot"} en location
+        </h2>
         <span className="mono-discret">
           {faites} / {etapes.length}
         </span>
@@ -106,7 +119,7 @@ export async function ParcoursDemarrage({
 
       <ol className="mt-1 space-y-0">
         {etapes.map((e) => {
-          const libelle = LIBELLES[e.etape];
+          const libelle = libelles[e.etape];
           const courante = suivante?.etape === e.etape;
           return (
             <li
@@ -134,6 +147,16 @@ export async function ParcoursDemarrage({
                 </span>
                 {e.detail && (
                   <span className="mt-0.5 block text-xs text-muted-foreground">{e.detail}</span>
+                )}
+                {/* CHAQUE étape non faite porte son geste (25/09, D05) : seule
+                    la suivante avait un bouton, et « Un lot en état d'être
+                    loué » ou « Le bail » restaient du texte — le propriétaire
+                    devait deviner que ça se passe dans la fiche du lot. La
+                    suivante garde le bouton plein ; les autres, un lien. */}
+                {!e.faite && !courante && (
+                  <Link href={lien(orgId, e)} className="lien-discret mt-1.5 inline-block text-[13px]">
+                    {libelle?.geste ?? "Continuer"}&nbsp;→
+                  </Link>
                 )}
                 {courante && (
                   <>

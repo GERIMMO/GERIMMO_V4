@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { LectureImpossible } from "./panne-lecture";
 import {
   SuiviInterventionLocataire,
+  etapeCourte,
   type CreneauPropose,
   type SuiviIntervention,
 } from "./demandes/suivi-intervention";
@@ -143,10 +144,20 @@ function CarteIncident({
   // et le bleu à la seule carte qui attendait un geste.
   const pastille =
     incident.etat === "clos" ? "loc-tag vert" : actionAttendue ? "loc-tag ambre" : "loc-tag bleu";
+  // LA PASTILLE DIT L'ÉTAPE (25/09, D43) : deux cartes côte à côte lisaient
+  // « Un artisan s'en occupe » (une étape) et « Pris en charge par le
+  // propriétaire » (qui paie) au même emplacement, alors que la seconde en
+  // était à « nous cherchons un artisan ». Dès qu'une intervention existe,
+  // la pastille suit son étape ; la prise en charge reste dans sa rangée.
+  const etapePastille = suivi && incident.etat !== "clos" ? etapeCourte(suivi.etape) : null;
+  const textePastille =
+    etapePastille ?? libelleEtatLocataire(incident.etat, incident.imputation);
   // Ce que la pastille dit déjà, la rangée « Qui prend en charge » ne le
   // répète pas mot pour mot.
   const priseEnChargeAnnoncee =
-    incident.etat === "qualifie" && incident.imputation === "proprietaire";
+    etapePastille === null &&
+    incident.etat === "qualifie" &&
+    incident.imputation === "proprietaire";
 
   return (
     <div
@@ -155,11 +166,14 @@ function CarteIncident({
     >
       <div className="entete-carte !mb-0">
         <h3 className="text-base font-medium">{titreIncident(incident.categorie)}</h3>
-        <span className={pastille}>{libelleEtatLocataire(incident.etat, incident.imputation)}</span>
+        <span className={pastille}>{textePastille}</span>
       </div>
       {incident.description && <p className="line-clamp-2 text-sm">{incident.description}</p>}
+      {/* Plus de « INC-2026-0001 » (25/09, D41) : aucun code interne à
+          l'écran — la date, la pièce et les photos suffisent à reconnaître
+          sa demande. */}
       <p className="text-xs text-muted-foreground">
-        {incident.numero} · déclaré le {formaterDate(incident.declare_le)}
+        Déclaré le {formaterDate(incident.declare_le)}
         {incident.piece ? ` · ${incident.piece}` : ""}
         {incident.nb_photos > 0
           ? ` · ${incident.nb_photos} photo${incident.nb_photos > 1 ? "s" : ""}`

@@ -11,12 +11,14 @@ import { useRouter } from "next/navigation";
 // tous les cas : l'accueil, la liste des loyers, ou le lien reçu par email.
 // Quand il n'y a pas d'historique — onglet neuf ouvert sur le lien d'un
 // email — on retombe sur le sélecteur d'espaces, d'où tout est accessible.
-export function BoutonRetour({ repli = "/espaces", libelle = "Retour" }: { repli?: string; libelle?: string }) {
+// `className` (25/09, D11) : sur un document hors coquille, le retour est le
+// seul chemin — un bouton de la charte plutôt qu'un lien de 12 px.
+export function BoutonRetour({ repli = "/espaces", libelle = "Retour", className = "lien-discret" }: { repli?: string; libelle?: string; className?: string }) {
   const router = useRouter();
   return (
     <button
       type="button"
-      className="lien-discret"
+      className={className}
       onClick={() => {
         // `history.length` vaut 1 sur un onglet neuf ; au-delà, on a une page
         // d'où l'on vient. Ce n'est pas infaillible (le compteur inclut les

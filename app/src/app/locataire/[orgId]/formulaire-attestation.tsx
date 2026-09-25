@@ -6,6 +6,7 @@ import {
   type EtatAttestation,
 } from "@/app/actions/attestation-locataire";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -38,7 +39,8 @@ export function FormulaireAttestation({
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="att-fichier">Fichier (PDF/JPG/PNG)</Label>
-          <Input id="att-fichier" name="fichier" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
+          {/* Champ fichier en français (25/09, D10) */}
+          <ChampFichier id="att-fichier" name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="att-expire">Date d&apos;expiration</Label>

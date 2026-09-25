@@ -307,6 +307,20 @@ export function ListeAlertes({
               </Button>
             </span>
           )}
+          {/* Le propriétaire lisait « 2 points à régler » sur son accueil et
+              « journée dégagée » ici (25/09, D03) : ce qui bloque une mise en
+              location (DPE, ERP…) n'est pas une alerte, il vit dans Mes lots.
+              On le dit, et on y mène. */}
+          {filtre === "toutes" && estProprietaire && (
+            <p className="explication">
+              Ce qui reste à régler avant de louer un lot (diagnostics, pièces) n&apos;est
+              pas une alerte : il se lit sur la fiche du lot, dans{" "}
+              <Link href={`/agence/${orgId}/parc`} className="lien-discret">
+                Mes lots
+              </Link>
+              .
+            </p>
+          )}
         </div>
       ) : (
         <div className="colonne-liste">

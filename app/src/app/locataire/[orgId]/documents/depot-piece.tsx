@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { deposerMaPiece, type EtatPieceDemandee } from "@/app/actions/pieces-demandees";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { ChampFichier } from "@/components/champ-fichier";
 import { formaterDate } from "@/lib/ged";
 
 export type DemandePiece = {
@@ -43,13 +44,14 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
           {demande.note ? ` · ${demande.note}` : ""} — une photo lisible suffit
         </small>
       </span>
-      <input
-        type="file"
+      {/* Champ fichier en français (25/09, D10) */}
+      <ChampFichier
+        id={`piece-${demande.id}`}
         name="fichier"
         accept=".pdf,.jpg,.jpeg,.png"
         required
         aria-label={`Fichier pour ${demande.libelle}`}
-        className="w-full text-xs sm:w-auto sm:max-w-48"
+        className="w-full sm:w-auto sm:max-w-72"
       />
       <BoutonEnvoi enCoursTexte="Envoi…" size="sm">
         Déposer

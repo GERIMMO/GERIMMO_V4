@@ -11,6 +11,7 @@ import {
   fichiersDuChamp,
 } from "@/lib/photos-declaration";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { ChampFichier } from "@/components/champ-fichier";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -189,13 +190,16 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
             <Label htmlFor="photos">Photos (jusqu&apos;à 5)</Label>
             {/* Compressées à la prise (RM-19.1.3) : une photo de téléphone
                 pèse 8-15 Mo, le réseau d'un logement rarement autant */}
-            <Input
+            {/* Champ fichier en français (25/09, D10) : le natif rendait
+                « Choose Files / No file chosen » selon le navigateur. */}
+            <ChampFichier
               ref={champPhotos}
               id="photos"
               name="photos"
-              type="file"
               accept="image/jpeg,image/png"
               multiple
+              libelle="Choisir des photos"
+              vide="Aucune photo choisie"
               onChange={(e) => {
                 const champ = e.currentTarget;
                 void compresserChampFichiers(champ).then(() =>

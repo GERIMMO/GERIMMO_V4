@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BarreBasse } from "@/components/barre-laterale";
+import { LienAssistance } from "@/components/bouton-assistance";
 import type { NavigationEspace } from "@/lib/navigation-espace";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const IC: Record<string, string> = {
   outil: '<path d="M14.5 6.5a4 4 0 0 0-5.6 4.9L4 16.3V20h3.7l4.9-4.9a4 4 0 0 0 4.9-5.6L15 12l-3-3z"/>',
   bulle: '<path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/>',
   quest: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.8.3-.9 1-.9 1.7M12 17h.01"/>',
+  aide: '<path d="M21 11.5a8 8 0 0 1-8 8H5l-2 2v-10a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M12 8v4M12 15h.01"/>',
 };
 
 function Icone({ nom }: { nom: string }) {
@@ -117,6 +119,15 @@ export function SidebarLocataire({
           </Link>
         );
       })}
+      {/* L'aide, en dernier et à part (25/09, D40) : le rond flottant
+          recouvrait le contenu sur bureau ; comme dans l'espace agence, elle
+          vit dans la barre. Sur téléphone, le tiroir « Menu » la porte déjà. */}
+      <div className="mt-auto border-t border-[var(--filet)] pt-1">
+        <LienAssistance title="Aide et retours">
+          <Icone nom="aide" />
+          <span className="lib">Aide et retours</span>
+        </LienAssistance>
+      </div>
     </nav>
     </>
   );

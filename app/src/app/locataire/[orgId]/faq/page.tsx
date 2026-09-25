@@ -95,7 +95,8 @@ export default async function PageFaqLocataire(props: PageProps<"/locataire/[org
     <div className="space-y-4">
       <div className="entete-page">
         <h1>Questions fréquentes</h1>
-        <span className="mono-discret">{liste.length} réponses</span>
+        {/* Plus de « 6 réponses » en capitales (25/09, D26) : le chiffre
+            n'apprenait rien, la liste est sous les yeux. */}
       </div>
       {/* Deux colonnes au-delà de 1024 px (24/09) : en une seule, bridée à
           68 caractères, la carte laissait ses deux cinquièmes droits vides

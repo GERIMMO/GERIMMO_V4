@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
-import { actionsAttendues, sansAlertesDoublonnees } from "@/lib/actions-attendues";
+import { chargerActionsDuJour, type ActionDuJour } from "@/lib/actions-du-jour";
 import { ParcoursDemarrage } from "@/components/parcours-demarrage";
 
 // Statut de l'organisation (enum public.organization_status) : un compte
@@ -25,10 +25,13 @@ export async function AccueilProprietaire({
   orgId,
   organisation,
   prenom = null,
+  userId,
 }: {
   supabase: SupabaseClient;
   orgId: string;
   organisation: { name: string; status: string; essai_fin: string | null };
+  /** Le compte connecté : le plan du jour se lit pour lui (mêmes lectures que la pastille « Alertes »). */
+  userId: string;
   // Prénom du compte connecté (métadonnées d'inscription) — audit 09/09
   prenom?: string | null;
 }) {
@@ -38,13 +41,14 @@ export async function AccueilProprietaire({
     { data: etatAbonnementBrut, error: erreurAbonnement },
     { data: tranchesBrut },
     { data: encaissements, error: erreurEncaissements },
-    { data: alertesBrutes, error: erreurAlertes },
     { data: dpe, error: erreurDpe },
-    // « À faire » ne repose plus sur les seules alertes (audit 09/09) : la
-    // même source que la fiche bail — impayés, EDL d'entrée, diagnostics
-    // obligatoires, pièces expirées — sinon l'accueil disait « tout est en
-    // ordre » pendant que le bail affichait trois blocages.
-    aFaireBaux,
+    // « À faire » lit LE plan du jour (25/09, D03) — le même calcul que la
+    // pastille « Alertes » de la barre et que la page Alertes
+    // (lib/actions-du-jour) : baux bloqués, alertes ouvertes dédoublonnées,
+    // rapports à valider. L'accueil additionnait ses propres lectures (cinq
+    // alertes, les actions sur les baux) et disait « 2 à faire » quand la page
+    // Alertes disait « journée dégagée ».
+    lecturePlan,
     { data: lotsEngagesBruts, error: erreurLotsEngages },
   ] = await Promise.all([
     supabase
@@ -63,13 +67,6 @@ export async function AccueilProprietaire({
       .select("montant")
       .eq("organization_id", orgId)
       .gte("date_paiement", moisCourant),
-    supabase
-      .from("alerts")
-      .select("id, titre, criticite, echeance, type, details")
-      .eq("organization_id", orgId)
-      .eq("statut", "ouverte")
-      .order("echeance", { ascending: true, nullsFirst: false })
-      .limit(5),
     // Veille réglementaire : DPE F et G — interdiction de louer (G depuis
     // 2025, F au 1ᵉʳ janvier 2028, loi Climat et résilience)
     supabase
@@ -79,7 +76,8 @@ export async function AccueilProprietaire({
       .eq("type", "dpe")
       .in("classe_dpe", ["F", "G"])
       .is("archived_at", null),
-    actionsAttendues(supabase, orgId),
+    // Le propriétaire direct voit tout son parc : pas de portefeuille.
+    chargerActionsDuJour(supabase, orgId, { userId, portefeuille: null }),
     // Lots déjà engagés : bail vivant OU seulement commencé. Sert au rappel
     // « prêt à louer, aucun bail » ci-dessous.
     supabase
@@ -89,18 +87,17 @@ export async function AccueilProprietaire({
       .in("etat", ["brouillon", "actif", "preavis"]),
   ]);
 
-  // Une alerte qui répète un item calculé (EDL d'entrée) ne s'affiche pas deux fois
-  const alertes = sansAlertesDoublonnees(
-    ((alertesBrutes ?? []) as {
-      id: string;
-      titre: string;
-      criticite: string;
-      echeance: string | null;
-      type: string;
-      details: Record<string, unknown> | null;
-    }[]),
-    aFaireBaux
-  );
+  const { plan, erreurs: erreursPlan } = lecturePlan;
+  const erreurAlertes = erreursPlan.alertes || erreursPlan.rapports;
+  // Les rangs du plan, dans l'ordre de la page Alertes : les baux à débloquer,
+  // puis ce qui est en retard, puis ce qui vient.
+  const actionsDuJour: ActionDuJour[] = [...plan.surLesBaux, ...plan.enRetard, ...plan.aVenir];
+  // Le geste d'un rang : l'écran qui résout (bail, rapport, incident) ou la
+  // pop-up « Traiter » de la page Alertes, ouverte d'emblée sur l'alerte.
+  const cibleAction = (a: ActionDuJour): string =>
+    a.source === "alerte" ? (a.href ?? `/agence/${orgId}/alertes?traiter=${a.alerte.id}`) : a.href;
+  const gesteAction = (a: ActionDuJour) =>
+    a.source === "bail" ? "Résoudre" : a.source === "rapport" ? "Valider" : "Traiter";
 
   // Relevé du 11/09 : la carte « À faire » ne pouvait structurellement RIEN
   // dire d'un lot prêt à louer. `actionsAttendues` part des baux « actif » ou
@@ -142,10 +139,10 @@ export async function AccueilProprietaire({
   // Une lecture tombée ne rend pas de verdict : ni « tout est en ordre », ni
   // « 0 € encaissé », ni « 0 lot ». On le dit en tête, et chaque chiffre
   // concerné s'efface plutôt que d'afficher un zéro trompeur.
-  const lectureEnEchec = [erreurLots, erreurAbonnement, erreurEncaissements, erreurAlertes, erreurLotsEngages].some(
-    (e) => e != null
-  );
-  const aFaireIncertain = erreurLots != null || erreurAlertes != null || erreurLotsEngages != null;
+  const lectureEnEchec =
+    [erreurLots, erreurAbonnement, erreurEncaissements, erreurLotsEngages].some((e) => e != null) ||
+    erreurAlertes;
+  const aFaireIncertain = erreurLots != null || erreurAlertes || erreurLotsEngages != null;
 
   const nbLots = (lots ?? []).length;
   const loues = (lots ?? []).filter((l) => l.etat === "loue" || l.etat === "preavis").length;
@@ -194,7 +191,7 @@ export async function AccueilProprietaire({
           celui qui vient de s'inscrire n'a ni chiffre ni action à lire, il a
           besoin de savoir par où commencer. Le bloc disparaît de lui-même une
           fois le premier bail actif. */}
-      <ParcoursDemarrage supabase={supabase} orgId={orgId} />
+      <ParcoursDemarrage supabase={supabase} orgId={orgId} estProprietaire />
 
       {lectureEnEchec && (
         <div className="err !mb-0" role="alert">
@@ -276,10 +273,10 @@ export async function AccueilProprietaire({
             <div className="entete-carte">
               <h2 className="text-[length:var(--pas-sous-titre)]">À faire</h2>
               <Link href={`/agence/${orgId}/alertes`} className="lien-discret text-[13px]">
-                Toutes mes alertes →
+                {plan.total > 0 ? `${plan.total} à traiter` : "Toutes mes alertes"}&nbsp;→
               </Link>
             </div>
-            {aFaireBaux.length === 0 && alertes.length === 0 && lotsAouer.length === 0 ? (
+            {actionsDuJour.length === 0 ? (
               aFaireIncertain ? (
                 <p className="text-sm text-destructive-soft-foreground" role="alert">
                   Impossible de vérifier ce qui vous attend : la lecture a échoué.
@@ -295,22 +292,47 @@ export async function AccueilProprietaire({
                 {/* TOUT LE RANG EST LE LIEN (24/09) : seul le petit bouton de
                     droite réagissait, ni le titre ni le reste du rang. Le
                     geste devient un mot-flèche discret à droite. */}
-                {/* Ce que la fiche de chaque bail affiche comme blocage —
-                    même calcul, même liste (source commune) */}
-                {aFaireBaux.map((a) => (
+                {/* Les mêmes rangs, dans le même ordre, que la page Alertes
+                    (source commune : lib/actions-du-jour). */}
+                {actionsDuJour.map((a) => (
                   <li key={a.cle}>
-                    <Link href={a.href} className="rang px-2 py-2.5 text-sm">
+                    <Link href={cibleAction(a)} className="rang px-2 py-2.5 text-sm">
                       <span className="min-w-0 flex-1">
                         {a.titre}
-                        {a.detail && (
-                          <small className="block text-muted-foreground">{a.detail}</small>
+                        {(a.detail || a.echeance) && (
+                          <small className="block text-muted-foreground">
+                            {[a.detail, a.echeance ? `échéance le ${formaterDate(a.echeance)}` : null]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </small>
                         )}
                       </span>
-                      {a.critique && <span className="loc-tag rouge shrink-0">critique</span>}
-                      <span className="lien-discret shrink-0">Résoudre&nbsp;→</span>
+                      {a.criticite === "critique" && (
+                        <span className="loc-tag rouge shrink-0">critique</span>
+                      )}
+                      <span className="lien-discret shrink-0">{gesteAction(a)}&nbsp;→</span>
                     </Link>
                   </li>
                 ))}
+              </ul>
+            )}
+          </div>
+
+          {/* AVANT LA MISE EN LOCATION — à part de « À faire » (25/09, D03).
+              Un lot disponible dont le DPE ou l'ERP manque n'est pas une
+              alerte : la page Alertes ne le reprend pas, la fiche du lot le
+              dit. Rangé sous « Toutes mes alertes », il faisait lire « 2 points
+              à régler » ici et « journée dégagée » là-bas. La carte porte son
+              propre chemin, vers Mes lots. */}
+          {(lotsAouer.length > 0 || lotsSansBail.length > 3) && (
+            <div className="loc-carte">
+              <div className="entete-carte">
+                <h2 className="text-[length:var(--pas-sous-titre)]">Avant la mise en location</h2>
+                <Link href={`/agence/${orgId}/parc`} className="lien-discret text-[13px]">
+                  Mes lots&nbsp;→
+                </Link>
+              </div>
+              <ul className="divide-y divide-border">
                 {/* Un lot prêt dont le bail reste à écrire : le seul formulaire
                     de création vit derrière l'ancre #baux de sa fiche. */}
                 {lotsAouer.map((l) => {
@@ -327,7 +349,7 @@ export async function AccueilProprietaire({
                           {illisible
                             ? "disponible, aucun bail"
                             : bloque
-                              ? `${l.blocages!.length} point${l.blocages!.length > 1 ? "s" : ""} à régler avant la mise en location`
+                              ? `${l.blocages!.length} point${l.blocages!.length > 1 ? "s" : ""} à régler avant de louer`
                               : "prêt à louer, aucun bail"}
                           <small className="block text-muted-foreground">
                             {illisible
@@ -358,30 +380,9 @@ export async function AccueilProprietaire({
                     </Link>
                   </li>
                 )}
-                {alertes.map((a) => (
-                  <li key={a.id}>
-                    <Link
-                      href={`/agence/${orgId}/alertes?traiter=${a.id}`}
-                      className="rang px-2 py-2.5 text-sm"
-                    >
-                      <span className="min-w-0 flex-1">
-                        {a.titre}
-                        {a.echeance && (
-                          <small className="block text-muted-foreground">
-                            échéance le {formaterDate(a.echeance)}
-                          </small>
-                        )}
-                      </span>
-                      {a.criticite === "critique" && (
-                        <span className="loc-tag rouge shrink-0">critique</span>
-                      )}
-                      <span className="lien-discret shrink-0">Traiter&nbsp;→</span>
-                    </Link>
-                  </li>
-                ))}
               </ul>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-4">

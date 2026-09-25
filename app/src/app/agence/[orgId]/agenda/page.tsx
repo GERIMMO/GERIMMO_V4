@@ -173,13 +173,17 @@ export default async function PageAgenda({ params, searchParams }: {
           <div className="agenda-vide">
             <CalendarDays className="size-8" aria-hidden="true" />
             <h3>Aucun rendez-vous ce jour-là</h3>
-            <p>Les dates choisies dans les dossiers d’incident apparaissent ici automatiquement. Un chiffre sur une case du calendrier signale un jour occupé.</p>
+            {/* D'où viennent les dates, et le geste réel (25/09, D14) : on ne
+                pose pas de rendez-vous ici — il naît d'un incident, quand
+                l'artisan et vous convenez du créneau. Pas de bouton « Ajouter
+                un rendez-vous » qui n'existerait pas derrière. */}
+            <p>Un rendez-vous naît d’un dossier d’incident : une fois l’incident déclaré et l’artisan retenu, la date convenue s’inscrit ici d’elle-même. Un chiffre sur une case du calendrier signale un jour occupé.</p>
             {/* Un geste, comme les états vides des deux autres onglets (24/09) :
-                vers les dates à confirmer s'il y en a, sinon vers les
-                incidents — pas d'un état vide à un autre. */}
+                vers les dates à confirmer s'il y en a, sinon vers la
+                déclaration — pas d'un état vide à un autre. */}
             {(comptesVues?.["a-planifier"] ?? 0) > 0
               ? <Link className="lien-discret" href={lien("a-planifier")}>Voir les dates à confirmer →</Link>
-              : <Link className="lien-discret" href={`${base}/incidents`}>Voir mes incidents →</Link>}
+              : <Link className="lien-discret" href={`${base}/incidents/nouveau`}>Déclarer un incident →</Link>}
           </div>
         ) : duJour.map((r) => <CarteRendezVous key={r.id} r={r} base={base} />)}
       </section>

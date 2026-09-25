@@ -90,11 +90,14 @@ export function LienAssistance({
  */
 export function BoutonAssistance() {
   const chemin = usePathname();
-  const espace = /^\/(locataire|artisan|admin|espaces)(\/|$)/.exec(chemin)?.[1];
+  const espace = /^\/(artisan|admin|espaces)(\/|$)/.exec(chemin)?.[1];
   if (!espace) return null;
   // Chaque coque a sa place libre (tour du 24/09) :
-  // - locataire : sur téléphone, l'aide est dans le tiroir « Menu » ; le rond
-  //   recouvrait le bord droit des cartes, il ne s'affiche qu'à partir de 640 px ;
+  // - locataire : PLUS DE ROND (25/09, D40). Sur bureau il recouvrait la carte
+  //   « Mon gestionnaire », le choix du créneau et la fin de « Vous quittez le
+  //   logement ? » — le contenu du locataire va jusqu'au bord droit. L'aide vit
+  //   dans la barre latérale (nav-locataire) et, sur téléphone, dans le tiroir
+  //   « Menu » ; le chemin est retiré du filtre ci-dessus ;
   // - artisan : la barre d'onglets est fixe à toutes les largeurs, le bouton
   //   reste au-dessus d'elle (80 px du bas) et ne l'écrase plus sur bureau ;
   // - console : pas de barre basse, le rond tient dans la gouttière à 12 px du
@@ -105,9 +108,7 @@ export function BoutonAssistance() {
       ? "flex right-3 bottom-3 2xl:size-auto 2xl:min-h-11 2xl:px-4 2xl:right-5 2xl:bottom-5"
       : espace === "artisan"
         ? "flex right-3 bottom-20 sm:size-auto sm:min-h-11 sm:px-4 sm:right-5"
-        : espace === "locataire"
-          ? "hidden sm:flex right-3 bottom-20 sm:size-auto sm:min-h-11 sm:px-4 sm:right-5 sm:bottom-5"
-          : "flex right-3 bottom-20 sm:size-auto sm:min-h-11 sm:px-4 sm:right-5 sm:bottom-5";
+        : "flex right-3 bottom-20 sm:size-auto sm:min-h-11 sm:px-4 sm:right-5 sm:bottom-5";
   const libelle = espace === "admin" ? "hidden 2xl:inline" : "hidden sm:inline";
   return (
     <LienAssistance className={`fixed z-30 size-11 items-center justify-center gap-2 rounded-full border border-[var(--filet)] bg-[var(--ivoire)] text-sm font-medium text-[var(--encre)] shadow-sm hover:border-[var(--or)] ${position}`}>

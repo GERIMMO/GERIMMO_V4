@@ -216,3 +216,4 @@
 20260925013000_marketing_images_et_diffusion.sql
 20260925120000_point_du_matin.sql
 20260925130000_documents_portefeuille_bail_diagnostic.sql
+20260925150000_dossier_compte_supervision.sql

@@ -36,6 +36,12 @@
     "dynamic": ""
   },
   {
+    "path": "/admin/comptes/ACCOUNT",
+    "persona": "superadmin",
+    "label": "Fiche de débogage d’un compte (état, rôles, journaux)",
+    "dynamic": "accountId"
+  },
+  {
     "path": "/admin/clients/artisans/ARTISAN",
     "persona": "superadmin",
     "label": "Fiche artisan",

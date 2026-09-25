@@ -26,6 +26,7 @@ type Adhesion = {
   id: string;
   role: string;
   status: string;
+  account_id: string;
   account: { email: string } | null;
 };
 
@@ -69,7 +70,7 @@ export default async function PageAdminOrganisation(
       .eq("organization_id", orgId),
     supabase
       .from("memberships")
-      .select("id, role, status, account:accounts(email)")
+      .select("id, role, status, account_id, account:accounts(email)")
       .eq("organization_id", orgId),
     supabase
       .from("lots")
@@ -244,13 +245,19 @@ export default async function PageAdminOrganisation(
         ) : (
           <ul className="divide-y divide-[var(--filet-leger)]">
             {adhesions.map((m) => (
-              <li key={m.id} className="py-2 text-sm">
-                <span className="font-medium break-all">
-                  {m.account?.email ?? "Adresse inconnue"}
-                </span>{" "}
-                <span className="text-[var(--texte-secondaire)]">
-                  — {libelleRole(m.role)} (adhésion {libelleStatutAdhesion(m.status)})
+              <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                <span>
+                  <span className="font-medium break-all">
+                    {m.account?.email ?? "Adresse inconnue"}
+                  </span>{" "}
+                  <span className="text-[var(--texte-secondaire)]">
+                    — {libelleRole(m.role)} (adhésion {libelleStatutAdhesion(m.status)})
+                  </span>
                 </span>
+                {/* La fiche de débogage du compte (25/09) : état de connexion, rôles, journaux. */}
+                <Link href={`/admin/comptes/${m.account_id}`} className="lien-discret whitespace-nowrap">
+                  Fiche du compte →
+                </Link>
               </li>
             ))}
           </ul>

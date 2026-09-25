@@ -22,6 +22,13 @@ node scripts/vercel/verifier.mjs                      # état, code de sortie 1 
 node scripts/vercel/verifier.mjs --poser .env.local   # pose EN PRODUCTION ce qui manque, depuis le fichier
 ```
 
+Le même contrôle existe en workflow GitHub, « Variables Vercel »
+(`.github/workflows/variables-vercel.yml`) : il lit le secret `VERCEL_TOKEN` du
+dépôt (celui de la publication contrôlée) et écrit le rapport dans le résumé du
+job. Il se lance à la main depuis `main`, et tourne seul quand ses propres
+fichiers changent. Tant que le secret n'est pas posé sur GitHub, il le dit et
+s'arrête.
+
 Le script ne montre jamais une valeur, n'écrase rien (seules les variables
 absentes sont créées, sur les cibles où elles manquent) et refuse une valeur
 mal formée avant tout appel : clé secrète sous un nom `NEXT_PUBLIC_`, clé

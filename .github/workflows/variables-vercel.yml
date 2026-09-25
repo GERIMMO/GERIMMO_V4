@@ -49,6 +49,12 @@ jobs:
           VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID || 'team_dXzIokNudrLR87DxLPeIYaGu' }}
           CIBLES: ${{ inputs.cibles || 'production,preview' }}
         run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            msg="Secret VERCEL_TOKEN absent du dépôt (Settings > Secrets and variables > Actions) : aucun contrôle possible."
+            echo "$msg" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then echo "::error::$msg"; exit 1; fi
+            echo "::warning::$msg"; exit 0
+          fi
           code=0
           node scripts/vercel/verifier.mjs --cibles "$CIBLES" > rapport.txt 2>&1 || code=$?
           cat rapport.txt

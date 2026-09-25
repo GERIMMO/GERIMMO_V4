@@ -1,5 +1,8 @@
 const ACTIONS: Record<string, string> = {
   consultation_organisation: "Consultation d’une organisation",
+  traversee_espace: "Consultation d’un espace client par la supervision",
+  traversee_action: "Accès à une action dans un espace client par la supervision",
+  consultation_piece_artisan: "Consultation d’un justificatif artisan",
   consultation_document: "Consultation d’un document",
   telechargement_document: "Téléchargement d’un document",
   purge_retention: "Nettoyage des données arrivées à échéance",

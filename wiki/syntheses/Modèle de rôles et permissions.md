@@ -3,7 +3,7 @@ type: synthesis
 tags: [roles, permissions, rbac, multi-tenant]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-09-25
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
 ---
 

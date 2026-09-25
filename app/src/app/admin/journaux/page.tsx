@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { BoutonPurge } from "./bouton-purge";
 import { libelleAccesDocument, libelleActionAudit, libelleEvenement } from "@/lib/libelles-journaux";
+import { resumerBilan } from "@/lib/sante-service";
 
 export const metadata = { title: "Journaux et conservation — Gerimmo" };
 
@@ -80,7 +81,7 @@ export default async function PageJournaux() {
       .limit(15),
     supabase
       .from("tech_log")
-      .select("evenement, created_at")
+      .select("evenement, details, created_at")
       .order("created_at", { ascending: false })
       .limit(15),
     supabase
@@ -240,12 +241,13 @@ export default async function PageJournaux() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card id="historique-service" className="scroll-mt-6">
           <CardHeader>
             <CardTitle className="text-base">Historique du service</CardTitle>
             <CardDescription>
-              Travail automatique, connexions et difficultés rencontrées,
-              conservés 6 mois.
+              Résultats du travail automatique, connexions et difficultés
+              rencontrées, conservés 6 mois. Les actions à reprendre restent
+              visibles même lorsqu’une partie du travail a réussi.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -272,6 +274,13 @@ export default async function PageJournaux() {
                     <span className="ml-2 text-xs text-muted-foreground">
                       {formaterDateHeure(l.created_at)}
                     </span>
+                    {l.evenement?.startsWith("tache_") && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {resumerBilan(l.details) === "—"
+                          ? "Aucun résultat détaillé enregistré pour ce passage."
+                          : resumerBilan(l.details)}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>

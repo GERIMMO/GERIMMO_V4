@@ -11,13 +11,13 @@ import {
 import { EchecLecture } from "../../documents/echec-lecture";
 import { FormulaireIncident } from "./formulaire-incident";
 
-export const metadata = { title: "Nouvel incident — Gerimmo" };
+export const metadata = { title: "Déclarer un incident — Gerimmo" };
 
 export default async function PageNouvelIncident(
   props: PageProps<"/agence/[orgId]/incidents/nouveau">
 ) {
   const { orgId } = await props.params;
-  const { supabase, organisation } = await verifierAccesEspace(orgId);
+  const { supabase, estProprietaire } = await verifierAccesEspace(orgId);
 
   // Les lots où un incident peut s'ouvrir : tout le parc non archivé.
   // FK explicite (recette 23/08) : lots→biens porte DEUX clés (simple +
@@ -41,21 +41,23 @@ export default async function PageNouvelIncident(
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
+      {/* L'en-tête de l'espace (25/09, D09) : cette page avait un fil
+          d'Ariane et un titre nu, seule de son genre — `.entete-page` comme
+          ses sœurs, le retour au-dessus, la phrase dessous. Un seul verbe par
+          persona (D25) : « déclarer », celui du menu. */}
       <div className="mb-6">
+        <Link href={`/agence/${orgId}/incidents`} className="lien-discret text-[13px]">
+          ← Incidents
+        </Link>
+        <div className="entete-page mt-2">
+          <h1>Déclarer un incident</h1>
+        </div>
         <p className="text-sm text-muted-foreground">
-          <Link href={`/agence/${orgId}`} className="hover:underline">
-            {organisation.name}
-          </Link>{" "}
-          /{" "}
-          <Link href={`/agence/${orgId}/incidents`} className="hover:underline">
-            Incidents
-          </Link>{" "}
-          / Nouvel incident
-        </p>
-        <h1>Nouvel incident</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Ouvert par le gestionnaire, par exemple après un appel du locataire. S&apos;il y a
-          un bail actif sur le lot, le locataire suivra l&apos;incident depuis son espace.
+          {/* Les mots du propriétaire, pas ceux du gestionnaire d'agence
+              (25/09, D06) : il saisit lui-même, après l'appel de son locataire. */}
+          {estProprietaire
+            ? "Vous le saisissez vous-même, par exemple après un appel de votre locataire. S'il a un bail actif, il suivra l'incident depuis son espace."
+            : "Ouvert par le gestionnaire, par exemple après un appel du locataire. S'il y a un bail actif sur le lot, le locataire suivra l'incident depuis son espace."}
         </p>
       </div>
 
@@ -69,7 +71,7 @@ export default async function PageNouvelIncident(
             {erreurLots ? (
               <EchecLecture quoi={["les lots du parc"]} />
             ) : (
-              <FormulaireIncident orgId={orgId} lots={lots} />
+              <FormulaireIncident orgId={orgId} lots={lots} estProprietaire={estProprietaire} />
             )}
           </CardContent>
         </Card>
@@ -78,15 +80,16 @@ export default async function PageNouvelIncident(
           <CardHeader>
             <CardTitle className="text-base">Ce qui va se passer</CardTitle>
             <CardDescription>
-              L&apos;incident arrive « à qualifier » : vous tranchez l&apos;imputation
-              (qui paie) avec une justification opposable, le locataire en est informé
-              immédiatement. Rien n&apos;est confié à un artisan sans imputation.
+              {estProprietaire
+                ? "Une fois déclaré, vous dites qui paie la réparation — vous ou le locataire — en expliquant pourquoi ; il en est prévenu aussitôt. Rien n'est confié à un artisan avant."
+                : "L'incident arrive « à qualifier » : vous tranchez l'imputation (qui paie) avec une justification opposable, le locataire en est informé immédiatement. Rien n'est confié à un artisan sans imputation."}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             <p>
-              Le repère juridique affiché sous la catégorie est une information —
-              la cause ne se déduit pas de la catégorie, c&apos;est vous qui tranchez.
+              {estProprietaire
+                ? "Le repère juridique affiché sous la catégorie est une information — la cause ne se déduit pas de la catégorie, c'est vous qui décidez."
+                : "Le repère juridique affiché sous la catégorie est une information — la cause ne se déduit pas de la catégorie, c'est vous qui tranchez."}
             </p>
           </CardContent>
         </Card>

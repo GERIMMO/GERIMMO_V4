@@ -154,7 +154,7 @@ test.describe("Côté admin d'agence", () => {
     await page.getByRole("button", { name: "Menu", exact: true }).click();
     const menu = page.getByRole("navigation", { name: /\(tout\)/ });
     await expect(menu.getByRole("link", { name: /Documents/ })).toBeVisible();
-    await expect(menu.getByRole("link", { name: /Comptabilité/ })).toBeVisible();
+    await expect(menu.getByRole("link", { name: /Écritures & rapports/ })).toBeVisible();
   });
 
   test("il ouvre la MÊME fenêtre que l'agent", async ({ page }) => {

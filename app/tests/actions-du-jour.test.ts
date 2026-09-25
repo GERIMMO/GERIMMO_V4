@@ -82,6 +82,15 @@ describe("regrouperActionsDuJour — le compte", () => {
     expect(plan.aVenir).toHaveLength(1);
     expect(plan.total).toBe(3);
     expect(plan.total).toBe(plan.surLesBaux.length + plan.enRetard.length + plan.aVenir.length);
+    // Le blocage sur le bail et le rapport échu sont tous deux en retard ;
+    // l'alerte du 30/09 ne l'est pas.
+    expect(plan.retards).toBe(2);
+  });
+
+  it("compte un impayé sur un bail comme un retard, même sans échéance", () => {
+    const plan = regrouper({ attendues: [attendue({ cle: "impaye-b1", critique: true })] });
+    expect(plan.enRetard).toHaveLength(0);
+    expect(plan.retards).toBe(1);
   });
 
   it("dit zéro quand rien n'attend", () => {

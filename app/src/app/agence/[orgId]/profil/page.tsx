@@ -104,15 +104,21 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
 
       {/* 24/09 : l'ordre « à compléter » ne s'adresse qu'à qui peut compléter.
           L'agent en lecture seule lit ce qui manque, et qui peut le faire. */}
-      {manquants.length > 0 && (
-        <div className="border-l-[3px] border-l-warning bg-warning-soft p-3">
-          <p className="text-sm text-warning-soft-foreground">
-            {responsable
-              ? `À compléter pour des documents complets : ${manquants.join("\u00a0· ")}.`
-              : `Fiche incomplète — à renseigner par un responsable de l'organisation : ${manquants.join("\u00a0· ")}.`}
+      {manquants.length > 0 &&
+        (responsable ? (
+          <div className="border-l-[3px] border-l-warning bg-warning-soft p-3">
+            <p className="text-sm text-warning-soft-foreground">
+              À compléter pour des documents complets : {manquants.join("\u00a0· ")}.
+            </p>
+          </div>
+        ) : (
+          // 25/09 : une alerte est une obligation non tenue — pas pour qui ne
+          // peut pas la tenir. L'agent lit ce qui manque, en mention neutre.
+          <p className="mesure-lecture text-sm text-muted-foreground">
+            Fiche incomplète : {manquants.join("\u00a0· ")} — à renseigner par un
+            responsable de l&apos;organisation.
           </p>
-        </div>
-      )}
+        ))}
 
       <div className="loc-carte">
         <div className="entete-carte">

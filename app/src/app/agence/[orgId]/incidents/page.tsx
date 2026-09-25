@@ -255,26 +255,19 @@ export default async function PageIncidents(props: PageProps<"/agence/[orgId]/in
           liste au lieu d'être rendu dessous, avec un lien retour en tête. */}
       <div className={`split${sel ? " detail-actif" : ""}`}>
         <div className="colonne-liste-split volet-liste">
-          {/* La tête de colonne ne sert qu'à « Fermer » un dossier ouvert : le
-              compte y était écrit une troisième fois, après la mention
-              d'en-tête et la pastille du filtre actif (24/09). */}
-          {sel && (
-            <div className="tete-liste justify-end">
-              <Link
-                href={lien(vue, null)}
-                className="lien-discret inline-flex items-center gap-1.5"
-              >
-                Fermer
-                <IndicateurLien />
-              </Link>
-            </div>
-          )}
+          {/* Plus de « Fermer » en tête de colonne (25/09) : au bureau, la
+              liste reste visible à côté du dossier et le lien fermait une
+              sélection dont on ne voyait pas ce qu'elle bloquait ; au
+              téléphone, « ← Tous les incidents » en tête du dossier fait ce
+              retour. Le compte, lui, était déjà dans l'en-tête (24/09). */}
           {/* Quatre filtres en grille, deux par rangée : en flux, « Tous »
               restait seul sur sa ligne, dans la colonne de 340 px comme sur
               téléphone (tour du 24/09). Entre 640 et 900 px la colonne prend
               toute la largeur : les quatre tiennent sur une rangée. */}
           <div className="grid grid-cols-2 gap-1.5 border-b border-border px-3 py-2 sm:max-[900px]:grid-cols-4">
-            {VUES.map((v) => (
+            {/* Une vue vide ne s'aligne pas en « · 0 » (règle du 24/09) : elle
+                n'apparaît que si elle a quelque chose, ou si elle est ouverte. */}
+            {VUES.filter((v) => v.cle === "tous" || v.cle === vue || compteVue(v.cle) !== "0").map((v) => (
               <Link
                 key={v.cle}
                 href={lien(v.cle, sel)}

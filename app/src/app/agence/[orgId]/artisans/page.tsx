@@ -201,7 +201,10 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               flux, la quatrième pastille restait seule sur sa ligne. */}
           {!carnetVide && (
             <div className="grid grid-cols-2 gap-1.5 border-b border-border px-3 py-2 sm:max-[900px]:grid-cols-4">
-              {VUES.map((v) => (
+              {/* Une vue vide ne s'aligne pas en « · 0 » (règle du 24/09) :
+                  elle n'apparaît que si elle a quelque chose, ou si elle est
+                  ouverte. « Tous » reste. */}
+              {VUES.filter((v) => v.cle === "tous" || v.cle === vue || compteVue(v.cle) !== "0").map((v) => (
                 <Link
                   key={v.cle}
                   href={lien(v.cle, sel)}
@@ -256,6 +259,8 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
                   <span className="flex shrink-0 flex-col items-end gap-1">
                     <span className="flex items-center gap-1.5">
                       <IndicateurLien />
+                      {/* Le rang entier ouvre la fiche : la flèche le dit (25/09). */}
+                      <span aria-hidden className="order-last text-muted-foreground">→</span>
                       {r.blacklist_le ? (
                         <span className="puce puce-rouge">Liste noire</span>
                       ) : r.statut === "desactive" ? (

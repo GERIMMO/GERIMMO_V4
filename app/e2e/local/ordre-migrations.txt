@@ -215,3 +215,4 @@
 20260925012000_veille_reglementaire.sql
 20260925013000_marketing_images_et_diffusion.sql
 20260925120000_point_du_matin.sql
+20260925130000_documents_portefeuille_bail_diagnostic.sql

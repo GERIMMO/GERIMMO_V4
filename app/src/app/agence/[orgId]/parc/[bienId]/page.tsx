@@ -362,6 +362,9 @@ export default async function PageBien(
                     >
                       Voir le lot →
                     </span>
+                    {/* Au téléphone, la flèche seule garde l'affordance (25/09,
+                        même règle que « Fiche mandant » sur les mandats). */}
+                    <span aria-hidden className="shrink-0 text-muted-foreground sm:hidden">→</span>
                   </BoutonLot>
 
                   {/* Points propres à ce lot — repliés, la ligne reste lisible */}

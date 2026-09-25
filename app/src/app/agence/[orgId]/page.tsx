@@ -62,6 +62,7 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         orgId={orgId}
         organisation={organisation}
         prenom={prenom}
+        userId={user.id}
       />
     );
   }
@@ -503,16 +504,18 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
 
         <Link
           href={`/agence/${orgId}/alertes`}
-          className={`tuile ${planIllisible ? "" : enRetard.length > 0 ? "probleme" : nbActions > 0 ? "attention" : "ok"}`}
+          className={`tuile ${planIllisible ? "" : plan.retards > 0 ? "probleme" : nbActions > 0 ? "attention" : "ok"}`}
         >
           <span className="ico"><IconeTrait nom="eclair" /></span>
           <span className="lib">À faire</span>
           <span className="val">{planIllisible ? "—" : nbActions}</span>
           <span className="sous">
+            {/* Les blocages sur les baux comptent en retard (plan.retards) :
+                « Rien en retard » ne peut plus coiffer un impayé. */}
             {planIllisible
               ? "Lecture impossible"
-              : enRetard.length > 0
-                ? `${enRetard.length} en retard`
+              : plan.retards > 0
+                ? `${plan.retards} en retard`
                 : nbActions > 0
                   ? "Rien en retard"
                   : "Rien ne vous attend"}

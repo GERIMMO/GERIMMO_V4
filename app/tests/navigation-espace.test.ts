@@ -26,7 +26,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
       "Personnes",
       "Loyers & charges",
       "Incidents",
-      "Comptabilité",
+      "Écritures & rapports",
       "Alertes",
       "Agenda",
       "Statistiques",
@@ -108,7 +108,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(entreeActive(toutes, `/agence/${ORG}`)?.libelle).toBe("Tableau de bord");
     expect(entreeActive(toutes, `/agence/${ORG}/parc/abc/lots/def`)?.libelle).toBe("Parc de l'agence");
     expect(entreeActive(toutes, `/agence/${ORG}/loyers`)?.libelle).toBe("Loyers & charges");
-    expect(entreeActive(toutes, `/agence/${ORG}/comptabilite`)?.libelle).toBe("Comptabilité");
+    expect(entreeActive(toutes, `/agence/${ORG}/comptabilite`)?.libelle).toBe("Écritures & rapports");
     expect(entreeActive(toutes, `/agence/${ORG}/profil`)?.libelle).toBe("Paramètres");
     expect(entreeActive(toutes, `/agence/${ORG}/inconnu`)).toBeNull();
   });

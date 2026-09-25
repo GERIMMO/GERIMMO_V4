@@ -154,14 +154,12 @@ export default async function PagePersonnes(props: PageProps<"/agence/[orgId]/pe
               ? "nombre indisponible"
               : `${fiches.length} fiche${fiches.length > 1 ? "s" : ""}`}
           </span>
-          {/* Sous md, la carte de création est empilée après toute la liste
-              (des centaines de fiches) : ce raccourci y mène directement.
-              md:hidden sur un span : .btn-or est hors layer et gagnerait. */}
-          <span className="md:hidden">
-            <a href="#creer-fiche" className="btn-or">
-              + Créer une fiche
-            </a>
-          </span>
+          {/* Le même bouton aux deux tailles (25/09) : il n'existait qu'au
+              téléphone, où la carte de création est empilée après toute la
+              liste ; au bureau il mène à la même carte, en colonne droite. */}
+          <a href="#creer-fiche" className="btn-or">
+            + Créer une fiche
+          </a>
         </div>
       </div>
 

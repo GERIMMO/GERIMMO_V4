@@ -120,7 +120,7 @@ export function FormulaireBien({
     <form action={action} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="bien-nom">Référence interne</Label>
+          <Label htmlFor="bien-nom">Référence interne *</Label>
           {/* defaultValue={etat.valeurs?.…} : en erreur, le reset React retombe
               sur la saisie (recette 22/08 — mécanique commune, lib/formulaires.ts) */}
           <Input
@@ -195,7 +195,7 @@ export function FormulaireBien({
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="bien-cp">Code postal</Label>
+          <Label htmlFor="bien-cp">Code postal *</Label>
           {/* inputMode et non type=number : tolère les CP étrangers */}
           <Input
             id="bien-cp"
@@ -209,7 +209,7 @@ export function FormulaireBien({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bien-ville">Ville</Label>
+          <Label htmlFor="bien-ville">Ville *</Label>
           <Input
             id="bien-ville"
             name="city"
@@ -248,20 +248,22 @@ export function FormulaireBien({
           />
           <Label htmlFor="bien-copro">En copropriété</Label>
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            id="bien-zone-tendue"
-            name="zone_tendue"
-            type="checkbox"
-            defaultChecked={etat.valeurs ? etat.valeurs.zone_tendue === "on" : bien?.zone_tendue}
-            className="size-4"
-          />
-          <Label htmlFor="bien-zone-tendue">
-            En zone tendue
-            <span className="ml-1 text-xs font-normal text-muted-foreground">
-              (préavis locataire d&apos;1 mois de plein droit)
-            </span>
-          </Label>
+        {/* Case et libellé sur une ligne, la mention dessous (25/09 : « En
+            zone / tendue » se coupait à côté de la parenthèse). */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <input
+              id="bien-zone-tendue"
+              name="zone_tendue"
+              type="checkbox"
+              defaultChecked={etat.valeurs ? etat.valeurs.zone_tendue === "on" : bien?.zone_tendue}
+              className="size-4"
+            />
+            <Label htmlFor="bien-zone-tendue" className="whitespace-nowrap">En zone tendue</Label>
+          </div>
+          <p className="pl-6 text-xs text-muted-foreground">
+            Préavis du locataire d&apos;1 mois de plein droit.
+          </p>
         </div>
       </div>
 

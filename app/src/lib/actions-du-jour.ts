@@ -86,6 +86,14 @@ export type PlanDuJour = {
   aVenir: ActionDuJour[];
   /** LE chiffre — celui que disent la tuile « À faire », la pastille « Alertes » et /alertes. */
   total: number;
+  /**
+   * Ce qui est déjà en retard : les alertes et rapports échus, PLUS les
+   * blocages sur les baux — un loyer échu non couvert, une EDL d'entrée non
+   * signée à l'activation ou un diagnostic manquant sont des obligations
+   * déjà non tenues, pas des tâches à venir (25/09 : la tuile disait « Rien en
+   * retard » au-dessus d'un impayé de 400 €).
+   */
+  retards: number;
   /** Rangs critiques, toutes sources confondues : la pastille passe au rouge. */
   critiques: number;
 };
@@ -228,6 +236,7 @@ export function regrouperActionsDuJour({
     enRetard,
     aVenir,
     total: tous.length,
+    retards: surLesBaux.length + enRetard.length,
     critiques: tous.filter((x) => x.criticite === "critique").length,
   };
 }

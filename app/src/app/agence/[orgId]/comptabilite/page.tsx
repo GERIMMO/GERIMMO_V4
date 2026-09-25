@@ -12,19 +12,20 @@ import {
   type RapportCompta,
 } from "./formulaire-compta";
 import Link from "next/link";
-import { QuittancementMois } from "./quittancement-mois";
 import { chargerQuittancementDuMois } from "@/lib/quittancement-du-mois";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 
-// Un seul libellé pour l'onglet, le h1 et le h1 de la branche d'erreur : il
-// suit le rôle, comme le menu (24/09 — l'onglet disait « Comptabilité » à
-// l'agent et au propriétaire, dont l'écran porte un autre titre).
+// Un seul libellé pour l'onglet, le h1 et le h1 de la branche d'erreur.
+// 25/09 : le MÊME titre pour l'agent et l'admin d'agence — la même url
+// s'appelait « Écritures & rapports de gestion » chez l'un et « Comptabilité »
+// chez l'autre. C'est le nom décidé le 24/09 (« Écritures & rapports », entrée
+// « Plus » de l'agent) qui reste : « Loyers & charges » doublait /loyers, et
+// l'écran est le journal du portefeuille et les rapports aux propriétaires.
+// Seul le propriétaire direct, dont l'écran est un autre livre, garde le sien.
 function titreComptabilite(role: string, estProprietaire: boolean): string {
   if (estProprietaire) return "Livre recettes-dépenses";
-  // « Loyers & charges » doublait le titre de l'écran /loyers ; la vue agent,
-  // c'est le journal de son portefeuille et ses rapports aux propriétaires.
-  if (role === "agent") return "Écritures & rapports de gestion";
-  return "Comptabilité";
+  void role;
+  return "Écritures & rapports de gestion";
 }
 
 export async function generateMetadata(props: { params: Promise<{ orgId: string }> }) {
@@ -341,9 +342,11 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       </details>
 
       {/* Quittancement du mois : les gestes (encaisser, envoyer, relancer) sont
-          sur « Loyers & charges » depuis le 20/09. L'agent garde le bloc
-          complet ici (décision du 12/09, antérieure au retour de « Loyers &
-          charges » dans son menu le 24/09). */}
+          sur « Loyers & charges » depuis le 20/09 — pour TOUS les rôles
+          (25/09). L'agent gardait ici le bloc complet (« Encaisser 400 € »,
+          « Envoyer 1 reçu ») : le même geste à deux endroits, alors que
+          « Loyers & charges » est revenu dans son menu le 24/09. La carte
+          renvoie, comme chez l'admin. */}
       {erreurQuittancement ? (
         <Card>
           <CardContent className="pt-5">
@@ -354,35 +357,6 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             </p>
           </CardContent>
         </Card>
-      ) : role === "agent" ? (
-        lignesQuittancement.length > 0 ? (
-          // En-tête et corps viennent du composant, posés directement dans la
-          // carte comme ceux des cartes voisines (24/09).
-          <Card>
-            <QuittancementMois
-              orgId={orgId}
-              mois={moisQuittancement}
-              moisLabel={moisEnFrancais(moisQuittancement)}
-              lignes={lignesQuittancement}
-              proprietaire={estProprietaire}
-            />
-          </Card>
-        ) : (
-          // Un portefeuille sans appel ce mois-ci se dit : la carte disparaissait
-          // sans un mot, là où l'admin lit « Aucun appel de loyer » (24/09).
-          <div className="vide-guide">
-            <p className="titre">Aucun appel de loyer dans votre portefeuille ce mois-ci</p>
-            <p className="explication">
-              Les appels se créent avec l&apos;échéancier de chaque bail : un bail
-              actif de votre portefeuille fait apparaître ici son terme du mois.
-            </p>
-            <p className="geste">
-              <Link href={`/agence/${orgId}/loyers`} className="lien-discret">
-                Ouvrir Loyers &amp; charges →
-              </Link>
-            </p>
-          </div>
-        )
       ) : (
         // TOUTE LA CARTE MÈNE À « LOYERS & CHARGES » (24/09) : elle n'a qu'une
         // destination, et seul son bouton se cliquait — titre, phrase et blanc

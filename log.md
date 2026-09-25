@@ -5452,3 +5452,9 @@ Douze fusions sur `main` pendant la nuit (122 fichiers) : console de supervision
 ## [2026-09-25] mise en production | Fusion de la PR #108 et déploiement de l'audit du 25/09
 
 Sur le « go » du porteur : les deux migrations (`point_du_matin`, `documents_portefeuille_bail_diagnostic`) appliquées sur le projet Supabase de production et vérifiées (tables, colonnes et fonctions présentes), puis fusion de la PR #108 sur `main` (`a79e1f1`) ; le déploiement Vercel s'est achevé avec succès. Question posée par le porteur : « quelle destination choisir ? » pour les sauvegardes — réponse dans la conversation : stockage objet chez un fournisseur français distinct (Scaleway ou OVHcloud, région Paris), sur un compte séparé, alimenté par un planificateur hors Vercel (GitHub Actions hebdomadaire) ; non encore configuré. Voir [[Audit complet du 25 septembre 2026]] § 4.
+
+## [2026-09-25] decision | Purge des données de développement en production ; sauvegardes vers Scaleway
+
+Sur instruction du porteur (« tu peux purger ») : les trois organisations de démonstration (Agence Alpha, Agence Beta, Parc de Claire Moreau) et onze comptes `gerimmo-demo.fr` / testeurs ont été supprimés de la base de production dans une seule transaction, avec garde-fous (compte et rôle superviseur du porteur exclus, contrôle d'intégrité référentielle, annulation au moindre orphelin). Copie préalable de 76 tables dans le schéma privé `archive_demo_20260925` (aucun droit pour les rôles applicatifs) ; à supprimer quand on sera sûr de ne plus en avoir besoin. Les 61 fichiers du Storage (dossiers des deux anciennes organisations) restent à effacer depuis le tableau de bord Supabase.
+
+Destination des sauvegardes tranchée : **Scaleway Object Storage, région Paris, compte séparé**. Chantier GitHub `sauvegarde.yml` (hebdomadaire, chiffré, relu depuis Scaleway, inactif tant que `SCW_BUCKET` n'est pas posé) et procédure dans `app/docs/sauvegarde-et-restauration.md`.

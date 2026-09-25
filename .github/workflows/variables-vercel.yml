@@ -1,0 +1,49 @@
+name: Variables Vercel
+
+# Vérifie, depuis GitHub Actions, que le projet Vercel porte chaque variable que
+# la production lit (app/scripts/vercel/verifier.mjs) : des NOMS et des cibles,
+# jamais une valeur. Lancé à la main. Le jeton VERCEL_TOKEN est celui de la
+# publication contrôlée (docs/publication-controlee.md) ; sans lui, le contrôle
+# s'arrête net et le dit. Le job est rouge tant qu'une variable du socle ou d'un
+# prestataire manque : c'est le signal, pas une panne.
+#
+# POSER ce qui manque ne se fait pas ici : le script lit un fichier .env local
+# (`node scripts/vercel/verifier.mjs --poser .env.local`), et recopier chaque
+# valeur en secret GitHub pour la reposer sur Vercel doublerait les secrets sans
+# rien simplifier.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cibles:
+        description: "Cibles à contrôler (production, preview, development)"
+        default: "production,preview"
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Comparer les variables du projet au catalogue
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID || 'prj_YdwqVmhZU5ZDABPZom8OkWcXa1FV' }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID || 'team_dXzIokNudrLR87DxLPeIYaGu' }}
+          CIBLES: ${{ inputs.cibles || 'production,preview' }}
+        run: |
+          code=0
+          node scripts/vercel/verifier.mjs --cibles "$CIBLES" > rapport.txt 2>&1 || code=$?
+          cat rapport.txt
+          { echo '```'; cat rapport.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"

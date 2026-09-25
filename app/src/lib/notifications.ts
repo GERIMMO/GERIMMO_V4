@@ -24,6 +24,20 @@
 // `mon_gestionnaire_locataire`. La tâche planifiée (`envoyerRappelsGestes`)
 // reçoit le client de service, qui voit tout et doit rester dans `/api/cron`.
 //
+// L'EXCEPTION, ET SA CLÔTURE (25/09, `notifierEnCoulisses`). Quand c'est
+// l'artisan ou le locataire qui agit (devis déposé, mission refusée, créneaux
+// proposés ou choisis), la personne à prévenir est de l'autre côté de la RLS :
+// leur client ne lit ni `incidents`, ni `incident_interventions`, ni `persons`,
+// ni `organizations` (vérifié sur le banc : toutes ces policies sont gérant
+// seul). Une RPC definer qui rendrait l'adresse du locataire, ou celle du
+// gérant, à une session d'artisan élargirait ce que l'artisan a le droit de
+// lire — juste pour un e-mail. On préfère le client de service, mais STRICTEMENT
+// après que la RPC métier (definer, `mon_artisan_id()` / `ma_personne_locataire`)
+// a accepté l'écriture : c'est elle qui prouve le lien. Le client de service ne
+// sert alors qu'à lire ce que le message dit, à envoyer, et à journaliser ; il
+// ne remonte jamais dans la réponse, et l'organisation vient de la lecture
+// RPC, jamais du formulaire.
+//
 // La partie haute du fichier est PURE (gabarits, clés, filtrage des rappels) :
 // c'est elle que `tests/notifications.test.ts` exerce. La partie basse lit la
 // base et envoie.
@@ -36,6 +50,7 @@ import { echapperMarque, emailValide, nomMarque } from "./marque-organisation";
 import { chargerMarque } from "./marque-organisation-serveur";
 import { creneauEnToutesLettres, jourDuRendezVous } from "./rappel-email";
 import { adresseDuSite } from "./site";
+import { clientDeService } from "./supabase/service";
 
 // ============================================================
 // Partie pure — gabarits
@@ -185,6 +200,55 @@ export function messageMissionAnnulee(p: {
         "Les créneaux proposés sont sans objet. Aucun déplacement n'est attendu.",
       ],
       action: { libelle: "Voir le dossier", lien: p.lien },
+    }),
+  };
+}
+
+export type ReponseLocataireCreneaux =
+  | { type: "choisi"; debut: string; fin: string | null }
+  | { type: "contre_propose"; nbCreneaux: number };
+
+/**
+ * Le locataire a répondu aux créneaux : il en a retenu un (le rendez-vous est
+ * fixé) ou il en propose d'autres (l'artisan doit reprendre l'une de ses dates
+ * — RM-10.2.2). Deux sujets distincts : l'artisan lit lequel dès la boîte.
+ */
+export function messageReponseLocataireCreneaux(p: {
+  emetteur: string;
+  categorie: string;
+  adresse: string | null;
+  numero: string;
+  reponse: ReponseLocataireCreneaux;
+  lien: string | null;
+}): Message {
+  const cat = categorieLisible(p.categorie);
+  const ou = p.adresse ? `, ${p.adresse}` : "";
+  if (p.reponse.type === "choisi") {
+    const quand = `${jourDuRendezVous(p.reponse.debut)} ${creneauEnToutesLettres(p.reponse.debut, p.reponse.fin)}`;
+    return {
+      sujet: `Rendez-vous confirmé par le locataire — ${quand}`,
+      html: gabaritNotification({
+        titre: "Le locataire a choisi un créneau",
+        emetteur: p.emetteur,
+        lignes: [
+          `Le locataire a retenu le ${quand} pour « ${cat} »${ou} (dossier ${p.numero}).`,
+          "Le rendez-vous est fixé : notez-le. En cas d'empêchement, proposez d'autres créneaux depuis votre espace — cela défait celui-ci.",
+        ],
+        action: { libelle: "Voir le rendez-vous", lien: p.lien },
+      }),
+    };
+  }
+  const n = p.reponse.nbCreneaux;
+  return {
+    sujet: `Le locataire propose d'autres créneaux — dossier ${p.numero}`,
+    html: gabaritNotification({
+      titre: "Aucun de vos créneaux ne convenait",
+      emetteur: p.emetteur,
+      lignes: [
+        `Le locataire propose ${n > 1 ? `${n} autres créneaux` : "un autre créneau"} pour « ${cat} »${ou} (dossier ${p.numero}).`,
+        "Reprenez l'une de ses dates en la proposant à votre tour depuis votre espace, ou proposez-en de nouvelles. Sans réponse, le rendez-vous reste en suspens.",
+      ],
+      action: { libelle: "Voir ses disponibilités", lien: p.lien },
     }),
   };
 }
@@ -651,7 +715,21 @@ async function lireIntervention(db: SupabaseClient, orgId: string, interventionI
  */
 async function destinataireAgence(db: SupabaseClient, orgId: string, responsableAccountId: string | null): Promise<string | null> {
   const { data: membres } = await db.rpc("org_membres_gerants", { org: orgId });
-  const liste = (membres ?? []) as { account_id: string; email: string; role: string }[];
+  let liste = (membres ?? []) as { account_id: string; email: string; role: string }[];
+  if (liste.length === 0) {
+    // La RPC se fonde sur `auth.uid()` : le client de service n'en a pas et
+    // n'obtient rien. On lit alors la table — ce que la RLS laisse passer
+    // (tout pour le service, rien pour un artisan : on retombe sur le contact).
+    const { data: lignes } = await db
+      .from("memberships")
+      .select("account_id, role, accounts(email)")
+      .eq("organization_id", orgId)
+      .eq("status", "active")
+      .in("role", ["admin_agence", "agent", "proprietaire_direct"]);
+    liste = ((lignes ?? []) as unknown as { account_id: string; role: string; accounts: { email: string } | { email: string }[] | null }[])
+      .map((l) => ({ account_id: l.account_id, role: l.role, email: (Array.isArray(l.accounts) ? l.accounts[0]?.email : l.accounts?.email) ?? "" }))
+      .filter((l) => l.email);
+  }
   const responsable = responsableAccountId ? liste.find((m) => m.account_id === responsableAccountId) : undefined;
   if (responsable?.email) return responsable.email;
   const marque = await chargerMarque(db, orgId);
@@ -757,8 +835,8 @@ export async function notifierMissionAnnulee(db: SupabaseClient, orgId: string, 
 
 /**
  * Créneaux proposés par l'artisan (`proposer_creneaux`) → le locataire.
- * À appeler depuis l'action artisan qui propose (actions/artisan.ts) : le
- * client artisan lit l'intervention et l'incident par les policies du module 8.
+ * Appelée depuis actions/artisan.ts via `notifierEnCoulisses` : le client de
+ * l'artisan ne lit ni l'intervention, ni l'incident, ni le locataire.
  */
 export async function notifierCreneauxAChoisir(db: SupabaseClient, orgId: string, interventionId: string): Promise<ResultatNotification> {
   try {
@@ -876,8 +954,8 @@ export async function notifierIncidentUrgentDeclare(
 
 /**
  * Devis déposé par l'artisan (`deposer_devis_structure`) → l'agence.
- * Le client de l'artisan ne lit ni l'organisation ni ses membres : appelez
- * cette fonction avec un client qui le peut (à brancher dans actions/artisan.ts).
+ * Le client de l'artisan ne lit ni l'organisation ni ses membres : appelée
+ * depuis actions/artisan.ts via `notifierEnCoulisses`.
  */
 export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devisId: string): Promise<ResultatNotification> {
   try {
@@ -901,7 +979,7 @@ export async function notifierDevisRecu(db: SupabaseClient, orgId: string, devis
   }
 }
 
-/** Mission refusée par l'artisan (`refuser_mission`) → l'agence. Même réserve de client que ci-dessus. */
+/** Mission refusée par l'artisan (`refuser_mission`) → l'agence. Même client que ci-dessus. */
 export async function notifierMissionRefusee(db: SupabaseClient, orgId: string, interventionId: string): Promise<ResultatNotification> {
   try {
     const iv = await lireIntervention(db, orgId, interventionId);
@@ -916,6 +994,76 @@ export async function notifierMissionRefusee(db: SupabaseClient, orgId: string, 
   } catch (e) {
     console.error("[notifications] mission_refusee :", e instanceof Error ? e.message : e);
     return NON;
+  }
+}
+
+/** Le locataire a retenu un créneau (`choisir_creneau`) → l'artisan. */
+export async function notifierCreneauChoisi(db: SupabaseClient, orgId: string, creneauId: string): Promise<ResultatNotification> {
+  try {
+    const { data: creneau } = await db
+      .from("intervention_creneaux")
+      .select("intervention_id, debut, fin")
+      .eq("id", creneauId)
+      .eq("organization_id", orgId)
+      .maybeSingle();
+    if (!creneau) return { envoyee: false, motif: "introuvable" };
+    return notifierReponseLocataire(db, orgId, creneau.intervention_id, { type: "choisi", debut: creneau.debut, fin: creneau.fin });
+  } catch (e) {
+    console.error("[notifications] creneau_choisi :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+/** Le locataire propose d'autres créneaux (`contre_proposer_creneaux`) → l'artisan. */
+export async function notifierContrePropositionLocataire(db: SupabaseClient, orgId: string, interventionId: string): Promise<ResultatNotification> {
+  try {
+    const { count } = await db
+      .from("intervention_creneaux")
+      .select("id", { count: "exact", head: true })
+      .eq("intervention_id", interventionId)
+      .eq("organization_id", orgId)
+      .eq("statut", "propose")
+      .eq("propose_par", "locataire");
+    return notifierReponseLocataire(db, orgId, interventionId, { type: "contre_propose", nbCreneaux: count ?? 1 });
+  } catch (e) {
+    console.error("[notifications] creneaux_contre_proposes :", e instanceof Error ? e.message : e);
+    return NON;
+  }
+}
+
+async function notifierReponseLocataire(db: SupabaseClient, orgId: string, interventionId: string, reponse: ReponseLocataireCreneaux): Promise<ResultatNotification> {
+  const iv = await lireIntervention(db, orgId, interventionId);
+  if (!iv) return { envoyee: false, motif: "introuvable" };
+  const [inc, artisan, nom] = await Promise.all([lireIncident(db, orgId, iv.incident_id), lireArtisan(db, iv.artisan_id), emetteur(db, orgId)]);
+  if (!inc || !artisan) return { envoyee: false, motif: "introuvable" };
+  const lieu = await lireLieu(db, inc.lot_id);
+  return expedier(db, {
+    orgId, to: artisan.email, role: "artisan", evenement: reponse.type === "choisi" ? "creneau_choisi" : "creneaux_contre_proposes", objet: iv.id,
+    message: messageReponseLocataireCreneaux({ emetteur: nom, categorie: inc.categorie, adresse: lieu.adresse, numero: inc.numero, reponse, lien: lien(`/artisan/missions/${iv.id}`) }),
+  });
+}
+
+/**
+ * Prévenir depuis une action d'artisan ou de locataire (voir l'en-tête,
+ * « L'exception, et sa clôture »). À n'appeler qu'APRÈS le succès de la RPC
+ * métier : c'est elle qui a vérifié que l'appelant est lié au dossier. Le
+ * client de service ne sort pas d'ici ; sans clé de service, on consigne avec
+ * le client de l'appelant et on rend la main. Ne lève jamais.
+ */
+export async function notifierEnCoulisses(
+  appelant: SupabaseClient,
+  trace: { evenement: string; objet: string; org: string },
+  envoyer: (service: SupabaseClient) => Promise<unknown>
+): Promise<void> {
+  try {
+    const service = clientDeService();
+    if (!service) {
+      await journaliser(appelant, "notification_sans_service", trace);
+      return;
+    }
+    await envoyer(service);
+  } catch (e) {
+    console.error(`[notifications] ${trace.evenement} :`, e instanceof Error ? e.message : e);
   }
 }
 

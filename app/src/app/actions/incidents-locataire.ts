@@ -10,6 +10,11 @@ import {
   instantParis,
 } from "@/app/locataire/[orgId]/demandes/creneaux";
 import type { EtatIncidentAction } from "@/app/actions/incidents";
+import {
+  notifierContrePropositionLocataire,
+  notifierCreneauChoisi,
+  notifierEnCoulisses,
+} from "@/lib/notifications";
 
 // ════════════════════════════════════════════════════════════════════════════
 // LES TROIS SEULS GESTES DU LOCATAIRE SUR UNE INTERVENTION
@@ -28,6 +33,11 @@ import type { EtatIncidentAction } from "@/app/actions/incidents";
 // appartenance de l'incident à SON bail, statut du créneau, intervention
 // terminée, note unique. `verifierLocataire` n'est ici que la défense en
 // profondeur — la première porte, jamais la seule.
+//
+// L'artisan est prévenu de la réponse du locataire (choix ou contre-
+// proposition) par `notifierEnCoulisses`, APRÈS le succès de la RPC : le
+// client du locataire ne lit ni l'intervention ni l'artisan. Un e-mail qui ne
+// part pas ne défait jamais le geste — il est consigné, l'action rend son succès.
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Les trois écrans que touche un geste de suivi du locataire. */
@@ -53,6 +63,10 @@ export async function choisirMonCreneau(
     p_creneau: creneau,
   });
   if (error) return { erreur: sansJargon(error.message) };
+
+  await notifierEnCoulisses(supabase, { evenement: "creneau_choisi", objet: creneau, org: orgId }, (service) =>
+    notifierCreneauChoisi(service, orgId, creneau)
+  );
 
   revaliderSuivi(orgId);
   // Pas de « rappel la veille » annoncé ici : RM-10.5 le prévoit, le produit
@@ -119,6 +133,10 @@ export async function proposerMesCreneaux(
     p_creneaux: creneaux,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  await notifierEnCoulisses(supabase, { evenement: "creneaux_contre_proposes", objet: interventionId, org: orgId }, (service) =>
+    notifierContrePropositionLocataire(service, orgId, interventionId)
+  );
 
   revaliderSuivi(orgId);
   return {

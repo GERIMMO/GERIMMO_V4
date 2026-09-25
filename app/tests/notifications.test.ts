@@ -7,7 +7,14 @@
  * (jamais « Gerimmo » au locataire), qu'il n'imprime pas de HTML venu de la
  * saisie, et que le filtre des rappels refuse le second envoi.
  */
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+// Le client de service est remplacé : `notifierEnCoulisses` doit se comporter
+// aussi bien sans clé (null) qu'avec un service qui lève.
+const service = { client: null as unknown };
+vi.mock("@/lib/supabase/service", () => ({ clientDeService: () => service.client }));
+
 import {
   cleRappel,
   clesDejaTracees,
@@ -26,7 +33,9 @@ import {
   messageRappelGeste,
   messageRendezVousFixe,
   messageReponseGestionnaire,
+  messageReponseLocataireCreneaux,
   messageSignatureDemandee,
+  notifierEnCoulisses,
   rappelsDus,
   ROLE_RAPPEL,
   type TypeRappel,
@@ -76,6 +85,8 @@ describe("chaque message nomme le geste et le lien", () => {
     { nom: "incident urgent", m: messageIncidentUrgent({ emetteur: AGENCE, numero: "INC-001", categorie: "plomberie_canalisation", lot: "Lot 3", piece: "Cuisine", description: "Fuite sous l'évier", lien: LIEN }), geste: /Ouvrir le dossier/ },
     { nom: "devis reçu", m: messageDevisRecu({ emetteur: AGENCE, artisan: "Plomberie Durand", montantCents: 45000, numero: "INC-001", categorie: "plomberie_canalisation", lien: LIEN }), geste: /Voir le devis/ },
     { nom: "mission refusée", m: messageMissionRefusee({ emetteur: AGENCE, artisan: "Plomberie Durand", motif: "Trop loin", numero: "INC-001", categorie: "plomberie_canalisation", lien: LIEN }), geste: /Réaffecter/ },
+    { nom: "créneau choisi par le locataire", m: messageReponseLocataireCreneaux({ emetteur: AGENCE, categorie: "plomberie_canalisation", adresse: "9 rue X", numero: "INC-001", reponse: { type: "choisi", debut: "2026-07-06T07:00:00Z", fin: "2026-07-06T09:00:00Z" }, lien: LIEN }), geste: /Voir le rendez-vous/ },
+    { nom: "contre-proposition du locataire", m: messageReponseLocataireCreneaux({ emetteur: AGENCE, categorie: "plomberie_canalisation", adresse: "9 rue X", numero: "INC-001", reponse: { type: "contre_propose", nbCreneaux: 3 }, lien: LIEN }), geste: /Voir ses disponibilités/ },
   ];
 
   for (const c of cas) {
@@ -140,6 +151,26 @@ describe("marque blanche et discrétion", () => {
     expect(m.sujet).toContain("INC-042");
     expect(m.html).not.toContain(longue);
     expect(m.html).toContain("…");
+  });
+
+  it("la réponse du locataire dit à l'artisan le créneau retenu (heure de Paris) ou le nombre de dates à reprendre", () => {
+    const base = { emetteur: AGENCE, categorie: "plomberie_canalisation", adresse: "9 rue X, 69001 Lyon", numero: "INC-007", lien: LIEN };
+    const choisi = messageReponseLocataireCreneaux({ ...base, reponse: { type: "choisi", debut: "2026-07-06T07:00:00Z", fin: "2026-07-06T09:00:00Z" } });
+    expect(choisi.sujet).toBe("Rendez-vous confirmé par le locataire — lundi 6 juillet de 09 h 00 à 11 h 00");
+    expect(choisi.html).toContain("9 rue X, 69001 Lyon");
+    expect(choisi.html).toContain("INC-007");
+    expect(choisi.html).not.toContain("Bonjour ,");
+
+    const contre = messageReponseLocataireCreneaux({ ...base, reponse: { type: "contre_propose", nbCreneaux: 3 } });
+    expect(contre.sujet).toContain("INC-007");
+    expect(contre.sujet).not.toBe(choisi.sujet);
+    expect(contre.html).toContain("3 autres créneaux");
+    expect(contre.html).toMatch(/en suspens/);
+    const seul = messageReponseLocataireCreneaux({ ...base, adresse: null, reponse: { type: "contre_propose", nbCreneaux: 1 } });
+    expect(seul.html).toContain("un autre créneau");
+    expect(seul.html).not.toContain("9 rue X");
+    // L'artisan n'est pas locataire, mais le message reste signé par l'agence.
+    for (const m of [choisi, contre]) expect(m.html).toContain(`— ${AGENCE}`);
   });
 
   it("le devis reçu affiche le montant en euros, jamais en centimes", () => {
@@ -208,5 +239,31 @@ describe("les rappels de gestes", () => {
     // Une seconde passe, une fois ces deux-là tracés, ne renvoie rien.
     const apres = new Set([...tracees, ...dus.map((d) => d.cle)]);
     expect(rappelsDus(candidats, apres)).toEqual([]);
+  });
+});
+
+describe("notifierEnCoulisses : prévenir depuis une action d'artisan ou de locataire", () => {
+  const appels: unknown[][] = [];
+  const appelant = { rpc: async (...a: unknown[]) => { appels.push(a); return { error: null }; } } as unknown as SupabaseClient;
+  beforeEach(() => { appels.length = 0; service.client = null; });
+
+  it("sans clé de service : consigne l'absence avec le client de l'appelant, sans adresse, et ne lève pas", async () => {
+    let envoye = false;
+    await notifierEnCoulisses(appelant, { evenement: "devis_recu", objet: "d1", org: "o1" }, async () => { envoye = true; });
+    expect(envoye).toBe(false);
+    expect(appels).toEqual([["log_tech", { evenement: "notification_sans_service", details: { evenement: "devis_recu", objet: "d1", org: "o1" } }]]);
+    expect(JSON.stringify(appels)).not.toMatch(/@/);
+  });
+
+  it("avec un service : le passe à l'envoi, et absorbe ce que l'envoi lève", async () => {
+    const faux = { marque: "service" };
+    service.client = faux;
+    let recu: unknown = null;
+    await notifierEnCoulisses(appelant, { evenement: "creneau_choisi", objet: "c1", org: "o1" }, async (s) => { recu = s; });
+    expect(recu).toBe(faux);
+    await expect(
+      notifierEnCoulisses(appelant, { evenement: "creneau_choisi", objet: "c1", org: "o1" }, async () => { throw new Error("réseau"); })
+    ).resolves.toBeUndefined();
+    expect(appels).toEqual([]);
   });
 });

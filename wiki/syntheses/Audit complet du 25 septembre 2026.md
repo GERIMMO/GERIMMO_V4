@@ -172,7 +172,7 @@ accueils gardent leur bandeau.
 **Compteurs de la journée** : 129 défauts d'écrans relevés, 12 P1 ; environ
 110 corrigés (les 19 restants sont structurels, hors périmètre ou attendent
 un fait ou une décision du porteur, § 4) ; 4 lots d'audit de code corrigés ;
-2 migrations ; 1 795 tests unitaires ; suite navigateur complète rejouée sur
+2 migrations ; 1 781 tests unitaires ; suite navigateur complète rejouée sur
 le banc.
 
 ---

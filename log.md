@@ -5462,3 +5462,7 @@ Destination des sauvegardes tranchée : **Scaleway Object Storage, région Paris
 ## [2026-09-25] decision | Supervision : pas d'emprunt d'identité, une fiche de débogage par compte
 
 Question posée par le porteur sur le « voir comme » ; réponse : « je ne veux pas me faire passer pour l'utilisateur, je veux être le super admin, que toutes les actions soient enregistrées, je veux juste pouvoir déboguer au besoin ». Décision : la supervision garde son identité partout (lecture de toutes les tables, entrée dans tout espace journalisée, écritures à son nom) ; une conception d'emprunt d'identité par la pré-requête PostgREST, écrite, est écartée. Livré : la fiche de débogage d'un compte dans la console (`/admin/comptes/[id]` : état de connexion et second facteur via la RPC `dossier_compte_supervision`, rôles et espaces, fiches locataire et artisan, journaux d'audit et technique), accessible depuis la fiche d'une organisation et la recherche ⌘K (comptes par adresse). Migration `20260925150000_dossier_compte_supervision`. Voir [[Modèle de rôles et permissions]].
+
+## [2026-09-25] mise en production | Fiche de débogage d'un compte (PR #110)
+
+Migration `dossier_compte_supervision` appliquée en production, PR #110 fusionnée (`e92b112`), déploiement Vercel réussi. Point de fin de journée remis au porteur : ce qui reste (faits légaux, Santé au vert, essai de bout en bout, sauvegardes Scaleway à armer, fichiers de démonstration du Storage, archive de purge, Stripe réel).

@@ -21,6 +21,14 @@ test.describe('Tour du matin de la supervision',()=>{
   await page.locator('summary').filter({hasText:'Dossiers et décisions'}).click();
   await expect(page.getByRole('link',{name:'Artisans à valider',exact:true})).toBeVisible();
  });
+ test('la santé conduit directement au résultat des traitements',async({page})=>{
+  await page.goto('/admin/sante');
+  await expect(page.locator('main')).not.toContainText('lib/editeur.ts');
+  await page.getByRole('link',{name:'Voir l’historique →'}).or(page.getByRole('link',{name:"Voir l'historique →"})).click();
+  await expect(page).toHaveURL(/\/admin\/journaux#historique-service$/);
+  await expect(page.locator('#historique-service')).toBeInViewport();
+  await expect(page.locator('#historique-service')).toContainText('Historique du service');
+ });
 });
 for (const profil of ['admin','agent','proprietaire','locataire'] as const) {
  test.describe(`Retour de veille — ${profil}`,()=>{

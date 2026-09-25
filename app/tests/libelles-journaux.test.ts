@@ -4,11 +4,15 @@ import { libelleAccesDocument, libelleActionAudit, libelleEvenement } from "../s
 describe("libellés des journaux", () => {
   it("traduit les tâches automatiques", () => {
     expect(libelleEvenement("tache_quittances_succes")).toBe("Envoi des quittances");
+    expect(libelleEvenement("tache_veille")).toBe("Veille réglementaire");
+    expect(libelleEvenement("tache_orchestrateur")).toBe("Suivi des dossiers");
   });
 
   it("ne montre jamais un code inconnu", () => {
     expect(libelleEvenement("internal_worker_x17")).toBe("Événement du service enregistré");
     expect(libelleActionAudit("rpc_private_x17")).toBe("Action enregistrée (libellé manquant)");
+    expect(libelleActionAudit("constructor")).toBe("Action enregistrée (libellé manquant)");
+    expect(libelleEvenement("tache_constructor")).toBe("Travail automatique de Gerimmo");
   });
 
   it("nomme les actions sensibles écrites par l'application", () => {

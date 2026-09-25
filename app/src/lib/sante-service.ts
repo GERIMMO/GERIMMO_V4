@@ -43,15 +43,26 @@ const LIBELLES_BILAN: Record<string, string> = {
   publiees: "publications diffusées",
   preparees: "publications préparées",
   traitees: "actions réalisées",
+  traites: "actions réalisées",
+  etudiees: "actualités étudiées",
+  sources: "sources consultées",
+  rapports_prepares: "comptes rendus préparés",
   ignores: "actions sans suite nécessaire",
 };
 
-function valeurBilan(cle: string, valeur: string | number | boolean): string {
-  if (cle === "budgetMensuelCents" && typeof valeur === "number") {
-    return `${(valeur / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} par mois`;
+function valeurBilan(cle: string, valeur: unknown): string | null {
+  if (cle === "facebook" || cle === "publiciteActive") {
+    return typeof valeur === "boolean" ? (valeur ? "oui" : "non") : null;
   }
-  if (typeof valeur === "boolean") return valeur ? "oui" : "non";
-  return String(valeur);
+  // Un bilan peut contenir une réponse de prestataire ou des identifiants.
+  // Même sous une clé connue, aucun texte libre ne doit arriver à l'écran.
+  const nombre = Array.isArray(valeur) ? valeur.length
+    : typeof valeur === "number" ? valeur
+    : typeof valeur === "string" && /^\d+$/.test(valeur) ? Number(valeur) : null;
+  if (nombre === null || !Number.isSafeInteger(nombre) || nombre < 0) return null;
+  return cle === "budgetMensuelCents"
+    ? `${(nombre / 100).toLocaleString("fr-FR", { style: "currency", currency: "EUR" })} par mois`
+    : String(nombre);
 }
 
 type Env = Record<string, string | undefined>;
@@ -246,25 +257,25 @@ const MARGES: Record<Periodicite, number> = { continue: HEURE, quotidienne: 26 *
 
 /** « 3 envoyées, 0 échec » à partir du bilan brut d'une passe. */
 export function resumerBilan(bilan: unknown): string {
-  if (!bilan || typeof bilan !== "object") return "—";
+  if (!bilan || typeof bilan !== "object" || Array.isArray(bilan)) return "—";
   const entrees = Object.entries(bilan as Record<string, unknown>);
   if (entrees.length === 0) return "—";
   const resume = entrees
     .map(([cle, v]) => {
       if (v === null || v === undefined) return null;
-      const libelle = LIBELLES_BILAN[cle];
+      const libelle = Object.hasOwn(LIBELLES_BILAN, cle) ? LIBELLES_BILAN[cle] : null;
       // Une donnée inconnue reste disponible dans le journal interne, mais
       // n'est jamais présentée telle quelle au super administrateur.
       if (!libelle) return null;
-      if (typeof v === "number" || typeof v === "string" || typeof v === "boolean") {
-        return `${libelle} : ${valeurBilan(cle, v)}`;
-      }
-      if (Array.isArray(v)) return `${libelle} : ${v.length}`;
-      return null;
+      const valeur = valeurBilan(cle, v);
+      return valeur === null ? null : `${libelle} : ${valeur}`;
     })
     .filter(Boolean)
     .join(", ");
-  return resume || ((bilan as Record<string, unknown>).erreur ? "Action à reprendre : ouvrir le dossier concerné pour connaître la difficulté." : "Passage terminé");
+  const difficulte = (bilan as Record<string, unknown>).erreur
+    ? "Action à reprendre : ouvrir le dossier concerné pour connaître la difficulté."
+    : null;
+  return [resume, difficulte].filter(Boolean).join(" · ") || "Résultat détaillé indisponible";
 }
 
 /**

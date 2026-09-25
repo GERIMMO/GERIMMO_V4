@@ -137,7 +137,7 @@ export default async function PageSante() {
           <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Travail automatique
           </h2>
-          <Link href="/admin/journaux" className="lien-discret text-[12.5px]">
+          <Link href="/admin/journaux#historique-service" className="lien-discret text-[12.5px]">
             Voir l&apos;historique →
           </Link>
         </div>
@@ -218,9 +218,9 @@ export default async function PageSante() {
               })}
             </ul>
             <p className="mt-3 text-[12.5px] text-[var(--texte-secondaire)]">
-              À compléter dans la configuration de l&apos;éditeur
-              (<code>lib/editeur.ts</code>), puis redéployer : les trois pages
-              publiques les reprennent automatiquement.
+              Préparez les informations exactes de votre entreprise pour
+              finaliser ces documents avant l&apos;ouverture commerciale.
+              Leur mise à jour sera reprise sur les trois pages publiques.
             </p>
             <p className="mt-1.5">
               <Link href="/mentions-legales" className="lien-discret text-[12.5px]">

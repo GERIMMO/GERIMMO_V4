@@ -166,6 +166,30 @@ describe("les tâches planifiées", () => {
     expect(resumerBilan(null)).toBe("—");
     expect(resumerBilan({})).toBe("—");
   });
+
+  it("ne publie aucun texte libre, même sous le nom d'un compteur connu", () => {
+    const bilan = resumerBilan({ envoyees: "Bearer secret-prive", facebook: "identifiant-prive",
+      constructor: 1, echecs: ["destinataire@prive.fr", "réponse prestataire privée"],
+      erreur: "secret de diagnostic", code_inconnu: "secret interne" });
+    expect(bilan).toContain("actions à reprendre : 2");
+    expect(bilan).toContain("Action à reprendre");
+    expect(bilan).not.toMatch(/secret|prive|destinataire|constructor/);
+  });
+
+  it("affiche les nouveaux résultats sans déduire une réussite d'un bilan inconnu", () => {
+    expect(resumerBilan({ etudiees: 2, sources: 2, traites: 1, rapports_prepares: 3 }))
+      .toBe("actualités étudiées : 2, sources consultées : 2, actions réalisées : 1, comptes rendus préparés : 3");
+    expect(resumerBilan({ envoyees: "3", echecs: 0, facebook: true })).toBe("envois réussis : 3, actions à reprendre : 0, publication sur Facebook : oui");
+    expect(resumerBilan({ inconnu: "termine" })).toBe("Résultat détaillé indisponible");
+    expect(resumerBilan({ envoyees: -1, echecs: Infinity, preparees: 1.5 })).toBe("Résultat détaillé indisponible");
+    expect(resumerBilan([1, 2])).toBe("—");
+  });
+
+  it("garde une difficulté visible même lorsqu'une partie du travail a réussi", () => {
+    expect(resumerBilan({ publiees: 1, erreur: "réponse technique à masquer" })).toBe(
+      "publications diffusées : 1 · Action à reprendre : ouvrir le dossier concerné pour connaître la difficulté."
+    );
+  });
 });
 
 describe("l'adoption des envois automatiques", () => {

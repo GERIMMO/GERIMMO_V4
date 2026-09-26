@@ -121,19 +121,21 @@ export default async function PageSante() {
           </h2>
           <span className="mono-discret">{configuration.length}</span>
         </div>
-        <ul className="divide-y divide-[var(--filet)] border border-[var(--filet)] bg-[var(--ivoire)]">
+        {/* La liste commune de la console (nuit du 25/09) : des rangs à filet
+            et coins arrondis, comme l'ancienne « Santé du service ». */}
+        <ul className="colonne-liste">
           {configuration.map((v) => (
-            <li key={`${v.cle}:${v.usage}`} className="flex flex-wrap items-start gap-x-4 gap-y-1 p-3.5">
+            <li key={`${v.cle}:${v.usage}`} className="rang w-full flex-wrap items-start gap-y-1">
               <span className="min-w-0 flex-1">
-                <span className="block font-medium text-[13.5px] text-[var(--encre)]">{v.usage}</span>
+                <span className="block font-medium text-[var(--encre)]">{v.usage}</span>
                 {v.detail && (
-                  <span className="mt-0.5 block text-[12.5px] text-[var(--texte-secondaire)]">
+                  <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
                     {v.detail}
                   </span>
                 )}
                 {v.etat !== "ok" && (
                   // La commande de la ligne : la variable et où la trouver, ou le geste quand ce n'est pas une variable (crédit IA).
-                  <span className="mt-1 block text-[12.5px] text-[var(--encre)]">
+                  <span className="mt-1.5 block text-sm text-[var(--encre)]">
                     {v.commande ?? (v.etat === "attention"
                       ? <>Posée. Pour passer en production : remplacer la valeur de <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>
                       : <>À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>)}
@@ -144,7 +146,7 @@ export default async function PageSante() {
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
           Gerimmo vérifie chaque connexion sans afficher de clé ni de donnée
           confidentielle. Aucun écran de Gerimmo ne pose une variable : elle se
           pose chez Vercel, puis le service est redéployé.
@@ -157,7 +159,7 @@ export default async function PageSante() {
           <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Travail automatique
           </h2>
-          <Link href="/admin/journaux#historique-service" className="lien-discret text-[12.5px]">
+          <Link href="/admin/journaux#historique-service" className="lien-discret text-sm">
             Voir l&apos;historique →
           </Link>
         </div>
@@ -167,16 +169,16 @@ export default async function PageSante() {
             inconnu. Rechargez la page.
           </div>
         ) : (
-          <ul className="divide-y divide-[var(--filet)] border border-[var(--filet)] bg-[var(--ivoire)]">
+          <ul className="colonne-liste">
             {taches.map((t) => (
-              <li key={t.nom} className="flex flex-wrap items-start gap-x-4 gap-y-2 p-3.5">
+              <li key={t.nom} className="rang w-full flex-wrap items-start gap-y-2">
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-baseline gap-x-2">
-                    <span className="font-medium text-[13.5px] text-[var(--encre)]">{t.libelle}</span>
+                    <span className="font-medium text-[var(--encre)]">{t.libelle}</span>
                     <span className="mono-discret sans-majuscules">Équipe {EQUIPES[t.equipe].nom} · {t.horaire}</span>
                   </span>
-                  <span className="block text-[13px] text-[var(--texte-secondaire)]">{t.role}</span>
-                  <span className="mt-0.5 block text-[12.5px] text-[var(--texte-secondaire)]">
+                  <span className="block text-sm text-[var(--texte-secondaire)]">{t.role}</span>
+                  <span className="mt-0.5 block text-sm text-[var(--texte-secondaire)]">
                     {t.le ? (
                       <>
                         Dernière passe le{" "}
@@ -190,11 +192,11 @@ export default async function PageSante() {
                   {(t.etat === "jamais" || t.etat === "echec" || t.etat === "retard") && (
                     <span className="mt-2 block">
                       {t.commandable ? (
-                        cronPose ? <LancerMission mission={t.nom} /> : <span className="text-[12.5px] text-[var(--encre)]">« Lancer maintenant » sera possible une fois <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">CRON_SECRET</code> posé (ci-dessus).</span>
+                        cronPose ? <LancerMission mission={t.nom} /> : <span className="text-sm text-[var(--encre)]">« Lancer maintenant » sera possible une fois <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">CRON_SECRET</code> posé (ci-dessus).</span>
                       ) : t.nom === "sauvegarde" ? (
-                        <a href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/sauvegarde.yml" target="_blank" rel="noreferrer" className="lien-discret text-[12.5px]">Relancer la sauvegarde depuis GitHub (Run workflow) →</a>
+                        <a href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/sauvegarde.yml" target="_blank" rel="noreferrer" className="lien-discret text-sm">Relancer la sauvegarde depuis GitHub (Run workflow) →</a>
                       ) : (
-                        <Link href="/admin/autonomie" className="lien-discret text-[12.5px]">Actualiser les prochaines étapes dans Dossiers et évolutions →</Link>
+                        <Link href="/admin/autonomie" className="lien-discret text-sm">Actualiser les prochaines étapes dans Dossiers et évolutions →</Link>
                       )}
                     </span>
                   )}
@@ -204,7 +206,7 @@ export default async function PageSante() {
             ))}
           </ul>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
           Une pastille verte confirme un passage récent. Une pastille rouge
           demande une vérification. L&apos;historique est conservé pendant six mois.
           {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Pause et reprise des missions →</Link>
@@ -227,7 +229,7 @@ export default async function PageSante() {
             conditions et confidentialité sont publiables.
           </p>
         ) : (
-          <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-3.5 text-sm">
+          <div className="loc-carte text-sm">
             <p>
               Les mentions légales, les conditions et la page confidentialité
               affichent « information à fournir » tant qu&apos;un de ces faits
@@ -237,7 +239,7 @@ export default async function PageSante() {
               {faitsExiges.map((fait) => {
                 const manque = manquants.includes(fait);
                 return (
-                  <li key={fait} className="flex items-center justify-between gap-3 py-1.5">
+                  <li key={fait} className="flex items-center justify-between gap-3 py-2.5">
                     <span>{fait[0].toUpperCase() + fait.slice(1)}</span>
                     <span className={`puce ${manque ? "puce-rouge" : "puce-loue"}`}>
                       {manque ? "manquant" : "fourni"}
@@ -247,13 +249,13 @@ export default async function PageSante() {
               })}
             </ul>
             {/* Pas d'invention (audit C5) : aucun écran ne saisit ces faits. */}
-            <p className="mt-3 text-[12.5px] text-[var(--encre)]">
+            <p className="mt-4 text-sm text-[var(--encre)]">
               Aucun écran de Gerimmo ne les saisit encore : ils se renseignent
               dans la configuration du service par le responsable technique, puis
               les trois pages publiques les reprennent.
             </p>
             <p className="mt-1.5">
-              <Link href="/mentions-legales" className="lien-discret text-[12.5px]">
+              <Link href="/mentions-legales" className="lien-discret text-sm">
                 Voir la page publique →
               </Link>
             </p>
@@ -274,7 +276,7 @@ export default async function PageSante() {
         {adoption === null ? (
           <div className="vide">Les organisations n&apos;ont pas pu être lues.</div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
               ["Avis d'échéance", adoption.appels],
               ["Quittances", adoption.quittances],
@@ -291,7 +293,7 @@ export default async function PageSante() {
             ))}
           </div>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">
+        <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
           Chaque organisation active ses envois dans son profil ; l&apos;assistant
           et le parcours de démarrage le lui proposent. Une organisation « tout à
           la main » clique là où Gerimmo pourrait faire seul.

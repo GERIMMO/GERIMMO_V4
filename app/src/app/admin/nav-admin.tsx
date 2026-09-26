@@ -42,7 +42,10 @@ function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: 
     {/* Le même chiffre que la barre haute et l'accueil (lib/decisions-attendues.ts). */}
     <Link href="/admin/brief" className="admin-nav-lien" aria-current={actif("/admin/brief") ? "page" : undefined}>Aujourd’hui{decisions > 0 && <span className="coquille-badge ml-2" aria-hidden title={`${decisions} décision${decisions > 1 ? "s" : ""} attendue${decisions > 1 ? "s" : ""}`}>{decisions}</span>}</Link>
     {/* Le porteur (25/09 au soir) : « je veux le menu fixe ». Plus de groupes
-        repliables : chaque rubrique est un titre, ses entrées toujours visibles. */}
+        repliables : chaque rubrique est un titre, ses entrées toujours visibles.
+        Nuit du 25/09 : le titre de rubrique est discret (petit, gris, sans
+        graisse forte, `.admin-menu-titre`) — la colonne de l'ancienne console
+        n'en avait pas ; les entrées gardent la hauteur des onze d'avant (42 px). */}
     {GROUPES.map((g) => <section key={g.titre} className="admin-menu-groupe" aria-labelledby={`menu-${g.titre.replace(/\W+/g, "-")}`}>
       <h3 id={`menu-${g.titre.replace(/\W+/g, "-")}`} className="admin-menu-titre">{g.titre}{g.titre === "Dossiers et décisions" && artisansEnAttente > 0 && <span className="coquille-badge ml-2" aria-label={`${artisansEnAttente} artisans à valider`}>{artisansEnAttente}</span>}</h3>
       <div>{g.entrees.map(([href, libelle]) => <Link key={href} href={href} className="admin-nav-lien" aria-current={actif(href) ? "page" : undefined}>{libelle}</Link>)}</div>

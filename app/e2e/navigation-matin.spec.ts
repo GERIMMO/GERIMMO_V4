@@ -8,8 +8,10 @@ test.describe('Tour du matin de la supervision',()=>{
   await page.goto('/espaces');await expect(page).toHaveURL(/\/admin\/brief/);
   await expect(page.getByRole('heading',{name:'Aujourd’hui',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();
-  await page.getByRole('navigation',{name:'Navigation de la supervision'}).locator('summary').filter({hasText:'Développement commercial'}).click();
-  await page.getByRole('link',{name:'Demandes commerciales',exact:true}).click();
+  // Menu fixe (25/09) : la rubrique est un titre, l'entrée se clique directement.
+  const menu=page.getByRole('navigation',{name:'Navigation de la supervision'});
+  await expect(menu.getByRole('heading',{name:'Développement commercial'})).toBeVisible();
+  await menu.getByRole('link',{name:'Demandes commerciales',exact:true}).click();
   await expect(page.getByRole('heading',{name:'Demandes commerciales',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Menu supervision',exact:true})).toHaveAttribute('aria-expanded','false');
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();

@@ -95,7 +95,7 @@ export default async function PageAdmin() {
       {enEchec > 0 && (
         <div
           role="alert"
-          className="mb-6 rounded-xl border border-[var(--destructive)] bg-[var(--destructive-soft)] p-3.5 text-[13px] text-[var(--destructive-soft-foreground)]"
+          className="mb-6 rounded-xl border border-[var(--destructive)] bg-[var(--destructive-soft)] p-4 text-sm text-[var(--destructive-soft-foreground)]"
         >
           {enEchec} lecture{enEchec > 1 ? "s" : ""} de cette page
           {enEchec > 1 ? " ont" : " a"} échoué : les chiffres ci-dessous sont
@@ -134,7 +134,7 @@ export default async function PageAdmin() {
           <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Organisations</h2>
           <span className="mono-discret">par statut d&apos;abonnement</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Indicateur libelle="Actives" valeur={orgs.error ? "—" : parStatut("active")} accent="vert"
             precision="abonnement en cours" href="/admin/clients" />
           <Indicateur libelle="En essai" valeur={orgs.error ? "—" : parStatut("essai")} accent="ambre"
@@ -183,7 +183,9 @@ export default async function PageAdmin() {
 
       {/* La mesure vit ICI et nulle part ailleurs dans la console (audit C1,
           C4) : en bas, parce qu'elle ne demande aucune décision. */}
-      <div id="mesures" className="scroll-mt-6">
+      {/* Le même pas qu'entre deux sections (48 px) : l'enveloppe cassait la
+          règle `.section-ecran + .section-ecran` et la mesure collait aux clients. */}
+      <div id="mesures" className="mt-12 scroll-mt-6">
         <MesureAutonomie detail titre="Ce que Gerimmo automatise, toutes organisations" />
       </div>
     </main>

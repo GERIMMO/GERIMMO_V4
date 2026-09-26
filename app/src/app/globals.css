@@ -2015,7 +2015,7 @@ a:focus-visible > .carte-espace {
    Un titre de section dans le même esprit que ceux de la console, puis ses
    entrées toujours visibles — plus d'accordéon. */
 .coquille-groupe { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--trait-doux); }
-.coquille-groupe > p { display: none; align-items: center; min-height: 32px; padding: 4px 12px 6px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--libelle); }
+.coquille-groupe > p { display: none; align-items: center; padding: 4px 12px 6px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-secondaire); }
 @media (min-width: 1024px) { .coquille-groupe > p { display: flex; } }
 .coquille-groupe > div { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
 
@@ -2786,9 +2786,9 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
 
 /* Navigation de supervision : destinations regroupées, accessibles sans défilement horizontal. */
 .admin-menu-groupes { width: 100%; min-width: 0; }
-.admin-menu-groupe { margin-top: 18px; }
+.admin-menu-groupe { margin-top: 14px; }
 /* Menu fixe (25/09 au soir) : le titre d'une rubrique n'est plus un bouton. */
-.admin-menu-titre { display: flex; align-items: center; padding: 6px 12px 8px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--libelle); }
+.admin-menu-titre { display: flex; align-items: center; padding: 4px 14px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-secondaire); }
 .admin-menu-groupe > div { display: flex; flex-direction: column; gap: 2px; }
 @media (max-width: 900px) {
   .admin-nav:has(.admin-menu-groupes) { overflow: visible; display: block; }
@@ -2853,13 +2853,13 @@ h2 { font-size: 1.3125rem; }
 @media (min-width: 901px) {
   .admin-corps > main, .coquille-corps > main, .portail-ecrans > main { padding: 36px 44px 80px; }
   .admin-nav { padding: 18px 14px; gap: 4px; }
-  .admin-nav-lien { min-height: 42px; padding: 10px 14px; font-size: 13.5px; }
 }
+.admin-nav-lien { min-height: 42px; padding: 10px 14px; font-size: 13.5px; }
 /* Cartes empilées avec `mt-4` (16 px) : 28 px entre deux cartes. */
 .loc-carte + .loc-carte, .loc-carte + section.loc-carte, .section-ecran + .loc-carte { margin-top: var(--rythme-4); }
 /* …mais pas dans une grille de tuiles : la grille a déjà son `gap`, et la
    marge faisait descendre la 2ᵉ et la 3ᵉ tuile de l'accueil locataire. */
-:is(.grille-kpi, .tuiles, .grid) > .loc-carte + .loc-carte { margin-top: 0; }
+:is(.grille-kpi, .tuiles, .grid, .flex) > .loc-carte + .loc-carte { margin-top: 0; }
 /* Le titre d'une carte garde son pas (16 px) : le `h2` de 21 px ci-dessus est
    l'écran, pas la carte. Sinon « Mon abonnement » rejetait sa pastille à la ligne. */
 .entete-carte h2 { font-size: var(--pas-sous-titre); }
@@ -2878,6 +2878,8 @@ h2 { font-size: 1.3125rem; }
 @media (min-width: 1100px) { .split { grid-template-columns: minmax(0, 384px) minmax(0, 1fr); gap: 20px; } }
 /* Accès rapide de la fiche bail : 13 px, comme le menu. */
 .dossier-nav a { font-size: 13px; }
+/* Doctrine repliée dans la console : le même résumé partout, au pas du titre de carte. */
+.portail-ecrans details.section-ecran > summary { cursor: pointer; font-family: var(--font-titres), system-ui, sans-serif; font-size: 1.0625rem; font-weight: 600; color: var(--encre); }
 /* Les cartes de l'espace artisan respirent comme les autres. */
 .artisan-carte { padding: 26px 28px; border-radius: 18px; }
 @media (max-width: 640px) { .artisan-carte { padding: 20px; border-radius: 16px; } }

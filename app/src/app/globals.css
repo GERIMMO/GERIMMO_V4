@@ -2860,6 +2860,19 @@ h2 { font-size: 1.3125rem; }
 }
 /* Cartes empilées avec `mt-4` (16 px) : 28 px entre deux cartes. */
 .loc-carte + .loc-carte, .loc-carte + section.loc-carte, .section-ecran + .loc-carte { margin-top: var(--rythme-4); }
+/* …mais pas dans une grille de tuiles : la grille a déjà son `gap`, et la
+   marge faisait descendre la 2ᵉ et la 3ᵉ tuile de l'accueil locataire. */
+:is(.grille-kpi, .tuiles, .grid) > .loc-carte + .loc-carte { margin-top: 0; }
+/* Le titre d'une carte garde son pas (16 px) : le `h2` de 21 px ci-dessus est
+   l'écran, pas la carte. Sinon « Mon abonnement » rejetait sa pastille à la ligne. */
+.entete-carte h2 { font-size: var(--pas-sous-titre); }
+/* La rangée libellé ↔ valeur suit la respiration des rangs ; au téléphone,
+   la valeur descend sous le libellé plutôt que d'écraser l'un ou l'autre. */
+.ligne-info { padding-block: 11px; font-size: 13.5px; }
+@media (max-width: 640px) {
+  .ligne-info { flex-wrap: wrap; row-gap: 6px; }
+  .ligne-info > span:first-child { flex-shrink: 0; }
+}
 /* Un tableau respire aussi : lignes plus hautes. */
 .tableau td, .tableau th { padding-block: 12px; }
 /* Les cartes de l'espace artisan respirent comme les autres. */

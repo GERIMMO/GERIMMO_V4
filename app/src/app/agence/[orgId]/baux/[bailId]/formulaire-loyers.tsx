@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur, formaterDate } from "@/lib/ged";
 import { STATUTS_APPEL_LOYER, COULEURS_STATUT_APPEL_LOYER } from "@/lib/baux";
+import { ChampFichier } from "@/components/champ-fichier";
 
 // Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
 // bloquer quelqu'un sur un cas rare.
@@ -116,8 +117,8 @@ function BoutonEnvoiQuittance({
           ? estQuittance ? "Envoyée" : "Envoyé"
           : estQuittance ? "Envoyer la quittance" : "Envoyer le reçu"}
       </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
-      {etat.succes && <span className="text-xs text-success-soft-foreground" role="status">{etat.succes}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="text-sm text-success-soft-foreground" role="status">{etat.succes}</span>}
     </form>
   );
 }
@@ -168,7 +169,7 @@ function BoutonRetirerEncaissement({
       <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
         Renoncer
       </Button>
-      {etat.erreur && <span className="w-full text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }
@@ -191,7 +192,7 @@ function BoutonRetirerRelance({
       <BoutonEnvoi variant="ghost" size="sm">
         Retirer
       </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }
@@ -312,11 +313,11 @@ export function FormulaireLoyers({
         <p className="text-sm font-medium">Saisir un encaissement</p>
         <form action={formEnc} className="flex flex-wrap items-end gap-2">
           <div className="space-y-1">
-            <Label htmlFor="enc-montant" className="text-xs">Montant (€)</Label>
+            <Label htmlFor="enc-montant" className="text-sm">Montant (€)</Label>
             <Input id="enc-montant" name="montant" type="number" step="0.01" min="0.01" defaultValue={etatEnc.valeurs?.montant} className="h-9 w-28" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="enc-date" className="text-xs">Date</Label>
+            <Label htmlFor="enc-date" className="text-sm">Date</Label>
             {/* La date lue sur le relevé revient après un refus : la banque fait
                 foi sur les montants ET les dates (RM-A6.7), et un champ vide se
                 fait dater du jour par la base. */}
@@ -330,7 +331,7 @@ export function FormulaireLoyers({
           {/* Champ libre auparavant : chacun écrivait « cheque », « Chèque »,
               « CHQ ». Une liste courte suffit et rend le journal lisible. */}
           <div className="space-y-1">
-            <Label htmlFor="enc-mode" className="text-xs">Payé par</Label>
+            <Label htmlFor="enc-mode" className="text-sm">Payé par</Label>
             <select
               id="enc-mode"
               name="mode"
@@ -523,11 +524,11 @@ export function FormulaireLoyers({
               </p>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="irl-nouv" className="text-xs">IRL nouveau</Label>
+              <Label htmlFor="irl-nouv" className="text-sm">IRL nouveau</Label>
               <Input id="irl-nouv" name="irl_nouveau" type="number" step="0.01" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="irl-date" className="text-xs">Date d&apos;effet</Label>
+              <Label htmlFor="irl-date" className="text-sm">Date d&apos;effet</Label>
               <Input id="irl-date" name="date_effet" type="date" defaultValue={etatRev.valeurs?.date_effet} className="h-9" />
             </div>
             <BoutonEnvoi size="sm" variant="outline">
@@ -536,7 +537,7 @@ export function FormulaireLoyers({
             {etatRev.erreur && <p className="w-full text-sm text-destructive">{etatRev.erreur}</p>}
             {etatRev.succes && <p className="w-full text-sm text-success-soft-foreground">{etatRev.succes}</p>}
           </form>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Nouveau loyer = loyer × IRL nouveau / IRL de référence. L&apos;indice de
             référence est celui figé au bail à sa signature {/* RM-3.8.2 */} et ne se saisit
             pas ici. Une seule révision par année de bail ; interdit si DPE F/G ; le
@@ -548,7 +549,7 @@ export function FormulaireLoyers({
       {/* Impayés & relances */}
       <div className="space-y-2 border-t border-border pt-4">
         <p className="text-sm font-medium">
-          Relances{impaye && <span className="ml-2 text-xs text-destructive">impayé en cours</span>}
+          Relances{impaye && <span className="ml-2 text-sm text-destructive">impayé en cours</span>}
         </p>
         {relances.length > 0 && (
           <ul className="divide-y divide-border">
@@ -574,11 +575,11 @@ export function FormulaireLoyers({
             <option value="mise_en_demeure">Mise en demeure (recommandé)</option>
           </select>
           <div className="space-y-1">
-            <Label htmlFor="rel-date" className="text-xs">Envoyée le</Label>
+            <Label htmlFor="rel-date" className="text-sm">Envoyée le</Label>
             <InputDateJour id="rel-date" className="h-9" name="date_envoi" valeurSoumise={etatRel.valeurs?.date_envoi} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="rel-pres" className="text-xs">1re présentation (si recommandé)</Label>
+            <Label htmlFor="rel-pres" className="text-sm">1re présentation (si recommandé)</Label>
             {/* La date de présentation se relève sur le suivi postal : elle
                 reste vide tant que la présentation n'est pas confirmée. */}
             <Input id="rel-pres" type="date" className="h-9" name="date_premiere_presentation" defaultValue={etatRel.valeurs?.date_premiere_presentation} />
@@ -587,7 +588,7 @@ export function FormulaireLoyers({
               comprimé à côté, son placeholder se coupait (« N° recommanc »,
               24/09). */}
           <div className="w-full space-y-1 sm:w-auto">
-            <Label htmlFor={idNumeroRecommande} className="text-xs">Numéro de suivi</Label>
+            <Label htmlFor={idNumeroRecommande} className="text-sm">Numéro de suivi</Label>
             <Input id={idNumeroRecommande} name="numero_recommande" placeholder="N° recommandé" defaultValue={etatRel.valeurs?.numero_recommande} className="h-9 w-full sm:w-32" />
           </div>
           <BoutonEnvoi size="sm" variant="outline">
@@ -596,7 +597,7 @@ export function FormulaireLoyers({
           {etatRel.erreur && <p className="w-full text-sm text-destructive">{etatRel.erreur}</p>}
           {etatRel.succes && <p className="w-full text-sm text-success-soft-foreground" role="status">{etatRel.succes}</p>}
         </form>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           La mise en demeure part en lettre recommandée avec accusé de réception, hors de la plateforme ; saisissez la date de première présentation
           (le délai court de là).
         </p>
@@ -627,16 +628,16 @@ export function FormulaireLoyers({
         <form action={formReg} className="flex flex-wrap items-end gap-2">
           {/* En erreur, la saisie est reposée via etatReg.valeurs (recette 22/08) */}
           <div className="space-y-1">
-            <Label htmlFor="reg-annee" className="text-xs">Année</Label>
+            <Label htmlFor="reg-annee" className="text-sm">Année</Label>
             <Input id="reg-annee" name="annee" type="number" required defaultValue={etatReg.valeurs?.annee ?? anneeDefaut} className="h-9 w-24" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="reg-reel" className="text-xs">Charges réelles (€)</Label>
+            <Label htmlFor="reg-reel" className="text-sm">Charges réelles (€)</Label>
             <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" required defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="reg-just" className="text-xs">Justificatif</Label>
-            <Input id="reg-just" name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" required className="h-9" />
+            <Label htmlFor="reg-just" className="text-sm">Justificatif</Label>
+            <ChampFichier id="reg-just" name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required />
           </div>
           <BoutonEnvoi size="sm" variant="outline">
             Régulariser
@@ -646,7 +647,7 @@ export function FormulaireLoyers({
         </form>
         )}
         {!chargesForfait && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Provisions calculées depuis les appels de l&apos;année (prorata inclus) ; justificatif
             obligatoire, joint au décompte du locataire.
           </p>
@@ -663,7 +664,7 @@ export function FormulaireLoyers({
             <span aria-hidden className="information-chevron">⌄</span>
           </summary>
           <div className="mt-1 space-y-2">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               À n&apos;utiliser que si l&apos;échéancier ou les documents ne
               reflètent plus les encaissements du bail.
             </p>
@@ -689,8 +690,8 @@ function BoutonEcheancier({ orgId, bailId }: { orgId: string; bailId: string }) 
       <BoutonEnvoi size="sm" variant="outline">
         {"Générer l'échéancier"}
       </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
-      {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
   );
 }
@@ -707,8 +708,8 @@ function BoutonQuittances({ orgId, bailId }: { orgId: string; bailId: string }) 
       <BoutonEnvoi size="sm" variant="outline">
         Régénérer les reçus/quittances
       </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
-      {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
   );
 }

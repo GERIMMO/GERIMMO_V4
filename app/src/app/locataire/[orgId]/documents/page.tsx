@@ -337,7 +337,7 @@ export default async function PageDocumentsLocataire(
             })}
           </ul>
         )}
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-3 text-[13px] text-muted-foreground">
           Conservés pendant toute la durée légale — vous n&apos;avez rien à
           archiver.
         </p>

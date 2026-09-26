@@ -14,6 +14,7 @@ import { RepereJuridique } from "../nouveau/formulaire-incident";
 import { IMPUTATIONS_INCIDENT, MOTIFS_CLOTURE } from "@/lib/incidents";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
+import { ChampFichier } from "@/components/champ-fichier";
 import { Label } from "@/components/ui/label";
 
 // min-w-0 : en flex, un select natif refuse sinon de descendre sous sa plus
@@ -102,7 +103,7 @@ export function FormulaireQualification({
       <BoutonEnvoi enCoursTexte="Qualification…">
         Qualifier l&apos;incident
       </BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Le locataire est informé immédiatement — avant toute intervention, pas à la
         facture.
       </p>
@@ -193,7 +194,7 @@ export function FormulaireReouverture({
       <BoutonEnvoi variant="outline" enCoursTexte="Réouverture…">
         Rouvrir l&apos;incident
       </BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         L&apos;incident repasse par la qualification ; l&apos;historique de clôture est
         conservé dans la chronologie.
       </p>
@@ -307,7 +308,9 @@ export function FormulairePhotoIncident({
         <Label htmlFor={idPhotos} className="sr-only">
           Photos à joindre
         </Label>
-        <Input id={idPhotos} name="photos" type="file" accept="image/jpeg,image/png" multiple onChange={(e) => void compresserChampFichiers(e.currentTarget)} required />
+        {/* Champ fichier en français (nuit du 25 au 26/09) : le natif rendait
+            « Choose Files / No file chosen ». */}
+        <ChampFichier id={idPhotos} name="photos" accept="image/jpeg,image/png" multiple vide="Aucune photo choisie" onChange={(e) => void compresserChampFichiers(e.currentTarget)} required />
         <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
           Joindre
         </BoutonEnvoi>

@@ -105,7 +105,7 @@ export function FormulaireConsultation({
               </option>
             ))}
           </select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Signalé comme « {categorieLibelle} ». Le métier n&apos;en est pas déduit
             automatiquement : à vous de dire qui doit intervenir.
           </p>
@@ -129,7 +129,7 @@ export function FormulaireConsultation({
               </option>
             ))}
           </select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             C&apos;est la nature, pas le métier, qui décide si l&apos;attestation
             décennale est exigée. Le filtre ne se désactive pas.
           </p>
@@ -280,7 +280,7 @@ export function FormulaireRendezVous({
       <BoutonEnvoi variant="outline" enCoursTexte="Enregistrement…">
         Inscrire le rendez-vous
       </BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Heure de Paris. Les créneaux encore en attente deviennent caducs ; ceux
         déjà refusés restent au dossier — un refus persistant est opposable.
       </p>
@@ -334,7 +334,7 @@ export function FormulaireRevisionImputation({
       </div>
       <Retour etat={etat} />
       <BoutonEnvoi enCoursTexte="Révision…">Réviser l&apos;imputation</BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         À faire avant la facturation : c&apos;est cette décision qui dira qui paie.
         Le locataire en est informé, et peut la contester sans que cela suspende
         quoi que ce soit.
@@ -370,7 +370,7 @@ export function FormulaireAnnulationMission({
       <BoutonEnvoi variant="outline" size="sm" enCoursTexte="Annulation…">
         Annuler la mission
       </BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         L&apos;incident revient en attente d&apos;affectation ; les créneaux
         deviennent caducs. Impossible sur une mission déjà terminée.
       </p>
@@ -433,7 +433,7 @@ export function FormulaireEvaluation({
       </div>
       <Retour etat={etat} />
       <BoutonEnvoi enCoursTexte="Envoi…">Noter l&apos;artisan</BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Votre note pèse la moitié de son score ; le locataire en apporte un quart.
         L&apos;artisan verra sa moyenne, jamais votre commentaire ni le détail de
         qui a noté quoi. Une seule note par intervention.

@@ -1,7 +1,7 @@
 import { PresenceSupervision } from "@/components/presence-supervision";
 import Link from "next/link";
 import { aujourdhuiParis } from "@/lib/ged";
-import { BoutonMenuSupervision, ColonneSupervision, MenuSupervisionProvider, NavAdmin } from "./nav-admin";
+import { BoutonMenuSupervision, ColonneSupervision, MenuSupervisionProvider, NavAdmin, OngletsSupervision } from "./nav-admin";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { MenuCompte } from "@/components/menu-compte";
@@ -76,6 +76,7 @@ export default async function LayoutAdmin({ children }: LayoutProps<"/admin">) {
           </nav>
         </ColonneSupervision>
         <div className="admin-corps min-[901px]:col-start-2 min-[901px]:row-start-2 max-[900px]:row-start-3">
+          <OngletsSupervision artisansEnAttente={artisansEnAttente} decisions={decisions.total} />
           {/* Le bas de page passe au-dessus du bouton flottant « Aide et
               retours » (24/09) : sans cette réserve, la dernière ligne restait
               dessous. */}

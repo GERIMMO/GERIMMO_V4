@@ -15,6 +15,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChampFichier } from "@/components/champ-fichier";
 
 // Une pièce PDF du bail : champ fichier + bouton, même gabarit pour le bail
 // signé et le règlement de copropriété.
@@ -33,10 +34,10 @@ function FormulairePieceBail({
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
-        <Label htmlFor={id} className="text-xs">
+        <Label htmlFor={id} className="text-sm">
           {libelle}
         </Label>
-        <Input id={id} name="fichier" type="file" accept=".pdf" required />
+        <ChampFichier id={id} name="fichier" accept=".pdf" required />
       </div>
       <BoutonEnvoi enCoursTexte="Dépôt…" size="sm" variant="outline">
         {bouton}
@@ -117,7 +118,7 @@ export function FormulaireConge({
       <input type="hidden" name="preavis_mois" value={preavis} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="conge-par" className="text-xs">
+          <Label htmlFor="conge-par" className="text-sm">
             Donné par
           </Label>
           <select
@@ -132,7 +133,7 @@ export function FormulaireConge({
           </select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="conge-date" className="text-xs">
+          <Label htmlFor="conge-date" className="text-sm">
             Date de réception du congé
           </Label>
           {/* Le préavis dépend de cette date : elle doit être relevée sur
@@ -143,7 +144,7 @@ export function FormulaireConge({
 
       {par === "bailleur" ? (
         <div className="space-y-1.5">
-          <Label htmlFor="conge-motif" className="text-xs">
+          <Label htmlFor="conge-motif" className="text-sm">
             Motif (obligatoire — sinon le congé est nul)
           </Label>
           {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
@@ -174,30 +175,23 @@ export function FormulaireConge({
               />
               Préavis réduit à 1 mois (mutation, santé, perte d&apos;emploi, RSA/AAH…)
             </label>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               En zone tendue, le préavis d&apos;un mois s&apos;applique de plein droit : inutile
               de cocher, aucun justificatif n&apos;est exigible (la zone est portée par le bien).
             </p>
             {reduit && (
               <div>
-                <Label htmlFor={idJustificatifPreavis} className="text-xs">
+                <Label htmlFor={idJustificatifPreavis} className="text-sm">
                   Justificatif du préavis réduit
                 </Label>
-                <Input
-                  id={idJustificatifPreavis}
-                  name="justificatif"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  required
-                  className="mt-1"
-                />
+                <ChampFichier id={idJustificatifPreavis} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required />
               </div>
             )}
           </div>
         )
       )}
 
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Préavis appliqué : <span className="font-medium">{preavis} mois</span>
         {par === "bailleur"
           ? meuble
@@ -245,7 +239,7 @@ export function FormulaireCreerEdl({
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
-        <Label htmlFor="edl-type" className="text-xs">
+        <Label htmlFor="edl-type" className="text-sm">
           Nouvel état des lieux
         </Label>
         <select
@@ -275,7 +269,7 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
     <form action={formAction} className="space-y-2">
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1.5">
-          <Label htmlFor="annulation-motif" className="text-xs">
+          <Label htmlFor="annulation-motif" className="text-sm">
             Pourquoi le congé s&apos;annule (facultatif)
           </Label>
           {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
@@ -292,7 +286,7 @@ export function FormulaireAnnulerConge({ orgId, bailId }: { orgId: string; bailI
           Annuler le congé
         </BoutonEnvoi>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Le bail redevient actif, le lot reste loué, et le congé annulé reste au
         dossier. Impossible une fois l&apos;état des lieux de sortie signé.
       </p>
@@ -313,7 +307,7 @@ export function BoutonTerminerBail({ orgId, bailId }: { orgId: string; bailId: s
       <BoutonEnvoi enCoursTexte="Clôture…" size="sm" variant="outline">
         Clôturer le bail
       </BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Préavis échu et état des lieux de sortie signé : le bail passe à
         « terminé », le lot redevient disponible et l&apos;espace du locataire
         reste consultable (quittances, décompte de restitution).

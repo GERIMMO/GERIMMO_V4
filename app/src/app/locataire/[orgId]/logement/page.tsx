@@ -186,7 +186,7 @@ export default async function PageLogementLocataire(
           )}
         </div>
         {depot && depotDu > 0 && (
-          <p className="mt-3 text-xs text-muted-foreground">
+          <p className="mt-3 text-[13px] text-muted-foreground">
             {depotRecu > 0 ? "Cet argent reste le vôtre" : "Une fois versé, cet argent reste le vôtre"}{" "}
             : il vous est restitué sous 1 mois après un état des lieux de sortie
             conforme (2 mois si des retenues sont justifiées, pièces à
@@ -267,9 +267,12 @@ export default async function PageLogementLocataire(
             <h3 className="text-base font-medium">Mes états des lieux</h3>
             <div className="mt-2">
               {edls.map((e) => (
-                <div key={e.id} className="ligne-info">
-                  <span>État des lieux {e.type === "entree" ? "d'entrée" : "de sortie"}</span>
-                  <span className="text-right">
+                // La pastille passe sous le libellé à 390 px (25/09 au soir) :
+                // « État des lieux d'entrée » se cassait en deux lignes en
+                // face de « en préparation — prévu le … ».
+                <div key={e.id} className="ligne-info flex-wrap gap-y-1.5">
+                  <span className="shrink-0">État des lieux {e.type === "entree" ? "d'entrée" : "de sortie"}</span>
+                  <span className="ml-auto text-right">
                     {e.etat === "signe" ? (
                       <span className="loc-tag vert">
                         signé{e.signe_le ? ` le ${formaterDate(e.signe_le)}` : ""}
@@ -283,7 +286,7 @@ export default async function PageLogementLocataire(
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
+            <p className="mt-3 text-[13px] text-muted-foreground">
               L&apos;état des lieux se signe sur place, le jour du rendez-vous avec
               votre gestionnaire — vous en gardez un exemplaire.
             </p>

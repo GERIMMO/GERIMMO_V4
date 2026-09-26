@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { importerParc, type EtatImport } from "@/app/actions/import-parc";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { ChampFichier } from "@/components/champ-fichier";
 
 export function FormulaireImport({ orgId }: { orgId: string }) {
   const [etat, action] = useActionState<EtatImport, FormData>(
@@ -27,15 +28,9 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
       <form action={action} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor={`${base}-fichier`}>Votre fichier (CSV)</Label>
-          <input
-            id={`${base}-fichier`}
-            name="fichier"
-            type="file"
-            accept=".csv,text/csv"
-            className="block w-full text-sm file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-md file:border file:border-[var(--filet)] file:bg-[var(--ivoire)] file:px-3 file:text-sm"
-          />
+          <ChampFichier id={`${base}-fichier`} name="fichier" accept=".csv,text/csv" />
           {etat.fichier && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Fichier lu : <b>{etat.fichier}</b>
             </p>
           )}
@@ -67,7 +62,7 @@ export function FormulaireImport({ orgId }: { orgId: string }) {
       </form>
 
       {(etat.inconnues?.length ?? 0) > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Colonnes ignorées, faute d&apos;équivalent :{" "}
           {etat.inconnues!.join(", ")}.
         </p>

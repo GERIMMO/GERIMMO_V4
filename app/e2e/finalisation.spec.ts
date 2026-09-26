@@ -61,7 +61,7 @@ test.describe('Études, validation et visibilité par profil',()=>{
   await page.goto('/admin/marketing');const auto=page.getByLabel('Publier automatiquement');
   if(await auto.isDisabled()){
    // Sans Page Facebook reliée (audit 25/09, C21) : la case est décochée et désactivée, et le dit.
-   await expect(auto).not.toBeChecked();await expect(page.getByText('la Page Facebook n’est pas reliée')).toBeVisible();
+   await expect(auto).not.toBeChecked();await expect(page.getByText('la Page Facebook n’est pas reliée').first()).toBeVisible();
   }else{
    await expect(auto).toBeChecked();
    await auto.uncheck();await page.getByRole('button',{name:'Enregistrer les réglages'}).click();await expect(page.getByRole('status')).toContainText('mis à jour');

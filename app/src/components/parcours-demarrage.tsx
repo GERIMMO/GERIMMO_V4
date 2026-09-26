@@ -146,7 +146,7 @@ export async function ParcoursDemarrage({
                   <span className="sr-only">{e.faite ? "— fait" : "— à faire"}</span>
                 </span>
                 {e.detail && (
-                  <span className="mt-0.5 block text-xs text-muted-foreground">{e.detail}</span>
+                  <span className="mt-1 block text-[13px] text-muted-foreground">{e.detail}</span>
                 )}
                 {/* CHAQUE étape non faite porte son geste (25/09, D05) : seule
                     la suivante avait un bouton, et « Un lot en état d'être
@@ -196,7 +196,7 @@ export async function ParcoursDemarrage({
           </Link>
         </div>
       ) : (
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-3 text-[13px] text-muted-foreground">
           Une fois le bail actif, le loyer s&apos;appelle seul le 1ᵉʳ de chaque
           mois et la quittance suit l&apos;encaissement — vous n&apos;aurez plus
           rien à lancer.

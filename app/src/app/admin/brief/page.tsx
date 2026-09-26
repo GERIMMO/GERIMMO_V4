@@ -82,23 +82,27 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
           <span className={`puce ${decisions.total > 0 ? "puce-prep" : "puce-grise"}`}>{decisions.total > 0 ? `${pluriel(decisions.total, "décision")} attendue${decisions.total > 1 ? "s" : ""}` : "Rien à trancher"}</span>
         </div>
         {rienADecider ? (
-          <div className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 text-sm text-[var(--encre)]"><b>Rien n’attend votre décision.</b> Les équipes continuent le travail autorisé.</div>
+          <div className="vide-guide"><p className="titre">Rien n’attend votre décision.</p><p className="explication">Les équipes continuent le travail autorisé.</p></div>
         ) : (
-          <div className="grid gap-4">
+          <div className="grid gap-6">
             {points.filter((pt) => pt.decisions.some((d) => d.statut === "en_attente")).map((pt) => (
               <div key={pt.id}>
                 <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Équipe {pt.nom}</p>
-                <ul className="grid gap-3">{pt.decisions.filter((d) => d.statut === "en_attente").map((d) => <DecisionMatin key={d.id} decision={d} />)}</ul>
+                <ul className="grid gap-4">{pt.decisions.filter((d) => d.statut === "en_attente").map((d) => <DecisionMatin key={d.id} decision={d} />)}</ul>
               </div>
             ))}
+            {/* Le rang commun de la console (nuit du 25/09) : tout le carré se
+                clique, comme la liste des clients de l'ancienne vue d'ensemble. */}
             {signaux.length > 0 && (
-              <div className="grid gap-2">
-                {decisionsEnAttente.length > 0 && <p className="eyebrow text-[var(--marque-sombre)]">Hors équipes</p>}
-                {signaux.map((signal) => {
-                  const classe = "group flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4 hover:bg-[var(--survol)]";
-                  const contenu = <><div className="min-w-0"><h3 className="font-semibold text-[var(--encre)]">{signal.titre}</h3><p className="mt-1 text-sm text-[var(--texte-secondaire)]">{signal.detail}</p></div><span className="btn-secondaire shrink-0">{signal.action} →</span></>;
-                  return signal.href ? <Link key={signal.titre} href={signal.href} className={classe}>{contenu}</Link> : <OuvrirAlertes key={signal.titre} className={classe}>{contenu}</OuvrirAlertes>;
-                })}
+              <div>
+                {decisionsEnAttente.length > 0 && <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Hors équipes</p>}
+                <div className="colonne-liste">
+                  {signaux.map((signal) => {
+                    const classe = "rang w-full flex-wrap justify-between";
+                    const contenu = <><span className="min-w-0 flex-1"><b>{signal.titre}</b><br /><small>{signal.detail}</small></span><span className="btn-secondaire shrink-0">{signal.action} →</span></>;
+                    return signal.href ? <Link key={signal.titre} href={signal.href} className={classe}>{contenu}</Link> : <OuvrirAlertes key={signal.titre} className={classe}>{contenu}</OuvrirAlertes>;
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -119,36 +123,36 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
           </div>
         )}
         {points.length > 0 && (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-5 md:grid-cols-2">
             {points.map((pt) => {
               const attente = pt.decisions.filter((d) => d.statut === "en_attente").length;
               const passage = dernierPassage(pt);
               const sansMission = missionsDeLEquipe(pt.equipe).length === 0;
               return (
-                <Link key={pt.id} href={`/admin/brief/${pt.equipe}${estAujourdhui ? "" : `?jour=${jour}`}`} className="group rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 transition-colors hover:bg-[var(--survol)]">
+                <Link key={pt.id} href={`/admin/brief/${pt.equipe}${estAujourdhui ? "" : `?jour=${jour}`}`} className="loc-carte group block transition-colors hover:bg-[var(--survol)]">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="font-heading text-[16px] text-[var(--encre)]">{pt.nom}</h3>
                     <span className={`puce ${attente > 0 ? "puce-prep" : pt.contenu.echecs.length > 0 ? "puce-rouge" : pt.statut === "a_lire" ? "puce-encre" : "puce-grise"}`}>{attente > 0 ? `${attente} à valider` : pt.contenu.echecs.length > 0 ? `${pluriel(pt.contenu.echecs.length, "échec")}` : pt.statut === "a_lire" ? "À lire" : "Lu"}</span>
                   </div>
-                  <dl className="mt-3 space-y-1 text-[12.5px] leading-relaxed">
+                  <dl className="mt-4 space-y-1.5 text-sm leading-relaxed">
                     <div><dt className="inline font-semibold text-[var(--encre)]">Dernier passage : </dt><dd className="inline text-[var(--texte-secondaire)]">{passage ? formaterDateHeureParis(passage) : sansMission ? "aucun passage planifié (décisions seulement)" : "aucun dans les dernières 24 heures"}</dd></div>
                     <div><dt className="inline font-semibold text-[var(--encre)]">Résultats : </dt><dd className="inline text-[var(--texte-secondaire)]">{pluriel(pt.contenu.realisations.length, "résultat")} · {pluriel(pt.contenu.echecs.length, "échec")}</dd></div>
                     <div><dt className="inline font-semibold text-[var(--encre)]">À valider : </dt><dd className="inline text-[var(--texte-secondaire)]">{attente > 0 ? pluriel(attente, "décision") : "rien"}</dd></div>
                   </dl>
-                  <span className="lien-discret mt-3 inline-block text-[12.5px] group-hover:underline">Voir le point de l’équipe →</span>
+                  <span className="lien-discret mt-4 inline-block text-sm group-hover:underline">Voir le point de l’équipe →</span>
                 </Link>
               );
             })}
           </div>
         )}
-        <p className="mt-2 text-xs text-muted-foreground">{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Commandes des équipes →</Link></p>
+        <p className="mt-4 text-sm text-muted-foreground">{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret text-sm">Commandes des équipes →</Link></p>
       </section>
 
       {/* ── Jours précédents ───────────────────────────────────────────── */}
       <section className="section-ecran">
         <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Jours précédents</h2>
         {jours.size > 0 || filtreEquipe ? (
-          <nav aria-label="Filtrer l’historique par équipe" className="mb-3 flex flex-wrap gap-2">
+          <nav aria-label="Filtrer l’historique par équipe" className="mb-4 flex flex-wrap gap-2">
             <Link href={lienJour(jour)} className={`filtre${!filtreEquipe ? " actif" : ""}`}>Toutes les équipes</Link>
             {(Object.keys(EQUIPES) as Equipe[]).map((e) => <Link key={e} href={lienJour(jour, e)} className={`filtre${filtreEquipe === e ? " actif" : ""}`}>{EQUIPES[e].nom}</Link>)}
           </nav>

@@ -10,6 +10,7 @@ import { TYPES_PIECE_DOSSIER } from "@/lib/dossier";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChampFichier } from "@/components/champ-fichier";
 
 export function FormulairePiece({ orgId, personId }: { orgId: string; personId: string }) {
   const action = deposerPieceDossier.bind(null, orgId, personId);
@@ -29,7 +30,7 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
       {/* Au téléphone, chaque champ prend la ligne entière (w-full) : des
           largeurs fixes s'arrêtaient à mi-écran, en dents de scie (24/09). */}
       <div className="w-full space-y-1.5 sm:w-44">
-        <Label htmlFor="piece-type" className="text-xs">
+        <Label htmlFor="piece-type" className="text-sm">
           Type de pièce
         </Label>
         {/* defaultValue={etat.valeurs?.…} : en erreur, la saisie est reposée
@@ -51,22 +52,22 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         </select>
       </div>
       <div className="min-w-40 flex-1 space-y-1.5">
-        <Label htmlFor="piece-titre" className="text-xs">
+        <Label htmlFor="piece-titre" className="text-sm">
           Titre
         </Label>
         <Input id="piece-titre" name="titre" maxLength={200} placeholder="ex. CNI recto-verso" defaultValue={etat.valeurs?.titre} />
       </div>
       <div className="w-full space-y-1.5 sm:w-40">
-        <Label htmlFor="piece-expire" className="text-xs">
+        <Label htmlFor="piece-expire" className="text-sm">
           Expire le (assurance)
         </Label>
         <Input id="piece-expire" name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="piece-fichier" className="text-xs">
+        <Label htmlFor="piece-fichier" className="text-sm">
           Fichier (PDF/JPG/PNG, 10 Mo)
         </Label>
-        <Input id="piece-fichier" name="fichier" type="file" accept=".pdf,.jpg,.jpeg,.png" required />
+        <ChampFichier id="piece-fichier" name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
       {/* Sa propre ligne, à droite, de façon voulue : il retombait seul sous
           « Type de pièce », loin du fichier qu'il valide. En contour, comme
@@ -106,7 +107,7 @@ export function BoutonValiderAttestation({
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
         Valider
       </BoutonEnvoi>
-      {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );
 }
@@ -134,7 +135,7 @@ export function FormulaireNouvelleVersion({
       <input type="hidden" name="remplace_id" value={remplaceId} />
       <input type="hidden" name="type" value={type} />
       <div className="min-w-40 flex-1 space-y-1.5">
-        <Label htmlFor={`version-titre-${remplaceId}`} className="text-xs">
+        <Label htmlFor={`version-titre-${remplaceId}`} className="text-sm">
           Titre
         </Label>
         <Input
@@ -146,23 +147,17 @@ export function FormulaireNouvelleVersion({
       </div>
       {type === "attestation_assurance" && (
         <div className="w-full space-y-1.5 sm:w-40">
-          <Label htmlFor={`version-expire-${remplaceId}`} className="text-xs">
+          <Label htmlFor={`version-expire-${remplaceId}`} className="text-sm">
             Expire le
           </Label>
           <Input id={`version-expire-${remplaceId}`} name="expire_le" type="date" defaultValue={etat.valeurs?.expire_le} />
         </div>
       )}
       <div className="space-y-1.5">
-        <Label htmlFor={`version-fichier-${remplaceId}`} className="text-xs">
+        <Label htmlFor={`version-fichier-${remplaceId}`} className="text-sm">
           Fichier (PDF/JPG/PNG, 10 Mo)
         </Label>
-        <Input
-          id={`version-fichier-${remplaceId}`}
-          name="fichier"
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png"
-          required
-        />
+        <ChampFichier id={`version-fichier-${remplaceId}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
       </div>
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Dépôt…">
         Déposer la nouvelle version

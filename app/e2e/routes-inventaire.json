@@ -554,13 +554,13 @@
   {
     "path": "/admin/autonomie",
     "persona": "superadmin",
-    "label": "Pilotage et autorisations",
+    "label": "Développement du site",
     "dynamic": ""
   },
   {
     "path": "/admin/equipes",
     "persona": "superadmin",
-    "label": "Travail et commandes",
+    "label": "Travail des équipes",
     "dynamic": ""
   },
   {
@@ -813,6 +813,18 @@
     "path": "/agence/ORG/artisans",
     "persona": "proprietaire",
     "label": "Carnet d’artisans du bailleur",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/relais",
+    "persona": "superadmin",
+    "label": "Relais en mon absence",
+    "dynamic": ""
+  },
+  {
+    "path": "/admin/parametres",
+    "persona": "superadmin",
+    "label": "Paramètres",
     "dynamic": ""
   }
 ]

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
+import { ChampFichier } from "@/components/champ-fichier";
 
 export type Restitution = {
   id: string;
@@ -323,7 +324,7 @@ function FormDemarrer({
       </p>
       <div className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
-          <Label htmlFor="rst-date" className="text-xs">Remise des clés</Label>
+          <Label htmlFor="rst-date" className="text-sm">Remise des clés</Label>
           <InputDateJour id="rst-date"   className="h-9" name="date_remise_cles" />
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm">
@@ -426,7 +427,7 @@ function ChampsRetenue({
         // comparatif, remontait, et le retapait de mémoire dans l'objet : un
         // aller-retour de défilement et une saisie par écart (relevé 11/09).
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Préparer une retenue depuis un écart du comparatif — le bouton reporte
             l&apos;emplacement dans l&apos;objet ci-dessous ; la nature des travaux
             reste à écrire.
@@ -449,19 +450,19 @@ function ChampsRetenue({
       {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
-          <Label htmlFor={idLibelle} className="text-xs">Objet de la retenue</Label>
+          <Label htmlFor={idLibelle} className="text-sm">Objet de la retenue</Label>
           <Input ref={champLibelle} id={idLibelle} name="libelle" placeholder="Ex. remise en peinture séjour" defaultValue={valeurs?.libelle} className="h-9 w-56" />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="ret-cout" className="text-xs">Coût (€)</Label>
+          <Label htmlFor="ret-cout" className="text-sm">Coût (€)</Label>
           <Input id="ret-cout" name="cout" type="number" step="0.01" min="0.01" defaultValue={valeurs?.cout} className="h-9 w-24" />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="ret-duree" className="text-xs">Durée de vie (ans)</Label>
+          <Label htmlFor="ret-duree" className="text-sm">Durée de vie (ans)</Label>
           <Input id="ret-duree" name="duree_vie" type="number" step="1" min="1" list="bareme-vetuste" defaultValue={valeurs?.duree_vie} className="h-9 w-28" />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="ret-age" className="text-xs">Âge (ans)</Label>
+          <Label htmlFor="ret-age" className="text-sm">Âge (ans)</Label>
           <Input id="ret-age" name="age" type="number" step="1" min="0" defaultValue={valeurs?.age} className="h-9 w-20" />
         </div>
       </div>
@@ -502,12 +503,12 @@ function ChampsRetenue({
         <Label htmlFor={idJustificatif} className="sr-only">
           Justificatif de la retenue
         </Label>
-        <Input id={idJustificatif} name="justificatif" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
+        <ChampFichier id={idJustificatif} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" />
         <BoutonEnvoi size="sm" variant="outline" disabled={amorti}>
           Ajouter la retenue
         </BoutonEnvoi>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Retenue = coût × (durée de vie − âge) / durée de vie. Laisser durée de vie
         vide pour retenir le coût intégral (dégradation, non-vétusté).
       </p>
@@ -530,10 +531,10 @@ function BoutonSupprimerRetenue({
   );
   return (
     <form action={action}>
-      <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="ghost" className="text-sm text-destructive">
         Retirer
       </BoutonEnvoi>
-      {etat.erreur && <span className="block text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="block text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }
@@ -582,20 +583,13 @@ function FormJustifierRetenue({
   );
   return (
     <form action={action} className="flex w-full flex-wrap items-center gap-2 pl-1">
-      <span className="text-xs text-destructive">Sans justificatif</span>
-      <Input
-        name="justificatif"
-        type="file"
-        accept=".pdf,image/*"
-        required
-        className="h-8 max-w-xs text-xs"
-        aria-label={`Justificatif pour ${retenue.libelle}`}
-      />
+      <span className="text-sm text-destructive">Sans justificatif</span>
+      <ChampFichier id={`just-retenue-${retenue.id}`} name="justificatif" accept=".pdf,image/*" required aria-label={`Justificatif pour ${retenue.libelle}`} />
       <BoutonEnvoi size="sm" variant="outline">
         Joindre le devis / la facture
       </BoutonEnvoi>
-      {etat.erreur && <span className="w-full text-xs text-destructive">{etat.erreur}</span>}
-      {etat.succes && <span className="w-full text-xs text-success-soft-foreground">{etat.succes}</span>}
+      {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="w-full text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
   );
 }
@@ -632,7 +626,7 @@ function FormDecompteEnvoye({
       )}
     <form action={action} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
-        <Label htmlFor="decompte-envoye-date" className="text-xs">
+        <Label htmlFor="decompte-envoye-date" className="text-sm">
           Envoyé au locataire le
         </Label>
         <InputDateJour id="decompte-envoye-date" name="date" required />

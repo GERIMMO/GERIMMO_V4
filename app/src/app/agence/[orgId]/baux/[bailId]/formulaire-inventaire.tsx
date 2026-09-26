@@ -104,25 +104,25 @@ export function FormulaireInventaire({
         {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="inv-designation" className="text-xs">
+            <Label htmlFor="inv-designation" className="text-sm">
               Désignation
             </Label>
             <Input id="inv-designation" name="designation" required maxLength={120} placeholder="Canapé, lit 140, table…" defaultValue={etat.valeurs?.designation} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="inv-piece" className="text-xs">
+            <Label htmlFor="inv-piece" className="text-sm">
               Pièce
             </Label>
             <Input id="inv-piece" name="piece" maxLength={60} placeholder="Séjour, chambre 1…" defaultValue={etat.valeurs?.piece} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="inv-quantite" className="text-xs">
+            <Label htmlFor="inv-quantite" className="text-sm">
               Quantité
             </Label>
             <Input id="inv-quantite" name="quantite" type="number" min={1} defaultValue={etat.valeurs?.quantite ?? 1} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="inv-etat" className="text-xs">
+            <Label htmlFor="inv-etat" className="text-sm">
               État
             </Label>
             <select
@@ -139,7 +139,7 @@ export function FormulaireInventaire({
             </select>
           </div>
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="inv-obs" className="text-xs">
+            <Label htmlFor="inv-obs" className="text-sm">
               Observation
             </Label>
             <Input id="inv-obs" name="observation" maxLength={200} placeholder="Rayure, tache… (facultatif)" defaultValue={etat.valeurs?.observation} />

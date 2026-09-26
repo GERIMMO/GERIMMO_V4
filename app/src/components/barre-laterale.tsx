@@ -92,7 +92,6 @@ export function BarreLaterale({
   const router = useRouter();
   const toutes = [...navigation.principales, ...navigation.secondaires];
   const active = entreeActive(toutes, pathname);
-  const secondaireActive = navigation.secondaires.some((e) => e === active);
 
   return (
     <>
@@ -126,23 +125,22 @@ export function BarreLaterale({
         {navigation.principales.map((e) => (
           <Entree key={e.href} e={e} active={e === active} />
         ))}
+        {/* « PLUS » NE SE REPLIE PLUS (nuit du 25 au 26/09) : le porteur,
+            devant la version en ligne — « le menu est déroulant, je veux le
+            menu fixe ». Le groupe garde son filet et son titre, mais c'est un
+            titre de section, pas un accordéon : ses entrées sont toujours
+            visibles sur ordinateur. Sur le rail d'icônes (641–1023 px) le
+            titre disparaît (la règle `.coquille-groupe > p` de globals.css), les entrées restent ; sur téléphone
+            le tiroir « Menu » liste déjà tout à plat. */}
         {navigation.secondaires.length > 0 && (
-          <details className="coquille-groupe" open={secondaireActive || undefined}>
-            <summary title="Plus">
-              <Icone nom="menu" />
-              <span className="lib">Plus</span>
-              <span className="chevron" aria-hidden>
-                <svg viewBox="0 0 24 24" width="14" height="14">
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </span>
-            </summary>
+          <div className="coquille-groupe" data-groupe="plus">
+            <p className="lib">Plus</p>
             <div>
               {navigation.secondaires.map((e) => (
                 <Entree key={e.href} e={e} active={e === active} />
               ))}
             </div>
-          </details>
+          </div>
         )}
       </nav>
 

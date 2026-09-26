@@ -151,7 +151,7 @@ function FormEncaisser({
       <p className="text-sm font-medium">Enregistrer un encaissement</p>
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
-          <Label htmlFor="dep-montant" className="text-xs">Montant (€)</Label>
+          <Label htmlFor="dep-montant" className="text-sm">Montant (€)</Label>
           {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <Input
             id="dep-montant"
@@ -164,13 +164,13 @@ function FormEncaisser({
           />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="dep-date" className="text-xs">Date</Label>
+          <Label htmlFor="dep-date" className="text-sm">Date</Label>
           <InputDateJour id="dep-date"   className="h-9" name="date" />
         </div>
         <div className="space-y-1">
           {/* Le même sélecteur que l'encaissement du loyer (25/09) : un champ
               libre ici et une liste là-bas, pour le même objet. */}
-          <Label htmlFor="dep-moyen" className="text-xs">Payé par</Label>
+          <Label htmlFor="dep-moyen" className="text-sm">Payé par</Label>
           <select
             id="dep-moyen"
             name="moyen"
@@ -187,7 +187,7 @@ function FormEncaisser({
       </div>
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
-          <Label htmlFor="dep-versant" className="text-xs">Versé par (si tiers)</Label>
+          <Label htmlFor="dep-versant" className="text-sm">Versé par (si tiers)</Label>
           <select
             id="dep-versant"
             name="versant_person"
@@ -201,14 +201,14 @@ function FormEncaisser({
           </select>
         </div>
         <div className="space-y-1">
-          <Label htmlFor={idVersantLibelle} className="text-xs">Nom du tiers versant</Label>
+          <Label htmlFor={idVersantLibelle} className="text-sm">Nom du tiers versant</Label>
           <Input id={idVersantLibelle} name="versant_libelle" placeholder="ou tiers hors fiche" defaultValue={etat.valeurs?.versant_libelle} className="h-9 w-44" />
         </div>
         <BoutonEnvoi enCoursTexte="…" size="sm">
           Encaisser
         </BoutonEnvoi>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Le montant total est plafonné au dépôt du bail ; le dépôt n&apos;est jamais
         révisé en cours de bail.
       </p>
@@ -241,7 +241,7 @@ function BoutonSupprimer({
         type="button"
         size="sm"
         variant="ghost"
-        className="text-xs text-destructive"
+        className="text-sm text-destructive"
         onClick={() => setOuvert(true)}
       >
         Retirer l&apos;encaissement
@@ -257,13 +257,13 @@ function BoutonSupprimer({
         required
         className="h-7 w-40 text-xs"
       />
-      <BoutonEnvoi size="sm" variant="outline" className="text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="outline" className="text-sm text-destructive">
         Confirmer
       </BoutonEnvoi>
       <Button type="button" size="sm" variant="ghost" className="text-xs" onClick={() => setOuvert(false)}>
         Renoncer
       </Button>
-      {etat.erreur && <span className="block w-full text-right text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="block w-full text-right text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }

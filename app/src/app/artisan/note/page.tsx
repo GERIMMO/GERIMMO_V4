@@ -129,11 +129,15 @@ export default async function PageNote() {
           25/09 (A16) : tant que rien n'est noté, il n'y a rien à contester —
           une ligne le dit, sans bouton. */}
       {!erreur && note && note.nb_evaluations === 0 ? (
-        <p className={CLASSE_AIDE}>
-          Vous pourrez contester votre note dès qu&apos;une évaluation aura été
-          déposée : elle est alors réexaminée par une personne de Gerimmo, jamais
-          par l&apos;agence qui vous a noté.
-        </p>
+        // Dans une carte, comme tout le reste de l'écran : un paragraphe nu
+        // entre deux cartes flottait (nuit du 25/09).
+        <Carte>
+          <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
+            Vous pourrez contester votre note dès qu&apos;une évaluation aura été
+            déposée : elle est alors réexaminée par une personne de Gerimmo, jamais
+            par l&apos;agence qui vous a noté.
+          </p>
+        </Carte>
       ) : (
       <Carte className="border-l-4 border-l-[var(--or)]">
         <TitreSection>Contester votre note est un droit</TitreSection>

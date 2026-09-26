@@ -49,7 +49,7 @@ function BoutonPieceCourante({ orgId, bienId, lotId, nom }: { orgId: string; bie
         + {nom}
       </BoutonEnvoi>
       {etat.erreur && (
-        <p role="alert" className="text-xs text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           {etat.erreur}
         </p>
       )}
@@ -103,7 +103,7 @@ export function FormulairePiecesLot({
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         La liste des pièces sert à générer la grille d&apos;état des lieux, pièce par pièce.
       </p>
 

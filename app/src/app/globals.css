@@ -2011,13 +2011,13 @@ a:focus-visible > .carte-espace {
 .coquille-badge.critique { background: var(--destructive); color: var(--sur-encre); }
 .coquille-menu a.actif .coquille-badge { background: var(--sur-marque); color: var(--marque); }
 
-/* « Plus » : un groupe replié, même hauteur d'entrée, chevron discret. */
-.coquille-groupe { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--trait-doux); }
-.coquille-groupe > summary { list-style: none; cursor: pointer; color: var(--texte-3); font-size: 12.5px; }
-.coquille-groupe > summary::-webkit-details-marker { display: none; }
-.coquille-groupe > summary .chevron { margin-left: auto; transition: transform var(--duree-rapide) ease; }
-.coquille-groupe[open] > summary .chevron { transform: rotate(180deg); }
-.coquille-groupe > div { display: flex; flex-direction: column; gap: 1px; margin-top: 2px; }
+/* « Plus » : un groupe FIXE (nuit du 25 au 26/09, « je veux le menu fixe »).
+   Un titre de section dans le même esprit que ceux de la console, puis ses
+   entrées toujours visibles — plus d'accordéon. */
+.coquille-groupe { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--trait-doux); }
+.coquille-groupe > p { display: none; align-items: center; min-height: 32px; padding: 4px 12px 6px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--libelle); }
+@media (min-width: 1024px) { .coquille-groupe > p { display: flex; } }
+.coquille-groupe > div { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
 
 /* Le pied : l'essai en cours, en une ligne calme — plus de bandeau plein
    écran au-dessus de chaque page. */
@@ -2133,12 +2133,9 @@ a:focus-visible > .carte-espace {
   .coquille-late .coquille-marque { justify-content: center; padding: 0; }
   .coquille-late .coquille-marque a > span > span:last-child,
   .coquille-late .coquille-menu .lib,
-  .coquille-late .coquille-groupe > summary .lib,
-  .coquille-late .coquille-groupe > summary .chevron,
   .coquille-late .coquille-pied { display: none; }
   .coquille-late .coquille-menu { padding: 8px 6px; }
-  .coquille-late .coquille-menu a,
-  .coquille-late .coquille-menu summary { justify-content: center; padding: 0; }
+  .coquille-late .coquille-menu a { justify-content: center; padding: 0; }
   .coquille-late .coquille-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; font-size: 10px; }
   .coquille-late .coquille-groupe > div { display: flex; }
 }
@@ -2875,6 +2872,12 @@ h2 { font-size: 1.3125rem; }
 }
 /* Un tableau respire aussi : lignes plus hautes. */
 .tableau td, .tableau th { padding-block: 12px; }
+.tableau td { font-size: 13.5px; }
+/* Colonne de liste des écrans en deux volets (Documents, Incidents, Artisans) :
+   un peu plus large dès qu'on a la place, la flèche « → » coupait les titres. */
+@media (min-width: 1100px) { .split { grid-template-columns: minmax(0, 384px) minmax(0, 1fr); gap: 20px; } }
+/* Accès rapide de la fiche bail : 13 px, comme le menu. */
+.dossier-nav a { font-size: 13px; }
 /* Les cartes de l'espace artisan respirent comme les autres. */
 .artisan-carte { padding: 26px 28px; border-radius: 18px; }
 @media (max-width: 640px) { .artisan-carte { padding: 20px; border-radius: 16px; } }

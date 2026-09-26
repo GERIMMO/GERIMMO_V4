@@ -193,8 +193,8 @@ function BoutonGenererRapport({
             : "la clôture revient au responsable de l'agence."}
         </p>
       )}
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
-      {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span className="text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
   );
 }
@@ -211,9 +211,9 @@ function BoutonEnvoyerRapport({ orgId, rapportId, valide }: { orgId: string; rap
       />}
       <BoutonEnvoi size="sm" variant="ghost" enCours={enCours} enCoursTexte="Envoi…">{valide ? "Renvoyer le compte rendu" : "Valider & envoyer le PDF"}</BoutonEnvoi>
       {etat.documentId && <a className="text-xs underline" href={`/agence/${orgId}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener noreferrer">Consulter le PDF</a>}
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
       {/* Le succès peut porter une réserve (mandant sans email, envoi manqué) */}
-      {etat.succes && <span className="text-xs text-success-soft-foreground">{etat.succes}</span>}
+      {etat.succes && <span className="text-sm text-success-soft-foreground">{etat.succes}</span>}
     </form>
   );
 }
@@ -241,7 +241,7 @@ function FormVersement({ orgId, rapportId }: { orgId: string; rapportId: string 
       </Label>
       <InputDateJour id={idDate} className="h-8 text-xs" name="date" />
       <BoutonEnvoi size="sm" variant="ghost">Versement</BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }
@@ -271,14 +271,14 @@ export function FormulaireEcriture({
       {/* « Sens » et « Imputation » parlaient comptable : l'étiquette dit
           ce qu'on choisit (24/09). */}
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-sens" className="text-xs">Recette ou dépense</Label>
+        <Label htmlFor="ec-sens" className="text-sm">Recette ou dépense</Label>
         <select id="ec-sens" name="sens" defaultValue={etat.valeurs?.sens ?? "depense"} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto">
           <option value="recette">Recette</option>
           <option value="depense">Dépense</option>
         </select>
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-lot" className="text-xs">{estAgent ? "Lot" : "Lot (recommandé)"}</Label>
+        <Label htmlFor="ec-lot" className="text-sm">{estAgent ? "Lot" : "Lot (recommandé)"}</Label>
         <select id="ec-lot" name="lot_id" required={estAgent} defaultValue={etat.valeurs?.lot_id ?? ""} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto sm:max-w-48">
           {estAgent ? (
             <option value="" disabled>
@@ -293,25 +293,25 @@ export function FormulaireEcriture({
         </select>
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-cat" className="text-xs">Catégorie</Label>
+        <Label htmlFor="ec-cat" className="text-sm">Catégorie</Label>
         <Input id="ec-cat" name="categorie" placeholder="travaux, charges…" defaultValue={etat.valeurs?.categorie} className="h-9 w-full sm:w-36" />
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-montant" className="text-xs">Montant (€)</Label>
+        <Label htmlFor="ec-montant" className="text-sm">Montant (€)</Label>
         <Input id="ec-montant" name="montant" type="number" inputMode="decimal" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-full sm:w-28" />
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-piece" className="text-xs">Date pièce</Label>
+        <Label htmlFor="ec-piece" className="text-sm">Date pièce</Label>
         <InputDateJour id="ec-piece"   className="h-9 w-full sm:w-auto" name="date_piece" />
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-imput" className="text-xs">Date d&apos;imputation</Label>
+        <Label htmlFor="ec-imput" className="text-sm">Date d&apos;imputation</Label>
         <InputDateJour id="ec-imput"   className="h-9 w-full sm:w-auto" name="date_imputation" />
       </div>
       {/* Seul champ du formulaire à n'avoir eu qu'un placeholder : il porte
           désormais la même étiquette que ses six voisins. */}
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="ec-libelle" className="text-xs">Libellé (facultatif)</Label>
+        <Label htmlFor="ec-libelle" className="text-sm">Libellé (facultatif)</Label>
         <Input id="ec-libelle" name="libelle" defaultValue={etat.valeurs?.libelle} className="h-9 w-full sm:w-40" />
       </div>
       {/* L'action propre de la carte est le bouton plein ; le contour reste
@@ -349,7 +349,7 @@ export function FormulaireVentilation({
           sous sm, chaque champ prend sa pleine largeur — une colonne lisible
           plutôt que des rangées irrégulières. */}
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="v-bien" className="text-xs">Bien</Label>
+        <Label htmlFor="v-bien" className="text-sm">Bien</Label>
         {/* max-w : un nom de bien long ne doit pas élargir la page (le select
             natif prend sinon la largeur de sa plus longue option) */}
         <select id="v-bien" name="bien_id" defaultValue={etat.valeurs?.bien_id ?? ""} className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm sm:w-auto sm:max-w-48">
@@ -363,19 +363,19 @@ export function FormulaireVentilation({
           la première frappe et n'est pas une étiquette. Le formulaire de
           ventilation étiquette maintenant comme celui de l'écriture. */}
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="v-cat" className="text-xs">Catégorie</Label>
+        <Label htmlFor="v-cat" className="text-sm">Catégorie</Label>
         <Input id="v-cat" name="categorie" placeholder="travaux…" defaultValue={etat.valeurs?.categorie} className="h-9 w-full sm:w-36" />
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="v-montant" className="text-xs">Montant (€)</Label>
+        <Label htmlFor="v-montant" className="text-sm">Montant (€)</Label>
         <Input id="v-montant" name="montant" type="number" inputMode="decimal" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-full sm:w-28" />
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="v-piece" className="text-xs">Date pièce</Label>
+        <Label htmlFor="v-piece" className="text-sm">Date pièce</Label>
         <InputDateJour id="v-piece" className="h-9 w-full sm:w-auto" name="date_piece" />
       </div>
       <div className="w-full space-y-1 sm:w-auto">
-        <Label htmlFor="v-libelle" className="text-xs">Libellé (facultatif)</Label>
+        <Label htmlFor="v-libelle" className="text-sm">Libellé (facultatif)</Label>
         <Input id="v-libelle" name="libelle" defaultValue={etat.valeurs?.libelle} className="h-9 w-full sm:w-36" />
       </div>
       {/* « Ventiler » est du vocabulaire de comptable (24/09). */}
@@ -400,7 +400,7 @@ export function FormulaireCloture({ orgId, moisCourant }: { orgId: string; moisC
   return (
     <form action={action} className="flex items-end gap-2">
       <div className="space-y-1">
-        <Label htmlFor="clot-mois" className="text-xs">Mois</Label>
+        <Label htmlFor="clot-mois" className="text-sm">Mois</Label>
         <Input
           id="clot-mois"
           name="mois"
@@ -453,7 +453,7 @@ export function BoutonContre({ orgId, ecritureId }: { orgId: string; ecritureId:
       <Button type="button" size="sm" variant="ghost" onClick={() => setOuvert(false)}>
         Renoncer
       </Button>
-      {etat.erreur && <span className="w-full text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="w-full text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }

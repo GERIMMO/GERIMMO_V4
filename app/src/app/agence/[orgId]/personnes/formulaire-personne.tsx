@@ -101,7 +101,7 @@ export function FormulairePersonne({
         {etape > n ? "✓" : n}
       </span>
       <span
-        className={`text-[11px] ${etape === n ? "font-medium text-[var(--encre)]" : "text-muted-foreground"}`}
+        className={`text-xs ${etape === n ? "font-medium text-[var(--encre)]" : "text-muted-foreground"}`}
       >
         {libelle}
       </span>
@@ -217,7 +217,7 @@ export function FormulairePersonne({
           <div className="space-y-1.5">
             <Label htmlFor="p-email">Adresse email *</Label>
             <Input id="p-email" name="email" type="email" required maxLength={200} defaultValue={etat.valeurs?.email} />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Une adresse ne peut appartenir qu&apos;à une seule fiche de
               l&apos;agence.
             </p>
@@ -259,14 +259,14 @@ export function FormulairePersonne({
               <Label htmlFor="p-lot">Rattacher à un lot de l&apos;agence</Label>
               {/* Recette 21/08 (C.5.4) : recherche et choix en un seul champ */}
               <ComboboxLot lots={lots} id="p-lot" name="lot_id" />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Facultatif — laissez vide pour rattacher plus tard. Le
                 propriétaire mandant devient détenteur du lot (100 % — les
                 quote-parts se règlent sur la fiche du lot).
               </p>
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {role === "locataire"
                 ? "Le rattachement d'un locataire à un lot se fait par le bail, depuis la fiche du lot."
                 : "Le garant se rattache au bail du locataire qu'il cautionne, à la création du bail."}

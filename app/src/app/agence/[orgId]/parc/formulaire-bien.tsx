@@ -117,7 +117,7 @@ export function FormulaireBien({
   };
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="bien-nom">Référence interne *</Label>
@@ -233,7 +233,7 @@ export function FormulaireBien({
             required
             defaultValue={etat.valeurs?.annee_construction ?? bien?.annee_construction ?? ""}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Elle déduit les diagnostics attendus (plomb avant 1949, amiante
             avant 1997…).
           </p>
@@ -261,7 +261,7 @@ export function FormulaireBien({
             />
             <Label htmlFor="bien-zone-tendue" className="whitespace-nowrap">En zone tendue</Label>
           </div>
-          <p className="pl-6 text-xs text-muted-foreground">
+          <p className="pl-6 text-sm text-muted-foreground">
             Préavis du locataire d&apos;1 mois de plein droit.
           </p>
         </div>
@@ -298,7 +298,7 @@ export function FormulaireBien({
       )}
 
       {!bien && (
-        <div className="space-y-4 border-t border-border pt-4">
+        <div className="space-y-6 border-t border-border pt-6">
           {/* Types divisibles hors immeuble : la question précède la suite */}
           {!nonDecoupable && type !== "immeuble" && (
             <label className="flex items-center gap-2 text-sm">
@@ -321,7 +321,7 @@ export function FormulaireBien({
                 <p className="text-sm font-medium">
                   {type === "immeuble" ? "Lots de l'immeuble" : "Lots du bien"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Un bail porte toujours sur un lot. Une clé de répartition sera à
                   définir ensuite pour ventiler les charges communes.
                 </p>
@@ -329,7 +329,7 @@ export function FormulaireBien({
               {lots.map((lot, i) => (
                 <div key={i} className="flex flex-wrap items-end gap-2">
                   <div className="space-y-1">
-                    <Label htmlFor={`${idLot}-nom-${i}`} className="text-xs">
+                    <Label htmlFor={`${idLot}-nom-${i}`} className="text-sm">
                       Nom du lot
                     </Label>
                     <Input
@@ -341,7 +341,7 @@ export function FormulaireBien({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`${idLot}-surface-${i}`} className="text-xs">
+                    <Label htmlFor={`${idLot}-surface-${i}`} className="text-sm">
                       Surface (m²)
                     </Label>
                     <Input
@@ -356,7 +356,7 @@ export function FormulaireBien({
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor={`${idLot}-pieces-${i}`} className="text-xs">
+                    <Label htmlFor={`${idLot}-pieces-${i}`} className="text-sm">
                       Pièces
                     </Label>
                     <Input

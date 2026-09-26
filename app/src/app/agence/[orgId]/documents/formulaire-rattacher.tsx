@@ -101,7 +101,7 @@ export function FormulaireRattacher({
         </select>
       </div>
       {famille === "baux" && bauxTronques && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Les {fiches.baux.length} baux les plus récents. Un bail plus ancien se
           rattache depuis sa propre fiche.
         </p>

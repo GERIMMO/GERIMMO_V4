@@ -82,7 +82,7 @@ export function FormulaireColocation({
   return (
     <div className="space-y-5">
       {colocation && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Bail unique : un seul appel de loyer, jamais fractionné. Les
           quotes-parts servent à la répartition interne et aux attestations CAF.
           Locataire principal (référent) : <span className="font-medium">{principal.nom}</span>.
@@ -123,7 +123,7 @@ export function FormulaireColocation({
         <form action={formColoc} className="grid gap-2 sm:grid-cols-4">
           <input type="hidden" name="role" value="colocataire" />
           <div className="space-y-1 sm:col-span-2">
-            <Label htmlFor="coloc-person" className="text-xs">
+            <Label htmlFor="coloc-person" className="text-sm">
               Personne
             </Label>
             {/* En erreur, la saisie est reposée via etatC.valeurs (recette 22/08) */}
@@ -144,13 +144,13 @@ export function FormulaireColocation({
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="coloc-qp" className="text-xs">
+            <Label htmlFor="coloc-qp" className="text-sm">
               Quote-part %
             </Label>
             <Input id="coloc-qp" name="quote_part" type="number" min="0.01" max="100" step="0.01" defaultValue={etatC.valeurs?.quote_part} />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="coloc-surf" className="text-xs">
+            <Label htmlFor="coloc-surf" className="text-sm">
               Surface privée (m²)
             </Label>
             <Input id="coloc-surf" name="surface_privative" type="number" min="0.01" step="0.01" defaultValue={etatC.valeurs?.surface_privative} />
@@ -188,7 +188,7 @@ export function FormulaireColocation({
         <form action={formGarant} className="grid gap-2 sm:grid-cols-2">
           <input type="hidden" name="role" value="garant" />
           <div className="space-y-1">
-            <Label htmlFor="garant-person" className="text-xs">
+            <Label htmlFor="garant-person" className="text-sm">
               Garant
             </Label>
             {/* En erreur, la saisie est reposée via etatG.valeurs (recette 22/08) */}
@@ -209,7 +209,7 @@ export function FormulaireColocation({
             </select>
           </div>
           <div className="space-y-1">
-            <Label htmlFor="garant-de" className="text-xs">
+            <Label htmlFor="garant-de" className="text-sm">
               {colocation ? "Couvre le colocataire" : "Couvre le locataire"}
             </Label>
             {/* Hors colocation, un seul couvrable (le locataire principal) :
@@ -241,13 +241,13 @@ export function FormulaireColocation({
           </div>
         </form>
         {colocation ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Garant nominatif (couvre un colocataire) ; avec clause de solidarité, il
             peut être appelé au-delà de sa part. Engagement plafonné à 6 mois après le
             départ du colocataire couvert (loi ALUR).
           </p>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Le garant s&apos;engage par un acte de cautionnement, à générer depuis la
             carte « Cautionnement » une fois le garant rattaché au bail.
           </p>

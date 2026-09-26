@@ -45,7 +45,7 @@ function ChampsMetiersEtZones({
       <fieldset className="space-y-1">
         {/* Même libellé que les autres champs obligatoires (24/09). */}
         <legend className="text-sm font-medium">Métiers *</legend>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {/* RM-8.3 */}
           Il ne vous sera proposé que dans les métiers cochés.
         </p>
@@ -76,7 +76,7 @@ function ChampsMetiersEtZones({
           placeholder="75011 75012 93100"
           required
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Séparés par un espace ou une virgule. L&apos;artisan n&apos;est proposé
           que pour un bien dont le code postal figure ici — mettez au moins celui
           de son secteur principal.
@@ -145,7 +145,7 @@ export function FormulaireNouvelArtisan({ orgId }: { orgId: string }) {
       <BoutonEnvoi enCoursTexte="Enregistrement…">Enregistrer l&apos;artisan</BoutonEnvoi>
       {/* Une place par idée (24/09) : attestations et visibilité sont dites
           sous le titre de la carte, pas ici. */}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Si le SIRET existe déjà chez Gerimmo, sa fiche vous est rattachée au lieu
         d&apos;être dupliquée.
       </p>
@@ -232,7 +232,7 @@ export function FormulaireBlacklistLocale({
       <BoutonEnvoi variant="outline" size="sm" enCoursTexte="…">
         Inscrire sur ma liste noire
       </BoutonEnvoi>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Le motif est conservé trois ans, puis purgé — et la mesure tombe avec
         lui. Elle ne vaut que pour {chezVous}. Impossible tant qu&apos;une
         intervention est en cours.

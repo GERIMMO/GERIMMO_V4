@@ -70,11 +70,24 @@ export function formaterDateHeureLongueParis(valeur: Horodatage, repli = "—"):
  */
 export function borneJourParis(jour: string, fin = false): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(jour)) return null;
-  const midi = new Date(`${jour}T12:00:00Z`);
-  if (Number.isNaN(midi.getTime())) return null;
-  const decalage = new Intl.DateTimeFormat("fr-FR", { timeZone: FUSEAU_PARIS, timeZoneName: "longOffset" })
-    .formatToParts(midi)
-    .find((p) => p.type === "timeZoneName")?.value.replace("UTC", "") || "+00:00";
-  const d = new Date(`${jour}T${fin ? "23:59:59.999" : "00:00:00.000"}${decalage}`);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  const controle = new Date(`${jour}T00:00:00.000Z`);
+  if (Number.isNaN(controle.getTime()) || controle.toISOString().slice(0, 10) !== jour) return null;
+
+  // Le décalage de midi peut différer de celui de minuit le jour du
+  // changement d'heure. Chaque borne cherche son propre décalage.
+  const heureLocale = `${jour}T${fin ? "23:59:59.999" : "00:00:00.000"}`;
+  const format = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: FUSEAU_PARIS, timeZoneName: "longOffset",
+  });
+  let instant = new Date(`${heureLocale}Z`);
+  for (let essai = 0; essai < 3; essai++) {
+    const zone = format.formatToParts(instant).find((p) => p.type === "timeZoneName")?.value;
+    if (!zone) return null;
+    const decalage = zone.replace("UTC", "") || "+00:00";
+    const suivant = new Date(`${heureLocale}${decalage}`);
+    if (Number.isNaN(suivant.getTime())) return null;
+    if (suivant.getTime() === instant.getTime()) return suivant.toISOString();
+    instant = suivant;
+  }
+  return null;
 }

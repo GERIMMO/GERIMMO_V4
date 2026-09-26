@@ -3,7 +3,7 @@ type: synthesis
 tags: [design-system, charte, ux, ergonomie, animation, marque-blanche, personas]
 status: stable
 created: 2026-09-24
-updated: 2026-09-25
+updated: 2026-09-26
 sources: ["[[Charte visuelle v3 bleue]]", "[[Charte visuelle de l'espace agent]]", "[[2026-08-08-maquette-prototype-cliquable]]", "[[Marque blanche]]"]
 ---
 
@@ -210,6 +210,14 @@ Ce que le tour a fixé comme règles, en plus des principes du § 1 :
 
 > [!info] Suite du 25/09
 > Le tour d'écrans a été refait le 25/09 sur 134 écrans après la nuit de travail du porteur avec ChatGPT : 129 défauts uniques, ≈110 corrigés (dont le bandeau photo réapparu sur chaque en-tête, retiré). Relevé, corrections et restes dans [[Audit complet du 25 septembre 2026]].
+
+> [!info] Nuit du 25 au 26/09 — retour à la respiration du 24/09
+> Le porteur, devant la version en ligne du 25/09 : « le visuel est trop strict, pas assez respirant, le menu est déroulant, je veux le menu fixe », puis « je veux vraiment l'ancien visuel ». La référence redevient l'état approuvé du 24/09 (`fbde628`), le contenu du 25/09 est gardé. 136 écrans comparés (ancien / nouveau, bureau et téléphone), quatre périmètres corrigés :
+> - **Jetons de respiration** (bloc `RESPIRATION` en fin de `globals.css`) : corps 15 px / interligne 1,6, filets plus clairs (`--filet`, `--filet-leger`), rythmes `--rythme-3/4/5` (18, 28, 48 px), cartes 26 × 28 px et rayon 18, rangs 16 × 18 px, tuiles 18 × 20 px, boutons 10 × 18 px, colonnes de la console et des espaces 36 × 44 px sur ordinateur, 28 px entre deux cartes empilées — **jamais dans une grille** (`:is(.grille-kpi, .tuiles, .grid, .flex) > .loc-carte + .loc-carte`). Le titre de carte reste au pas de 16 px (`--pas-sous-titre`), le `h2` de 21 px est celui de l'écran.
+> - **Menus fixes** : plus aucun accordéon dans la console (rubriques = titres discrets `.admin-menu-titre`, 10,5 px gris) ni dans l'espace agence (« Plus » = titre de section `.coquille-groupe > p`, entrées toujours visibles ; caché sur le rail d'icônes, tiroir téléphone inchangé).
+> - **Formulaires** : libellés, aides et erreurs de 12 à 14 px, champs fichier natifs remplacés par `ChampFichier` (français), un pas de plus entre les groupes d'un formulaire long ; `.ligne-info` à 13,5 px / 11 px et qui passe à la ligne sous 640 px.
+> - **Console** : les boîtes ad hoc (`rounded-xl border`, `bg-white`, bleu/ambre Tailwind) deviennent `.loc-carte`, `.colonne-liste` + `.rang` et les jetons de la palette ; doctrine repliée sous un `summary` commun ; Territoire ne déborde plus à 390 px.
+> - **Artisan et public** : cartes artisan au même pas que les autres ; tableau des prestataires (pages légales) empilé en fiches sur téléphone (`.tableau-fiches`).
 
 > [!warning] Points à trancher / à faire
 > - **La coquille est hors couche CSS** : ses règles priment sur les

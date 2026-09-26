@@ -37,6 +37,35 @@ describe("les heures à l'heure de Paris", () => {
     expect(borneJourParis("2026-13-45")).toBeNull();
   });
 
+  it.each([
+    ["2026-03-29", "2026-03-28T23:00:00.000Z", "2026-03-29T21:59:59.999Z", 23],
+    ["2026-10-25", "2026-10-24T22:00:00.000Z", "2026-10-25T22:59:59.999Z", 25],
+  ])("garde toute la journée du %s lors du changement d’heure", (jour, debut, fin, heures) => {
+    expect(borneJourParis(jour)).toBe(debut);
+    expect(borneJourParis(jour, true)).toBe(fin);
+    expect(Date.parse(borneJourParis(jour, true)!) - Date.parse(borneJourParis(jour)!) + 1)
+      .toBe(heures * 60 * 60 * 1000);
+    // Les événements de minuit et de la dernière milliseconde restent inclus.
+    expect(formaterDateParis(borneJourParis(jour))).toBe(jour.split("-").reverse().join("/"));
+    expect(formaterHeureParis(borneJourParis(jour))).toBe("00:00");
+  });
+
+  it.each(["2026-02-29", "2026-02-31", "2026-04-31", "2026-00-01", "2026-01-00"])
+    ("refuse le jour inexistant %s au lieu de le déplacer", (jour) => {
+      expect(borneJourParis(jour)).toBeNull();
+      expect(borneJourParis(jour, true)).toBeNull();
+    });
+
+  it("conserve les journées bissextiles et la continuité entre les jours", () => {
+    expect(borneJourParis("2024-02-29")).toBe("2024-02-28T23:00:00.000Z");
+    for (const [avant, apres] of [
+      ["2026-03-28", "2026-03-29"], ["2026-03-29", "2026-03-30"],
+      ["2026-10-24", "2026-10-25"], ["2026-10-25", "2026-10-26"],
+    ]) {
+      expect(Date.parse(borneJourParis(apres)!)).toBe(Date.parse(borneJourParis(avant, true)!) + 1);
+    }
+  });
+
   it("dit le fuseau une fois, en français", () => {
     expect(NOTE_FUSEAU).toMatch(/heure de Paris/);
   });

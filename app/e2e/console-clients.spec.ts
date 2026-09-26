@@ -26,7 +26,9 @@ test("la supervision arrive sur sa console, pas sur un sélecteur d'espaces", as
 test("« Clients » réunit les trois familles et met en avant ce qui attend", async ({ page }) => {
   await page.goto("/admin");
   await page.getByRole("button", { name: "Menu supervision", exact: true }).click();
-  await page.locator("summary").filter({ hasText: "Clients et partenaires" }).click();
+  // Le menu est fixe (nuit du 25/09) : « Clients et partenaires » est un titre
+  // de rubrique, ses entrées sont visibles sans clic.
+  await expect(page.getByRole("heading", { name: "Clients et partenaires" })).toBeVisible();
   await page.getByRole("link", { name: "Agences, bailleurs et artisans", exact: true }).click();
   await page.waitForURL(/\/admin\/clients/);
 

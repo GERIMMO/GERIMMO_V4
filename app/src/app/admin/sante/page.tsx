@@ -196,7 +196,7 @@ export default async function PageSante() {
                       ) : t.nom === "sauvegarde" ? (
                         <a href="https://github.com/GERIMMO/GERIMMO_V4/actions/workflows/sauvegarde.yml" target="_blank" rel="noreferrer" className="lien-discret text-sm">Relancer la sauvegarde depuis GitHub (Run workflow) →</a>
                       ) : (
-                        <Link href="/admin/autonomie" className="lien-discret text-sm">Actualiser les prochaines étapes dans Dossiers et évolutions →</Link>
+                        <Link href="/admin/autonomie" className="lien-discret text-sm">Actualiser les prochaines étapes dans Développement du site →</Link>
                       )}
                     </span>
                   )}

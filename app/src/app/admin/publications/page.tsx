@@ -6,7 +6,7 @@ import { BoutonChercherSujets } from "./bouton-chercher-sujets";
 // Le nom de l'entrée de barre (24/09) : « Journal » seul se confondait avec
 // « Journaux et conservation », et l'onglet disait encore « Console
 // d'administration ».
-export const metadata = { title: "Articles du journal — Supervision" };
+export const metadata = { title: "Articles du site — Supervision" };
 
 type Publication = {
   id: string;
@@ -145,7 +145,7 @@ export default async function PageJournalAdmin() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-2">
-        <h1>Articles du journal</h1>
+        <h1>Articles du site</h1>
         <Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link>
       </div>
       {/* Un seul « Chercher des sujets » (audit 25/09, C16) : dans la section

@@ -2799,6 +2799,30 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
   .admin-menu-groupe > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
+/* Le plan à sept entrées (26/09) : une colonne plate, le dernier couple
+   (« Historique et conservation », « Paramètres ») séparé par un filet. */
+.admin-menu-groupes { display: flex; flex-direction: column; gap: 3px; }
+.admin-menu-groupes .admin-nav-lien .coquille-badge { margin-left: auto; }
+.admin-nav-lien-bas { margin-top: 14px; position: relative; }
+.admin-nav-lien-bas::before { content: ""; position: absolute; left: 10px; right: 10px; top: -8px; border-top: 1px solid var(--filet); }
+@media (max-width: 900px) {
+  .admin-menu-groupes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+  .admin-nav-lien-bas { margin-top: 0; }
+  .admin-nav-lien-bas::before { display: none; }
+}
+
+/* Les onglets d'une rubrique : une barre claire sous le bandeau, soulignement
+   bleu sur l'onglet ouvert. Au téléphone, la barre défile d'un doigt. */
+.admin-onglets { background: var(--carte); border-bottom: 1px solid var(--filet); }
+.admin-onglets-interieur { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-inline: 24px; }
+.admin-onglets-interieur::-webkit-scrollbar { display: none; }
+.admin-onglet { display: inline-flex; align-items: center; flex: none; min-height: 48px; padding: 0 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--texte-secondaire); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.admin-onglet:hover { color: var(--encre); }
+.admin-onglet[aria-current="page"] { color: var(--marque); border-bottom-color: var(--marque); }
+.admin-onglet:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+@media (min-width: 901px) { .admin-onglets-interieur { padding-inline: 32px; } }
+@media (max-width: 640px) { .admin-onglets-interieur { padding-inline: 8px; } .admin-onglet { padding: 0 10px; font-size: 13.5px; } }
+
 .admin-menu-conteneur { width: 100%; min-width: 0; }
 .admin-menu-mobile { display: none; }
 @media (max-width: 900px) {

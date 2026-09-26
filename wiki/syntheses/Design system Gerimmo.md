@@ -219,6 +219,9 @@ Ce que le tour a fixé comme règles, en plus des principes du § 1 :
 > - **Console** : les boîtes ad hoc (`rounded-xl border`, `bg-white`, bleu/ambre Tailwind) deviennent `.loc-carte`, `.colonne-liste` + `.rang` et les jetons de la palette ; doctrine repliée sous un `summary` commun ; Territoire ne déborde plus à 390 px.
 > - **Artisan et public** : cartes artisan au même pas que les autres ; tableau des prestataires (pages légales) empilé en fiches sur téléphone (`.tableau-fiches`).
 
+> [!info] 26/09 — le plan de la console, dessiné par le porteur
+> Sept entrées dans la colonne : Vue d'ensemble, Utilisateurs, Veille, Marketing, Développement, puis, sous un filet, Historique et conservation et Paramètres. Les pages d'une rubrique sont des **onglets** sous le bandeau (`.admin-onglets`, soulignement bleu sur l'onglet ouvert, défilement horizontal au téléphone). Le menu dit où l'on est, les onglets disent quoi regarder. Un seul tableau (`lib/rubriques-supervision.ts`) sert les deux ; les badges (décisions attendues, artisans à valider) s'affichent sur l'entrée ET sur l'onglet.
+
 > [!warning] Points à trancher / à faire
 > - **La coquille est hors couche CSS** : ses règles priment sur les
 >   utilitaires des pages. La faire entrer dans `@layer components` est un

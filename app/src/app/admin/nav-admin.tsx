@@ -3,14 +3,9 @@
 import Link from "next/link";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { RUBRIQUES, ongletActif, rubriqueActive } from "@/lib/rubriques-supervision";
 
-const GROUPES = [
-  { titre: "Dossiers et décisions", entrees: [["/admin/autonomie", "Dossiers et évolutions"], ["/admin/artisans", "Artisans à valider"], ["/admin/veille", "Veille réglementaire"], ["/admin/retours", "Retours des utilisateurs"]] },
-  { titre: "Mes équipes", entrees: [["/admin/equipes", "Travail et commandes"], ["/admin", "Vue d’ensemble"]] },
-  { titre: "Clients et partenaires", entrees: [["/admin/clients", "Agences, bailleurs et artisans"], ["/admin/marque-blanche", "Personnalisation des agences"]] },
-  { titre: "Développement commercial", entrees: [["/admin/devis", "Demandes commerciales"], ["/admin/marketing", "Agent marketing"], ["/admin/publications", "Articles du journal"], ["/admin/territoire", "Développement territorial"]] },
-  { titre: "Réglages et sécurité", entrees: [["/admin/sante", "Santé et connexions"], ["/admin/journaux", "Historique et conservation"], ["/admin/autonomie#continuite", "Relais en mon absence"]] },
-];
+// Le plan de la console vit dans lib/rubriques-supervision.ts (26/09).
 
 // 25/09 (audit C26) : au téléphone, trois barres se superposaient avant le
 // contenu (logo, « Menu supervision », recherche/alertes). Le bouton du menu
@@ -37,19 +32,18 @@ export function ColonneSupervision({ children }: { children: ReactNode }) {
 
 function Groupes({ artisansEnAttente, decisions, auClic }: { artisansEnAttente: number; decisions: number; auClic?: () => void }) {
   const chemin = usePathname();
-  const actif = (href: string) => !href.includes("#") && (href === "/admin" ? chemin === href : chemin === href || chemin.startsWith(`${href}/`) || href === "/admin/clients" && chemin.startsWith("/admin/organisations/"));
+  const active = rubriqueActive(chemin);
+  const compte = { artisans: artisansEnAttente, decisions };
+  // Sept entrées, dessinées par le porteur le 26/09 : le menu dit OÙ l'on est,
+  // les onglets en haut de l'écran disent QUOI regarder dans la rubrique.
   return <div className="admin-menu-groupes" key={chemin} onClick={(e) => { if ((e.target as HTMLElement).closest("a")) auClic?.(); }}>
-    {/* Le même chiffre que la barre haute et l'accueil (lib/decisions-attendues.ts). */}
-    <Link href="/admin/brief" className="admin-nav-lien" aria-current={actif("/admin/brief") ? "page" : undefined}>Aujourd’hui{decisions > 0 && <span className="coquille-badge ml-2" aria-hidden title={`${decisions} décision${decisions > 1 ? "s" : ""} attendue${decisions > 1 ? "s" : ""}`}>{decisions}</span>}</Link>
-    {/* Le porteur (25/09 au soir) : « je veux le menu fixe ». Plus de groupes
-        repliables : chaque rubrique est un titre, ses entrées toujours visibles.
-        Nuit du 25/09 : le titre de rubrique est discret (petit, gris, sans
-        graisse forte, `.admin-menu-titre`) — la colonne de l'ancienne console
-        n'en avait pas ; les entrées gardent la hauteur des onze d'avant (42 px). */}
-    {GROUPES.map((g) => <section key={g.titre} className="admin-menu-groupe" aria-labelledby={`menu-${g.titre.replace(/\W+/g, "-")}`}>
-      <h3 id={`menu-${g.titre.replace(/\W+/g, "-")}`} className="admin-menu-titre">{g.titre}{g.titre === "Dossiers et décisions" && artisansEnAttente > 0 && <span className="coquille-badge ml-2" aria-label={`${artisansEnAttente} artisans à valider`}>{artisansEnAttente}</span>}</h3>
-      <div>{g.entrees.map(([href, libelle]) => <Link key={href} href={href} className="admin-nav-lien" aria-current={actif(href) ? "page" : undefined}>{libelle}</Link>)}</div>
-    </section>)}
+    {RUBRIQUES.map((r, i) => {
+      const n = r.badge ? compte[r.badge] : 0;
+      return <Link key={r.cle} href={r.href} className={`admin-nav-lien${i === RUBRIQUES.length - 2 ? " admin-nav-lien-bas" : ""}`} aria-current={active?.cle === r.cle ? "page" : undefined}>
+        {r.libelle}
+        {n > 0 && <span className="coquille-badge ml-auto" aria-label={r.badge === "artisans" ? `${n} artisan${n > 1 ? "s" : ""} à valider` : `${n} décision${n > 1 ? "s" : ""} attendue${n > 1 ? "s" : ""}`}>{n}</span>}
+      </Link>;
+    })}
   </div>;
 }
 
@@ -61,4 +55,29 @@ export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnA
     <button type="button" className="admin-nav-lien min-[901px]:hidden" onClick={() => { fermer(); window.dispatchEvent(new Event("gerimmo:ouvrir-recherche")); }}>Rechercher un client…</button>
     <Groupes artisansEnAttente={artisansEnAttente} decisions={decisions} auClic={fermer} />
   </div>;
+}
+
+/**
+ * LES ONGLETS DE LA RUBRIQUE (26/09). Une barre sous le bandeau, qui liste
+ * les pages de la rubrique courante ; rien pour une rubrique d'une seule page.
+ * Sur une fiche (organisation, compte), la rubrique reste lisible sans
+ * qu'aucun onglet ne soit allumé : on sait où l'on est, et comment remonter.
+ */
+export function OngletsSupervision({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number; decisions?: number }) {
+  const chemin = usePathname();
+  const rubrique = rubriqueActive(chemin);
+  if (!rubrique || rubrique.onglets.length < 2) return null;
+  const actif = ongletActif(chemin);
+  const compte = { artisans: artisansEnAttente, decisions };
+  return <nav className="admin-onglets" aria-label={`Pages de la rubrique ${rubrique.libelle}`}>
+    <div className="admin-onglets-interieur">
+      {rubrique.onglets.map((o) => {
+        const n = o.badge ? compte[o.badge] : 0;
+        return <Link key={o.href} href={o.href} className="admin-onglet" aria-current={actif?.href === o.href ? "page" : undefined}>
+          {o.libelle}
+          {n > 0 && <span className="coquille-badge ml-2" aria-hidden>{n}</span>}
+        </Link>;
+      })}
+    </div>
+  </nav>;
 }

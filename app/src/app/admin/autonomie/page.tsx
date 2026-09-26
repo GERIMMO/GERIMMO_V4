@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import {SuiviCorrection} from './suivi-correction';
 import { createClient } from '@/lib/supabase/server';
-import { formaterDateHeureParis, formaterDateParis, NOTE_FUSEAU } from '@/lib/heure-paris';
+import { formaterDateHeureParis, formaterDateParis } from '@/lib/heure-paris';
 import { ETATS_DEVELOPPEMENT, ETATS_DOSSIER, TYPES_DOSSIER, lienDossier } from '@/lib/pilotage';
-import { ActualiserDossiers, DecisionAmelioration, FormulaireDelegation, RevoquerDelegation } from './formulaire-delegation';
-import { PlanContinuite } from '../equipes/continuite';
-export const metadata={title:'Dossiers et évolutions — Gerimmo'};
+import { ActualiserDossiers, DecisionAmelioration } from './formulaire-delegation';
+export const metadata={title:'Développement du site — Gerimmo'};
 // La carte commune de la console (nuit du 25/09).
 const carte='loc-carte';
 const filtres:Record<string,string>={tous:'Tous les dossiers',bail:'Locations',loyer:'Loyers en retard',incident:'Incidents',intervention:'Interventions',document:'Documents',rapport:'Finance et rapports'};
@@ -16,26 +15,20 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
  const db=await createClient();
  let q=db.from('orchestration_cases').select('id,organization_id,dossier_type,dossier_id,prochaine_action,mode,etat,priorite,exception_message,updated_at,lien_action,agir_apres',{count:'exact'}).neq('etat','termine').order('rang_priorite').order('updated_at').order('id').range((page-1)*25,page*25-1);
  if(equipe!=='tous')q=q.eq('dossier_type',equipe);
- const [dossiers,propositions,delegations,orgs,comptes,regles,presence,plan]=await Promise.all([
+ const [dossiers,propositions,orgs]=await Promise.all([
   q,db.from('development_proposals').select('id,titre,probleme,solution_proposee,risque,statut,revision,updated_at,rapport_controles,autorisee_le').order('updated_at',{ascending:false}).limit(30),
-  db.from('supervision_delegations').select('id,account_id,termine_le,motif,active,revoquee_le').order('termine_le',{ascending:false}).limit(30),
-  db.from('organizations').select('id,name'),db.from('accounts').select('id,email'),
-  db.from('continuity_rules').select('cle,libelle,decision,delai_heures,active'),
-  db.from('supervision_presence').select('derniere_presence').order('derniere_presence',{ascending:false}).limit(1),
-  db.rpc('etat_continuite'),
+  db.from('organizations').select('id,name'),
  ]);
  const ids=(dossiers.data??[]).map(d=>d.id);
  const historique=ids.length?await db.from('orchestration_history').select('id,case_id,action,etat,created_at').in('case_id',ids).order('created_at',{ascending:false}).limit(200):{data:[],error:null};
- const noms=new Map((orgs.data??[]).map(o=>[o.id,o.name]));const emails=new Map((comptes.data??[]).map(c=>[c.id,c.email]));
- const maintenant=new Date();
+ const noms=new Map((orgs.data??[]).map(o=>[o.id,o.name]));
  // Filtres et pagination seulement quand il y a quelque chose à filtrer (audit
  // 25/09, C28) : sept puces et « 0 dossiers · page 1 » sur une liste vide.
  const total=dossiers.count??0;const vide=!dossiers.error&&total===0;const filtreActif=equipe!=='tous';
  return <main className="mx-auto max-w-6xl space-y-6 p-4 sm:p-7">
   {/* L'en-tête commun de la console (24/09) : le titre reprend le nom de
       l'entrée de barre. L'actualisation, geste principal, est ici. */}
-  <div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><h1>Dossiers et évolutions</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">La prochaine étape de chaque dossier, les améliorations qui attendent votre accord et le relais prévu en votre absence.</p></div><div className="flex flex-wrap items-center gap-3"><span className="mono-discret">Actualisé chaque matin</span><ActualiserDossiers /></div></div>
-  <nav aria-label="Sections du pilotage" className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm"><span className="text-[var(--texte-secondaire)]">Sur cette page :</span><a href="#dossiers" className="lien-discret text-sm">Prochaines étapes</a><a href="#ameliorations" className="lien-discret text-sm">Améliorations</a><a href="#continuite" className="lien-discret text-sm">Relais en mon absence</a><Link href="/admin#mesures" className="lien-discret text-sm">Résultats (vue d’ensemble)</Link><Link href="/admin/equipes" className="lien-discret text-sm">Commandes des équipes</Link></nav>
+  <div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><h1>Développement du site</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">La prochaine étape de chaque dossier et les améliorations du logiciel qui attendent votre accord.</p></div><div className="flex flex-wrap items-center gap-3"><span className="mono-discret">Actualisé chaque matin</span><ActualiserDossiers /></div></div>
   <section id="dossiers" className={carte}><div className="entete-carte"><h2 className="text-xl font-semibold">Les prochaines étapes</h2><span className="mono-discret">{dossiers.error?'indisponible':`${total} dossier${total>1?'s':''}`}</span></div><p className="mt-1 text-sm text-muted-foreground">Les envois autorisés continuent selon les réglages de chaque organisation.</p>
   {!vide||filtreActif?<nav aria-label="Filtrer par équipe" className="my-4 flex flex-wrap gap-2">{Object.entries(filtres).map(([k,v])=><Link key={k} href={k==='tous'?'/admin/autonomie':`/admin/autonomie?equipe=${k}`} scroll={false} aria-current={equipe===k?'true':undefined} className={`filtre${equipe===k?' actif':''}`}>{v}</Link>)}</nav>:null}
   {/* Toute la carte est le lien (24/09). */}
@@ -44,12 +37,5 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
   {total>25&&<nav aria-label="Pages de dossiers" className="mt-4 flex justify-between text-sm">{page>1?<Link href={`?equipe=${equipe}&page=${page-1}`}>Précédente</Link>:<span/>}<span>{total} dossiers · page {page}</span>{page*25<total&&<Link href={`?equipe=${equipe}&page=${page+1}`}>Suivante</Link>}</nav>}</section>
   <section id="ameliorations" className={carte}><h2 className="text-xl font-semibold">Équipe Qualité et corrections</h2><p className="mt-2 text-sm text-muted-foreground">Les problèmes et idées transmis par les utilisateurs alimentent cette file. Chaque changement suit une préparation, des contrôles, une démonstration et une publication. L’accord porte sur une version précise et devient caduc si elle change.</p>
   {propositions.error?<p role="alert" className="err mt-3">Les améliorations sont momentanément indisponibles.</p>:<div className="mt-4 grid gap-3 md:grid-cols-2">{propositions.data?.map(a=><article key={a.id} className="rounded-xl border bg-muted/30 p-4"><div className="flex flex-wrap justify-between gap-2"><h3 className="font-semibold">{a.titre}</h3><span className="puce puce-prep">{ETATS_DEVELOPPEMENT[a.statut]??'À examiner'}</span></div><p className="mt-2 text-xs text-muted-foreground">{risques[a.risque]??'Impact à vérifier'}</p><p className="mt-2 text-sm">{a.solution_proposee||a.probleme}</p><SuiviCorrection id={a.id} rapport={a.rapport_controles} statut={a.statut} autoriseeLe={a.autorisee_le} demande={[a.probleme,a.solution_proposee].filter(Boolean).join('\n\n')}/>{a.statut==='autorisation'&&a.revision&&<div className="mt-3"><DecisionAmelioration id={a.id} revision={a.revision}/></div>}</article>)}{!propositions.data?.length&&<p className="text-sm text-muted-foreground">Aucune proposition en attente.</p>}</div>}<Link href="/admin/retours" className="lien-discret mt-4 inline-block text-[12.5px]">Voir les retours →</Link></section>
-  {/* UNE seule page pour l'absence (audit 25/09, C1, C3) : le relais (accès de
-      remplacement) en premier, le plan de continuité (délai d'absence,
-      consignes) en second, ici aussi. « Travail et commandes » y renvoie. */}
-  <section id="continuite" className={`${carte} scroll-mt-6`}><h2 className="text-xl font-semibold">Relais en mon absence</h2><p className="mt-2 text-sm text-muted-foreground">Les envois et traitements déjà autorisés continuent. Les évolutions du logiciel attendent votre retour.</p><p className="mt-2 text-xs text-muted-foreground">{presence.error?'Dernière présence indisponible.':presence.data?.[0]?`Dernière présence de supervision : ${formaterDateHeureParis(presence.data[0].derniere_presence)}.`:'Aucune présence enregistrée.'} {NOTE_FUSEAU}</p>
-  <div className="mt-4 grid gap-5 lg:grid-cols-2"><div><h3 className="mb-3 font-semibold">Préparer un relais</h3><FormulaireDelegation /></div><div><h3 className="mb-3 font-semibold">Accès de remplacement</h3>{delegations.error?<p role="alert" className="err">Les accès ne peuvent pas être vérifiés actuellement.</p>:delegations.data?.map(d=>{const actif=d.active&&!d.revoquee_le&&new Date(d.termine_le)>maintenant;return <div key={d.id} className="mb-3 rounded-xl border p-3"><b className="break-all text-sm">{emails.get(d.account_id)??'Compte de remplacement'}</b><p className="mt-1 text-xs text-muted-foreground">{actif?'Actif jusqu’au':'Terminé le'} {formaterDateHeureParis(d.termine_le)}</p><p className="my-2 text-sm">{d.motif}</p>{actif&&<RevoquerDelegation id={d.id}/>}</div>})}{!delegations.error&&!delegations.data?.length&&<p className="text-sm text-muted-foreground">Aucun relais désigné. Choisissez une personne de confiance avant une longue absence.</p>}<p className="mt-3 text-xs text-muted-foreground">Le remplaçant retrouve le suivi sur la page « Mes espaces » après connexion et double vérification.</p></div></div>
-  <details className="mt-5 border-t pt-4"><summary className="cursor-pointer font-semibold">Délai d’absence et consignes</summary>{plan.error||!plan.data?<p className="err mt-3">Le plan de continuité est indisponible.</p>:<><p className="mt-3 text-sm">{!plan.data.derniere_presence?'Dernière présence inconnue.':plan.data.absence?'Le délai d’absence prévu est dépassé.':'Une présence de supervision a été enregistrée récemment.'} {plan.data.responsable_habilite?'Le responsable désigné possède déjà les droits nécessaires.':'Aucun responsable de remplacement habilité n’est confirmé.'}</p><PlanContinuite jours={plan.data.delai_jours} email={plan.data.responsable??''} consignes={plan.data.consignes??''}/></>}</details>
-  <details className="mt-5 border-t pt-4"><summary className="cursor-pointer font-semibold">Ce qui peut continuer seul</summary>{regles.error?<p className="err">Règles indisponibles.</p>:<ul className="mt-3 space-y-2">{regles.data?.map(r=><li key={r.cle} className="rounded-lg bg-muted/40 p-3 text-sm"><b>{r.libelle}</b><span className="mt-1 block text-muted-foreground">{r.decision==='agir_seul'?'Traitement prévu dans les autorisations existantes':r.decision==='delegue_requis'?'Un responsable autorisé doit décider':'La décision attend votre retour'}. La règle ne crée pas un droit supplémentaire.</span></li>)}</ul>}</details></section>
  </main>;
 }

@@ -6,7 +6,7 @@ import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
 import { MesureAutonomie } from "@/components/mesure-autonomie";
 
 // Le nom de l'entrée de menu (audit 25/09, C8) : « Vue d'ensemble ».
-export const metadata = { title: "Vue d’ensemble — Gerimmo" };
+export const metadata = { title: "Chiffres et clients — Gerimmo" };
 
 // 25/09 (audit C1, C4, C7, C29) : la vue d'ensemble ne rejoue plus le début de
 // journée. Elle renvoie à « Aujourd'hui » avec LE chiffre partagé, puis montre
@@ -77,7 +77,7 @@ export default async function PageAdmin() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Vue d’ensemble</h1>
+        <h1>Chiffres et clients</h1>
         <div className="flex flex-wrap items-center gap-3">
           <span className="mono-discret">
             {orgs.error ? "Organisations indisponibles" : `${organisations.length} organisation${organisations.length > 1 ? "s" : ""}`}

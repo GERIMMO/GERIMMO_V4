@@ -2862,4 +2862,16 @@ h2 { font-size: 1.3125rem; }
 .loc-carte + .loc-carte, .loc-carte + section.loc-carte, .section-ecran + .loc-carte { margin-top: var(--rythme-4); }
 /* Un tableau respire aussi : lignes plus hautes. */
 .tableau td, .tableau th { padding-block: 12px; }
+/* Les cartes de l'espace artisan respirent comme les autres. */
+.artisan-carte { padding: 26px 28px; border-radius: 18px; }
+@media (max-width: 640px) { .artisan-carte { padding: 20px; border-radius: 16px; } }
+/* Tableau des prestataires (pages légales) au téléphone : une fiche par ligne
+   plutôt que trois colonnes tassées ; l'en-tête est redit devant chaque cellule. */
+@media (max-width: 640px) {
+  .tableau-fiches .tableau thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tableau-fiches .tableau tr { display: block; padding-block: 14px; border-bottom: 1px solid var(--filet); }
+  .tableau-fiches .tableau td { display: block; padding: 4px 0; border: 0; }
+  .tableau-fiches .tableau td:first-child { font-weight: 600; color: var(--encre); padding-bottom: 6px; }
+  .tableau-fiches .tableau td[data-libelle]::before { content: attr(data-libelle); display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--libelle); margin-bottom: 2px; }
+}
 

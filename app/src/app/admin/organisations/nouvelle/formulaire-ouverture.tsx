@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useId } from "react";
 import { ouvrirOrganisation, type EtatOuverture } from "@/app/actions/organisations-admin";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -13,10 +13,6 @@ export function FormulaireOuverture({
 }) {
   const [etat, action] = useActionState<EtatOuverture, FormData>(ouvrirOrganisation, {});
   const base = useId();
-  // L'essai est le cas courant ; « active » n'existe que pour un contrat déjà
-  // signé. Le champ « durée » disparaît alors : afficher une durée d'essai à
-  // côté d'une case « active » laisse croire qu'elle s'applique quand même.
-  const [active, setActive] = useState(false);
   const valeur = (n: string, defaut = "") => etat.valeurs?.[n] ?? defaut;
 
   return (
@@ -88,42 +84,16 @@ export function FormulaireOuverture({
 
       <fieldset className="space-y-2 rounded-lg border p-4">
         <legend className="px-1 text-sm font-medium">Démarrage</legend>
-        <label htmlFor={`${base}-active`} className="flex min-h-12 items-center gap-3 text-sm">
-          <input
-            id={`${base}-active`}
-            type="checkbox"
-            name="active"
-            checked={active}
-            onChange={(e) => setActive(e.target.checked)}
-            className="size-5 shrink-0 accent-[var(--encre)]"
-          />
-          Contrat déjà signé — ouvrir directement en abonnement actif
-        </label>
-        {!active && (
-          <div className="space-y-2">
-            <Label htmlFor={`${base}-jours`}>Durée de l&apos;essai, en jours</Label>
-            <Input
-              id={`${base}-jours`}
-              name="essai_jours"
-              type="number"
-              min={0}
-              max={365}
-              defaultValue={valeur("essai_jours", "14")}
-              className="max-w-32"
-            />
-            <p className="text-xs text-muted-foreground">
-              À son terme, le compte passe en lecture seule : l&apos;agence garde
-              l&apos;accès à tout et à ses exports, mais ne saisit plus rien.
-            </p>
-          </div>
-        )}
+        <input type="hidden" name="essai_jours" value="14" />
+        <p className="text-sm font-medium">14 jours d’essai gratuit, sans carte bancaire</p>
+        <p className="text-sm text-muted-foreground">Créer cet espace ne démarre aucun abonnement payant. Son responsable devra confirmer une souscription. Après l’essai, ses données restent consultables et exportables.</p>
       </fieldset>
 
       {/* Une agence amenée par une autre — ou par un propriétaire : le code
           se saisit ici, à l'ouverture, pour que Gerimmo sache qui a amené qui
           (wiki : Parrainage, 19/09). */}
       <div className="space-y-2">
-        <Label htmlFor={`${base}-parrain`}>Code de parrainage (facultatif)</Label>
+        <Label htmlFor={`${base}-parrain`}>Code de recommandation (facultatif)</Label>
         <Input
           id={`${base}-parrain`}
           name="code_parrainage"
@@ -136,6 +106,7 @@ export function FormulaireOuverture({
         />
       </div>
 
+      <p className="text-xs text-muted-foreground">La recommandation est enregistrée sans ajout automatique de remise ni de jours d’essai. Les avantages déjà accordés aux comptes existants restent conservés.</p>
       {etat.erreur && (
         <p role="alert" className="text-sm text-destructive">
           {etat.erreur}

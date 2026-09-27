@@ -54,8 +54,8 @@ async function organisation(
   const {
     rows: [ligne],
   } = await db.query<Org>(
-    `insert into public.organizations (name, status, type, essai_fin)
-     values ($1, $2::public.organization_status, 'agence', ${essaiFin ?? "null"})
+    `insert into public.organizations (tarification_version,name, status, type, essai_fin)
+     values ('historique',$1, $2::public.organization_status, 'agence', ${essaiFin ?? "null"})
      returning id, code_parrainage as code`,
     [nom, statut]
   );

@@ -844,5 +844,17 @@
     "persona": "admin-agence",
     "label": "Réseau disponible pour les biens",
     "dynamic": "orgId"
+  },
+  {
+    "path": "/proprietaire-invite/accepter",
+    "persona": "public",
+    "label": "Invitation propriétaire à accepter",
+    "dynamic": ""
+  },
+  {
+    "path": "/proprietaire-invite/ORG_INVITE",
+    "persona": "proprietaire-invite",
+    "label": "Consultation des biens confiés et comptes rendus mensuels",
+    "dynamic": "orgId"
   }
 ]

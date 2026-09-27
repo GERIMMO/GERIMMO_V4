@@ -98,10 +98,10 @@ export function FormulaireDevisVitrine() {
       )}
       <div className="sm:col-span-2">
         <button type="submit" disabled={enCours} className="btn-or">
-          {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Demander un devis"}
+          {enCours ? <><Spinner className="size-3" /> Envoi…</> : "Demander mon essai agence"}
         </button>
         <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
-          Ces informations servent uniquement à vous recontacter au sujet de
+          Aucun abonnement ni prestation de reprise ne sera facturé par cette demande. Ces informations servent uniquement à vous recontacter au sujet de
           votre demande — jamais cédées ni revendues, supprimées au plus tard après
           24 mois.{" "}
           <a href="/confidentialite" className="underline underline-offset-2">

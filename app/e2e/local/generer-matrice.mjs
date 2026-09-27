@@ -24,6 +24,7 @@ const ORG = agence?.id;
 const ids = {
   ORG,
   ORG_PD: pd?.id,
+  ORG_INVITE: (await un("select i.agence_id as id from proprietaires_invites i join accounts a on a.id=i.compte_id where a.email='e2e.mandant@gerimmo-demo.fr' and i.revoque_le is null order by i.cree_le limit 1"))?.id,
   BIEN: (await un("select id from biens where organization_id = $1 order by (nom like 'E2E%') desc, created_at limit 1", [ORG]))?.id,
   // La fiche du locataire du bail le plus récent : elle est dans le
   // périmètre « personnes » de l'agent (locataires des baux de ses lots)
@@ -62,7 +63,7 @@ for (const route of inventaire) {
   // L'espace « propriétaire » réutilise les routes /agence avec l'organisation PD
   if (route.persona === "proprietaire") chemin = chemin.replace("/agence/ORG", `/agence/${ids.ORG_PD}`);
   let manquant = null;
-  chemin = chemin.replace(/\b(ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT)\b/g, (m) => {
+  chemin = chemin.replace(/\b(ORG_INVITE|ORG_PD|ORG|BIEN|LOT|BAIL|EDL|INCIDENT|PERSONNE|QUITTANCE|ARTISAN|PUBLICATION|ARTICLE|DIAGNOSTIC|SOLLICITATION|INTERVENTION|EQUIPE|ACCOUNT)\b/g, (m) => {
     if (!ids[m]) manquant = m;
     return ids[m] ?? m;
   });

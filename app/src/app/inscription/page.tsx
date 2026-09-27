@@ -20,7 +20,7 @@ export default async function PageInscription(props: PageProps<"/inscription">) 
       titre="Ouvrir mon espace propriétaire"
       // La réassurance « sans carte bancaire » passe dans le chapo (24/09) : la
       // mention du panneau est masquée sur téléphone, où elle n'apparaissait pas.
-      chapo={"Un compte, votre parc, 14 jours pour l'essayer — sans\u00a0carte\u00a0bancaire."}
+      chapo="Pour gérer vos propres biens, en nom propre ou en SCI : 14 jours sans carte. Ensuite, vous choisissez votre abonnement ; aucun débit sans votre accord."
       largeur="380px"
     >
       <FormulaireInscription codeParrain={codeParrain} />

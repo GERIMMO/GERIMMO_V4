@@ -71,7 +71,7 @@ async function monter(): Promise<Decor> {
   const {
     rows: [{ id: org }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status) values ('M8','active') returning id`
+    `insert into public.organizations (tarification_version,name, status) values ('historique','M8','active') returning id`
   );
   const gerant = await compte("gerant");
   const locataire = await compte("loc");

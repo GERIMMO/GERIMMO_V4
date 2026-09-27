@@ -8,7 +8,7 @@ describe.skipIf(!url)('Mentions du contrat en base', () => {
   afterAll(async () => { await db?.end(); });
   beforeEach(async () => {
     await db.query('begin');
-    org = (await db.query("insert into public.organizations(name,status) values('Recette mentions','active') returning id")).rows[0].id;
+    org = (await db.query("insert into public.organizations(tarification_version,name,status) values('historique','Recette mentions','active') returning id")).rows[0].id;
     const bien = (await db.query("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Recette','appartement','1 rue du Test','75001','Paris') returning id",[org])).rows[0].id;
     lot = (await db.query("insert into public.lots(organization_id,bien_id,nom) values($1,$2,'Lot recette') returning id",[org,bien])).rows[0].id;
   });

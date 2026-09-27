@@ -68,7 +68,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — copropriété / appels de charges", () =>
     await db.query("begin");
     const {
       rows: [{ id: org }],
-    } = await db.query(`insert into public.organizations (name, status) values ('CC 0c','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name, status) values ('historique','CC 0c','active') returning id`);
     orgA = org;
     gerant = await creerUtilisateur(db);
     await db.query(

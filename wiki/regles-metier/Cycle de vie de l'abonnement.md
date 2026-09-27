@@ -9,6 +9,8 @@ sources: ["[[Dépôt Gerimmo-V3]]"]
 
 # Cycle de vie de l'abonnement
 
+> **Nouvelle décision — 28 septembre 2026.** Les décisions tarifaires antérieures ci-dessous sont conservées pour l’historique. La grille nouvelle distingue les particuliers/SCI en gestion propre des agences pour tiers, supprime la gratuité permanente pour les nouveaux contrats et prévoit une migration consentie séparée des contrats existants. Référence à jour : [[Tarification 2026-09 — nouvelle grille et migration]]. Cette documentation ne vaut pas preuve d’activation en production.
+
 **Énoncé :** l'[[Abonnement]] suit des statuts contrôlés, avec expiration automatique de
 l'essai et transitions réservées.
 

@@ -14,6 +14,7 @@ import {
   type PublicTarif,
 } from "@/lib/stripe";
 import { origineDeRetour } from "@/lib/site";
+import { ouvrirPortailAbonnementV2 } from "@/app/actions/abonnement-v2";
 
 export type EtatAbonnementAction = { erreur?: string };
 
@@ -76,7 +77,7 @@ export async function demarrerAbonnement(
     await Promise.all([
       supabase
         .from("organizations")
-        .select("id, name, type, email_contact")
+        .select("id, name, type, email_contact, tarification_version")
         .eq("id", orgId)
         .maybeSingle(),
       supabase.rpc("etat_abonnement", { p_org: orgId }),
@@ -84,6 +85,7 @@ export async function demarrerAbonnement(
   if (erreurOrg || !org) {
     return { erreur: "Votre organisation n'a pas pu être lue. Rechargez la page." };
   }
+  if (org.tarification_version === "2026-09-v2") return { erreur: "Vérifiez puis confirmez le récapitulatif de la nouvelle offre avant de souscrire." };
   if (erreurEtat) return { erreur: sansJargon(erreurEtat.message) };
 
   const etat = ((etatBrut ?? []) as {
@@ -179,6 +181,8 @@ export async function ouvrirPortailAbonnement(
   }
 
   const supabase = await createClient();
+  const { data: organisation } = await supabase.from("organizations").select("tarification_version").eq("id", orgId).maybeSingle();
+  if (organisation?.tarification_version === "2026-09-v2") return ouvrirPortailAbonnementV2(orgId, {}, _formData);
   const { data: client, error } = await supabase.rpc("mon_client_stripe", { p_org: orgId });
   if (error) return { erreur: sansJargon(error.message) };
   if (!client) {

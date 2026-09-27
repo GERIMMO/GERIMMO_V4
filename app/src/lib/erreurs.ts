@@ -21,7 +21,7 @@ export function sansJargon(message: string | null | undefined): string {
   // références réservées au support. Ces détails restent dans les journaux ;
   // l'utilisateur reçoit une consigne utile et compréhensible.
   if (
-    /(?:SQLSTATE|PostgREST|postgres|supabase|row-level security|RLS|violates|constraint|duplicate key|foreign key|relation ["']|column ["']|schema cache|JWT|fetch failed|ECONN|ENOTFOUND|\b5\d\d\b|\bPGRST\d+\b)/i.test(
+    /(?:SQLSTATE|PostgREST|postgres|supabase|row-level security|RLS|violates|constraint|duplicate key|foreign key|relation ["']|column ["']|schema cache|JWT|fetch failed|\bECONN[A-Z0-9_]*\b|ENOTFOUND|\b5\d\d\b|\bPGRST\d+\b)/i.test(
       propre
     )
   ) {

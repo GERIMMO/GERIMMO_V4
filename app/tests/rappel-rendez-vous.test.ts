@@ -97,7 +97,7 @@ beforeEach(async () => {
   await db.query("begin");
   await db.query("reset role");
   org = await id(
-    "insert into public.organizations(name,status,type) values('Rappels','active','agence') returning id"
+    "insert into public.organizations(tarification_version,name,status,type) values('historique','Rappels','active','agence') returning id"
   );
   gerant = await compte("gerant");
   const compteLocataire = await compte("locataire");

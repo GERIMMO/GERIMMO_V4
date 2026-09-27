@@ -1,5 +1,6 @@
 "use server";
 
+import { calculerTarif, formaterCentimes, VERSION_TARIFICATION } from "@/lib/tarification";
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/parc";
 
 export type EtatParc = {
+  lienAbonnement?: string;
   erreur?: string;
   succes?: string;
   // Création de fiche réussie, mais détention refusée : reprendre cette
@@ -92,6 +94,20 @@ export async function creerBien(
   const lotsAValider = lotsSaisis.length > 0 ? lotsSaisis : [{ surface, pieces }];
   if (lotsAValider.some((lot) => !lot.surface || Number(lot.surface) <= 0 || !lot.pieces || Number(lot.pieces) < 1)) {
     return { erreur: "La surface habitable et le nombre de pièces sont obligatoires pour chaque lot.", valeurs };
+  }
+
+  // Présenter la capacité nécessaire avant la première écriture du parcours.
+  // Le contrôle en base reste décisif, notamment lors de créations concurrentes.
+  if (role === "proprietaire_direct") {
+    const { data: contrat, error: erreurContrat } = await supabase.rpc("lire_abonnement_v2", { p_org: orgId });
+    if (erreurContrat || !contrat) return { erreur: "Votre capacité de gestion n’a pas pu être vérifiée. Réessayez avant de créer le bien.", valeurs };
+    const essaiLibre = contrat.essai_fin && Date.parse(contrat.essai_fin) > Date.now() && !contrat.stripe_subscription_id;
+    const volumeCible = Number(contrat.volume_actuel) + Math.max(1, lotsSaisis.length);
+    if (contrat.version === VERSION_TARIFICATION && !essaiLibre && volumeCible > Number(contrat.capacite)) {
+      const prix = calculerTarif("proprietaire_direct", volumeCible, contrat.periodicite ?? "mensuel");
+      return { erreur: `Ce projet porte votre portefeuille à ${volumeCible} biens. La formule ${prix.libelle} correspond à ${formaterCentimes(prix.montantCentimes)} TTC ${prix.periodicite === "annuel" ? "par an, en une fois" : "par mois"}. Consultez le montant exact, l’éventuel ajustement de la période et la date avant de confirmer. Votre saisie est conservée.`,
+        lienAbonnement: `/agence/${orgId}/abonnement?volume=${volumeCible}`, valeurs };
+    }
   }
 
   // Créer un bien = créer son lot unique (RM-0.1.2), atomique en base

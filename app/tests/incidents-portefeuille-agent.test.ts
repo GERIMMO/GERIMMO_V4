@@ -40,8 +40,8 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
     db = new Client({ connectionString: DB_URL });
     await db.connect();
     await db.query("begin");
-    org = await id("insert into public.organizations(name,status,type) values('Recette portefeuille incidents','active','agence') returning id");
-    autreOrg = await id("insert into public.organizations(name,status,type) values('Autre agence recette','active','agence') returning id");
+    org = await id("insert into public.organizations(tarification_version,name,status,type) values('historique','Recette portefeuille incidents','active','agence') returning id");
+    autreOrg = await id("insert into public.organizations(tarification_version,name,status,type) values('historique','Autre agence recette','active','agence') returning id");
     [admin, agentA, agentB, sa, locataireCompte, artisanCompte] = [
       await compte("admin"), await compte("agentA"), await compte("agentB"),
       await compte("sa"), await compte("locataire"), await compte("artisan"),

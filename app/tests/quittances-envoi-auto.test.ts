@@ -73,7 +73,7 @@ beforeEach(async () => {
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status) values ('Envoi','active') returning id`
+    `insert into public.organizations (tarification_version,name, status) values ('historique','Envoi','active') returning id`
   );
   org = id;
   gerant = await creerUtilisateur();

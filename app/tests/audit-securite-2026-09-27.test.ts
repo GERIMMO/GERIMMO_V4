@@ -75,8 +75,8 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
 
   beforeEach(async () => {
     await db.query("begin");
-    orgA = (await un<{ id: string }>(`insert into public.organizations (name, status) values ('Audit A','active') returning id`)).id;
-    orgB = (await un<{ id: string }>(`insert into public.organizations (name, status) values ('Audit B','active') returning id`)).id;
+    orgA = (await un<{ id: string }>(`insert into public.organizations (tarification_version,name, status) values ('historique','Audit A','active') returning id`)).id;
+    orgB = (await un<{ id: string }>(`insert into public.organizations (tarification_version,name, status) values ('historique','Audit B','active') returning id`)).id;
     [adminA, agentA, locA, adminB] = [await utilisateur(), await utilisateur(), await utilisateur(), await utilisateur()];
     await db.query(
       `insert into public.memberships (account_id, organization_id, role)

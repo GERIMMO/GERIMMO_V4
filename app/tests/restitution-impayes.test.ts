@@ -77,7 +77,7 @@ describe.skipIf(!DB_URL)("Restitution — instantané des impayés, daté et ré
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('CC Restit impayés','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','CC Restit impayés','active') returning id`
     );
     orgA = org;
     gerant = await creerUtilisateur(db);
@@ -340,7 +340,7 @@ describe.skipIf(!DB_URL)("Restitution — instantané des impayés, daté et ré
     const {
       rows: [{ id: orgB }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('CC Autre agence','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','CC Autre agence','active') returning id`
     );
     await db.query(
       `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'admin_agence')`,
@@ -399,7 +399,7 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
     const {
       rows: [o],
     } = await semeur.query(
-      `insert into public.organizations (name, status) values ($1,'active') returning id`,
+      `insert into public.organizations (tarification_version,name, status) values ('historique',$1,'active') returning id`,
       [nomOrg]
     );
     org = o.id;

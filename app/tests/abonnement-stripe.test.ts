@@ -38,8 +38,8 @@ async function creerOrg(
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status, type, essai_fin)
-     values ('Encaissement', $1::public.organization_status, $2::public.organization_type, ${date})
+    `insert into public.organizations (tarification_version,name, status, type, essai_fin)
+     values ('historique','Encaissement', $1::public.organization_status, $2::public.organization_type, ${date})
      returning id`,
     [statut, type]
   );
@@ -218,13 +218,14 @@ describe("Les webhooks ne se rejouent pas deux fois — mais se rejouent quand i
       `select public.abonnement_evenement_a_traiter('evt_1','customer.subscription.updated',null) as n`
     );
     expect(a[0].n).toBe(true);
+    await db.query(`select public.abonnement_evenement_solde('evt_1',null)`);
     const { rows: b } = await db.query<{ n: boolean }>(
       `select public.abonnement_evenement_a_traiter('evt_1','customer.subscription.updated',null) as n`
     );
     expect(b[0].n).toBe(false);
   });
 
-  it("un traitement RATÉ efface sa trace : la relance de Stripe doit aboutir", async () => {
+  it("un traitement raté libère sa réservation : la relance de Stripe doit aboutir", async () => {
     // Le piège de tout dédoublonnage. Sans cet effacement, l'échec d'un
     // traitement rendrait la relance indistinguable d'un doublon : l'événement
     // serait perdu pour toujours, et le compte resterait fermé alors que le

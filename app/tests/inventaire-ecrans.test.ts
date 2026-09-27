@@ -16,7 +16,7 @@ describe("Couverture des écrans", () => {
   });
 
   it("les pages ajoutées ont un profil valide et ne sont pas doublonnées", () => {
-    const profils = new Set(["public", "agent", "admin-agence", "locataire", "proprietaire", "superadmin", "artisan"]);
+    const profils = new Set(["public", "agent", "admin-agence", "locataire", "proprietaire", "proprietaire-invite", "superadmin", "artisan"]);
     expect(inventaire.filter(r => !profils.has(r.persona))).toEqual([]);
     expect(new Set(inventaire.map(r => `${r.persona}:${r.path}`)).size).toBe(inventaire.length);
   });

@@ -6,6 +6,11 @@ import { describe, expect, it } from "vitest";
 import { sansJargon } from "../src/lib/erreurs";
 
 describe("sansJargon", () => {
+  it("conserve la consigne de reconnexion et masque les erreurs réseau", () => {
+    const message = "Reconnectez-vous pour confirmer votre abonnement.";
+    expect(sansJargon(message)).toBe(message);
+    expect(sansJargon("connect ECONNRESET 127.0.0.1:5432")).toContain("Gerimmo n’a pas pu terminer");
+  });
   it("retire la référence interne en fin de phrase", () => {
     expect(sansJargon("Mois clôturé : imputez au mois ouvert (RM-4.4.1)")).toBe(
       "Mois clôturé : imputez au mois ouvert"

@@ -72,16 +72,16 @@ describe.skipIf(!DB_URL)("audit propriétaire et locataire (27/09) — base", ()
     await db.query("begin");
 
     const { rows: orgs } = await db.query(
-      `insert into public.organizations (name, status, address_line1, postal_code, city, email_contact, siret)
-       values ('Audit27 — Agence','active','3 place de la Mairie','75004','Paris','contact@a27.test','12345678900011'),
-              ('Audit27 — Autre','active', null, null, null, null, null)
+      `insert into public.organizations (tarification_version,name, status, address_line1, postal_code, city, email_contact, siret)
+       values ('historique','Audit27 — Agence','active','3 place de la Mairie','75004','Paris','contact@a27.test','12345678900011'),
+              ('historique','Audit27 — Autre','active', null, null, null, null, null)
        returning id, name`
     );
     org = orgs.find((o) => o.name.endsWith("Agence")).id;
     orgAutre = orgs.find((o) => o.name.endsWith("Autre")).id;
     const { rows: [pd] } = await db.query(
-      `insert into public.organizations (name, status, type, address_line1, postal_code, city, email_contact)
-       values ('Parc de Claire','active','proprietaire_direct','1 rue Haute','69007','Lyon','claire@pd.test')
+      `insert into public.organizations (tarification_version,name, status, type, address_line1, postal_code, city, email_contact)
+       values ('historique','Parc de Claire','active','proprietaire_direct','1 rue Haute','69007','Lyon','claire@pd.test')
        returning id`
     );
     orgPd = pd.id;

@@ -33,8 +33,8 @@ describe.skipIf(!DB)("Réseau communal — gestion nationale et décisions expli
   const interet = async (bien=paris.bien,metier="plomberie") => (await db.query("select public.reseau_signaler_interet($1,$2,$3) nouveau",[org,bien,metier])).rows[0].nouveau;
   beforeAll(async () => {
     db = new Client({ connectionString: DB }); await db.connect(); await db.query("begin");
-    org = await id("insert into public.organizations(name,type,status,postal_code) values('Bailleur national','proprietaire_direct','active','91300') returning id");
-    autreOrg = await id("insert into public.organizations(name,status) values('Autre agence','active') returning id");
+    org = await id("insert into public.organizations(tarification_version,name,type,status,postal_code) values('historique','Bailleur national','proprietaire_direct','active','91300') returning id");
+    autreOrg = await id("insert into public.organizations(tarification_version,name,status) values('historique','Autre agence','active') returning id");
     [owner,sa,etranger,agent,locataire,artisanCompte] = [await compte('bailleur'),await compte('sa'),await compte('etranger'),await compte('agent'),await compte('locataire'),await compte('artisan')];
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct'),($3,null,'super_admin'),($4,$5,'admin_agence'),($6,$2,'agent'),($7,$2,'locataire')",[owner,org,sa,etranger,autreOrg,agent,locataire]);
     paris=await propriete('Bien à Paris','75011','Paris'); lyon=await propriete('Bien à Lyon','69003','Lyon'); massy=await propriete('Bien à Massy','91300','Massy');

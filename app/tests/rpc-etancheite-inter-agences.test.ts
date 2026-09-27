@@ -68,7 +68,7 @@ describe.skipIf(!DB_URL)("RPC — étanchéité inter-organisations (RM-A1.7)", 
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Étanche','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Étanche','active') returning id`
     );
     org = o.id;
     gerant = await creerCompte("gerant");

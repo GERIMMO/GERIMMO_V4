@@ -68,8 +68,8 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
   beforeEach(async () => {
     await db.query("begin");
     const orgs = await db.query(
-      `insert into public.organizations (name, status)
-       values ('S7 Alpha','active'), ('S7 Beta','active') returning id, name`
+      `insert into public.organizations (tarification_version,name, status)
+       values ('historique','S7 Alpha','active'), ('historique','S7 Beta','active') returning id, name`
     );
     orgA = orgs.rows.find((o) => o.name === "S7 Alpha")!.id;
     orgB = orgs.rows.find((o) => o.name === "S7 Beta")!.id;

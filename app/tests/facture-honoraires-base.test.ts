@@ -19,8 +19,8 @@ describe.skipIf(!url)('Facture d’honoraires : numérotation, droits et TVA', (
     await db.query('begin');
     const users = (await db.query("insert into auth.users(id,email) select gen_random_uuid(),gen_random_uuid()||'@test.local' from generate_series(1,3) returning id")).rows;
     [admin, agent, etranger] = users.map((x) => x.id);
-    org = (await db.query("insert into public.organizations(name,status,type,siret) values('Agence recette','active','agence','12345678901234') returning id")).rows[0].id;
-    autreOrg = (await db.query("insert into public.organizations(name,status,type) values('Autre agence','active','agence') returning id")).rows[0].id;
+    org = (await db.query("insert into public.organizations(tarification_version,name,status,type,siret) values('historique','Agence recette','active','agence','12345678901234') returning id")).rows[0].id;
+    autreOrg = (await db.query("insert into public.organizations(tarification_version,name,status,type) values('historique','Autre agence','active','agence') returning id")).rows[0].id;
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$3,'admin_agence'),($2,$3,'agent')", [admin, agent, org]);
     const mandant = (await db.query("insert into public.persons(organization_id,nom,prenom) values($1,'Marchand','Claire') returning id", [org])).rows[0].id;
     mandat = (await db.query("insert into public.mandats(organization_id,person_id) values($1,$2) returning id", [org, mandant])).rows[0].id;

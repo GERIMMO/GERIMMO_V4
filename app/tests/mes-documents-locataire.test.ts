@@ -94,7 +94,7 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('DOCS Alpha','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','DOCS Alpha','active') returning id`
     );
     orgA = org;
     ({ compte: compteLo } = await creerCompte(db, orgA, "locataire", "Occupant"));
@@ -301,7 +301,7 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
     const {
       rows: [{ id: orgB }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('DOCS Beta','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','DOCS Beta','active') returning id`
     );
     const { personne: personneB } = await creerCompte(db, orgB, "locataire", "Étranger");
     const docA = await insererDocument(db, orgA, "justificatif", "Pièce A", `${orgA}/zz-a.pdf`);

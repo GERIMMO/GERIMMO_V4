@@ -185,8 +185,8 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
     await db.query("begin");
 
     const { rows: orgs } = await db.query(
-      `insert into public.organizations (name, status)
-       values ('Suivi LO — Agence A','active'), ('Suivi LO — Agence B','active')
+      `insert into public.organizations (tarification_version,name, status)
+       values ('historique','Suivi LO — Agence A','active'), ('historique','Suivi LO — Agence B','active')
        returning id, name`
     );
     org = orgs.find((o) => o.name.endsWith("A")).id;

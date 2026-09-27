@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
-import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
+import { debordementHorizontal, sansSyntheseAlertes, entrerDansEspace } from "./aides";
 
 // L'arrivée d'un client, des deux côtés du guichet : le super admin qui ouvre
 // l'organisation, et le gérant qui découvre son espace vide et doit savoir par
@@ -33,11 +33,9 @@ test.describe("côté console", () => {
       page.getByRole("radio", { name: /Propriétaire en gestion directe/ })
     ).toBeVisible();
 
-    // L'essai est le cas courant : sa durée est visible d'emblée.
-    await expect(page.getByLabel("Durée de l'essai, en jours")).toBeVisible();
-    // Contrat signé : la durée n'a plus de sens, elle disparaît.
-    await page.getByRole("checkbox", { name: /Contrat déjà signé/ }).check();
-    await expect(page.getByLabel("Durée de l'essai, en jours")).toHaveCount(0);
+    // La nouvelle grille démarre toujours par l’essai, sans paiement imposé par l’ouverture.
+    await expect(page.getByText("14 jours d’essai gratuit, sans carte bancaire", {exact:true})).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: /Contrat déjà signé/ })).toHaveCount(0);
 
     expect(await debordementHorizontal(page)).toBe(0);
   });
@@ -52,8 +50,7 @@ test.describe("côté client", () => {
     // Le cas incomplet et l'ordre des cinq étapes sont vérifiés au niveau de la
     // fonction métier dans onboarding-autonome.test.ts.
     await sansSyntheseAlertes(page);
-    await page.goto("/espaces");
-    await page.waitForURL(/\/agence\//);
+    await entrerDansEspace(page, "agence");
     await page.waitForLoadState("networkidle");
 
     const bloc = page.getByRole("region", { name: /Mettre votre premier (lot|bien) en location/ });
@@ -79,9 +76,7 @@ test.describe("reprendre un parc", () => {
 
   test("le contrôle lit le fichier déposé et rend le verdict ligne par ligne", async ({ page }) => {
     await sansSyntheseAlertes(page);
-    await page.goto("/espaces");
-    await page.waitForURL(/\/agence\//);
-    const orgId = page.url().match(/\/agence\/([0-9a-f-]+)/)![1];
+    const orgId = await entrerDansEspace(page, "agence");
 
     await page.goto(`/agence/${orgId}/parc/import`);
     await page.waitForSelector("h1");

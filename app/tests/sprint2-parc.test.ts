@@ -85,8 +85,8 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
   beforeEach(async () => {
     await db.query("begin");
     const orgs = await db.query(`
-      insert into public.organizations (name, status)
-      values ('S2 Alpha', 'active'), ('S2 Beta', 'active')
+      insert into public.organizations (tarification_version,name, status)
+      values ('historique','S2 Alpha', 'active'), ('historique','S2 Beta', 'active')
       returning id, name
     `);
     orgA = orgs.rows.find((o) => o.name === "S2 Alpha")!.id;

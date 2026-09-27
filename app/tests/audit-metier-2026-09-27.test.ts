@@ -38,8 +38,8 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status, relances_envoi_auto, appels_envoi_auto)
-       values ('Audit 27/09','active', true, true) returning id`
+      `insert into public.organizations (tarification_version,name, status, relances_envoi_auto, appels_envoi_auto)
+       values ('historique','Audit 27/09','active', true, true) returning id`
     );
     org = o.id;
     const {

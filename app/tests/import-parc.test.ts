@@ -131,8 +131,8 @@ describe.skipIf(!DB_URL)("importer le parc", () => {
     const {
       rows: [{ id }],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status, essai_fin)
-       values ('Import','essai', current_date + 14) returning id`
+      `insert into public.organizations (tarification_version,name, status, essai_fin)
+       values ('historique','Import','essai', current_date + 14) returning id`
     );
     org = id;
     const {

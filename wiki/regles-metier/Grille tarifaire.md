@@ -9,6 +9,8 @@ sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administr
 
 # Grille tarifaire
 
+> **Nouvelle décision — 28 septembre 2026.** Les décisions tarifaires antérieures ci-dessous sont conservées pour l’historique. La grille nouvelle distingue les particuliers/SCI en gestion propre des agences pour tiers, supprime la gratuité permanente pour les nouveaux contrats et prévoit une migration consentie séparée des contrats existants. Référence à jour : [[Tarification 2026-09 — nouvelle grille et migration]]. Cette documentation ne vaut pas preuve d’activation en production.
+
 **Énoncé :** **8 offres** d'[[Abonnement]] en base — dont **6 achetables en ligne** et **2 sur
 devis** (`requires_quote = true` : `agency_301_600`, `agency_600_plus`) — segmentées par
 **audience** (`owner`/`agency`) et par **tranche de nombre de biens**. Lancement **mensuel

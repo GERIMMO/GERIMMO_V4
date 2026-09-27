@@ -75,8 +75,8 @@ describe.skipIf(!DB_URL)("Sprint 3 — mandat de gestion", () => {
   beforeEach(async () => {
     await db.query("begin");
     const orgs = await db.query(`
-      insert into public.organizations (name, status)
-      values ('S3 Alpha', 'active'), ('S3 Beta', 'active')
+      insert into public.organizations (tarification_version,name, status)
+      values ('historique','S3 Alpha', 'active'), ('historique','S3 Beta', 'active')
       returning id, name
     `);
     orgA = orgs.rows.find((o) => o.name === "S3 Alpha")!.id;

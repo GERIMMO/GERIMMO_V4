@@ -36,7 +36,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Durci','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Durci','active') returning id`
     );
     org = o.id;
     const {
@@ -541,8 +541,8 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     const {
       rows: [{ id: fantome }],
     } = await db.query(
-      `insert into public.organizations (name, type, status)
-       values ('Parc fantôme','proprietaire_direct','essai') returning id`
+      `insert into public.organizations (tarification_version,name, type, status)
+       values ('historique','Parc fantôme','proprietaire_direct','essai') returning id`
     );
     await db.query("savepoint espace_pd");
     await expect(
@@ -1093,7 +1093,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     const {
       rows: [autreOrg],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Voisine A6.6','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Voisine A6.6','active') returning id`
     );
     const {
       rows: [{ id: voisineCompte }],

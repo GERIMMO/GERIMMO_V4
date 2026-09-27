@@ -12,7 +12,8 @@ concurrency:
 
 jobs:
   paiements:
-    if: github.ref == 'refs/heads/main'
+    # Exécution manuelle autorisée sur une branche de recette : clés TEST uniquement.
+    if: github.event_name == 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/tarification-20260928')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
@@ -46,7 +47,7 @@ jobs:
       - name: Tester les cas de paiement et leur application dans Gerimmo
         env:
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
-        run: npm test -- tests/stripe-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
+        run: npm test -- tests/stripe-bac-a-sable.test.ts tests/stripe-tarification-bac-a-sable.test.ts tests/stripe-v2-sql-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
       - name: Conserver le résultat synthétique
         if: always()
         run: |

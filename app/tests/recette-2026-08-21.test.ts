@@ -67,7 +67,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
     const {
       rows: [{ id }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('R21 Alpha','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','R21 Alpha','active') returning id`
     );
     orgA = id;
     adminA = await creerUtilisateur(db);
@@ -271,7 +271,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('R21 EDL','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','R21 EDL','active') returning id`
     );
     const admin = await creerUtilisateur(db);
     const agent = await creerUtilisateur(db);

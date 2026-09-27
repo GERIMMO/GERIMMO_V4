@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { creerBien, modifierBien, type EtatParc } from "@/app/actions/parc";
 import { TYPES_BIEN, TYPES_NON_DECOUPABLES } from "@/lib/parc";
@@ -416,7 +417,8 @@ export function FormulaireBien({
         </div>
       )}
 
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.lienAbonnement && <Link href={etat.lienAbonnement} target="_blank" rel="noopener noreferrer" className="btn-secondaire">Voir et confirmer la capacité dans un nouvel onglet</Link>}
       {etat.succes && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}

@@ -65,8 +65,8 @@ describe.skipIf(!DB_URL)("Sprint 4 — bail : activation au dépôt du bail sign
   beforeEach(async () => {
     await db.query("begin");
     const orgs = await db.query(
-      `insert into public.organizations (name, status)
-       values ('S4 Alpha','active'), ('S4 Beta','active') returning id, name`
+      `insert into public.organizations (tarification_version,name, status)
+       values ('historique','S4 Alpha','active'), ('historique','S4 Beta','active') returning id, name`
     );
     orgA = orgs.rows.find((o) => o.name === "S4 Alpha")!.id;
     const orgB = orgs.rows.find((o) => o.name === "S4 Beta")!.id;

@@ -76,7 +76,7 @@ describe.skipIf(!DB_URL)("Retenue — le justificatif ne survit pas au refus", (
     await db.query("begin");
     const {
       rows: [{ id: org }],
-    } = await db.query(`insert into public.organizations (name, status) values ('CC retenue','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name, status) values ('historique','CC retenue','active') returning id`);
     orgA = org;
     gerant = await creerUtilisateur(db);
     await db.query(
@@ -372,7 +372,7 @@ describe.skipIf(!DB_URL)("Retenue — le justificatif ne survit pas au refus", (
     await db.query("reset role");
     const {
       rows: [{ id: autreOrg }],
-    } = await db.query(`insert into public.organizations (name, status) values ('Autre agence','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name, status) values ('historique','Autre agence','active') returning id`);
     const intrus = await creerUtilisateur(db);
     await db.query(
       `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'admin_agence')`,
@@ -640,7 +640,7 @@ describe.skipIf(!DB_URL)("Action serveur — la fiche ne précède plus la règl
     await db.query("begin");
     const {
       rows: [{ id: org }],
-    } = await db.query(`insert into public.organizations (name,status) values ('Banc retenue','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name,status) values ('historique','Banc retenue','active') returning id`);
     orgA = org;
     gerant = await creerUtilisateur(db);
     banc.gerant = gerant;

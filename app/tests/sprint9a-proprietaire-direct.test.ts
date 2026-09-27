@@ -94,7 +94,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     expect(o.status).toBe("essai");
     const {
       rows: [{ jours }],
-    } = await db.query(`select (essai_fin - current_date) as jours from public.organizations where id=$1`, [org]);
+    } = await db.query(`select extract(epoch from (essai_fin_v2 - created_at)) / 86400 as jours from public.organizations where id=$1`, [org]);
     expect(Number(jours)).toBe(14);
 
     const { rows: adhesions } = await db.query(
@@ -137,7 +137,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     await db.query("reset role");
     const {
       rows: [{ id: agence }],
-    } = await db.query(`insert into public.organizations (name) values ('Agence Test 9a') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name) values ('historique','Agence Test 9a') returning id`);
     const {
       rows: [{ type }],
     } = await db.query(`select type from public.organizations where id=$1`, [agence]);
@@ -164,11 +164,11 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     expect(rowCount).toBe(0);
   });
 
-  it("exclusivité PD/PM : un mandant d'agence ne s'inscrit pas en direct, et un PD ne devient pas mandant", async () => {
+  it("espaces distincts : un propriétaire peut confier certains biens et gérer personnellement les autres", async () => {
     await db.query("reset role");
     const {
       rows: [{ id: agence }],
-    } = await db.query(`insert into public.organizations (name) values ('Agence Mandats') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name) values ('historique','Agence Mandats') returning id`);
     const admin = await creerCompte(db, {});
     await db.query(`insert into public.memberships (account_id, organization_id, role) values ($1,$2,'admin_agence')`, [admin.id, agence]);
 
@@ -186,7 +186,8 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     );
     const compteMandant = await creerCompte(db, { nom: "Mandant" }, emailMandant);
     await simuler(db, compteMandant.id);
-    await attendreEchec(db, /exclusivité PD\/PM/, `select public.initialiser_espace_proprietaire()`);
+    const { rows: [espaceMandant] } = await db.query(`select public.initialiser_espace_proprietaire() as id`);
+    expect(espaceMandant.id).not.toBe(agence);
 
     // 2. Un propriétaire direct existant → l'agence ne peut pas lui faire signer un mandat
     // (on redevient superutilisateur : la création du compte auth se fait hors session applicative)
@@ -200,12 +201,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       `insert into public.persons (organization_id, nom, email) values ($1,'Direct',$2) returning id`,
       [agence, pd.email]
     );
-    await attendreEchec(
-      db,
-      /exclusivité PD\/PM/,
-      `insert into public.mandats (organization_id, person_id, etat) values ($1,$2,'a_signer')`,
-      [agence, fichePd]
-    );
+    await db.query(`insert into public.mandats (organization_id, person_id, etat) values ($1,$2,'a_signer')`, [agence, fichePd]);
     // Un brouillon reste possible (rien n'est signé) ; c'est l'envoi en signature qui bloque
     const {
       rows: [{ id: brouillon }],
@@ -236,7 +232,9 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
       [agence, brouillon, lotAgence]
     );
     await db.query("reset role");
-    await attendreEchec(db, /exclusivité PD\/PM/, `update public.mandats set etat='actif' where id=$1`, [brouillon]);
+    await db.query(`update public.mandats set etat='actif' where id=$1`, [brouillon]);
+    const { rows: [droits] } = await db.query(`select count(*)::integer as n from public.memberships where account_id=$1 and organization_id=$2`, [pd.id, agence]);
+    expect(droits.n).toBe(0); // Un mandat ne donne jamais les droits de gestion de l’agence.
   });
 
   it("bout en bout : bien → locataire → bail → loyer encaissé sans honoraires → clôture → récapitulatif fiscal", async () => {
@@ -383,7 +381,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     await db.query("reset role");
     const {
       rows: [{ id: agence }],
-    } = await db.query(`insert into public.organizations (name) values ('Agence Isolée') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name) values ('historique','Agence Isolée') returning id`);
     const agent = await creerCompte(db, {});
     await db.query(`insert into public.memberships (account_id, organization_id, role) values ($1,$2,'agent')`, [agent.id, agence]);
     await db.query(`insert into public.persons (organization_id, nom) values ($1,'Secret Agence')`, [agence]);

@@ -68,8 +68,8 @@ beforeEach(async () => {
   const {
     rows: [o],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status, email_contact)
-     values ('Relance', 'active'::public.organization_status, 'compta@relance.test') returning id`
+    `insert into public.organizations (tarification_version,name, status, email_contact)
+     values ('historique','Relance', 'active'::public.organization_status, 'compta@relance.test') returning id`
   );
   org = o.id;
   client = `cus_${Math.random().toString(36).slice(2, 12)}`;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AnnexeLocative } from "./annexe-locative";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -43,6 +44,9 @@ export default async function PageLot(
   exigerUuids(bienId, lotId);
   const { supabase, role } = await verifierAccesEspace(orgId);
 
+  const { data: candidatsAnnexe, error: erreurAnnexe } = ["proprietaire_direct", "admin_agence"].includes(role)
+    ? await supabase.from("lots").select("id, nom").eq("organization_id", orgId).eq("bien_id", bienId).neq("id", lotId).neq("etat", "archive").is("annexe_du_lot_id", null)
+    : { data: null, error: null };
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("*").eq("lot_id", lotId).eq("organization_id", orgId).order("nom");
 
   const [
@@ -411,6 +415,7 @@ export default async function PageLot(
           <div id="caracteristiques" className="scroll-mt-20">
             <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
           </div>
+          {candidatsAnnexe && !erreurAnnexe && <AnnexeLocative orgId={orgId} bienId={bienId} lotId={lotId} principal={lot.annexe_du_lot_id ?? null} candidats={candidatsAnnexe} />}
           <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="btn-secondaire inline-flex">Vérifier les artisans disponibles pour ce bien</Link>
 
           {/* Détention — rouverte au propriétaire bailleur (audit 06/09) :

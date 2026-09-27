@@ -9,6 +9,8 @@ sources: []
 
 # Parrainage
 
+> **Nouvelle décision — 28 septembre 2026.** La nouvelle grille ne cumule plus automatiquement les récompenses ci-dessous. Les essais et avoirs déjà accordés restent acquis ; les recommandations nouvelles peuvent être enregistrées sans avantage automatique. Les parrainages anciens non convertis doivent être arbitrés avant migration. Référence à jour : [[Tarification 2026-09 — nouvelle grille et migration]]. Cette documentation ne vaut pas preuve d’activation en production.
+
 **Définition :** le mécanisme par lequel une organisation déjà cliente —
 agence ou [[Propriétaire bailleur|propriétaire direct]] — en amène une autre,
 et par lequel Gerimmo **sait qui a amené qui**. C'est le seul levier de

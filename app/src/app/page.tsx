@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { FormulaireDevisVitrine } from "./formulaire-devis-vitrine";
 import { AncreAuChargement } from "@/components/ancre-au-chargement";
+import { GrillesTarifaires } from "@/components/grilles-tarifaires";
 import {
   ApercuTableauDeBord,
   ApercuQuittance,
@@ -13,7 +14,7 @@ import {
 export const metadata = {
   title: "Gerimmo — La gérance immobilière, tenue au carré",
   description:
-    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Premier bien offert.",
+    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. 14 jours d’essai sans carte bancaire, puis une formule adaptée au portefeuille.",
 };
 
 // Site vitrine — ce que voit un visiteur avant toute connexion. Un connecté
@@ -44,9 +45,9 @@ const REMPLACE: [string, string, string][] = [
     "L'état des lieux de sortie se compare à celui d'entrée : chaque retenue se justifie ligne par ligne, vétusté déduite.",
   ],
   [
-    "Les honoraires d'agence",
-    "6 à 8 % des loyers, chaque mois",
-    "Le même travail, tenu par l'outil. 5,99 € par bien et par mois, le premier offert.",
+    "Les outils dispersés",
+    "Biens, locations et documents réunis",
+    "Une même gestion dans toutes les formules : le prix dépend du portefeuille, sans frais d’installation pour démarrer seul.",
   ],
 ];
 
@@ -79,8 +80,8 @@ const FONCTIONNALITES: [string, string][] = [
 
 const FAQ: [string, string][] = [
   [
-    "Le premier bien est-il vraiment gratuit ?",
-    "Oui — offert, à vie, sans carte bancaire. L'essai de 14 jours ouvre ensuite la formule complète, chaque bien supplémentaire coûte 5,99 € par mois, sans engagement.",
+    "Comment fonctionne l’essai ?",
+    "Vous disposez de 14 jours gratuits, sans carte bancaire. Ensuite, vous choisissez explicitement un abonnement, dès le premier bien. Sans souscription, vos données restent consultables et exportables en lecture seule. Les contrats et avantages déjà accordés sont conservés jusqu’à un changement convenu avec vous.",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
@@ -92,15 +93,19 @@ const FAQ: [string, string][] = [
   ],
   [
     "Et pour une agence ?",
-    "Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. La tarification se fait sur devis, par palier de lots.",
+    "Mandats, honoraires, rapports de gestion et portefeuilles par agent : le tarif mensuel est calculé par tranches cumulatives sur les lots sous mandat actif. Les collaborateurs, locataires et propriétaires invités n’ajoutent aucun abonnement individuel. Le total, avec les taxes applicables, est présenté avant confirmation.",
   ],
   [
     "Que se passe-t-il si j'arrête ?",
-    "Vos données restent exportables, et un bien retiré cesse d'être compté le mois suivant. Aucun engagement, aucun frais de sortie.",
+    "La résiliation prend effet à la prochaine échéance : vous conservez l’accès déjà payé. Le mensuel n’engage pas pour un an ; l’annuel est payé en une fois pour douze mois. Ensuite, vos données restent consultables et exportables en lecture seule, sans suppression automatique liée à la résiliation.",
   ],
   [
-    "Puis-je gérer pour quelqu'un d'autre ?",
-    "Oui : une SCI, l'indivision familiale, le bien d'un proche. Chaque organisation est séparée, et vous passez de l'une à l'autre depuis le même compte.",
+    "Quelle grille s’applique à ma SCI ?",
+    "Une SCI qui gère ses propres biens utilise la grille particuliers. Une agence qui gère pour des tiers utilise la grille agences. Si une agence gère certains de vos biens, leur consultation sur invitation reste incluse dans son abonnement ; votre gestion personnelle relève d’un espace et d’un abonnement distincts.",
+  ],
+  [
+    "Le réseau d’artisans est-il compris dans le prix ?",
+    "L’abonnement finance la gestion, partout en France. Le réseau s’ouvre commune par commune et métier par métier après validation de Gerimmo ; son ouverture ne change pas le prix de l’abonnement. Les travaux et interventions se paient séparément sur devis. Les signatures électroniques, SMS et autres services externes payants ne sont pas annoncés illimités.",
   ],
 ];
 
@@ -164,15 +169,15 @@ export default async function PageVitrine() {
                     ici « Commencer », ailleurs « Créer mon compte » ou
                     « Découvrir la gestion en direct ». */}
                 <Link href="/inscription" className="btn-or !px-5 !py-3 !text-[15px]">
-                  Créer mon compte — 1ᵉʳ bien offert
+                  Essayer 14 jours sans carte
                 </Link>
                 <a href="#agences" className="btn-secondaire">
                   Je suis une agence →
                 </a>
               </div>
               <p className="mt-5 text-[13px] text-[var(--libelle)]">
-                Essai de 14 jours, sans carte bancaire. Aucun honoraire de
-                gestion, jamais.
+                Aucun abonnement ni débit à la création du compte.
+                Vous choisissez de souscrire après avoir vu le montant.
               </p>
             </div>
 
@@ -362,57 +367,14 @@ export default async function PageVitrine() {
         </section>
 
         {/* ---------------------------------------------------------- Tarifs */}
-        <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
-          <TitreSection sur="Tarifs" titre="Un prix simple, tout compris" />
-          <div className="mt-10 grid gap-5 lg:grid-cols-2">
-            <div className="vitrine-carte vitrine-carte-mise-en-avant">
-              <p className="eyebrow text-[var(--marque-sombre)]">Propriétaire bailleur</p>
-              <p className="mt-4 font-heading text-[40px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
-                <span className="montant">5,99 €</span>
-                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> / bien / mois</span>
-              </p>
-              <ul className="mt-6 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
-                {[
-                  "1ᵉʳ bien offert, à vie",
-                  "Essai de 14 jours sans carte",
-                  "Sans engagement — un bien retiré n'est plus compté",
-                  "Espaces locataires inclus, sans limite",
-                  "Aucuns frais de mise en place",
-                ].map((l) => (
-                  <li key={l} className="flex gap-2.5">
-                    <Coche />
-                    <span>{l}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/inscription" className="btn-or mt-7 inline-flex !px-5 !py-2.5">
-                Créer mon compte
-              </Link>
-            </div>
-            <div className="vitrine-carte">
-              <p className="eyebrow text-[var(--marque-sombre)]">Agence immobilière</p>
-              <p className="mt-4 font-heading text-[40px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
-                Sur devis
-                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> — par palier de lots</span>
-              </p>
-              <ul className="mt-6 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
-                {[
-                  "Mandats, honoraires, rapports de gestion",
-                  "Portefeuilles par agent",
-                  "Facture d'honoraires numérotée, jointe au rapport",
-                  "Essai de 14 jours",
-                ].map((l) => (
-                  <li key={l} className="flex gap-2.5">
-                    <Coche />
-                    <span>{l}</span>
-                  </li>
-                ))}
-              </ul>
-              <a href="#agences" className="btn-secondaire mt-7 inline-flex">
-                Demander un devis →
-              </a>
-            </div>
-          </div>
+        <section id="tarifs" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 section-vitrine sm:px-7">
+          <TitreSection sur="Tarifs" titre="Le même outil, une formule adaptée à votre parc" />
+          <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[var(--texte-secondaire)]">
+            Particuliers, SCI ou agences : 14 jours d’essai sans carte. La création
+            du compte ne déclenche aucun abonnement. Toutes les formules d’un même
+            profil incluent les mêmes fonctionnalités de gestion disponibles.
+          </p>
+          <GrillesTarifaires />
         </section>
 
         {/* --------------------------------------------------------- Journal */}
@@ -485,9 +447,10 @@ export default async function PageVitrine() {
                   Parlons de votre portefeuille
                 </h2>
                 <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
-                  Dites-nous qui vous êtes et combien de lots vous gérez : nous
-                  revenons vers vous sous 48 h ouvrées avec une proposition par
-                  palier de lots, mise en route comprise.
+                  Ouvrez un essai de 14 jours, sans carte ni abonnement automatique.
+                  Le démarrage autonome est sans frais d’installation. Une reprise
+                  manuelle de données peut être proposée séparément sur devis,
+                  seulement si vous la demandez et l’acceptez.
                 </p>
               </div>
               <FormulaireDevisVitrine />

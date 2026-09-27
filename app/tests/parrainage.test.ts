@@ -54,7 +54,7 @@ async function organisation(nom: string, type = "agence"): Promise<{ id: string;
   const {
     rows: [ligne],
   } = await db.query<{ id: string; code: string }>(
-    `insert into public.organizations (name, status, type) values ($1,'essai',$2::public.organization_type)
+    `insert into public.organizations (tarification_version,name, status, type) values ('historique',$1,'essai',$2::public.organization_type)
      returning id, code_parrainage as code`,
     [nom, type]
   );
@@ -121,7 +121,7 @@ describe("le code de parrainage", () => {
   it("ne peut pas être dupliqué", async () => {
     await db.query("reset role");
     const message = await refus(
-      `insert into public.organizations (name, status, code_parrainage) values ('Doublon','essai',$1)`,
+      `insert into public.organizations (tarification_version,name, status, code_parrainage) values ('historique','Doublon','essai',$1)`,
       [codeParrain]
     );
     expect(message).toMatch(/organizations_code_parrainage_idx|duplicate key/i);
@@ -162,7 +162,7 @@ describe("enregistrer un parrainage", () => {
     const {
       rows: [{ code: codeArchive }],
     } = await db.query<{ code: string }>(
-      `insert into public.organizations (name, status) values ('Agence disparue','archivee') returning code_parrainage as code`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Agence disparue','archivee') returning code_parrainage as code`
     );
     await simuler(membreFilleul);
     expect(await refus(`select public.enregistrer_parrainage($1,$2)`, [filleul, "pas-un-code"])).toMatch(/invalide/);

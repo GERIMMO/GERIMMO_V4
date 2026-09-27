@@ -1176,6 +1176,13 @@ if (!sollicitationDevis) {
   }));
 }
 
+// Le propriétaire invité accepte son propre lien avec son adresse vérifiée.
+// Aucun rôle gestionnaire, aucun abonnement, aucun message externe.
+const proprietaireInvite = createClient(URL_LOCALE, CLE_ANON, { auth: { persistSession: false } });
+ok("connexion du propriétaire invité", await proprietaireInvite.auth.signInWithPassword({ email: EMAIL_MANDANT, password: MDP }));
+const jetonInvite = ok("lien propriétaire invité", await admin.rpc("preparer_invitation_proprietaire", { p_org: orgId, p_person: mandant.id }));
+ok("acceptation propriétaire invité", await proprietaireInvite.rpc("accepter_invitation_proprietaire", { p_jeton: jetonInvite }));
+
 // ------------------------------------------------------------
 // Le seed referme ce qu'il a ouvert
 // ------------------------------------------------------------

@@ -160,7 +160,7 @@ describe.skipIf(!DB_URL)("Console de supervision — corrections en base (audit 
   });
 
   it("une visite de fiche organisation n'écrit qu'une ligne par minute", async () => {
-    const { rows: [o] } = await db.query("insert into public.organizations (name) values ('Agence console') returning id");
+    const { rows: [o] } = await db.query("insert into public.organizations (tarification_version,name) values ('historique','Agence console') returning id");
     await agir(db, sa);
     for (let i = 0; i < 3; i++) await db.query("select public.log_sa_access($1,'consultation_organisation')", [o.id]);
     await db.query("select public.log_sa_access($1,'traversee_espace')", [o.id]);
@@ -171,7 +171,7 @@ describe.skipIf(!DB_URL)("Console de supervision — corrections en base (audit 
   });
 
   it("suspendre, prolonger l'essai, archiver, réactiver : gardés, motivés, journalisés", async () => {
-    const { rows: [o] } = await db.query("insert into public.organizations (name, status, essai_fin) values ('Agence contrôle', 'essai', current_date + 3) returning id");
+    const { rows: [o] } = await db.query("insert into public.organizations (tarification_version,name, status, essai_fin) values ('historique','Agence contrôle', 'essai', current_date + 3) returning id");
     await agir(db, autre);
     await expect(essai(db, "select public.controler_organisation($1,'suspendre',null,'Impayé constaté')", [o.id])).rejects.toThrow(/supervision/);
     await agir(db, sa);

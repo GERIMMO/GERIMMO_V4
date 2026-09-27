@@ -9,6 +9,8 @@ sources: ["[[Dépôt Gerimmo-V3]]"]
 
 # Abonnement
 
+> **Nouvelle décision — 28 septembre 2026.** Les décisions tarifaires antérieures ci-dessous sont conservées pour l’historique. La grille nouvelle distingue les particuliers/SCI en gestion propre des agences pour tiers, supprime la gratuité permanente pour les nouveaux contrats et prévoit une migration consentie séparée des contrats existants. Référence à jour : [[Tarification 2026-09 — nouvelle grille et migration]]. Cette documentation ne vaut pas preuve d’activation en production.
+
 **Définition :** la souscription d'une [[Organisation]] à GERIMMO (facturation **SaaS**, via
 Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locataires
 (facturation locative).

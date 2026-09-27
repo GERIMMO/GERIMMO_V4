@@ -287,7 +287,7 @@ export type Tache = {
 const ROLES: Record<keyof typeof TACHES_SUIVIES, [role: string, horaire: string]> = {
   orchestrateur: ["Actualise la prochaine étape des locations, incidents, signatures et comptes rendus", "Chaque matin"],
   signatures: ["Reprend chaque document qui n'a pas été classé du premier coup", "Chaque nuit"],
-  abonnements: ["Suit les paiements refusés et ajuste la facturation au nombre de biens gérés", "Chaque nuit"],
+  abonnements: ["Suit les paiements refusés et les contrats antérieurs ; les changements de la nouvelle grille demandent confirmation", "Chaque nuit"],
   rappels: ["Prévient les locataires et les artisans avant une intervention", "Chaque matin"],
   quittances: ["Envoie les quittances lorsque le loyer est entièrement réglé", "Chaque matin"],
   appels: ["Envoie l'avis du prochain loyer aux organisations qui le souhaitent", "Chaque matin"],

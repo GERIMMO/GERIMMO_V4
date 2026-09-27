@@ -81,7 +81,7 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('R2208 Alpha', 'active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','R2208 Alpha', 'active') returning id`
     );
     orgA = org;
     adminA = await creerUtilisateur(db);

@@ -174,8 +174,8 @@ describe.skipIf(!DB_URL)("Audit agence 27/09 — en base", () => {
     const {
       rows: [o],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status, type)
-       values ('Agence de l''audit 27/09','active','agence') returning id`
+      `insert into public.organizations (tarification_version,name, status, type)
+       values ('historique','Agence de l''audit 27/09','active','agence') returning id`
     );
     org = o.id;
     admin = await compte("admin");
@@ -464,7 +464,7 @@ describe.skipIf(!DB_URL)("Audit agence 27/09 — en base", () => {
       const {
         rows: [autre],
       } = await db.query<{ id: string }>(
-        `insert into public.organizations (name, status, type) values ('Agence Beta','active','agence') returning id`
+        `insert into public.organizations (tarification_version,name, status, type) values ('historique','Agence Beta','active','agence') returning id`
       );
       await db.query(
         `insert into public.memberships (account_id, organization_id, role) values ($1,$2,'admin_agence')`,

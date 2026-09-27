@@ -110,8 +110,8 @@ describe.skipIf(!DB_URL)("Socle — isolation et RLS", () => {
         rows: [{ org_a, org_b, compte_a }],
       } = await db.query(`
         with orgs as (
-          insert into public.organizations (name, status)
-          values ('Test Isolation A', 'active'), ('Test Isolation B', 'active')
+          insert into public.organizations (tarification_version,name, status)
+          values ('historique','Test Isolation A', 'active'), ('historique','Test Isolation B', 'active')
           returning id, name
         ),
         u as (

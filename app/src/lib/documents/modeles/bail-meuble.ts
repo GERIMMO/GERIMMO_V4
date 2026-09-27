@@ -301,7 +301,7 @@ export function construireBailMeuble(
     ☐ Le cas échéant, l'attestation d'assurance contre les risques locatifs<br/>
     ☐ Le cas échéant, la grille de vétusté applicable</p>
 
-    ${colocation ? '<div class="bloc-signataires">' : ""}
+    <div class="bloc-signataires">
     ${section(`${plusieursLocataires ? "XII" : "XI"} — Date et signatures`)}
     <p>Fait à ${f.champ(exp.ville, "commune")}, le <span class="fusion">date effective à compléter lors de la signature</span>, en autant
     d'exemplaires originaux que de parties.</p>
@@ -314,7 +314,7 @@ export function construireBailMeuble(
       )}
       ${ctx.garants.length > 0 ? cadreSignature("La caution", ctx.garants.map((g) => echapper(nomPersonne(g) ?? "")).join("<br/>")) : ""}
     </div>
-    ${colocation ? "</div>" : ""}
+    </div>
 
     <div class="saut">
       ${section("Annexe — Inventaire du mobilier")}

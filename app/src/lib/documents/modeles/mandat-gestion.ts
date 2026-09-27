@@ -186,11 +186,13 @@ export async function assemblerMandatGestion(
     lui revient, dont le versement accompagne le relevé. Les fonds détenus pour le compte du
     mandant sont couverts par la garantie financière désignée à l'article I.</p>
 
+    <div class="bloc-signataires">
     ${section("VI — Date et signatures")}
     ${faitA(f, exp.ville, new Date().toISOString(), ", en deux exemplaires originaux, dont un est remis au mandant.")}
     <div class="signatures">
       ${cadreSignature("Le mandant", `${nomMandant}<br/>Signature précédée de la mention « Bon pour mandat »`)}
       ${cadreSignature("Le mandataire", `${echapper(organisation.name)}<br/>Signature précédée de la mention « Mandat accepté »`)}
+    </div>
     </div>
   `;
 

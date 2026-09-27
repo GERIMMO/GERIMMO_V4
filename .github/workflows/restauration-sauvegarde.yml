@@ -1,0 +1,72 @@
+name: Vérifier la restauration de la sauvegarde réelle
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exercice-restauration-reelle
+  cancel-in-progress: false
+
+jobs:
+  restaurer:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: gerimmo-reprise
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Préparer les outils
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+          npm ci --prefix app --ignore-scripts --no-audit --no-fund
+      - name: Télécharger la dernière copie chiffrée, sans modifier Scaleway
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.SCW_ACCESS_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SCW_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.SCW_REGION || 'fr-par' }}
+          AWS_EC2_METADATA_DISABLED: 'true'
+          BUCKET: ${{ vars.SCW_BUCKET }}
+        run: |
+          set -euo pipefail
+          test -n "$BUCKET"
+          umask 077
+          POINT="https://s3.${AWS_DEFAULT_REGION}.scw.cloud"
+          aws s3api list-objects-v2 --bucket "$BUCKET" --delimiter / --endpoint-url "$POINT" > "$RUNNER_TEMP/prefixes.json"
+          JOUR=$(node -e 'const fs=require("fs"); const d=JSON.parse(fs.readFileSync(process.argv[1])); const p=(d.CommonPrefixes||[]).map(x=>x.Prefix).filter(x=>/^\d{8}-\d{4}\/$/.test(x)).sort().at(-1); if(!p)process.exit(1);process.stdout.write(p.slice(0,-1))' "$RUNNER_TEMP/prefixes.json")
+          echo "JOUR=$JOUR" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/restauration-archives"
+          aws s3 cp "s3://${BUCKET}/${JOUR}/" "$RUNNER_TEMP/restauration-archives/" --recursive --only-show-errors --endpoint-url "$POINT"
+      - name: Restaurer la base et les fichiers dans le banc jetable
+        env:
+          GERIMMO_BACKUP_KEY: ${{ secrets.GERIMMO_BACKUP_KEY }}
+        run: node app/scripts/sauvegarde/restaurer-archive.mjs "$RUNNER_TEMP/restauration-archives" "$JOUR" "$RUNNER_TEMP/bilan-restauration.json"
+      - name: Conserver seulement le bilan sans données personnelles
+        uses: actions/upload-artifact@v4
+        with:
+          name: bilan-restauration
+          path: ${{ runner.temp }}/bilan-restauration.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Nettoyer les copies de travail
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/restauration-archives" "$RUNNER_TEMP/prefixes.json"

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CarteAbonnementV2 } from "@/app/agence/[orgId]/abonnement/carte-abonnement-v2";
+import { VERSION_TARIFICATION } from "@/lib/tarification";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { libelleRole, libelleStatutAdhesion, LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
@@ -64,7 +66,7 @@ export default async function PageAdminOrganisation(
   const { data: organisation } = await supabase
     .from("organizations")
     .select(
-      "id, name, status, type, essai_fin, created_at, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, tva_intracom, tva_franchise, code_parrainage"
+      "id, name, status, type, tarification_version, essai_fin, created_at, address_line1, postal_code, city, telephone, email_contact, siret, carte_pro, garantie_financiere, tva_intracom, tva_franchise, code_parrainage"
     )
     .eq("id", orgId)
     .maybeSingle();
@@ -313,6 +315,7 @@ export default async function PageAdminOrganisation(
           suppression » : aucune suppression, chaque geste confirmé et journalisé. */}
       <section className="loc-carte mt-4">
         <div className="entete-carte"><h3>Contrôle de l’abonnement</h3></div>
+        {organisation.tarification_version === VERSION_TARIFICATION ? <CarteAbonnementV2 supabase={supabase} orgId={orgId} /> : <p className="mb-4 text-sm text-muted-foreground">Contrat antérieur : conditions et avantages préservés. Aucun transfert automatique vers la nouvelle grille. Un inventaire et un accord du client sont nécessaires avant toute migration.</p>}
         <p className="mesure-lecture mb-3 text-sm text-[var(--texte-secondaire)]">
           Chaque geste est fait à votre nom et inscrit au journal d’audit de cette organisation. Une
           organisation suspendue ou archivée garde ses données ; elle se réactive d’ici.

@@ -11,7 +11,7 @@ describe.skipIf(!url)('Supervision : second facteur imposé dans les autorisatio
     const utilisateurs = (await db.query("insert into auth.users(id,email) values(gen_random_uuid(),gen_random_uuid()||'@test.local'),(gen_random_uuid(),gen_random_uuid()||'@test.local') returning id")).rows;
     sa = utilisateurs[0].id; autre = utilisateurs[1].id;
     await db.query("insert into public.memberships(account_id,role,status) values($1,'super_admin','active')",[sa]);
-    org = (await db.query("insert into public.organizations(name,status) values('Recette MFA','active') returning id")).rows[0].id;
+    org = (await db.query("insert into public.organizations(tarification_version,name,status) values('historique','Recette MFA','active') returning id")).rows[0].id;
   });
   afterEach(async () => { await db.query('rollback'); });
   async function agir(id: string, aal?: string) {
@@ -24,13 +24,13 @@ describe.skipIf(!url)('Supervision : second facteur imposé dans les autorisatio
     expect((await db.query('select public.is_super_admin() as autorise')).rows[0].autorise).toBe(false);
     expect((await db.query('select id from public.organizations where id=$1',[org])).rows).toHaveLength(0);
     expect((await db.query('select id from public.memberships where account_id=$1',[sa])).rows).toHaveLength(1);
-    await expect(db.query("insert into public.organizations(name) values('Interdit sans MFA')")).rejects.toThrow(/row-level security/);
+    await expect(db.query("insert into public.organizations(tarification_version,name) values('historique','Interdit sans MFA')")).rejects.toThrow(/row-level security/);
   });
   it('permet lecture et écriture au super administrateur après validation du second facteur', async () => {
     await agir(sa,'aal2');
     expect((await db.query('select public.is_super_admin() as autorise')).rows[0].autorise).toBe(true);
     expect((await db.query('select id from public.organizations where id=$1',[org])).rows).toHaveLength(1);
-    expect((await db.query("insert into public.organizations(name) values('Autorisé après MFA') returning id")).rows).toHaveLength(1);
+    expect((await db.query("insert into public.organizations(tarification_version,name) values('historique','Autorisé après MFA') returning id")).rows).toHaveLength(1);
   });
   it('AAL2 ne confère jamais le rôle de super administrateur', async () => {
     await agir(autre,'aal2');

@@ -38,7 +38,7 @@ describe.skipIf(!DB_URL)("Quittance — le solde suit le terme dû", () => {
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Quittance Solde','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Quittance Solde','active') returning id`
     );
     org = o.id;
     const {

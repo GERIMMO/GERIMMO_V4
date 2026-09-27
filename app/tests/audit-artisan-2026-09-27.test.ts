@@ -138,8 +138,8 @@ describe.skipIf(!DB_URL)("Audit du 27/09 — artisan, pages publiques", () => {
     await db.query("begin");
 
     const { rows: orgs } = await db.query(
-      `insert into public.organizations (name, status)
-       values ('Audit27 — A','active'), ('Audit27 — B','active'), ('Audit27 — C','active')
+      `insert into public.organizations (tarification_version,name, status)
+       values ('historique','Audit27 — A','active'), ('historique','Audit27 — B','active'), ('historique','Audit27 — C','active')
        returning id, name`
     );
     orgA = orgs.find((o) => o.name.endsWith("A")).id;

@@ -248,7 +248,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Encaissement CR','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Encaissement CR','active') returning id`
     );
     org = o.id;
     const {

@@ -9,6 +9,8 @@ sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]
 
 # Propriétaire bailleur
 
+> **Nouvelle décision — 28 septembre 2026.** La décision du 28 septembre remplace l’exclusivité globale entre propriétaire direct et mandant décrite ci-dessous. Les biens confiés à une agence peuvent être consultés sur invitation, sans abonnement personnel ; la gestion d’autres biens reste dans un espace personnel distinct et facturable. Les droits invités sont limités au périmètre confié. Référence à jour : [[Tarification 2026-09 — nouvelle grille et migration]]. Cette documentation ne vaut pas preuve d’activation en production.
+
 **En une phrase :** propriétaire-bailleur **indépendant** — il crée et gère sa propre
 [[Organisation]] (`organization_type = 'independent_owner'`).
 

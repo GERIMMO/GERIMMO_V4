@@ -1,3 +1,4 @@
+import { VERSION_TARIFICATION } from "@/lib/tarification";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_GERANTS, ROLES_RESPONSABLES } from "@/lib/ged";
 import { FormulaireProfilOrganisation } from "./formulaire-profil";
@@ -147,8 +148,9 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           </span>
         </div>
         <p className="mesure-lecture mb-3 text-sm text-muted-foreground">
-          {PROMESSE_PARRAINAGE} Le mois du parrain s&apos;acquiert à la
-          souscription du filleul, pas à son inscription.
+          {organisation.tarification_version === VERSION_TARIFICATION
+            ? "Recommandez Gerimmo : aucun nouvel avantage financier ne s’ajoute automatiquement à votre formule. Les avantages déjà acquis sont conservés."
+            : <>{PROMESSE_PARRAINAGE} Le mois du parrain s&apos;acquiert à la souscription du filleul, pas à son inscription.</>}
         </p>
         {mesAvantages.length > 0 && (
           <ul className="mb-3 space-y-1">

@@ -66,7 +66,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — dossier locataire versionné", () => {
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('S3D Alpha', 'active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','S3D Alpha', 'active') returning id`
     );
     orgA = org;
     adminA = await creerUtilisateur(db);

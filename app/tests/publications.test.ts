@@ -164,7 +164,7 @@ describe.skipIf(!DB_URL)("Journal — propositions de publication", () => {
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Agence Journal','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Agence Journal','active') returning id`
     );
     const {
       rows: [{ id: compte }],

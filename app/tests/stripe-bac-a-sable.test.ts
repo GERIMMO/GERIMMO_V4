@@ -25,7 +25,7 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     }
     suivi.stripe = new Stripe(cle, { maxNetworkRetries: 1, timeout: 20000 });
     suivi.db = new Client({ connectionString: url.toString() }); await suivi.db.connect(); await suivi.db.query("begin");
-    suivi.org = (await suivi.db.query("insert into public.organizations(name,type,status,essai_fin) values ('Recette Stripe fictive','proprietaire_direct','essai',current_date-1) returning id")).rows[0].id;
+    suivi.org = (await suivi.db.query("insert into public.organizations(tarification_version,name,type,status,essai_fin) values ('historique','Recette Stripe fictive','proprietaire_direct','essai',current_date-1) returning id")).rows[0].id;
     const client = await assurerClientStripe(suivi.stripe, { orgId: suivi.org!, nom: "Gerimmo — recette fictive", email: null, existant: null });
     if (!client.ok) throw new Error("Création du client Stripe de test refusée.");
     suivi.client = client.customer;

@@ -89,8 +89,8 @@ describe.skipIf(!DB_URL)("Un agent enregistre un bien", () => {
     const {
       rows: [o],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status, type)
-       values ('Cabinet du portefeuille','active'::public.organization_status,'agence'::public.organization_type)
+      `insert into public.organizations (tarification_version,name, status, type)
+       values ('historique','Cabinet du portefeuille','active'::public.organization_status,'agence'::public.organization_type)
        returning id`
     );
     org = o.id;

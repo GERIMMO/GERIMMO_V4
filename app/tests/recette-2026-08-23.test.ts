@@ -88,7 +88,7 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('R2308 Alpha', 'active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','R2308 Alpha', 'active') returning id`
     );
     orgA = org;
     adminA = await creerUtilisateur(db);

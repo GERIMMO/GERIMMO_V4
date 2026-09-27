@@ -79,7 +79,7 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Mentions Bail','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Mentions Bail','active') returning id`
     );
     org = o.id;
     admin = await creerUtilisateur(db);

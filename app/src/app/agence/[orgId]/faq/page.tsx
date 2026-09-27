@@ -29,14 +29,29 @@ const QUESTIONS: [string, string][] = [
     "Un lot en indivision, comment je déclare ?",
     "Le récapitulatif ajoute une colonne «\u00a0votre quote-part\u00a0» : chaque rubrique est ventilée à votre pourcentage de détention — c'est cette colonne qui se recopie sur votre 2044, chaque indivisaire déclarant la sienne.",
   ],
-  // 24/09 : la réponse taisait l'essai que la barre latérale décompte — le
-  // propriétaire ne savait pas ce qui s'arrête au bout. La règle dite ici est
-  // celle des conditions (art. 8.2) et de « Mon abonnement ». Attention : la
-  // base (org_ecriture_ouverte) ne fait pas encore l'exception du bien unique
-  // — écart signalé le 24/09.
   [
-    "Combien ça coûte ?",
-    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 5,99 € par mois, tout compris, sans engagement — un bien retiré (depuis sa fiche : «\u00a0Retirer ce bien\u00a0») n'est plus compté le mois suivant. L'essai gratuit de 14 jours ouvre la formule complète. À son terme, sans souscription, le compte passe en lecture seule, sauf si vous ne gérez qu'un bien : il reste offert et votre compte reste ouvert. Le détail est dans «\u00a0Mon abonnement\u00a0».",
+    "Comment choisir mon abonnement ?",
+    "Les fonctionnalités de gestion sont identiques entre les formules particuliers ; le prix dépend du nombre de biens activement gérés. « Mon abonnement » propose la formule la moins chère adaptée à votre parc et à votre choix mensuel ou annuel. Une SCI qui gère ses propres biens relève de cette même grille. Les contrats et avantages déjà accordés sont préservés jusqu’à un changement convenu avec vous.",
+  ],
+  [
+    "Que se passe-t-il à la fin de mon essai ?",
+    "L’essai dure 14 jours sans carte bancaire. Aucun débit sans souscription explicite, même pour un seul bien. Si vous souscrivez avant sa fin, vos jours restants sont conservés et la date du premier prélèvement est affichée. Sinon, vos données restent consultables et exportables en lecture seule.",
+  ],
+  [
+    "Puis-je changer de formule ou résilier ?",
+    "Toute augmentation payante indique le nouveau montant, sa date et son prorata avant votre accord. Une baisse prend effet à la prochaine échéance, si votre nombre de biens le permet. Le mensuel n’engage pas pour un an. L’annuel est prélevé en une fois pour douze mois et renouvelé à l’échéance, sauf résiliation. Dans les deux cas, les droits payés restent acquis jusqu’à la fin de la période, puis les données restent consultables et exportables.",
+  ],
+  [
+    "Quels biens sont comptés ?",
+    "Les biens activement gérés, occupés ou vacants. Les biens archivés restent consultables et sortent du volume à prendre en compte pour la prochaine échéance. Un logement avec ses annexes sur le même bail compte pour un bien ; un parking loué séparément compte pour un bien distinct. Une restauration nécessitant plus de capacité demande votre accord préalable.",
+  ],
+  [
+    "Mes locataires ou mes accès invités doivent-ils payer ?",
+    "Non. Les accès locataires sont inclus. Si une agence vous invite pour consulter les biens qu’elle gère pour vous, cet espace est inclus dans son abonnement. Vos autres biens gérés vous-même restent dans un espace personnel distinct, avec sa propre facturation.",
+  ],
+  [
+    "Les artisans et les signatures sont-ils inclus en illimité ?",
+    "La gestion fonctionne partout en France. Le réseau d’artisans dépend de la commune du bien et du métier ouvert ; cela ne change pas le prix de votre abonnement. Les travaux sont facturés séparément sur devis. Les signatures électroniques, SMS et autres prestations externes payantes ne sont pas inclus en illimité : leurs éventuelles conditions sont présentées séparément, avant accord.",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",

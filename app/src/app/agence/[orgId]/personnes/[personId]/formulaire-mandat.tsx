@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
@@ -273,6 +274,7 @@ export function BoutonsEtatMandat({
       <BoutonEnvoi size="sm" variant="outline">
         {avertissement ? "Confirmer" : transition.libelle}
       </BoutonEnvoi>
+      {etatAction.lienAbonnement && <Link href={etatAction.lienAbonnement} target="_blank" rel="noopener noreferrer" className="w-full text-sm text-primary underline">Voir le récapitulatif tarifaire avant d’activer le mandat</Link>}
       {etatAction.erreur && (
         <p className="w-full text-sm text-destructive">{etatAction.erreur}</p>
       )}

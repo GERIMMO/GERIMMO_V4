@@ -240,7 +240,7 @@ describe.skipIf(!DB_URL)("Déclaration d'incident — la photo seule suffit (RM-
     const {
       rows: [{ id: orgId }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Déclaration Photo','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Déclaration Photo','active') returning id`
     );
     org = orgId;
     admin = await creerUtilisateur();

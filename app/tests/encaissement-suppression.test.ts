@@ -41,7 +41,7 @@ describe.skipIf(!DB_URL)("Suppression d'un encaissement", () => {
   beforeEach(async () => {
     await db.query("begin");
     const { rows: [{ id: org }] } = await db.query(
-      `insert into public.organizations (name, status) values ('CC encaissement','active') returning id`);
+      `insert into public.organizations (tarification_version,name, status) values ('historique','CC encaissement','active') returning id`);
     orgA = org;
     const { rows: [{ id: u }] } = await db.query(`
       insert into auth.users (instance_id, id, aud, role, email, encrypted_password,

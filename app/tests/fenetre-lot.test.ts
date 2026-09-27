@@ -137,8 +137,8 @@ describe.skipIf(!DB_URL)("La fenêtre du lot", () => {
     const {
       rows: [o],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status, type)
-       values ('Cabinet de la fenêtre','active'::public.organization_status,'agence'::public.organization_type)
+      `insert into public.organizations (tarification_version,name, status, type)
+       values ('historique','Cabinet de la fenêtre','active'::public.organization_status,'agence'::public.organization_type)
        returning id`
     );
     org = o.id;

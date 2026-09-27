@@ -225,8 +225,8 @@ describe.skipIf(!DB_URL)("le chemin du compte au premier bail", () => {
     const {
       rows: [{ id }],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status, essai_fin)
-       values ('Toute neuve','essai', current_date + 14) returning id`
+      `insert into public.organizations (tarification_version,name, status, essai_fin)
+       values ('historique','Toute neuve','essai', current_date + 14) returning id`
     );
     org = id;
     gerant = await compte("gerant");

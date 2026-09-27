@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CarteAbonnementV2 } from "./abonnement/carte-abonnement-v2";
+import { VERSION_TARIFICATION } from "@/lib/tarification";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -29,7 +31,7 @@ export async function AccueilProprietaire({
 }: {
   supabase: SupabaseClient;
   orgId: string;
-  organisation: { name: string; status: string; essai_fin: string | null };
+  organisation: { name: string; status: string; essai_fin: string | null; tarification_version?: string };
   /** Le compte connecté : le plan du jour se lit pour lui (mêmes lectures que la pastille « Alertes »). */
   userId: string;
   // Prénom du compte connecté (métadonnées d'inscription) — audit 09/09
@@ -426,6 +428,7 @@ export async function AccueilProprietaire({
           )}
           {/* La carte entière mène à l'abonnement (24/09) : seul le lien de la
               dernière ligne réagissait. */}
+          {organisation.tarification_version === VERSION_TARIFICATION ? <CarteAbonnementV2 supabase={supabase} orgId={orgId} /> : (
           <Link
             href={`/agence/${orgId}/abonnement`}
             className="loc-carte block transition-colors hover:border-[var(--marque)]"
@@ -440,7 +443,7 @@ export async function AccueilProprietaire({
                 seul à la ligne de l'autre. Espace insécable dans le libellé,
                 valeur d'un seul tenant. */}
             <div className="ligne-info">
-              <span>1ᵉʳ bien — offert</span>
+              <span>Ancien contrat — premier bien offert</span>
               <span className="shrink-0 whitespace-nowrap">0&nbsp;€</span>
             </div>
             {erreurAbonnement ? (
@@ -484,6 +487,7 @@ export async function AccueilProprietaire({
               Voir mon abonnement&nbsp;→
             </span>
           </Link>
+          )}
         </div>
       </div>
     </main>

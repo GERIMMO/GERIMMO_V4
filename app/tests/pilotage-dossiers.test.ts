@@ -14,7 +14,7 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
  const actualiser=()=>db.query("select public.actualiser_orchestration() n");
  beforeAll(async()=>{
   db=new Client({connectionString:DB_URL});await db.connect();await db.query("begin");
-  org=await id("insert into public.organizations(name,status,type) values('Pilotage A','active','agence') returning id");autreOrg=await id("insert into public.organizations(name,status,type) values('Pilotage B','active','agence') returning id");
+  org=await id("insert into public.organizations(tarification_version,name,status,type) values('historique','Pilotage A','active','agence') returning id");autreOrg=await id("insert into public.organizations(tarification_version,name,status,type) values('historique','Pilotage B','active','agence') returning id");
   [admin,autreAdmin,sa,relais]=[await utilisateur(),await utilisateur(),await utilisateur(),await utilisateur()];
   relaisEmail=(await db.query("select email from public.accounts where id=$1",[relais])).rows[0].email;
   await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'admin_agence'),($3,$4,'admin_agence'),($5,null,'super_admin')",[admin,org,autreAdmin,autreOrg,sa]);

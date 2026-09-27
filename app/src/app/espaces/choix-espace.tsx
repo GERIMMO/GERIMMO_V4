@@ -47,13 +47,14 @@ export function ChoixEspace({
           <span className="min-w-0 flex-1">
             <span className="block font-medium">Je gère mes propres biens</span>
             <span className="block text-xs text-muted-foreground">
-              Ouvrir mon espace propriétaire — gratuit pendant 14 jours
+              Particulier ou SCI : 14 jours sans carte, puis abonnement choisi
             </span>
           </span>
           {!ouvert && <span className="text-sm font-medium text-[var(--marque-sombre)]">Ouvrir →</span>}
         </button>
         {ouvert && (
           <form action={action} className="space-y-3 border-t border-[var(--filet)] pt-3">
+            <p className="text-sm text-muted-foreground">Cet espace est réservé à la gestion de vos propres biens. Aucun débit à l’ouverture. Sans souscription à la fin de l’essai, les données restent consultables et exportables. <Link href="/#tarifs" target="_blank" rel="noopener" className="underline">Voir les tarifs</Link>.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="ouv-prenom">Prénom</Label>
@@ -127,7 +128,7 @@ export function ChoixEspace({
           <span className="block font-medium">Je suis locataire, ou mon bien est confié à une agence</span>
           <span className="block text-xs text-muted-foreground">
             C&apos;est votre agence qui vous envoie l&apos;invitation, à cette adresse e-mail. Vérifiez vos
-            courriers, ou demandez-la-lui.
+            courriers, ou demandez-la-lui. Cet accès est inclus dans l’abonnement du gestionnaire : aucun abonnement personnel n’est demandé pour ces biens.
           </span>
         </span>
       </div>
@@ -135,7 +136,7 @@ export function ChoixEspace({
       <p className="pt-1 text-xs text-muted-foreground">
         Vous êtes une agence ?{" "}
         <Link href="/#agences" className="underline underline-offset-4">
-          Demandez un devis
+          Demandez votre essai
         </Link>{" "}
         : nous ouvrons votre espace avec vous.
       </p>

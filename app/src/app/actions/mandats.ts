@@ -1,11 +1,13 @@
 "use server";
 
+import { calculerTarif, formaterCentimes, VERSION_TARIFICATION } from "@/lib/tarification";
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 
 export type EtatMandat = {
+  lienAbonnement?: string;
   erreur?: string;
   succes?: string;
   // Saisie renvoyée en erreur pour que le formulaire la repose (recette 22/08)
@@ -144,7 +146,7 @@ export async function changerEtatMandat(
   _etat: EtatMandat,
   _formData: FormData
 ): Promise<EtatMandat> {
-  const { supabase, user } = await verifierGerant(orgId);
+  const { supabase, user, role } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
 
   const { data: mandat } = await supabase
@@ -192,6 +194,20 @@ export async function changerEtatMandat(
           ? "Un mandat sans lot ne part pas à la signature : ajoutez au moins un lot avec son taux d'honoraires."
           : "Ce mandat ne porte ni lot ni taux : un contrat vide ne change plus d'état.",
     };
+  }
+
+  if (nouvelEtat === "actif" && role === "admin_agence") {
+    const { data: contrat, error: erreurContrat } = await supabase.rpc("lire_abonnement_v2", { p_org: orgId });
+    if (erreurContrat || !contrat) return { erreur: "La capacité de l’abonnement n’a pas pu être vérifiée. Réessayez avant d’activer le mandat." };
+    if (contrat.version === VERSION_TARIFICATION) {
+      const { data: volume, error: erreurVolume } = await supabase.rpc("apercu_volume_mandat_v2", { p_org: orgId, p_mandat: mandatId });
+      if (erreurVolume || !Number.isSafeInteger(Number(volume))) return { erreur: "Le nombre de lots à couvrir n’a pas pu être vérifié." };
+      const essaiLibre = contrat.essai_fin && Date.parse(contrat.essai_fin) > Date.now() && !contrat.stripe_subscription_id;
+      if (!essaiLibre && Number(volume) > Number(contrat.capacite)) {
+        const prix = calculerTarif("agence", Number(volume));
+        return { erreur: `L’activation porterait votre portefeuille à ${volume} lots : ${formaterCentimes(prix.montantCentimes)} HT par mois. Consultez les taxes, le total, l’éventuel ajustement et la date d’effet avant de confirmer. Le mandat reste inchangé.`, lienAbonnement: `/agence/${orgId}/abonnement?volume=${volume}` };
+      }
+    }
   }
 
   const { data: modifies, error } = await supabase

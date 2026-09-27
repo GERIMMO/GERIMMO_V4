@@ -10,7 +10,7 @@ describe.skipIf(!url)('Signature : les droits de supervision ne valent pas rôle
   await db.query('begin');
   const users=(await db.query("insert into auth.users(id,email) select gen_random_uuid(),gen_random_uuid()||'@test.local' from generate_series(1,3) returning id")).rows;
   [sa,admin,agent]=users.map(x=>x.id);
-  org=(await db.query("insert into public.organizations(name,status) values('Recette signature','active') returning id")).rows[0].id;
+  org=(await db.query("insert into public.organizations(tarification_version,name,status) values('historique','Recette signature','active') returning id")).rows[0].id;
   await db.query("insert into public.memberships(account_id,organization_id,role) values($1,null,'super_admin'),($2,$4,'admin_agence'),($3,$4,'agent')",[sa,admin,agent,org]);
   chemin=org+'/signature-recette.png';
   await db.query('update public.organizations set signature_path=$1 where id=$2',[chemin,org]);
@@ -34,7 +34,7 @@ describe.skipIf(!url)('Signature : les droits de supervision ne valent pas rôle
   await agir(sa);await expect(db.query(sql,[org,org+'/signature-interdite.png'])).rejects.toThrow(/hors accès de supervision/);
  });
  it('le super administrateur ne contourne pas le contrôle en créant une organisation avec une signature',async()=>{
-  await agir(sa);await expect(db.query("insert into public.organizations(name,signature_path) values('Interdit',$1)",[chemin])).rejects.toThrow(/hors accès de supervision/);
+  await agir(sa);await expect(db.query("insert into public.organizations(tarification_version,name,signature_path) values('historique','Interdit',$1)",[chemin])).rejects.toThrow(/hors accès de supervision/);
  });
  it('une suppression directe du fichier de signature est refusée à la supervision',async()=>{
   await agir(sa);expect((await db.query("delete from storage.objects where bucket_id='documents' and name=$1 returning id",[chemin])).rows).toHaveLength(0);

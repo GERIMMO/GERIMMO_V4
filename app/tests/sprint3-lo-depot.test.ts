@@ -44,7 +44,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — dépôt LO (attestation)", () => {
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('S3LO Alpha','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','S3LO Alpha','active') returning id`
     );
     orgA = org;
     // Compte locataire + fiche rattachée

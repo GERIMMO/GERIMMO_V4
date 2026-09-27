@@ -140,7 +140,7 @@ describe.skipIf(!DB_URL)("le cycle mensuel", () => {
     const {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status) values ('Cycle', $1::public.organization_status) returning id`,
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Cycle', $1::public.organization_status) returning id`,
       [statut]
     );
     const gerant = await creerUtilisateur();
@@ -256,7 +256,7 @@ describe.skipIf(!DB_URL)("qui a le droit de déclencher", () => {
     const {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status) values ('Porte','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Porte','active') returning id`
     );
     const gerant = await creerUtilisateur();
     await db.query(
@@ -334,7 +334,7 @@ describe.skipIf(!DB_URL)("l'impayé se constate tout seul", () => {
     const {
       rows: [{ id }],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status) values ('Impayés','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Impayés','active') returning id`
     );
     org = id;
     gerant = await creerUtilisateur();

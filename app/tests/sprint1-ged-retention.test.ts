@@ -70,8 +70,8 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
   beforeEach(async () => {
     await db.query("begin");
     const orgs = await db.query(`
-      insert into public.organizations (name, status)
-      values ('S1 Alpha', 'active'), ('S1 Beta', 'active')
+      insert into public.organizations (tarification_version,name, status)
+      values ('historique','S1 Alpha', 'active'), ('historique','S1 Beta', 'active')
       returning id, name
     `);
     orgA = orgs.rows.find((o) => o.name === "S1 Alpha")!.id;

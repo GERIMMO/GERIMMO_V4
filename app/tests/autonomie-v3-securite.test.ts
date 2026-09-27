@@ -19,8 +19,8 @@ describe.skipIf(!DB_URL)("Autonomie V3 — devis, droits et absence d’escalade
   const demander = async (prix=15000) => id("select public.demander_avenant_devis($1,$2,'Canalisation supplémentaire à remplacer',$3::jsonb) id",[intervention,prix,lignes(prix)]);
   beforeAll(async () => {
     db=new Client({connectionString:DB_URL}); await db.connect(); await db.query("begin");
-    org=await id("insert into public.organizations(name,status,type) values('Agence V3','active','agence') returning id");
-    autreOrg=await id("insert into public.organizations(name,status,type) values('Agence étrangère V3','active','agence') returning id");
+    org=await id("insert into public.organizations(tarification_version,name,status,type) values('historique','Agence V3','active','agence') returning id");
+    autreOrg=await id("insert into public.organizations(tarification_version,name,status,type) values('historique','Agence étrangère V3','active','agence') returning id");
     [admin,autreAdmin,sa,loc,compteArtisan,autreArtisan]=[await utilisateur(),await utilisateur(),await utilisateur(),await utilisateur(),await utilisateur(),await utilisateur()];
     await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'admin_agence'),($3,$4,'admin_agence'),($5,null,'super_admin'),($6,$2,'locataire')",[admin,org,autreAdmin,autreOrg,sa,loc]);
     const bien=await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Appartement V3','appartement','1 rue du Test','75001','Paris') returning id",[org]);

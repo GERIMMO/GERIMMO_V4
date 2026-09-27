@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PageAbonnementV2 } from "./page-abonnement-v2";
+import { VERSION_TARIFICATION } from "@/lib/tarification";
 import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonSouscrire } from "./boutons-abonnement";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -79,6 +81,9 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
   // refuse déjà de la lui rendre (`mon_abonnement`).
   if (!["admin_agence", "proprietaire_direct"].includes(role)) notFound();
   const estAgence = organisation.type === "agence";
+  if (organisation.tarification_version === VERSION_TARIFICATION) {
+    return <PageAbonnementV2 supabase={supabase} orgId={orgId} nom={organisation.name} recherche={await props.searchParams} />;
+  }
 
   const [
     { data: biens, error: erreurBiens },
@@ -155,15 +160,16 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
           : "Ce que vous payez, bien par bien, et l'état de votre compte."}
       </EnteteReglages>
 
+      <p className="loc-carte text-sm text-muted-foreground">Vous conservez les conditions de votre contrat antérieur. La nouvelle grille ne vous est pas appliquée automatiquement ; toute migration fera l’objet d’un récapitulatif et de votre accord.</p>
       {retourStripe === "ok" && (
         <div
           role="status"
           className="loc-carte border-l-4 border-l-[var(--success)]"
         >
           <p className="mesure-lecture text-sm">
-            <b className="font-semibold">Merci, votre paiement est enregistré.</b>{" "}
+            <b className="font-semibold">Retour du parcours de paiement.</b>{" "}
             <span className="text-muted-foreground">
-              Votre compte s&apos;ouvre dès que notre prestataire de paiement
+              Le paiement reste à vérifier. Votre compte s&apos;ouvre lorsque notre prestataire de paiement
               nous le confirme — quelques secondes en général. Si cette page
               dit encore le contraire dans une minute, rechargez-la.
             </span>
@@ -173,8 +179,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
       {retourStripe === "annule" && (
         <div role="status" className="loc-carte">
           <p className="mesure-lecture text-sm text-muted-foreground">
-            Paiement interrompu : rien n&apos;a été prélevé, et rien n&apos;a
-            changé. Vous pouvez reprendre quand vous voulez.
+            Vous avez quitté le parcours de paiement. Consultez ci-dessous l’état confirmé de votre abonnement avant de reprendre.
           </p>
         </div>
       )}

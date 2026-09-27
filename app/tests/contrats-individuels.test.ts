@@ -61,7 +61,7 @@ describe.skipIf(!DB_URL)("Contrats individuels sur un même logement", () => {
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Mentions Bail','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Mentions Bail','active') returning id`
     );
     org = o.id;
     admin = await creerUtilisateur(db);

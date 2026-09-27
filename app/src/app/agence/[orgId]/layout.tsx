@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VERSION_TARIFICATION } from "@/lib/tarification";
 import { verifierAccesEspace } from "@/lib/espace";
 import { identiteDuCompte, initialesDe } from "@/lib/identite-compte";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
@@ -172,7 +173,7 @@ export default async function LayoutAgence({
   // neutre plutôt qu'en rouge « terminé » (25/09). Sans lecture de l'état,
   // on n'affirme ni l'un ni l'autre.
   const rienARegler =
-    essaiEchu && etatAbonnement && etatAbonnement.ecriture_ouverte
+    organisation.tarification_version !== VERSION_TARIFICATION && essaiEchu && etatAbonnement && etatAbonnement.ecriture_ouverte
       ? organisation.type === "agence"
         ? "Rien à régler tant qu'aucun lot n'est sous mandat actif"
         : "Rien à régler tant que vous ne gérez qu'un bien"

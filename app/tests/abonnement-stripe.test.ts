@@ -38,8 +38,8 @@ async function creerOrg(
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status, type, essai_fin)
-     values ('Encaissement', $1::public.organization_status, $2::public.organization_type, ${date})
+    `insert into public.organizations (tarification_version,name, status, type, essai_fin)
+     values ('historique','Encaissement', $1::public.organization_status, $2::public.organization_type, ${date})
      returning id`,
     [statut, type]
   );

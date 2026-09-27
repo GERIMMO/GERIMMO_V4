@@ -50,7 +50,7 @@ describe.skipIf(!DB_URL)("Sprint 3 — attestation d'assurance", () => {
     const {
       rows: [{ id: org }],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('S3A Alpha', 'active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','S3A Alpha', 'active') returning id`
     );
     orgA = org;
     const {

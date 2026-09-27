@@ -68,7 +68,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     await db.query("begin");
     const {
       rows: [{ id: org }],
-    } = await db.query(`insert into public.organizations (name, status) values ('CC Audit','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name, status) values ('historique','CC Audit','active') returning id`);
     orgA = org;
     gerant = await creerUtilisateur(db);
     await db.query(

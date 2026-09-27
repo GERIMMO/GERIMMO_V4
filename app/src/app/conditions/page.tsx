@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GRILLE_PARTICULIERS, calculerTarif, formaterCentimes } from "@/lib/tarification";
 import { Article, CoquilleLegale, Fait } from "@/components/coquille-legale";
 import { CONDITIONS_DATE, EDITEUR, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
 
@@ -26,22 +27,18 @@ export const metadata = { title: "Conditions générales d'utilisation — Gerim
  * fournie. Une clause arrêtée s'écrit ici, et nulle part ailleurs.
  */
 const CLAUSES: Record<
-  | "facturation"
   | "tva"
   | "preavisTarif"
   | "retractation"
-  | "conservation"
   | "disponibilite"
   | "plafond"
   | "delaiMiseEnDemeure"
   | "preavisModification",
   FaitEditeur
 > = {
-  facturation: null,
   tva: null,
   preavisTarif: null,
   retractation: null,
-  conservation: null,
   disponibilite: null,
   plafond: null,
   delaiMiseEnDemeure: null,
@@ -236,41 +233,21 @@ export default function PageConditions() {
       </Article>
 
       <Article titre="8. Prix, essai et facturation">
-        <p>
-          <b className="font-semibold">8.1 — Grille.</b> Le{" "}
-          <b className="font-semibold">premier bien est offert, sans limite de
-          durée et sans carte bancaire</b>. Chaque bien supplémentaire est
-          facturé <b className="font-semibold">5,99 € par mois</b>, sans
-          engagement de durée.
-        </p>
-        <p>
-          <b className="font-semibold">8.2 — Essai.</b> L&apos;ouverture
-          d&apos;un compte donne accès à un{" "}
-          <b className="font-semibold">essai gratuit de 14 jours</b> couvrant la
-          formule complète. À son terme, à défaut de souscription, le compte
-          conserve le premier bien offert.
-        </p>
-        <p>
-          <b className="font-semibold">8.3 — Facturation.</b>{" "}
-          <Fait valeur={CLAUSES.facturation} quoi="périodicité, moyen de paiement, émission des factures" />
-        </p>
-        <p>
-          <b className="font-semibold">8.4 — TVA.</b> Les prix sont indiqués{" "}
-          <Fait valeur={CLAUSES.tva} quoi="hors taxes ou toutes taxes comprises" />.
-        </p>
-        <p>
-          <b className="font-semibold">8.5 — Révision.</b> Toute évolution
-          tarifaire est notifiée au Client{" "}
-          <Fait valeur={CLAUSES.preavisTarif} quoi="préavis" /> avant sa prise d&apos;effet. Le Client qui
-          la refuse peut résilier sans frais avant cette date.
-        </p>
-        <p>
-          <b className="font-semibold">8.6 — Rétractation.</b>{" "}
-          <Fait
-            valeur={CLAUSES.retractation}
-            quoi="droit de rétractation du client particulier — article à rédiger avec le formulaire type"
-          />
-        </p>
+        <p><b className="font-semibold">8.1 — Usage et grille particuliers.</b> Les particuliers et SCI qui gèrent leurs propres biens utilisent la même grille. Toutes les formules incluent les mêmes fonctionnalités de gestion disponibles pour ce profil. Le nombre de biens détermine la capacité nécessaire ; la formule la moins chère couvrant le portefeuille est proposée pour la périodicité choisie.</p>
+        <ul className="list-disc space-y-2 pl-5">
+          {GRILLE_PARTICULIERS.map((f) => <li key={f.formule}><b>{f.libelle}</b> — {f.capacite === 1 ? "1 bien" : `jusqu’à ${f.capacite} biens`} : {formaterCentimes(f.mensuelCentimes)} TTC par mois, ou {formaterCentimes(f.annuelCentimes)} TTC prélevés en une fois pour douze mois.</li>)}
+        </ul>
+        <p>Au-delà de 20 biens, Patrimoine ajoute {formaterCentimes(calculerTarif("proprietaire_direct", 21).supplementCentimes)} TTC par bien supplémentaire et par mois, ou {formaterCentimes(calculerTarif("proprietaire_direct", 21, "annuel").supplementCentimes)} TTC par bien supplémentaire et par an. L’annuel correspond à deux mois offerts par rapport à douze mensualités. Aucun premier bien gratuit permanent n’est proposé dans cette nouvelle grille.</p>
+        <p><b className="font-semibold">8.2 — Grille agences.</b> Une agence qui gère des biens pour des tiers est facturée mensuellement sur les lots distincts sous mandat actif, même vacants. Le socle est de {formaterCentimes(calculerTarif("agence", 0).montantCentimes)} HT pour un abonnement souscrit, jusqu’à dix lots inclus. Les tranches sont cumulatives : + {formaterCentimes(calculerTarif("agence", 11).montantCentimes - calculerTarif("agence", 10).montantCentimes)} HT par lot du 11ᵉ au 50ᵉ, + {formaterCentimes(calculerTarif("agence", 51).montantCentimes - calculerTarif("agence", 50).montantCentimes)} HT du 51ᵉ au 200ᵉ, puis + {formaterCentimes(calculerTarif("agence", 201).montantCentimes - calculerTarif("agence", 200).montantCentimes)} HT à partir du 201ᵉ. Aucun abonnement ne démarre à la seule création du compte. Le montant HT, les taxes effectivement applicables et le total à payer sont présentés avant confirmation.</p>
+        <p><b className="font-semibold">8.3 — Essai et souscription.</b> Particuliers et agences bénéficient de 14 jours d’essai sans carte bancaire. À son terme, une souscription explicite est nécessaire pour conserver les droits de gestion ; à défaut, les données restent consultables et exportables en lecture seule. Aucun débit ne résulte de la seule expiration de l’essai. En cas de souscription anticipée, les jours restants sont conservés et la date du premier prélèvement est affichée avant accord.</p>
+        <p><b className="font-semibold">8.4 — Périodes, renouvellement et résiliation.</b> L’offre mensuelle, sans engagement annuel, se renouvelle chaque mois ; la résiliation prend effet à la prochaine échéance. L’offre annuelle des particuliers est payée en une fois pour douze mois et se renouvelle pour douze mois à l’échéance, sauf résiliation avant celle-ci. Le montant annuel réellement prélevé est affiché avant confirmation. La résiliation conserve les droits déjà payés jusqu’à la fin de la période ; elle ne déclenche aucune suppression automatique des données. L’espace de facturation donne accès aux échéances, factures et moyens de paiement.</p>
+        <p><b className="font-semibold">8.5 — Comptage et accès inclus.</b> Les particuliers comptent leurs biens activement gérés, occupés ou vacants, hors biens archivés. Un logement et ses annexes loués dans le même bail forment une unité ; un parking loué séparément compte distinctement. Les agences comptent chaque lot sous mandat actif une seule fois ; son archivage ne retire pas un mandat actif du volume facturé. Les locataires, les propriétaires invités par une agence et les collaborateurs de cette agence sont inclus sans supplément. Les biens confiés à une agence et les biens gérés personnellement sont dans des espaces séparés, sans abonnement personnel exigé pour la seule consultation des biens confiés.</p>
+        <p><b className="font-semibold">8.6 — Évolution du portefeuille.</b> Avant toute augmentation payante, le nouveau montant, sa date d’effet et le prorata éventuel sont présentés et soumis à confirmation. Les augmentations confirmées ouvrent la capacité correspondante ; les baisses prennent effet à la prochaine échéance, lorsque le portefeuille le permet. Ces règles s’appliquent aussi aux biens au-delà de vingt, aux restaurations et à l’activation des mandats d’agence. Un refus conserve les données et empêche uniquement l’action nécessitant une capacité supplémentaire. Un abonnement annuel n’est pas converti en mensuel en cours de période sans parcours explicite.</p>
+        <p><b className="font-semibold">8.7 — Prestations distinctes.</b> Aucun frais d’installation n’est facturé pour un démarrage autonome. Une reprise manuelle de données d’agence peut être proposée sur devis, sans facturation automatique. La gestion immobilière fonctionne partout en France ; le réseau d’artisans dépend de la commune du bien et du métier administrativement ouvert, sans effet sur le prix de l’abonnement. Les travaux et interventions sont facturés séparément sur devis. Les signatures électroniques, SMS, services bancaires ou autres prestations externes payantes ne sont pas compris en illimité ; d’éventuelles options nécessitent des conditions et un prix présentés séparément.</p>
+        <p><b className="font-semibold">8.8 — Contrats et avantages existants.</b> Cette grille ne migre pas silencieusement un contrat existant et ne provoque aucun débit rétroactif. Les avantages déjà accordés, notamment prolongations d’essai et avoirs, sont conservés. Les anciens mécanismes promotionnels et de parrainage ne se cumulent pas automatiquement avec les nouvelles offres. Toute migration fait l’objet d’une proposition distincte et d’un accord sur ses conditions.</p>
+        <p><b className="font-semibold">8.9 — Régime de TVA de l’éditeur.</b> <Fait valeur={CLAUSES.tva} quoi="régime fiscal applicable à la facturation de Gerimmo" />. Aucun taux ni régime fiscal n’est présumé à partir du statut juridique du client.</p>
+        <p><b className="font-semibold">8.10 — Révision des prix.</b> Toute évolution tarifaire est notifiée au Client <Fait valeur={CLAUSES.preavisTarif} quoi="préavis" /> avant sa prise d’effet. Le Client qui la refuse peut résilier sans frais avant cette date.</p>
+        <p><b className="font-semibold">8.11 — Rétractation.</b> <Fait valeur={CLAUSES.retractation} quoi="droit de rétractation du client particulier — article à rédiger avec le formulaire type" /></p>
       </Article>
 
       <Article titre="9. Réversibilité">
@@ -283,9 +260,12 @@ export default function PageConditions() {
           consultables et téléchargeables un par un depuis son espace.
         </p>
         <p>
-          À la résiliation, les données sont conservées{" "}
-          <Fait valeur={CLAUSES.conservation} quoi="durée" /> pour permettre l&apos;export, puis
-          supprimées ou anonymisées.
+          À l’expiration des droits payés ou de l’essai, les données restent
+          consultables, téléchargeables et exportables en lecture seule.
+          La résiliation de l’abonnement ne déclenche aucune suppression
+          automatique. Les demandes d’effacement et les durées de conservation
+          propres à certaines données sont décrites dans la politique de
+          confidentialité.
         </p>
       </Article>
 

@@ -64,8 +64,8 @@ describe.skipIf(!DB_URL)("Sprint 4 — état des lieux", () => {
   beforeEach(async () => {
     await db.query("begin");
     const orgs = await db.query(
-      `insert into public.organizations (name, status)
-       values ('EDL Alpha','active'),('EDL Beta','active') returning id, name`
+      `insert into public.organizations (tarification_version,name, status)
+       values ('historique','EDL Alpha','active'),('historique','EDL Beta','active') returning id, name`
     );
     orgA = orgs.rows.find((o) => o.name === "EDL Alpha")!.id;
     const orgB = orgs.rows.find((o) => o.name === "EDL Beta")!.id;

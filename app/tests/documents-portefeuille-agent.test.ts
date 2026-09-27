@@ -39,7 +39,7 @@ describe.skipIf(!DB_URL)("Documents — pas d'appropriation hors portefeuille", 
 
   beforeAll(async () => {
     db = new Client({ connectionString: DB_URL }); await db.connect(); await db.query("begin");
-    org = await id("insert into public.organizations(name,status,type) values('Recette liens de documents','active','agence') returning id");
+    org = await id("insert into public.organizations(tarification_version,name,status,type) values('historique','Recette liens de documents','active','agence') returning id");
     const compte = (prefixe: string) => id(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,
       email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,
       email_change,email_change_token_new,email_change_token_current)

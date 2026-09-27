@@ -122,7 +122,7 @@ beforeEach(async () => {
   await db.query("begin");
   await db.query("reset role");
   org = await id(
-    "insert into public.organizations(name,status,type) values('Reprise','active','agence') returning id"
+    "insert into public.organizations(tarification_version,name,status,type) values('historique','Reprise','active','agence') returning id"
   );
   admin = await compte("admin");
   agent = await compte("agent");
@@ -413,7 +413,7 @@ describe.skipIf(!DB_URL)("qui a le droit", () => {
     const reprise = await ouvrir(700);
     await db.query("reset role");
     const autreOrg = await id(
-      "insert into public.organizations(name,status,type) values('Voisine','active','agence') returning id"
+      "insert into public.organizations(tarification_version,name,status,type) values('historique','Voisine','active','agence') returning id"
     );
     const voisin = await compte("voisin");
     await db.query(

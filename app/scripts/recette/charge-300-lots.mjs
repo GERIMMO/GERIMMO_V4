@@ -15,8 +15,8 @@ try {
   const compte = await db.query('select count(*)::int n from public.organizations');
   assert.equal(compte.rows[0].n,0,'Le banc exige une base vide de toute organisation.');
   await db.query('begin');
-  const org = await identifiant("insert into organizations(name,status,type) values('CHARGE FICTIVE — 300 lots','active','agence') returning id");
-  const autre = await identifiant("insert into organizations(name,status,type) values('CHARGE FICTIVE — témoin isolé','active','agence') returning id");
+  const org = await identifiant("insert into organizations(tarification_version,name,status,type) values('historique','CHARGE FICTIVE — 300 lots','active','agence') returning id");
+  const autre = await identifiant("insert into organizations(tarification_version,name,status,type) values('historique','CHARGE FICTIVE — témoin isolé','active','agence') returning id");
   const utilisateur = () => identifiant(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
     values('00000000-0000-0000-0000-000000000000',gen_random_uuid(),'authenticated','authenticated','charge-'||gen_random_uuid()||'@example.invalid','x',now(),'{}','{}',now(),now(),'','','','','') returning id`);
   const admin=await utilisateur(), temoin=await utilisateur();

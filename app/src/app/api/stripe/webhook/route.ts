@@ -29,6 +29,7 @@ import {
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import { clientDeService } from "@/lib/supabase/service";
 import type Stripe from "stripe";
+import { traiterEvenementStripeV2 } from "@/lib/stripe-webhook-v2";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -40,6 +41,10 @@ const SUIVIS = new Set([
   "customer.subscription.deleted",
   "customer.subscription.paused",
   "customer.subscription.resumed",
+  "customer.subscription.pending_update_applied",
+  "customer.subscription.pending_update_expired",
+  "checkout.session.completed",
+  "checkout.session.expired",
 ]);
 
 function identifiantClient(s: Stripe.Subscription): string | null {
@@ -86,6 +91,10 @@ export async function POST(request: Request) {
     return Response.json({ erreur: "Signature refusée." }, { status: 400 });
   }
 
+  const modeReel = /^(sk|rk)_live_/.test(reglages.config.cle);
+  if (typeof evenement.livemode === "boolean" && evenement.livemode !== modeReel) {
+    return Response.json({ erreur: "Mode de paiement incompatible." }, { status: 400 });
+  }
   if (!SUIVIS.has(evenement.type)) {
     return Response.json({ ignore: evenement.type });
   }
@@ -102,6 +111,16 @@ export async function POST(request: Request) {
   }
 
   try {
+    const v2 = await traiterEvenementStripeV2(stripe, supabase, evenement);
+    if (v2.traite) {
+      const solde = await supabase.rpc("abonnement_evenement_solde", { p_event_id: evenement.id, p_erreur: null });
+      if (solde.error) throw new Error("Confirmation de traitement impossible.");
+      return Response.json({ traite: evenement.type, organisation: v2.organisation });
+    }
+    if (evenement.type.startsWith("checkout.")) {
+      await supabase.rpc("abonnement_evenement_solde", { p_event_id: evenement.id, p_erreur: "Autre parcours de paiement" });
+      return Response.json({ ignore: evenement.type });
+    }
     const s = evenement.data.object as Stripe.Subscription;
     const customer = identifiantClient(s);
     if (!customer) throw new Error("Événement de souscription sans client.");

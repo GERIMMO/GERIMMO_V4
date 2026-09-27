@@ -64,7 +64,7 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
     await db.query("begin");
     const {
       rows: [{ id: org }],
-    } = await db.query(`insert into public.organizations (name, status) values ('CC Alpha','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name, status) values ('historique','CC Alpha','active') returning id`);
     orgA = org;
     gerant = await creerUtilisateur(db);
     await db.query(

@@ -67,7 +67,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
     await db.query("begin");
     const {
       rows: [{ id: org }],
-    } = await db.query(`insert into public.organizations (name, status) values ('CC S8','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name, status) values ('historique','CC S8','active') returning id`);
     orgA = org;
     gerant = await creerUtilisateur(db);
     await db.query(

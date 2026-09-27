@@ -68,7 +68,7 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     await db.query("begin");
     const {
       rows: [{ id }],
-    } = await db.query(`insert into public.organizations (name, status) values ('AO','active') returning id`);
+    } = await db.query(`insert into public.organizations (tarification_version,name, status) values ('historique','AO','active') returning id`);
     org = id;
     gerant = await creerUtilisateur(db);
     await db.query(

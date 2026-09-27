@@ -22,15 +22,15 @@ declare
   v_pwd text := 'Gerimmo-Demo-2026';
   r record;
 begin
-  insert into public.organizations (id, name, status)
-  values ('c14c3187-1258-4e58-8822-368c6007e3fa', 'Agence Alpha', 'active')
+  insert into public.organizations (tarification_version,id, name, status)
+  values ('historique','c14c3187-1258-4e58-8822-368c6007e3fa', 'Agence Alpha', 'active')
   returning id into v_org_alpha;
-  insert into public.organizations (id, name, status)
-  values ('b6332d4f-1ef8-45d7-b1cb-9628381a7527', 'Agence Beta', 'active')
+  insert into public.organizations (tarification_version,id, name, status)
+  values ('historique','b6332d4f-1ef8-45d7-b1cb-9628381a7527', 'Agence Beta', 'active')
   returning id into v_org_beta;
   -- Propriétaire direct de démo (S9a) : son parc, en essai 14 jours
-  insert into public.organizations (id, name, type, status, essai_fin)
-  values ('3c1d1e95-3570-400b-8012-44530be145b1', 'Parc de Claire Moreau',
+  insert into public.organizations (tarification_version,id, name, type, status, essai_fin)
+  values ('historique','3c1d1e95-3570-400b-8012-44530be145b1', 'Parc de Claire Moreau',
           'proprietaire_direct', 'essai', current_date + 14)
   returning id into v_org_pd;
 

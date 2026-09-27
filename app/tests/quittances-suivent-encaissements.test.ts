@@ -40,7 +40,7 @@ describe.skipIf(!DB_URL)("Quittances — le document suit l'argent (RM-3.4.1/2)"
     const {
       rows: [o],
     } = await db.query(
-      `insert into public.organizations (name, status) values ('Q Test','active') returning id`
+      `insert into public.organizations (tarification_version,name, status) values ('historique','Q Test','active') returning id`
     );
     org = o.id;
     const {

@@ -33,7 +33,7 @@ describe.skipIf(!DB_URL)("Prorata du premier loyer", () => {
   beforeEach(async () => {
     await db.query("begin");
     const { rows: [{ id: org }] } = await db.query(
-      `insert into public.organizations (name, status) values ('CC prorata','active') returning id`);
+      `insert into public.organizations (tarification_version,name, status) values ('historique','CC prorata','active') returning id`);
     orgA = org;
     const { rows: [{ id: u }] } = await db.query(`
       insert into auth.users (instance_id, id, aud, role, email, encrypted_password,

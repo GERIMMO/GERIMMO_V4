@@ -113,8 +113,8 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     await db.query("begin");
 
     const { rows: orgs } = await db.query(
-      `insert into public.organizations (name, status)
-       values ('Artisans — Agence A','active'), ('Artisans — Agence B','active')
+      `insert into public.organizations (tarification_version,name, status)
+       values ('historique','Artisans — Agence A','active'), ('historique','Artisans — Agence B','active')
        returning id, name`
     );
     orgA = orgs.find((o) => o.name.endsWith("A")).id;

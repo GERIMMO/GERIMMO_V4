@@ -8,7 +8,6 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { JOURS_ESSAI_FILLEUL, JOURS_ESSAI_ORDINAIRE } from "@/lib/parrainage";
 
 export function FormulaireInscription({ codeParrain }: { codeParrain?: string | null }) {
   const [etat, action] = useActionState<EtatInscription, FormData>(
@@ -42,6 +41,10 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
             obligatoires — seul le code de parrainage le disait, et neuf champs
             paraissaient requis quand cinq ne le sont pas. */}
         <form action={action} className="space-y-4">
+          <p className="rounded-lg bg-[var(--marque-clair)] p-3 text-sm text-[var(--marque-sombre)]">
+            Particulier ou SCI gérant ses propres biens : même grille. La gestion
+            pour des tiers relève de l’offre agence. <Link href="/#tarifs" target="_blank" rel="noopener" className="underline underline-offset-4">Voir les tarifs</Link>.
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="prenom">Prénom (facultatif)</Label>
@@ -125,9 +128,9 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""}
             />
             <p className="text-xs text-muted-foreground">
-              Si quelqu&apos;un vous a recommandé Gerimmo, son code est ici : votre
-              essai passe alors à {JOURS_ESSAI_FILLEUL} jours au lieu de{" "}
-              {JOURS_ESSAI_ORDINAIRE}. Sinon, laissez vide.
+              Si quelqu&apos;un vous a recommandé Gerimmo, indiquez son code.
+              Il enregistre la recommandation ; aucune remise ni prolongation
+              supplémentaire n’est appliquée automatiquement à la nouvelle grille.
             </p>
           </div>
           <div className="space-y-2">

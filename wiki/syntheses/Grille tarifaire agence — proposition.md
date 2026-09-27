@@ -9,6 +9,8 @@ sources: ["[[Grille tarifaire]]", "[[Analyse concurrentielle]]", "[[Mandat de ge
 
 # Grille tarifaire agence — proposition
 
+> **Nouvelle décision — 28 septembre 2026.** Les décisions tarifaires antérieures ci-dessous sont conservées pour l’historique. La grille nouvelle distingue les particuliers/SCI en gestion propre des agences pour tiers, supprime la gratuité permanente pour les nouveaux contrats et prévoit une migration consentie séparée des contrats existants. Référence à jour : [[Tarification 2026-09 — nouvelle grille et migration]]. Cette documentation ne vaut pas preuve d’activation en production.
+
 **Statut : proposition, en attente d'arbitrage humain.** Rien n'est implémenté.
 La grille en vigueur dans le code applique 5,99 €/bien à tout le monde, et
 l'écran « Mon abonnement » est masqué aux agences — il n'existe aujourd'hui

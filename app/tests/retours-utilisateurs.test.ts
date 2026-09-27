@@ -18,7 +18,7 @@ describe.skipIf(!url)("Retours utilisateurs : droits, traçabilité et idempoten
  afterAll(async()=>{await db?.end();});
  beforeEach(async()=>{
   await db.query('begin');
-  const {rows:orgs}=await db.query(`insert into public.organizations(name,status) values ('Retours A','active'),('Retours B','active') returning id`);[orgA,orgB]=orgs.map(x=>x.id);
+  const {rows:orgs}=await db.query(`insert into public.organizations(tarification_version,name,status) values ('historique','Retours A','active'),('historique','Retours B','active') returning id`);[orgA,orgB]=orgs.map(x=>x.id);
   const comptes:string[]=[]; for(let i=0;i<6;i++) comptes.push(await compte());
   [auteur,collegue,adminA,autre,sa,artisan]=comptes;
   await db.query(`insert into public.memberships(account_id,organization_id,role) values($1,$6,'agent'),($2,$6,'locataire'),($3,$6,'admin_agence'),($4,$7,'admin_agence'),($5,null,'super_admin')`,[auteur,collegue,adminA,autre,sa,orgA,orgB]);

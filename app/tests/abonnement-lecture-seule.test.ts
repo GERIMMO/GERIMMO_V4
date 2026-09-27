@@ -84,8 +84,8 @@ async function creerOrg(nom: string, statut: string, essaiFin: "hier" | "demain"
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status, essai_fin)
-     values ($1, $2::public.organization_status, ${date}) returning id`,
+    `insert into public.organizations (tarification_version,name, status, essai_fin)
+     values ('historique',$1, $2::public.organization_status, ${date}) returning id`,
     [nom, statut]
   );
   return id;
@@ -141,8 +141,8 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
       const {
         rows: [{ id }],
       } = await db.query<{ id: string }>(
-        `insert into public.organizations (name, status, essai_fin)
-         values ($1, $2::public.organization_status, ${date}) returning id`,
+        `insert into public.organizations (tarification_version,name, status, essai_fin)
+         values ('historique',$1, $2::public.organization_status, ${date}) returning id`,
         [libelle, statut]
       );
       const {
@@ -162,8 +162,8 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
     const {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status, essai_fin, type)
-       values ('Un bien offert', 'essai', current_date - 1, 'proprietaire_direct') returning id`
+      `insert into public.organizations (tarification_version,name, status, essai_fin, type)
+       values ('historique','Un bien offert', 'essai', current_date - 1, 'proprietaire_direct') returning id`
     );
     const ouverte = async () =>
       (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
@@ -240,8 +240,8 @@ describe("une organisation suspendue ne crée plus", () => {
     const {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
-      `insert into public.organizations (name, status, essai_fin, type)
-       values ('Essai fini', 'essai', current_date - 1, 'proprietaire_direct') returning id`
+      `insert into public.organizations (tarification_version,name, status, essai_fin, type)
+       values ('historique','Essai fini', 'essai', current_date - 1, 'proprietaire_direct') returning id`
     );
     for (const nom of ["Bien offert", "Bien facturé"]) {
       await semer(
@@ -386,6 +386,7 @@ describe("la garde se repose, elle ne s'oublie pas", () => {
         -- Le support reste ouvert pour signaler précisément un blocage d'accès.
         and c.relname not in ('acces_pieces_log', 'audit_log',
                               'abonnements', 'abonnement_evenements',
+                              'abonnements_v2','propositions_abonnement_v2','evenements_abonnement_v2',
                               'retours_utilisateurs', 'retours_soutiens',
                               'automation_events', 'orchestration_cases', 'orchestration_history')
         and not exists (select 1 from pg_trigger t

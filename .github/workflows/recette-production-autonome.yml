@@ -1,0 +1,65 @@
+# Comptes éphémères : préparation, navigation et nettoyage dans le même passage.
+# Aucun paiement réel, aucun message à une personne ; seuls des courriers
+# éventuels vers les boîtes de test Resend peuvent partir.
+name: Recette de production avec nettoyage
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: recette-production
+  cancel-in-progress: false
+jobs:
+  recette:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+    env:
+      RECETTE_URL: https://www.gerimmo.app
+      RECETTE_SUFFIXE: r${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Dépendances et navigateur
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Préparer uniquement les trois comptes du passage
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGHOST: aws-0-eu-west-3.pooler.supabase.com
+          PGPORT: 5432
+          PGUSER: postgres.rddlxunppddzpsaatdaz
+          PGDATABASE: postgres
+          PGSSLMODE: require
+        run: node scripts/recette-production-comptes.mjs preparer
+      - name: Parcourir les espaces en ligne sur téléphone
+        run: npx playwright test --config e2e/recette-production/playwright.config.ts
+      - name: Retirer les comptes et les données de ce passage
+        if: always()
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGHOST: aws-0-eu-west-3.pooler.supabase.com
+          PGPORT: 5432
+          PGUSER: postgres.rddlxunppddzpsaatdaz
+          PGDATABASE: postgres
+          PGSSLMODE: require
+        run: node scripts/recette-production-comptes.mjs purger
+      - name: Conserver le rapport sans les sessions
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recette-production-${{ github.run_id }}
+          path: app/e2e/recette-production/.resultats/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

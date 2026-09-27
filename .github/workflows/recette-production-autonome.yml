@@ -43,6 +43,13 @@ jobs:
           PGSSLMODE: require
         run: node scripts/recette-production-comptes.mjs preparer
       - name: Parcourir les espaces en ligne sur téléphone
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PGHOST: aws-0-eu-west-3.pooler.supabase.com
+          PGPORT: 5432
+          PGUSER: postgres.rddlxunppddzpsaatdaz
+          PGDATABASE: postgres
+          PGSSLMODE: require
         run: npx playwright test --config e2e/recette-production/playwright.config.ts
       - name: Retirer les comptes et les données de ce passage
         if: always()

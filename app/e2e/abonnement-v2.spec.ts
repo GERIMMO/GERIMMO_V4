@@ -6,18 +6,29 @@ import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 const cible = process.env.SUPALOCAL_DB;
 test.describe("Abonnement nouvelle grille — parcours sans débit", () => {
   test.skip(!cible, "La base API locale jetable est requise.");
-  test.use({ storageState: "e2e/.auth/proprietaire.json" });
+  test.use({ storageState: { cookies: [], origins: [] } });
   let db: Client;
   const org = randomUUID();
+  const compte = randomUUID();
+  const email = `recette-tarification-${compte}@test.local`;
   test.beforeAll(async () => {
     const url = new URL(cible!);
     if (!["127.0.0.1", "localhost"].includes(url.hostname) || !/^gerimmo_ci_[a-z_]+_api$/.test(url.pathname.slice(1))) throw new Error("Base locale isolée obligatoire.");
     db = new Client({ connectionString: cible }); await db.connect();
-    await db.query("insert into public.organizations(id,name,type,status,address_line1,postal_code,city,email_contact) values($1,'Recette tarification propriétaire','proprietaire_direct','essai','1 rue Fictive','69003','Lyon','proprietaire@gerimmo-demo.fr')", [org]);
-    await db.query("insert into public.memberships(account_id,organization_id,role) select id,$1,'proprietaire_direct' from public.accounts where email='proprietaire@gerimmo-demo.fr'", [org]);
+    await db.query(`insert into auth.users(instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,confirmation_token,recovery_token,email_change,email_change_token_new,email_change_token_current)
+      select instance_id,$1,aud,role,$2,encrypted_password,now(),raw_app_meta_data,'{}'::jsonb,now(),now(),'','','','','' from auth.users where email='proprietaire@gerimmo-demo.fr'`, [compte,email]);
+    await db.query("insert into public.organizations(id,name,type,status,address_line1,postal_code,city,email_contact) values($1,'Recette tarification propriétaire','proprietaire_direct','essai','1 rue Fictive','69003','Lyon',$2)", [org,email]);
+    await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$2,'proprietaire_direct')", [compte,org]);
   });
   test.afterAll(async () => { await db?.end(); });
-  test.beforeEach(async ({ page }) => { await sansSyntheseAlertes(page); });
+  test.beforeEach(async ({ page }) => {
+    await sansSyntheseAlertes(page);
+    await page.goto('/connexion');
+    await page.locator('#email').fill(email);
+    await page.locator('#mot-de-passe').fill(process.env.E2E_MOT_DE_PASSE ?? 'Gerimmo-Demo-2026');
+    await page.getByRole('button',{name:'Se connecter',exact:true}).click();
+    await page.waitForURL(/\/(espaces|agence)(\/|$)/);
+  });
   test("essai sans carte et annuel réellement prélevé, refus lisible si paiement non configuré", async ({ page }) => {
     await page.goto(`/agence/${org}/abonnement`);
     await expect(page.getByRole("heading", { name: "14 jours pour essayer" })).toBeVisible();

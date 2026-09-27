@@ -15,13 +15,14 @@ export function InvitationProprietaire({ orgId, personId, email, etatActuel }: {
       <label className="flex items-start gap-2 text-sm"><input name="confirmation" type="checkbox" required className="mt-1 size-5 shrink-0"/><span>Je confirme l’accès en consultation pour {email}. Tout ancien lien ou accès de cette fiche sera remplacé.</span></label>
       <BoutonEnvoi variant="outline" enCoursTexte="Préparation…">Préparer le lien propriétaire</BoutonEnvoi>
       {etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}
-      {etat.succes && <p role="status" className="text-sm">{etat.succes}</p>}
-      {etat.lien && <label className="block text-sm">Lien à copier et transmettre<input readOnly value={etat.lien} onFocus={(e) => e.target.select()} className="mt-1 w-full rounded border p-2 text-sm"/></label>}
+      {etat.succes && etatActuel !== "revoquee" && <p role="status" className="text-sm">{etat.succes}</p>}
+      {etat.lien && etatActuel !== "revoquee" && <label className="block text-sm">Lien à copier et transmettre<input readOnly value={etat.lien} onFocus={(e) => e.target.select()} className="mt-1 w-full rounded border p-2 text-sm"/></label>}
     </form> : <p className="text-sm">Complétez d’abord l’adresse e-mail de cette personne.</p>}
     {!['aucun','revoquee'].includes(etatActuel) && <form action={retirer} className="space-y-2 border-t border-border pt-3">
       <label className="flex items-start gap-2 text-sm"><input name="confirmation" type="checkbox" required className="mt-1 size-5 shrink-0"/><span>Fermer l’accès et invalider le lien de cette personne.</span></label>
       <BoutonEnvoi variant="outline" enCoursTexte="Fermeture…">Fermer l’accès propriétaire</BoutonEnvoi>
-      {retrait.erreur && <p role="alert" className="err">{retrait.erreur}</p>}{retrait.succes && <p role="status" className="text-sm">{retrait.succes}</p>}
     </form>}
+    {retrait.erreur && <p role="alert" className="err">{retrait.erreur}</p>}
+    {retrait.succes && etatActuel === "revoquee" && <p role="status" className="text-sm">{retrait.succes}</p>}
   </section>;
 }

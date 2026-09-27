@@ -5,8 +5,9 @@ import { lireComptes } from "./cible";
 // Compte neuf, mot de passe propre à la recette, courriers vers le puits de
 // test Resend. Les liens à usage unique sont lus seulement pour CE compte,
 // sans être affichés ni joints au rapport. On ne lit aucune boîte humaine.
-// Ceci teste la confirmation par token_hash ; pas le relais PKCE du modèle
-// d'e-mail par défaut, ni la remise du courrier dans une boîte humaine.
+// Le lien passe par Supabase puis revient dans Gerimmo avec le code PKCE,
+// comme le lien du modèle par défaut. La remise dans une boîte humaine reste
+// hors de cet essai : les boîtes resend.dev sont des puits de test.
 test("inscription, confirmation et récupération d'un compte fictif", SANS_TRACE, async ({ page, context }) => {
   test.skip(!process.env.PGPASSWORD, "Lecture du seul lien de test réservée au chantier autonome.");
   test.setTimeout(240_000);
@@ -38,9 +39,12 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
         jeton = r.rows[0]?.token ?? "";
         expect(Boolean(jeton), "un lien réservé au compte fictif est créé").toBe(true);
       }).toPass({ timeout: 20_000, intervals: [1000, 2000] });
-      if (!/^(pkce_)?[a-f0-9]{32,128}$/.test(jeton)) throw new Error("Format du lien de test inattendu.");
-      const url = `/auth/confirm?token_hash=${encodeURIComponent(jeton)}&type=${type}&next=${encodeURIComponent(next)}`;
-      try { await page.goto(url); } catch { throw new Error("Le lien de confirmation de recette n'a pas pu être ouvert."); }
+      if (!/^pkce_[a-f0-9]{32,128}$/.test(jeton)) throw new Error("Le lien de test doit utiliser le parcours de confirmation PKCE.");
+      const url = new URL("https://rddlxunppddzpsaatdaz.supabase.co/auth/v1/verify");
+      url.searchParams.set("token", jeton);
+      url.searchParams.set("type", type);
+      url.searchParams.set("redirect_to", `https://www.gerimmo.app/auth/confirm?next=${next}`);
+      try { await page.goto(url.toString()); } catch { throw new Error("Le lien de confirmation de recette n'a pas pu être ouvert."); }
       jeton = "";
     };
     await lien("confirmation_token", "signup", "/espaces");

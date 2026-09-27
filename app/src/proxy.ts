@@ -30,6 +30,31 @@ const PUBLIC_PATHS = [
 ];
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 
+// LES PREMIERS SEGMENTS QUI EXISTENT (recette de production du 27/09). Sans
+// session, toute adresse privée mène à la connexion — y compris une adresse
+// qui n'existe pas : le visiteur se connectait pour atterrir… sur une 404.
+// Une adresse dont le premier segment n'est ni un dossier de src/app ni une
+// entrée de public/ ne désigne rien : on sert tout de suite la page
+// « introuvable », avec son vrai statut. tests/proxy-adresse-inconnue.test.ts
+// tient cette liste en phase avec les deux dossiers.
+const SEGMENTS_CONNUS = new Set([
+  // src/app
+  "actions", "admin", "agence", "api", "artisan", "assistance", "attestation-loyer",
+  "auth", "compte", "conditions", "confidentialite", "connexion", "espaces",
+  "inscription", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
+  "nouveau-mot-de-passe", "polices", "quittance", "relais", "securite", "veille",
+  // public
+  "illustrations", "logo", "marketing",
+]);
+
+function adresseInconnue(pathname: string): boolean {
+  const segment = pathname.split("/")[1] ?? "";
+  // « _next », « .well-known » et les fichiers à la racine (favicon, robots…)
+  // restent à Next.js.
+  if (!segment || segment.startsWith("_") || segment.startsWith(".") || segment.includes(".")) return false;
+  return !SEGMENTS_CONNUS.has(segment);
+}
+
 export async function proxy(request: NextRequest) {
   // Ces appels viennent de serveurs, sans cookie de connexion. Chaque route
   // vérifie son propre secret (Cron) ou la signature du corps brut (Stripe).
@@ -91,6 +116,14 @@ export async function proxy(request: NextRequest) {
 
   if (!user) {
     if (isPublic) return response;
+    if (adresseInconnue(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/_introuvable";
+      url.search = "";
+      const introuvable = NextResponse.rewrite(url, { status: 404 });
+      response.cookies.getAll().forEach((c) => introuvable.cookies.set(c));
+      return introuvable;
+    }
     // La destination demandée est MÉMORISÉE, pas jetée. Sans cela, un
     // locataire qui ouvre la quittance reçue par email après expiration de sa
     // session se reconnecte… et atterrit sur l'accueil de son espace, sans

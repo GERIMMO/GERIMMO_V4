@@ -116,7 +116,7 @@ export default async function PageSante() {
           {nbPoints === null
             ? `${nbManque} connexion${nbManque > 1 ? "s" : ""} manque${nbManque > 1 ? "nt" : ""} · travail automatique à vérifier${aVerifier}`
             : nbPoints === 0
-              ? `Service prêt${aVerifier}`
+              ? `Connexions et tâches suivies à jour${aVerifier}`
               : `${nbPoints} point${nbPoints > 1 ? "s" : ""} à traiter : ${detailPoints}${aVerifier}`}
         </span>
       </div>
@@ -218,6 +218,21 @@ export default async function PageSante() {
           Une pastille verte confirme un passage récent. Une pastille rouge
           demande une vérification. L&apos;historique est conservé pendant six mois.
           {" "}{NOTE_FUSEAU} <Link href="/admin/equipes" className="lien-discret">Pause et reprise des missions →</Link>
+        </p>
+      </section>
+
+      <section className="section-ecran">
+        <div className="entete-carte mb-3">
+          <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
+            Protection des fichiers
+          </h2>
+          <span className="puce puce-prep">antivirus à connecter</span>
+        </div>
+        <p className="mesure-lecture text-sm text-[var(--texte-secondaire)]">
+          Gerimmo contrôle le format et la taille des pièces déposées. Leur accès
+          reste réservé aux personnes autorisées. L&apos;analyse contre les virus
+          n&apos;est pas encore disponible : le service dédié doit être relié et
+          testé avant son activation.
         </p>
       </section>
 

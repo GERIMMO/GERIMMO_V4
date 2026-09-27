@@ -62,14 +62,18 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     const nettoyer = async (nom: string, action: () => Promise<unknown>) => { try { await action(); } catch { echecs.push(nom); } };
     if (suivi.stripe) {
       if (suivi.session) await nettoyer("page de paiement", () => suivi.stripe!.checkout.sessions.expire(suivi.session!));
-      if (suivi.abonnement) {
-        const s = await suivi.stripe.subscriptions.retrieve(suivi.abonnement);
-        if (s.status !== "canceled") await nettoyer("abonnement", () => suivi.stripe!.subscriptions.cancel(s.id));
-      }
+      if (suivi.abonnement) await nettoyer("abonnement", async () => {
+        const s = await suivi.stripe!.subscriptions.retrieve(suivi.abonnement!);
+        if (s.status !== "canceled") await suivi.stripe!.subscriptions.cancel(s.id);
+      });
       if (suivi.prix) await nettoyer("tarif", () => suivi.stripe!.prices.update(suivi.prix!, { active: false }));
       if (suivi.produit) await nettoyer("produit", () => suivi.stripe!.products.update(suivi.produit!, { active: false }));
+      if (suivi.client) await nettoyer("client fictif", () => suivi.stripe!.customers.del(suivi.client!));
     }
-    if (suivi.db) { await suivi.db.query("rollback"); await suivi.db.end(); }
+    if (suivi.db) {
+      await nettoyer("transaction locale", () => suivi.db!.query("rollback"));
+      await nettoyer("connexion locale", () => suivi.db!.end());
+    }
     vi.unstubAllEnvs();
     if (echecs.length) throw new Error(`Nettoyage des objets de test à reprendre : ${echecs.join(", ")}.`);
   }, 120000);

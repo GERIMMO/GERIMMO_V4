@@ -3,8 +3,8 @@ type: business-rule
 tags: [rgpd, registre, traitements, sous-traitance, conformite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-20
-sources: ["[[RGPD]]", "[[Socle de sécurité]]", "[[Modèle de données]]", "[[Modèle de rôles et permissions]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]"]
+updated: 2026-09-27
+sources: ["[[RGPD]]", "[[Socle de sécurité]]", "[[Plan de reprise d'activité]]", "[[Modèle de données]]", "[[Modèle de rôles et permissions]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]"]
 ---
 
 # Registre des traitements
@@ -49,6 +49,8 @@ actée dans [[RGPD]] (A2, 2026-07-24).
 | P5 | **Retours utilisateurs et contestations** | Support, amélioration du produit, réexamen humain d'une note contestée (RM-A2.11) | Contrat ; intérêt légitime | Utilisateurs connectés | Compte, message, contexte d'écran, réponses | Supervision | Selon `retention_rules` (règle « signalements support », migration du 14/09) |
 | P6 | **Journaux de sécurité** | Détecter et qualifier les incidents, tracer les actions sensibles et les consultations de pièces | Intérêt légitime (sécurité) ; recommandation CNIL pour l'audit | Tous | Événements techniques, actions sensibles (traversées de supervision, purges, exports), consultations de pièces | Supervision | Technique **6 mois** · audit **3 ans** · accès aux pièces **1 an** |
 | P7 | **Courriers du service** | Envoyer quittances, avis d'échéance, relances, rappels de rendez-vous, courriers d'abonnement | Contrat (pour le compte des organisations, voir volet 2) | Locataires, artisans, responsables | Adresse électronique, contenu du courrier | Resend — **localisation à vérifier** (région du domaine) | Chez Gerimmo : traces d'envoi dans les tables métier ; chez Resend : **à vérifier** |
+| P8 | **Assistance rédactionnelle de la supervision** (ajout du 27/09, audit sécurité) | Préparer l'étude de la veille réglementaire, les brouillons et illustrations du Journal, l'aide à la décision du matin | Intérêt légitime | — | Textes éditoriaux et actualités publiques, **sans donnée de locataire ni de bailleur** d'après le code (`lib/analyse-veille.ts`, `lib/visuel-marketing.ts`, `admin/brief`, `admin/publications`) | OpenAI — États-Unis (**transfert hors UE**) | Chez OpenAI : **à vérifier** |
+| P9 | **Publication du Journal sur Facebook** (ajout du 27/09, audit sécurité) | Diffuser les articles du Journal sur la page Facebook de Gerimmo | Intérêt légitime | — | Titre, texte et illustration de l'article, sans donnée personnelle (`lib/facebook.ts`) | Meta (Facebook) — Irlande, avec transfert vers les États-Unis | Chez Meta : **à vérifier** |
 
 ## Volet 2 — Gerimmo sous-traitant (gestion locative)
 
@@ -74,8 +76,33 @@ répartition des rôles.
 Supabase (base, authentification, fichiers — région eu-west-3, Paris) ·
 Vercel (exécution de l'application — région cdg1, Paris, fixée dans
 `vercel.json` le 20/09) · Resend (courriers) · Stripe (abonnement de
-l'organisation, volet 1). À venir : Yousign (V1, France) et Meta (WhatsApp,
-hors UE — consentement explicite et clauses types, [[Canaux de communication]]).
+l'organisation, volet 1) · **Yousign** (adaptateur « Youtrust » dans le code,
+branché le 22/09 : le document à signer, le nom, l'adresse électronique et le
+téléphone de chaque signataire — France). À venir : Meta pour WhatsApp (hors
+UE — consentement explicite et clauses types, [[Canaux de communication]]).
+Pour le volet 1 seulement (aucune donnée de gestion locative d'après le code) :
+**OpenAI** (P8, États-Unis) et **Meta** pour Facebook (P9, Irlande et
+États-Unis).
+
+**Ajout du 27/09 (audit artisan / pages publiques)** — la sauvegarde
+(**quotidienne** depuis l'audit sécurité du 27/09, RPO 24 h du
+[[Plan de reprise d'activité]] ; elle était hebdomadaire), telle que le code l'établit (`.github/workflows/sauvegarde.yml`,
+`app/docs/sauvegarde-et-restauration.md`), fait intervenir deux prestataires
+qui n'étaient déclarés nulle part :
+- **GitHub (Actions)** — exécute la sauvegarde : la base complète (schémas
+  `public`, `auth`, `storage`) et les fichiers transitent **en clair** par ses
+  machines le temps d'être chiffrés (AES-256-GCM), puis les copies locales
+  sont effacées ; la clé de chiffrement vit dans ses secrets. Prestataire
+  établi aux États-Unis.
+- **Scaleway** (Object Storage, région `fr-par`, Paris) — conserve la copie
+  **chiffrée**, 90 jours, sans la clé. La copie inclut désormais les droits de
+  la base (GRANT/REVOKE, audit sécurité du 27/09). Écart : le
+  [[Plan de reprise d'activité]] fixe « 30 jours glissants » ; les 90 jours
+  sont une règle de cycle de vie posée par le porteur chez Scaleway.
+S'y ajoute la **Base Adresse Nationale** (`api-adresse.data.gouv.fr`), qui
+reçoit le texte des adresses tapées dans la fiche d'un bien (autocomplétion).
+Les trois figurent désormais dans la liste des prestataires des pages légales
+(`app/src/lib/editeur.ts`).
 
 ## Mesures de sécurité (renvoi)
 
@@ -89,8 +116,12 @@ sensibles tracée, journaux à durée propre. Détail : [[Socle de sécurité]],
 
 ## Transferts hors Union européenne
 
-Aucun transfert n'est établi pour les données de gestion locative. Deux points
-à confirmer : la région de traitement de **Resend** (prestataire américain ;
+Pour les données de gestion locative, **un transfert est établi depuis le
+27/09** : la sauvegarde (quotidienne) s'exécute sur les machines de **GitHub
+Actions** (prestataire américain), par lesquelles la base et les fichiers
+transitent en clair avant chiffrement (voir ci-dessus). À couvrir (clauses
+contractuelles types, ou exécution de la sauvegarde sur une machine située
+dans l'UE). Deux autres points à confirmer : la région de traitement de **Resend** (prestataire américain ;
 choisir une région européenne pour le domaine si l'offre le permet, sinon
 clauses contractuelles types) et, plus tard, **Meta** pour WhatsApp.
 
@@ -111,4 +142,9 @@ clauses contractuelles types) et, plus tard, **Meta** pour WhatsApp.
 > - **Compte fermé** : aucune règle ne fixe encore ce qu'il advient d'un
 >   compte fermé (suppression immédiate ? délai de rétractation ?).
 > - **Resend** : localisation et durée de rétention des journaux d'envoi.
+> - **GitHub Actions** (audit sécurité du 27/09) : fondement du transfert hors
+>   UE à établir, ou exécution de la sauvegarde sur une machine européenne.
+> - **Conservation des sauvegardes** : 90 jours chez Scaleway contre
+>   « 30 jours glissants » au [[Plan de reprise d'activité]] — à trancher par
+>   le porteur (réduire la règle Scaleway ou faire acter 90 jours).
 > - **Validation** : ce brouillon attend la relecture d'un conseil spécialisé.

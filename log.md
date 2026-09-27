@@ -5487,3 +5487,17 @@ Le porteur a proposé le rangement de la console : « Vue d'ensemble (avec aujou
 
 Sur le « fusionne » du porteur : PR #115 fusionnée sur `main` (`f07e9e6`), déploiement Vercel de production réussi, aucune erreur d'exécution dans l'heure. En ligne : la respiration du 24/09 et les menus fixes (nuit du 25 au 26/09), puis le plan de la console dessiné par le porteur (Vue d'ensemble, Utilisateurs, Veille, Marketing, Développement, Historique et conservation, Paramètres) avec ses onglets, la page « Relais en mon absence » et la page Paramètres. Aucune migration. Restent au porteur : les huit faits légaux de l'éditeur (visibles dans Paramètres), les clés Yousign de production, la recharge automatique OpenAI ; et deux points visuels non tranchés (rubriques repliables du dossier de bail, boutons « Mon entreprise » de l'artisan).
 
+
+## [2026-09-27] lint | Audit artisan / pages publiques / compte : registre des traitements
+
+Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). Côté wiki, une seule page touchée : [[Registre des traitements]] déclare désormais GitHub Actions (exécution de la sauvegarde, la base transite en clair avant chiffrement — transfert hors UE établi), Scaleway (copie chiffrée, `fr-par`, 90 jours) et la Base Adresse Nationale (autocomplétion d'adresse). Côté application : réclamation d'une fiche artisan sur preuve (adresse confirmée du compte = adresse de la fiche, sans réécrire ses coordonnées, retour en validation) ; inscription d'un artisan sans compte ; PDF de devis hors mission ; contre-proposition du locataire lue, retenue ou refusée par l'artisan (A5 de [[Planification d'intervention]]) ; dépôt de la facture de l'artisan en version simple ([[Devis]], module 9.7 : pré-remplie, écart justifié et alerté sans blocage — la validation comptable reste à livrer) ; limite de débit en base du formulaire de devis de la vitrine ; inscription qui ne révèle plus l'existence d'un compte. Non corrigé, au porteur : les faits légaux de l'éditeur.
+
+## [2026-09-27] lint | Audit sécurité et données : registre des traitements (sous-traitants, sauvegarde quotidienne)
+- [[Registre des traitements]] : Yousign (adaptateur « Youtrust ») déclaré au volet 2 ; OpenAI (P8) et Meta/Facebook (P9) ajoutés au volet 1, d'après le code ; sauvegarde passée de hebdomadaire à **quotidienne** (RPO 24 h du [[Plan de reprise d'activité]]), droits de la base désormais inclus.
+- Points à trancher ajoutés : fondement du transfert hors UE par GitHub Actions ; conservation des sauvegardes 90 jours (Scaleway, réglage du porteur) contre 30 jours au [[Plan de reprise d'activité]].
+
+## [2026-09-27] lint | Audit complet du 27/09 : six relevés, six lots de correction
+- Relevés : métier (2 bloquants, 14 majeurs), artisan-public-compte (3/7), sécurité et données (1/7), agence (1/7), propriétaire-locataire (0/6), console (0/9).
+- 41 migrations `20260927*`, rejouées sur une base neuve dans l'ordre de leur date ; 2 086 tests unitaires verts. Correctif d'intégration : le dépôt de facture de l'artisan n'ouvre plus tout le dossier de l'agence, seulement `<org>/factures-artisan/<intervention>/`.
+- Page créée : [[Audit complet du 27 septembre 2026]] (corrections, restes structurels, points du porteur, contradictions : anonymisation des fichiers, assurances de l'artisan, durée des sauvegardes).
+- Veille du 26/09 en échec (citation-preuve abrégée) : une source rejetée n'emporte plus l'étude des autres.

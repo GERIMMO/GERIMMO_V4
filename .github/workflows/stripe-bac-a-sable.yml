@@ -1,0 +1,70 @@
+name: Vérifier les paiements Stripe sans argent réel
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recette-stripe-test
+  cancel-in-progress: false
+
+jobs:
+  paiements:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: gerimmo-ci-local
+          POSTGRES_DB: gerimmo_ci_stripe
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d gerimmo_ci_stripe"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    defaults:
+      run:
+        working-directory: app
+    env:
+      SUPABASE_DB_URL: postgres://postgres:gerimmo-ci-local@127.0.0.1:5432/gerimmo_ci_stripe
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Préparer la base locale jetable
+        run: node e2e/local/preparer-ci.mjs
+      - name: Refuser une clé réelle ou absente
+        env:
+          GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
+        run: node -e 'const k=process.env.GERIMMO_STRIPE_TEST_KEY||"";if(!/^(sk|rk)_test_/.test(k)){console.error("Une connexion Stripe de TEST est requise.");process.exit(1)}'
+      - name: Tester les cas de paiement et leur application dans Gerimmo
+        env:
+          GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
+        run: npm test -- tests/stripe-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
+      - name: Conserver le résultat synthétique
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='/tmp/gerimmo-stripe-test.json';
+          if(!fs.existsSync(p))process.exit(0);
+          const r=JSON.parse(fs.readFileSync(p));
+          const b={reussi:r.success,tests_reussis:r.numPassedTests,tests_echoues:r.numFailedTests,
+            tests_ignores:r.numPendingTests,argent_reel:false,
+            portee:'API Stripe de test et règles SQL locales ; webhook signé simulé, interface de paiement non parcourue'};
+          fs.writeFileSync('/tmp/bilan-stripe-test.json',JSON.stringify(b,null,2));
+          console.log(JSON.stringify(b));
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bilan-stripe-test
+          path: /tmp/bilan-stripe-test.json
+          if-no-files-found: warn
+          retention-days: 30

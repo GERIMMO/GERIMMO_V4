@@ -159,6 +159,8 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
        returning id`
     );
     artisanBis = bis.id;
+    // Ce scénario éprouve le carnet, indépendamment des ouvertures du réseau.
+    await db.query(`insert into public.artisan_agences(organization_id,artisan_id) values($1,$2)`,[orgA,artisanBis]);
     await db.query(`insert into public.artisan_metiers values ($1,'plomberie')`, [artisanBis]);
     await db.query(`insert into public.artisan_zones values ($1,'75011')`, [artisanBis]);
     await db.query(
@@ -272,6 +274,7 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
        values ('Plomberie Ter','11111111111111','0633333333','valide','verifie','publique')
        returning id`
     );
+    await db.query(`insert into public.artisan_agences(organization_id,artisan_id) values($1,$2)`,[orgA,ter.id]);
     await db.query(`insert into public.artisan_metiers values ($1,'plomberie')`, [ter.id]);
     await db.query(`insert into public.artisan_zones values ($1,'75011')`, [ter.id]);
     await db.query(

@@ -171,6 +171,7 @@ export default async function PageEntreprise() {
 
       {/* 25/09 (A9) : le lien vers les règles vit dans la carte des métiers,
           ce sont elles qu'il concerne ; isolé entre deux cartes, il flottait. */}
+      <p className="text-sm text-muted-foreground">Vos codes postaux indiquent votre secteur souhaité. Gerimmo confirme séparément vos communes d’intervention et les métiers ouverts au réseau. Votre inscription ou sa validation n’ouvre aucune zone automatiquement.</p>
       <FormulaireMetiersZones
         metiers={(fiche.metiers ?? []).filter((m) => m in METIERS)}
         codesPostaux={fiche.codes_postaux ?? []}

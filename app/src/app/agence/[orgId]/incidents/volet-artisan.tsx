@@ -1,3 +1,5 @@
+import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
+import type { DisponibiliteReseau } from "@/lib/reseau";
 import type { LigneDevisCalculee } from "@/lib/devis-structure";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -389,37 +391,20 @@ export async function VoletArtisan({
     )
   );
 
-  // LE CODE POSTAL N'EST PAS FACULTATIF, ET SON ABSENCE NE DOIT PAS SE TAIRE.
-  // `artisans_affectables` saute toute la clause de zone quand on lui passe
-  // null (`p_code_postal is null or exists …`). Une lecture tombée faisait donc
-  // remonter des artisans HORS ZONE sous un pied de liste affirmant « déjà
-  // filtrée : métier, zone… » — et `solliciter_artisan`, qui relit le code
-  // postal lui-même, les refusait ensuite. Constat du 11/09.
-  let codePostal: string | null = null;
-  let erreurCodePostal = Boolean(erreurLot);
+  // La commune et la couverture sont déduites du bien côté serveur.
+  // Une panne ne doit pas être présentée comme une zone fermée.
   const bienId = (bienBrut as { bien_id: string } | null)?.bien_id ?? null;
-  if (bienId) {
-    const { data: bien, error: erreurBien } = await supabase
-      .from("biens")
-      .select("postal_code")
-      .eq("id", bienId)
-      .maybeSingle();
-    if (erreurBien) erreurCodePostal = true;
-    codePostal = (bien as { postal_code: string } | null)?.postal_code ?? null;
-  }
-
-  // La recherche d'affectation (RM-8.3), déléguée entièrement à la base :
-  // métier, zone, décennale selon la nature, deux listes noires, validation
-  // plateforme — et le tri par score décroissant. L'écran n'en refait aucun
-  // morceau, sinon les deux divergeraient.
+  const etatsReseau = bienId
+    ? await supabase.rpc("reseau_etats_bien", { p_org: orgId, p_bien: bienId })
+    : { data: null, error: erreurLot ?? { message: "Bien introuvable" } };
+  const disponibilites = etatsReseau.error ? null : (etatsReseau.data ?? []) as DisponibiliteReseau[];
+  const disponibiliteOuverte = disponibilites?.find(d => d.metier === consultationOuverte?.metier && d.nature === consultationOuverte?.nature_travaux);
   let affectables: Affectable[] = [];
   let erreurAffectables: string | null = null;
-  if (consultationOuverte) {
-    const { data, error } = await supabase.rpc("artisans_affectables", {
-      p_org: orgId,
-      p_metier: consultationOuverte.metier,
-      p_nature: consultationOuverte.nature_travaux,
-      p_code_postal: codePostal,
+  if (consultationOuverte && bienId) {
+    const { data, error } = await supabase.rpc("artisans_disponibles_bien", {
+      p_org: orgId, p_bien: bienId,
+      p_metier: consultationOuverte.metier, p_nature: consultationOuverte.nature_travaux,
     });
     affectables = (data ?? []) as Affectable[];
     if (error) erreurAffectables = error.message;
@@ -437,7 +422,7 @@ export async function VoletArtisan({
     erreurEvaluations && "les notes déjà données",
     erreurArtisans && "les fiches des artisans",
     erreurAffectables && "les artisans proposables",
-    erreurCodePostal && "la zone du bien (la liste ci-dessous n'est alors PAS filtrée par zone)",
+    etatsReseau.error && "la disponibilité du réseau pour ce bien",
     erreurAlerteRevision && "la révision d'imputation en attente",
     erreurAvenants && "les demandes de dépassement de devis",
   ].filter((q): q is string => Boolean(q));
@@ -833,6 +818,8 @@ export async function VoletArtisan({
 
       {/* ─── La mise en concurrence ouverte ──────────────────────────────── */}
       {consultationOuverte && (
+        <div className="space-y-3">
+        {bienId && disponibiliteOuverte && <><MessageReseau orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /><InteretReseau key={`${bienId}-${disponibiliteOuverte.metier}-${disponibiliteOuverte.nature}`} orgId={orgId} bienId={bienId} disponibilite={disponibiliteOuverte} /></>}
         <ConsultationOuverte
           orgId={orgId}
           consultation={consultationOuverte}
@@ -844,8 +831,9 @@ export async function VoletArtisan({
           noteDe={noteDe}
           nom={nom}
           aujourdhui={aujourdhui}
-          codePostal={codePostal}
+          commune={disponibiliteOuverte?.commune_nom ?? null}
         />
+        </div>
       )}
 
       {/* ─── Ouvrir une (nouvelle) mise en concurrence ───────────────────── */}
@@ -865,6 +853,8 @@ export async function VoletArtisan({
             <FormulaireConsultation
               orgId={orgId}
               incidentId={incidentId}
+              bienId={bienId}
+              disponibilites={disponibilites}
               categorieLibelle={
                 categorieIncident(categorie)?.libelle ?? titreIncident(categorie)
               }
@@ -901,7 +891,7 @@ function ConsultationOuverte({
   noteDe,
   nom,
   aujourdhui,
-  codePostal,
+  commune,
 }: {
   orgId: string;
   consultation: Consultation;
@@ -911,7 +901,7 @@ function ConsultationOuverte({
   noteDe: Map<string, Affectable>;
   nom: (id: string) => string;
   aujourdhui: string;
-  codePostal: string | null;
+  commune: string | null;
 }) {
   // RM-9.1.1 : deux au maximum EN PARALLÈLE — ce sont les sollicitations
   // vivantes qui comptent, pas celles qu'un artisan a déclinées.
@@ -1105,7 +1095,7 @@ function ConsultationOuverte({
           <div className="border-t border-border pt-3">
             <div className="entete-carte">
               <p className="libelle-champ">
-                Artisans proposables{codePostal ? ` sur le ${codePostal}` : ""}
+                Artisans proposables{commune ? ` à ${commune}` : ""}
               </p>
               {/* 24/09 : l'ordre de la base (note publiée d'abord), dit sans
                   jargon — et seulement au-dessus d'une liste qui a un ordre. */}
@@ -1116,7 +1106,7 @@ function ConsultationOuverte({
             {affectables.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Aucun artisan ne remonte pour ce métier
-                {codePostal ? ` sur le code postal ${codePostal}` : ""}
+                {commune ? ` à ${commune}` : ""}
                 {consultation.decennale_requise ? " avec une décennale valide" : ""}.{" "}
                 <Link href={`/agence/${orgId}/artisans`} className="lien-discret">
                   Enregistrez une entreprise dans votre carnet

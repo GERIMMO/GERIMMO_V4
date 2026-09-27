@@ -178,6 +178,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
         </p>
       </div>
 
+      <p className="mb-4 text-sm"><Link href={`/agence/${orgId}/reseau`} className="btn-secondaire inline-flex">Vérifier le réseau pour mes biens</Link><span className="mt-2 block text-muted-foreground">Le réseau Gerimmo dépend de la commune du bien et du métier ouvert. Votre carnet personnel reste disponible.</span></p>
       <EchecLecture quoi={lecturesManquees} />
 
       <div className={`split${sel ? " detail-actif" : ""}`}>
@@ -228,7 +229,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               </p>
               <p className="explication">
                 {relations.length === 0
-                  ? "Enregistrez une entreprise avec le formulaire «\u00a0Enregistrer un artisan\u00a0», ou, depuis la fiche d'un incident, laissez Gerimmo vous proposer un artisan de son annuaire."
+                  ? "Enregistrez une entreprise avec le formulaire «\u00a0Enregistrer un artisan\u00a0», ou, depuis la fiche d'un incident, consultez les artisans du réseau disponibles pour la commune du bien et le métier recherché."
                   : `Vos ${relations.length} artisans sont dans les autres onglets.`}
               </p>
             </div>

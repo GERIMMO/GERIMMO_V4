@@ -48,12 +48,18 @@ for (const chemin of PAGES_FACULTATIVES) {
   });
 }
 
-// Sans session, le proxy ne sait pas si une adresse inconnue est un écran
-// protégé : il renvoie à la connexion en gardant la destination (constat de
-// la recette du 27/09 — la page « introuvable » ne s'y voit qu'une fois
-// connecté ; voir le test du même nom dans admin-agence.spec.ts).
-test("sans session, une adresse inconnue mène à la connexion en gardant la destination", async ({ page }) => {
-  const chemin = `/recette-adresse-inconnue-${Date.now()}`;
+// Sans session, une adresse qui ne désigne aucun écran affiche la page
+// « introuvable » avec un vrai 404 (corrigé après la recette du 27/09 : elle
+// menait à la connexion). Une adresse privée qui existe mène, elle, à la
+// connexion en gardant la destination.
+test("sans session, une adresse inconnue affiche « Cette page est introuvable »", async ({ page }) => {
+  const reponse = await page.goto(`/recette-adresse-inconnue-${Date.now()}`);
+  expect(reponse?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1, name: "Cette page est introuvable" })).toBeVisible();
+});
+
+test("sans session, un écran privé mène à la connexion en gardant la destination", async ({ page }) => {
+  const chemin = "/espaces";
   const reponse = await page.goto(chemin);
   expect(reponse?.status()).toBeLessThan(400);
   await expect(page).toHaveURL(new RegExp(`/connexion\\?suite=${encodeURIComponent(chemin)}`));

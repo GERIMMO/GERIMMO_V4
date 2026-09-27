@@ -5533,3 +5533,4 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Aucune erreur serveur (Vercel) ni technique (`tech_log`) pendant le passage ; aucun paiement, envoi en signature ni suppression par l'interface.
 - Données de test **purgées** : la production revient à 0 organisation et 1 compte (le porteur).
 - Relevés non corrigés : sans session, une adresse inconnue mène à la connexion (pas à la page 404) ; un propriétaire direct ouvert par la console sans adresse n'apprend qu'à l'envoi du formulaire qu'il doit la compléter avant de créer un bien.
+- **Corrigés le jour même** : sans session, une adresse qui ne désigne aucun écran affiche « Cette page est introuvable » avec un vrai 404 (une adresse privée existante mène toujours à la connexion, destination gardée) ; « Nouveau bien » dit au propriétaire direct, avant le formulaire, ce qui manque à son profil (adresse, e-mail de contact) et le mène à « Mon profil ».

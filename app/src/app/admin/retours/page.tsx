@@ -69,7 +69,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
       : filtreActif
         ? <div className="vide-guide"><p className="titre">Aucune demande pour ces filtres</p><p className="explication">Élargissez la nature, l’état ou l’organisation, ou revenez à la file complète.</p><div className="geste"><Link href="/admin/retours" className="btn-secondaire">Voir toutes les demandes</Link></div></div>
         : <div className="vide-guide"><p className="titre">Aucune demande en attente</p><p className="explication">Les problèmes, questions, idées et contestations envoyés depuis « Aide et retours » arrivent ici.</p></div>)}
-    {lignes.map(({ retour: r, organisation, soutiens, organisations: nbOrg }) => <article key={r.id} className="rounded-xl border border-[var(--filet)] bg-white p-5">
+    {lignes.map(({ retour: r, organisation, soutiens, organisations: nbOrg }) => <article key={r.id} className="loc-carte">
       <div className="flex flex-wrap justify-between gap-2"><h2 className="font-heading text-xl">{r.titre}</h2><span className="puce puce-prep">{ETATS_RETOUR[r.etat]}</span></div>
       <p className="mt-2 text-xs text-muted-foreground">{NATURES[r.nature]} · Gravité : {GRAVITES_RETOUR[r.gravite] ?? r.gravite} · {new Date(r.cree_le).toLocaleString("fr-FR")} · Réf. {r.id.slice(0, 8).toUpperCase()} · {organisation ?? (r.nature === "contestation" ? "Espace artisan privé" : "Compte personnel")}</p>
       <p className="mt-4 whitespace-pre-wrap text-sm">{r.description}</p>

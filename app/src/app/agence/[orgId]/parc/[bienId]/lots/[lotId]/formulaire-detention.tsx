@@ -208,7 +208,7 @@ export function FormulaireDetention({
         <div className="space-y-1.5">
           <Label htmlFor="detention-debut">Début de détention</Label>
           <InputDateJour id="detention-debut" name="date_debut" valeurSoumise={etat.valeurs?.date_debut} />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Vide = aujourd&apos;hui. La somme active ne peut pas dépasser 100 %
             .
           </p>
@@ -285,7 +285,7 @@ export function FormulaireDetention({
                   value={nouveau.email}
                   onChange={(e) => setNouveau({ ...nouveau, email: e.target.value })}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Une adresse ne peut appartenir qu&apos;à une seule fiche de
                   l&apos;agence.
                 </p>
@@ -340,7 +340,7 @@ export function BoutonCloreDetention({
       <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
         Fermer
       </BoutonEnvoi>
-      {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );
 }
@@ -375,7 +375,7 @@ export function BoutonSupprimerDetention({
       <Button type="button" size="sm" variant="ghost" onClick={() => setConfirme(true)}>
         Supprimer (erreur de saisie)
       </Button>
-      {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {confirme && (
         <Modale
           titre="Supprimer cette ligne de détention"
@@ -432,7 +432,7 @@ export function BoutonRouvrirDetention({
       <BoutonEnvoi size="sm" variant="ghost" enCoursTexte="…">
         Rouvrir
       </BoutonEnvoi>
-      {etat.erreur && <p className="text-xs text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
     </form>
   );
 }

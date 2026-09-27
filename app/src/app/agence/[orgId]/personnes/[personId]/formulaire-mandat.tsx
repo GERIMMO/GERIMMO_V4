@@ -76,7 +76,7 @@ export function FormulaireLigneMandat({
   // mandat actif — proposer un lot pour le voir refusé alourdissait l'écran.
   if (lots.length === 0) {
     return (
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         {nbLotsDetenus > 0
           ? "Tous les lots de cette personne sont déjà couverts par un mandat — rien à ajouter ici."
           : "Cette personne ne détient aucun lot — ajoutez d'abord une détention sur un lot du parc pour composer le mandat."}
@@ -87,7 +87,7 @@ export function FormulaireLigneMandat({
   return (
     <form action={formAction} className="flex flex-wrap items-end gap-2 border-t border-border pt-3">
       <div className="min-w-40 flex-1 space-y-1.5">
-        <Label htmlFor={`l-lot-${mandatId}`} className="text-xs">
+        <Label htmlFor={`l-lot-${mandatId}`} className="text-sm">
           Lot
         </Label>
         {/* Même combobox que le rattachement de personne (recette 21/08) */}
@@ -95,7 +95,7 @@ export function FormulaireLigneMandat({
       </div>
       {/* Pleine largeur au téléphone, comme le lot au-dessus (24/09) */}
       <div className="w-full space-y-1.5 sm:w-24">
-        <Label htmlFor={`l-taux-${mandatId}`} className="text-xs">
+        <Label htmlFor={`l-taux-${mandatId}`} className="text-sm">
           Taux %
         </Label>
         {/* Recette 22/08 : le taux est contractuel — il se choisit, pas de
@@ -160,7 +160,7 @@ export function SelectTitulaireMandat({
           </option>
         ))}
       </select>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }
@@ -274,7 +274,7 @@ export function BoutonsEtatMandat({
         {avertissement ? "Confirmer" : transition.libelle}
       </BoutonEnvoi>
       {etatAction.erreur && (
-        <p className="w-full text-xs text-destructive">{etatAction.erreur}</p>
+        <p className="w-full text-sm text-destructive">{etatAction.erreur}</p>
       )}
     </form>
   );

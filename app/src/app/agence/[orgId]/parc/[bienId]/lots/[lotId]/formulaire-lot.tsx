@@ -84,7 +84,7 @@ export function FormulaireLot({
             defaultValue={etat.valeurs?.surface_carrez ?? lot.surface_carrez ?? ""}
             disabled={verrouille}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Reprenez la surface privative indiquée sur l’attestation Carrez, si le logement est concerné.
           </p>
         </div>

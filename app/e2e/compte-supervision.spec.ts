@@ -47,11 +47,14 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   // Au téléphone (une seule barre, 25/09), la recherche vit dans le menu.
   const menu = page.getByRole("button", { name: "Menu supervision" });
   if (await menu.isVisible()) {
-    // Sur la construction de production, un clic parti avant l'hydratation ne
-    // bascule rien : on clique jusqu'à ce que le menu soit réellement ouvert.
+    // Sur la construction de production, un clic parti avant l'hydratation est
+    // rejoué par React une fois la page vivante : deux clics, et le menu se
+    // referme. On ne clique que si le menu se dit fermé, jusqu'à ce que
+    // l'entrée « Rechercher » soit réellement là.
     await expect(async () => {
-      await menu.click();
+      if ((await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
       await expect(page.locator("#menu-supervision")).toBeVisible({ timeout: 1_000 });
+      await expect(page.locator("button:visible", { hasText: /Rechercher/ }).first()).toBeVisible({ timeout: 1_000 });
     }).toPass({ timeout: 20_000 });
   }
   // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.

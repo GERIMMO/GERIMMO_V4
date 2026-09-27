@@ -172,7 +172,7 @@ function CarteIncident({
       {/* Plus de « INC-2026-0001 » (25/09, D41) : aucun code interne à
           l'écran — la date, la pièce et les photos suffisent à reconnaître
           sa demande. */}
-      <p className="text-xs text-muted-foreground">
+      <p className="text-[13px] text-muted-foreground">
         Déclaré le {formaterDate(incident.declare_le)}
         {incident.piece ? ` · ${incident.piece}` : ""}
         {incident.nb_photos > 0
@@ -214,7 +214,7 @@ function CarteIncident({
       )}
 
       {incident.imputation_contestee_le && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           Votre contestation du {formaterDate(incident.imputation_contestee_le)} est
           transmise — elle ne suspend pas la réparation.
         </p>

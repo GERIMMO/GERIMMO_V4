@@ -224,7 +224,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
         codes={codesConnusJournaux()}
       />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-7 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Journal d&apos;audit</CardTitle>
@@ -246,15 +246,15 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
                   const auteur = nomDe(l.compte, "email");
                   const precision = detailsAudit(l.details);
                   return (
-                    <li key={i} className="py-2 text-sm">
+                    <li key={i} className="py-3 text-sm">
                       <span className="font-medium">{libelleActionAudit(l.action)}</span>
                       {organisation && <span className="text-muted-foreground"> · {organisation}</span>}
                       {auteur && <span className="text-muted-foreground [overflow-wrap:anywhere]"> · {auteur}</span>}
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ml-2 text-[13px] text-muted-foreground">
                         {formaterDateHeureParis(l.created_at)}
                       </span>
                       {precision && (
-                        <span className="mt-0.5 block text-xs text-muted-foreground">{precision}</span>
+                        <span className="mt-1 block text-[13px] text-muted-foreground">{precision}</span>
                       )}
                     </li>
                   );
@@ -278,7 +278,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
             {/* Un historique vide n'est pas un bon signe (24/09) : le travail
                 de nuit doit y laisser une trace. L'état vide dit où vérifier. */}
             {filtres.org && (
-              <p className="mb-2 text-xs text-muted-foreground">
+              <p className="mb-3 text-sm text-muted-foreground">
                 L&apos;historique du service n&apos;est pas rattaché à une organisation : le filtre
                 d&apos;organisation ne s&apos;y applique pas.
               </p>
@@ -306,12 +306,12 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
                   // compteurs, oui/non, codes courts — jamais un texte libre.
                   const detail = tache ? resumerBilan(l.details, tache) : detailsExpurges(l.details);
                   return (
-                    <li key={i} className="py-2 text-sm">
+                    <li key={i} className="py-3 text-sm">
                       <span className="font-medium">{libelleEvenement(l.evenement)}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ml-2 text-[13px] text-muted-foreground">
                         {formaterDateHeureParis(l.created_at)}
                       </span>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 text-[13px] text-muted-foreground">
                         {tache
                           ? detail === "—" ? "Aucun résultat détaillé enregistré pour ce passage." : detail
                           : detail ?? `Code interne : ${l.evenement}`}
@@ -348,14 +348,14 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
                   const organisation = nomDe(l.organisation, "name");
                   const auteur = l.account_id ? courriels.get(l.account_id) : null;
                   return (
-                    <li key={i} className="py-2 text-sm">
+                    <li key={i} className="py-3 text-sm">
                       <span className="font-medium">{libelleAccesDocument(l.action)}</span>
                       <span className="text-muted-foreground">
                         {" "}· {doc?.titre ?? "(document supprimé à échéance)"}
                       </span>
                       {organisation && <span className="text-muted-foreground"> · {organisation}</span>}
                       {auteur && <span className="text-muted-foreground [overflow-wrap:anywhere]"> · {auteur}</span>}
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ml-2 text-[13px] text-muted-foreground">
                         {formaterDateHeureParis(l.created_at)}
                       </span>
                     </li>
@@ -388,7 +388,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
                   <p className="libelle-champ mb-1">{groupe}</p>
                   <ul className="divide-y">
                     {liste.map((r) => (
-                      <li key={r.id} className="py-2.5 text-sm">
+                      <li key={r.id} className="py-3 text-sm">
                         <p className="font-medium">{r.libelle}</p>
                         <p className="mt-0.5 text-muted-foreground">{finalite(r.finalite)}</p>
                         <p className="mt-1 text-[13px]">
@@ -400,31 +400,32 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
                 </div>
               ))}
             </div>
-            <div className="hidden overflow-x-auto sm:block">
-              <table className="w-full text-sm">
+            {/* Le tableau commun de la console (nuit du 25/09) : lignes plus hautes, filets clairs. */}
+            <div className="tableau-defilant hidden sm:block">
+              <table className="tableau w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left">
-                    <th className="libelle-champ py-2 pr-4 font-normal">Type de donnée</th>
-                    <th className="libelle-champ py-2 pr-4 font-normal">Finalité</th>
-                    <th className="libelle-champ py-2 pr-4 font-normal">Déclencheur</th>
-                    <th className="libelle-champ py-2 pr-4 font-normal">Durée</th>
-                    <th className="libelle-champ py-2 font-normal">Sort final</th>
+                  <tr className="text-left">
+                    <th>Type de donnée</th>
+                    <th>Finalité</th>
+                    <th>Déclencheur</th>
+                    <th>Durée</th>
+                    <th>Sort final</th>
                   </tr>
                 </thead>
                 {groupes.map(([groupe, liste]) => (
                   <tbody key={groupe}>
-                    <tr className="border-b bg-[var(--filet-leger)]">
-                      <th colSpan={5} scope="colgroup" className="py-1.5 pl-2 text-left text-[13px] font-semibold text-[var(--encre)]">
+                    <tr className="bg-[var(--filet-leger)]">
+                      <th colSpan={5} scope="colgroup" className="py-2 pl-2 text-left text-[13px] font-semibold normal-case tracking-normal text-[var(--encre)]">
                         {groupe}
                       </th>
                     </tr>
                     {liste.map((r) => (
-                      <tr key={r.id} className="border-b last:border-0">
-                        <td className="py-2 pr-4 font-medium">{r.libelle}</td>
-                        <td className="py-2 pr-4 text-muted-foreground">{finalite(r.finalite)}</td>
-                        <td className="py-2 pr-4 text-muted-foreground">{r.declencheur}</td>
-                        <td className="py-2 pr-4">{duree(r.duree_mois)}</td>
-                        <td className="py-2">{SORTS[r.sort] ?? r.sort}</td>
+                      <tr key={r.id}>
+                        <td className="font-medium">{r.libelle}</td>
+                        <td className="text-muted-foreground">{finalite(r.finalite)}</td>
+                        <td className="text-muted-foreground">{r.declencheur}</td>
+                        <td>{duree(r.duree_mois)}</td>
+                        <td>{SORTS[r.sort] ?? r.sort}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -436,7 +437,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
           </CardContent>
         </Card>
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">{NOTE_FUSEAU}</p>
+      <p className="mt-5 text-sm text-muted-foreground">{NOTE_FUSEAU}</p>
     </main>
   );
 }

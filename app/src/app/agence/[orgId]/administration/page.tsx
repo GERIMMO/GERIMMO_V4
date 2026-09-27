@@ -263,7 +263,7 @@ export default async function PageAdministration(
                       className="ligne-info -mx-2 items-center rounded-md px-2 hover:bg-[var(--survol)]"
                     >
                       <span className="min-w-0 !text-foreground">{p.nom}</span>
-                      <span className="shrink-0 text-xs text-[var(--bleu)]">
+                      <span className="shrink-0 text-sm text-[var(--bleu)]">
                         {p.lots.size} lot{p.lots.size > 1 ? "s" : ""} · Confier{" "}
                         <span aria-hidden>→</span>
                       </span>
@@ -274,7 +274,7 @@ export default async function PageAdministration(
             )}
           </div>
         )}
-        <p className="mesure-lecture mt-3 text-xs text-muted-foreground">
+        <p className="mesure-lecture mt-4 text-sm text-muted-foreground">
           Le portefeuille d&apos;un agent = les mandats qui lui sont confiés.
         </p>
         {/* 25/09 : « écrivez au support » en pied de carte passait pour une
@@ -283,7 +283,7 @@ export default async function PageAdministration(
             et une cible de 44 px. L'invitation sur place viendra avec le
             chantier rôles (S9b). */}
         {equipeLue && equipe.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <p className="text-sm text-muted-foreground">
               Ajouter un agent ne se fait pas encore ici : envoyez-nous son
               adresse e-mail, l&apos;équipe Gerimmo crée son accès.
@@ -326,7 +326,7 @@ export default async function PageAdministration(
             reste inconnu — mieux vaut le taire que l&apos;annoncer à zéro.
           </EncadreLectureImpossible>
         )}
-        <p className="mt-3 text-xs text-muted-foreground">
+        <p className="mt-4 text-sm text-muted-foreground">
           Les mandats en préavis restent comptés tant qu’ils courent.
         </p>
       </div>
@@ -335,7 +335,7 @@ export default async function PageAdministration(
           lien, trois lignes pour dire qu'on ne peut rien y faire. L'information
           reste, en note de page, tant que le journal de l'organisation n'est
           pas consultable ici. */}
-      <p className="mesure-lecture text-xs text-muted-foreground">
+      <p className="mesure-lecture text-sm text-muted-foreground">
         Chaque geste sensible (versement, clôture comptable, mandat confié à un
         autre agent, validation de pièce…) est horodaté et tracé — qui, quoi,
         sur quel objet. La consultation de ce journal est aujourd&apos;hui

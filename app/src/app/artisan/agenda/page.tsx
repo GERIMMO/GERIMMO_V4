@@ -104,7 +104,7 @@ export default async function PageAgendaArtisan() {
       {!agenda.erreur && (
         <Carte>
           <TitreSection>Les 7 prochains jours</TitreSection>
-          <ol className="grid grid-cols-7 gap-1.5" aria-label="Rendez-vous des sept prochains jours">
+          <ol className="grid grid-cols-7 gap-1.5 sm:gap-3" aria-label="Rendez-vous des sept prochains jours">
             {semaine.map((d) => {
               const cle = jourCivil(d);
               const nombre = jours.get(cle)?.length ?? 0;

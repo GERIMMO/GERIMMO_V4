@@ -6,6 +6,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChampFichier } from "@/components/champ-fichier";
 
 // « Remplacer » (maquette pageDocument) : nouvelle version de la pièce, même
 // type, rattachements conservés — l'historique reste consultable sur la fiche.
@@ -37,19 +38,13 @@ export function FormulaireRemplacer({
 
   return (
     <form action={action} className="w-full space-y-3 rounded-md border border-border p-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Le remplacement conserve l&apos;historique : l&apos;ancienne version reste
         tracée, la nouvelle reprend le type et les rattachements.
       </p>
       <div className="space-y-2">
         <Label htmlFor="fichier-remplacement">Nouvelle version</Label>
-        <Input
-          id="fichier-remplacement"
-          name="fichier"
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-          required
-        />
+        <ChampFichier id="fichier-remplacement" name="fichier" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
       </div>
       <div className="space-y-2">
         <Label htmlFor="titre-remplacement">Nouveau titre (facultatif)</Label>

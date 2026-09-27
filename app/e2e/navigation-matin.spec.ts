@@ -8,18 +8,25 @@ test.describe('Tour du matin de la supervision',()=>{
   await page.goto('/espaces');await expect(page).toHaveURL(/\/admin\/brief/);
   await expect(page.getByRole('heading',{name:'Aujourd’hui',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();
-  await page.getByRole('navigation',{name:'Navigation de la supervision'}).locator('summary').filter({hasText:'Développement commercial'}).click();
-  await page.getByRole('link',{name:'Demandes commerciales',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Demandes commerciales',exact:true})).toBeVisible();
+  // Plan à sept entrées (26/09) : la rubrique s'ouvre depuis le menu, ses pages
+  // sont des onglets en haut de l'écran.
+  const menu=page.getByRole('navigation',{name:'Navigation de la supervision'});
+  await menu.getByRole('link',{name:/^Utilisateurs/}).click();
   await expect(page.getByRole('button',{name:'Menu supervision',exact:true})).toHaveAttribute('aria-expanded','false');
+  const onglets=page.getByRole('navigation',{name:'Pages de la rubrique Utilisateurs'});
+  await onglets.getByRole('link',{name:'Demandes commerciales',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Demandes commerciales',exact:true})).toBeVisible();
+  await expect(onglets.getByRole('link',{name:'Demandes commerciales',exact:true})).toHaveAttribute('aria-current','page');
   await page.getByRole('button',{name:'Menu supervision',exact:true}).click();
-  await expect(page.getByRole('link',{name:'Demandes commerciales',exact:true})).toHaveAttribute('aria-current','page');
+  await expect(menu.getByRole('link',{name:/^Utilisateurs/})).toHaveAttribute('aria-current','page');
  });
  test('le menu complet est accessible sur ordinateur sans ouvrir le bouton mobile',async({page})=>{
   await page.setViewportSize({width:1440,height:960});await page.goto('/admin/brief');
-  await expect(page.getByRole('link',{name:'Aujourd’hui',exact:true})).toBeVisible();
-  await page.locator('summary').filter({hasText:'Dossiers et décisions'}).click();
-  await expect(page.getByRole('link',{name:'Artisans à valider',exact:true})).toBeVisible();
+  // Les sept entrées du plan (26/09) sont toutes visibles, rien à ouvrir.
+  const menu=page.getByRole('navigation',{name:'Navigation de la supervision'});
+  for(const r of ['Vue d’ensemble','Utilisateurs','Veille','Marketing','Développement','Historique et conservation','Paramètres'])
+   await expect(menu.getByRole('link',{name:new RegExp('^'+r)})).toBeVisible();
+  await expect(page.getByRole('navigation',{name:'Pages de la rubrique Vue d’ensemble'}).getByRole('link',{name:/^Aujourd’hui/})).toHaveAttribute('aria-current','page');
  });
  test('la santé conduit directement au résultat des traitements',async({page})=>{
   await page.goto('/admin/sante');

@@ -47,7 +47,7 @@ export default async function PageDetailPoint({ params, searchParams }: { params
             <h2 className="mb-3 font-heading text-[length:var(--pas-section)] text-[var(--encre)]">Décisions soumises</h2>
             {point.decisions.length === 0
               ? <p className="text-sm text-muted-foreground">Cette équipe ne soumet aucune décision aujourd’hui.</p>
-              : <ul className="grid gap-3">{point.decisions.map((d) => <DecisionMatin key={d.id} decision={d} />)}</ul>}
+              : <ul className="grid gap-4">{point.decisions.map((d) => <DecisionMatin key={d.id} decision={d} />)}</ul>}
           </section>
 
           <section className="section-ecran">

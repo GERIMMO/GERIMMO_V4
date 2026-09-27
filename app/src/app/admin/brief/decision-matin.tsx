@@ -23,17 +23,17 @@ export function DecisionMatin({ decision }: { decision: DecisionAffichee }) {
   const decider = (validee: boolean) => demarrer(async () => setEtat(await deciderDecisionDuMatin(decision.id, validee, motif, atteste)));
 
   return (
-    <li className="rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] p-4">
+    <li className="loc-carte">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h4 className="font-semibold text-[var(--encre)]">{decision.titre}</h4>
         <span className={`puce ${decision.statut === "validee" || etat.succes ? "puce-loue" : decision.statut === "refusee" ? "puce-rouge" : decision.statut === "sans_objet" ? "puce-grise" : "puce-prep"}`}>{etat.succes && decision.statut === "en_attente" ? "Décidée" : LIBELLES_STATUT[decision.statut] ?? decision.statut}</span>
       </div>
-      <p className="mt-1 text-sm text-[var(--texte-secondaire)]">{decision.pourquoi}</p>
+      <p className="mt-2 text-sm text-[var(--texte-secondaire)]">{decision.pourquoi}</p>
       {decision.options.length > 0 && <p className="mt-2 text-sm"><b>Options :</b> {decision.options.join(" · ")}</p>}
       {decision.recommandation && <p className="mt-1 text-sm"><b>Recommandation :</b> {decision.recommandation}</p>}
       {decision.motif && <p className="mt-1 text-sm"><b>Motif :</b> {decision.motif}</p>}
       {!tranchee && (
-        <div className="mt-3 space-y-2">
+        <div className="mt-4 space-y-3">
           {decision.attestation && decision.validation && (
             <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={atteste} onChange={(e) => setAtteste(e.target.checked)} className="mt-1 size-4 accent-[var(--encre)]" />{decision.attestation}</label>
           )}

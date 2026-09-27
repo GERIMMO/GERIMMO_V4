@@ -58,7 +58,7 @@ export function CarteMessages({
               }`}
             >
               <p
-                className={`mb-0.5 text-[11px] ${
+                className={`mb-0.5 text-xs ${
                   m.auteur === "gerant" ? "text-[var(--sur-encre)]/60" : "text-muted-foreground"
                 }`}
               >

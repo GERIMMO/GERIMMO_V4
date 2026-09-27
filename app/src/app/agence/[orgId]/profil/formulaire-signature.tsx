@@ -9,10 +9,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Spinner } from "@/components/ui/spinner";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modale } from "@/components/ui/modale";
 import { afficherToast } from "@/components/ui/toast";
+import { ChampFichier } from "@/components/champ-fichier";
 
 export function FormulaireSignature({
   orgId,
@@ -128,7 +128,7 @@ export function FormulaireSignature({
             <Label htmlFor="sig-fichier">
               {apercu ? "Remplacer la signature" : "Déposer une signature"} (PNG/JPEG, 1 Mo max)
             </Label>
-            <Input id="sig-fichier" name="fichier" type="file" accept=".png,.jpg,.jpeg" required />
+            <ChampFichier id="sig-fichier" name="fichier" accept=".png,.jpg,.jpeg" required />
           </div>
           {/* 24/09 : même bouton que la carte Identité — petit et en contour,
               le seul geste du formulaire se lisait comme une action secondaire. */}

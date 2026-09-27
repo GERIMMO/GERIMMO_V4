@@ -2011,13 +2011,13 @@ a:focus-visible > .carte-espace {
 .coquille-badge.critique { background: var(--destructive); color: var(--sur-encre); }
 .coquille-menu a.actif .coquille-badge { background: var(--sur-marque); color: var(--marque); }
 
-/* « Plus » : un groupe replié, même hauteur d'entrée, chevron discret. */
-.coquille-groupe { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--trait-doux); }
-.coquille-groupe > summary { list-style: none; cursor: pointer; color: var(--texte-3); font-size: 12.5px; }
-.coquille-groupe > summary::-webkit-details-marker { display: none; }
-.coquille-groupe > summary .chevron { margin-left: auto; transition: transform var(--duree-rapide) ease; }
-.coquille-groupe[open] > summary .chevron { transform: rotate(180deg); }
-.coquille-groupe > div { display: flex; flex-direction: column; gap: 1px; margin-top: 2px; }
+/* « Plus » : un groupe FIXE (nuit du 25 au 26/09, « je veux le menu fixe »).
+   Un titre de section dans le même esprit que ceux de la console, puis ses
+   entrées toujours visibles — plus d'accordéon. */
+.coquille-groupe { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--trait-doux); }
+.coquille-groupe > p { display: none; align-items: center; padding: 4px 12px 6px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-secondaire); }
+@media (min-width: 1024px) { .coquille-groupe > p { display: flex; } }
+.coquille-groupe > div { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
 
 /* Le pied : l'essai en cours, en une ligne calme — plus de bandeau plein
    écran au-dessus de chaque page. */
@@ -2133,12 +2133,9 @@ a:focus-visible > .carte-espace {
   .coquille-late .coquille-marque { justify-content: center; padding: 0; }
   .coquille-late .coquille-marque a > span > span:last-child,
   .coquille-late .coquille-menu .lib,
-  .coquille-late .coquille-groupe > summary .lib,
-  .coquille-late .coquille-groupe > summary .chevron,
   .coquille-late .coquille-pied { display: none; }
   .coquille-late .coquille-menu { padding: 8px 6px; }
-  .coquille-late .coquille-menu a,
-  .coquille-late .coquille-menu summary { justify-content: center; padding: 0; }
+  .coquille-late .coquille-menu a { justify-content: center; padding: 0; }
   .coquille-late .coquille-badge { position: absolute; top: 2px; right: 2px; min-width: 16px; height: 16px; font-size: 10px; }
   .coquille-late .coquille-groupe > div { display: flex; }
 }
@@ -2789,9 +2786,10 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
 
 /* Navigation de supervision : destinations regroupées, accessibles sans défilement horizontal. */
 .admin-menu-groupes { width: 100%; min-width: 0; }
-.admin-menu-groupe { border-top: 1px solid var(--filet); margin-top: 5px; padding-top: 5px; }
-.admin-menu-groupe > summary { cursor: pointer; padding: 12px 8px; font-size: 13px; font-weight: 650; color: var(--encre); min-height: 44px; }
-.admin-menu-groupe > div { padding-left: 6px; }
+.admin-menu-groupe { margin-top: 14px; }
+/* Menu fixe (25/09 au soir) : le titre d'une rubrique n'est plus un bouton. */
+.admin-menu-titre { display: flex; align-items: center; padding: 4px 14px; font-family: var(--font-interface), system-ui, sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--texte-secondaire); }
+.admin-menu-groupe > div { display: flex; flex-direction: column; gap: 2px; }
 @media (max-width: 900px) {
   .admin-nav:has(.admin-menu-groupes) { overflow: visible; display: block; }
   .admin-menu-groupes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; align-items: start; }
@@ -2800,6 +2798,30 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
   .admin-menu-groupe[open] { grid-column: 1 / -1; }
   .admin-menu-groupe > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Le plan à sept entrées (26/09) : une colonne plate, le dernier couple
+   (« Historique et conservation », « Paramètres ») séparé par un filet. */
+.admin-menu-groupes { display: flex; flex-direction: column; gap: 3px; }
+.admin-menu-groupes .admin-nav-lien .coquille-badge { margin-left: auto; }
+.admin-nav-lien-bas { margin-top: 14px; position: relative; }
+.admin-nav-lien-bas::before { content: ""; position: absolute; left: 10px; right: 10px; top: -8px; border-top: 1px solid var(--filet); }
+@media (max-width: 900px) {
+  .admin-menu-groupes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
+  .admin-nav-lien-bas { margin-top: 0; }
+  .admin-nav-lien-bas::before { display: none; }
+}
+
+/* Les onglets d'une rubrique : une barre claire sous le bandeau, soulignement
+   bleu sur l'onglet ouvert. Au téléphone, la barre défile d'un doigt. */
+.admin-onglets { background: var(--carte); border-bottom: 1px solid var(--filet); }
+.admin-onglets-interieur { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding-inline: 24px; }
+.admin-onglets-interieur::-webkit-scrollbar { display: none; }
+.admin-onglet { display: inline-flex; align-items: center; flex: none; min-height: 48px; padding: 0 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--texte-secondaire); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.admin-onglet:hover { color: var(--encre); }
+.admin-onglet[aria-current="page"] { color: var(--marque); border-bottom-color: var(--marque); }
+.admin-onglet:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; }
+@media (min-width: 901px) { .admin-onglets-interieur { padding-inline: 32px; } }
+@media (max-width: 640px) { .admin-onglets-interieur { padding-inline: 8px; } .admin-onglet { padding: 0 10px; font-size: 13.5px; } }
 
 .admin-menu-conteneur { width: 100%; min-width: 0; }
 .admin-menu-mobile { display: none; }
@@ -2820,3 +2842,78 @@ select[id^="m-titulaire-"] { scroll-margin-top: 96px; }
 @media (max-width: 639px) {
   .admin-corps { padding-bottom: 72px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   RESPIRATION (25/09 au soir). Le porteur, devant la version en ligne : « le
+   visuel est trop strict, pas assez respirant ». Un seul bloc, en fin de
+   feuille, qui desserre les jetons partagés : corps 15 px, interligne 1,6,
+   filets plus clairs, cartes et rangs plus amples, sections plus espacées,
+   colonnes de la console et des espaces plus larges. Les composants ne
+   changent pas ; seul l'air entre eux. La charte du 24/09 reste la référence.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+  --filet: #e2e8f3;
+  --filet-leger: #eef2f9;
+  --rythme-3: 1.125rem; /* 18 px — dans une carte */
+  --rythme-4: 1.75rem;  /* 28 px — entre cartes */
+  --rythme-5: 3rem;     /* 48 px — entre sections d'un écran */
+}
+body { font-size: 15px; line-height: 1.6; }
+h1 { font-size: 1.875rem; letter-spacing: -0.012em; }
+h2 { font-size: 1.3125rem; }
+.entete-page { padding-bottom: 20px; margin-bottom: 28px; gap: 18px; }
+.entete-carte { margin-bottom: 18px; }
+.loc-carte, .section-ecran.loc-carte { padding: 26px 28px; border-radius: 18px; }
+.rang { padding: 16px 18px; gap: 14px; }
+.rang b { font-size: 14.5px; }
+.rang small { font-size: 12.5px; }
+.tuiles { gap: 14px; }
+.tuile { padding: 18px 20px; border-radius: 14px; }
+.puce { padding: 5px 12px; font-size: 12.5px; }
+.btn-or, .btn-secondaire { padding: 10px 18px; border-radius: 11px; }
+.loc-corps { padding: 32px 36px 72px; }
+@media (max-width: 640px) { .loc-corps { padding: 20px 16px 56px; } }
+/* Les pages posent `p-4 sm:p-7` (28 px) : sur ordinateur, on ouvre davantage. */
+@media (min-width: 901px) {
+  .admin-corps > main, .coquille-corps > main, .portail-ecrans > main { padding: 36px 44px 80px; }
+  .admin-nav { padding: 18px 14px; gap: 4px; }
+}
+.admin-nav-lien { min-height: 42px; padding: 10px 14px; font-size: 13.5px; }
+/* Cartes empilées avec `mt-4` (16 px) : 28 px entre deux cartes. */
+.loc-carte + .loc-carte, .loc-carte + section.loc-carte, .section-ecran + .loc-carte { margin-top: var(--rythme-4); }
+/* …mais pas dans une grille de tuiles : la grille a déjà son `gap`, et la
+   marge faisait descendre la 2ᵉ et la 3ᵉ tuile de l'accueil locataire. */
+:is(.grille-kpi, .tuiles, .grid, .flex) > .loc-carte + .loc-carte { margin-top: 0; }
+/* Le titre d'une carte garde son pas (16 px) : le `h2` de 21 px ci-dessus est
+   l'écran, pas la carte. Sinon « Mon abonnement » rejetait sa pastille à la ligne. */
+.entete-carte h2 { font-size: var(--pas-sous-titre); }
+/* La rangée libellé ↔ valeur suit la respiration des rangs ; au téléphone,
+   la valeur descend sous le libellé plutôt que d'écraser l'un ou l'autre. */
+.ligne-info { padding-block: 11px; font-size: 13.5px; }
+@media (max-width: 640px) {
+  .ligne-info { flex-wrap: wrap; row-gap: 6px; }
+  .ligne-info > span:first-child { flex-shrink: 0; }
+}
+/* Un tableau respire aussi : lignes plus hautes. */
+.tableau td, .tableau th { padding-block: 12px; }
+.tableau td { font-size: 13.5px; }
+/* Colonne de liste des écrans en deux volets (Documents, Incidents, Artisans) :
+   un peu plus large dès qu'on a la place, la flèche « → » coupait les titres. */
+@media (min-width: 1100px) { .split { grid-template-columns: minmax(0, 384px) minmax(0, 1fr); gap: 20px; } }
+/* Accès rapide de la fiche bail : 13 px, comme le menu. */
+.dossier-nav a { font-size: 13px; }
+/* Doctrine repliée dans la console : le même résumé partout, au pas du titre de carte. */
+.portail-ecrans details.section-ecran > summary { cursor: pointer; font-family: var(--font-titres), system-ui, sans-serif; font-size: 1.0625rem; font-weight: 600; color: var(--encre); }
+/* Les cartes de l'espace artisan respirent comme les autres. */
+.artisan-carte { padding: 26px 28px; border-radius: 18px; }
+@media (max-width: 640px) { .artisan-carte { padding: 20px; border-radius: 16px; } }
+/* Tableau des prestataires (pages légales) au téléphone : une fiche par ligne
+   plutôt que trois colonnes tassées ; l'en-tête est redit devant chaque cellule. */
+@media (max-width: 640px) {
+  .tableau-fiches .tableau thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tableau-fiches .tableau tr { display: block; padding-block: 14px; border-bottom: 1px solid var(--filet); }
+  .tableau-fiches .tableau td { display: block; padding: 4px 0; border: 0; }
+  .tableau-fiches .tableau td:first-child { font-weight: 600; color: var(--encre); padding-bottom: 6px; }
+  .tableau-fiches .tableau td[data-libelle]::before { content: attr(data-libelle); display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--libelle); margin-bottom: 2px; }
+}
+

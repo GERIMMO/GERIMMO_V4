@@ -92,7 +92,7 @@ export function FormulaireAlerte({
               </option>
             ))}
           </select>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Une alerte est toujours confiée à au moins une personne.
           </p>
         </div>

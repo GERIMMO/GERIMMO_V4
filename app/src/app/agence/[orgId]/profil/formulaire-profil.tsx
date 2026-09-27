@@ -11,6 +11,7 @@ import {
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChampFichier } from "@/components/champ-fichier";
 
 type Organisation = {
   name: string;
@@ -117,7 +118,7 @@ function Formulaire({
   // Un seul marquage des champs obligatoires, l'astérisque, et sa légende.
   return (
     <form action={action} className="space-y-4">
-      <p className="text-xs text-muted-foreground">* champ obligatoire</p>
+      <p className="text-sm text-muted-foreground">* champ obligatoire</p>
       <div className="space-y-2">
         <Label htmlFor="pr-nom">{estProprietaire ? "Nom du parc *" : "Nom de l'agence *"}</Label>
         <Input id="pr-nom" name="name" required defaultValue={valeur("name")} />
@@ -190,7 +191,7 @@ function Formulaire({
               defaultValue={valeur("carte_pro")}
               placeholder="ex. CPI 7501 2026 000 000 000"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Numéro suivi de la CCI de délivrance, par exemple « CCI de
               Paris ». Reportée sur le bail et le mandat de gestion.
             </p>
@@ -213,7 +214,7 @@ function Formulaire({
               defaultValue={valeur("tva_intracom")}
               placeholder="ex. FR 12 345678901"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Mention obligatoire des factures d&apos;honoraires. Sans elle,
               l&apos;émission est refusée.
             </p>
@@ -231,7 +232,7 @@ function Formulaire({
             />
             Franchise en base de TVA (article 293 B du CGI)
           </label>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Cochée, les factures d&apos;honoraires ne portent aucune TVA et
             affichent la mention de franchise à la place.
           </p>
@@ -245,7 +246,7 @@ function Formulaire({
           defaultValue={valeur("iban")}
           placeholder="ex. FR76 …"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Reporté sur les avis d&apos;échéance.
         </p>
       </div>
@@ -253,16 +254,16 @@ function Formulaire({
           SIRET et carte professionnelle, elle semblait englober ces champs. */}
       {!estProprietaire && (
         <SousSection titre="Votre marque sur Gerimmo">
-          <p className="text-xs text-muted-foreground">Ces réglages habillent l’espace agence et le portail locataire avec votre identité.</p>
+          <p className="text-sm text-muted-foreground">Ces réglages habillent l’espace agence et le portail locataire avec votre identité.</p>
           <div className="space-y-2">
             <Label htmlFor="pr-nom-portail">Nom affiché</Label>
             <Input id="pr-nom-portail" name="nom_portail" defaultValue={valeur("nom_portail")} maxLength={100} />
-            <p className="text-xs text-muted-foreground">Facultatif. Laissé vide, « {organisation.name} » est affiché.</p>
+            <p className="text-sm text-muted-foreground">Facultatif. Laissé vide, « {organisation.name} » est affiché.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="pr-logo">Votre logo</Label>
-            <Input id="pr-logo" name="logo_fichier" type="file" accept="image/png,image/jpeg,image/webp" />
-            <p className="text-xs text-muted-foreground">PNG, JPEG ou WebP, 200 Ko maximum. Le logo sera repris dans le portail, les documents et les e-mails.</p>
+            <ChampFichier id="pr-logo" name="logo_fichier" accept="image/png,image/jpeg,image/webp" />
+            <p className="text-sm text-muted-foreground">PNG, JPEG ou WebP, 200 Ko maximum. Le logo sera repris dans le portail, les documents et les e-mails.</p>
             {organisation.logo_url && (
               <label className="flex min-h-12 items-center gap-3 text-sm">
                 <input type="checkbox" name="retirer_logo" className={CASE} />
@@ -275,9 +276,9 @@ function Formulaire({
             <div className="space-y-2"><Label htmlFor="pr-couleur-1">Couleur principale</Label><Input id="pr-couleur-1" name="couleur_primaire" type="color" defaultValue={valeur("couleur_primaire") || COULEUR_PRINCIPALE} className="h-12" /></div>
             <div className="space-y-2"><Label htmlFor="pr-couleur-2">Couleur foncée</Label><Input id="pr-couleur-2" name="couleur_secondaire" type="color" defaultValue={valeur("couleur_secondaire") || COULEUR_FONCEE} className="h-12" /></div>
           </div>
-          <p className="text-xs text-muted-foreground">Les couleurs trop claires sont légèrement foncées à l’affichage pour conserver des textes lisibles.</p>
-          <div className="space-y-2"><Label htmlFor="pr-domaine">Adresse personnalisée</Label><Input id="pr-domaine" name="domaine_personnalise" defaultValue={valeur("domaine_personnalise")} placeholder="ex. espace.votre-agence.fr" /><p className="text-xs text-muted-foreground">{organisation.domaine_personnalise_verifie_le ? "Adresse vérifiée. Toute modification demandera une nouvelle vérification." : organisation.domaine_personnalise ? "Enregistrée, à connecter : votre espace reste accessible sur gerimmo.app." : "Facultatif. Votre adresse sera vérifiée avant sa mise en service."}</p></div>
-          <div className="space-y-2"><Label htmlFor="pr-expediteur">Adresse d’envoi des emails</Label><Input id="pr-expediteur" name="email_expediteur" type="email" defaultValue={valeur("email_expediteur")} placeholder="ex. gestion@votre-agence.fr" /><p className="text-xs text-muted-foreground">{organisation.email_expediteur_verifie_le ? "Expéditeur vérifié et utilisable. Toute modification demandera une nouvelle vérification." : organisation.email_expediteur ? "Enregistrée, à vérifier : les messages partent encore de Gerimmo avec votre identité et votre adresse de réponse." : "Facultatif. Les messages portent déjà votre nom ; l’adresse d’envoi personnalisée nécessite une vérification."}</p></div>
+          <p className="text-sm text-muted-foreground">Les couleurs trop claires sont légèrement foncées à l’affichage pour conserver des textes lisibles.</p>
+          <div className="space-y-2"><Label htmlFor="pr-domaine">Adresse personnalisée</Label><Input id="pr-domaine" name="domaine_personnalise" defaultValue={valeur("domaine_personnalise")} placeholder="ex. espace.votre-agence.fr" /><p className="text-sm text-muted-foreground">{organisation.domaine_personnalise_verifie_le ? "Adresse vérifiée. Toute modification demandera une nouvelle vérification." : organisation.domaine_personnalise ? "Enregistrée, à connecter : votre espace reste accessible sur gerimmo.app." : "Facultatif. Votre adresse sera vérifiée avant sa mise en service."}</p></div>
+          <div className="space-y-2"><Label htmlFor="pr-expediteur">Adresse d’envoi des emails</Label><Input id="pr-expediteur" name="email_expediteur" type="email" defaultValue={valeur("email_expediteur")} placeholder="ex. gestion@votre-agence.fr" /><p className="text-sm text-muted-foreground">{organisation.email_expediteur_verifie_le ? "Expéditeur vérifié et utilisable. Toute modification demandera une nouvelle vérification." : organisation.email_expediteur ? "Enregistrée, à vérifier : les messages partent encore de Gerimmo avec votre identité et votre adresse de réponse." : "Facultatif. Les messages portent déjà votre nom ; l’adresse d’envoi personnalisée nécessite une vérification."}</p></div>
         </SousSection>
       )}
       <SousSection titre="Avis d'échéance">
@@ -294,7 +295,7 @@ function Formulaire({
           />
           Annoncer chaque échéance au locataire par e-mail
         </label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           À la création de l&apos;appel, le locataire reçoit le détail de son
           terme et sa date d&apos;échéance, avec son solde antérieur s&apos;il en
           a un. Un terme déjà réglé n&apos;est jamais réclamé, et cocher la case
@@ -317,7 +318,7 @@ function Formulaire({
           />
           Envoyer automatiquement les quittances et reçus aux locataires
         </label>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Une fois par jour, les quittances émises depuis moins de 45 jours et
           jamais envoyées partent au locataire, sans qu&apos;il y ait à cliquer.
           Cocher cette case vaut validation permanente de leur envoi. Décochée,
@@ -365,7 +366,7 @@ function Formulaire({
             />
           </label>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Chaque matin, le terme impayé le plus ancien de chaque bail reçoit sa
           première relance passé le premier délai, puis la seconde passé le
           second — jamais deux courriers le même jour, et une relance que vous

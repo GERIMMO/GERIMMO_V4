@@ -89,15 +89,6 @@ export default async function PageMission(
         </Succes>
       )}
 
-      {/* 25/09 (A12) : renvoyé du bilan sans avoir démarré, l'artisan lisait
-          la même fiche sans un mot. La raison du retour s'écrit. */}
-      {raison === "demarrer" && mission.statut !== "en_cours" && (
-        <Avertissement>
-          Le bilan ne s&apos;ouvre qu&apos;une fois l&apos;intervention démarrée : le
-          bouton est ci-dessous.
-        </Avertissement>
-      )}
-
       <div className="flex flex-wrap items-center justify-between gap-2">
         <MarqueAgence nom={mission.agence_nom} taille="grande" />
         <Etiquette
@@ -133,6 +124,17 @@ export default async function PageMission(
           </p>
         )}
       </EnteteSousPage>
+
+      {/* 25/09 (A12) : renvoyé du bilan sans avoir démarré, l'artisan lisait
+          la même fiche sans un mot. La raison du retour s'écrit — sous
+          l'en-tête, juste au-dessus du geste qu'elle annonce (nuit du 25/09 :
+          posée avant le titre, elle faisait un second bandeau). */}
+      {raison === "demarrer" && mission.statut !== "en_cours" && (
+        <Avertissement>
+          Le bilan ne s&apos;ouvre qu&apos;une fois l&apos;intervention démarrée : le
+          bouton est ci-dessous.
+        </Avertissement>
+      )}
 
       {/* Le geste attendu maintenant, sous le titre : rendu en bas, sous
           « Où », « Quoi » et « Sur place », il n'apparaissait qu'en faisant

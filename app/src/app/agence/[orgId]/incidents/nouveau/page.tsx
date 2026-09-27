@@ -46,10 +46,15 @@ export default async function PageNouvelIncident(
           ses sœurs, le retour au-dessus, la phrase dessous. Un seul verbe par
           persona (D25) : « déclarer », celui du menu. */}
       <div className="mb-6">
-        <Link href={`/agence/${orgId}/incidents`} className="lien-discret text-[13px]">
+        {/* Le retour « ← Parent » dans le style de la fiche du bien (nuit du
+            25 au 26/09) : un seul style de retour dans l'espace. */}
+        <Link
+          href={`/agence/${orgId}/incidents`}
+          className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
+        >
           ← Incidents
         </Link>
-        <div className="entete-page mt-2">
+        <div className="entete-page">
           <h1>Déclarer un incident</h1>
         </div>
         <p className="text-sm text-muted-foreground">

@@ -6,6 +6,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { eur } from "@/lib/ged";
+import { ChampFichier } from "@/components/champ-fichier";
 
 /** « 2026-10-01 » — la date du jour, pour partir de quelque chose de plausible. */
 function aujourdhui(): string {
@@ -44,7 +45,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
               required
               defaultValue={etat.dateBascule ?? aujourdhui()}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Le jour où les comptes passent chez vous. Les dépôts et les
               avances seront datés de ce jour.
             </p>
@@ -61,7 +62,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
               // valeur déjà saisie (24/09).
               placeholder="ex. 42 000"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Ce que vous recevez réellement. Le détail du fichier devra le
               justifier à l&apos;euro près.
             </p>
@@ -70,15 +71,9 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
 
         <div className="space-y-2">
           <Label htmlFor={`${base}-fichier`}>Votre balance (CSV)</Label>
-          <input
-            id={`${base}-fichier`}
-            name="fichier"
-            type="file"
-            accept=".csv,text/csv"
-            className="block w-full text-sm file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-md file:border file:border-[var(--filet)] file:bg-[var(--ivoire)] file:px-3 file:text-sm"
-          />
+          <ChampFichier id={`${base}-fichier`} name="fichier" accept=".csv,text/csv" />
           {etat.fichier && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Fichier lu : <b>{etat.fichier}</b>
             </p>
           )}
@@ -124,7 +119,7 @@ export function FormulaireReprise({ orgId }: { orgId: string }) {
       </form>
 
       {(etat.inconnues?.length ?? 0) > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Colonnes ignorées, faute d&apos;équivalent : {etat.inconnues!.join(", ")}.
         </p>
       )}

@@ -169,7 +169,7 @@ export function FormulaireIncident({
         <BoutonEnvoi enCoursTexte="Envoi…">
           Déclarer l&apos;incident
         </BoutonEnvoi>
-        <span className="text-xs text-muted-foreground">* champs obligatoires</span>
+        <span className="text-sm text-muted-foreground">* champs obligatoires</span>
       </div>
     </form>
   );

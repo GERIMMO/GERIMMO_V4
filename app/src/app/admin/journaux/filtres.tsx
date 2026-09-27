@@ -19,7 +19,7 @@ export function FiltresJournaux({
 }) {
   const actif = Boolean(filtres.type || filtres.org || filtres.depuis || filtres.jusqu);
   return (
-    <form method="get" className="mb-6 grid gap-3 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Filtrer les journaux">
+    <form method="get" className="loc-carte mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Filtrer les journaux">
       <label className="grid gap-1">
         <span className="libelle-champ">Type d&apos;événement</span>
         <input className={champ} name="type" list="codes-journaux" defaultValue={filtres.type} maxLength={60} placeholder="Ex. tache_, traversee, erreur" />

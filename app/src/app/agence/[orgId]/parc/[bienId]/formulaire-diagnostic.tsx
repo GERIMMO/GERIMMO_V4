@@ -7,6 +7,7 @@ import { aujourdhuiParis } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChampFichier } from "@/components/champ-fichier";
 
 // Dépôt d'un diagnostic : le remplacement archive l'ancien du même type et
 // lève seul le blocage (RM-0.8.5). L'expiration se pré-remplit d'après la
@@ -116,7 +117,7 @@ export function FormulaireDiagnostic({
               ))}
             </select>
             {TYPES_DIAGNOSTIC[type] && (
-              <p className="text-xs text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}</p>
+              <p className="text-sm text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}</p>
             )}
           </div>
         )}
@@ -147,7 +148,7 @@ export function FormulaireDiagnostic({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Classe G : logement interdit à la location (loi Climat).
             </p>
           </div>
@@ -175,7 +176,7 @@ export function FormulaireDiagnostic({
             value={expiration}
             onChange={(e) => setExpiration(e.target.value)}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Laisser vide pour une validité illimitée.
           </p>
         </div>
@@ -183,14 +184,8 @@ export function FormulaireDiagnostic({
           <Label htmlFor={`diag-fichier-${niveau}`}>
             Rapport du diagnostiqueur
           </Label>
-          <Input
-            id={`diag-fichier-${niveau}`}
-            name="fichier"
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            required
-          />
-          <p className="text-xs text-muted-foreground">
+          <ChampFichier id={`diag-fichier-${niveau}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
+          <p className="text-sm text-muted-foreground">
             Obligatoire — le diagnostic est annexé au bail. PDF, JPEG ou PNG
             (10 Mo maximum), classé dans les documents et lié au diagnostic, chaque
             consultation tracée.

@@ -217,7 +217,7 @@ export async function AccueilProprietaire({
               <span className="chiffre montant block">
                 {erreurEncaissements ? "—" : eur(encaisse)}
               </span>
-              <span className="block text-xs text-muted-foreground">
+              <span className="block text-[13px] text-muted-foreground">
                 {/* Ce que le chiffre compte, pas le mécanisme qui le produit */}
                 {!erreurLots && loues === 0 && encaisse === 0
                   ? "aucun bail actif : rien à encaisser pour l'instant"
@@ -234,7 +234,7 @@ export async function AccueilProprietaire({
               <span className="chiffre block">
                 {erreurLots ? "—" : <>{loues} / {nbLots || "—"}</>}
               </span>
-              <span className="block text-xs text-muted-foreground">
+              <span className="block text-[13px] text-muted-foreground">
                 {erreurLots
                   ? "vos lots en gestion directe"
                   : `${nbLots} lot${nbLots > 1 ? "s" : ""} en gestion directe · ${loues} loué${loues > 1 ? "s" : ""}`}

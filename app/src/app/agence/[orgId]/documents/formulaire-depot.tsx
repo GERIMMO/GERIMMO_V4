@@ -6,6 +6,7 @@ import { TYPES_DEPOSABLES, TYPES_DOCUMENT } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChampFichier } from "@/components/champ-fichier";
 
 type Personne = { id: string; nom: string; prenom: string | null };
 
@@ -39,13 +40,7 @@ export function FormulaireDepot({
     <form ref={formulaire} action={action} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="fichier">Fichier</Label>
-        <Input
-          id="fichier"
-          name="fichier"
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-          required
-        />
+        <ChampFichier id="fichier" name="fichier" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" required />
       </div>
       <div className="space-y-2">
         <Label htmlFor="type-depot">Type de document</Label>

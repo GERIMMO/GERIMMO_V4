@@ -74,7 +74,7 @@ export function OuNousEcrire({ objet }: { objet?: string }) {
  */
 export function TableauPrestataires() {
   return (
-    <div className="tableau-defilant">
+    <div className="tableau-defilant tableau-fiches">
       <table className="tableau">
         <thead>
           <tr>
@@ -87,8 +87,8 @@ export function TableauPrestataires() {
           {PRESTATAIRES.map((p) => (
             <tr key={p.nom}>
               <td>{p.nom}</td>
-              <td>{p.role}</td>
-              <td>
+              <td data-libelle="Rôle">{p.role}</td>
+              <td data-libelle="Localisation">
                 <Fait valeur={p.localisation} quoi="localisation" />
               </td>
             </tr>

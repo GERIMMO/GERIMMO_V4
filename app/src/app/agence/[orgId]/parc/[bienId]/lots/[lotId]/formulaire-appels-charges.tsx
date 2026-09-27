@@ -16,6 +16,7 @@ import { eur } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ChampFichier } from "@/components/champ-fichier";
 
 export type PosteCharge = {
   id: string;
@@ -180,16 +181,16 @@ function FormCreerAppel({
       <p className="text-sm font-medium">Saisir un appel de charges</p>
       <div className="flex flex-wrap items-end gap-2">
         <div className="space-y-1">
-          <Label htmlFor="ac-ex" className="text-xs">Exercice</Label>
+          <Label htmlFor="ac-ex" className="text-sm">Exercice</Label>
           {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
           <Input id="ac-ex" name="exercice" type="number" min="2000" max="2100" defaultValue={etat.valeurs?.exercice ?? anneeCourante} className="h-9 w-24" />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="ac-date" className="text-xs">Reçu le</Label>
+          <Label htmlFor="ac-date" className="text-sm">Reçu le</Label>
           <InputDateJour id="ac-date"   className="h-9" name="date_reception" />
         </div>
         <div className="space-y-1">
-          <Label htmlFor="ac-total" className="text-xs">Total de l&apos;appel (€)</Label>
+          <Label htmlFor="ac-total" className="text-sm">Total de l&apos;appel (€)</Label>
           <Input id="ac-total" name="total" type="number" step="0.01" min="0.01" defaultValue={etat.valeurs?.total} className="h-9 w-32" />
         </div>
       </div>
@@ -198,16 +199,16 @@ function FormCreerAppel({
             celui-ci fait de même, sur sa propre ligne, au-dessus du champ — le
             bouton reste à sa place. */}
         <div className="space-y-1">
-          <Label htmlFor={idDocument} className="text-xs">
+          <Label htmlFor={idDocument} className="text-sm">
             Appel du syndic à joindre
           </Label>
-          <Input id={idDocument} name="document" type="file" accept=".pdf,.jpg,.jpeg,.png" className="h-9 w-64 text-xs" />
+          <ChampFichier id={idDocument} name="document" accept=".pdf,.jpg,.jpeg,.png" />
         </div>
         <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
           {"Créer l'appel"}
         </BoutonEnvoi>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         Puis saisissez chaque poste : la grille (décret 87-713) propose la nature, vous corrigez.
       </p>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
@@ -299,7 +300,7 @@ function FormQualifierPoste({
       <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-xs">
         Qualifier
       </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span className="text-sm text-destructive">{etat.erreur}</span>}
     </form>
   );
 }
@@ -349,7 +350,7 @@ function BoutonSupprimerPoste({
   );
   return (
     <form action={action}>
-      <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="ghost" className="h-7 text-sm text-destructive">
         Retirer
       </BoutonEnvoi>
     </form>
@@ -373,7 +374,7 @@ function BoutonSupprimerAppel({
   );
   return (
     <form action={action}>
-      <BoutonEnvoi size="sm" variant="ghost" className="text-xs text-destructive">
+      <BoutonEnvoi size="sm" variant="ghost" className="text-sm text-destructive">
         Supprimer
       </BoutonEnvoi>
     </form>

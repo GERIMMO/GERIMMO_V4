@@ -25,7 +25,7 @@ export function FiltresJournaux({
   ];
   const typeConnu = ["", "tache_", "traversee", ...codes.technique, ...codes.audit].includes(filtres.type);
   return (
-    <form method="get" className="loc-carte mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Filtrer les journaux">
+    <form key={JSON.stringify(filtres)} method="get" className="loc-carte mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Filtrer les journaux">
       <label className="grid gap-1">
         <span className="libelle-champ">Type d&apos;événement</span>
         <select className={champ} name="type" defaultValue={filtres.type}>

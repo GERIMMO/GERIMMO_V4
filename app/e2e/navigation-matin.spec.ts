@@ -55,6 +55,7 @@ test.describe('Tour du matin de la supervision',()=>{
   await formulaire.getByRole('link',{name:'Effacer',exact:true}).click();
   await expect(page).toHaveURL(/\/admin\/journaux$/);
   await expect(type).toHaveValue('');
+  await expect(formulaire.getByLabel('Depuis le',{exact:true})).toHaveValue('');
  });
  test('préserve un ancien filtre partagé sans afficher son code interne',async({page})=>{
   await page.goto('/admin/journaux?type=evenement_ancien_test');

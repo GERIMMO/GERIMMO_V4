@@ -1,0 +1,35 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { MarqueGerimmo } from "@/components/marque-gerimmo";
+import { eur, formaterDate } from "@/lib/ged";
+import { exigerUuids } from "@/lib/identifiants";
+
+type LotInvite={id:string;nom:string;etat:string;bien:string;address_line1:string|null;postal_code:string|null;city:string|null};
+type RapportInvite={id:string;mois:string;net:number;versement_montant:number|null;versement_date:string|null;document_id:string|null};
+type EspaceInvite={agence:{nom:string;email:string|null;telephone:string|null};lots:LotInvite[];lots_total:number;rapports:RapportInvite[];rapports_total:number};
+export const metadata={title:"Mes biens confiés — Gerimmo"};
+const pageNumero=(valeur:string|undefined)=>valeur&&/^\d+$/.test(valeur)?Math.min(10000,Number(valeur)):0;
+export default async function PageProprietaireInvite(props:{params:Promise<{orgId:string}>;searchParams:Promise<{lots?:string;rapports?:string}>}){
+ const {orgId}=await props.params;exigerUuids(orgId);
+ const recherche=await props.searchParams;const lotsPage=pageNumero(recherche.lots);const rapportsPage=pageNumero(recherche.rapports);
+ const db=await createClient();const {data:{user}}=await db.auth.getUser();
+ if(!user)redirect(`/connexion?suite=${encodeURIComponent(`/proprietaire-invite/${orgId}`)}`);
+ const {data,error}=await db.rpc('espace_proprietaire_invite',{p_org:orgId,p_lots_page:lotsPage,p_rapports_page:rapportsPage});
+ const espace=data as EspaceInvite|null;
+ if(error||!espace)return <main className="mx-auto max-w-3xl space-y-4 p-5"><h1>Accès propriétaire indisponible</h1><p>Votre invitation doit être acceptée avec l’adresse e-mail vérifiée du destinataire. L’agence peut aussi avoir fermé cet accès. Aucun abonnement personnel n’est nécessaire.</p><p>Si votre accès était ouvert, réessayez dans un instant ou contactez votre agence.</p><Link href="/espaces" className="btn-secondaire">Mes espaces</Link></main>;
+ const lienPage=(lots:number,rapports:number)=>`/proprietaire-invite/${orgId}?lots=${lots}&rapports=${rapports}`;
+ return <div className="min-h-full bg-[var(--creme)]"><header className="bandeau-appli"><div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3"><MarqueGerimmo/><nav className="flex gap-4 text-sm" aria-label="Mon compte"><Link href="/espaces" className="lien-discret">Mes espaces</Link><Link href="/compte" className="lien-discret">Mon compte</Link></nav></div></header>
+ <main className="mx-auto max-w-6xl space-y-6 p-4 sm:p-7">
+  <section className="vitrine-bandeau"><p className="text-sm opacity-85">{espace.agence.nom} · accès propriétaire invité</p><h1 className="mt-2 text-[var(--sur-marque)]">Mes biens confiés</h1><p className="mt-3 max-w-2xl text-sm">Vos logements et vos comptes rendus de gestion, en consultation. Cet espace est inclus dans l’abonnement de votre agence ; votre gestion personnelle reste séparée.</p></section>
+  <section className="loc-carte" aria-labelledby="mes-logements-confies"><div className="flex flex-wrap items-center justify-between gap-2"><h2 id="mes-logements-confies">Logements actuellement confiés</h2><span className="text-sm text-muted-foreground">{espace.lots_total} lot{espace.lots_total>1?'s':''}</span></div>
+   {espace.lots.length===0?<p className="mt-3 text-sm text-muted-foreground">Aucun lot actuellement détenu et sous mandat actif dans cet espace. Vos comptes rendus historiques restent disponibles ci-dessous.</p>:<ul className="mt-4 grid gap-3 sm:grid-cols-2">{espace.lots.map(l=><li className="rounded-xl border border-[var(--filet)] bg-[var(--marque-clair)] p-4" key={l.id}><h3 className="font-semibold">{l.nom}</h3><p className="mt-1 text-sm">{l.bien}</p><p className="mt-1 text-sm text-muted-foreground">{[l.address_line1,l.postal_code,l.city].filter(Boolean).join(' · ')}</p><p className="mt-2 text-sm">{({brouillon:'En préparation',disponible:'Disponible',loue:'Loué',preavis:'Départ annoncé',archive:'Archivé'} as Record<string,string>)[l.etat]??'Suivi par votre agence'}</p></li>)}</ul>}
+   {(lotsPage>0||(lotsPage+1)*50<espace.lots_total)&&<nav aria-label="Pages de logements" className="mt-4 flex gap-4 text-sm">{lotsPage>0&&<Link href={lienPage(lotsPage-1,rapportsPage)} className="lien-discret">Logements précédents</Link>}{(lotsPage+1)*50<espace.lots_total&&<Link href={lienPage(lotsPage+1,rapportsPage)} className="lien-discret">Logements suivants</Link>}</nav>}
+  </section>
+  <section className="loc-carte" aria-labelledby="mes-comptes-rendus"><h2 id="mes-comptes-rendus">Mes comptes rendus mensuels</h2><p className="mt-2 text-sm text-muted-foreground">Les rapports validés par votre agence. Le net du rapport ne signifie pas qu’un virement a déjà été réalisé ; les versements enregistrés sont indiqués séparément.</p>
+   {espace.rapports.length===0?<p className="mt-4 text-sm text-muted-foreground">Aucun compte rendu validé pour le moment.</p>:<ul className="mt-4 divide-y divide-[var(--filet)]">{espace.rapports.map(r=><li key={r.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div><h3 className="font-semibold">Période du {formaterDate(r.mois)}</h3><p className="mt-1 text-sm">Net du rapport : <strong>{eur(Number(r.net))}</strong></p><p className="mt-1 text-sm text-muted-foreground">{r.versement_date?`Versement enregistré le ${formaterDate(r.versement_date)} : ${eur(Number(r.versement_montant??0))}`:'Aucun versement enregistré sur ce rapport.'}</p></div>{r.document_id?<div className="flex flex-wrap gap-3 text-sm"><Link href={`/proprietaire-invite/${orgId}/documents/${r.document_id}/fichier`} target="_blank" rel="noopener" className="lien-discret">Ouvrir le compte rendu</Link><a href={`/proprietaire-invite/${orgId}/documents/${r.document_id}/fichier?mode=telechargement`} className="lien-discret">Télécharger le PDF</a></div>:<p className="text-sm text-muted-foreground">Le PDF n’a pas encore été conservé par votre agence.</p>}</li>)}</ul>}
+   {(rapportsPage>0||(rapportsPage+1)*30<espace.rapports_total)&&<nav aria-label="Pages des comptes rendus" className="mt-4 flex gap-4 text-sm">{rapportsPage>0&&<Link href={lienPage(lotsPage,rapportsPage-1)} className="lien-discret">Rapports précédents</Link>}{(rapportsPage+1)*30<espace.rapports_total&&<Link href={lienPage(lotsPage,rapportsPage+1)} className="lien-discret">Rapports suivants</Link>}</nav>}
+  </section>
+  <section className="loc-carte"><h2>Votre agence reste votre interlocuteur</h2><p className="mt-2 text-sm text-muted-foreground">Pour une question sur un logement, une opération ou un compte rendu, contactez {espace.agence.nom}.</p>{espace.agence.email&&<p className="mt-2 text-sm break-all">E-mail : {espace.agence.email}</p>}{espace.agence.telephone&&<p className="mt-1 text-sm">Téléphone : {espace.agence.telephone}</p>}<p className="mt-3 text-sm"><Link href="/espaces" className="lien-discret">Je gère aussi d’autres biens moi-même → Mes espaces</Link></p></section>
+ </main></div>;
+}

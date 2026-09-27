@@ -49,7 +49,7 @@ export function empreinteSouscription(s: Stripe.Subscription): string {
 }
 
 /** Relit les prix réels : une variable correcte ne garantit pas que Stripe applique le bon tarif. */
-export async function lignesTarifV2(stripe: Stripe, config: ConfigurationV2, publicTarif: PublicTarif, volume: number, periodicite: Periodicite) {
+export async function lignesTarifV2(stripe: Stripe, config: ConfigurationV2, publicTarif: PublicTarif, volume: number, periodicite: Periodicite, autoriserPrixArchive = false) {
   const tarif = calculerTarif(publicTarif, volume, periodicite);
   const choix = [{ cle: `${tarif.formule}_${periodicite}`, quantite: publicTarif === "agence" ? Math.max(1, volume) : 1,
     montant: tarif.baseCentimes }];
@@ -59,13 +59,13 @@ export async function lignesTarifV2(stripe: Stripe, config: ConfigurationV2, pub
     const id = config.catalogue[choixPrix.cle];
     if (typeof id !== "string" || !id.startsWith("price_")) throw new Error(`Le tarif ${choixPrix.cle.replaceAll("_", " ")} doit être configuré avant la souscription.`);
     const p = await stripe.prices.retrieve(id, { expand: ["tiers"] });
-    if (!p.active || p.livemode !== config.reel || p.currency !== "eur" || p.recurring?.interval !== (periodicite === "annuel" ? "year" : "month") || p.recurring.interval_count !== 1 || p.recurring.usage_type !== "licensed" || p.transform_quantity) {
+    if ((!p.active && !autoriserPrixArchive) || p.livemode !== config.reel || p.currency !== "eur" || p.recurring?.interval !== (periodicite === "annuel" ? "year" : "month") || p.recurring.interval_count !== 1 || p.recurring.usage_type !== "licensed" || p.transform_quantity) {
       throw new Error("Le tarif du prestataire de paiement ne correspond pas à l’offre présentée. Aucun paiement n’a été ouvert.");
     }
     if (p.tax_behavior !== (publicTarif === "agence" ? "exclusive" : "inclusive")) throw new Error("Le traitement des taxes de ce tarif doit être corrigé avant le paiement.");
     if (publicTarif === "agence") {
       const attendu = [[10, 0, 3900], [50, 200, 0], [200, 150, 0], [null, 100, 0]];
-      if (p.billing_scheme !== "tiered" || p.tiers_mode !== "graduated" || p.tiers?.length !== 4 || p.tiers.some((t, i) => t.up_to !== attendu[i][0] || (t.unit_amount ?? 0) !== attendu[i][1] || (t.flat_amount ?? 0) !== attendu[i][2])) {
+      if (p.billing_scheme !== "tiered" || p.tiers_mode !== "graduated" || p.tiers?.length !== 4 || p.tiers.some((t, i) => t.up_to !== attendu[i][0] || (t.unit_amount ?? 0) !== attendu[i][1] || (t.flat_amount ?? 0) !== attendu[i][2] || (t.unit_amount_decimal != null && Number(t.unit_amount_decimal) !== attendu[i][1]) || (t.flat_amount_decimal != null && Number(t.flat_amount_decimal) !== attendu[i][2]))) {
         throw new Error("Les tranches du tarif agence ne correspondent pas à la grille présentée.");
       }
     } else if (p.billing_scheme !== "per_unit" || p.unit_amount !== choixPrix.montant) throw new Error("Le montant du tarif de paiement ne correspond pas à l’offre présentée.");
@@ -177,7 +177,7 @@ export async function snapshotSouscriptionV2(stripe: Stripe, config: Configurati
   const sup = lignes.find(i => i.price.id === config.catalogue[`supplement_${periodicite}`]);
   const capacite = agence ? Math.max(10, principale.quantity ?? 1) : (baseCapacites[form] ?? 0) + (sup?.quantity ?? 0);
   const volume = agence ? (principale.quantity ?? 1) : capacite;
-  const valide = await lignesTarifV2(stripe, config, agence ? "agence" : "proprietaire_direct", volume, periodicite);
+  const valide = await lignesTarifV2(stripe, config, agence ? "agence" : "proprietaire_direct", volume, periodicite, true);
   const attendues = valide.lignes.map(l => `${l.price}:${l.quantity}`).sort();
   const recues = lignes.map(l => `${l.price.id}:${l.quantity}`).sort();
   if (JSON.stringify(attendues) !== JSON.stringify(recues)) throw new Error("Les lignes facturées ne correspondent pas à une formule Gerimmo.");

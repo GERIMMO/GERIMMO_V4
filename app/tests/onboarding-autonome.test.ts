@@ -127,7 +127,7 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     const {
       rows: [r],
     } = await db.query<{ organization_id: string }>(
-      `select * from public.ouvrir_organisation('Parc Durand','proprietaire_direct','durand@exemple.fr',30,false)`
+      `select * from public.ouvrir_organisation('Parc Durand','proprietaire_direct','durand@exemple.fr',14,false)`
     );
     await db.query("reset role");
     const {
@@ -166,22 +166,10 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     expect(n).toBe("1");
   });
 
-  it("« contrat signé » ouvre directement en actif, sans date d'essai", async () => {
+  it("un nouveau compte commence par 14 jours d'essai et ne devient pas payant par activation administrative", async () => {
     await agir(await superAdmin());
-    const {
-      rows: [r],
-    } = await db.query<{ organization_id: string }>(
-      `select * from public.ouvrir_organisation('Signée','agence','signee@exemple.fr',0,true)`
-    );
-    await db.query("reset role");
-    const {
-      rows: [org],
-    } = await db.query<{ status: string; essai_fin: string | null }>(
-      `select status::text, essai_fin from public.organizations where id=$1`,
-      [r.organization_id]
-    );
-    expect(org.status).toBe("active");
-    expect(org.essai_fin).toBeNull();
+    expect(await refusee(`select * from public.ouvrir_organisation('Signée','agence','signee@exemple.fr',0,true)`)).toMatch(/14 jours/);
+    expect(await refusee(`select * from public.ouvrir_organisation('Long essai','agence','essai@exemple.fr',30,false)`)).toMatch(/14 jours/);
   });
 
   it("refuse tout le monde sauf le super admin, et refuse une adresse invalide", async () => {
@@ -203,7 +191,7 @@ describe.skipIf(!DB_URL)("ouvrir une organisation depuis la console", () => {
     // Une durée d'essai absurde se refuse aussi : elle finirait en date.
     expect(
       await refusee(`select * from public.ouvrir_organisation('Cabinet Test','agence','x@y.fr',900,false)`)
-    ).toMatch(/entre 0 et 365/);
+    ).toMatch(/14 jours/);
   });
 });
 

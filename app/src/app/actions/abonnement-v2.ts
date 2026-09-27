@@ -14,7 +14,7 @@ import { configurationStripeV2, creerClientStripeV2, lignesTarifV2, apercuTarifV
 export type EtatAbonnementV2Action = { erreur?: string; succes?: string; proposition?: { id: string; formule: string; periodicite: Periodicite;
   volume: number; capacite: number; montantCents: number; totalCents: number; taxesCents: number; prorataCents: number;
   premierPrelevementCents?: number; dateEffet: string; expiration: string; type: PropositionStripeV2["type"]; detailFiscal: string } };
-type Contexte = { version: string; public_tarif: PublicTarif; volume_actuel: number; capacite: number; formule: string | null;
+type Contexte = { version: string; public_tarif: PublicTarif; volume_actuel: number; volume_reserve?: number; capacite: number; formule: string | null;
   periodicite: Periodicite | null; montant_centimes: number; statut: string; essai_fin: string | null; periode_fin: string | null;
   stripe_customer_id: string | null; stripe_subscription_id: string | null; revision_abonnement: string; changement_programme: unknown };
 type Proposition = { id: string; organization_id: string; acteur_id: string; snapshot: PropositionStripeV2; expire_le: string; consentie_le: string | null; etat?: string };
@@ -49,7 +49,7 @@ export async function preparerAbonnementV2(orgId: string, _etat: EtatAbonnementV
     const periodicite = String(form.get("periodicite") || etat.periodicite || "mensuel") as Periodicite;
     if (!["mensuel", "annuel"].includes(periodicite)) throw new Error("Choisissez une périodicité valide.");
     const volume = form.get("volume") === null || form.get("volume") === "" ? Number(etat.volume_actuel) : Number(form.get("volume"));
-    if (!Number.isSafeInteger(volume) || volume < Number(etat.volume_actuel)) throw new Error("La formule doit couvrir tous les biens ou lots actuellement gérés.");
+    if (!Number.isSafeInteger(volume) || volume < Math.max(Number(etat.volume_actuel), Number(etat.volume_reserve ?? 0))) throw new Error("La formule doit couvrir tous les biens ou lots actuellement gérés.");
     const { data: org } = await supabase.from("organizations").select("name,email_contact").eq("id", orgId).single();
     if (!org) throw new Error("Votre organisation n’a pas pu être lue.");
     const client = await assurerClientStripe(stripe, { orgId, nom: org.name, email: org.email_contact ?? utilisateur.email ?? null, existant: etat.stripe_customer_id });

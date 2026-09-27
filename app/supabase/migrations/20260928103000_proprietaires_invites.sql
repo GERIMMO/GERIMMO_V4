@@ -29,7 +29,7 @@ returns setof uuid language sql stable security definer set search_path='' as $$
  join auth.users u on u.id=i.compte_id
  where i.agence_id=p_org and i.compte_id=(select auth.uid())
    and i.accepte_le is not null and i.revoque_le is null
-   and u.email_confirmed_at is not null
+   and u.email_confirmed_at is not null and (u.banned_until is null or u.banned_until<=now())
    and lower(btrim(u.email))=i.email_invite and lower(btrim(p.email))=i.email_invite;
 $$;
 revoke all on function public.proprietaire_invite_personnes(uuid) from public,anon,authenticated;
@@ -69,7 +69,7 @@ begin
  if p_jeton is null or p_jeton !~ '^[0-9a-f]{64}$' then raise exception 'Invitation invalide ou expirée';end if;
  select * into v from public.proprietaires_invites where jeton_empreinte=encode(sha256(convert_to(p_jeton,'UTF8')),'hex') for update;
  if not found or v.revoque_le is not null or v.expire_le<=now() then raise exception 'Invitation invalide ou expirée';end if;
- select lower(btrim(email)) into v_email from auth.users where id=auth.uid() and email_confirmed_at is not null;
+ select lower(btrim(email)) into v_email from auth.users where id=auth.uid() and email_confirmed_at is not null and (banned_until is null or banned_until<=now());
  if v_email is null or v_email<>v.email_invite
   or not exists(select 1 from public.persons p where p.id=v.person_id and p.organization_id=v.agence_id and lower(btrim(p.email))=v.email_invite) then
    raise exception 'Connectez-vous avec l’adresse e-mail vérifiée à laquelle cette invitation est destinée' using errcode='42501';
@@ -165,7 +165,7 @@ returns table(storage_path text,titre text,mime_type text) language plpgsql secu
 begin
  if auth.uid() is null or p_mode not in('consultation','telechargement') or not public.proprietaire_invite_document_lisible(p_document)
   or not exists(select 1 from public.documents d where d.id=p_document and d.organization_id=p_org) then raise exception 'Document inaccessible avec ce compte' using errcode='42501';end if;
- insert into public.acces_pieces_log(organization_id,account_id,document_id,action) values(p_org,auth.uid(),p_document,p_mode::public.acces_piece_action);
+ insert into public.acces_pieces_log(organization_id,account_id,document_id,action) values(p_org,auth.uid(),p_document,p_mode);
  return query select d.storage_path,d.titre,d.mime_type from public.documents d where d.id=p_document and d.organization_id=p_org;
 end $$;
 revoke all on function public.proprietaire_invite_fichier(uuid,uuid,text) from public,anon;

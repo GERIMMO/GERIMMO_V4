@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { configurationStripeV2, finEssaiV2, lignesTarifV2, ouvrirSouscriptionV2, terminerSouscriptionEssaiV2,
-  augmenterAbonnementV2, programmerBaisseV2, empreinteSouscription, type ConfigurationV2, type PropositionStripeV2 } from "@/lib/stripe-tarification";
+  augmenterAbonnementV2, programmerBaisseV2, resilierAbonnementV2, empreinteSouscription, type ConfigurationV2, type PropositionStripeV2 } from "@/lib/stripe-tarification";
 import type Stripe from "stripe";
 const config: ConfigurationV2 = { cle: "sk_test_x", reel: false, catalogue: { solo_mensuel: "price_solo", agence_mensuel: "price_agence", patrimoine_annuel: "price_pa", supplement_annuel: "price_sup" }, fiscalite: { mode: "exonere", mention: "Exonération de test explicitement choisie" } };
 const proposition: PropositionStripeV2 = { version: "2026-09-v2", public_tarif: "proprietaire_direct", volume_source: 1, volume_cible: 1, capacite: 1, formule: "solo", periodicite: "mensuel", montant_centimes: 599, total_centimes: 599, taxe_centimes: 0, prorata_centimes: 0, date_effet: "2026-10-01T00:00:00Z", type: "souscription", revision_abonnement: "nouveau", stripe_customer_id: "cus_x", stripe_subscription_id: null, stripe_lignes: [{ price: "price_solo", quantity: 1 }], stripe_proration_date: 0, fiscalite: { mode: "exonere", mention: "Exonération test" }, essai_fin: "2026-10-01T00:00:00Z", empreinte_stripe: null, acteur_id: "acteur" };
@@ -67,4 +67,18 @@ describe("tarification Stripe isolée", () => {
     const s = { id: "s", status: "active", cancel_at_period_end: false, items: { data: [{ id: "si", price: { id: "p" }, quantity: 1, current_period_end: 4000 }] } } as unknown as Stripe.Subscription;
     expect(empreinteSouscription(s)).not.toBe(empreinteSouscription({ ...s, cancel_at_period_end: true }));
   });
+  it("résilier annule le futur changement sans annuler la période payée", async () => {
+    const release = vi.fn().mockResolvedValue({}); const update = vi.fn().mockResolvedValue({});
+    const stripe = { subscriptionSchedules: { retrieve: vi.fn().mockResolvedValue({ metadata: { proposition_id: "ancienne" } }), release }, subscriptions: { update } } as unknown as Stripe;
+    await resilierAbonnementV2(stripe, { id: "sub", schedule: "sched", metadata: { tarification_version: "2026-09-v2" } } as unknown as Stripe.Subscription, "resiliation");
+    expect(release).toHaveBeenCalledWith("sched", {}, { idempotencyKey: "abonnement-v2-annuler-calendrier-resiliation" });
+    expect(update).toHaveBeenCalledWith("sub", { cancel_at_period_end: true }, expect.anything());
+  });
+  it("résilier abandonne une hausse dont le paiement est encore en attente", async () => {
+    const voidInvoice = vi.fn().mockResolvedValue({}); const update = vi.fn().mockResolvedValue({});
+    const stripe = { invoices: { retrieve: vi.fn().mockResolvedValue({ status: "open" }), voidInvoice }, subscriptions: { update } } as unknown as Stripe;
+    await resilierAbonnementV2(stripe, { id: "sub", pending_update: {}, latest_invoice: "inv", metadata: { tarification_version: "2026-09-v2" } } as unknown as Stripe.Subscription, "resiliation");
+    expect(voidInvoice).toHaveBeenCalledWith("inv", {}, expect.anything()); expect(update).toHaveBeenCalled();
+  });
+
 });

@@ -64,16 +64,18 @@ export default async function PageEspaces() {
   // qu'aucune agence ne l'a sollicité — son adhésion de navigation naît avec la
   // première demande de devis. Sans cette lecture, il arrivait sur « Aucun
   // accès actif » alors que sa fiche existe et attend d'être validée.
-  const [{ data, error: erreurAdhesions }, { data: artisan, error: erreurArtisan }] = await Promise.all([
+  const [{ data, error: erreurAdhesions }, { data: artisan, error: erreurArtisan }, { data: invitesBruts, error: erreurInvites }] = await Promise.all([
     supabase
       .from("memberships")
       .select("id, role, organization:organizations(id, name)")
       .eq("account_id", user.id)
       .eq("status", "active"),
     supabase.rpc("mon_artisan"),
+    supabase.rpc("mes_espaces_proprietaire_invite"),
   ]);
 
   const adhesions = (data ?? []) as unknown as Adhesion[];
+  const invites = (invitesBruts ?? []) as { agence_id: string; agence_nom: string }[];
   // Une seule carte pour l'artisan, quel que soit le nombre d'agences : son
   // portail ne se décline pas par organisation, il les réunit. Autant de
   // cartes que d'agences mènerait trois fois à la même page.
@@ -121,7 +123,7 @@ export default async function PageEspaces() {
     if (nom) anciens.push({ id: m.id, orgId: m.organization_id, nom });
   }
 
-  const accesIncomplets = Boolean(erreurAdhesions || erreurArtisan || erreurAnciens || erreurContexteAncien);
+  const accesIncomplets = Boolean(erreurAdhesions || erreurArtisan || erreurAnciens || erreurContexteAncien || erreurInvites);
 
   // Un compte ouvert par « Inscrire mon entreprise » (audit du 27/09) n'a ni
   // adhésion ni fiche tant que l'entreprise n'est pas saisie : il revient à
@@ -129,6 +131,7 @@ export default async function PageEspaces() {
   if (
     !accesIncomplets &&
     adhesions.length === 0 &&
+    invites.length === 0 &&
     !estArtisan &&
     user.user_metadata?.espace === "artisan"
   ) {
@@ -142,6 +145,7 @@ export default async function PageEspaces() {
   if (
     !accesIncomplets &&
     adhesions.length === 0 &&
+    invites.length === 0 &&
     !estArtisan &&
     user.user_metadata?.espace === "proprietaire_direct"
   ) {
@@ -162,7 +166,7 @@ export default async function PageEspaces() {
   // L'artisan n'a qu'UNE destination, même avec trois adhésions : elles mènent
   // toutes à son portail, qui réunit les agences. Une page à une seule carte
   // n'apporterait rien — on y entre directement.
-  if (!estRelais && !accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0) {
+  if (!estRelais && !accesIncomplets && estArtisan && autresAdhesions.length === 0 && anciens.length === 0 && invites.length === 0) {
     redirect("/artisan");
   }
 
@@ -170,7 +174,7 @@ export default async function PageEspaces() {
   // admin est déjà parti vers sa console plus haut.
   // `!estArtisan` : un gérant qui est aussi artisan a deux destinations, même
   // si l'une d'elles ne tient pas encore à une adhésion.
-  if (!estRelais && !accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0) {
+  if (!estRelais && !accesIncomplets && adhesions.length === 1 && !estArtisan && anciens.length === 0 && invites.length === 0) {
     const chemin = cheminEspace(adhesions[0]);
     if (chemin) redirect(chemin);
   }
@@ -198,7 +202,7 @@ export default async function PageEspaces() {
       <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
         <p className="eyebrow mb-1.5">Un seul compte, tous vos espaces</p>
         <h1 className="mb-6">
-          {adhesions.length === 0 && anciens.length === 0 && !estArtisan && !estRelais && !accesIncomplets
+          {adhesions.length === 0 && anciens.length === 0 && invites.length === 0 && !estArtisan && !estRelais && !accesIncomplets
             ? "Que voulez-vous faire ?"
             : "Mes espaces"}
         </h1>
@@ -208,7 +212,7 @@ export default async function PageEspaces() {
             qu'il vient faire — ouvrir son espace propriétaire ici même,
             inscrire son entreprise d'artisan, ou attendre l'invitation de
             son agence. */}
-        {!estRelais && !accesIncomplets && adhesions.length === 0 && anciens.length === 0 && !estArtisan && (
+        {!estRelais && !accesIncomplets && adhesions.length === 0 && anciens.length === 0 && invites.length === 0 && !estArtisan && (
           <>
             {erreurOuverture && (
               <p role="alert" className="err mb-4">
@@ -222,7 +226,10 @@ export default async function PageEspaces() {
           </>
         )}
 
+        {invites.length > 0 && !adhesions.some((a) => a.role === "proprietaire_direct") && <details className="loc-carte mb-4"><summary className="cursor-pointer font-semibold">Je gère aussi des biens moi-même</summary><div className="mt-4"><p className="mb-3 text-sm text-muted-foreground">Un espace personnel distinct a son essai et son abonnement. La consultation des biens gérés par votre agence reste incluse et indépendante.</p><ChoixEspace aDejaUnEspace nomInitial={typeof user.user_metadata?.nom === "string" ? user.user_metadata.nom : undefined} prenomInitial={typeof user.user_metadata?.prenom === "string" ? user.user_metadata.prenom : undefined}/></div></details>}
+
         <div className="grid gap-2.5">
+          {invites.map((invite) => <Link key={`invite-${invite.agence_id}`} href={`/proprietaire-invite/${invite.agence_id}`} className="carte-espace"><span className="pastille-marque flex size-9.5 shrink-0 items-center justify-center rounded-full text-[13px]">PI</span><span className="min-w-0"><strong className="block">Mes biens confiés à {invite.agence_nom}</strong><span className="mt-1 block text-sm text-muted-foreground">Consultation des logements et comptes rendus · incluse dans l’abonnement de l’agence</span></span></Link>)}
           {estRelais && <Link href="/relais" className="carte-espace"><span><strong className="block">Relais de supervision</strong><span className="block text-sm text-muted-foreground">Suivre les priorités pendant votre délégation temporaire</span></span></Link>}
           {/* L'artisan, en une carte : son portail est inter-agences, et les
               adhésions qu'il porte (une par agence qui l'a sollicité) mènent

@@ -22,6 +22,7 @@ const PUBLIC_PATHS = [
   // reste traversable connecté (ce n'est pas un écran de connexion). Le seul
   // chemin public du portail : les autres pages /artisan/* exigent la session.
   "/artisan/inscription",
+  "/proprietaire-invite/accepter",
   "/mot-de-passe-oublie",
   // Publique (et traversable connecté) : la page doit pouvoir expliquer
   // « Session expirée ou lien invalide » au lieu de rediriger sans un mot.
@@ -42,7 +43,7 @@ const SEGMENTS_CONNUS = new Set([
   "actions", "admin", "agence", "api", "artisan", "assistance", "attestation-loyer",
   "auth", "compte", "conditions", "confidentialite", "connexion", "espaces",
   "inscription", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
-  "nouveau-mot-de-passe", "polices", "quittance", "relais", "securite", "veille",
+  "nouveau-mot-de-passe", "proprietaire-invite", "polices", "quittance", "relais", "securite", "veille",
   // public
   "illustrations", "logo", "marketing",
 ]);

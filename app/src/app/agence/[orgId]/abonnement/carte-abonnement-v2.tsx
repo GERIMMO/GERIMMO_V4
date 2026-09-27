@@ -15,6 +15,7 @@ export async function CarteAbonnementV2({ supabase, orgId }: { supabase: Supabas
       {etat.stripe_subscription_id ? <>
         <div className="ligne-info"><span>{nom ?? "Formule"} · {etat.periodicite === "annuel" ? "annuel" : "mensuel"}</span><b>{etat.montant_centimes == null ? "À vérifier" : `${formaterCentimes(etat.montant_centimes)} ${etat.public_tarif === "agence" ? "HT" : "TTC"}`}</b></div>
         <div className="ligne-info"><span>{etat.annulation_demandee ? "Accès payé jusqu’au" : "Échéance"}</span><span>{dateAbonnement(etat.periode_fin)}</span></div>
+        <div className="ligne-info"><span>Volume facturé</span><span>{etat.volume_facture ?? etat.capacite} {etat.public_tarif === "agence" ? "lots" : "biens"}</span></div>
         <div className="ligne-info"><span>Capacité confirmée</span><span>{etat.capacite} {etat.public_tarif === "agence" ? "lots" : "biens"}</span></div>
       </> : <p className="mt-2 text-sm text-muted-foreground">{etat.essai_fin && etat.ecriture_ouverte ? `Essai gratuit jusqu’au ${dateAbonnement(etat.essai_fin)}.` : "Souscription requise pour reprendre la gestion."} Aucun prélèvement sans votre accord.</p>}
       {etat.changement_programme && <p className="mt-2 text-sm text-muted-foreground">Changement programmé le {dateAbonnement(etat.changement_programme.date_effet)}. Consultez le récapitulatif.</p>}

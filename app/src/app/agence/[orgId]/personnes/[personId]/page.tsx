@@ -35,6 +35,7 @@ import {
   BoutonRetirerLigne,
 } from "./formulaire-mandat";
 import { FormulaireInvitation } from "./formulaire-invitation";
+import { InvitationProprietaire } from "./invitation-proprietaire";
 import { CarteMessages } from "./carte-messages";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
 import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
@@ -92,7 +93,7 @@ export default async function PagePersonne(
   exigerUuids(personId);
   // « Ajouter un email » (carte Accès locataire) ouvre l'édition de la fiche
   const { modifier } = await props.searchParams;
-  const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, user, estProprietaire, role } = await verifierAccesEspace(orgId);
   // 24/09 : la rubrique porte le nom du menu — « Locataires & garants » chez
   // le propriétaire direct. Le retour disait « Personnes » à un clic de là.
   const rubrique = estProprietaire ? "Locataires & garants" : "Personnes";
@@ -169,6 +170,13 @@ export default async function PagePersonne(
       .eq("locataire_principal", personId)
       .in("etat", ["actif", "preavis"]),
   ]);
+
+  const proposerAccesProprietaire = !estProprietaire && role === "admin_agence" && (mandats ?? []).length > 0 && (detentions ?? []).length > 0;
+  const invitationProprietaire = proposerAccesProprietaire
+    ? await supabase.rpc("etat_invitation_proprietaire", { p_org: orgId, p_person: personId })
+    : { data: null, error: null };
+  const etatInvitationProprietaire = invitationProprietaire.error ? "indisponible"
+    : ((invitationProprietaire.data ?? []) as { etat: string }[])[0]?.etat ?? "aucun";
 
   // « Confié à » (maquette v3, RM-18.1.3) : la liste des gérants de l'agence
   const { data: donneesGerants, error: erreurGerants } =
@@ -564,6 +572,8 @@ export default async function PagePersonne(
           </CardContent>
         </Card>
       )}
+
+      {proposerAccesProprietaire && <InvitationProprietaire orgId={orgId} personId={personId} email={personne.email} etatActuel={etatInvitationProprietaire} />}
 
       {/* Accès locataire : invitation — sans objet sur sa propre fiche
           (le propriétaire direct se retrouve dans Personnes, audit 06/09), et

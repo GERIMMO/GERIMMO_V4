@@ -49,8 +49,8 @@ export async function ouvrirOrganisation(
 
   if (!nom) return { erreur: "Le nom de l'organisation est obligatoire.", valeurs };
   if (!email) return { erreur: "L'adresse du responsable est obligatoire.", valeurs };
-  if (!active && (!Number.isFinite(jours) || jours < 0 || jours > 365)) {
-    return { erreur: "La durée d'essai doit tenir entre 0 et 365 jours.", valeurs };
+  if (active || jours !== 14) {
+    return { erreur: "Un nouvel espace démarre avec 14 jours d’essai gratuit, sans abonnement automatique. La souscription sera confirmée par son responsable.", valeurs };
   }
   if (codeSaisi && !codeParrainage) {
     return { erreur: "Le code de parrainage n'a pas la bonne forme : huit lettres ou chiffres, comme 3FA2B9C0.", valeurs };
@@ -69,8 +69,8 @@ export async function ouvrirOrganisation(
     p_nom: nom,
     p_type: type,
     p_email_responsable: email,
-    p_essai_jours: active ? 0 : jours,
-    p_active_immediatement: active,
+    p_essai_jours: 14,
+    p_active_immediatement: false,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
 

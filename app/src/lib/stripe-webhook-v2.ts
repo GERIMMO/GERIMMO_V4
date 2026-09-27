@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { VERSION_TARIFICATION } from "@/lib/tarification";
 import { configurationStripeV2, finEssaiV2, terminerSouscriptionEssaiV2, snapshotSouscriptionV2, type PropositionStripeV2 } from "@/lib/stripe-tarification";
@@ -17,6 +18,10 @@ export async function traiterEvenementStripeV2(stripe: Stripe, supabase: Supabas
   const p = proposition.snapshot as PropositionStripeV2;
   const customer = typeof object.customer === "string" ? object.customer : object.customer?.id;
   if (customer !== p.stripe_customer_id) throw new Error("Le client de ce paiement ne correspond pas à sa confirmation.");
+  const token = randomUUID();
+  const verrou = await supabase.rpc("reserver_traitement_abonnement_v2", { p_org: org, p_token: token });
+  if (verrou.error || verrou.data !== true) throw new Error("Une confirmation est déjà en cours. Le prestataire doit réessayer dans un instant.");
+  try {
   let subscription: Stripe.Subscription;
   if (evenement.type === "checkout.session.expired") {
     const termine = await supabase.rpc("finir_proposition_abonnement_v2", { p_proposition: propositionId, p_etat: "expiree" });
@@ -41,11 +46,14 @@ export async function traiterEvenementStripeV2(stripe: Stripe, supabase: Supabas
   } else subscription = await stripe.subscriptions.retrieve(object.id);
   if (subscription.metadata.organization_id !== org) throw new Error("La souscription ne correspond plus à cette organisation.");
   const snapshot = await snapshotSouscriptionV2(stripe, config, subscription);
-  const applique = await supabase.rpc("appliquer_abonnement_v2", { p_org: org, p_snapshot: snapshot, p_event_id: evenement.id });
+  const applique = await supabase.rpc("appliquer_abonnement_v2", { p_org: org, p_snapshot: { ...snapshot, traitement_token: token }, p_event_id: evenement.id });
   if (applique.error) throw new Error("Le nouvel état de l’abonnement n’a pas pu être enregistré.");
   if (!subscription.pending_update && ["active", "trialing"].includes(subscription.status)) {
     const termine = await supabase.rpc("finir_proposition_abonnement_v2", { p_proposition: propositionId, p_etat: "executee" });
     if (termine.error) throw new Error("La confirmation de l’abonnement n’a pas pu être terminée.");
   }
   return { traite: true, organisation: org };
+  } finally {
+    await supabase.rpc("liberer_traitement_abonnement_v2", { p_org: org, p_token: token });
+  }
 }

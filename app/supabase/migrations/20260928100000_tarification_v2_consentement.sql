@@ -31,6 +31,10 @@ begin
      and not public.is_super_admin() then
    raise exception 'Seul le super admin modifie le statut, le type ou l''essai d''une organisation';
  end if;
+ if new.tarification_version='2026-09-v2' and new.essai_fin is distinct from old.essai_fin
+    and new.essai_fin_v2 is not distinct from old.essai_fin_v2 and public.is_super_admin() then
+   new.essai_fin_v2:=(new.essai_fin+1)::timestamp at time zone 'Europe/Paris';
+ end if;
  return new;
 end $$;
 
@@ -50,6 +54,8 @@ create table public.abonnements_v2 (
  annulation_demandee boolean not null default false,
  changement_programme jsonb,
  paiement_en_defaut_depuis timestamptz,
+ traitement_token uuid,
+ traitement_expire_le timestamptz,
  updated_at timestamptz not null default now()
 );
 alter table public.abonnements_v2 enable row level security;
@@ -193,8 +199,8 @@ begin
  select * into a from public.abonnements_v2 where organization_id=p_org;
  return jsonb_build_object('organization_id',p_org,'version',o.tarification_version,'public_tarif',o.type,
   'statut',coalesce(a.stripe_statut,'sans_abonnement'),'essai_fin',o.essai_fin_v2,
-  'ecriture_ouverte',public.org_ecriture_ouverte(p_org),'volume_actuel',public.abonnement_volume_v2(p_org),
-  'capacite',coalesce(a.capacite,0),'formule',a.formule,'periodicite',a.periodicite,
+  'ecriture_ouverte',public.org_ecriture_ouverte(p_org),'volume_actuel',public.abonnement_volume_v2(p_org),'volume_reserve',public.abonnement_volume_reserve_v2(p_org),
+  'capacite',coalesce(a.capacite,0),'volume_facture',coalesce(a.volume_facture,0),'formule',a.formule,'periodicite',a.periodicite,
   'montant_centimes',a.montant_centimes,'total_centimes',a.total_centimes,'taxe_centimes',a.taxe_centimes,
   'periode_fin',a.periode_fin,'annulation_demandee',coalesce(a.annulation_demandee,false),
   'changement_programme',a.changement_programme,'stripe_customer_id',a.stripe_customer_id,
@@ -237,9 +243,9 @@ begin
  if p_snapshot->>'version' is distinct from '2026-09-v2' or p_snapshot->>'public_tarif' is distinct from o.type::text
     or p_snapshot->>'acteur_id' is distinct from p_acteur::text
     or coalesce((p_snapshot->>'volume_source')::integer,-1)<>public.abonnement_volume_v2(p_org)
-    or coalesce(v_type,'') not in ('souscription','augmentation','baisse','resiliation') then raise exception 'Le portefeuille ou le récapitulatif a changé. Recalculez le montant';end if;
+    or coalesce(v_type,'') not in ('souscription','augmentation','baisse','resiliation','annulation_changement') then raise exception 'Le portefeuille ou le récapitulatif a changé. Recalculez le montant';end if;
  if v_type<>'resiliation' then
-   if coalesce((p_snapshot->>'volume_cible')::integer,-1)<public.abonnement_volume_v2(p_org) then raise exception 'La formule doit couvrir les biens actuellement gérés';end if;
+   if coalesce((p_snapshot->>'volume_cible')::integer,-1)<public.abonnement_volume_reserve_v2(p_org) then raise exception 'La formule doit couvrir les biens gérés et les lots déjà confiés par un mandat, y compris ses lignes futures';end if;
    v_prix:=public.tarif_abonnement_v2(o.type,(p_snapshot->>'volume_cible')::integer,p_snapshot->>'periodicite');
    if (p_snapshot->>'capacite')::integer is distinct from (v_prix->>'capacite')::integer
       or p_snapshot->>'formule' is distinct from v_prix->>'formule'
@@ -280,8 +286,10 @@ begin
  if not found or p.acteur_id<>(select auth.uid()) or not public.abonnement_v2_responsable(p.organization_id,(select auth.uid())) then raise exception 'Seul le responsable ayant demandé ce récapitulatif peut le confirmer' using errcode='42501';end if;
  perform 1 from public.organizations where id=p.organization_id for update;
  select * into p from public.propositions_abonnement_v2 where id=p_proposition for update;
+ if p.etat in ('executee','expiree','annulee') then raise exception 'Cette confirmation est terminée. Consultez votre abonnement ou préparez un nouveau récapitulatif';end if;
  if p.consentie_le is not null then return to_jsonb(p);end if;
- if exists(select 1 from public.propositions_abonnement_v2 q where q.organization_id=p.organization_id and q.id<>p.id and q.etat='consentie') then
+ if exists(select 1 from public.propositions_abonnement_v2 q where q.organization_id=p.organization_id and q.id<>p.id and q.etat='consentie'
+   and not(p.snapshot->>'type'='resiliation' and q.snapshot->>'type'='augmentation')) then
   raise exception 'Une confirmation précédente attend encore le résultat du paiement. Terminez-la ou annulez-la avant de recommencer';
  end if;
  if p.snapshot->>'type'='souscription' and exists(select 1 from public.abonnements_v2 a where a.organization_id=p.organization_id and a.stripe_subscription_id is not null and a.stripe_statut not in ('canceled','incomplete_expired')) then
@@ -301,12 +309,20 @@ grant execute on function public.consentir_proposition_abonnement_v2(uuid) to au
 create function public.appliquer_abonnement_v2(p_org uuid,p_snapshot jsonb,p_event_id text) returns boolean
 language plpgsql security definer set search_path='' as $$
 declare o public.organizations%rowtype;a public.abonnements_v2%rowtype;v_statut text:=p_snapshot->>'stripe_statut';v_prix jsonb;v_pending boolean:=coalesce((p_snapshot->>'pending_update')::boolean,false);
+ v_systeme text:=coalesce(current_setting('gerimmo.systeme',true),'');v_statut_org public.organization_status;
 begin
  select * into o from public.organizations where id=p_org for update;
  if not found or o.tarification_version<>'2026-09-v2' then raise exception 'La nouvelle grille ne peut pas remplacer un contrat historique';end if;
  if p_event_id is null or length(btrim(p_event_id))<3 then raise exception 'Référence de confirmation manquante';end if;
  if exists(select 1 from public.evenements_abonnement_v2 where event_id=p_event_id) then return false;end if;
  select * into a from public.abonnements_v2 where organization_id=p_org for update;
+ if p_snapshot->>'traitement_token' is not null then
+   if a.traitement_token is distinct from (p_snapshot->>'traitement_token')::uuid or a.traitement_expire_le<=clock_timestamp() then
+     raise exception 'Cette vérification a expiré. Relisez la souscription avant de la confirmer';
+   end if;
+ elsif a.traitement_expire_le>clock_timestamp() then
+   raise exception 'Une confirmation de paiement est en cours. Réessayez après son actualisation';
+ end if;
  if a.stripe_customer_id is null or a.stripe_customer_id is distinct from p_snapshot->>'stripe_customer_id' then raise exception 'Le client de facturation ne correspond pas à cet espace';end if;
  if p_snapshot->>'stripe_subscription_id' is null or (a.stripe_subscription_id is not null and a.stripe_subscription_id<>p_snapshot->>'stripe_subscription_id'
    and not(a.stripe_statut in ('canceled','incomplete_expired') and coalesce(a.periode_fin,now())<=now())) then raise exception 'La souscription ne correspond pas à cet espace';end if;
@@ -348,6 +364,19 @@ begin
     when v_statut in ('active','trialing') then null else paiement_en_defaut_depuis end,
   updated_at=clock_timestamp()
  where organization_id=p_org;
+ if o.status<>'archivee' then
+   v_statut_org:=case
+    when v_statut in ('active','trialing') then 'active'::public.organization_status
+    when v_statut='canceled' and (p_snapshot->>'periode_fin')::timestamptz>now() then 'active'::public.organization_status
+    when v_statut in ('canceled','unpaid','paused','incomplete_expired') then
+      case when o.essai_fin_v2>now() then 'essai'::public.organization_status else 'suspendue'::public.organization_status end
+    else o.status end;
+   if v_statut_org is distinct from o.status then
+     perform set_config('gerimmo.systeme','on',true);
+     update public.organizations set status=v_statut_org,updated_at=now() where id=p_org;
+     perform set_config('gerimmo.systeme',v_systeme,true);
+   end if;
+ end if;
  insert into public.evenements_abonnement_v2(event_id,organization_id,snapshot) values(p_event_id,p_org,p_snapshot);
  return true;
 end $$;
@@ -381,15 +410,25 @@ declare v_org uuid:=case when tg_op='DELETE' then old.organization_id else new.o
  o public.organizations%rowtype;a public.abonnements_v2%rowtype;v_volume integer;
  v_cle text:=tg_relid::text||'_'||(case when tg_op='DELETE' then old.id else new.id end)::text;
  v_mem jsonb:=coalesce(nullif(current_setting('gerimmo.volumes_avant_v2',true),''),'{}')::jsonb;
- v_avant integer:=coalesce((v_mem->>v_cle)::integer,0);
+ v_avant integer:=coalesce((v_mem->>v_cle)::integer,0);v_limite integer;
 begin
  select * into o from public.organizations where id=v_org;
  if o.tarification_version<>'2026-09-v2' then return null;end if;
  select * into a from public.abonnements_v2 where organization_id=v_org;
- if o.essai_fin_v2>now() and a.stripe_subscription_id is null then return null;end if;
+ v_limite:=coalesce(a.capacite,0);
+ if o.essai_fin_v2>now() and a.stripe_subscription_id is null then
+   select (snapshot->>'capacite')::integer into v_limite from public.propositions_abonnement_v2
+    where organization_id=v_org and etat='consentie' and snapshot->>'type'='souscription'
+    order by consentie_le desc limit 1;
+   if v_limite is null then return null;end if;
+ end if;
  v_volume:=public.abonnement_volume_reserve_v2(v_org);
  perform set_config('gerimmo.volumes_avant_v2',(v_mem-v_cle)::text,true);
- if v_volume>coalesce(a.capacite,0) and v_volume>v_avant then
+ if v_volume>v_avant and a.changement_programme->>'capacite' is not null
+    and v_volume>(a.changement_programme->>'capacite')::integer then
+  raise exception 'Cette action dépasse la capacité prévue à la prochaine échéance. Annulez le changement programmé dans Mon abonnement avant de poursuivre. Vos données sont conservées.' using errcode='23514';
+ end if;
+ if v_volume>v_limite and v_volume>v_avant then
   raise exception 'Cette action nécessite une capacité supplémentaire. Consultez le nouveau montant et confirmez-le dans Mon abonnement avant de poursuivre. Vos données sont conservées.' using errcode='23514';
  end if;
  return null;
@@ -536,3 +575,66 @@ begin
 end $$;
 revoke all on function public.abonnement_appliquer(text,text,text,integer,timestamptz,boolean) from public,anon,authenticated;
 grant execute on function public.abonnement_appliquer(text,text,text,integer,timestamptz,boolean) to service_role;
+
+-- Verrou à durée limitée : plusieurs événements du même abonnement doivent
+-- relire Stripe successivement, avant d'appliquer le fait le plus récent.
+create function public.reserver_traitement_abonnement_v2(p_org uuid,p_token uuid) returns boolean
+language plpgsql security definer set search_path='' as $$
+begin
+ if p_token is null then raise exception 'Référence de traitement manquante';end if;
+ perform 1 from public.organizations where id=p_org and tarification_version='2026-09-v2' for update;
+ if not found then return false;end if;
+ update public.abonnements_v2 set traitement_token=p_token,traitement_expire_le=clock_timestamp()+interval '90 seconds'
+ where organization_id=p_org and (traitement_expire_le is null or traitement_expire_le<=clock_timestamp() or traitement_token=p_token);
+ return found;
+end $$;
+create function public.liberer_traitement_abonnement_v2(p_org uuid,p_token uuid) returns void
+language plpgsql security definer set search_path='' as $$
+begin
+ update public.abonnements_v2 set traitement_token=null,traitement_expire_le=null
+ where organization_id=p_org and traitement_token=p_token;
+end $$;
+revoke all on function public.reserver_traitement_abonnement_v2(uuid,uuid),public.liberer_traitement_abonnement_v2(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.reserver_traitement_abonnement_v2(uuid,uuid),public.liberer_traitement_abonnement_v2(uuid,uuid) to service_role;
+
+-- Une création de compte n'est jamais une souscription ou un ancien cadeau.
+alter function public.ouvrir_organisation(text,public.organization_type,text,integer,boolean) rename to ouvrir_organisation_historique;
+revoke all on function public.ouvrir_organisation_historique(text,public.organization_type,text,integer,boolean) from public,anon,authenticated,service_role;
+create function public.ouvrir_organisation(p_nom text,p_type public.organization_type,p_email_responsable text,p_essai_jours integer default 14,p_active_immediatement boolean default false)
+returns table(organization_id uuid,email_responsable text,compte_deja_existant boolean)
+language plpgsql security definer set search_path='' as $$
+begin
+ if not public.is_super_admin() then raise exception 'Réservé au super admin';end if;
+ if p_essai_jours is distinct from 14 or p_active_immediatement is distinct from false then
+  raise exception 'Tout nouvel espace commence par 14 jours d''essai sans carte. L''abonnement nécessite ensuite l''accord du responsable';
+ end if;
+ return query select * from public.ouvrir_organisation_historique(p_nom,p_type,p_email_responsable,14,false);
+end $$;
+revoke all on function public.ouvrir_organisation(text,public.organization_type,text,integer,boolean) from public,anon;
+grant execute on function public.ouvrir_organisation(text,public.organization_type,text,integer,boolean) to authenticated;
+
+-- Un événement reçu puis abandonné par une panne doit pouvoir être repris.
+-- Le doublon n'est acquitté que si le traitement est réellement terminé.
+alter table public.abonnement_evenements add column traitement_commence_le timestamptz;
+create or replace function public.abonnement_evenement_a_traiter(p_event_id text,p_type text,p_charge jsonb default null)
+returns boolean language plpgsql volatile security definer set search_path='' as $$
+declare v_n integer;e public.abonnement_evenements%rowtype;
+begin
+ insert into public.abonnement_evenements(stripe_event_id,type,charge,traitement_commence_le)
+ values(p_event_id,p_type,p_charge,clock_timestamp()) on conflict(stripe_event_id) do nothing;
+ get diagnostics v_n=row_count;
+ if v_n=1 then return true;end if;
+ select * into e from public.abonnement_evenements where stripe_event_id=p_event_id for update;
+ if e.traite_le is not null then return false;end if;
+ if e.traitement_commence_le>clock_timestamp()-interval '90 seconds' then
+  raise exception 'Cette notification est encore en cours de traitement. Réessayer plus tard' using errcode='55P03';
+ end if;
+ update public.abonnement_evenements set traitement_commence_le=clock_timestamp(),erreur=null where stripe_event_id=p_event_id;
+ return true;
+end $$;
+create or replace function public.abonnement_evenement_rejouable(p_event_id text) returns void
+language sql volatile security definer set search_path='' as $$
+ update public.abonnement_evenements set traitement_commence_le=null where stripe_event_id=p_event_id and traite_le is null;
+$$;
+revoke all on function public.abonnement_evenement_a_traiter(text,text,jsonb),public.abonnement_evenement_rejouable(text) from public,anon,authenticated;
+grant execute on function public.abonnement_evenement_a_traiter(text,text,jsonb),public.abonnement_evenement_rejouable(text) to service_role;

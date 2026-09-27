@@ -19,9 +19,11 @@ import { Label } from "@/components/ui/label";
 export function ChoixEspace({
   nomInitial,
   prenomInitial,
+  aDejaUnEspace = false,
 }: {
   nomInitial?: string;
   prenomInitial?: string;
+  aDejaUnEspace?: boolean;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [etat, action] = useActionState<EtatOuvertureEspace, FormData>(ouvrirEspaceProprietaire, {});
@@ -30,7 +32,7 @@ export function ChoixEspace({
   return (
     <div className="space-y-3">
       <p className="text-muted-foreground">
-        Votre compte est créé, mais il n&apos;est encore rattaché à aucun espace.
+        {aDejaUnEspace ? "Votre compte peut aussi ouvrir un espace distinct pour vos biens en gestion directe." : "Votre compte est créé, mais il n’est encore rattaché à aucun espace."}
       </p>
 
       {/* 1. Je gère mes propres biens — l'espace s'ouvre ici, en une étape. */}

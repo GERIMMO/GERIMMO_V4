@@ -262,3 +262,4 @@
 20260928080000_referentiel_communes_reseau.sql
 20260928081000_ouverture_reseau_par_commune_metier.sql
 20260928100000_tarification_v2_consentement.sql
+20260928103000_proprietaires_invites.sql

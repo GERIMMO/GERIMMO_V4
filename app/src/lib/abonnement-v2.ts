@@ -2,7 +2,7 @@ import type { Formule, Periodicite, PublicTarif } from "./tarification";
 
 export type EtatAbonnementV2 = {
   version: string; public_tarif: PublicTarif; statut: string; essai_fin: string | null;
-  ecriture_ouverte: boolean; volume_actuel: number; capacite: number | null;
+  ecriture_ouverte: boolean; volume_actuel: number; volume_facture?: number; volume_reserve?: number; capacite: number | null;
   formule: Formule | null; periodicite: Periodicite | null;
   montant_centimes: number | null; total_centimes: number | null; taxe_centimes: number | null;
   periode_fin: string | null; annulation_demandee: boolean;

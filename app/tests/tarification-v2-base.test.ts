@@ -3,6 +3,7 @@ import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { verifierBaseDeTest } from "./garde-base";
+import { calculerTarif } from "../src/lib/tarification";
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
 verifierBaseDeTest(DB_URL);
@@ -65,7 +66,7 @@ describe.skipIf(!DB_URL)("Tarification v2 — droits, consentements et volumes",
     await db.query("select public.consentir_proposition_abonnement_v2($1)", [p.id]);
     await db.query("reset role");
     const snapshot = { ...p.snapshot, stripe_subscription_id: "sub_" + org.replaceAll("-", ""), stripe_statut: "active",
-      volume_facture: cible, periode_fin: new Date(Date.now() + 30 * 86400000).toISOString(), annulation_demandee: false, pending_update: false };
+      volume_facture: cible, periode_fin: new Date(Date.now() + (periodicite === "annuel" ? 365 : 30) * 86400000).toISOString(), annulation_demandee: false, pending_update: false };
     await db.query("select public.appliquer_abonnement_v2($1,$2,$3)", [org, snapshot, "evt_" + crypto.randomUUID()]);
     await db.query("select public.finir_proposition_abonnement_v2($1,'executee')", [p.id]);
     return snapshot;
@@ -189,12 +190,16 @@ describe.skipIf(!DB_URL)("Tarification v2 — droits, consentements et volumes",
     const nouveau={...initial,...p.snapshot,stripe_subscription_id:initial.stripe_subscription_id,stripe_statut:"active",volume_facture:3};
     await db.query("select public.appliquer_abonnement_v2($1,$2,'evt_upgrade')",[org,nouveau]);
     await db.query("select public.finir_proposition_abonnement_v2($1,'executee')",[p.id]);
-    await bien("Deuxième logement");expect(await volume()).toBe(2);
+    const second=await bien("Deuxième logement");expect(await volume()).toBe(2);
+    await devenir(acteur);await db.query("select public.retirer_bien($1,$2)",[org,second]);await db.query("reset role");
     const changement={formule:"solo",capacite:1,date_effet:initial.periode_fin};
     await db.query("select public.appliquer_abonnement_v2($1,$2,'evt_schedule')",[org,{...nouveau,changement_programme:changement}]);
     // Une notification omettant le calendrier ne l'efface pas.
     await db.query("select public.appliquer_abonnement_v2($1,$2,'evt_refresh')",[org,nouveau]);
     const c=await contexte();expect(c.capacite).toBe(3);expect(c.changement_programme).toEqual(changement);
+    expect(await refus("select public.retablir_bien($1,$2)",[org,second])).toMatch(/Annulez le changement programmé/);
+    await db.query("reset role");await db.query("select public.appliquer_abonnement_v2($1,$2,'evt_schedule_annule')",[org,{...nouveau,changement_programme:null}]);
+    await devenir(acteur);await db.query("select public.retablir_bien($1,$2)",[org,second]);
   });
   it("l'agence compte les lots distincts sous mandat, même vacants et archivés, et réserve les lignes futures", async () => {
     await db.query("select public.tache_systeme()");
@@ -223,6 +228,47 @@ describe.skipIf(!DB_URL)("Tarification v2 — droits, consentements et volumes",
     await devenir(acteur);
     expect((await db.query("select public.apercu_volume_mandat_v2($1,$2) as n",[org,brouillon])).rows[0].n).toBe(11);
     expect(await refus("update public.mandats set etat='actif' where id=$1",[brouillon])).toMatch(/capacité supplémentaire/);
+  });
+
+  it("une souscription consentie réserve sa capacité pendant le passage chez Stripe", async () => {
+    await bien();const p=await proposition(1);await devenir(acteur);
+    await db.query("select public.consentir_proposition_abonnement_v2($1)",[p.id]);
+    expect(await refus(`insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Trop tôt','parking','1 rue Test','69001','Lyon')`,[org])).toMatch(/capacité supplémentaire/);
+    await db.query("reset role");await db.query("select public.finir_proposition_abonnement_v2($1,'annulee')",[p.id]);
+    await devenir(acteur);expect(await refus("select public.consentir_proposition_abonnement_v2($1)",[p.id])).toMatch(/terminée/);
+  });
+  it("un traitement abandonné est repris, mais un traitement actif ne reçoit pas un faux acquittement", async () => {
+    expect((await db.query("select public.abonnement_evenement_a_traiter('evt_panne','customer.subscription.updated',null) as n")).rows[0].n).toBe(true);
+    expect(await refus("select public.abonnement_evenement_a_traiter('evt_panne','customer.subscription.updated',null)")).toMatch(/encore en cours/);
+    await db.query("update public.abonnement_evenements set traitement_commence_le=clock_timestamp()-interval '91 seconds' where stripe_event_id='evt_panne'");
+    expect((await db.query("select public.abonnement_evenement_a_traiter('evt_panne','customer.subscription.updated',null) as n")).rows[0].n).toBe(true);
+    await db.query("select public.abonnement_evenement_solde('evt_panne',null)");
+    expect((await db.query("select public.abonnement_evenement_a_traiter('evt_panne','customer.subscription.updated',null) as n")).rows[0].n).toBe(false);
+  });
+  it("les événements d'un même abonnement sont sérialisés et un ancien traitement expiré est refusé", async () => {
+    const snapshot=await souscrire(1);const premier=crypto.randomUUID();const second=crypto.randomUUID();
+    expect((await db.query("select public.reserver_traitement_abonnement_v2($1,$2) as ok",[org,premier])).rows[0].ok).toBe(true);
+    expect((await db.query("select public.reserver_traitement_abonnement_v2($1,$2) as ok",[org,second])).rows[0].ok).toBe(false);
+    await db.query("update public.abonnements_v2 set traitement_expire_le=clock_timestamp()-interval '1 second' where organization_id=$1",[org]);
+    expect((await db.query("select public.reserver_traitement_abonnement_v2($1,$2) as ok",[org,second])).rows[0].ok).toBe(true);
+    expect(await refus("select public.appliquer_abonnement_v2($1,$2,'evt_ancien_worker')",[org,{...snapshot,traitement_token:premier}])).toMatch(/vérification a expiré/);
+    await db.query("select public.appliquer_abonnement_v2($1,$2,'evt_dernier_worker')",[org,{...snapshot,traitement_token:second}]);
+    await db.query("select public.liberer_traitement_abonnement_v2($1,$2)",[org,premier]);
+    expect((await db.query("select traitement_token from public.abonnements_v2 where organization_id=$1",[org])).rows[0].traitement_token).toBe(second);
+    await db.query("select public.liberer_traitement_abonnement_v2($1,$2)",[org,second]);
+  });
+
+  it("le calcul serveur en base et le catalogue affiché donnent les mêmes centimes et capacités", async () => {
+    for(const profil of ["agence","proprietaire_direct"] as const) {
+      for(const periodicite of (profil==="agence" ? ["mensuel"] as const : ["mensuel","annuel"] as const)) {
+        for(const n of [0,1,2,3,4,10,11,20,21,25,50,51,100,200,201,300,500]) {
+          const affiche=calculerTarif(profil,n,periodicite);
+          const base=(await db.query("select public.tarif_abonnement_v2($1,$2,$3) as p",[profil,n,periodicite])).rows[0].p;
+          expect(base.montant_centimes).toBe(affiche.montantCentimes);
+          expect(base.capacite).toBe(affiche.capacite);expect(base.formule).toBe(affiche.formule);
+        }
+      }
+    }
   });
 
 });

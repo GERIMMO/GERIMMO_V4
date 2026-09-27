@@ -52,6 +52,7 @@ export function FormulaireAbonnementV2({ orgId, publicTarif, volumeActuel, capac
         <div className="flex justify-between gap-3"><dt>Date d’effet</dt><dd>{dateAbonnement(proposition.dateEffet)}</dd></div>
         <div className="flex justify-between gap-3"><dt>Taxes</dt><dd>{formaterCentimes(proposition.taxesCents)}</dd></div>
         <div className="flex justify-between gap-3 font-semibold"><dt>Total {proposition.periodicite === "annuel" ? "annuel en une fois" : "mensuel"}</dt><dd>{formaterCentimes(proposition.totalCents)}</dd></div>
+        {proposition.type === "souscription" && proposition.premierPrelevementCents != null && <div className="flex justify-between gap-3 font-semibold"><dt>Premier prélèvement après les avoirs acquis</dt><dd>{formaterCentimes(proposition.premierPrelevementCents)}</dd></div>}
         <div className="flex justify-between gap-3"><dt>Ajustement de la période en cours</dt><dd>{formaterCentimes(proposition.prorataCents)}</dd></div>
       </dl>
       <p className="text-xs text-muted-foreground">{proposition.detailFiscal}</p>

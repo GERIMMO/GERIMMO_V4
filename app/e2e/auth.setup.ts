@@ -9,6 +9,7 @@ const COMPTES = [
   { nom: "admin", email: "admin.alpha@gerimmo-demo.fr" },
   { nom: "locataire", email: "locataire.alpha@gerimmo-demo.fr" },
   { nom: "proprietaire", email: "proprietaire@gerimmo-demo.fr" },
+  { nom: "proprietaire-invite", email: "e2e.mandant@gerimmo-demo.fr" },
   { nom: "superadmin", email: "superadmin@gerimmo-demo.fr" },
   // L'artisan est le seul persona dont l'adresse ne porte pas d'organisation :
   // son portail les réunit (RM-19.3.3). Il atterrit donc sur /artisan, jamais
@@ -52,7 +53,7 @@ async function franchirLeSasMfa(page: Page) {
 }
 
 setup("sessions des personas", async ({ browser }) => {
-  // Six connexions, dont une qui franchit le sas MFA, contre un serveur de dév
+  // Sept connexions, dont une qui franchit le sas MFA, contre un serveur de dév
   // qui compile chaque écran à la première visite : les 60 s par défaut de la
   // suite ne suffisent pas, et le setup mourait à mi-parcours en emportant
   // toute la suite avec lui.

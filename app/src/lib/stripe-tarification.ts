@@ -10,7 +10,7 @@ export type PropositionStripeV2 = {
   version: string; public_tarif: PublicTarif; volume_source: number; volume_cible: number;
   capacite: number; formule: string; periodicite: Periodicite; montant_centimes: number;
   total_centimes: number; taxe_centimes: number; prorata_centimes: number; premier_prelevement_centimes?: number;
-  date_effet: string; type: "souscription" | "augmentation" | "baisse" | "resiliation";
+  date_effet: string; type: "souscription" | "augmentation" | "baisse" | "resiliation" | "annulation_changement";
   revision_abonnement: string; stripe_customer_id: string; stripe_subscription_id: string | null;
   stripe_lignes: LigneStripeV2[]; stripe_proration_date: number; fiscalite: FiscaliteV2;
   essai_fin: string | null; empreinte_stripe: string | null; acteur_id: string;
@@ -206,4 +206,13 @@ export async function resilierAbonnementV2(stripe: Stripe, s: Stripe.Subscriptio
     await stripe.subscriptionSchedules.release(scheduleId, {}, { idempotencyKey: `abonnement-v2-annuler-calendrier-${id}` });
   }
   return stripe.subscriptions.update(s.id, { cancel_at_period_end: true }, { idempotencyKey: `abonnement-v2-resiliation-${id}` });
+}
+
+export async function annulerChangementProgrammeV2(stripe: Stripe, s: Stripe.Subscription, id: string) {
+  if (s.metadata.tarification_version !== VERSION_TARIFICATION || !s.schedule || s.pending_update) throw new Error("Aucun changement programmé annulable n’a été trouvé pour cet abonnement.");
+  const scheduleId = typeof s.schedule === "string" ? s.schedule : s.schedule.id;
+  const calendrier = await stripe.subscriptionSchedules.retrieve(scheduleId);
+  if (!calendrier.metadata?.proposition_id) throw new Error("Le calendrier doit être vérifié par Gerimmo avant d’être modifié.");
+  await stripe.subscriptionSchedules.release(scheduleId, {}, { idempotencyKey: `abonnement-v2-retirer-baisse-${id}` });
+  return stripe.subscriptions.retrieve(s.id);
 }

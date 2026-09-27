@@ -94,7 +94,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     expect(o.status).toBe("essai");
     const {
       rows: [{ jours }],
-    } = await db.query(`select (essai_fin - current_date) as jours from public.organizations where id=$1`, [org]);
+    } = await db.query(`select extract(epoch from (essai_fin_v2 - created_at)) / 86400 as jours from public.organizations where id=$1`, [org]);
     expect(Number(jours)).toBe(14);
 
     const { rows: adhesions } = await db.query(

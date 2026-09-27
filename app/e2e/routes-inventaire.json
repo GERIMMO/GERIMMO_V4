@@ -852,7 +852,7 @@
     "dynamic": ""
   },
   {
-    "path": "/proprietaire-invite/ORG",
+    "path": "/proprietaire-invite/ORG_INVITE",
     "persona": "proprietaire-invite",
     "label": "Consultation des biens confiés et comptes rendus mensuels",
     "dynamic": "orgId"

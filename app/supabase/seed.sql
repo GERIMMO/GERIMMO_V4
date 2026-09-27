@@ -43,6 +43,8 @@ begin
       ('multi@gerimmo-demo.fr'),
       ('locataire.alpha@gerimmo-demo.fr'),
       ('proprietaire@gerimmo-demo.fr'),
+      -- Compte seul : l’invitation acceptée par le seed ne crée aucun rôle gérant.
+      ('e2e.mandant@gerimmo-demo.fr'),
       -- Artisan de démo (module 8). Il n'a PAS d'adhésion posée ici : elle est
       -- créée par `solliciter_artisan` au moment où une agence le sollicite —
       -- c'est ainsi que le portail artisan apparaît dans « Mes espaces », et

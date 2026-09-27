@@ -104,7 +104,7 @@ export default async function LayoutAgence({
     // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
     // suit le relit sans nouvel aller-retour.
     compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
-    essaiEchu
+    (essaiEchu || organisation.tarification_version === VERSION_TARIFICATION)
       ? supabase.rpc("etat_abonnement", { p_org: orgId })
       : Promise.resolve({ data: null }),
   ]);
@@ -113,7 +113,7 @@ export default async function LayoutAgence({
     null;
   // Fermée seulement si la base le dit : une lecture en échec ne ferme rien à
   // l'écran (la base, elle, refuse déjà les écritures si c'est le cas).
-  const ecritureFermee = essaiEchu && etatAbonnement?.ecriture_ouverte === false;
+  const ecritureFermee = (essaiEchu || organisation.tarification_version === VERSION_TARIFICATION) && etatAbonnement?.ecriture_ouverte === false;
   const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
     (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
   ).length;

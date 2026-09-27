@@ -105,3 +105,17 @@ Ne pas recalculer à la baisse un avoir déjà acquis lorsque son bénéficiaire
 - Aucun taux fiscal inventé, aucun message « paiement réussi » fondé seulement sur l’URL de retour.
 
 Le compte rendu de livraison doit distinguer : tests locaux, tests SQL, essais navigateur, échanges réels Stripe test, configuration à fournir, et activation de production. Un scénario non exécuté est annoncé comme tel.
+
+## Accès propriétaire invité par une agence
+
+L’accès invité n’ouvre ni organisation personnelle, ni abonnement, ni rôle de gestionnaire. Il coexiste avec un espace de gestion directe facturé séparément pour les biens que le propriétaire gère lui-même.
+
+1. Le responsable d’agence ouvre **Personnes → fiche du propriétaire → Accès propriétaire invité**. La personne doit avoir une adresse e-mail et être rattachée à une détention et un mandat de cette agence.
+2. Après confirmation du destinataire, **Préparer le lien propriétaire** fournit un lien valable sept jours, à copier et transmettre manuellement. Aucun e-mail d’invitation ni SMS n’est envoyé automatiquement. Préparer un nouveau lien ferme l’ancien accès de cette fiche.
+3. Le destinataire se connecte avec cette même adresse vérifiée, ou crée son compte invité depuis le lien puis vérifie son adresse. **Accepter l’invitation** ouvre son espace en consultation.
+4. **Mes espaces** distingue les biens confiés aux agences de sa gestion personnelle. L’espace invité expose les lots encore détenus sous mandat actif/préavis et ses comptes rendus mensuels validés, avec leur PDF lorsqu’il a été conservé. Il n’expose pas les dossiers locataires ni les documents des autres propriétaires. Les données historiques des rapports restent accessibles lorsque la détention prend fin.
+5. Le responsable peut **Fermer l’accès propriétaire** depuis la même fiche. La révocation prend effet sur les écrans comme sur les PDF. L’expiration d’un abonnement d’agence n’enlève pas à l’invité son accès en lecture aux rapports déjà validés.
+
+Les accès reposent sur les droits vérifiés à chaque lecture et sur l’adresse actuellement vérifiée du compte, pas sur la seule possession du lien. Un changement d’adresse du destinataire sur la fiche ou sur le compte suspend cet accès jusqu’à une nouvelle invitation cohérente. Les comptes rendus PDF se téléchargent avec la session du propriétaire, sans clé administrative ni exposition de toute la bibliothèque documentaire.
+
+Tests dédiés : neuf scénarios SQL d’isolation et révocation, tests du téléchargement refusé/autorisé, parcours navigateur d’invitation/révocation et présence du profil invité dans l’audit mobile. Leur présence dans le dépôt ne vaut pas validation : leur résultat réel doit être consigné à la livraison.

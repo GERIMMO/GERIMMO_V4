@@ -5,7 +5,7 @@ import { verifierBaseDeTest } from "./garde-base";
 config({path:".env.local"});const DB=process.env.SUPABASE_DB_URL;verifierBaseDeTest(DB);
 
 describe.skipIf(!DB)("Propriétaires invités — accès séparé, gratuit pour l’invité et cloisonné",()=>{
- let db:Client;let org:string,autreOrg:string,admin:string,agent:string,invite:string,autreInvite:string,nonConfirme:string;
+ let db:Client;let org:string,autreOrg:string,admin:string,agent:string,invite:string,autreInvite:string;
  let personne:string,autrePersonne:string,lot:string,autreLot:string,rapport:string,autreRapport:string,document:string,autreDocument:string,jeton:string;
  const id=async(sql:string,params:unknown[]=[])=>String((await db.query(sql,params)).rows[0].id);
  const compte=async(email:string,confirme=true)=>id("insert into auth.users(id,email,email_confirmed_at) values(gen_random_uuid(),$1,case when $2 then now() else null end) returning id",[email,confirme]);
@@ -30,7 +30,7 @@ describe.skipIf(!DB)("Propriétaires invités — accès séparé, gratuit pour 
  beforeAll(async()=>{
   db=new Client({connectionString:DB});await db.connect();await db.query('begin');
   const suffix=crypto.randomUUID();
-  [admin,agent,invite,autreInvite,nonConfirme]=[await compte(`admin-${suffix}@test.local`),await compte(`agent-${suffix}@test.local`),await compte(`invite-${suffix}@test.local`),await compte(`autre-${suffix}@test.local`),await compte(`sansconfirmation-${suffix}@test.local`,false)];
+  [admin,agent,invite,autreInvite]=[await compte(`admin-${suffix}@test.local`),await compte(`agent-${suffix}@test.local`),await compte(`invite-${suffix}@test.local`),await compte(`autre-${suffix}@test.local`)];
   org=await id("insert into public.organizations(tarification_version,name,type,status) values('historique','Agence invités test','agence','active') returning id");
   autreOrg=await id("insert into public.organizations(tarification_version,name,type,status) values('historique','Agence étrangère test','agence','active') returning id");
   await db.query("insert into public.memberships(account_id,organization_id,role) values($1,$3,'admin_agence'),($2,$3,'agent')",[admin,agent,org]);

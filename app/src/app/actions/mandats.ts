@@ -225,7 +225,7 @@ export async function changerEtatMandat(
   }
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
-  return { succes: "État du mandat mis à jour." };
+  return { succes: nouvelEtat === "resilie" ? "Mandat résilié et historique conservé. Vérifiez le portefeuille restant dans Mon abonnement pour programmer la baisse applicable à la prochaine échéance." : "État du mandat mis à jour.", ...(nouvelEtat === "resilie" ? { lienAbonnement: `/agence/${orgId}/abonnement` } : {}) };
 }
 
 // Confier le mandat à un agent titulaire (RM-18.1.3/18.1.4) — vide : suivi

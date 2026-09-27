@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { calculerTarif } from "@/lib/tarification";
 const mocks = vi.hoisted(() => ({
   user: vi.fn(), rpc: vi.fn(), serviceRpc: vi.fn(), org: vi.fn(), configuration: vi.fn(), client: vi.fn(), lignes: vi.fn(), apercu: vi.fn(),
-  retrieve: vi.fn(), ouvrir: vi.fn(), augmenter: vi.fn(), baisser: vi.fn(), resilier: vi.fn(), snapshot: vi.fn(), assurer: vi.fn(), redirect: vi.fn(),
+  retrieve: vi.fn(), ouvrir: vi.fn(), augmenter: vi.fn(), baisser: vi.fn(), resilier: vi.fn(), annulerChangement: vi.fn(), snapshot: vi.fn(), assurer: vi.fn(), redirect: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ auth: { getUser: mocks.user }, rpc: mocks.rpc,
   from: () => ({ select: () => ({ eq: () => ({ single: mocks.org }) }) }) }) }));
@@ -15,7 +15,7 @@ vi.mock("@/lib/stripe", async importer => ({ ...(await importer<typeof import("@
 vi.mock("@/lib/stripe-tarification", async importer => ({ ...(await importer<typeof import("@/lib/stripe-tarification")>()),
   configurationStripeV2: mocks.configuration, creerClientStripeV2: mocks.client, lignesTarifV2: mocks.lignes, apercuTarifV2: mocks.apercu,
   ouvrirSouscriptionV2: mocks.ouvrir, augmenterAbonnementV2: mocks.augmenter, programmerBaisseV2: mocks.baisser,
-  resilierAbonnementV2: mocks.resilier, snapshotSouscriptionV2: mocks.snapshot, empreinteSouscription: () => "stable" }));
+  resilierAbonnementV2: mocks.resilier, annulerChangementProgrammeV2: mocks.annulerChangement, snapshotSouscriptionV2: mocks.snapshot, empreinteSouscription: () => "stable" }));
 import { preparerAbonnementV2, confirmerAbonnementV2 } from "@/app/actions/abonnement-v2";
 const fiscalite = { mode: "exonere", mention: "Scénario fiscal de test" };
 const contexte = { version: "2026-09-v2", public_tarif: "proprietaire_direct", volume_actuel: 1, volume_reserve: 1,
@@ -44,7 +44,7 @@ beforeEach(() => {
     return { tarif, lignes: [{ price: `price_${tarif.formule}_${periodicite}`, quantity: 1 }], fiscalite }; });
   mocks.apercu.mockResolvedValue({ total: 999, taxe: 0, prorata: 200, premierPaiement: 999 });
   mocks.augmenter.mockResolvedValue({ ...souscription, pending_update: null }); mocks.baisser.mockResolvedValue({ id: "sched" });
-  mocks.resilier.mockResolvedValue({ ...souscription, cancel_at_period_end: true }); mocks.snapshot.mockResolvedValue({ stripe_statut: "active" });
+  mocks.resilier.mockResolvedValue({ ...souscription, cancel_at_period_end: true }); mocks.annulerChangement.mockResolvedValue(souscription); mocks.snapshot.mockResolvedValue({ stripe_statut: "active" });
   mocks.ouvrir.mockResolvedValue("https://checkout.stripe.test/recette"); mocks.redirect.mockImplementation(() => { throw new Error("REDIRECTION_TEST"); });
 });
 afterEach(() => { vi.unstubAllEnvs(); });
@@ -99,4 +99,18 @@ describe("confirmations abonnement V2 côté serveur", () => {
     const r = await confirmerAbonnementV2("org", {}, confirmation()); expect(r.succes).toContain("reste inchangée");
     expect(mocks.serviceRpc.mock.calls.some(([nom]) => nom === "finir_proposition_abonnement_v2")).toBe(false);
   });
+  it("annuler une baisse conserve la capacité payée, sans proposer une nouvelle hausse", async () => {
+    mocks.rpc.mockResolvedValue({ data: { ...contexte, capacite: 3, volume_facture: 3, formule: "bailleur", montant_centimes: 999, total_centimes: 999, changement_programme: { capacite: 1 } }, error: null });
+    mocks.retrieve.mockResolvedValue({ ...souscription, schedule: "sched" });
+    const r = await preparerAbonnementV2("org", {}, form({ type: "annulation_changement", volume: "999" }));
+    expect(r.proposition).toMatchObject({ type: "annulation_changement", capacite: 3, formule: "bailleur", montantCents: 999 }); aucunPaiement();
+  });
+  it("annuler une baisse après accord libère seulement le calendrier", async () => {
+    mocks.rpc.mockImplementation(async nom => ({ data: nom === "lire_abonnement_v2" ? contexte : { ...proposition, snapshot: { ...proposition.snapshot, type: "annulation_changement", prorata_centimes: 0 } }, error: null }));
+    mocks.retrieve.mockResolvedValue({ ...souscription, schedule: "sched" });
+    const r = await confirmerAbonnementV2("org", {}, confirmation()); expect(r.succes).toContain("conservées");
+    expect(mocks.annulerChangement).toHaveBeenCalledTimes(1); expect(mocks.resilier).not.toHaveBeenCalled(); expect(mocks.augmenter).not.toHaveBeenCalled();
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("appliquer_abonnement_v2", expect.objectContaining({ p_snapshot: { stripe_statut: "active", changement_programme: null } }));
+  });
+
 });

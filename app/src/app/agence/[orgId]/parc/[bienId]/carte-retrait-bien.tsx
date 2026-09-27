@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { retablirBien, retirerBien, type EtatRetraitBien } from "@/app/actions/retrait-bien";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -33,7 +34,7 @@ export function CarteRetraitBien({
     retablirBien.bind(null, orgId, bienId),
     {}
   );
-  const abonnement = estProprietaire ? " et de votre abonnement" : "";
+  const abonnement = estProprietaire ? " actif compté pour votre formule" : "";
 
   if (retireLe) {
     return (
@@ -41,9 +42,10 @@ export function CarteRetraitBien({
         <h2 id="retrait-titre" className="text-base">Bien retiré du parc</h2>
         <p className="mt-1 text-muted-foreground">
           Retiré le {new Date(retireLe).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}
-          {estProprietaire ? " : il n'est plus compté dans votre abonnement." : "."} Son
-          historique reste consultable.
+          {estProprietaire ? " : il ne fait plus partie du volume actif." : "."} Son
+          historique reste consultable. La période déjà payée reste acquise.
         </p>
+        <Link href={`/agence/${orgId}/abonnement`} className="mt-3 inline-block font-medium text-primary underline">Vérifier ma formule et programmer une baisse à l’échéance</Link>
         {etatRetour.succes ? (
           <p className="mt-2 text-success-soft-foreground">{etatRetour.succes}</p>
         ) : (
@@ -53,9 +55,10 @@ export function CarteRetraitBien({
             </BoutonEnvoi>
             {estProprietaire && (
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Il sera de nouveau compté dans votre abonnement.
+                La remise en gestion nécessite une capacité suffisante. Toute hausse payante demande votre accord préalable.
               </p>
             )}
+            <Link href={`/agence/${orgId}/abonnement`} className="mt-2 block text-primary underline">Consulter ma capacité avant de remettre en gestion</Link>
             {etatRetour.erreur && (
               <p className="err !mt-2 !mb-0" role="alert">
                 {etatRetour.erreur}

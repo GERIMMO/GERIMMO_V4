@@ -6,8 +6,8 @@ import { calculerTarif, formaterCentimes, libellePeriodicite, type Periodicite, 
 import { dateAbonnement } from "@/lib/abonnement-v2";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
-export function FormulaireAbonnementV2({ orgId, publicTarif, volumeActuel, capacite, periodiciteActuelle, souscrit, essaiFin, volumeSuggere }:
-  { orgId: string; publicTarif: PublicTarif; volumeActuel: number; capacite: number | null; periodiciteActuelle: Periodicite | null; souscrit: boolean; essaiFin: string | null; volumeSuggere?: number }) {
+export function FormulaireAbonnementV2({ orgId, publicTarif, volumeActuel, capacite, periodiciteActuelle, souscrit, essaiFin, volumeSuggere, changementProgramme }:
+  { orgId: string; publicTarif: PublicTarif; volumeActuel: number; capacite: number | null; periodiciteActuelle: Periodicite | null; souscrit: boolean; essaiFin: string | null; volumeSuggere?: number; changementProgramme?: boolean }) {
   const [periodicite, setPeriodicite] = useState<Periodicite>(periodiciteActuelle ?? "mensuel");
   const [volume, setVolume] = useState(Math.max(volumeActuel, volumeSuggere ?? volumeActuel));
   const [etat, preparer] = useActionState<EtatAbonnementV2Action, FormData>(preparerAbonnementV2.bind(null, orgId), {});
@@ -39,6 +39,11 @@ export function FormulaireAbonnementV2({ orgId, publicTarif, volumeActuel, capac
       <BoutonEnvoi enCoursTexte="Calcul du récapitulatif…">Voir le montant et la date avant de confirmer</BoutonEnvoi>
       {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     </form>
+    {changementProgramme && <form action={async (form) => { setChoixModifie(false); await preparer(form); }} className="space-y-2">
+      <input type="hidden" name="type" value="annulation_changement" /><input type="hidden" name="periodicite" value={periodiciteActuelle ?? "mensuel"} /><input type="hidden" name="volume" value={volumeActuel} />
+      <p className="text-sm text-muted-foreground">Un changement est programmé. Pour le retirer et conserver votre formule actuelle, vérifiez son montant de renouvellement avant de confirmer.</p>
+      <BoutonEnvoi variant="outline" enCoursTexte="Vérification du renouvellement…">Préparer l’annulation du changement prévu</BoutonEnvoi>
+    </form>}
     {souscrit && <form action={async (form) => { setChoixModifie(false); await preparer(form); }}>
       <input type="hidden" name="type" value="resiliation" /><input type="hidden" name="periodicite" value={periodiciteActuelle ?? "mensuel"} /><input type="hidden" name="volume" value={volumeActuel} />
       <BoutonEnvoi variant="outline" enCoursTexte="Vérification de l’échéance…">Préparer ma résiliation à l’échéance</BoutonEnvoi>
@@ -47,9 +52,10 @@ export function FormulaireAbonnementV2({ orgId, publicTarif, volumeActuel, capac
       <h3 id="titre-recap-abonnement">Votre récapitulatif avant accord</h3>
       <input type="hidden" name="proposition_id" value={proposition.id} />
       <dl className="space-y-2 text-sm">
-        <div className="flex justify-between gap-3"><dt>Opération</dt><dd>{proposition.type === "resiliation" ? "Résiliation à l’échéance" : proposition.type === "baisse" ? "Baisse programmée" : proposition.type === "augmentation" ? "Augmentation de capacité" : "Souscription"}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Opération</dt><dd>{proposition.type === "annulation_changement" ? "Annulation du changement prévu" : proposition.type === "resiliation" ? "Résiliation à l’échéance" : proposition.type === "baisse" ? "Baisse programmée" : proposition.type === "augmentation" ? "Augmentation de capacité" : "Souscription"}</dd></div>
         <div className="flex justify-between gap-3"><dt>Capacité</dt><dd>{proposition.capacite} {publicTarif === "agence" ? "lots" : "biens"}</dd></div>
         <div className="flex justify-between gap-3"><dt>Date d’effet</dt><dd>{dateAbonnement(proposition.dateEffet)}</dd></div>
+        {publicTarif === "agence" && <div className="flex justify-between gap-3"><dt>Montant hors taxes</dt><dd>{formaterCentimes(proposition.montantCents)}</dd></div>}
         <div className="flex justify-between gap-3"><dt>Taxes</dt><dd>{formaterCentimes(proposition.taxesCents)}</dd></div>
         <div className="flex justify-between gap-3 font-semibold"><dt>Total {proposition.periodicite === "annuel" ? "annuel en une fois" : "mensuel"}</dt><dd>{formaterCentimes(proposition.totalCents)}</dd></div>
         {proposition.type === "souscription" && proposition.premierPrelevementCents != null && <div className="flex justify-between gap-3 font-semibold"><dt>Premier prélèvement après les avoirs acquis</dt><dd>{formaterCentimes(proposition.premierPrelevementCents)}</dd></div>}
@@ -59,7 +65,7 @@ export function FormulaireAbonnementV2({ orgId, publicTarif, volumeActuel, capac
       <p className="text-sm text-muted-foreground">{proposition.type === "resiliation" ? "Vos droits payés restent accessibles jusqu’à la fin de la période. Ensuite, vos données restent consultables et exportables." : proposition.periodicite === "annuel" ? "Paiement en une fois pour douze mois, renouvelé chaque année sauf résiliation avant la prochaine échéance. Une baisse s’applique au renouvellement ; l’accès déjà payé est conservé." : "Paiement renouvelé chaque mois, sans engagement annuel. La résiliation prend effet à la prochaine échéance. Une baisse de capacité s’applique à cette date."}</p>
       <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="confirmation" value="oui" required className="mt-1" />
         <span>J’accepte cette opération, le montant indiqué, sa date d’effet et les conditions de renouvellement. Aucun changement supplémentaire n’est autorisé par cet accord.</span></label>
-      <BoutonEnvoi enCoursTexte="Enregistrement de votre accord…">{proposition.type === "resiliation" ? "Confirmer la résiliation à l’échéance" : "Confirmer ce récapitulatif"}</BoutonEnvoi>
+      <BoutonEnvoi enCoursTexte="Enregistrement de votre accord…">{proposition.type === "annulation_changement" ? "Conserver ma formule actuelle" : proposition.type === "resiliation" ? "Confirmer la résiliation à l’échéance" : "Confirmer ce récapitulatif"}</BoutonEnvoi>
       {confirmation.erreur && <p role="alert" className="text-sm text-destructive">{confirmation.erreur}</p>}
       {confirmation.succes && <p role="status" className="text-sm">{confirmation.succes}</p>}
     </form>}

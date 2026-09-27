@@ -34,7 +34,7 @@ export async function retirerBien(
   const { error } = await supabase.rpc("retirer_bien", { p_org: orgId, p_bien: bienId });
   if (error) return { erreur: sansJargon(error.message) };
   revalider(orgId, bienId);
-  return { succes: "Bien retiré du parc : il n'est plus compté dans l'abonnement." };
+  return { succes: "Bien retiré du parc actif ; votre historique est conservé. Consultez Mon abonnement pour vérifier la formule correspondant au portefeuille restant et programmer une baisse à la prochaine échéance." };
 }
 
 export async function retablirBien(
@@ -50,6 +50,6 @@ export async function retablirBien(
   revalider(orgId, bienId);
   return {
     succes:
-      "Bien remis au parc : il est de nouveau compté. Réactivez ses lots depuis la liste ci-dessus.",
+      "Bien remis au parc. Réactivez ses lots depuis la liste ci-dessus ; la capacité disponible est vérifiée avant toute remise en gestion.",
   };
 }

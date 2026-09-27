@@ -14,7 +14,7 @@ const MATRICE: Ecran[] = JSON.parse(
 
 const SORTIE = process.env.E2E_AUDIT_DIR ?? path.join(__dirname, ".audit");
 
-const PERSONAS = ["public", "agent", "admin", "locataire", "proprietaire", "superadmin", "artisan"] as const;
+const PERSONAS = ["public", "agent", "admin", "locataire", "proprietaire", "proprietaire-invite", "superadmin", "artisan"] as const;
 
 for (const persona of PERSONAS) {
   const ecrans = MATRICE.filter((e) => e.persona === persona);

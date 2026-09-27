@@ -52,6 +52,9 @@ export function libelleActionAudit(action: string | null | undefined): string {
 
 export function libelleEvenement(evenement: string | null | undefined): string {
   if (!evenement) return "Événement du service";
+  if (evenement === "erreur_ecran") return "Problème d’affichage";
+  if (evenement === "remise_rapport_mensuel") return "Envoi d’un compte rendu mensuel";
+  if (evenement === "changement_mot_de_passe") return "Changement de mot de passe";
   const tache = evenement.match(/^tache_([^_]+)/)?.[1];
   if (tache) return Object.hasOwn(TACHES, tache) ? TACHES[tache] : "Travail automatique de Gerimmo";
   if (/erreur|exception|echec/i.test(evenement)) return "Une action n’a pas pu être terminée";
@@ -70,7 +73,7 @@ export function libelleAccesDocument(action: string | null | undefined): string 
 
 /**
  * Les codes que les journaux écrivent, pour proposer un filtre par type
- * (25/09). Une liste indicative : un code inconnu reste filtrable en le tapant.
+ * (25/09). Une liste indicative : les liens vers un code inconnu restent valables.
  */
 export function codesConnusJournaux(): { audit: string[]; technique: string[] } {
   return {

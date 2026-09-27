@@ -74,7 +74,7 @@ abrégée : l'étude d'une source rejetée n'emporte plus les autres.
 ## 4. Ce qui ne dépend que du porteur
 
 - Les **faits légaux de l'éditeur** (page Paramètres de la console).
-- La localisation de Resend et le fondement du transfert hors UE par GitHub Actions ([[Registre des traitements]]).
+- ~~La localisation de Resend~~ — **réglée le 27/09 : Irlande (eu-west-1)** ; reste le fondement du transfert hors UE par GitHub Actions ([[Registre des traitements]]).
 - La durée de conservation des factures d'artisan.
 - ~~La durée de conservation des sauvegardes~~ — **tranché le 27/09 : 90 jours** ([[Plan de reprise d'activité]]).
 

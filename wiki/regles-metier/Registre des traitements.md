@@ -48,7 +48,7 @@ actée dans [[RGPD]] (A2, 2026-07-24).
 | P4 | **Demandes de devis depuis le site** | Répondre à une demande commerciale | Mesures précontractuelles | Prospects (agences) | Nom, adresse électronique, agence, téléphone, taille du portefeuille, message | Supervision | **24 mois** après dépôt |
 | P5 | **Retours utilisateurs et contestations** | Support, amélioration du produit, réexamen humain d'une note contestée (RM-A2.11) | Contrat ; intérêt légitime | Utilisateurs connectés | Compte, message, contexte d'écran, réponses | Supervision | Selon `retention_rules` (règle « signalements support », migration du 14/09) |
 | P6 | **Journaux de sécurité** | Détecter et qualifier les incidents, tracer les actions sensibles et les consultations de pièces | Intérêt légitime (sécurité) ; recommandation CNIL pour l'audit | Tous | Événements techniques, actions sensibles (traversées de supervision, purges, exports), consultations de pièces | Supervision | Technique **6 mois** · audit **3 ans** · accès aux pièces **1 an** |
-| P7 | **Courriers du service** | Envoyer quittances, avis d'échéance, relances, rappels de rendez-vous, courriers d'abonnement | Contrat (pour le compte des organisations, voir volet 2) | Locataires, artisans, responsables | Adresse électronique, contenu du courrier | Resend — **localisation à vérifier** (région du domaine) | Chez Gerimmo : traces d'envoi dans les tables métier ; chez Resend : **à vérifier** |
+| P7 | **Courriers du service** | Envoyer quittances, avis d'échéance, relances, rappels de rendez-vous, courriers d'abonnement | Contrat (pour le compte des organisations, voir volet 2) | Locataires, artisans, responsables | Adresse électronique, contenu du courrier | Resend — domaine d'envoi en région **eu-west-1 (Irlande)**, constaté le 27/09 ; société établie aux États-Unis | Chez Gerimmo : traces d'envoi dans les tables métier ; chez Resend : **à vérifier** |
 | P8 | **Assistance rédactionnelle de la supervision** (ajout du 27/09, audit sécurité) | Préparer l'étude de la veille réglementaire, les brouillons et illustrations du Journal, l'aide à la décision du matin | Intérêt légitime | — | Textes éditoriaux et actualités publiques, **sans donnée de locataire ni de bailleur** d'après le code (`lib/analyse-veille.ts`, `lib/visuel-marketing.ts`, `admin/brief`, `admin/publications`) | OpenAI — États-Unis (**transfert hors UE**) | Chez OpenAI : **à vérifier** |
 | P9 | **Publication du Journal sur Facebook** (ajout du 27/09, audit sécurité) | Diffuser les articles du Journal sur la page Facebook de Gerimmo | Intérêt légitime | — | Titre, texte et illustration de l'article, sans donnée personnelle (`lib/facebook.ts`) | Meta (Facebook) — Irlande, avec transfert vers les États-Unis | Chez Meta : **à vérifier** |
 
@@ -120,9 +120,10 @@ Pour les données de gestion locative, **un transfert est établi depuis le
 Actions** (prestataire américain), par lesquelles la base et les fichiers
 transitent en clair avant chiffrement (voir ci-dessus). À couvrir (clauses
 contractuelles types, ou exécution de la sauvegarde sur une machine située
-dans l'UE). Deux autres points à confirmer : la région de traitement de **Resend** (prestataire américain ;
-choisir une région européenne pour le domaine si l'offre le permet, sinon
-clauses contractuelles types) et, plus tard, **Meta** pour WhatsApp.
+dans l'UE). **Resend** : le domaine d'envoi est en région européenne (eu-west-1,
+Irlande, constaté le 27/09) ; la société reste américaine, le fondement d'un
+éventuel accès depuis les États-Unis (contrat de traitement, clauses types)
+est à lire dans son DPA. Plus tard, **Meta** pour WhatsApp.
 
 ## Implications pour l'application
 - Les durées vivent dans `retention_rules` et s'appliquent chaque nuit : le
@@ -140,7 +141,7 @@ clauses contractuelles types) et, plus tard, **Meta** pour WhatsApp.
 >   avant tout usage automatisé de la note ([[RGPD]], reste à produire).
 > - **Compte fermé** : aucune règle ne fixe encore ce qu'il advient d'un
 >   compte fermé (suppression immédiate ? délai de rétractation ?).
-> - **Resend** : localisation et durée de rétention des journaux d'envoi.
+> - **Resend** : région de l'envoi réglée (Irlande, 27/09) ; restent la durée de rétention des journaux d'envoi et le fondement contractuel (DPA).
 > - **GitHub Actions** (audit sécurité du 27/09) : fondement du transfert hors
 >   UE à établir, ou exécution de la sauvegarde sur une machine européenne.
 > - **Validation** : ce brouillon attend la relecture d'un conseil spécialisé.

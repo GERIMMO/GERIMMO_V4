@@ -152,6 +152,9 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   compte_rendu: "Compte rendu de l'artisan",
   revision_imputation: "Imputation révisée après diagnostic",
   evaluation: "Artisan évalué",
+  // Audit du 27/09 (migrations 20260927122000 et 20260927123000).
+  creneaux_refuses: "Dates du locataire refusées par l'artisan",
+  facture_deposee: "Facture de l'artisan déposée",
 };
 
 export const PIECES_INCIDENT = [

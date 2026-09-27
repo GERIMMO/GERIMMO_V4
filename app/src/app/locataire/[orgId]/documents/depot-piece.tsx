@@ -29,7 +29,7 @@ export function DepotPiece({ orgId, demande }: { orgId: string; demande: Demande
         <span className="min-w-0 flex-1">
           <b className="font-medium">{demande.libelle}</b>
         </span>
-        <span className="loc-tag vert">✓ Déposée — votre agence est notifiée</span>
+        <span className="loc-tag vert">✓ Déposée — votre gestionnaire est notifié</span>
       </div>
     );
   }

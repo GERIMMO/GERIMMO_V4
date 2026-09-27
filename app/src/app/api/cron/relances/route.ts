@@ -44,6 +44,10 @@ type Ligne = {
   date_echeance: string;
   reste: number | string;
   jours_retard: number;
+  /** Dette échue totale du bail (audit 27/09). */
+  total_du?: number | string | null;
+  /** Colocataires titulaires : la relance vise tous les colocataires (audit 27/09). */
+  autres_destinataires?: string[] | null;
 };
 
 /** Un échec tel qu'il se consigne : de quoi retrouver le dossier, jamais l'adresse. */
@@ -101,31 +105,49 @@ export async function GET(request: Request) {
   let envoyees = 0;
   const echecs: EchecConsigne[] = [];
   for (const l of lignes) {
-    const envoi = await envoyerEmail({
-      organisation: { db: supabase, id: l.organization_id },
-      to: l.destinataire,
+    const courrier = (prenom: string | null) => ({
       subject: sujetRelanceLoyer({ niveau: l.niveau, periode: l.periode }),
       html: corpsRelanceLoyer({
         niveau: l.niveau,
-        prenom: l.prenom,
+        prenom,
         emetteur: l.emetteur,
         lot: l.lot,
         periode: l.periode,
         dateEcheance: l.date_echeance,
         reste: Number(l.reste),
+        totalDu: l.total_du == null ? null : Number(l.total_du),
         lien: `${site}/locataire/${l.organization_id}/loyers`,
       }),
+    });
+    const envoi = await envoyerEmail({
+      organisation: { db: supabase, id: l.organization_id },
+      to: l.destinataire,
+      ...courrier(l.prenom),
     });
     if (envoi.erreur) {
       echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: envoi.erreur });
       continue;
+    }
+    // Colocation solidaire : chaque colocataire titulaire reçoit la relance
+    // (wiki « Relances et mise en demeure »). Un échec vers un colocataire se
+    // consigne sans empêcher la trace de la relance, partie au principal.
+    for (const autre of l.autres_destinataires ?? []) {
+      const copie = await envoyerEmail({
+        organisation: { db: supabase, id: l.organization_id },
+        to: autre,
+        ...courrier(null),
+      });
+      if (copie.erreur)
+        echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: `colocataire : ${copie.erreur}` });
     }
     // Envoyé : on consigne. Un échec ici laisse la relance sans trace — le
     // pire cas est un second envoi demain, que le journal de la tâche signale.
     const { error: erreurTrace } = await supabase.rpc("relance_loyer_consigner", {
       p_bail: l.bail_id,
       p_niveau: l.niveau,
-      p_note: `E-mail automatique à ${l.destinataire} — reste ${Number(l.reste).toFixed(2)} € sur le terme du ${l.periode}`,
+      p_note: `E-mail automatique à ${[l.destinataire, ...(l.autres_destinataires ?? [])].join(", ")} — reste ${Number(l.reste).toFixed(2)} € sur le terme du ${l.periode}${
+        l.total_du != null ? `, ${Number(l.total_du).toFixed(2)} € dus au total` : ""
+      }`,
     });
     if (erreurTrace) {
       echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "consignation", motif: erreurTrace.message.slice(0, 200) });

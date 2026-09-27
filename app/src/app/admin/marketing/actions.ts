@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
 
 export type EtatCampagne = { erreur?: string; succes?: string };
 
@@ -32,8 +33,13 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
     modifie_le: new Date().toISOString(),
   }).eq("singleton", true);
   if (error) return { erreur: "Les réglages n’ont pas pu être enregistrés." };
+  // Audit console 27/09 : les réglages marketing se journalisent.
+  const journal = await journaliserSupervision(supabase, "reglages_marketing_modifies", {
+    actif: donnees.get("actif") === "on", publication_automatique: donnees.get("publication_automatique") === "on",
+    heure_paris: heure, seuil_mensuel_cents: Math.round(budget * 100),
+  });
   revalidatePath("/admin/marketing");
-  return { succes: "Pilotage marketing mis à jour." };
+  return { succes: `Pilotage marketing mis à jour.${journal ? "" : JOURNAL_A_VERIFIER}` };
 }
 
 // Une INTENTION éditoriale, pas une campagne (25/09). Le formulaire
@@ -71,6 +77,7 @@ export async function programmerCampagne(_etat: EtatCampagne, donnees: FormData)
     cree_par: utilisateur.user?.id ?? null,
   });
   if (error) return { erreur: "L’intention n’a pas pu être enregistrée." };
+  await journaliserSupervision(supabase, "intention_marketing_notee", { objectif });
   revalidatePath("/admin/marketing");
   return { succes: "Intention notée. Elle n’est pas diffusée automatiquement : préparez l’article depuis « Créer un article » à la date visée." };
 }

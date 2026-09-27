@@ -111,6 +111,20 @@ export default async function PageAlertes(
     .filter((a): a is Extract<ActionDuJour, { source: "rapport" }> => a.source === "rapport")
     .map((a) => ({ ...a, action: <LienGeste href={a.href}>Valider</LienGeste> }));
   const actionsAuDessus = surLesBaux.length + rapports.length;
+  // Audit 27/09 : « 1 critique — à faire en premier » au-dessus d'une
+  // pastille « Critiques 0 » — le critique était un blocage de bail, que les
+  // pastilles ne comptent pas. La phrase dit où il se trouve.
+  const critiquesAuDessus = [...surLesBaux, ...rapports].filter(
+    (a) => a.criticite === "critique"
+  ).length;
+  const critiquesDansLaTable = Math.max(0, plan.critiques - critiquesAuDessus);
+  const ouSontLesCritiques =
+    critiquesAuDessus > 0 && critiquesDansLaTable > 0
+      ? ` : ${critiquesAuDessus} sur les baux, ${critiquesDansLaTable} dans les alertes`
+      : critiquesAuDessus > 0
+        ? " : sur les baux, en haut de la liste"
+        : "";
+  const alertesATraiter = Math.max(0, plan.total - actionsAuDessus);
 
   // PAR QUOI COMMENCER — la phrase du bandeau (gabarit du 12/09). L'écran
   // ouvrait sur le mot « Alertes » et un compteur en mono de 11 px : il disait
@@ -118,7 +132,7 @@ export default async function PageAlertes(
   const parQuoi = compteIllisible
     ? "La liste n’a pas pu être lue — ce n’est pas une journée sans alerte."
     : plan.critiques > 0
-        ? `${plan.critiques} critique${plan.critiques > 1 ? "s" : ""} — à faire en premier.`
+        ? `${plan.critiques} critique${plan.critiques > 1 ? "s" : ""} — à faire en premier${ouSontLesCritiques}.`
         : "Rien de critique : il ne reste que du courant.";
 
   return (
@@ -145,7 +159,9 @@ export default async function PageAlertes(
                 ? "liste indisponible"
                 : plan.total === 0
                   ? "rien à traiter"
-                  : `${plan.total} à traiter`}
+                  : actionsAuDessus > 0 && alertesATraiter > 0
+                    ? `${plan.total} à traiter · ${actionsAuDessus} sur les baux et rapports, ${alertesATraiter} alerte${alertesATraiter > 1 ? "s" : ""}`
+                    : `${plan.total} à traiter`}
             </span>
             {/* Sous md, la carte de création est empilée après toute la
                 liste : ce raccourci y mène directement. Même seuil que

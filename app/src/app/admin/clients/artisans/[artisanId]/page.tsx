@@ -94,6 +94,10 @@ export default async function PageFicheArtisan(
   const listeMetiers = (metiers.data ?? []).map((m) => METIERS[m.metier] ?? m.metier);
   const listeZones = (zones.data ?? []).map((z) => z.code_postal);
   const listePieces = (pieces.data ?? []) as Piece[];
+  // Une assurance en cours : décennale non échue, ou RC pro non échue (la même
+  // règle que la base, `artisan_assurance_deposee`, audit console 27/09).
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const assuranceEnCours = listePieces.some((p) => (p.type === "decennale" && p.expire_le !== null && p.expire_le >= aujourdhui) || (p.type === "rc_pro" && (p.expire_le === null || p.expire_le >= aujourdhui)));
   const listeAgences = (agences.data ?? []) as unknown as {
     organization: { id: string; name: string; status: string } | null;
   }[];
@@ -127,14 +131,15 @@ export default async function PageFicheArtisan(
           </span>
         </div>
 
-        {/* Une validation sans aucune pièce contredit la règle de l'écran (audit
-            25/09, C13). L'écran le dit ; aucune opération de suspension n'existe
-            encore côté base, on ne l'invente pas. */}
-        {artisan.statut_plateforme === "valide" && !pieces.error && listePieces.length === 0 && (
+        {/* Une validation sans assurance en cours contredit la règle de l'écran
+            (audit 25/09, C13). Depuis l'audit console du 27/09, l'écran offre
+            l'issue : suspendre la validation (carte « Statut de l'inscription »). */}
+        {artisan.statut_plateforme === "valide" && !pieces.error && !assuranceEnCours && (
           <div role="alert" className="mb-6 border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-[13px] text-[var(--warning-soft-foreground)]">
-            <b>Validé sans justificatif</b> : aucune décennale ni RC pro n&apos;est déposée alors que
-            l&apos;inscription est validée. Demandez les pièces à l&apos;artisan ; la validation ne peut pas
-            être suspendue depuis cet écran pour l&apos;instant.
+            <b>Anomalie : validé sans assurance en cours</b> — aucune décennale ni RC pro valide n&apos;est
+            déposée alors que l&apos;inscription est validée. Demandez les pièces à l&apos;artisan, ou
+            suspendez la validation ci-dessous.{" "}
+            <a href="#statut-inscription" className="underline">Suspendre la validation</a>
           </div>
         )}
         {artisan.blacklist_globale_le && (
@@ -184,8 +189,8 @@ export default async function PageFicheArtisan(
             </p>
           ) : listePieces.length === 0 ? (
             <p className="text-sm text-[var(--texte-secondaire)]">
-              Aucune pièce déposée. Une inscription sans décennale ni RC pro ne
-              peut pas être validée.
+              Aucune pièce déposée. Une inscription sans décennale ni RC pro en
+              cours ne peut pas être validée.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -254,7 +259,7 @@ export default async function PageFicheArtisan(
           )}
         </section>
 
-        <section className="loc-carte mt-4">
+        <section id="statut-inscription" className="loc-carte mt-4">
           {/* « Décider » seulement quand une décision est possible (24/09) :
               pour un artisan validé, la carte ne propose aucun geste. */}
           <div className="entete-carte">
@@ -291,10 +296,19 @@ export default async function PageFicheArtisan(
           ) : artisan.statut_plateforme === "refuse" ? (
             <DecisionArtisan artisanId={artisan.id} operation="remise_en_attente" />
           ) : (
-            <p className="text-sm text-[var(--texte-secondaire)]">
-              Inscription validée
-              {artisan.statut_decide_le ? ` le ${formaterDate(artisan.statut_decide_le)}` : ""}.
-            </p>
+            <>
+              <p className="text-sm text-[var(--texte-secondaire)]">
+                Inscription validée
+                {artisan.statut_decide_le ? ` le ${formaterDate(artisan.statut_decide_le)}` : ""}.
+              </p>
+              {/* Le geste de contrôle (audit console 27/09) : suspendre, motivé, confirmé, journalisé. */}
+              <details className="mt-4 border-t border-[var(--filet)] pt-3" open={!assuranceEnCours && !pieces.error}>
+                <summary className="cursor-pointer text-sm">Suspendre la validation</summary>
+                <div className="mt-3">
+                  <DecisionArtisan artisanId={artisan.id} operation="suspension" />
+                </div>
+              </details>
+            </>
           )}
           {artisan.purge_prevue_le && (
             <p className="mt-3 text-xs text-[var(--texte-secondaire)]">

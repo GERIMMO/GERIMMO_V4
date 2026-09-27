@@ -15,11 +15,11 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Comment mes locataires me joignent-ils ?",
-    "Chaque locataire a son espace : il vous écrit depuis «\u00a0Mon gestionnaire\u00a0» (vous répondez depuis sa fiche), signale un incident photo à l'appui, dépose ses pièces quand vous les réclamez, et peut donner son congé en ligne — vous êtes alerté à chaque fois.",
+    "Chaque locataire a son espace : il vous écrit depuis «\u00a0Mon gestionnaire\u00a0» (vous répondez depuis «\u00a0Messages\u00a0»), signale un incident photo à l'appui, dépose ses pièces quand vous les réclamez, et peut donner son congé en ligne — vous êtes alerté à chaque fois.",
   ],
   [
     "Ma SCI et mon nom propre sont-ils mélangés ?",
-    "Jamais : chaque organisation a ses lots, son livre et sa fiscalité. Si vous en avez plusieurs, la bascule se fait par le sélecteur d'organisation (en haut de la barre de gauche sur ordinateur, dans « Menu » sur téléphone) — tout suit.",
+    "Jamais : chaque espace (votre SCI, votre nom propre) a ses lots, son livre et sa fiscalité. Si vous en avez plusieurs, la bascule se fait par le sélecteur d'espace (en haut de la barre de gauche sur ordinateur, dans « Menu » sur téléphone) — tout suit.",
   ],
   [
     "Le meublé est-il dans le récapitulatif fiscal ?",
@@ -36,7 +36,7 @@ const QUESTIONS: [string, string][] = [
   // — écart signalé le 24/09.
   [
     "Combien ça coûte ?",
-    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 5,99 € par mois, tout compris, sans engagement — un bien retiré n'est plus compté le mois suivant. L'essai gratuit de 14 jours ouvre la formule complète. À son terme, sans souscription, le compte passe en lecture seule, sauf si vous ne gérez qu'un bien : il reste offert et votre compte reste ouvert. Le détail est dans «\u00a0Mon abonnement\u00a0».",
+    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 5,99 € par mois, tout compris, sans engagement — un bien retiré (depuis sa fiche : «\u00a0Retirer ce bien\u00a0») n'est plus compté le mois suivant. L'essai gratuit de 14 jours ouvre la formule complète. À son terme, sans souscription, le compte passe en lecture seule, sauf si vous ne gérez qu'un bien : il reste offert et votre compte reste ouvert. Le détail est dans «\u00a0Mon abonnement\u00a0».",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",

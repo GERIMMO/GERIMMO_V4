@@ -21,6 +21,9 @@ test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et
   await page.goto("/admin/clients");
   await page.getByRole("link", { name: /Agence Alpha/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/organisations\//);
+  // Les gestes de contrôle (audit console 27/09) : repliés, confirmés, jamais sous l'identité du client.
+  await expect(page.getByRole("heading", { name: "Contrôle de l’abonnement" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Invitation du responsable" })).toBeVisible();
   const lien = page.getByRole("link", { name: "Fiche du compte →" }).first();
   await expect(lien).toBeVisible();
   await lien.click();
@@ -32,6 +35,7 @@ test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et
   await expect(page.getByRole("heading", { name: "Rôles et espaces" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Journal d’audit de ce compte" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Journal technique" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Contrôle du compte" })).toBeVisible();
   // L'entrée dans l'espace se fait avec l'identité de la supervision, jamais celle du compte.
   await expect(page.getByText("avec votre identité")).toBeVisible();
   expect(await debordementHorizontal(page)).toBe(0);
@@ -62,6 +66,12 @@ test("la recherche de la console trouve un compte par son adresse", async ({ pag
   await page.getByLabel("Nom, ville, email ou SIRET").fill("admin.alpha");
   const resultat = page.locator("[data-resultat]").filter({ hasText: "Compte" }).first();
   await expect(resultat).toBeVisible();
-  await resultat.click();
-  await expect(page).toHaveURL(/\/admin\/comptes\/[0-9a-f-]{36}$/);
+  // Rôles lisibles (audit console 27/09) : jamais le code « admin_agence ».
+  await expect(resultat).not.toContainText("admin_agence");
+  // Entrée ouvre le résultat en surbrillance (le premier par défaut), comme le promet le pied.
+  const premier = page.locator("[data-resultat][data-actif]");
+  await expect(premier).toHaveCount(1);
+  const cible = await premier.getAttribute("href");
+  await page.getByLabel("Nom, ville, email ou SIRET").press("Enter");
+  await expect(page).toHaveURL(new RegExp(`${cible}$`));
 });

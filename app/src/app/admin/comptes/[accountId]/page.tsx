@@ -5,6 +5,8 @@ import { libelleRole, libelleStatutAdhesion } from "@/lib/libelles";
 import { familleOrganisation } from "@/lib/clients-supervision";
 import { detailsExpurges, libelleActionAudit, libelleEvenement } from "@/lib/libelles-journaux";
 import { formaterDateHeureParis } from "@/lib/heure-paris";
+import { GesteControle } from "@/components/geste-controle";
+import { controlerCompte } from "@/app/actions/controle-supervision";
 
 export const metadata = { title: "Fiche d’un compte — Supervision Gerimmo" };
 
@@ -17,7 +19,8 @@ export const metadata = { title: "Fiche d’un compte — Supervision Gerimmo" }
  * locataire, fiche artisan — et tout ce qu'il a fait ou subi : journal d'audit,
  * journal technique. Depuis chaque rôle, la supervision ENTRE dans l'espace
  * avec sa propre identité (traversée journalisée par `log_sa_access`) ; elle
- * n'emprunte jamais celle du compte. Rien n'est écrit ici.
+ * n’emprunte jamais celle du compte. Seuls les gestes de contrôle (bloquer,
+ * débloquer, réinitialiser le second facteur) écrivent, à son nom, journalisés.
  */
 
 type Dossier = {
@@ -52,7 +55,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
   if (!estSuperAdmin) redirect("/espaces");
 
-  const [dossierLu, adhesionsLues, personnesLues, auditLu, techLu] = await Promise.all([
+  const [dossierLu, adhesionsLues, personnesLues, auditLu, techLu, gestesLus] = await Promise.all([
     supabase.rpc("dossier_compte_supervision", { p_account: accountId }),
     supabase
       .from("memberships")
@@ -75,6 +78,14 @@ export default async function PageCompte({ params }: { params: Promise<{ account
       .eq("account_id", accountId)
       .order("created_at", { ascending: false })
       .limit(40),
+    // Les gestes de la supervision SUR ce compte (audit console 27/09) : ils
+    // sont écrits au nom du superviseur, le compte visé est dans le détail.
+    supabase
+      .from("audit_log")
+      .select("id, action, details, created_at, organization_id, organisation:organizations(name)")
+      .contains("details", { compte: accountId })
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   const dossier = ((dossierLu.data ?? []) as Dossier[])[0];
@@ -86,6 +97,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
   const adhesions = (adhesionsLues.data ?? []) as unknown as Adhesion[];
   const personnes = (personnesLues.data ?? []) as unknown as FichePersonne[];
   const audit = (auditLu.data ?? []) as unknown as LigneAudit[];
+  const gestesSurLeCompte = (gestesLus.data ?? []) as unknown as LigneAudit[];
   const tech = (techLu.data ?? []) as unknown as LigneTech[];
 
   const bloque = dossier.bloque_jusqu_au && new Date(dossier.bloque_jusqu_au) > new Date();
@@ -93,7 +105,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
     ["Compte créé le", formaterDateHeureParis(dossier.cree_le)],
     ["Dernière connexion", dossier.derniere_connexion ? formaterDateHeureParis(dossier.derniere_connexion) : "Jamais connecté"],
     ["Adresse confirmée", dossier.email_confirme_le ? `oui, le ${formaterDateHeureParis(dossier.email_confirme_le)}` : "non"],
-    ["Second facteur", dossier.facteurs_mfa === null ? "inconnu sur ce banc" : dossier.facteurs_mfa > 0 ? `${dossier.facteurs_mfa} facteur${dossier.facteurs_mfa > 1 ? "s" : ""} vérifié${dossier.facteurs_mfa > 1 ? "s" : ""}` : "aucun"],
+    ["Second facteur", dossier.facteurs_mfa === null ? "non renseigné" : dossier.facteurs_mfa > 0 ? `${dossier.facteurs_mfa} facteur${dossier.facteurs_mfa > 1 ? "s" : ""} vérifié${dossier.facteurs_mfa > 1 ? "s" : ""}` : "aucun"],
     ["Blocage", bloque ? `jusqu’au ${formaterDateHeureParis(dossier.bloque_jusqu_au!)}` : "aucun"],
   ];
 
@@ -105,7 +117,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
         <div className="min-w-0">
           <h1 className="[overflow-wrap:anywhere] max-sm:text-2xl">{dossier.email}</h1>
           <p className="mono-discret sans-majuscules">
-            Fiche de débogage · {dossier.est_super_admin ? "compte de supervision" : `${adhesions.filter((a) => a.status === "active").length} rôle${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""} actif${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""}`}
+            Fiche du compte · {dossier.est_super_admin ? "compte de supervision" : `${adhesions.filter((a) => a.status === "active").length} rôle${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""} actif${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""}`}
           </p>
         </div>
       </div>
@@ -123,6 +135,37 @@ export default async function PageCompte({ params }: { params: Promise<{ account
             <div key={l}><dt className="libelle-champ">{l}</dt><dd className="text-sm">{v}</dd></div>
           ))}
         </dl>
+      </section>
+
+      {/* Les gestes de contrôle (audit console 27/09, majeur 8) : faits au nom
+          du superviseur par l'API d'administration, jamais en se connectant
+          comme ce compte ; chacun est confirmé et journalisé. */}
+      <section className="loc-carte mt-4">
+        <div className="entete-carte"><h2>Contrôle du compte</h2></div>
+        {dossier.est_super_admin ? (
+          <p className="text-sm text-[var(--texte-secondaire)]">Un compte de supervision ne se bloque pas depuis la console : le relais en votre absence règle ce cas.</p>
+        ) : (
+          <div className="grid gap-2">
+            {bloque ? (
+              <GesteControle action={controlerCompte.bind(null, accountId)} geste="debloquer" titre="Débloquer le compte" bouton="Débloquer"
+                confirmation="Je rends à ce compte la possibilité de se connecter." />
+            ) : (
+              <GesteControle action={controlerCompte.bind(null, accountId)} geste="bloquer" titre="Bloquer le compte" bouton="Bloquer" motif destructif
+                confirmation="Je bloque ce compte : il ne peut plus se connecter ni prolonger sa session. Ses données et ses rôles sont conservés." />
+            )}
+            {(dossier.facteurs_mfa ?? 0) > 0 && (
+              <GesteControle action={controlerCompte.bind(null, accountId)} geste="reinitialiser_mfa" titre="Réinitialiser le second facteur" bouton="Réinitialiser le second facteur" motif destructif
+                confirmation="Je supprime les seconds facteurs de ce compte (téléphone perdu, par exemple) : il devra en enregistrer un nouveau. J’ai vérifié l’identité du demandeur hors de Gerimmo." />
+            )}
+          </div>
+        )}
+        {gestesSurLeCompte.length > 0 && (
+          <ol className="mt-3 divide-y divide-[var(--filet-leger)] border-t border-[var(--filet)] pt-2">
+            {gestesSurLeCompte.map((l) => (
+              <li key={l.id} className="py-2 text-sm"><span className="mono-discret">{formaterDateHeureParis(l.created_at)}</span> · <b>{libelleActionAudit(l.action)}</b></li>
+            ))}
+          </ol>
+        )}
       </section>
 
       <section className="loc-carte mt-4">

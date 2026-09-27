@@ -75,7 +75,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       // !lots_bien_id_fkey : depuis les FK composites (revue 2), deux relations
       // lient lots à biens — sans ce choix explicite, PostgREST refuse la jointure
       .select(
-        "id, nom, type, address_line1, postal_code, city, lots!lots_bien_id_fkey(id, nom, etat, surface_m2)"
+        "id, nom, type, address_line1, postal_code, city, archived_at, lots!lots_bien_id_fkey(id, nom, etat, surface_m2)"
       )
       .eq("organization_id", orgId)
       .order("nom"),
@@ -94,7 +94,12 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     supabase.rpc("lots_blocages_location", { p_org: orgId }),
   ]);
 
+  // Un bien RETIRÉ (archivé, 27/09) quitte le parc et l'abonnement : il ne
+  // se liste plus avec les autres, mais reste joignable (« Biens retirés »,
+  // en fin de liste) — on archive, on ne fait pas disparaître.
+  const biensRetires = (biens ?? []).filter((b) => b.archived_at);
   const biensVisibles = (biens ?? [])
+    .filter((bien) => !bien.archived_at)
     .map((bien) => ({
       ...bien,
       lotsVisibles: (bien.lots as LotResume[]).filter(
@@ -112,8 +117,10 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     (n, b) => n + b.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length,
     0
   );
+  // Le lot se nomme AVEC son bien (audit 27/09) : plusieurs « Lot unique → »
+  // identiques ne se distinguaient pas dans les cartes de préparation.
   const tousLots = biensVisibles.flatMap((b) =>
-    b.lotsVisibles.map((l) => ({ ...l, bien_id: b.id }))
+    b.lotsVisibles.map((l) => ({ ...l, bien_id: b.id, nomComplet: `${b.nom} · ${l.nom}` }))
   );
   const enPreparation = tousLots.filter((l) => l.etat === "brouillon");
   const disponibles = tousLots.filter((l) => l.etat === "disponible");
@@ -153,7 +160,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
       // lisent tous deux « DPE absent ». Un lot n'est retenu qu'une fois par
       // motif — sinon la carte alignait deux pastilles identiques pour lui.
       if (lots.some((x) => x.lotId === lot.id)) continue;
-      lots.push({ lotId: lot.id, bienId: lot.bien_id, nom: lot.nom, message });
+      lots.push({ lotId: lot.id, bienId: lot.bien_id, nom: lot.nomComplet, message });
       parMotif.set(cle, lots);
     }
   }
@@ -280,6 +287,19 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   — une ligne par lot, en une fois.
                 </p>
               )}
+              {biensRetires.length > 0 && (
+                <p className="mt-3 text-[13px] text-muted-foreground">
+                  Biens retirés&nbsp;:{" "}
+                  {biensRetires.map((bien, i) => (
+                    <span key={bien.id}>
+                      {i > 0 && ", "}
+                      <Link href={`/agence/${orgId}/parc/${bien.id}`} className="lien-discret">
+                        {bien.nom}
+                      </Link>
+                    </span>
+                  ))}
+                </p>
+              )}
             </>
           )}
         </div>
@@ -356,7 +376,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                       Aucun lot actif
                       <span className="block text-xs text-muted-foreground">
                         {estProprietaire
-                          ? "Ce bien compte dans votre abonnement tant qu'il existe."
+                          ? "Ce bien compte dans votre abonnement tant qu'il est au parc : ouvrez-le pour le retirer."
                           : "Ce bien n'a plus de lot en gestion."}
                       </span>
                     </span>
@@ -391,6 +411,21 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                 ))}
               </div>
             ))}
+            {biensRetires.length > 0 && (
+              <div>
+                <p className="tete-groupe text-xs text-muted-foreground">
+                  Biens retirés{estProprietaire ? " — hors abonnement" : ""}
+                </p>
+                {biensRetires.map((bien) => (
+                  <Link key={bien.id} href={`/agence/${orgId}/parc/${bien.id}`} className="rang-lot">
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
+                      {bien.nom}
+                    </span>
+                    <span className="lien-discret shrink-0 text-xs">Ouvrir&nbsp;→</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           {selectionBien ? (
@@ -511,7 +546,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   <div className="space-y-2">
                     {disponibles.slice(0, 3).map((lot) => (
                       <Link key={lot.id} href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lot.id}`} className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted">
-                        <span className="min-w-0">{lot.nom}</span><span aria-hidden>→</span>
+                        <span className="min-w-0">{lot.nomComplet}</span><span aria-hidden>→</span>
                       </Link>
                     ))}
                     {disponibles.length > 3 && <p className="text-xs text-muted-foreground">{disponibles.length - 3} autre{disponibles.length > 4 ? "s" : ""} lot{disponibles.length > 4 ? "s" : ""} disponible{disponibles.length > 4 ? "s" : ""} dans la liste du parc.</p>}

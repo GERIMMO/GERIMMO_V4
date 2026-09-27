@@ -67,6 +67,8 @@ describe("exporter / verifier / extraire", () => {
     const dump = (await fs.readFile(path.join(clair, "base.dump"))).toString();
     expect(dump).toContain('"--schema","public"');
     expect(dump).toContain('"--no-owner"');
+    // 27/09 : les droits (GRANT/REVOKE) font partie de la défense et de la copie.
+    expect(dump).not.toContain('"--no-privileges"');
     expect(dump).not.toContain("m0t-de-passe");
     // Rien ne s'écrase : ni l'archive, ni le dossier en clair.
     await expect(exporter(archive, cle, CONNEXION, { commande: enrobage })).rejects.toThrow(/EEXIST/);

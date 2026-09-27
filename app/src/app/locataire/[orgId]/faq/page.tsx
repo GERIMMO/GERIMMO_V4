@@ -58,7 +58,10 @@ function questions(orgId: string): { question: string; reponse: ReactNode }[] {
           gestionnaire — c&apos;est elle qui fait courir le préavis, dès sa première
           présentation. Prévenez-le d&apos;abord depuis {rubrique("logement", "Mon logement")}{" "}
           (deux minutes) : il attendra votre courrier et confirmera votre date de
-          fin de bail. Préavis : 1 mois en meublé ou en zone tendue, 3 mois sinon.
+          fin de bail. Préavis : 1 mois en meublé ou en zone tendue, 3 mois sinon —
+          ramené à 1 mois pour certaines situations (mutation, perte d&apos;emploi,
+          RSA ou AAH, état de santé, violences conjugales…), justificatif joint à
+          votre lettre.
         </>
       ),
     },

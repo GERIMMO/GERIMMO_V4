@@ -75,14 +75,14 @@ function EncartQuiPaiera({ slug, plat = false }: { slug: string; plat?: boolean 
             {chargeLocataire ? (
               <p className="text-muted-foreground">
                 Le propriétaire peut refuser de prendre en charge financièrement
-                l&apos;incident. L&apos;agence peut missionner un artisan pour
+                l&apos;incident. Votre gestionnaire peut missionner un artisan pour
                 vous ; l&apos;intervention vous est alors refacturée après votre
                 accord sur le devis.
               </p>
             ) : (
               <p className="text-muted-foreground">
-                Vous n&apos;avancez rien : l&apos;agence missionne l&apos;artisan
-                après examen par votre gestionnaire.
+                Vous n&apos;avancez rien : votre gestionnaire missionne
+                l&apos;artisan après examen de votre demande.
               </p>
             )}
           </>

@@ -42,6 +42,10 @@ export const metadata = { title: "Mon agenda — Espace artisan" };
  */
 function consigne(l: LigneAgenda): string {
   if (l.statut === "proposee") return "Accepter ou refuser";
+  // Audit 27/09 : le locataire a répondu par ses propres dates — à l'artisan
+  // de trancher (A5 : confirmé ou arbitrage).
+  if (l.dates_locataire_en_attente > 0)
+    return `Le locataire propose ${l.dates_locataire_en_attente} date${l.dates_locataire_en_attente > 1 ? "s" : ""} : à confirmer`;
   // Même formule que l'accueil ; la carte la rend sans flèche, ce n'est pas
   // un geste de l'artisan (24/09).
   if (l.creneaux_en_attente > 0)

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ACTIONS_RETOUR, ETATS_RETOUR, GRAVITES_RETOUR, moisRevue, pageRetour, type RetourUtilisateur } from "@/lib/retours";
+import { ACTIONS_RETOUR, ETATS_RETOUR, GRAVITES_RETOUR, moisRevue, nomEcran, pageRetour, type RetourUtilisateur } from "@/lib/retours";
 import { CloreRevue, DecisionRetour, RegrouperIdees } from "./decisions-retour";
 
 // Même nom que l'entrée de la barre (24/09) : les contestations artisan restent une puce de la file.
@@ -74,7 +74,7 @@ export default async function PageRetours({ searchParams }: { searchParams: Prom
       <p className="mt-2 text-xs text-muted-foreground">{NATURES[r.nature]} · Gravité : {GRAVITES_RETOUR[r.gravite] ?? r.gravite} · {new Date(r.cree_le).toLocaleString("fr-FR")} · Réf. {r.id.slice(0, 8).toUpperCase()} · {organisation ?? (r.nature === "contestation" ? "Espace artisan privé" : "Compte personnel")}</p>
       <p className="mt-4 whitespace-pre-wrap text-sm">{r.description}</p>
       {r.attendu && <p className="mt-3 whitespace-pre-wrap text-sm"><strong>Attendu : </strong>{r.attendu}</p>}
-      <p className="mt-3 text-xs text-muted-foreground">Écran : {r.ecran} · {ACTIONS_RETOUR[r.action_origine]}</p>
+      <p className="mt-3 text-xs text-muted-foreground">Écran : {nomEcran(r.ecran)} · {ACTIONS_RETOUR[r.action_origine]}</p>
       {r.nature === "idee" && <p className="mt-3 text-sm">{nbOrg} organisation(s) · {soutiens} soutien(s)</p>}
       {r.reexaminer_le && <p className="mt-3 text-sm">À réexaminer le {new Date(r.reexaminer_le + "T12:00:00").toLocaleDateString("fr-FR")}.</p>}
       {r.publication_id && <Link href={`/admin/publications/${r.publication_id}`} className="mt-3 inline-block text-sm underline">Préparer l’article lié à cette idée</Link>}

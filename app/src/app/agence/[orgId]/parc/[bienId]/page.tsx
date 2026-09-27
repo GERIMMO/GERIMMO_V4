@@ -38,6 +38,9 @@ import {
   FormulaireInfosPratiques,
   type InfosPratiques,
 } from "./formulaire-infos-pratiques";
+import { exigerUuids } from "@/lib/identifiants";
+import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { CarteRetraitBien } from "./carte-retrait-bien";
 
 export const metadata = { title: "Fiche bien — Gerimmo" };
 
@@ -45,6 +48,7 @@ export default async function PageBien(
   props: PageProps<"/agence/[orgId]/parc/[bienId]">
 ) {
   const { orgId, bienId } = await props.params;
+  exigerUuids(bienId);
   const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
   // Le lien retour porte le nom de l'entrée du menu (24/09) : « ← Parc »
   // ne se lisait nulle part ailleurs.
@@ -214,6 +218,13 @@ export default async function PageBien(
   // lots : non découpable », en quatrième position, sans que rien n'attire
   // l'œil. Chaque point porte l'ancre de la section qui le règle.
   const attention: { cle: string; texte: string; ancre?: string }[] = [];
+  if ((bien as { archived_at?: string | null }).archived_at) {
+    attention.push({
+      cle: "retrait",
+      texte: "Ce bien est retiré du parc : il ne figure plus dans la liste ni dans l’abonnement.",
+      ancre: "retrait",
+    });
+  }
   if (manquants.length > 0) {
     attention.push({
       cle: "diagnostics",
@@ -587,6 +598,19 @@ export default async function PageBien(
           </SectionLot>
         </CardContent>
       </Card>
+
+      {/* Retirer le bien du parc (audit du 27/09) : l'abonnement promettait
+          « un bien retiré n'est plus compté » sans qu'aucun geste existe.
+          Réservé au responsable, comme la réactivation d'un lot archivé. */}
+      {ROLES_RESPONSABLES.includes(role) && (
+        <CarteRetraitBien
+          orgId={orgId}
+          bienId={bienId}
+          retireLe={(bien as { archived_at?: string | null }).archived_at ?? null}
+          bailEnCours={lotsActifs.some((l) => l.etat === "loue" || l.etat === "preavis")}
+          estProprietaire={estProprietaire}
+        />
+      )}
 
       </main>
     </FenetreLotProvider>

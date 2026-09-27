@@ -96,7 +96,9 @@ export async function genererDocument(
       documentId: depot.documentId,
       manquants: [],
       liens: assemblage.liens,
-      succes: `${assemblage.titreGed} généré — tous les champs sont renseignés et le PDF est rangé dans Documents.`,
+      succes: `${assemblage.titreGed} généré — tous les champs sont renseignés et le PDF est rangé dans Documents.${
+        assemblage.avertissement ? ` Attention : ${assemblage.avertissement}` : ""
+      }`,
     };
   } catch (e) {
     // Les refus métier sont retournés avant ce catch ; ce qui l'atteint est

@@ -39,6 +39,7 @@ import { CarteMessages } from "./carte-messages";
 import { CartePiecesDemandees } from "./carte-pieces-demandees";
 import { EchecLecture, PageEchecLecture } from "../../documents/echec-lecture";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
+import { exigerUuids } from "@/lib/identifiants";
 
 export const metadata = { title: "Fiche personne — Gerimmo" };
 
@@ -88,6 +89,7 @@ export default async function PagePersonne(
   props: PageProps<"/agence/[orgId]/personnes/[personId]">
 ) {
   const { orgId, personId } = await props.params;
+  exigerUuids(personId);
   // « Ajouter un email » (carte Accès locataire) ouvre l'édition de la fiche
   const { modifier } = await props.searchParams;
   const { supabase, user, estProprietaire } = await verifierAccesEspace(orgId);

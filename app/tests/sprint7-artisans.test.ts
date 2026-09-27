@@ -435,13 +435,22 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
           fin: `2026-${mois}-1${j}T10:00:00Z`,
         }))
       );
+    // État hérité du cas précédent : les trois dates de l'artisan ont été
+    // refusées, le locataire a contre-proposé les siennes.
+    //
+    // Audit du 27/09 — A5 (Planification d'intervention) : « contre-proposé →
+    // confirmé ou arbitrage (refus artisan) ». Reproposer par-dessus les dates
+    // du locataire les rendait caduques sans que personne ne les ait lues ;
+    // la base le refuse désormais. L'artisan les refuse : c'est le sixième
+    // refus, le gérant arbitre.
     await agir(cptArtisan);
-    await db.query(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois("10")]);
-    await agir(cptLoc);
-    await db.query(`select public.contre_proposer_creneaux($1,$2,$3::jsonb)`,
-      [orgA, intervention, trois("11")]);
-
-    await agir(cptArtisan);
+    await expect(
+      essai(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois("12")])
+    ).rejects.toThrow(/Le locataire vous a proposé des dates/);
+    await db.query(
+      `select public.refuser_creneaux_locataire($1,'Indisponible toute la période')`,
+      [intervention]
+    );
     await expect(
       essai(`select public.proposer_creneaux($1,$2::jsonb)`, [intervention, trois("12")])
     ).rejects.toThrow(/gérant/);
@@ -501,6 +510,11 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
 
   it("RM-7.5.3 : l'artisan signale la cause réelle, l'agent révise l'imputation avant facturation", async () => {
     await agir(cptArtisan);
+    // Dépôt Storage par l'artisan d'abord (audit sécurité du 27/09).
+    await db.query(
+      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,
+      [`${orgA}/apres.jpg`]
+    );
     await db.query(
       `select public.deposer_photo_intervention($1,'apres',$2,'image/jpeg',100,'emp-apres')`,
       [intervention, `${orgA}/apres.jpg`]
@@ -723,6 +737,11 @@ describe.skipIf(!DB_URL)("Sprint 7 — socle artisans", () => {
     );
     await agir(cptArtisan);
     expect(await depot(`${orgA}/photo2.jpg`), "mission finie : il n'écrit plus chez l'agence").toBe(false);
+    // Sauf, tant que la facture manque, dans le seul dossier de cette facture.
+    expect(
+      await depot(`${orgA}/factures-artisan/${intervention}/facture.pdf`),
+      "le dossier de la facture à déposer"
+    ).toBe(true);
   });
 
   it("une intervention en cours n'est jamais interrompue par une liste noire (RM-8.2.7)", async () => {

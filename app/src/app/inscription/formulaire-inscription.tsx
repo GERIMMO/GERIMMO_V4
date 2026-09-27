@@ -154,13 +154,15 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
             />
           </div>
           <div className="space-y-1">
-            <label className="flex items-start gap-2 text-sm">
+            {/* Au doigt (audit du 27/09) : la case mesurait 13 px et son
+                libellé 37 px. Case de 24 px, ligne de 44 px. */}
+            <label className="flex min-h-11 items-center gap-3 text-sm">
               <input
                 type="checkbox"
                 name="cgu"
                 value="1"
                 required
-                className="mt-1"
+                className="size-6 shrink-0 accent-[var(--encre)]"
                 aria-describedby="cgu-aide"
                 defaultChecked={etat.valeurs?.cgu === "1"}
               />
@@ -178,7 +180,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
             {/* 24/09 : l'avertissement quitte le libellé de la case. On ne fait
                 plus accepter d'un même geste le contrat et une phrase de
                 jargon comptable ; il reste lisible, juste dessous. */}
-            <p id="cgu-aide" className="pl-5 text-xs text-muted-foreground">
+            <p id="cgu-aide" className="pl-9 text-xs text-muted-foreground">
               Gerimmo vous aide à suivre vos loyers et vos dépenses ; il ne
               remplace pas votre relevé bancaire.
             </p>

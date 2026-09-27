@@ -14,6 +14,7 @@
  * simulés, transaction annulée. Nécessite SUPABASE_DB_URL.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -170,7 +171,7 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
        values ($1, $2, $3, 'colocataire')`,
       [orgA, bail, coloc]
     );
-    await db.query(`update public.baux set etat='actif', date_debut=current_date where id=$1`, [
+    await requeteProprietaire(db, `update public.baux set etat='actif', date_debut=current_date where id=$1`, [
       bail,
     ]);
     await confierAuPortefeuille(lot);

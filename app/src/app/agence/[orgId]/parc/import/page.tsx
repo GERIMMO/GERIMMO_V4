@@ -71,7 +71,7 @@ export default async function PageImportParc(
         </p>
 
         <details className="mt-4">
-          <summary className="cursor-pointer text-sm">Les colonnes, une par une</summary>
+          <summary className="cursor-pointer text-sm pointer-coarse:py-3">Les colonnes, une par une</summary>
           <ul className="mt-2 space-y-1 text-[13px] text-muted-foreground">
             {COLONNES.map(([cle, libelle, requise]) => (
               <li key={cle}>

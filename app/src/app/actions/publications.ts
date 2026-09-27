@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { envoyerSurFacebook } from "@/lib/facebook";
+import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
+
+// Audit console 27/09 : chaque geste sur un article (proposer, modifier, faire
+// paraître, retirer, refuser, diffuser sur Facebook) laisse sa ligne au
+// journal d'audit, au nom du superviseur.
+const trace = (ok: boolean) => (ok ? "" : JOURNAL_A_VERIFIER);
 
 export type EtatPublication = {
   erreur?: string;
@@ -40,11 +46,12 @@ export async function genererPropositions(): Promise<EtatPublication> {
 
   revalidatePath("/admin/publications");
   const n = Number(data ?? 0);
+  const journal = await journaliserSupervision(supabase, "publications_proposees", { propositions: n });
   return {
     succes:
-      n === 0
+      (n === 0
         ? "Aucun nouveau sujet ce mois-ci — la file est déjà à jour."
-        : `${n} nouvelle${n > 1 ? "s" : ""} proposition${n > 1 ? "s" : ""} dans la file.`,
+        : `${n} nouvelle${n > 1 ? "s" : ""} proposition${n > 1 ? "s" : ""} dans la file.`) + trace(journal),
   };
 }
 
@@ -92,6 +99,7 @@ export async function enregistrerPublication(
     .eq("id", id);
   if (error) return { erreur: sansJargon(error.message), valeurs };
 
+  const journal = await journaliserSupervision(supabase, "publication_modifiee", { publication: id, statut });
   revalidatePath(`/admin/publications/${id}`);
   revalidatePath("/admin/publications");
   if (paru) {
@@ -99,7 +107,7 @@ export async function enregistrerPublication(
     revalidatePath("/");
     if (actuel?.slug) revalidatePath(`/journal/${actuel.slug}`);
   }
-  return { succes: statut === "publiee" ? "Modifications enregistrées. L’article reste en ligne." : paru ? "Article passé en brouillon : il n’est plus dans le journal." : "Brouillon enregistré." };
+  return { succes: (statut === "publiee" ? "Modifications enregistrées. L’article reste en ligne." : paru ? "Article passé en brouillon : il n’est plus dans le journal." : "Brouillon enregistré.") + trace(journal) };
 }
 
 /** Diffuse sur la Page Gerimmo l'article déjà paru, une seule fois. */
@@ -118,6 +126,8 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
 
   const reservation = await supabase.rpc('reserver_diffusion_facebook', {p_id:id,p_automatique:false});
   if(reservation.error || reservation.data !== true) return {erreur:'Un envoi est déjà engagé ou ne peut pas être confirmé. Vérifiez Facebook avant une nouvelle tentative.'};
+  // La diffusion est journalisée avant l'envoi : un message public parti sans trace n'est pas acceptable.
+  const journal = await journaliserSupervision(supabase, "publication_facebook", { publication: id });
 
   try {
     const resultat = await envoyerSurFacebook({
@@ -140,7 +150,7 @@ export async function publierPublicationFacebook(id: string): Promise<EtatPublic
   }
 
   revalidatePath(`/admin/publications/${id}`);
-  return { succes: "Gerimmo a publié l’article sur sa Page Facebook." };
+  return { succes: "Gerimmo a publié l’article sur sa Page Facebook." + trace(journal) };
 }
 
 /**
@@ -167,11 +177,13 @@ export async function publierPublication(id: string): Promise<EtatPublication> {
     })
     .eq("id", id);
   if (error) return { erreur: sansJargon(error.message) };
+  const journal = await journaliserSupervision(supabase, "publication_parue", { publication: id });
 
   revalidatePath("/admin/publications");
+  revalidatePath("/admin/brief");
   revalidatePath("/journal");
   revalidatePath("/");
-  return { succes: "Article paru — il est en ligne dans le journal." };
+  return { succes: "Article paru — il est en ligne dans le journal." + trace(journal) };
 }
 
 /** Retire un article déjà paru, sans le détruire (archivage, RM « archiver plutôt que supprimer »). */
@@ -184,11 +196,13 @@ export async function retirerPublication(id: string): Promise<EtatPublication> {
     .update({ statut: "archivee" })
     .eq("id", id);
   if (error) return { erreur: sansJargon(error.message) };
+  const journal = await journaliserSupervision(supabase, "publication_retiree", { publication: id });
 
   revalidatePath("/admin/publications");
+  revalidatePath("/admin/brief");
   revalidatePath("/journal");
   revalidatePath("/");
-  return { succes: "Article retiré du journal — il reste consultable ici." };
+  return { succes: "Article retiré du journal — il reste consultable ici." + trace(journal) };
 }
 
 /** Écarte une proposition, avec son motif : la file garde la trace du refus. */
@@ -210,7 +224,9 @@ export async function refuserPublication(
     .update({ statut: "refusee", refus_motif: motif.slice(0, 500) })
     .eq("id", id);
   if (error) return { erreur: sansJargon(error.message) };
+  const journal = await journaliserSupervision(supabase, "publication_refusee", { publication: id });
 
   revalidatePath("/admin/publications");
-  return { succes: "Proposition écartée." };
+  revalidatePath("/admin/brief");
+  return { succes: "Proposition écartée." + trace(journal) };
 }

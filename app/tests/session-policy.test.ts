@@ -55,3 +55,36 @@ describe("Sessions par rôle (RM-A4.5)", () => {
     expect(strictestLimits(["role_inconnu"])).toEqual(parDefaut);
   });
 });
+
+// Audit sécurité du 27/09 : le cookie d'inactivité était un horodatage nu,
+// qu'un porteur pouvait repousser à volonté. Il est signé et lié au compte.
+import { lireActivite, secretDActivite, signerActivite } from "../src/lib/session-policy";
+
+describe("Cookie d'inactivité signé (audit 27/09)", () => {
+  const secret = secretDActivite({ GERIMMO_SESSION_SECRET: "un-secret-de-recette-suffisamment-long" });
+
+  it("relit l'instant qu'il a signé, pour le même compte", async () => {
+    const valeur = await signerActivite(1_700_000_000_000, "compte-a", secret);
+    expect(valeur).toMatch(/^1700000000000\.[A-Za-z0-9_-]{20,}$/);
+    expect(await lireActivite(valeur, "compte-a", secret)).toBe(1_700_000_000_000);
+  });
+
+  it("refuse un horodatage repoussé, un cookie d'un autre compte ou une valeur nue", async () => {
+    const valeur = await signerActivite(1_700_000_000_000, "compte-a", secret);
+    const [, signature] = valeur.split(".");
+    expect(await lireActivite(`1800000000000.${signature}`, "compte-a", secret)).toBeNull();
+    expect(await lireActivite(valeur, "compte-b", secret)).toBeNull();
+    expect(await lireActivite("1800000000000", "compte-a", secret)).toBeNull();
+    expect(await lireActivite("n'importe quoi", "compte-a", secret)).toBeNull();
+    expect(await lireActivite(undefined, "compte-a", secret)).toBeNull();
+  });
+
+  it("choisit le secret dédié, sinon une clé dérivée de la clé de service, sinon aucun (banc local)", async () => {
+    expect(secretDActivite({ GERIMMO_SESSION_SECRET: "a", SUPABASE_SERVICE_ROLE_KEY: "b" })).toBe("session:a");
+    expect(secretDActivite({ SUPABASE_SERVICE_ROLE_KEY: "b" })).toBe("service:b");
+    expect(secretDActivite({})).toBeNull();
+    // Sans secret, l'ancien format reste lu (développement local seulement).
+    expect(await signerActivite(42, "c", null)).toBe("42");
+    expect(await lireActivite("42", "c", null)).toBe(42);
+  });
+});

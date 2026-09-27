@@ -238,21 +238,45 @@ describe.skipIf(!DB_URL)("le chemin du compte au premier bail", () => {
 
   it("une organisation qui vient d'ouvrir n'a aucune étape faite", async () => {
     const e = await etapes();
-    expect(Object.keys(e).sort()).toEqual(["bail", "bien", "identite", "locataire", "lot_pret"]);
+    // Six étapes depuis le 27/09 : le parcours mène au premier loyer encaissé.
+    expect(Object.keys(e).sort()).toEqual(["bail", "bien", "identite", "locataire", "lot_pret", "loyer"]);
     expect(Object.values(e).every((x) => !x.faite)).toBe(true);
     // Chaque étape dit ce qu'elle attend, en français.
     expect(e.identite.detail).toMatch(/quittances/);
   });
 
-  it("l'identité se coche quand le nom ET l'adresse sont là", async () => {
+  it("l'identité se coche quand les champs obligatoires du profil sont là (e-mail compris, 27/09)", async () => {
     // Le nom seul ne suffit pas : une quittance sans adresse sort avec un
-    // émetteur incomplet.
+    // émetteur incomplet. L'e-mail de contact, obligatoire dans « Mon profil »
+    // et imprimé en en-tête, est exigé aussi (audit du 27/09) ; pour une
+    // agence, SIRET, carte professionnelle et garantie financière.
     await db.query("reset role");
-    await db.query(`update public.organizations set address_line1='1 rue X' where id=$1`, [org]);
+    await db.query(
+      `update public.organizations set address_line1='1 rue X', postal_code='75001', city='Paris',
+         siret='12345678900011', carte_pro='CPI 7501', garantie_financiere='Galian 110 000 €' where id=$1`,
+      [org]
+    );
     expect((await etapes()).identite.faite).toBe(false);
     await db.query("reset role");
-    await db.query(`update public.organizations set city='Paris' where id=$1`, [org]);
+    await db.query(`update public.organizations set email_contact='contact@neuve.test' where id=$1`, [org]);
     expect((await etapes()).identite.faite).toBe(true);
+  });
+
+  it("« Un locataire » ne compte que les accès actifs (27/09)", async () => {
+    await db.query("reset role");
+    const loc = await compte("loc");
+    await db.query(
+      `insert into public.persons (organization_id, account_id, nom) values ($1,$2,'Martin')`,
+      [org, loc]
+    );
+    await db.query(
+      `insert into public.memberships (account_id, organization_id, role, status) values ($1,$2,'locataire','inactive')`,
+      [loc, org]
+    );
+    expect((await etapes()).locataire.faite).toBe(false);
+    await db.query("reset role");
+    await db.query(`update public.memberships set status='active' where account_id=$1 and organization_id=$2`, [loc, org]);
+    expect((await etapes()).locataire.faite).toBe(true);
   });
 
   it("« lot prêt » dit CE QUI bloque, et reprend la règle de mise en location", async () => {

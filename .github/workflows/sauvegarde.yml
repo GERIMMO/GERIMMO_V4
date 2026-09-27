@@ -1,7 +1,9 @@
-# Sauvegarde hebdomadaire de Gerimmo vers un stockage objet Scaleway (Paris).
+# Sauvegarde quotidienne de Gerimmo vers un stockage objet Scaleway (Paris).
 #
-# CE QUE FAIT CE CHANTIER. Chaque dimanche à l'aube (et à la demande), il
-# exporte la base de production (pg_dump des schémas public, auth, storage)
+# CE QUE FAIT CE CHANTIER. Chaque nuit (et à la demande), il
+# exporte la base de production (pg_dump des schémas public, auth, storage,
+# DROITS COMPRIS depuis le 27/09 : sans GRANT/REVOKE, une restauration
+# rouvrait toutes les fonctions à anon)
 # et copie les fichiers du Storage, chiffre le tout avec AES-256-GCM
 # (scripts/sauvegarde/), vérifie les archives, les dépose dans un compartiment
 # Scaleway Object Storage, puis les relit depuis Scaleway pour vérifier que la
@@ -19,9 +21,16 @@
 # que de l'IPv4. Le pooler en mode session (port 5432) convient à pg_dump.
 # pg_dump doit être de la version du serveur (17) : le client PGDG est installé.
 #
+# FRÉQUENCE (27/09). Le Plan de reprise d'activité (wiki, RM-A4.11) fixe un
+# RPO de 24 h : une copie par semaine laissait jusqu'à sept jours de pertes.
+# Le passage est donc quotidien.
+#
 # CONSERVATION. Le compartiment porte une règle de cycle de vie côté Scaleway
-# (suppression après 90 jours) : douze copies hebdomadaires glissantes. Ce
-# chantier n'efface jamais rien.
+# (suppression après 90 jours), posée par le porteur : environ quatre-vingt-dix
+# copies quotidiennes glissantes. ÉCART CONNU : le wiki (Plan de reprise
+# d'activité, Socle de sécurité) dit « 30 jours glissants » ; la règle de
+# Scaleway n'est pas modifiée ici — c'est au porteur de trancher (réduire la
+# règle, ou faire acter 90 jours dans le wiki). Ce chantier n'efface jamais rien.
 #
 # SECRETS ATTENDUS (Settings → Secrets and variables → Actions) :
 #   GERIMMO_BACKUP_KEY          64 caractères hexadécimaux (openssl rand -hex 32)
@@ -34,12 +43,12 @@
 #
 # RESTAURATION : docs/sauvegarde-et-restauration.md.
 
-name: Sauvegarde hebdomadaire
+name: Sauvegarde quotidienne
 
 on:
   schedule:
-    # Dimanche 03:20 à Paris en été (01:20 UTC) ; 02:20 en hiver.
-    - cron: "20 1 * * 0"
+    # Chaque nuit, 03:20 à Paris en été (01:20 UTC) ; 02:20 en hiver.
+    - cron: "20 1 * * *"
   workflow_dispatch:
 
 permissions:
@@ -52,7 +61,7 @@ concurrency:
 jobs:
   sauvegarder:
     # Tant que le compartiment n'est pas nommé dans les variables, le chantier
-    # ne fait rien (pas d'échec hebdomadaire pour une configuration absente).
+    # ne fait rien (pas d'échec quotidien pour une configuration absente).
     if: ${{ vars.SCW_BUCKET != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -158,7 +167,7 @@ jobs:
       # 25/09 : « je ne lis pas souvent mes mails »). Quoi qu'il arrive, le
       # passage est consigné dans `tech_log` sous `tache_sauvegarde`, comme les
       # tâches de nuit : la page Santé le montre, un échec ou un retard de plus
-      # de huit jours devient un point bloquant compté dans « À décider ».
+      # de 26 heures devient un point bloquant compté dans « À décider ».
       # Le bilan ne contient que des nombres et un nom d'étape : jamais un
       # message d'erreur (il pourrait citer un hôte ou un chemin).
       - name: Consigner le passage dans Gerimmo

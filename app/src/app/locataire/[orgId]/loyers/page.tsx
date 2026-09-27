@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { eur, formaterDate } from "@/lib/ged";
+import { CONSERVATION_DOCUMENTS_LOCATAIRE } from "@/lib/locataire-textes";
 import { COULEURS_STATUT_APPEL_LOYER, STATUTS_APPEL_LOYER } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
@@ -51,6 +52,7 @@ export default async function PagePaiementsLocataire(
     solde: number | null;
     date_emission: string | null;
     sans_edl_entree: boolean | null;
+    trop_percu?: number | null;
   }[])[0];
   const retenues = (retenuesRows ?? []) as {
     libelle: string;
@@ -76,6 +78,12 @@ export default async function PagePaiementsLocataire(
     montant_couvert: number;
     statut: string;
     quittance_id: string | null;
+    // Le terme APPELÉ (27/09) : loyer et charges figés à l'échéance, et s'il
+    // est au prorata — le détail du bail ne correspond plus au montant dû
+    // dès qu'un mois est proratisé.
+    loyer_hc?: number | null;
+    charges?: number | null;
+    prorata?: boolean | null;
   }[];
   const bail = ((bauxRows ?? []) as BailLocataire[])[0];
 
@@ -168,11 +176,13 @@ export default async function PagePaiementsLocataire(
                   {eur(Number(prochaine.montant_du) - Number(prochaine.montant_couvert))}
                 </p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
-                  {eur(Number(bail.loyer_hc ?? 0))} de loyer + {eur(Number(bail.charges ?? 0))} de{" "}
-                  {forfait ? "forfait" : "provision"} de charges — à régler par
+                  {eur(Number(prochaine.loyer_hc ?? bail.loyer_hc ?? 0))} de loyer +{" "}
+                  {eur(Number(prochaine.charges ?? bail.charges ?? 0))} de{" "}
+                  {forfait ? "forfait" : "provision"} de charges
+                  {prochaine.prorata ? " (au prorata des jours occupés)" : ""} — à régler par
                   virement à{" "}
                   {ibanBrut ? (
-                    "l'agence, ci-dessous"
+                    "votre gestionnaire, coordonnées ci-dessous"
                   ) : (
                     <Link
                       href={`/locataire/${orgId}/contact`}
@@ -199,8 +209,9 @@ export default async function PagePaiementsLocataire(
                 )}
                 <p className="mt-2 text-[13px] text-muted-foreground">
                   Après paiement intégral, votre quittance est établie et disponible
-                  ici — rien à demander. Le premier loyer d&apos;un bail est
-                  quittancé au prorata de la date d&apos;entrée.
+                  ici — rien à demander.
+                  {prochaine.prorata &&
+                    " Ce mois-ci est calculé au prorata de votre date d'entrée ou de sortie."}
                 </p>
                 {pastilles}
               </>
@@ -316,8 +327,8 @@ export default async function PagePaiementsLocataire(
             </ul>
           )}
           <p className="mt-3 text-xs text-muted-foreground">
-            Vos quittances et reçus de paiement restent disponibles ici pendant toute la durée du
-            bail — utiles pour la CAF ou un futur dossier de location.
+            {CONSERVATION_DOCUMENTS_LOCATAIRE} Utiles pour la CAF ou un futur dossier
+            de location.
           </p>
           {/* PAS DE CLIC POUR RIEN (25/09, D38) : la page d'attestation
               répondait « indisponible — 1 loyer reste dû » alors que cette
@@ -414,8 +425,16 @@ export default async function PagePaiementsLocataire(
                 </div>
                 {Number(restitution.impayes ?? 0) > 0 && (
                   <div className="ligne-info">
-                    <span>Loyers restés dus, imputés d&apos;abord</span>
+                    <span>Loyers et charges restés dus, imputés d&apos;abord</span>
                     <span className="montant">− {eur(Number(restitution.impayes))}</span>
+                  </div>
+                )}
+                {/* Avance de loyers ou trop-perçu de régularisation : il vous
+                    revient avec le dépôt (audit du 27/09). */}
+                {Number(restitution.trop_percu ?? 0) > 0 && (
+                  <div className="ligne-info">
+                    <span>Trop-perçu qui vous est restitué</span>
+                    <span className="montant">+ {eur(Number(restitution.trop_percu))}</span>
                   </div>
                 )}
                 {/* Sans les retenues, le solde ne se déduit plus des lignes

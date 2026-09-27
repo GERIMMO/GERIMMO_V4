@@ -25,7 +25,7 @@ export async function rechercherDansEspace(orgId: string, saisie: string): Promi
   };
   const [lotsNoms, biens, personnes] = await Promise.all([
     portefeuille?.size === 0 ? { data: [], error: null } : lotsRequete().or(filtreRecherche(["nom"], texte)).order("nom").limit(6),
-    supabase.from("biens").select("id").eq("organization_id", orgId)
+    supabase.from("biens").select("id").eq("organization_id", orgId).is("archived_at", null)
       .or(filtreRecherche(["nom", "address_line1", "city"], texte)).order("nom").limit(20),
     supabase.from("persons").select("id, nom, prenom, email").eq("organization_id", orgId).is("archived_at", null)
       .or(filtrePersonnes(texte)).order("nom").limit(6),

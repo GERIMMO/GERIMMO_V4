@@ -32,6 +32,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { EchecLecture, PageEchecLecture } from "../../../echec-lecture";
 import { BlocagesLocation } from "../../../blocages-location";
 import { AttentionFiche, EnteteFiche } from "@/components/fiche-parc";
+import { exigerUuids } from "@/lib/identifiants";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
 
@@ -39,6 +40,7 @@ export default async function PageLot(
   props: PageProps<"/agence/[orgId]/parc/[bienId]/lots/[lotId]">
 ) {
   const { orgId, bienId, lotId } = await props.params;
+  exigerUuids(bienId, lotId);
   const { supabase, role } = await verifierAccesEspace(orgId);
 
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("*").eq("lot_id", lotId).eq("organization_id", orgId).order("nom");
@@ -75,7 +77,7 @@ export default async function PageLot(
       // !detentions_person_id_fkey : deux relations lient detentions à persons
       // depuis les FK composites (revue 2) — jointure explicite obligatoire
       .select(
-        "id, quote_part, date_debut, date_fin, person:persons!detentions_person_id_fkey(nom, prenom)"
+        "id, person_id, quote_part, date_debut, date_fin, person:persons!detentions_person_id_fkey(nom, prenom)"
       )
       .eq("lot_id", lotId)
       .order("date_debut", { ascending: false }),
@@ -689,7 +691,12 @@ export default async function PageLot(
                   orgId={orgId}
                   bienId={bienId}
                   lotId={lotId}
-                  personnes={personnes ?? []}
+                  // Le propriétaire du lot n'est pas son locataire (audit du
+                  // 27/09) : « Moreau Claire » se voyait proposée comme
+                  // locataire principal de son propre bien.
+                  personnes={(personnes ?? []).filter(
+                    (p) => !detentionsActives.some((d) => d.person_id === p.id)
+                  )}
                   chambres={chambres ?? []}
                 />
               )}

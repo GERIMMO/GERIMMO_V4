@@ -14,8 +14,10 @@ export type ResultatPurge = {
 // Lancement manuel de la purge (Super Admin) : applique les règles de
 // conservation en base puis vide la file de suppression physique via
 // l'API Storage (le SQL ne peut pas supprimer dans storage.objects).
-// La même purge tourne chaque nuit à 03h00 via pg_cron ; les fichiers mis en
-// file la nuit sont supprimés physiquement au prochain passage ici.
+// La même purge tourne chaque nuit à 03h00 via pg_cron ; depuis le 27/09, les
+// fichiers mis en file la nuit sont supprimés physiquement par la tâche
+// planifiée `purge` (/api/cron/equipes?mission=purge, 03:40 UTC). Ce bouton
+// reste le moyen de lancer les deux sans attendre.
 export async function lancerPurge(): Promise<ResultatPurge> {
   const supabase = await createClient();
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");

@@ -75,6 +75,11 @@ describe.skipIf(!DB_URL)("Sprint 3 — dépôt LO (attestation)", () => {
 
   it("le locataire dépose son attestation et la retrouve dans son dossier", async () => {
     await simuler(db, compteLo);
+    // Dépôt Storage par le locataire d'abord (audit du 27/09).
+    await db.query(
+      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1::uuid::text || '/att.pdf', (select auth.uid()))`,
+      [orgA]
+    );
     const {
       rows: [{ doc }],
     } = await db.query(

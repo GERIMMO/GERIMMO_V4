@@ -109,6 +109,19 @@ export async function preparerFichierGed(
   return { fichier: { chemin, mime, taille: fichier.size, empreinte }, avertissement };
 }
 
+// Le Storage n'est pas transactionnel : quand la règle métier refuse la ligne
+// que la pièce devait justifier, l'octet préparé ci-dessus est déjà monté.
+// Sans fiche il est illisible (la policy du bucket exige un document vivant),
+// mais il porte des données personnelles : il part dans la file de purge
+// physique. Échec éventuel ignoré — l'utilisateur doit lire le refus métier,
+// pas un incident de ménage. (Même geste que les retenues de restitution.)
+export async function abandonnerPieceGed(
+  supabase: SupabaseClient,
+  piece: FichierPrepareGed
+): Promise<void> {
+  await supabase.rpc("purger_fichier_sans_fiche", { p_storage_path: piece.chemin });
+}
+
 // Cœur du dépôt GED, partagé entre le formulaire Documents et les dépôts
 // contextuels (diagnostic S2, bail S4…) : fichier préparé et monté ci-dessus,
 // puis fiche document + rattachement à l'agence. Retourne l'id du document créé.

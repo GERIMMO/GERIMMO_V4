@@ -1,5 +1,6 @@
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
+import { CONSERVATION_DOCUMENTS_LOCATAIRE } from "@/lib/locataire-textes";
 import {
   TYPES_DOCUMENT,
   aujourdhuiParis,
@@ -326,10 +327,12 @@ export default async function PageDocumentsLocataire(
                       href={`/quittance/${q.quittance_id}?imprimer=1`}
                       target="_blank"
                       rel="noopener"
-                      aria-label={`Télécharger ${libelle}`}
+                      aria-label={`Enregistrer en PDF ${libelle}`}
                       className={`pointer-coarse:min-h-10 ${buttonVariants({ variant: "outline", size: "sm" })}`}
                     >
-                      Télécharger
+                      {/* Le geste réel (27/09) : la feuille d'impression, d'où
+                          « Enregistrer en PDF » — pas un téléchargement. */}
+                      Enregistrer en PDF
                     </Link>
                   </span>
                 </li>
@@ -337,9 +340,11 @@ export default async function PageDocumentsLocataire(
             })}
           </ul>
         )}
+        {/* Une seule promesse de conservation, la même que « Mes paiements »
+            (27/09) : « rien à archiver » contredisait la matrice RGPD, qui
+            prévoit un archivage puis une anonymisation. */}
         <p className="mt-3 text-[13px] text-muted-foreground">
-          Conservés pendant toute la durée légale — vous n&apos;avez rien à
-          archiver.
+          {CONSERVATION_DOCUMENTS_LOCATAIRE}
         </p>
       </div>
     </div>

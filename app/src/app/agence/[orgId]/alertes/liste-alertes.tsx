@@ -272,9 +272,19 @@ export function ListeAlertes({
           ne filtraient rien et menaient à un second état vide (24/09).
           Deux par rangée sous 640 px : en flux, « Informatives » restait
           seule sur sa ligne — même motif que les filtres d'Incidents. */}
+      {/* Audit 27/09 : l'en-tête compte AUSSI les blocages de bail et les
+          rapports listés au-dessus (« 4 à traiter », « 1 critique »), les
+          pastilles ne comptent que cette table (« Toutes 2 », « Critiques
+          0 ») — deux chiffres différents sous un même mot. La légende dit ce
+          que les pastilles filtrent. */}
+      {alertes.length > 0 && actionsAuDessus > 0 && (
+        <p className="mb-2 text-xs text-muted-foreground">
+          Filtres des alertes ci-dessous — les baux et rapports listés au-dessus n’y sont pas comptés.
+        </p>
+      )}
       {alertes.length > 0 && (
         <div className="mb-4 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-2">
-          {pastille("toutes", "Toutes")}
+          {pastille("toutes", "Toutes les alertes")}
           {pastille("critique", "Critiques")}
           {pastille("normale", "Normales")}
           {pastille("informative", "Informatives")}

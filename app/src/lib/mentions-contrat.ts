@@ -68,6 +68,11 @@ export function lireMentionsContrat(form: FormData): { mentions: MentionsContrat
 
 export function verifierHonorairesContrat(b: MentionsContrat & { honoraires_bailleur?: number | null; honoraires_locataire?: number | null }, surface: number | null): string | null {
   const plafonds = plafondsHonoraires(b.date_conclusion_prevue, b.zone_honoraires);
+  // Audit métier du 27/09 : sans date prévue de conclusion ni zone, le plafond
+  // valait null et n'importe quelle part locataire passait le contrôle.
+  const partLocataire = Number(b.honoraires_locataire ?? 0) > 0 || Number(b.honoraires_edl_locataire ?? 0) > 0;
+  if (partLocataire && (!b.date_conclusion_prevue || !b.zone_honoraires))
+    return 'Honoraires à la charge du locataire : renseignez la date prévue de conclusion et la zone des honoraires, sans lesquelles le plafond réglementaire ne peut pas être vérifié.';
   for (const [titre, bailleur, locataire, plafond] of [
     ['Visite, dossier et bail', b.honoraires_bailleur, b.honoraires_locataire, plafonds.location],
     ['État des lieux', b.honoraires_edl_bailleur, b.honoraires_edl_locataire, plafonds.edl],

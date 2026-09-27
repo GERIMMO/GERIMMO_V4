@@ -24,6 +24,8 @@ import {
   referenceCourte,
   signatureOrganisation,
   liensLocataires,
+  libelleCharges,
+  bornesTerme,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -36,7 +38,17 @@ export type DonneesQuittance = {
   charges: number | null;
   montant: number;
   montantDu: number;
-  regularisation: number | null;
+  /**
+   * Ignorée depuis l'audit du 27/09 : la régularisation n'est plus imprimée
+   * sur la quittance (elle ne faisait pas partie du total du terme). Gardée
+   * pour la compatibilité des appelants.
+   */
+  regularisation?: number | null;
+  /** Terme au prorata : la période imprimée est bornée à l'entrée / la sortie. */
+  prorata?: boolean;
+  dateFinBail?: string | null;
+  chargesMode?: string | null;
+  /** Les versements qui ont couvert CE terme (imputation du plus ancien au plus récent). */
   encaissements: { date: string; mode: string | null; montant: number }[];
   bailleurNom: string;
   locatairesNoms: string;
@@ -49,27 +61,74 @@ export type DonneesQuittance = {
   f: Fusion;
 };
 
-function bornesPeriode(periodeIso: string): { du: string; au: string } {
-  const debut = new Date(`${periodeIso.slice(0, 10)}T12:00:00`);
-  const fin = new Date(debut);
-  fin.setMonth(fin.getMonth() + 1);
-  fin.setDate(0);
-  return { du: formaterDateFr(debut.toISOString()), au: formaterDateFr(fin.toISOString()) };
+type AppelImpute = { id: string; periode: string; montant_du: number };
+type Versement = { date_paiement: string; mode: string | null; montant: number; created_at?: string | null };
+
+// Les versements qui ont couvert un terme donné (audit du 27/09). La quittance
+// imprimait la date et le mode du DERNIER encaissement du bail, quel que soit
+// le terme : une quittance de janvier rééditée en mars citait un versement de
+// mars. On rejoue ici l'imputation de la base (etat_loyers_bail_brut : du plus
+// ancien terme au plus récent, versements dans l'ordre de paiement) et on garde
+// la part de chaque versement tombée sur ce terme.
+export function versementsDuTerme(
+  appels: AppelImpute[],
+  versements: Versement[],
+  appelId: string
+): { date: string; mode: string | null; montant: number }[] {
+  const tries = [...appels].sort((a, b) => a.periode.localeCompare(b.periode));
+  let debut = 0;
+  let fin = -1;
+  for (const a of tries) {
+    const du = Math.round(Number(a.montant_du) * 100);
+    if (a.id === appelId) {
+      fin = debut + du;
+      break;
+    }
+    debut += du;
+  }
+  if (fin < 0) return [];
+  const ordonnes = [...versements].sort(
+    (a, b) =>
+      a.date_paiement.localeCompare(b.date_paiement) ||
+      String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""))
+  );
+  const resultat: { date: string; mode: string | null; montant: number }[] = [];
+  let cumul = 0;
+  for (const v of ordonnes) {
+    const m = Math.round(Number(v.montant) * 100);
+    const part = Math.min(fin, cumul + m) - Math.max(debut, cumul);
+    if (part > 0) resultat.push({ date: v.date_paiement, mode: v.mode, montant: part / 100 });
+    cumul += m;
+    if (cumul >= fin) break;
+  }
+  return resultat;
 }
 
 export function construireQuittance(d: DonneesQuittance) {
   const f = d.f;
-  const { du, au } = bornesPeriode(d.periode);
+  const bornes = bornesTerme(d.periode, Boolean(d.prorata), d.dateBail, d.dateFinBail);
+  const du = formaterDateFr(bornes.du);
+  const au = formaterDateFr(bornes.au);
   const titreDoc = d.estQuittance ? "Quittance de loyer" : "Reçu de paiement partiel";
   const solde = d.montantDu - d.montant;
 
   const lignes: string[][] = [
     ["Loyer hors charges", f.montant(d.loyerHc)],
-    ["Provision ou forfait de charges", f.montant(d.charges)],
+    [libelleCharges(d.chargesMode), f.montant(d.charges)],
   ];
-  if (d.regularisation) lignes.push(["Régularisation de charges", f.montant(d.regularisation)]);
+  // Audit du 27/09 : plus de ligne « Régularisation de charges » ici. Elle
+  // n'entrait pas dans le total du terme et son signe était ambigu (un écart
+  // positif est un trop-perçu) : la régularisation n'est pas un élément du
+  // terme quittancé tant qu'elle ne passe pas par un appel.
 
-  const reglement = d.encaissements[0];
+  // Un seul versement : « Règlement reçu le … par … ». Plusieurs : chacun
+  // avec sa date, son mode et la part imputée sur ce terme.
+  const reglements =
+    d.encaissements.length > 1
+      ? `Règlements reçus sur ce terme : ${d.encaissements
+          .map((e) => `${eur(e.montant)} le ${f.date(e.date)} par ${f.champ(e.mode, "virement, chèque, espèces…")}`)
+          .join(" ; ")}`
+      : `Règlement reçu le ${f.date(d.encaissements[0]?.date)} par ${f.champ(d.encaissements[0]?.mode, "virement, chèque, espèces…")}`;
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: d.dateEmission })}
     ${titre(titreDoc, `Période du ${du} au ${au}`, ["Article 21 de la loi n° 89-462 du 6 juillet 1989"])}
@@ -77,7 +136,7 @@ export function construireQuittance(d: DonneesQuittance) {
       ["Bailleur", `<div>${d.bailleurNom}</div>`],
       ["Locataire", `<div>${d.locatairesNoms}</div>`],
       ["Logement loué", `<div>${f.champ(d.logementAdresse, "adresse complète, étage, porte")}</div>`],
-      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} du ${f.date(d.dateBail)}`],
+      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} prenant effet le ${f.date(d.dateBail)}`],
     ])}
     <p>Je soussigné(e) ${d.bailleurNom}, bailleur du logement désigné ci-dessus, déclare avoir reçu de
     ${d.locatairesNoms} la somme de <b>${eur(d.montant)}</b>, au titre du loyer et des charges pour la
@@ -102,7 +161,7 @@ export function construireQuittance(d: DonneesQuittance) {
         ? `<table><tbody><tr class="total"><td><b>Total du terme</b></td><td class="d"><b>${f.montant(d.montantDu, "total du terme")}</b></td></tr></tbody></table>`
         : ""
     }
-    <p>Règlement reçu le ${f.date(reglement?.date)} par ${f.champ(reglement?.mode, "virement, chèque, espèces…")}.</p>
+    <p>${reglements}.</p>
     <div class="mentions">
       ${
         d.estQuittance
@@ -146,25 +205,19 @@ export async function assemblerQuittance(
   const ctx = await chargerContexteBail(supabase, orgId, q.bail_id);
   if ("erreur" in ctx) return ctx;
 
-  const [{ data: appel }, { data: encaissements }, { data: regul }] = await Promise.all([
+  const [{ data: appels }, { data: encaissements }] = await Promise.all([
     supabase
       .from("appels_loyer")
-      .select("periode, loyer_hc, charges, montant_du")
-      .eq("id", q.appel_id)
-      .maybeSingle(),
+      .select("id, periode, loyer_hc, charges, montant_du, prorata")
+      .eq("bail_id", q.bail_id)
+      .order("periode"),
     supabase
       .from("encaissements")
-      .select("date_paiement, mode, montant")
+      .select("date_paiement, mode, montant, created_at")
       .eq("bail_id", q.bail_id)
-      .order("date_paiement", { ascending: false })
-      .limit(1),
-    supabase
-      .from("regularisations_charges")
-      .select("ecart, date_emission")
-      .eq("bail_id", q.bail_id)
-      .order("annee", { ascending: false })
-      .limit(1),
+      .order("date_paiement"),
   ]);
+  const appel = (appels ?? []).find((a) => a.id === q.appel_id);
   if (!appel) return { erreur: "Appel de loyer introuvable pour cette quittance." };
 
   const f = new Fusion();
@@ -177,16 +230,19 @@ export async function assemblerQuittance(
     charges: appel.charges === null ? null : Number(appel.charges),
     montant: Number(q.montant),
     montantDu: Number(appel.montant_du),
-    // La régularisation n'apparaît que si elle est émise sur la période
-    regularisation:
-      regul?.[0]?.date_emission && regul[0].date_emission.slice(0, 7) === appel.periode.slice(0, 7)
-        ? Number(regul[0].ecart)
-        : null,
-    encaissements: (encaissements ?? []).map((e) => ({
-      date: e.date_paiement,
-      mode: e.mode,
-      montant: Number(e.montant),
-    })),
+    prorata: Boolean(appel.prorata),
+    dateFinBail: ctx.bail.date_fin,
+    chargesMode: ctx.bail.charges_mode,
+    encaissements: versementsDuTerme(
+      (appels ?? []).map((a) => ({ id: a.id, periode: a.periode, montant_du: Number(a.montant_du) })),
+      (encaissements ?? []).map((e) => ({
+        date_paiement: e.date_paiement,
+        mode: e.mode,
+        montant: Number(e.montant),
+        created_at: e.created_at,
+      })),
+      q.appel_id
+    ),
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     locatairesNoms: nomsLocataires(f, ctx.locataires),
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),

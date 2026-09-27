@@ -28,6 +28,9 @@ export type Restitution = {
   delai_mois: number;
   depot: number;
   impayes: number;
+  // Créance du locataire arrêtée avec les montants (avance de loyers,
+  // trop-perçu de régularisation) : restituée avec le dépôt (audit 27/09).
+  trop_percu?: number | null;
   // Date à laquelle depot et impayes ont été lus dans la réalité : ce sont des
   // instantanés, pas des calculs permanents.
   montants_arretes_le: string;
@@ -40,7 +43,7 @@ export type Restitution = {
 
 // Dépôt encaissé et impayés tels qu'ils sont AUJOURD'HUI, pour les confronter à
 // l'instantané du décompte. Absent si le bail sort du portefeuille de l'agent.
-export type MontantsReels = { depot: number; impayes: number };
+export type MontantsReels = { depot: number; impayes: number; trop_percu?: number | null };
 export type Retenue = {
   id: string;
   libelle: string;
@@ -141,7 +144,8 @@ export function FormulaireRestitution({
     );
 
   const totalRetenues = retenues.reduce((s, r) => s + Number(r.montant_retenu), 0);
-  const soldeProjete = Number(restitution.depot) - Number(restitution.impayes) - totalRetenues;
+  const tropPercu = Number(restitution.trop_percu ?? 0);
+  const soldeProjete = Number(restitution.depot) - Number(restitution.impayes) + tropPercu - totalRetenues;
   const finalise = restitution.statut === "finalise";
   // Le décompte travaille sur l'instantané, jamais sur la réalité du moment :
   // si le locataire règle son arriéré entre le démarrage et la finalisation, on
@@ -150,6 +154,7 @@ export function FormulaireRestitution({
   const ecartMontants =
     montantsReels != null &&
     (Number(montantsReels.impayes) !== Number(restitution.impayes) ||
+      Number(montantsReels.trop_percu ?? 0) !== tropPercu ||
       Number(montantsReels.depot) !== Number(restitution.depot));
 
   return (
@@ -164,6 +169,13 @@ export function FormulaireRestitution({
           <dt className="text-xs text-muted-foreground">Impayés imputés</dt>
           <dd className="font-medium">{eur(restitution.impayes)}</dd>
         </div>
+        {tropPercu > 0 && (
+          <div>
+            {/* Avance de loyers ou trop-perçu de régularisation : dû au locataire */}
+            <dt className="text-xs text-muted-foreground">Trop-perçu restitué</dt>
+            <dd className="font-medium">{eur(tropPercu)}</dd>
+          </div>
+        )}
         <div>
           <dt className="text-xs text-muted-foreground">Retenues</dt>
           <dd className="font-medium">{eur(totalRetenues)}</dd>
@@ -193,6 +205,9 @@ export function FormulaireRestitution({
           <p>
             Les comptes ont bougé depuis cet arrêté : aujourd&apos;hui{" "}
             <span className="font-medium">{eur(montantsReels.impayes)}</span> d&apos;impayés
+            {Number(montantsReels.trop_percu ?? 0) > 0 && (
+              <> et <span className="font-medium">{eur(Number(montantsReels.trop_percu))}</span> de trop-perçu</>
+            )}
             {Number(montantsReels.depot) !== Number(restitution.depot) && (
               <> et <span className="font-medium">{eur(montantsReels.depot)}</span> de dépôt encaissé</>
             )}

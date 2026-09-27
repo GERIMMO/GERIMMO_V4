@@ -599,6 +599,133 @@ export async function demarrerMonIntervention(
   return { succes: "Intervention démarrée." };
 }
 
+/**
+ * La contre-proposition du locataire (audit du 27/09).
+ *
+ * Wiki, Planification d'intervention (machine à états A5) : « contre-proposé
+ * → confirmé ou arbitrage (refus artisan) ». L'artisan retient l'une des
+ * dates du locataire, ou les refuse toutes en disant pourquoi — le gérant
+ * règle alors le rendez-vous par téléphone (RM-10.4.1). La base revérifie que
+ * le créneau est bien une date du locataire, sur SA mission.
+ */
+export async function accepterDateLocataire(
+  interventionId: string,
+  creneauId: string
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+
+  const { error } = await supabase.rpc("accepter_creneau_locataire", {
+    p_creneau: creneauId,
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+
+  rafraichirMission(interventionId);
+  return { succes: "Rendez-vous confirmé. Le locataire le voit dans son espace." };
+}
+
+export async function refuserDatesLocataire(
+  interventionId: string,
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+
+  const valeurs = valeursDuFormulaire(formData);
+  const motif = String(formData.get("motif") ?? "").trim();
+  if (!motif) {
+    return {
+      erreur: "Dites pourquoi aucune de ces dates ne vous convient : le gérant arbitrera avec cette information.",
+      valeurs,
+    };
+  }
+  const { error } = await supabase.rpc("refuser_creneaux_locataire", {
+    p_intervention: interventionId,
+    p_motif: motif.slice(0, 1000),
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  rafraichirMission(interventionId);
+  return {
+    succes: "Dates refusées. Le gérant est prévenu : il fixera le rendez-vous avec vous et le locataire.",
+  };
+}
+
+/**
+ * La facture (module 9.7, version simple — wiki : concepts/Devis).
+ *
+ * « Pré-remplie du devis, écart alerté sans blocage (justifié par l'artisan,
+ * tranché par l'agent) ; exige intervention terminée + photo. » Le montant
+ * proposé à l'écran est le plafond engagé (devis ou avenant accepté) ; un
+ * autre montant passe s'il est expliqué. La pièce (PDF ou photo de la facture)
+ * entre dans la GED de l'agence ; la validation et l'écriture comptable
+ * restent du côté de l'agence.
+ */
+export async function deposerMaFacture(
+  interventionId: string,
+  _etat: EtatArtisanAction,
+  formData: FormData
+): Promise<EtatArtisanAction> {
+  const { supabase, fiche } = await verifierArtisanAction();
+  if (!fiche) return REFUS;
+
+  const valeurs = valeursDuFormulaire(formData);
+  const numero = String(formData.get("numero") ?? "").trim();
+  const montant = centimes(String(formData.get("montant") ?? ""));
+  const justification = String(formData.get("justification") ?? "").trim();
+  const fichier = formData.get("fichier");
+
+  if (!numero) return { erreur: "Indiquez le numéro de votre facture.", valeurs };
+  if (numero.length > 60) return { erreur: "Le numéro de facture est trop long.", valeurs };
+  if (montant === null || montant <= 0) {
+    return { erreur: "Indiquez le montant TTC de la facture.", valeurs };
+  }
+  if (!(fichier instanceof File) || fichier.size === 0) {
+    return { erreur: "Joignez votre facture (PDF ou photo).", valeurs };
+  }
+
+  // L'agence et l'état viennent de l'agenda, jamais du formulaire.
+  const mission = await maMission(supabase, interventionId);
+  if (!mission) return { erreur: "Cette intervention ne vous est pas confiée.", valeurs };
+  if (mission.statut !== "terminee") {
+    return { erreur: "La facture se dépose une fois l'intervention terminée.", valeurs };
+  }
+  if (mission.facture_deposee) {
+    return { erreur: "La facture de cette intervention a déjà été déposée.", valeurs };
+  }
+  const plafond = mission.montant_plafond_cents;
+  if (plafond !== null && montant !== plafond && !justification) {
+    return {
+      erreur: "Le montant diffère du devis retenu : expliquez l'écart, l'agence le tranchera.",
+      valeurs,
+    };
+  }
+
+  const piece = await preparerFichierArtisan(
+    supabase,
+    `${mission.organization_id}/factures-artisan/${interventionId}`,
+    fichier,
+    ["application/pdf", "image/jpeg", "image/png"]
+  );
+  if ("erreur" in piece) return { erreur: piece.erreur, valeurs };
+
+  const { error } = await supabase.rpc("deposer_facture_artisan", {
+    p_intervention: interventionId,
+    p_numero: numero,
+    p_montant_ttc_cents: montant,
+    p_justification: justification || null,
+    p_storage_path: piece.chemin,
+    p_mime: piece.mime,
+    p_taille: piece.taille,
+    p_empreinte: piece.empreinte,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+
+  rafraichirMission(interventionId);
+  redirect("/artisan/facturation?facture=1");
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // 5. Le compte rendu (7.5) — deux écrans, la photo d'abord
 // ══════════════════════════════════════════════════════════════════════════

@@ -6,8 +6,28 @@ import { lireLignes, lignesTableau, RefusDocument, texte, montant, anneeDocument
 import { chargerContexteBail, nomsLocataires, adresseLogement, referenceCourte } from "./communs";
 import { recapitulatifFiscal, type EcritureFiscale } from "@/lib/fiscal";
 import type { Assemblage, LienDocument } from "./index";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export const CODES_COMPLEMENTS_GESTION = ["regularisation_charges", "decompte_charges", "consultation_charges", "restitution_cles", "ordre_intervention", "comparatif_devis", "compte_rendu_intervention", "recap_incident", "cloture_mensuelle", "ecriture_rectificative", "recap_fiscal_nu", "recap_fiscal_meuble", "avenant_mandat", "avenant_perimetre", "rapport_gestion", "bordereau_versement", "resiliation_mandat", "recap_fiscal_agence"] as const;
+
+// Sens du solde d'une régularisation (audit métier du 27/09, BLOQUANT).
+// La base enregistre `ecart = provisions − charges réelles` (regulariser_charges) :
+// un écart POSITIF est un trop-perçu qui revient au locataire, un écart
+// NÉGATIF un complément qu'il doit. Le PDF disait l'inverse (« Solde à
+// régler » pour un trop-perçu). Wiki « Régularisation des charges » : le solde
+// se fait dans le bon sens, remboursement ou complément.
+export function libelleSoldeRegularisation(ecart: number): string {
+  if (ecart > 0) return `Trop-perçu en faveur du locataire : ${eur(ecart)}`;
+  if (ecart < 0) return `Complément à régler par le locataire : ${eur(-ecart)}`;
+  return "Charges équilibrées : aucun solde";
+}
+
+// « septembre 2026 » pour le premier jour d'un mois (AAAA-MM-JJ).
+export function moisEnToutesLettres(mois: string): string {
+  const [a, m] = mois.slice(0, 7).split("-").map(Number);
+  if (!a || !m) return mois;
+  return new Date(Date.UTC(a, m - 1, 15)).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
+}
 
 export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_GESTION[number], db: SupabaseClient, orgId: string, cibleId: string, options: Record<string,string> = {}): Promise<Assemblage> {
   try {
@@ -21,7 +41,8 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
     if (!orgs.length) throw new RefusDocument("Organisation inaccessible.");
     const org = orgs[0], f = new Fusion(), meta = CATALOGUE_DOCUMENTS.find(m=>m.id===code)!;
     const exp = { nom:texte(org.name), adresse:[org.address_line1,org.postal_code,org.city].filter(Boolean).join(" "), email:texte(org.email_contact), telephone:texte(org.telephone), ville:texte(org.city) };
-    const aujourdhui = new Date().toISOString().slice(0,10);
+    // Le jour à Paris, pas en UTC : entre 0 h et 2 h, toISOString donnait la veille.
+    const aujourdhui = aujourdhuiParis();
     const champ = (cle:string,libelle:string) => f.champ(options[cle]?.trim()||null,libelle);
     const liens: LienDocument[] = [];
     let contenu = "", destinataire = "", logement = "", signatures = false;
@@ -43,7 +64,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const ctx = await bailConcerne(texte(r.bail_id));
       if (ctx.bail.charges_mode === "forfait") throw new RefusDocument("Les charges forfaitaires ne font pas l’objet d’une régularisation annuelle.");
       contenu = `${section(`Charges de l’exercice ${texte(r.annee)}`)}${lignesTableau(f,[r],[["Provisions versées","provisions","montant"],["Charges réelles","charges_reelles","montant"],["Écart enregistré","ecart","montant"]])}
-        <p>${montant(r.ecart)>=0 ? "Solde à régler" : "Trop-perçu en faveur du locataire"} : ${eur(Math.abs(montant(r.ecart)))}.</p>`;
+        <p>${libelleSoldeRegularisation(montant(r.ecart))}.</p>`;
       if (code !== "consultation_charges") contenu += `${section("Décompte et répartition")}
         <p>${f.champ(texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
         <p>Justificatif annexé : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
@@ -143,7 +164,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       if (rapport) {
         if (code === "bordereau_versement" && (rapport.versement_montant == null || !rapport.versement_date)) throw new RefusDocument("Enregistrez le versement du rapport avant d’émettre son bordereau.");
         contenu += `${section(code === "rapport_gestion" ? "Situation mensuelle" : "Versement enregistré")}
-          <p>Mois : ${f.date(texte(rapport.mois))} ; état du rapport : ${rapport.statut === "envoye" ? "Validé" : "À valider"} ; net enregistré : ${f.montant(rapport.net as number)}.</p>
+          <p>Mois : ${moisEnToutesLettres(texte(rapport.mois))} ; état du rapport : ${rapport.statut === "envoye" ? "Validé" : "À valider"} ; net enregistré : ${f.montant(rapport.net as number)}.</p>
           <p>Versement : ${rapport.versement_montant == null ? "non enregistré" : eur(montant(rapport.versement_montant))} ; date : ${facultatif(texte(rapport.versement_date))}.</p>
           <p>${facultatif(texte(rapport.commentaire))}</p>`;
         if (code === "rapport_gestion") {

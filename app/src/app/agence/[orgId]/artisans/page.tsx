@@ -228,7 +228,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
               </p>
               <p className="explication">
                 {relations.length === 0
-                  ? "Enregistrez une entreprise avec le formulaire «\u00a0Enregistrer un artisan\u00a0», ou laissez la recherche d'affectation vous proposer un artisan de l'annuaire Gerimmo depuis la fiche d'un incident."
+                  ? "Enregistrez une entreprise avec le formulaire «\u00a0Enregistrer un artisan\u00a0», ou, depuis la fiche d'un incident, laissez Gerimmo vous proposer un artisan de son annuaire."
                   : `Vos ${relations.length} artisans sont dans les autres onglets.`}
               </p>
             </div>

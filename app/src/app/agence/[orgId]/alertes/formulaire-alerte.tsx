@@ -85,7 +85,7 @@ export function FormulaireAlerte({
               — Choisir —
             </option>
             {/* Seul le responsable de l'agence peut confier à tout le monde */}
-            {estResponsable && <option value={ASSIGNATION_TOUS}>Tout le monde</option>}
+            {estResponsable && <option value={ASSIGNATION_TOUS}>Toute l’agence</option>}
             {membres.map((m) => (
               <option key={m.account_id} value={m.account_id}>
                 {m.email}

@@ -13,9 +13,12 @@ export type MessageFil = {
   cree_le: string;
 };
 
-const SUGGESTIONS = [
+// Plus d'« attestation d'assurance » ici (audit du 27/09) : la suggestion
+// poussait à l'envoyer par message, alors qu'elle se DÉPOSE dans « Mes
+// documents » — là où elle lève l'alerte et se contrôle.
+export const SUGGESTIONS = [
   "Pouvez-vous me détailler ma provision de charges ?",
-  "Je vous envoie mon attestation d'assurance cette semaine.",
+  "Pouvez-vous me rappeler ? Voici mes disponibilités :",
   "J'aurai quelques jours de retard sur le loyer de ce mois — je vous tiens au courant.",
 ];
 
@@ -98,7 +101,12 @@ export function FilMessages({
         </p>
       ) : (
       <>
-      <div className="mt-4 flex flex-wrap gap-2">
+      {/* Un intitulé (27/09) : sans lui, les pastilles se lisaient comme des
+          messages déjà envoyés. */}
+      <p id="idees-message" className="mt-4 text-xs font-medium text-muted-foreground">
+        Idées de message — touchez-en une pour l&apos;écrire à votre place
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-labelledby="idees-message">
         {SUGGESTIONS.map((s) => (
           <button
             key={s}

@@ -30,6 +30,12 @@
 
 import { envoyerEmail } from "@/lib/email";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
+import {
+  assemblerQuittanceDelivree,
+  chargerQuittanceDocument,
+  manquantsQuittance,
+  parties,
+} from "@/lib/quittance-conforme";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
@@ -114,7 +120,23 @@ export async function GET(request: Request) {
   let envoyees = 0;
   const echecs: EchecConsigne[] = [];
   const marquageEchecs: EchecConsigne[] = [];
+  // LE DOCUMENT DOIT ÊTRE CONFORME AVANT DE PARTIR (audit du 27/09). Le lien
+  // ouvre la quittance du modèle conforme ; s'il lui manque l'identité ou
+  // l'adresse de l'émetteur, elle n'est pas délivrée — même règle que le PDF.
+  // Elle reste « à envoyer » : elle partira dès que le profil sera complété.
+  // Ce n'est pas une panne de la tâche : consignée à part (`reportees`).
+  const reportees: EchecConsigne[] = [];
   for (const l of lignes) {
+    const conforme = await chargerQuittanceDocument(supabase, l.quittance_id);
+    const manquants = conforme ? manquantsQuittance(assemblerQuittanceDelivree(conforme)) : ["document illisible"];
+    if (!conforme || manquants.length > 0) {
+      reportees.push({
+        quittance_id: l.quittance_id,
+        organization_id: l.organization_id,
+        motif: `document incomplet : ${manquants.join(" · ")}`.slice(0, 200),
+      });
+      continue;
+    }
     const envoi = await envoyerEmail({
       organisation: { db: supabase, id: l.organization_id },
       to: l.destinataire,
@@ -125,7 +147,8 @@ export async function GET(request: Request) {
         loyerHc: Number(l.loyer_hc),
         charges: Number(l.charges),
         montant: Number(l.montant),
-        emetteur: l.emetteur,
+        // Chez un propriétaire direct, le bailleur signe : pas le nom du « parc ».
+        emetteur: parties(conforme).emetteur ?? l.emetteur,
         prenom: l.prenom,
         lien: `${site}/quittance/${l.quittance_id}`,
       }),
@@ -148,6 +171,7 @@ export async function GET(request: Request) {
   const bilan = {
     envoyees,
     echecs: echecs.length,
+    ...(reportees.length ? { reportees: reportees.length, reportees_detail: reportees.slice(0, LIMITE_DETAIL) } : {}),
     ...(echecs.length ? { echecs_detail: echecs.slice(0, LIMITE_DETAIL) } : {}),
     // Nom en `_echecs` : l'écran Santé y voit une tâche en échec, à raison —
     // un double envoi se prépare.

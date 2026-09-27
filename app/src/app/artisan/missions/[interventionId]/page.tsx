@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
-import { chargerAgenda, verifierAccesArtisan } from "../../acces";
+import { chargerAgenda, chargerCreneauxMission, verifierAccesArtisan } from "../../acces";
 import {
   creneauTexte,
   euros,
@@ -25,6 +25,7 @@ import {
 } from "../../ui";
 import { AccepterOuRefuser } from "./accepter-refuser";
 import { BoutonDemarrer } from "./bouton-demarrer";
+import { DatesLocataire } from "./dates-locataire";
 
 export const metadata = { title: "Ma mission — Espace artisan" };
 
@@ -60,6 +61,22 @@ export default async function PageMission(
   // Des dates sont chez le locataire : rien n'attend l'artisan, et reproposer
   // annulerait ces dates (RM-10.4.1). Même lecture que la carte de l'agenda.
   const attendLocataire = mission.statut === "acceptee" && mission.creneaux_en_attente > 0;
+  // Audit 27/09 : le locataire a répondu par ses propres dates — c'est
+  // l'artisan qui doit trancher (A5 : confirmé ou arbitrage).
+  const repondreLocataire =
+    mission.statut === "acceptee" && mission.dates_locataire_en_attente > 0;
+  // Les dates elles-mêmes, et plus seulement leur nombre : l'artisan doit
+  // garder les siennes libres jusqu'à la réponse (audit du 27/09).
+  const creneaux =
+    attendLocataire || repondreLocataire
+      ? await chargerCreneauxMission(mission.intervention_id)
+      : { lignes: [], erreur: false };
+  const mesDates = creneaux.lignes.filter(
+    (c) => c.statut === "propose" && c.propose_par === "artisan"
+  );
+  const datesLocataire = creneaux.lignes.filter(
+    (c) => c.statut === "propose" && c.propose_par === "locataire"
+  );
   // L'itinéraire n'est un bouton que lorsqu'on s'y rend : avant le
   // rendez-vous, un bouton de 56 px en tête de fiche prenait la place du
   // geste attendu (24/09).
@@ -84,8 +101,8 @@ export default async function PageMission(
 
       {termine && (
         <Succes>
-          Compte rendu envoyé. L&apos;intervention est terminée et l&apos;agence peut
-          facturer.
+          Compte rendu envoyé. L&apos;intervention est terminée : vous pouvez
+          déposer votre facture.
         </Succes>
       )}
 
@@ -93,7 +110,9 @@ export default async function PageMission(
         <MarqueAgence nom={mission.agence_nom} taille="grande" />
         <Etiquette
           ton={
-            attendLocataire
+            repondreLocataire
+              ? "alerte"
+              : attendLocataire
               ? "attente"
               : mission.statut === "proposee"
                 ? "alerte"
@@ -104,7 +123,9 @@ export default async function PageMission(
                     : "encre"
           }
         >
-          {attendLocataire
+          {repondreLocataire
+            ? "Dates du locataire à confirmer"
+            : attendLocataire
             ? "En attente du locataire"
             : libelle(STATUTS_MISSION, mission.statut)}
         </Etiquette>
@@ -153,8 +174,20 @@ export default async function PageMission(
           <p className="text-base text-[var(--corps)]">
             {mission.creneaux_en_attente} date{mission.creneaux_en_attente > 1 ? "s" : ""}{" "}
             proposée{mission.creneaux_en_attente > 1 ? "s" : ""} au locataire. Vous serez
-            prévenu de son choix.
+            prévenu de son choix ; gardez-les libres d&apos;ici là.
           </p>
+          {mesDates.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {mesDates.map((c) => (
+                <li key={c.creneau_id} className="text-base font-medium text-[var(--corps)]">
+                  {creneauTexte(c.debut, c.fin)}
+                </li>
+              ))}
+            </ul>
+          )}
+          {creneaux.erreur && (
+            <p className={`mt-2 ${CLASSE_AIDE}`}>Le détail des dates n&apos;a pas pu être chargé.</p>
+          )}
           <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1">
             <Link
               href={`/artisan/missions/${mission.intervention_id}/creneaux`}
@@ -171,7 +204,27 @@ export default async function PageMission(
         </Carte>
       )}
 
-      {mission.statut === "acceptee" && !attendLocataire && (
+      {repondreLocataire && (
+        <Carte className="border-l-4 border-l-[var(--warning)]">
+          <TitreSection>Le locataire vous propose d&apos;autres dates</TitreSection>
+          <p className="mb-3 text-base text-[var(--corps)]">
+            Aucune de vos dates ne lui convenait. Retenez l&apos;une des siennes, ou
+            refusez-les : le gérant fixera alors le rendez-vous.
+          </p>
+          {creneaux.erreur ? (
+            <p className={CLASSE_AIDE}>
+              Les dates du locataire n&apos;ont pas pu être chargées. Rechargez la page.
+            </p>
+          ) : (
+            <DatesLocataire
+              interventionId={mission.intervention_id}
+              dates={datesLocataire.map(({ creneau_id, debut, fin }) => ({ creneau_id, debut, fin }))}
+            />
+          )}
+        </Carte>
+      )}
+
+      {mission.statut === "acceptee" && !attendLocataire && !repondreLocataire && (
         <div className="space-y-3">
           <Link
             href={`/artisan/missions/${mission.intervention_id}/creneaux`}
@@ -264,6 +317,12 @@ export default async function PageMission(
               {euros(mission.montant_ttc_cents)} TTC
             </LigneInfo>
           )}
+          {mission.montant_plafond_cents !== null &&
+            mission.montant_plafond_cents !== mission.montant_ttc_cents && (
+              <LigneInfo libelle="Avenant accepté">
+                {euros(mission.montant_plafond_cents)} TTC
+              </LigneInfo>
+            )}
         </div>
       </Carte>
 
@@ -295,13 +354,25 @@ export default async function PageMission(
             <LigneInfo libelle="Photo du travail réalisé">
               {mission.photo_apres_deposee ? "Déposée" : "Manquante"}
             </LigneInfo>
+            <LigneInfo libelle="Facture">
+              {mission.facture_deposee ? "Déposée" : "À déposer"}
+            </LigneInfo>
           </div>
-          <Link
-            href="/artisan/facturation"
-            className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
-          >
-            Voir ma facturation
-          </Link>
+          {!mission.facture_deposee && mission.compte_rendu_depose && mission.photo_apres_deposee ? (
+            <Link
+              href={`/artisan/missions/${mission.intervention_id}/facture`}
+              className={`${CLASSE_BOUTON_PRINCIPAL} mt-3`}
+            >
+              Déposer ma facture
+            </Link>
+          ) : (
+            <Link
+              href="/artisan/facturation"
+              className="mt-3 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+            >
+              Voir ma facturation
+            </Link>
+          )}
         </Carte>
       )}
     </div>

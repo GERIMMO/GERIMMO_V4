@@ -13,6 +13,7 @@ import { EdlMentions } from "./edl-mentions";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import { nomComplet } from "@/lib/roles-personnes";
 import { EchecLecture, PageEchecLecture } from "../../../../parc/echec-lecture";
+import { exigerUuids } from "@/lib/identifiants";
 
 export const metadata = { title: "État des lieux — Gerimmo" };
 
@@ -20,6 +21,7 @@ export default async function PageEdl(
   props: PageProps<"/agence/[orgId]/baux/[bailId]/edl/[edlId]">
 ) {
   const { orgId, bailId, edlId } = await props.params;
+  exigerUuids(bailId, edlId);
   const { supabase } = await verifierAccesEspace(orgId);
 
   const { data: edl, error: erreurEdl } = await supabase
@@ -178,7 +180,7 @@ export default async function PageEdl(
       <div>
         <Link
           href={`/agence/${orgId}/baux/${bailId}`}
-          className="text-sm text-muted-foreground hover:underline"
+          className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
         >
           ← Bail{locataireDuBail ? ` · ${nomComplet(locataireDuBail)}` : ""}
         </Link>

@@ -7,8 +7,12 @@ export default async function PageRelais(){
  const db=await createClient();const {data:{user}}=await db.auth.getUser();if(!user)redirect('/connexion?suite=%2Frelais');
  const {data:autorise}=await db.rpc('has_supervision_power',{p_pouvoir:'lecture'});
  if(autorise!==true){
+ // Audit 27/09 : un compte sans second facteur était renvoyé sur /securite,
+ // puis de là sur /espaces, sans un mot. On ne l'envoie vérifier son second
+ // facteur que s'il en a un à vérifier ; sinon il lit directement pourquoi
+ // la page est vide.
  const {data:niveau}=await db.auth.mfa.getAuthenticatorAssuranceLevel();
- if(niveau?.currentLevel!=="aal2")redirect('/securite?suite=%2Frelais');
+ if(niveau?.nextLevel==="aal2"&&niveau?.currentLevel!=="aal2")redirect('/securite?suite=%2Frelais');
  return <main className="mx-auto w-full max-w-2xl p-4 sm:p-7"><div className="entete-page"><h1>Relais de supervision</h1></div><div className="vide-guide"><p className="titre">Aucun relais actif</p><p className="explication">Votre délégation a pris fin ou ne vous a pas été attribuée. Demandez au superviseur permanent d’ouvrir un relais.</p><div className="geste"><Link href="/espaces" className="btn-secondaire">Retrouver mes espaces</Link></div></div></main>;
  }
  const {data,error}=await db.rpc('resume_relais_supervision');

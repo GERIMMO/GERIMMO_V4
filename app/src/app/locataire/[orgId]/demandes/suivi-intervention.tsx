@@ -170,6 +170,19 @@ function enMots(s: SuiviIntervention, peutAgir: boolean): { titre: string; detai
         detail: "Il va vous proposer des créneaux de rendez-vous — vous choisirez ici.",
       };
     case "creneau_a_choisir":
+      // Tous les créneaux de l'artisan sont passés (27/09) : ils ne se
+      // retiennent plus — le geste utile est de proposer ses disponibilités.
+      if (s.creneaux_a_choisir === 0) {
+        return peutAgir
+          ? {
+              titre: "Les créneaux proposés sont passés",
+              detail: `Proposez vos disponibilités : ${artisan} en retiendra une.`,
+            }
+          : {
+              titre: "Les créneaux proposés sont passés",
+              detail: "Voyez avec votre gestionnaire pour fixer le rendez-vous.",
+            };
+      }
       return peutAgir
         ? {
             titre: "Choisissez votre rendez-vous",
@@ -247,7 +260,10 @@ function ChoixDuCreneau({
   arbitrage: boolean;
 }) {
   const idGroupe = useId();
-  const [contre, setContre] = useState(false);
+  // Plus aucun créneau à venir (tous passés, 27/09) : le formulaire des
+  // disponibilités s'ouvre d'emblée — « aucun ne me convient » n'aurait rien
+  // à quoi répondre.
+  const [contre, setContre] = useState(creneaux.length === 0);
   // « Confirmer » n'est actif qu'une fois un créneau coché (24/09) : plein et
   // actif d'emblée, il se lisait comme l'action à faire, et l'appui direct
   // faisait surgir la bulle native « obligatoire », accrochée au bouton radio

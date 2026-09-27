@@ -60,8 +60,8 @@ export default async function PageDevisAdmin() {
         <div className="vide-guide">
           <p className="titre">Aucune demande commerciale</p>
           <p className="explication">
-            Les demandes arrivent depuis le formulaire « Agences » du site
-            vitrine.
+            Les demandes arrivent depuis le formulaire «&nbsp;Agences&nbsp;» du
+            site vitrine.
           </p>
           <div className="geste">
             <Link href="/#agences" target="_blank" className="btn-secondaire">

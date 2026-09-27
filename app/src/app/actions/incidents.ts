@@ -207,12 +207,14 @@ export async function declarerMonIncident(
 
   // 25/09 : « votre gérant est prévenu immédiatement » n'était vrai qu'à sa
   // prochaine connexion. Pour une urgence, l'agence reçoit l'e-mail maintenant.
+  let emailUrgenceParti = false;
   if (champs.urgence === "urgente") {
-    await notifierIncidentUrgentDeclare(supabase, orgId, incidentId, {
+    const notification = await notifierIncidentUrgentDeclare(supabase, orgId, incidentId, {
       categorie: champs.categorie ?? "",
       piece: champs.piece || null,
       description: champs.description || null,
     });
+    emailUrgenceParti = notification.envoyee;
   }
 
   revalidatePath(`/locataire/${orgId}`);
@@ -225,8 +227,13 @@ export async function declarerMonIncident(
   // 2,5 s sur `succes` seul et emporte l'avertissement avant qu'il ait été lu —
   // le correctif est dans le composant client, le serveur ne peut pas désarmer
   // une minuterie.
+  // Ce que l'écran promet est ce qui s'est passé (audit du 27/09) : l'e-mail
+  // ne part que pour une urgence, et seulement s'il est parti on le dit.
+  // Sinon, le signalement attend dans l'espace du gestionnaire.
   return {
-    succes: "Signalement envoyé — votre gérant est prévenu. Suivez-le depuis votre espace.",
+    succes: emailUrgenceParti
+      ? "Signalement envoyé — urgence : votre gestionnaire est prévenu par e-mail. Suivez-le depuis votre espace."
+      : "Signalement envoyé — votre gestionnaire le verra dans son espace à sa prochaine connexion. Suivez-le depuis votre espace.",
     avertissement,
   };
 }
@@ -245,7 +252,7 @@ export async function contesterImputation(
   const message = String(formData.get("message") ?? "").trim();
   if (!message) {
     return {
-      erreur: "Expliquez pourquoi vous contestez — votre message est transmis à l'agence.",
+      erreur: "Expliquez pourquoi vous contestez — votre message est transmis à votre gestionnaire.",
       valeurs,
     };
   }
@@ -259,7 +266,7 @@ export async function contesterImputation(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
-  return { succes: "Contestation transmise à l'agence. Elle ne suspend pas la réparation." };
+  return { succes: "Contestation transmise à votre gestionnaire. Elle ne suspend pas la réparation." };
 }
 
 // Le problème persiste : le locataire déclarant rouvre son incident clos
@@ -286,7 +293,7 @@ export async function signalerProblemePersiste(
 
   revalidatePath(`/locataire/${orgId}`);
   revalidatePath(`/locataire/${orgId}/demandes`);
-  return { succes: "Signalement rouvert — votre gérant est prévenu." };
+  return { succes: "Signalement rouvert — votre gestionnaire le verra dans son espace." };
 }
 
 // ============================================================

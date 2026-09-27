@@ -31,7 +31,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
       "Agenda",
       "Statistiques",
       "Messages",
-      "Paramètres",
+      "Profil de l'agence",
     ]);
   });
 
@@ -74,7 +74,10 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(c).toContain("/profil");
     expect(c).toContain("/artisans");
     expect(c).toContain("/agenda");
-    expect(nav("agent").principales.find((e) => e.libelle === "Paramètres")?.href).toBe("/compte");
+    expect(nav("agent").principales.find((e) => e.libelle === "Mon compte")?.href).toBe("/compte");
+    // Audit 27/09 : un même mot ne désigne plus deux écrans selon le rôle.
+    expect(nav("agent").principales.map((e) => e.libelle)).not.toContain("Paramètres");
+    expect(nav("admin_agence").secondaires.map((e) => e.libelle)).toContain("Mandats & versements");
   });
 
   it("garde au propriétaire son vocabulaire et sa FAQ", () => {
@@ -109,7 +112,7 @@ describe("La navigation v4 préserve les accès de chaque rôle", () => {
     expect(entreeActive(toutes, `/agence/${ORG}/parc/abc/lots/def`)?.libelle).toBe("Parc de l'agence");
     expect(entreeActive(toutes, `/agence/${ORG}/loyers`)?.libelle).toBe("Loyers & charges");
     expect(entreeActive(toutes, `/agence/${ORG}/comptabilite`)?.libelle).toBe("Écritures & rapports");
-    expect(entreeActive(toutes, `/agence/${ORG}/profil`)?.libelle).toBe("Paramètres");
+    expect(entreeActive(toutes, `/agence/${ORG}/profil`)?.libelle).toBe("Profil de l'agence");
     expect(entreeActive(toutes, `/agence/${ORG}/inconnu`)).toBeNull();
   });
 

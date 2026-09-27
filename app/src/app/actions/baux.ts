@@ -6,14 +6,15 @@ import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { detecterMimeReel, TAILLE_MAX_OCTETS } from "@/lib/file-type";
 import { verifierGerant } from "@/lib/ged-acces";
-import { deposerFichierGed } from "@/lib/ged-depot";
+import { abandonnerPieceGed, deposerFichierGed, preparerFichierGed } from "@/lib/ged-depot";
 import { cibleBlocage } from "@/lib/parc";
 import { motifLitteral, eur } from "@/lib/ged";
 import { TYPES_BAIL, mentionsObligatoiresManquantes } from "@/lib/baux";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { envoyerEmail } from "@/lib/email";
-import { headers } from "next/headers";
+import { echapperHtml } from "@/lib/quittance-email";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
+import { adresseDeRetour } from "@/lib/site";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
 export type EtatBail = {
@@ -118,6 +119,16 @@ function lireChampsBail(
         } est de ${mois} mois de loyer hors charges, soit ${eur(plafond)}.`,
       };
     }
+  }
+
+  // Audit métier du 27/09 — wiki « Régularisation des charges » : sur un bail
+  // nu, le forfait n'est ouvert qu'à la colocation (contrat type, IV.B). La
+  // base le refuse aussi (baux_forfait_charges).
+  if (type === "nu" && formData.get("charges_mode") === "forfait") {
+    return {
+      erreur:
+        "Charges au forfait impossibles sur un bail nu : le forfait est réservé à la colocation et au meublé. Choisissez des provisions régularisables.",
+    };
   }
 
   return {
@@ -503,13 +514,13 @@ export async function envoyerBailSigne(orgId: string, bailId: string): Promise<E
     : { data: null };
   if (!loc?.email) return { erreur: "Le locataire n'a pas d'email renseigné." };
 
-  const origine = (await headers()).get("origin") ?? "";
+  const origine = adresseDeRetour();
   const lot = (Array.isArray(bail.lot) ? bail.lot[0] : bail.lot) as { nom: string } | null;
   const html = `
     <div style="font-family:sans-serif;font-size:14px;color:#111">
       <h2>Votre bail signé est disponible</h2>
-      <p>Bonjour${loc.prenom ? " " + loc.prenom : ""},</p>
-      <p>Votre bail${lot ? ` pour <strong>${lot.nom}</strong>` : ""} est signé : vous pouvez le consulter et le télécharger à tout moment depuis votre espace, rubrique « Mes documents ».</p>
+      <p>Bonjour${loc.prenom ? " " + echapperHtml(loc.prenom) : ""},</p>
+      <p>Votre bail${lot ? ` pour <strong>${echapperHtml(lot.nom)}</strong>` : ""} est signé : vous pouvez le consulter et le télécharger à tout moment depuis votre espace, rubrique « Mes documents ».</p>
       <p><a href="${origine}/locataire/${orgId}/documents">Ouvrir mes documents</a></p>
     </div>`;
   const envoi = await envoyerEmail({ organisation: { db: supabase, id: orgId }, to: loc.email, subject: "Votre bail signé est disponible", html });
@@ -547,25 +558,49 @@ export async function enregistrerConge(
   const motif = String(formData.get("motif") ?? "").trim();
   if (!date) return { erreur: "Indiquez la date de réception du congé.", valeurs };
 
-  // Préavis réduit du locataire : justificatif déposé en GED, transmis au contrôle base.
-  let justificatif: string | null = null;
-  let avertissementJustificatif: string | undefined;
-  const fichier = formData.get("justificatif");
-  if (fichier instanceof File && fichier.size > 0) {
-    const res = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", "Justificatif de préavis réduit");
-    if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt du justificatif.", valeurs };
-    justificatif = res.documentId;
-    avertissementJustificatif = res.avertissement;
-  }
-
-  const { error } = await supabase.rpc("enregistrer_conge", {
+  const conge: Record<string, unknown> = {
     p_bail: bailId,
     p_par: par,
     p_date_presentation: date,
     p_preavis_mois: preavis,
     p_motif: motif || null,
-    p_justificatif: justificatif,
-  });
+  };
+  // Audit métier du 27/09 (wiki « Bail » § 1.11) : un congé pour vente porte
+  // son prix (il vaut offre), un congé pour reprise son bénéficiaire. La base
+  // les exige selon le motif ; l'action les transmet.
+  if (par === "bailleur") {
+    const prixSaisi = String(formData.get("prix_vente") ?? "").trim().replace(/\s/g, "").replace(",", ".");
+    const prix = prixSaisi ? Number(prixSaisi) : null;
+    if (prix !== null && (!Number.isFinite(prix) || prix <= 0))
+      return { erreur: "Le prix de vente proposé est invalide.", valeurs };
+    conge.p_prix_vente = prix;
+    conge.p_beneficiaire = String(formData.get("beneficiaire") ?? "").trim() || null;
+  }
+
+  // Préavis réduit du locataire : justificatif transmis au contrôle base.
+  // Audit agence 27/09 : il n'existe en GED que si le congé existe. Déposé
+  // avant la fonction, chaque refus laissait une pièce rattachée à rien, dont
+  // l'empreinte bloquait ensuite le nouvel essai avec le même fichier. L'octet
+  // monte au Storage, la fiche naît dans la transaction du congé.
+  let avertissementJustificatif: string | undefined;
+  const fichier = formData.get("justificatif");
+  let error: { message: string } | null;
+  if (fichier instanceof File && fichier.size > 0) {
+    const prep = await preparerFichierGed(supabase, orgId, fichier);
+    if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt du justificatif.", valeurs };
+    const piece = prep.fichier;
+    avertissementJustificatif = prep.avertissement;
+    ({ error } = await supabase.rpc("enregistrer_conge_avec_justificatif", {
+      ...conge,
+      p_storage_path: piece.chemin,
+      p_mime: piece.mime,
+      p_taille: piece.taille,
+      p_empreinte: piece.empreinte,
+    }));
+    if (error) await abandonnerPieceGed(supabase, piece);
+  } else {
+    ({ error } = await supabase.rpc("enregistrer_conge", { ...conge, p_justificatif: null }));
+  }
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   const baseConge = "Congé enregistré — bail en préavis.";

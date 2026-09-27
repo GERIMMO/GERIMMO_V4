@@ -35,7 +35,11 @@ export function CarteMission({
   // (RM-10.4.1). L'étiquette, la ligne de créneau et la consigne le disent
   // donc toutes trois, sans flèche ni couleur d'action (tour du 24/09).
   const attendLocataire = ligne.statut === "acceptee" && ligne.creneaux_en_attente > 0;
-  const ton = attendLocataire
+  // Audit 27/09 : le locataire a contre-proposé — c'est l'artisan qui répond.
+  const repondre = ligne.statut === "acceptee" && ligne.dates_locataire_en_attente > 0;
+  const ton = repondre
+    ? "alerte"
+    : attendLocataire
     ? "attente"
     : ligne.statut === "proposee"
       ? "alerte"
@@ -53,7 +57,11 @@ export function CarteMission({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <MarqueAgence nom={ligne.agence_nom} />
         <Etiquette ton={ton}>
-          {attendLocataire ? "En attente du locataire" : libelle(STATUTS_MISSION, ligne.statut)}
+          {repondre
+            ? "Dates du locataire à confirmer"
+            : attendLocataire
+              ? "En attente du locataire"
+              : libelle(STATUTS_MISSION, ligne.statut)}
         </Etiquette>
       </div>
 

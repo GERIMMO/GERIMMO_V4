@@ -1,5 +1,8 @@
 import { MarqueOrganisation } from "@/components/marque-organisation";
-import { styleMarque } from "@/lib/marque-organisation";
+import { nomMarque, styleMarque } from "@/lib/marque-organisation";
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { emetteurAttestation, type EmetteurAttestationBrut } from "@/lib/attestation-emetteur";
 import { chargerMarque } from "@/lib/marque-organisation-serveur";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -10,7 +13,17 @@ import { BoutonImprimer } from "@/components/bouton-imprimer";
 import { aEchoue, PanneLecture } from "@/app/locataire/[orgId]/panne-lecture";
 import type { BailLocataire } from "@/app/locataire/[orgId]/types";
 
-export const metadata = { title: "Attestation de bon paiement — Gerimmo" };
+// Le titre de l'onglet porte la marque de l'émetteur, jamais « Gerimmo »
+// (25/09, D04 ; relevé à nouveau le 27/09).
+export async function generateMetadata(
+  props: PageProps<"/attestation-loyer/[orgId]">
+): Promise<Metadata> {
+  const { orgId } = await props.params;
+  const marque = await chargerMarque(await createClient(), orgId).catch(() => null);
+  return {
+    title: marque ? `Attestation de bon paiement — ${nomMarque(marque)}` : "Attestation de bon paiement",
+  };
+}
 
 // Attestation de bon paiement (maquette v10) : établie à la demande du
 // locataire, uniquement s'il est réellement à jour — sinon la page explique
@@ -23,23 +36,24 @@ export default async function PageAttestationLoyer(
   props: PageProps<"/attestation-loyer/[orgId]">
 ) {
   const { orgId } = await props.params;
-  const { supabase, personne, organisation } = await verifierAccesEspaceLocataire(orgId);
+  const { supabase, personne } = await verifierAccesEspaceLocataire(orgId);
 
   const marque = await chargerMarque(supabase, orgId);
 
   const [
     { data: baux, error: eBail },
     { data: echeancier, error: eEcheancier },
-    { data: gestionnaires, error: eGestionnaire },
+    { data: emetteurBrut, error: eEmetteur },
   ] = await Promise.all([
     supabase.rpc("mon_bail_locataire", { p_org: orgId }),
     supabase.rpc("mon_echeancier_locataire", { p_org: orgId }),
-    supabase.rpc("mon_gestionnaire_locataire", { p_org: orgId }),
+    // L'identité de l'émetteur (27/09) : nom, adresse, qualité.
+    supabase.rpc("attestation_emetteur_locataire", { p_org: orgId }),
   ]);
   // Une lecture tombée donnait ici le pire des écrans : un échéancier vide se
   // lit « après votre premier loyer réglé » — on annonçait à un locataire de
   // trois ans qu'il n'avait jamais payé. Un échec n'est pas un vide (11/09).
-  const lectureKO = aEchoue(eBail, eEcheancier, eGestionnaire);
+  const lectureKO = aEchoue(eBail, eEcheancier, eEmetteur);
 
   const bail = ((baux ?? []) as BailLocataire[])[0];
   const lignes = (echeancier ?? []) as {
@@ -47,10 +61,10 @@ export default async function PageAttestationLoyer(
     montant_du: number;
     statut: string;
   }[];
-  // L'attestation est un document SIGNÉ : le nom qui l'émet ne peut pas être
-  // un à-peu-près. Sans gestionnaire déclaré, c'est l'organisation de
-  // l'espace — « Votre agence » n'atteste rien et ne vaut aucun dossier.
-  const agence = ((gestionnaires ?? []) as { agence: string }[])[0]?.agence ?? organisation.name;
+  // Chez un propriétaire direct, le bailleur atteste ; chez une agence,
+  // l'agence pour le compte du bailleur — avec l'adresse de l'un ou l'autre
+  // (27/09). Sans identité complète, pas d'attestation.
+  const emetteur = emetteurBrut ? emetteurAttestation(emetteurBrut as EmetteurAttestationBrut) : null;
 
   const aujourdhui = aujourdhuiParis();
   // « de juillet 2026 à septembre 2026 » — avec l'élision devant voyelle
@@ -107,12 +121,41 @@ export default async function PageAttestationLoyer(
         </div>
       </div>
     );
+  } else if (!emetteur || emetteur.manquants.length > 0) {
+    // Un document « fait pour valoir » sans auteur identifiable n'a pas de
+    // valeur ([[Quittance conforme]]) : on ne le délivre pas à moitié.
+    contenu = (
+      <div className="vide-guide">
+        <p className="titre">Attestation indisponible pour l&apos;instant</p>
+        <p className="explication">
+          Vos loyers sont à jour, mais l&apos;attestation doit porter l&apos;identité
+          complète de celui qui la signe
+          {emetteur ? ` (il manque ${emetteur.manquants.join(", ")})` : ""}. Demandez à
+          votre gestionnaire de la compléter.
+        </p>
+        <div className="geste">
+          <Link href={`/locataire/${orgId}/contact`} className="btn-or">
+            Écrire à mon gestionnaire
+          </Link>
+        </div>
+      </div>
+    );
   } else {
     delivrable = true;
     contenu = (
       <>
+        {/* L'émetteur, en tête comme sur les documents générés (27/09). */}
+        <div className="text-sm">
+          <p className="font-semibold">{emetteur.nom}</p>
+          <p className="text-muted-foreground">{emetteur.adresse}</p>
+          {(emetteur.email || emetteur.siret) && (
+            <p className="text-muted-foreground">
+              {[emetteur.email, emetteur.siret && `SIRET ${emetteur.siret}`].filter(Boolean).join(" · ")}
+            </p>
+          )}
+        </div>
         <p className="text-sm leading-relaxed">
-          {agence}, gestionnaire du logement désigné ci-dessous, atteste que{" "}
+          {emetteur.nom}, {emetteur.qualite}, atteste que{" "}
           <b className="font-semibold">{personne ? nomComplet(personne) : "le locataire"}</b>,
           locataire de <b className="font-semibold">{bail.lot_nom}</b>
           {bail.adresse ? ` — ${bail.adresse}` : ""}, est à jour du paiement de
@@ -144,8 +187,15 @@ export default async function PageAttestationLoyer(
         <p className="text-sm text-muted-foreground">
           Fait pour servir et valoir ce que de droit.
           <br />
-          {agence}
+          Fait à {emetteur.ville}, le {formaterDate(aujourdhui)}.
         </p>
+        {/* La signature de l'émetteur : zone à signer, sous son nom — comme
+            les documents générés quand aucune signature n'est déposée. */}
+        <div className="ml-auto w-56 text-center text-sm">
+          <p className="text-xs text-muted-foreground">Signature</p>
+          <div className="h-16 border-b border-border" />
+          <p className="mt-1">{emetteur.nom}</p>
+        </div>
         <p className="text-xs text-muted-foreground print:hidden">
           Ce document est établi automatiquement d&apos;après votre échéancier —
           utile pour un futur dossier de location.

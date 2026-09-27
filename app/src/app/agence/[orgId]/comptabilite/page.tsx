@@ -1,6 +1,7 @@
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate, moisEnFrancais, aujourdhuiParis } from "@/lib/ged";
 import { nomComplet } from "@/lib/roles-personnes";
+import { annulationHorsJournal } from "@/lib/ecritures";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FormulaireEcriture,
@@ -50,6 +51,8 @@ const LIBELLES_CATEGORIE: Record<string, string> = {
   assurance: "Assurance",
   taxe_fonciere: "Taxe foncière",
   regularisation_charges: "Régularisation des charges",
+  // Solde de tout compte (audit métier du 27/09) : avance restituée au locataire
+  trop_percu_restitue: "Trop-perçu restitué",
   reversement: "Reversement",
 };
 
@@ -70,6 +73,8 @@ type Ecriture = {
   libelle: string | null;
   systeme: boolean;
   contre_ecriture_de: string | null;
+  encaissement_id: string | null;
+  depot_encaissement_id: string | null;
   lot_id: string | null;
 };
 
@@ -94,7 +99,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   ] = await Promise.all([
     supabase
       .from("ecritures")
-      .select("id, categorie, sens, montant, date_piece, date_imputation, libelle, systeme, contre_ecriture_de, lot_id")
+      .select("id, categorie, sens, montant, date_piece, date_imputation, libelle, systeme, contre_ecriture_de, encaissement_id, depot_encaissement_id, lot_id")
       .eq("organization_id", orgId)
       .order("date_imputation", { ascending: false })
       .limit(LIGNES_JOURNAL),
@@ -550,8 +555,11 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                       pièce {formaterDate(e.date_piece)}
                       {e.systeme ? " · créée automatiquement" : ""}
                     </p>
-                    {!e.contre_ecriture_de && !clot && (
+                    {!annulationHorsJournal(e) && !clot && (
                       <BoutonContre orgId={orgId} ecritureId={e.id} />
+                    )}
+                    {!e.contre_ecriture_de && annulationHorsJournal(e) && !clot && (
+                      <p className="text-xs text-muted-foreground">{annulationHorsJournal(e)}</p>
                     )}
                   </li>
                 );
@@ -594,11 +602,18 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                           {eur(e.montant)}
                         </td>
                         <td className="text-right">
-                          {!e.contre_ecriture_de && !clot && (
+                          {!annulationHorsJournal(e) && !clot && (
                             <BoutonContre orgId={orgId} ecritureId={e.id} />
                           )}
                           {e.contre_ecriture_de && (
                             <span className="text-xs text-muted-foreground whitespace-nowrap">annulation</span>
+                          )}
+                          {/* Audit 27/09 : une écriture née d'un encaissement
+                              s'annule avec lui, depuis le bail — le journal ne
+                              propose plus un bouton qui le désaccorderait des
+                              loyers. */}
+                          {!e.contre_ecriture_de && annulationHorsJournal(e) && !clot && (
+                            <span className="text-xs text-muted-foreground">{annulationHorsJournal(e)}</span>
                           )}
                         </td>
                       </tr>

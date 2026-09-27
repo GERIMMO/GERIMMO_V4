@@ -87,3 +87,37 @@ export function mentionsObligatoiresManquantes(bail: {
     manquantes.push("Loyer hors charges non fixé");
   return manquantes;
 }
+
+// Exercice proposé par défaut pour la régularisation des charges (audit du
+// 27/09) : l'année civile précédente (RM-3.9.1), ramenée dans la période du
+// bail. Un bail de septembre 2026 ne couvre aucun jour de 2025 : proposer
+// 2025 provoquait le refus « le bail ne couvre aucun jour de l'exercice ».
+export function exerciceRegularisationParDefaut(
+  dateDebut: string | null | undefined,
+  dateFin: string | null | undefined,
+  aujourdhui: string
+): number {
+  const anneeCourante = Number(aujourdhui.slice(0, 4));
+  let annee = anneeCourante - 1;
+  const fin = dateFin ? Number(dateFin.slice(0, 4)) : null;
+  const debut = dateDebut ? Number(dateDebut.slice(0, 4)) : null;
+  if (fin !== null && fin < annee) annee = fin;
+  if (debut !== null && debut > annee) annee = Math.min(debut, anneeCourante);
+  return annee;
+}
+
+// Dernière date anniversaire du bail atteinte à `aujourdhui` (AAAA-MM-JJ), ou
+// null avant le premier anniversaire : la révision IRL prend effet à une date
+// anniversaire (wiki « Révision annuelle IRL »). Le 29/02 se replie au 28/02
+// les années non bissextiles, comme `date + interval 'n years'` en base.
+export function derniereDateAnniversaire(dateDebut: string | null | undefined, aujourdhui: string): string | null {
+  if (!dateDebut) return null;
+  const [a, m, j] = dateDebut.slice(0, 10).split("-").map(Number);
+  const anniversaire = (n: number) => {
+    const dernier = new Date(Date.UTC(a + n, m, 0)).getUTCDate();
+    return `${a + n}-${String(m).padStart(2, "0")}-${String(Math.min(j, dernier)).padStart(2, "0")}`;
+  };
+  let n = Number(aujourdhui.slice(0, 4)) - a;
+  while (n >= 1 && anniversaire(n) > aujourdhui) n--;
+  return n >= 1 ? anniversaire(n) : null;
+}

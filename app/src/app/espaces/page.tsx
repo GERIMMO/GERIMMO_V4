@@ -123,6 +123,18 @@ export default async function PageEspaces() {
 
   const accesIncomplets = Boolean(erreurAdhesions || erreurArtisan || erreurAnciens || erreurContexteAncien);
 
+  // Un compte ouvert par « Inscrire mon entreprise » (audit du 27/09) n'a ni
+  // adhésion ni fiche tant que l'entreprise n'est pas saisie : il revient à
+  // l'inscription artisan — jamais à un espace propriétaire.
+  if (
+    !accesIncomplets &&
+    adhesions.length === 0 &&
+    !estArtisan &&
+    user.user_metadata?.espace === "artisan"
+  ) {
+    redirect("/artisan/inscription");
+  }
+
   // S9a — un propriétaire qui vient de s'inscrire (immédiatement, ou via le
   // lien de confirmation reçu par email) n'a pas encore d'espace : on l'ouvre
   // ici, une fois pour toutes (fonction idempotente), puis on y entre.

@@ -14,7 +14,8 @@ export function BoutonDevisTraite({ id }: { id: string }) {
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="…">
         Marquer traitée
       </BoutonEnvoi>
-      {etat.erreur && <span className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.erreur && <span role="alert" className="text-xs text-destructive">{etat.erreur}</span>}
+      {etat.succes && <span role="status" className="text-xs">{etat.succes}</span>}
     </form>
   );
 }

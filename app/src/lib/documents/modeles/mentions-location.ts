@@ -71,7 +71,7 @@ export function encadrementLocation(ctx: ContexteBail, f: Fusion): string {
       loyer de référence majoré : ${f.montant(b.loyer_reference_majore, 'loyer de référence majoré €/m²')} par m².<br/>
       ${b.complement_loyer == null ? 'Complément de loyer : néant.' : `Complément de loyer : ${f.montant(b.complement_loyer, 'complément de loyer')}, justifié par ${f.champ(b.complement_justification, 'justification du complément de loyer')}.`}</p>`
     : `<p>Loyers de référence imposés par arrêté local : ${b.encadrement_loyer === false ? 'non' : f.champ(null, 'application des loyers de référence à vérifier')}.</p>`;
-  return `<div class="encadre"><p>Zone soumise au plafonnement de l’évolution du loyer à la relocation : ${ctx.bien.zone_tendue ? 'oui' : 'non'}.</p>${reference}</div>
+  return `<div class="encadre"><p>Zone soumise au plafonnement de l’évolution du loyer à la relocation : ${(b.zone_tendue ?? ctx.bien.zone_tendue) ? 'oui' : 'non'}.</p>${reference}</div>
     <p>Si le précédent locataire a quitté le logement moins de dix-huit mois avant la signature : dernier loyer
     ${f.montant(b.dernier_loyer, 'dernier loyer si départ depuis moins de 18 mois')}, versé le ${f.date(b.dernier_loyer_versement, 'date du dernier versement si applicable')},
     dernière révision le ${f.date(b.dernier_loyer_revision, 'date de dernière révision si applicable')}.</p>`;

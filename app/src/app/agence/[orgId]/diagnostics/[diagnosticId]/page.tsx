@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
+import { exigerUuids } from "@/lib/identifiants";
 
 /**
  * Le renvoi d'un diagnostic vers l'endroit où il se redépose.
@@ -21,6 +22,7 @@ export default async function PageRenvoiDiagnostic(
   props: PageProps<"/agence/[orgId]/diagnostics/[diagnosticId]">
 ) {
   const { orgId, diagnosticId } = await props.params;
+  exigerUuids(diagnosticId);
   const { supabase } = await verifierAccesEspace(orgId);
 
   const { data: diagnostic } = await supabase

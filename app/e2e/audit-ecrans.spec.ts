@@ -85,7 +85,7 @@ for (const persona of PERSONAS) {
             titre: document.title,
             h1,
             // Un 404 App Router répond 200 : on le détecte au contenu
-            soft404: h1 === "404" || document.body.innerText.includes("could not be found"),
+            soft404: h1 === "404" || h1 === "Cette page est introuvable" || document.body.innerText.includes("could not be found"),
           };
         });
         await page.screenshot({ path: path.join(dossier, `${slug}.png`), fullPage: true });

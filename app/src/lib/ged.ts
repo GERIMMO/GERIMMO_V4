@@ -15,6 +15,8 @@ export const TYPES_DOCUMENT: Record<string, string> = {
   photo_incident: "Photo d'incident",
   rapport_gestion: "Rapport de gestion",
   autre: "Autre",
+  // Déposée par l'artisan après l'intervention (audit du 27/09, module 9.7).
+  facture_artisan: "Facture d'artisan",
   document_test: "Document de test (purge immédiate)",
 };
 

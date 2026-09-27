@@ -6,6 +6,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -136,7 +137,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     // Bail du 1er janvier au 10 avril 2025 → avril = 10/30 jours
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges,
          date_debut, date_fin)
        values ($1,$2,$3,'termine',600,0,'2025-01-01','2025-04-10') returning id`,
@@ -163,7 +165,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     // Du 11 au 20 juin 2025 → 10 jours sur 30
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges,
          date_debut, date_fin)
        values ($1,$2,$3,'termine',900,0,'2025-06-11','2025-06-20') returning id`,
@@ -185,7 +188,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     );
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat) values ($1,$2,$3,'actif') returning id`,
       [orgA, l, locataire]
     );
@@ -232,7 +236,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     const l = await lot();
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, depot_garantie, loyer_hc)
        values ($1,$2,$3,'termine',700,700) returning id`,
       [orgA, l, locataire]
@@ -289,7 +294,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     const l = await lot(true); // lot meublé
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, type, loyer_hc, depot_garantie)
        values ($1,$2,$3,'actif','colocation',700,1400) returning id`,
       [orgA, l, locataire]
@@ -308,10 +314,13 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     const l = await lot();
     const {
       rows: [{ id: bail }],
-    } = await db.query(
-      `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges,
+    } = await requeteProprietaire(
+      db,
+      // Meublé : le forfait y est libre ; sur un bail nu il est refusé en base
+      // (contrat type, section IV.B — audit du 27/09).
+      `insert into public.baux (organization_id, lot_id, locataire_principal, type, etat, loyer_hc, charges,
          charges_mode, date_debut)
-       values ($1,$2,$3,'actif',600,50,'forfait','2025-01-01') returning id`,
+       values ($1,$2,$3,'meuble','actif',600,50,'forfait','2025-01-01') returning id`,
       [orgA, l, locataire]
     );
     const {
@@ -333,7 +342,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     const l = await lot();
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, charges,
          date_debut, date_fin)
        values ($1,$2,$3,'termine',600,0,'2025-01-01','2025-02-28') returning id`,
@@ -369,7 +379,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     // 20260910171000). Les assertions du test sont inchangées.
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, loyer_hc, depot_garantie)
        values ($1,$2,$3,'preavis',700,700) returning id`,
       [orgA, l, locataire]
@@ -422,7 +433,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     } = await db.query(`select id from public.lots where bien_id=$1`, [bien]);
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, type)
        values ($1,$2,$3,'actif','nu') returning id`,
       [orgA, l, locataire]
@@ -445,7 +457,8 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     const l = await lot(); // creer_bien_avec_lot → zone_tendue false par défaut
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, type)
        values ($1,$2,$3,'actif','nu') returning id`,
       [orgA, l, locataire]

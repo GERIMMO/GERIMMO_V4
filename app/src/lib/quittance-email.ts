@@ -8,6 +8,20 @@
 
 import { eur } from "@/lib/ged";
 
+/**
+ * Toute valeur SAISIE (prénom, nom de lot, émetteur…) interpolée dans le HTML
+ * d'un e-mail passe par ici (audit agence 27/09) : un « <a href=…> » saisi en
+ * prénom devenait un lien dans le message que le locataire reçoit.
+ */
+export function echapperHtml(v: string): string {
+  return v
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export type Quittance = {
   estQuittance: boolean;
   periode: string;
@@ -47,14 +61,14 @@ export function corpsQuittance(q: Quittance): string {
   return `
     <div style="font-family:sans-serif;font-size:14px;color:#111">
       <h2>${titre} — ${mois}</h2>
-      <p>Bonjour${q.prenom ? " " + q.prenom : ""},</p>
+      <p>Bonjour${q.prenom ? " " + echapperHtml(q.prenom) : ""},</p>
       <p>Veuillez trouver votre ${titre.toLowerCase()} de <strong>${mois}</strong> :</p>
       <ul>
         <li>Loyer hors charges : ${eur(q.loyerHc)}</li>
         <li>Provision pour charges : ${eur(q.charges)}</li>
         <li><strong>Total : ${eur(q.montant)}</strong></li>
       </ul>
-      <p><a href="${q.lien}">Consulter / imprimer le document</a></p>
-      <p>— ${q.emetteur}</p>
+      <p><a href="${echapperHtml(q.lien)}">Consulter / imprimer le document</a></p>
+      <p>— ${echapperHtml(q.emetteur)}</p>
     </div>`;
 }

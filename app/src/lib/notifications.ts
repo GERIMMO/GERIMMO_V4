@@ -1181,6 +1181,7 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
     .from("tech_log")
     .select("details")
     .eq("evenement", EVENEMENT_RAPPEL)
+    .is("account_id", null)
     .gte("created_at", avant(90));
   if (erreurTraces) {
     // Sans la liste des envois passés, envoyer reviendrait à rappeler tout le

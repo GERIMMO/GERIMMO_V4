@@ -23,6 +23,8 @@ export type RelanceLoyer = {
   periode: string;
   dateEcheance: string;
   reste: number;
+  /** Dette échue totale du bail (tous termes impayés), si connue. */
+  totalDu?: number | null;
   /** Lien vers « Mes paiements » du locataire. */
   lien: string;
 };
@@ -39,7 +41,13 @@ export function corpsRelanceLoyer(r: RelanceLoyer): string {
   const salut = `<p>Bonjour${r.prenom ? " " + r.prenom : ""},</p>`;
   const constat = `<p>Sauf erreur de notre part, le loyer de <strong>${mois}</strong> (échéance du ${formaterDate(
     r.dateEcheance
-  )}) pour ${r.lot} reste dû à hauteur de <strong>${eur(r.reste)}</strong>.</p>`;
+  )}) pour ${r.lot} reste dû à hauteur de <strong>${eur(r.reste)}</strong>.</p>${
+    // Audit du 27/09 : la relance dit la dette entière, comme l'avis
+    // d'échéance (wiki « Quittancement des loyers » § 18/09, RM-3.6.3).
+    r.totalDu != null && Number(r.totalDu) > Number(r.reste) + 0.004
+      ? `<p>Au total, <strong>${eur(Number(r.totalDu))}</strong> restent dus à ce jour sur votre bail, tous termes échus confondus.</p>`
+      : ""
+  }`;
   const suite =
     r.niveau === "relance_1"
       ? `<p>Si votre règlement est parti ces derniers jours, merci de ne pas tenir compte de ce message. Sinon, vous pouvez le régler par virement à votre gestionnaire, aux coordonnées habituelles.</p>`

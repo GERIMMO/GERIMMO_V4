@@ -173,8 +173,9 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await agir(null,'aal1','service_role');
   const veille=await id("insert into public.regulatory_watch(source_url,titre,source_nom) values('https://www.service-public.gouv.fr/particuliers/actualites/'||gen_random_uuid(),'Information DPE de test','Service Public') returning id");
   await agir(admin);expect((await db.query("select id from public.regulatory_watch_published where id=$1",[veille])).rows).toHaveLength(0);
-  expect(await refus("select public.decider_veille($1,true,'Résumé de test suffisamment long','Action de test à prévoir',array['artisan'],null)",[veille])).toMatch(/supervision/);
-  await agir(sa);await db.query("select public.decider_veille($1,true,'Résumé de test suffisamment long','Action de test à prévoir',array['artisan'],null)",[veille]);
+  expect(await refus("select public.decider_veille($1,true,'Résumé de test suffisamment long','Action de test à prévoir',array['agence'],null)",[veille])).toMatch(/supervision/);
+  // 27/09 : la fiche publiée n'est lue que par ses publics — ici les agences (l'admin la lit).
+  await agir(sa);await db.query("select public.decider_veille($1,true,'Résumé de test suffisamment long','Action de test à prévoir',array['agence'],null)",[veille]);
   await agir(null,'aal1','service_role');
   // A second item is still private; its study cannot publish it.
   const info=await id("insert into public.regulatory_watch(source_url,titre,source_nom) values('https://www.service-public.gouv.fr/particuliers/actualites/'||gen_random_uuid(),'Information artisan de test','Service Public') returning id");

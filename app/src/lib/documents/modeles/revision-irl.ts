@@ -23,6 +23,7 @@ import {
   referenceCourte,
   signatureOrganisation,
   liensLocataires,
+  libelleCharges,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -35,6 +36,8 @@ export type DonneesRevisionIrl = {
   irlNouveau: number | null;
   trimestre: string | null;
   charges: number | null;
+  /** 'provision' | 'forfait' — le libellé des charges suit le bail. */
+  chargesMode?: string | null;
   bailleurNom: string;
   locatairesNoms: string;
   logementAdresse: string;
@@ -77,7 +80,7 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
       [
         ["Loyer hors charges avant révision", f.montant(d.ancienLoyer)],
         [`<b>Loyer hors charges révisé, à compter du ${f.date(d.dateEffet)}</b>`, `<b>${f.montant(d.nouveauLoyer)}</b>`],
-        ["Provision ou forfait de charges (inchangé)", f.montant(d.charges, "montant inchangé")],
+        [`${libelleCharges(d.chargesMode)} (inchangé)`, f.montant(d.charges, "montant inchangé")],
       ]
     )}
     ${section("Indices retenus")}
@@ -85,8 +88,11 @@ export function construireRevisionIrl(d: DonneesRevisionIrl) {
       [{ libelle: "Référence" }, { libelle: "Valeur", droite: true }],
       [
         ["Trimestre de référence du bail", f.champ(d.trimestre, "ex. 2e trimestre")],
-        ["Indice de l'année écoulée", f.champ(d.irlNouveau?.toLocaleString("fr-FR"), "indice année en cours")],
-        ["Indice de l'année précédente", f.champ(d.irlReference?.toLocaleString("fr-FR"), "indice année précédente")],
+        ["Nouvel indice retenu", f.champ(d.irlNouveau?.toLocaleString("fr-FR"), "indice du trimestre de révision")],
+        [
+          "Indice de référence (dernière révision, à défaut indice figé au bail)",
+          f.champ(d.irlReference?.toLocaleString("fr-FR"), "indice de référence"),
+        ],
         ["Variation", f.champ(variation, "en pourcentage")],
       ]
     )}
@@ -137,6 +143,7 @@ export async function assemblerRevisionIrl(
     irlNouveau: r.irl_nouveau === null ? null : Number(r.irl_nouveau),
     trimestre: ctx.bail.irl_trimestre,
     charges: ctx.bail.charges === null ? null : Number(ctx.bail.charges),
+    chargesMode: ctx.bail.charges_mode,
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     locatairesNoms: nomsLocataires(f, ctx.locataires),
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),

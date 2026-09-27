@@ -3,6 +3,7 @@ import { Fusion, assemblerPage, cadreSignature, cartouches, enTete, faitA, secti
 import { CATALOGUE_DOCUMENTS } from "../catalogue";
 import { chargerContexteBail, expediteur, adresseLogement, nomsBailleurs, nomsLocataires, liensLocataires, referenceCourte } from "./communs";
 import type { Assemblage } from "./index";
+import { aujourdhuiParis } from "@/lib/ged";
 
 export const CODES_COMPLEMENTS_BAIL = ["bordereau_ddt", "inventaire_entree", "inventaire_sortie", "avenant_remplacement", "liste_dossier", "attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "situation_dette", "protocole_apurement", "accuse_conge", "decompte_retenues", "attestation_fin_bail", "autorisation_travaux"] as const;
 export type LigneDocument = Record<string, unknown>;
@@ -30,8 +31,9 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const ctx = await chargerContexteBail(supabase, orgId, bailId);
     if ("erreur" in ctx) return ctx;
     const meta = CATALOGUE_DOCUMENTS.find(m => m.id === code)!;
-    const f = new Fusion(), exp = expediteur(ctx), aujourdhui = new Date().toISOString().slice(0,10);
-    let contenu = "", signatures = false;
+    // Le jour à Paris (audit du 27/09) : toISOString donnait la veille entre 0 h et 2 h.
+    const f = new Fusion(), exp = expediteur(ctx), aujourdhui = aujourdhuiParis();
+    let contenu = "", signatures = false, avertissement: string | undefined;
     const opt = (cle: string, libelle: string) => f.champ(options[cle]?.trim() || null, libelle);
     if (["attestation_loyer", "attestation_caf"].includes(code) && !["actif","preavis"].includes(ctx.bail.etat)) return { erreur: "Cette attestation concerne un contrat actuellement en cours." };
     if (["attestation_loyer", "attestation_caf", "relance_simple", "seconde_relance", "mise_en_demeure", "protocole_apurement"].includes(code) && ctx.bail.etat === "brouillon") return { erreur: "Ce document se prépare pour un bail engagé, après la signature du contrat." };
@@ -82,6 +84,12 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
         contenu += `<p>Notre précédent courrier du ${f.date(texte(relances[0].date_envoi))} reste sans régularisation complète à ce jour. Merci de régler ce solde ou de prendre contact avec votre gestionnaire.</p>`;
       }
       if (code === "mise_en_demeure" && (!/^\d+$/.test(options.delai ?? "") || Number(options.delai) < 1 || Number(options.delai) > 90)) return { erreur: "Indiquez un délai de règlement de 1 à 90 jours." };
+      // Wiki « Relances et mise en demeure » : mise en demeure sans relance
+      // préalable = alerte (non bloquante) au gérant.
+      if (code === "mise_en_demeure") {
+        const relancesPrealables = await lireLignes(supabase.from("relances").select("id").eq("organization_id",orgId).eq("bail_id",bailId).in("niveau",["relance_1","relance_2"]).limit(1));
+        if (!relancesPrealables.length) avertissement = "aucune relance n’a été enregistrée avant cette mise en demeure.";
+      }
       if (code === "mise_en_demeure") contenu += `<p>Par le présent courrier, nous vous mettons en demeure de régler les sommes échues détaillées ci-dessus dans un délai de ${opt("delai","délai de règlement à compter de la réception")} jours à compter de sa réception, sous réserve des règlements intervenus depuis son établissement.</p><p>Ce courrier est à notifier avec preuve de réception. Il ne constitue ni un commandement de payer ni une décision de résiliation du bail.</p>`;
       if (code !== "situation_dette") contenu += `<p>Modalités de règlement : ${f.champ(ctx.bail.lieu_paiement,"modalités de règlement")} ; référence à rappeler : ${referenceCourte("BAIL",bailId)}.</p>`;
       if (code === "protocole_apurement") {
@@ -148,6 +156,6 @@ export async function assemblerComplementBail(code: typeof CODES_COMPLEMENTS_BAI
     const corps = `${enTete(f,exp,{libelle:"Dossier",reference:referenceCourte("BAIL",bailId),etabliLe:aujourdhui})}${titre(meta.nom,"Dossier de location",[])}
       ${cartouches([["Bailleur",nomsBailleurs(f,ctx.bailleurs)],["Locataire",nomsLocataires(f,ctx.locataires)],["Locaux concernés",f.champ(adresseLogement(ctx.lot,ctx.bien),"adresse du logement")],["Contrat",referenceCourte("BAIL",bailId)]])}
       ${contenu}${faitA(f,exp.ville,aujourdhui)}${signatures ? `<div class="signatures">${cadreSignature("Le bailleur / mandataire",nomsBailleurs(f,ctx.bailleurs))}${cadreSignature("Le locataire",nomsLocataires(f,ctx.locataires))}</div>` : ""}`;
-    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)] };
+    return { document:assemblerPage({f,titreDocument:meta.nom,nomPied:meta.nom,reference,corps:`<style>.bloc-titre{padding:10pt 0;margin-bottom:8pt}h1{font-size:19pt;letter-spacing:.2em}h2{margin:14pt 0 8pt}.cartouches{margin:10pt 0}p{margin:4pt 0}</style>${corps}`}),titreGed:meta.nom,nomFichier:`${code}-${bailId.slice(0,8)}`,liens:[{entite:"bail",entiteId:bailId},{entite:"lot",entiteId:ctx.lot.id},...liensLocataires(ctx)],...(avertissement ? { avertissement } : {}) };
   } catch(e) { if(e instanceof RefusDocument) return {erreur:e.message}; throw e; }
 }

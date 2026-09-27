@@ -3,7 +3,7 @@ import { toutManuel, type ReglagesEnvoi } from "@/lib/envois-automatiques";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * « Par où je commence ? » — le chemin du compte au premier bail.
+ * « Par où je commence ? » — le chemin du compte au premier loyer encaissé.
  *
  * Une organisation qui vient d'ouvrir arrive sur un tableau de bord à zéro.
  * Entre le premier bien et le premier loyer appelé il y a cinq gestes, chacun
@@ -13,8 +13,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * refus. Ce bloc les met dans l'ordre, dit où l'on en est, et n'ouvre QU'UNE
  * porte à la fois — la suivante.
  *
- * Il DISPARAÎT dès que les cinq étapes sont faites : un guide qui reste après
+ * Il DISPARAÎT dès que les six étapes sont faites : un guide qui reste après
  * coup devient un reproche.
+ *
+ * SIXIÈME ÉTAPE (audit du 27/09) : le parcours s'arrêtait au bail et
+ * concluait « vous n'aurez plus rien à lancer ». Or l'encaissement se déclare
+ * à la main — la comptabilité est déclarative : le premier loyer encaissé, et
+ * la quittance qui en découle, sont la vraie fin du démarrage.
  */
 
 type Etape = {
@@ -31,6 +36,7 @@ const LIBELLES: Record<string, { titre: string; geste: string }> = {
   lot_pret: { titre: "Un lot en état d'être loué", geste: "Lever ce qui bloque" },
   locataire: { titre: "Un locataire", geste: "Créer sa fiche" },
   bail: { titre: "Le bail", geste: "Créer le bail" },
+  loyer: { titre: "Le premier loyer encaissé", geste: "Déclarer l'encaissement" },
 };
 // Chez le propriétaire direct, « bien » et « lot » se disputaient l'écran
 // (25/09, D16) : pour qui possède un appartement, c'est la même chose. Un seul
@@ -48,6 +54,8 @@ function lien(orgId: string, e: Etape): string {
       return `/agence/${orgId}/parc/nouveau`;
     case "locataire":
       return `/agence/${orgId}/personnes#creer-fiche`;
+    case "loyer":
+      return `/agence/${orgId}/loyers`;
     case "lot_pret":
     case "bail":
       // Le formulaire de création d'un bail vit sur la fiche du lot, section
@@ -89,13 +97,12 @@ export async function ParcoursDemarrage({
   // Une lecture tombée ne doit pas se déguiser en parcours terminé : on
   // n'affiche rien plutôt que d'annoncer une fin qu'on n'a pas constatée.
   if (error) return null;
-  const proposerAutomatique = !automatiqueProposeAilleurs && toutManuel(
-    (reglages.data as ReglagesEnvoi | null) ?? {
-      quittances_envoi_auto: false,
-      appels_envoi_auto: false,
-      relances_envoi_auto: false,
-    }
-  );
+  const envois = (reglages.data as ReglagesEnvoi | null) ?? {
+    quittances_envoi_auto: false,
+    appels_envoi_auto: false,
+    relances_envoi_auto: false,
+  };
+  const proposerAutomatique = !automatiqueProposeAilleurs && toutManuel(envois);
 
   const etapes = (data ?? []) as Etape[];
   if (etapes.length === 0 || etapes.every((e) => e.faite)) return null;
@@ -186,20 +193,27 @@ export async function ParcoursDemarrage({
       {proposerAutomatique ? (
         <div className="assistant-suggestion mt-3 border-b-0">
           <p>
-            Une fois le bail actif, le loyer s&apos;appelle seul le 1ᵉʳ de chaque
-            mois et la quittance suit l&apos;encaissement.{" "}
-            <b>Gerimmo peut aussi les envoyer seul</b>, avec les relances
-            d&apos;impayé : rien ne part sans votre accord, donné une fois.
+            Une fois le bail actif, le loyer du mois est calculé seul le 1ᵉʳ ;
+            vous déclarez l&apos;encaissement, la quittance s&apos;établit
+            d&apos;elle-même.{" "}
+            <b>Gerimmo peut aussi envoyer avis et quittances seul</b>, avec les
+            relances d&apos;impayé : rien ne part sans votre accord, donné une fois.
           </p>
           <Link href={`/agence/${orgId}/profil#relances`} className="lien-discret whitespace-nowrap">
             Activer les envois automatiques →
           </Link>
         </div>
       ) : (
+        // « Vous n'aurez plus rien à lancer » était faux (27/09) : chaque
+        // encaissement se déclare. On dit ce qui reste à faire, et seulement ça.
         <p className="mt-3 text-[13px] text-muted-foreground">
-          Une fois le bail actif, le loyer s&apos;appelle seul le 1ᵉʳ de chaque
-          mois et la quittance suit l&apos;encaissement — vous n&apos;aurez plus
-          rien à lancer.
+          Une fois le bail actif, le loyer du mois est calculé seul le 1ᵉʳ
+          {envois.appels_envoi_auto ? " et l'avis part au locataire" : ""}. Il vous
+          reste un geste&nbsp;: déclarer chaque encaissement — la quittance
+          s&apos;établit alors d&apos;elle-même
+          {envois.quittances_envoi_auto
+            ? " et part au locataire."
+            : ", à lui envoyer d'un clic depuis la fiche du bail."}
         </p>
       )}
     </section>

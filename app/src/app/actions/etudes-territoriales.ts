@@ -2,6 +2,7 @@
 import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {DEPARTEMENTS} from '@/lib/territoire';
+import {journaliserSupervision,JOURNAL_A_VERIFIER} from '@/lib/journal-supervision';
 export async function enregistrerEtude(_etat:{erreur?:string;succes?:string},form:FormData):Promise<{erreur?:string;succes?:string}>{
  const db=await createClient();const {data:ok,error}=await db.rpc('is_permanent_super_admin');
  if(error||ok!==true)return {erreur:'Accès réservé à la supervision.'};
@@ -9,5 +10,7 @@ export async function enregistrerEtude(_etat:{erreur?:string;succes?:string},for
  if(!DEPARTEMENTS.some(d=>d.code===departement)||!['concurrence','acquisition'].includes(indicateur)||!Number.isSafeInteger(nombre)||nombre<0||!Number.isFinite(depense)||depense<0||Math.round(depense*100)>99999999)return {erreur:'Vérifiez le département et les résultats saisis.'};
  const {error:e}=await db.rpc('enregistrer_etude_territoriale',{p_departement:departement,p_indicateur:indicateur,p_nombre:nombre,p_depense_cents:Math.round(depense*100),p_debut:String(form.get('debut')??''),p_fin:String(form.get('fin')??''),p_source:String(form.get('source')??''),p_methode:String(form.get('methode')??'')});
  if(e)return {erreur:'Vérifiez les dates, la source et la méthode. Le coût par client demande au moins un client réellement gagné.'};
- revalidatePath('/admin/territoire');return {succes:'L’étude est conservée avec sa source et ses dates. Elle complète le classement tant qu’elle reste récente.'};
+ // Audit console 27/09 : l'étude territoriale se journalise.
+ const journal=await journaliserSupervision(db,'etude_territoriale_enregistree',{departement,indicateur});
+ revalidatePath('/admin/territoire');return {succes:`L’étude est conservée avec sa source et ses dates. Elle complète le classement tant qu’elle reste récente.${journal?'':JOURNAL_A_VERIFIER}`};
 }

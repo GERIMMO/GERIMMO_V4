@@ -41,6 +41,8 @@ const PUCE_TACHE: Record<EtatTache, { classe: string; libelle: string }> = {
   // Comme la sandbox Youtrust dans la liste des connexions (25/09) : à
   // vérifier, pas en échec — la connexion manquante est déjà comptée plus haut.
   non_configuree: { classe: "puce-prep", libelle: "non configurée — à vérifier" },
+  // Audit console 27/09 : une mission en pause n'est pas une alerte.
+  pause: { classe: "puce-grise", libelle: "en pause" },
 };
 
 // Où la valeur s'obtient, sans lien inventé : le tableau de bord du prestataire
@@ -79,16 +81,22 @@ export default async function PageSante() {
   const nbPoints = taches === null ? null : sante.bloquants;
   const nbJamais = taches?.filter((t) => t.etat === "jamais").length ?? 0;
   const nbEchec = taches?.filter((t) => t.etat === "echec").length ?? 0;
+  const nbRetard = taches?.filter((t) => t.etat === "retard").length ?? 0;
+  const nbPause = taches?.filter((t) => t.etat === "pause").length ?? 0;
+  // Une variable manquante ne compte qu'une fois, comme dans pointsBloquants.
+  const nbManqueUniques = new Set(configuration.filter((v) => v.etat === "manque").map((v) => v.cle)).size;
   const nbNonConfigurees = taches?.filter((t) => t.etat === "non_configuree").length ?? 0;
   const detailPoints = [
-    nbManque > 0 && `${nbManque} connexion${nbManque > 1 ? "s" : ""} manquante${nbManque > 1 ? "s" : ""}`,
-    nbJamais > 0 && `${nbJamais} tâche${nbJamais > 1 ? "s" : ""} jamais exécutée${nbJamais > 1 ? "s" : ""}`,
+    nbManqueUniques > 0 && `${nbManqueUniques} connexion${nbManqueUniques > 1 ? "s" : ""} manquante${nbManqueUniques > 1 ? "s" : ""}`,
+    nbJamais > 0 && `${nbJamais} tâche${nbJamais > 1 ? "s" : ""} sans passage enregistré`,
     nbEchec > 0 && `${nbEchec} tâche${nbEchec > 1 ? "s" : ""} en échec`,
+    nbRetard > 0 && `${nbRetard} tâche${nbRetard > 1 ? "s" : ""} en retard`,
     manquants.length > 0 && "documents légaux incomplets",
   ].filter(Boolean).join(", ");
   const aVerifier = [
     nbAttention > 0 && `${nbAttention} connexion${nbAttention > 1 ? "s" : ""} à vérifier`,
     nbNonConfigurees > 0 && `${nbNonConfigurees} tâche${nbNonConfigurees > 1 ? "s" : ""} sans service relié`,
+    nbPause > 0 && `${nbPause} mission${nbPause > 1 ? "s" : ""} en pause`,
   ].filter(Boolean).map((x) => ` · ${x}`).join("");
   // Les huit faits exigés, fournis ou non : `faitsManquants({})` les rend
   // tous, dans l'ordre de lib/editeur.ts.
@@ -119,7 +127,7 @@ export default async function PageSante() {
           <h2 className="font-heading text-[length:var(--pas-section)] text-[var(--encre)]">
             Connexions indispensables
           </h2>
-          <span className="mono-discret">{configuration.length}</span>
+          <span className="mono-discret">{configuration.filter((v) => v.estConnexion !== false).length}</span>
         </div>
         {/* La liste commune de la console (nuit du 25/09) : des rangs à filet
             et coins arrondis, comme l'ancienne « Santé du service ». */}
@@ -136,7 +144,7 @@ export default async function PageSante() {
                 {v.etat !== "ok" && (
                   // La commande de la ligne : la variable et où la trouver, ou le geste quand ce n'est pas une variable (crédit IA).
                   <span className="mt-1.5 block text-sm text-[var(--encre)]">
-                    {v.commande ?? (v.etat === "attention"
+                    {v.commande ?? (v.etat === "attention" && !v.absente
                       ? <>Posée. Pour passer en production : remplacer la valeur de <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>
                       : <>À poser : <code className="rounded bg-[var(--filet-leger)] px-1 py-0.5 text-[12px]">{v.cle}</code> dans les variables d&apos;environnement du projet Vercel — valeur : {OU_OBTENIR[v.prestataire]}.</>)}
                   </span>
@@ -185,7 +193,7 @@ export default async function PageSante() {
                         <time dateTime={t.le}>{formaterDateHeureParis(t.le)}</time> — {t.bilan}
                       </>
                     ) : (
-                      "Gerimmo n’a encore enregistré aucun passage."
+                      "Aucun passage enregistré dans l’historique consulté (30 derniers jours pour le suivi des dossiers et la sauvegarde)."
                     )}
                   </span>
                   {/* La commande de la ligne (audit C5). */}
@@ -232,8 +240,7 @@ export default async function PageSante() {
           <div className="loc-carte text-sm">
             <p>
               Les mentions légales, les conditions et la page confidentialité
-              affichent « information à fournir » tant qu&apos;un de ces faits
-              manque.
+              affichent « à compléter » tant qu&apos;un de ces faits manque.
             </p>
             <ul className="mt-3 divide-y divide-[var(--filet)]">
               {faitsExiges.map((fait) => {
@@ -250,9 +257,9 @@ export default async function PageSante() {
             </ul>
             {/* Pas d'invention (audit C5) : aucun écran ne saisit ces faits. */}
             <p className="mt-4 text-sm text-[var(--encre)]">
-              Aucun écran de Gerimmo ne les saisit encore : ils se renseignent
-              dans la configuration du service par le responsable technique, puis
-              les trois pages publiques les reprennent.
+              Aucun écran de Gerimmo ne les saisit : ils sont écrits une seule
+              fois, dans le code, par le responsable technique, puis repris par
+              les trois pages publiques.
             </p>
             <p className="mt-1.5">
               <Link href="/mentions-legales" className="lien-discret text-sm">

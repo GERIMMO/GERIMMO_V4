@@ -162,6 +162,26 @@ export function FormulaireConge({
             <option value="Vente du logement">Vente</option>
             <option value="Motif légitime et sérieux">Motif légitime et sérieux</option>
           </select>
+          {/* Wiki « Bail » § 1.11 (audit du 27/09) : la vente porte son prix —
+              le congé vaut offre —, la reprise son bénéficiaire. */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="conge-prix" className="text-sm">
+                Prix de vente proposé (vente)
+              </Label>
+              <Input id="conge-prix" name="prix_vente" inputMode="decimal" placeholder="ex. 250000" defaultValue={etat.valeurs?.prix_vente} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="conge-beneficiaire" className="text-sm">
+                Bénéficiaire de la reprise (reprise)
+              </Label>
+              <Input id="conge-beneficiaire" name="beneficiaire" placeholder="nom et lien avec le bailleur" defaultValue={etat.valeurs?.beneficiaire} />
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Le congé du bailleur prend effet au terme du bail ; il est refusé s&apos;il
+            est reçu moins de {meuble ? "3" : "6"} mois avant ce terme.
+          </p>
         </div>
       ) : (
         !meuble && !zoneTendue && (
@@ -177,7 +197,7 @@ export function FormulaireConge({
             </label>
             <p className="text-sm text-muted-foreground">
               En zone tendue, le préavis d&apos;un mois s&apos;applique de plein droit : inutile
-              de cocher, aucun justificatif n&apos;est exigible (la zone est portée par le bien).
+              de cocher, aucun justificatif n&apos;est exigible (la zone est celle figée au bail à sa signature).
             </p>
             {reduit && (
               <div>

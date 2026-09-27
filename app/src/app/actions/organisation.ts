@@ -6,6 +6,8 @@ import { valeursDuFormulaire } from "@/lib/formulaires";
 import { verifierGerant } from "@/lib/ged-acces";
 import { couleurValide, domaineValide, emailValide, LOGO_MAX_OCTETS, typeImageLogo } from "@/lib/marque-organisation";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
+import { envoyerEmail } from "@/lib/email";
+import { headers } from "next/headers";
 
 export type EtatProfilOrganisation = {
   erreur?: string;
@@ -124,4 +126,69 @@ export async function modifierProfilOrganisation(
   revalidatePath(`/agence/${orgId}`, "layout");
   revalidatePath(`/locataire/${orgId}`, "layout");
   return { succes: "Profil enregistré. Les prochains documents utiliseront votre identité. Toute adresse personnalisée modifiée doit être vérifiée avant activation." };
+}
+
+export type EtatInvitationAgent = {
+  erreur?: string;
+  succes?: string;
+  valeurs?: Record<string, string>;
+};
+
+// Ajouter un agent (audit agence 27/09) : l'admin d'agence invite lui-même —
+// wiki « Modèle de rôles et permissions » : l'admin porte la gestion des
+// utilisateurs, et l'invitation crée une ADHÉSION. La base revérifie le rôle
+// (`inviter_agent`). Compte nouveau : l'invité définit son mot de passe par le
+// lien reçu (même flux que l'ouverture d'une organisation). Compte existant :
+// il retrouve l'agence dans ses espaces, un e-mail le prévient.
+export async function inviterAgent(
+  orgId: string,
+  _etat: EtatInvitationAgent,
+  formData: FormData
+): Promise<EtatInvitationAgent> {
+  const { supabase, user, role } = await verifierGerant(orgId);
+  if (!user || role !== "admin_agence") {
+    return { erreur: "Réservé à l'admin de l'agence." };
+  }
+  const valeurs = valeursDuFormulaire(formData);
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  if (!emailValide(email)) return { erreur: "Renseignez une adresse e-mail valide.", valeurs };
+
+  const { data, error } = await supabase.rpc("inviter_agent", { p_org: orgId, p_email: email });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  const ligne = ((data ?? []) as { email: string; compte_deja_existant: boolean }[])[0];
+  if (!ligne) return { erreur: "L'invitation n'a pas pu être enregistrée. Réessayez.", valeurs };
+
+  const origine = (await headers()).get("origin") ?? "";
+  let erreurMail: string | undefined;
+  if (ligne.compte_deja_existant) {
+    const envoi = await envoyerEmail({
+      organisation: { db: supabase, id: orgId },
+      to: ligne.email,
+      subject: "Vous rejoignez l’équipe de l’agence sur Gerimmo",
+      html: `
+    <div style="font-family:sans-serif;font-size:14px;color:#111">
+      <p>Bonjour,</p>
+      <p>Vous avez été ajouté comme agent à l’équipe de l’agence. Connectez-vous avec votre compte habituel : l’agence apparaît dans vos espaces.</p>
+      <p><a href="${origine}/espaces">Ouvrir mes espaces</a></p>
+    </div>`,
+    });
+    erreurMail = envoi.erreur;
+  } else {
+    const { error: erreurLien } = await supabase.auth.resetPasswordForEmail(ligne.email, {
+      redirectTo: `${origine}/auth/confirm?next=/nouveau-mot-de-passe`,
+    });
+    erreurMail = erreurLien ? sansJargon(erreurLien.message) : undefined;
+  }
+
+  revalidatePath(`/agence/${orgId}/administration`);
+  if (erreurMail) {
+    return {
+      succes: `${ligne.email} fait partie de l’équipe, mais l’e-mail d’invitation n’a pas pu partir (${erreurMail}). Prévenez-le directement.`,
+    };
+  }
+  return {
+    succes: ligne.compte_deja_existant
+      ? `${ligne.email} fait partie de l’équipe : il retrouve l’agence dans ses espaces.`
+      : `Invitation envoyée à ${ligne.email} : il reçoit un lien pour définir son mot de passe.`,
+  };
 }

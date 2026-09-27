@@ -303,8 +303,12 @@ export function FormulairePhotoIncident({
 
   return (
     <form ref={formulaire} action={action} className="space-y-2">
-      <div className="flex items-center gap-2">
-        {/* Ligne compacte (champ + bouton) : libellé pour la seule synthèse vocale */}
+      {/* Audit 27/09 : en ligne, dans cette carte étroite, « Joindre »
+          recouvrait « Choisir des fichiers » (le champ prend toute la
+          largeur) et « Aucune photo choisie » était tronqué. Champ puis
+          bouton, l'un sous l'autre. */}
+      <div className="flex flex-col items-start gap-2">
+        {/* Champ + bouton : libellé pour la seule synthèse vocale */}
         <Label htmlFor={idPhotos} className="sr-only">
           Photos à joindre
         </Label>

@@ -618,6 +618,13 @@ describe.skipIf(!DB_URL)("Sprint 7 — incidents : cycle de vie", () => {
 
     const incident = await declarer();
     // Dix photos au plus par incident, quel que soit le nombre de requêtes
+    for (let i = 0; i < 11; i++) {
+      // Dépôt Storage par le locataire d'abord (audit du 27/09).
+      await db.query(
+        `insert into storage.objects (bucket_id, name, owner) values ('documents', ($1::uuid)::text||'/photo-'||$2||'.jpg', (select auth.uid()))`,
+        [orgA, String(i)]
+      );
+    }
     for (let i = 0; i < 10; i++) {
       await db.query(
         `select public.joindre_photo_incident($1,$2,($1::uuid)::text||'/photo-'||$3||'.jpg','image/jpeg',100,'empreinte-cap-'||$3)`,

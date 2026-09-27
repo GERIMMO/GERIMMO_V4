@@ -8,6 +8,8 @@ import { genererPointsDuMatin } from "@/lib/point-du-matin";
 import { deciderAmelioration } from "@/app/actions/autonomie";
 import { publierPublication, refuserPublication } from "@/app/actions/publications";
 import { traiterInscriptionArtisan } from "@/app/actions/supervision-artisans";
+import { journaliserSupervision, JOURNAL_A_VERIFIER } from "@/lib/journal-supervision";
+import { sourceAttendEncore } from "@/lib/decisions-attendues";
 
 export type EtatBriefIA = { erreur?: string; analyse?: AnalyseBrief; genereLe?: string };
 
@@ -87,16 +89,22 @@ export async function preparerPointDuMatin(): Promise<EtatDecision> {
   if (!ok) return { erreur: "Cette action demande votre compte de supervision et sa double vérification." };
   const resultat = await genererPointsDuMatin(supabase);
   revalidatePath("/admin/brief");
+  // Audit console 27/09 : la préparation est un geste de la console, elle se journalise.
+  const journal = await journaliserSupervision(supabase, "point_du_matin_prepare", { equipes_enregistrees: resultat.enregistres });
   if (resultat.erreur) return { erreur: resultat.erreur };
-  return { succes: "Le point de ce matin est prêt." };
+  return { succes: `Le point de ce matin est prêt.${journal ? "" : JOURNAL_A_VERIFIER}` };
 }
 
 export async function marquerPointLu(id: string): Promise<void> {
   const { supabase, ok } = await superviseurPermanent();
-  if (ok) await supabase.rpc("marquer_point_lu", { p_id: id });
+  if (!ok) return;
+  const { error } = await supabase.rpc("marquer_point_lu", { p_id: id });
+  if (!error) await journaliserSupervision(supabase, "point_du_matin_lu", { point: id });
 }
 
-type Decision = { id: string; source: string; source_id: string | null; statut: string; cle: string };
+type Decision = { id: string; source: string; source_id: string | null; statut: string; cle: string; gestes: { revision?: unknown } | null };
+
+const DEJA_TRANCHEE = "Cette décision a déjà été tranchée sur son écran : le point est mis à jour.";
 
 /** Applique l'effet métier par les actions et fonctions existantes (leurs gardes restent), puis trace la décision dans le point. */
 export async function deciderDecisionDuMatin(id: string, validee: boolean, motif: string, attestation = false): Promise<EtatDecision> {
@@ -104,17 +112,26 @@ export async function deciderDecisionDuMatin(id: string, validee: boolean, motif
   if (!ok) return { erreur: "Cette décision demande votre compte de supervision et sa double vérification." };
   motif = motif.trim().slice(0, 1000);
   if (!validee && motif.length < 3) return { erreur: "Dites pourquoi : le motif est conservé avec le refus." };
-  const { data: decision, error } = await supabase.from("decisions_du_matin").select("id,source,source_id,statut,cle").eq("id", id).maybeSingle<Decision>();
+  const { data: decision, error } = await supabase.from("decisions_du_matin").select("id,source,source_id,statut,cle,gestes").eq("id", id).maybeSingle<Decision>();
   if (error || !decision) return { erreur: "Cette décision est introuvable." };
+  if (decision.statut === "sans_objet") { revalidatePath("/admin/brief"); return { erreur: DEJA_TRANCHEE }; }
   if (decision.statut !== "en_attente") return { erreur: "Cette décision est déjà tranchée." };
   if (!decision.source_id) return { erreur: "Cette décision se prend sur son écran." };
+  const attend = await sourceAttendEncore(supabase, decision.source, decision.source_id);
+  if (attend === null) return { erreur: "L’état actuel de ce dossier n’a pas pu être relu : ouvrez son écran avant de décider." };
+  if (!attend) { revalidatePath("/admin/brief"); return { erreur: DEJA_TRANCHEE }; }
 
   let effet: EtatDecision;
   switch (decision.source) {
     case "developpement": {
+      // L'accord porte sur la version PRÉSENTÉE dans le point (audit console
+      // 27/09) : si une autre version a été attachée depuis, on ne l'autorise
+      // pas à l'aveugle.
+      const presentee = typeof decision.gestes?.revision === "string" ? decision.gestes.revision : null;
+      if (!presentee) return { erreur: "Aucune version précise n’est attachée à cette décision : actualisez le point ou ouvrez le suivi des évolutions." };
       const { data: p } = await supabase.from("development_proposals").select("revision").eq("id", decision.source_id).maybeSingle();
-      if (!p?.revision) return { erreur: "Aucune version précise n’est attachée : ouvrez le suivi des évolutions." };
-      effet = await deciderAmelioration(decision.source_id, p.revision, validee);
+      if (p?.revision !== presentee) return { erreur: "Une autre version a été attachée depuis la préparation du point : actualisez le point avant de décider." };
+      effet = await deciderAmelioration(decision.source_id, presentee, validee);
       break;
     }
     case "publication": {
@@ -152,8 +169,10 @@ export async function deciderDecisionDuMatin(id: string, validee: boolean, motif
       const { data: v } = await supabase.from("regulatory_watch").select("etude,resume,action_conseillee,publics,application_le").eq("id", decision.source_id).maybeSingle();
       if (!v) return { erreur: "Cette information est introuvable." };
       const etude = (v.etude ?? {}) as { resume?: string; action?: string; publics?: string[]; application?: string | null };
-      const { error: e } = await supabase.rpc("decider_veille", { p_id: decision.source_id, p_publier: validee, p_resume: v.resume ?? etude.resume ?? "", p_action: v.action_conseillee ?? etude.action ?? "", p_publics: v.publics?.length ? v.publics : etude.publics ?? [], p_application: v.application_le ?? etude.application ?? null });
-      effet = e ? { erreur: "L’étude n’est pas complète : relisez-la sur l’écran de la veille." } : { succes: validee ? "L’information est diffusée aux utilisateurs concernés." : "L’information est écartée." };
+      // p_statut_attendu : la base refuse si l'information a quitté « à examiner »
+      // entre la lecture ci-dessus et la décision.
+      const { error: e } = await supabase.rpc("decider_veille", { p_id: decision.source_id, p_publier: validee, p_resume: v.resume ?? etude.resume ?? "", p_action: v.action_conseillee ?? etude.action ?? "", p_publics: v.publics?.length ? v.publics : etude.publics ?? [], p_application: v.application_le ?? etude.application ?? null, p_statut_attendu: "a_examiner" });
+      effet = e ? { erreur: /changé d’état/.test(e.message) ? DEJA_TRANCHEE : "L’étude n’est pas complète : relisez-la sur l’écran de la veille." } : { succes: validee ? "L’information est diffusée aux utilisateurs concernés." : "L’information est écartée." };
       revalidatePath("/admin/veille"); revalidatePath("/veille");
       break;
     }

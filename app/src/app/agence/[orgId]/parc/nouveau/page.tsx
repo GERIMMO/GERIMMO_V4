@@ -35,8 +35,7 @@ export default async function PageNouveauBien(
           <CardTitle className="text-base">Adresse et caractéristiques</CardTitle>
           <CardDescription>
             Le bien porte l&apos;adresse et les diagnostics communs. Son lot
-            unique est créé automatiquement : c&apos;est lui qui se loue
-            .
+            unique est créé automatiquement : c&apos;est lui qui se loue.
           </CardDescription>
         </CardHeader>
         <CardContent>

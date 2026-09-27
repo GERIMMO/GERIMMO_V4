@@ -86,7 +86,9 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
     { data: paiementBrut, error: erreurPaiement },
     { data: tranchesBrut, error: erreurTranches },
   ] = await Promise.all([
-    supabase.from("biens").select("id, nom").eq("organization_id", orgId).order("created_at"),
+    // Les biens RETIRÉS (archivés, 27/09) ne sont plus comptés : ils ne se
+    // listent plus ici, comme dans abonnement_quantite_cible.
+    supabase.from("biens").select("id, nom").eq("organization_id", orgId).is("archived_at", null).order("created_at"),
     supabase.rpc("etat_abonnement", { p_org: orgId }),
     supabase.rpc("mon_abonnement", { p_org: orgId }),
     supabase.rpc("detail_tranches_abonnement", { p_org: orgId }),
@@ -384,7 +386,7 @@ export default async function PageAbonnement(props: PageProps<"/agence/[orgId]/a
         <p className="mesure-lecture mt-3 text-xs text-muted-foreground">
           {estAgence
             ? "Un tarif dégressif par tranches, tout compris, sans engagement : baux, quittances, incidents, artisans, comptabilité de gérance et relevés. Chaque lot est facturé au tarif de sa tranche — signer un lot de plus ne fait jamais changer de palier. Un mandat résilié n'est plus compté le mois suivant."
-            : "Un prix par bien, tout compris, sans engagement : baux, quittances, incidents, livre recettes-dépenses et fiscalité. Un bien retiré n'est plus compté le mois suivant."}
+            : "Un prix par bien, tout compris, sans engagement : baux, quittances, incidents, livre recettes-dépenses et fiscalité. Un bien retiré (sur sa fiche, « Retirer ce bien ») n'est plus compté le mois suivant."}
         </p>
 
         {/* LES DEUX GESTES, ET UN SEUL À LA FOIS. Proposer « S'abonner » à qui

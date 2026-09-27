@@ -120,10 +120,14 @@ export default async function PageLoyers({ params }: PageProps<"/agence/[orgId]/
               plie plus sur trois lignes au téléphone. */}
           <section className="grille-kpi" aria-label="Le mois en chiffres">
             <div className={`kpi ${moisVide ? "" : "bleu"}`}>
-              <span className="eyebrow">Appelé ce mois</span>
+              {/* Le vocabulaire du bailleur, pas celui du comptable (27/09) :
+                  « appel », « terme » deviennent « demandé », « loyer ». */}
+              <span className="eyebrow">{estProprietaire ? "Demandé ce mois" : "Appelé ce mois"}</span>
               <span className="chiffre montant mt-1 block">{eur(appele)}</span>
               <span className="block text-xs text-muted-foreground">
-                {lignes.length} terme{lignes.length > 1 ? "s" : ""} de loyer
+                {estProprietaire
+                  ? `${lignes.length} loyer${lignes.length > 1 ? "s" : ""}`
+                  : `${lignes.length} terme${lignes.length > 1 ? "s" : ""} de loyer`}
               </span>
             </div>
             <div className={`kpi ${moisVide ? "" : "vert"}`}>
@@ -131,7 +135,9 @@ export default async function PageLoyers({ params }: PageProps<"/agence/[orgId]/
               <span className="chiffre montant mt-1 block">{eur(encaisse)}</span>
               <span className="block text-xs text-muted-foreground">
                 {moisVide
-                  ? "aucun terme ce mois-ci"
+                  ? estProprietaire
+                    ? "aucun loyer ce mois-ci"
+                    : "aucun terme ce mois-ci"
                   : `${nbRegles} sur ${lignes.length} réglé${nbRegles > 1 ? "s" : ""} en entier`}
               </span>
             </div>
@@ -166,10 +172,13 @@ export default async function PageLoyers({ params }: PageProps<"/agence/[orgId]/
             // bande vide au-dessus (24/09).
             <Card>
               <CardHeader>
-                <CardTitle>Aucun appel de loyer ce mois-ci</CardTitle>
+                <CardTitle>
+                  {estProprietaire ? "Aucun loyer à percevoir ce mois-ci" : "Aucun appel de loyer ce mois-ci"}
+                </CardTitle>
                 <CardDescription>
-                  Le cycle mensuel crée les appels le 1ᵉʳ du mois pour chaque bail actif ; sans
-                  bail actif, il n&rsquo;y a rien à quittancer.
+                  {estProprietaire
+                    ? "Le loyer du mois est calculé seul le 1ᵉʳ pour chaque bail en cours ; sans bail en cours, il n’y a rien à percevoir."
+                    : "Le cycle mensuel crée les appels le 1ᵉʳ du mois pour chaque bail actif ; sans bail actif, il n’y a rien à quittancer."}
                 </CardDescription>
               </CardHeader>
               <CardContent>

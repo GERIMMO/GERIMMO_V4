@@ -12,6 +12,12 @@ export type EtatDevis = {
 // au visiteur non connecté (insert seul, lecture réservée au super admin).
 // Le champ « site » est un pot de miel : rempli = robot, on répond succès
 // sans rien écrire.
+//
+// Le pot de miel ne protège que ce formulaire : la clé publique étant dans le
+// navigateur, un robot peut écrire directement par l'API. La limite de débit
+// vit donc EN BASE (audit du 27/09, migration 20260927124000) : doublon exact
+// ignoré, trois demandes par adresse et par heure, trente par heure en tout.
+// Son refus arrive ici comme une erreur en français, affichée telle quelle.
 export async function demanderDevis(
   _etat: EtatDevis,
   formData: FormData

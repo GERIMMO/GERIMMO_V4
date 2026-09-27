@@ -48,6 +48,8 @@ type Ligne = {
   date_echeance: string;
   prorata: boolean;
   arriere: number;
+  /** Colocataires titulaires : l'avis part à chacun (audit 27/09). */
+  autres_destinataires?: string[] | null;
 };
 
 /** Un échec tel qu'il se consigne : de quoi retrouver le dossier, jamais l'adresse. */
@@ -110,9 +112,7 @@ export async function GET(request: Request) {
   const echecs: EchecConsigne[] = [];
   const marquageEchecs: EchecConsigne[] = [];
   for (const l of lignes) {
-    const envoi = await envoyerEmail({
-      organisation: { db: supabase, id: l.organization_id },
-      to: l.destinataire,
+    const avis = (prenom: string | null) => ({
       subject: sujetAvisEcheance({ periode: l.periode }),
       html: corpsAvisEcheance({
         periode: l.periode,
@@ -123,16 +123,33 @@ export async function GET(request: Request) {
         prorata: l.prorata,
         arriere: Number(l.arriere),
         emetteur: l.emetteur,
-        prenom: l.prenom,
+        prenom,
         // Le locataire arrive sur SES loyers, dans son espace : un avis
         // d'échéance porte un montant dû, il n'a rien à faire derrière un lien
         // public que n'importe qui peut ouvrir.
         lien: `${site}/locataire/${l.organization_id}/loyers`,
       }),
     });
+    const envoi = await envoyerEmail({
+      organisation: { db: supabase, id: l.organization_id },
+      to: l.destinataire,
+      ...avis(l.prenom),
+    });
     if (envoi.erreur) {
       echecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: envoi.erreur });
       continue;
+    }
+    // Colocation : chaque colocataire titulaire reçoit l'avis (wiki
+    // « Relances et mise en demeure » — la colocation solidaire vise tous les
+    // colocataires). Un échec vers un colocataire se dit au bilan.
+    for (const autre of l.autres_destinataires ?? []) {
+      const copie = await envoyerEmail({
+        organisation: { db: supabase, id: l.organization_id },
+        to: autre,
+        ...avis(null),
+      });
+      if (copie.erreur)
+        echecs.push({ appel_id: l.appel_id, organization_id: l.organization_id, motif: `colocataire : ${copie.erreur}` });
     }
     const { error: erreurMarque } = await supabase.rpc("marquer_appel_envoye", {
       p_appel: l.appel_id,

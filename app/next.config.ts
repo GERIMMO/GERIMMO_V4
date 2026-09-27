@@ -36,6 +36,11 @@ function originesSupabase(): { http: string; ws: string } {
 }
 
 const OUTILLAGE_VERCEL = ["https://vercel.live", "https://va.vercel-scripts.com"];
+// Autocomplétion d'adresse de la fiche d'un bien (parc/formulaire-bien.tsx) :
+// le navigateur interroge la Base Adresse Nationale. Absente de connect-src,
+// elle était bloquée sans un mot (audit du 27/09). Déclarée dans PRESTATAIRES
+// (lib/editeur.ts).
+const BASE_ADRESSE_NATIONALE = "https://api-adresse.data.gouv.fr";
 const STRIPE_FORMULAIRES = ["https://checkout.stripe.com", "https://billing.stripe.com"];
 
 export function politiqueDeSecurite(): string {
@@ -51,7 +56,7 @@ export function politiqueDeSecurite(): string {
     // d'images déposées (blob:) : les images ne portent pas de code.
     "img-src": ["'self'", "data:", "blob:", "https:"],
     "media-src": ["'self'", "blob:", "data:"],
-    "connect-src": ["'self'", supabase.http, supabase.ws, ...OUTILLAGE_VERCEL, ...(developpement ? ["ws:", "wss:"] : [])],
+    "connect-src": ["'self'", supabase.http, supabase.ws, BASE_ADRESSE_NATIONALE, ...OUTILLAGE_VERCEL, ...(developpement ? ["ws:", "wss:"] : [])],
     // Aperçus PDF (URL signées Supabase, blob: des documents générés) et
     // barre d'outils Vercel en prévisualisation.
     "frame-src": ["'self'", "blob:", supabase.http, "https://vercel.live"],
@@ -86,6 +91,10 @@ export const ENTETES_SECURITE: { key: string; value: string }[] = [
   // Deux ans, sous-domaines compris. Inoffensif en local (ignoré sans https).
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
   { key: "X-DNS-Prefetch-Control", value: "off" },
+  // Audit du 27/09 : une fenêtre ouverte par un autre site ne garde pas de
+  // poignée sur la nôtre (window.opener). Les paiements Stripe se font par
+  // redirection, pas par fenêtre surgissante : rien ne dépend de l'opener.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
 const nextConfig: NextConfig = {

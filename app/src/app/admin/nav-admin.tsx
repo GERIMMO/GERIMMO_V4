@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { RUBRIQUES, ongletActif, rubriqueActive } from "@/lib/rubriques-supervision";
 
@@ -65,12 +65,24 @@ export function NavAdmin({ artisansEnAttente = 0, decisions = 0 }: { artisansEnA
  */
 export function OngletsSupervision({ artisansEnAttente = 0, decisions = 0 }: { artisansEnAttente?: number; decisions?: number }) {
   const chemin = usePathname();
+  const rangee = useRef<HTMLDivElement>(null);
+  // Au téléphone, la rangée d'onglets défile : l'onglet actif est ramené dans
+  // la vue à chaque changement de page (audit console 27/09) — « Relais en mon
+  // absence » ou « Développement territorial » restaient hors écran.
+  useEffect(() => {
+    const courant = rangee.current?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!courant || !rangee.current || rangee.current.scrollWidth <= rangee.current.clientWidth) return;
+    // scrollLeft plutôt que scrollIntoView : la page ne saute pas verticalement.
+    const r = rangee.current;
+    const gauche = courant.getBoundingClientRect().left - r.getBoundingClientRect().left + r.scrollLeft;
+    r.scrollLeft = gauche - (r.clientWidth - courant.offsetWidth) / 2;
+  }, [chemin]);
   const rubrique = rubriqueActive(chemin);
   if (!rubrique || rubrique.onglets.length < 2) return null;
   const actif = ongletActif(chemin);
   const compte = { artisans: artisansEnAttente, decisions };
   return <nav className="admin-onglets" aria-label={`Pages de la rubrique ${rubrique.libelle}`}>
-    <div className="admin-onglets-interieur">
+    <div ref={rangee} className="admin-onglets-interieur">
       {rubrique.onglets.map((o) => {
         const n = o.badge ? compte[o.badge] : 0;
         return <Link key={o.href} href={o.href} className="admin-onglet" aria-current={actif?.href === o.href ? "page" : undefined}>

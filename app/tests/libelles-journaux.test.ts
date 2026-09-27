@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { libelleAccesDocument, libelleActionAudit, libelleEvenement } from "../src/lib/libelles-journaux";
+import { detailsExpurges, libelleAccesDocument, libelleActionAudit, libelleEvenement } from "../src/lib/libelles-journaux";
 
 describe("libellés des journaux", () => {
   it("traduit les tâches automatiques", () => {
@@ -19,6 +19,16 @@ describe("libellés des journaux", () => {
     expect(libelleActionAudit("detention_rouverte")).toBe("Détention d’un lot rouverte");
     expect(libelleActionAudit("mois_reouvert")).toBe("Mois comptable rouvert");
     expect(libelleActionAudit("inscription_proprietaire")).toBe("Inscription d’un propriétaire bailleur");
+  });
+
+  it("nomme les gestes de la console et les événements de l'application (audit console 27/09)", () => {
+    for (const code of ["mission_en_pause", "mission_reprise", "mission_lancee", "veille_ecartee", "publication_parue", "publication_facebook", "reglages_marketing_modifies", "demande_commerciale_traitee", "plan_continuite_enregistre", "marque_verifiee", "etude_territoriale_enregistree", "idees_regroupees", "revue_idees_close", "point_du_matin_prepare", "organisation_suspendue", "compte_bloque", "second_facteur_reinitialise", "invitation_renvoyee"]) {
+      expect(libelleActionAudit(code)).not.toMatch(/libellé manquant|protégée/);
+    }
+    expect(libelleEvenement("changement_mot_de_passe")).toBe("Changement de mot de passe");
+    expect(libelleEvenement("erreur_ecran")).toBe("Erreur affichée à un utilisateur");
+    expect(detailsExpurges({ digest: "101828213", espace: "agence" })).toBe("espace : agence");
+    expect(detailsExpurges({ depuis: "compte" })).toBeNull();
   });
 
   it("explique les accès aux documents", () => {

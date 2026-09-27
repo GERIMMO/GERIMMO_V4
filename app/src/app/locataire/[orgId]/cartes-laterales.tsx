@@ -61,11 +61,7 @@ export function CarteGestionnaire({
     <div className="loc-carte">
       <h3 className="text-base font-medium">Mon gestionnaire</h3>
       <div className="mt-3 flex items-center gap-3">
-        <span
-          className="loc-avat"
-          style={{ width: 44, height: 44, background: "linear-gradient(135deg, var(--bleu), var(--encre))", color: "var(--sur-encre)" }}
-          aria-hidden
-        >
+        <span className="loc-avat loc-avat--gestionnaire" aria-hidden>
           {initiales || "◇"}
         </span>
         <span className="min-w-0">

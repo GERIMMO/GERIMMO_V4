@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { identiteDuCompte } from "@/lib/identite-compte";
 import { verifierAccesEspace } from "@/lib/espace";
 import { resumerBlocage } from "@/lib/echeances";
 import { cibleBlocage } from "@/lib/parc";
@@ -50,9 +51,10 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
   // « Bonjour » nominatif (audit 09/09) : le prénom vit dans les métadonnées
   // du compte (inscription) — comme l'espace locataire salue par la fiche.
   // Sans prénom connu, la salutation reste sobre.
-  const meta = user.user_metadata as { prenom?: unknown } | null;
-  const prenom =
-    typeof meta?.prenom === "string" && meta.prenom.trim() ? meta.prenom.trim() : null;
+  // 27/09 : la fiche personne rattachée au compte d'abord (le propriétaire
+  // « Moreau Claire » était salué « Bonjour » tout court), les métadonnées
+  // ensuite.
+  const { prenom } = await identiteDuCompte(supabase, orgId, user);
   // Le propriétaire direct a son propre accueil (maquette PC v1 du 05/09) :
   // patrimoine, à-faire, veille DPE, abonnement — pas les KPI d'agence.
   if (estProprietaire) {
@@ -295,6 +297,8 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
         className={buttonVariants({
           size: "sm",
           variant: a.criticite === "critique" ? "destructive" : "outline",
+          // 44 px au doigt, comme les liens voisins (audit 27/09).
+          className: "pointer-coarse:min-h-11",
         })}
       >
         Traiter
@@ -374,6 +378,12 @@ export default async function PageTableauDeBord(props: PageProps<"/agence/[orgId
       quoi: "créez la fiche d'un locataire et invitez-le dans son espace",
       geste: "Créer sa fiche",
       href: `/agence/${orgId}/personnes#creer-fiche`,
+    },
+    // La sixième étape du démarrage (27/09) : l'encaissement se déclare.
+    loyer: {
+      quoi: "déclarez le premier loyer encaissé — la quittance s'établit d'elle-même",
+      geste: "Déclarer l'encaissement",
+      href: `/agence/${orgId}/loyers`,
     },
   };
   const finDeMiseEnPlace = etapesRestantes.length

@@ -46,7 +46,7 @@ test("créer, ouvrir, fermer puis traiter une alerte au doigt", async ({ page })
   await page.goto(`/agence/${orgId}/alertes`);
   const titre = `E2E alerte à vérifier ${Date.now()}`;
   await page.getByRole("textbox", { name: "Titre", exact: true }).fill(titre);
-  await page.getByRole("combobox", { name: "Confier à", exact: true }).selectOption({ label: "Tout le monde" });
+  await page.getByRole("combobox", { name: "Confier à", exact: true }).selectOption({ label: "Toute l’agence" });
   await page.getByRole("button", { name: "Créer l'alerte", exact: true }).click();
   const rang = page.locator('.rang-alerte').filter({ hasText: titre });
   const traiter = rang.getByRole("button", { name: "Traiter", exact: true });

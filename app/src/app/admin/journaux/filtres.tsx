@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { libelleActionAudit, libelleEvenement } from "../../../lib/libelles-journaux";
 
 // Les filtres et la pagination des journaux (25/09) — des composants serveur :
 // un formulaire GET et des liens, pour que l'adresse porte l'état et se partage.
@@ -18,14 +19,29 @@ export function FiltresJournaux({
   codes: { audit: string[]; technique: string[] };
 }) {
   const actif = Boolean(filtres.type || filtres.org || filtres.depuis || filtres.jusqu);
+  const groupes = [
+    { nom: "Travaux et événements du service", codes: codes.technique, libelle: libelleEvenement },
+    { nom: "Actions et accès", codes: codes.audit, libelle: libelleActionAudit },
+  ];
+  const typeConnu = ["", "tache_", "traversee", ...codes.technique, ...codes.audit].includes(filtres.type);
   return (
-    <form method="get" className="loc-carte mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Filtrer les journaux">
+    <form key={JSON.stringify(filtres)} method="get" className="loc-carte mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="Filtrer les journaux">
       <label className="grid gap-1">
         <span className="libelle-champ">Type d&apos;événement</span>
-        <input className={champ} name="type" list="codes-journaux" defaultValue={filtres.type} maxLength={60} placeholder="Ex. tache_, traversee, erreur" />
-        <datalist id="codes-journaux">
-          {[...codes.technique, ...codes.audit].map((c) => <option key={c} value={c} />)}
-        </datalist>
+        <select className={champ} name="type" defaultValue={filtres.type}>
+          <option value="">Tous les événements</option>
+          <option value="tache_">Tous les travaux automatiques</option>
+          <option value="traversee">Accès aux espaces clients</option>
+          {!typeConnu && <option value={filtres.type}>Recherche conservée depuis le lien</option>}
+          {groupes.map((groupe) => (
+            <optgroup key={groupe.nom} label={groupe.nom}>
+              {[...new Set(groupe.codes)]
+                .map((code) => ({ code, nom: groupe.libelle(code) }))
+                .sort((a, b) => a.nom.localeCompare(b.nom, "fr"))
+                .map(({ code, nom }) => <option key={code} value={code}>{nom}</option>)}
+            </optgroup>
+          ))}
+        </select>
       </label>
       <label className="grid gap-1">
         <span className="libelle-champ">Organisation</span>

@@ -26,7 +26,7 @@ describe("libellés des journaux", () => {
       expect(libelleActionAudit(code)).not.toMatch(/libellé manquant|protégée/);
     }
     expect(libelleEvenement("changement_mot_de_passe")).toBe("Changement de mot de passe");
-    expect(libelleEvenement("erreur_ecran")).toBe("Erreur affichée à un utilisateur");
+    expect(libelleEvenement("erreur_ecran")).toBe("Problème d’affichage");
     expect(detailsExpurges({ digest: "101828213", espace: "agence" })).toBe("espace : agence");
     expect(detailsExpurges({ depuis: "compte" })).toBeNull();
   });

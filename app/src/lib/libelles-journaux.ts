@@ -59,8 +59,8 @@ export function libelleActionAudit(action: string | null | undefined): string {
 // « Événement du service enregistré · depuis : compte » ne disait rien.
 const EVENEMENTS: Record<string, string> = {
   changement_mot_de_passe: "Changement de mot de passe",
-  erreur_ecran: "Erreur affichée à un utilisateur",
-  remise_rapport_mensuel: "Compte rendu mensuel remis",
+  erreur_ecran: "Problème d’affichage",
+  remise_rapport_mensuel: "Envoi d’un compte rendu mensuel",
   veille_analyse_echec: "Étude d’une information de veille à reprendre",
   rendez_vous_fixe: "Rendez-vous d’intervention fixé",
   mission_refusee: "Mission refusée par un artisan",
@@ -98,7 +98,7 @@ export function libelleAccesDocument(action: string | null | undefined): string 
 
 /**
  * Les codes que les journaux écrivent, pour proposer un filtre par type
- * (25/09). Une liste indicative : un code inconnu reste filtrable en le tapant.
+ * (25/09). Une liste indicative : les liens vers un code inconnu restent valables.
  */
 export function codesConnusJournaux(): { audit: string[]; technique: string[] } {
   return {

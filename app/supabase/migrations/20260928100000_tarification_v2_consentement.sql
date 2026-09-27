@@ -245,7 +245,7 @@ begin
     or coalesce((p_snapshot->>'volume_source')::integer,-1)<>public.abonnement_volume_v2(p_org)
     or coalesce(v_type,'') not in ('souscription','augmentation','baisse','resiliation','annulation_changement') then raise exception 'Le portefeuille ou le récapitulatif a changé. Recalculez le montant';end if;
  if v_type<>'resiliation' then
-   if coalesce((p_snapshot->>'volume_cible')::integer,-1)<public.abonnement_volume_reserve_v2(p_org) then raise exception 'La formule doit couvrir les biens gérés et les lots déjà confiés par un mandat, y compris ses lignes futures';end if;
+   if v_type<>'annulation_changement' and coalesce((p_snapshot->>'volume_cible')::integer,-1)<public.abonnement_volume_reserve_v2(p_org) then raise exception 'La formule doit couvrir les biens gérés et les lots déjà confiés par un mandat, y compris ses lignes futures';end if;
    v_prix:=public.tarif_abonnement_v2(o.type,(p_snapshot->>'volume_cible')::integer,p_snapshot->>'periodicite');
    if (p_snapshot->>'capacite')::integer is distinct from (v_prix->>'capacite')::integer
       or p_snapshot->>'formule' is distinct from v_prix->>'formule'

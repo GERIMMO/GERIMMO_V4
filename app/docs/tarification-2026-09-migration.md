@@ -21,7 +21,7 @@ Agence pour des tiers : mensuel uniquement. Socle de 39 € HT jusqu’à dix lo
 
 L’essai dure quatorze jours sans carte ; aucun débit sans accord explicite. Les jours restants sont conservés en cas de souscription anticipée. Le mensuel se résilie pour l’échéance suivante ; l’annuel paie douze mois en une fois et se renouvelle annuellement sauf résiliation. Les droits payés restent acquis jusqu’au terme ; ensuite, lecture et export, sans suppression automatique du seul fait de la fin d’abonnement.
 
-Les augmentations nécessitent un récapitulatif montant/date/prorata et un accord ; les diminutions sont programmées pour l’échéance si le parc le permet. Les annexes sur le même bail ne créent pas d’unité supplémentaire ; un parking indépendant, oui. L’archivage ne fait pas disparaître un mandat actif de la facturation.
+Les augmentations nécessitent un récapitulatif montant/date/prorata et un accord. Pour diminuer la facturation, le responsable ouvre **Mon abonnement**, choisit la capacité proposée pour son nouveau volume puis confirme le récapitulatif ; la baisse est alors programmée pour la prochaine échéance si le parc le permet. Un archivage ou une fin de mandat actualise le volume et propose ce lien, mais ne programme pas seul une baisse : il faut terminer ce parcours de confirmation. Les annexes sur le même bail ne créent pas d’unité supplémentaire ; un parking indépendant, oui. L’archivage ne fait pas disparaître un mandat actif de la facturation.
 
 Les accès locataires, propriétaires invités et collaborateurs sont inclus. Un compte peut consulter des biens confiés à une agence et gérer d’autres biens personnellement : espaces, droits et factures restent distincts. Ne jamais attribuer au propriétaire invité le rôle de gestionnaire de l’agence.
 
@@ -119,3 +119,62 @@ L’accès invité n’ouvre ni organisation personnelle, ni abonnement, ni rôl
 Les accès reposent sur les droits vérifiés à chaque lecture et sur l’adresse actuellement vérifiée du compte, pas sur la seule possession du lien. Un changement d’adresse du destinataire sur la fiche ou sur le compte suspend cet accès jusqu’à une nouvelle invitation cohérente. Les comptes rendus PDF se téléchargent avec la session du propriétaire, sans clé administrative ni exposition de toute la bibliothèque documentaire.
 
 Tests dédiés : neuf scénarios SQL d’isolation et révocation, tests du téléchargement refusé/autorisé, parcours navigateur d’invitation/révocation et présence du profil invité dans l’audit mobile. Leur présence dans le dépôt ne vaut pas validation : leur résultat réel doit être consigné à la livraison.
+
+
+## Paramètres externes exacts de la nouvelle facturation
+
+Ces paramètres doivent d’abord être posés dans un environnement isolé utilisant exclusivement un compte Stripe **de test**. Aucun identifiant réel, abonnement réel, prix historique ni secret de production n’a à être remplacé pour la recette.
+
+| Paramètre | Contenu et contrôle |
+|---|---|
+| `STRIPE_SECRET_KEY` | Clé du compte Stripe utilisé par l’environnement. En recette : préfixe `sk_test_` ou `rk_test_`. |
+| `STRIPE_WEBHOOK_SECRET` | Secret du point de réception Stripe correspondant à cet environnement. Ne pas le copier dans un rapport. |
+| `STRIPE_CATALOGUE_V2_JSON` | Objet contenant les onze identifiants `price_…` détaillés ci-dessous. Chaque montant, intervalle, mode et traitement fiscal est relu auprès de Stripe avant de confirmer. |
+| `STRIPE_FISCALITE_V2_JSON` | Régime fiscal **réel du vendeur Gerimmo**, mention à afficher et, si nécessaire, les identifiants de taux. Un paramètre absent bloque les paiements V2 ; il n’est pas remplacé par une taxe supposée. |
+| `STRIPE_PORTAIL_V2_CONFIGURATION` | Identifiant `bpc_…` d’une configuration active du portail. Changement direct d’abonnement désactivé ; résiliation permise uniquement à la fin de période. Factures et moyen de paiement restent accessibles. |
+| `GERIMMO_TARIFICATION_V2_PRODUCTION` | Laisser vide pendant le développement. La valeur exacte `active` est une activation distincte, à décider après validation de la fiscalité, des contrats et de la recette. |
+| `GERIMMO_STRIPE_TEST_KEY` | Secret GitHub réservé au workflow manuel `stripe-bac-a-sable.yml`. Une clé absente ou réelle fait échouer la recette avant les opérations. Ne pas le renseigner dans le navigateur utilisateur. |
+
+Les onze entrées de `STRIPE_CATALOGUE_V2_JSON` sont :
+
+| Entrée | Montant en centimes | Paramètres Stripe |
+|---|---:|---|
+| `solo_mensuel` | 599 | euro, mois, quantité 1, taxe incluse |
+| `solo_annuel` | 5990 | euro, année, quantité 1, taxe incluse |
+| `bailleur_mensuel` | 999 | euro, mois, quantité 1, taxe incluse |
+| `bailleur_annuel` | 9990 | euro, année, quantité 1, taxe incluse |
+| `investisseur_mensuel` | 1999 | euro, mois, quantité 1, taxe incluse |
+| `investisseur_annuel` | 19990 | euro, année, quantité 1, taxe incluse |
+| `patrimoine_mensuel` | 2999 | euro, mois, quantité 1, taxe incluse |
+| `patrimoine_annuel` | 29990 | euro, année, quantité 1, taxe incluse |
+| `supplement_mensuel` | 100 par bien au-delà de 20 | euro, mois, taxe incluse |
+| `supplement_annuel` | 1000 par bien au-delà de 20 | euro, année, taxe incluse |
+| `agence_mensuel` | tranches cumulées | euro, mois, taxe exclue, `tiered` / `graduated` |
+
+Le prix agence comporte quatre tranches : jusqu’à 10, forfait 3900 et unité 0 ; jusqu’à 50, unité 200 et forfait 0 ; jusqu’à 200, unité 150 et forfait 0 ; au-delà, unité 100 et forfait 0. À zéro lot, l’abonnement souscrit utilise une quantité technique de 1 pour appliquer le socle de 39 €, tout en affichant zéro lot facturé. La quantité ne représente jamais les collaborateurs ou les locataires.
+
+Le script `node --experimental-strip-types scripts/stripe-catalogue-test.mjs --creer` crée uniquement un catalogue de test et une configuration de portail restreinte, avec `GERIMMO_STRIPE_TEST_KEY` de test. Il refuse une clé réelle et produit les identifiants à enregistrer ; il ne modifie aucun prix existant.
+
+Deux formes de fiscalité sont reconnues. Les valeurs entre chevrons sont à renseigner après vérification, pas des paramètres prêts à activer :
+
+```json
+{"mode":"exonere","mention":"<mention exacte de l’exonération réellement applicable>"}
+```
+
+ou, si un taux s’applique réellement :
+
+```json
+{"mode":"taux","mention":"<mention fiscale validée>","particulier":"txr_<taux_inclus>","agence":"txr_<taux_exclus>"}
+```
+
+Les deux taux doivent correspondre à la situation fiscale réelle du vendeur, au même environnement Stripe et respectivement être inclus dans le TTC particulier, puis ajoutés au HT agence. Le code ne présume ni une exonération, ni un taux de 20 %, ni le régime du vendeur à partir de celui d’un client. Le scénario automatisé sans taxe est exclusivement une fixture de test.
+
+Le point de réception reste `/api/stripe/webhook`. Pour la nouvelle grille, il doit recevoir `checkout.session.completed`, `checkout.session.expired`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`, `customer.subscription.pending_update_applied` et `customer.subscription.pending_update_expired`. Conserver les autres événements déjà nécessaires aux parcours historiques. Les messages signés sont contrôlés, dédupliqués et rapprochés de l’état actuel de Stripe ; un événement ancien ne doit pas rétablir un ancien accès. Les confirmations manuelles et ces notifications partagent un verrou court par organisation.
+
+L’essai restant inférieur à 48 heures utilise une page Stripe de confirmation de carte, puis une souscription dont le premier prélèvement conserve la date exacte de fin d’essai. Si cette date est dépassée avant la confirmation, une nouvelle acceptation de la date de paiement est demandée. Une confirmation de carte n’est jamais présentée comme un règlement.
+
+## Portée exacte de la recette Stripe
+
+Le workflow manuel utilise de vrais appels à l’API Stripe **test** et une base PostgreSQL jetable. Il contrôle les montants, les essais courts, les proratas, les refus de paiement, les calendriers de baisse, le renouvellement annuel et la résiliation à échéance. Le fichier `stripe-v2-sql-bac-a-sable.test.ts` relie en outre les souscriptions de test à la vraie route locale de Gerimmo et aux fonctions SQL V2 : accord enregistré, capacité avant/après paiement, doublon, refus puis régularisation, message ancien et résiliation.
+
+Le transport de notification est une requête HTTP construite et signée dans le test. Il **ne prouve pas** une livraison réseau de Stripe vers un site public. L’interface Checkout, la saisie de carte et le parcours bancaire dans un navigateur ne sont pas parcourus par ce workflow. Ils restent une recette distincte sur une préproduction de test configurée. La présence des scénarios ne vaut pas réussite : rapporter le résultat et le commit du dernier lancement exécuté, ainsi que tout cas ignoré ou échoué. Aucun paiement réel, débit rétroactif ou migration des clients existants n’appartient à cette recette.

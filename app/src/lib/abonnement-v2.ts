@@ -6,7 +6,7 @@ export type EtatAbonnementV2 = {
   formule: Formule | null; periodicite: Periodicite | null;
   montant_centimes: number | null; total_centimes: number | null; taxe_centimes: number | null;
   periode_fin: string | null; annulation_demandee: boolean;
-  changement_programme: { formule?: Formule; periodicite?: Periodicite; volume?: number; montant_centimes?: number; date_effet?: string } | null;
+  changement_programme: { formule?: Formule; periodicite?: Periodicite; volume_cible?: number; capacite?: number; montant_centimes?: number; date_effet?: string } | null;
   stripe_customer_id: string | null; stripe_subscription_id: string | null;
 };
 

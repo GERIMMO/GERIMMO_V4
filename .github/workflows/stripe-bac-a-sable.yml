@@ -47,7 +47,7 @@ jobs:
       - name: Tester les cas de paiement et leur application dans Gerimmo
         env:
           GERIMMO_STRIPE_TEST_KEY: ${{ secrets.GERIMMO_STRIPE_TEST_KEY }}
-        run: npm test -- tests/stripe-bac-a-sable.test.ts tests/stripe-tarification-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
+        run: npm test -- tests/stripe-bac-a-sable.test.ts tests/stripe-tarification-bac-a-sable.test.ts tests/stripe-v2-sql-bac-a-sable.test.ts --reporter=default --reporter=json --outputFile=/tmp/gerimmo-stripe-test.json
       - name: Conserver le résultat synthétique
         if: always()
         run: |

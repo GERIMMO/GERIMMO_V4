@@ -52,7 +52,7 @@ export function FormulaireAbonnementV2({ orgId, publicTarif, volumeActuel, capac
       <h3 id="titre-recap-abonnement">Votre récapitulatif avant accord</h3>
       <input type="hidden" name="proposition_id" value={proposition.id} />
       <dl className="space-y-2 text-sm">
-        <div className="flex justify-between gap-3"><dt>Opération</dt><dd>{proposition.type === "annulation_changement" ? "Annulation du changement prévu" : proposition.type === "resiliation" ? "Résiliation à l’échéance" : proposition.type === "baisse" ? "Baisse programmée" : proposition.type === "augmentation" ? "Augmentation de capacité" : "Souscription"}</dd></div>
+        <div className="flex justify-between gap-3"><dt>Opération</dt><dd>{proposition.type === "annulation_changement" ? "Annulation du changement prévu" : proposition.type === "resiliation" ? "Résiliation à l’échéance" : proposition.type === "baisse" ? "Changement à la prochaine échéance" : proposition.type === "augmentation" ? "Augmentation de capacité" : "Souscription"}</dd></div>
         <div className="flex justify-between gap-3"><dt>Capacité</dt><dd>{proposition.capacite} {publicTarif === "agence" ? "lots" : "biens"}</dd></div>
         <div className="flex justify-between gap-3"><dt>Date d’effet</dt><dd>{dateAbonnement(proposition.dateEffet)}</dd></div>
         {publicTarif === "agence" && <div className="flex justify-between gap-3"><dt>Montant hors taxes</dt><dd>{formaterCentimes(proposition.montantCents)}</dd></div>}

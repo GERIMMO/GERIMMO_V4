@@ -39,7 +39,7 @@ const QUESTIONS: [string, string][] = [
   ],
   [
     "Puis-je changer de formule ou résilier ?",
-    "Toute augmentation payante indique le nouveau montant, sa date et son prorata avant votre accord. Une baisse prend effet à la prochaine échéance, si votre nombre de biens le permet. Le mensuel n’engage pas pour un an. L’annuel est prélevé en une fois pour douze mois et renouvelé à l’échéance, sauf résiliation. Dans les deux cas, les droits payés restent acquis jusqu’à la fin de la période, puis les données restent consultables et exportables.",
+    "Toute augmentation payante indique le nouveau montant, sa date et son prorata avant votre accord. Après un archivage ou une fin de mandat, ouvrez « Mon abonnement » pour demander et confirmer la baisse adaptée à votre nouveau volume. Elle prendra effet à la prochaine échéance, si votre nombre de biens le permet ; elle n’est pas programmée automatiquement par l’archivage. Le mensuel n’engage pas pour un an. L’annuel est prélevé en une fois pour douze mois et renouvelé à l’échéance, sauf résiliation. Dans les deux cas, les droits payés restent acquis jusqu’à la fin de la période, puis les données restent consultables et exportables.",
   ],
   [
     "Quels biens sont comptés ?",

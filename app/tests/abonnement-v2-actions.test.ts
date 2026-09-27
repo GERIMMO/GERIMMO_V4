@@ -110,7 +110,26 @@ describe("confirmations abonnement V2 côté serveur", () => {
     mocks.retrieve.mockResolvedValue({ ...souscription, schedule: "sched" });
     const r = await confirmerAbonnementV2("org", {}, confirmation()); expect(r.succes).toContain("conservées");
     expect(mocks.annulerChangement).toHaveBeenCalledTimes(1); expect(mocks.resilier).not.toHaveBeenCalled(); expect(mocks.augmenter).not.toHaveBeenCalled();
-    expect(mocks.serviceRpc).toHaveBeenCalledWith("appliquer_abonnement_v2", expect.objectContaining({ p_snapshot: { stripe_statut: "active", changement_programme: null } }));
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("appliquer_abonnement_v2", expect.objectContaining({ p_snapshot: { stripe_statut: "active", changement_programme: null, traitement_token: expect.any(String) } }));
+  });
+
+  it("le verrou commun précède la lecture Stripe et protège chaque application", async () => {
+    expect((await confirmerAbonnementV2("org", {}, confirmation())).succes).toContain("confirmée");
+    const debut = mocks.serviceRpc.mock.calls.findIndex(([nom]) => nom === "reserver_traitement_abonnement_v2");
+    expect(mocks.serviceRpc.mock.invocationCallOrder[debut]).toBeLessThan(mocks.retrieve.mock.invocationCallOrder[0]);
+    const token = mocks.serviceRpc.mock.calls[debut][1].p_token;
+    expect(mocks.serviceRpc).toHaveBeenCalledWith("appliquer_abonnement_v2", expect.objectContaining({ p_snapshot: expect.objectContaining({ traitement_token: token }) }));
+    expect(mocks.serviceRpc).toHaveBeenLastCalledWith("liberer_traitement_abonnement_v2", { p_org: "org", p_token: token });
+  });
+  it("un verrou occupé refuse l’opération avant toute lecture ou écriture Stripe", async () => {
+    mocks.serviceRpc.mockResolvedValue({ data: false, error: null });
+    expect((await confirmerAbonnementV2("org", {}, confirmation())).erreur).toContain("en cours");
+    expect(mocks.retrieve).not.toHaveBeenCalled(); aucunPaiement();
+  });
+  it.each(["past_due", "unpaid"])("un impayé %s n’empêche pas de demander la résiliation", async status => {
+    mocks.retrieve.mockResolvedValue({ ...souscription, status });
+    expect((await preparerAbonnementV2("org", {}, form({ type: "resiliation" }))).proposition?.type).toBe("resiliation");
+    aucunPaiement();
   });
 
 });

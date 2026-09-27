@@ -1,11 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
 import { origineDeRetour } from "@/lib/site";
+import { sansJargon } from "@/lib/erreurs";
 import { VERSION_TARIFICATION, type PublicTarif, type Periodicite } from "@/lib/tarification";
 import { assurerClientStripe } from "@/lib/stripe";
 import { configurationStripeV2, creerClientStripeV2, lignesTarifV2, apercuTarifV2, empreinteSouscription, finEssaiV2,
@@ -30,7 +32,7 @@ function erreurLisible(error: unknown) {
   if (!(error instanceof Error)) return "La demande n’a pas pu aboutir. Aucun changement n’est confirmé.";
   // Ne jamais exposer une réponse technique du prestataire, ni promettre l’absence de débit après un timeout.
   if ("type" in error) return "Le service de paiement n’a pas confirmé cette opération. Vérifiez l’état de votre abonnement avant de réessayer.";
-  return error.message;
+  return /SQLSTATE|PGRST\d+|constraint|foreign key|schema cache|fetch failed/i.test(error.message) ? sansJargon(error.message) : error.message;
 }
 function afficher(p: Proposition): NonNullable<EtatAbonnementV2Action["proposition"]> {
   const s = p.snapshot;
@@ -64,7 +66,7 @@ export async function preparerAbonnementV2(orgId: string, _etat: EtatAbonnementV
     const s = etat.stripe_subscription_id ? await stripe.subscriptions.retrieve(etat.stripe_subscription_id) : null;
     const active = s && !["canceled", "incomplete_expired"].includes(s.status) ? s : null;
     if (active && active.metadata.tarification_version !== VERSION_TARIFICATION) throw new Error("Votre contrat existant nécessite une migration distincte. Aucun changement n’a été fait.");
-    if (active && !["active", "trialing"].includes(active.status)) throw new Error("Régularisez d’abord le paiement de votre abonnement depuis votre espace de facturation.");
+    if (!annuler && !annulerChangement && active && !["active", "trialing"].includes(active.status)) throw new Error("Régularisez d’abord le paiement de votre abonnement depuis votre espace de facturation.");
     if (!annuler && !annulerChangement && (active?.pending_update || active?.schedule || active?.cancel_at_period_end || etat.changement_programme)) throw new Error("Un changement ou une résiliation est déjà en cours. Il doit être traité avant une nouvelle modification.");
     if (annulerChangement && (!active?.schedule || active.pending_update)) throw new Error("Aucun changement programmé annulable n’a été trouvé.");
     const volumeTarif = annulerChangement ? Number(etat.volume_facture ?? etat.capacite) : volume;
@@ -95,6 +97,7 @@ export async function preparerAbonnementV2(orgId: string, _etat: EtatAbonnementV
 export async function confirmerAbonnementV2(orgId: string, _etat: EtatAbonnementV2Action, form: FormData): Promise<EtatAbonnementV2Action> {
   let destination: string | null = null;
   let succes: string | undefined;
+  let liberer: (() => Promise<void>) | null = null;
   try {
     if (form.get("confirmation") !== "oui") throw new Error("Confirmez le montant et la date d’effet avant de continuer.");
     const { supabase, etat } = await contexte(orgId);
@@ -106,7 +109,17 @@ export async function confirmerAbonnementV2(orgId: string, _etat: EtatAbonnement
     const proposition = brut as Proposition;
     if (proposition.etat === "executee") return { succes: "Cette demande a déjà été exécutée. Votre abonnement est à jour." };
     if (["annulee", "expiree"].includes(proposition.etat ?? "")) throw new Error("Cette demande est clôturée. Préparez un nouveau récapitulatif.");
-    const p = proposition.snapshot;
+    const token = randomUUID();
+    const reserve = await service.rpc("reserver_traitement_abonnement_v2", { p_org: orgId, p_token: token });
+    if (reserve.error || reserve.data !== true) throw new Error("Une vérification de votre abonnement est en cours. Réessayez dans un instant.");
+    liberer = async () => { await service.rpc("liberer_traitement_abonnement_v2", { p_org: orgId, p_token: token }); };
+    // Le verrou est commun aux notifications Stripe et aux confirmations manuelles.
+    const rerelecture = await supabase.rpc("lire_proposition_abonnement_v2", { p_proposition: id });
+    if (rerelecture.error || !rerelecture.data || rerelecture.data.organization_id !== orgId) throw new Error("Ce récapitulatif n’est plus disponible.");
+    const courante = rerelecture.data as Proposition;
+    if (courante.etat === "executee") return { succes: "Cette demande a déjà été exécutée. Votre abonnement est à jour." };
+    if (["annulee", "expiree"].includes(courante.etat ?? "")) throw new Error("Cette demande est clôturée. Préparez un nouveau récapitulatif.");
+    const p = courante.snapshot;
     let operationTerminee = false;
     const s = p.stripe_subscription_id ? await stripe.subscriptions.retrieve(p.stripe_subscription_id) : null;
     if (s && empreinteSouscription(s) !== p.empreinte_stripe) throw new Error("Votre abonnement a changé depuis ce récapitulatif. Vérifiez un nouveau montant avant de confirmer.");
@@ -118,16 +131,27 @@ export async function confirmerAbonnementV2(orgId: string, _etat: EtatAbonnement
       const apercu = await apercuTarifV2(stripe, { customer: p.stripe_customer_id, lignes: p.stripe_lignes, fiscalite: p.fiscalite, abonnement: p.type === "augmentation" ? s : null, prorationDate: p.stripe_proration_date });
       if (apercu.total !== p.total_centimes || apercu.taxe !== p.taxe_centimes || apercu.prorata !== p.prorata_centimes || apercu.premierPaiement !== p.premier_prelevement_centimes) throw new Error("Le montant à régler a changé. Un nouveau récapitulatif est nécessaire.");
     }
-    const consentement = await supabase.rpc("consentir_proposition_abonnement_v2", { p_proposition: id });
-    if (consentement.error || !consentement.data) throw new Error(consentement.error?.message || "La confirmation n’a pas été enregistrée.");
     const h = await headers(); const origine = origineDeRetour(h.get("x-forwarded-host") ?? h.get("host"), h.get("x-forwarded-proto"));
     if (!origine) throw new Error("L’adresse de retour du paiement est indisponible.");
     const retour = `${origine}/agence/${orgId}/abonnement`;
-    if (p.type === "souscription") destination = await ouvrirSouscriptionV2(stripe, p, orgId, id, retour);
+    if (p.type === "souscription" && Date.parse(p.date_effet) > p.stripe_proration_date * 1000 && !finEssaiV2(p.essai_fin)) throw new Error("Votre essai vient de se terminer. Préparez un nouveau récapitulatif avant de confirmer le premier prélèvement.");
+    const consentement = await supabase.rpc("consentir_proposition_abonnement_v2", { p_proposition: id });
+    if (consentement.error || !consentement.data) throw new Error(consentement.error?.message || "La confirmation n’a pas été enregistrée.");
+    if (p.type === "souscription") {
+      try { destination = await ouvrirSouscriptionV2(stripe, p, orgId, id, retour); }
+      catch (e) {
+        // Un refus de validation initial prouve que cette requête n’a créé aucun Checkout.
+        // Un délai dépassé ou la reprise d’une demande consentie reste réservé et idempotent.
+        if (!courante.consentie_le && e instanceof Error && "type" in e && ["StripeInvalidRequestError", "StripeAuthenticationError", "StripePermissionError"].includes(String(e.type))) {
+          await service.rpc("finir_proposition_abonnement_v2", { p_proposition: id, p_etat: "annulee" });
+        }
+        throw e;
+      }
+    }
     else if (p.type === "augmentation") {
       const nouveau = await augmenterAbonnementV2(stripe, s!, p, orgId, id);
       const snapshot = await snapshotSouscriptionV2(stripe, config, nouveau);
-      const applique = await service.rpc("appliquer_abonnement_v2", { p_org: orgId, p_snapshot: snapshot, p_event_id: `operation-v2-${id}` });
+      const applique = await service.rpc("appliquer_abonnement_v2", { p_org: orgId, p_snapshot: { ...snapshot, traitement_token: token }, p_event_id: `operation-v2-${id}` });
       if (applique.error) throw new Error("Le prestataire a reçu votre demande. Son résultat est en cours de vérification dans Gerimmo.");
       const facture = nouveau.latest_invoice;
       if (nouveau.pending_update) {
@@ -137,20 +161,20 @@ export async function confirmerAbonnementV2(orgId: string, _etat: EtatAbonnement
     } else if (p.type === "baisse") {
       const programme = await programmerBaisseV2(stripe, s!, p, orgId, id);
       const actuel = await snapshotSouscriptionV2(stripe, config, s!);
-      const applique = await service.rpc("appliquer_abonnement_v2", { p_org: orgId, p_snapshot: { ...actuel, changement_programme: { ...p, stripe_schedule_id: programme.id } }, p_event_id: `operation-v2-${id}` });
+      const applique = await service.rpc("appliquer_abonnement_v2", { p_org: orgId, p_snapshot: { ...actuel, traitement_token: token, changement_programme: { ...p, stripe_schedule_id: programme.id } }, p_event_id: `operation-v2-${id}` });
       if (applique.error) throw new Error("Le changement est programmé chez le prestataire. Son affichage dans Gerimmo est en cours de vérification.");
       operationTerminee = true;
       succes = "Le changement est programmé à votre prochaine échéance. Votre accès déjà payé est conservé jusque-là.";
     } else if (p.type === "annulation_changement") {
       const conserve = await annulerChangementProgrammeV2(stripe, s!, id);
       const applique = await service.rpc("appliquer_abonnement_v2", { p_org: orgId,
-        p_snapshot: { ...(await snapshotSouscriptionV2(stripe, config, conserve)), changement_programme: null }, p_event_id: `operation-v2-${id}` });
+        p_snapshot: { ...(await snapshotSouscriptionV2(stripe, config, conserve)), traitement_token: token, changement_programme: null }, p_event_id: `operation-v2-${id}` });
       if (applique.error) throw new Error("Le changement programmé a été annulé chez le prestataire. Son affichage reste à vérifier.");
       operationTerminee = true;
       succes = "Le changement programmé est annulé. Votre formule et votre capacité actuelles sont conservées aux prochaines échéances.";
     } else {
       const annule = await resilierAbonnementV2(stripe, s!, id);
-      const applique = await service.rpc("appliquer_abonnement_v2", { p_org: orgId, p_snapshot: { ...(await snapshotSouscriptionV2(stripe, config, annule)), changement_programme: null }, p_event_id: `operation-v2-${id}` });
+      const applique = await service.rpc("appliquer_abonnement_v2", { p_org: orgId, p_snapshot: { ...(await snapshotSouscriptionV2(stripe, config, annule)), traitement_token: token, changement_programme: null }, p_event_id: `operation-v2-${id}` });
       if (applique.error) throw new Error("La résiliation est enregistrée chez le prestataire. Son affichage dans Gerimmo est en cours de vérification.");
       operationTerminee = true;
       if (s?.pending_update && s.metadata.proposition_id && s.metadata.proposition_id !== id) {
@@ -165,6 +189,7 @@ export async function confirmerAbonnementV2(orgId: string, _etat: EtatAbonnement
     }
     revalidatePath(`/agence/${orgId}/abonnement`);
   } catch (e) { return { erreur: erreurLisible(e) }; }
+  finally { if (liberer) await liberer(); }
   if (destination) redirect(destination);
   return { succes };
 }

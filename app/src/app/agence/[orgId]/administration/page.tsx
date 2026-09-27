@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { nomComplet } from "@/lib/roles-personnes";
 import { FormulaireInvitationAgent } from "./formulaire-invitation-agent";
+import { CarteAbonnementV2 } from "../abonnement/carte-abonnement-v2";
+import { VERSION_TARIFICATION } from "@/lib/tarification";
 import {
   EncadreLectureImpossible,
   EnteteReglages,
@@ -33,8 +35,9 @@ export default async function PageAdministration(
   props: PageProps<"/agence/[orgId]/administration">
 ) {
   const { orgId } = await props.params;
-  const { supabase, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const { supabase, role, estProprietaire, organisation } = await verifierAccesEspace(orgId);
   if (estProprietaire || role !== "admin_agence") notFound();
+  const tarificationV2 = organisation.tarification_version === VERSION_TARIFICATION;
 
   const [
     { data: membres, error: erreurMembres },
@@ -57,10 +60,10 @@ export default async function PageAdministration(
       .select("mandat_id, lot_id")
       .eq("organization_id", orgId)
       .is("date_fin", null),
-    supabase.rpc("etat_abonnement", { p_org: orgId }),
+    tarificationV2 ? Promise.resolve({ data: null, error: null }) : supabase.rpc("etat_abonnement", { p_org: orgId }),
     // L'état du paiement, pour que la puce de la carte « Abonnement » dise où
     // en est l'abonnement et non le statut de l'organisation (24/09).
-    supabase.rpc("mon_abonnement", { p_org: orgId }),
+    tarificationV2 ? Promise.resolve({ data: null, error: null }) : supabase.rpc("mon_abonnement", { p_org: orgId }),
   ]);
   // Un échec de lecture ne doit pas se déguiser en agence vide (audit 09/09).
   // Chaque carte le dit pour ce qui la concerne : l'équipe reste lisible même
@@ -285,7 +288,7 @@ export default async function PageAdministration(
         )}
       </div>
 
-      <div className="loc-carte">
+      {tarificationV2 ? <CarteAbonnementV2 supabase={supabase} orgId={orgId} /> : <div className="loc-carte">
         <div className="entete-carte">
           <h3>Abonnement de l&apos;agence</h3>
           {statut && (
@@ -319,7 +322,7 @@ export default async function PageAdministration(
         <p className="mt-4 text-sm text-muted-foreground">
           Les mandats en préavis restent comptés tant qu’ils courent.
         </p>
-      </div>
+      </div>}
 
       {/* 25/09 : plus de carte « Journal d'audit » — une carte sans bouton ni
           lien, trois lignes pour dire qu'on ne peut rien y faire. L'information

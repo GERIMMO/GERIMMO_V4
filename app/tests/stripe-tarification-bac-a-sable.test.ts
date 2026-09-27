@@ -75,16 +75,26 @@ describe.skipIf(!cle)("nouvelle grille : factures et échéances Stripe de TEST"
       expect((await apercuTarifV2(stripe, { customer, lignes, fiscalite })).total).toBe(tarif.montantCentimes);
     }
   }, 120000);
-  it("souscrit avec moins de 48h d’essai et prélève l’année en une fois au terme", async () => {
+  it("préserve l’essai court, prélève et renouvelle l’année, puis résilie à l’échéance", async () => {
     const h = await horloge(); const pm = await carte(h.customer);
     const s = await stripe.subscriptions.create({ customer: h.customer, default_payment_method: pm, trial_end: h.maintenant + 3600,
       items: [{ price: config.catalogue.solo_annuel, quantity: 1 }], metadata: { tarification_version: VERSION_TARIFICATION } });
     suivi.subs.push(s.id); expect(s.status).toBe("trialing"); expect(s.trial_end).toBe(h.maintenant + 3600);
     await avancer(h.clock, h.maintenant + 3600 + 10);
+    await avancer(h.clock, h.maintenant + 3600 + 7200);
     const factures = await stripe.invoices.list({ customer: h.customer, subscription: s.id });
-    expect(factures.data.some(f => f.total === 5990)).toBe(true);
+    expect(factures.data.some(f => f.total === 5990 && f.status === "paid")).toBe(true);
     const actif = await stripe.subscriptions.retrieve(s.id); expect(actif.items.data[0].price.recurring?.interval).toBe("year");
-  }, 90000);
+    const premiereFin = actif.items.data[0].current_period_end;
+    await avancer(h.clock, premiereFin + 10);
+    await avancer(h.clock, premiereFin + 7200);
+    const renouvellement = await stripe.invoices.list({ customer: h.customer, subscription: s.id });
+    expect(renouvellement.data.filter(f => f.total === 5990 && f.status === "paid")).toHaveLength(2);
+    const annule = await stripe.subscriptions.update(s.id, { cancel_at_period_end: true });
+    expect(annule.status).toBe("active"); expect(annule.cancel_at_period_end).toBe(true);
+    await avancer(h.clock, annule.items.data[0].current_period_end + 10);
+    expect((await stripe.subscriptions.retrieve(s.id)).status).toBe("canceled");
+  }, 180000);
   it("hausse avec le prorata présenté puis baisse programmée à l’échéance", async () => {
     const h = await horloge(); const pm = await carte(h.customer);
     const s = await stripe.subscriptions.create({ customer: h.customer, default_payment_method: pm,
@@ -109,7 +119,9 @@ describe.skipIf(!cle)("nouvelle grille : factures et échéances Stripe de TEST"
     const client = await stripe.customers.create({ name: "Recette refus hausse V2" }); suivi.clients.push(client.id);
     const pm = await carte(client.id);
     const s = await stripe.subscriptions.create({ customer: client.id, default_payment_method: pm, items: [{ price: config.catalogue.solo_mensuel, quantity: 1 }], payment_behavior: "error_if_incomplete", metadata: { tarification_version: VERSION_TARIFICATION } }); suivi.subs.push(s.id);
-    const refuse = await carte(client.id, "tok_chargeDeclined"); await stripe.subscriptions.update(s.id, { default_payment_method: refuse });
+    // Carte officielle Stripe qui accepte le rattachement puis refuse le débit.
+    // https://docs.stripe.com/testing#declined-payments
+    const refuse = await carte(client.id, "tok_chargeCustomerFail"); await stripe.subscriptions.update(s.id, { default_payment_method: refuse });
     const p = proposition(10, "mensuel", [{ price: config.catalogue.investisseur_mensuel, quantity: 1 }]);
     const r = await augmenterAbonnementV2(stripe, await stripe.subscriptions.retrieve(s.id), p, "org-recette", randomUUID());
     expect(r.pending_update).not.toBeNull(); expect(r.items.data[0].price.id).toBe(config.catalogue.solo_mensuel);

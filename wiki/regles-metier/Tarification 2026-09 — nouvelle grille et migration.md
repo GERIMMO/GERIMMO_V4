@@ -28,3 +28,7 @@ Les biens occupés ou vacants comptent ; logement et annexes du même bail forme
 Gestion nationale ; réseau d’artisans ouvert localement par commune/métier, sans effet sur le prix. Travaux séparés sur devis. Aucune promesse d’illimité pour les prestations externes payantes. Aucun frais de démarrage autonome ; reprise manuelle d’agence sur devis accepté.
 
 Les contrats et avantages historiques restent préservés. L’inventaire et la migration de clients existants sont une opération distincte, consentie et sans débit rétroactif. Les anciennes promotions ne se cumulent pas automatiquement ; les essais prolongés et avoirs acquis restent à honorer. La présence de ce document n’atteste ni de tests Stripe réussis ni d’une mise en production.
+
+## Demande de baisse
+
+L’archivage ou la fin d’un mandat met à jour le volume et propose le lien **Mon abonnement**. Le responsable y choisit la nouvelle capacité puis confirme le récapitulatif. La baisse confirmée est programmée pour l’échéance suivante ; elle ne découle pas automatiquement du seul archivage.

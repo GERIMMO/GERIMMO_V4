@@ -181,7 +181,7 @@ export async function assemblerCautionnement(
     <div class="bloc-signataires">
     ${section("VIII — Date et signatures")}
     ${faitA(f, exp.ville, new Date().toISOString(), ", en deux exemplaires originaux, dont un est remis à la caution avec un exemplaire du contrat de location (article 22-1 de la loi du 6 juillet 1989).")}
-    <div class="signatures">
+    <div class="signatures-mention">
       ${cadreSignature("La caution", `${nomCaution}<br/>Mention apposée par la caution, puis signature`)}
       ${cadreSignature("Le bailleur", nomsBailleurs(f, ctx.bailleurs))}
     </div>

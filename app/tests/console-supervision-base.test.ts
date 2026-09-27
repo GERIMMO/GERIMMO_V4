@@ -186,7 +186,12 @@ describe.skipIf(!DB_URL)("Console de supervision — corrections en base (audit 
     const { rows: [org] } = await db.query("select status, essai_fin - current_date as jours from public.organizations where id=$1", [o.id]);
     expect(org).toEqual({ status: "archivee", jours: 13 });
     const { rows: traces } = await db.query("select action from public.audit_log where organization_id=$1 and account_id=$2 order by created_at", [o.id, sa]);
-    expect(traces.map((t) => t.action)).toEqual(["organisation_suspendue", "organisation_reactivee", "essai_prolonge", "organisation_archivee"]);
+    // now() est figé pendant la transaction de ce test : created_at est donc
+    // identique pour ces quatre lignes. L'ordre des gestes est vérifié par
+    // leurs résultats ci-dessus ; ici on exige chaque trace, une seule fois.
+    expect(traces.map((t) => t.action).sort()).toEqual(
+      ["organisation_suspendue", "organisation_reactivee", "essai_prolonge", "organisation_archivee"].sort()
+    );
   });
 
   it("aucune nouvelle fonction de la console n'est ouverte à anon ; l'assurance artisan reste interne", async () => {

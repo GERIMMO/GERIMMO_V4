@@ -5522,3 +5522,14 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Signature électronique Yousign **non activée au lancement** (décision du porteur) : circuit manuel du signé déposé ; écran Santé et pages légales le disent ([[Signature électronique]], [[Registre des traitements]]).
 - E-mails d'authentification réparés par le porteur (identifiant SMTP de Supabase Auth refusé par Resend, erreur 535) : « mot de passe oublié » vérifié à 15 h 18.
 - Recette de production demandée : parcours Playwright dédiés lancés depuis GitHub Actions, comptes de test aux adresses `@resend.dev`, purge après passage.
+
+## [2026-09-27] recette | Recette de production (suffixe r20260927a)
+- Déployé : `b42b0dd` (signature électronique masquée), puis workflow « Recette de production » contre https://www.gerimmo.app, écran mobile 390×844.
+- **25 essais réussis, 2 sans objet** (`/tarifs` et `/cgu` n'existent pas ; les conditions sont sous `/conditions`) :
+  - pages publiques (accueil, mentions légales, conditions, confidentialité, connexion, inscription, inscription artisan) ;
+  - admin d'agence : connexion, 17 écrans du menu, création d'un bien et de son lot, fiche locataire, loyers, alertes, profil, page 404, déconnexion ;
+  - propriétaire direct : connexion et parcours de démarrage, écrans du menu, création d'un second bien, « Mon abonnement » (montant et bouton affichés, jamais cliqués) ;
+  - locataire sans bail : connexion, écrans du menu, déconnexion.
+- Aucune erreur serveur (Vercel) ni technique (`tech_log`) pendant le passage ; aucun paiement, envoi en signature ni suppression par l'interface.
+- Données de test **purgées** : la production revient à 0 organisation et 1 compte (le porteur).
+- Relevés non corrigés : sans session, une adresse inconnue mène à la connexion (pas à la page 404) ; un propriétaire direct ouvert par la console sans adresse n'apprend qu'à l'envoi du formulaire qu'il doit la compléter avant de créer un bien.

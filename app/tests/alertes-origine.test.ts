@@ -6,6 +6,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -150,7 +151,8 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     const l = await lot();
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       // Bail VIVANT : l'EDL d'entrée est signé et la restitution se prépare —
       // un brouillon ne prend pas de congé (RM-A5.1, wiki « Machines à états »).
       `insert into public.baux (organization_id, lot_id, locataire_principal, depot_garantie, loyer_hc,
@@ -344,7 +346,7 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     const bail = await bailAvecEdlEntree();
     const sortie = await insererAlerte("edl_sortie", { bail_id: bail, date_effet: "2026-09-30" });
     // Un EDL de sortie ne se signe que pendant le préavis : le congé est posé d'abord.
-    await db.query(`update public.baux set etat='preavis' where id=$1`, [bail]);
+    await requeteProprietaire(db, `update public.baux set etat='preavis' where id=$1`, [bail]);
     await simuler(db, gerant);
     const {
       rows: [{ id: edl }],
@@ -364,7 +366,7 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
   it("compteur de restitution : alerte J-7 puis dépassée (une seule, mise à jour), fermée à la finalisation", async () => {
     const bail = await bailAvecEdlEntree();
     await db.query("reset role");
-    await db.query(`update public.baux set etat='preavis' where id=$1`, [bail]);
+    await requeteProprietaire(db, `update public.baux set etat='preavis' where id=$1`, [bail]);
     // Remise des clés il y a 25 jours, conforme → limite dans 5 jours (J-7)
     await simuler(db, gerant);
     const {

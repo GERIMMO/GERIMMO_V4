@@ -131,6 +131,9 @@ export default async function LayoutLocataire({
             titre={personne ? nomComplet(personne) : organisation.name}
             liens={[
               { href: "/compte", libelle: "Sécurité du compte" },
+              // Audit du 27/09 : les droits RGPD étaient introuvables depuis
+              // l'espace ; la carte du compte dit à qui les demander.
+              { href: "/compte#donnees-personnelles", libelle: "Mes données personnelles" },
               { href: "/espaces", libelle: "Mes espaces" },
             ]}
           />

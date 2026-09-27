@@ -65,7 +65,7 @@ describe("décisions de supervision artisan", () => {
       p_artisan: "artisan", p_operation: "refus", p_motif: "Pièce illisible",
       p_verification_effectuee: false, p_pieces_relues: false,
     });
-    expect(mocks.revalidate.mock.calls.map((a) => a[0])).toEqual(["/admin/artisans", "/admin", "/artisan/entreprise"]);
+    expect(mocks.revalidate.mock.calls.map((a) => a[0])).toEqual(["/admin/artisans", "/admin/clients/artisans/artisan", "/admin/brief", "/admin", "/artisan/entreprise"]);
   });
   it("n’effectue pas le constat de SIRET sans confirmation ni si la transaction échoue", async () => {
     let c = client();

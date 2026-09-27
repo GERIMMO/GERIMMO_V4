@@ -5,7 +5,7 @@ import Link from "next/link";
 import { deciderDecisionDuMatin, type EtatDecision } from "./actions";
 
 export type DecisionAffichee = {
-  id: string; titre: string; pourquoi: string; options: string[]; recommandation: string | null; lien: string | null;
+  id: string; cle: string; titre: string; pourquoi: string; options: string[]; recommandation: string | null; lien: string | null;
   statut: string; motif: string | null; decide_le: string | null; validation: boolean; refus: boolean; attestation: string | null;
 };
 

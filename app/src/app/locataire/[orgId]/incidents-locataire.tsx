@@ -250,7 +250,7 @@ function CarteIncident({
           action={actionContestation}
           nomChamp="message"
           libelle="Motif de votre contestation"
-          placeholder="Expliquez pourquoi — votre message est transmis à l'agence."
+          placeholder="Expliquez pourquoi — votre message est transmis à votre gestionnaire."
           bouton="Envoyer"
           valeurInitiale={etatContestation.valeurs?.message}
         />

@@ -32,8 +32,8 @@ export default async function PageOuvrirOrganisation(
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 p-4 sm:p-7">
-      <Link href="/admin" className="lien-discret text-[13px]">
-        ← Supervision
+      <Link href="/admin/clients" className="lien-discret text-[13px]">
+        ← Tous les clients
       </Link>
       <div className="entete-page mb-6 mt-2">
         <h1>Ouvrir une organisation</h1>

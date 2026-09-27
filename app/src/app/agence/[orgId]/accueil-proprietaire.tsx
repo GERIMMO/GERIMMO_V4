@@ -181,7 +181,8 @@ export async function AccueilProprietaire({
     <main className="mx-auto w-full max-w-6xl space-y-4 p-4 sm:p-7">
       <div>
         <p className="mono-discret normal-case">{aujourdhui}</p>
-        <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom},` : ""}</h1>
+        {/* Même ponctuation que l'accueil d'agence (27/09) : sans virgule. */}
+        <h1 className="mt-0.5">Bonjour{prenom ? ` ${prenom}` : ""}</h1>
         <p className="text-sm text-muted-foreground">
           Voici l&apos;essentiel de votre patrimoine — {organisation.name}.
         </p>
@@ -236,8 +237,8 @@ export async function AccueilProprietaire({
               </span>
               <span className="block text-[13px] text-muted-foreground">
                 {erreurLots
-                  ? "vos lots en gestion directe"
-                  : `${nbLots} lot${nbLots > 1 ? "s" : ""} en gestion directe · ${loues} loué${loues > 1 ? "s" : ""}`}
+                  ? "vos lots"
+                  : `${nbLots} lot${nbLots > 1 ? "s" : ""} · ${loues} loué${loues > 1 ? "s" : ""}`}
               </span>
               {/* Relevé du 11/09 : sur un parc VIDE, `vacants` vaut 0 — la
                   pastille sortait en `vert` pour dire « Créez votre premier
@@ -283,8 +284,11 @@ export async function AccueilProprietaire({
                   Rechargez la page dans un instant.
                 </p>
               ) : (
+                // « Tout est en ordre » se lisait sous un parcours de démarrage
+                // encore à faire (27/09) : la carte ne dit que ce qu'elle
+                // compte — les alertes.
                 <p className="text-sm text-success-soft-foreground">
-                  Rien ne vous attend — tout est en ordre.
+                  Aucune alerte en attente.
                 </p>
               )
             ) : (

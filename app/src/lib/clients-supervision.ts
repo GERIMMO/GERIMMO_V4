@@ -43,6 +43,7 @@ export const LIBELLES_DECISION_ARTISAN: Record<string, string> = {
   validation: "Inscription validée",
   refus: "Inscription refusée",
   remise_en_attente: "Remise en attente",
+  suspension: "Validation suspendue",
   blacklist_globale: "Écarté de la plateforme",
   levee_blacklist: "Réintégré",
 };

@@ -45,6 +45,8 @@ export type ContexteBail = {
     etat: string;
     date_debut: string | null;
     date_fin: string | null;
+    /** Zone tendue figée au bail à sa signature (RM-1.1.7) — null avant la migration du 27/09. */
+    zone_tendue?: boolean | null;
     loyer_hc: number | null;
     charges: number | null;
     charges_mode: string | null;
@@ -127,7 +129,7 @@ export async function chargerContexteBail(
     supabase
       .from("baux")
       .select(
-        `id, chambre_id, type, etat, date_debut, date_fin, loyer_hc, charges, charges_mode,
+        `id, chambre_id, type, etat, date_debut, date_fin, zone_tendue, loyer_hc, charges, charges_mode,
          depot_garantie, jour_echeance, irl_trimestre, revision_irl, locataire_principal,
          fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur,
          duree_reduite_evenement, travaux_recents, travaux_recents_montant,
@@ -337,4 +339,34 @@ export async function signatureOrganisation(
   const octets = Buffer.from(await fichier.arrayBuffer());
   const mime = chemin.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
   return `data:${mime};base64,${octets.toString("base64")}`;
+}
+
+// Libellé des charges selon le mode du bail (audit métier du 27/09 : les
+// documents écrivaient « Provision ou forfait » alors que le mode est connu).
+export function libelleCharges(mode: string | null | undefined): string {
+  if (mode === "forfait") return "Forfait de charges";
+  if (mode === "provision") return "Provision sur charges";
+  return "Provision ou forfait de charges";
+}
+
+// Bornes d'un terme de loyer (audit du 27/09) : du 1er au dernier jour du
+// mois, sauf terme au prorata, borné à l'entrée et/ou à la sortie du bail —
+// la période imprimée doit être celle que le montant rémunère.
+export function bornesTerme(
+  periodeIso: string,
+  prorata: boolean,
+  dateDebut: string | null | undefined,
+  dateFin: string | null | undefined
+): { du: string; au: string } {
+  const [a, m] = periodeIso.slice(0, 7).split("-").map(Number);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  let du = `${a}-${pad(m)}-01`;
+  let au = `${a}-${pad(m)}-${pad(new Date(Date.UTC(a, m, 0)).getUTCDate())}`;
+  if (prorata) {
+    const debut = dateDebut?.slice(0, 10);
+    const fin = dateFin?.slice(0, 10);
+    if (debut && debut > du && debut <= au) du = debut;
+    if (fin && fin < au && fin >= du) au = fin;
+  }
+  return { du, au };
 }

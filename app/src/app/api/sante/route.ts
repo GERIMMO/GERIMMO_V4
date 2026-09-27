@@ -55,6 +55,8 @@ export async function GET(request: Request) {
       .from("tech_log")
       .select("evenement, details, created_at")
       .like("evenement", "tache_%")
+      // Seules les lignes écrites par le service (sans auteur) valent passe.
+      .is("account_id", null)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase

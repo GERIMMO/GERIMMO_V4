@@ -64,3 +64,19 @@ export function origineDeRetour(hote: string | null, protocole: string | null): 
   const schema = protocole ?? (hote.startsWith("localhost") ? "http" : "https");
   return `${schema}://${hote}`;
 }
+
+/**
+ * L'origine des liens que Gerimmo ENVOIE par e-mail (confirmation
+ * d'inscription, réinitialisation du mot de passe, invitation, quittance…).
+ *
+ * Audit sécurité du 27/09 : ces liens étaient construits à partir de l'en-tête
+ * `Origin` de la requête. Seule la liste d'URL autorisées de Supabase Auth
+ * protégeait alors d'un lien de réinitialisation pointant ailleurs, et un
+ * e-mail envoyé depuis une préproduction renvoyait le destinataire en
+ * préproduction. Un lien d'e-mail n'a pas d'« écran d'origine » : il suit la
+ * configuration (`NEXT_PUBLIC_SITE_URL`, à défaut l'adresse Vercel). Sans
+ * configuration, une chaîne vide : Supabase retombe sur l'adresse du projet.
+ */
+export function adresseDeRetour(): string {
+  return adresseDuSite() ?? "";
+}

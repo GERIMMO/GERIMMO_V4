@@ -9,6 +9,7 @@
  * elle inscrit l'écriture inverse.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -82,7 +83,8 @@ describe.skipIf(!DB_URL)("Suppression d'un encaissement", () => {
       `insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires, date_debut)
        values ($1,$2,$3,9,'2026-01-01')`, [orgA, m.id, lot]);
 
-    const { rows: [b] } = await db.query(
+    const { rows: [b] } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, loyer_hc, charges, date_debut, etat)
        values ($1,$2,$3,1000,0,'2026-01-01','actif') returning id`,
       [orgA, lot, locataire.id]);
@@ -114,13 +116,13 @@ describe.skipIf(!DB_URL)("Suppression d'un encaissement", () => {
     const avant = await solde();
     const enc = await encaisser(1000);
     expect(await solde()).toBeCloseTo(avant + 910, 2); // 1000 encaissés − 90 d'honoraires
-    await db.query(`delete from public.encaissements where id=$1`, [enc]);
+    await db.query(`select public.supprimer_encaissement($1, 'Saisie en double')`, [enc]);
     expect(await solde()).toBeCloseTo(avant, 2);
   });
 
   it("annule sans rien effacer : les écritures d'origine restent au journal", async () => {
     const enc = await encaisser(1000);
-    await db.query(`delete from public.encaissements where id=$1`, [enc]);
+    await db.query(`select public.supprimer_encaissement($1, 'Saisie en double')`, [enc]);
     const { rows } = await db.query(
       `select count(*) filter (where contre_ecriture_de is null) as origine,
               count(*) filter (where contre_ecriture_de is not null) as annulations
@@ -134,7 +136,7 @@ describe.skipIf(!DB_URL)("Suppression d'un encaissement", () => {
     // le premier ne doit pas emporter les écritures du second.
     const partiel = await encaisser(400);
     await encaisser(600);
-    await db.query(`delete from public.encaissements where id=$1`, [partiel]);
+    await db.query(`select public.supprimer_encaissement($1, 'Saisie en double')`, [partiel]);
     const { rows } = await db.query(
       `select count(*) as n from public.ecritures
         where bail_id=$1 and contre_ecriture_de is not null`, [bail]);

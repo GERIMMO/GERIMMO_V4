@@ -53,9 +53,10 @@ export default async function PageRepriseComptable(
       <div>
         <Link
           href={`/agence/${orgId}/comptabilite`}
-          className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:underline"
+          className="inline-flex min-h-11 items-center text-sm text-muted-foreground hover:underline"
         >
-          ← Comptabilité
+          {/* Le mot du menu (audit 27/09), et 44 px au doigt. */}
+          ← {organisation.type === "proprietaire_direct" ? "Livre recettes-dépenses" : "Écritures & rapports"}
         </Link>
         <div className="entete-page">
           <h1>Reprendre mes comptes</h1>

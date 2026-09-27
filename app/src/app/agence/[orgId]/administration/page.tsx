@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import { nomComplet } from "@/lib/roles-personnes";
+import { FormulaireInvitationAgent } from "./formulaire-invitation-agent";
 import {
   EncadreLectureImpossible,
   EnteteReglages,
@@ -11,9 +12,8 @@ import {
 export const metadata = { title: "Administration — Gerimmo" };
 
 // Administration (maquette v6, admin d'agence) : les membres de l'agence et
-// leurs portefeuilles (mandats confiés), l'abonnement — honnête : la
-// facturation Stripe arrive au S11, l'invitation d'agents et la délégation de
-// portefeuille au chantier rôles (S9b). Le journal d'audit complet reste au
+// leurs portefeuilles (mandats confiés), l'invitation d'un agent (27/09),
+// l'abonnement — la délégation de portefeuille reste au chantier rôles (S9b). Le journal d'audit complet reste au
 // super admin (RLS) — chaque geste sensible y est déjà tracé.
 //
 // Audit 09/09 : les portefeuilles se comptent avec la MÊME règle que
@@ -188,10 +188,7 @@ export default async function PageAdministration(
           </EncadreLectureImpossible>
         ) : equipe.length === 0 ? (
           <p className="vide">
-            Aucun membre actif dans cette agence. L&apos;invitation d&apos;un agent
-            depuis cet écran n&apos;existe pas encore :{" "}
-            <Link href="/assistance" className="lien-texte">demandez-la au support</Link>{" "}
-            avec son adresse e-mail.
+            Aucun membre actif dans cette agence : invitez un agent ci-dessous.
           </p>
         ) : (
           <ul>
@@ -277,20 +274,13 @@ export default async function PageAdministration(
         <p className="mesure-lecture mt-4 text-sm text-muted-foreground">
           Le portefeuille d&apos;un agent = les mandats qui lui sont confiés.
         </p>
-        {/* 25/09 : « écrivez au support » en pied de carte passait pour une
-            consigne alors que c'est un manque du produit. Dit tel quel, avec
-            le geste qui marche aujourd'hui (une demande, l'adresse de l'agent)
-            et une cible de 44 px. L'invitation sur place viendra avec le
-            chantier rôles (S9b). */}
-        {equipeLue && equipe.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-            <p className="text-sm text-muted-foreground">
-              Ajouter un agent ne se fait pas encore ici : envoyez-nous son
-              adresse e-mail, l&apos;équipe Gerimmo crée son accès.
-            </p>
-            <Link href="/assistance" className="btn-secondaire shrink-0">
-              Demander l&apos;ajout d&apos;un agent
-            </Link>
+        {/* 27/09 (audit agence) : l'admin ajoute lui-même un agent — wiki
+            « Modèle de rôles et permissions » : l'admin porte la gestion des
+            utilisateurs, l'invitation crée une adhésion. Le 25/09, l'écran
+            renvoyait encore vers le support. */}
+        {equipeLue && (
+          <div className="mt-4 border-t border-border pt-4">
+            <FormulaireInvitationAgent orgId={orgId} />
           </div>
         )}
       </div>
@@ -340,7 +330,7 @@ export default async function PageAdministration(
         autre agent, validation de pièce…) est horodaté et tracé — qui, quoi,
         sur quel objet. La consultation de ce journal est aujourd&apos;hui
         réservée à l&apos;équipe Gerimmo ; demandez-la depuis{" "}
-        <Link href="/assistance" className="lien-texte">Aide et retours</Link>.
+        <Link href="/assistance" className="lien-texte pointer-coarse:py-3.5">Aide et retours</Link>.
       </p>
     </main>
   );

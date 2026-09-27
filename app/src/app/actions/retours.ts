@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { actionSansDonnees, ecranSansDonnees, NATURES_RETOUR } from "@/lib/retours";
+import { journaliserSupervision } from "@/lib/journal-supervision";
 
 export type EtatRetour = { erreur?:string;succes?:string;id?:string };
 export async function envoyerRetour(_etat:EtatRetour,fd:FormData):Promise<EtatRetour>{
@@ -38,6 +39,7 @@ export async function regrouperRetours(id:string,_etat:EtatRetour,fd:FormData):P
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
  const{error}=await c.rpc('regrouper_idees',{p_source:id,p_cible:String(fd.get('cible')??'')});
  if(error)return{erreur:sansJargon(error.message)};
+ await journaliserSupervision(c,'idees_regroupees',{source:id,cible:String(fd.get('cible')??'').slice(0,36)});
  revalidatePath('/admin/retours');return{succes:"Idées regroupées. Leurs textes restent dans leurs espaces d’origine."};
 }
 
@@ -46,5 +48,6 @@ export async function cloreRevue(_etat:EtatRetour,fd:FormData):Promise<EtatRetou
  if(acces||sa!==true)return{erreur:"Accès réservé à la supervision Gerimmo."};
  const{error}=await c.rpc('clore_revue_idees',{p_bilan:String(fd.get('bilan')??'')});
  if(error)return{erreur:sansJargon(error.message)};
+ await journaliserSupervision(c,'revue_idees_close');
  revalidatePath('/admin/retours');revalidatePath('/admin');return{succes:"La revue de ce mois est enregistrée."};
 }

@@ -130,6 +130,18 @@ export function CarteConge({
             faite ici prévient votre gestionnaire, elle ne remplace pas le
             courrier.
           </p>
+          {/* Les motifs qui réduisent le préavis (audit du 27/09) : le champ
+              suggérait « Mutation… » sans dire que la mutation ramène le
+              préavis à un mois — à condition de le justifier ([[Bail]],
+              RM-1.10.5 : justificatif obligatoire). */}
+          {preavisMois > 1 && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Certaines situations ramènent le préavis à <b className="font-semibold">1 mois</b>{" "}
+              : mutation, perte d&apos;emploi, bénéficiaire du RSA ou de l&apos;AAH, état de
+              santé, violences conjugales… Indiquez-la dans votre lettre et joignez-y le
+              justificatif — il est obligatoire.
+            </p>
+          )}
           <Label htmlFor="conge-motif" className="mt-3">
             Un mot pour votre gestionnaire (facultatif)
           </Label>

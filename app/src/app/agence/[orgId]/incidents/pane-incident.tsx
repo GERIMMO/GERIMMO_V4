@@ -232,7 +232,12 @@ export async function PaneIncident({
           ? eur(centsEnEuros(Number(d.montant_ttc_cents)))
           : null;
       case "mission_refusee":
+      case "creneaux_refuses":
         return d.motif ? `« ${d.motif} »` : null;
+      case "facture_deposee":
+        return d.montant_ttc_cents != null
+          ? `${d.numero ? `n° ${d.numero} · ` : ""}${eur(centsEnEuros(Number(d.montant_ttc_cents)))}`
+          : null;
       case "arbitrage_creneau":
         return `${formaterDateHeure(String(d.debut))} → ${formaterDateHeure(String(d.fin))}${
           d.motif ? ` — « ${d.motif} »` : ""

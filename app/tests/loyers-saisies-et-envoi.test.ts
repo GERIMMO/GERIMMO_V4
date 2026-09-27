@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { quittanceDocumentComplete } from "./fixtures/quittance-document";
 
 const banc = vi.hoisted(() => ({
   autorise: true,
@@ -6,6 +7,7 @@ const banc = vi.hoisted(() => ({
   insert: vi.fn(),
   update: vi.fn(),
   depot: vi.fn(),
+  abandon: vi.fn(),
   email: vi.fn(),
   erreurMemo: null as { message: string } | null,
   erreurLectureQuittance: null as { message: string } | null,
@@ -16,7 +18,14 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers({ origin: "https://recette.test" }),
 }));
-vi.mock("@/lib/ged-depot", () => ({ deposerFichierGed: banc.depot }));
+// Audit agence 27/09 : le décompte est PRÉPARÉ (octet monté), sa fiche naît
+// dans la transaction de la régularisation, l'octet est abandonné si elle
+// est refusée.
+vi.mock("@/lib/ged-depot", () => ({
+  deposerFichierGed: banc.depot,
+  preparerFichierGed: banc.depot,
+  abandonnerPieceGed: banc.abandon,
+}));
 // Aucun email ne sort de ce banc : on observe seulement la demande d'envoi.
 vi.mock("@/lib/email", () => ({ envoyerEmail: banc.email }));
 vi.mock("@/lib/ged-acces", () => ({
@@ -76,7 +85,10 @@ beforeEach(() => {
   banc.quittanceVisible = true;
   banc.rpc.mockResolvedValue({ data: 250, error: null });
   banc.insert.mockResolvedValue({ error: null });
-  banc.depot.mockResolvedValue({ documentId: "justificatif-test" });
+  banc.depot.mockResolvedValue({
+    fichier: { chemin: "org-test/decompte.pdf", mime: "application/pdf", taille: 18, empreinte: "e".repeat(64) },
+  });
+  banc.abandon.mockResolvedValue(undefined);
   banc.email.mockResolvedValue({});
 });
 
@@ -111,13 +123,28 @@ describe("Régularisation : une absence de montant ne crée pas de remboursement
 
     expect(resultat.erreur).toBeUndefined();
     expect(banc.depot).toHaveBeenCalledOnce();
-    expect(banc.rpc).toHaveBeenCalledWith("regulariser_charges", {
+    expect(banc.rpc).toHaveBeenCalledWith("regulariser_charges_avec_justificatif", {
       p_bail: "bail-test",
       p_annee: 2025,
       p_charges_reelles: montant,
-      p_justificatif: "justificatif-test",
       p_note: null,
+      p_storage_path: "org-test/decompte.pdf",
+      p_mime: "application/pdf",
+      p_taille: 18,
+      p_empreinte: "e".repeat(64),
     });
+    expect(banc.abandon).not.toHaveBeenCalled();
+  });
+
+  it("un refus de la base ne laisse pas le décompte en GED : l'octet part à la purge (audit 27/09)", async () => {
+    banc.rpc.mockResolvedValue({
+      data: null,
+      error: { message: "Une régularisation existe déjà pour l'exercice 2025" },
+    });
+    const resultat = await regulariserCharges("org-test", "bail-test", {}, saisieCharges("120"));
+    expect(resultat.erreur).toContain("existe déjà");
+    expect(banc.abandon).toHaveBeenCalledOnce();
+    expect(banc.abandon.mock.calls[0][1]).toMatchObject({ chemin: "org-test/decompte.pdf" });
   });
 });
 
@@ -156,15 +183,43 @@ describe("Relance : seules les dates effectivement fournies sont enregistrées",
 });
 
 describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà parti", () => {
+  // Deux lectures : le détail (quittance_detail) et le document conforme
+  // (quittance_document, 27/09) — complet par défaut.
+  let detail: { data: unknown; error: unknown };
+  let conforme: { data: unknown; error: unknown };
   beforeEach(() => {
-    banc.rpc.mockResolvedValue({ data: [{
+    detail = { data: [{
       emetteur: "Agence de recette",
       periode: "2026-08-01",
       loyer_hc: 450,
       charges: 50,
       montant: 500,
       est_quittance: true,
-    }], error: null });
+    }], error: null };
+    conforme = { data: quittanceDocumentComplete(), error: null };
+    banc.rpc.mockImplementation(async (fn: string) => (fn === "quittance_document" ? conforme : detail));
+  });
+
+  it("n'envoie pas une quittance dont l'émetteur n'a pas d'adresse, et dit quoi compléter (27/09)", async () => {
+    const incomplete = quittanceDocumentComplete();
+    incomplete.organisation = { ...incomplete.organisation, adresse: null };
+    conforme = { data: incomplete, error: null };
+    const resultat = await envoyerQuittance("org-test", "bail-test", "quittance-test");
+    expect(resultat.erreur).toContain("n'est pas envoyée");
+    expect(resultat.erreur).toContain("domicile ou siège social");
+    expect(banc.email).not.toHaveBeenCalled();
+    expect(banc.update).not.toHaveBeenCalled();
+  });
+
+  it("chez un propriétaire direct, l'e-mail est signé du bailleur, pas du « parc » (27/09)", async () => {
+    conforme = { data: quittanceDocumentComplete({
+      organisation: { ...quittanceDocumentComplete().organisation, type: "proprietaire_direct", nom: "Parc de Claire Moreau", siret: null, carte_pro: null },
+      bailleurs: [{ nom: "Moreau", prenom: "Claire" }],
+    }), error: null };
+    await envoyerQuittance("org-test", "bail-test", "quittance-test");
+    const html = String(banc.email.mock.calls[0]?.[0]?.html ?? "");
+    expect(html).toContain("— Moreau Claire");
+    expect(html).not.toContain("Parc de Claire Moreau");
   });
 
   it("renvoie un succès et mémorise l'envoi normal", async () => {
@@ -183,14 +238,15 @@ describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà par
   });
 
   it.each([false, true])("nomme le reçu partiel envoyé, même avec échec de mémorisation : %s", async (memoEnEchec) => {
-    banc.rpc.mockResolvedValue({ data: [{
+    detail = { data: [{
       emetteur: "Agence de recette",
       periode: "2026-08-01",
       loyer_hc: 450,
       charges: 50,
       montant: 300,
       est_quittance: false,
-    }], error: null });
+    }], error: null };
+    conforme = { data: quittanceDocumentComplete({ est_quittance: false, montant: 300 }), error: null };
     banc.erreurMemo = memoEnEchec ? { message: "indisponible" } : null;
 
     const resultat = await envoyerQuittance("org-test", "bail-test", "quittance-test");
@@ -202,7 +258,7 @@ describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà par
   });
 
   it("ne présume pas qu'un document de paiement introuvable est une quittance", async () => {
-    banc.rpc.mockResolvedValue({ data: [], error: null });
+    detail = { data: [], error: null };
     const resultat = await envoyerQuittance("org-test", "bail-test", "quittance-test");
     expect(resultat.erreur).toBe("Document de paiement introuvable.");
     expect(banc.email).not.toHaveBeenCalled();
@@ -258,7 +314,7 @@ describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà par
   });
 
   it("un refus de lecture du détail bloque l'envoi après vérification du bail", async () => {
-    banc.rpc.mockResolvedValue({ data: null, error: { message: "Accès refusé" } });
+    detail = { data: null, error: { message: "Accès refusé" } };
     const resultat = await envoyerQuittance("org-test", "bail-test", "quittance-test");
     expect(resultat.erreur).toContain("Impossible de lire le document");
     expect(banc.email).not.toHaveBeenCalled();

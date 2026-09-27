@@ -30,8 +30,24 @@ export default async function PageRecapitulatifFiscal(props: {
     Number.isInteger(demandee) && demandee >= 1970 && demandee <= anneeCourante + 1
       ? demandee
       : anneeCourante;
+  // Les onglets commencent à l'année de la première écriture du livre (audit
+  // du 27/09) : un compte ouvert en septembre 2026 se voyait proposer 2024 et
+  // 2025, deux récapitulatifs vides. Trois ans au plus, l'année affichée
+  // toujours comprise.
+  const { data: premiere } = await supabase
+    .from("ecritures")
+    .select("date_piece")
+    .eq("organization_id", orgId)
+    .order("date_piece", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const anneePremiere = premiere?.date_piece ? Number(String(premiere.date_piece).slice(0, 4)) : anneeCourante;
+  const anneeDebut = Math.max(anneeCourante - 2, Math.min(anneePremiere, anneeCourante));
   const anneesProposees = [
-    ...new Set([anneeCourante - 2, anneeCourante - 1, anneeCourante, annee]),
+    ...new Set([
+      ...Array.from({ length: anneeCourante - anneeDebut + 1 }, (_, i) => anneeDebut + i),
+      annee,
+    ]),
   ].sort((a, b) => a - b);
 
   const [

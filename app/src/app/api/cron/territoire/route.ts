@@ -80,6 +80,7 @@ export async function GET(request: Request) {
       .from("tech_log")
       .select("evenement, details, created_at")
       .like("evenement", "tache_%")
+      .is("account_id", null)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase

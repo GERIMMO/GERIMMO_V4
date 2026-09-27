@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eur, formaterDate } from "@/lib/ged";
+import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
 import { TYPES_BAIL } from "@/lib/baux";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { buttonVariants } from "@/components/ui/button";
@@ -279,7 +279,14 @@ export default async function PageLogementLocataire(
                       </span>
                     ) : (
                       <span className="loc-tag ambre">
-                        en préparation{e.date_edl ? ` — prévu le ${formaterDate(e.date_edl)}` : ""}
+                        en préparation
+                        {e.date_edl
+                          ? // Une date passée ne s'annonce pas comme à venir
+                            // (27/09) : « prévu le 25/09 » un 27/09.
+                            e.date_edl.slice(0, 10) < aujourdhuiParis()
+                            ? ` — prévu le ${formaterDate(e.date_edl)} (date dépassée : voyez-la avec votre gestionnaire)`
+                            : ` — prévu le ${formaterDate(e.date_edl)}`
+                          : ""}
                       </span>
                     )}
                   </span>

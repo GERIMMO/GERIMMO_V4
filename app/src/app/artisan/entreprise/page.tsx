@@ -48,7 +48,11 @@ export default async function PageEntreprise() {
       detail: pieces.erreur
         ? "Liste illisible à l'instant — ouvrez pour vérifier"
         : aucunePiece
-          ? "Aucune attestation déposée — à déposer pour être proposé aux agences"
+          ? // Audit 27/09 : l'ancien libellé (« à déposer pour être proposé
+            // aux agences ») contredisait la page Attestations — seule la
+            // décennale conditionne l'affectation, et seulement pour les
+            // travaux qui l'exigent (RM-8.2.2/8.2.9, personas/Artisan).
+            "Aucune attestation déposée — déposez votre décennale pour être proposé sur les travaux qui l'exigent"
           : piecesTendues > 0
             ? `${piecesTendues} à renouveler`
             : `${pieces.lignes.length} déposée${pieces.lignes.length > 1 ? "s" : ""}`,
@@ -57,7 +61,7 @@ export default async function PageEntreprise() {
     {
       href: "/artisan/facturation",
       titre: "Ma facturation",
-      detail: "Les interventions terminées et leurs montants",
+      detail: "Les interventions terminées, leurs montants et vos factures",
       tendu: false,
     },
     {

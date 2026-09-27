@@ -89,7 +89,7 @@ export default async function PageAgentMarketing() {
   const jours = reglages.jours_semaine.map((jour) => JOURS[jour]).filter(Boolean).join(" et ") || "mardi et vendredi";
   // La prochaine action se nomme (audit 25/09, C21) : relire tel article,
   // diffuser tel autre — ou relier la Page si c'est elle qui manque.
-  const prochaine = aDiffuser[0] ? (facebookOperationnel ? { href: `/admin/publications/${aDiffuser[0].id}`, libelle: `Diffuser « ${aDiffuser[0].titre} »` } : { href: "#canaux", libelle: "Relier la Page Facebook" }) : aRelire[0] ? { href: `/admin/publications/${aRelire[0].id}`, libelle: `Relire « ${aRelire[0].titre} »` } : null;
+  const prochaine = aDiffuser[0] ? (facebookOperationnel ? { href: `/admin/publications/${aDiffuser[0].id}`, libelle: `Diffuser « ${aDiffuser[0].titre} »` } : { href: "#canaux", libelle: "Voir ce qu’il faut relier pour Facebook" }) : aRelire[0] ? { href: `/admin/publications/${aRelire[0].id}`, libelle: `Relire « ${aRelire[0].titre} »` } : null;
   const aTraiter = aRelire.length + aDiffuser.length;
   // La tuile des dépenses ne rougit que si le plafond est dépassé (24/09) :
   // elle était rouge en permanence, sans dépense ni dépassement.

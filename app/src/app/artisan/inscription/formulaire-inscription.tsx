@@ -22,6 +22,9 @@ import {
  * Six champs, pas un de plus. Le SIRET est la clé : s'il correspond à une
  * fiche qu'une agence avait déjà créée, l'inscription la RÉCLAME au lieu d'en
  * créer une seconde — « rattaché, jamais dupliqué » vu du côté de l'artisan.
+ * Depuis l'audit du 27/09, la base n'accepte la réclamation que si l'adresse
+ * confirmée du compte est celle de la fiche, et ne réécrit ni son mobile ni
+ * son e-mail (migration 20260927120000).
  * Le mobile est obligatoire : c'est par lui qu'on le joint sur un chantier.
  */
 function Envoyer() {
@@ -84,8 +87,9 @@ export function FormulaireInscription() {
         />
         <p className="text-[0.8125rem] text-[var(--texte-secondaire)]">
           Quatorze chiffres. Il identifie votre entreprise sur toute la
-          plateforme : si une agence a déjà créé votre fiche, elle vous sera
-          rattachée au lieu d&apos;être dupliquée.
+          plateforme : si une agence a déjà créé votre fiche, elle vous est
+          rattachée au lieu d&apos;être dupliquée — à condition que votre
+          compte porte l&apos;adresse e-mail qu&apos;elle a enregistrée pour vous.
         </p>
       </div>
 

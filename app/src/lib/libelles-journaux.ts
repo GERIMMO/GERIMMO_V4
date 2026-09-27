@@ -1,4 +1,5 @@
 import { TACHES_SUIVIES } from "./missions";
+import { ACTIONS_SUPERVISION } from "./journal-supervision";
 
 const ACTIONS: Record<string, string> = {
   consultation_organisation: "Consultation d’une organisation",
@@ -29,6 +30,10 @@ const ACTIONS: Record<string, string> = {
   relais_supervision_cree: "Relais de supervision ouvert",
   relais_supervision_revoque: "Relais de supervision retiré",
   developpement_decide: "Décision sur une amélioration du logiciel",
+  // Les gestes de la console (audit console du 27/09) : chacun a sa ligne.
+  point_du_matin_decide: "Décision prise depuis le point du matin",
+  examen_inscription_artisan: "Examen d’une inscription d’artisan",
+  ...ACTIONS_SUPERVISION,
 };
 
 // Les noms des tâches viennent de la table partagée (lib/missions.ts, 25/09) :
@@ -50,11 +55,31 @@ export function libelleActionAudit(action: string | null | undefined): string {
   return "Action enregistrée (libellé manquant)";
 }
 
+// Les événements que l'application écrit elle-même (audit console 27/09) :
+// « Événement du service enregistré · depuis : compte » ne disait rien.
+const EVENEMENTS: Record<string, string> = {
+  changement_mot_de_passe: "Changement de mot de passe",
+  erreur_ecran: "Problème d’affichage",
+  remise_rapport_mensuel: "Envoi d’un compte rendu mensuel",
+  veille_analyse_echec: "Étude d’une information de veille à reprendre",
+  rendez_vous_fixe: "Rendez-vous d’intervention fixé",
+  mission_refusee: "Mission refusée par un artisan",
+  mission_confiee: "Mission confiée à un artisan",
+  mission_annulee: "Mission annulée",
+  devis_recu: "Devis reçu",
+  devis_demande: "Devis demandé",
+  creneaux_proposes: "Créneaux proposés",
+  creneaux_contre_proposes: "Autres créneaux proposés",
+  creneau_choisi: "Créneau choisi",
+  signature_demandee: "Signature électronique demandée",
+  reponse_gestionnaire: "Réponse du gestionnaire",
+  notification_rappel: "Rappel envoyé",
+  incident_urgent: "Incident urgent signalé",
+};
+
 export function libelleEvenement(evenement: string | null | undefined): string {
   if (!evenement) return "Événement du service";
-  if (evenement === "erreur_ecran") return "Problème d’affichage";
-  if (evenement === "remise_rapport_mensuel") return "Envoi d’un compte rendu mensuel";
-  if (evenement === "changement_mot_de_passe") return "Changement de mot de passe";
+  if (Object.hasOwn(EVENEMENTS, evenement)) return EVENEMENTS[evenement];
   const tache = evenement.match(/^tache_([^_]+)/)?.[1];
   if (tache) return Object.hasOwn(TACHES, tache) ? TACHES[tache] : "Travail automatique de Gerimmo";
   if (/erreur|exception|echec/i.test(evenement)) return "Une action n’a pas pu être terminée";
@@ -88,12 +113,17 @@ export function codesConnusJournaux(): { audit: string[]; technique: string[] } 
  * long. « Événement du service enregistré » sans rien d'autre ne permettait
  * pas de déboguer.
  */
+// Clés internes jamais présentées (audit console 27/09) : l'empreinte d'une
+// erreur (« digest : 101828213 ») et l'origine technique d'un appel.
+const CLES_MASQUEES = new Set(["digest", "depuis", "empreinte"]);
+const CLES_LIBELLES: Record<string, string> = { espace: "espace", ecran: "écran", avant: "état précédent", apres: "nouvel état", avant_active: "active avant", jours: "jours", essai_fin: "fin d’essai" };
+
 export function detailsExpurges(details: unknown): string | null {
   if (!details || typeof details !== "object" || Array.isArray(details)) return null;
   const morceaux: string[] = [];
   for (const [cle, valeur] of Object.entries(details as Record<string, unknown>)) {
-    if (!/^[a-z][a-z0-9_]{0,40}$/i.test(cle)) continue;
-    const libelle = cle.replace(/_/g, " ");
+    if (!/^[a-z][a-z0-9_]{0,40}$/i.test(cle) || CLES_MASQUEES.has(cle)) continue;
+    const libelle = CLES_LIBELLES[cle] ?? cle.replace(/_/g, " ");
     if (typeof valeur === "number" && Number.isFinite(valeur)) morceaux.push(`${libelle} : ${valeur}`);
     else if (typeof valeur === "boolean") morceaux.push(`${libelle} : ${valeur ? "oui" : "non"}`);
     else if (Array.isArray(valeur)) morceaux.push(`${libelle} : ${valeur.length} élément${valeur.length > 1 ? "s" : ""}`);

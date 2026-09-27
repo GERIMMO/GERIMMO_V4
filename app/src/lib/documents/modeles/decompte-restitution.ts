@@ -41,11 +41,24 @@ type Retenue = {
   justificatif_document: string | null;
 };
 
-// Fin du délai légal : la remise des clés décalée du délai en mois
-function finDelai(dateRemise: string, delaiMois: number): string {
-  const d = new Date(`${dateRemise}T12:00:00`);
-  d.setMonth(d.getMonth() + delaiMois);
-  return d.toISOString().slice(0, 10);
+// Fin du délai légal : la remise des clés décalée du délai en mois, BORNÉE au
+// dernier jour du mois d'arrivée — comme la base (restitution_date_limite,
+// `date + interval 'n months'`) et l'alerte. Audit du 27/09 : setMonth
+// débordait (31/01 + 1 mois → 03/03 au lieu du 28/02), le PDF promettait un
+// délai légal plus long que le vrai (wiki « Restitution du dépôt de garantie »).
+export function finDelaiRestitution(dateRemise: string, delaiMois: number): string {
+  const [a, m, j] = dateRemise.slice(0, 10).split("-").map(Number);
+  const cible = new Date(Date.UTC(a, m - 1 + delaiMois, 1));
+  const dernierJour = new Date(Date.UTC(cible.getUTCFullYear(), cible.getUTCMonth() + 1, 0)).getUTCDate();
+  cible.setUTCDate(Math.min(j, dernierJour));
+  return cible.toISOString().slice(0, 10);
+}
+
+// Colonne « Justificatif » d'une retenue (audit du 27/09) : « sur demande »
+// est réservé aux pièces réellement déposées ; sans pièce, on l'écrit (wiki
+// « Restitution du dépôt de garantie », RM-2.4.6 et RM-2.7.2).
+export function libelleJustificatifRetenue(r: { sans_justificatif: boolean; justificatif_document: string | null }): string {
+  return r.justificatif_document && !r.sans_justificatif ? "Déposé — sur demande" : "Non fourni";
 }
 
 // La décote de vétusté telle qu'appliquée : retenue = coût × (durée − âge) / durée
@@ -54,6 +67,11 @@ function vetusteAppliquee(r: Retenue): string {
   const cout = Number(r.cout);
   const decote = cout > 0 ? Math.round((1 - Number(r.montant_retenu) / cout) * 100) : 0;
   return `${r.age_ans ?? 0}/${r.duree_vie_ans} ans — décote ${decote.toLocaleString("fr-FR")} %`;
+}
+
+function moisLong(periode: string): string {
+  const [a, m] = periode.slice(0, 7).split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, 15)).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
 }
 
 export async function assemblerDecompteRestitution(
@@ -67,7 +85,7 @@ export async function assemblerDecompteRestitution(
   const { data: restitution } = await supabase
     .from("restitutions")
     .select(
-      "id, date_remise_cles, delai_mois, depot, impayes, statut, solde, date_emission, sans_edl_entree"
+      "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, statut, solde, date_emission, sans_edl_entree"
     )
     .eq("bail_id", bailId)
     .maybeSingle();
@@ -84,10 +102,22 @@ export async function assemblerDecompteRestitution(
 
   const depot = Number(restitution.depot);
   const impayes = Number(restitution.impayes);
+  const tropPercu = Number(restitution.trop_percu ?? 0);
+
+  // Détail période par période (RM-2.7.1) : termes restés dus et soldes de
+  // régularisation, tels qu'ils figurent aux comptes du bail.
+  const [{ data: etat }, { data: regularisations }] = await Promise.all([
+    supabase.rpc("etat_loyers_bail", { p_bail: bailId }),
+    supabase.from("regularisations_charges").select("annee, ecart").eq("bail_id", bailId).order("annee"),
+  ]);
+  const termesDus = ((etat ?? []) as { periode: string; montant_du: number; montant_couvert: number }[])
+    .filter((t) => Number(t.montant_couvert) < Number(t.montant_du));
+  const soldesRegul = ((regularisations ?? []) as { annee: number; ecart: number }[]).filter((r) => Number(r.ecart) !== 0);
   const totalRetenues = retenues.reduce((s, r) => s + Number(r.montant_retenu), 0);
   const finalise = restitution.statut === "finalise";
   // Solde arrêté à la finalisation ; avant, le projeté sur les retenues saisies
-  const solde = restitution.solde !== null ? Number(restitution.solde) : depot - impayes - totalRetenues;
+  const solde =
+    restitution.solde !== null ? Number(restitution.solde) : depot - impayes + tropPercu - totalRetenues;
   const libelleSolde = solde < 0 ? "Créance restant due par le locataire" : "Solde à restituer au locataire";
   const loyerHc = ctx.bail.loyer_hc === null ? null : Number(ctx.bail.loyer_hc);
 
@@ -109,7 +139,7 @@ export async function assemblerDecompteRestitution(
       ["Remise des clés", `Le ${f.date(restitution.date_remise_cles)}`],
       [
         "Délai légal",
-        `${restitution.delai_mois} mois — au plus tard le ${f.date(finDelai(restitution.date_remise_cles, Number(restitution.delai_mois)))}`,
+        `${restitution.delai_mois} mois — au plus tard le ${f.date(finDelaiRestitution(restitution.date_remise_cles, Number(restitution.delai_mois)))}`,
       ],
     ])}
     <p>Le bailleur (${nomsBailleurs(f, ctx.bailleurs)}) arrête comme suit le décompte des sommes
@@ -146,7 +176,7 @@ export async function assemblerDecompteRestitution(
               eur(Number(r.cout)),
               echapper(vetusteAppliquee(r)),
               eur(Number(r.montant_retenu)),
-              r.sans_justificatif ? "Sur demande" : "Oui",
+              libelleJustificatifRetenue(r),
             ])
           )
         : `<p>Néant — aucune retenue n'est opérée sur le dépôt de garantie.</p>`
@@ -157,11 +187,38 @@ export async function assemblerDecompteRestitution(
       [{ libelle: "Nature" }, { libelle: "Montant", droite: true }],
       [
         ["Dépôt de garantie reçu", eur(depot)],
-        ["Impayés imputés (loyers, charges, régularisations)", impayes > 0 ? `− ${eur(impayes)}` : eur(0)],
+        [
+          soldesRegul.length > 0
+            ? "Impayés imputés (loyers, charges et solde de régularisation)"
+            : "Impayés imputés (loyers et charges)",
+          impayes > 0 ? `− ${eur(impayes)}` : eur(0),
+        ],
+        ...(tropPercu > 0
+          ? [["Trop-perçu restitué au locataire (avance de loyers, régularisation)", `+ ${eur(tropPercu)}`]]
+          : []),
         ["Total des retenues", totalRetenues > 0 ? `− ${eur(totalRetenues)}` : eur(0)],
         [`<b>${libelleSolde}</b>`, `<b>${eur(Math.abs(solde))}</b>`],
       ]
     )}
+    ${
+      termesDus.length > 0 || soldesRegul.length > 0
+        ? `${section("Détail des sommes par période")}${tableau(
+            [{ libelle: "Période" }, { libelle: "Montant", droite: true }],
+            [
+              ...termesDus.map((t) => [
+                `Terme de ${echapper(moisLong(t.periode))} — reste dû`,
+                eur(Number(t.montant_du) - Number(t.montant_couvert)),
+              ]),
+              ...soldesRegul.map((r) => [
+                Number(r.ecart) < 0
+                  ? `Régularisation des charges ${r.annee} — complément dû`
+                  : `Régularisation des charges ${r.annee} — trop-perçu dû au locataire`,
+                Number(r.ecart) < 0 ? eur(-Number(r.ecart)) : `+ ${eur(Number(r.ecart))}`,
+              ]),
+            ]
+          )}<p>État des comptes du bail à la date d'édition ; le décompte ci-dessus retient les montants arrêtés.</p>`
+        : ""
+    }
     <div class="encadre"><p><b>${libelleSolde} : ${eur(Math.abs(solde))}</b><br/>
     soit ${echapper(montantEnLettres(Math.abs(solde)))}.</p></div>
 
@@ -173,8 +230,8 @@ export async function assemblerDecompteRestitution(
       locataire est majoré d'une somme égale à 10 % du loyer mensuel hors charges${
         loyerHc !== null ? ` (soit ${eur(loyerHc * 0.1)})` : ""
       } pour chaque période mensuelle commencée en retard (article 22 de la loi du 6 juillet 1989).</p>
-      <p>Chaque retenue est justifiée par devis, facture ou constat comparé des états des lieux ; les
-      justificatifs marqués « sur demande » sont tenus à la disposition du locataire.</p>
+      <p>Les justificatifs déposés (devis, facture, constat comparé des états des lieux) sont tenus à la
+      disposition du locataire sur demande. Une retenue marquée « Non fourni » n'est appuyée d'aucune pièce.</p>
     </div>
     ${faitA(f, exp.ville, restitution.date_emission ?? new Date().toISOString())}
     ${blocSignatureEmetteur(exp.nom, await signatureOrganisation(supabase, orgId))}

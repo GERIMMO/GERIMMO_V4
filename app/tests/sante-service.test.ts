@@ -122,6 +122,7 @@ describe("les tâches planifiées", () => {
     expect(TACHES.map((t) => t.nom)).toEqual([
       "orchestrateur",
       "signatures",
+      "purge",
       "abonnements",
       "rappels",
       "quittances",
@@ -140,7 +141,7 @@ describe("les tâches planifiées", () => {
       passe("appels", 30),
       passe("rappels", 4, { erreur: "lecture impossible" }),
       passe("territoire", 20 * 24),
-      passe("sauvegarde", 6 * 24, { echecs: 0, octets: 1583743, fichiers: 62 }),
+      passe("sauvegarde", 20, { echecs: 0, octets: 1583743, fichiers: 62 }),
     ];
     const etats = Object.fromEntries(
       etatTaches(dernieresTaches(lignes), maintenant).map((t) => [t.nom, t.etat])
@@ -148,6 +149,7 @@ describe("les tâches planifiées", () => {
     expect(etats).toEqual({
       orchestrateur: "jamais",
       signatures: "jamais",
+      purge: "jamais",
       quittances: "ok",
       appels: "retard",
       rappels: "echec",
@@ -156,19 +158,23 @@ describe("les tâches planifiées", () => {
       relances: "jamais",
       marketing: "jamais",
       veille: "jamais",
-      sauvegarde: "ok", // hebdomadaire : six jours, c'est à l'heure
+      sauvegarde: "ok", // quotidienne depuis le 27/09 (RPO 24 h) : vingt heures, c'est à l'heure
     });
   });
 
   it("une sauvegarde en retard ou en échec est un point bloquant, comme un échec de tâche (25/09)", () => {
-    const enRetard = etatTaches(dernieresTaches([passe("sauvegarde", 9 * 24, { echecs: 0 })]), maintenant).find((t) => t.nom === "sauvegarde")!;
+    // Quotidienne depuis le 27/09 : au-delà de 26 h, elle est en retard — et bloquante.
+    const enRetard = etatTaches(dernieresTaches([passe("sauvegarde", 30, { echecs: 0 })]), maintenant).find((t) => t.nom === "sauvegarde")!;
     expect(enRetard.etat).toBe("retard");
     expect(pointsBloquants([], [enRetard], 0)).toBe(1);
     const enEchec = etatTaches(dernieresTaches([passe("sauvegarde", 2, { echecs: 1, etape: "failure" })]), maintenant).find((t) => t.nom === "sauvegarde")!;
     expect(enEchec.etat).toBe("echec");
     expect(enEchec.commandable).toBe(false);
+    // Audit console 27/09 : une quotidienne en retard (elle a tourné, puis s'est
+    // arrêtée) compte aussi — elle n'atteignait jamais « À décider ».
     const quotidienneEnRetard = etatTaches(dernieresTaches([passe("appels", 30)]), maintenant).find((t) => t.nom === "appels")!;
-    expect(pointsBloquants([], [quotidienneEnRetard], 0)).toBe(0);
+    expect(quotidienneEnRetard.etat).toBe("retard");
+    expect(pointsBloquants([], [quotidienneEnRetard], 0)).toBe(1);
   });
 
   it("signale aussi un bilan qui contient des échecs partiels", () => {
@@ -268,32 +274,74 @@ describe("une passe sans service relié (25/09)", () => {
   });
 });
 
-describe("le chargement partagé par les trois pages (25/09)", () => {
+describe("le chargement partagé par Santé, Équipes, l’accueil et le point (audit console 27/09)", () => {
   const maintenant = new Date("2026-09-20T10:00:00.000Z");
-  const client = (lignes: unknown[] | null, error: unknown = null) => {
+  type Tables = Record<string, unknown[] | null>;
+  const client = (tables: Tables, error: unknown = null) => {
     const appels: unknown[][] = [];
-    const q = {
-      select: (...a: unknown[]) => { appels.push(["select", ...a]); return q; },
-      like: (...a: unknown[]) => { appels.push(["like", ...a]); return q; },
-      gte: (...a: unknown[]) => { appels.push(["gte", ...a]); return q; },
-      order: (...a: unknown[]) => { appels.push(["order", ...a]); return q; },
-      limit: async (...a: unknown[]) => { appels.push(["limit", ...a]); return { data: lignes, error }; },
+    const db = {
+      from: (table: string) => {
+        appels.push(["from", table]);
+        const q: Record<string, unknown> = {};
+        for (const m of ["select", "like", "in", "is", "gte", "order", "limit"]) q[m] = (...a: unknown[]) => { appels.push([m, table, ...a]); return q; };
+        q.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: tables[table] ?? [], error }).then(ok);
+        return q;
+      },
     };
-    return { db: { from: (table: string) => { appels.push(["from", table]); return q; } }, appels };
+    return { db, appels };
   };
+  const passage = (mission: string, heures: number, extra: Record<string, unknown> = {}) => ({
+    mission, debut: new Date(maintenant.getTime() - heures * 3_600_000).toISOString(), fin: new Date(maintenant.getTime() - heures * 3_600_000 + 60_000).toISOString(),
+    expiration: null, etat: "reussi", compte: 0, bilan: null, ...extra,
+  });
 
-  it("lit le journal des tâches sur trente jours, du plus récent au plus ancien", async () => {
-    const c = client([{ evenement: "tache_quittances", details: { envoyees: 1, echecs: 0 }, created_at: "2026-09-20T07:00:00.000Z" }]);
+  it("lit une MISSION dans ses passages et une tâche hors mission dans le journal", async () => {
+    const c = client({
+      tech_log: [
+        { evenement: "tache_orchestrateur", details: { dossiers: 2 }, created_at: "2026-09-20T05:45:00.000Z" },
+        // Une ligne de journal ne fait plus foi pour une mission : seule compte agent_passages.
+        { evenement: "tache_appels", details: { envoyees: 1 }, created_at: "2026-09-20T07:30:00.000Z" },
+      ],
+      agent_passages: [passage("quittances", 3, { bilan: { envoyees: 4, echecs: 0 }, compte: 4 }), passage("rappels", 50)],
+      agent_missions: [],
+    });
     const taches = await chargerEtatTaches(c.db, maintenant);
-    expect(c.appels).toContainEqual(["from", "tech_log"]);
-    expect(c.appels).toContainEqual(["like", "evenement", "tache_%"]);
-    expect(c.appels).toContainEqual(["gte", "created_at", "2026-08-21T10:00:00.000Z"]);
-    expect(taches?.find((t) => t.nom === "quittances")?.etat).toBe("ok");
-    expect(taches?.find((t) => t.nom === "appels")?.etat).toBe("jamais");
+    expect(c.appels).toContainEqual(["like", "tech_log", "evenement", "tache_%"]);
+    // 27/09 (audit sécurité) : seules les lignes écrites par le service valent passe.
+    expect(c.appels).toContainEqual(["is", "tech_log", "account_id", null]);
+    expect(c.appels).toContainEqual(["gte", "tech_log", "created_at", "2026-08-21T10:00:00.000Z"]);
+    // Les passages n'ont pas de fenêtre de 30 jours.
+    expect(c.appels.some((a) => a[0] === "gte" && a[1] === "agent_passages")).toBe(false);
+    const par = (n: string) => taches!.find((t) => t.nom === n)!;
+    expect(par("quittances").etat).toBe("ok");
+    expect(par("quittances").bilan).toBe("envois réussis : 4, actions à reprendre : 0");
+    expect(par("orchestrateur").etat).toBe("ok");
+    expect(par("appels").etat).toBe("jamais");
+    // Même seuil que Travail des équipes : 26 heures.
+    expect(par("rappels").etat).toBe("retard");
+    expect(par("rappels").bilan).toBe("0 résultat(s) comptabilisé(s), sans détail conservé");
+  });
+
+  it("une mission en pause n’est pas une alerte, ni un point bloquant", async () => {
+    const c = client({ tech_log: [], agent_passages: [passage("territoire", 80)], agent_missions: [{ cle: "territoire", active: false }, { cle: "veille", active: false }] });
+    const taches = (await chargerEtatTaches(c.db, maintenant))!;
+    expect(taches.find((t) => t.nom === "territoire")!.etat).toBe("pause");
+    expect(taches.find((t) => t.nom === "veille")!.etat).toBe("pause");
+    expect(pointsBloquants([], taches.filter((t) => t.nom === "territoire" || t.nom === "veille"), 0)).toBe(0);
+  });
+
+  it("un passage à reprendre ou resté en cours au-delà de son délai est un échec", async () => {
+    const c = client({ tech_log: [], agent_missions: [], agent_passages: [
+      passage("veille", 2, { etat: "a_reprendre", bilan: { echecs: 0 } }),
+      passage("marketing", 2, { etat: "en_cours", fin: null, expiration: "2026-09-20T09:00:00.000Z" }),
+    ] });
+    const taches = (await chargerEtatTaches(c.db, maintenant))!;
+    expect(taches.find((t) => t.nom === "veille")!.etat).toBe("echec");
+    expect(taches.find((t) => t.nom === "marketing")!.etat).toBe("echec");
   });
 
   it("rend null quand la lecture échoue, et le bandeau compte tout de même les faits sûrs", async () => {
-    const c = client(null, { message: "indisponible" });
+    const c = client({}, { message: "indisponible" });
     const sante = await chargerSante(c.db, { ...COMPLET, CRON_SECRET: "" }, 2, maintenant);
     expect(sante.taches).toBeNull();
     expect(sante.tachesIllisibles).toBe(true);
@@ -301,7 +349,7 @@ describe("le chargement partagé par les trois pages (25/09)", () => {
   });
 
   it("donne le même chiffre qu'un calcul à la main", async () => {
-    const c = client([]);
+    const c = client({});
     const sante = await chargerSante(c.db, COMPLET, 0, maintenant);
     expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET), etatTaches({}, maintenant), 0));
     expect(sante.bloquants).toBe(TACHES.length);
@@ -317,10 +365,33 @@ describe("le chargement partagé par les trois pages (25/09)", () => {
     expect(verificationCreditIA([refus, reussite]).etat).toBe("ok");
     expect(verificationCreditIA([]).etat).toBe("ok");
     // Compté dans les points bloquants, donc dans « À décider ».
-    const c = client([refus]);
+    const c = client({ tech_log: [refus] });
     const sante = await chargerSante(c.db, COMPLET, 0, maintenant);
     expect(sante.configuration.find((v) => v.usage === "Crédit du compte IA")?.etat).toBe("manque");
     expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET), etatTaches({}, maintenant), 0) + 1);
+  });
+
+  it("ne lit que les événements IA pour le crédit (audit console 27/09)", async () => {
+    const c = client({ tech_log: [] });
+    await chargerSante(c.db, COMPLET, 0, maintenant);
+    expect(c.appels).toContainEqual(["in", "tech_log", "evenement", ["tache_marketing", "tache_veille", "veille_analyse_echec"]]);
+    expect(c.appels).not.toContainEqual(["like", "tech_log", "evenement", "%"]);
+  });
+
+  it("sans clé OpenAI, le crédit n’est pas vert et la clé ne compte qu’une fois", async () => {
+    const sansCle = { ...COMPLET, OPENAI_API_KEY: "" };
+    const credit = verificationCreditIA([], false);
+    expect(credit.etat).toBe("manque");
+    expect(credit.estConnexion).toBe(false);
+    const sante = await chargerSante(client({}).db, sansCle, 0, maintenant);
+    expect(sante.configuration.filter((v) => v.cle === "OPENAI_API_KEY").map((v) => v.etat)).toEqual(["manque", "manque"]);
+    expect(sante.bloquants).toBe(TACHES.length + 1);
+  });
+
+  it("l’expéditeur absent se dit « à poser », pas « posée »", () => {
+    const sans = etatConfiguration({ ...COMPLET, RESEND_EXPEDITEUR: "" }).find((v) => v.cle === "RESEND_EXPEDITEUR")!;
+    expect(sans.absente).toBe(true);
+    expect(etatConfiguration(COMPLET).find((v) => v.cle === "RESEND_EXPEDITEUR")!.absente).toBe(false);
   });
 });
 

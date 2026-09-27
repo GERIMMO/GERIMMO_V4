@@ -10,6 +10,7 @@ import {
   Etiquette,
   MarqueAgence,
   Retour,
+  Succes,
   TitreSection,
   Vide,
 } from "../ui";
@@ -19,29 +20,35 @@ export const metadata = { title: "Ma facturation — Espace artisan" };
 /**
  * Ma facturation (9.7).
  *
- * CE QUE CETTE PAGE FAIT, ET CE QU'ELLE NE FAIT PAS — dit franchement, parce
- * que la moitié du module 9 n'est pas construite au 2026-09-11 : il n'existe
- * aucune table `factures`, donc aucun dépôt de facture dans l'application.
- * Inventer un écran de dépôt qui n'écrirait nulle part serait pire que de ne
- * rien faire : l'artisan croirait avoir facturé.
+ * Depuis l'audit du 27/09, la facture SE DÉPOSE : table
+ * `intervention_factures`, RPC `deposer_facture_artisan` (migration
+ * 20260927123000), écran /artisan/missions/[id]/facture. Version simple du
+ * wiki (concepts/Devis) : pré-remplie du montant engagé, écart justifié et
+ * alerté sans blocage. La validation par l'agence et l'écriture comptable
+ * restent de son côté.
  *
- * Ce que la page fait, en revanche, est ce dont il a réellement besoin
- * aujourd'hui : SAVOIR CE QUI EST FACTURABLE. La règle est nette (module 9 :
+ * Le montant affiché est le plafond engagé — dernier avenant accepté, sinon
+ * devis retenu — et non plus le seul devis initial, qui ignorait l'avenant.
+ *
+ * La page dit aussi CE QUI EST FACTURABLE. La règle est nette (module 9 :
  * « la facture exige intervention terminée + photo »), et les deux conditions
  * sont lisibles dans son agenda — compte rendu déposé, photo du travail
  * réalisé déposée. Une intervention terminée sans compte rendu n'est pas
  * facturable, et il vaut mieux qu'il l'apprenne ici que par un refus de
  * paiement.
  */
-export default async function PageFacturation() {
+export default async function PageFacturation(props: PageProps<"/artisan/facturation">) {
   await verifierAccesArtisan();
+  const { facture } = await props.searchParams;
   const agenda = await chargerAgenda();
 
   const terminees = agenda.lignes.filter((l) => l.statut === "terminee");
   const aCompleter = agenda.lignes.filter(
     (l) => l.statut === "en_cours" && (!l.compte_rendu_depose || !l.photo_apres_deposee)
   );
-  const total = terminees.reduce((somme, l) => somme + (l.montant_ttc_cents ?? 0), 0);
+  const montant = (l: (typeof terminees)[number]) =>
+    l.montant_plafond_cents ?? l.montant_ttc_cents;
+  const total = terminees.reduce((somme, l) => somme + (montant(l) ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -51,10 +58,17 @@ export default async function PageFacturation() {
 
       {/* La phrase qui compte le plus de la page : en texte courant, pas en
           gris secondaire ; « encore » se lisait « une fois de plus » (24/09). */}
+      {facture && (
+        <Succes>
+          Facture déposée. L&apos;agence est prévenue : elle la contrôle et la
+          règle selon ses délais.
+        </Succes>
+      )}
+
       <p className="text-base text-[var(--corps)]">
-        Cet écran suit les interventions facturables, pas les paiements reçus.
-        Pour l&apos;instant, transmettez votre facture directement à l&apos;agence :
-        son dépôt dans Gerimmo n&apos;est pas encore ouvert.
+        Cet écran suit vos interventions facturables et vos factures déposées,
+        pas les paiements reçus. Une fois l&apos;intervention terminée, déposez
+        votre facture depuis la mission : elle rejoint le dossier de l&apos;agence.
       </p>
 
       {agenda.erreur && <Erreur>Vos interventions n’ont pas pu être chargées. Rechargez la page avant de conclure qu’aucune intervention n’est facturable.</Erreur>}
@@ -103,8 +117,14 @@ export default async function PageFacturation() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <MarqueAgence nom={l.agence_nom} />
-                  <Etiquette ton={l.compte_rendu_depose ? "ok" : "alerte"}>
-                    {l.compte_rendu_depose ? "Facturable" : "Compte rendu manquant"}
+                  <Etiquette
+                    ton={l.facture_deposee ? "ok" : l.compte_rendu_depose ? "encre" : "alerte"}
+                  >
+                    {l.facture_deposee
+                      ? "Facture déposée"
+                      : l.compte_rendu_depose
+                        ? "Facturable"
+                        : "Compte rendu manquant"}
                   </Etiquette>
                 </div>
                 <p className="mt-2.5 text-base font-medium text-[var(--corps)]">
@@ -116,17 +136,28 @@ export default async function PageFacturation() {
                   {l.ville ? ` · ${l.ville}` : ""}
                 </p>
                 <p className="mt-2 text-[1.0625rem] font-medium text-[var(--encre)]">
-                  {l.montant_ttc_cents !== null
-                    ? `${euros(l.montant_ttc_cents)} TTC`
+                  {montant(l) !== null
+                    ? `${euros(montant(l))} TTC`
                     : "Montant non chiffré"}
                   <span className="ml-2 text-[0.8125rem] font-normal text-[var(--texte-secondaire)]">
-                    devis retenu
+                    {l.montant_plafond_cents !== null &&
+                    l.montant_plafond_cents !== l.montant_ttc_cents
+                      ? "avenant accepté"
+                      : "devis retenu"}
                   </span>
                 </p>
+                {!l.facture_deposee && l.compte_rendu_depose && l.photo_apres_deposee && (
+                  <Link
+                    href={`/artisan/missions/${l.intervention_id}/facture`}
+                    className="mt-2 inline-flex min-h-11 items-center text-[0.9375rem] font-medium text-[var(--encre)] underline underline-offset-4"
+                  >
+                    Déposer ma facture
+                  </Link>
+                )}
               </div>
             ))}
             <p className="pt-1 text-right text-[0.9375rem] text-[var(--texte-secondaire)]">
-              Total des devis retenus : {euros(total)} TTC
+              Total engagé (devis et avenants acceptés) : {euros(total)} TTC
             </p>
           </div>
         )}
@@ -139,8 +170,8 @@ export default async function PageFacturation() {
       >
         <ul className="space-y-2 text-[0.9375rem] text-[var(--corps)]">
           <li>
-            Adressez votre facture à l&apos;agence en rappelant le devis retenu et
-            l&apos;intervention concernée.
+            Déposez votre facture depuis la mission terminée : son montant est
+            pré-rempli avec le devis retenu, ou l&apos;avenant accepté.
           </li>
           <li>
             Un écart entre le devis et la facture ne bloque rien : vous le

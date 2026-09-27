@@ -14,11 +14,6 @@ import { dateLongue, lirePoints, type PointLu } from "./lecture";
 // Le nom de l'entrée de menu (audit 25/09, C8) : « Aujourd'hui ».
 export const metadata = { title: "Aujourd’hui — Gerimmo" };
 
-type Signal = { titre: string; detail: string; href?: string; action: string };
-
-function nombre(resultat: { count: number | null; error: unknown }) {
-  return resultat.error ? null : resultat.count ?? 0;
-}
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
 
 // 25/09 (audit C1, C2, C3, C7, C31) : UN écran de début de journée. En tête, ce
@@ -33,35 +28,29 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
   const filtreEquipe: Equipe | undefined = p.equipe && estEquipe(p.equipe) ? p.equipe : undefined;
   const supabase = await createClient();
   const depuis = new Date(`${aujourdhui}T12:00:00Z`); depuis.setDate(depuis.getDate() - 14);
-  const [duJour, historique, decisions, bugsN1, devis, contestations, alertesCritiques] = await Promise.all([
+  const [duJour, historique, decisions] = await Promise.all([
     lirePoints(supabase, { jour, limite: 20 }),
     lirePoints(supabase, { depuis: depuis.toISOString().slice(0, 10), equipe: filtreEquipe, limite: 120 }),
-    // Le même calcul que la barre haute et l'accueil (lib/decisions-attendues.ts).
+    // Le même calcul que la barre haute et l'accueil (lib/decisions-attendues.ts) :
+    // il porte AUSSI la liste affichée sous « À décider » (audit console 27/09).
     chargerDecisionsAttendues(supabase, process.env, faitsManquants().length),
-    supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "bug").eq("gravite", "N1").in("etat", ["nouveau", "en_examen", "en_cours"]),
-    supabase.from("demandes_devis").select("id", { count: "exact", head: true }).is("traitee_le", null),
-    supabase.from("retours_utilisateurs").select("id", { count: "exact", head: true }).eq("nature", "contestation").neq("etat", "resolu"),
-    supabase.from("alerts").select("id", { count: "exact", head: true }).eq("statut", "ouverte").eq("criticite", "critique"),
   ]);
 
   const points = duJour.points ?? [];
-  const decisionsEnAttente = points.flatMap((pt) => pt.decisions.filter((d) => d.statut === "en_attente"));
   const estAujourdhui = jour === aujourdhui;
   // Historique : les jours précédents, un rang par point ; le jour affiché est exclu.
   const jours = new Map<string, PointLu[]>();
   for (const pt of historique.points ?? []) { if (pt.jour === jour) continue; jours.set(pt.jour, [...(jours.get(pt.jour) ?? []), pt]); }
 
-  // Les signaux qui ne passent par aucune équipe, chacun avec sa commande.
-  const valeurs = { bugsN1: nombre(bugsN1), devis: nombre(devis), contestations: nombre(contestations), alertesCritiques: nombre(alertesCritiques) };
-  const signaux: Signal[] = [];
-  if (decisions.santeBloquants > 0 || decisions.tachesIllisibles) signaux.push({ titre: "Rétablir la santé du service", detail: decisions.tachesIllisibles ? "L’historique des tâches est indisponible : l’état du travail automatique est inconnu." : `${pluriel(decisions.santeBloquants, "point")} bloque${decisions.santeBloquants > 1 ? "nt" : ""} : chaque ligne porte la commande qui le règle.`, href: "/admin/sante", action: "Ouvrir la santé" });
-  if (!decisions.pointPrepare && (decisions.artisans === null || decisions.artisans > 0)) signaux.push({ titre: "Valider les inscriptions d’artisans", detail: decisions.artisans === null ? "Le nombre d’inscriptions en attente est indisponible." : `${pluriel(decisions.artisans, "inscription")} à examiner ; le point du matin les portera une fois préparé.`, href: "/admin/artisans", action: "Examiner" });
-  if (valeurs.alertesCritiques === null || valeurs.alertesCritiques > 0) signaux.push({ titre: "Examiner les alertes critiques", detail: valeurs.alertesCritiques === null ? "Le nombre d’alertes critiques est indisponible." : `${pluriel(valeurs.alertesCritiques, "alerte")} critique${valeurs.alertesCritiques > 1 ? "s" : ""} ouverte${valeurs.alertesCritiques > 1 ? "s" : ""}, toutes organisations confondues.`, action: "Ouvrir les alertes" });
-  if (valeurs.bugsN1 === null || valeurs.bugsN1 > 0) signaux.push({ titre: "Vérifier les problèmes bloquants", detail: valeurs.bugsN1 === null ? "Le nombre de problèmes bloquants est indisponible." : `${pluriel(valeurs.bugsN1, "problème")} bloquant${valeurs.bugsN1 > 1 ? "s" : ""} signalé${valeurs.bugsN1 > 1 ? "s" : ""} par des utilisateurs.`, href: "/admin/retours?nature=bug", action: "Examiner" });
-  if (valeurs.contestations === null || valeurs.contestations > 0) signaux.push({ titre: "Répondre aux contestations d’artisans", detail: valeurs.contestations === null ? "Le nombre de contestations est indisponible." : `${pluriel(valeurs.contestations, "contestation")} de note en cours.`, href: "/admin/retours?nature=contestation", action: "Examiner" });
-  if (valeurs.devis === null || valeurs.devis > 0) signaux.push({ titre: "Répondre aux demandes commerciales", detail: valeurs.devis === null ? "La file des demandes est indisponible." : `${pluriel(valeurs.devis, "demande")} d’agence en attente d’une réponse.`, href: "/admin/devis", action: "Répondre" });
-  const lecturesEnEchec = [bugsN1, devis, contestations, alertesCritiques].filter((r) => r.error).length + decisions.indisponibles.length;
-  const rienADecider = decisionsEnAttente.length === 0 && signaux.length === 0;
+  // « À décider » liste ce que les files attendent MAINTENANT, point préparé ou
+  // non ; le point d'aujourd'hui fournit les gestes en un clic quand il porte
+  // la décision. Le chiffre de la puce est le nombre de rangs listés.
+  const duPoint = new Map((estAujourdhui ? points : []).flatMap((pt) => pt.decisions.filter((d) => d.statut === "en_attente").map((d) => [d.cle, d] as const)));
+  const parEquipe = new Map<Equipe, typeof decisions.decisions>();
+  for (const d of decisions.decisions) parEquipe.set(d.equipe as Equipe, [...(parEquipe.get(d.equipe as Equipe) ?? []), d]);
+  const signaux = decisions.signaux;
+  const lecturesEnEchec = decisions.indisponibles.length;
+  const rienADecider = decisions.total === 0;
 
   const lienJour = (j: string, e?: Equipe) => `/admin/brief?${new URLSearchParams({ ...(j !== aujourdhui ? { jour: j } : {}), ...(e ? { equipe: e } : {}) }).toString()}`.replace(/\?$/, "");
   const dernierPassage = (pt: PointLu) => pt.contenu.passages.map((x) => x.debut).sort().at(-1) ?? null;
@@ -85,22 +74,31 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
           <div className="vide-guide"><p className="titre">Rien n’attend votre décision.</p><p className="explication">Les équipes continuent le travail autorisé.</p></div>
         ) : (
           <div className="grid gap-6">
-            {points.filter((pt) => pt.decisions.some((d) => d.statut === "en_attente")).map((pt) => (
-              <div key={pt.id}>
-                <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Équipe {pt.nom}</p>
-                <ul className="grid gap-4">{pt.decisions.filter((d) => d.statut === "en_attente").map((d) => <DecisionMatin key={d.id} decision={d} />)}</ul>
+            {[...parEquipe.entries()].map(([equipe, liste]) => (
+              <div key={equipe}>
+                <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Équipe {EQUIPES[equipe].nom}</p>
+                <ul className="grid gap-4">{liste.map((d) => {
+                  const carte = duPoint.get(d.cle);
+                  return carte ? <DecisionMatin key={d.cle} decision={carte} /> : (
+                    <li key={d.cle} className="loc-carte">
+                      <h4 className="font-semibold text-[var(--encre)]">{d.titre}</h4>
+                      <p className="mt-1 text-sm text-[var(--texte-secondaire)]">{d.pourquoi}</p>
+                      <p className="mt-3 text-sm"><Link href={d.lien} className="btn-secondaire">Décider sur son écran →</Link>{estAujourdhui && <span className="ml-3 text-[var(--texte-secondaire)]">{decisions.pointPrepare ? "Arrivée après la préparation du point." : "Le point n’est pas encore préparé."}</span>}</p>
+                    </li>
+                  );
+                })}</ul>
               </div>
             ))}
             {/* Le rang commun de la console (nuit du 25/09) : tout le carré se
                 clique, comme la liste des clients de l'ancienne vue d'ensemble. */}
             {signaux.length > 0 && (
               <div>
-                {decisionsEnAttente.length > 0 && <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Hors équipes</p>}
+                {decisions.decisions.length > 0 && <p className="eyebrow mb-2 text-[var(--marque-sombre)]">Hors équipes</p>}
                 <div className="colonne-liste">
                   {signaux.map((signal) => {
                     const classe = "rang w-full flex-wrap justify-between";
                     const contenu = <><span className="min-w-0 flex-1"><b>{signal.titre}</b><br /><small>{signal.detail}</small></span><span className="btn-secondaire shrink-0">{signal.action} →</span></>;
-                    return signal.href ? <Link key={signal.titre} href={signal.href} className={classe}>{contenu}</Link> : <OuvrirAlertes key={signal.titre} className={classe}>{contenu}</OuvrirAlertes>;
+                    return signal.href ? <Link key={signal.cle} href={signal.href} className={classe}>{contenu}</Link> : <OuvrirAlertes key={signal.cle} className={classe}>{contenu}</OuvrirAlertes>;
                   })}
                 </div>
               </div>

@@ -114,7 +114,9 @@ export function navigationEspace({
       ],
       secondaires: [
         {href:`/veille?public=bailleur&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
-        parametres,
+        // Le titre de l'écran qu'il ouvre (audit du 27/09) : « Paramètres »
+        // menait à une page intitulée « Mon profil ».
+        { ...parametres, libelle: "Mon profil" },
         { href: `${base}/comptabilite/fiscal`, libelle: "Fiscalité", icone: "livre" },
         documents,
         artisans,
@@ -146,7 +148,10 @@ export function navigationEspace({
         // Les paramètres d'un agent, ce sont ceux de SON compte (mot de passe,
         // second facteur) : le profil de l'agence, il ne le modifie pas. Il
         // reste lisible dans « Plus ».
-        { href: "/compte", libelle: "Paramètres", icone: "roue" },
+        // « Mon compte » et non « Paramètres » (audit 27/09) : pour l'admin,
+        // « Paramètres » ouvre le profil de l'agence — le même mot pour deux
+        // écrans différents selon le rôle.
+        { href: "/compte", libelle: "Mon compte", icone: "roue" },
       ],
       secondaires: [
         {href:`/veille?public=agence&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
@@ -182,11 +187,15 @@ export function navigationEspace({
       agenda,
       statistiques,
       messages,
-      parametres,
+      // Le profil de l'agence, nommé comme chez l'agent (audit 27/09).
+      { ...parametres, libelle: "Profil de l'agence" },
     ],
     secondaires: [
       {href:`/veille?public=agence&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
-      { href: `${base}/mandats`, libelle: "Mandats & rapports", icone: "mallette" },
+      // « Mandats & versements » (audit 27/09) : deux entrées finissaient par
+      // « rapports » (celle-ci et « Écritures & rapports ») ; l'écran suit
+      // chaque mandat, son dernier rapport et l'état du versement.
+      { href: `${base}/mandats`, libelle: "Mandats & versements", icone: "mallette" },
       artisans,
       documents,
       abonnement,

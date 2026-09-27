@@ -164,5 +164,5 @@ export async function deposerMaPiece(
 
   revalidatePath(`/locataire/${orgId}/documents`);
   revalidatePath(`/locataire/${orgId}`);
-  return { succes: "Pièce déposée. Merci — votre agence est notifiée." };
+  return { succes: "Pièce déposée. Merci — votre gestionnaire est notifié." };
 }

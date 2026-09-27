@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { exigerUuids } from "@/lib/identifiants";
 
 // Recette 24/08 : la fiche incident vit désormais dans la vue scindée de la
 // liste (pane-incident.tsx). L'ancienne URL reste valable — liens, favoris,
@@ -7,5 +8,6 @@ export default async function PageIncident(
   props: PageProps<"/agence/[orgId]/incidents/[incidentId]">
 ) {
   const { orgId, incidentId } = await props.params;
+  exigerUuids(incidentId);
   redirect(`/agence/${orgId}/incidents?sel=${incidentId}`);
 }

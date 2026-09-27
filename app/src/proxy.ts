@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { doitVerifierSecondFacteur } from "@/lib/mfa";
-import { ACTIVITY_COOKIE, strictestLimits } from "@/lib/session-policy";
+import { ACTIVITY_COOKIE, lireActivite, secretDActivite, signerActivite, strictestLimits } from "@/lib/session-policy";
 
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
 // (réinitialisation…) : il doit rester traversable même connecté.
@@ -17,6 +17,11 @@ const PUBLIC_PATHS = [
   "/journal",
   "/connexion",
   "/inscription",
+  // L'artisan sans compte s'inscrit ici (audit du 27/09) : la page crée
+  // d'abord le compte, puis la fiche de l'entreprise une fois connecté. Elle
+  // reste traversable connecté (ce n'est pas un écran de connexion). Le seul
+  // chemin public du portail : les autres pages /artisan/* exigent la session.
+  "/artisan/inscription",
   "/mot-de-passe-oublie",
   // Publique (et traversable connecté) : la page doit pouvoir expliquer
   // « Session expirée ou lien invalide » au lieu de rediriger sans un mot.
@@ -44,6 +49,7 @@ export async function proxy(request: NextRequest) {
     "/api/cron/relances",
     "/api/cron/marketing",
     "/api/cron/signatures",
+    "/api/cron/purge",
     "/api/stripe/webhook",
     "/api/youtrust/webhook",
     "/api/sante",
@@ -111,12 +117,11 @@ export async function proxy(request: NextRequest) {
     : now;
   // Dernière activité = le plus récent entre le cookie et la connexion :
   // une reconnexion vaut activité (sinon un vieux cookie déconnecterait en
-  // boucle), et un cookie absent ou corrompu retombe sur l'heure de connexion.
-  const parsed = Number(request.cookies.get(ACTIVITY_COOKIE)?.value);
-  const lastActivity = Math.max(
-    Number.isFinite(parsed) ? parsed : 0,
-    signedInAt
-  );
+  // boucle), et un cookie absent, corrompu ou MAL SIGNÉ (27/09 : il est signé
+  // et lié au compte) retombe sur l'heure de connexion.
+  const secretActivite = secretDActivite();
+  const parsed = await lireActivite(request.cookies.get(ACTIVITY_COOKIE)?.value, user.id, secretActivite);
+  const lastActivity = Math.max(parsed ?? 0, signedInAt);
 
   const absoluteExpired = now - signedInAt > limits.absolute;
   const inactivityExpired = now - lastActivity > limits.inactivity;
@@ -141,10 +146,11 @@ export async function proxy(request: NextRequest) {
     return redirect;
   }
 
-  response.cookies.set(ACTIVITY_COOKIE, String(now), {
+  response.cookies.set(ACTIVITY_COOKIE, await signerActivite(now, user.id, secretActivite), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
+    secure: request.nextUrl.protocol === "https:",
   });
 
   // Le rôle de supervision nécessite un second facteur, y compris lorsqu'il
@@ -159,6 +165,31 @@ export async function proxy(request: NextRequest) {
       const redirect = NextResponse.redirect(url);
       response.cookies.getAll().forEach(c => redirect.cookies.set(c));
       return redirect;
+    }
+  }
+
+  // UNE QUITTANCE INTROUVABLE RÉPOND 404 (audit du 27/09). La page se rend en
+  // flux sous le « Chargement… » racine : un notFound() posé pendant le rendu
+  // arrive après l'en-tête, donc en 200. Or c'est le lien que le locataire
+  // garde dans ses e-mails. On vérifie ici, avant tout flux, sous sa propre
+  // session (mêmes contrôles d'accès que la page), et l'on sert la page
+  // « introuvable » avec son vrai statut.
+  const quittance = /^\/quittance\/([^/]+)\/?$/.exec(pathname);
+  if (quittance) {
+    // Un identifiant qui n'est pas un UUID ne désigne aucun document ; une
+    // panne de lecture, elle, ne se déguise pas en « introuvable » : la page
+    // tranchera.
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(quittance[1]);
+    const { data: document, error } = uuid
+      ? await supabase.rpc("quittance_document", { p_quittance: quittance[1] })
+      : { data: null, error: null };
+    if (!error && !document) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/_introuvable";
+      url.search = "";
+      const introuvable = NextResponse.rewrite(url, { status: 404 });
+      response.cookies.getAll().forEach((c) => introuvable.cookies.set(c));
+      return introuvable;
     }
   }
 

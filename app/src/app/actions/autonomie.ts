@@ -29,6 +29,7 @@ export async function creerDelegation(_etat: EtatAutonomie, formData: FormData):
   const { error } = await supabase.rpc("creer_relais_supervision", { p_email: email, p_jours: jours, p_motif: motif });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath("/admin/autonomie");
+  revalidatePath("/admin/relais"); // les formulaires y vivent depuis le 26/09 (audit console 27/09)
   return { succes: "Le relais de suivi est ouvert. Il expire automatiquement à la date affichée." };
 }
 export async function revoquerDelegation(id: string): Promise<EtatAutonomie> {
@@ -37,6 +38,7 @@ export async function revoquerDelegation(id: string): Promise<EtatAutonomie> {
   const { error } = await supabase.rpc("revoquer_relais_supervision", { p_id: id });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath("/admin/autonomie");
+  revalidatePath("/admin/relais"); // les formulaires y vivent depuis le 26/09 (audit console 27/09)
   return { succes: "L’accès du relais est révoqué." };
 }
 export async function deciderAmelioration(id: string, revision: string, accepter: boolean): Promise<EtatAutonomie> {

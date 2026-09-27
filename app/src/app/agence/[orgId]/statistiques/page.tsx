@@ -230,6 +230,24 @@ export default async function PageStatistiques(
           .
         </p>
       )}
+      {/* Audit 27/09 : l'accueil annonce « Statistiques du mois : répartition
+          du parc, encaissements et dépenses sur 6 mois » ; cet écran ne mesure
+          que les incidents. On le dit à l'agence aussi, avec le chemin. */}
+      {!estProprietaire && (
+        <p className="text-sm text-muted-foreground">
+          Le suivi chiffré des incidents : délais, qui paie, lots qui reviennent.
+          La répartition du parc et les encaissements des six derniers mois se
+          lisent sur le{" "}
+          <Link href={`/agence/${orgId}`} className="lien-discret">
+            tableau de bord
+          </Link>
+          , les loyers du mois dans{" "}
+          <Link href={`/agence/${orgId}/loyers`} className="lien-discret">
+            Loyers &amp; charges
+          </Link>
+          .
+        </p>
+      )}
 
       {/* .kpi / .eyebrow / .chiffre : la tuile de la charte, celle du tableau
           de bord et de la comptabilité. Cet écran en avait sa propre version
@@ -470,7 +488,7 @@ export default async function PageStatistiques(
                   <Link
                     key={lotId}
                     href={`/agence/${orgId}/parc/${lot.bien_id}/lots/${lotId}`}
-                    className="ligne-info -mx-2 px-2 hover:bg-[var(--survol)]"
+                    className="ligne-info -mx-2 min-h-11 px-2 hover:bg-[var(--survol)]"
                   >
                     {contenu}
                   </Link>

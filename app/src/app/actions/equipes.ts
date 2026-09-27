@@ -4,6 +4,7 @@ import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import {bilanMission,estMission} from '@/lib/missions';
 import {origineDeRetour} from '@/lib/site';
+import {journaliserSupervision} from '@/lib/journal-supervision';
 export type RetourMission={erreur?:string;succes?:string};
 // « Lancer maintenant » attend la route au plus ce délai (25/09). Au-delà, la
 // passe continue seule dans la route cron (maxDuration 180) et l'écran suit
@@ -20,6 +21,9 @@ export async function commanderMission(_etat:RetourMission,form:FormData):Promis
   const h=await headers();
   const origine=origineDeRetour(h.get('x-forwarded-host')??h.get('host'),h.get('x-forwarded-proto'));
   if(!origine)return {erreur:'L’adresse du service est inconnue : le passage ne peut pas être lancé d’ici.'};
+  // Audit console 27/09 : le lancement est journalisé AVANT l'appel — un
+  // passage lancé sans trace est exactement ce qu'on ne veut plus.
+  if(!await journaliserSupervision(db,'mission_lancee',{mission:cle}))return {erreur:'Le lancement n’a pas pu être inscrit au journal d’audit : il n’a pas été fait. Réessayez.'};
   const entetes:Record<string,string>={authorization:`Bearer ${process.env.CRON_SECRET}`};
   // Une préproduction protégée n'accepte l'appel qu'avec son laissez-passer.
   if(process.env.VERCEL_AUTOMATION_BYPASS_SECRET)entetes['x-vercel-protection-bypass']=process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
@@ -45,7 +49,8 @@ export async function enregistrerContinuite(_etat:RetourMission,form:FormData):P
  if(!Number.isInteger(jours)||jours<1||jours>90||consignes.length>3000)return {erreur:'Indiquez un délai de 1 à 90 jours et des consignes courtes.'};
  const {error:e}=await db.rpc('enregistrer_plan_continuite',{p_email:email,p_jours:jours,p_consignes:consignes});
  if(e)return {erreur:'Vérifiez que le remplaçant est un autre superviseur permanent déjà habilité.'};
- revalidatePath('/admin/autonomie');revalidatePath('/admin/equipes');return {succes:'Le plan de continuité est enregistré.'};
+ // Le formulaire vit dans « Relais en mon absence » depuis le 26/09 (audit console 27/09).
+ revalidatePath('/admin/relais');revalidatePath('/admin/autonomie');revalidatePath('/admin/equipes');return {succes:'Le plan de continuité est enregistré.'};
 }
 // Les mêmes connexions que l'écran « Équipe qualité » (25/09) : préparer
 // (GitHub), vérifier la démonstration (Vercel) et l'autorisation de l'atelier.

@@ -6,9 +6,9 @@ import { initiales, nomComplet } from "@/lib/roles-personnes";
 import { buttonVariants } from "@/components/ui/button";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
 
-export const metadata = { title: "Mandats & rapports — Gerimmo" };
+export const metadata = { title: "Mandats & versements — Gerimmo" };
 
-// Mandats & rapports (maquette v6, admin d'agence) : chaque mandat actif avec
+// Mandats & versements (maquette v6, admin d'agence) : chaque mandat actif avec
 // son mandant, ses lots, son dernier rapport de gestion et l'état du
 // versement. Les gestes (générer, envoyer, verser) restent sur la fiche du
 // mandant — cette page est la tour de contrôle.
@@ -57,7 +57,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page">
-          <h1>Mandats &amp; rapports</h1>
+          <h1>Mandats &amp; versements</h1>
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -116,7 +116,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page">
-        <h1>Mandats &amp; rapports</h1>
+        <h1>Mandats &amp; versements</h1>
         {/* La requête écarte les mandats résiliés : dire « en cours », sinon
             le compte de tête se lit comme le nombre de mandats de l'agence. */}
         <span className="mono-discret">

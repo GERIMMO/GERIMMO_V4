@@ -20,8 +20,13 @@ import { Button } from "@/components/ui/button";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { eur, formaterDate } from "@/lib/ged";
-import { STATUTS_APPEL_LOYER, COULEURS_STATUT_APPEL_LOYER } from "@/lib/baux";
+import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
+import {
+  STATUTS_APPEL_LOYER,
+  COULEURS_STATUT_APPEL_LOYER,
+  derniereDateAnniversaire,
+  exerciceRegularisationParDefaut,
+} from "@/lib/baux";
 import { ChampFichier } from "@/components/champ-fichier";
 
 // Les modes de règlement qu'une agence rencontre vraiment. « autre » évite de
@@ -210,6 +215,10 @@ export function FormulaireLoyers({
   relances,
   regularisations,
   chargesForfait,
+  dateDebut = null,
+  dateFin = null,
+  copropriete = false,
+  aujourdhui = aujourdhuiParis(),
 }: {
   orgId: string;
   bailId: string;
@@ -224,6 +233,12 @@ export function FormulaireLoyers({
   relances: RelanceLigne[];
   regularisations: RegulLigne[];
   chargesForfait: boolean;
+  dateDebut?: string | null;
+  dateFin?: string | null;
+  /** Copropriété : les charges réelles se lisent sur les appels du syndic. */
+  copropriete?: boolean;
+  /** Jour de Paris (AAAA-MM-JJ), fourni par la page serveur. */
+  aujourdhui?: string;
 }) {
   const [etatEnc, formEnc] = useActionState<EtatLoyers, FormData>(
     ajouterEncaissement.bind(null, orgId, bailId),
@@ -243,7 +258,14 @@ export function FormulaireLoyers({
   );
   const idNumeroRecommande = useId();
   const impaye = echeancier.some((l) => l.statut === "impaye");
-  const anneeDefaut = new Date().getUTCFullYear() - 1;
+  // Audit du 27/09 : l'exercice proposé est couvert par le bail.
+  const anneeDefaut = exerciceRegularisationParDefaut(dateDebut, dateFin, aujourdhui);
+  // Révision IRL : l'indice de référence est celui de la dernière révision,
+  // à défaut celui figé au bail (RM-3.8.7) ; l'effet tombe à une date
+  // anniversaire du bail (wiki « Révision annuelle IRL »).
+  const derniereRevision = [...revisions].sort((a, b) => b.date_effet.localeCompare(a.date_effet))[0];
+  const irlReferenceCourante = derniereRevision ? Number(derniereRevision.irl_nouveau) : irlReference;
+  const anniversaire = derniereDateAnniversaire(dateDebut, aujourdhui);
 
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
@@ -401,7 +423,7 @@ export function FormulaireLoyers({
                           <Link
                             href={`/quittance/${q.id}`}
                             target="_blank"
-                            className={`text-xs underline-offset-2 hover:underline pointer-coarse:py-3 ${
+                            className={`text-xs underline-offset-2 hover:underline pointer-coarse:py-3.5 ${
                               q.est_quittance ? "text-success" : "text-muted-foreground"
                             }`}
                           >
@@ -513,10 +535,12 @@ export function FormulaireLoyers({
           {/* En erreur, la saisie est reposée via etatRev.valeurs (recette 22/08) */}
           <form action={formRev} className="flex flex-wrap items-end gap-2">
             <div className="space-y-1">
-              <p className="text-xs">IRL de référence (figé au bail)</p>
+              <p className="text-xs">
+                {derniereRevision ? "IRL de référence (dernière révision)" : "IRL de référence (figé au bail)"}
+              </p>
               <p className="flex h-9 items-center text-sm font-medium">
-                {irlReference ?? "à renseigner sur le bail"}
-                {irlTrimestre && (
+                {irlReferenceCourante ?? "à renseigner sur le bail"}
+                {!derniereRevision && irlTrimestre && (
                   <span className="ml-1 text-xs font-normal text-muted-foreground">
                     ({irlTrimestre})
                   </span>
@@ -529,7 +553,7 @@ export function FormulaireLoyers({
             </div>
             <div className="space-y-1">
               <Label htmlFor="irl-date" className="text-sm">Date d&apos;effet</Label>
-              <Input id="irl-date" name="date_effet" type="date" defaultValue={etatRev.valeurs?.date_effet} className="h-9" />
+              <Input id="irl-date" name="date_effet" type="date" defaultValue={etatRev.valeurs?.date_effet ?? anniversaire ?? undefined} className="h-9" />
             </div>
             <BoutonEnvoi size="sm" variant="outline">
               Réviser le loyer
@@ -538,10 +562,11 @@ export function FormulaireLoyers({
             {etatRev.succes && <p className="w-full text-sm text-success-soft-foreground">{etatRev.succes}</p>}
           </form>
           <p className="text-sm text-muted-foreground">
-            Nouveau loyer = loyer × IRL nouveau / IRL de référence. L&apos;indice de
-            référence est celui figé au bail à sa signature {/* RM-3.8.2 */} et ne se saisit
-            pas ici. Une seule révision par année de bail ; interdit si DPE F/G ; le
-            dépôt et les provisions ne changent pas.
+            Nouveau loyer = loyer actuel × IRL nouveau / IRL de référence. L&apos;indice de
+            référence est celui de la dernière révision, à défaut celui figé au bail à sa
+            signature {/* RM-3.8.2, RM-3.8.7 */} ; il ne se saisit pas ici. La révision prend
+            effet à une date anniversaire du bail, une seule fois par année de bail ; interdite
+            si DPE F/G ; le dépôt et les provisions ne changent pas.
           </p>
         </div>
       )}
@@ -632,8 +657,24 @@ export function FormulaireLoyers({
             <Input id="reg-annee" name="annee" type="number" required defaultValue={etatReg.valeurs?.annee ?? anneeDefaut} className="h-9 w-24" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="reg-reel" className="text-sm">Charges réelles (€)</Label>
-            <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" required defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
+            {copropriete ? (
+              <>
+                {/* Copropriété : la base lit la part récupérable sur les appels
+                    du syndic (RM-3.9.2) — la saisie serait ignorée. */}
+                <p className="text-sm">Charges réelles</p>
+                <input type="hidden" name="charges_reelles" value="0" />
+                <p className="flex h-9 items-center text-xs text-muted-foreground">
+                  lues sur les appels de charges du syndic
+                </p>
+              </>
+            ) : (
+              <>
+                <Label htmlFor="reg-reel" className="text-sm">
+                  Charges réelles de l&apos;exercice, logement entier (€)
+                </Label>
+                <Input id="reg-reel" name="charges_reelles" type="number" step="0.01" min="0" required defaultValue={etatReg.valeurs?.charges_reelles} className="h-9 w-32" />
+              </>
+            )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="reg-just" className="text-sm">Justificatif</Label>
@@ -648,8 +689,10 @@ export function FormulaireLoyers({
         )}
         {!chargesForfait && (
           <p className="text-sm text-muted-foreground">
-            Provisions calculées depuis les appels de l&apos;année (prorata inclus) ; justificatif
-            obligatoire, joint au décompte du locataire.
+            Saisissez les charges de l&apos;année entière : la quote-part du locataire est
+            ensuite calculée au prorata de ses jours d&apos;occupation (ne saisissez pas une
+            part déjà proratisée). Provisions calculées depuis les appels de l&apos;année ;
+            justificatif obligatoire, joint au décompte du locataire.
           </p>
         )}
       </div>

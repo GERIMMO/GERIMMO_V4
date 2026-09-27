@@ -7,7 +7,7 @@ import { SignalerDecisionArtisan } from "./retour-decisions";
 
 export function DecisionArtisan({ artisanId, operation, siretVerifie = false }: {
   artisanId: string;
-  operation: "verifier_siret" | "validation" | "refus" | "remise_en_attente";
+  operation: "verifier_siret" | "validation" | "refus" | "remise_en_attente" | "suspension";
   siretVerifie?: boolean;
 }) {
   const signaler = useContext(SignalerDecisionArtisan);
@@ -16,7 +16,7 @@ export function DecisionArtisan({ artisanId, operation, siretVerifie = false }: 
     if (resultat.succes) signaler(resultat.succes);
     return resultat;
   }, {});
-  const libelles = { verifier_siret: "Enregistrer le SIRET comme vérifié", validation: "Valider l’inscription", refus: "Refuser avec ce motif", remise_en_attente: "Réexaminer l’inscription" };
+  const libelles = { verifier_siret: "Enregistrer le SIRET comme vérifié", validation: "Valider l’inscription", refus: "Refuser avec ce motif", remise_en_attente: "Réexaminer l’inscription", suspension: "Suspendre la validation" };
   return (
     <form action={action} onReset={(event) => event.preventDefault()} className="space-y-3">
       <input type="hidden" name="operation" value={operation} />
@@ -25,8 +25,13 @@ export function DecisionArtisan({ artisanId, operation, siretVerifie = false }: 
         {!siretVerifie && <p className="text-sm text-[var(--texte-secondaire)]">La validation sera disponible après vérification du SIRET.</p>}
         <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="pieces_relues" value="oui" required disabled={!siretVerifie} className="mt-1 size-4 accent-[var(--encre)]" />J’ai relu les justificatifs et contrôlé leur conformité pour cette inscription.</label>
       </>}
+      {/* Audit console 27/09 : la suspension se motive (le motif est communiqué) et se confirme. */}
+      {operation === "suspension" && <>
+        <label className="block space-y-1 text-sm"><span>Motif communiqué à l’artisan</span><textarea name="motif" required minLength={5} maxLength={1500} rows={3} className="w-full rounded border border-[var(--filet)] bg-[var(--ivoire)] p-2" /></label>
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" name="confirmation" value="oui" required className="mt-1 size-4 accent-[var(--encre)]" />Je confirme : l’inscription redevient « à examiner » et n’est plus proposée aux agences. Les interventions en cours ne sont pas interrompues.</label>
+      </>}
       {operation === "refus" && <label className="block space-y-1 text-sm"><span>Motif communiqué à l’artisan</span><textarea name="motif" required maxLength={1500} rows={3} className="w-full rounded border border-[var(--filet)] bg-[var(--ivoire)] p-2" /></label>}
-      <BoutonEnvoi variant={operation === "refus" || operation === "remise_en_attente" ? "outline" : "default"} disabled={operation === "validation" && !siretVerifie}>{libelles[operation]}</BoutonEnvoi>
+      <BoutonEnvoi variant={operation === "refus" || operation === "remise_en_attente" || operation === "suspension" ? "outline" : "default"} disabled={operation === "validation" && !siretVerifie}>{libelles[operation]}</BoutonEnvoi>
       {etat.erreur && <p role="alert" className="text-sm text-[var(--destructive)]">{etat.erreur}</p>}
       {etat.succes && <p role="status" className="text-sm text-[var(--success)]">{etat.succes}</p>}
     </form>

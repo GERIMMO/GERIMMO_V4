@@ -120,7 +120,7 @@ function Formulaire({
     <form action={action} className="space-y-4">
       <p className="text-sm text-muted-foreground">* champ obligatoire</p>
       <div className="space-y-2">
-        <Label htmlFor="pr-nom">{estProprietaire ? "Nom du parc *" : "Nom de l'agence *"}</Label>
+        <Label htmlFor="pr-nom">{estProprietaire ? "Nom de votre espace *" : "Nom de l'agence *"}</Label>
         <Input id="pr-nom" name="name" required defaultValue={valeur("name")} />
       </div>
       <div className="space-y-2">
@@ -247,8 +247,16 @@ function Formulaire({
           placeholder="ex. FR76 …"
         />
         <p className="text-sm text-muted-foreground">
-          Reporté sur les avis d&apos;échéance.
+          Reporté sur les avis d&apos;échéance, et affiché à vos locataires dans
+          «&nbsp;Mes paiements&nbsp;».
         </p>
+        {/* Sans IBAN, le locataire lisait « à régler par virement » sans
+            coordonnées et devait écrire pour obtenir un RIB (audit du 27/09). */}
+        {!valeur("iban") && (
+          <p className="text-sm text-warning-soft-foreground">
+            Non renseigné&nbsp;: vos locataires ne voient pas où virer leur loyer.
+          </p>
+        )}
       </div>
       {/* La marque suit l'identité légale (24/09) : sans cadre, placée entre
           SIRET et carte professionnelle, elle semblait englober ces champs. */}
@@ -437,7 +445,7 @@ function FicheProfil({
   return (
     <div className="space-y-5">
       <dl>
-        <Ligne libelle={estProprietaire ? "Nom du parc" : "Nom de l'agence"}>{texte(o.name)}</Ligne>
+        <Ligne libelle={estProprietaire ? "Nom de votre espace" : "Nom de l'agence"}>{texte(o.name)}</Ligne>
         <Ligne libelle="Adresse">{texte(o.address_line1)}</Ligne>
         <Ligne libelle="Code postal">{texte(o.postal_code)}</Ligne>
         <Ligne libelle="Ville">{texte(o.city)}</Ligne>
@@ -452,7 +460,9 @@ function FicheProfil({
             <Ligne libelle="Franchise en base de TVA">{o.tva_franchise ? "Oui" : "Non"}</Ligne>
           </>
         )}
-        <Ligne libelle="IBAN">{texte(o.iban)}</Ligne>
+        <Ligne libelle="IBAN">
+          {o.iban?.trim() ? texte(o.iban) : "— non renseigné : vos locataires ne voient pas où virer leur loyer"}
+        </Ligne>
       </dl>
 
       {!estProprietaire && (

@@ -102,7 +102,7 @@ export function FormulaireDevisVitrine() {
         </button>
         <p className="mt-2 text-[13px] text-[var(--sur-encre)]/80">
           Ces informations servent uniquement à vous recontacter au sujet de
-          votre demande — jamais transmises, supprimées au plus tard après
+          votre demande — jamais cédées ni revendues, supprimées au plus tard après
           24 mois.{" "}
           <a href="/confidentialite" className="underline underline-offset-2">
             En savoir plus

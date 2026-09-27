@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { seDeconnecter } from "@/app/actions/auth";
 import { MarqueGerimmo } from "@/components/marque-gerimmo";
 import { BandeauSessionSupervision } from "@/components/bandeau-session-supervision";
@@ -32,12 +31,61 @@ export const metadata = { title: "Espace artisan — Gerimmo" };
 export default async function LayoutArtisan({
   children,
 }: LayoutProps<"/artisan">) {
-  const { user, fiche } = await chargerFicheArtisan();
-  if (!user) redirect("/connexion?suite=%2Fartisan");
+  const { user, fiche, supabase } = await chargerFicheArtisan();
 
-  const [agenda, sollicitations, pieces] = fiche
-    ? await Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])
-    : [null, null, null];
+  // Sans session, une seule page du portail est atteignable : l'inscription
+  // (le proxy ne laisse passer que /artisan/inscription, audit du 27/09).
+  // Elle reçoit un bandeau réduit — la marque et « Se connecter » — et crée
+  // le compte avant la fiche. Chaque autre page garde sa propre garde
+  // (verifierAccesArtisan), qui renvoie à la connexion.
+  if (!user) {
+    return (
+      <div className="artisan-app flex min-h-svh flex-col bg-[var(--creme)]">
+        <header className="artisan-bandeau bandeau-appli">
+          <div className="mx-auto flex w-full max-w-[960px] items-center justify-between gap-3 px-4 py-2.5">
+            <Link href="/" aria-label="Accueil de Gerimmo" className="flex min-h-11 min-w-0 items-center">
+              <MarqueGerimmo />
+            </Link>
+            <Link
+              href="/connexion?suite=%2Fartisan"
+              className="lien-bandeau min-h-11 justify-center px-3"
+            >
+              Se connecter
+            </Link>
+          </div>
+        </header>
+        <main className="artisan-corps mx-auto w-full max-w-[960px] flex-1 px-4 pt-6 pb-16 sm:px-7 sm:pt-8">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
+  const [[agenda, sollicitations, pieces], autresEspaces] = await Promise.all([
+    fiche
+      ? Promise.all([chargerAgenda(), chargerSollicitations(), chargerPieces()])
+      : Promise.resolve([null, null, null] as const),
+    lireAutresEspaces(user.id),
+  ]);
+
+  // « Mes espaces » ne s'affiche que s'il mène ailleurs (audit du 27/09) : pour
+  // un compte qui n'est qu'artisan, /espaces renvoie aussitôt ici, et le clic
+  // ne servait à rien. Les autres espaces sont les adhésions actives d'un
+  // autre rôle, et l'espace de locataire sorti (lecture seule), comme sur
+  // /espaces. En cas d'échec de lecture, le lien reste : mieux vaut un clic
+  // inutile qu'un espace introuvable.
+  async function lireAutresEspaces(compte: string) {
+    const { data, error } = await supabase
+      .from("memberships")
+      .select("role, status")
+      .eq("account_id", compte);
+    if (error) return true;
+    return ((data ?? []) as { role: string; status: string }[]).some(
+      (m) =>
+        m.role !== "artisan" &&
+        (m.status === "active" || (m.status === "inactive" && m.role === "locataire"))
+    );
+  }
 
   // Un seul compte pour l'onglet d'arrivée : ce qui attend un geste. Une
   // mission à accepter et un compte rendu non déposé sont deux urgences de
@@ -92,7 +140,7 @@ export default async function LayoutArtisan({
               « mot de passe », et l'infobulle n'apparaît pas au doigt. Sur
               téléphone, l'icône seule garde la place de la marque. */}
           <div className="flex shrink-0 items-center gap-1">
-            <Link
+            {autresEspaces && <Link
               href="/espaces"
               title="Mes espaces"
               aria-label="Mes espaces"
@@ -105,7 +153,7 @@ export default async function LayoutArtisan({
                 <rect x="13" y="13" width="7" height="7" rx="1.5" />
               </svg>
               <span className="hidden sm:inline">Mes espaces</span>
-            </Link>
+            </Link>}
             {/* Mot de passe et second facteur : l'artisan a un compte comme
                 tout le monde, et son bandeau n'en portait aucun chemin. */}
             <Link

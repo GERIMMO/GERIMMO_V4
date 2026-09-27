@@ -4,6 +4,7 @@
  * sans empêcher le geste légitime. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -101,8 +102,9 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       db.query(`update public.encaissements set montant = 5000 where id = $1`, [enc.id])
     ).rejects.toThrow(/permission denied|refus|denied/i);
     await db.query("rollback to savepoint s");
-    // Le geste légitime reste ouvert
-    await db.query(`delete from public.encaissements where id = $1`, [enc.id]);
+    // Le geste légitime reste ouvert — avec son motif (obligatoire en base
+    // depuis l'audit sécurité du 27/09).
+    await db.query(`select public.supprimer_encaissement($1, 'Saisie à corriger')`, [enc.id]);
   });
 
   it("une écriture ne se contre-passe qu'une fois", async () => {
@@ -330,7 +332,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // propriétaire de la fonction, la révocation ne l'atteint pas.
     // 1. Le gérant supprime l'encaissement → contre-passation automatique.
     await enGerant();
-    await db.query(`delete from public.depot_encaissements where id = $1`, [depot.rows[0].id]);
+    await db.query(`select public.supprimer_encaissement_depot($1, 'Dépôt saisi en double')`, [depot.rows[0].id]);
     await db.query("reset role");
     const contre = await db.query(
       `select count(*)::int as n from public.ecritures
@@ -791,7 +793,11 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
   // ------------------------------------------------------------------
   it("la révision IRL prend l'indice figé au bail, et une seule fois par an (RM-3.8.2, RM-3.8.5)", async () => {
     await db.query(
-      `update public.baux set irl_valeur = 145.17, irl_trimestre = '2e trimestre 2025'
+      // Date de début posée pour que « il y a 30 jours » soit une date
+      // anniversaire : la révision prend effet à l'anniversaire du bail (audit
+      // du 27/09, wiki « Révision annuelle IRL »).
+      `update public.baux set irl_valeur = 145.17, irl_trimestre = '2e trimestre 2025',
+         date_debut = (current_date - 30 - interval '1 year')::date
         where id = $1`,
       [bail]
     );
@@ -828,7 +834,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       `insert into public.baux (organization_id, lot_id, type, etat, loyer_hc, charges,
          date_debut, jour_echeance, irl_valeur, irl_trimestre)
        values ($1,$2,'nu'::public.bail_type,'actif'::public.bail_etat,600,50,
-         current_date - 800,5,145.17,'2e trimestre 2025')
+         (current_date - interval '2 years')::date,5,145.17,'2e trimestre 2025')
        returning id`,
       [org, lotSuite.id]
     );
@@ -917,7 +923,10 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // LE GESTE LÉGITIME VOISIN : deux échéances annuelles réellement dues —
     // celle de l'an dernier, pas encore prescrite, puis celle de ce jour. La
     // seconde part du loyer déjà révisé (« loyer actuel = bail ou dernière
-    // révision ») : 600 → 611,82 → 640,61 €.
+    // révision ») : 600 → 611,82 → 628,23 €. La seconde se calcule sur
+    // l'indice de la PREMIÈRE révision (148,03), pas sur celui de la
+    // signature : 611,82 × 152 / 148,03. L'ancien calcul (÷ 145,17) donnait
+    // 640,61 € — la hausse 2025 comptée deux fois (audit du 27/09).
     const {
       rows: [anDernier],
     } = await db.query(
@@ -930,7 +939,9 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     } = await db.query(`select public.reviser_loyer($1, 152.00, current_date) as loyer`, [
       bailSuite.id,
     ]);
-    expect(Number(cetteAnnee.loyer)).toBe(640.61);
+    expect(Number(cetteAnnee.loyer)).toBe(628.23);
+    // Et ce qui revient au même : loyer initial × IRL nouveau / IRL du bail.
+    expect(Number(cetteAnnee.loyer)).toBeCloseTo((600 * 152) / 145.17, 1);
     const {
       rows: [{ n: revisions }],
     } = await db.query(
@@ -985,8 +996,10 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     expect(motivee.sens).toBe("depense");
     expect(Number(motivee.montant)).toBe(650);
 
-    // 2 ─ GESTE LÉGITIME VOISIN : le DELETE direct d'avant contre-passe
-    // toujours, à l'identique — motif nul, libellé inchangé (rétrocompatible).
+    // 2 ─ Le DELETE direct (API) sans motif est REFUSÉ depuis l'audit
+    // sécurité du 27/09 : la contre-écriture muette, créée par un déclencheur
+    // definer, échappait à RM-A6.6. L'arbitrage « l'obligation vit à
+    // l'écran » est levé : elle vit en base.
     const {
       rows: [ancien],
     } = await db.query(
@@ -994,41 +1007,21 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
        values ($1,$2,100,current_date,'virement') returning id`,
       [org, bail]
     );
-    await db.query(`delete from public.encaissements where id = $1`, [ancien.id]);
-    const {
-      rows: [sansMotif],
-    } = await db.query(
-      `select c.motif, c.libelle from public.ecritures c
-         join public.ecritures o on o.id = c.contre_ecriture_de
-        where o.encaissement_id = $1`,
-      [ancien.id]
-    );
-    expect(sansMotif.motif).toBeNull();
-    expect(sansMotif.libelle).toBe("Annulation — encaissement supprimé");
+    await db.query("savepoint direct");
+    await expect(db.query(`delete from public.encaissements where id = $1`, [ancien.id]))
+      .rejects.toThrow(/Motif obligatoire/);
+    await db.query("rollback to savepoint direct");
 
-    // 3 ─ Le paramètre est OPTIONNEL : l'appel sans motif reste possible en
-    // base (l'obligation vit à l'écran, cf. arbitrage de la migration).
-    const {
-      rows: [muet],
-    } = await db.query(
-      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement, mode)
-       values ($1,$2,120,current_date,'virement') returning id`,
-      [org, bail]
-    );
-    await db.query(`select public.supprimer_encaissement($1)`, [muet.id]);
-    const {
-      rows: [muette],
-    } = await db.query(
-      `select c.motif, c.libelle from public.ecritures c
-         join public.ecritures o on o.id = c.contre_ecriture_de
-        where o.encaissement_id = $1`,
-      [muet.id]
-    );
-    expect(muette.motif).toBeNull();
-    expect(muette.libelle).toBe("Annulation — encaissement supprimé");
+    // 3 ─ L'appel de la fonction SANS motif est refusé de même.
+    await db.query("savepoint muet");
+    await expect(db.query(`select public.supprimer_encaissement($1)`, [ancien.id]))
+      .rejects.toThrow(/Motif obligatoire/);
+    await db.query("rollback to savepoint muet");
 
-    // 4 ─ Le motif ne DÉTEINT pas : la suppression suivante de la même
-    // transaction repart sans motif, elle n'hérite pas de celui d'avant.
+    // 4 ─ Le motif ne DÉTEINT pas : après une suppression motivée, une
+    // suppression directe de la même transaction n'hérite pas du motif
+    // précédent — elle est refusée.
+    await db.query(`select public.supprimer_encaissement($1, 'Doublon constaté')`, [ancien.id]);
     const {
       rows: [voisin],
     } = await db.query(
@@ -1036,16 +1029,10 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
        values ($1,$2,130,current_date,'virement') returning id`,
       [org, bail]
     );
-    await db.query(`delete from public.encaissements where id = $1`, [voisin.id]);
-    const {
-      rows: [propre],
-    } = await db.query(
-      `select c.motif from public.ecritures c
-         join public.ecritures o on o.id = c.contre_ecriture_de
-        where o.encaissement_id = $1`,
-      [voisin.id]
-    );
-    expect(propre.motif).toBeNull();
+    await db.query("savepoint voisin");
+    await expect(db.query(`delete from public.encaissements where id = $1`, [voisin.id]))
+      .rejects.toThrow(/Motif obligatoire/);
+    await db.query("rollback to savepoint voisin");
 
     // 5 ─ Même chemin pour la contre-passation d'un encaissement de DÉPÔT.
     await db.query("reset role");
@@ -1184,8 +1171,17 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // L'ABUS 3 — par l'autre bout : écrire l'état du BAIL en direct (la policy
     // `baux_update` l'autorise) sans toucher au lot. Le contrôle est porté par
     // la transaction ; on le force ici comme le fait sa validation.
+    // Depuis l'audit agence du 27/09, le client ne peut même plus écrire
+    // l'état du bail (verrou `baux_a_verrou_hors_fonctions`) ; le contrôle de
+    // cohérence reste éprouvé sous le propriétaire, là où il est le dernier
+    // rempart.
     await db.query("savepoint coherence");
-    await db.query(`update public.baux set etat = 'actif' where id = $1`, [bail]);
+    await expect(
+      db.query(`update public.baux set etat = 'actif' where id = $1`, [bail])
+    ).rejects.toThrow(/l'état du bail ne change que par ses gestes/);
+    await db.query("rollback to savepoint coherence");
+    await db.query("savepoint coherence");
+    await requeteProprietaire(db, `update public.baux set etat = 'actif' where id = $1`, [bail]);
     await expect(db.query("set constraints all immediate")).rejects.toThrow(
       /le lot suit le bail/i
     );
@@ -1240,8 +1236,16 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
 
     // L'ABUS : rattacher le bail vivant au lot voisin et n'aligner que
     // celui-ci — le lot d'origine reste « loué » sans plus aucun bail.
+    // Audit agence du 27/09 : un client ne déménage plus un bail signé
+    // (contenu figé) ; le contrôle de cohérence reste éprouvé sous le
+    // propriétaire (reprise de données).
     await db.query("savepoint demenagement");
-    await db.query(`update public.baux set lot_id = $1 where id = $2`, [voisin.id, bail]);
+    await expect(
+      db.query(`update public.baux set lot_id = $1 where id = $2`, [voisin.id, bail])
+    ).rejects.toThrow(/contenu est figé/);
+    await db.query("rollback to savepoint demenagement");
+    await db.query("savepoint demenagement");
+    await requeteProprietaire(db, `update public.baux set lot_id = $1 where id = $2`, [voisin.id, bail]);
     await db.query(`update public.lots set etat = 'loue' where id = $1`, [voisin.id]);
     await expect(db.query("set constraints all immediate")).rejects.toThrow(
       /aucun bail ne vit dessus/i
@@ -1251,7 +1255,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
 
     // LE GESTE LÉGITIME : le même déménagement, mais en libérant le lot
     // d'origine — les deux lots disent alors la vérité de leur bail.
-    await db.query(`update public.baux set lot_id = $1 where id = $2`, [voisin.id, bail]);
+    await requeteProprietaire(db, `update public.baux set lot_id = $1 where id = $2`, [voisin.id, bail]);
     await db.query(`update public.lots set etat = 'loue' where id = $1`, [voisin.id]);
     await db.query(`update public.lots set etat = 'disponible' where id = $1`, [lot]);
     await db.query("set constraints all immediate");
@@ -1320,9 +1324,9 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     ]);
     expect(forgee.motif).toBe("Erreur de saisie constatée au rapprochement");
 
-    // 5 ─ GESTE LÉGITIME VOISIN : la contre-passation AUTOMATIQUE sans motif
-    // reste possible — c'est le comportement d'avant, délibérément conservé
-    // (arbitrage de la migration). Le durcissement ne vise que le client.
+    // 5 ─ GESTE LÉGITIME VOISIN : la contre-passation AUTOMATIQUE passe par
+    // la suppression motivée (le motif est obligatoire en base depuis l'audit
+    // sécurité du 27/09) et porte ce motif.
     const {
       rows: [enc],
     } = await db.query(
@@ -1330,7 +1334,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
        values ($1,$2,300,current_date,'virement') returning id`,
       [org, bail]
     );
-    await db.query(`delete from public.encaissements where id = $1`, [enc.id]);
+    await db.query(`select public.supprimer_encaissement($1, 'Virement rejeté')`, [enc.id]);
     const {
       rows: [auto],
     } = await db.query(
@@ -1339,7 +1343,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
         where o.encaissement_id = $1`,
       [enc.id]
     );
-    expect(auto.motif).toBeNull();
-    expect(auto.libelle).toBe("Annulation — encaissement supprimé");
+    expect(auto.motif).toBe("Virement rejeté");
+    expect(auto.libelle).toBe("Annulation — encaissement supprimé : Virement rejeté");
   });
 });

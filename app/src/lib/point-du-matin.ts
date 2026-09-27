@@ -3,7 +3,9 @@
 // `genererPointsDuMatin` lit les tables et enregistre par la fonction SQL.
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {EQUIPES,MISSIONS,missionsDeLEquipe,type Equipe,type Mission} from './missions';
-import {resumerBilan} from './sante-service';
+// Le bilan d'un passage se lit par UNE fonction, partagée avec Santé et Équipes (audit console 27/09).
+import {resumerBilan,bilanDuPassage} from './sante-service';
+export {bilanDuPassage};
 import {ETATS_DEVELOPPEMENT} from './pilotage';
 
 export type PassageLu={id:string;mission:string;debut:string;fin:string|null;etat:string;compte:number;bilan:unknown};
@@ -18,7 +20,9 @@ export type DecisionAssemblee={
  refus:boolean;
  /** Attestation à cocher avant de valider (gardes de l'écran d'origine). */
  attestation?:string;
- gestes?:{validation:boolean;refus:boolean;attestation?:string};
+ /** La version présentée : l'accord porte sur ELLE, pas sur celle du moment du clic (audit console 27/09). */
+ revision?:string;
+ gestes?:{validation:boolean;refus:boolean;attestation?:string;revision?:string};
 };
 export type PassageDuPoint={mission:Mission;nom:string;debut:string;fin:string|null;etat:string;bilan:string};
 export type ContenuPoint={
@@ -49,20 +53,13 @@ function aEchoue(bilan:unknown){
  if(!bilan||typeof bilan!=='object')return false;
  return Object.entries(bilan as Record<string,unknown>).some(([k,v])=>/(^|_)(erreur|echec)s?$/i.test(k)&&(typeof v==='number'?v>0:Array.isArray(v)?v.length>0:Boolean(v)));
 }
-/** Le bilan d'un passage : celui qu'il a gardé, sinon la ligne de journal de sa tâche pendant le passage. */
-export function bilanDuPassage(p:PassageLu,journaux:LigneJournal[]):unknown{
- if(p.bilan&&typeof p.bilan==='object')return p.bilan;
- const debut=new Date(p.debut).getTime(),fin=p.fin?new Date(p.fin).getTime():debut+3_600_000;
- const ligne=journaux.find(l=>l.evenement===`tache_${p.mission}`&&new Date(l.created_at).getTime()>=debut-1000&&new Date(l.created_at).getTime()<=fin+60_000);
- return ligne?.details??null;
-}
 function decisionsDeLEquipe(equipe:Equipe,a:Attentes):DecisionAssemblee[]{
  const d:DecisionAssemblee[]=[];
  if(EQUIPE_DES_SOURCES.developpement===equipe)for(const p of a.developpements){
   if(p.statut!=='autorisation')continue;
   d.push({cle:`developpement:${p.id}`,titre:`Autoriser la version « ${p.titre} »`,pourquoi:`${ETATS_DEVELOPPEMENT[p.statut]??p.statut} · risque ${RISQUES[p.risque]??p.risque}.${p.probleme?` ${p.probleme.slice(0,300)}`:''}`,
    options:['Autoriser cette version contrôlée','Refuser la publication'],recommandation:p.revision?'Autoriser si les contrôles de cette version sont réussis ; ils sont revérifiés au moment du clic.':'Ouvrir le suivi : aucune version précise n’est encore attachée.',
-   lien:'/admin/autonomie#ameliorations',source:'developpement',source_id:p.id,validation:Boolean(p.revision),refus:true});
+   lien:'/admin/autonomie#ameliorations',source:'developpement',source_id:p.id,validation:Boolean(p.revision),refus:true,...(p.revision?{revision:p.revision}:{})});
  }
  if(EQUIPE_DES_SOURCES.retour===equipe)for(const r of a.retours){
   const idee=r.nature==='idee',bugN1=r.nature==='bug'&&r.gravite==='N1';
@@ -92,7 +89,7 @@ function decisionsDeLEquipe(equipe:Equipe,a:Attentes):DecisionAssemblee[]{
    lien:'/admin/veille',source:'veille',source_id:v.id,validation:complet,refus:true});
  }
  // Les gestes sont aussi portés en JSON pour l'enregistrement (colonne `gestes`).
- return d.map(x=>({...x,gestes:{validation:x.validation,refus:x.refus,...(x.attestation?{attestation:x.attestation}:{})}}));
+ return d.map(x=>({...x,gestes:{validation:x.validation,refus:x.refus,...(x.attestation?{attestation:x.attestation}:{}),...(x.revision?{revision:x.revision}:{})}}));
 }
 /**
  * Assemble le point de chaque équipe à partir des passages de la fenêtre
@@ -152,7 +149,7 @@ export async function genererPointsDuMatin(db:Lecteur,maintenant:Date=new Date()
  try{
   const [passages,journaux,{attentes}]=await Promise.all([
    db.from('agent_passages').select('id,mission,debut,fin,etat,compte,bilan').gte('debut',new Date(maintenant.getTime()-24*3_600_000).toISOString()).order('debut',{ascending:false}).limit(200),
-   db.from('tech_log').select('evenement,details,created_at').like('evenement','tache_%').gte('created_at',new Date(maintenant.getTime()-25*3_600_000).toISOString()).order('created_at',{ascending:false}).limit(300),
+   db.from('tech_log').select('evenement,details,created_at').like('evenement','tache_%').is('account_id',null).gte('created_at',new Date(maintenant.getTime()-25*3_600_000).toISOString()).order('created_at',{ascending:false}).limit(300),
    lireAttentes(db),
   ]);
   if(passages.error)return {enregistres:0,erreur:'Les passages sont indisponibles.'};

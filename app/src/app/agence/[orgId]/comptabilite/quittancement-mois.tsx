@@ -211,7 +211,7 @@ export function QuittancementMois({
               <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                 <Link
                   href={`/agence/${orgId}/baux/${l.bail_id}#loyers`}
-                  className="font-medium after:absolute after:inset-0 after:rounded-lg after:content-['']"
+                  className="font-medium after:absolute after:inset-0 after:rounded-lg after:content-[''] pointer-coarse:py-3"
                 >
                   {l.locataire ?? "—"}
                 </Link>

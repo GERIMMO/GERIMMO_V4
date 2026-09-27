@@ -87,3 +87,19 @@ test("chaque cible tactile de l'accueil fait au moins 44 px", async ({ page }) =
   });
   expect(trop).toEqual([]);
 });
+
+// Audit du 27/09 (bloquant) : « Artisan ? Inscrire mon entreprise » ramenait
+// le visiteur sur /connexion — aucun écran ne créait de compte artisan.
+test.describe("visiteur sans compte", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("« Inscrire mon entreprise » ouvre la création de compte, sans détour par /connexion", async ({ page }) => {
+    await page.goto("/connexion");
+    await page.getByRole("link", { name: /Inscrire mon entreprise/i }).click();
+    await page.waitForURL(/\/artisan\/inscription/);
+    expect(page.url()).not.toContain("/connexion");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Inscrire mon entreprise/i);
+    await expect(page.getByRole("button", { name: /Créer mon compte/i })).toBeVisible();
+    expect(await debordementHorizontal(page)).toBe(0);
+  });
+});

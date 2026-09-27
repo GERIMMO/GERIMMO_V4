@@ -109,13 +109,20 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
   });
 
   async function deposerAttestation(expireDansJours: number) {
+    // Le fichier est d'abord déposé par le locataire lui-même (audit du 27/09 :
+    // la base n'accepte que le chemin d'un objet Storage dont il est l'auteur).
+    const chemin = `${orgA}/${crypto.randomUUID()}.pdf`;
+    await db.query(
+      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,
+      [chemin]
+    );
     const {
       rows: [{ doc }],
     } = await db.query(
       `select public.deposer_mon_attestation(
-         $1, $1::uuid::text || '/' || gen_random_uuid() || '.pdf', 'application/pdf', 1234,
+         $1, $3, 'application/pdf', 1234,
          'emp-' || gen_random_uuid(), 'MAIF', current_date + $2::int) as doc`,
-      [orgA, expireDansJours]
+      [orgA, expireDansJours, chemin]
     );
     return doc as string;
   }

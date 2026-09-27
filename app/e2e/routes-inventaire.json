@@ -224,7 +224,7 @@
   {
     "path": "/agence/ORG/mandats",
     "persona": "admin-agence",
-    "label": "Mandats & rapports",
+    "label": "Mandats & versements",
     "dynamic": "orgId"
   },
   {
@@ -357,6 +357,12 @@
     "path": "/artisan/missions/INTERVENTION/creneaux",
     "persona": "artisan",
     "label": "Proposer des créneaux",
+    "dynamic": "interventionId"
+  },
+  {
+    "path": "/artisan/missions/INTERVENTION/facture",
+    "persona": "artisan",
+    "label": "Déposer ma facture",
     "dynamic": "interventionId"
   },
   {

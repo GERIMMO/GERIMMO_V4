@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { journaliserSupervision } from "@/lib/journal-supervision";
 
 export type EtatNouvelArticle = { erreur?: string; valeurs?: Record<string, string> };
 
@@ -78,6 +79,8 @@ export async function creerArticleIA(
     facebook_texte: document.facebook_texte.trim().slice(0, 4500),
   }).select("id").single();
   if (error || !data) return { erreur: "Le brouillon n’a pas pu être enregistré.", valeurs };
+  // Audit console 27/09 : la rédaction assistée est un geste de la console.
+  await journaliserSupervision(supabase, "publication_redigee", { publication: data.id });
   redirect(`/admin/publications/${data.id}`);
 }
 

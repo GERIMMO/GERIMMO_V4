@@ -6,6 +6,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -155,7 +156,8 @@ describe.skipIf(!DB_URL)("Sprint 8 — copropriété / appels de charges", () =>
     );
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat) values ($1,$2,$3,'actif') returning id`,
       [orgA, lot, locataire]
     );

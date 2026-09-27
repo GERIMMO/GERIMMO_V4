@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { titreIncident } from "@/lib/incidents";
 import { chargerAgenda, verifierAccesArtisan, type LigneAgenda } from "../../../acces";
 import { creneauTexte } from "../../../libelles";
@@ -41,16 +41,13 @@ export async function generateMetadata(
  * locataire n'a pas répondu. La limite ci-dessous tient toujours pour le
  * détail de ces dates, qu'il ne sait pas afficher.
  *
- * CE QUE CET ÉCRAN NE PEUT PAS DIRE, et pourquoi il ne fait pas semblant :
- * il n'existe aucune lecture ouverte à l'artisan sur `intervention_creneaux`
- * (constat du 2026-09-11 : la table n'a pas de politique RLS le nommant — par
- * construction du modèle d'accès — et aucune RPC ne rend ses propres
- * créneaux). L'écran sait donc si un rendez-vous est POSÉ (la mission passe à
- * « planifiée » et porte son début), mais pas si une proposition est encore en
- * attente de réponse. Plutôt que d'inventer un état, il dit ce qu'il sait et
- * prévient de l'effet d'une nouvelle proposition : les créneaux encore en
- * attente deviennent caducs. Une RPC `mes_creneaux_artisan()` lèverait la
- * limite — elle est signalée au rapport de lot.
+ * Audit du 27/09 : la RPC `mes_creneaux_artisan()` existe désormais. La
+ * fiche de la mission affiche les dates en attente, celles de l'artisan comme
+ * celles que le locataire lui oppose. Quand le locataire a répondu par ses
+ * propres dates, cet écran n'a plus lieu d'être : la base refuse une nouvelle
+ * proposition tant que l'artisan n'a pas retenu ou refusé les siennes (A5 :
+ * « contre-proposé → confirmé ou arbitrage »). On le renvoie donc à la fiche,
+ * où se font les deux gestes.
  */
 export default async function PageCreneaux(
   props: PageProps<"/artisan/missions/[interventionId]/creneaux">
@@ -61,6 +58,9 @@ export default async function PageCreneaux(
   const agenda = await chargerAgenda();
   const mission = agenda.lignes.find((l) => l.intervention_id === interventionId);
   if (!mission) notFound();
+  if (mission.statut === "acceptee" && mission.dates_locataire_en_attente > 0) {
+    redirect(`/artisan/missions/${interventionId}`);
+  }
 
   const planifiee = mission.statut === "planifiee";
   const enAttente = mission.statut === "acceptee" && mission.creneaux_en_attente > 0;

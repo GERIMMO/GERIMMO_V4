@@ -3,7 +3,7 @@ import { RubriqueDossier } from "@/components/rubrique-dossier";
 import { EnteteFiche } from "@/components/fiche-parc";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
-import { formaterDate, eur } from "@/lib/ged";
+import { formaterDate, eur, aujourdhuiParis } from "@/lib/ged";
 import {
   TYPES_BAIL,
   ETATS_BAIL,
@@ -50,11 +50,13 @@ import {
 } from "./formulaire-restitution";
 import { FormulaireDepot, type EncaissementDepot } from "./formulaire-depot";
 import { EchecLecture, PageEchecLecture } from "../../parc/echec-lecture";
+import { exigerUuids } from "@/lib/identifiants";
 
 export const metadata = { title: "Bail — Gerimmo" };
 
 export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[bailId]">) {
   const { orgId, bailId } = await props.params;
+  exigerUuids(bailId);
   const { supabase, organisation } = await verifierAccesEspace(orgId);
   const agence = organisation.type === "agence";
 
@@ -62,7 +64,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     .from("baux")
     // Colonnes du cycle de vie + « Compléments du contrat » (bail 100 % rempli, 09/09)
     .select(
-      "id, chambre_id, type, etat, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant, date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires, honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference, clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude"
+      "id, chambre_id, type, etat, zone_tendue, loyer_hc, charges, depot_garantie, jour_echeance, lot_id, locataire_principal, document_signe, reglement_copropriete, signe_envoye_le, date_debut, date_fin, revision_irl, charges_mode, irl_trimestre, fixation_loyer, paiement_echeance, lieu_paiement, irl_valeur, duree_reduite_evenement, travaux_recents, travaux_recents_montant, travaux_locataire, honoraires_bailleur, honoraires_locataire, clauses_particulieres, loyer_reference, loyer_reference_majore, complement_loyer, complement_justification, dernier_loyer, dernier_loyer_versement, dernier_loyer_revision, meuble_etudiant, date_conclusion_prevue, servitude_residence_principale, encadrement_loyer, zone_honoraires, honoraires_edl_bailleur, honoraires_edl_locataire, dpe_depenses_min, dpe_depenses_max, dpe_annees_reference, clause_resolutoire_assurance, clause_resolutoire_troubles, clause_resolutoire_servitude"
     )
     .eq("id", bailId)
     .eq("organization_id", orgId)
@@ -93,7 +95,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     { data: bailPersonnes, error: erreurBailPersonnes },
     { data: intentions, error: erreurIntentions },
   ] = await Promise.all([
-      supabase.from("lots").select("id, nom, bien_id, meuble, bien:biens!lots_bien_id_fkey(zone_tendue)").eq("id", bail.lot_id).maybeSingle(),
+      supabase.from("lots").select("id, nom, bien_id, meuble, bien:biens!lots_bien_id_fkey(zone_tendue, copropriete)").eq("id", bail.lot_id).maybeSingle(),
       // Les pièces déclarées du lot : leur absence rend l'état des lieux générique.
       supabase
         .from("lot_pieces")
@@ -253,7 +255,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       ? supabase
           .from("restitutions")
           .select(
-            "id, date_remise_cles, delai_mois, depot, impayes, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, created_at)"
+            "id, date_remise_cles, delai_mois, depot, impayes, trop_percu, montants_arretes_le, sans_edl_entree, statut, solde, date_emission, envoye_le, retenues(id, libelle, cout, duree_vie_ans, age_ans, montant_retenu, sans_justificatif, created_at)"
           )
           .eq("bail_id", bailId)
           .maybeSingle()
@@ -277,7 +279,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   );
   // La RPC renvoie une ligne par bail (aucune si le bail sort du portefeuille)
   const montantsReels =
-    ((montantsAJour ?? []) as { depot: number; impayes: number }[])[0] ?? null;
+    ((montantsAJour ?? []) as { depot: number; impayes: number; trop_percu: number }[])[0] ?? null;
 
   // La fiche suivait le cycle du bail, mais les cartes de la SORTIE (congé,
   // historique des congés, restitution, comparatif) étaient dispersées entre
@@ -473,7 +475,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               maintenant sur ce qu'il compte, sans JavaScript. */}
           {aFaire.length > 3 && (
             <details className="mt-2">
-              <summary className="mono-discret cursor-pointer py-1">
+              <summary className="mono-discret cursor-pointer py-1 pointer-coarse:py-3.5">
                 {aFaire.length - 3} autre{aFaire.length - 3 > 1 ? "s" : ""} ensuite
               </summary>
               <ol className="mt-1.5 space-y-1.5">
@@ -649,7 +651,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               clause_resolutoire_servitude: bail.clause_resolutoire_servitude,
 
             }}
-            zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
+            zoneTendue={Boolean(bail.zone_tendue ?? premier(lot?.bien ?? null)?.zone_tendue)}
             meuble={bail.type === "meuble" || (bail.type === "colocation" && Boolean(lot?.meuble))}
             agence={agence}
             modifiable={bail.etat === "brouillon"}
@@ -929,6 +931,10 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               relances={(relances ?? []) as RelanceLigne[]}
               regularisations={(regularisations ?? []) as RegulLigne[]}
               chargesForfait={bail.charges_mode === "forfait"}
+              dateDebut={bail.date_debut}
+              dateFin={bail.date_fin}
+              copropriete={Boolean(premier(lot?.bien ?? null)?.copropriete)}
+              aujourdhui={aujourdhuiParis()}
             />
           </CardContent>
         </Card>
@@ -1020,7 +1026,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               bailId={bailId}
               type={bail.type}
               meubleLot={Boolean(lot?.meuble)}
-              zoneTendue={Boolean(premier(lot?.bien ?? null)?.zone_tendue)}
+              zoneTendue={Boolean(bail.zone_tendue ?? premier(lot?.bien ?? null)?.zone_tendue)}
             />
           </CardContent>
         </Card>

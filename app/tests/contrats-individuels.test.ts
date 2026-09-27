@@ -186,7 +186,9 @@ describe.skipIf(!DB_URL)("Contrats individuels sur un même logement", () => {
     await db.query('update public.baux set loyer_hc=600 where id=$1',[second]);
     await attendreEchec(db,/dépasse le plafond/i,'select public.activer_bail($1)',[second]);
     await db.query('update public.baux set loyer_hc=500 where id=$1',[second]);await db.query('select public.activer_bail($1)',[second]);
-    await attendreEchec(db,/dépasse le plafond/i,'update public.baux set loyer_hc=600 where id=$1',[second]);
+    // Audit agence 27/09 : un client ne modifie plus le loyer d'un bail signé
+    // (contenu figé) — le plafond reste le second rempart des fonctions.
+    await attendreEchec(db,/dépasse le plafond|contenu est figé/i,'update public.baux set loyer_hc=600 where id=$1',[second]);
     await attendreEchec(db,/inférieur aux loyers/i,'update public.lots set colocation_loyer_reference=900 where id=$1',[lot]);
   });
   it("un départ et une annulation de congé préservent le bail et le loyer de l’autre chambre",async()=>{

@@ -1,9 +1,9 @@
 "use server";
 
 import { sansJargon } from "@/lib/erreurs";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
+import { adresseDeRetour } from "@/lib/site";
 
 export type EtatInvitation = { erreur?: string; succes?: string };
 
@@ -25,7 +25,7 @@ export async function inviterLocataire(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
-  const origine = (await headers()).get("origin") ?? "";
+  const origine = adresseDeRetour();
   const { error: erreurMail } = await supabase.auth.resetPasswordForEmail(String(email), {
     redirectTo: `${origine}/auth/confirm?next=/nouveau-mot-de-passe`,
   });

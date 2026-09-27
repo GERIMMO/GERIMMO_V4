@@ -7,6 +7,8 @@ import {
   assemblerPage,
   cartouches,
   enTete,
+  eur,
+  facultatif,
   faitA,
   blocSignatureEmetteur,
   formaterDateFr,
@@ -23,6 +25,8 @@ import {
   referenceCourte,
   signatureOrganisation,
   liensLocataires,
+  libelleCharges,
+  bornesTerme,
 } from "./communs";
 import type { Assemblage } from "./index";
 
@@ -34,6 +38,13 @@ export type DonneesAvisEcheance = {
   charges: number | null;
   montantDu: number;
   prorata: boolean;
+  /** Fin du bail, pour borner un terme de sortie au prorata. */
+  dateFinBail?: string | null;
+  chargesMode?: string | null;
+  /** Ce qui restait dû sur les termes antérieurs (0 si à jour). */
+  arriere?: number;
+  lieuPaiement?: string | null;
+  iban?: string | null;
   bailleurNom: string;
   locatairesNoms: string;
   logementAdresse: string;
@@ -47,12 +58,11 @@ export type DonneesAvisEcheance = {
 
 export function construireAvisEcheance(d: DonneesAvisEcheance) {
   const f = d.f;
-  const debut = new Date(`${d.periode.slice(0, 10)}T12:00:00`);
-  const fin = new Date(debut);
-  fin.setMonth(fin.getMonth() + 1);
-  fin.setDate(0);
-  const du = formaterDateFr(debut.toISOString());
-  const au = formaterDateFr(fin.toISOString());
+  // Audit du 27/09 : période bornée à l'entrée / la sortie d'un terme au prorata.
+  const bornes = bornesTerme(d.periode, d.prorata, d.dateBail, d.dateFinBail);
+  const du = formaterDateFr(bornes.du);
+  const au = formaterDateFr(bornes.au);
+  const arriere = Math.max(0, Number(d.arriere ?? 0));
 
   const corps = `
     ${enTete(f, d.exp, { libelle: "Contrat", reference: d.referenceBail, etabliLe: new Date().toISOString() })}
@@ -63,7 +73,7 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
       ["Bailleur", `<div>${d.bailleurNom}</div>`],
       ["Locataire", `<div>${d.locatairesNoms}</div>`],
       ["Logement loué", `<div>${f.champ(d.logementAdresse, "adresse complète, étage, porte")}</div>`],
-      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} du ${f.date(d.dateBail)}`],
+      ["Bail", `Réf. ${f.champ(d.referenceBail, "référence du bail")} prenant effet le ${f.date(d.dateBail)}`],
     ])}
     <p>Nous vous informons que le terme désigné ci-dessous arrive à échéance
     le ${f.date(d.dateEcheance)}. Le règlement est attendu à cette date.</p>
@@ -72,17 +82,25 @@ export function construireAvisEcheance(d: DonneesAvisEcheance) {
       [{ libelle: "Nature" }, { libelle: "Montant", droite: true }],
       [
         [`Loyer hors charges${d.prorata ? " (au prorata de la période d'occupation)" : ""}`, f.montant(d.loyerHc)],
-        ["Provision ou forfait de charges", f.montant(d.charges)],
+        [libelleCharges(d.chargesMode), f.montant(d.charges)],
       ]
     )}
-    <table><tbody><tr class="total"><td><b>Total à régler</b></td><td class="d"><b>${f.montant(
+    <table><tbody><tr class="total"><td><b>Total du terme</b></td><td class="d"><b>${f.montant(
       d.montantDu,
       "total à régler"
     )}</b></td></tr></tbody></table>
+    ${
+      // Même règle que l'avis par e-mail (wiki « Quittancement des loyers »,
+      // 18/09) : taire une dette en cours laisserait croire au locataire qu'il
+      // sera à jour une fois le terme réglé.
+      arriere > 0
+        ? `<p><b>Solde antérieur restant dû : ${eur(arriere)}.</b> Total à régler pour solder votre compte :
+           <b>${eur(arriere + Number(d.montantDu))}</b>.</p>`
+        : ""
+    }
     ${section("Modalités de règlement")}
-    <p>Mode de règlement : ${f.champ(null, "virement, prélèvement, chèque…")} —
-    Lieu de paiement : ${f.champ(null, "domicile du bailleur, virement…")}.</p>
-    <p>Coordonnées bancaires : ${f.champ(null, "IBAN, facultatif")}.</p>
+    <p>Lieu de paiement prévu au bail : ${f.champ(d.lieuPaiement ?? null, "domicile du bailleur, virement…")}.</p>
+    <p>Coordonnées bancaires : ${facultatif(d.iban ?? null)}.</p>
     <div class="mentions">
       <p>En cas de difficulté de paiement, rapprochez-vous sans attendre de votre gestionnaire :
       des solutions amiables existent (délais, aides au logement).</p>
@@ -115,6 +133,12 @@ export async function assemblerAvisEcheance(
   const ctx = await chargerContexteBail(supabase, orgId, appel.bail_id);
   if ("erreur" in ctx) return ctx;
 
+  // L'arriéré : ce qui reste dû sur les termes antérieurs à celui-ci.
+  const { data: etat } = await supabase.rpc("etat_loyers_bail", { p_bail: appel.bail_id });
+  const arriere = ((etat ?? []) as { periode: string; montant_du: number; montant_couvert: number }[])
+    .filter((t) => t.periode < appel.periode && Number(t.montant_couvert) < Number(t.montant_du))
+    .reduce((s, t) => s + Number(t.montant_du) - Number(t.montant_couvert), 0);
+
   const f = new Fusion();
   const document = construireAvisEcheance({
     reference: referenceCourte("AVIS", appel.id),
@@ -124,6 +148,11 @@ export async function assemblerAvisEcheance(
     charges: appel.charges === null ? null : Number(appel.charges),
     montantDu: Number(appel.montant_du),
     prorata: Boolean(appel.prorata),
+    dateFinBail: ctx.bail.date_fin,
+    chargesMode: ctx.bail.charges_mode,
+    arriere: Math.round(arriere * 100) / 100,
+    lieuPaiement: ctx.bail.lieu_paiement,
+    iban: ctx.organisation.iban ?? null,
     bailleurNom: nomsBailleurs(f, ctx.bailleurs),
     locatairesNoms: nomsLocataires(f, ctx.locataires),
     logementAdresse: adresseLogement(ctx.lot, ctx.bien),

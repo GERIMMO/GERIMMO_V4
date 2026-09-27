@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { filtreRecherche, normaliserRecherche } from "@/lib/recherche-espace";
 import { familleOrganisation, LIBELLES_STATUT_ARTISAN } from "@/lib/clients-supervision";
+import { libelleRole } from "@/lib/libelles";
 
 export type ResultatRechercheSupervision = {
   id: string;
@@ -24,7 +25,14 @@ const STATUTS_ORGANISATION: Record<string, string> = {
   essai: "En essai",
   suspendue: "Suspendue",
   inactive: "Inactive",
+  archivee: "Archivée",
 };
+
+/** « admin_agence, agent » → « Administrateur d’agence · Agent » (audit console 27/09). */
+function rolesLisibles(roles: string | null): string {
+  if (!roles) return "aucun rôle";
+  return roles.split(/\s*,\s*/).filter(Boolean).map(libelleRole).join(", ");
+}
 
 /** Recherche transversale réservée à la supervision, sans entrer dans un client. */
 export async function rechercherDansSupervision(
@@ -85,15 +93,16 @@ export async function rechercherDansSupervision(
       id: c.account_id,
       type: "Compte",
       titre: c.email,
-      detail: [c.roles ?? "aucun rôle", c.derniere_connexion ? `dernière connexion ${new Date(c.derniere_connexion).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}` : "jamais connecté"].join(" · "),
+      detail: [rolesLisibles(c.roles), c.derniere_connexion ? `dernière connexion ${new Date(c.derniere_connexion).toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })}` : "jamais connecté"].join(" · "),
       href: `/admin/comptes/${c.account_id}`,
     });
   }
 
   return {
     resultats,
-    ...(organisations.error || artisans.error
-      ? { erreur: "Certains clients sont momentanément indisponibles. Réessayez." }
+    // La recherche des comptes se signale aussi quand elle échoue (audit console 27/09).
+    ...(organisations.error || artisans.error || comptes.error
+      ? { erreur: "Certains résultats sont momentanément indisponibles. Réessayez." }
       : {}),
   };
 }

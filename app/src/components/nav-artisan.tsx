@@ -83,7 +83,15 @@ export function NavArtisan({
       // Les pages de l'entreprise sont trois adresses distinctes : l'onglet
       // désigne la SECTION, sinon il s'éteint dès qu'on entre dans « Mes
       // attestations » et le rail ne désigne plus rien.
-      aussi: ["/artisan/attestations", "/artisan/facturation", "/artisan/note"],
+      // Audit 27/09 : « Les règles » et la page de panne (toutes deux sous
+      // « Mon entreprise ») n'allumaient aucun onglet.
+      aussi: [
+        "/artisan/attestations",
+        "/artisan/facturation",
+        "/artisan/note",
+        "/artisan/regles",
+        "/artisan/panne",
+      ],
       badge: 0,
       point: !piecesAAJour,
     },

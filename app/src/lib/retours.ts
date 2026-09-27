@@ -21,6 +21,22 @@ export function ecranSansDonnees(chemin: string):string {
   return '/' + chemin.slice(0,2000).split(/[?#]/,1)[0].split('/').filter(Boolean).slice(0,11)
     .map(segment=>SEGMENTS.has(segment)?segment:'[dossier]').join('/');
 }
+const ESPACES_ECRAN: Record<string,string> = { agence: "Espace agence", admin: "Console", artisan: "Portail artisan", locataire: "Espace locataire", espaces: "Mes espaces" };
+const PAGES_ECRAN: Record<string,string> = {
+  parc: "Parc", baux: "Baux", documents: "Documents", personnes: "Personnes", incidents: "Incidents", demandes: "Demandes", logement: "Logement",
+  loyers: "Loyers", comptabilite: "Comptabilité", fiscal: "Fiscalité", agenda: "Agenda", alertes: "Alertes", messages: "Messages", profil: "Profil",
+  administration: "Administration", abonnement: "Abonnement", missions: "Missions", devis: "Devis", attestations: "Attestations", entreprise: "Entreprise",
+  edl: "État des lieux", creneaux: "Créneaux", publications: "Articles", journaux: "Journaux", retours: "Retours", assistance: "Aide et retours",
+  parametres: "Paramètres", clients: "Clients", brief: "Aujourd’hui", territoire: "Territoire", sante: "Santé", artisans: "Artisans",
+  facturation: "Facturation", statistiques: "Statistiques", faq: "Questions fréquentes", securite: "Sécurité du compte", import: "Import",
+};
+/** « /agence/[dossier]/loyers » → « Espace agence — Loyers » (audit console 27/09 : plus de chemin brut). */
+export function nomEcran(chemin: string): string {
+  const segments = chemin.split('/').filter((x) => x && x !== '[dossier]');
+  const espace = ESPACES_ECRAN[segments[0] ?? ''] ?? 'Site public';
+  const page = [...segments].reverse().find((x) => Object.hasOwn(PAGES_ECRAN, x));
+  return page ? `${espace} — ${PAGES_ECRAN[page]}` : espace;
+}
 export function actionSansDonnees(action: string):string {
   return Object.hasOwn(ACTIONS_RETOUR,action)?action:'navigation';
 }

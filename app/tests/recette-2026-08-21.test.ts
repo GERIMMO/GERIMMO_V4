@@ -94,6 +94,11 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
 
   async function deposerAttestation(chemin: string, empreinte: string): Promise<string> {
     await simuler(db, compteLocataire);
+    // Dépôt Storage par le locataire d'abord (audit du 27/09).
+    await db.query(
+      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,
+      [`${orgA}/${chemin}`]
+    );
     const {
       rows: [{ id }],
     } = await db.query(

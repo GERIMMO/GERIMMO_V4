@@ -2,15 +2,22 @@
 
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { verifierGerant } from "@/lib/ged-acces";
-import { deposerFichierGed } from "@/lib/ged-depot";
+import { abandonnerPieceGed, preparerFichierGed } from "@/lib/ged-depot";
 import { envoyerEmail } from "@/lib/email";
 import { corpsQuittance, sujetQuittance } from "@/lib/quittance-email";
+import {
+  assemblerQuittanceDelivree,
+  chargerQuittanceDocument,
+  manquantsQuittance,
+  motifQuittanceIncomplete,
+  parties,
+} from "@/lib/quittance-conforme";
 import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
+import { adresseDeRetour } from "@/lib/site";
 
 export type EtatLoyers = {
   erreur?: string;
@@ -66,9 +73,18 @@ export async function envoyerQuittance(
     est_quittance: boolean;
   }[])[0];
   if (!q) return { erreur: "Document de paiement introuvable." };
+
+  // La même barrière que le PDF (audit du 27/09, [[Quittance conforme]]) :
+  // le lien de l'e-mail ouvre le document conforme ; s'il lui manque
+  // l'identité ou l'adresse de l'émetteur, on ne l'envoie pas — on dit quoi
+  // compléter.
+  const conforme = await chargerQuittanceDocument(supabase, quittanceId);
+  if (!conforme) return { erreur: "Impossible de lire le document à envoyer. Réessayez." };
+  const manquants = manquantsQuittance(assemblerQuittanceDelivree(conforme));
+  if (manquants.length > 0) return { erreur: motifQuittanceIncomplete(manquants, q.est_quittance) };
   const libelleEnvoi = q.est_quittance ? "Quittance envoyée" : "Reçu de paiement partiel envoyé";
 
-  const origine = (await headers()).get("origin") ?? "";
+  const origine = adresseDeRetour();
   // Le corps vit dans lib/quittance-email : la tâche planifiée envoie le même
   // document, et deux mises en forme pour une même quittance ne s'expliquent
   // pas au locataire qui la conserve.
@@ -78,7 +94,8 @@ export async function envoyerQuittance(
     loyerHc: q.loyer_hc,
     charges: q.charges,
     montant: q.montant,
-    emetteur: q.emetteur,
+    // Chez un propriétaire direct, le bailleur signe : pas le nom du « parc ».
+    emetteur: parties(conforme).emetteur ?? q.emetteur,
     prenom: loc.prenom,
     lien: `${origine}/quittance/${quittanceId}`,
   };
@@ -168,17 +185,29 @@ export async function regulariserCharges(
   const fichier = formData.get("justificatif");
   if (!(fichier instanceof File) || fichier.size === 0)
     return { erreur: "Le justificatif est obligatoire (décompte remis au locataire).", valeurs };
-  const depot = await deposerFichierGed(supabase, user, orgId, fichier, "justificatif", `Décompte de charges ${annee}`);
-  if (depot.erreur || !depot.documentId) return { erreur: depot.erreur ?? "Échec du dépôt du justificatif.", valeurs };
+  // Audit agence 27/09 : le décompte n'existe en GED que si la régularisation
+  // existe. Déposé avant la fonction, chaque refus (exercice déjà régularisé,
+  // forfait, exercice hors bail…) laissait une pièce rattachée à rien, dont
+  // l'empreinte bloquait ensuite le nouvel essai avec le même fichier. L'octet
+  // monte au Storage, la fiche naît dans la transaction de la régularisation.
+  const prep = await preparerFichierGed(supabase, orgId, fichier);
+  if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt du justificatif.", valeurs };
+  const piece = prep.fichier;
 
-  const { data, error } = await supabase.rpc("regulariser_charges", {
+  const { data, error } = await supabase.rpc("regulariser_charges_avec_justificatif", {
     p_bail: bailId,
     p_annee: annee,
     p_charges_reelles: reelles,
-    p_justificatif: depot.documentId,
     p_note: String(formData.get("note") ?? "").trim() || null,
+    p_storage_path: piece.chemin,
+    p_mime: piece.mime,
+    p_taille: piece.taille,
+    p_empreinte: piece.empreinte,
   });
-  if (error) return { erreur: sansJargon(error.message), valeurs };
+  if (error) {
+    await abandonnerPieceGed(supabase, piece);
+    return { erreur: sansJargon(error.message), valeurs };
+  }
   const ecart = Number(data);
   const msg =
     ecart > 0
@@ -187,9 +216,11 @@ export async function regulariserCharges(
         ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  // La régularisation passe au journal : la page comptabilité suit.
+  // Audit du 27/09 : la régularisation n'écrit PAS au journal (aucun appel
+  // ni avoir n'est encore généré) ; son solde est repris au décompte de
+  // restitution à la sortie (montants_reels_bail).
   revalidatePath(`/agence/${orgId}/comptabilite`);
-  return { succes: msg };
+  return { succes: prep.avertissement ? `${msg} ${prep.avertissement}` : msg };
 }
 
 // Générer les appels de loyer manquants (échéancier) jusqu'au mois courant.

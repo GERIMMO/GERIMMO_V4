@@ -16,18 +16,22 @@ export async function traiterInscriptionArtisan(
   if (erreurAcces || autorise !== true) return { erreur: "Accès réservé à la supervision Gerimmo." };
 
   const operation = String(formData.get("operation") ?? "");
-  if (!["verifier_siret", "validation", "refus", "remise_en_attente"].includes(operation)) {
+  if (!["verifier_siret", "validation", "refus", "remise_en_attente", "suspension"].includes(operation)) {
     return { erreur: "Choisissez une décision proposée sur cet écran." };
   }
   const { data: artisan, error: erreurArtisan } = await supabase.from("artisans")
     .select("id, statut_plateforme, siret_etat").eq("id", artisanId).maybeSingle();
   if (erreurArtisan) return { erreur: "Impossible de relire cette inscription. Réessayez." };
   if (!artisan) return { erreur: "Inscription introuvable." };
-  const attendu = operation === "remise_en_attente" ? "refuse" : "en_attente";
+  const attendu = operation === "remise_en_attente" ? "refuse" : operation === "suspension" ? "valide" : "en_attente";
   if (artisan.statut_plateforme !== attendu) return { erreur: "Cette inscription a déjà changé d’état. Rechargez la page." };
 
   const motif = String(formData.get("motif") ?? "").trim();
   if (operation === "refus" && !motif) return { erreur: "Indiquez le motif objectif du refus : il sera visible par l’artisan." };
+  // Audit console 27/09 : la suspension se motive et se confirme.
+  if (operation === "suspension" && (motif.length < 5 || formData.get("confirmation") !== "oui")) {
+    return { erreur: "Indiquez le motif de la suspension et confirmez le geste." };
+  }
   if (operation === "verifier_siret" && formData.get("verification_effectuee") !== "oui") {
     return { erreur: "Confirmez avoir vérifié le SIRET avant d’enregistrer ce constat." };
   }
@@ -46,6 +50,8 @@ export async function traiterInscriptionArtisan(
   });
   if (error) return { erreur: sansJargon(error.message) };
   revalidatePath("/admin/artisans");
+  revalidatePath(`/admin/clients/artisans/${artisanId}`);
+  revalidatePath("/admin/brief");
   revalidatePath("/admin");
   revalidatePath("/artisan/entreprise");
   const messages: Record<string, string> = {
@@ -53,6 +59,7 @@ export async function traiterInscriptionArtisan(
     validation: "Inscription validée. La décision figure dans l’historique de la plateforme.",
     refus: "Inscription refusée avec son motif.",
     remise_en_attente: "Inscription remise en attente pour un nouvel examen.",
+    suspension: "Validation suspendue : l’inscription est de nouveau à examiner et n’est plus proposée aux agences.",
   };
   return { succes: messages[operation] };
 }

@@ -31,8 +31,9 @@ export function LienGeste({
       className={buttonVariants({
         size: "sm",
         variant: critique ? "destructive" : "outline",
-        // Un <a> échappe au min-height tactile posé sur button/select
-        className: "pointer-coarse:min-h-10",
+        // Un <a> échappe au min-height tactile posé sur button/select :
+        // 44 px au doigt (audit 27/09 : min-h-10 laissait 40 px).
+        className: "pointer-coarse:min-h-11",
       })}
     >
       {children}

@@ -7,7 +7,10 @@ test('supervision : pause et reprise des passages sans exécution du traitement'
  await page.goto('/admin/equipes');await expect(page.getByRole('heading',{name:'Travail des équipes'})).toBeVisible();
  const mission=page.locator('section').filter({has:page.getByRole('heading',{name:'Avis d’échéance',exact:true})});
  await mission.getByRole('button',{name:'Mettre en pause',exact:true}).click();await expect(mission.getByRole('status')).toContainText('en pause');await expect(mission.getByRole('button',{name:'Lancer maintenant'})).toHaveCount(0);
- await mission.getByRole('button',{name:'Reprendre',exact:true}).click();await expect(mission.getByRole('status')).toContainText('réactivés');await expect(mission.getByRole('button',{name:'Lancer maintenant'})).toBeVisible();
+ await mission.getByRole('button',{name:'Reprendre',exact:true}).click();await expect(mission.getByRole('status')).toContainText('réactivés');
+ // Audit console 27/09 : sans CRON_SECRET, « Lancer maintenant » est masqué et expliqué, comme sur Santé.
+ const sansSecret=await page.getByText('« Lancer maintenant » sera possible une fois la connexion des traitements').isVisible();
+ await expect(mission.getByRole('button',{name:'Lancer maintenant'})).toHaveCount(sansSecret?0:1);
  await expect(mission.getByText('aucun depuis la mise en place de ce suivi')).toBeVisible();expect(await debordementHorizontal(page)).toBe(0);
 });
 test('supervision : le plan d’absence peut être enregistré sans créer de nouveaux accès',async({page})=>{

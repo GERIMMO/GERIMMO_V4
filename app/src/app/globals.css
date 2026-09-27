@@ -918,6 +918,15 @@ a.kpi:hover::after { transform: translateX(3px); color: var(--marque); }
   font-size: 12px;
   font-weight: 700;
 }
+/* La pastille du gestionnaire (carte « Mon gestionnaire » de l'espace
+   locataire) : un dégradé de la charte, en classe plutôt qu'en style en
+   ligne (audit du 27/09). */
+.loc-avat--gestionnaire {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--bleu), var(--encre));
+  color: var(--sur-encre);
+}
 .loc-corps { padding: 24px 28px 56px; max-width: 1080px; width: 100%; }
 .loc-carte {
   border: 1px solid var(--filet);

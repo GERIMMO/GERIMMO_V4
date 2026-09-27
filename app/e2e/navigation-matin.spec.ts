@@ -44,7 +44,7 @@ test.describe('Tour du matin de la supervision',()=>{
   const type=formulaire.getByRole('combobox',{name:'Type d’événement'}).or(formulaire.getByRole('combobox',{name:"Type d'événement"}));
   await expect(type).toHaveValue('tache_');
   // Les noms des missions sont les mêmes que dans Santé et Équipes.
-  await type.selectOption({label:'Sauvegarde hebdomadaire'});
+  await type.selectOption({label:'Sauvegarde quotidienne'});
   await formulaire.getByLabel('Depuis le',{exact:true}).fill('2026-09-01');
   await formulaire.getByRole('button',{name:'Filtrer',exact:true}).click();
   await expect(page).toHaveURL(/type=tache_sauvegarde/);

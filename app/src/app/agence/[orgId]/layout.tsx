@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
+import { identiteDuCompte, initialesDe } from "@/lib/identite-compte";
 import { chargerSyntheseAlertes } from "@/lib/alertes";
 import { compterActionsDuJour } from "@/lib/actions-du-jour";
 import { totalMessagesNonLus } from "@/lib/messagerie";
@@ -232,7 +233,12 @@ export default async function LayoutAgence({
             <span className="hidden lg:inline">Aide et retours</span>
           </LienAssistance>
           <MenuCompte
-            initiales={(organisation.name?.[0] ?? "◇").toUpperCase()}
+            // Le propriétaire, c'est une personne (27/09) : ses initiales, pas
+            // celle de son « Parc ».
+            initiales={
+              (estProprietaire ? initialesDe(await identiteDuCompte(supabase, orgId, user)) : null) ??
+              (organisation.name?.[0] ?? "◇").toUpperCase()
+            }
             titre={estProprietaire ? "Espace propriétaire" : organisation.name}
             sousTitre={
               estProprietaire ? undefined : role === "admin_agence" ? "Admin d'agence" : "Agent"

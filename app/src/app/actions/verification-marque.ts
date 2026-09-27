@@ -3,6 +3,7 @@ import {revalidatePath} from 'next/cache';
 import {createClient} from '@/lib/supabase/server';
 import {clientDeService} from '@/lib/supabase/service';
 import {verifierSiteMarque,verifierExpediteurMarque} from '@/lib/verification-marque';
+import {journaliserSupervision} from '@/lib/journal-supervision';
 export type RetourMarque={erreur?:string;succes?:string};
 export async function verifierConnexionMarque(_etat:RetourMarque,form:FormData):Promise<RetourMarque>{
  const db=await createClient();const {data:autorise,error}=await db.rpc('is_permanent_super_admin');
@@ -16,6 +17,8 @@ export async function verifierConnexionMarque(_etat:RetourMarque,form:FormData):
  const service=clientDeService();if(!service)return {erreur:'Le service de vérification est indisponible.'};
  try{
   const ok=type==='site'?await verifierSiteMarque(org[champ]):await verifierExpediteurMarque(org[champ]);
+  // Audit console 27/09 : la vérification (et son résultat) se journalise, à l'organisation concernée.
+  await journaliserSupervision(db,'marque_verifiee',{connexion:type,confirmee:ok},id);
   // Une modification du profil pendant la vérification invalide le résultat.
   const {data:modifie,error:e}=await service.from('organizations').update({[verification]:ok?new Date().toISOString():null}).eq('id',id).eq(champ,org[champ]).select('id').maybeSingle();
   if(e||!modifie)return {erreur:'La connexion a changé ou le résultat n’a pas pu être enregistré. Relancez la vérification.'};

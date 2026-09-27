@@ -196,7 +196,11 @@ export default async function PageArtisanAccueil({
                     key={l.intervention_id}
                     ligne={l}
                     origine="aujourdhui"
-                    aFaire="Proposer trois créneaux au locataire"
+                    aFaire={
+                      l.dates_locataire_en_attente > 0
+                        ? `Le locataire propose ${l.dates_locataire_en_attente} date${l.dates_locataire_en_attente > 1 ? "s" : ""} : à confirmer`
+                        : "Proposer trois créneaux au locataire"
+                    }
                   />
                 ))}
               </div>

@@ -92,6 +92,28 @@ export type LigneAgenda = {
    * tour précédent, effaçant le choix que le locataire s'apprêtait à faire.
    */
   creneaux_en_attente: number;
+  /**
+   * Dates proposées PAR LE LOCATAIRE (contre-proposition, RM-10.2.2) et qui
+   * attendent la réponse de l'artisan (audit du 27/09 : elles n'arrivaient
+   * jamais jusqu'à lui). Seules les dates à venir comptent.
+   */
+  dates_locataire_en_attente: number;
+  /** Plafond engagé : dernier avenant accepté, sinon devis retenu. */
+  montant_plafond_cents: number | null;
+  /** Montant final annoncé au compte rendu. */
+  montant_final_cents: number | null;
+  /** La facture de cette intervention est déposée (module 9.7). */
+  facture_deposee: boolean;
+};
+
+/** Un créneau vivant d'une mission, vu par son artisan (`mes_creneaux_artisan`). */
+export type CreneauMission = {
+  creneau_id: string;
+  propose_par: "artisan" | "locataire" | "agence";
+  tour: number;
+  debut: string;
+  fin: string;
+  statut: "propose" | "retenu";
 };
 
 export type LigneSollicitation = {
@@ -206,6 +228,22 @@ export const chargerNote = cache(async function chargerNote() {
   if (!fiche) return { note: null as NoteArtisan | null, erreur: false };
   const { data, error } = await supabase.rpc("ma_note_artisan");
   return { note: ((data ?? []) as NoteArtisan[])[0] ?? null, erreur: Boolean(error) };
+});
+
+/**
+ * Les créneaux vivants d'une mission : les dates que l'artisan a proposées
+ * (il doit les garder libres) et celles que le locataire lui oppose. La RPC
+ * ne rend rien pour une mission qui n'est pas la sienne.
+ */
+export const chargerCreneauxMission = cache(async function chargerCreneauxMission(
+  interventionId: string
+) {
+  const { supabase, fiche } = await chargerFicheArtisan();
+  if (!fiche) return { lignes: [] as CreneauMission[], erreur: false };
+  const { data, error } = await supabase.rpc("mes_creneaux_artisan", {
+    p_intervention: interventionId,
+  });
+  return { lignes: (data ?? []) as CreneauMission[], erreur: Boolean(error) };
 });
 
 /** Garde des pages du portail : session, puis fiche artisan. */

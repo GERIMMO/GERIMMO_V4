@@ -4,8 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { libelleRole, libelleStatutAdhesion, LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
 import { formaterDate } from "@/lib/ged";
 import { familleOrganisation, initiales } from "@/lib/clients-supervision";
+import { GesteControle } from "@/components/geste-controle";
+import { controlerOrganisation, renvoyerInvitation } from "@/app/actions/controle-supervision";
 
-export const metadata = { title: "Client — Console Gerimmo" };
+export const metadata = { title: "Client — Gerimmo" };
 
 /**
  * LA FICHE D'UN CLIENT — agence ou propriétaire bailleur.
@@ -43,6 +45,11 @@ export default async function PageAdminOrganisation(
   props: PageProps<"/admin/organisations/[orgId]">
 ) {
   const { orgId } = await props.params;
+  // Après « Ouvrir une organisation » (audit console 27/09, majeur 7) : la
+  // redirection porte le résultat de l'invitation ; la fiche le dit.
+  const recherche = await props.searchParams;
+  const ouverte = recherche.ouverte === "1";
+  const echecMail = typeof recherche.mail === "string" && recherche.mail ? recherche.mail.slice(0, 300) : null;
   const supabase = await createClient();
 
   const { data: estSuperAdmin } = await supabase.rpc("is_super_admin");
@@ -99,6 +106,7 @@ export default async function PageAdminOrganisation(
     lignesParrainage.find((p) => p.filleul_organization_id === orgId)?.parrain?.name ?? null;
 
   const famille = familleOrganisation(organisation.type);
+  const responsables = adhesions.filter((m) => (m.role === "admin_agence" || m.role === "proprietaire_direct") && m.account?.email);
   // Sept « Non renseignée » ne disent qu'une chose (audit 25/09, C12) : l'identité
   // n'est pas remplie. Une ligne le dit, avec le geste ; les champs remplis s'affichent.
   const champs: [string, string | null | undefined][] = [
@@ -157,6 +165,20 @@ export default async function PageAdminOrganisation(
           </Link>
         </div>
       </div>
+
+      {ouverte && (
+        echecMail ? (
+          <div role="alert" className="mb-6 border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-[13px] text-[var(--warning-soft-foreground)]">
+            <b>Organisation ouverte, mais l’invitation n’est pas partie</b> : {echecMail}. Le
+            responsable ne peut pas encore se connecter.{" "}
+            <a href="#invitation" className="underline">Renvoyer l’invitation</a>
+          </div>
+        ) : (
+          <p role="status" className="mb-6 border border-[var(--filet)] bg-[var(--filet-leger)] p-3.5 text-[13px]">
+            Organisation ouverte. L’invitation est partie : le responsable définit son mot de passe par le lien reçu.
+          </p>
+        )
+      )}
 
       <p className="mesure-lecture mb-6 text-sm text-[var(--texte-secondaire)]">
         Entrer dans un espace client donne accès à ses données réelles. Chaque
@@ -262,6 +284,57 @@ export default async function PageAdminOrganisation(
             ))}
           </ul>
         )}
+      </section>
+
+      {/* L'invitation du responsable (audit console 27/09, majeur 7) : le geste
+          que le commentaire d'ouverture promettait. */}
+      <section id="invitation" className="loc-carte mt-4">
+        <div className="entete-carte"><h3>Invitation du responsable</h3></div>
+        {responsables.length === 0 ? (
+          <p className="text-sm text-[var(--texte-secondaire)]">Aucun responsable rattaché : rien à renvoyer.</p>
+        ) : (
+          <div className="grid gap-2">
+            {responsables.map((m) => (
+              <GesteControle
+                key={m.id}
+                action={renvoyerInvitation.bind(null, orgId)}
+                titre={`Renvoyer l’invitation à ${m.account!.email}`}
+                bouton="Renvoyer l’invitation"
+                champs={{ email: m.account!.email }}
+                confirmation={`J’envoie à ${m.account!.email} le lien qui lui permet de définir son mot de passe. Aucun accès n’est ouvert à mon nom dans son compte.`}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Les gestes de contrôle (audit console 27/09, majeur 8), conformes au
+          « Cycle de vie de l'abonnement » et à « Archivage plutôt que
+          suppression » : aucune suppression, chaque geste confirmé et journalisé. */}
+      <section className="loc-carte mt-4">
+        <div className="entete-carte"><h3>Contrôle de l’abonnement</h3></div>
+        <p className="mesure-lecture mb-3 text-sm text-[var(--texte-secondaire)]">
+          Chaque geste est fait à votre nom et inscrit au journal d’audit de cette organisation. Une
+          organisation suspendue ou archivée garde ses données ; elle se réactive d’ici.
+        </p>
+        <div className="grid gap-2">
+          {(organisation.status === "essai" || organisation.status === "active") && (
+            <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="suspendre" titre="Suspendre l’organisation" bouton="Suspendre" motif destructif
+              confirmation="Je suspends cette organisation : l’écriture est fermée pour ses utilisateurs jusqu’à sa réactivation." />
+          )}
+          {(organisation.status === "essai" || organisation.status === "suspendue") && (
+            <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="prolonger_essai" titre="Prolonger l’essai" bouton="Prolonger l’essai" jours
+              confirmation="Je prolonge l’essai à partir de sa date de fin (ou d’aujourd’hui si elle est passée)." />
+          )}
+          {(organisation.status === "suspendue" || organisation.status === "archivee") && (
+            <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="reactiver" titre="Réactiver l’organisation" bouton="Réactiver"
+              confirmation="Je réactive cette organisation dans l’état qu’elle avait avant sa suspension ou son archivage." />
+          )}
+          {organisation.status !== "archivee" && (
+            <GesteControle action={controlerOrganisation.bind(null, orgId)} geste="archiver" titre="Archiver l’organisation" bouton="Archiver" motif destructif
+              confirmation="J’archive cette organisation : elle n’est pas supprimée, ses données sont conservées selon la durée légale et elle peut être réactivée." />
+          )}
+        </div>
       </section>
     </main>
   );

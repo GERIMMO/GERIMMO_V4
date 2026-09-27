@@ -63,9 +63,14 @@ export default function PageMentionsLegales() {
 
       <Article titre="Hébergement">
         <p>
+          {/* Audit 27/09 : la phrase précédait un tableau qui contient des
+              prestataires américains. Même formulation que la page
+              confidentialité. */}
           Les données sont hébergées <b className="font-semibold">dans
-          l&apos;Union européenne</b>. Le service s&apos;appuie sur les
-          prestataires suivants :
+          l&apos;Union européenne</b> (base, fichiers, application). Certains
+          services annexes sont rendus par des prestataires établis hors de
+          l&apos;Union : la colonne « Localisation » le dit pour chacun. Le
+          service s&apos;appuie sur les prestataires suivants :
         </p>
         {/* La même liste que la page confidentialité (lib/editeur.ts). */}
         <TableauPrestataires />

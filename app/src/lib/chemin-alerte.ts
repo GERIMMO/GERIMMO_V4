@@ -91,6 +91,10 @@ const LIBELLES = new Map<string, string>([
   ["incident_a_qualifier", "Qualifier l’incident"],
   ["incident_conteste", "Reprendre l’imputation contestée"],
   ["incident_imputation_a_reviser", "Réviser l’imputation"],
+  // Audit du 27/09 : les deux alertes nées du cycle artisan ouvrent le
+  // dossier d'incident, où se lisent la facture et les créneaux.
+  ["facture_artisan_a_valider", "Contrôler la facture de l’artisan"],
+  ["creneaux_arbitrage", "Fixer le rendez-vous"],
   ["loyer_impaye", "Ouvrir les loyers du bail"],
   ["message_locataire", "Lire et répondre au message"],
   ["piece_deposee", "Contrôler la pièce déposée"],
@@ -155,7 +159,9 @@ export function cheminFicheAlerte(a: Alerte, orgId: string): string | null {
   if (
     type === "incident_a_qualifier" ||
     type === "incident_conteste" ||
-    type === "incident_imputation_a_reviser"
+    type === "incident_imputation_a_reviser" ||
+    type === "facture_artisan_a_valider" ||
+    type === "creneaux_arbitrage"
   ) {
     const incident = texte(a.details, "incident_id");
     if (incident) return `/agence/${orgId}/incidents?sel=${incident}`;

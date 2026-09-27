@@ -15,6 +15,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { mentionsObligatoiresManquantes } from "../src/lib/baux";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -253,7 +254,9 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     const bail = await creerBrouillon(lot, { loyer: null, dateDebut: null });
     await attendreEchec(
       db,
-      /Mentions obligatoires du bail manquantes/,
+      // Depuis l'audit agence du 27/09, un client ne change plus l'état du
+      // bail par écriture directe, quelle qu'elle soit (verrou en amont).
+      /Mentions obligatoires du bail manquantes|l'état du bail ne change que par ses gestes/,
       `update public.baux set etat='actif' where id=$1`,
       [bail]
     );
@@ -299,7 +302,8 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     // Donnée d'avant la règle : un bail vivant sans loyer, inséré tel quel
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, date_debut)
        values ($1,$2,$3,'actif', current_date - 200) returning id`,
       [org, lot, locataire]
@@ -329,7 +333,7 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     // congé sur autre chose qu'un bail actif.
     await attendreEchec(
       db,
-      /Un brouillon ne passe pas en préavis/,
+      /Un brouillon ne passe pas en préavis|l'état du bail ne change que par ses gestes/,
       `update public.baux set etat='preavis' where id=$1`,
       [bail]
     );
@@ -343,16 +347,16 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     // L'entrée en « terminé » reste possible (reprise d'historique) ; c'est la
     // SORTIE qui est fermée — RM-A5.2 « un état terminal n'a aucune sortie »,
     // wiki « Bail » : « terminé → actif (nouveau bail requis) ».
-    await db.query(`update public.baux set etat='termine' where id=$1`, [bail]);
+    await requeteProprietaire(db, `update public.baux set etat='termine' where id=$1`, [bail]);
     await attendreEchec(
       db,
-      /Un bail terminé ne revit pas/,
+      /Un bail terminé ne revit pas|l'état du bail ne change que par ses gestes/,
       `update public.baux set etat='actif' where id=$1`,
       [bail]
     );
     await attendreEchec(
       db,
-      /Un bail terminé ne revit pas/,
+      /Un bail terminé ne revit pas|l'état du bail ne change que par ses gestes/,
       `update public.baux set etat='preavis' where id=$1`,
       [bail]
     );
@@ -370,13 +374,13 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     // que la garde visait, atteint par l'autre bout.
     await attendreEchec(
       db,
-      /un bail en cours ne les perd pas/,
+      /un bail en cours ne les perd pas|contenu est figé/,
       `update public.baux set loyer_hc = null where id=$1`,
       [bail]
     );
     await attendreEchec(
       db,
-      /un bail en cours ne les perd pas/,
+      /un bail en cours ne les perd pas|contenu est figé/,
       `update public.baux set date_debut = null where id=$1`,
       [bail]
     );
@@ -395,7 +399,8 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     // réparer — la garde n'interdit que le retrait, jamais l'ajout.
     const {
       rows: [{ id: bail }],
-    } = await db.query(
+    } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat, date_debut, jour_echeance)
        values ($1,$2,$3,'actif', current_date - 300, 5) returning id`,
       [org, lot, locataire]

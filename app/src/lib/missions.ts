@@ -23,6 +23,9 @@ export const MISSIONS={
  signatures:{nom:'Signatures et classement',equipe:'conformite',heure:'5 h (heure de Paris, 4 h en hiver)',lien:'/admin/autonomie?equipe=document'},
  marketing:{nom:'Publications et publicité',equipe:'marketing',heure:'10 h (heure de Paris, 9 h en hiver)',lien:'/admin/marketing'},
  territoire:{nom:'Étude des départements',equipe:'territoire',heure:'7 h (heure de Paris, 6 h en hiver)',lien:'/admin/territoire'},
+ // 27/09 (audit sécurité) : la suppression physique des fichiers purgés ne
+ // dépend plus d'un clic dans Journaux ; elle suit la purge nocturne de pg_cron.
+ purge:{nom:'Suppression des fichiers purgés',equipe:'conformite',heure:'5 h 40 (heure de Paris, 4 h 40 en hiver)',lien:'/admin/journaux'},
 } as const satisfies Record<string,{nom:string;equipe:Equipe;heure:string;lien:string}>;
 export type Mission=keyof typeof MISSIONS;
 export function estMission(cle:string):cle is Mission{return Object.hasOwn(MISSIONS,cle);}
@@ -33,8 +36,9 @@ export function estMission(cle:string):cle is Mission{return Object.hasOwn(MISSI
 export const TACHES_SUIVIES={
  ...Object.fromEntries((Object.keys(MISSIONS) as Mission[]).map(m=>[m,{nom:MISSIONS[m].nom,equipe:MISSIONS[m].equipe}])),
  orchestrateur:{nom:'Suivi des dossiers',equipe:'exploitation'},
- // La sauvegarde hebdomadaire (chantier GitHub, 25/09) consigne son passage comme les autres.
- sauvegarde:{nom:'Sauvegarde hebdomadaire',equipe:'conformite'},
+ // La sauvegarde (chantier GitHub, 25/09 ; quotidienne depuis le 27/09, RPO 24 h)
+ // consigne son passage comme les autres.
+ sauvegarde:{nom:'Sauvegarde quotidienne',equipe:'conformite'},
 } as Record<Mission|'orchestrateur'|'sauvegarde',{nom:string;equipe:Equipe}>;
 export type TacheSuivie=keyof typeof TACHES_SUIVIES;
 export function estTacheSuivie(cle:string):cle is TacheSuivie{return Object.hasOwn(TACHES_SUIVIES,cle);}

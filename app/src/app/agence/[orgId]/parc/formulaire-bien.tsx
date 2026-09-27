@@ -280,18 +280,21 @@ export function FormulaireBien({
               maxLength={300}
               required
               defaultValue={etat.valeurs?.parties_communes ?? bien?.parties_communes ?? ""}
-              placeholder="Hall, ascenseur, local vélos…"
+              // Une maison ou un parking n'en a pas (audit du 27/09) : la
+              // clause du bail accepte « Néant », on le dit.
+              placeholder="Hall, ascenseur… ou « Néant » (maison)"
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bien-acces-tic">Accès TIC *</Label>
+            {/* « TIC » seul était du jargon (audit du 27/09). */}
+            <Label htmlFor="bien-acces-tic">Accès internet, téléphone, TV (TIC) *</Label>
             <Input
               id="bien-acces-tic"
               name="acces_tic"
               maxLength={200}
               required
               defaultValue={etat.valeurs?.acces_tic ?? bien?.acces_tic ?? ""}
-              placeholder="Fibre optique, TNT…"
+              placeholder="Fibre optique, TNT… ou « Néant »"
             />
           </div>
         </div>

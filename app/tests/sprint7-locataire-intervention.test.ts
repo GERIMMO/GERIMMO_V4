@@ -333,15 +333,24 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
     expect(s.arbitrage).toBe(false);
   });
 
-  it("le locataire choisit : le rendez-vous est fixé, les autres tombent", async () => {
-    // L'artisan reprend la main et propose à nouveau (deuxième tour).
+  it("l'artisan retient une date du locataire : le rendez-vous est fixé, les autres tombent", async () => {
+    // Audit du 27/09 — A5 (Planification d'intervention) : « contre-proposé →
+    // confirmé ou arbitrage (refus artisan) ». L'artisan ne repropose plus
+    // par-dessus les dates du locataire (elles tombaient caduques sans avoir
+    // été lues) : il en retient une, ou les refuse et le gérant arbitre.
     await agir(cptArtisan);
-    await db.query(`select public.proposer_creneaux($1,$2::jsonb)`, [
-      intervention, creneauxA([12, 13, 14]),
-    ]);
-    await agir(cptLoc);
-    const { rows } = await db.query(`select * from public.mes_creneaux_locataire($1)`, [org]);
-    await db.query(`select public.choisir_creneau($1,$2)`, [org, rows[0].creneau_id]);
+    await expect(
+      essai(`select public.proposer_creneaux($1,$2::jsonb)`, [
+        intervention, creneauxA([12, 13, 14]),
+      ])
+    ).rejects.toThrow(/Le locataire vous a proposé des dates/);
+    const { rows } = await db.query(
+      `select creneau_id from public.mes_creneaux_artisan($1)
+        where propose_par = 'locataire' order by debut`,
+      [intervention]
+    );
+    expect(rows).toHaveLength(3);
+    await db.query(`select public.accepter_creneau_locataire($1)`, [rows[0].creneau_id]);
 
     const s = await suiviDe(cptLoc);
     expect(s.etape).toBe("planifiee");
@@ -388,6 +397,11 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
     expect((await suiviDe(cptLoc)).etape).toBe("en_cours");
 
     await agir(cptArtisan);
+    // Dépôt Storage par l'artisan d'abord (audit sécurité du 27/09).
+    await db.query(
+      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,
+      [`${org}/incidents/apres.jpg`]
+    );
     await db.query(
       `select public.deposer_photo_intervention($1,'apres',$2,'image/jpeg',1000,'emp-apres')`,
       [intervention, `${org}/incidents/apres.jpg`]
@@ -593,6 +607,11 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
     );
     await agir(cptArtisan);
     const chemin = `${org}/devis/${sollicitation}.pdf`;
+    // Dépôt Storage par l'artisan d'abord (audit sécurité du 27/09).
+    await db.query(
+      `insert into storage.objects (bucket_id, name, owner) values ('documents', $1, (select auth.uid()))`,
+      [chemin]
+    );
     await db.query(
       `select public.deposer_devis_structure($1::uuid, jsonb_build_array(jsonb_build_object('libelle','Travaux','quantite',1,'prix_unitaire_ht_cents',99900,'tva_bps',0)), 'Diagnostic de test', 'Devis détaillé', 'Sous 7 jours', 'Une journée', null, null, null, $2,
          'application/pdf', 2000, $3)`,

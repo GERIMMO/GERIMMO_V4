@@ -35,6 +35,25 @@ const lireMarqueLocataire = cache(async function lireMarqueLocataire(): Promise<
   return chargerMarque(supabase, adhesions[0].organization_id);
 });
 
+// L'espace locataire de la personne, quand elle n'en a qu'un et n'est que
+// locataire (audit du 27/09) : « Mes espaces » lui coûtait un clic de plus
+// pour revenir chez elle.
+const lireEspaceLocataire = cache(async function lireEspaceLocataire(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("memberships")
+    .select("role, organization_id")
+    .eq("account_id", user.id)
+    .eq("status", "active");
+  const adhesions = (data ?? []) as { role: string; organization_id: string }[];
+  if (error || adhesions.length !== 1 || adhesions[0].role !== "locataire") return null;
+  return adhesions[0].organization_id;
+});
+
 export async function generateMetadata(): Promise<Metadata> {
   const marque = await lireMarqueLocataire();
   return { title: marque ? `Sécurité du compte — ${nomMarque(marque)}` : "Sécurité du compte — Gerimmo" };
@@ -72,6 +91,12 @@ export default async function PageCompte() {
     .limit(1)
     .maybeSingle();
   const marque = await lireMarqueLocataire();
+  // Audit 27/09 : l'artisan n'a pas de « gestionnaire », et la barre de son
+  // portail disparaît ici. On lui parle de sa situation, et on lui rend le
+  // chemin de son portail.
+  const { data: ficheArtisan } = await supabase.rpc("mon_artisan");
+  const estArtisan = ((ficheArtisan ?? []) as unknown[]).length > 0;
+  const espaceLocataire = await lireEspaceLocataire();
 
   return (
     <div className="flex min-h-full flex-1 flex-col" style={styleMarque(marque)}>
@@ -79,13 +104,25 @@ export default async function PageCompte() {
         {/* Les deux liens ne se coupent pas sur deux lignes à 390 px (25/09,
             D28) : ils restent d'un tenant, c'est la marque qui cède la place. */}
         <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3 sm:px-7">
-          <div className="min-w-0 max-w-[180px]">
+          {/* overflow-hidden : à 390 px, la marque débordait de sa boîte et
+              touchait « Mes espaces » (audit du 27/09). */}
+          <div className="min-w-0 max-w-[180px] overflow-hidden">
             {marque ? <MarqueOrganisation marque={marque} /> : <MarqueGerimmo />}
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <Link href="/espaces" className="lien-bandeau whitespace-nowrap">
-              Mes espaces
-            </Link>
+            {estArtisan ? (
+              <Link href="/artisan" className="lien-bandeau whitespace-nowrap">
+                ← Espace artisan
+              </Link>
+            ) : espaceLocataire ? (
+              <Link href={`/locataire/${espaceLocataire}`} className="lien-bandeau whitespace-nowrap">
+                ← Mon espace
+              </Link>
+            ) : (
+              <Link href="/espaces" className="lien-bandeau whitespace-nowrap">
+                Mes espaces
+              </Link>
+            )}
             <form action={seDeconnecter}>
               <button type="submit" className="lien-bandeau whitespace-nowrap">
                 Se déconnecter
@@ -116,9 +153,9 @@ export default async function PageCompte() {
             </div>
           </dl>
           <p className="mesure-lecture mt-3 text-sm text-muted-foreground">
-            L’adresse de connexion ne se change pas depuis cet écran : elle
-            identifie votre compte dans toutes vos organisations. Demandez-la à
-            votre gestionnaire, ou à l’assistance pour un compte propriétaire.
+            {estArtisan
+              ? "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte auprès de toutes les agences. Pour la modifier, écrivez-nous depuis Aide et retours."
+              : "L’adresse de connexion ne se change pas depuis cet écran : elle identifie votre compte dans toutes vos organisations. Demandez-la à votre gestionnaire, ou à l’assistance pour un compte propriétaire."}
           </p>
         </div>
 
@@ -135,6 +172,46 @@ export default async function PageCompte() {
         </div>
 
         <SecondFacteur obligatoire={Boolean(supervision)} />
+
+        {/* Mes données personnelles (audit du 27/09) : aucun chemin vers la
+            politique de confidentialité ni vers l'exercice des droits depuis
+            les espaces. [[RGPD]] : pour les données de gestion locative,
+            c'est le gestionnaire qui répond aux demandes et décide de
+            l'effacement (Gerimmo est son sous-traitant) ; pour le compte
+            lui-même, l'assistance. */}
+        <div className="loc-carte" id="donnees-personnelles">
+          <div className="entete-carte">
+            <h3>Mes données personnelles</h3>
+          </div>
+          <p className="mesure-lecture text-sm text-muted-foreground">
+            Vous pouvez demander à consulter vos données, à les recevoir, à les faire
+            corriger ou à faire effacer les pièces de votre dossier.{" "}
+            {espaceLocataire ? (
+              <>
+                Pour tout ce qui concerne votre location, écrivez à votre gestionnaire
+                depuis{" "}
+                <Link href={`/locataire/${espaceLocataire}/contact`} className="lien-discret">
+                  Mon gestionnaire
+                </Link>{" "}
+                : c&apos;est lui qui y répond, sous 30 jours.
+              </>
+            ) : (
+              <>
+                Pour les données d&apos;une location, adressez-vous à son gestionnaire ;
+                pour votre compte, écrivez-nous depuis{" "}
+                <Link href="/assistance" className="lien-discret">
+                  Aide et retours
+                </Link>
+                .
+              </>
+            )}
+          </p>
+          <p className="mt-2 text-sm">
+            <Link href="/confidentialite" className="lien-discret">
+              Lire la politique de confidentialité
+            </Link>
+          </p>
+        </div>
 
         <p className="text-sm text-muted-foreground">
           Mot de passe perdu et session fermée ? Il reste{" "}

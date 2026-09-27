@@ -35,7 +35,12 @@ for (const persona of PERSONAS) {
       const erreursPage: string[] = [];
       page.on("pageerror", (e) => erreursPage.push(e.message.slice(0, 300)));
       page.on("console", (m) => {
-        if (m.type() === "error") erreursConsole.push(m.text().slice(0, 300));
+        // Le document d'une quittance s'affiche dans un cadre isolé SANS
+        // scripts (27/09) : ce que l'outillage du navigateur tente d'y injecter
+        // est refusé, et Chrome le dit. C'est la protection voulue, pas une panne.
+        if (m.type() === "error" && !m.text().startsWith("Blocked script execution in 'about:srcdoc'")) {
+          erreursConsole.push(m.text().slice(0, 300));
+        }
       });
       const slug = ecran.path.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "racine";
       try {
@@ -85,7 +90,7 @@ for (const persona of PERSONAS) {
             titre: document.title,
             h1,
             // Un 404 App Router répond 200 : on le détecte au contenu
-            soft404: h1 === "404" || document.body.innerText.includes("could not be found"),
+            soft404: h1 === "404" || h1 === "Cette page est introuvable" || document.body.innerText.includes("could not be found"),
           };
         });
         await page.screenshot({ path: path.join(dossier, `${slug}.png`), fullPage: true });

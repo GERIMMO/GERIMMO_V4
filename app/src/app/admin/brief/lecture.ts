@@ -18,7 +18,7 @@ function decision(d: Record<string, unknown>): DecisionAffichee {
   const reco = typeof d.recommandation === "string" ? d.recommandation : null;
   const validation = gestes.validation === true, refus = gestes.refus === true;
   return {
-    id: String(d.id), titre: String(d.titre ?? ""), pourquoi: String(d.pourquoi ?? ""), options, recommandation: reco,
+    id: String(d.id), cle: String(d.cle ?? ""), titre: String(d.titre ?? ""), pourquoi: String(d.pourquoi ?? ""), options, recommandation: reco,
     lien: typeof d.lien === "string" ? d.lien : null, statut: String(d.statut ?? "en_attente"), motif: typeof d.motif === "string" ? d.motif : null,
     decide_le: typeof d.decide_le === "string" ? d.decide_le : null, validation, refus,
     attestation: typeof gestes.attestation === "string" ? gestes.attestation : null,

@@ -21,7 +21,9 @@ const PLAFOND = Number(process.env.E2E_A11Y_PAGES ?? 14);
 
 // Routes qui rendent un FICHIER (PDF, CSV) : rien à auditer, et le
 // téléchargement interrompt la navigation.
-const FICHIERS = /\/(quittance-pdf|document|export|telecharger|api)(\/|\?)|\/fichier(\?|$)/;
+// `?imprimer=1` ouvre la feuille d'impression : un geste de fichier, comme un export.
+const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+const FICHIERS = /\/(quittance-pdf|document|export|telecharger|api)(\/|\?)|\/fichier(\?|$)|[?&]imprimer=1/;
 
 const ESPACES = [
   { persona: "admin" as const, depart: "/espaces" },
@@ -131,13 +133,32 @@ async function parcourir(browser: Browser, persona: string | null, depart: strin
     const { manques, liens } = await page.evaluate(RELEVE);
     for (const m of manques) sansNom.push({ chemin: reel, persona: qui, ...m });
 
-    const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
-    for (const v of axe.violations) {
-      if (!["serious", "critical"].includes(v.impact ?? "")) continue;
-      violations.push({
-        chemin: reel, persona: qui, regle: v.id, impact: v.impact ?? "",
-        ou: v.nodes[0]?.target.join(" ") ?? "", nb: v.nodes.length,
-      });
+    // Un document affiché dans un cadre isolé SANS scripts (la quittance,
+    // 27/09) : axe ne peut pas s'y exécuter, et le navigateur de la CI attend
+    // indéfiniment un contexte qui ne viendra jamais. On sort le document du
+    // cadre et on l'analyse seul, dans une page à part : il reste contrôlé.
+    const documents = await page.$$eval("iframe[sandbox][srcdoc]", (cadres) =>
+      cadres.map((c) => {
+        const html = c.getAttribute("srcdoc") ?? "";
+        c.remove();
+        return html;
+      }),
+    );
+    const analyses = [{ ou: reel, resultat: await new AxeBuilder({ page }).withTags(TAGS).analyze() }];
+    for (const html of documents) {
+      const seul = await context.newPage();
+      await seul.setContent(html);
+      analyses.push({ ou: `${reel} (document)`, resultat: await new AxeBuilder({ page: seul }).withTags(TAGS).analyze() });
+      await seul.close();
+    }
+    for (const { ou: chemin, resultat } of analyses) {
+      for (const v of resultat.violations) {
+        if (!["serious", "critical"].includes(v.impact ?? "")) continue;
+        violations.push({
+          chemin, persona: qui, regle: v.id, impact: v.impact ?? "",
+          ou: v.nodes[0]?.target.join(" ") ?? "", nb: v.nodes.length,
+        });
+      }
     }
     for (const l of liens) {
       if (!l?.startsWith("/") || l.startsWith("//")) continue;

@@ -25,13 +25,23 @@ async function compte(db: Client, superAdmin = false) {
   return utilisateur.id as string;
 }
 
-async function fiche(db: Client, siretVerifie = false) {
+async function fiche(db: Client, siretVerifie = false, assurance = true) {
   const { rows: [artisan] } = await db.query(
     `insert into public.artisans (raison_sociale, siret, telephone, siret_etat)
      values ('Artisan recette supervision', $1, '0600000000', $2) returning id`,
     [String(randomInt(10_000_000_000_000, 100_000_000_000_000)), siretVerifie ? "verifie" : "non_verifie"]
   );
+  // Audit console 27/09 : une validation exige une décennale ou une RC pro en cours.
+  if (assurance) await piece(db, artisan.id, "rc_pro");
   return artisan.id as string;
+}
+
+async function piece(db: Client, artisan: string, type: "rc_pro" | "decennale", expireLe = "2099-12-31") {
+  await db.query(
+    `insert into public.artisan_pieces (artisan_id, type, storage_path, mime_type, taille_octets, empreinte, expire_le)
+     values ($1::uuid, $2::public.artisan_piece_type, 'artisans/' || $1::text || '/' || gen_random_uuid() || '.pdf', 'application/pdf', 100, gen_random_uuid()::text, $3::date)`,
+    [artisan, type, expireLe]
+  );
 }
 
 async function agir(db: Client, utilisateur: string) {
@@ -116,6 +126,37 @@ describe.skipIf(!DB_URL)("Supervision artisan — décisions atomiques", () => {
     expect(a).toEqual({ statut_plateforme: "valide", visibilite: "privee" });
     const { rows: decisions } = await db.query("select decision from public.artisan_validations where artisan_id=$1", [artisan]);
     expect(decisions.map((r) => r.decision)).toEqual(["validation"]);
+  });
+
+  it("refuse une validation sans décennale ni RC pro en cours (audit console 27/09)", async () => {
+    const sansAssurance = await fiche(db, true, false);
+    await agir(db, sa);
+    await expect(essai(db, [sansAssurance, "validation", null, false, true])).rejects.toThrow(/sans décennale ni RC pro/);
+    await db.query("reset role");
+    await piece(db, sansAssurance, "rc_pro", "2020-01-01");
+    await agir(db, sa);
+    await expect(essai(db, [sansAssurance, "validation", null, false, true])).rejects.toThrow(/sans décennale ni RC pro/);
+    await db.query("reset role");
+    await piece(db, sansAssurance, "decennale");
+    await agir(db, sa);
+    await db.query(APPEL, [sansAssurance, "validation", null, false, true]);
+    const { rows: [a] } = await db.query("select statut_plateforme from public.artisans where id=$1", [sansAssurance]);
+    expect(a.statut_plateforme).toBe("valide");
+  });
+
+  it("suspend une validation avec motif, la remet à examiner et le trace (audit console 27/09)", async () => {
+    await agir(db, sa);
+    await db.query(APPEL, [artisan, "verifier_siret", null, true, false]);
+    await expect(essai(db, [artisan, "suspension", "Pièces échues", false, false])).rejects.toThrow(/déjà changé d’état/);
+    await db.query(APPEL, [artisan, "validation", null, false, true]);
+    await expect(essai(db, [artisan, "suspension", "  ", false, false])).rejects.toThrow(/motif objectif/);
+    await db.query(APPEL, [artisan, "suspension", "Décennale échue", false, false]);
+    const { rows: [a] } = await db.query("select statut_plateforme, statut_motif from public.artisans where id=$1", [artisan]);
+    expect(a).toEqual({ statut_plateforme: "en_attente", statut_motif: "Décennale échue" });
+    const { rows: decisions } = await db.query("select decision from public.artisan_validations where artisan_id=$1 order by created_at", [artisan]);
+    expect(decisions.map((r) => r.decision)).toEqual(["validation", "suspension"]);
+    const { rows: traces } = await db.query("select details->>'operation_demandee' as op from public.audit_log where details->>'artisan_id'=$1 order by created_at", [artisan]);
+    expect(traces.map((r) => r.op)).toContain("suspension");
   });
 
   it("motive le refus, empêche une décision périmée et permet son réexamen explicite", async () => {

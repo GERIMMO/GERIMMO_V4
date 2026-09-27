@@ -32,7 +32,7 @@ test("créer un bien depuis le téléphone : formulaire → fiche du parc", asyn
   await page.getByLabel("Ville").fill("Lyon");
   await page.getByLabel(/Année de construction/).fill("2005");
   await page.getByLabel(/Parties communes/).fill("Hall et cour intérieure");
-  await page.getByLabel(/Accès TIC/).fill("Fibre optique et TNT");
+  await page.getByLabel(/\(TIC\)/).fill("Fibre optique et TNT");
   await page.getByLabel(/Surface.*m²/).fill("51");
   await page.getByLabel("Nombre de pièces").fill("3");
   await page.getByRole("button", { name: /Créer le bien/ }).click();
@@ -46,7 +46,7 @@ test("créer, ouvrir, fermer puis traiter une alerte au doigt", async ({ page })
   await page.goto(`/agence/${orgId}/alertes`);
   const titre = `E2E alerte à vérifier ${Date.now()}`;
   await page.getByRole("textbox", { name: "Titre", exact: true }).fill(titre);
-  await page.getByRole("combobox", { name: "Confier à", exact: true }).selectOption({ label: "Tout le monde" });
+  await page.getByRole("combobox", { name: "Confier à", exact: true }).selectOption({ label: "Toute l’agence" });
   await page.getByRole("button", { name: "Créer l'alerte", exact: true }).click();
   const rang = page.locator('.rang-alerte').filter({ hasText: titre });
   const traiter = rang.getByRole("button", { name: "Traiter", exact: true });

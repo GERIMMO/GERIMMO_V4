@@ -88,7 +88,7 @@ for (const [persona, email, prefixe] of COMPTES) {
           titre: document.querySelector("h1")?.textContent?.trim() || null,
           debordement: Math.max(0, root.scrollWidth - innerWidth),
           photos, fondsPhotos, commandes, liens,
-          soft404: document.body.innerText.includes("could not be found") || document.querySelector("h1")?.textContent?.trim() === "404",
+          soft404: document.body.innerText.includes("could not be found") || ["404", "Cette page est introuvable"].includes(document.querySelector("h1")?.textContent?.trim() ?? ""),
         };
       });
       const essais = [];

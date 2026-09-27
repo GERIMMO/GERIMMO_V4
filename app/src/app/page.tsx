@@ -3,6 +3,7 @@ import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { FormulaireDevisVitrine } from "./formulaire-devis-vitrine";
+import { AncreAuChargement } from "@/components/ancre-au-chargement";
 import {
   ApercuTableauDeBord,
   ApercuQuittance,
@@ -470,7 +471,10 @@ export default async function PageVitrine() {
         </section>
 
         {/* --------------------------------------------------- Devis agences */}
-        <section id="agences" className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-7 sm:pb-24">
+        {/* scroll-mt : le titre ne passe plus sous le bandeau collant quand on
+            arrive par /#agences (audit du 27/09). */}
+        <AncreAuChargement />
+        <section id="agences" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 pb-16 sm:px-7 sm:pb-24">
           <div className="vitrine-bandeau">
             <div className="grid gap-10 lg:grid-cols-[1fr_1.2fr]">
               <div>

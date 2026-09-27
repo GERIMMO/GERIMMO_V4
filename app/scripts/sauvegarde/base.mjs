@@ -41,10 +41,16 @@ export function argumentsConnexion(chaine) {
   return { args, env };
 }
 
-/** Lance pg_dump et rend son flux complet en mémoire (format custom, sans propriétaires ni droits). */
-export function lancerPgDump({ args, env }, commande = 'pg_dump', schemas = SCHEMAS) {
+/**
+ * Lance pg_dump et rend son flux complet en mémoire (format custom, sans
+ * propriétaires). LES DROITS SONT SAUVEGARDÉS (audit 27/09) : toute la défense
+ * repose sur des GRANT/REVOKE (fonctions fermées à anon, droits de colonnes).
+ * Un dump `--no-privileges` restauré rendait à chaque fonction le droit
+ * EXECUTE par défaut de PUBLIC — donc à anon. `--no-privileges` est retiré.
+ */
+export function lancerPgDump({ args, env }, commande = 'pg_dump', schemas = SCHEMAS, extras = []) {
   return new Promise((resoudre, rejeter) => {
-    const complet = ['--format=custom', '--no-owner', '--no-privileges', '--no-comments', ...schemas.flatMap(s => ['--schema', s]), ...args];
+    const complet = ['--format=custom', '--no-owner', '--no-comments', ...extras, ...schemas.flatMap(s => ['--schema', s]), ...args];
     const enfant = spawn(commande, complet, { env: { PATH: process.env.PATH, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
     const morceaux = []; let taille = 0; let erreurs = '';
     enfant.stdout.on('data', m => { taille += m.length; if (taille > LIMITE) { enfant.kill(); rejeter(new Error('Export trop volumineux : traitement spécifique nécessaire.')); } morceaux.push(m); });
@@ -61,7 +67,10 @@ export function lancerPgDump({ args, env }, commande = 'pg_dump', schemas = SCHE
 export async function exporter(dossier, cle, connexion, options = {}) {
   await fs.mkdir(dossier, { mode: 0o700 });
   let octets;
-  try { octets = await lancerPgDump(argumentsConnexion(connexion), options.commande, options.schemas); }
+  // `snapshot` (exercice de restauration) : l'export lit exactement l'instantané
+  // qu'une autre session a exporté, pour comparer source et copie sans course.
+  const extras = options.snapshot ? [`--snapshot=${options.snapshot}`] : [];
+  try { octets = await lancerPgDump(argumentsConnexion(connexion), options.commande, options.schemas, extras); }
   catch (e) { await fs.rmdir(dossier).catch(() => {}); throw e; }
   if (octets.length < 64) throw new Error('Export vide : rien n’a été écrit.');
   await fs.writeFile(path.join(dossier, 'base.dump.gcm'), chiffrer(octets, cle), { mode: 0o600, flag: 'wx' });

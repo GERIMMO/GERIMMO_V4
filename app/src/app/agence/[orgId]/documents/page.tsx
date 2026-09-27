@@ -219,7 +219,9 @@ export default async function PageDocuments(
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-7">
+    // Même gabarit que les autres écrans de l'espace (audit 27/09 : en
+    // max-w-6xl, le titre partait 12 px plus à gauche que partout ailleurs).
+    <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
       {/* L'en-tête standard de l'espace (tour du 24/09) : le titre, la
           mention, l'action — sans fil d'Ariane, Documents est une page de
           premier niveau et le menu dit déjà où l'on est. Même ordre

@@ -8,6 +8,7 @@
  * centime de la somme « loyer + charges » affichée sur la quittance.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -69,7 +70,8 @@ describe.skipIf(!DB_URL)("Prorata du premier loyer", () => {
   }
 
   async function appelDuPremierMois(debut: string, loyer: number, charges: number, lotId = lot) {
-    const { rows: [b] } = await db.query(
+    const { rows: [b] } = await requeteProprietaire(
+      db,
       `insert into public.baux (organization_id, lot_id, locataire_principal, loyer_hc, charges, date_debut, etat)
        values ($1,$2,$3,$4,$5,$6,'actif') returning id`,
       [orgA, lotId, locataire, loyer, charges, debut]);

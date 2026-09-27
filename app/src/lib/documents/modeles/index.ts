@@ -36,6 +36,8 @@ export type Assemblage =
       titreGed: string;
       nomFichier: string;
       liens: LienDocument[];
+      /** Alerte non bloquante à montrer au gérant après la génération. */
+      avertissement?: string;
     }
   | { erreur: string };
 

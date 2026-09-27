@@ -16,7 +16,7 @@
 // (30 jours et 2 000 lignes ici, 200 lignes sans fenêtre là) et n'affichaient
 // pas le même nombre de « points bloquants ».
 
-import { TACHES_SUIVIES, type Equipe } from "./missions";
+import { MISSIONS, TACHES_SUIVIES, estMission, type Equipe } from "./missions";
 
 export type Etat = "ok" | "attention" | "manque";
 
@@ -42,6 +42,13 @@ export type Verification = {
    * le crédit du compte IA se recharge, il ne se configure pas).
    */
   commande?: string;
+  /**
+   * Faux pour une ligne qui n'est pas une connexion à poser (le crédit du
+   * compte IA) : elle ne compte pas dans « Connexions indispensables ».
+   */
+  estConnexion?: boolean;
+  /** Vrai quand la variable n'est pas posée et qu'une valeur de repli s'applique. */
+  absente?: boolean;
 };
 
 const PRESTATAIRE_PAR_CLE: Record<string, Prestataire> = {
@@ -87,6 +94,8 @@ const LIBELLES_BILAN: Record<string, string> = {
   sources: "sources consultées",
   rapports_prepares: "comptes rendus préparés",
   ignores: "actions sans suite nécessaire",
+  bloques: "fichiers en attente depuis plus de 48 h",
+  en_attente: "fichiers encore en file",
 };
 
 function valeurBilan(cle: string, valeur: unknown): string | null {
@@ -171,6 +180,7 @@ export function etatConfiguration(env: Env): Verification[] {
       : domaine === "resend.dev"
         ? "manque"
         : "ok",
+    absente: !expediteur,
     detail: !expediteur
       ? "repli sur no-reply@gerimmo.app — le domaine doit être vérifié chez Resend"
       : domaine === "resend.dev"
@@ -286,24 +296,26 @@ const ROLES: Record<keyof typeof TACHES_SUIVIES, [role: string, horaire: string]
   veille: ["Collecte les actualités officielles et prépare leur étude", "Chaque matin"],
   marketing: ["Prépare et diffuse les contenus autorisés", "Chaque matin"],
   territoire: ["Actualise le marché et prépare la prochaine priorité territoriale", "Chaque matin"],
-  sauvegarde: ["Copie chiffrée de la base et des fichiers chez Scaleway, relue après dépôt (chantier GitHub)", "Chaque dimanche"],
+  purge: ["Supprime du stockage les fichiers dont la durée de conservation est échue", "Chaque nuit"],
+  sauvegarde: ["Copie chiffrée de la base et des fichiers chez Scaleway, relue après dépôt (chantier GitHub)", "Chaque nuit"],
 };
 
 /**
- * Les dix tâches de `vercel.json`, dans l'ordre de la journée. Le nom vient de
+ * Les tâches de `vercel.json` (et la sauvegarde GitHub), dans l’ordre de la journée. Le nom vient de
  * la table partagée (25/09) : Santé disait « Relances d'impayé » là où Équipes
  * disait « Relances de loyers ».
  */
 export const TACHES: Tache[] = (
-  ["orchestrateur", "signatures", "abonnements", "rappels", "quittances", "appels", "relances", "veille", "marketing", "territoire", "sauvegarde"] as const
+  ["orchestrateur", "signatures", "purge", "abonnements", "rappels", "quittances", "appels", "relances", "veille", "marketing", "territoire", "sauvegarde"] as const
 ).map((nom) => ({
   nom,
   libelle: TACHES_SUIVIES[nom].nom,
   equipe: TACHES_SUIVIES[nom].equipe,
   role: ROLES[nom][0],
   horaire: ROLES[nom][1],
-  // La sauvegarde ne tourne pas sur Vercel : hebdomadaire, relançable depuis GitHub seulement.
-  periodicite: nom === "sauvegarde" ? ("hebdomadaire" as const) : ("quotidienne" as const),
+  // La sauvegarde ne tourne pas sur Vercel : relançable depuis GitHub seulement.
+  // Quotidienne depuis le 27/09 (RPO 24 h, Plan de reprise d'activité).
+  periodicite: "quotidienne" as const,
   commandable: nom !== "orchestrateur" && nom !== "sauvegarde",
 }));
 
@@ -311,7 +323,9 @@ export const TACHES: Tache[] = (
 // sert n'est pas relié (Stripe absent, Youtrust en sandbox). Ce n'est pas un
 // échec ni une absence d'exécution : la ligne de configuration le dit déjà,
 // et elle seule compte dans les points bloquants.
-export type EtatTache = "ok" | "echec" | "retard" | "jamais" | "non_configuree";
+// « pause » (audit console 27/09) : la mission est mise en pause dans « Travail
+// des équipes » ; son absence de passage n'est pas une alerte.
+export type EtatTache = "ok" | "echec" | "retard" | "jamais" | "non_configuree" | "pause";
 
 export type PasseDeTache = Tache & {
   etat: EtatTache;
@@ -357,13 +371,33 @@ export function resumerBilan(bilan: unknown, tache?: string): string {
  * L'état de chaque tâche à partir de sa dernière passe consignée
  * (`dernieresTaches`, lib/tache.ts) et de l'instant présent.
  */
+export type DernierPassage = {
+  le: string;
+  bilan: unknown;
+  /** L'état du passage (`agent_passages`) quand la tâche est une mission. */
+  etatPassage?: string;
+  /** Le passage « en cours » a dépassé son délai : il est à vérifier. */
+  expire?: boolean;
+  /** Le texte du bilan déjà calculé (`bilanLisible`), pour ne pas le refaire. */
+  texte?: string;
+};
+
 export function etatTaches(
-  dernieres: Record<string, { le: string; bilan: unknown }>,
-  maintenant: Date
+  dernieres: Record<string, DernierPassage>,
+  maintenant: Date,
+  enPause: ReadonlySet<string> = new Set()
 ): PasseDeTache[] {
   return TACHES.map((t) => {
     const d = dernieres[t.nom];
-    if (!d) return { ...t, etat: "jamais", le: null, bilan: "aucune passe consignée" };
+    if (enPause.has(t.nom)) {
+      return { ...t, etat: "pause", le: d?.le ?? null, bilan: d ? d.texte ?? resumerBilan(d.bilan, t.nom) : "aucun passage enregistré" };
+    }
+    if (!d) return { ...t, etat: "jamais", le: null, bilan: "aucun passage enregistré" };
+    // Un passage interrompu, à reprendre ou resté « en cours » au-delà de son
+    // délai est un échec, quel que soit son bilan.
+    if (d.etatPassage === "a_reprendre" || d.etatPassage === "interrompu" || d.expire) {
+      return { ...t, etat: "echec", le: d.le, bilan: `${d.expire ? "passage resté en cours, à vérifier" : d.etatPassage === "interrompu" ? "passage interrompu" : "passage à vérifier"} — ${d.texte ?? resumerBilan(d.bilan, t.nom)}` };
+    }
     const bilan = d.bilan as Record<string, unknown> | null;
     const enEchec = Boolean(bilan && typeof bilan === "object" && Object.entries(bilan).some(([cle, valeur]) => {
       if (!/(^|_)(erreur|echec)s?$/.test(cle)) return false;
@@ -382,7 +416,7 @@ export function etatTaches(
       };
     }
     const etat: EtatTache = enEchec ? "echec" : age > MARGES[t.periodicite] ? "retard" : "ok";
-    return { ...t, etat, le: d.le, bilan: resumerBilan(d.bilan, t.nom) };
+    return { ...t, etat, le: d.le, bilan: d.texte ?? resumerBilan(d.bilan, t.nom) };
   });
 }
 
@@ -421,7 +455,13 @@ export function adoptionAutomatique(orgs: OrganisationPourAdoption[]): Adoption 
 /**
  * Ce que la page de supervision résume en une ligne : combien de points
  * bloquent. Une tâche « non configurée » ne compte pas : sa connexion
- * manquante est déjà comptée par la configuration.
+ * manquante est déjà comptée par la configuration. Une mission en pause ne
+ * compte pas : c'est une décision du superviseur, pas une panne.
+ *
+ * Audit console 27/09 : une tâche quotidienne EN RETARD compte (elle a tourné
+ * une fois puis s'est arrêtée : c'est exactement ce qu'on veut voir le matin),
+ * et une variable manquante ne compte qu'une fois même si deux lignes la
+ * citent (clé OpenAI absente et crédit IA invérifiable).
  */
 export function pointsBloquants(
   configuration: Verification[],
@@ -429,9 +469,8 @@ export function pointsBloquants(
   faitsEditeurManquants: number
 ): number {
   return (
-    configuration.filter((v) => v.etat === "manque").length +
-    // Une sauvegarde en retard est un risque, pas une gêne : elle bloque comme un échec.
-    taches.filter((t) => t.etat === "jamais" || t.etat === "echec" || (t.periodicite === "hebdomadaire" && t.etat === "retard")).length +
+    new Set(configuration.filter((v) => v.etat === "manque").map((v) => v.cle)).size +
+    taches.filter((t) => t.etat === "jamais" || t.etat === "echec" || t.etat === "retard").length +
     (faitsEditeurManquants > 0 ? 1 : 0)
   );
 }
@@ -441,6 +480,7 @@ export function pointsBloquants(
 /** Fenêtre et volume de lecture du journal, identiques pour toutes les pages. */
 export const FENETRE_JOURNAL_HEURES = 30 * 24;
 const LIMITE_JOURNAL = 2000;
+const LIMITE_PASSAGES = 600;
 
 type LigneJournal = { evenement: string; details: unknown; created_at: string };
 
@@ -454,15 +494,54 @@ export type ClientQuiLitLeJournal = { from: (table: string) => unknown };
 type ChaineJournal = {
   select: (colonnes: string) => ChaineJournal;
   like: (colonne: string, motif: string) => ChaineJournal;
+  in: (colonne: string, valeurs: readonly string[]) => ChaineJournal;
+  is: (colonne: string, valeur: null) => ChaineJournal;
   gte: (colonne: string, valeur: string) => ChaineJournal;
   order: (colonne: string, options: { ascending: boolean }) => ChaineJournal;
   limit: (n: number) => PromiseLike<{ data: unknown; error: unknown }>;
 };
 
+// ── Une seule source pour le travail automatique (audit console 27/09) ─────
+// Santé lisait `tech_log tache_*`, « Travail des équipes » lisait
+// `agent_passages` : « aucune exécution » d'un côté, un passage le 25/09 de
+// l'autre, pour la même mission. Désormais une MISSION se lit dans
+// `agent_passages` (la table que `/api/cron/equipes` écrit à chaque passage,
+// avec son bilan), une tâche hors mission (suivi des dossiers, sauvegarde)
+// dans `tech_log`. Un seul seuil (MARGES), une seule fonction de bilan
+// (`bilanLisible`), et la pause lue dans `agent_missions`.
+
+export type PassageDeMission = { mission: string; debut: string; fin: string | null; expiration?: string | null; etat: string; compte: number | null; bilan: unknown };
+
+/** Le bilan d'un passage : celui qu'il a gardé, sinon la ligne de journal de sa tâche pendant le passage. */
+export function bilanDuPassage(p: { mission: string; debut: string; fin: string | null; bilan: unknown }, journaux: LigneJournal[]): unknown {
+  if (p.bilan && typeof p.bilan === "object") return p.bilan;
+  const debut = new Date(p.debut).getTime(), fin = p.fin ? new Date(p.fin).getTime() : debut + HEURE;
+  const ligne = journaux.find((l) => l.evenement === `tache_${p.mission}` && new Date(l.created_at).getTime() >= debut - 1000 && new Date(l.created_at).getTime() <= fin + 60_000);
+  return ligne?.details ?? null;
+}
+
+/** LE texte du bilan d'un passage, le même sur Santé, Équipes et le point du matin. */
+export function bilanLisible(p: PassageDeMission, journaux: LigneJournal[] = []): string {
+  if (p.etat === "en_cours") return "Le résultat sera enregistré à la fin du passage.";
+  const texte = resumerBilan(bilanDuPassage(p, journaux), p.mission);
+  return texte !== "—" ? texte : `${p.compte ?? 0} résultat(s) comptabilisé(s), sans détail conservé`;
+}
+
+/** Le dernier passage de chaque mission (lignes du plus récent au plus ancien). */
+export function derniersPassages(passages: PassageDeMission[], journaux: LigneJournal[], maintenant: Date): Record<string, DernierPassage> {
+  const r: Record<string, DernierPassage> = {};
+  for (const p of passages) {
+    if (p.mission in r) continue;
+    const expire = p.etat === "en_cours" && Boolean(p.expiration) && new Date(p.expiration!).getTime() < maintenant.getTime();
+    r[p.mission] = { le: p.fin ?? p.debut, bilan: bilanDuPassage(p, journaux), etatPassage: p.etat, expire, texte: bilanLisible(p, journaux) };
+  }
+  return r;
+}
+
 /**
- * L'état de chaque tâche, lu du journal — la même requête pour /admin,
- * /admin/brief et /admin/sante (25/09). `null` quand la lecture a échoué :
- * une console qui affiche zéro parce qu'une requête a échoué est pire que pas
+ * L'état de chaque tâche — la même lecture pour /admin, /admin/brief,
+ * /admin/sante et /admin/equipes. `null` quand une lecture a échoué : une
+ * console qui affiche zéro parce qu'une requête a échoué est pire que pas
  * de console.
  */
 export async function chargerEtatTaches(
@@ -470,24 +549,46 @@ export async function chargerEtatTaches(
   maintenant: Date = new Date()
 ): Promise<PasseDeTache[] | null> {
   const depuis = new Date(maintenant.getTime() - FENETRE_JOURNAL_HEURES * HEURE).toISOString();
-  const { data, error } = await (db.from("tech_log") as ChaineJournal)
-    .select("evenement, details, created_at")
-    .like("evenement", "tache_%")
-    .gte("created_at", depuis)
-    .order("created_at", { ascending: false })
-    .limit(LIMITE_JOURNAL);
-  if (error) return null;
-  const dernieres: Record<string, { le: string; bilan: unknown }> = {};
+  const [journal, passages, regles] = await Promise.all([
+    (db.from("tech_log") as ChaineJournal)
+      .select("evenement, details, created_at")
+      .like("evenement", "tache_%")
+      // 27/09 (audit sécurité) : une passe n'est crue que si le service l'a
+      // écrite — une ligne portant un auteur connecté n'est pas un bilan.
+      .is("account_id", null)
+      .gte("created_at", depuis)
+      .order("created_at", { ascending: false })
+      .limit(LIMITE_JOURNAL),
+    // Les passages n'ont pas de fenêtre : une mission muette depuis plus de
+    // trente jours garde son dernier passage (audit console 27/09).
+    (db.from("agent_passages") as ChaineJournal)
+      .select("mission, debut, fin, expiration, etat, compte, bilan")
+      .order("debut", { ascending: false })
+      .limit(LIMITE_PASSAGES),
+    (db.from("agent_missions") as ChaineJournal).select("cle, active") as unknown as PromiseLike<{ data: unknown; error: unknown }>,
+  ]);
+  if (journal.error || passages.error || regles.error) return null;
   // Le générateur de requêtes de Supabase rend `data` sans type utile ici :
   // on ne garde que les lignes de la forme attendue.
-  const lignes = (Array.isArray(data) ? data : []).filter(
+  const lignes = (Array.isArray(journal.data) ? journal.data : []).filter(
     (l): l is LigneJournal => Boolean(l) && typeof l === "object" && typeof (l as LigneJournal).evenement === "string" && typeof (l as LigneJournal).created_at === "string"
   );
+  const dernieres: Record<string, DernierPassage> = {};
   for (const l of lignes) {
     const nom = l.evenement.slice("tache_".length);
+    // Une mission se lit dans ses passages, jamais dans le journal.
+    if (estMission(nom)) continue;
     if (!(nom in dernieres)) dernieres[nom] = { le: l.created_at, bilan: l.details };
   }
-  return etatTaches(dernieres, maintenant);
+  const listePassages = (Array.isArray(passages.data) ? passages.data : []).filter(
+    (p): p is PassageDeMission => Boolean(p) && typeof p === "object" && typeof (p as PassageDeMission).mission === "string" && estMission((p as PassageDeMission).mission)
+  );
+  Object.assign(dernieres, derniersPassages(listePassages, lignes, maintenant));
+  const enPause = new Set(
+    (Array.isArray(regles.data) ? regles.data as { cle: string; active: boolean }[] : [])
+      .filter((r) => r && r.active === false && Object.hasOwn(MISSIONS, r.cle)).map((r) => r.cle)
+  );
+  return etatTaches(dernieres, maintenant, enPause);
 }
 
 // ── Le crédit du compte IA ───────────────────────────────────────────────────
@@ -499,7 +600,20 @@ export async function chargerEtatTaches(
 const EVENEMENTS_IA = ["tache_marketing", "tache_veille", "veille_analyse_echec"] as const;
 const REFUS_CREDIT = /cr[ée]dit|plafond|quota|billing/i;
 
-export function verificationCreditIA(lignes: LigneJournal[]): Verification {
+export function verificationCreditIA(lignes: LigneJournal[], clePosee = true): Verification {
+  // Sans clé, le crédit ne se vérifie pas : la ligne n'est pas verte (audit
+  // console 27/09). Elle ne compte qu'une fois avec la clé manquante.
+  if (!clePosee) {
+    return {
+      cle: "OPENAI_API_KEY",
+      usage: "Crédit du compte IA",
+      etat: "manque",
+      detail: "Invérifiable tant que la clé OpenAI n’est pas posée (ligne ci-dessus).",
+      prestataire: "OpenAI",
+      commande: "Poser d’abord la clé OpenAI : le crédit se vérifiera au passage suivant de la veille ou des publications.",
+      estConnexion: false,
+    };
+  }
   const recentes = lignes
     .filter((l) => (EVENEMENTS_IA as readonly string[]).includes(l.evenement))
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
@@ -517,6 +631,7 @@ export function verificationCreditIA(lignes: LigneJournal[]): Verification {
         : "Aucune tâche IA n’a encore tourné.",
     prestataire: "OpenAI",
     commande: refus ? "Recharger le crédit sur la plateforme OpenAI (Facturation → Add to credit balance), puis « Lancer maintenant » sur la tâche en échec." : undefined,
+    estConnexion: false,
   };
 }
 
@@ -524,10 +639,13 @@ async function lireEvenementsIA(db: ClientQuiLitLeJournal, maintenant: Date): Pr
   const depuis = new Date(maintenant.getTime() - 7 * 24 * HEURE).toISOString();
   const { data, error } = await (db.from("tech_log") as ChaineJournal)
     .select("evenement, details, created_at")
-    .like("evenement", "%")
+    // Les seuls événements IA (audit console 27/09) : un refus OpenAI ne se
+    // noie plus sous 200 erreurs d'écran ou connexions.
+    .in("evenement", EVENEMENTS_IA)
+    .is("account_id", null)
     .gte("created_at", depuis)
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(50);
   if (error) return null;
   return (Array.isArray(data) ? data : []).filter(
     (l): l is LigneJournal => Boolean(l) && typeof l === "object" && typeof (l as LigneJournal).evenement === "string" && typeof (l as LigneJournal).created_at === "string"
@@ -560,7 +678,8 @@ export async function chargerSante(
   maintenant: Date = new Date()
 ): Promise<Sante> {
   const [taches, evenementsIA] = await Promise.all([chargerEtatTaches(db, maintenant), lireEvenementsIA(db, maintenant)]);
-  const configuration = [...etatConfiguration(env), ...(evenementsIA ? [verificationCreditIA(evenementsIA)] : [])];
+  const clePosee = Boolean(valeur(env, "OPENAI_API_KEY") || valeur(env, "OPEN_AI_KEY"));
+  const configuration = [...etatConfiguration(env), ...(evenementsIA ? [verificationCreditIA(evenementsIA, clePosee)] : [])];
   return {
     configuration,
     taches,

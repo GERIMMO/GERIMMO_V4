@@ -139,6 +139,34 @@ export const PRESTATAIRES: readonly Prestataire[] = [
     role: "Assistance rédactionnelle de la supervision (veille réglementaire, brouillons et illustrations du Journal) : textes éditoriaux et actualités publiques, sans donnée de locataire ni de bailleur",
     localisation: "États-Unis (transfert hors UE)",
   },
+  // Audit 27/09 : la sauvegarde quotidienne (.github/workflows/sauvegarde.yml,
+  // docs/sauvegarde-et-restauration.md) fait intervenir deux prestataires que
+  // les pages ne nommaient pas. Le chantier s'exécute sur les machines de
+  // GitHub Actions : la base (pg_dump des schémas public, auth, storage) et
+  // les fichiers y sont exportés PUIS chiffrés (AES-256-GCM, scripts/
+  // sauvegarde/) — ils y passent donc en clair le temps du chiffrement, et
+  // les copies locales sont effacées en fin de passage. La copie chiffrée est
+  // déposée chez Scaleway, région `fr-par` (réglage SCW_REGION du chantier,
+  // fr-par par défaut et choix du porteur du 25/09), conservée 90 jours ; la
+  // clé de chiffrement ne quitte pas les secrets GitHub.
+  {
+    nom: "Scaleway",
+    role: "Stockage de la sauvegarde quotidienne : copie chiffrée (AES-256-GCM) de la base et des fichiers, conservée 90 jours, illisible sans la clé que Scaleway ne détient pas",
+    localisation: "Région fr-par (Paris, France)",
+  },
+  {
+    nom: "GitHub (Actions)",
+    role: "Exécution de la sauvegarde quotidienne : la base et les fichiers transitent par ses machines le temps d'être chiffrés, puis les copies locales sont effacées ; détient la clé de chiffrement des sauvegardes",
+    localisation: "Prestataire établi aux États-Unis (transfert hors UE)",
+  },
+  // Autocomplétion d'adresse de la fiche d'un bien (parc/formulaire-bien.tsx) :
+  // le navigateur envoie le texte de l'adresse tapée à l'API de la Base
+  // Adresse Nationale, admise dans la CSP (next.config.ts) le 27/09.
+  {
+    nom: "Base Adresse Nationale (api-adresse.data.gouv.fr)",
+    role: "Autocomplétion des adresses saisies dans la fiche d'un bien : le texte de l'adresse tapée, rien d'autre",
+    localisation: null,
+  },
   {
     nom: "Meta (Facebook)",
     role: "Publication des articles du Journal sur la page Facebook de Gerimmo : titre, texte et illustration de l'article, sans donnée personnelle",

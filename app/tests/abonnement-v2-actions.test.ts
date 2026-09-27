@@ -132,4 +132,11 @@ describe("confirmations abonnement V2 côté serveur", () => {
     aucunPaiement();
   });
 
+  it("un contrat annulé avec des droits encore payés ne recrée pas un abonnement", async () => {
+    mocks.rpc.mockResolvedValue({ data: { ...contexte, periode_fin: new Date(Date.now() + 86400000).toISOString() }, error: null });
+    mocks.retrieve.mockResolvedValue({ ...souscription, status: "canceled" });
+    expect((await preparerAbonnementV2("org", {}, form({ volume: "1" }))).erreur).toContain("déjà payé");
+    aucunPaiement();
+  });
+
 });

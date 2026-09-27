@@ -65,6 +65,7 @@ export async function preparerAbonnementV2(orgId: string, _etat: EtatAbonnementV
     if (erreurActuel || !actuel) throw new Error("Rechargez la page avant de préparer votre abonnement.");
     const s = etat.stripe_subscription_id ? await stripe.subscriptions.retrieve(etat.stripe_subscription_id) : null;
     const active = s && !["canceled", "incomplete_expired"].includes(s.status) ? s : null;
+    if (!active && s?.status === "canceled" && etat.periode_fin && Date.parse(etat.periode_fin) > Date.now()) throw new Error("Votre accès déjà payé est conservé jusqu’à la fin de la période. Une nouvelle souscription pourra être préparée ensuite.");
     if (active && active.metadata.tarification_version !== VERSION_TARIFICATION) throw new Error("Votre contrat existant nécessite une migration distincte. Aucun changement n’a été fait.");
     if (!annuler && !annulerChangement && active && !["active", "trialing"].includes(active.status)) throw new Error("Régularisez d’abord le paiement de votre abonnement depuis votre espace de facturation.");
     if (!annuler && !annulerChangement && (active?.pending_update || active?.schedule || active?.cancel_at_period_end || etat.changement_programme)) throw new Error("Un changement ou une résiliation est déjà en cours. Il doit être traité avant une nouvelle modification.");
@@ -123,7 +124,11 @@ export async function confirmerAbonnementV2(orgId: string, _etat: EtatAbonnement
     let operationTerminee = false;
     const s = p.stripe_subscription_id ? await stripe.subscriptions.retrieve(p.stripe_subscription_id) : null;
     if (s && empreinteSouscription(s) !== p.empreinte_stripe) throw new Error("Votre abonnement a changé depuis ce récapitulatif. Vérifiez un nouveau montant avant de confirmer.");
-    if (!s && etat.stripe_subscription_id && !["canceled", "incomplete_expired"].includes((await stripe.subscriptions.retrieve(etat.stripe_subscription_id)).status)) throw new Error("Un abonnement existe déjà. Rechargez la page.");
+    if (!s && etat.stripe_subscription_id) {
+      const precedent = await stripe.subscriptions.retrieve(etat.stripe_subscription_id);
+      if (!["canceled", "incomplete_expired"].includes(precedent.status)) throw new Error("Un abonnement existe déjà. Rechargez la page.");
+      if (precedent.status === "canceled" && etat.periode_fin && Date.parse(etat.periode_fin) > Date.now()) throw new Error("La période déjà payée est encore ouverte. Aucune nouvelle souscription n’a été créée.");
+    }
     // Vérifie à nouveau catalogue/taxes et prorata : un réglage externe peut avoir changé.
     const verifie = await lignesTarifV2(stripe, config, p.public_tarif, p.volume_cible, p.periodicite);
     if (JSON.stringify(verifie.lignes) !== JSON.stringify(p.stripe_lignes) || JSON.stringify(verifie.fiscalite) !== JSON.stringify(p.fiscalite)) throw new Error("Les conditions de paiement ont changé. Préparez un nouveau récapitulatif.");

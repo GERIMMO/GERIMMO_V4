@@ -19,7 +19,7 @@ test.describe("Couverture du réseau depuis le bien", () => {
     await page.getByLabel(/Surface.*m²/).fill("42");
     await page.getByLabel("Nombre de pièces").fill("2");
     await page.getByRole("button", { name: /Créer le bien/ }).click();
-    await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+$/);
+    await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
     await page.getByRole("link", { name: "Vérifier les artisans disponibles pour ce bien" }).click();
     await page.getByLabel("Métier recherché", { exact: true }).selectOption("plomberie");
     await page.getByRole("button", { name: "Vérifier pour ce bien" }).click();

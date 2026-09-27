@@ -31,8 +31,11 @@ async function fiche(db: Client, siretVerifie = false, assurance = true) {
      values ('Artisan recette supervision', $1, '0600000000', $2) returning id`,
     [String(randomInt(10_000_000_000_000, 100_000_000_000_000)), siretVerifie ? "verifie" : "non_verifie"]
   );
-  // Audit console 27/09 : une validation exige une décennale ou une RC pro en cours.
-  if (assurance) await piece(db, artisan.id, "rc_pro");
+  // Décision du 27/09 : une validation exige une décennale ET une RC pro en cours.
+  if (assurance) {
+    await piece(db, artisan.id, "rc_pro");
+    await piece(db, artisan.id, "decennale");
+  }
   return artisan.id as string;
 }
 
@@ -128,14 +131,20 @@ describe.skipIf(!DB_URL)("Supervision artisan — décisions atomiques", () => {
     expect(decisions.map((r) => r.decision)).toEqual(["validation"]);
   });
 
-  it("refuse une validation sans décennale ni RC pro en cours (audit console 27/09)", async () => {
+  it("refuse une validation sans les deux assurances en cours (décision du 27/09)", async () => {
     const sansAssurance = await fiche(db, true, false);
     await agir(db, sa);
-    await expect(essai(db, [sansAssurance, "validation", null, false, true])).rejects.toThrow(/sans décennale ni RC pro/);
+    await expect(essai(db, [sansAssurance, "validation", null, false, true])).rejects.toThrow(/il manque la décennale et la RC pro/);
     await db.query("reset role");
-    await piece(db, sansAssurance, "rc_pro", "2020-01-01");
+    await piece(db, sansAssurance, "rc_pro");
     await agir(db, sa);
-    await expect(essai(db, [sansAssurance, "validation", null, false, true])).rejects.toThrow(/sans décennale ni RC pro/);
+    // La RC pro seule ne suffit plus.
+    await expect(essai(db, [sansAssurance, "validation", null, false, true])).rejects.toThrow(/il manque la décennale/);
+    await db.query("reset role");
+    await piece(db, sansAssurance, "decennale", "2020-01-01");
+    await agir(db, sa);
+    // Une décennale échue ne compte pas.
+    await expect(essai(db, [sansAssurance, "validation", null, false, true])).rejects.toThrow(/il manque la décennale/);
     await db.query("reset role");
     await piece(db, sansAssurance, "decennale");
     await agir(db, sa);

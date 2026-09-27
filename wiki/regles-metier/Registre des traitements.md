@@ -96,9 +96,8 @@ qui n'étaient déclarés nulle part :
   établi aux États-Unis.
 - **Scaleway** (Object Storage, région `fr-par`, Paris) — conserve la copie
   **chiffrée**, 90 jours, sans la clé. La copie inclut désormais les droits de
-  la base (GRANT/REVOKE, audit sécurité du 27/09). Écart : le
-  [[Plan de reprise d'activité]] fixe « 30 jours glissants » ; les 90 jours
-  sont une règle de cycle de vie posée par le porteur chez Scaleway.
+  la base (GRANT/REVOKE, audit sécurité du 27/09). Durée de 90 jours actée
+  par le porteur le 27/09 ([[Plan de reprise d'activité]]).
 S'y ajoute la **Base Adresse Nationale** (`api-adresse.data.gouv.fr`), qui
 reçoit le texte des adresses tapées dans la fiche d'un bien (autocomplétion).
 Les trois figurent désormais dans la liste des prestataires des pages légales
@@ -144,7 +143,4 @@ clauses contractuelles types) et, plus tard, **Meta** pour WhatsApp.
 > - **Resend** : localisation et durée de rétention des journaux d'envoi.
 > - **GitHub Actions** (audit sécurité du 27/09) : fondement du transfert hors
 >   UE à établir, ou exécution de la sauvegarde sur une machine européenne.
-> - **Conservation des sauvegardes** : 90 jours chez Scaleway contre
->   « 30 jours glissants » au [[Plan de reprise d'activité]] — à trancher par
->   le porteur (réduire la règle Scaleway ou faire acter 90 jours).
 > - **Validation** : ce brouillon attend la relecture d'un conseil spécialisé.

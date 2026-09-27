@@ -5508,3 +5508,8 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Alerte Supabase « Security Definer View » levée (vue de veille en `security_invoker`).
 - Correctifs de CI en route : client PostgreSQL 18 pour l'exercice de restauration, audit d'accessibilité qui analyse le document de quittance hors de son cadre isolé.
 - Reste au porteur : voir [[Audit complet du 27 septembre 2026]] § 4.
+
+## [2026-09-27] decision | Sauvegardes 90 jours, deux assurances obligatoires pour l'artisan
+- Conservation des sauvegardes : **90 jours glissants** (règle Scaleway conservée) ; [[Plan de reprise d'activité]] et [[Socle de sécurité]] mis à jour, point retiré du [[Registre des traitements]].
+- Validation d'une inscription d'artisan : **décennale ET RC pro en cours** (migration `20260927210000`), ce qui supplante « au moins une » retenu par l'audit du 27/09 ; [[Artisan]] mis à jour.
+- Resend : proposition faite au porteur (domaine d'envoi en région Europe, Scaleway Transactional Email à étudier après le lancement) ; en attente de la région du domaine actuel.

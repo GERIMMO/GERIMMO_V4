@@ -3,7 +3,7 @@ type: persona
 tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-04
+updated: 2026-09-27
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
 ---
 
@@ -102,6 +102,10 @@ l'intervention humaine** (RM-A2.11 — obligation d'information de l'artisan).
   d'équipement, clos et couvert, réseaux encastrés, gros œuvre. Expirée → retrait
   automatique des listes (rétabli au dépôt) ; intervention en cours jamais
   interrompue. Autres pièces (URSSAF, RC pro, Kbis, certifications) : alerte seule.
+  **Supplanté le 27/09 pour la validation de l'inscription** : décision du porteur,
+  une inscription ne se valide qu'avec une **décennale ET une RC pro en cours**
+  (voir la note du 04/09 ci-dessous). La règle d'affectation par nature de travaux
+  reste celle-ci.
   Seuils **J-60/J-30/J-7/J+0**.
 - **Recherche d'affectation** : métier + zone + décennale (filtre non désactivable) +
   exclusion des blacklistés, **triée par score**.

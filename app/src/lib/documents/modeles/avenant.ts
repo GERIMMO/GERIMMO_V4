@@ -77,6 +77,7 @@ export async function assemblerAvenant(
     produire leurs effets. Le présent avenant prend effet à compter de sa signature par
     l'ensemble des parties, sauf stipulation contraire ci-dessus.</p>
 
+    <div class="bloc-signataires">
     ${section("Date et signatures")}
     ${faitA(f, exp.ville, new Date().toISOString(), ", en autant d'exemplaires originaux que de parties.")}
     <div class="signatures">
@@ -86,6 +87,7 @@ export async function assemblerAvenant(
         ctx.locataires.map((l) => echapper(nomPersonne(l) ?? "")).join("<br/>") ||
           f.champ(null, "nom et prénom(s) du ou des locataires")
       )}
+    </div>
     </div>
   `;
 

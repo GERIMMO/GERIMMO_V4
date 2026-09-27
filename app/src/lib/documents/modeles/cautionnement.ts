@@ -178,11 +178,13 @@ export async function assemblerCautionnement(
     recopiée intégralement de sa main dans le cadre de signature, ou apposée par elle dans l'acte,
     puis suivie de sa signature.</p>
 
+    <div class="bloc-signataires">
     ${section("VIII — Date et signatures")}
     ${faitA(f, exp.ville, new Date().toISOString(), ", en deux exemplaires originaux, dont un est remis à la caution avec un exemplaire du contrat de location (article 22-1 de la loi du 6 juillet 1989).")}
     <div class="signatures">
       ${cadreSignature("La caution", `${nomCaution}<br/>Mention apposée par la caution, puis signature`)}
       ${cadreSignature("Le bailleur", nomsBailleurs(f, ctx.bailleurs))}
+    </div>
     </div>
   `;
 

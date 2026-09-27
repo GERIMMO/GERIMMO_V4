@@ -1,0 +1,46 @@
+name: Vérifier les connexions de l’atelier
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verifier:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Contrôler les accès sans modifier de données
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: ${{ vars.VERCEL_TEAM_ID }}
+          GERIMMO_CODE_WRITER_TOKEN: ${{ secrets.GERIMMO_CODE_WRITER_TOKEN }}
+        run: |
+          node --input-type=module <<'JS'
+          import { appendFile } from 'node:fs/promises';
+          const e = process.env;
+          const resultats = [];
+          async function verifier(nom, cle, url, controle) {
+            if (!cle) { resultats.push([nom, false, 'Accès absent']); return; }
+            try {
+              const r = await fetch(url, {
+                headers: { Authorization: `Bearer ${cle}`, Accept: 'application/json' },
+                redirect: 'error', signal: AbortSignal.timeout(20000),
+              });
+              if (!r.ok) { resultats.push([nom, false, `Accès refusé (HTTP ${r.status})`]); return; }
+              resultats.push([nom, controle(await r.json()), 'Réponse du service reçue']);
+            } catch { resultats.push([nom, false, 'Service non joignable ou réponse invalide']); }
+          }
+          await verifier('OpenAI : accès aux modèles', e.OPENAI_API_KEY, 'https://api.openai.com/v1/models', j => Array.isArray(j.data) && j.data.length > 0);
+          if (/^prj_[A-Za-z0-9]+$/.test(e.VERCEL_PROJECT_ID || '') && /^team_[A-Za-z0-9]+$/.test(e.VERCEL_TEAM_ID || '')) {
+            const u = new URL(`https://api.vercel.com/v9/projects/${e.VERCEL_PROJECT_ID}`);
+            u.searchParams.set('teamId', e.VERCEL_TEAM_ID);
+            await verifier('Vercel : projet Gerimmo', e.VERCEL_TOKEN, u, j => j.id === e.VERCEL_PROJECT_ID && j.name === 'gerimmo-v4');
+          } else resultats.push(['Vercel : projet Gerimmo', false, 'Identifiants du projet à vérifier']);
+          await verifier('GitHub : dépôt des propositions', e.GERIMMO_CODE_WRITER_TOKEN, 'https://api.github.com/repos/GERIMMO/GERIMMO_V4', j => j.full_name === 'GERIMMO/GERIMMO_V4' && j.permissions?.push === true);
+          const lignes = resultats.map(([nom, ok, detail]) => `- ${ok ? 'OK' : 'À vérifier'} — ${nom} : ${detail}`);
+          console.log(lignes.join('\n'));
+          await appendFile(e.GITHUB_STEP_SUMMARY, '# Connexions de l’atelier\n\n' + lignes.join('\n') + '\n\nLecture uniquement : aucune génération payante, aucun changement de code, aucune publication. Ce contrôle ne remplace pas un essai complet de correction et de mise en ligne.\n');
+          if (resultats.some(([, ok]) => !ok)) process.exitCode = 1;
+          JS

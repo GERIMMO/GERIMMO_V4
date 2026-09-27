@@ -45,7 +45,7 @@ export async function enregistrerReglagesMarketing(_etat: EtatCampagne, donnees:
 // Une INTENTION éditoriale, pas une campagne (25/09). Le formulaire
 // enregistrait des lignes « planifiee » que rien ne lisait jamais : la
 // mission marketing suit son propre rythme (deux jours par semaine) et la
-// publicité payante n'est pas ouverte (droits Meta Ads en attente). La ligne
+// publicité payante n'est pas ouverte depuis Gerimmo. La ligne
 // notée ici est une note de travail affichée telle quelle, sans promesse de
 // diffusion ; une campagne sponsorisée est refusée tant que la publicité
 // n'existe pas comme geste.
@@ -62,7 +62,7 @@ export async function programmerCampagne(_etat: EtatCampagne, donnees: FormData)
   if (nom.length < 3) return { erreur: "Donnez un nom précis à l’intention." };
   if (!date || Number.isNaN(Date.parse(date))) return { erreur: "Choisissez la date visée." };
   if (!['notoriete', 'trafic', 'prospects', 'conversion'].includes(objectif)) return { erreur: "Objectif invalide." };
-  if (nature !== "organique") return { erreur: "La publicité payante n’est pas encore ouverte : les droits Meta Ads sont en attente. Seule une publication gratuite peut être notée." };
+  if (nature !== "organique") return { erreur: "Les campagnes payantes ne sont pas lancées depuis Gerimmo. Seule une publication gratuite peut être notée." };
 
   const { data: utilisateur } = await supabase.auth.getUser();
   const { error } = await supabase.from("marketing_campagnes").insert({

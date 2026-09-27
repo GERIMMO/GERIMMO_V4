@@ -5516,3 +5516,4 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 
 ## [2026-09-27] decision | Resend : domaine d'envoi en Irlande
 - Constaté par le porteur dans le tableau de bord Resend : domaine `gerimmo.app` vérifié, région **eu-west-1 (Irlande)**. [[Registre des traitements]] et liste des prestataires des pages légales mis à jour. Restent : rétention des journaux d'envoi chez Resend et fondement contractuel (DPA).
+- TLS imposé (« Enforced ») sur le domaine d'envoi Resend, réglé par le porteur le 27/09 : un courrier n'est jamais remis en clair ; un serveur destinataire incapable de chiffrer ne le reçoit pas.

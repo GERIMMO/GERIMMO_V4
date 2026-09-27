@@ -357,6 +357,9 @@ const CSS_DOCUMENT = `
                         padding:5pt 10pt; font-size:10pt; }
   .signature .zone { border:0.5pt solid var(--filet); border-top:none; min-height:70pt;
                      padding:8pt 10pt; font-size:8pt; color:var(--libelle); }
+  .signatures-mention { margin-top:12pt; }
+  .signatures-mention .signature:first-child .zone { min-height:270pt; }
+  .signatures-mention .signature + .signature { margin-top:12pt; width:50%; }
   .mentions { font-size:8.5pt; color:var(--texte-secondaire); }
   .mentions p { margin:4pt 0; }
   .encadre { border-left:2.25pt solid var(--laiton-filet); background:var(--creme);

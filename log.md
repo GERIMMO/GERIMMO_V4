@@ -5517,3 +5517,8 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 ## [2026-09-27] decision | Resend : domaine d'envoi en Irlande
 - Constaté par le porteur dans le tableau de bord Resend : domaine `gerimmo.app` vérifié, région **eu-west-1 (Irlande)**. [[Registre des traitements]] et liste des prestataires des pages légales mis à jour. Restent : rétention des journaux d'envoi chez Resend et fondement contractuel (DPA).
 - TLS imposé (« Enforced ») sur le domaine d'envoi Resend, réglé par le porteur le 27/09 : un courrier n'est jamais remis en clair ; un serveur destinataire incapable de chiffrer ne le reçoit pas.
+
+## [2026-09-27] decision | Lancement sans signature électronique ; recette de production
+- Signature électronique Yousign **non activée au lancement** (décision du porteur) : circuit manuel du signé déposé ; écran Santé et pages légales le disent ([[Signature électronique]], [[Registre des traitements]]).
+- E-mails d'authentification réparés par le porteur (identifiant SMTP de Supabase Auth refusé par Resend, erreur 535) : « mot de passe oublié » vérifié à 15 h 18.
+- Recette de production demandée : parcours Playwright dédiés lancés depuis GitHub Actions, comptes de test aux adresses `@resend.dev`, purge après passage.

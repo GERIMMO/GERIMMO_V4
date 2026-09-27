@@ -7,7 +7,12 @@ export default defineConfig({
   testDir: ".",
   // Les captures de référence sont révisées après les changements de design ;
   // la CI teste les parcours et l'audit mobile sur sa base isolée.
-  testIgnore: process.env.E2E_CI === "1" ? /visuel\.spec\.ts/ : undefined,
+  // La recette de production (recette-production/) a sa propre configuration,
+  // ses comptes réels et sa cible : elle ne tourne jamais dans cette suite.
+  testIgnore: [
+    /recette-production\//,
+    ...(process.env.E2E_CI === "1" ? [/visuel\.spec\.ts/] : []),
+  ],
   outputDir: "./.results",
   timeout: 60_000,
   expect: { timeout: 15_000 },

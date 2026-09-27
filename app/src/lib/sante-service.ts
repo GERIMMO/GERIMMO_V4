@@ -188,30 +188,29 @@ export function etatConfiguration(env: Env): Verification[] {
         : `domaine ${domaine} — à vérifier chez Resend (SPF, DKIM)`,
   });
 
-  // ── Signature électronique : la sandbox peut être reliée sans autoriser
-  // de document réel. Le passage en production reste un choix contractuel.
+  // ── Signature électronique : DÉSACTIVÉE pour le lancement (décision du
+  // porteur, 27/09). Hors `YOUTRUST_ENV=production`, aucun document ne part
+  // chez Yousign : « Envoyer pour signature » suit le circuit manuel (le
+  // signataire télécharge, signe, dépose le signé). Ce n'est pas une panne :
+  // la ligne le dit, sans alerte. L'activer reste un choix contractuel.
   const cleYoutrust = valeur(env, "YOUTRUST_API_KEY");
-  const environnementYoutrust = valeur(env, "YOUTRUST_ENV") || "sandbox";
+  const youtrustActive = valeur(env, "YOUTRUST_ENV") === "production" && Boolean(cleYoutrust);
   verifications.push({
     cle: "YOUTRUST_API_KEY",
     usage: "Signature électronique des baux et contrats",
-    etat: !cleYoutrust ? "manque" : environnementYoutrust === "production" ? "ok" : "attention",
-    detail: !cleYoutrust
-      ? null
-      : environnementYoutrust === "production"
-        ? "environnement réel"
-        : "sandbox : essais uniquement, aucun document réel ne doit être envoyé",
+    etat: "ok",
+    detail: youtrustActive
+      ? "environnement réel"
+      : "désactivée pour le lancement : signature manuelle (le signataire dépose le PDF signé), aucun document transmis à Yousign",
   });
-  verifications.push({
-    cle: "YOUTRUST_WEBHOOK_SECRET",
-    usage: "Réception sécurisée des signatures terminées",
-    etat: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? "ok" : cleYoutrust ? "attention" : "manque",
-    detail: valeur(env, "YOUTRUST_WEBHOOK_SECRET")
-      ? null
-      : cleYoutrust
-        ? "à poser lors de la création du webhook"
-        : null,
-  });
+  if (youtrustActive) {
+    verifications.push({
+      cle: "YOUTRUST_WEBHOOK_SECRET",
+      usage: "Réception sécurisée des signatures terminées",
+      etat: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? "ok" : "attention",
+      detail: valeur(env, "YOUTRUST_WEBHOOK_SECRET") ? null : "à poser lors de la création du webhook",
+    });
+  }
 
   // ── Tâches planifiées : sans secret, chaque passe répond 503.
   verifications.push({

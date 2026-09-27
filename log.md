@@ -5501,3 +5501,10 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - 41 migrations `20260927*`, rejouées sur une base neuve dans l'ordre de leur date ; 2 086 tests unitaires verts. Correctif d'intégration : le dépôt de facture de l'artisan n'ouvre plus tout le dossier de l'agence, seulement `<org>/factures-artisan/<intervention>/`.
 - Page créée : [[Audit complet du 27 septembre 2026]] (corrections, restes structurels, points du porteur, contradictions : anonymisation des fichiers, assurances de l'artisan, durée des sauvegardes).
 - Veille du 26/09 en échec (citation-preuve abrégée) : une source rejetée n'emporte plus l'étude des autres.
+
+## [2026-09-27] mise en production | Audit complet du 27/09 (PR #118)
+- 41 migrations `20260927*` appliquées en production dans l'ordre du manifeste ; 83 des 84 fonctions touchées ont une définition identique à l'octet à celle des fichiers, la dernière ne diffère que par des retours à la ligne antérieurs à la PR.
+- CI verte (208 fichiers de tests unitaires, 116 essais de bout en bout) ; déploiement Vercel prêt sur le commit 45df426, `/api/sante` répond `ok`, aucune erreur d'exécution.
+- Alerte Supabase « Security Definer View » levée (vue de veille en `security_invoker`).
+- Correctifs de CI en route : client PostgreSQL 18 pour l'exercice de restauration, audit d'accessibilité qui analyse le document de quittance hors de son cadre isolé.
+- Reste au porteur : voir [[Audit complet du 27 septembre 2026]] § 4.

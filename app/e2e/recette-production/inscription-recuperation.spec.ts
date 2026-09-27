@@ -1,4 +1,6 @@
 import { Client } from "pg";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test, expect, saisir, cliquer, SANS_TRACE } from "./outils";
 import { lireComptes } from "./cible";
 
@@ -17,7 +19,13 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     || !/^r[0-9]{6,20}-[0-9]{1,5}$/.test(c.suffixe)) throw new Error("Cible de recette refusée.");
   const email = `delivered+inscription-${test.info().retry}-${c.suffixe}@resend.dev`;
   const nom = `Recette-${c.suffixe}-${test.info().retry}`;
-  const db = new Client(); await db.connect();
+  // Autorité officielle Supabase, avec contrôle de la chaîne ET du nom d'hôte.
+  // Source : Database Settings > SSL configuration > Download certificate.
+  const db = new Client({ ssl: {
+    ca: readFileSync(join(__dirname, "supabase-ca.crt"), "utf8"),
+    rejectUnauthorized: true,
+  } });
+  await db.connect();
   try {
     await page.goto("/inscription");
     await saisir(page.getByLabel("Prénom", { exact: false }), "Camille");

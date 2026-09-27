@@ -122,7 +122,9 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   {
     nom: "Resend",
     role: "Envoi des courriels du service (quittances, avis, relances, rappels)",
-    localisation: null,
+    // Domaine d'envoi gerimmo.app créé en région eu-west-1 (constaté dans le
+    // tableau de bord Resend par le porteur, 27/09).
+    localisation: "Région eu-west-1 (Irlande)",
   },
   {
     nom: "Stripe",

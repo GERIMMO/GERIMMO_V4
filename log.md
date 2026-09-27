@@ -5513,3 +5513,7 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Conservation des sauvegardes : **90 jours glissants** (règle Scaleway conservée) ; [[Plan de reprise d'activité]] et [[Socle de sécurité]] mis à jour, point retiré du [[Registre des traitements]].
 - Validation d'une inscription d'artisan : **décennale ET RC pro en cours** (migration `20260927210000`), ce qui supplante « au moins une » retenu par l'audit du 27/09 ; [[Artisan]] mis à jour.
 - Resend : proposition faite au porteur (domaine d'envoi en région Europe, Scaleway Transactional Email à étudier après le lancement) ; en attente de la région du domaine actuel.
+
+## [2026-09-27] decision | Resend : domaine d'envoi en Irlande
+- Constaté par le porteur dans le tableau de bord Resend : domaine `gerimmo.app` vérifié, région **eu-west-1 (Irlande)**. [[Registre des traitements]] et liste des prestataires des pages légales mis à jour. Restent : rétention des journaux d'envoi chez Resend et fondement contractuel (DPA).
+- TLS imposé (« Enforced ») sur le domaine d'envoi Resend, réglé par le porteur le 27/09 : un courrier n'est jamais remis en clair ; un serveur destinataire incapable de chiffrer ne le reçoit pas.

@@ -344,3 +344,19 @@ grant execute on function public.reseau_etats_bien(uuid,uuid) to authenticated;
 
 -- Repose les gardes existantes sur la nouvelle table rattachée à une organisation.
 select public.poser_gardes_abonnement();
+
+-- La demande locale se repère aussi à l'échelle nationale : aucun département
+-- ne doit rester invisible simplement parce que le filtre initial est le 91.
+create function public.reseau_interets_pilotage(p_offset integer default 0,p_limite integer default 30)
+returns table(commune_code text,commune_nom text,departement text,metier public.artisan_metier,interets bigint,biens_interesses bigint,dernier_interet timestamptz,total_groupes bigint)
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if not public.is_super_admin() then raise exception 'Accès réservé à la supervision.'; end if;
+ if p_offset is null or p_offset<0 or p_offset>1000000 or p_limite is null or p_limite not between 1 and 100 then raise exception 'Pagination invalide.'; end if;
+ return query select i.commune_code,c.nom,c.departement,i.metier,count(*),count(distinct i.bien_id),max(i.cree_le),count(*) over()
+ from public.reseau_interets i join public.reseau_communes c on c.code=i.commune_code
+ group by i.commune_code,c.nom,c.departement,i.metier
+ order by count(*) desc,max(i.cree_le) desc,i.commune_code,i.metier offset p_offset limit p_limite;
+end $$;
+revoke all on function public.reseau_interets_pilotage(integer,integer) from public,anon;
+grant execute on function public.reseau_interets_pilotage(integer,integer) to authenticated;

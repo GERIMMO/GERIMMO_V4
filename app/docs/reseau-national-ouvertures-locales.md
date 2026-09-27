@@ -21,7 +21,7 @@ Depuis la fiche d’un bien, choisir **Vérifier les artisans disponibles pour c
 
 Un code postal peut correspondre à plusieurs communes : la sélection utilise le code commune INSEE. Une ville incohérente, une adresse vide ou une commune non confirmée empêche de vérifier le réseau ; elle ne ferme pas la gestion locative. Modifier l’adresse invalide la confirmation précédente.
 
-Si le réseau est fermé, **Signaler mon intérêt** enregistre le compte, le bien, la commune et le métier. Répéter le geste ne crée pas de doublon. Aucun artisan n’est contacté, aucune consultation, intervention, date d’ouverture, notification ou campagne n’est créée. Les intérêts et les vraies sollicitations sont comptés séparément dans l’administration.
+Si le réseau est fermé, **Signaler mon intérêt** enregistre le compte, le bien, la commune et le métier. Répéter le geste ne crée pas de doublon. Aucun artisan n’est contacté, aucune consultation, intervention, date d’ouverture, notification ou campagne n’est créée. Les intérêts et les vraies sollicitations sont comptés séparément dans l’administration. La liste « Où le réseau est attendu » rassemble toute la France, tous métiers confondus, même en dehors du département affiché dans les réglages.
 
 La demande de devis reste dans l’incident, après sa qualification. Le choix du métier et des travaux affiche la disponibilité et laisse utiliser les contacts personnels éligibles même dans une commune fermée. Les vérifications sont refaites dans la base au moment de l’envoi ; une page restée ouverte ne permet pas de les contourner.
 

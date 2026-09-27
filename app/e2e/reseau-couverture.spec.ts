@@ -12,7 +12,7 @@ test.describe("Couverture du réseau depuis le bien", () => {
     await page.getByLabel("Référence interne").fill(nom);
     await page.getByLabel("Adresse", { exact: true }).fill("1 rue de la République");
     await page.getByLabel("Code postal").fill("69003");
-    await page.getByLabel("Ville", { exact: true }).fill("Lyon");
+    await page.getByLabel("Ville *", { exact: true }).fill("Lyon");
     await page.getByLabel(/Année de construction/).fill("1998");
     await page.getByLabel(/Parties communes/).fill("Hall et local vélos");
     await page.getByLabel(/\(TIC\)/).fill("Fibre et TNT");

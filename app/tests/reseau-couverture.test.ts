@@ -101,6 +101,11 @@ describe.skipIf(!DB)("Réseau communal — gestion nationale et décisions expli
     for (const table of ['incident_consultations','incident_sollicitations','incident_interventions']) expect((await db.query(`select id from public.${table} where organization_id=$1`,[org])).rows).toHaveLength(0);
     await devenir(sa); const lignes=(await db.query("select * from public.reseau_pilotage('75','plomberie')")).rows;
     expect(lignes.find(x=>x.commune_code==='75056')).toMatchObject({interets:'1',biens_interesses:'1',demandes:'0'});
+    const national=(await db.query("select * from public.reseau_interets_pilotage(0,30)")).rows;
+    expect(national).toHaveLength(3); expect(national.map(x=>x.departement).sort()).toEqual(['69','75','75']);
+    expect(national.every(x=>x.total_groupes==='3')).toBe(true);
+    expect((await db.query("select * from public.reseau_interets_pilotage(1,1)")).rows).toHaveLength(1);
+    await devenir(owner); await expect(essai("select * from public.reseau_interets_pilotage()")).rejects.toThrow(/supervision/);
   });
   it("l’intérêt ne remplace pas une demande dans une zone déjà ouverte", async () => {
     await ouvrir(); await devenir(owner); await expect(essai("select public.reseau_signaler_interet($1,$2,'plomberie')",[org,paris.bien])).rejects.toThrow(/réseau est disponible/);

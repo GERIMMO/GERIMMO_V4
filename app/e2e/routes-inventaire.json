@@ -832,5 +832,17 @@
     "persona": "superadmin",
     "label": "Paramètres",
     "dynamic": ""
+  },
+  {
+    "path": "/admin/couverture",
+    "persona": "superadmin",
+    "label": "Réseau d’artisans : ouvertures par commune et métier",
+    "dynamic": ""
+  },
+  {
+    "path": "/agence/ORG/reseau",
+    "persona": "admin-agence",
+    "label": "Réseau disponible pour les biens",
+    "dynamic": "org"
   }
 ]

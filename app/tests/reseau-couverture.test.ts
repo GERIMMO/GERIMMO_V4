@@ -118,6 +118,14 @@ describe.skipIf(!DB)("Réseau communal — gestion nationale et décisions expli
     await postgres(); const c=await id("insert into public.incident_consultations(organization_id,incident_id,metier,nature_travaux) values($1,$2,'plomberie','entretien_courant') returning id",[org,paris.incident]);
     await devenir(owner); await expect(essai("select public.solliciter_artisan($1,$2,$3)",[org,c,artisan])).rejects.toThrow(/pas encore disponible/);
   });
+  it("un artisan du carnet peut intervenir via le réseau dans une nouvelle commune confirmée", async () => {
+    await postgres(); await db.query("insert into public.artisan_agences(organization_id,artisan_id) values($1,$2)",[org,artisan]);
+    await ouvrir('69123'); await devenir(owner);
+    const proposes=(await db.query("select * from public.artisans_disponibles_bien($1,$2,'plomberie','entretien_courant')",[org,lyon.bien])).rows;
+    expect(proposes).toHaveLength(1); expect(proposes[0].rattache).toBe(false);
+    const c=await consultation(lyon.incident); const s=await id("select public.solliciter_artisan($1,$2,$3) id",[org,c,artisan]);
+    expect((await db.query("select origine_reseau,commune_reseau from public.incident_sollicitations where id=$1",[s])).rows[0]).toEqual({origine_reseau:'reseau',commune_reseau:'69123'});
+  });
   it("la nouvelle demande a un destinataire validé de la bonne commune et conserve son origine", async () => {
     await ouvrir(); await devenir(owner);
     const proposes=(await db.query("select * from public.artisans_disponibles_bien($1,$2,'plomberie','entretien_courant')",[org,paris.bien])).rows;
@@ -129,7 +137,7 @@ describe.skipIf(!DB)("Réseau communal — gestion nationale et décisions expli
   it.each(['privee','refuse','blacklist','sans_compte','sans_rattachement'])("si le dernier artisan devient %s, la zone ne reçoit plus de nouvelle demande", async (cause) => {
     await ouvrir(); await devenir(owner); const c=await consultation(); await postgres();
     if(cause==='privee') await db.query("update public.artisans set visibilite='privee' where id=$1",[artisan]);
-    if(cause==='refuse') await db.query("update public.artisans set statut_plateforme='refuse' where id=$1",[artisan]);
+    if(cause==='refuse') await db.query("update public.artisans set statut_plateforme='refuse',statut_motif='Refus de test motivé' where id=$1",[artisan]);
     if(cause==='blacklist') await db.query("update public.artisans set blacklist_globale_le=now(),blacklist_globale_motif='Test exclusion' where id=$1",[artisan]);
     if(cause==='sans_compte') await db.query("update public.artisans set account_id=null where id=$1",[artisan]);
     if(cause==='sans_rattachement') await db.query("delete from public.reseau_artisan_communes where artisan_id=$1",[artisan]);

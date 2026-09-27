@@ -92,6 +92,7 @@ revoke all on function public.reseau_verifier_acces_bien(uuid,uuid) from public,
 create function public.reseau_confirmer_commune(p_org uuid,p_bien uuid,p_commune text) returns void
 language plpgsql security definer set search_path='' as $$
 begin
+ if auth.uid() is null then raise exception 'Accès refusé.' using errcode='42501'; end if;
  perform public.reseau_verifier_acces_bien(p_org,p_bien);
  if not exists(select 1 from public.reseau_communes where code=p_commune) then raise exception 'Choisissez une commune proposée.'; end if;
  update public.biens set commune_insee=p_commune where id=p_bien and organization_id=p_org;
@@ -104,6 +105,15 @@ language sql stable security definer set search_path='' as $$
  select exists(select 1 from public.artisan_agences aa where aa.organization_id=p_org and aa.artisan_id=p_artisan and aa.statut='actif' and aa.blacklist_le is null);
 $$;
 revoke all on function public.reseau_contact_personnel(uuid,uuid) from public,anon,authenticated;
+
+-- Un contact déjà connu peut aussi être proposé par le réseau dans une
+-- NOUVELLE commune. Son vieux secteur postal ne doit pas annuler cette offre.
+create function public.reseau_contact_dans_zone(p_org uuid,p_artisan uuid,p_cp text) returns boolean
+language sql stable security definer set search_path='' as $$
+ select public.reseau_contact_personnel(p_org,p_artisan) and (p_cp is null or exists(
+  select 1 from public.artisan_zones z where z.artisan_id=p_artisan and z.code_postal=p_cp));
+$$;
+revoke all on function public.reseau_contact_dans_zone(uuid,uuid,text) from public,anon,authenticated;
 
 create function public.reseau_artisan_eligible(p_artisan uuid,p_commune text,p_metier public.artisan_metier) returns boolean
 language sql stable security definer set search_path='' as $$
@@ -186,8 +196,13 @@ begin
   if c is null or not exists(select 1 from public.reseau_communes where code=c) then raise exception 'Commune inconnue.'; end if;
   insert into public.reseau_ouvertures(commune_code,metier) values(c,p_metier) on conflict do nothing;
   select ouverte into avant from public.reseau_ouvertures where commune_code=c and metier=p_metier for update;
-  if p_ouverte and not exists(select 1 from public.artisans a where public.reseau_artisan_eligible(a.id,c,p_metier)) then
-   raise exception 'Ouverture impossible pour la commune % : aucun artisan validé, public et disposant d’un compte n’y est rattaché pour ce métier.',c;
+  if p_ouverte then
+   perform 1 from public.artisans a join public.reseau_artisan_communes z on z.artisan_id=a.id
+    where z.commune_code=c and z.metier=p_metier and public.reseau_artisan_eligible(a.id,c,p_metier)
+    order by a.id for share of a,z;
+   if not found then
+    raise exception 'Ouverture impossible pour la commune % : aucun artisan validé, public et disposant d’un compte n’y est rattaché pour ce métier.',c;
+   end if;
   end if;
   update public.reseau_ouvertures set ouverte=p_ouverte,decide_par=auth.uid(),decide_le=clock_timestamp() where commune_code=c and metier=p_metier;
   insert into public.audit_log(account_id,action,details) values(auth.uid(),'reseau_ouverture',jsonb_build_object('commune',c,'metier',p_metier,'avant',avant,'ouverte',p_ouverte));
@@ -202,9 +217,11 @@ alter function public.artisans_affectables(uuid,public.artisan_metier,public.nat
 revoke all on function public.artisans_affectables_interne(uuid,public.artisan_metier,public.nature_travaux,text) from public,anon,authenticated,service_role;
 create function public.artisans_affectables(p_org uuid,p_metier public.artisan_metier,p_nature public.nature_travaux,p_code_postal text default null)
 returns table(artisan_id uuid,raison_sociale text,telephone text,email text,rattache boolean,note_publiee numeric,nb_evaluations integer,publiable boolean,decennale_valide boolean)
-language sql stable security definer set search_path='' as $$
- select x.* from public.artisans_affectables_interne(p_org,p_metier,p_nature,p_code_postal) x where public.reseau_contact_personnel(p_org,x.artisan_id);
-$$;
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if auth.uid() is null or not(p_org in(select public.org_ids_avec_roles(array['admin_agence','agent','proprietaire_direct']::public.membership_role[]))) then raise exception 'Accès refusé.' using errcode='42501'; end if;
+ return query select x.* from public.artisans_affectables_interne(p_org,p_metier,p_nature,p_code_postal) x where public.reseau_contact_personnel(p_org,x.artisan_id);
+end $$;
 revoke all on function public.artisans_affectables(uuid,public.artisan_metier,public.nature_travaux,text) from public,anon;
 grant execute on function public.artisans_affectables(uuid,public.artisan_metier,public.nature_travaux,text) to authenticated;
 
@@ -213,9 +230,10 @@ returns table(artisan_id uuid,raison_sociale text,telephone text,email text,ratt
 language plpgsql stable security definer set search_path='' as $$
 declare d record; cp text;
 begin
+ perform public.reseau_verifier_acces_bien(p_org,p_bien);
  select * into d from public.reseau_disponibilite(p_org,p_bien,p_metier,p_nature);
  select postal_code into cp from public.biens where id=p_bien;
- return query select a.id,a.raison_sociale,a.telephone,a.email,public.reseau_contact_personnel(p_org,a.id),n.note_publiee,n.nb_evaluations,n.publiable,public.artisan_decennale_valide(a.id)
+ return query select a.id,a.raison_sociale,a.telephone,a.email,public.reseau_contact_dans_zone(p_org,a.id,cp),n.note_publiee,n.nb_evaluations,n.publiable,public.artisan_decennale_valide(a.id)
  from public.artisans a cross join lateral public.artisan_note(a.id) n
  where (public.reseau_contact_personnel(p_org,a.id) and public.artisan_affectable(a.id,p_org,p_metier,p_nature,cp))
   or (d.etat='ouverte' and public.reseau_artisan_eligible(a.id,d.commune_code,p_metier) and public.artisan_affectable(a.id,p_org,p_metier,p_nature,null))
@@ -231,6 +249,7 @@ create function public.ouvrir_consultation(p_org uuid,p_incident uuid,p_metier p
 returns uuid language plpgsql security definer set search_path='' as $$
 declare v uuid; b uuid; d record;
 begin
+ if auth.uid() is null then raise exception 'Accès refusé.' using errcode='42501'; end if;
  v:=public.ouvrir_consultation_interne(p_org,p_incident,p_metier,p_nature,p_devis_unique_assume,p_validite_jours);
  select l.bien_id into b from public.incidents i join public.lots l on l.id=i.lot_id where i.id=p_incident and i.organization_id=p_org;
  select * into d from public.reseau_disponibilite(p_org,b,p_metier,p_nature);
@@ -251,20 +270,20 @@ revoke all on function public.solliciter_artisan_interne(uuid,uuid,uuid) from pu
 do $$ declare s text; begin
  s:=pg_get_functiondef('public.solliciter_artisan_interne(uuid,uuid,uuid)'::regprocedure);
  if position('c.nature_travaux, v_code_postal)' in s)=0 then raise exception 'Socle de sollicitation inattendu : migration interrompue.'; end if;
- s:=replace(s,'c.nature_travaux, v_code_postal)','c.nature_travaux, case when public.reseau_contact_personnel(p_org,p_artisan) then v_code_postal else null end)');
+ s:=replace(s,'c.nature_travaux, v_code_postal)','c.nature_travaux, case when public.reseau_contact_dans_zone(p_org,p_artisan,v_code_postal) then v_code_postal else null end)');
  execute s;
 end $$;
 create function public.solliciter_artisan(p_org uuid,p_consultation uuid,p_artisan uuid) returns uuid
 language plpgsql security definer set search_path='' as $$
 declare c record; b record; autorisee boolean; contact boolean; v uuid; code_commune text;
 begin
- if auth.uid() is null or not(p_org in(select public.org_ids_avec_roles(array['admin_agence','agent','proprietaire_direct']::public.membership_role[])))
-  or public.consultation_hors_portefeuille(p_org,p_consultation) then raise exception 'Accès refusé.'; end if;
+ if public.consultation_hors_portefeuille(p_org,p_consultation) then raise exception 'Ce dossier est hors de votre portefeuille' using errcode='42501'; end if;
+ if auth.uid() is null or not(p_org in(select public.org_ids_avec_roles(array['admin_agence','agent','proprietaire_direct']::public.membership_role[]))) then raise exception 'Accès refusé.' using errcode='42501'; end if;
  select * into c from public.incident_consultations where id=p_consultation and organization_id=p_org for update;
  if not found then raise exception 'Mise en concurrence introuvable.'; end if;
- contact:=public.reseau_contact_personnel(p_org,p_artisan);
+ select bi.* into b from public.incidents i join public.lots l on l.id=i.lot_id join public.biens bi on bi.id=l.bien_id where i.id=c.incident_id for share of bi;
+ contact:=public.reseau_contact_dans_zone(p_org,p_artisan,b.postal_code);
  if not contact then
-  select bi.* into b from public.incidents i join public.lots l on l.id=i.lot_id join public.biens bi on bi.id=l.bien_id where i.id=c.incident_id for share of bi;
   if b.commune_insee is null then raise exception 'Complétez l’adresse du bien et confirmez sa commune.'; end if;
   select ouverte into autorisee from public.reseau_ouvertures where commune_code=b.commune_insee and metier=c.metier for share;
   if not coalesce(autorisee,false) then raise exception 'Le réseau d’artisans Gerimmo n’est pas encore disponible pour ce métier dans cette zone.'; end if;
@@ -322,3 +341,6 @@ begin
 end $$;
 revoke all on function public.reseau_etats_bien(uuid,uuid) from public,anon;
 grant execute on function public.reseau_etats_bien(uuid,uuid) to authenticated;
+
+-- Repose les gardes existantes sur la nouvelle table rattachée à une organisation.
+select public.poser_gardes_abonnement();

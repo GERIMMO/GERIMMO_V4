@@ -1,0 +1,3 @@
+﻿Type (depot_garantie / solde_locataire / provision_charges / fonds_mandant);Montant (€);Email du locataire;Nom du bien;Nom du lot;Email du propriétaire;Détenteur du dépôt (agence ou proprietaire);Référence (facultatif)
+provision_charges;180.00;;Résidence Les Essais;A12;;;Provisions reprises de l'ancien logiciel
+solde_locataire;50.00;;Résidence Les Essais;A12;;;Avance de la locataire

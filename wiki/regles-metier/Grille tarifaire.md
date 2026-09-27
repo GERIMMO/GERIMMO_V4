@@ -3,7 +3,7 @@ type: business-rule
 tags: [tarifs, stripe, abonnement]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-12
+updated: 2026-09-27
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
 ---
 
@@ -93,6 +93,13 @@ Les deux dernières tranches restent sur devis.
 >   proposition de remplacement, par tranches et sans marche, attend l'arbitrage :
 >   voir [[Grille tarifaire agence — proposition]]. **Tant qu'elle n'est pas tranchée,
 >   la présente page fait foi.**
+> - **Constat du 27/09/2026 (préparation du [[Kit de recette testeurs]])** : le code applique
+>   une grille agence par tranches (migration `20260912120000_grille_agence_par_tranches.sql`,
+>   table `tarif_tranches`) — forfait de **39 € jusqu'à 10 lots sous mandat actif**, puis
+>   2,00 € par lot (11–50), 1,30 € (51–150), 0,80 € (151–400), 0,50 € au-delà ; propriétaire
+>   direct **5,99 € par bien au-delà du premier** ; ni mise en route ni redevance annuelle ;
+>   « Mon abonnement » ouvert au responsable d'agence. Le point du 12/09 ci-dessus et la grille
+>   officielle de cette page sont à remettre en cohérence (l'arbitrage reste à consigner).
 > - `agency_301_600` : `requires_quote = true` → doit rester non achetable en ligne (sinon R1 bloque).
 > - Prix annuels de `public-pricing.ts` à neutraliser (RM-18.6.7 : mensuel exclusif).
 > - Voir [[Cycle de vie de l'abonnement]], [[Analyse concurrentielle]].

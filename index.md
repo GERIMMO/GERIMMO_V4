@@ -167,6 +167,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Recette S3-S8 - scenarios]] — les 24 scénarios de recette humaine remis le 05/08 (référence de numérotation).
 - [[Recette - test par sprint et persona]] — **le fichier central de recette** (ex « Recette S3-S8 - tests par sprint et persona », renommé le 23/08) : Partie 1 recetté OK / Partie 2 reste à recetter (re-tests du 23/08, Sprint 7 incidents, sprints jamais déroulés, transverse).
 - [[Recette S7 - incidents]] — les scénarios détaillés du Sprint 7 (déclaration locataire, qualification, clôture, réouverture, pop-up de traitement).
+- [[Kit de recette testeurs]] — **27/09, prêt à envoyer** : cinq dossiers (agence immobilière, locataire de l'agence, propriétaire bailleur, locataire du propriétaire, artisan), chacun avec un personnage fictif, ses pièces uniques (84 au total : diagnostics, dossiers locataires, bail signé, attestations artisan, photos d'incident, CSV d'import), sa fiche de tests pas à pas (127 tests) et son tableau de suivi ; fiche de remontée par « Aide et retours » ; guide du coordinateur (ouverture de l'agence, validation de l'artisan, paiements réels Stripe, nettoyage). Produit par un générateur (`livrables/kit-recette-testeurs/_generateur/`).
 
 - [[Référentiel vérifiable Gerimmo du 12 septembre 2026]] — 465 exigences et neuf personas ; minimum demandé, couverture à prouver dans la version publiée.
 

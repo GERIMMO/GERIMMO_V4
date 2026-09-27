@@ -3,7 +3,7 @@ type: process
 tags: [retours, bugs, idees, support]
 status: in-progress
 created: 2026-07-25
-updated: 2026-09-14
+updated: 2026-09-27
 sources: ["[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[Référentiel vérifiable Gerimmo du 12 septembre 2026]]"]
 ---
 
@@ -73,3 +73,33 @@ Les soutiens sont dédupliqués, le classement est calculé sur tout l'historiqu
 Le support reste utilisable si l'abonnement est suspendu. Cette exception ne modifie aucun droit sur le parc, les baux ou la comptabilité.
 
 Preuves locales : migration `20260914120000_retours_utilisateurs.sql`, 13 scénarios SQL et sept scénarios de serveur et contexte ; suite globale de 927 tests réussis. Interface compilée et contrôlée par lint. La publication de la base et la recette visuelle restent à faire ; le verrouillage du Mac empêche temporairement les essais dans le navigateur. La conservation à six mois est préparée par la migration `20260914130000_retention_signalements_support.sql` : elle supprime les problèmes échus et leurs réponses par lots de 500 via le nettoyage existant, sans supprimer les idées. Trois tests SQL supplémentaires passent ; l’ensemble local atteint 930 tests réussis. Cette migration attend également son application à la base publique. Le raccordement à l’outil de développement reste un chantier distinct, non livré.
+
+
+## Constats du 27 septembre 2026 (préparation de la recette avec les testeurs)
+
+Relevés dans le code en préparant le [[Kit de recette testeurs]] (`app/src/app/assistance/`,
+`app/src/lib/retours.ts`, `app/src/app/actions/retours.ts`, `app/src/lib/point-du-matin.ts`) :
+
+- **Accès** : lien « Aide et retours » (`/assistance`) dans la barre du haut de l'espace
+  agence ou propriétaire (menu « Menu » au téléphone), en dernière entrée du menu du
+  locataire, en bouton flottant chez l'artisan et dans la console.
+- **Formulaire** : « Signaler un problème », « Demander une explication », « Proposer une
+  idée », et « Contester mon évaluation » pour l'artisan ; « Espace concerné » décide qui
+  voit la demande ; titre 5–160 caractères, « Ce qui se passe » 15–6 000, « Le résultat
+  attendu » 5–3 000 (problèmes) ; 20 demandes par heure au plus.
+- **Contexte joint** : l'adresse de la page (identifiants masqués) et le dernier geste ;
+  **ni capture, ni pièce jointe, ni navigateur ou appareil**.
+- **Suivi** : statuts Reçu, En examen, En cours de traitement, Résolu (idées : retenue,
+  non retenue pour le moment, déjà couverte) ; référence de 8 caractères.
+- **Supervision** : `/admin/retours`, gravité « Majeur » par défaut.
+
+> [!warning] Points à trancher / contradictions (27/09/2026)
+> - **Aucune notification** : ni l'auteur quand la supervision répond, ni la supervision
+>   quand une demande arrive — alors que le module 20 prévoit que l'utilisateur est notifié à
+>   la confirmation puis à la correction.
+> - **Floutage et prévisualisation avant envoi** (RM-20.1.5/6) **non livrés** : le
+>   formulaire demande seulement d'éviter les données personnelles.
+> - **Les nouveaux problèmes ne remontent pas dans « Aujourd'hui »** : seuls les « Bloquant »
+>   y figurent, or tout signalement naît « Majeur ».
+> - Pas de statut « Corrigé » distinct de « Résolu ».
+

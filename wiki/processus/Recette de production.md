@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-27
 sources: ["[[Fonctionnalités par persona]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]"]
 ---
 
@@ -139,3 +139,5 @@ Tout ce qui précède vu **une fois** sur `gerimmo.app`, sans contournement ;
 ## Relations
 - Ce que le banc couvre déjà : [[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]] (parcours par persona, captures).
 - Ce que la recette doit prouver : [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]] § 2.
+- La recette par des testeurs humains, persona par persona, avec paiements réels et
+  remontée par « Aide et retours » : [[Kit de recette testeurs]] (27/09).

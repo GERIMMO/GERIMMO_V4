@@ -1,0 +1,6 @@
+﻿Nom du bien;Type (appartement, maison, immeuble, local, parking, terrain, autre);Adresse;Complément d'adresse;Code postal;Ville;Année de construction;Nom du lot;Étage;Surface (m²);Pièces;Nom du propriétaire;Prénom du propriétaire;Email du propriétaire;Quote-part (%) — 100 si vide;Nom du locataire;Prénom du locataire;Email du locataire;Loyer hors charges (€);Provision pour charges (€);Dépôt de garantie (€);Date d'entrée (AAAA-MM-JJ);Jour d'échéance (1 si vide)
+Les Ateliers du Prototype;immeuble;3 rue du Prototype;;91120;Palaiseau;1988;P01;RDC;31.5;1;MAQUETTE;Roger;;100;VERNIER;Inès;;610;45;610;2024-09-01;5
+Les Ateliers du Prototype;immeuble;3 rue du Prototype;;91120;Palaiseau;1988;P02;1er;48.2;2;MAQUETTE;Roger;;100;;;;;;;;
+Les Ateliers du Prototype;immeuble;3 rue du Prototype;;91120;Palaiseau;1988;P03;2e;66;3;MAQUETTE;Roger;;50;OSSELET;Marc;;930;80;930;2025-03-01;1
+Les Ateliers du Prototype;immeuble;3 rue du Prototype;;91120;Palaiseau;1988;P03;2e;66;3;BRISSAC;Line;;50;;;;;;;;
+Maison Brouillon;maison;11 chemin du Brouillon;;91300;Massy;1965;Maison;;104;5;BRISSAC;Line;;100;;;;;;;;

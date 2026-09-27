@@ -258,3 +258,4 @@
 20260927201000_console_journal_supervision.sql
 20260927202000_artisan_decision_suspension.sql
 20260927203000_console_gestes_de_controle.sql
+20260927210000_artisan_deux_assurances_obligatoires.sql

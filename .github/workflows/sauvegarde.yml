@@ -27,10 +27,8 @@
 #
 # CONSERVATION. Le compartiment porte une règle de cycle de vie côté Scaleway
 # (suppression après 90 jours), posée par le porteur : environ quatre-vingt-dix
-# copies quotidiennes glissantes. ÉCART CONNU : le wiki (Plan de reprise
-# d'activité, Socle de sécurité) dit « 30 jours glissants » ; la règle de
-# Scaleway n'est pas modifiée ici — c'est au porteur de trancher (réduire la
-# règle, ou faire acter 90 jours dans le wiki). Ce chantier n'efface jamais rien.
+# copies quotidiennes glissantes. Durée actée par le porteur le 27/09 (wiki :
+# Plan de reprise d'activité, Socle de sécurité). Ce chantier n'efface jamais rien.
 #
 # SECRETS ATTENDUS (Settings → Secrets and variables → Actions) :
 #   GERIMMO_BACKUP_KEY          64 caractères hexadécimaux (openssl rand -hex 32)

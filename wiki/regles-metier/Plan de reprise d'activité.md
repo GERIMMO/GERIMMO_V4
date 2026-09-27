@@ -3,7 +3,7 @@ type: business-rule
 tags: [pra, sauvegarde, continuite]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-27
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -34,7 +34,7 @@ contrôle humain, sans jamais restaurer directement en production.
 
 Le [[2026-07-24-gerimmo-v3-a4-socle-securite|livrable A4]] confirme **RPO 24 h**
 (RM-A4.11) / RTO 4 h et ajoute :
-- **rétention 30 jours glissants** (couvre une erreur découverte tardivement) ;
+- ~~rétention 30 jours glissants~~ → **rétention 90 jours glissants**, décision du porteur du 27/09 (règle de cycle de vie du compartiment Scaleway) : elle couvre une erreur découverte tardivement, au prix d'une copie plus longue des données — voir [[Registre des traitements]] ;
 - sauvegardes **chiffrées** (RM-A4.6) ;
 - **test de restauration annuel, documenté** (RM-A4.12, bloquant) : restaurer
   réellement dans un environnement séparé, vérifier complétude et cohérence,

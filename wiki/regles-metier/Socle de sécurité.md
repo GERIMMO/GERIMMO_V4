@@ -3,7 +3,7 @@ type: business-rule
 tags: [securite, mfa, mot-de-passe, session, chiffrement, antivirus]
 status: draft
 created: 2026-07-25
-updated: 2026-09-14
+updated: 2026-09-27
 sources: ["[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -103,7 +103,7 @@ document, consultation de pièce sensible tracée. Voir [[Document]].
 
 ## Sauvegardes
 
-RPO **24 h** (RM-A4.11) / RTO 4 h, rétention 30 jours glissants, **test de
+RPO **24 h** (RM-A4.11) / RTO 4 h, rétention **90 jours glissants** (décision du porteur du 27/09, supplante les 30 jours du livrable A4), **test de
 restauration annuel documenté** (RM-A4.12, bloquant — premier test avant mise en
 production). Détail et procédure : [[Plan de reprise d'activité]]. La **corbeille
 applicative** (3 mois, RM-0b.8.5) traite les suppressions accidentelles isolées sans

@@ -76,10 +76,10 @@ abrégée : l'étude d'une source rejetée n'emporte plus les autres.
 - Les **faits légaux de l'éditeur** (page Paramètres de la console).
 - La localisation de Resend et le fondement du transfert hors UE par GitHub Actions ([[Registre des traitements]]).
 - La durée de conservation des factures d'artisan.
-- La **durée de conservation des sauvegardes** : 90 jours chez Scaleway, 30 jours au [[Plan de reprise d'activité]].
+- ~~La durée de conservation des sauvegardes~~ — **tranché le 27/09 : 90 jours** ([[Plan de reprise d'activité]]).
 
 > [!warning] Points à trancher / contradictions
 > - **Anonymisation au terme de la conservation** : la fiche est gardée et neutralisée, mais le fichier est détruit, faute de savoir expurger un PDF nominatif (RM-A2.5 exige l'irréversible). À valider.
-> - **Assurance de l'artisan** : [[Artisan]] (décision du 04/09) exige RC pro et décennale, le module 8 ne bloque que sur la décennale selon les travaux. Retenu : au moins une assurance en cours pour valider.
-> - **Sauvegardes** : 90 j (Scaleway) contre 30 j (PRA).
+> - ~~Assurance de l'artisan~~ — **tranché le 27/09 : décennale ET RC pro en cours** pour valider une inscription (migration `20260927210000`, [[Artisan]]).
+> - ~~Sauvegardes : 90 j contre 30 j~~ — **tranché le 27/09 : 90 jours**.
 > - **Lacunes du wiki relevées par l'audit métier** : plafonnement de l'IRL et arrondi du loyer révisé, majoration de 10 % pour restitution tardive, borne du dernier jour de préavis, sort d'une quittance dont l'encaissement est annulé, délai de communication du décompte de charges, liste des communes en zone tendue.

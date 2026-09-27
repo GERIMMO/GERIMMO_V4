@@ -94,10 +94,14 @@ export default async function PageFicheArtisan(
   const listeMetiers = (metiers.data ?? []).map((m) => METIERS[m.metier] ?? m.metier);
   const listeZones = (zones.data ?? []).map((z) => z.code_postal);
   const listePieces = (pieces.data ?? []) as Piece[];
-  // Une assurance en cours : décennale non échue, ou RC pro non échue (la même
-  // règle que la base, `artisan_assurance_deposee`, audit console 27/09).
+  // Les DEUX assurances en cours : décennale non échue ET RC pro non échue
+  // (décision du porteur du 27/09 ; même règle que la base,
+  // `artisan_assurance_deposee`).
   const aujourdhui = new Date().toISOString().slice(0, 10);
-  const assuranceEnCours = listePieces.some((p) => (p.type === "decennale" && p.expire_le !== null && p.expire_le >= aujourdhui) || (p.type === "rc_pro" && (p.expire_le === null || p.expire_le >= aujourdhui)));
+  const decennaleEnCours = listePieces.some((p) => p.type === "decennale" && p.expire_le !== null && p.expire_le >= aujourdhui);
+  const rcProEnCours = listePieces.some((p) => p.type === "rc_pro" && (p.expire_le === null || p.expire_le >= aujourdhui));
+  const assuranceEnCours = decennaleEnCours && rcProEnCours;
+  const assurancesManquantes = [!decennaleEnCours && "décennale", !rcProEnCours && "RC pro"].filter(Boolean).join(" et ");
   const listeAgences = (agences.data ?? []) as unknown as {
     organization: { id: string; name: string; status: string } | null;
   }[];
@@ -136,9 +140,9 @@ export default async function PageFicheArtisan(
             l'issue : suspendre la validation (carte « Statut de l'inscription »). */}
         {artisan.statut_plateforme === "valide" && !pieces.error && !assuranceEnCours && (
           <div role="alert" className="mb-6 border border-[var(--warning)] bg-[var(--warning-soft)] p-3.5 text-[13px] text-[var(--warning-soft-foreground)]">
-            <b>Anomalie : validé sans assurance en cours</b> — aucune décennale ni RC pro valide n&apos;est
-            déposée alors que l&apos;inscription est validée. Demandez les pièces à l&apos;artisan, ou
-            suspendez la validation ci-dessous.{" "}
+            <b>Anomalie : validé sans ses deux assurances</b> — {assurancesManquantes} en cours
+            manquante{assurancesManquantes.includes(" et ") ? "s" : ""} alors que l&apos;inscription est validée.
+            Demandez les pièces à l&apos;artisan, ou suspendez la validation ci-dessous.{" "}
             <a href="#statut-inscription" className="underline">Suspendre la validation</a>
           </div>
         )}
@@ -189,8 +193,8 @@ export default async function PageFicheArtisan(
             </p>
           ) : listePieces.length === 0 ? (
             <p className="text-sm text-[var(--texte-secondaire)]">
-              Aucune pièce déposée. Une inscription sans décennale ni RC pro en
-              cours ne peut pas être validée.
+              Aucune pièce déposée. Une inscription se valide avec une décennale
+              ET une RC pro en cours.
             </p>
           ) : (
             <ul className="space-y-2">

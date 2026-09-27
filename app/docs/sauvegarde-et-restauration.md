@@ -17,7 +17,7 @@ Ce document dit ce qui existe, ce qui a été essayé, et ce qui **n'existe pas 
 ## Ce qui n'est pas fait
 
 - **Première sauvegarde réelle prise le 25/09/2026 à 23:08 (Paris)** par le chantier GitHub, préfixe `20260925-2108/` du bucket Scaleway `gerimmo-sauvegardes` : base 1,58 Mo (pg_dump 17, intégrité vérifiée), 62 fichiers du Storage (intégrité vérifiée), relecture depuis Scaleway vérifiée. Cette copie a été prise **sans les droits** (`--no-privileges`) : la restaurer demanderait de rejouer les migrations de droits ; les copies prises après le déploiement du 27/09 les portent. Le passage est **quotidien depuis le 27/09** (il était hebdomadaire). Règle de cycle de vie posée le 25/09 sur le bucket par le porteur : expiration des objets après 90 jours, envois incomplets purgés après 7 jours.
-- **Écart de conservation, à trancher par le porteur** : le wiki (pages « Plan de reprise d'activité » et « Socle de sécurité ») dit « rétention **30 jours** glissants » ; la règle Scaleway est de **90 jours**. Elle n'a pas été modifiée (réglage du porteur). Soit la ramener à 30 jours dans la console Scaleway, soit faire acter 90 jours dans le wiki.
+- **Conservation : 90 jours**, règle de cycle de vie du compartiment Scaleway, actée par le porteur le 27/09 (wiki « Plan de reprise d'activité » et « Socle de sécurité » mis à jour).
 - **Planification** : le chantier GitHub `sauvegarde.yml` lance les deux programmes chaque nuit (quotidien depuis le 27/09). Vercel n'héberge pas ce genre de tâche (durée, `pg_dump` absent).
 - **Destination choisie le 25/09 : Scaleway Object Storage (Paris), compte séparé** ; à configurer par le porteur (§ ci-dessous).
 - **Les sauvegardes de la plateforme Supabase** (quotidiennes ou PITR selon le plan) ne sont pas vérifiées par le code : leur existence dépend du plan du projet et se lit dans le tableau de bord Supabase (Database > Backups). L'écran Santé ne les connaît pas.
@@ -74,8 +74,7 @@ Ce que le porteur fait une fois, dans cet ordre (une demi-heure) :
 2. **Compartiment** (Object Storage → Créer un bucket) : région Paris,
    visibilité privée, nom par exemple `gerimmo-sauvegardes`. Dans les
    réglages du bucket : **règle de cycle de vie** « expirer les objets après
-   90 jours » (réglage actuel du porteur ; le wiki dit 30 jours — écart à
-   trancher, voir plus haut) ; pas de versionnage.
+   90 jours » (durée actée par le porteur le 27/09) ; pas de versionnage.
 3. **Clé d'API** (IAM → Clés d'API) rattachée à une application IAM dédiée,
    avec une politique limitée à ce seul bucket (ObjectStorageFullAccess sur le
    projet suffit ; plus fin si l'écran le permet). Noter la clé d'accès et la

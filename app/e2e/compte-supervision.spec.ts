@@ -49,20 +49,20 @@ test("depuis une organisation, la fiche d'un compte dit son état, ses rôles et
 test("la recherche de la console trouve un compte par son adresse", async ({ page }) => {
   await page.goto("/admin/brief");
   // Au téléphone (une seule barre, 25/09), la recherche vit dans le menu.
-  const menu = page.getByRole("button", { name: "Menu supervision" });
-  if (await menu.isVisible()) {
-    // Sur la construction de production, un clic parti avant l'hydratation est
-    // rejoué par React une fois la page vivante : deux clics, et le menu se
-    // referme. On ne clique que si le menu se dit fermé, jusqu'à ce que
-    // l'entrée « Rechercher » soit réellement là.
-    await expect(async () => {
-      if ((await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
-      await expect(page.locator("#menu-supervision")).toBeVisible({ timeout: 1_000 });
-      await expect(page.locator("button:visible", { hasText: /Rechercher/ }).first()).toBeVisible({ timeout: 1_000 });
-    }).toPass({ timeout: 20_000 });
-  }
-  // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
-  await page.locator("button:visible", { hasText: /Rechercher/ }).first().click();
+  // Sur la construction de production, un clic parti avant l'hydratation est
+  // rejoué par React une fois la page vivante : le menu peut se refermer juste
+  // après s'être ouvert. On rejoue donc toute la séquence — ouvrir le menu si
+  // besoin, puis « Rechercher » — jusqu'à ce que le champ soit réellement là.
+  // Le bouton du menu change de nom une fois ouvert (« Fermer le menu ») : on
+  // le vise par ce qu'il commande.
+  const menu = page.locator('button[aria-controls="menu-supervision"]');
+  const champ = page.getByLabel("Nom, ville, email ou SIRET");
+  await expect(async () => {
+    if ((await menu.isVisible()) && (await menu.getAttribute("aria-expanded")) !== "true") await menu.click();
+    // Deux boutons portent ce nom (barre haute masquée au téléphone, entrée du menu) : le visible.
+    await page.locator("button:visible", { hasText: /Rechercher/ }).first().click({ timeout: 1_000 });
+    await expect(champ).toBeVisible({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
   await page.getByLabel("Nom, ville, email ou SIRET").fill("admin.alpha");
   const resultat = page.locator("[data-resultat]").filter({ hasText: "Compte" }).first();
   await expect(resultat).toBeVisible();

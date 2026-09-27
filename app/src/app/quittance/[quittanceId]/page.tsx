@@ -97,13 +97,20 @@ export default async function PageQuittance(props: {
       </div>
 
       {manquants.length === 0 ? (
-        <DocumentQuittance
-          html={document.html
-            .replace(CSS_POLICES, "")
-            .replace("</head>", `${CSS_ECRAN}</head>`)}
-          titre={`${nature} — ${mois}`}
-          imprimerAuChargement={imprimer === "1"}
-        />
+        <>
+          {/* Le titre de la page, hors du cadre : le document garde le sien,
+              mais la page doit en porter un (lecteurs d'écran, audit). */}
+          <h1 className="text-lg print:hidden">
+            {nature} — <span className="capitalize">{mois}</span>
+          </h1>
+          <DocumentQuittance
+            html={document.html
+              .replace(CSS_POLICES, "")
+              .replace("</head>", `${CSS_ECRAN}</head>`)}
+            titre={`${nature} — ${mois}`}
+            imprimerAuChargement={imprimer === "1"}
+          />
+        </>
       ) : (
         <section className="space-y-3 rounded-md border border-border p-4 text-sm">
           <h1 className="text-lg">

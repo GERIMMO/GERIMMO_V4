@@ -21,7 +21,8 @@ const PLAFOND = Number(process.env.E2E_A11Y_PAGES ?? 14);
 
 // Routes qui rendent un FICHIER (PDF, CSV) : rien à auditer, et le
 // téléchargement interrompt la navigation.
-const FICHIERS = /\/(quittance-pdf|document|export|telecharger|api)(\/|\?)|\/fichier(\?|$)/;
+// `?imprimer=1` ouvre la feuille d'impression : un geste de fichier, comme un export.
+const FICHIERS = /\/(quittance-pdf|document|export|telecharger|api)(\/|\?)|\/fichier(\?|$)|[?&]imprimer=1/;
 
 const ESPACES = [
   { persona: "admin" as const, depart: "/espaces" },

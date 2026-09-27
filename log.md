@@ -5525,3 +5525,7 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - **Attendu chez Stripe** : `STRIPE_PRIX_BIEN` par unité 5,99 € mensuel ; `STRIPE_PRIX_LOT_AGENCE` par paliers **gradués** (forfait 39 € jusqu'à 10 lots, puis 2,00 / 1,30 / 0,80 / 0,50 €) ; webhook en `www` avec son propre secret ; portail client activé en mode réel.
 - **Wiki** : [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]] § 7 (constat, attendu, marche à suivre du paiement réel, contrôles) ; [[Grille tarifaire]] remise à jour (grille agence tranchée le 12/09, configuration Stripe attendue) ; [[Grille tarifaire agence — proposition]] marquée validée ; [[Recette de production]] corrigée (pas de débit pendant l'essai ; une résiliation fait revenir en essai, pas en lecture seule).
 - **Points à trancher** : 5,99 € TTC ou HT ; reconnecter Stripe puis constater § 7.2. Test de paiement réel à faire par le porteur, contrôle en base ensuite.
+
+## [2026-09-27] decision | Stripe : compte de versement changé
+- Le porteur a remplacé le compte bancaire de versement dans Stripe (Paramètres → Comptes associés et virements) : un seul compte, en EUR, par défaut, changement confirmé par le lien de vérification Stripe. Coordonnées bancaires volontairement non recopiées ici. Aucun effet sur l'application (variables, webhook, prix inchangés).
+- Restent à constater côté Stripe : [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]] § 7.2, puis le test de paiement réel (§ 7.3).

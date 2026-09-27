@@ -1,0 +1,127 @@
+# Recette de production : Playwright parcourt https://www.gerimmo.app avec de
+# vrais comptes, au gabarit téléphone (390×844), comme un client le ferait.
+#
+# CE QUE FAIT CE CHANTIER. À la demande seulement (jamais planifié), il lance
+# la suite `app/e2e/recette-production/` contre la production : pages
+# publiques, puis l'admin d'une agence, un propriétaire direct et un
+# locataire — connexion par le vrai formulaire, tour de TOUS les écrans de
+# leur menu, création d'un bien, d'un lot et d'une fiche locataire, page
+# d'abonnement (le bouton est regardé, jamais cliqué), déconnexion. Le rapport
+# HTML et les captures d'échec sont déposés en artefact.
+#
+# CE QU'IL NE FAIT PAS, PAR CONSTRUCTION (garde-fous dans le code) : aller
+# ailleurs que sur www.gerimmo.app ; cliquer sur « Payer », « S'abonner »,
+# « Supprimer », « Archiver », « Retirer », « Envoyer pour signature » (refusé
+# avant le clic ET intercepté dans la page) ; saisir une adresse hors du
+# domaine resend.dev (les boîtes « delivered+… » de Resend acceptent et
+# jettent le courrier : aucun e-mail n'atteint une personne).
+#
+# AVANT ET APRÈS. Les comptes n'existent pas d'avance : les préparer avec
+# `app/e2e/recette-production/preparer-comptes.sql` (psql, suffixe unique et
+# mot de passe en paramètres) — il affiche les valeurs à saisir ci-dessous.
+# Après le passage, TOUT retirer avec `purger.sql` (même suffixe). Mode
+# d'emploi en tête de chacun des deux scripts.
+#
+# LE MOT DE PASSE. Il est masqué dans les journaux dès la première étape, lu
+# dans la charge de l'événement plutôt que dans l'environnement de l'étape
+# (GitHub imprime l'environnement d'une étape AVANT qu'elle ne s'exécute) ;
+# les tests qui le tapent ne gardent pas de trace Playwright. Limite : une
+# entrée de `workflow_dispatch` reste lisible dans la charge de l'événement
+# par qui peut lire les exécutions du dépôt — utiliser un mot de passe propre
+# à ce passage, que `purger.sql` rend caduc en supprimant les comptes.
+
+name: Recette de production
+
+on:
+  workflow_dispatch:
+    inputs:
+      mot_de_passe:
+        description: "Mot de passe commun des trois comptes de recette (celui donné à preparer-comptes.sql)"
+        required: true
+        type: string
+      email_admin:
+        description: "Admin d'agence (delivered+recette-admin-<suffixe>@resend.dev)"
+        required: true
+        type: string
+      email_proprietaire:
+        description: "Propriétaire direct (delivered+recette-proprietaire-<suffixe>@resend.dev)"
+        required: true
+        type: string
+      email_locataire:
+        description: "Locataire (delivered+recette-locataire-<suffixe>@resend.dev)"
+        required: true
+        type: string
+      org_agence:
+        description: "UUID de l'agence de recette"
+        required: true
+        type: string
+      org_proprietaire:
+        description: "UUID du parc du propriétaire direct"
+        required: true
+        type: string
+      suffixe:
+        description: "Suffixe du passage (celui de preparer-comptes.sql)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recette-production
+  cancel-in-progress: false
+
+jobs:
+  recette:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      # EN PREMIER, avant toute autre sortie : le mot de passe devient « *** »
+      # dans tous les journaux qui suivent.
+      - name: Masquer le mot de passe
+        working-directory: .
+        run: |
+          MDP="$(jq -r '.inputs.mot_de_passe // empty' "$GITHUB_EVENT_PATH")"
+          if [ -z "$MDP" ]; then echo "✗ mot de passe absent" >&2; exit 1; fi
+          echo "::add-mask::$MDP"
+
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Dépendances
+        run: npm ci --no-audit --no-fund
+
+      - name: Navigateur (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Recette contre https://www.gerimmo.app
+        env:
+          RECETTE_URL: https://www.gerimmo.app
+          RECETTE_MOT_DE_PASSE: ${{ inputs.mot_de_passe }}
+          RECETTE_EMAIL_ADMIN: ${{ inputs.email_admin }}
+          RECETTE_EMAIL_PROPRIETAIRE: ${{ inputs.email_proprietaire }}
+          RECETTE_EMAIL_LOCATAIRE: ${{ inputs.email_locataire }}
+          RECETTE_ORG_AGENCE: ${{ inputs.org_agence }}
+          RECETTE_ORG_PROPRIETAIRE: ${{ inputs.org_proprietaire }}
+          RECETTE_SUFFIXE: ${{ inputs.suffixe }}
+        run: npx playwright test --config e2e/recette-production/playwright.config.ts
+
+      # Rapport HTML, captures et traces d'échec — même quand la recette échoue,
+      # c'est surtout là qu'on en a besoin.
+      - name: Déposer les résultats
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recette-production-${{ inputs.suffixe }}
+          path: app/e2e/recette-production/.resultats/
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 14

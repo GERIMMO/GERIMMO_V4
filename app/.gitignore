@@ -48,6 +48,8 @@ e2e/.audit/
 e2e/.audit-live/
 e2e/.audit-production*/
 e2e/.results/
+# Recette de production : traces, captures et rapport HTML d'un passage
+e2e/recette-production/.resultats/
 # Sondes jetables du balayage des boutons (12/09) : écrites pour un audit,
 # supprimées après usage — leur méthode vit dans log.md, pas ici.
 /*.mjs

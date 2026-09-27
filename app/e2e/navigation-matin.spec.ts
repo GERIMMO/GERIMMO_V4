@@ -38,6 +38,37 @@ test.describe('Tour du matin de la supervision',()=>{
   await expect(page.locator('#historique-service')).toBeInViewport();
   await expect(page.locator('#historique-service')).toContainText('Historique du service');
  });
+ test('filtre l’historique avec des choix compréhensibles et conserve les dates',async({page})=>{
+  await page.goto('/admin/journaux?type=tache_&p_technique=2');
+  const formulaire=page.getByRole('form',{name:'Filtrer les journaux'});
+  const type=formulaire.getByRole('combobox',{name:'Type d’événement'}).or(formulaire.getByRole('combobox',{name:"Type d'événement"}));
+  await expect(type).toHaveValue('tache_');
+  // Les noms des missions sont les mêmes que dans Santé et Équipes.
+  await type.selectOption({label:'Sauvegarde hebdomadaire'});
+  await formulaire.getByLabel('Depuis le',{exact:true}).fill('2026-09-01');
+  await formulaire.getByRole('button',{name:'Filtrer',exact:true}).click();
+  await expect(page).toHaveURL(/type=tache_sauvegarde/);
+  await expect(type).toHaveValue('tache_sauvegarde');
+  await expect(formulaire.getByLabel('Depuis le',{exact:true})).toHaveValue('2026-09-01');
+  expect(new URL(page.url()).searchParams.has('p_technique')).toBe(false);
+  await expect(page.locator('#historique-service')).toBeVisible();
+  await formulaire.getByRole('link',{name:'Effacer',exact:true}).click();
+  await expect(page).toHaveURL(/\/admin\/journaux$/);
+  await expect(type).toHaveValue('');
+  await expect(formulaire.getByLabel('Depuis le',{exact:true})).toHaveValue('');
+ });
+ test('préserve un ancien filtre partagé sans afficher son code interne',async({page})=>{
+  await page.goto('/admin/journaux?type=evenement_ancien_test');
+  const formulaire=page.getByRole('form',{name:'Filtrer les journaux'});
+  const type=formulaire.locator('select[name="type"]');
+  await expect(type).toHaveValue('evenement_ancien_test');
+  await expect(type.locator('option:checked')).toHaveText('Recherche conservée depuis le lien');
+  await expect(formulaire).not.toContainText('evenement_ancien_test');
+  await formulaire.getByLabel('Depuis le',{exact:true}).fill('2026-09-01');
+  await formulaire.getByRole('button',{name:'Filtrer',exact:true}).click();
+  await expect(page).toHaveURL(/depuis=2026-09-01/);
+  await expect(type).toHaveValue('evenement_ancien_test');
+ });
 });
 test.describe('Actualisation marketing depuis un autre fuseau horaire',()=>{
  test.use({storageState:'e2e/.auth/superadmin.json',timezoneId:'America/New_York'});

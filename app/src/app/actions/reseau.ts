@@ -8,6 +8,10 @@ import { sansJargon } from "@/lib/erreurs";
 export type EtatReseau = { erreur?: string; succes?: string };
 function revalider(org?: string, bien?: string) {
   revalidatePath("/admin/couverture");
+  if (!org) {
+    revalidatePath("/agence/[orgId]/reseau", "page");
+    revalidatePath("/agence/[orgId]/incidents", "page");
+  }
   if (org) {
     revalidatePath(`/agence/${org}/reseau`);
     revalidatePath(`/agence/${org}/incidents`, "layout");

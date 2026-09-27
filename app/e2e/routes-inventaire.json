@@ -843,6 +843,6 @@
     "path": "/agence/ORG/reseau",
     "persona": "admin-agence",
     "label": "Réseau disponible pour les biens",
-    "dynamic": "org"
+    "dynamic": "orgId"
   }
 ]

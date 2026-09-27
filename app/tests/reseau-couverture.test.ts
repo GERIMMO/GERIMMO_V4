@@ -60,6 +60,16 @@ describe.skipIf(!DB)("Réseau communal — gestion nationale et décisions expli
     expect((await db.query("update public.biens set nom='Bien lyonnais renommé' where id=$1 returning id",[lyon.bien])).rows).toHaveLength(1);
     expect((await db.query("select id from public.incidents where id=$1",[lyon.incident])).rows).toHaveLength(1);
   });
+  it("un nouvel inscrit domicilié à Lyon ouvre son espace et crée son premier bien hors Essonne", async () => {
+    await postgres(); const nouveau=await compte('inscription-nationale');
+    await db.query("update auth.users set raw_user_meta_data=jsonb_build_object('espace','proprietaire_direct','nom','National','prenom','Test','adresse','1 rue de la République','code_postal','69003','ville','Lyon','telephone','0600000000','qualite','personne_physique') where id=$1",[nouveau]);
+    await devenir(nouveau); const espace=await id("select public.initialiser_espace_proprietaire() id");
+    expect((await db.query("select city,postal_code from public.organizations where id=$1",[espace])).rows[0]).toEqual({city:'Lyon',postal_code:'69003'});
+    const bien=await id("select public.creer_bien_avec_lot($1,'Premier bien national','appartement','2 rue Test',null,'33000','Bordeaux',2000,false,40,2) id",[espace]);
+    expect((await db.query("select id from public.lots where bien_id=$1",[bien])).rows).toHaveLength(1);
+    await db.query("select public.reseau_confirmer_commune($1,$2,'33063')",[espace,bien]);
+    expect((await db.query("select etat from public.reseau_disponibilite($1,$2,'plomberie')",[espace,bien])).rows[0].etat).toBe('fermee');
+  });
   it("le rattachement à une commune est distinct de l’ouverture", async () => {
     await devenir(sa); await db.query("select public.reseau_rattacher_artisan($1,array['75056'],'plomberie',true)",[artisan]);
     await devenir(owner); expect((await dispo()).etat).toBe('fermee');

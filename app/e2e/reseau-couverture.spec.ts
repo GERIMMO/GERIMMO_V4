@@ -59,7 +59,7 @@ test.describe("Administration des ouvertures", () => {
     await expect(page.getByRole("row").filter({ has: page.getByRole("link", { name: "Massy", exact: true }) })).toContainText("Fermée par défaut");
     await page.getByRole("button", { name: "Tout désélectionner" }).click();
     await expect(ouvrir).toBeDisabled();
-    await page.getByRole("button", { name: "Sélectionner les 1 communes affichées" }).click();
+    await page.getByRole("button", { name: "Sélectionner toutes les communes affichées (1)" }).click();
     await expect(ouvrir).toBeDisabled();
     await page.getByRole("link", { name: "Massy", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Artisans rattachés à Massy" })).toBeVisible();

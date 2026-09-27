@@ -78,7 +78,7 @@ Vercel (exécution de l'application — région cdg1, Paris, fixée dans
 `vercel.json` le 20/09) · Resend (courriers) · Stripe (abonnement de
 l'organisation, volet 1) · **Yousign** (adaptateur « Youtrust » dans le code,
 branché le 22/09 : le document à signer, le nom, l'adresse électronique et le
-téléphone de chaque signataire — France). À venir : Meta pour WhatsApp (hors
+téléphone de chaque signataire — France ; **non activée au lancement**, décision du porteur du 27/09 : tant que `YOUTRUST_ENV` ne vaut pas « production », rien ne lui est transmis et la signature se fait par dépôt du PDF signé). À venir : Meta pour WhatsApp (hors
 UE — consentement explicite et clauses types, [[Canaux de communication]]).
 Pour le volet 1 seulement (aucune donnée de gestion locative d'après le code) :
 **OpenAI** (P8, États-Unis) et **Meta** pour Facebook (P9, Irlande et

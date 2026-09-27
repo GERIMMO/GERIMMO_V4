@@ -133,7 +133,9 @@ export const PRESTATAIRES: readonly Prestataire[] = [
   },
   {
     nom: "Yousign",
-    role: "Signature électronique des baux : le document à signer, le nom, l'adresse électronique et le téléphone de chaque signataire",
+    // Non activée au lancement (décision du 27/09) : rien ne lui est transmis
+    // tant que YOUTRUST_ENV ne vaut pas « production ».
+    role: "Signature électronique des baux, lorsqu'elle sera activée (elle ne l'est pas au lancement) : le document à signer, le nom, l'adresse électronique et le téléphone de chaque signataire",
     localisation: "France",
   },
   {

@@ -56,8 +56,6 @@ describe("les variables de production", () => {
       "STRIPE_PRIX_BIEN",
       "STRIPE_PRIX_LOT_AGENCE",
       "RESEND_API_KEY",
-      "YOUTRUST_API_KEY",
-      "YOUTRUST_WEBHOOK_SECRET",
       "CRON_SECRET",
       "SUPABASE_SERVICE_ROLE_KEY",
       "OPENAI_API_KEY",
@@ -65,6 +63,20 @@ describe("les variables de production", () => {
     ]);
     // L'expéditeur absent n'est pas un manque : le repli est l'adresse cible.
     expect(v.find((x) => x.cle === "RESEND_EXPEDITEUR")!.etat).toBe("attention");
+  });
+
+  it("la signature électronique désactivée pour le lancement n'est pas une alerte (27/09)", () => {
+    const v = etatConfiguration({ ...COMPLET, YOUTRUST_ENV: "sandbox" });
+    expect(v.find((x) => x.cle === "YOUTRUST_API_KEY")).toMatchObject({
+      etat: "ok",
+      detail: expect.stringContaining("désactivée pour le lancement"),
+    });
+    // Son webhook n'est pas réclamé tant qu'elle est éteinte.
+    expect(v.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")).toBeUndefined();
+    // Activée, la ligne redevient celle de l'environnement réel, webhook compris.
+    const active = etatConfiguration(COMPLET);
+    expect(active.find((x) => x.cle === "YOUTRUST_API_KEY")!.detail).toBe("environnement réel");
+    expect(active.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")!.etat).toBe("ok");
   });
 
   it("distingue une clé Stripe de test d'une clé réelle", () => {

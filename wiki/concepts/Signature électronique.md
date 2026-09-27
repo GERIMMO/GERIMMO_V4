@@ -3,11 +3,19 @@ type: concept
 tags: [signature, yousign, demande-de-signature]
 status: draft
 created: 2026-07-24
-updated: 2026-09-09
+updated: 2026-09-27
 sources: ["[[2026-07-24-gerimmo-v3-module-13-signature-electronique]]"]
 ---
 
 # Signature électronique
+
+> [!note] Lancement du 30/09 : signature électronique non activée (décision du 27/09)
+> Le porteur a décidé d'ouvrir sans la signature électronique Yousign. Le code
+> ne transmet rien à Yousign tant que `YOUTRUST_ENV` ne vaut pas « production » :
+> « Envoyer pour signature » suit le [circuit de transition V0](#circuit-de-transition-v0--le-signé-déposé-2026-09-09)
+> (le signataire télécharge, signe, dépose le signé). L'écran Santé l'affiche
+> comme un choix, pas comme une panne. L'activer demande un compte Yousign réel,
+> ses clés dans Vercel et le webhook `/api/youtrust/webhook`.
 
 **Définition :** le circuit de signature des documents engageants (**Yousign**,
 signature **simple** : email + code SMS — RM-13.1.1). Objet : **Demande de

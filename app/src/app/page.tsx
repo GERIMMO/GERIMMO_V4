@@ -13,7 +13,7 @@ import {
 export const metadata = {
   title: "Gerimmo — La gérance immobilière, tenue au carré",
   description:
-    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative des propriétaires bailleurs et des agences. Premier bien offert.",
+    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Premier bien offert.",
 };
 
 // Site vitrine — ce que voit un visiteur avant toute connexion. Un connecté
@@ -148,7 +148,7 @@ export default async function PageVitrine() {
         <div className="mx-auto w-full max-w-6xl px-4 pt-14 pb-16 sm:px-7 sm:pt-20 sm:pb-24">
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.95fr]">
             <div>
-              <p className="eyebrow text-[var(--marque-sombre)]">Gestion locative</p>
+              <p className="eyebrow text-[var(--marque-sombre)]">Gestion locative · partout en France</p>
               <h1 className="mt-4 max-w-[14ch] text-balance font-heading text-[40px] font-extrabold leading-[1.05] tracking-[-0.025em] text-[var(--encre)] sm:text-[56px]">
                 Le sérieux d&apos;une agence, sans les honoraires.
               </h1>
@@ -158,6 +158,7 @@ export default async function PageVitrine() {
                 propriétaires bailleurs qui gèrent en direct, et pour les
                 agences.
               </p>
+              <p className="mt-3 max-w-lg text-sm leading-relaxed text-[var(--texte-secondaire)]">Le réseau d’artisans s’ouvre progressivement, selon la commune du bien et le métier recherché. Vos biens, baux et documents se gèrent partout en France, indépendamment de ce réseau.</p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 {/* 24/09 : une même cible, un même nom. /inscription s'appelait
                     ici « Commencer », ailleurs « Créer mon compte » ou
@@ -311,6 +312,7 @@ export default async function PageVitrine() {
           </div>
         </section>
 
+        <p className="mx-auto max-w-6xl px-4 pb-8 text-sm text-[var(--texte-secondaire)] sm:px-7">Toutes les offres de gestion locative sont accessibles en France. La mise en relation avec le réseau d’artisans dépend de la commune du bien et du métier recherché ; aucune date d’ouverture n’est annoncée.</p>
         {/* ------------------------------------------------ Fonctionnalités */}
         <section className="border-y border-[var(--filet)] bg-[var(--ivoire)]">
           <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">

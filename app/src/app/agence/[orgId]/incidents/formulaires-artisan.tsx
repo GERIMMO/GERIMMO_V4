@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState, useId, useState } from "react";
 import {
   annulerMission,
   deciderAvenant,
@@ -12,6 +12,8 @@ import {
   solliciterArtisan,
   type EtatIncidentAction,
 } from "@/app/actions/incidents";
+import { MessageReseau, InteretReseau } from "@/components/disponibilite-reseau";
+import type { DisponibiliteReseau } from "@/lib/reseau";
 import { IMPUTATIONS_INCIDENT } from "@/lib/incidents";
 import {
   decennaleRequise,
@@ -72,10 +74,14 @@ export function FormulaireConsultation({
   orgId,
   incidentId,
   categorieLibelle,
+  bienId,
+  disponibilites,
 }: {
   orgId: string;
   incidentId: string;
   categorieLibelle: string;
+  bienId: string | null;
+  disponibilites: DisponibiliteReseau[] | null;
 }) {
   const actionLiee = ouvrirConsultation.bind(null, orgId, incidentId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
@@ -83,9 +89,13 @@ export function FormulaireConsultation({
   const idNature = useId();
   const idValidite = useId();
   const idUnique = useId();
+  const [metier, choisirMetier] = useState("");
+  const [nature, choisirNature] = useState("");
+  const d = disponibilites?.find(x => x.metier === metier && x.nature === nature);
+  const autorisee = Boolean(d && (d.etat === "ouverte" || d.nb_contacts > 0));
 
   return (
-    <form action={action} className="space-y-3">
+    <div className="space-y-3"><form action={action} className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor={idMetier}>Métier recherché *</Label>
@@ -93,7 +103,8 @@ export function FormulaireConsultation({
             id={idMetier}
             name="metier"
             required
-            defaultValue={etat.valeurs?.metier ?? ""}
+            value={metier}
+            onChange={e => choisirMetier(e.target.value)}
             className={classeSelect}
           >
             <option value="" disabled>
@@ -116,7 +127,8 @@ export function FormulaireConsultation({
             id={idNature}
             name="nature"
             required
-            defaultValue={etat.valeurs?.nature ?? ""}
+            value={nature}
+            onChange={e => choisirNature(e.target.value)}
             className={classeSelect}
           >
             <option value="" disabled>
@@ -169,9 +181,14 @@ export function FormulaireConsultation({
         </span>
       </label>
 
+      {disponibilites === null && <p role="alert" className="text-sm text-destructive">La disponibilité des artisans ne peut pas être vérifiée. Rechargez la page avant d’ouvrir une demande.</p>}
+      {d && bienId && <MessageReseau orgId={orgId} bienId={bienId} disponibilite={d} />}
+      {d && d.etat !== "ouverte" && d.nb_contacts > 0 && <p className="text-sm">Vous pouvez continuer avec {d.nb_contacts} artisan{d.nb_contacts > 1 ? "s" : ""} de votre carnet personnel correspondant à ces travaux.</p>}
       <Retour etat={etat} />
-      <BoutonEnvoi enCoursTexte="Ouverture…">Ouvrir la mise en concurrence</BoutonEnvoi>
+      <BoutonEnvoi disabled={!autorisee} enCoursTexte="Ouverture…">{d && d.etat !== "ouverte" && d.nb_contacts > 0 ? "Ouvrir avec mon carnet" : "Ouvrir la mise en concurrence"}</BoutonEnvoi>
     </form>
+    {d && bienId && <InteretReseau key={`${bienId}-${metier}-${nature}`} orgId={orgId} bienId={bienId} disponibilite={d} />}
+    </div>
   );
 }
 

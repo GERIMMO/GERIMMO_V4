@@ -411,6 +411,7 @@ export default async function PageLot(
           <div id="caracteristiques" className="scroll-mt-20">
             <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
           </div>
+          <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="btn-secondaire inline-flex">Vérifier les artisans disponibles pour ce bien</Link>
 
           {/* Détention — rouverte au propriétaire bailleur (audit 06/09) :
               l'indivision et la quote-part fiscale se saisissent ici, et le

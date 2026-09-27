@@ -426,6 +426,7 @@ export default async function PageBien(
         </CardHeader>
         <CardContent className="space-y-2">
           <RecapBien orgId={orgId} bien={bien as BienFormulaire} />
+          <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="btn-secondaire inline-flex">Vérifier les artisans disponibles pour ce bien</Link>
 
           {/* Diagnostics du bien */}
           <SectionLot

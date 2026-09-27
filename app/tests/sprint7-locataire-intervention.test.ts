@@ -226,6 +226,8 @@ describe.skipIf(!DB_URL)("Sprint 7 — suivi d'intervention côté locataire", (
       [cptArtisan]
     );
     artisan = a.id;
+    // Artisan personnel de cette agence ; la couverture commerciale est testée séparément.
+    await db.query(`insert into public.artisan_agences(organization_id,artisan_id) values($1,$2)`,[org,artisan]);
     await db.query(`insert into public.artisan_metiers values ($1,'plomberie')`, [artisan]);
     await db.query(`insert into public.artisan_zones values ($1,'75011')`, [artisan]);
     await db.query(

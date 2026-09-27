@@ -84,6 +84,7 @@ export default async function PageTerritoire() {
       <div className="min-w-0 flex-[1_1_20rem]"><h1>Développement territorial</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">Le marché locatif, le réseau d’artisans et les résultats commerciaux, comparés département par département. Gerimmo propose une priorité et dit ce qu’il faut encore vérifier avant de recruter.</p></div>
       <span className="mono-discret">{echec ? 'Présence indisponible' : pluriel(empreinte.lignes.length, 'département présent', 'départements présents')}</span>
     </div>
+    <p className="text-sm">La gestion locative est déjà accessible partout en France. Les priorités de recrutement ne conditionnent pas l’inscription. <Link href="/admin/couverture" className="underline">Décider des ouvertures du réseau d’artisans, par commune et métier →</Link></p>
     {(echec || donneesMarche.error) && <p role="alert" className="err">Certaines informations ne sont pas disponibles. {echec ? 'La recommandation est suspendue pour éviter de choisir sur un portefeuille incomplet.' : 'Les sources publiques restent visibles ; le réseau et les résultats commerciaux doivent être actualisés.'}</p>}
     {/* La tuile commune de la console (24/09). La couleur suit la valeur : ambre
         quand elle appelle une action, neutre sinon — les quatre aplats pastel

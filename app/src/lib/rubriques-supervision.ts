@@ -72,6 +72,7 @@ export const RUBRIQUES: Rubrique[] = [
       { href: "/admin/autonomie", libelle: "Développement du site" },
       { href: "/admin/retours", libelle: "Retours des utilisateurs" },
       { href: "/admin/territoire", libelle: "Développement territorial" },
+      { href: "/admin/couverture", libelle: "Réseau d’artisans" },
     ],
   },
   {

@@ -3,8 +3,8 @@ type: business-rule
 tags: [tarifs, stripe, abonnement]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-12
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
+updated: 2026-09-27
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[Grille tarifaire agence — proposition]]"]
 ---
 
 # Grille tarifaire
@@ -86,13 +86,48 @@ dégressif), alignée sur le modèle V3 « mise en route + mensuel exclusif + re
 annuelle » ; paliers exprimés en **lots sous mandat** (comptage automatique RM-18.6).
 Les deux dernières tranches restent sur devis.
 
+## Grille agence en vigueur — tranchée (humain, 2026-09-12)
+
+La grille agence par paliers ci-dessus (79/149/249/399 €) **n'a jamais été
+codée** et est **remplacée** : l'humain a validé le 12/09 le barème **marginal
+par tranches** de [[Grille tarifaire agence — proposition]] (journal du 12/09),
+implémenté le jour même (migration `20260912120000`, table `tarif_tranches`).
+
+| Tranche (lots sous mandat actif) | Par lot et par mois |
+|---|---|
+| 1ᵉʳ au 10ᵉ | forfait **39 €** (plancher) |
+| 11ᵉ au 50ᵉ | 2,00 € |
+| 51ᵉ au 150ᵉ | 1,30 € |
+| 151ᵉ au 400ᵉ | 0,80 € |
+| au-delà de 400 | 0,50 € |
+
+Ni mise en route ni redevance annuelle ; un seul abonnement Stripe. Au-delà de
+600 lots : sur devis, sauf pour une agence déjà cliente. Chaque lot est facturé
+au tarif de **sa** tranche : 50 → 51 lots coûte 1,30 €, pas une marche.
+
+## Configuration Stripe attendue (constat du 2026-09-27)
+
+Deux prix, tous deux **récurrents mensuels en EUR**, créés **en mode réel** :
+
+| Variable Vercel | Public | Prix Stripe attendu |
+|---|---|---|
+| `STRIPE_PRIX_BIEN` | Propriétaire direct | **Par unité, 5,99 €** ; quantité envoyée = biens − 1 (le 1ᵉʳ offert est hors prix) |
+| `STRIPE_PRIX_LOT_AGENCE` | Agence | **Par paliers, mode gradué**, reproduisant le tableau ci-dessus (tranche 1 : 0 €/lot + forfait 39 €) ; quantité = lots sous mandat actif |
+
+Le montant affiché dans l'application vient de `tarif_tranches` ; celui prélevé
+vient du prix Stripe. **Les deux doivent dire la même chose** : un prix Stripe
+modifié seul crée un écart entre l'écran et la facture. Vérification côté
+Stripe à faire : voir [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]], § 7.
+
 > [!warning] Points à trancher / contradictions
-> - **La grille agence par paliers n'est implémentée nulle part (constat du 2026-09-12)** :
->   `etat_abonnement` applique 5,99 €/bien à TOUT LE MONDE, et « Mon abonnement » est
->   masqué aux agences — il n'existe aucun chemin d'encaissement pour une agence. Une
->   proposition de remplacement, par tranches et sans marche, attend l'arbitrage :
->   voir [[Grille tarifaire agence — proposition]]. **Tant qu'elle n'est pas tranchée,
->   la présente page fait foi.**
+> - ~~Grille agence par paliers non implémentée, proposition en attente
+>   d'arbitrage~~ — **tranché le 12/09** : barème par tranches (section « Grille agence
+>   en vigueur »). Les sections « Grille officielle » et « Agences : grille actuelle
+>   conservée » sont **historiques** pour la partie agence.
+> - **5,99 € TTC ou HT ?** Non précisé par les sources ; détermine le comportement
+>   fiscal des prix Stripe (constat du 27/09).
+> - **Prix Stripe non constatés** (27/09) : le connecteur Stripe n'a pas pu être lu ;
+>   la conformité des deux prix au tableau ci-dessus reste à vérifier.
 > - `agency_301_600` : `requires_quote = true` → doit rester non achetable en ligne (sinon R1 bloque).
 > - Prix annuels de `public-pricing.ts` à neutraliser (RM-18.6.7 : mensuel exclusif).
 > - Voir [[Cycle de vie de l'abonnement]], [[Analyse concurrentielle]].

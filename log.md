@@ -5517,3 +5517,11 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 ## [2026-09-27] decision | Resend : domaine d'envoi en Irlande
 - Constaté par le porteur dans le tableau de bord Resend : domaine `gerimmo.app` vérifié, région **eu-west-1 (Irlande)**. [[Registre des traitements]] et liste des prestataires des pages légales mis à jour. Restent : rétention des journaux d'envoi chez Resend et fondement contractuel (DPA).
 - TLS imposé (« Enforced ») sur le domaine d'envoi Resend, réglé par le porteur le 27/09 : un courrier n'est jamais remis en clair ; un serveur destinataire incapable de chiffrer ne le reçoit pas.
+
+
+## [2026-09-27] lint | Vérification Stripe avant le lancement (lecture seule)
+- **Compte Stripe non lu** : le connecteur Stripe apparaît « connexion incomplète » dans la session, ses outils ne sont pas chargés. Mode réel, prix, webhook et portail restent **à constater côté Stripe**. Rien n'a été créé ni modifié.
+- **Constaté côté application** : les quatre variables `STRIPE_*` posées en production le 21/09 (valeurs non lues) ; la tâche `abonnements` passe par la voie configurée depuis le 22/09 (clé et secret présents, mode non prouvé) ; `www.gerimmo.app` est le domaine principal (`gerimmo.app` → 308) et `/api/stripe/webhook` répond ; cinq événements attendus (`customer.subscription.created/updated/deleted/paused/resumed`) ; `tarif_tranches` conforme au 12/09 ; `abonnement_evenements` et `abonnements` vides, 0 organisation.
+- **Attendu chez Stripe** : `STRIPE_PRIX_BIEN` par unité 5,99 € mensuel ; `STRIPE_PRIX_LOT_AGENCE` par paliers **gradués** (forfait 39 € jusqu'à 10 lots, puis 2,00 / 1,30 / 0,80 / 0,50 €) ; webhook en `www` avec son propre secret ; portail client activé en mode réel.
+- **Wiki** : [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]] § 7 (constat, attendu, marche à suivre du paiement réel, contrôles) ; [[Grille tarifaire]] remise à jour (grille agence tranchée le 12/09, configuration Stripe attendue) ; [[Grille tarifaire agence — proposition]] marquée validée ; [[Recette de production]] corrigée (pas de débit pendant l'essai ; une résiliation fait revenir en essai, pas en lecture seule).
+- **Points à trancher** : 5,99 € TTC ou HT ; reconnecter Stripe puis constater § 7.2. Test de paiement réel à faire par le porteur, contrôle en base ensuite.

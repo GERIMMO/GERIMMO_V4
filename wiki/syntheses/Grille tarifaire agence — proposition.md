@@ -1,18 +1,18 @@
 ---
 type: synthesis
 tags: [tarifs, agence, abonnement, stripe, proposition]
-status: draft
+status: stable
 created: 2026-09-12
-updated: 2026-09-12
+updated: 2026-09-27
 sources: ["[[Grille tarifaire]]", "[[Analyse concurrentielle]]", "[[Mandat de gestion]]", "[[Cycle de vie de l'abonnement]]", "[[Abonnement]]"]
 ---
 
 # Grille tarifaire agence — proposition
 
-**Statut : proposition, en attente d'arbitrage humain.** Rien n'est implémenté.
-La grille en vigueur dans le code applique 5,99 €/bien à tout le monde, et
-l'écran « Mon abonnement » est masqué aux agences — il n'existe aujourd'hui
-**aucun chemin d'encaissement pour une agence**.
+**Statut : validée par l'humain le 12/09 et implémentée le jour même**
+(migration `20260912120000`, table `tarif_tranches` ; journal du 12/09). La
+grille en vigueur est reprise dans [[Grille tarifaire]]. Le texte ci-dessous est
+la proposition telle qu'elle a été soumise.
 
 ## Ce qui ne va pas dans la grille actée
 

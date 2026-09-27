@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-27
 sources: ["[[Fonctionnalités par persona]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]"]
 ---
 
@@ -80,10 +80,13 @@ ce que le banc a prouvé tient en production.
 - Premier bien (gratuit) puis deuxième → **souscrire** : page d'abonnement →
   Stripe → carte réelle → retour dans l'espace, statut **active** ;
   `/admin` compte une active de plus ; Stripe montre l'abonnement avec la
-  bonne quantité.
+  bonne quantité. Pendant l'essai, **rien n'est débité** (fin d'essai passée à
+  Stripe, décision du 24/09) : pour un vrai prélèvement, terminer l'essai
+  depuis Stripe.
 - Rembourser depuis Stripe après la recette ; vérifier que le webhook
-  `customer.subscription.deleted` repasse l'organisation en lecture seule si
-  l'on résilie.
+  `customer.subscription.deleted` fait **revenir l'organisation en essai** si
+  l'essai court encore (suspendue sinon) quand on résilie. Marche à suivre
+  détaillée : [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]], § 7.3.
 
 ### 5. [[Locataire]] (au téléphone)
 - E-mail d'invitation → mot de passe → espace : bail, loyers, quittance du

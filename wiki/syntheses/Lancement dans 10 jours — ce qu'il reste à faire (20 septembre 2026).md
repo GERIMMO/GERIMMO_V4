@@ -3,7 +3,7 @@ type: synthesis
 tags: [lancement, production, configuration, stripe, e-mails, rgpd, checklist]
 status: stable
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-27
 sources: ["[[État du projet et décisions ouvertes]]", "[[Gerimmo en autonomie]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Fonctionnalités par persona]]"]
 ---
 # Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)
@@ -217,6 +217,77 @@ journaux). Ce qui relève du porteur : comptes Stripe et Resend, DNS du
 domaine, plan Supabase, choix sur les données de développement, MFA des
 personnes.
 
+## 7. Point Stripe du 27/09 (J-3)
+
+Demande du porteur : vérifier la configuration Stripe avant l'ouverture, **en
+lecture seule**. **Le compte Stripe lui-même n'a pas pu être lu** : dans la
+session du 27/09, le connecteur Stripe apparaît « connexion incomplète » et ses
+outils ne sont pas chargés. Ce qui suit est donc constaté **côté application**
+(code, Vercel, base) ; le côté Stripe reste à constater (§ 7.2).
+
+### 7.1 Constaté côté application
+
+| Point | Constat au 27/09 |
+|---|---|
+| Variables Vercel (production) | Les quatre posées le **21/09**, en type « sensitive » (valeurs non lues) : `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRIX_BIEN`, `STRIPE_PRIX_LOT_AGENCE`. Aucune en préproduction. |
+| Clé et secret vus par l'application | La tâche `abonnements` passe chaque nuit depuis le 22/09 **par la voie configurée** (plus de `non_configuree`) : 0 abonnement examiné, 0 échec. Preuve que clé et secret sont **présents**, pas qu'ils sont **en mode réel**. |
+| Adresse du webhook | `www.gerimmo.app` est le domaine principal (`gerimmo.app` y redirige en 308). `GET /api/stripe/webhook` répond 405 avec son message : la route est en ligne et publique (liste blanche de `proxy.ts`). Stripe ne suit pas les redirections : l'adresse déclarée doit être **celle en `www`**. |
+| Événements attendus par le code | `customer.subscription.created`, `.updated`, `.deleted`, `.paused`, `.resumed` (`app/src/app/api/stripe/webhook/route.ts`). Tout autre type reçoit 200 « ignore ». |
+| Base | Fonctions d'encaissement présentes ; `tarif_tranches` conforme à la décision du 12/09 ([[Grille tarifaire]]) ; `abonnement_evenements` et `abonnements` **vides** ; 0 organisation, 1 compte (purge du 25/09). |
+| Déploiement | Production sur `main` (`875f56d`), prête. |
+
+### 7.2 Ce que Stripe doit porter — à constater, en mode réel
+
+| Élément | Attendu par l'application |
+|---|---|
+| Compte | Mode réel activé, clé `sk_live_…`. « Santé du service » (`/admin/sante`) le dit sans afficher la clé : **ok** pour une clé réelle, **attention** sinon. |
+| `STRIPE_PRIX_BIEN` | Prix récurrent **mensuel**, EUR, **par unité**, **5,99 €**. Le 1ᵉʳ bien offert n'est pas dans le prix : l'application envoie la quantité « biens − 1 ». |
+| `STRIPE_PRIX_LOT_AGENCE` | Prix récurrent **mensuel**, EUR, **par paliers en mode gradué** : 1–10 lots 0 € + forfait 39 € ; 11–50 : 2,00 € ; 51–150 : 1,30 € ; 151–400 : 0,80 € ; au-delà : 0,50 €. Un mode « volume » serait faux (tous les lots au tarif de la dernière tranche). Contrôle : 51 lots = 120,30 € ; 100 lots = 184,00 €. |
+| Les deux prix | Créés **en mode réel** : un identifiant de test n'existe pas en réel (« No such price »). |
+| Webhook | `https://www.gerimmo.app/api/stripe/webhook`, en mode réel, avec au moins les cinq événements du § 7.1. `STRIPE_WEBHOOK_SECRET` = le secret de signature (`whsec_…`) **de ce point de terminaison** — ni celui du Stripe CLI, ni celui d'un point de test. |
+| Portail client | Activé **en mode réel** (réglage distinct du mode test), sinon « Gérer mon abonnement » échoue. Recommandation : ne pas y autoriser le changement de quantité — Gerimmo tient la quantité, la tâche de nuit la réécrirait. |
+
+### 7.3 Test de paiement réel — marche à suivre
+
+Prérequis : § 7.2 constaté ; une adresse e-mail jamais utilisée sur Gerimmo ;
+une vraie carte.
+
+1. **Inscription** sur `www.gerimmo.app/inscription` comme propriétaire,
+   confirmation de l'adresse → organisation **en essai 14 jours**.
+2. **Deux biens** : le premier est offert, avec un seul il n'y a rien à payer
+   (l'écran le dit et ne propose pas de payer).
+3. **Mon abonnement** → « S'abonner — 5,99 € par mois ». L'écran annonce « votre
+   carte ne sera débitée qu'à la fin de l'essai, le … ». Sur la page Stripe :
+   5,99 €/mois, essai jusqu'à cette date, adresse de facturation demandée →
+   carte → retour `?paiement=ok`. **Rien n'est débité ce jour-là** (`trial_end`,
+   décision du 24/09) ; `customer.subscription.created` (statut `trialing`)
+   passe l'organisation en `active`.
+4. **Vrai prélèvement** : dans Stripe (mode réel), sur l'abonnement du test,
+   **terminer l'essai maintenant** → facture de 5,99 € débitée ;
+   `customer.subscription.updated` (statut `active`).
+5. **Remboursement** : Stripe → Paiements → le paiement de 5,99 € →
+   Rembourser. Aucun effet chez Gerimmo (événement non suivi, c'est voulu) ;
+   les frais Stripe du paiement ne sont pas rendus.
+6. **Résiliation** : d'abord « Gérer mon abonnement » → annuler (teste le
+   portail ; annulation en fin de période, compte ouvert jusqu'au terme), puis
+   annulation **immédiate** dans Stripe → `customer.subscription.deleted` →
+   l'organisation **revient en essai** tant que l'essai court (suspendue
+   sinon) — pas en lecture seule le jour même.
+
+### 7.4 Contrôles après le test
+
+- `abonnement_evenements` : une ligne par événement suivi (`created`, puis
+  `updated`, `deleted`), `traite_le` renseigné, `erreur` vide. « Client Stripe
+  inconnu de Gerimmo » signalerait un client non rattaché.
+- `abonnements` : `stripe_statut` `trialing` puis `active`, quantité 1,
+  `montant_mensuel_cents` = 599, identifiant de souscription posé.
+- `organizations.status` = `active` ; trace `abonnement_statut` au journal
+  d'audit.
+- Stripe → Webhooks → le point de terminaison : livraisons en **200**. Un 400 =
+  secret de signature faux ; 503 = variable absente ; 500 = traitement en
+  échec (motif dans la réponse). Journaux Vercel à lire le jour même
+  (rétention courte).
+
 > [!warning] Points à trancher
 > - **Données de développement** : purger ou garder en démonstration (§ 2.4).
 > - **Antivirus** : publier sans, en risque accepté, ou retarder ?
@@ -224,3 +295,7 @@ personnes.
 >   le passage au plan payant est-il acté avant l'ouverture ?
 > - Les **délais 5 / 15 jours** des relances automatiques restent un choix
 >   de départ non confirmé par le porteur.
+> - **Stripe (27/09)** : 5,99 € par bien, **TTC ou HT** ? Le wiki ne le dit pas ;
+>   le comportement fiscal du prix chez Stripe (et Stripe Tax) en dépend.
+> - **Stripe (27/09)** : mode réel, prix, webhook et portail **non constatés**
+>   côté Stripe (connecteur non chargé) — § 7.2 à cocher avant le test.

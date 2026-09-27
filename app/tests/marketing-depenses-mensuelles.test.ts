@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only',()=>({}));
 import { depenseFacebookDuMois } from '../src/lib/marketing-meta';
 const requete = vi.fn();
-beforeEach(()=>{vi.stubGlobal('fetch',requete);vi.stubEnv('META_AD_ACCOUNT_ID','act_test');vi.stubEnv('META_FACEBOOK_PAGE_ACCESS_TOKEN','jeton-test');requete.mockReset();});
+beforeEach(()=>{vi.stubGlobal('fetch',requete);vi.stubEnv('META_AD_ACCOUNT_ID','act_test');vi.stubEnv('META_ADS_ACCESS_TOKEN','jeton-publicite-test');requete.mockReset();});
 afterEach(()=>{vi.unstubAllEnvs();vi.unstubAllGlobals();});
 const repondre=(json:unknown)=>requete.mockResolvedValue({ok:true,json:async()=>json});
 describe('le budget lit un total mensuel confirmé',()=>{

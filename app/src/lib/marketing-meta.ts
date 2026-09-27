@@ -28,13 +28,10 @@ function baseGraph() {
   return version ? `https://graph.facebook.com/${version.replace(/^\/+/, "")}` : "https://graph.facebook.com";
 }
 
-async function lireMeta<T>(chemin: string, parametres: Record<string, string>): Promise<T> {
-  const jeton = process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim();
-  if (!jeton) throw new Error("Jeton Facebook absent");
+async function lireMeta<T>(chemin: string, parametres: Record<string, string>, jeton: string): Promise<T> {
   const url = new URL(`${baseGraph()}/${chemin.replace(/^\/+/, "")}`);
   Object.entries(parametres).forEach(([cle, valeur]) => url.searchParams.set(cle, valeur));
-  url.searchParams.set("access_token", jeton);
-  const reponse = await fetch(url, { next: { revalidate: 60 }, signal: AbortSignal.timeout(15_000) });
+  const reponse = await fetch(url, { headers: { Authorization: `Bearer ${jeton}` }, next: { revalidate: 60 }, signal: AbortSignal.timeout(15_000) });
   const resultat = (await reponse.json().catch(() => ({}))) as T & ErreurMeta;
   if (!reponse.ok) throw new Error(resultat.error?.message || "Meta ne répond pas.");
   return resultat;
@@ -47,7 +44,7 @@ export async function santeFacebook(): Promise<SanteFacebook> {
   try {
     const page = await lireMeta<{ name: string; followers_count?: number; link?: string }>(pageId, {
       fields: "name,followers_count,link",
-    });
+    }, jeton);
     return { configure: true, nom: page.name, abonnes: page.followers_count, lien: page.link };
   } catch (erreur) {
     return { configure: true, erreur: messageMetaLisible(erreur, "Connexion Facebook momentanément indisponible.") };
@@ -56,7 +53,8 @@ export async function santeFacebook(): Promise<SanteFacebook> {
 
 export async function campagnesFacebook(): Promise<{ configure: boolean; campagnes: CampagneMeta[]; erreur?: string }> {
   const compte = process.env.META_AD_ACCOUNT_ID?.trim();
-  if (!compte || !process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim()) return { configure: false, campagnes: [] };
+  const jeton = process.env.META_ADS_ACCESS_TOKEN?.trim();
+  if (!compte || !jeton) return { configure: false, campagnes: [] };
   try {
     const resultat = await lireMeta<{ data?: Array<{
       id: string; name: string; effective_status: string; start_time?: string; stop_time?: string;
@@ -64,7 +62,7 @@ export async function campagnesFacebook(): Promise<{ configure: boolean; campagn
     }> }>(`${compte}/campaigns`, {
       fields: "id,name,effective_status,start_time,stop_time,insights.date_preset(maximum){reach,impressions,clicks,spend}",
       limit: "50",
-    });
+    }, jeton);
     return {
       configure: true,
       campagnes: (resultat.data ?? []).map((campagne) => {
@@ -90,11 +88,12 @@ export async function campagnesFacebook(): Promise<{ configure: boolean; campagn
 /** Total du compte sur le mois du compte Meta : les relevés historiques ne sont pas additionnés. */
 export async function depenseFacebookDuMois(): Promise<{ cents: number | null; debut?: string; fin?: string; erreur?: string }> {
   const compte = process.env.META_AD_ACCOUNT_ID?.trim();
-  if (!compte || !process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim()) return { cents: null, erreur: 'La lecture des dépenses Meta reste à connecter.' };
+  const jeton = process.env.META_ADS_ACCESS_TOKEN?.trim();
+  if (!compte || !jeton) return { cents: null, erreur: 'La lecture des dépenses Meta reste à connecter.' };
   try {
     const resultat = await lireMeta<{ data?: Array<{ spend?: string; account_currency?: string; date_start?: string; date_stop?: string }>; paging?: { next?: string } }>(`${compte}/insights`, {
       fields: 'spend,account_currency,date_start,date_stop', date_preset: 'this_month', level: 'account', limit: '1',
-    });
+    }, jeton);
     if (!Array.isArray(resultat.data) || resultat.paging?.next || resultat.data.length > 1) return { cents: null, erreur: 'Le total mensuel Meta ne peut pas encore être confirmé.' };
     // Une réponse vide ne prouve pas une dépense nulle : accès restreint et absence de données sont possibles.
     const mesure = resultat.data[0];

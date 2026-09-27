@@ -69,6 +69,11 @@ async function jetonPourLaPage(pageId: string, jeton: string): Promise<string> {
 }
 
 export async function envoyerSurFacebook(article: ArticleFacebook): Promise<PublicationFacebook> {
+  // Même si un secret de production est ajouté par erreur à une démonstration,
+  // celle-ci ne doit jamais pouvoir publier sur la Page réelle.
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== "production") {
+    throw new Error("La publication Facebook est réservée au site en ligne. Cette version sert aux essais.");
+  }
   const pageId = process.env.META_FACEBOOK_PAGE_ID?.trim();
   const jeton = process.env.META_FACEBOOK_PAGE_ACCESS_TOKEN?.trim();
   if (!pageId || !jeton) {

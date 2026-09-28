@@ -13,7 +13,7 @@ import {
 
 export function TableauParticuliers() {
   return (
-    <div className="overflow-x-auto">
+    <div>
       <table className="w-full text-left text-[14px]">
         <caption className="sr-only">Formules pour les particuliers et SCI gérant leurs propres biens, prix TTC</caption>
         <thead>
@@ -53,7 +53,7 @@ export function TableauParticuliers() {
 export function TableauAgences() {
   const exemples = [10, 20, 50, 100, 200, 300, 500];
   return (
-    <div className="overflow-x-auto">
+    <div>
       <table className="w-full text-left text-[14px]">
         <caption className="sr-only">Tarif mensuel des agences par tranche de lots sous mandat actif, prix HT</caption>
         <thead>
@@ -73,7 +73,7 @@ export function TableauAgences() {
                     : `Du ${t.du}ᵉ au ${t.au}ᵉ lot`}
               </th>
               <td className="montant py-2 text-right whitespace-nowrap">
-                {t.forfaitCents > 0 ? euros(t.forfaitCents) : `+ ${euros(t.prixLotCents)} par lot`}
+                {t.forfaitCents > 0 ? euros(t.forfaitCents) : `+ ${euros(t.prixLotCents)} par lot`}
               </td>
             </tr>
           ))}
@@ -82,11 +82,13 @@ export function TableauAgences() {
       <p className="mt-2 text-[13px] text-[var(--texte-secondaire)]">
         Tranches cumulatives : chaque lot est facturé au prix de sa tranche.{" "}
         {exemples.map((n, i) => (
-          <span key={n} className="whitespace-nowrap">
-            {n} lots = {euros(offreAgence(n).montantCents)}
-            {i < exemples.length - 1 ? " · " : ""}
+          <span key={n}>
+            <span className="whitespace-nowrap">
+              {n} lots = {euros(offreAgence(n).montantCents)}
+            </span>
+            {i < exemples.length - 1 ? " · " : " "}
           </span>
-        ))}{" "}
+        ))}
         (HT par mois).
       </p>
     </div>

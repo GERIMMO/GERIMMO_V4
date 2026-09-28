@@ -46,8 +46,9 @@ seulement après présentation du nouveau montant, de la date d'effet et du pror
 (aperçu Stripe) puis confirmation — une garde en base refuse sinon l'écriture ;
 baisse appliquée à l'échéance, sans prorata ; changement de périodicité à
 l'échéance seulement ; résiliation pour la prochaine échéance. Taxes selon le
-régime déclaré de l'éditeur (`REGIME_TVA`) ; tant qu'il manque, pas de
-souscription en ligne. Voir [[Cycle de vie de l'abonnement]].
+régime déclaré de l'éditeur (`REGIME_TVA`) : **franchise en base** (art. 293 B
+du CGI, décision du 28/09) — aucune TVA facturée, mention « TVA non applicable,
+art. 293 B du CGI » sur les factures ; le prix affiché est le prix payé. Voir [[Cycle de vie de l'abonnement]].
 
 **Organisations antérieures** (décision du porteur, 28/09) : plus de premier bien
 offert pour personne — seuls les 14 jours d'essai sont offerts, puis **gel en
@@ -138,7 +139,8 @@ Les deux dernières tranches restent sur devis.
 > [!warning] Points à trancher / contradictions
 > - ~~Unité « bien »~~ — **tranché le 28/09 : 3 logements = 3 biens** (chaque lot
 >   loué séparément).
-> - **Régime de TVA de l'éditeur** non renseigné : souscription en ligne fermée.
+> - ~~Régime de TVA de l'éditeur~~ — **tranché le 28/09 : franchise en base**
+>   (art. 293 B du CGI) ; souscription en ligne ouverte.
 > - ~~Clients existants~~ — **tranché le 28/09** : bascule, gel après les 14 jours
 >   d'essai, bascule dès l'ajout de bien pour ceux qui paient encore l'ancienne
 >   grille.

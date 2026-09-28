@@ -52,7 +52,7 @@ describe("les variables de production", () => {
   });
 
   it("nomme chaque variable absente, et rien d'autre", () => {
-    const v = etatConfiguration({});
+    const v = etatConfiguration({}, null);
     const manque = v.filter((x) => x.etat === "manque").map((x) => x.cle);
     expect(manque).toEqual([
       "STRIPE_SECRET_KEY",

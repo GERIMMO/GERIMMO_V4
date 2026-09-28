@@ -5544,3 +5544,11 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 ## [2026-09-28] decision | Tarification : arbitrages du porteur et mise en production
 - 3 logements = 3 biens ; plus de premier bien offert pour personne : 14 jours d'essai, puis gel en lecture seule jusqu'au paiement ; bascule dès l'ajout de bien ; pas de cumul avec le parrainage ([[2026-09-28-decision-tarification]], [[Grille tarifaire]], [[Parrainage]]).
 - Migration `20260928090000` complétée : bascule d'office des organisations sans souscription, déclencheur de bascule à l'ajout d'un bien, parrainage sans avantage (« sans objet ») pour la nouvelle grille.
+
+## [2026-09-28] decision | Régime de TVA de l'éditeur : franchise en base
+- Consigne du porteur : « franchise en base, mets en prod ».
+- `REGIME_TVA = { nature: "franchise" }` (app/src/lib/editeur.ts) : aucune TVA
+  facturée, mention art. 293 B du CGI sur les factures Stripe ; souscription en
+  ligne ouverte.
+- Pages mises à jour : [[Grille tarifaire]], [[État du projet et décisions ouvertes]],
+  [[2026-09-28-decision-tarification]].

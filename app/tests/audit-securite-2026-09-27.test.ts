@@ -143,6 +143,9 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
     );
     const motivees = new Set([
       "montant_abonnement_cents(text,integer)", // calcul pur du tarif, sans donnée
+      // Grille du 28/09/2026 : calculs purs sur le tarif public, sans donnée.
+      "formule_couvrante(integer,text)",
+      "montant_offre_cents(organization_type,integer,text)",
       // Prédicat booléen (l'artisan a-t-il une assurance à jour ?) posé le 27/09
       // par la console de contrôle ; ne rend aucune donnée — à confirmer par son auteur.
       "artisan_assurance_deposee(uuid)",
@@ -380,7 +383,7 @@ describe.skipIf(!DB_URL)("Audit sécurité du 27/09", () => {
     const { rows } = await db.query(
       `select table_name from information_schema.role_table_grants where grantee='anon' and table_schema='public' and privilege_type='SELECT'`);
     const lisibles = rows.map((r) => r.table_name).sort();
-    expect(lisibles.filter((t) => !["publications", "site_pages", "tarif_tranches", "demandes_devis"].includes(t))).toEqual([]);
+    expect(lisibles.filter((t) => !["publications", "site_pages", "tarif_tranches", "tarif_formules", "demandes_devis"].includes(t))).toEqual([]);
     expect((await un<{ p: boolean }>(`select has_column_privilege('authenticated','public.accounts','mfa_actif','UPDATE') as p`)).p).toBe(false);
   });
 

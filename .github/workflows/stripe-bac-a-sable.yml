@@ -12,7 +12,11 @@ concurrency:
 
 jobs:
   paiements:
-    if: github.ref == 'refs/heads/main'
+    # main, ou une branche de travail du dépôt avant sa fusion : une recette
+    # Stripe doit pouvoir précéder la mise en production. La clé reste une clé
+    # de TEST (étape « Refuser une clé réelle ou absente »), et aucune branche
+    # de fork n'y accède (workflow_dispatch réservé aux collaborateurs).
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/claude/')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     services:

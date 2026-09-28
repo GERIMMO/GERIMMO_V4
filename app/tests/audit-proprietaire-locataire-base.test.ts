@@ -80,8 +80,11 @@ describe.skipIf(!DB_URL)("audit propriétaire et locataire (27/09) — base", ()
     org = orgs.find((o) => o.name.endsWith("Agence")).id;
     orgAutre = orgs.find((o) => o.name.endsWith("Autre")).id;
     const { rows: [pd] } = await db.query(
-      `insert into public.organizations (name, status, type, address_line1, postal_code, city, email_contact)
-       values ('Parc de Claire','active','proprietaire_direct','1 rue Haute','69007','Lyon','claire@pd.test')
+      // Grille historique : ce fichier vérifie le retrait d'un bien avec le
+      // décompte d'avant le 28/09/2026 (premier bien offert). La nouvelle
+      // grille a ses tests dans tarification-2026.test.ts.
+      `insert into public.organizations (name, status, type, address_line1, postal_code, city, email_contact, grille_tarifaire)
+       values ('Parc de Claire','active','proprietaire_direct','1 rue Haute','69007','Lyon','claire@pd.test','historique')
        returning id`
     );
     orgPd = pd.id;

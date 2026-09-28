@@ -29,6 +29,11 @@ let client: string;
 // Le type par défaut d'une organisation est « agence » — et depuis la grille
 // du 12/09, agence et propriétaire direct n'ont ni la même unité ni le même
 // barème. Les tests qui portent sur l'un doivent donc le dire.
+//
+// CE FICHIER TESTE LA GRILLE HISTORIQUE (premier bien offert, quantité
+// synchronisée automatiquement), celle des organisations antérieures au
+// 28/09/2026 que la procédure de migration n'a pas encore basculées. La
+// nouvelle grille a ses tests : tests/tarification-2026.test.ts.
 async function creerOrg(
   statut: string,
   essai: "hier" | "demain" | null = null,
@@ -38,8 +43,8 @@ async function creerOrg(
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status, type, essai_fin)
-     values ('Encaissement', $1::public.organization_status, $2::public.organization_type, ${date})
+    `insert into public.organizations (name, status, type, essai_fin, grille_tarifaire)
+     values ('Encaissement', $1::public.organization_status, $2::public.organization_type, ${date}, 'historique')
      returning id`,
     [statut, type]
   );

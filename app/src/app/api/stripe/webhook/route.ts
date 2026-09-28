@@ -27,6 +27,7 @@ import {
   quantiteFacturee,
 } from "@/lib/stripe";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
+import { GRILLE, lireDetails } from "@/lib/stripe-offres";
 import { clientDeService } from "@/lib/supabase/service";
 import type Stripe from "stripe";
 
@@ -119,6 +120,23 @@ export async function POST(request: Request) {
       p_annulation: s.cancel_at_period_end ?? false,
     });
     if (error) throw new Error(error.message);
+
+    // GRILLE DU 28/09/2026 : le détail de l'offre souscrite, tel que Stripe
+    // le facture (formule, périodicité, capacité, montant d'une période). Un
+    // échec ici rend 500 et Stripe rejoue : `abonnement_appliquer` est
+    // idempotente, rien ne se double.
+    const details = lireDetails(s);
+    if (org && details.grille === GRILLE) {
+      const { error: erreurDetails } = await supabase.rpc("abonnement_details", {
+        p_customer: customer,
+        p_periodicite: details.periodicite,
+        p_formule: details.formule,
+        p_unites: details.unites,
+        p_montant_periode_cents: details.montantPeriodeCents,
+        p_periode_debut: details.periodeDebut,
+      });
+      if (erreurDetails) throw new Error(erreurDetails.message);
+    }
 
     await supabase.rpc("abonnement_evenement_solde", {
       p_event_id: evenement.id,

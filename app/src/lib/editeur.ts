@@ -208,7 +208,9 @@ export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAI
 //
 // À incrémenter à CHAQUE modification de fond des conditions, en même temps
 // que `CONDITIONS_DATE`.
-export const CONDITIONS_VERSION = "2026-09-11";
+// 28/09/2026 : nouvelle grille tarifaire (article 8), fin du premier bien
+// offert.
+export const CONDITIONS_VERSION = "2026-09-28";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "11 septembre 2026";
+export const CONDITIONS_DATE = "28 septembre 2026";

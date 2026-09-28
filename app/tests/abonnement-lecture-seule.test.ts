@@ -488,9 +488,11 @@ describe("l'écran « Mon abonnement » ne promet plus ce qui est faux", () => {
     // Depuis le déclencheur du 11/09, un essai expiré ferme l'écriture LE JOUR
     // MÊME : aucun traitement de nuit, la date suffit. La phrase rassurait sur
     // une chose que le produit ne fait pas.
+    // Deux écrans depuis le 28/09/2026 : la grille historique et la nouvelle.
     const fs = await import("node:fs");
+    for (const fichier of ["abonnement-historique.tsx", "abonnement-2026.tsx"]) {
     const src = fs.readFileSync(
-      new URL("../src/app/agence/[orgId]/abonnement/page.tsx", import.meta.url),
+      new URL(`../src/app/agence/[orgId]/abonnement/${fichier}`, import.meta.url),
       "utf8"
     );
     expect(src).not.toContain("rien ne se ferme sans vous prévenir");
@@ -500,5 +502,6 @@ describe("l'écran « Mon abonnement » ne promet plus ce qui est faux", () => {
     // Et le décompte vient de la base, pas d'une multiplication refaite ici.
     expect(src).toContain("etat_abonnement");
     expect(src).not.toMatch(/\*\s*5[.,]99/);
+    }
   });
 });

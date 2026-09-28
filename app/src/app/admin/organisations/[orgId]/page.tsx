@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { euros, formuleParCode, parPeriode, type Periodicite } from "@/lib/tarifs";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { libelleRole, libelleStatutAdhesion, LIBELLES_STATUT_ORGANISATION } from "@/lib/libelles";
@@ -70,7 +71,7 @@ export default async function PageAdminOrganisation(
     .maybeSingle();
   if (!organisation) notFound();
 
-  const [personnes, adhesionsLues, lots, baux, parrainages] = await Promise.all([
+  const [personnes, adhesionsLues, lots, baux, parrainages, supervisionAbonnement] = await Promise.all([
     supabase
       .from("persons")
       .select("id", { count: "exact", head: true })
@@ -93,7 +94,23 @@ export default async function PageAdminOrganisation(
       .select(
         "parrain_organization_id, filleul_organization_id, parrain:organizations!parrainages_parrain_organization_id_fkey(name)"
       ),
+    supabase.rpc("supervision_abonnement", { p_org: orgId }),
   ]);
+  const abo = ((supervisionAbonnement.data ?? []) as {
+    grille: string;
+    public_tarif: "agence" | "proprietaire_direct";
+    stripe_statut: string | null;
+    periodicite: Periodicite | null;
+    formule: string | null;
+    unites_a_couvrir: number;
+    unites_souscrites: number | null;
+    montant_periode_cents: number | null;
+    periode_fin: string | null;
+    annulation_demandee: boolean;
+    periodicite_suivante: Periodicite | null;
+    paiement_en_defaut_depuis: string | null;
+    avantages_en_attente: number;
+  }[])[0];
 
   const adhesions = (adhesionsLues.data ?? []) as unknown as Adhesion[];
   const lignesParrainage = (parrainages.data ?? []) as unknown as {
@@ -207,6 +224,43 @@ export default async function PageAdminOrganisation(
             <Info libelle="Abonnement">
               Essai jusqu&apos;au {formaterDate(organisation.essai_fin)}
             </Info>
+          )}
+          {abo && (
+            <>
+              <Info libelle="Grille tarifaire">
+                {abo.grille === "historique" ? "Historique (1ᵉʳ bien offert, barème du 12/09) — à migrer" : "28/09/2026"}
+              </Info>
+              <Info libelle={abo.public_tarif === "agence" ? "Lots sous mandat" : "Biens en gestion"}>
+                {abo.unites_a_couvrir}
+                {abo.unites_souscrites !== null ? ` — ${abo.unites_souscrites} facturé${abo.unites_souscrites > 1 ? "s" : ""}` : ""}
+              </Info>
+              {abo.stripe_statut && (
+                <Info libelle="Offre souscrite">
+                  {abo.formule ? `Formule ${formuleParCode(abo.formule)?.nom ?? abo.formule}, ` : ""}
+                  {abo.periodicite === "annuel" ? "annuelle" : "mensuelle"} —{" "}
+                  {abo.montant_periode_cents !== null
+                    ? `${euros(abo.montant_periode_cents)} ${abo.public_tarif === "agence" ? "HT" : "TTC"} ${parPeriode(abo.periodicite ?? "mensuel")}`
+                    : "montant non reçu de Stripe"}{" "}
+                  ({abo.stripe_statut})
+                </Info>
+              )}
+              {abo.periode_fin && (
+                <Info libelle={abo.annulation_demandee ? "Fin (résiliée)" : "Prochaine échéance"}>
+                  {formaterDate(abo.periode_fin)}
+                  {abo.periodicite_suivante && abo.periodicite_suivante !== abo.periodicite
+                    ? ` — passage ${abo.periodicite_suivante === "annuel" ? "à l'annuel" : "au mensuel"} programmé`
+                    : ""}
+                </Info>
+              )}
+              {abo.paiement_en_defaut_depuis && (
+                <Info libelle="Paiement">En défaut depuis le {formaterDate(abo.paiement_en_defaut_depuis)}</Info>
+              )}
+              {abo.avantages_en_attente > 0 && (
+                <Info libelle="Parrainage">
+                  {abo.avantages_en_attente} avantage{abo.avantages_en_attente > 1 ? "s" : ""} en attente d&apos;arbitrage
+                </Info>
+              )}
+            </>
           )}
         </dl>
       </section>

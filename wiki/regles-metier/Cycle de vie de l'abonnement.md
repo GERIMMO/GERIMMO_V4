@@ -3,11 +3,25 @@ type: business-rule
 tags: [abonnement, essai, stripe]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-21
-sources: ["[[Dépôt Gerimmo-V3]]"]
+updated: 2026-09-28
+sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
 # Cycle de vie de l'abonnement
+
+> [!info] Nouvelle grille (28/09/2026)
+> - **Essai** 14 jours sans carte ; à son terme, **lecture seule** tant qu'il n'y a
+>   pas de souscription — même avec un seul bien (fin du « premier bien offert »).
+> - **Souscription pendant l'essai** : les jours restants sont préservés, premier
+>   prélèvement à la fin de l'essai (date affichée).
+> - **Hausse** : montant, date d'effet et prorata (aperçu Stripe) présentés, puis
+>   confirmation ; prorata prélevé aussitôt ; carte refusée → rien ne change.
+> - **Baisse** : appliquée d'elle-même dans les trois jours qui précèdent
+>   l'échéance, sans prorata. **Périodicité** : changée à l'échéance seulement.
+> - **Résiliation** pour la prochaine échéance, accès payé conservé ; ensuite
+>   lecture seule, données consultables et exportables, jamais supprimées.
+> - **Échec de paiement** : inchangé (15 jours, puis lecture seule).
+
 
 **Énoncé :** l'[[Abonnement]] suit des statuts contrôlés, avec expiration automatique de
 l'essai et transitions réservées.

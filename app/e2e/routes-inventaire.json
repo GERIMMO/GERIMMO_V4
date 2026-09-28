@@ -414,6 +414,12 @@
     "dynamic": ""
   },
   {
+    "path": "/tarifs",
+    "persona": "public",
+    "label": "Tarifs",
+    "dynamic": ""
+  },
+  {
     "path": "/connexion",
     "persona": "public",
     "label": "Connexion",

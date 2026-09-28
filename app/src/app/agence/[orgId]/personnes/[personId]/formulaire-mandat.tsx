@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { euros, offreAgence } from "@/lib/tarifs";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
@@ -221,12 +223,15 @@ export function BoutonsEtatMandat({
   mandatId,
   etat,
   nbLignesActives,
+  impact,
 }: {
   orgId: string;
   personId: string;
   mandatId: string;
   etat: string;
   nbLignesActives: number;
+  /** Lots sous mandat avant/après activation et capacité payée (grille du 28/09/2026). */
+  impact?: { avant: number; apres: number; capacite: number | null } | null;
 }) {
   const suivant: Record<string, { libelle: string; vers: string }> = {
     brouillon: { libelle: "Passer à signer", vers: "a_signer" },
@@ -252,7 +257,23 @@ export function BoutonsEtatMandat({
   const confirmation = confirmePour === etat;
 
   if (!transition) return null;
-  const avertissement = SANS_RETOUR[transition.vers];
+  const hausse = transition.vers === "actif" && impact && impact.apres > impact.avant ? impact : null;
+  if (hausse && hausse.capacite !== null && hausse.apres > hausse.capacite) {
+    // Au-delà des lots confirmés : l'activation attend l'accord sur le montant.
+    return (
+      <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        Activer porterait vos lots sous mandat à {hausse.apres} pour {hausse.capacite} lot{hausse.capacite > 1 ? "s" : ""} facturé
+        {hausse.capacite > 1 ? "s" : ""} : {euros(offreAgence(hausse.capacite).montantCents)} →{" "}
+        {euros(offreAgence(hausse.apres).montantCents)} HT/mois.
+        <Link href={`/agence/${orgId}/abonnement?capacite=${hausse.apres}`} className="underline">
+          Voir et confirmer le nouveau montant
+        </Link>
+      </span>
+    );
+  }
+  const avertissement = hausse
+    ? `Activer porte vos lots sous mandat de ${hausse.avant} à ${hausse.apres} : ${euros(offreAgence(hausse.avant).montantCents)} → ${euros(offreAgence(hausse.apres).montantCents)} HT/mois${hausse.capacite === null ? " une fois abonné" : ""}.`
+    : SANS_RETOUR[transition.vers];
   if (avertissement && !confirmation) {
     return (
       <Button type="button" variant="outline" size="sm" onClick={() => setConfirmePour(etat)}>

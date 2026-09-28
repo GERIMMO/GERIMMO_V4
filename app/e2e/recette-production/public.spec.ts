@@ -8,21 +8,21 @@ import { debordementHorizontal, expect, jugerEcran, test } from "./outils";
 //
 // Les conditions d'utilisation vivent sous /conditions (lien des formulaires
 // d'inscription) : c'est l'adresse vérifiée ; /cgu est essayée en plus, et
-// n'est exigée que si elle existe. De même pour /tarifs, que le site n'a pas
-// (les tarifs sont sur l'accueil et sur « Mon abonnement ») : si la route
-// apparaît un jour, elle est recettée comme les autres.
+// n'est exigée que si elle existe. /tarifs existe depuis la grille du
+// 28/09/2026 : elle est recettée comme les autres.
 
 const PAGES = [
   "/",
   "/mentions-legales",
   "/conditions",
   "/confidentialite",
+  "/tarifs",
   "/connexion",
   "/inscription",
   "/artisan/inscription",
 ];
 
-const PAGES_FACULTATIVES = ["/tarifs", "/cgu"];
+const PAGES_FACULTATIVES = ["/cgu"];
 
 for (const chemin of PAGES) {
   test(`page publique ${chemin} : répond, titrée, sans erreur ni débordement`, async ({ page, surveillance }) => {

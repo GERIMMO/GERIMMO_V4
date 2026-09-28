@@ -3,7 +3,7 @@ type: synthesis
 tags: [etat-projet, decisions, contradictions]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-10
+updated: 2026-09-28
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
 ---
 
@@ -44,6 +44,13 @@ de `raw/assets/` est **écarté** par décision humaine du 2026-07-25 — ne pas
 validée (1ᵉʳ bien gratuit, prix par bien révisé à **5,99 €/bien/mois** le
 2026-09-05 — remplace les 2,50 € du 25/07, sans mise en place) et grille agences
 actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
+
+> [!warning] 28/09/2026 — nouvelle grille, décisions ouvertes
+> La grille ci-dessus est **supplantée** : formules particuliers Solo → Patrimoine,
+> agences par tranches cumulatives dès 39 € HT, plus de premier bien offert
+> ([[2026-09-28-decision-tarification]]). Restent à trancher : régime de TVA de
+> l'éditeur, unité « bien » (lot loué séparément), sort des clients de la grille
+> historique (D1–D4), parrainage (D5), préavis de révision (art. 8.8).
 
 > [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
 > **Une même personne ne peut pas être à la fois propriétaire gestion directe et

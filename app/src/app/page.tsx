@@ -9,11 +9,12 @@ import {
   ApercuQuittance,
   ApercuMobileIncident,
 } from "./apercus-produit";
+import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
 
 export const metadata = {
   title: "Gerimmo — La gérance immobilière, tenue au carré",
   description:
-    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Premier bien offert.",
+    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Essai gratuit de 14 jours, sans carte.",
 };
 
 // Site vitrine — ce que voit un visiteur avant toute connexion. Un connecté
@@ -46,7 +47,7 @@ const REMPLACE: [string, string, string][] = [
   [
     "Les honoraires d'agence",
     "6 à 8 % des loyers, chaque mois",
-    "Le même travail, tenu par l'outil. 5,99 € par bien et par mois, le premier offert.",
+    "Le même travail, tenu par l'outil. Dès 5,99 € TTC par mois pour un bien, sans engagement.",
   ],
 ];
 
@@ -79,8 +80,8 @@ const FONCTIONNALITES: [string, string][] = [
 
 const FAQ: [string, string][] = [
   [
-    "Le premier bien est-il vraiment gratuit ?",
-    "Oui — offert, à vie, sans carte bancaire. L'essai de 14 jours ouvre ensuite la formule complète, chaque bien supplémentaire coûte 5,99 € par mois, sans engagement.",
+    "Combien coûte Gerimmo pour un particulier ?",
+    "Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 € TTC par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de 14 jours, sans carte ; aucune formule n'est gratuite ensuite.",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
@@ -92,11 +93,11 @@ const FAQ: [string, string][] = [
   ],
   [
     "Et pour une agence ?",
-    "Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. La tarification se fait sur devis, par palier de lots.",
+    "Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. Mensuel HT, selon les lots sous mandat actif : 39 € jusqu'à 10 lots, puis 2 € du 11ᵉ au 50ᵉ, 1,50 € du 51ᵉ au 200ᵉ et 1 € au-delà — tranches cumulatives. Collaborateurs, propriétaires invités et locataires inclus.",
   ],
   [
     "Que se passe-t-il si j'arrête ?",
-    "Vos données restent exportables, et un bien retiré cesse d'être compté le mois suivant. Aucun engagement, aucun frais de sortie.",
+    "La résiliation prend effet à la prochaine échéance : l'accès payé reste ouvert jusque-là. Ensuite, vos données restent consultables et exportables, en lecture seule — rien n'est supprimé automatiquement. Aucun frais de sortie.",
   ],
   [
     "Puis-je gérer pour quelqu'un d'autre ?",
@@ -164,7 +165,7 @@ export default async function PageVitrine() {
                     ici « Commencer », ailleurs « Créer mon compte » ou
                     « Découvrir la gestion en direct ». */}
                 <Link href="/inscription" className="btn-or !px-5 !py-3 !text-[15px]">
-                  Créer mon compte — 1ᵉʳ bien offert
+                  Créer mon compte — 14 jours d&apos;essai
                 </Link>
                 <a href="#agences" className="btn-secondaire">
                   Je suis une agence →
@@ -363,21 +364,23 @@ export default async function PageVitrine() {
 
         {/* ---------------------------------------------------------- Tarifs */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
-          <TitreSection sur="Tarifs" titre="Un prix simple, tout compris" />
+          <TitreSection sur="Tarifs" titre="Un prix selon la taille de votre parc, tout compris" />
           <div className="mt-10 grid gap-5 lg:grid-cols-2">
-            <div className="vitrine-carte vitrine-carte-mise-en-avant">
-              <p className="eyebrow text-[var(--marque-sombre)]">Propriétaire bailleur</p>
-              <p className="mt-4 font-heading text-[40px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
-                <span className="montant">5,99 €</span>
-                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> / bien / mois</span>
+            <div className="vitrine-carte vitrine-carte-mise-en-avant min-w-0">
+              <p className="eyebrow text-[var(--marque-sombre)]">Particuliers et SCI gérant leurs biens</p>
+              <p className="mt-4 font-heading text-[32px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
+                Dès <span className="montant">5,99&nbsp;€</span>
+                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> TTC / mois</span>
               </p>
-              <ul className="mt-6 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
+              <div className="mt-5">
+                <TableauParticuliers />
+              </div>
+              <ul className="mt-5 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
                 {[
-                  "1ᵉʳ bien offert, à vie",
-                  "Essai de 14 jours sans carte",
-                  "Sans engagement — un bien retiré n'est plus compté",
-                  "Espaces locataires inclus, sans limite",
-                  "Aucuns frais de mise en place",
+                  "Essai gratuit de 14 jours, sans carte bancaire",
+                  "Mensuel sans engagement, ou annuel payé en une fois",
+                  "Mêmes fonctions dans chaque formule ; accès locataires inclus",
+                  "Aucuns frais d'installation",
                 ].map((l) => (
                   <li key={l} className="flex gap-2.5">
                     <Coche />
@@ -389,18 +392,21 @@ export default async function PageVitrine() {
                 Créer mon compte
               </Link>
             </div>
-            <div className="vitrine-carte">
-              <p className="eyebrow text-[var(--marque-sombre)]">Agence immobilière</p>
-              <p className="mt-4 font-heading text-[40px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
-                Sur devis
-                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> — par palier de lots</span>
+            <div className="vitrine-carte min-w-0">
+              <p className="eyebrow text-[var(--marque-sombre)]">Agences immobilières</p>
+              <p className="mt-4 font-heading text-[32px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
+                Dès <span className="montant">39&nbsp;€</span>
+                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> HT / mois</span>
               </p>
-              <ul className="mt-6 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
+              <div className="mt-5">
+                <TableauAgences />
+              </div>
+              <ul className="mt-5 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
                 {[
-                  "Mandats, honoraires, rapports de gestion",
-                  "Portefeuilles par agent",
-                  "Facture d'honoraires numérotée, jointe au rapport",
-                  "Essai de 14 jours",
+                  "Mensuel, sans engagement, selon les lots sous mandat actif",
+                  "Collaborateurs, propriétaires invités et locataires inclus",
+                  "Essai gratuit de 14 jours, sans carte",
+                  "Reprise manuelle de vos données possible, sur devis",
                 ].map((l) => (
                   <li key={l} className="flex gap-2.5">
                     <Coche />
@@ -409,10 +415,17 @@ export default async function PageVitrine() {
                 ))}
               </ul>
               <a href="#agences" className="btn-secondaire mt-7 inline-flex">
-                Demander un devis →
+                Nous écrire →
               </a>
             </div>
           </div>
+          <p className="mt-5 text-[13.5px] text-[var(--texte-secondaire)]">
+            Travaux et interventions d&apos;artisans : toujours sur devis, facturés à part, jamais inclus dans
+            l&apos;abonnement.{" "}
+            <Link href="/tarifs" className="lien-discret">
+              Tout le détail des tarifs →
+            </Link>
+          </p>
         </section>
 
         {/* --------------------------------------------------------- Journal */}

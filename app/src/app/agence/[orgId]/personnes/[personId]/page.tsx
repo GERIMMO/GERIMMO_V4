@@ -248,6 +248,19 @@ export default async function PagePersonne(
             .in("etat", ["actif", "preavis"])
         : Promise.resolve({ data: [], error: null }),
     ]);
+  // Grille du 28/09/2026 : l'impact d'une activation sur le volume facturé,
+  // montré sur le bouton « Activer » AVANT le geste.
+  const impacts = new Map<string, { avant: number; apres: number; capacite: number | null }>();
+  await Promise.all(
+    (mandats ?? [])
+      .filter((m) => m.etat === "a_signer")
+      .map(async (m) => {
+        const { data } = await supabase.rpc("impact_activation_mandat", { p_mandat: m.id });
+        const r = ((data ?? []) as { avant: number; apres: number; capacite: number | null }[])[0];
+        if (r) impacts.set(m.id, r);
+      })
+  );
+
   type DocVersion = { id: string; titre: string | null; remplace_id: string | null; created_at: string };
   const docParId = new Map(((tousDocs ?? []) as DocVersion[]).map((d) => [d.id, d]));
   const versionsAnterieures = (documentId: string) => {
@@ -839,6 +852,7 @@ export default async function PagePersonne(
                           mandatId={m.id}
                           etat={m.etat}
                           nbLignesActives={sesLignes.filter((l) => !l.date_fin).length}
+                          impact={impacts.get(m.id) ?? null}
                         />
                         {/* Le mandat de gestion en PDF (loi Hoguet) — champs
                             absents en libellé d'épreuve, comme le bail */}

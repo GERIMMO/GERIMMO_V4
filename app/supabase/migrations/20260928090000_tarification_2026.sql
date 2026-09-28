@@ -1089,4 +1089,79 @@ $$;
 revoke execute on function public.ma_souscription_stripe(uuid) from public, anon;
 grant execute on function public.ma_souscription_stripe(uuid) to authenticated;
 
+-- L'impact d'une activation de mandat sur le volume facturé : lots sous
+-- mandat avant, après, et capacité payée. Réservé à l'administrateur de
+-- l'agence ; sert à montrer le nouveau montant AVANT le geste.
+create or replace function public.impact_activation_mandat(p_mandat uuid)
+returns table (avant integer, apres integer, capacite integer)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  with m as (
+    select md.id, md.organization_id from public.mandats md
+    where md.id = p_mandat
+      and md.organization_id in (select public.org_ids_avec_roles(array['admin_agence']::public.membership_role[]))
+  ),
+  deja as (
+    select distinct ml.lot_id
+    from public.mandat_lignes ml
+    join public.mandats x on x.id = ml.mandat_id, m
+    where ml.organization_id = m.organization_id
+      and x.etat in ('actif', 'preavis')
+      and (ml.date_fin is null or ml.date_fin >= current_date)
+  ),
+  nouveaux as (
+    select distinct ml.lot_id
+    from public.mandat_lignes ml, m
+    where ml.mandat_id = m.id
+      and (ml.date_fin is null or ml.date_fin >= current_date)
+      and ml.lot_id not in (select lot_id from deja)
+  )
+  select (select count(*) from deja)::integer,
+         ((select count(*) from deja) + (select count(*) from nouveaux))::integer,
+         public.capacite_souscrite(m.organization_id)
+  from m;
+$$;
+revoke execute on function public.impact_activation_mandat(uuid) from public, anon;
+grant execute on function public.impact_activation_mandat(uuid) to authenticated;
+
+-- La console : l'abonnement d'une organisation, pour le super admin seul
+-- (grille, offre, volume facturé, montant réel, changements programmés,
+-- avantages de parrainage en attente d'arbitrage).
+create or replace function public.supervision_abonnement(p_org uuid)
+returns table (
+  grille text,
+  public_tarif public.organization_type,
+  stripe_statut text,
+  periodicite text,
+  formule text,
+  unites_a_couvrir integer,
+  unites_souscrites integer,
+  montant_periode_cents bigint,
+  periode_fin timestamptz,
+  annulation_demandee boolean,
+  periodicite_suivante text,
+  paiement_en_defaut_depuis date,
+  avantages_en_attente integer
+)
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select o.grille_tarifaire, o.type, a.stripe_statut, a.periodicite, a.formule,
+         public.unites_a_couvrir(o.id), a.unites_souscrites, a.montant_periode_cents,
+         a.periode_fin, coalesce(a.annulation_demandee, false), a.periodicite_suivante,
+         a.paiement_en_defaut_depuis,
+         (select count(*)::integer from public.avantages_parrainage ap
+           where ap.beneficiaire_organization_id = o.id and ap.etat = 'en_attente')
+  from public.organizations o
+  left join public.abonnements a on a.organization_id = o.id
+  where o.id = p_org and public.is_super_admin();
+$$;
+revoke execute on function public.supervision_abonnement(uuid) from public, anon;
+grant execute on function public.supervision_abonnement(uuid) to authenticated;
+
 select public.fermer_fonctions_a_anon();

@@ -11,7 +11,7 @@ const LARGEUR = Number(process.env.E2E_VIEWPORT_WIDTH ?? 390);
 const HAUTEUR = Number(process.env.E2E_VIEWPORT_HEIGHT ?? 844);
 
 const PERSONAS = [
-  { nom: "public", departs: ["/", "/connexion", "/inscription", "/journal", "/conditions", "/confidentialite", "/mentions-legales", "/mot-de-passe-oublie"] },
+  { nom: "public", departs: ["/", "/connexion", "/inscription", "/journal", "/conditions", "/confidentialite", "/tarifs", "/mentions-legales", "/mot-de-passe-oublie"] },
   { nom: "agent", email: "agent.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: ["/agence/", "/espaces", "/compte", "/assistance"] },
   { nom: "admin", email: "admin.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: ["/agence/", "/espaces", "/compte", "/assistance"] },
   { nom: "locataire", email: "locataire.alpha@gerimmo-demo.fr", departs: ["/espaces"], racines: ["/locataire/", "/espaces", "/compte", "/assistance", "/quittance/", "/attestation-loyer/"] },

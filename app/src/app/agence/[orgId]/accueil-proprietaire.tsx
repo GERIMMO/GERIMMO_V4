@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { euros, offreParticulier } from "@/lib/tarifs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { eur, formaterDate, aujourdhuiParis } from "@/lib/ged";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -161,7 +162,18 @@ export async function AccueilProprietaire({
   // Grille tarifaire actée (05/09) : 1ᵉʳ bien offert, un prix par bien
   // ensuite — le prix est celui de la base, tranche par tranche.
   const etatAbonnement =
-    ((etatAbonnementBrut ?? []) as { unites_facturees: number; mensuel: number }[])[0] ?? null;
+    ((etatAbonnementBrut ?? []) as {
+      unites_facturees: number;
+      mensuel: number;
+      grille: string;
+      unites_a_couvrir: number | null;
+      unites_souscrites: number | null;
+    }[])[0] ?? null;
+  // Grille du 28/09/2026 : plus de bien offert ; la formule suit le nombre de
+  // biens (lib/tarifs.ts, le même calcul que la page Abonnement).
+  const nouvelleGrille = etatAbonnement?.grille === "2026-09-28";
+  const biensEnGestion = etatAbonnement?.unites_a_couvrir ?? 0;
+  const formuleAdaptee = offreParticulier(biensEnGestion, "mensuel");
   const tranches = (tranchesBrut ?? []) as {
     rang: number;
     unites: number;
@@ -436,6 +448,28 @@ export async function AccueilProprietaire({
                 {(STATUTS_ABONNEMENT[organisation.status] ?? STATUT_ABONNEMENT_INCONNU).libelle}
               </span>
             </div>
+            {nouvelleGrille && !erreurAbonnement && etatAbonnement ? (
+              <>
+                <div className="ligne-info">
+                  <span>Biens en gestion</span>
+                  <span className="shrink-0 whitespace-nowrap">{biensEnGestion}</span>
+                </div>
+                {etatAbonnement.unites_souscrites !== null ? (
+                  <div className="ligne-info">
+                    <span>Capacité de votre formule</span>
+                    <span className="shrink-0 whitespace-nowrap">
+                      {etatAbonnement.unites_souscrites} bien{etatAbonnement.unites_souscrites > 1 ? "s" : ""}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="ligne-info">
+                    <span>Formule {formuleAdaptee.formule.nom}</span>
+                    <span className="shrink-0 whitespace-nowrap">{euros(formuleAdaptee.montantCents)}&nbsp;TTC/mois</span>
+                  </div>
+                )}
+              </>
+            ) : (
+            <>
             {/* Un prix ne se coupe pas (24/09) : « 5,99 » d'un côté, « € »
                 seul à la ligne de l'autre. Espace insécable dans le libellé,
                 valeur d'un seul tenant. */}
@@ -479,6 +513,8 @@ export async function AccueilProprietaire({
                   <span className="shrink-0 whitespace-nowrap">{eur(etatAbonnement.mensuel)}/mois</span>
                 </div>
               ))
+            )}
+            </>
             )}
             <span className="lien-discret mt-2.5 block text-[13px]">
               Voir mon abonnement&nbsp;→

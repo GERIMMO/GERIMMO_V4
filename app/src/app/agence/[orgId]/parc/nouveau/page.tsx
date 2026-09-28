@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormulaireBien } from "../formulaire-bien";
+import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 
 export const metadata = { title: "Nouveau bien — Gerimmo" };
 
@@ -22,7 +23,20 @@ export default async function PageNouveauBien(
   // l'e-mail du propriétaire manquent, parce qu'ils le désignent dans les
   // documents. On le dit ici, avant le formulaire, et non après l'envoi.
   let manquants: string[] = [];
+  // Grille du 28/09/2026 : au-delà de la capacité payée, le prix du bien
+  // suivant se montre AVANT le formulaire, et se confirme sur « Mon abonnement ».
+  let depassement: { capacite: number; apres: number; offre: ReturnType<typeof offreParticulier>; periodicite: Periodicite } | null = null;
   if (role === "proprietaire_direct") {
+    const [{ data: etatBrut }, { data: paiementBrut }] = await Promise.all([
+      supabase.rpc("etat_abonnement", { p_org: orgId }),
+      supabase.rpc("mon_abonnement", { p_org: orgId }),
+    ]);
+    const cap = ((etatBrut ?? []) as { unites_a_couvrir: number | null; unites_souscrites: number | null }[])[0];
+    const per = ((paiementBrut ?? []) as { periodicite: Periodicite }[])[0]?.periodicite ?? "mensuel";
+    if (cap && cap.unites_souscrites !== null && (cap.unites_a_couvrir ?? 0) + 1 > cap.unites_souscrites) {
+      const apres = (cap.unites_a_couvrir ?? 0) + 1;
+      depassement = { capacite: cap.unites_souscrites, apres, offre: offreParticulier(apres, per), periodicite: per };
+    }
     const { data: profil } = await supabase.from("organizations")
       .select("address_line1,postal_code,city,email_contact")
       .eq("id", orgId).maybeSingle();
@@ -45,6 +59,25 @@ export default async function PageNouveauBien(
       <div className="entete-page">
         <h1>Nouveau bien</h1>
       </div>
+      {depassement && (
+        <div className="loc-carte mb-4 border-l-4 border-l-[var(--or)]">
+          <p className="mesure-lecture text-sm">
+            <b className="font-semibold">
+              Votre formule couvre {depassement.capacite} bien{depassement.capacite > 1 ? "s" : ""}.
+            </b>{" "}
+            <span className="text-muted-foreground">
+              Un bien de plus demande {depassement.offre.biensSupplementaires > 0 ? "un bien supplémentaire" : `la formule ${depassement.offre.formule.nom}`}{" "}
+              — {euros(depassement.offre.montantCents)} TTC {parPeriode(depassement.periodicite)}. Rien ne change sans
+              votre accord : le nouveau montant, sa date d&apos;effet et le prorata vous sont présentés avant confirmation.
+            </span>
+          </p>
+          <div className="mt-3">
+            <Link href={`/agence/${orgId}/abonnement?biens=${depassement.apres}`} className="btn-or">
+              Voir et confirmer le nouveau montant
+            </Link>
+          </div>
+        </div>
+      )}
       {manquants.length > 0 ? (
         <div className="vide-guide">
           <p className="titre">Complétez d&apos;abord votre profil</p>

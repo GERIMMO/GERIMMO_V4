@@ -15,6 +15,8 @@ const PUBLIC_PATHS = [
   // Le journal est public ET traversable connecté : un client qui lit un
   // article depuis un lien reçu ne doit pas être renvoyé vers ses espaces.
   "/journal",
+  // Les tarifs (28/09/2026) : publics ET traversables connecté.
+  "/tarifs",
   "/connexion",
   "/inscription",
   // L'artisan sans compte s'inscrit ici (audit du 27/09) : la page crée
@@ -42,7 +44,7 @@ const SEGMENTS_CONNUS = new Set([
   "actions", "admin", "agence", "api", "artisan", "assistance", "attestation-loyer",
   "auth", "compte", "conditions", "confidentialite", "connexion", "espaces",
   "inscription", "journal", "locataire", "mentions-legales", "mot-de-passe-oublie",
-  "nouveau-mot-de-passe", "polices", "quittance", "relais", "securite", "veille",
+  "nouveau-mot-de-passe", "polices", "quittance", "relais", "securite", "tarifs", "veille",
   // public
   "illustrations", "logo", "marketing",
 ]);

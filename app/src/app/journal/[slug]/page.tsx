@@ -73,7 +73,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
             vous trouvent, retenues justifiées ligne par ligne.
           </p>
           <Link href="/inscription" className="btn-or mt-4">
-            Créer mon compte — 1ᵉʳ bien offert
+            Créer mon compte — 14 jours d&apos;essai
           </Link>
         </aside>
       </main>

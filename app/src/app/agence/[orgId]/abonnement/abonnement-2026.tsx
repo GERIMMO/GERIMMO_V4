@@ -123,9 +123,12 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   if (souscrit && actuelle) {
     const demandeLots = Number.parseInt(String(recherche.capacite ?? ""), 10);
     const demandeFormule = formuleParCode(String(recherche.formule ?? ""));
+    const demandeBiens = Number.parseInt(String(recherche.biens ?? ""), 10);
     if (publicTarif === "agence") {
       const lots = Math.max(enGestion, Number.isFinite(demandeLots) ? demandeLots : 0);
       if (lots > (capacite ?? 0)) cible = offreAgence(lots);
+    } else if (Number.isFinite(demandeBiens) && demandeBiens > (capacite ?? 0)) {
+      cible = offreParticulier(Math.max(enGestion, demandeBiens), paiement.periodicite);
     } else if (demandeFormule) {
       cible = offreFormule(demandeFormule, Math.max(enGestion, demandeFormule.biens), paiement.periodicite);
     } else if (enGestion > (capacite ?? 0)) {

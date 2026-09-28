@@ -109,6 +109,8 @@ export default async function PageAdministration(
       ecriture_ouverte: boolean;
       unites_total: number;
       unites_facturees: number;
+      grille: string;
+      unites_souscrites: number | null;
     }[]
   )[0];
   const nbLotsFactures = etatAbonnement?.unites_total;
@@ -159,7 +161,9 @@ export default async function PageAdministration(
           essai: etatAbonnement.statut === "essai",
           ferme: !etatAbonnement.ecriture_ouverte,
           enRetard: paiement?.paiement_en_retard ?? false,
-          rienAPayer: (etatAbonnement.unites_facturees ?? 0) < 1,
+          // Grille du 28/09/2026 : le socle s'applique dès la souscription,
+          // même sans lot — il n'y a jamais « rien à régler ».
+          rienAPayer: etatAbonnement.grille === "historique" && (etatAbonnement.unites_facturees ?? 0) < 1,
         });
 
   return (
@@ -298,6 +302,12 @@ export default async function PageAdministration(
               <span>Lots sous mandat actif</span>
               <span className="montant">{nbLotsFactures}</span>
             </div>
+            {etatAbonnement?.unites_souscrites != null && (
+              <div className="ligne-info">
+                <span>Lots facturés</span>
+                <span className="montant">{etatAbonnement.unites_souscrites}</span>
+              </div>
+            )}
             {/* Tout le rang mène à l'abonnement (24/09) — seul le petit lien
                 de droite l'était — et il porte le nom de l'écran visé. */}
             <Link
@@ -317,7 +327,9 @@ export default async function PageAdministration(
           </EncadreLectureImpossible>
         )}
         <p className="mt-4 text-sm text-muted-foreground">
-          Les mandats en préavis restent comptés tant qu’ils courent.
+          Les mandats en préavis restent comptés tant qu’ils courent. Vos
+          collaborateurs, les propriétaires que vous invitez et vos locataires
+          n’ajoutent rien à la facture.
         </p>
       </div>
 

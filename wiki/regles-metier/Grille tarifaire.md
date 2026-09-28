@@ -1,13 +1,58 @@
 ---
 type: business-rule
 tags: [tarifs, stripe, abonnement]
-status: in-progress
+status: stable
 created: 2026-07-21
-updated: 2026-09-12
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
+updated: 2026-09-28
+sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
 ---
 
 # Grille tarifaire
+
+## Grille en vigueur — décision du 28/09/2026 ([[2026-09-28-decision-tarification]])
+
+**Plus aucune gratuité permanente** : l'essai de 14 jours sans carte est la seule
+période sans paiement. Implémentation : `app/src/lib/tarifs.ts` (source unique, en
+centimes) et tables `tarif_formules` / `tarif_tranches` (grille `2026-09-28`),
+comparées unité par unité par les tests.
+
+**Particuliers et SCI gérant leurs propres biens** (organisation « propriétaire
+direct ») — prix TTC, fonctions identiques :
+
+| Formule | Biens | Mensuel TTC | Annuel TTC |
+|---|---:|---:|---:|
+| Solo | 1 | 5,99 € | 59,90 € |
+| Bailleur | jusqu'à 3 | 9,99 € | 99,90 € |
+| Investisseur | jusqu'à 10 | 19,99 € | 199,90 € |
+| Patrimoine | jusqu'à 20 | 29,99 € | 299,90 € |
+| Au-delà de 20 | Patrimoine + | +1 €/bien/mois | +10 €/bien/an |
+
+Annuel = dix mensualités (deux mois offerts), prélevé en une fois. 25 biens =
+34,99 €/mois ou 349,90 €/an. La formule la moins chère qui couvre le parc est
+proposée d'office ; une plus chère seulement si choisie, montant affiché.
+
+**Agences** — mensuel HT, lots **distincts** sous mandat actif ou en préavis,
+vacants compris, tranches **cumulatives** : socle 39 € jusqu'à 10 lots, +2 € du
+11ᵉ au 50ᵉ, +1,50 € du 51ᵉ au 200ᵉ, +1 € à partir du 201ᵉ. Exemples : 20 lots
+59 € · 50 lots 119 € · 100 lots 194 € · 200 lots 344 € · 300 lots 444 € · 500 lots
+644 €. Plus de plafond « sur devis ».
+
+**Unité comptée (particuliers)** : chaque lot non archivé d'un bien non retiré —
+un logement et ses annexes louées au même bail forment un lot ; un parking loué à
+part est son propre lot (interprétation retenue, cf. points à trancher).
+
+**Règles d'application** : hausse (formule, bien au-delà de 20, lot sous mandat)
+seulement après présentation du nouveau montant, de la date d'effet et du prorata
+(aperçu Stripe) puis confirmation — une garde en base refuse sinon l'écriture ;
+baisse appliquée à l'échéance, sans prorata ; changement de périodicité à
+l'échéance seulement ; résiliation pour la prochaine échéance. Taxes selon le
+régime déclaré de l'éditeur (`REGIME_TVA`) ; tant qu'il manque, pas de
+souscription en ligne. Voir [[Cycle de vie de l'abonnement]].
+
+**Organisations antérieures** : restent sur la grille « historique » (ci-dessous)
+jusqu'à la procédure de migration (`app/supabase/procedures/migration-grille-2026-09-28.sql`).
+
+## Historique des grilles (supplantées le 28/09/2026)
 
 **Énoncé :** **8 offres** d'[[Abonnement]] en base — dont **6 achetables en ligne** et **2 sur
 devis** (`requires_quote = true` : `agency_301_600`, `agency_600_plus`) — segmentées par
@@ -87,13 +132,14 @@ annuelle » ; paliers exprimés en **lots sous mandat** (comptage automatique RM
 Les deux dernières tranches restent sur devis.
 
 > [!warning] Points à trancher / contradictions
-> - **La grille agence par paliers n'est implémentée nulle part (constat du 2026-09-12)** :
->   `etat_abonnement` applique 5,99 €/bien à TOUT LE MONDE, et « Mon abonnement » est
->   masqué aux agences — il n'existe aucun chemin d'encaissement pour une agence. Une
->   proposition de remplacement, par tranches et sans marche, attend l'arbitrage :
->   voir [[Grille tarifaire agence — proposition]]. **Tant qu'elle n'est pas tranchée,
->   la présente page fait foi.**
-> - `agency_301_600` : `requires_quote = true` → doit rester non achetable en ligne (sinon R1 bloque).
-> - Prix annuels de `public-pricing.ts` à neutraliser (RM-18.6.7 : mensuel exclusif).
+> - **Unité « bien » des particuliers** : le code compte chaque lot loué séparément
+>   (un immeuble de trois logements = 3 biens). À confirmer par le porteur.
+> - **Régime de TVA de l'éditeur** non renseigné : souscription en ligne fermée.
+> - **Clients existants** (grille historique, dont le « premier bien offert à
+>   vie » promis) : décisions D1–D6 de la procédure de migration.
+> - **Parrainage** : non cumulé avec la nouvelle grille, avantages « en attente »
+>   ([[Parrainage]]).
+> - Préavis de révision tarifaire (conditions, art. 8.8) à fixer.
+> - Les points qui suivent concernent les grilles supplantées :
+>   `agency_301_600` sur devis ; prix annuels de V3.
 > - Voir [[Cycle de vie de l'abonnement]], [[Analyse concurrentielle]].
->

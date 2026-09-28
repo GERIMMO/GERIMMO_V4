@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Article, CoquilleLegale, Fait } from "@/components/coquille-legale";
-import { CONDITIONS_DATE, EDITEUR, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
+import { CONDITIONS_DATE, EDITEUR, REGIME_TVA, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
 
 export const metadata = { title: "Conditions générales d'utilisation — Gerimmo" };
 
@@ -37,8 +37,14 @@ const CLAUSES: Record<
   | "preavisModification",
   FaitEditeur
 > = {
-  facturation: null,
-  tva: null,
+  // Arrêtée le 28/09/2026 avec la grille tarifaire.
+  facturation:
+    "Les particuliers choisissent un paiement mensuel ou annuel ; les agences paient au mois. Le paiement se fait par carte, auprès du prestataire de paiement de l'Éditeur, à chaque échéance ; l'abonnement annuel est prélevé en une fois. Les factures sont émises électroniquement et consultables depuis « Mon abonnement ».",
+  tva: REGIME_TVA === null
+    ? null
+    : REGIME_TVA.nature === "franchise"
+      ? "TVA non applicable, article 293 B du code général des impôts : les prix affichés sont les montants payés."
+      : `Les prix des formules particuliers s'entendent toutes taxes comprises, TVA de ${REGIME_TVA.tauxPourcent} % incluse. Les prix des agences s'entendent hors taxes ; la TVA de ${REGIME_TVA.tauxPourcent} % s'y ajoute et est détaillée avant tout paiement.`,
   preavisTarif: null,
   retractation: null,
   conservation: null,
@@ -237,35 +243,71 @@ export default function PageConditions() {
 
       <Article titre="8. Prix, essai et facturation">
         <p>
-          <b className="font-semibold">8.1 — Grille.</b> Le{" "}
-          <b className="font-semibold">premier bien est offert, sans limite de
-          durée et sans carte bancaire</b>. Chaque bien supplémentaire est
-          facturé <b className="font-semibold">5,99 € par mois</b>, sans
-          engagement de durée.
+          <b className="font-semibold">8.1 — Grilles.</b> Le prix dépend du
+          nombre de biens gérés, ou de lots sous mandat actif pour une agence ;
+          les fonctions de gestion sont les mêmes quelle que soit la formule.
+          Les particuliers et les sociétés civiles qui gèrent leurs propres
+          biens relèvent des formules Solo (1 bien), Bailleur (jusqu&apos;à 3),
+          Investisseur (jusqu&apos;à 10) et Patrimoine (jusqu&apos;à 20, puis
+          un supplément par bien), en paiement mensuel ou annuel, prix toutes
+          taxes comprises. Les agences qui gèrent pour des tiers relèvent
+          d&apos;un tarif mensuel hors taxes par tranches cumulatives de lots
+          sous mandat actif, avec un socle dès la souscription. Les montants en
+          vigueur sont publiés sur la page{" "}
+          <a href="/tarifs" className="underline">Tarifs</a> et rappelés avant
+          toute souscription. Aucune formule n&apos;est gratuite en permanence.
         </p>
         <p>
           <b className="font-semibold">8.2 — Essai.</b> L&apos;ouverture
           d&apos;un compte donne accès à un{" "}
-          <b className="font-semibold">essai gratuit de 14 jours</b> couvrant la
-          formule complète. À son terme, à défaut de souscription, le compte
-          conserve le premier bien offert.
+          <b className="font-semibold">essai gratuit de 14 jours</b>, sans
+          moyen de paiement. Aucun abonnement ne démarre sans souscription
+          explicite. À son terme, à défaut de souscription, la saisie de
+          nouvelles données est suspendue ; les données restent consultables et
+          exportables et ne sont pas supprimées automatiquement. Une
+          souscription pendant l&apos;essai n&apos;en réduit pas la durée : le
+          premier prélèvement intervient à son terme.
         </p>
         <p>
-          <b className="font-semibold">8.3 — Facturation.</b>{" "}
-          <Fait valeur={CLAUSES.facturation} quoi="périodicité, moyen de paiement, émission des factures" />
+          <b className="font-semibold">8.3 — Facturation.</b> {CLAUSES.facturation}
         </p>
         <p>
-          <b className="font-semibold">8.4 — TVA.</b> Les prix sont indiqués{" "}
-          <Fait valeur={CLAUSES.tva} quoi="hors taxes ou toutes taxes comprises" />.
+          <b className="font-semibold">8.4 — Taxes.</b>{" "}
+          <Fait valeur={CLAUSES.tva} quoi="régime de TVA de l'éditeur" />
         </p>
         <p>
-          <b className="font-semibold">8.5 — Révision.</b> Toute évolution
+          <b className="font-semibold">8.5 — Changements.</b> Toute
+          augmentation du montant (formule supérieure, biens ou lots
+          supplémentaires) n&apos;est appliquée qu&apos;après que le nouveau
+          montant, sa date d&apos;effet et l&apos;éventuel prorata ont été
+          présentés au Client et confirmés par lui. Une diminution
+          s&apos;applique à la prochaine échéance. Une formule annuelle
+          n&apos;est pas convertie en mensuelle en cours de période.
+        </p>
+        <p>
+          <b className="font-semibold">8.6 — Résiliation.</b> Le Client résilie
+          à tout moment depuis « Mon abonnement ». La résiliation prend effet
+          à la prochaine échéance, mensuelle ou annuelle ; l&apos;accès payé
+          reste ouvert jusqu&apos;à cette date. L&apos;abonnement annuel est
+          payé en une fois pour douze mois et se renouvelle pour douze mois à sa
+          date anniversaire, sauf résiliation préalable.
+        </p>
+        <p>
+          <b className="font-semibold">8.7 — Hors abonnement.</b> Les travaux et
+          interventions d&apos;artisans sont proposés sur devis et facturés
+          séparément ; ils ne sont jamais compris dans l&apos;abonnement. La
+          disponibilité du réseau d&apos;artisans dépend de la commune du bien
+          et du métier. Aucun frais d&apos;installation n&apos;est facturé pour
+          un démarrage autonome.
+        </p>
+        <p>
+          <b className="font-semibold">8.8 — Révision.</b> Toute évolution
           tarifaire est notifiée au Client{" "}
           <Fait valeur={CLAUSES.preavisTarif} quoi="préavis" /> avant sa prise d&apos;effet. Le Client qui
           la refuse peut résilier sans frais avant cette date.
         </p>
         <p>
-          <b className="font-semibold">8.6 — Rétractation.</b>{" "}
+          <b className="font-semibold">8.9 — Rétractation.</b>{" "}
           <Fait
             valeur={CLAUSES.retractation}
             quoi="droit de rétractation du client particulier — article à rédiger avec le formulaire type"

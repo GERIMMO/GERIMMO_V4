@@ -45,7 +45,8 @@ const CLAUSES: Record<
     : REGIME_TVA.nature === "franchise"
       ? "TVA non applicable, article 293 B du code général des impôts : les prix affichés sont les montants payés."
       : `Les prix des formules particuliers s'entendent toutes taxes comprises, TVA de ${REGIME_TVA.tauxPourcent} % incluse. Les prix des agences s'entendent hors taxes ; la TVA de ${REGIME_TVA.tauxPourcent} % s'y ajoute et est détaillée avant tout paiement.`,
-  preavisTarif: null,
+  // Décision du porteur, 28/09/2026 : un mois.
+  preavisTarif: "au moins un mois",
   retractation: null,
   conservation: null,
   disponibilite: null,

@@ -5,7 +5,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { Client } from "pg";
 import Stripe from "stripe";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { creerSessionPaiement, assurerClientStripe, synchroniserQuantite } from "@/lib/stripe";
+import { creerSessionPaiement, assurerClientStripe, synchroniserQuantite, ouvrirPortailFacturation, MARQUE_PORTAIL } from "@/lib/stripe";
 import {
   apercuChangement,
   appliquerBaisseAEcheance,
@@ -361,5 +361,29 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     });
     expect(apercu.subtotal).toBe(19400);
     expect(apercu.total).toBe(23280);
+  }, 60000);
+
+  it("portail client : résiliation en fin de période, aucun changement de formule, toujours la configuration Gerimmo", async () => {
+    const r = await ouvrirPortailFacturation(nouvelle.stripe!, { customer: nouvelle.client!, retour: "https://www.gerimmo.app/agence/x/abonnement" });
+    if (!r.ok) throw new Error(r.erreur);
+    expect(r.url).toMatch(/^https:\/\/billing\.stripe\.com\//);
+    const configs: Stripe.BillingPortal.Configuration[] = [];
+    for await (const c of nouvelle.stripe!.billingPortal.configurations.list({ active: true, limit: 100 })) {
+      if (c.metadata?.gerimmo === MARQUE_PORTAIL) configs.push(c);
+    }
+    expect(configs).toHaveLength(1); // créée une fois, retrouvée ensuite
+    const f = configs[0].features;
+    expect(f.subscription_cancel).toMatchObject({ enabled: true, mode: "at_period_end", proration_behavior: "none" });
+    expect(f.subscription_update.enabled).toBe(false);
+    expect(f.invoice_history.enabled).toBe(true);
+    expect(f.payment_method_update.enabled).toBe(true);
+    // Une deuxième ouverture réutilise la même configuration.
+    const r2 = await ouvrirPortailFacturation(nouvelle.stripe!, { customer: nouvelle.client!, retour: "https://www.gerimmo.app/agence/x/abonnement" });
+    expect(r2.ok).toBe(true);
+    let n = 0;
+    for await (const c of nouvelle.stripe!.billingPortal.configurations.list({ active: true, limit: 100 })) {
+      if (c.metadata?.gerimmo === MARQUE_PORTAIL) n++;
+    }
+    expect(n).toBe(1);
   }, 60000);
 });

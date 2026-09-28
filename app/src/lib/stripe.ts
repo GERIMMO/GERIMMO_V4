@@ -284,21 +284,69 @@ export async function creerSessionPaiement(
   }
 }
 
+/** Repère de la configuration du portail tenue par Gerimmo (à changer si les règles changent). */
+export const MARQUE_PORTAIL = "portail-2026-09-28";
+
+/**
+ * La configuration du portail client, créée une fois puis retrouvée par sa
+ * marque. Règles (décision du 28/09/2026) :
+ * - résiliation pour la fin de la période payée, sans prorata ni
+ *   remboursement — l'accès reste ouvert jusqu'à l'échéance ;
+ * - AUCUN changement de formule, de quantité ou de périodicité dans le
+ *   portail : ils passent par Gerimmo, qui montre montant, date d'effet et
+ *   prorata avant toute hausse ;
+ * - carte, adresse, e-mail et historique des factures modifiables/consultables.
+ */
+export async function assurerConfigurationPortail(stripe: Stripe, origine: string): Promise<string> {
+  for await (const c of stripe.billingPortal.configurations.list({ active: true, limit: 100 })) {
+    if (c.metadata?.gerimmo === MARQUE_PORTAIL) return c.id;
+  }
+  const cree = await stripe.billingPortal.configurations.create({
+    business_profile: {
+      privacy_policy_url: `${origine}/confidentialite`,
+      terms_of_service_url: `${origine}/conditions`,
+    },
+    features: {
+      customer_update: { enabled: true, allowed_updates: ["email", "address", "name"] },
+      invoice_history: { enabled: true },
+      payment_method_update: { enabled: true },
+      subscription_cancel: {
+        enabled: true,
+        mode: "at_period_end",
+        proration_behavior: "none",
+        cancellation_reason: {
+          enabled: true,
+          options: ["too_expensive", "missing_features", "switched_service", "unused", "other"],
+        },
+      },
+      subscription_update: { enabled: false },
+    },
+    metadata: { gerimmo: MARQUE_PORTAIL },
+  });
+  return cree.id;
+}
+
 /**
  * L'espace de facturation hébergé par Stripe.
  *
  * Il porte la carte, les factures, le changement d'adresse et la résiliation.
  * Les réécrire ici prendrait des semaines pour un résultat moins fiable — et
  * une résiliation qu'on code soi-même est une résiliation qu'on peut rater.
+ *
+ * Le portail ouvert est TOUJOURS celui que Gerimmo configure lui-même
+ * (`assurerConfigurationPortail`), jamais le réglage par défaut du tableau de
+ * bord : les règles commerciales ne dépendent pas d'un clic dans Stripe.
  */
 export async function ouvrirPortailFacturation(
   stripe: Stripe,
   params: { customer: string; retour: string }
 ): Promise<Reussite<{ url: string }> | Echec> {
   try {
+    const configuration = await assurerConfigurationPortail(stripe, new URL(params.retour).origin);
     const session = await stripe.billingPortal.sessions.create({
       customer: params.customer,
       return_url: params.retour,
+      configuration,
     });
     return { ok: true, url: session.url };
   } catch (e) {

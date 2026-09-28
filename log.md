@@ -5552,3 +5552,11 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   ligne ouverte.
 - Pages mises à jour : [[Grille tarifaire]], [[État du projet et décisions ouvertes]],
   [[2026-09-28-decision-tarification]].
+
+## [2026-09-28] decision | Préavis de révision tarifaire et portail client Stripe
+- Préavis de révision des prix : **au moins un mois** (CGU art. 8.8).
+- Portail client Stripe : configuration créée et imposée par le code
+  (`assurerConfigurationPortail`, marque `portail-2026-09-28`) — résiliation en
+  fin de période sans prorata, changement de formule désactivé.
+- Pages mises à jour : [[Grille tarifaire]], [[Cycle de vie de l'abonnement]],
+  [[État du projet et décisions ouvertes]], [[2026-09-28-decision-tarification]].

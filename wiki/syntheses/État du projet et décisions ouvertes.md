@@ -54,7 +54,8 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > **Tranché le jour même** : 3 logements = 3 biens ; plus de premier bien offert
 > pour personne (14 jours puis gel en lecture seule) ; bascule dès l'ajout de
 > bien ; pas de cumul avec le parrainage ; TVA : franchise en base (art. 293 B du
-> CGI). Reste : préavis de révision (art. 8.8).
+> CGI) ; préavis de révision : au moins un mois (art. 8.8). Reste : préavis de
+> modification des conditions (art. 16).
 
 > [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
 > **Une même personne ne peut pas être à la fois propriétaire gestion directe et

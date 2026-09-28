@@ -20,6 +20,12 @@ sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 >   l'échéance, sans prorata. **Périodicité** : changée à l'échéance seulement.
 > - **Résiliation** pour la prochaine échéance, accès payé conservé ; ensuite
 >   lecture seule, données consultables et exportables, jamais supprimées.
+> - **Portail client Stripe** : configuration imposée par Gerimmo (pas le réglage
+>   par défaut du tableau de bord) — résiliation en fin de période sans prorata,
+>   aucun changement de formule ni de quantité (ils passent par Gerimmo) ; carte,
+>   adresse, e-mail et factures accessibles.
+> - **Révision tarifaire** : notifiée au moins un mois avant sa prise d'effet
+>   (CGU art. 8.8) ; résiliation sans frais possible avant cette date.
 > - **Échec de paiement** : inchangé (15 jours, puis lecture seule).
 
 

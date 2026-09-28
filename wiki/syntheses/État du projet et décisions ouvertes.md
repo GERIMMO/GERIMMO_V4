@@ -53,7 +53,8 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > historique (D1–D4), parrainage (D5), préavis de révision (art. 8.8).
 > **Tranché le jour même** : 3 logements = 3 biens ; plus de premier bien offert
 > pour personne (14 jours puis gel en lecture seule) ; bascule dès l'ajout de
-> bien ; pas de cumul avec le parrainage. Restent : régime de TVA, préavis.
+> bien ; pas de cumul avec le parrainage ; TVA : franchise en base (art. 293 B du
+> CGI). Reste : préavis de révision (art. 8.8).
 
 > [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
 > **Une même personne ne peut pas être à la fois propriétaire gestion directe et

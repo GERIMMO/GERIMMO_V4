@@ -42,7 +42,8 @@ export const EDITEUR = {
 } as const;
 
 /**
- * Le régime de TVA de l'éditeur, que le porteur déclare (28/09/2026).
+ * Le régime de TVA de l'éditeur, que le porteur déclare : franchise en base
+ * (décision du 28/09/2026).
  *
  * Il décide de ce que l'on affiche et de ce que l'on facture : un éditeur en
  * franchise en base (art. 293 B du CGI) ne facture aucune TVA, un éditeur
@@ -52,7 +53,7 @@ export const EDITEUR = {
  *
  * Exemples : `{ nature: "franchise" }` ou `{ nature: "assujetti", tauxPourcent: 20 }`.
  */
-export const REGIME_TVA: RegimeTva | null = null;
+export const REGIME_TVA: RegimeTva | null = { nature: "franchise" };
 
 /**
  * Les faits SANS LESQUELS la page ne remplit pas son office légal.

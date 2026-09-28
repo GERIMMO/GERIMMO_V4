@@ -56,7 +56,7 @@ test.describe("Côté propriétaire bailleur", () => {
   test("sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API", async ({
     page,
   }) => {
-    // Le banc n'a ni clés Stripe ni régime de TVA : la souscription reste
+    // Le banc n'a pas de clés Stripe : la souscription reste
     // fermée, et l'écran le dit au lieu d'offrir un bouton qui échouerait.
     const main = page.locator("main");
     await expect(main).toContainText("n'est pas encore ouvert");

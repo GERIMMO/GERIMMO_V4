@@ -51,6 +51,8 @@ le barème agence du 12/09. Détail normatif : [[Grille tarifaire]].
   puis **gel** avec possibilité de visualiser jusqu'au paiement.
 - **Bascule dès l'ajout de bien** pour les organisations existantes.
 - **Pas de cumul** (parrainage, anciennes promotions).
+- **TVA : franchise en base** (art. 293 B du CGI) — aucune TVA facturée ;
+  factures avec la mention « TVA non applicable, art. 293 B du CGI ».
 - Mise en production demandée une fois tout au vert.
 
 ## Pages touchées

@@ -45,6 +45,14 @@ le barème agence du 12/09. Détail normatif : [[Grille tarifaire]].
   procédure distincte après recensement et décisions ; anciennes promotions et
   parrainage non cumulés automatiquement, avantages accordés préservés.
 
+## Arbitrages du porteur (même jour)
+- **3 logements = 3 biens** (chaque lot loué séparément compte).
+- **Le premier bien n'est plus offert** : la seule chose offerte, ce sont 14 jours,
+  puis **gel** avec possibilité de visualiser jusqu'au paiement.
+- **Bascule dès l'ajout de bien** pour les organisations existantes.
+- **Pas de cumul** (parrainage, anciennes promotions).
+- Mise en production demandée une fois tout au vert.
+
 ## Pages touchées
 [[Grille tarifaire]] · [[Abonnement]] · [[Cycle de vie de l'abonnement]] ·
 [[Parrainage]] · [[Onboarding et abonnement]] ·

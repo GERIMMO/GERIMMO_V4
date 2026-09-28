@@ -236,13 +236,6 @@ describe.skipIf(!DB_URL)("grille tarifaire du 28/09/2026 — base", () => {
       expect(await aCouvrir(o)).toBe(2);
     });
 
-    it("la grille historique n'a pas de garde de capacité", async () => {
-      const o = await org("proprietaire_direct", "active", "historique");
-      await souscrire(o, 1);
-      await bien(o);
-      await bien(o);
-      expect(await aCouvrir(o)).toBe(2);
-    });
   });
 
   describe("le miroir de Stripe", () => {
@@ -287,8 +280,30 @@ describe.skipIf(!DB_URL)("grille tarifaire du 28/09/2026 — base", () => {
     });
   });
 
-  describe("le parrainage ne se cumule pas automatiquement avec la nouvelle grille", () => {
-    it("le filleul de la nouvelle grille garde 14 jours ; l'avantage attend l'arbitrage", async () => {
+  describe("bascule des organisations existantes (décision du 28/09/2026)", () => {
+    it("une organisation encore sur la grille historique bascule dès qu'elle ajoute un bien", async () => {
+      const o = await org("proprietaire_direct", "active", "historique");
+      await bien(o);
+      expect((await un<{ g: string }>("select grille_tarifaire as g from public.organizations where id = $1", [o])).g).toBe("2026-09-28");
+      const j = await un<{ n: number }>(
+        "select count(*)::int as n from public.audit_log where organization_id = $1 and action = 'grille_tarifaire_basculee'",
+        [o]
+      );
+      expect(j.n).toBe(1);
+    });
+
+    it("un ancien compte « premier bien offert » dont l'essai est échu est gelé en lecture seule après bascule", async () => {
+      const o = await org("proprietaire_direct", "essai", "historique");
+      await db.query("select public.tache_systeme()");
+      await db.query("update public.organizations set essai_fin = current_date - 1 where id = $1", [o]);
+      expect((await un<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [o])).o).toBe(true); // historique : ouvert
+      await db.query("update public.organizations set grille_tarifaire = '2026-09-28' where id = $1", [o]);
+      expect((await un<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [o])).o).toBe(false); // gelé
+    });
+  });
+
+  describe("le parrainage ne se cumule pas avec la nouvelle grille", () => {
+    it("le filleul de la nouvelle grille garde 14 jours ; aucun avantage, pas de cumul", async () => {
       const parrain = await org("proprietaire_direct");
       const filleul = await org("proprietaire_direct", "essai");
       const avant = (await un<{ d: string }>("select essai_fin::text as d from public.organizations where id = $1", [filleul])).d;
@@ -298,7 +313,7 @@ describe.skipIf(!DB_URL)("grille tarifaire du 28/09/2026 — base", () => {
       )).id;
       await db.query("select public.parrainage_avantage_filleul($1)", [p]);
       expect((await un<{ d: string }>("select essai_fin::text as d from public.organizations where id = $1", [filleul])).d).toBe(avant);
-      expect((await un<{ e: string }>("select etat as e from public.avantages_parrainage where parrainage_id = $1", [p])).e).toBe("en_attente");
+      expect((await un<{ e: string }>("select etat as e from public.avantages_parrainage where parrainage_id = $1", [p])).e).toBe("sans_objet");
     });
   });
 });

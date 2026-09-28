@@ -51,6 +51,9 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > ([[2026-09-28-decision-tarification]]). Restent à trancher : régime de TVA de
 > l'éditeur, unité « bien » (lot loué séparément), sort des clients de la grille
 > historique (D1–D4), parrainage (D5), préavis de révision (art. 8.8).
+> **Tranché le jour même** : 3 logements = 3 biens ; plus de premier bien offert
+> pour personne (14 jours puis gel en lecture seule) ; bascule dès l'ajout de
+> bien ; pas de cumul avec le parrainage. Restent : régime de TVA, préavis.
 
 > [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
 > **Une même personne ne peut pas être à la fois propriétaire gestion directe et

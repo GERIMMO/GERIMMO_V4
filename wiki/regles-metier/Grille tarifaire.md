@@ -49,8 +49,12 @@ l'échéance seulement ; résiliation pour la prochaine échéance. Taxes selon 
 régime déclaré de l'éditeur (`REGIME_TVA`) ; tant qu'il manque, pas de
 souscription en ligne. Voir [[Cycle de vie de l'abonnement]].
 
-**Organisations antérieures** : restent sur la grille « historique » (ci-dessous)
-jusqu'à la procédure de migration (`app/supabase/procedures/migration-grille-2026-09-28.sql`).
+**Organisations antérieures** (décision du porteur, 28/09) : plus de premier bien
+offert pour personne — seuls les 14 jours d'essai sont offerts, puis **gel en
+lecture seule** jusqu'au paiement. Toute organisation sans souscription en cours
+bascule à la mise en production ; une organisation qui paie encore sur l'ancienne
+grille bascule **dès son prochain ajout de bien**. **Pas de cumul** avec le
+parrainage.
 
 ## Historique des grilles (supplantées le 28/09/2026)
 
@@ -132,13 +136,13 @@ annuelle » ; paliers exprimés en **lots sous mandat** (comptage automatique RM
 Les deux dernières tranches restent sur devis.
 
 > [!warning] Points à trancher / contradictions
-> - **Unité « bien » des particuliers** : le code compte chaque lot loué séparément
->   (un immeuble de trois logements = 3 biens). À confirmer par le porteur.
+> - ~~Unité « bien »~~ — **tranché le 28/09 : 3 logements = 3 biens** (chaque lot
+>   loué séparément).
 > - **Régime de TVA de l'éditeur** non renseigné : souscription en ligne fermée.
-> - **Clients existants** (grille historique, dont le « premier bien offert à
->   vie » promis) : décisions D1–D6 de la procédure de migration.
-> - **Parrainage** : non cumulé avec la nouvelle grille, avantages « en attente »
->   ([[Parrainage]]).
+> - ~~Clients existants~~ — **tranché le 28/09** : bascule, gel après les 14 jours
+>   d'essai, bascule dès l'ajout de bien pour ceux qui paient encore l'ancienne
+>   grille.
+> - ~~Parrainage~~ — **tranché le 28/09 : pas de cumul** ([[Parrainage]]).
 > - Préavis de révision tarifaire (conditions, art. 8.8) à fixer.
 > - Les points qui suivent concernent les grilles supplantées :
 >   `agency_301_600` sur devis ; prix annuels de V3.

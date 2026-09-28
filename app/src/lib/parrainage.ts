@@ -84,6 +84,9 @@ export function libelleAvantage(a: AvantageParrainage, eur: (cents: number) => s
       : "Parrainage enregistré — avantage en cours de révision avec la nouvelle grille";
   }
   if (a.etat === "sans_objet") {
+    if (a.nature === "essai_filleul" && a.jours === 0) {
+      return "Recommandation enregistrée — sans avantage tarifaire (pas de cumul avec la grille)";
+    }
     return a.nature === "essai_filleul"
       ? "Essai déjà ouvert ou abonnement en cours : rien à rallonger."
       : "Aucun montant à créditer au moment de l'acquisition.";
@@ -96,6 +99,10 @@ export function libelleAvantage(a: AvantageParrainage, eur: (cents: number) => s
     : `Un mois offert — ${montant} déduits de votre prochaine facture`;
 }
 
-/** Ce que l'on dit du programme à une organisation de la grille du 28/09/2026. */
+/**
+ * Ce que l'on dit du programme à une organisation de la grille du 28/09/2026 :
+ * pas de cumul (décision du porteur). Les recommandations sont enregistrées,
+ * sans avantage tarifaire ; les avantages déjà acquis restent acquis.
+ */
 export const PARRAINAGE_EN_REVISION =
-  "Le programme de parrainage est en cours de révision avec la nouvelle grille tarifaire : vos recommandations sont enregistrées, leurs avantages vous seront confirmés. Les avantages déjà acquis sont conservés.";
+  "Vos recommandations sont enregistrées. Le parrainage n'ouvre pas d'avantage tarifaire : l'essai gratuit est de 14 jours pour tous, sans cumul avec la grille. Les avantages déjà acquis sont conservés.";

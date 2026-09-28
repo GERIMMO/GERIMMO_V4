@@ -15,15 +15,15 @@
 -- LA MÊME GRILLE VIT DANS src/lib/tarifs.ts ; `tests/tarifs-grille-sql.test.ts`
 -- compare les deux unité par unité.
 --
--- RIEN N'EST MIGRÉ EN SILENCE. Chaque organisation porte désormais sa grille
--- (`organizations.grille_tarifaire`). Celles qui existent AVANT cette
--- migration restent sur la grille « historique » — premier bien offert,
--- 5,99 €/bien, tranches agence du 12/09 — avec tous leurs mécanismes
--- (synchronisation automatique de la quantité, écriture ouverte sans rien à
--- payer). Leur passage à la nouvelle grille est une procédure distincte
--- (supabase/procedures/migration-grille-2026-09-28.sql), qui recense avant
--- d'agir et n'agit qu'après décision. Les organisations créées après
--- relèvent de la nouvelle grille.
+-- LES ORGANISATIONS EXISTANTES (décisions du porteur, même jour) : « le
+-- premier bien n'est plus offert ; seuls 14 jours sont offerts, puis gel
+-- avec possibilité de visualiser jusqu'au paiement ; bascule dès l'ajout de
+-- bien ; pas de cumul ». Chaque organisation porte sa grille
+-- (`organizations.grille_tarifaire`). Celles sans souscription en cours
+-- basculent ici (section 12) ; celles qui paient encore sur l'ancienne
+-- grille la gardent jusqu'à leur prochain ajout de bien. La bascule ne
+-- touche pas Stripe : aucun débit n'est déclenché. Recensement et suivi :
+-- supabase/procedures/migration-grille-2026-09-28.sql.
 --
 -- Idempotent.
 
@@ -891,11 +891,13 @@ revoke execute on function public.abonnements_a_synchroniser(integer)
   from public, anon, authenticated;
 grant execute on function public.abonnements_a_synchroniser(integer) to service_role;
 
--- ── 11. Le parrainage ne se cumule plus automatiquement ────────────────────
--- Pour une organisation de la nouvelle grille, l'avantage est ENREGISTRÉ
--- (« en_attente ») mais pas appliqué : ni essai porté à 30 jours, ni mois
--- offert, tant que le porteur n'a pas arbitré. Les avantages déjà accordés
--- (grille historique) sont conservés et continuent de s'appliquer.
+-- ── 11. Le parrainage ne se cumule pas avec la nouvelle grille ─────────────
+-- Décision du porteur (28/09/2026) : « il n'y a pas de cumul ». Pour une
+-- organisation de la nouvelle grille, le parrainage reste ENREGISTRÉ (qui a
+-- amené qui) mais n'ouvre aucun avantage : l'essai reste de 14 jours, aucun
+-- mois n'est offert. L'avantage est inscrit « sans_objet », pour que l'écran
+-- le dise. Les avantages déjà accordés (grille historique) sont conservés.
+-- L'état « en_attente » reste admis pour d'anciennes lignes éventuelles.
 alter table public.avantages_parrainage drop constraint if exists avantages_parrainage_etat_check;
 alter table public.avantages_parrainage add constraint avantages_parrainage_etat_check
   check (etat in ('a_appliquer', 'applique', 'sans_objet', 'en_attente'));
@@ -922,8 +924,8 @@ begin
 
   if v_grille = '2026-09-28' then
     insert into public.avantages_parrainage
-      (parrainage_id, beneficiaire_organization_id, nature, jours, etat)
-    values (p_parrainage, v_filleul, 'essai_filleul', null, 'en_attente')
+      (parrainage_id, beneficiaire_organization_id, nature, jours, etat, applique_le)
+    values (p_parrainage, v_filleul, 'essai_filleul', 0, 'sans_objet', now())
     on conflict (parrainage_id, nature) do nothing;
     return;
   end if;
@@ -981,10 +983,10 @@ begin
 
   if v_grille = '2026-09-28' then
     insert into public.avantages_parrainage
-      (parrainage_id, beneficiaire_organization_id, nature, etat)
+      (parrainage_id, beneficiaire_organization_id, nature, etat, applique_le)
     values (v_parrainage, v_parrain,
             case when v_statut = 'essai' then 'essai_parrain' else 'avoir_parrain' end,
-            'en_attente')
+            'sans_objet', now())
     on conflict (parrainage_id, nature) do nothing;
   elsif v_statut = 'essai' then
     perform set_config('gerimmo.systeme', 'on', true);
@@ -1163,5 +1165,66 @@ as $$
 $$;
 revoke execute on function public.supervision_abonnement(uuid) from public, anon;
 grant execute on function public.supervision_abonnement(uuid) to authenticated;
+
+-- ── 12. Bascule des organisations existantes (décision du 28/09/2026) ──────
+-- « Le premier bien n'est plus offert ; la seule chose offerte, ce sont 14
+-- jours, puis gel avec possibilité de visualiser jusqu'au paiement. Bascule
+-- dès l'ajout de bien. »
+--   · Toute organisation SANS souscription en cours passe tout de suite à la
+--     nouvelle grille : un essai en cours garde sa date ; un essai échu ou un
+--     compte « premier bien offert » passe en lecture seule jusqu'au
+--     paiement, données intactes et consultables.
+--   · Une organisation qui paie encore sur l'ancienne grille (souscription
+--     Stripe en cours) garde son abonnement tel quel ; elle bascule dès
+--     qu'elle ajoute un bien (déclencheur ci-dessous).
+-- Aucun débit n'est déclenché : la bascule ne touche pas Stripe.
+do $bascule$
+begin
+  perform set_config('gerimmo.systeme', 'on', true);
+  with basculees as (
+    update public.organizations o
+       set grille_tarifaire = '2026-09-28', updated_at = now()
+     where o.grille_tarifaire = 'historique'
+       and not exists (select 1 from public.abonnements a
+                       where a.organization_id = o.id
+                         and a.stripe_subscription_id is not null
+                         and a.stripe_statut in ('active', 'trialing', 'past_due', 'unpaid'))
+    returning o.id
+  )
+  insert into public.audit_log (organization_id, action, details)
+  select id, 'grille_tarifaire_basculee', jsonb_build_object('vers', '2026-09-28', 'motif', 'decision_2026_09_28')
+  from basculees;
+  perform set_config('gerimmo.systeme', '', true);
+end
+$bascule$;
+
+create or replace function public.basculer_grille_a_l_ajout()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if exists (select 1 from public.organizations o
+             where o.id = new.organization_id and o.grille_tarifaire = 'historique') then
+    perform set_config('gerimmo.systeme', 'on', true);
+    update public.organizations set grille_tarifaire = '2026-09-28', updated_at = now()
+     where id = new.organization_id;
+    perform set_config('gerimmo.systeme', '', true);
+    insert into public.audit_log (organization_id, action, details)
+    values (new.organization_id, 'grille_tarifaire_basculee',
+            jsonb_build_object('vers', '2026-09-28', 'motif', 'ajout_de_bien'));
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.basculer_grille_a_l_ajout() from public, anon, authenticated;
+
+-- Avant la garde de capacité (ordre alphabétique des déclencheurs : « biens_
+-- bascule… » passe avant « biens_garde… »).
+drop trigger if exists biens_bascule_grille on public.biens;
+create trigger biens_bascule_grille
+  before insert on public.biens
+  for each row execute function public.basculer_grille_a_l_ajout();
 
 select public.fermer_fonctions_a_anon();

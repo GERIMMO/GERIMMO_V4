@@ -158,28 +158,25 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
     }
   });
 
-  it("grille historique : ferme un essai expiré dès qu'il y a quelque chose à payer, et le rouvre sinon (24/09)", async () => {
-    // Le propriétaire direct de la grille historique : le premier bien est
-    // offert à vie, le second se paie. Un bien → rien à payer → ouvert ; deux
-    // biens → une unité facturable → fermé jusqu'à la souscription.
+  it("grille historique : ouvert sans rien à payer, gelé dès l'ajout d'un bien (bascule du 28/09/2026)", async () => {
+    // Décision du porteur : le premier bien n'est plus offert, et une
+    // organisation restée sur la grille historique bascule dès qu'elle ajoute
+    // un bien — l'essai échu la gèle alors en lecture seule jusqu'au paiement.
     const {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
       `insert into public.organizations (name, status, essai_fin, type, grille_tarifaire)
-       values ('Un bien offert', 'essai', current_date - 1, 'proprietaire_direct', 'historique') returning id`
+       values ('Ancien compte', 'essai', current_date - 1, 'proprietaire_direct', 'historique') returning id`
     );
     const ouverte = async () =>
       (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
-    const bien = (nom: string) =>
-      db.query(
-        `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
-         values ($1, $2, 'appartement'::public.bien_type, '1 rue X', '75001', 'Paris')`,
-        [org, nom]
-      );
-    await db.query("select public.tache_systeme()");
-    await bien("Le bien offert");
     expect(await ouverte()).toBe(true);
-    await bien("Le second bien");
+    await db.query("select public.tache_systeme()");
+    await db.query(
+      `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
+       values ($1, 'Studio', 'appartement'::public.bien_type, '1 rue X', '75001', 'Paris')`,
+      [org]
+    );
     expect(await ouverte()).toBe(false);
   });
 

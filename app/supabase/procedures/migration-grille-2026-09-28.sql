@@ -1,21 +1,11 @@
--- PROCÉDURE DE MIGRATION VERS LA GRILLE DU 28/09/2026 — À NE PAS JOUER D'UN BLOC.
+-- PROCÉDURE DE MIGRATION VERS LA GRILLE DU 28/09/2026 — RECENSEMENT ET SUIVI.
 --
--- Ce fichier n'est PAS une migration : il ne figure pas dans
--- supabase/migrations et rien ne l'exécute automatiquement. La migration
--- 20260928090000_tarification_2026 laisse chaque organisation existante sur
--- la grille « historique » (premier bien offert, 5,99 €/bien, barème agence
--- du 12/09) avec tous ses mécanismes. Aucun client n'est migré en silence,
--- aucun débit rétroactif n'est possible.
---
--- DÉROULÉ
---   1. RECENSER (partie 1, lecture seule) — à jouer tel quel, en production,
---      par l'outil SQL de Supabase. Rien n'est écrit.
---   2. PRÉSENTER au porteur le recensement et les décisions listées en
---      partie 2 ; obtenir une réponse écrite pour chacune.
---   3. PRÉVENIR les clients concernés (préavis de l'article 8.8 des
---      conditions, dont la durée reste à fixer) AVANT tout changement.
---   4. APPLIQUER (partie 3) — uniquement les blocs décidés, un par un, dans
---      une transaction, après relecture du recensement du jour.
+-- Ce fichier n'est PAS une migration : rien ne l'exécute automatiquement.
+-- Les décisions du porteur (partie 2) sont appliquées par la migration
+-- 20260928090000_tarification_2026. Ce fichier sert à RECENSER (partie 1,
+-- lecture seule, à jouer tel quel dans l'outil SQL de Supabase) avant et
+-- après la mise en production, et à suivre les organisations qui paient
+-- encore sur l'ancienne grille.
 --
 -- ─────────────────────────────────────────────────────────────────────────
 -- PARTIE 1 — RECENSEMENT (lecture seule)
@@ -106,74 +96,25 @@ order by al.created_at desc;
 rollback;
 
 -- ─────────────────────────────────────────────────────────────────────────
--- PARTIE 2 — DÉCISIONS À PRENDRE (porteur), AVANT TOUTE APPLICATION
+-- PARTIE 2 — DÉCISIONS DU PORTEUR (28/09/2026) — APPLIQUÉES PAR LA MIGRATION
 -- ─────────────────────────────────────────────────────────────────────────
--- D1. Abonnés payants historiques (1.b) : les basculer, à quelle date, avec
---     quel préavis, et que faire de ceux dont le prix AUGMENTE (écart > 0) —
---     maintien du tarif historique jusqu'à une date, remise temporaire, ou
---     bascule au prix de la grille ? Ceux dont le prix baisse : bascule
---     immédiate ou à l'échéance ?
--- D2. Comptes gratuits historiques (1.c) : le premier bien offert « à vie »
---     leur a été promis (conditions du 11/09, art. 8.1). Maintien à vie,
---     maintien jusqu'à une date, ou bascule avec préavis ?
--- D3. Essais historiques en cours (1.e) : basculer sur la nouvelle grille
---     (l'essai continue, seule l'issue change) — recommandé — ou laisser
---     finir sur l'ancienne ?
--- D4. Organisations actives sans souscription (1.f) : quelle régularisation ?
--- D5. Parrainage : (a) le filleul garde-t-il 30 jours d'essai au lieu de 14 ?
---     (b) le « mois offert » du parrain : quel montant pour un abonnement
---     annuel (1/12 du montant annuel ? un mois de la formule mensuelle ?) ;
---     (c) cumul avec le paiement annuel (deux mois offerts) autorisé ?
---     Les avantages « en_attente » (1.g) seront appliqués ou annulés selon
---     cette décision ; les avantages déjà « appliqué » ou « a_appliquer »
---     sont conservés en tout état de cause.
--- D6. Régime de TVA de l'éditeur (REGIME_TVA, src/lib/editeur.ts) et préavis
---     de révision tarifaire (conditions, art. 8.8).
+-- « 3 logements, c'est 3 biens. Le premier bien n'est plus offert : la seule
+-- chose offerte, ce sont 14 jours, puis gel avec possibilité de visualiser
+-- jusqu'au paiement. Bascule dès l'ajout de bien. Il n'y a pas de cumul. »
 --
--- ─────────────────────────────────────────────────────────────────────────
--- PARTIE 3 — APPLICATION (blocs commentés : à décommenter UN PAR UN)
--- ─────────────────────────────────────────────────────────────────────────
--- Chaque bloc s'exécute seul, dans sa transaction, par un super admin. La
--- bascule d'une organisation ne touche PAS Stripe : un abonnement payant
--- historique continue d'être facturé à l'identique tant qu'il n'a pas été
--- remplacé par une souscription de la nouvelle grille, souscrite par le
--- client lui-même depuis « Mon abonnement » (aucun débit sans son accord).
+-- En conséquence, la migration 20260928090000_tarification_2026 :
+--   · bascule d'office toute organisation SANS souscription en cours vers la
+--     nouvelle grille (essais en cours : même date de fin ; essais échus et
+--     comptes « premier bien offert » : lecture seule jusqu'au paiement) ;
+--   · fait basculer une organisation qui paie encore sur l'ancienne grille
+--     dès qu'elle ajoute un bien (déclencheur biens_bascule_grille) ;
+--   · n'ouvre aucun avantage de parrainage pour la nouvelle grille (pas de
+--     cumul) ; les avantages déjà accordés restent acquis.
+-- Aucun débit n'est déclenché : rien ne touche Stripe.
 --
--- D3 — Essais en cours → nouvelle grille :
--- begin;
--- select set_config('gerimmo.systeme', 'on', true);
--- update public.organizations set grille_tarifaire = '2026-09-28', updated_at = now()
---  where grille_tarifaire = 'historique' and status = 'essai'
---    and not exists (select 1 from public.abonnements a where a.organization_id = organizations.id
---                    and a.stripe_statut in ('active', 'trialing', 'past_due', 'unpaid'))
--- returning id, name;
--- insert into public.audit_log (organization_id, action, details)
--- select id, 'grille_tarifaire_migree', jsonb_build_object('vers', '2026-09-28', 'decision', 'D3')
---   from public.organizations where grille_tarifaire = '2026-09-28' and status = 'essai'
---    and updated_at > now() - interval '1 minute';
--- commit;
---
--- D2 — Comptes gratuits historiques → nouvelle grille, à la date décidée
--- (le préavis donné) : ils passent en lecture seule tant qu'ils ne souscrivent
--- pas, données conservées.
--- begin;
--- select set_config('gerimmo.systeme', 'on', true);
--- update public.organizations set grille_tarifaire = '2026-09-28', updated_at = now()
---  where id in (/* identifiants retenus au recensement 1.c */)
--- returning id, name;
--- commit;
---
--- D1 — Abonnés payants historiques : pas de bascule en base tant qu'ils n'ont
--- pas souscrit l'offre de la nouvelle grille. Procédure : (1) préavis ;
--- (2) à la date décidée, le client souscrit depuis « Mon abonnement »
--- (montant affiché, confirmation) ; (3) l'ancienne souscription Stripe est
--- résiliée À SON ÉCHÉANCE depuis le tableau de bord Stripe ; (4) seulement
--- alors, bascule de la grille en base (même bloc que D2). Aucune écriture
--- ne modifie une souscription Stripe existante depuis ce fichier.
---
--- D5 — Avantages de parrainage en attente : après décision, soit les
--- appliquer (script dédié à écrire selon la règle retenue), soit :
--- begin;
--- update public.avantages_parrainage set etat = 'sans_objet', applique_le = now()
---  where etat = 'en_attente' and id in (/* identifiants */);
--- commit;
+-- RESTE À SUIVRE (organisations qui paient sur l'ancienne grille) : après la
+-- bascule par ajout de bien, leur ancienne souscription Stripe continue d'être
+-- prélevée à l'identique, sans resynchronisation de quantité. Les inviter à
+-- souscrire l'offre de la nouvelle grille depuis « Mon abonnement », puis
+-- résilier l'ancienne souscription À SON ÉCHÉANCE depuis le tableau de bord
+-- Stripe. Au 28/09/2026 : aucune organisation dans ce cas en production.

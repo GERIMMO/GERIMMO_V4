@@ -9,14 +9,12 @@ sources: ["[[2026-09-28-decision-tarification]]"]
 
 # Parrainage
 
-> [!warning] Grille du 28/09/2026 : avantages suspendus pour les nouvelles organisations
-> Pour ne pas cumuler automatiquement le parrainage avec la nouvelle grille
-> ([[Grille tarifaire]]), une organisation de la grille `2026-09-28` voit son
-> parrainage **enregistré** mais son avantage mis **« en attente »** (ni essai
-> porté à 30 jours, ni mois offert) jusqu'à l'arbitrage du porteur (décision D5 de
-> la procédure de migration : durée d'essai du filleul, valeur du « mois » pour un
-> abonnement annuel, cumul avec les deux mois offerts de l'annuel). Les avantages
-> déjà accordés (grille historique) sont conservés et continuent de s'appliquer.
+> [!warning] Grille du 28/09/2026 : pas de cumul (décision du porteur)
+> Pour une organisation de la nouvelle grille ([[Grille tarifaire]]), le
+> parrainage reste **enregistré** (qui a amené qui) mais n'ouvre **aucun
+> avantage** : l'essai reste de 14 jours, aucun mois n'est offert ; l'avantage est
+> inscrit « sans objet ». Les avantages déjà accordés (grille historique) sont
+> conservés.
 
 
 **Définition :** le mécanisme par lequel une organisation déjà cliente —

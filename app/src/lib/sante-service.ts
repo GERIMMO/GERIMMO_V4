@@ -98,6 +98,10 @@ const LIBELLES_BILAN: Record<string, string> = {
   ignores: "actions sans suite nécessaire",
   bloques: "fichiers en attente depuis plus de 48 h",
   en_attente: "fichiers encore en file",
+  echeances_examinees: "échéances examinées",
+  baisses: "baisses appliquées à l’échéance",
+  periodicites: "changements de périodicité programmés",
+  echeances_en_echec: "échéances à reprendre",
 };
 
 function valeurBilan(cle: string, valeur: unknown): string | null {
@@ -171,13 +175,19 @@ export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME
   // souscription de la nouvelle grille ne s'ouvre — les taxes ne s'inventent pas.
   verifications.push({
     cle: "REGIME_TVA",
-    usage: "Taxes affichées et facturées (src/lib/editeur.ts)",
+    usage: "Régime de TVA de l'éditeur : taxes affichées et facturées",
     etat: regimeTva ? "ok" : "manque",
     detail: regimeTva
       ? regimeTva.nature === "franchise"
         ? "franchise en base (art. 293 B)"
         : `assujetti, TVA ${regimeTva.tauxPourcent} %`
-      : "à renseigner par le porteur : souscription en ligne fermée d'ici là",
+      : "souscription en ligne fermée tant qu'il manque",
+    ...(regimeTva
+      ? {}
+      : {
+          commande:
+            "À fournir par le porteur, avec les faits de l'éditeur : franchise en base de TVA (article 293 B) ou assujettissement, avec son taux. Ce n'est pas une variable Vercel.",
+        }),
   });
 
   // ── E-mails : quittances, avis, relances, rappels.

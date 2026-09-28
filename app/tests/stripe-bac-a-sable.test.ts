@@ -252,12 +252,23 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     const s = (await nouvelle.stripe!.checkout.sessions.list({ customer: nouvelle.client, limit: 1 })).data[0];
     nouvelle.sessions.push(s.id);
     expect(s.livemode).toBe(false);
-    expect(s.amount_total).toBe(34990);
+    // L'essai est préservé : rien n'est dû aujourd'hui, le premier
+    // prélèvement (349,90 €) partira à la fin de l'essai.
+    expect(s.amount_total).toBe(0);
     const lignes = (await nouvelle.stripe!.checkout.sessions.listLineItems(s.id)).data;
     expect(lignes.map((l) => [l.price?.unit_amount, l.quantity, l.price?.recurring?.interval])).toEqual([
       [29990, 1, "year"],
       [1000, 5, "year"],
     ]);
+    // Sans essai à préserver : le montant annuel est dû à la validation.
+    const r2 = await creerSessionOffre(nouvelle.stripe!, {
+      offre: offreParticulier(25, "annuel"), regime: FRANCHISE, customer: nouvelle.client!, orgId: nouvelle.org!,
+      retourOk: "http://localhost:3100/ok", retourAnnule: "http://localhost:3100/annule",
+    });
+    expect(r2.ok).toBe(true);
+    const s2 = (await nouvelle.stripe!.checkout.sessions.list({ customer: nouvelle.client, limit: 1 })).data[0];
+    nouvelle.sessions.push(s2.id);
+    expect(s2.amount_total).toBe(34990);
   }, 60000);
 
   it("souscription Bailleur mensuelle, puis hausse vers Investisseur : prorata aperçu = prorata prélevé ; miroir à jour", async () => {

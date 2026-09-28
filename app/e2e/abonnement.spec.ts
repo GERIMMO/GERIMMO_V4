@@ -6,9 +6,9 @@ import { debordementHorizontal, sansSyntheseAlertes } from "./aides";
 //
 // CE QUE CES TESTS TIENNENT. Un écran de facturation ment de deux façons : en
 // annonçant un montant faux, et en proposant un geste qui n'aboutira pas. Les
-// deux se voient ici — le décompte vient de la base (1ᵉʳ bien offert à vie,
-// 5,99 €/mois ensuite), et le bouton n'apparaît que quand il y a quelque chose
-// à payer.
+// deux se voient ici — grille du 28/09/2026 : la formule la moins chère qui
+// couvre le parc est proposée avec son montant, l'annuel dit ce qu'il prélève,
+// et rien ne part sans une confirmation explicite.
 //
 // LE BANC N'A PAS DE CLÉS STRIPE, et c'est délibéré : on vérifie que le refus
 // est une phrase que son destinataire comprend, pas une erreur d'API. C'est
@@ -35,38 +35,34 @@ test.describe("Côté propriétaire bailleur", () => {
     ).toBeVisible();
   });
 
-  test("le décompte nomme chaque bien, et dit lequel est offert", async ({
+  test("un seul bien n'est plus gratuit : Solo est recommandée, montant affiché", async ({
     page,
   }) => {
-    const carte = page
-      .locator(".loc-carte")
-      .filter({ hasText: "Formule Gerimmo" });
-    await expect(carte).toContainText("1ᵉʳ bien — offert, à vie");
-    await expect(carte).toContainText("5,99 €/mois");
-    await expect(carte).toContainText("Total mensuel");
+    const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
+    await expect(page.getByText("Recommandée : la moins chère qui couvre votre portefeuille")).toBeVisible();
+    await expect(recap).toContainText("Formule Solo");
+    await expect(recap).toContainText("5,99");
+    await expect(recap).toContainText("Total à payer TTC");
+    await expect(page.locator("main")).not.toContainText("offert, à vie");
   });
 
-  test("le bouton porte le montant : on sait ce qu'on engage avant de cliquer", async ({
-    page,
-  }) => {
-    // Un bouton « S'abonner » nu oblige à faire confiance. Celui-ci dit combien.
-    await expect(
-      page.getByRole("button", { name: /S'abonner — .* par mois/ }),
-    ).toBeVisible();
+  test("en annuel, le montant prélevé en une fois est affiché", async ({ page }) => {
+    await page.getByText("Annuel — deux mois offerts").click();
+    const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
+    await expect(recap).toContainText("59,90");
+    await expect(recap).toContainText("prélevés en une fois pour douze mois");
   });
 
-  test("sans compte Stripe ouvert, le refus est une phrase, pas une erreur d'API", async ({
+  test("sans paiement en ligne ouvert, le refus est une phrase, pas une erreur d'API", async ({
     page,
   }) => {
-    await page.getByRole("button", { name: /S'abonner/ }).click();
-    // Portée à `main` : Next.js pose son propre role="alert" (l'annonceur de
-    // route) sur toute page, et il est vide.
-    const alerte = page.locator("main").getByRole("alert");
-    await expect(alerte).toBeVisible();
-    await expect(alerte).toContainText("n'est pas encore ouvert");
-    // Ni nom de variable, ni mot anglais : celui qui lit est un bailleur.
-    await expect(alerte).not.toContainText("STRIPE");
-    await expect(alerte).not.toContainText("Error");
+    // Le banc n'a ni clés Stripe ni régime de TVA : la souscription reste
+    // fermée, et l'écran le dit au lieu d'offrir un bouton qui échouerait.
+    const main = page.locator("main");
+    await expect(main).toContainText("n'est pas encore ouvert");
+    await expect(main).not.toContainText("STRIPE");
+    await expect(main).not.toContainText("Error");
+    await expect(page.getByRole("button", { name: /paiement sécurisé/ })).toHaveCount(0);
   });
 
   test("aucun identifiant Stripe ne descend jusqu'au navigateur", async ({
@@ -115,27 +111,16 @@ test.describe("Côté agence", () => {
     );
   });
 
-  test("le barème est montré tranche par tranche, avec ses sous-totaux", async ({
+  test("le barème est montré tranche par tranche, HT, avant paiement", async ({
     page,
   }) => {
     // Une facture qu'on ne peut pas recalculer soi-même est une facture qu'on
-    // appelle pour contester.
-    const carte = page
-      .locator(".loc-carte")
-      .filter({ hasText: "Formule Gerimmo" });
-    await expect(carte).toContainText("forfait de départ");
-    await expect(carte).toContainText("Total mensuel");
-    await expect(carte).toContainText("dégressif par tranches");
-  });
-
-  test("l'écran promet qu'un lot de plus ne fait pas changer de palier", async ({
-    page,
-  }) => {
-    // C'est l'argument commercial ET la règle : le dire est ce qui empêche
-    // l'agence de craindre le seuil, donc de mentir à son propre outil.
-    await expect(page.locator("main")).toContainText(
-      "signer un lot de plus ne fait jamais changer de palier",
-    );
+    // appelle pour contester. Tranches cumulatives : chaque lot au prix de SA
+    // tranche.
+    const recap = page.locator(".rounded-lg").filter({ hasText: "Récapitulatif avant paiement" });
+    await expect(recap).toContainText("Socle — jusqu'à 10 lots inclus");
+    await expect(recap).toContainText("Lots du 11ᵉ au 50ᵉ");
+    await expect(recap).toContainText("Total HT");
   });
 
   test("aucun identifiant Stripe ne descend jusqu'au navigateur", async ({

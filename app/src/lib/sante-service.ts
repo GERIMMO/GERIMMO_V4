@@ -1,3 +1,5 @@
+import { REGIME_TVA } from "@/lib/editeur";
+import type { RegimeTva } from "@/lib/tarifs";
 // La santé du service, lue d'un seul écran — la logique, sans écran ni réseau.
 //
 // POURQUOI (préparation du lancement, 20/09). La production tournait avec
@@ -96,6 +98,10 @@ const LIBELLES_BILAN: Record<string, string> = {
   ignores: "actions sans suite nécessaire",
   bloques: "fichiers en attente depuis plus de 48 h",
   en_attente: "fichiers encore en file",
+  echeances_examinees: "échéances examinées",
+  baisses: "baisses appliquées à l’échéance",
+  periodicites: "changements de périodicité programmés",
+  echeances_en_echec: "échéances à reprendre",
 };
 
 function valeurBilan(cle: string, valeur: unknown): string | null {
@@ -129,7 +135,7 @@ export function domaineDeLAdresse(adresse: string): string | null {
  * Chaque variable de production, avec son état. L'ordre est celui de la
  * liste de lancement : ce qui bloque en premier, en premier.
  */
-export function etatConfiguration(env: Env): Verification[] {
+export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME_TVA): Verification[] {
   const verifications: Omit<Verification, "prestataire">[] = [];
 
   // ── Stripe : sans lui, l'essai de 14 jours ferme l'écriture sans issue.
@@ -150,17 +156,38 @@ export function etatConfiguration(env: Env): Verification[] {
     etat: valeur(env, "STRIPE_WEBHOOK_SECRET") ? "ok" : "manque",
     detail: null,
   });
+  // Grille du 28/09/2026 : aucun tarif à créer chez Stripe (les montants
+  // partent de lib/tarifs.ts). Les deux tarifs historiques ne servent qu'aux
+  // organisations restées sur l'ancienne grille ; leur absence n'est pas une
+  // alerte tant qu'aucune n'y souscrit.
+  for (const [cle, usage] of [
+    ["STRIPE_PRIX_BIEN", "Grille historique seulement : tarif par bien des propriétaires"],
+    ["STRIPE_PRIX_LOT_AGENCE", "Grille historique seulement : tarif par lot des agences"],
+  ] as const) {
+    verifications.push({
+      cle,
+      usage,
+      etat: "ok",
+      detail: valeur(env, cle) ? "posée" : "non posée : inutile à la nouvelle grille",
+    });
+  }
+  // Le régime de TVA de l'éditeur (lib/editeur.ts) : sans lui, aucune
+  // souscription de la nouvelle grille ne s'ouvre — les taxes ne s'inventent pas.
   verifications.push({
-    cle: "STRIPE_PRIX_BIEN",
-    usage: "Tarif par bien des propriétaires bailleurs",
-    etat: valeur(env, "STRIPE_PRIX_BIEN") ? "ok" : "manque",
-    detail: null,
-  });
-  verifications.push({
-    cle: "STRIPE_PRIX_LOT_AGENCE",
-    usage: "Tarif par palier de lots des agences",
-    etat: valeur(env, "STRIPE_PRIX_LOT_AGENCE") ? "ok" : "manque",
-    detail: null,
+    cle: "REGIME_TVA",
+    usage: "Régime de TVA de l'éditeur : taxes affichées et facturées",
+    etat: regimeTva ? "ok" : "manque",
+    detail: regimeTva
+      ? regimeTva.nature === "franchise"
+        ? "franchise en base (art. 293 B)"
+        : `assujetti, TVA ${regimeTva.tauxPourcent} %`
+      : "souscription en ligne fermée tant qu'il manque",
+    ...(regimeTva
+      ? {}
+      : {
+          commande:
+            "À fournir par le porteur, avec les faits de l'éditeur : franchise en base de TVA (article 293 B) ou assujettissement, avec son taux. Ce n'est pas une variable Vercel.",
+        }),
   });
 
   // ── E-mails : quittances, avis, relances, rappels.
@@ -674,11 +701,12 @@ export async function chargerSante(
   db: ClientQuiLitLeJournal,
   env: Env,
   faitsEditeurManquants: number,
-  maintenant: Date = new Date()
+  maintenant: Date = new Date(),
+  regimeTva: RegimeTva | null = REGIME_TVA
 ): Promise<Sante> {
   const [taches, evenementsIA] = await Promise.all([chargerEtatTaches(db, maintenant), lireEvenementsIA(db, maintenant)]);
   const clePosee = Boolean(valeur(env, "OPENAI_API_KEY") || valeur(env, "OPEN_AI_KEY"));
-  const configuration = [...etatConfiguration(env), ...(evenementsIA ? [verificationCreditIA(evenementsIA, clePosee)] : [])];
+  const configuration = [...etatConfiguration(env, regimeTva), ...(evenementsIA ? [verificationCreditIA(evenementsIA, clePosee)] : [])];
   return {
     configuration,
     taches,

@@ -21,6 +21,10 @@ import {
 } from "../src/lib/sante-service";
 import { dernieresTaches } from "../src/lib/tache";
 
+// Le régime de TVA de l'éditeur vit dans le code (lib/editeur.ts), pas dans
+// l'environnement : les tests le posent explicitement.
+const REGIME = { nature: "franchise" } as const;
+
 const COMPLET = {
   STRIPE_SECRET_KEY: "sk_live_xxx",
   STRIPE_WEBHOOK_SECRET: "whsec_xxx",
@@ -39,7 +43,7 @@ const COMPLET = {
 
 describe("les variables de production", () => {
   it("un environnement complet ne manque de rien", () => {
-    const v = etatConfiguration(COMPLET);
+    const v = etatConfiguration(COMPLET, REGIME);
     expect(v.every((x) => x.etat === "ok")).toBe(true);
     // Le domaine se dit ; la valeur, jamais.
     expect(v.find((x) => x.cle === "RESEND_EXPEDITEUR")!.detail).toContain("gerimmo.app");
@@ -53,8 +57,7 @@ describe("les variables de production", () => {
     expect(manque).toEqual([
       "STRIPE_SECRET_KEY",
       "STRIPE_WEBHOOK_SECRET",
-      "STRIPE_PRIX_BIEN",
-      "STRIPE_PRIX_LOT_AGENCE",
+      "REGIME_TVA",
       "RESEND_API_KEY",
       "CRON_SECRET",
       "SUPABASE_SERVICE_ROLE_KEY",
@@ -66,7 +69,7 @@ describe("les variables de production", () => {
   });
 
   it("la signature électronique désactivée pour le lancement n'est pas une alerte (27/09)", () => {
-    const v = etatConfiguration({ ...COMPLET, YOUTRUST_ENV: "sandbox" });
+    const v = etatConfiguration({ ...COMPLET, YOUTRUST_ENV: "sandbox" }, REGIME);
     expect(v.find((x) => x.cle === "YOUTRUST_API_KEY")).toMatchObject({
       etat: "ok",
       detail: expect.stringContaining("désactivée pour le lancement"),
@@ -74,13 +77,13 @@ describe("les variables de production", () => {
     // Son webhook n'est pas réclamé tant qu'elle est éteinte.
     expect(v.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")).toBeUndefined();
     // Activée, la ligne redevient celle de l'environnement réel, webhook compris.
-    const active = etatConfiguration(COMPLET);
+    const active = etatConfiguration(COMPLET, REGIME);
     expect(active.find((x) => x.cle === "YOUTRUST_API_KEY")!.detail).toBe("environnement réel");
     expect(active.find((x) => x.cle === "YOUTRUST_WEBHOOK_SECRET")!.etat).toBe("ok");
   });
 
   it("distingue une clé Stripe de test d'une clé réelle", () => {
-    const test = etatConfiguration({ ...COMPLET, STRIPE_SECRET_KEY: "sk_test_abc" });
+    const test = etatConfiguration({ ...COMPLET, STRIPE_SECRET_KEY: "sk_test_abc" }, REGIME);
     expect(test.find((x) => x.cle === "STRIPE_SECRET_KEY")).toMatchObject({
       etat: "attention",
       detail: expect.stringContaining("test"),
@@ -88,7 +91,7 @@ describe("les variables de production", () => {
   });
 
   it("refuse l'expéditeur de test de Resend, qui ne livre qu'au titulaire", () => {
-    const v = etatConfiguration({ ...COMPLET, RESEND_EXPEDITEUR: "Gerimmo <onboarding@resend.dev>" });
+    const v = etatConfiguration({ ...COMPLET, RESEND_EXPEDITEUR: "Gerimmo <onboarding@resend.dev>" }, REGIME);
     expect(v.find((x) => x.cle === "RESEND_EXPEDITEUR")!.etat).toBe("manque");
   });
 
@@ -97,7 +100,7 @@ describe("les variables de production", () => {
     ["sans https", "http://gerimmo.app", "attention"],
     ["définitive", "https://gerimmo.app/", "ok"],
   ])("l'adresse du site — %s", (_, url, etat) => {
-    const v = etatConfiguration({ ...COMPLET, NEXT_PUBLIC_SITE_URL: url });
+    const v = etatConfiguration({ ...COMPLET, NEXT_PUBLIC_SITE_URL: url }, REGIME);
     expect(v.find((x) => x.cle === "NEXT_PUBLIC_SITE_URL")!.etat).toBe(etat);
   });
 
@@ -354,7 +357,7 @@ describe("le chargement partagé par Santé, Équipes, l’accueil et le point (
 
   it("rend null quand la lecture échoue, et le bandeau compte tout de même les faits sûrs", async () => {
     const c = client({}, { message: "indisponible" });
-    const sante = await chargerSante(c.db, { ...COMPLET, CRON_SECRET: "" }, 2, maintenant);
+    const sante = await chargerSante(c.db, { ...COMPLET, CRON_SECRET: "" }, 2, maintenant, REGIME);
     expect(sante.taches).toBeNull();
     expect(sante.tachesIllisibles).toBe(true);
     expect(sante.bloquants).toBe(2);
@@ -362,8 +365,8 @@ describe("le chargement partagé par Santé, Équipes, l’accueil et le point (
 
   it("donne le même chiffre qu'un calcul à la main", async () => {
     const c = client({});
-    const sante = await chargerSante(c.db, COMPLET, 0, maintenant);
-    expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET), etatTaches({}, maintenant), 0));
+    const sante = await chargerSante(c.db, COMPLET, 0, maintenant, REGIME);
+    expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET, REGIME), etatTaches({}, maintenant), 0));
     expect(sante.bloquants).toBe(TACHES.length);
   });
 
@@ -378,14 +381,14 @@ describe("le chargement partagé par Santé, Équipes, l’accueil et le point (
     expect(verificationCreditIA([]).etat).toBe("ok");
     // Compté dans les points bloquants, donc dans « À décider ».
     const c = client({ tech_log: [refus] });
-    const sante = await chargerSante(c.db, COMPLET, 0, maintenant);
+    const sante = await chargerSante(c.db, COMPLET, 0, maintenant, REGIME);
     expect(sante.configuration.find((v) => v.usage === "Crédit du compte IA")?.etat).toBe("manque");
-    expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET), etatTaches({}, maintenant), 0) + 1);
+    expect(sante.bloquants).toBe(pointsBloquants(etatConfiguration(COMPLET, REGIME), etatTaches({}, maintenant), 0) + 1);
   });
 
   it("ne lit que les événements IA pour le crédit (audit console 27/09)", async () => {
     const c = client({ tech_log: [] });
-    await chargerSante(c.db, COMPLET, 0, maintenant);
+    await chargerSante(c.db, COMPLET, 0, maintenant, REGIME);
     expect(c.appels).toContainEqual(["in", "tech_log", "evenement", ["tache_marketing", "tache_veille", "veille_analyse_echec"]]);
     expect(c.appels).not.toContainEqual(["like", "tech_log", "evenement", "%"]);
   });
@@ -395,23 +398,23 @@ describe("le chargement partagé par Santé, Équipes, l’accueil et le point (
     const credit = verificationCreditIA([], false);
     expect(credit.etat).toBe("manque");
     expect(credit.estConnexion).toBe(false);
-    const sante = await chargerSante(client({}).db, sansCle, 0, maintenant);
+    const sante = await chargerSante(client({}).db, sansCle, 0, maintenant, REGIME);
     expect(sante.configuration.filter((v) => v.cle === "OPENAI_API_KEY").map((v) => v.etat)).toEqual(["manque", "manque"]);
     expect(sante.bloquants).toBe(TACHES.length + 1);
   });
 
   it("l’expéditeur absent se dit « à poser », pas « posée »", () => {
-    const sans = etatConfiguration({ ...COMPLET, RESEND_EXPEDITEUR: "" }).find((v) => v.cle === "RESEND_EXPEDITEUR")!;
+    const sans = etatConfiguration({ ...COMPLET, RESEND_EXPEDITEUR: "" }, REGIME).find((v) => v.cle === "RESEND_EXPEDITEUR")!;
     expect(sans.absente).toBe(true);
-    expect(etatConfiguration(COMPLET).find((v) => v.cle === "RESEND_EXPEDITEUR")!.absente).toBe(false);
+    expect(etatConfiguration(COMPLET, REGIME).find((v) => v.cle === "RESEND_EXPEDITEUR")!.absente).toBe(false);
   });
 });
 
 describe("ce qui bloque, en un chiffre", () => {
   it("additionne les manques, les tâches jamais passées ou en échec, et l'éditeur incomplet", () => {
-    const config = etatConfiguration({ ...COMPLET, CRON_SECRET: "" });
+    const config = etatConfiguration({ ...COMPLET, CRON_SECRET: "" }, REGIME);
     const taches = etatTaches({}, new Date());
     expect(pointsBloquants(config, taches, 3)).toBe(1 + TACHES.length + 1);
-    expect(pointsBloquants(etatConfiguration(COMPLET), [], 0)).toBe(0);
+    expect(pointsBloquants(etatConfiguration(COMPLET, REGIME), [], 0)).toBe(0);
   });
 });

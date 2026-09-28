@@ -94,6 +94,21 @@ export async function creerBien(
     return { erreur: "La surface habitable et le nombre de pièces sont obligatoires pour chaque lot.", valeurs };
   }
 
+  // Grille du 28/09/2026 : chaque lot loué séparément compte pour un bien.
+  // La base refuse un bien au-delà de la capacité payée ; on vérifie ici le
+  // découpage complet, pour ne jamais créer le bien et s'arrêter au deuxième
+  // lot. Le message mène au nouveau montant, à confirmer.
+  if (role === "proprietaire_direct") {
+    const { data: capaciteBrute } = await supabase.rpc("etat_abonnement", { p_org: orgId });
+    const cap = ((capaciteBrute ?? []) as { unites_a_couvrir: number | null; unites_souscrites: number | null }[])[0];
+    if (cap && cap.unites_souscrites !== null && (cap.unites_a_couvrir ?? 0) + lotsAValider.length > cap.unites_souscrites) {
+      return {
+        erreur: `Votre formule couvre ${cap.unites_souscrites} bien${cap.unites_souscrites > 1 ? "s" : ""} : ce bien en porterait ${(cap.unites_a_couvrir ?? 0) + lotsAValider.length} en gestion. Ouvrez « Mon abonnement » pour voir le nouveau montant et le confirmer ; rien n'a été enregistré.`,
+        valeurs,
+      };
+    }
+  }
+
   // Créer un bien = créer son lot unique (RM-0.1.2), atomique en base
   const { data: bienId, error } = await supabase.rpc("creer_bien_avec_lot", {
     p_org: orgId,

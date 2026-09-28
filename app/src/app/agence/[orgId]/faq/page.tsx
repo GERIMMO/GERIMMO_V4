@@ -29,14 +29,12 @@ const QUESTIONS: [string, string][] = [
     "Un lot en indivision, comment je déclare ?",
     "Le récapitulatif ajoute une colonne «\u00a0votre quote-part\u00a0» : chaque rubrique est ventilée à votre pourcentage de détention — c'est cette colonne qui se recopie sur votre 2044, chaque indivisaire déclarant la sienne.",
   ],
-  // 24/09 : la réponse taisait l'essai que la barre latérale décompte — le
-  // propriétaire ne savait pas ce qui s'arrête au bout. La règle dite ici est
-  // celle des conditions (art. 8.2) et de « Mon abonnement ». Attention : la
-  // base (org_ecriture_ouverte) ne fait pas encore l'exception du bien unique
-  // — écart signalé le 24/09.
+  // 28/09/2026 : nouvelle grille — plus de premier bien offert. La règle dite
+  // ici est celle des conditions (art. 8), de « Mon abonnement » et de
+  // lib/tarifs.ts.
   [
     "Combien ça coûte ?",
-    "Votre premier bien est offert, à vie. Chaque bien supplémentaire coûte 5,99 € par mois, tout compris, sans engagement — un bien retiré (depuis sa fiche : «\u00a0Retirer ce bien\u00a0») n'est plus compté le mois suivant. L'essai gratuit de 14 jours ouvre la formule complète. À son terme, sans souscription, le compte passe en lecture seule, sauf si vous ne gérez qu'un bien : il reste offert et votre compte reste ouvert. Le détail est dans «\u00a0Mon abonnement\u00a0».",
+    "Le prix dépend du nombre de biens que vous gérez, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 € TTC par mois — ou 59,90 €, 99,90 €, 199,90 € et 299,90 € par an, prélevés en une fois. Au-delà de 20 biens : 1 € par mois ou 10 € par an et par bien. L'essai gratuit de 14 jours est sans carte ; à son terme, la saisie se suspend jusqu'à votre souscription, vos données restent consultables et exportables. Un bien retiré (depuis sa fiche : «\u00a0Retirer ce bien\u00a0») n'est plus compté : une formule inférieure s'applique à la prochaine échéance. Le détail est dans «\u00a0Mon abonnement\u00a0».",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",

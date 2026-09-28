@@ -27,6 +27,9 @@ import {
   synchroniserQuantite,
 } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
+import { REGIME_TVA } from "@/lib/editeur";
+import { appliquerBaisseAEcheance, programmerPeriodicite } from "@/lib/stripe-offres";
+import { formuleParCode, offreAgence, offreFormule, offreParticulier, type Periodicite } from "@/lib/tarifs";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
 
@@ -39,6 +42,19 @@ type Ligne = {
   stripe_subscription_id: string;
   quantite_posee: number;
   quantite_cible: number;
+};
+
+type Echeance = {
+  organization_id: string;
+  organisation: string;
+  public_tarif: "agence" | "proprietaire_direct";
+  stripe_subscription_id: string;
+  periodicite: Periodicite;
+  periodicite_suivante: Periodicite | null;
+  formule: string | null;
+  unites_souscrites: number | null;
+  unites_a_couvrir: number;
+  periode_fin: string;
 };
 
 type Avoir = {
@@ -136,6 +152,13 @@ export async function GET(request: Request) {
     });
   }
 
+  // ── GRILLE DU 28/09/2026 : L'ÉCHÉANCE SE PRÉPARE DANS LES TROIS JOURS.
+  // Une baisse (portefeuille réduit) ou un changement de périodicité demandé
+  // ne s'applique qu'à la prochaine échéance, sans prorata : la période payée
+  // reste acquise. Jamais de hausse ici — une hausse attend la confirmation
+  // du client, sur « Mon abonnement ».
+  const echeances = await preparerEcheances(supabase, stripe);
+
   // ── LES AVOIRS DE PARRAINAGE, EN DERNIER (19/09). Un mois offert au parrain
   // quand son filleul devient client payant : la base a posé la ligne, ici on
   // la porte au solde Stripe, qui la déduira de la prochaine facture.
@@ -184,6 +207,10 @@ export async function GET(request: Request) {
     echecs: echecs.length,
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec.length,
+    echeances_examinees: echeances.examinees,
+    baisses: echeances.baisses,
+    periodicites: echeances.periodicites,
+    echeances_en_echec: echeances.echecs.length,
   });
   return Response.json({
     relances,
@@ -193,5 +220,67 @@ export async function GET(request: Request) {
     echecs,
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec,
+    echeances,
   });
+}
+
+/**
+ * Préparer les échéances de la grille du 28/09/2026. Pour chaque souscription
+ * qui se renouvelle dans les trois jours : la formule (ou le nombre de lots)
+ * la moins chère qui couvre le portefeuille d'aujourd'hui, dans la
+ * périodicité demandée. Moins chère que l'actuelle → baisse sans prorata ;
+ * autre périodicité → échéancier Stripe qui l'ouvre à l'échéance.
+ */
+async function preparerEcheances(
+  supabase: NonNullable<ReturnType<typeof clientDeService>>,
+  stripe: ReturnType<typeof clientStripe>
+): Promise<{ examinees: number; baisses: number; periodicites: number; echecs: { organisation: string; motif: string }[] }> {
+  const bilan = { examinees: 0, baisses: 0, periodicites: 0, echecs: [] as { organisation: string; motif: string }[] };
+  const { data, error } = await supabase.rpc("abonnements_echeance_a_preparer", { p_jours: 3 });
+  if (error) {
+    bilan.echecs.push({ organisation: "—", motif: "lecture des échéances impossible" });
+    return bilan;
+  }
+  const lignes = (data ?? []) as Echeance[];
+  bilan.examinees = lignes.length;
+  if (!REGIME_TVA) return bilan; // aucune souscription de cette grille ne peut exister sans lui
+  for (const l of lignes) {
+    const periodicite = l.periodicite_suivante ?? l.periodicite;
+    const actuelle =
+      l.public_tarif === "agence"
+        ? offreAgence(l.unites_souscrites ?? 0)
+        : (() => {
+            const f = formuleParCode(l.formule);
+            return f ? offreFormule(f, l.unites_souscrites ?? f.biens, l.periodicite) : null;
+          })();
+    const cible =
+      l.public_tarif === "agence"
+        ? offreAgence(l.unites_a_couvrir)
+        : offreParticulier(l.unites_a_couvrir, periodicite);
+    let r: { ok: true } | { ok: false; erreur: string } = { ok: true };
+    if (periodicite !== l.periodicite && l.public_tarif !== "agence") {
+      r = await programmerPeriodicite(stripe, {
+        subscription: l.stripe_subscription_id,
+        offre: cible,
+        regime: REGIME_TVA,
+        orgId: l.organization_id,
+      });
+      if (r.ok) bilan.periodicites += 1;
+    } else if (actuelle && cible.montantCents < actuelle.montantCents) {
+      r = await appliquerBaisseAEcheance(stripe, {
+        subscription: l.stripe_subscription_id,
+        offre: cible,
+        regime: REGIME_TVA,
+        orgId: l.organization_id,
+      });
+      if (r.ok) bilan.baisses += 1;
+    }
+    if (!r.ok) bilan.echecs.push({ organisation: l.organisation, motif: r.erreur });
+    await supabase.rpc("abonnement_echeance_preparee", {
+      p_org: l.organization_id,
+      p_periode_fin: l.periode_fin,
+      p_erreur: r.ok ? null : r.erreur.slice(0, 500),
+    });
+  }
+  return bilan;
 }

@@ -3,11 +3,21 @@ type: concept
 tags: [abonnement, saas, stripe, facturation]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-21
-sources: ["[[Dépôt Gerimmo-V3]]"]
+updated: 2026-09-28
+sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
 # Abonnement
+
+> [!info] Modèle en vigueur (28/09/2026)
+> Une organisation porte sa **grille** (`historique` ou `2026-09-28`). Dans la
+> nouvelle : **formule** (particuliers) ou **lots facturés** (agences),
+> **périodicité** (mensuelle, ou annuelle pour les particuliers), **capacité
+> souscrite** (unités payées et confirmées) et **montant réel d'une période**, lu
+> chez Stripe par le webhook. Toute hausse de capacité exige une confirmation ; les
+> accès locataires, propriétaires invités et collaborateurs n'ajoutent rien. Voir
+> [[Grille tarifaire]].
+
 
 **Définition :** la souscription d'une [[Organisation]] à GERIMMO (facturation **SaaS**, via
 Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locataires

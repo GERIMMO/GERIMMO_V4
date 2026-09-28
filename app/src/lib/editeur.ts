@@ -13,6 +13,8 @@
 // remplace jamais par du vide, ni par une valeur vraisemblable : un contrat
 // dont on devine les parties n'engage personne.
 
+import type { RegimeTva } from "@/lib/tarifs";
+
 export type FaitEditeur = string | null;
 
 export const EDITEUR = {
@@ -38,6 +40,19 @@ export const EDITEUR = {
   mediateurAdresse: null as FaitEditeur,
   mediateurSite: null as FaitEditeur,
 } as const;
+
+/**
+ * Le régime de TVA de l'éditeur, que le porteur déclare (28/09/2026).
+ *
+ * Il décide de ce que l'on affiche et de ce que l'on facture : un éditeur en
+ * franchise en base (art. 293 B du CGI) ne facture aucune TVA, un éditeur
+ * assujetti la facture au taux qu'il indique. Tant qu'il vaut `null`, AUCUN
+ * montant de taxe n'est calculé ni inventé, et la souscription en ligne reste
+ * fermée (lib/stripe.ts, `configurationStripe`).
+ *
+ * Exemples : `{ nature: "franchise" }` ou `{ nature: "assujetti", tauxPourcent: 20 }`.
+ */
+export const REGIME_TVA: RegimeTva | null = null;
 
 /**
  * Les faits SANS LESQUELS la page ne remplit pas son office légal.
@@ -193,7 +208,9 @@ export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAI
 //
 // À incrémenter à CHAQUE modification de fond des conditions, en même temps
 // que `CONDITIONS_DATE`.
-export const CONDITIONS_VERSION = "2026-09-11";
+// 28/09/2026 : nouvelle grille tarifaire (article 8), fin du premier bien
+// offert.
+export const CONDITIONS_VERSION = "2026-09-28";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "11 septembre 2026";
+export const CONDITIONS_DATE = "28 septembre 2026";

@@ -22,7 +22,7 @@ beforeEach(() => {
 });
 
 describe("sans session, une adresse inconnue", () => {
-  it.each(["/nimporte-quoi", "/tarifs", "/cgu", "/agenceX/1"])("%s : statut 404 et page « introuvable »", async (chemin) => {
+  it.each(["/nimporte-quoi", "/cgu", "/agenceX/1"])("%s : statut 404 et page « introuvable »", async (chemin) => {
     const r = await proxy(new NextRequest(`https://gerimmo.test${chemin}`));
     expect(r.status).toBe(404);
     expect(r.headers.get("x-middleware-rewrite")).toContain("/_introuvable");

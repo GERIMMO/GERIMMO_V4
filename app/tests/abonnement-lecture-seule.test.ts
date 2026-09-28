@@ -120,16 +120,19 @@ afterEach(async () => {
 
 describe("org_ecriture_ouverte — qui peut encore créer", () => {
   it("ouvre pour une organisation active et un essai en cours, ferme sinon", async () => {
-    const cas: [string, string, string | null, boolean][] = [
-      ["active", "active", null, true],
-      ["essai qui court", "essai", "tomorrow", true],
-      // Essai fini mais rien à payer (aucune unité facturable) : ouvert (24/09).
-      ["essai expiré hier, rien à payer", "essai", "yesterday", true],
-      ["essai sans date", "essai", null, true],
-      ["suspendue", "suspendue", null, false],
-      ["archivée", "archivee", null, false],
+    const cas: [string, string, string | null, boolean, string][] = [
+      ["active", "active", null, true, "2026-09-28"],
+      ["essai qui court", "essai", "tomorrow", true, "2026-09-28"],
+      // Grille du 28/09/2026 : plus de gratuité permanente — l'essai fini, il
+      // faut souscrire, même sans rien à facturer.
+      ["essai expiré hier (nouvelle grille)", "essai", "yesterday", false, "2026-09-28"],
+      // Grille historique : essai fini mais rien à payer, ouvert (24/09).
+      ["essai expiré hier, rien à payer (historique)", "essai", "yesterday", true, "historique"],
+      ["essai sans date", "essai", null, true, "2026-09-28"],
+      ["suspendue", "suspendue", null, false, "2026-09-28"],
+      ["archivée", "archivee", null, false, "2026-09-28"],
     ];
-    for (const [libelle, statut, quand, attendu] of cas) {
+    for (const [libelle, statut, quand, attendu, grille] of cas) {
       const date =
         quand === "tomorrow"
           ? "current_date + 1"
@@ -141,9 +144,9 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
       const {
         rows: [{ id }],
       } = await db.query<{ id: string }>(
-        `insert into public.organizations (name, status, essai_fin)
-         values ($1, $2::public.organization_status, ${date}) returning id`,
-        [libelle, statut]
+        `insert into public.organizations (name, status, essai_fin, grille_tarifaire)
+         values ($1, $2::public.organization_status, ${date}, $3) returning id`,
+        [libelle, statut, grille]
       );
       const {
         rows: [{ ouverte }],
@@ -155,29 +158,49 @@ describe("org_ecriture_ouverte — qui peut encore créer", () => {
     }
   });
 
-  it("ferme un essai expiré dès qu'il y a quelque chose à payer, et le rouvre sinon (24/09)", async () => {
-    // Le propriétaire direct : le premier bien est offert à vie (conditions
-    // art. 8.2), le second se paie. Un bien → rien à payer → ouvert ; deux
-    // biens → une unité facturable → fermé jusqu'à la souscription.
+  it("grille historique : ouvert sans rien à payer, gelé dès l'ajout d'un bien (bascule du 28/09/2026)", async () => {
+    // Décision du porteur : le premier bien n'est plus offert, et une
+    // organisation restée sur la grille historique bascule dès qu'elle ajoute
+    // un bien — l'essai échu la gèle alors en lecture seule jusqu'au paiement.
+    const {
+      rows: [{ id: org }],
+    } = await db.query<{ id: string }>(
+      `insert into public.organizations (name, status, essai_fin, type, grille_tarifaire)
+       values ('Ancien compte', 'essai', current_date - 1, 'proprietaire_direct', 'historique') returning id`
+    );
+    const ouverte = async () =>
+      (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
+    expect(await ouverte()).toBe(true);
+    await db.query("select public.tache_systeme()");
+    await db.query(
+      `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
+       values ($1, 'Studio', 'appartement'::public.bien_type, '1 rue X', '75001', 'Paris')`,
+      [org]
+    );
+    expect(await ouverte()).toBe(false);
+  });
+
+  it("nouvelle grille : un essai expiré ferme l'écriture même avec un seul bien — aucune gratuité permanente", async () => {
     const {
       rows: [{ id: org }],
     } = await db.query<{ id: string }>(
       `insert into public.organizations (name, status, essai_fin, type)
-       values ('Un bien offert', 'essai', current_date - 1, 'proprietaire_direct') returning id`
+       values ('Un seul bien', 'essai', current_date, 'proprietaire_direct') returning id`
+    );
+    await db.query(
+      `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
+       values ($1, 'Studio', 'appartement'::public.bien_type, '1 rue X', '75001', 'Paris')`,
+      [org]
     );
     const ouverte = async () =>
       (await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org])).rows[0].o;
-    const bien = (nom: string) =>
-      db.query(
-        `insert into public.biens (organization_id, nom, type, address_line1, postal_code, city)
-         values ($1, $2, 'appartement'::public.bien_type, '1 rue X', '75001', 'Paris')`,
-        [org, nom]
-      );
+    expect(await ouverte()).toBe(true); // dernier jour d'essai inclus
     await db.query("select public.tache_systeme()");
-    await bien("Le bien offert");
-    expect(await ouverte()).toBe(true);
-    await bien("Le second bien");
+    await db.query("update public.organizations set essai_fin = current_date - 1 where id = $1", [org]);
     expect(await ouverte()).toBe(false);
+    // Les données restent là, lisibles.
+    const { rows } = await db.query("select count(*)::int as n from public.biens where organization_id = $1", [org]);
+    expect(rows[0].n).toBe(1);
   });
 });
 
@@ -462,9 +485,11 @@ describe("l'écran « Mon abonnement » ne promet plus ce qui est faux", () => {
     // Depuis le déclencheur du 11/09, un essai expiré ferme l'écriture LE JOUR
     // MÊME : aucun traitement de nuit, la date suffit. La phrase rassurait sur
     // une chose que le produit ne fait pas.
+    // Deux écrans depuis le 28/09/2026 : la grille historique et la nouvelle.
     const fs = await import("node:fs");
+    for (const fichier of ["abonnement-historique.tsx", "abonnement-2026.tsx"]) {
     const src = fs.readFileSync(
-      new URL("../src/app/agence/[orgId]/abonnement/page.tsx", import.meta.url),
+      new URL(`../src/app/agence/[orgId]/abonnement/${fichier}`, import.meta.url),
       "utf8"
     );
     expect(src).not.toContain("rien ne se ferme sans vous prévenir");
@@ -474,5 +499,6 @@ describe("l'écran « Mon abonnement » ne promet plus ce qui est faux", () => {
     // Et le décompte vient de la base, pas d'une multiplication refaite ici.
     expect(src).toContain("etat_abonnement");
     expect(src).not.toMatch(/\*\s*5[.,]99/);
+    }
   });
 });

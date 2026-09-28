@@ -58,10 +58,10 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Période de loyer]] — le loyer attendu du code actuel ; cible : appel/encaissement.
 - [[Abonnement]] — souscription SaaS Stripe de l'organisation.
 - [[Agenda et échéances]] — écran unique agenda + 27 types d'alertes, escalade nominative. Contient le relevé du 19/09 : l'écran de traitement contredisait RM-14.3.2 (« fermeture par l'action, jamais par marquage »), et les **douze** types d'alerte qui se referment d'eux-mêmes.
-- [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. **Un mois pour vous, un mois pour lui** : essai du filleul porté à 30 jours, un mois offert au parrain quand son filleul devient client payant.
+- [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. **Un mois pour vous, un mois pour lui** : essai du filleul porté à 30 jours, un mois offert au parrain quand son filleul devient client payant. **28/09** : avantages « en attente » pour la nouvelle grille, jusqu'à arbitrage.
 
 ## Règles métier
-- [[Grille tarifaire]] — offres par audience ; V3 : mensuel + mise en route + redevance.
+- [[Grille tarifaire]] — **28/09/2026** : particuliers Solo 5,99 € → Patrimoine 29,99 € TTC/mois (annuel = 2 mois offerts, +1 €/bien au-delà de 20) ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives ; plus de premier bien offert ; grilles antérieures en historique.
 - [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
 - [[Mentions obligatoires du bail]] — modèle-type et compléments DPE, servitude, clauses et honoraires revus le 14/09/2026 ; revue de tous les régimes encore ouverte.
 - [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.
@@ -78,6 +78,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Socle de sécurité]] — MFA super administrateur, contrôle AAL2 et séparation des droits de supervision et de signature.
 
 ## Sources
+- [[2026-09-28-decision-tarification|Décision tarifaire du 28/09/2026]] — consigne du porteur : formules particuliers, tranches agences, fin du premier bien offert, règles d'essai, de changement et de migration.
 - [[2026-09-20-cahier-des-charges-maitre-v3|Cahier maître V3 — audit des 100 sections]] — référence prioritaire ; couverture réelle, écarts et plan V1 documentés dans app/docs.
 - [[2026-09-14-service-public-depot-colocation]] — source officielle : bail commun nu/meublé et plafond du dépôt hors charges.
 - [[Dépôt Gerimmo-V3]] — le code (2026-07-21) : SQL, services, état réel.

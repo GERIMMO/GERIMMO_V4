@@ -61,7 +61,7 @@ export const PROMESSE_PARRAINAGE =
   "Un mois pour vous, un mois pour lui : votre filleul démarre avec 30 jours d'essai au lieu de 14, et vous recevez un mois offert dès qu'il devient client.";
 
 export type NatureAvantage = "essai_filleul" | "essai_parrain" | "avoir_parrain";
-export type EtatAvantage = "a_appliquer" | "applique" | "sans_objet";
+export type EtatAvantage = "a_appliquer" | "applique" | "sans_objet" | "en_attente";
 
 export type AvantageParrainage = {
   nature: NatureAvantage;
@@ -76,7 +76,17 @@ export type AvantageParrainage = {
  * s'expliquer, pas disparaître de la liste.
  */
 export function libelleAvantage(a: AvantageParrainage, eur: (cents: number) => string): string {
+  // Grille du 28/09/2026 : l'avantage est enregistré, pas appliqué, tant que
+  // le porteur n'a pas arbitré son articulation avec la nouvelle grille.
+  if (a.etat === "en_attente") {
+    return a.nature === "essai_filleul"
+      ? "Recommandation enregistrée — avantage en cours de révision avec la nouvelle grille"
+      : "Parrainage enregistré — avantage en cours de révision avec la nouvelle grille";
+  }
   if (a.etat === "sans_objet") {
+    if (a.nature === "essai_filleul" && a.jours === 0) {
+      return "Recommandation enregistrée — sans avantage tarifaire (pas de cumul avec la grille)";
+    }
     return a.nature === "essai_filleul"
       ? "Essai déjà ouvert ou abonnement en cours : rien à rallonger."
       : "Aucun montant à créditer au moment de l'acquisition.";
@@ -88,3 +98,11 @@ export function libelleAvantage(a: AvantageParrainage, eur: (cents: number) => s
     ? `Un mois offert — ${montant} portés à votre solde`
     : `Un mois offert — ${montant} déduits de votre prochaine facture`;
 }
+
+/**
+ * Ce que l'on dit du programme à une organisation de la grille du 28/09/2026 :
+ * pas de cumul (décision du porteur). Les recommandations sont enregistrées,
+ * sans avantage tarifaire ; les avantages déjà acquis restent acquis.
+ */
+export const PARRAINAGE_EN_REVISION =
+  "Vos recommandations sont enregistrées. Le parrainage n'ouvre pas d'avantage tarifaire : l'essai gratuit est de 14 jours pour tous, sans cumul avec la grille. Les avantages déjà acquis sont conservés.";

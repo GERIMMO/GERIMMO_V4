@@ -3,11 +3,18 @@ type: synthesis
 tags: [tarifs, agence, abonnement, stripe, proposition]
 status: draft
 created: 2026-09-12
-updated: 2026-09-12
-sources: ["[[Grille tarifaire]]", "[[Analyse concurrentielle]]", "[[Mandat de gestion]]", "[[Cycle de vie de l'abonnement]]", "[[Abonnement]]"]
+updated: 2026-09-28
+sources: ["[[2026-09-28-decision-tarification]]", "[[Grille tarifaire]]", "[[Analyse concurrentielle]]", "[[Mandat de gestion]]", "[[Cycle de vie de l'abonnement]]", "[[Abonnement]]"]
 ---
 
 # Grille tarifaire agence — proposition
+
+> [!info] Supplantée le 28/09/2026
+> Le porteur a arrêté une autre grille agence : socle 39 € HT jusqu'à 10 lots,
+> +2 € (11ᵉ–50ᵉ), +1,50 € (51ᵉ–200ᵉ), +1 € au-delà, sans plafond sur devis — voir
+> [[Grille tarifaire]] et [[2026-09-28-decision-tarification]]. Cette page reste
+> comme trace du raisonnement « sans marche », repris par la nouvelle grille.
+
 
 **Statut : proposition, en attente d'arbitrage humain.** Rien n'est implémenté.
 La grille en vigueur dans le code applique 5,99 €/bien à tout le monde, et

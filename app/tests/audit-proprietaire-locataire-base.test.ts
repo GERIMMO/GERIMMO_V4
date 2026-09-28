@@ -335,7 +335,7 @@ describe.skipIf(!DB_URL)("audit propriétaire et locataire (27/09) — base", ()
       return n as number;
     };
 
-    it("deux biens chez un propriétaire direct : un seul est facturé (le premier est offert)", async () => {
+    it("grille du 28/09/2026 : chaque lot loué séparément compte (le bien sans lot ne compte pas)", async () => {
       expect(await quantite()).toBe(1);
     });
 
@@ -355,13 +355,15 @@ describe.skipIf(!DB_URL)("audit propriétaire et locataire (27/09) — base", ()
       expect(journal.map((j) => j.action)).toContain("bien_retire");
       await agir(cptPd);
       const { rows: [etat] } = await db.query(`select unites_total from public.etat_abonnement($1)`, [orgPd]);
-      expect(etat.unites_total).toBe(1);
+      expect(etat.unites_total).toBe(0);
     });
 
-    it("rétabli, il est de nouveau compté", async () => {
+    it("rétabli, il revient au parc ; ses lots, archivés avec lui, ne comptent qu'une fois réactivés", async () => {
       await agir(cptPd);
       await db.query(`select public.retablir_bien($1,$2)`, [orgPd, bienLibre]);
-      expect(await quantite()).toBe(1);
+      const { rows: [b] } = await db.query(`select archived_at from public.biens where id=$1`, [bienLibre]);
+      expect(b.archived_at).toBeNull();
+      expect(await quantite()).toBe(0);
     });
 
     it("un bien qui porte un bail en cours ne se retire pas, même en posant archived_at à la main", async () => {

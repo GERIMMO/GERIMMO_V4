@@ -59,10 +59,11 @@ export function EnTetePublic() {
 
 /** Les liens du pied, dans leur ordre d'affichage. */
 const LIENS_PIED: [string, string][] = [
+  ["/tarifs", "Tarifs"],
   ["/journal", "Journal"],
   ["/connexion", "Se connecter"],
   ["/inscription", "Créer mon compte"],
-  ["/#agences", "Devis agence"],
+  ["/#agences", "Nous écrire (agence)"],
   ["/mentions-legales", "Mentions légales"],
   // Un seul nom pour le document : « Conditions générales d'utilisation »,
   // « CGU » partout où la place manque (25/09, P5).

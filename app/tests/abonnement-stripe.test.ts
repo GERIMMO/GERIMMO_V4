@@ -29,6 +29,11 @@ let client: string;
 // Le type par défaut d'une organisation est « agence » — et depuis la grille
 // du 12/09, agence et propriétaire direct n'ont ni la même unité ni le même
 // barème. Les tests qui portent sur l'un doivent donc le dire.
+//
+// CE FICHIER TESTE LA GRILLE HISTORIQUE (premier bien offert, quantité
+// synchronisée automatiquement), celle des organisations antérieures au
+// 28/09/2026 que la procédure de migration n'a pas encore basculées. La
+// nouvelle grille a ses tests : tests/tarification-2026.test.ts.
 async function creerOrg(
   statut: string,
   essai: "hier" | "demain" | null = null,
@@ -38,8 +43,8 @@ async function creerOrg(
   const {
     rows: [{ id }],
   } = await db.query<{ id: string }>(
-    `insert into public.organizations (name, status, type, essai_fin)
-     values ('Encaissement', $1::public.organization_status, $2::public.organization_type, ${date})
+    `insert into public.organizations (name, status, type, essai_fin, grille_tarifaire)
+     values ('Encaissement', $1::public.organization_status, $2::public.organization_type, ${date}, 'historique')
      returning id`,
     [statut, type]
   );
@@ -274,14 +279,14 @@ describe("La quantité suit le parc", () => {
     expect(rows[0].q).toBe(0);
   });
 
-  it("le deuxième bien se facture", async () => {
+  it("ajouter un bien fait basculer vers la grille du 28/09/2026 (plus de bien offert)", async () => {
     await bien(org);
     await bien(org);
-    const { rows } = await db.query<{ q: number }>(
-      "select public.abonnement_quantite_cible($1) as q",
+    const { rows } = await db.query<{ g: string }>(
+      "select grille_tarifaire as g from public.organizations where id = $1",
       [org]
     );
-    expect(rows[0].q).toBe(1);
+    expect(rows[0].g).toBe("2026-09-28");
   });
 
   it("ajouter un bien lève le drapeau de resynchronisation", async () => {
@@ -307,21 +312,20 @@ describe("La quantité suit le parc", () => {
   });
 
   it("la file de synchronisation nomme l'écart, pas seulement la ligne", async () => {
+    // Grille historique, sans ajout de bien (un ajout la ferait basculer) :
+    // la quantité posée chez Stripe ne correspond plus au parc.
     await db.query(
-      "update public.abonnements set stripe_subscription_id='sub_f', quantite=0 where organization_id=$1",
+      "update public.abonnements set stripe_subscription_id='sub_f', quantite=3 where organization_id=$1",
       [org]
     );
-    await bien(org);
-    await bien(org);
-    await bien(org);
     const { rows } = await db.query<{
       organization_id: string;
       quantite_posee: number;
       quantite_cible: number;
     }>("select * from public.abonnements_a_synchroniser(50) where organization_id = $1", [org]);
     expect(rows).toHaveLength(1);
-    expect(rows[0].quantite_posee).toBe(0);
-    expect(rows[0].quantite_cible).toBe(2);
+    expect(rows[0].quantite_posee).toBe(3);
+    expect(rows[0].quantite_cible).toBe(0);
   });
 
   it("une synchronisation en échec laisse le drapeau levé : elle repassera", async () => {

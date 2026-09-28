@@ -54,8 +54,11 @@ async function organisation(
   const {
     rows: [ligne],
   } = await db.query<Org>(
-    `insert into public.organizations (name, status, type, essai_fin)
-     values ($1, $2::public.organization_status, 'agence', ${essaiFin ?? "null"})
+    // Grille historique : les avantages s'y appliquent automatiquement. Dans
+    // la grille du 28/09/2026, ils attendent l'arbitrage du porteur
+    // (« en_attente », tests/tarification-2026.test.ts).
+    `insert into public.organizations (name, status, type, essai_fin, grille_tarifaire)
+     values ($1, $2::public.organization_status, 'agence', ${essaiFin ?? "null"}, 'historique')
      returning id, code_parrainage as code`,
     [nom, statut]
   );

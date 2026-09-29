@@ -10,6 +10,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AIDE_QUALITE, QUALITES_BAILLEUR, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 // Archiver la fiche (jamais de suppression) : confirmation en deux temps.
 // Refusé côté serveur si la fiche porte encore des liens vivants.
@@ -201,13 +202,23 @@ export function FormulaireIdentite({
         </div>
         <div className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="ident-qualite">Qualité (bail)</Label>
-          <Input
+          {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend —
+              3 ans pour une personne physique, une indivision de personnes
+              physiques ou une SCI familiale, 6 ans pour une autre personne
+              morale (art. 10 et 13 de la loi du 6 juillet 1989). */}
+          <select
             id="ident-qualite"
             name="qualite"
-            maxLength={120}
-            placeholder="Personne physique, SCI, indivision…"
-            defaultValue={etat.valeurs?.qualite ?? qualite ?? ""}
-          />
+            defaultValue={etat.valeurs?.qualite ?? normaliserQualiteBailleur(qualite) ?? ""}
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="">Non précisée</option>
+            {QUALITES_BAILLEUR.map((q) => (
+              <option key={q} value={q}>
+                {q} — {AIDE_QUALITE[q]}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}

@@ -10,6 +10,15 @@ import { ACTIVITY_COOKIE } from "@/lib/session-policy";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription";
 import { adresseDeRetour } from "@/lib/site";
+import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
+
+// La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
+// liste est fermée (audit 29/09) : une valeur hors liste est laissée vide
+// plutôt que de faire échouer l'ouverture de l'espace.
+function qualiteDeLaListe(brut: FormDataEntryValue | null): string {
+  const q = normaliserQualiteBailleur(String(brut ?? ""));
+  return estQualiteBailleur(q) ? q : "";
+}
 
 export async function seDeconnecter() {
   const supabase = await createClient();
@@ -171,7 +180,7 @@ export async function inscrireProprietaire(
         adresse: String(formData.get("adresse") ?? "").trim(),
         code_postal: String(formData.get("code_postal") ?? "").trim(),
         ville: String(formData.get("ville") ?? "").trim(),
-        qualite: String(formData.get("qualite") ?? "").trim(),
+        qualite: qualiteDeLaListe(formData.get("qualite")),
         // Ce qui a été accepté. Les métadonnées restent modifiables par le
         // titulaire du compte (audit du 27/09) : la PREUVE est la ligne que
         // la base inscrit, à la création du compte et à l'heure du serveur,
@@ -313,7 +322,7 @@ export async function ouvrirEspaceProprietaire(
       nom,
       prenom,
       espace: "proprietaire_direct",
-      qualite: String(formData.get("qualite") ?? "").trim(),
+      qualite: qualiteDeLaListe(formData.get("qualite")),
       cgu_version: CONDITIONS_VERSION,
       cgu_acceptee_le: new Date().toISOString(),
     },

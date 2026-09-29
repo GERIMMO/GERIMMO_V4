@@ -96,9 +96,12 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
                 defaultValue={etat.valeurs?.qualite ?? "Personne physique"}
                 className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               >
-                <option>Personne physique</option>
-                <option>SCI</option>
-                <option>Indivision</option>
+                {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend. */}
+                <option value="Personne physique">Personne physique</option>
+                <option value="Indivision (personnes physiques)">Indivision (personnes physiques)</option>
+                <option value="SCI familiale">SCI familiale (entre parents et alliés)</option>
+                <option value="SCI">SCI (non familiale)</option>
+                <option value="Personne morale">Autre personne morale (société…)</option>
               </select>
             </div>
           </div>

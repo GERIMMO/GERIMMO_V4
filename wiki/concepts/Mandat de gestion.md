@@ -3,7 +3,7 @@ type: concept
 tags: [mandat, honoraires, seuil-delegation, agence]
 status: draft
 created: 2026-07-24
-updated: 2026-09-16
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -102,3 +102,27 @@ reste à construire. Voir [[Document]] et [[Comptabilité]].
 > À rouvrir si le porteur du projet décide que les taux s'entendent HT — il
 > faudra alors **reprendre les mandats déjà signés**, pas seulement le code.
 
+## Mandant consommateur (personne physique)
+
+Règle ajoutée par l'audit des parcours métier du 29/09 : quand le mandant est une **personne physique**
+(ou une indivision de personnes physiques), il contracte en consommateur et le mandat
+généré porte, en plus des mentions Hoguet :
+
+- le **droit de rétractation de 14 jours** lorsque le mandat est conclu à distance ou
+  hors établissement (art. L221-18 et suivants du code de la consommation), avec le
+  **formulaire type de rétractation** en annexe et le rappel de l'art. L221-25
+  (exécution demandée avant la fin du délai) ;
+- le **médiateur de la consommation** dont relève l'agence (art. L612-1 et L616-1) —
+  aucune fiche d'agence ne le porte encore : un blanc est laissé à compléter ;
+- l'**information sur la reconduction tacite** (art. L215-1) : l'agence doit prévenir
+  le mandant par écrit, entre trois mois et un mois avant la date limite de
+  non-reconduction ; à défaut, il peut résilier gratuitement à tout moment après la
+  reconduction.
+
+Un mandant personne morale (SCI, société) ne reçoit pas ces mentions.
+
+> [!warning] Points à trancher / contradictions
+> - Le médiateur de la consommation de l'agence n'est pas une donnée de l'application :
+>   à ajouter au profil d'agence pour ne plus laisser de blanc.
+> - Les articles du code de la consommation cités ne sont pas encore une source ingérée
+>   dans `raw/` — à ajouter (Légifrance).

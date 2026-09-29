@@ -121,3 +121,34 @@ export function derniereDateAnniversaire(dateDebut: string | null | undefined, a
   while (n >= 1 && anniversaire(n) > aujourdhui) n--;
   return n >= 1 ? anniversaire(n) : null;
 }
+
+// Révision IRL (art. 17-1 I de la loi du 6 juillet 1989, rédaction ALUR) :
+// l'échéance est la dernière date anniversaire atteinte à la date de la
+// DEMANDE ; la révision prend effet à cette échéance si elle est demandée ce
+// jour-là, sinon à la date de la demande — jamais rétroactivement. Date
+// d'effet = max(anniversaire, demande). Miroir de `reviser_loyer` (migration
+// 20260929120000). null avant le premier anniversaire.
+export function datesRevisionIrl(
+  dateDebut: string | null | undefined,
+  dateDemande: string
+): { echeance: string; dateEffet: string } | null {
+  const echeance = derniereDateAnniversaire(dateDebut, dateDemande);
+  if (!echeance) return null;
+  return { echeance, dateEffet: dateDemande > echeance ? dateDemande : echeance };
+}
+
+// Numéro (1 à 4) du trimestre IRL lu dans un libellé libre : « T2 2026 »,
+// « 2e trimestre 2026 », « deuxième trimestre »… — miroir de
+// `trimestre_irl_numero`. null quand le libellé ne se lit pas.
+export function numeroTrimestreIrl(libelle: string | null | undefined): number | null {
+  const v = (libelle ?? "").toLowerCase();
+  let m = v.match(/(^|[^a-z0-9])t\s*([1-4])([^0-9]|$)/);
+  if (m) return Number(m[2]);
+  m = v.match(/(^|[^0-9])([1-4])\s*(er|re|e|è|ème|eme|nd|nde)?\s*trim/);
+  if (m) return Number(m[2]);
+  if (/premier\s+trim/.test(v)) return 1;
+  if (/(deuxi[eè]me|second)\s+trim/.test(v)) return 2;
+  if (/troisi[eè]me\s+trim/.test(v)) return 3;
+  if (/quatri[eè]me\s+trim/.test(v)) return 4;
+  return null;
+}

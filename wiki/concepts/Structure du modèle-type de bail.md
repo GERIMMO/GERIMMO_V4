@@ -3,7 +3,7 @@ type: concept
 tags: [bail, modele-type, template, generation, decret-2015-587, bail-nu]
 status: draft
 created: 2026-08-05
-updated: 2026-09-09
+updated: 2026-09-29
 sources: ["[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -24,7 +24,7 @@ modèle de données. Le cadre légal des mentions : [[Mentions obligatoires du b
 |---|---|---|---|
 | I | **Désignation des parties** | Bailleur (nom/dénomination, domicile/siège, personne physique ou morale, SCI familiale oui/non, email), mandataire éventuel (raison sociale, adresse, activité, **carte professionnelle**), garant (nom, adresse), locataire(s) (nom, email) | [[Dossier locataire]] (0b), [[Mandat de gestion]], [[Organisation]] |
 | II | **Objet du contrat** | Adresse, bât/escalier/étage/porte, **identifiant fiscal (13 positions)**, collectif/individuel, mono-propriété/copro, période de construction (5 tranches), surface habitable, pièces principales, autres parties (grenier, terrasse…), équipements, chauffage et eau chaude (individuel/collectif + répartition), **niveau de performance énergétique + rappel décence**, destination (habitation / mixte), accessoires privatifs (cave, parking n°…), parties communes, accès TIC (TV, Internet) | [[Bien]] + [[Lot]] (⚠️ identifiant fiscal : champ manquant), [[Diagnostic]] DPE |
-| III | **Prise d'effet et durée** | Date d'effet, durée 3 ans (personne physique) / 6 ans (personne morale) / **durée réduite ≥ 1 an avec événement justifié**, rappel congés | [[Bail]] (1.1) ; durée réduite non prévue au module 1 |
+| III | **Prise d'effet et durée** | Date d'effet, durée 3 ans (personne physique, SCI familiale, indivision de personnes physiques) / 6 ans (autre personne morale — dès qu'un bailleur l'est) / **durée réduite ≥ 1 an avec événement justifié**, rappel congés | [[Bail]] (1.1) ; durée réduite non prévue au module 1 |
 | IV | **Conditions financières** | Loyer initial ; zone tendue : évolution à la relocation oui/non, **loyer de référence et référence majoré (€/m²), complément de loyer justifié** ; loyer du dernier locataire (< 18 mois : montant + 2 dates) ; révision (date + trimestre IRL) ; charges : **provisions avec régularisation / paiement périodique sans provision / forfait (colocation uniquement)** ; contribution partage d'économies de charges (travaux d'énergie) ; assurance pour compte des colocataires (récupérable par douzième) ; modalités de paiement (date, décomposition du total mensuel) ; **réévaluation d'un loyer sous-évalué au renouvellement (par tiers ou sixième)** | [[Bail]], [[Révision annuelle IRL]], [[Régularisation des charges]] ; complément de loyer et réévaluation non couverts |
 | V | **Travaux** | Travaux d'amélioration/décence depuis le dernier bail (montant, nature), **majoration de loyer pour travaux du bailleur**, **diminution de loyer pour travaux du locataire** (+ dédommagement si départ anticipé) | Non couvert (hors périmètre module 3 actuel) |
 | VI | **Garanties** | Montant du [[Dépôt de garantie]] en chiffres **et en toutes lettres** (≤ 1 mois HC) | [[Dépôt de garantie]] (2.1) |

@@ -127,7 +127,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
         .order("nom"),
       supabase
         .from("bail_personnes")
-        .select("id, person_id, role, quote_part, surface_privative, garant_de")
+        .select("id, person_id, role, quote_part, surface_privative, garant_de, date_depart, date_solidarite_fin")
         .eq("bail_id", bailId),
       // Intention de congé transmise depuis l'espace locataire, en attente de
       // la lettre recommandée (le congé s'enregistre à sa réception)
@@ -143,6 +143,12 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
   // obligatoires du bail »). La base les EXIGE à l'activation ; l'écran les
   // NOMME avant le geste, plutôt que de laisser le dépôt du PDF échouer.
   const mentions = mentionsObligatoiresManquantes(bail);
+  // Audit 29/09 : le congé du bailleur vise le terme calculé par la base
+  // (même règle que son enregistrement), jamais une date saisie à la main.
+  const { data: termeBail } =
+    bail.etat === "actif"
+      ? await supabase.rpc("terme_bail", { p_bail: bailId })
+      : { data: null };
 
   // Résolution des noms pour la colocation (colocataires + garants nominatifs)
   const nomsPersonnes = new Map(
@@ -159,6 +165,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
       quote_part: number | null;
       surface_privative: number | null;
       garant_de: string | null;
+      date_depart: string | null;
+      date_solidarite_fin: string | null;
     }[]
   ).map((l) => ({
     id: l.id,
@@ -168,6 +176,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
     quote_part: l.quote_part,
     surface_privative: l.surface_privative,
     garant_de: l.garant_de,
+    date_depart: l.date_depart,
+    date_solidarite_fin: l.date_solidarite_fin,
     garant_de_nom: l.garant_de ? nomsPersonnes.get(l.garant_de) ?? null : null,
   }));
   // Les garants du bail (id = PERSONNE, pas la ligne) — pour le cautionnement
@@ -231,7 +241,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
           .eq("bail_id", bailId),
         supabase
           .from("revisions_loyer")
-          .select("id, date_effet, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
+          .select("id, date_effet, date_echeance, date_demande, irl_trimestre, ancien_loyer, nouveau_loyer, irl_reference, irl_nouveau")
           .eq("bail_id", bailId)
           .order("date_effet", { ascending: false }),
         supabase
@@ -774,6 +784,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 nom: locataire ? nomComplet(locataire) : "—",
               }}
               colocation
+              etatBail={bail.etat}
             />
           </CardContent>
         </Card>
@@ -803,6 +814,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 nom: locataire ? nomComplet(locataire) : "—",
               }}
               colocation={false}
+              etatBail={bail.etat}
             />
           </CardContent>
         </Card>
@@ -1007,6 +1019,8 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
                 orgId={orgId}
                 bailId={bailId}
                 cheminRetour={`/agence/${orgId}/baux/${bailId}`}
+                meuble={bail.type === "meuble" || (bail.type === "colocation" && Boolean(lot?.meuble))}
+                terme={(termeBail as string | null) ?? null}
               />
             </div>
             {((intentions ?? []) as { created_at: string; motif: string | null }[]).map((it) => (

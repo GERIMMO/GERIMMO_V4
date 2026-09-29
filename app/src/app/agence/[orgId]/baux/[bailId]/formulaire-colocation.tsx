@@ -1,12 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import {
   ajouterBailPersonne,
+  enregistrerDepartColocataire,
   supprimerBailPersonne,
   type EtatBail,
 } from "@/app/actions/baux";
+import { formaterDate } from "@/lib/ged";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -19,6 +22,10 @@ export type LigneColoc = {
   surface_privative: number | null;
   garant_de: string | null;
   garant_de_nom: string | null;
+  /** Colocataire parti : date d'effet de son congé (art. 8-1). */
+  date_depart?: string | null;
+  /** Fin de la solidarité (colocataire parti) ou de l'engagement du garant lié. */
+  date_solidarite_fin?: string | null;
 };
 
 type Personne = { id: string; nom: string };
@@ -42,6 +49,85 @@ function BoutonRetirer({ orgId, bailId, ligneId }: { orgId: string; bailId: stri
   );
 }
 
+// Bail signé : un colocataire ne se retire plus, son départ s'enregistre
+// (audit 29/09, art. 8-1) — la solidarité et le garant qui le couvre courent
+// encore six mois, sauf remplacement par un nouveau colocataire au bail.
+function DepartColocataire({
+  orgId,
+  bailId,
+  ligneId,
+  remplacants,
+}: {
+  orgId: string;
+  bailId: string;
+  ligneId: string;
+  remplacants: Personne[];
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const [etat, formAction] = useActionState<EtatBail, FormData>(
+    enregistrerDepartColocataire.bind(null, orgId, bailId, ligneId),
+    {}
+  );
+  if (!ouvert) {
+    return (
+      <>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(true)}>
+          Départ du colocataire
+        </Button>
+        {etat.succes && <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>}
+      </>
+    );
+  }
+  return (
+    <form action={formAction} className="grid w-full gap-2 rounded-md border border-border p-2 sm:grid-cols-3">
+      <div className="space-y-1">
+        <Label htmlFor={`depart-${ligneId}`} className="text-xs">
+          Date d&apos;effet de son congé
+        </Label>
+        <Input
+          id={`depart-${ligneId}`}
+          name="date_effet_conge"
+          type="date"
+          required
+          defaultValue={etat.valeurs?.date_effet_conge}
+        />
+      </div>
+      <div className="space-y-1">
+        <Label htmlFor={`remplacant-${ligneId}`} className="text-xs">
+          Remplacé par (nouveau colocataire au bail)
+        </Label>
+        <select
+          id={`remplacant-${ligneId}`}
+          name="remplacant"
+          defaultValue={etat.valeurs?.remplacant ?? ""}
+          className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+        >
+          <option value="">Personne — solidarité 6 mois</option>
+          {remplacants.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nom}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="flex items-end gap-2">
+        <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Enregistrement…">
+          Enregistrer le départ
+        </BoutonEnvoi>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
+          Annuler
+        </Button>
+      </div>
+      {etat.erreur && <p className="text-sm text-destructive sm:col-span-3">{etat.erreur}</p>}
+      <p className="text-xs text-muted-foreground sm:col-span-3">
+        Le colocataire reste tenu solidairement, et son garant engagé, jusqu&apos;à six mois après
+        la date d&apos;effet de son congé — sauf si un nouveau colocataire, figurant au bail, le
+        remplace (art. 8-1 de la loi du 6 juillet 1989).
+      </p>
+    </form>
+  );
+}
+
 export function FormulaireColocation({
   orgId,
   bailId,
@@ -49,6 +135,7 @@ export function FormulaireColocation({
   lignes,
   principal,
   colocation,
+  etatBail = "brouillon",
 }: {
   orgId: string;
   bailId: string;
@@ -59,7 +146,10 @@ export function FormulaireColocation({
   // tout bail peut porter des garants, seuls les colocataires sont propres
   // au bail unique de colocation.
   colocation: boolean;
+  /** État du bail : hors brouillon, on n'efface plus une personne, on enregistre son départ. */
+  etatBail?: string;
 }) {
+  const brouillon = etatBail === "brouillon";
   const colocataires = lignes.filter((l) => l.role === "colocataire");
   const garants = lignes.filter((l) => l.role === "garant");
 
@@ -115,7 +205,23 @@ export function FormulaireColocation({
                     {c.surface_privative} m²
                   </span>
                 )}
-                <BoutonRetirer orgId={orgId} bailId={bailId} ligneId={c.id} />
+                {c.date_depart ? (
+                  <span className="w-full text-xs text-muted-foreground sm:w-auto">
+                    parti le {formaterDate(c.date_depart)}
+                    {c.date_solidarite_fin && ` · solidaire jusqu'au ${formaterDate(c.date_solidarite_fin)}`}
+                  </span>
+                ) : brouillon ? (
+                  <BoutonRetirer orgId={orgId} bailId={bailId} ligneId={c.id} />
+                ) : (
+                  <DepartColocataire
+                    orgId={orgId}
+                    bailId={bailId}
+                    ligneId={c.id}
+                    remplacants={colocataires
+                      .filter((r) => r.id !== c.id && !r.date_depart)
+                      .map((r) => ({ id: r.person_id, nom: r.person_nom }))}
+                  />
+                )}
               </li>
             ))}
           </ul>
@@ -180,7 +286,12 @@ export function FormulaireColocation({
                     <span className="text-muted-foreground"> — couvre {g.garant_de_nom}</span>
                   )}
                 </span>
-                <BoutonRetirer orgId={orgId} bailId={bailId} ligneId={g.id} />
+                {g.date_solidarite_fin && (
+                  <span className="w-full text-xs text-muted-foreground sm:w-auto">
+                    engagé jusqu&apos;au {formaterDate(g.date_solidarite_fin)}
+                  </span>
+                )}
+                {brouillon && <BoutonRetirer orgId={orgId} bailId={bailId} ligneId={g.id} />}
               </li>
             ))}
           </ul>

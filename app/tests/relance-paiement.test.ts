@@ -74,8 +74,8 @@ beforeEach(async () => {
   org = o.id;
   client = `cus_${Math.random().toString(36).slice(2, 12)}`;
   await db.query(
-    `insert into public.abonnements (organization_id, stripe_customer_id, quantite, montant_mensuel_cents)
-     values ($1, $2, 3, 1797)`,
+    `insert into public.abonnements (organization_id, stripe_customer_id, quantite, montant_mensuel_cents, premiere_facture_payee)
+     values ($1, $2, 3, 1797, true)`,
     [org, client]
   );
 });

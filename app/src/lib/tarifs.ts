@@ -3,7 +3,7 @@
 // Le site public, « Mon abonnement », l'accueil, la console et Stripe lisent
 // tous ce fichier. La base porte les MÊMES chiffres (tables `tarif_formules`
 // et `tarif_tranches`, migration 20260928090000) parce que ses propres gardes
-// en ont besoin ; `tests/tarifs-grille-sql.test.ts` compare les deux, unité
+// en ont besoin ; `tests/tarification-2026.test.ts` compare les deux, unité
 // par unité, pour que l'un ne change jamais seul.
 //
 // DEUX PUBLICS, DEUX GRILLES, et la frontière est l'USAGE, pas la forme

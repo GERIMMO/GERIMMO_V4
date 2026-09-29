@@ -19,17 +19,26 @@
 // pas une décision de la plateforme — et une tâche de nuit qui ouvrirait un
 // abonnement prélèverait quelqu'un qui n'a rien demandé.
 
+import { envoyerAvisCapaciteDepassee, envoyerAvisReconduction } from "@/lib/avis-abonnement";
 import { envoyerRelancesDues } from "@/lib/relances-paiement";
 import {
   clientStripe,
   configurationStripe,
   crediterClientStripe,
+  lireErreurStripe,
   synchroniserQuantite,
 } from "@/lib/stripe";
 import { clientDeService } from "@/lib/supabase/service";
 import { REGIME_TVA } from "@/lib/editeur";
-import { appliquerBaisseAEcheance, programmerPeriodicite } from "@/lib/stripe-offres";
-import { formuleParCode, offreAgence, offreFormule, offreParticulier, type Periodicite } from "@/lib/tarifs";
+import { appliquerBaisseAEcheance, choixExplicite, programmerPeriodicite } from "@/lib/stripe-offres";
+import {
+  formuleParCode,
+  offreAgence,
+  offreFormule,
+  offreParticulier,
+  type Offre,
+  type Periodicite,
+} from "@/lib/tarifs";
 import { consignerTache } from "@/lib/tache";
 import { timingSafeEqual } from "node:crypto";
 
@@ -159,6 +168,17 @@ export async function GET(request: Request) {
   // du client, sur « Mon abonnement ».
   const echeances = await preparerEcheances(supabase, stripe);
 
+  // ── L'AVIS DE RECONDUCTION TACITE (art. L215-1 du code de la consommation,
+  // audit 29/09). Un particulier abonné à l'année est prévenu entre trois mois
+  // et un mois avant le terme : date, montant, droit de ne pas reconduire.
+  // Un envoi raté reste dû : il repartira demain, la fenêtre court deux mois.
+  let reconduction: Awaited<ReturnType<typeof envoyerAvisReconduction>>;
+  try {
+    reconduction = await envoyerAvisReconduction(supabase);
+  } catch (e) {
+    reconduction = { envoyes: 0, sans_adresse: [], echecs: [e instanceof Error ? e.message : "avis impossibles"] };
+  }
+
   // ── LES AVOIRS DE PARRAINAGE, EN DERNIER (19/09). Un mois offert au parrain
   // quand son filleul devient client payant : la base a posé la ligne, ici on
   // la porte au solde Stripe, qui la déduira de la prochaine facture.
@@ -210,7 +230,10 @@ export async function GET(request: Request) {
     echeances_examinees: echeances.examinees,
     baisses: echeances.baisses,
     periodicites: echeances.periodicites,
+    avis_capacite: echeances.avis_capacite,
     echeances_en_echec: echeances.echecs.length,
+    avis_reconduction: reconduction.envoyes,
+    avis_reconduction_en_echec: reconduction.echecs.length + reconduction.sans_adresse.length,
   });
   return Response.json({
     relances,
@@ -221,21 +244,42 @@ export async function GET(request: Request) {
     avoirs_portes: avoirsPortes,
     avoirs_en_echec: avoirsEnEchec,
     echeances,
+    reconduction,
   });
 }
 
 /**
  * Préparer les échéances de la grille du 28/09/2026. Pour chaque souscription
- * qui se renouvelle dans les trois jours : la formule (ou le nombre de lots)
- * la moins chère qui couvre le portefeuille d'aujourd'hui, dans la
- * périodicité demandée. Moins chère que l'actuelle → baisse sans prorata ;
- * autre périodicité → échéancier Stripe qui l'ouvre à l'échéance.
+ * qui se renouvelle dans les trois jours : l'offre la moins chère qui couvre
+ * le portefeuille d'aujourd'hui — SANS JAMAIS dépasser la capacité payée —,
+ * dans la périodicité demandée. Moins chère que l'actuelle → baisse sans
+ * prorata ; autre périodicité → échéancier Stripe qui l'ouvre à l'échéance.
+ * Les deux passent par un échéancier : la période en cours reste payée et
+ * couverte telle quelle (audit 29/09, point 11).
+ *
+ * Un client qui a CHOISI plus que nécessaire (`gerimmo_choix = explicite`)
+ * garde son offre : on ne la rabaisse pas d'office. Un portefeuille qui
+ * dépasse la capacité payée n'est jamais facturé d'office non plus : le
+ * client est prévenu, et confirme la hausse sur « Mon abonnement »
+ * (audit 29/09, point 3).
  */
 async function preparerEcheances(
   supabase: NonNullable<ReturnType<typeof clientDeService>>,
   stripe: ReturnType<typeof clientStripe>
-): Promise<{ examinees: number; baisses: number; periodicites: number; echecs: { organisation: string; motif: string }[] }> {
-  const bilan = { examinees: 0, baisses: 0, periodicites: 0, echecs: [] as { organisation: string; motif: string }[] };
+): Promise<{
+  examinees: number;
+  baisses: number;
+  periodicites: number;
+  avis_capacite: number;
+  echecs: { organisation: string; motif: string }[];
+}> {
+  const bilan = {
+    examinees: 0,
+    baisses: 0,
+    periodicites: 0,
+    avis_capacite: 0,
+    echecs: [] as { organisation: string; motif: string }[],
+  };
   const { data, error } = await supabase.rpc("abonnements_echeance_a_preparer", { p_jours: 3 });
   if (error) {
     bilan.echecs.push({ organisation: "—", motif: "lecture des échéances impossible" });
@@ -245,20 +289,35 @@ async function preparerEcheances(
   bilan.examinees = lignes.length;
   if (!REGIME_TVA) return bilan; // aucune souscription de cette grille ne peut exister sans lui
   for (const l of lignes) {
+    const estAgence = l.public_tarif === "agence";
     const periodicite = l.periodicite_suivante ?? l.periodicite;
-    const actuelle =
-      l.public_tarif === "agence"
-        ? offreAgence(l.unites_souscrites ?? 0)
-        : (() => {
-            const f = formuleParCode(l.formule);
-            return f ? offreFormule(f, l.unites_souscrites ?? f.biens, l.periodicite) : null;
-          })();
-    const cible =
-      l.public_tarif === "agence"
-        ? offreAgence(l.unites_a_couvrir)
-        : offreParticulier(l.unites_a_couvrir, periodicite);
+    const formule = formuleParCode(l.formule);
+    const capacite = l.unites_souscrites ?? formule?.biens ?? 0;
+    const actuelle = estAgence
+      ? offreAgence(capacite)
+      : formule
+        ? offreFormule(formule, capacite, l.periodicite)
+        : null;
+    const changePeriodicite = !estAgence && periodicite !== l.periodicite;
+    // Jamais au-delà de ce qui est payé : la hausse attend une confirmation.
+    const base = Math.min(l.unites_a_couvrir, capacite);
+    let cible: Offre = estAgence ? offreAgence(base) : offreParticulier(base, periodicite);
+
     let r: { ok: true } | { ok: false; erreur: string } = { ok: true };
-    if (periodicite !== l.periodicite && l.public_tarif !== "agence") {
+    const baisse = Boolean(actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents);
+    if (changePeriodicite || baisse) {
+      try {
+        const s = await stripe.subscriptions.retrieve(l.stripe_subscription_id);
+        if (choixExplicite(s)) {
+          // Même offre, seule la périodicité demandée change (le cas échéant).
+          const gardee = estAgence ? offreAgence(capacite) : formule ? offreFormule(formule, capacite, periodicite) : null;
+          if (gardee) cible = gardee;
+        }
+      } catch (e) {
+        r = { ok: false, erreur: lireErreurStripe(e) };
+      }
+    }
+    if (r.ok && changePeriodicite) {
       r = await programmerPeriodicite(stripe, {
         subscription: l.stripe_subscription_id,
         offre: cible,
@@ -266,7 +325,7 @@ async function preparerEcheances(
         orgId: l.organization_id,
       });
       if (r.ok) bilan.periodicites += 1;
-    } else if (actuelle && cible.montantCents < actuelle.montantCents) {
+    } else if (r.ok && actuelle && cible.periodicite === actuelle.periodicite && cible.montantCents < actuelle.montantCents) {
       r = await appliquerBaisseAEcheance(stripe, {
         subscription: l.stripe_subscription_id,
         offre: cible,
@@ -276,6 +335,26 @@ async function preparerEcheances(
       if (r.ok) bilan.baisses += 1;
     }
     if (!r.ok) bilan.echecs.push({ organisation: l.organisation, motif: r.erreur });
+
+    // Portefeuille au-delà de la capacité payée : un avis, une fois par
+    // échéance (la ligne n'est plus listée une fois préparée), aucun débit.
+    if (r.ok && l.unites_souscrites !== null && l.unites_a_couvrir > l.unites_souscrites) {
+      try {
+        const echec = await envoyerAvisCapaciteDepassee(supabase, {
+          orgId: l.organization_id,
+          organisation: l.organisation,
+          estAgence,
+          capacite: l.unites_souscrites,
+          aCouvrir: l.unites_a_couvrir,
+          echeance: l.periode_fin,
+        });
+        if (echec) bilan.echecs.push({ organisation: l.organisation, motif: `avis de capacité : ${echec}` });
+        else bilan.avis_capacite += 1;
+      } catch (e) {
+        bilan.echecs.push({ organisation: l.organisation, motif: e instanceof Error ? e.message : "avis de capacité impossible" });
+      }
+    }
+
     await supabase.rpc("abonnement_echeance_preparee", {
       p_org: l.organization_id,
       p_periode_fin: l.periode_fin,

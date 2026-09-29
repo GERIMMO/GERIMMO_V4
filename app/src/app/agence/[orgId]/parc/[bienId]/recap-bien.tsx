@@ -39,7 +39,11 @@ export function RecapBien({
       valeur: bien.annee_construction ? String(bien.annee_construction) : null,
     },
     { libelle: "Copropriété", valeur: bien.copropriete ? "Oui" : "Non" },
-    { libelle: "Zone tendue", valeur: bien.zone_tendue ? "Oui" : "Non" },
+    {
+      libelle: "Zone tendue",
+      // null = non vérifiée : FaitsFiche la range dans « à renseigner »
+      valeur: bien.zone_tendue === true ? "Oui" : bien.zone_tendue === false ? "Non" : null,
+    },
   ];
 
   return (

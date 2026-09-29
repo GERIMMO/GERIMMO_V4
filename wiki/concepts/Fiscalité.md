@@ -3,7 +3,7 @@ type: concept
 tags: [fiscalite, revenus-fonciers, proprietaire]
 status: draft
 created: 2026-07-22
-updated: 2026-09-04
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]"]
 ---
 
@@ -96,3 +96,24 @@ LMP et SCI restent en V2. Voir [[Propriétaire bailleur]].
 > direct. Le **simulateur micro-BIC / réel (LMNP)** et tout le champ BIC
 > restent **V2** ; d'ici là, un lot meublé est simplement signalé « hors
 > récapitulatif (BIC) », la gestion restant complète.
+
+## Correction du récapitulatif 2044 (audit de gestion du 29/09/2026)
+
+- **Charges récupérables hors 2044** : la part « provision de charges » des
+  encaissements de loyer (reconstituée au prorata du bail), les régularisations de
+  charges encaissées et la **TEOM** ne sont ni des revenus ni des charges déductibles.
+  Elles sortent des lignes (la ligne 211 = loyers **hors charges**) et sont affichées à
+  part (« Charges récupérables — hors déclaration »).
+- **Ligne 212** : c'est la ligne des **dépenses du bailleur mises par convention à la
+  charge du locataire**, pas celle des charges récupérées (libellé corrigé) — le livre
+  ne la distingue pas, elle reste à compléter.
+- **Ligne 227** : taxe foncière **hors TEOM**.
+- **Ligne 229** : seule la **part non récupérable** des charges de copropriété se
+  déduit quand le décompte du syndic est ventilé (postes « récupérable » retirés, lot par
+  lot) ; sinon, la réintégration de la part récupérable passe par la ligne 230 l'année
+  suivante.
+
+> [!warning] Correction du 29/09/2026
+> Le récapitulatif comptait jusqu'ici les provisions de charges en recette (ligne 212
+> « charges récupérées ») et la TEOM en charge déductible (ligne 227) : revenu foncier
+> surévalué d'un côté, charges gonflées de l'autre. Source : [[Audit des flux de gestion du 29 septembre 2026]].

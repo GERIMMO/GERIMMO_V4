@@ -3,7 +3,7 @@ type: concept
 tags: [mandat, honoraires, seuil-delegation, agence]
 status: draft
 created: 2026-07-24
-updated: 2026-09-16
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -102,3 +102,15 @@ reste à construire. Voir [[Document]] et [[Comptabilité]].
 > À rouvrir si le porteur du projet décide que les taux s'entendent HT — il
 > faudra alors **reprendre les mandats déjà signés**, pas seulement le code.
 
+## Pas de location ni d'encaissement sans mandat en cours (audit du 29/09/2026)
+
+Une **agence** (organisation de type agence) ne gère que pour le compte d'autrui : sans
+**mandat écrit en cours** (loi Hoguet, art. 6), elle ne peut ni louer ni encaisser.
+L'application exige donc, pour une agence :
+
+- à l'**activation d'un bail** : un mandat **actif ou en préavis** dont une ligne non
+  close couvre le lot ;
+- à la **saisie d'un encaissement** (loyer ou dépôt de garantie) : la même couverture.
+
+Message d'erreur explicite (« aucun mandat de gestion en cours ne couvre ce lot »). Le
+**propriétaire direct** n'est pas concerné. Source : [[Audit des flux de gestion du 29 septembre 2026]].

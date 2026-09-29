@@ -55,6 +55,7 @@ export default async function PageRecapitulatifFiscal(props: {
     { data: detentions, error: erreurDetentions },
     { data: lotsMeublesRows, error: erreurMeubles },
     { data: baux, error: erreurBaux },
+    { data: appelsCopro, error: erreurAppels },
   ] = await Promise.all([
     supabase
       .from("ecritures")
@@ -81,7 +82,23 @@ export default async function PageRecapitulatifFiscal(props: {
       .from("baux")
       .select("id, loyer_hc, charges")
       .eq("organization_id", orgId),
+    // Audit 29/09 : appels de charges de copropriété de l'exercice, ventilés —
+    // leur part récupérable sort de la ligne 229.
+    supabase
+      .from("appels_charges")
+      .select("id, lot_id")
+      .eq("organization_id", orgId)
+      .eq("exercice", annee)
+      .in("statut", ["ventile", "fige"]),
   ]);
+  const idsAppels = ((appelsCopro ?? []) as { id: string; lot_id: string }[]).map((a) => a.id);
+  const { data: postesRecuperables, error: erreurPostes } = idsAppels.length
+    ? await supabase
+        .from("appel_charges_postes")
+        .select("appel_id, montant")
+        .eq("nature", "recuperable")
+        .in("appel_id", idsAppels)
+    : { data: [], error: null };
 
   // Aucune de ces quatre lectures n'est décorative : sans les détentions, la
   // quote-part d'indivision retombe à 100 % ; sans les lots meublés, des
@@ -93,6 +110,7 @@ export default async function PageRecapitulatifFiscal(props: {
     erreurDetentions && "vos quotes-parts de détention",
     erreurMeubles && "la liste des lots meublés",
     erreurBaux && "la clé de ventilation loyer / charges des baux",
+    (erreurAppels || erreurPostes) && "la part récupérable des charges de copropriété",
   ].filter((x): x is string => Boolean(x));
 
   // Le choix de l'année prend la pastille `.filtre` de l'espace, 44 px au
@@ -162,10 +180,19 @@ export default async function PageRecapitulatifFiscal(props: {
       (b) => [b.id, { loyerHc: Number(b.loyer_hc) || 0, charges: Number(b.charges) || 0 }]
     )
   );
+  const lotParAppel = new Map(
+    ((appelsCopro ?? []) as { id: string; lot_id: string }[]).map((a) => [a.id, a.lot_id])
+  );
+  const chargesCoproRecuperables = new Map<string, number>();
+  for (const p of (postesRecuperables ?? []) as { appel_id: string; montant: number }[]) {
+    const lot = lotParAppel.get(p.appel_id);
+    if (lot) chargesCoproRecuperables.set(lot, (chargesCoproRecuperables.get(lot) ?? 0) + Number(p.montant));
+  }
   const recap = recapitulatifFiscal((ecritures ?? []) as EcritureFiscale[], annee, {
     quoteParts,
     lotsMeubles: new Set(lotsMeubles.map((l) => l.id)),
     ventilationLoyers,
+    chargesCoproRecuperables,
   });
   const recettes = recap.rubriques.filter((r) => r.sens === "recette");
   const charges = recap.rubriques.filter((r) => r.sens === "depense");
@@ -284,7 +311,7 @@ export default async function PageRecapitulatifFiscal(props: {
         <>
           <TableauRubriques
             titre="Recettes"
-            description="Lignes 211 à 212 de la 2044. Chaque encaissement de loyer est ventilé au prorata du bail : la ligne 212 est la part des encaissements correspondant aux provisions de charges du bail, la ligne 211 le reste (loyers hors charges) — leur somme égale le total encaissé."
+            description="Lignes 211 et 212 de la 2044. Ligne 211 : loyers hors charges — la part de chaque encaissement qui correspond aux provisions de charges du bail (reconstituée au prorata du bail) n'est pas un revenu et n'y figure pas. Ligne 212 : dépenses du bailleur mises par convention à la charge du locataire, que le livre ne distingue pas — à compléter le cas échéant."
             rubriques={recettes}
             ventile={recap.ventile}
           />
@@ -292,11 +319,39 @@ export default async function PageRecapitulatifFiscal(props: {
               est aux couleurs de son organisation. */}
           <TableauRubriques
             titre="Charges déductibles"
-            description="Lignes 221 à 250. Copropriété : les provisions versées au syndic se déduisent l'année de leur paiement (ligne 229) ; après le décompte annuel du syndic — seule base admise — la part récupérable et la part non déductible se réintègrent l'année suivante (ligne 230). Les intérêts d'emprunt ne sont pas suivis dans le livre : reportez-les depuis le tableau d'amortissement de votre banque."
+            description="Lignes 221 à 250. Taxe foncière (ligne 227) hors taxe d'enlèvement des ordures ménagères, récupérable sur le locataire. Copropriété (ligne 229) : la part récupérable des charges, quand le décompte du syndic est ventilé, est retirée ; sinon, elle se réintègre l'année suivante (ligne 230), après le décompte annuel du syndic. Les intérêts d'emprunt ne sont pas suivis dans le livre : reportez-les depuis le tableau d'amortissement de votre banque."
             rubriques={charges}
             ventile={recap.ventile}
           />
         </>
+      )}
+
+      {/* Audit gestion du 29/09 : ce qui sort de la 2044, dit et chiffré. */}
+      {(recap.chargesRecuperees !== 0 || recap.teomExclue !== 0 || recap.coproRecuperableExclue !== 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Charges récupérables — hors déclaration</CardTitle>
+            <CardDescription>
+              Les charges remboursées par vos locataires ne sont ni un revenu ni
+              une charge déductible : elles ne figurent pas ci-dessus. Cette
+              année : <span className="montant">{eur(recap.chargesRecuperees)}</span> de
+              provisions et régularisations de charges encaissées
+              {recap.teomExclue !== 0 && (
+                <>
+                  , <span className="montant">{eur(recap.teomExclue)}</span> de taxe
+                  d&apos;enlèvement des ordures ménagères
+                </>
+              )}
+              {recap.coproRecuperableExclue !== 0 && (
+                <>
+                  {" "}et <span className="montant">{eur(recap.coproRecuperableExclue)}</span> de
+                  charges de copropriété récupérables retirées de la ligne 229
+                </>
+              )}
+              .
+            </CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
       {recap.fondsTravauxAlur > 0 && (

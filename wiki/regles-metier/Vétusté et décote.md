@@ -3,7 +3,7 @@ type: business-rule
 tags: [vetuste, decote, grille, retenue, restitution, edl]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]"]
 ---
 
@@ -50,7 +50,7 @@ ou la zone tendue figée au bail.
 | **Usure normale** | L'usage du logement implique une dégradation progressive |
 | **Élément amorti** | Au-delà de sa durée de vie, valeur résiduelle nulle — **BLOCAGE** (RM-2.4.5) |
 | **Vétusté antérieure au bail** | L'[[État des lieux|EDL]] d'entrée fait foi |
-| **Absence d'EDL d'entrée** | Le logement est réputé remis en bon état — **BLOCAGE** (RM-2.4.3 = RM-1.13.4) |
+| **Retenue non justifiée sans EDL d'entrée** | Sans EDL d'entrée, le locataire est présumé avoir reçu le logement en bon état (art. 1731 C. civ.) : la retenue reste possible mais **doit être justifiée** (devis, facture, constat) — refus sinon. Corrigé le 29/09/2026 (voir avertissement) |
 
 À l'inverse, une **réparation locative non faite** reste retenable (décret 87-712),
 et l'écart constaté ne devient une retenue **qu'après jugement d'imputabilité par
@@ -62,3 +62,12 @@ Appliquée par la [[Restitution du dépôt de garantie]] (calcul automatique par
 retenue) ; s'appuie sur le comparatif d'[[État des lieux]] (l'âge et l'état d'origine
 des éléments) ; grille paramétrée par l'[[Administrateur d'agence]] (module 18) ;
 chaque retenue décomptée est détaillée au locataire (coût, âge, décote — RM-2.7.1).
+
+> [!warning] Correction du 29/09/2026 — absence d'EDL d'entrée
+> Cette page indiquait « absence d'EDL d'entrée : logement réputé remis en bon état —
+> BLOCAGE » (RM-2.4.3 = RM-1.13.4). C'est l'inverse de l'art. 1731 du Code civil : la
+> présomption de bon état à l'entrée **joue contre le locataire**, qui doit rendre le
+> logement dans cet état. Depuis le 29/09/2026, une retenue **justifiée** est admise sans
+> EDL d'entrée ; la décote de vétusté s'applique comme d'habitude, et la présomption ne
+> peut pas être invoquée par un bailleur qui a fait obstacle à l'EDL (art. 3-2 loi
+> 89-462). Source : [[Audit des flux de gestion du 29 septembre 2026]].

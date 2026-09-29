@@ -3,7 +3,7 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-09-14
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -232,3 +232,24 @@ Deux PDF, nu et meublé, utilisent la charte existante, décrivent le périmètr
 Sources primaires : [Service Public — bail individuel](https://www.service-public.gouv.fr/particuliers/vosdroits/F34661) et [article 8-1 de la loi du 6 juillet 1989](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041587279/2026-04-29). La partie privative doit atteindre 9 m² **et** 20 m³ ; l’appréciation de la décence inclut le logement partagé. La valeur du plafond local doit être vérifiée par le gestionnaire.
 
 Recette : 8 essais SQL ciblés (double activation, plafond, chevauchement, départ, annulation, surfaces, état des lieux, confidentialité), 2 essais de contenu PDF et rendu réel des deux contrats (4 et 5 pages). Suite complète locale : 1 056 tests réussis. Parcours navigateur : plafond, création de chambre, création du bail, génération et rangement GED. La migration 20260914180000 précède la publication de l’interface.
+
+## Zone tendue inconnue et honoraires (audit de gestion du 29/09/2026)
+
+- **Zone tendue « non vérifiée »** : la zone d'un bien peut désormais être **oui, non
+  ou non vérifiée** (elle valait « non » par défaut). Aucun référentiel communal de zone
+  tendue n'est en base. Choix **protecteur du locataire** : tant que la zone du bail est
+  inconnue, un **congé du locataire à 1 mois est accepté** (sans justificatif), marqué
+  « zone tendue à vérifier » avec une alerte ; un avertissement s'affiche sur le bail en
+  brouillon, et une alerte naît à l'activation. Une zone déclarée « non » exige toujours
+  le justificatif du préavis réduit. La zone reste figée au bail une fois connue
+  (RM-1.1.7).
+- **Honoraires à la charge du locataire** : la **surface habitable** est exigée dès
+  qu'une part locataire est demandée (le plafond est en €/m²) ; la part locataire est
+  contrôlée **même sans part bailleur saisie** (comptée 0 €) ; les barèmes sont une
+  table datée par zone, et **au-delà du dernier barème connu, c'est lui qui
+  s'applique** (plus de « pas de plafond » pour une année non publiée).
+
+> [!warning] Mise à jour du 29/09/2026
+> Remplace, pour les honoraires, la phrase « Un barème futur inconnu n'est pas
+> projeté » (réalisation du 14/09) : le dernier barème connu s'applique désormais aux
+> années suivantes, à réviser à chaque arrêté. Source : [[Audit des flux de gestion du 29 septembre 2026]].

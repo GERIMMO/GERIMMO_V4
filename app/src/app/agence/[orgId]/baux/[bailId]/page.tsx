@@ -497,6 +497,19 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
 
       <RubriqueDossier id="contrat" titre="Contrat & documents" resume={bail.document_signe ? "Bail signé disponible · annexes, garants et conditions du contrat" : "Préparer le contrat, réunir les annexes et déposer le bail signé"} ouverte={bail.etat === "brouillon"}>
 
+      {/* Audit gestion du 29/09 : une zone tendue inconnue ne vaut plus « non ».
+          On le dit avant la signature, là où elle se renseigne encore. */}
+      {bail.etat === "brouillon" &&
+        bail.zone_tendue == null &&
+        premier(lot?.bien ?? null)?.zone_tendue == null && (
+          <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+            Zone tendue non renseignée pour ce logement : elle fixe le préavis du
+            locataire (1 mois de plein droit en zone tendue) et le plafond des
+            honoraires. Renseignez-la sur la fiche du bien, ou choisissez la zone
+            des honoraires, avant la signature. À défaut, un congé du locataire à
+            1 mois sera accepté puis signalé à vérifier.
+          </p>
+        )}
       {/* Brouillon corrigeable (recette 21/08) : la saisie de création se
           reprend ici tant que le bail n'est pas signé. */}
       {bail.etat === "brouillon" && (
@@ -1026,7 +1039,7 @@ export default async function PageBail(props: PageProps<"/agence/[orgId]/baux/[b
               bailId={bailId}
               type={bail.type}
               meubleLot={Boolean(lot?.meuble)}
-              zoneTendue={Boolean(bail.zone_tendue ?? premier(lot?.bien ?? null)?.zone_tendue)}
+              zoneTendue={bail.zone_tendue ?? premier(lot?.bien ?? null)?.zone_tendue ?? null}
             />
           </CardContent>
         </Card>

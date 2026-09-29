@@ -3,7 +3,7 @@ type: process
 tags: [loyer, impaye, relance, mise-en-demeure]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-11
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
 ---
 
@@ -88,3 +88,21 @@ fonde ensuite un recours. L'escalade reste donc un geste du gérant, tracé dans
 > - La criticité de l'alerte suit aujourd'hui le **nombre de termes dus**
 >   (1 = normale, 2 et plus = critique). C'est une échelle d'affichage, pas une
 >   règle métier : elle ne préjuge pas du circuit à venir.
+
+## Audit de gestion du 29/09/2026 — seuil, caution, plan d'apurement
+
+- **Seuil minimal** : réglage d'organisation « ne pas relancer une dette inférieure à »
+  (**5 € par défaut**, 0 à 1 000 €) ; la dette **totale** échue du bail est comparée au
+  seuil — plus de relance 1 puis 2 pour quelques centimes.
+- **Information de la caution** : à la **relance de niveau 2**, chaque caution du bail
+  dont l'e-mail est connu reçoit une information de la défaillance du locataire (terme
+  impayé, dette totale) — sans demande de paiement ; l'envoi est consigné sur la
+  relance. Référence : information de la caution personne physique dès le premier
+  incident de paiement non régularisé (art. 2303 du Code civil, rédaction 2022).
+- **Plan d'apurement** : **non implémenté** — aucune table ne porte un plan
+  (seul le document « protocole d'apurement » existe, sans échéancier en base) ; les
+  relances ne peuvent donc pas être suspendues pendant un plan.
+
+> [!warning] À trancher (29/09/2026)
+> Modéliser le plan d'apurement (échéancier, statut) pour suspendre les relances
+> automatiques tant qu'il est respecté. Source : [[Audit des flux de gestion du 29 septembre 2026]].

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { estUuid } from "@/lib/identifiants";
-import { ConfirmerCommuneBien, InteretReseau, MessageReseau } from "@/components/disponibilite-reseau";
+import { ConfirmerCommuneBien, ConfirmerCommunesEvidentes, InteretReseau, MessageReseau } from "@/components/disponibilite-reseau";
 import type { CommuneReseau, DisponibiliteReseau } from "@/lib/reseau";
 import { METIERS_ARTISAN, NATURES_TRAVAUX } from "../artisans/referentiel";
 
@@ -18,9 +18,10 @@ export default async function ReseauBien({ params, searchParams }: { params: Pro
   const metier = Object.hasOwn(METIERS_ARTISAN, texte("metier")) ? texte("metier") : "";
   const nature = Object.hasOwn(NATURES_TRAVAUX, texte("nature")) ? texte("nature") : "entretien_courant";
   const page = /^[1-9]\d{0,4}$/.test(texte("page")) ? Number(texte("page")) : 1;
-  const [liste, selection] = await Promise.all([
+  const [liste, selection, sansCommune] = await Promise.all([
     supabase.from("biens").select("id,nom,address_line1,postal_code,city,commune_insee", { count: "exact" }).eq("organization_id", orgId).order("nom").order("id").range((page-1)*50, page*50-1),
     bienId ? supabase.from("biens").select("id,nom,address_line1,postal_code,city,commune_insee").eq("id", bienId).eq("organization_id", orgId).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    supabase.from("biens").select("id", { count: "exact", head: true }).eq("organization_id", orgId).is("commune_insee", null).is("archived_at", null),
   ]);
   const bien = selection.data as Bien | null;
   const biens = (liste.data ?? []) as Bien[];
@@ -37,6 +38,7 @@ export default async function ReseauBien({ params, searchParams }: { params: Pro
     <section className="loc-carte space-y-4"><h2 className="font-heading text-xl">Quel bien et quels travaux ?</h2>
       {liste.error ? <p role="alert" className="err">La liste de vos biens est indisponible. Rechargez la page.</p> : !biens.length && page === 1 ? <p className="text-sm">Ajoutez d’abord un bien dans votre parc pour vérifier le réseau à son adresse. <Link href={`/agence/${orgId}/parc/nouveau`} className="underline">Ajouter un bien</Link></p> : <>
         <form method="get" className="grid gap-4 sm:grid-cols-2"><input name="page" type="hidden" value={page} /><label htmlFor="bien" className="space-y-1 text-sm sm:col-span-2"><span id="bien-libelle">Bien concerné</span><select aria-labelledby="bien-libelle" id="bien" name="bien" required defaultValue={bienId} className={champ}><option value="" disabled>Choisir un bien</option>{biens.map(b => <option key={b.id} value={b.id}>{b.nom} · {b.address_line1 || "Adresse à compléter"} · {b.postal_code} {b.city}</option>)}</select></label><label htmlFor="metier" className="space-y-1 text-sm"><span id="metier-libelle">Métier recherché</span><select aria-labelledby="metier-libelle" id="metier" name="metier" defaultValue={metier} className={champ}><option value="">Choisir un métier</option>{Object.entries(METIERS_ARTISAN).map(([cle,nom]) => <option key={cle} value={cle}>{nom}</option>)}</select></label><label htmlFor="nature" className="space-y-1 text-sm"><span id="nature-libelle">Nature des travaux</span><select aria-labelledby="nature-libelle" id="nature" name="nature" defaultValue={nature} className={champ}>{Object.entries(NATURES_TRAVAUX).map(([cle,nom]) => <option key={cle} value={cle}>{nom}</option>)}</select></label><button type="submit" className="btn-or min-h-11 sm:col-span-2">Vérifier pour ce bien</button></form>
+        {!sansCommune.error && <ConfirmerCommunesEvidentes orgId={orgId} nbSansCommune={sansCommune.count ?? 0} />}
         {(liste.count ?? 0) > 50 && <nav aria-label="Pages des biens" className="flex flex-wrap gap-4 text-sm"><span>Biens · page {page}</span>{page > 1 && <Link className="underline" href={lienPage(page-1)}>Biens précédents</Link>}{page*50 < (liste.count ?? 0) && <Link className="underline" href={lienPage(page+1)}>Biens suivants</Link>}</nav>}
       </>}
     </section>

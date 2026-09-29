@@ -38,10 +38,28 @@ describe('Honoraires distincts et plafonds datés', () => {
   it.each([['tres_tendue',12.1], ['tendue',10.09], ['autre',8.07]] as const)('utilise les plafonds 2026 : %s', (zone, plafond) => {
     expect(plafondsHonoraires('2026-10-01',zone)).toEqual({ location: plafond, edl: 3.03 });
   });
-  it('ne projette ni une zone inconnue ni un tarif futur', () => {
-    expect(plafondsHonoraires('2027-01-01','tendue')).toEqual({ location: null, edl: null });
+  // Audit gestion du 29/09 : une année sans barème publié garde le dernier
+  // barème connu — elle ne se retrouve plus sans plafond.
+  it('applique le dernier barème connu au-delà, sans inventer de zone', () => {
+    expect(plafondsHonoraires('2027-01-01','tendue')).toEqual({ location: 10.09, edl: 3.03 });
+    expect(plafondsHonoraires('2031-06-30','tres_tendue')).toEqual({ location: 12.1, edl: 3.03 });
+    expect(plafondsHonoraires('2025-12-31','autre')).toEqual({ location: 8, edl: 3 });
     expect(plafondsHonoraires('2026-01-01',null)).toEqual({ location: null, edl: 3.03 });
     expect(plafondsHonoraires(null,'tendue')).toEqual({ location: null, edl: null });
+    expect(plafondsHonoraires('2014-09-14','tendue')).toEqual({ location: null, edl: null });
+  });
+  it('exige la surface dès qu’une part est demandée au locataire', () => {
+    const b = { date_conclusion_prevue: '2027-03-01', zone_honoraires: 'autre', honoraires_bailleur: 400, honoraires_locataire: 300 };
+    expect(verifierHonorairesContrat(b, null)).toMatch(/surface habitable/);
+    expect(verifierHonorairesContrat(b, 0)).toMatch(/surface habitable/);
+    expect(verifierHonorairesContrat({ ...b, honoraires_locataire: 0 }, null)).toBeNull();
+    // 2027 : barème 2026 appliqué — 8,07 €/m² × 30 m² = 242,10 €
+    expect(verifierHonorairesContrat(b, 30)).toMatch(/plafond de 242,10/);
+  });
+  it('contrôle la part du locataire même sans part bailleur saisie', () => {
+    const b = { date_conclusion_prevue: '2026-10-01', zone_honoraires: 'tendue', honoraires_locataire: 100 };
+    expect(verifierHonorairesContrat(b, 50)).toMatch(/ne peut pas dépasser celle du bailleur/);
+    expect(verifierHonorairesContrat({ ...b, honoraires_edl_locataire: 50, honoraires_locataire: 0 }, 50)).toMatch(/État des lieux/);
   });
   it('vérifie séparément les deux parts et accepte exactement le plafond', () => {
     const b = { date_conclusion_prevue: '2026-10-01', zone_honoraires: 'tendue', honoraires_bailleur: 1000, honoraires_locataire: 504.5, honoraires_edl_bailleur: 200, honoraires_edl_locataire: 151.5 };

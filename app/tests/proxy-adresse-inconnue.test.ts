@@ -46,4 +46,10 @@ describe("sans session, une adresse inconnue", () => {
     const r = await proxy(new NextRequest("https://gerimmo.test/robots.txt"));
     expect(r.status).not.toBe(404);
   });
+
+  it.each(["/robots.txt", "/sitemap.xml"])("%s est servi sans session, sans détour par la connexion", async (chemin) => {
+    const r = await proxy(new NextRequest(`https://gerimmo.test${chemin}`));
+    expect(r.status).toBe(200);
+    expect(r.headers.get("location")).toBeNull();
+  });
 });

@@ -1,8 +1,14 @@
 import { CoquilleAuth } from "@/components/coquille-auth";
 import { codeDeLaRecherche } from "@/lib/parrainage";
 import { FormulaireInscription } from "./formulaire-inscription";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
-export const metadata = { title: "Ouvrir mon espace propriétaire — Gerimmo" };
+export const metadata = metadonneesPubliques({
+  titre: "Ouvrir mon espace propriétaire — Gerimmo",
+  description:
+    "Créez votre compte Gerimmo et gérez vos locations en direct : baux, quittances, incidents, états des lieux. Essai gratuit de 14 jours, sans carte bancaire.",
+  chemin: "/inscription",
+});
 
 // Auto-inscription du propriétaire bailleur en gestion directe (S9a) : la
 // seule porte d'entrée publique — une agence, elle, est créée par le super

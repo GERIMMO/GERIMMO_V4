@@ -8,7 +8,6 @@ import { signatureOrganisation } from "@/lib/documents/modeles/communs";
 import {
   lienDeParrainage,
   libelleAvantage,
-  PROMESSE_PARRAINAGE,
   PARRAINAGE_EN_REVISION,
   type AvantageParrainage,
 } from "@/lib/parrainage";
@@ -32,8 +31,6 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
   // 24/09 : côté agence, la barre latérale et la barre haute nomment déjà
   // l'organisation — la mention à droite du titre ne sert qu'au propriétaire.
   const mention = estProprietaire ? organisation.name : undefined;
-  const { data: grilleLue } = await supabase.from("organizations").select("grille_tarifaire").eq("id", orgId).maybeSingle();
-  const grilleHistorique = (grilleLue as { grille_tarifaire?: string } | null)?.grille_tarifaire === "historique";
 
   const { data: profil, error: erreurProfil } = await supabase
     .from("organizations")
@@ -150,14 +147,10 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
           </span>
         </div>
         <p className="mesure-lecture mb-3 text-sm text-muted-foreground">
-          {grilleHistorique ? (
-            <>
-              {PROMESSE_PARRAINAGE} Le mois du parrain s&apos;acquiert à la
-              souscription du filleul, pas à son inscription.
-            </>
-          ) : (
-            PARRAINAGE_EN_REVISION
-          )}
+          {/* Décision du porteur (29/09) : pas de cumul, pour personne. La
+              promesse « un mois pour vous, un mois pour lui » n'est plus
+              affichée, même aux organisations de la grille historique. */}
+          {PARRAINAGE_EN_REVISION}
         </p>
         {mesAvantages.length > 0 && (
           <ul className="mb-3 space-y-1">

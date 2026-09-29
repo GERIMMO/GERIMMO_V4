@@ -10,12 +10,25 @@ import {
   ApercuMobileIncident,
 } from "./apercus-produit";
 import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
+import { REGIME_TVA } from "@/lib/editeur";
+import { etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
+import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 
-export const metadata = {
-  title: "Gerimmo — La gérance immobilière, tenue au carré",
+export const metadata = metadonneesPubliques({
+  titre: "Gerimmo — La gérance immobilière, tenue au carré",
   description:
     "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Essai gratuit de 14 jours, sans carte.",
-};
+  chemin: "/",
+});
+
+// 29/09 : l'étiquette de taxe suit le régime de l'éditeur (lib/editeur.ts).
+// En franchise en base, « 39 € HT » laissait croire qu'une TVA s'ajoutait :
+// le prix s'affiche nu, la mention de l'article 293 B juste à côté.
+const TTC = etiquetteTaxes("ttc", REGIME_TVA);
+const HT = etiquetteTaxes("ht", REGIME_TVA);
+const avec = (e: string | null) => (e ? ` ${e}` : "");
+const MENTION_TAXES = mentionTaxesPubliques(REGIME_TVA);
 
 // Site vitrine — ce que voit un visiteur avant toute connexion. Un connecté
 // est renvoyé vers ses espaces par le proxy. Tout ce qui est promis ici
@@ -47,7 +60,7 @@ const REMPLACE: [string, string, string][] = [
   [
     "Les honoraires d'agence",
     "6 à 8 % des loyers, chaque mois",
-    "Le même travail, tenu par l'outil. Dès 5,99 € TTC par mois pour un bien, sans engagement.",
+    `Le même travail, tenu par l'outil. Dès 5,99 €${avec(TTC)} par mois pour un bien, sans engagement.`,
   ],
 ];
 
@@ -81,7 +94,7 @@ const FONCTIONNALITES: [string, string][] = [
 const FAQ: [string, string][] = [
   [
     "Combien coûte Gerimmo pour un particulier ?",
-    "Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 € TTC par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de 14 jours, sans carte ; aucune formule n'est gratuite ensuite.",
+    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de 14 jours, sans carte ; aucune formule n'est gratuite ensuite.`,
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
@@ -93,11 +106,11 @@ const FAQ: [string, string][] = [
   ],
   [
     "Et pour une agence ?",
-    "Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. Mensuel HT, selon les lots sous mandat actif : 39 € jusqu'à 10 lots, puis 2 € du 11ᵉ au 50ᵉ, 1,50 € du 51ᵉ au 200ᵉ et 1 € au-delà — tranches cumulatives. Collaborateurs, propriétaires invités et locataires inclus.",
+    `Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. Mensuel${avec(HT)}, selon les lots sous mandat actif : 39 € jusqu'à 10 lots, puis 2 € du 11ᵉ au 50ᵉ, 1,50 € du 51ᵉ au 200ᵉ et 1 € au-delà — tranches cumulatives. Collaborateurs, propriétaires invités et locataires inclus.`,
   ],
   [
     "Que se passe-t-il si j'arrête ?",
-    "La résiliation prend effet à la prochaine échéance : l'accès payé reste ouvert jusque-là. Ensuite, vos données restent consultables et exportables, en lecture seule — rien n'est supprimé automatiquement. Aucun frais de sortie.",
+    "La résiliation prend effet à la prochaine échéance : l'accès payé reste ouvert jusque-là. Ensuite, vos données restent consultables et exportables, en lecture seule, tant que le compte existe — rien n'est supprimé automatiquement du fait de l'arrêt, et vous pouvez demander la suppression après export. Aucun frais de sortie.",
   ],
   [
     "Puis-je gérer pour quelqu'un d'autre ?",
@@ -244,7 +257,7 @@ export default async function PageVitrine() {
                   titre="Chaque locataire a son espace"
                 />
                 <p className="mesure-lecture mt-5 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
-                  Il y consulte son bail signé et ses quittances, dépose son
+                  Il y consulte son bail (une fois signé) et ses quittances, dépose son
                   attestation d&apos;assurance, signale un incident photo à
                   l&apos;appui, annonce son départ. Depuis son téléphone, sans
                   installer d&apos;application.
@@ -296,7 +309,7 @@ export default async function PageVitrine() {
               ],
               [
                 "Locataire",
-                "Son espace à lui : bail signé, quittances, attestation d'assurance, incidents suivis étape par étape, messagerie avec son gestionnaire.",
+                "Son espace à lui : son bail (une fois signé), ses quittances, attestation d'assurance, incidents suivis étape par étape, messagerie avec son gestionnaire.",
               ],
               [
                 "Agence",
@@ -370,7 +383,7 @@ export default async function PageVitrine() {
               <p className="eyebrow text-[var(--marque-sombre)]">Particuliers et SCI gérant leurs biens</p>
               <p className="mt-4 font-heading text-[32px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
                 Dès <span className="montant">5,99&nbsp;€</span>
-                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> TTC / mois</span>
+                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]">{avec(TTC)} / mois</span>
               </p>
               <div className="mt-5">
                 <TableauParticuliers />
@@ -396,8 +409,11 @@ export default async function PageVitrine() {
               <p className="eyebrow text-[var(--marque-sombre)]">Agences immobilières</p>
               <p className="mt-4 font-heading text-[32px] font-extrabold leading-none tracking-[-0.02em] text-[var(--encre)]">
                 Dès <span className="montant">39&nbsp;€</span>
-                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]"> HT / mois</span>
+                <span className="text-[15px] font-medium tracking-normal text-[var(--texte-secondaire)]">{avec(HT)} / mois</span>
               </p>
+              {REGIME_TVA?.nature === "franchise" && (
+                <p className="mt-2 text-[13px] text-[var(--texte-secondaire)]">TVA non applicable, art. 293 B du CGI.</p>
+              )}
               <div className="mt-5">
                 <TableauAgences />
               </div>
@@ -419,7 +435,8 @@ export default async function PageVitrine() {
               </a>
             </div>
           </div>
-          <p className="mt-5 text-[13.5px] text-[var(--texte-secondaire)]">
+          <p className="mt-5 text-[13px] text-[var(--texte-secondaire)]">{MENTION_TAXES}</p>
+          <p className="mt-2 text-[13.5px] text-[var(--texte-secondaire)]">
             Travaux et interventions d&apos;artisans : toujours sur devis, facturés à part, jamais inclus dans
             l&apos;abonnement.{" "}
             <Link href="/tarifs" className="lien-discret">
@@ -456,7 +473,7 @@ export default async function PageVitrine() {
                 {articles.map((a) => (
                   <Link key={a.id} href={`/journal/${a.slug}`} className="vitrine-carte group block">
                     <h3 className="font-heading text-[17px] font-bold leading-snug text-[var(--encre)] group-hover:text-[var(--marque-sombre)]">
-                      {a.titre}
+                      {titreSansDoublon(a.titre)}
                     </h3>
                     {a.chapo && (
                       <p className="mt-2 line-clamp-3 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">
@@ -499,8 +516,10 @@ export default async function PageVitrine() {
                 </h2>
                 <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
                   Dites-nous qui vous êtes et combien de lots vous gérez : nous
-                  revenons vers vous sous 48 h ouvrées avec une proposition par
-                  palier de lots, mise en route comprise.
+                  revenons vers vous sous 48 h ouvrées. Le tarif est celui de la
+                  grille publique, par tranches cumulatives de lots, sans frais
+                  d&apos;installation ; une reprise de vos données peut être
+                  chiffrée sur devis si vous la souhaitez.
                 </p>
               </div>
               <FormulaireDevisVitrine />

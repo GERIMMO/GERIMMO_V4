@@ -1,8 +1,14 @@
 import { Suspense } from "react";
 import { CoquilleAuth } from "@/components/coquille-auth";
 import { FormulaireConnexion } from "./formulaire-connexion";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
-export const metadata = { title: "Connexion — Gerimmo" };
+export const metadata = metadonneesPubliques({
+  titre: "Connexion — Gerimmo",
+  description:
+    "Connectez-vous à Gerimmo pour retrouver vos espaces de gestion locative : agence, propriétaire bailleur, locataire ou artisan.",
+  chemin: "/connexion",
+});
 
 export default function PageConnexion() {
   return (

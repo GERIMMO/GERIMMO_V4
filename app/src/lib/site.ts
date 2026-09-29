@@ -80,3 +80,14 @@ export function origineDeRetour(hote: string | null, protocole: string | null): 
 export function adresseDeRetour(): string {
   return adresseDuSite() ?? "";
 }
+
+/**
+ * L'origine des adresses ABSOLUES que le site publie sur lui-même : balise
+ * canonique, aperçus de partage (Open Graph), robots.txt et sitemap.xml
+ * (29/09). Ici, pas de « pas de lien plutôt qu'un lien mort » : ces fichiers
+ * exigent une adresse complète. Sans configuration (banc local, CI), on
+ * retombe sur le serveur local, comme le fait Next.js lui-même.
+ */
+export function adresseCanonique(): string {
+  return adresseDuSite() ?? "http://localhost:3000";
+}

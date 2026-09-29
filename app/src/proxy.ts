@@ -29,6 +29,11 @@ const PUBLIC_PATHS = [
   // « Session expirée ou lien invalide » au lieu de rediriger sans un mot.
   "/nouveau-mot-de-passe",
   "/auth/confirm",
+  // Les fichiers des robots (29/09, src/app/robots.ts et sitemap.ts) : sans
+  // session, ils étaient redirigés vers /connexion, et aucun moteur ne lisait
+  // ni les règles ni le plan du site.
+  "/robots.txt",
+  "/sitemap.xml",
 ];
 const REDIRECT_SI_CONNECTE = ["/connexion", "/inscription", "/mot-de-passe-oublie"];
 

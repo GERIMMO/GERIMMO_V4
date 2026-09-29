@@ -20,8 +20,10 @@ import {
   JOURS_ESSAI_FILLEUL,
   JOURS_ESSAI_ORDINAIRE,
   JOURS_OFFERTS_PARRAIN,
-  PROMESSE_PARRAINAGE,
+  PARRAINAGE_EN_REVISION,
 } from "@/lib/parrainage";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 config({ path: ".env.local" });
 const DB_URL = process.env.SUPABASE_DB_URL;
@@ -338,8 +340,17 @@ describe("la base et l'écran annoncent le même chiffre", () => {
     );
     expect(rows[0].filleul).toBe(JOURS_ESSAI_FILLEUL);
     expect(rows[0].parrain).toBe(JOURS_OFFERTS_PARRAIN);
-    expect(PROMESSE_PARRAINAGE).toContain(String(JOURS_ESSAI_FILLEUL));
-    expect(PROMESSE_PARRAINAGE).toContain(String(JOURS_ESSAI_ORDINAIRE));
+    // L'écran n'annonce plus d'avantage (décision du 29/09, pas de cumul) :
+    // il dit l'essai ordinaire, et ne promet jamais les trente jours.
+    expect(PARRAINAGE_EN_REVISION).toContain(String(JOURS_ESSAI_ORDINAIRE));
+    expect(PARRAINAGE_EN_REVISION).not.toContain(String(JOURS_ESSAI_FILLEUL));
+  });
+
+  it("le profil affiche la même phrase à toutes les organisations, historiques comprises", () => {
+    const page = readFileSync(path.resolve(__dirname, "../src/app/agence/[orgId]/profil/page.tsx"), "utf8");
+    expect(page).toContain("{PARRAINAGE_EN_REVISION}");
+    expect(page).not.toContain("PROMESSE_PARRAINAGE");
+    expect(page).not.toContain("grilleHistorique");
   });
 });
 

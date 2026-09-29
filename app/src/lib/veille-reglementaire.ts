@@ -4,6 +4,24 @@ export const FLUX_VEILLE=[
  {nom:'Service Public — Entreprises',url:'https://www.service-public.gouv.fr/abonnements/rss/actu-actu-pro.rss'},
 ];
 export function sourceVeille(v:string){try{const u=new URL(v);if(u.protocol!=='https:'||u.username||u.password||u.port||!['www.service-public.gouv.fr','entreprendre.service-public.gouv.fr','www.anil.org','www.legifrance.gouv.fr','www.economie.gouv.fr','www.impots.gouv.fr','www.urssaf.fr'].includes(u.hostname))return null;u.search='';u.hash='';return u.href;}catch{return null;}}
+// LE NOM D'UNE SOURCE SE LIT DANS SON ADRESSE (29/09). Le flux « Particuliers »
+// relaie aussi des pages d'entreprendre.service-public.gouv.fr : les étiqueter
+// du nom du flux faisait lire « Service Public — Particuliers » au-dessus
+// d'une actualité pour les entreprises. Le nom suit donc l'hôte de la page ;
+// celui du flux ne sert qu'à défaut.
+const NOMS_SOURCES:Record<string,string>={
+ 'www.service-public.gouv.fr':'Service Public',
+ 'entreprendre.service-public.gouv.fr':'Service Public — Entreprendre',
+ 'www.anil.org':'ANIL',
+ 'www.legifrance.gouv.fr':'Légifrance',
+ 'www.economie.gouv.fr':'Ministère de l’Économie',
+ 'www.impots.gouv.fr':'impots.gouv.fr',
+ 'www.urssaf.fr':'Urssaf',
+};
+export function nomDeSource(url:string,repli:string){
+ const sure=sourceVeille(url);if(!sure)return repli;
+ return NOMS_SOURCES[new URL(sure).hostname]??repli;
+}
 function texte(v:string){return v.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/<[^>]*>/g,'').replace(/&(?:amp|lt|gt|quot|apos|nbsp);/g,x=>({'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&apos;':"'",'&nbsp;':' '}[x]!)).replace(/\s+/g,' ').trim();}
 export function lireFluxVeille(xml:string,source:string){
  if(xml.length>1000000||/<!DOCTYPE|<!ENTITY/i.test(xml)||!/<rss\b/.test(xml)||!/<\/rss>/.test(xml))throw new Error('Le flux officiel n’a pas pu être lu.');
@@ -12,7 +30,7 @@ export function lireFluxVeille(xml:string,source:string){
   const champ=(tag:string)=>texte(bloc[1].match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`))?.[1]??'');
   const titre=champ('title'),url=sourceVeille(champ('link')),date=champ('dc:date')||champ('pubDate');
   if(!url||titre.length<5||titre.length>300||!/(logement|locat|bail|loyer|immobili|artisan|bâtiment|batiment|dpe|décennal|decennal|rénovat|renovat|factur|devis|tva|cotisation|micro.entrepr|copropri|rge\b)/i.test(titre+' '+champ('description')))continue;
-  trouves.push({source_url:url,titre,source_nom:source,publie_source_le:Number.isFinite(Date.parse(date))?new Date(date).toISOString():null});
+  trouves.push({source_url:url,titre,source_nom:nomDeSource(url,source),publie_source_le:Number.isFinite(Date.parse(date))?new Date(date).toISOString():null});
  }
  return [...new Map(trouves.map(x=>[x.source_url,x])).values()];
 }

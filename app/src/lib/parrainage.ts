@@ -56,9 +56,10 @@ export const JOURS_ESSAI_FILLEUL = 30;
 /** Ce que gagne le parrain quand son filleul devient payant : trente jours. */
 export const JOURS_OFFERTS_PARRAIN = 30;
 
-/** La promesse, en une phrase — la même partout où on la fait. */
-export const PROMESSE_PARRAINAGE =
-  "Un mois pour vous, un mois pour lui : votre filleul démarre avec 30 jours d'essai au lieu de 14, et vous recevez un mois offert dès qu'il devient client.";
+// La promesse « un mois pour vous, un mois pour lui » n'est plus affichée
+// (décision du porteur du 29/09 : pas de cumul avec la grille, pour aucune
+// organisation). Les durées ci-dessus restent le miroir de la base, que le
+// test `avantage-parrainage` compare ; l'écran affiche PARRAINAGE_EN_REVISION.
 
 export type NatureAvantage = "essai_filleul" | "essai_parrain" | "avoir_parrain";
 export type EtatAvantage = "a_appliquer" | "applique" | "sans_objet" | "en_attente";

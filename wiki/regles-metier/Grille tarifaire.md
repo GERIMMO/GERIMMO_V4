@@ -3,7 +3,7 @@ type: business-rule
 tags: [tarifs, stripe, abonnement]
 status: stable
 created: 2026-07-21
-updated: 2026-09-28
+updated: 2026-09-29
 sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]"]
 ---
 

@@ -3,7 +3,7 @@ type: source
 tags: [maquette, prototype, charte, v3, parcours]
 status: stable
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-29
 sources: []
 source-file: raw/maquettes/2026-09-04-gerimmo-prototype-v3.html
 source-type: maquette cliquable (HTML autonome)

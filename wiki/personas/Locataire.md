@@ -3,7 +3,7 @@ type: persona
 tags: [role, locataire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-25
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-module-9-devis-et-facturation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]"]
 ---
 

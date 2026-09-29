@@ -3,7 +3,7 @@ type: synthesis
 tags: [design-system, charte, ux, ergonomie, animation, marque-blanche, personas]
 status: stable
 created: 2026-09-24
-updated: 2026-09-26
+updated: 2026-09-29
 sources: ["[[Charte visuelle v3 bleue]]", "[[Charte visuelle de l'espace agent]]", "[[2026-08-08-maquette-prototype-cliquable]]", "[[Marque blanche]]"]
 ---
 

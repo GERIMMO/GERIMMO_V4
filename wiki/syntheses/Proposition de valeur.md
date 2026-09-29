@@ -3,7 +3,7 @@ type: synthesis
 tags: [vision, proposition-de-valeur, strategie]
 status: stable
 created: 2026-09-10
-updated: 2026-09-10
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-09-04-maquette-v3-prototype]]", "[[2026-09-08-maquette-espace-agence-v6]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]"]
 ---
 

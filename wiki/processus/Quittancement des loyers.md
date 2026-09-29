@@ -3,7 +3,7 @@ type: process
 tags: [loyer, quittance, facturation-locative]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-18
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]"]
 ---
 
@@ -68,7 +68,7 @@ intégral et reçu sur paiement partiel (RM-3.4.1, RM-3.4.2).
 Depuis le 11/09, la **génération est automatique** : une tâche planifiée
 (`cycle_mensuel_interne`, pg_cron, le 1er du mois à 5 h UTC) parcourt les baux
 actifs et en préavis, crée les appels manquants et resynchronise quittances et
-reçus. Elle ne sert **pas** les organisations dont l'abonnement est fermé
+reçus. Elle ne sert **pas** les organisations dont l'[[Abonnement|abonnement]] est fermé
 (lecture seule). Le bouton « Générer l'échéancier » reste, comme rattrapage.
 
 Une seconde tâche, quotidienne, **constate les impayés** sous forme d'alerte par

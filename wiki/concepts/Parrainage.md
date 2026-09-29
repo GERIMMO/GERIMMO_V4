@@ -3,7 +3,7 @@ type: concept
 tags: [parrainage, croissance, expansion, acquisition, proprietaire-direct, agence]
 status: stable
 created: 2026-09-19
-updated: 2026-09-28
+updated: 2026-09-29
 sources: ["[[2026-09-28-decision-tarification]]"]
 ---
 

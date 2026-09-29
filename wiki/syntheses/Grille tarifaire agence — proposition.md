@@ -3,7 +3,7 @@ type: synthesis
 tags: [tarifs, agence, abonnement, stripe, proposition]
 status: draft
 created: 2026-09-12
-updated: 2026-09-28
+updated: 2026-09-29
 sources: ["[[2026-09-28-decision-tarification]]", "[[Grille tarifaire]]", "[[Analyse concurrentielle]]", "[[Mandat de gestion]]", "[[Cycle de vie de l'abonnement]]", "[[Abonnement]]"]
 ---
 

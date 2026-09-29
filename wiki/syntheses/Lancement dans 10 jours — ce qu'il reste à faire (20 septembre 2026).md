@@ -3,7 +3,7 @@ type: synthesis
 tags: [lancement, production, configuration, stripe, e-mails, rgpd, checklist]
 status: stable
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-29
 sources: ["[[État du projet et décisions ouvertes]]", "[[Gerimmo en autonomie]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Fonctionnalités par persona]]"]
 ---
 # Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)

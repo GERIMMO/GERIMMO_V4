@@ -3,7 +3,7 @@ type: source
 tags: [copropriete, syndic, charges, ventilation, tantieme, module-0c]
 status: stable
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-29
 source-file: raw/assets/GERIMMO-V3-Module-0c-Copropriete.md
 source-type: module du référentiel des parcours clients (V3)
 source-date: 2026-07-24

@@ -3,7 +3,7 @@ type: synthesis
 tags: [recap, fonctionnalites, specifications, roadmap, archive]
 status: stable
 created: 2026-07-22
-updated: 2026-07-25
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[Fonctionnalités par persona]]"]
 ---
 

@@ -3,7 +3,7 @@ type: concept
 tags: [multi-tenant, organisation, socle]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-09
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
 ---
 

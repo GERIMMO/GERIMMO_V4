@@ -3,7 +3,7 @@ type: concept
 tags: [comptabilite, finances, gerant]
 status: draft
 created: 2026-07-22
-updated: 2026-08-30
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-module-4-comptabilite]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]"]
 ---
 

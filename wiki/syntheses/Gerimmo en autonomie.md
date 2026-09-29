@@ -3,7 +3,7 @@ type: synthesis
 tags: [autonomie, exploitation, debogage, evolution, routines, securite, france, rgpd]
 status: draft
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-09-29
 sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 

@@ -3,7 +3,7 @@ type: synthesis
 tags: [divergences, migration, code, referentiel-v3]
 status: in-progress
 created: 2026-07-25
-updated: 2026-07-25
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
@@ -20,7 +20,7 @@ rejoindre.
 - **`profiles` global unique → scission `accounts` / `persons` (par agence) /
   `memberships`** ([[Compte, personne et adhésion]], [[Architecture du socle V3]]).
   L'email globalement unique du code anticipe déjà RM-A1.1.
-- **6 rôles du code vs 3 rôles V3** (agent, admin agence, super admin) : le V3 traite
+- **6 rôles du code vs 3 rôles V3** (agent, admin agence, [[Super Admin|super admin]]) : le V3 traite
   locataire/artisan/PD comme des espaces, pas des rôles. `member_type` vs `roles.key`
   non liés en DB ; RBAC fin dormant (`permissions` non peuplées) ; docs
   `02-roles-permissions.md` fictive. → [[Modèle de rôles et permissions]]

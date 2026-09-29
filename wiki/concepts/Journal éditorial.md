@@ -3,7 +3,7 @@ type: concept
 tags: [journal, vitrine, super-admin, editorial, seo]
 status: stable
 created: 2026-09-11
-updated: 2026-09-11
+updated: 2026-09-29
 sources: ["[[Super Admin]]", "[[Proposition de valeur]]", "[[Révision annuelle IRL]]", "[[Régularisation des charges]]"]
 ---
 

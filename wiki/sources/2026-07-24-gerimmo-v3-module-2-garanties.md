@@ -3,7 +3,7 @@ type: source
 tags: [depot-de-garantie, caution, garant, visale, gli, vetuste, restitution, module-2]
 status: stable
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-29
 source-file: raw/assets/GERIMMO-V3-Module-2-Garanties.md
 source-type: module du référentiel des parcours clients (V3)
 source-date: 2026-07-24

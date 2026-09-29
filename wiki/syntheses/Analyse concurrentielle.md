@@ -3,7 +3,7 @@ type: synthesis
 tags: [concurrence, marche, positionnement]
 status: in-progress
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-09-29
 sources: ["[[2026-07-22-rentila-site-web]]", "[[2026-07-22-smovin-site-web]]", "[[2026-07-22-oskar-la-boite-immo]]"]
 ---
 

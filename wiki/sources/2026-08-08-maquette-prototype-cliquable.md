@@ -3,7 +3,7 @@ type: source
 tags: [charte, visuel, maquette, prototype, ux, alertes]
 status: stable
 created: 2026-08-08
-updated: 2026-09-17
+updated: 2026-09-29
 sources: []
 source-file: raw/maquettes/2026-08-08-gerimmo-prototype.html
 source-type: maquette HTML cliquable

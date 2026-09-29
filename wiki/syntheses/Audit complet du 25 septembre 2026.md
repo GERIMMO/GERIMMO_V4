@@ -3,7 +3,7 @@ type: synthesis
 tags: [audit, production, console, supervision, point-du-matin, notifications, ergonomie, personas, ci]
 status: stable
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-29
 sources: ["[[Design system Gerimmo]]", "[[Gerimmo en autonomie]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Fonctionnalités par persona]]", "[[Modèle de rôles et permissions]]"]
 ---
 # Audit complet du 25 septembre 2026

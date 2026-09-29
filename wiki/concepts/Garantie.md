@@ -3,7 +3,7 @@ type: concept
 tags: [garantie, caution, garant, visale, gli, caution-bancaire, bail]
 status: draft
 created: 2026-07-24
-updated: 2026-08-05
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 

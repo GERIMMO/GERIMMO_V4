@@ -3,7 +3,7 @@ type: concept
 tags: [mandat, honoraires, seuil-delegation, agence]
 status: draft
 created: 2026-07-24
-updated: 2026-09-16
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 

@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-29
 sources: ["[[Fonctionnalités par persona]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]"]
 ---
 
@@ -25,7 +25,7 @@ ce que le banc a prouvé tient en production.
 ## Acteurs
 - Le porteur du projet, avec deux boîtes mail qu'il contrôle (une pour
   l'agence de recette, une pour un « locataire » de recette) et une carte
-  bancaire réelle pour l'abonnement (à rembourser ensuite depuis Stripe).
+  bancaire réelle pour l'[[Abonnement|abonnement]] (à rembourser ensuite depuis Stripe).
 - L'agent LLM, pour lire les journaux et consigner.
 
 ## Avant de commencer

@@ -3,7 +3,7 @@ type: process
 tags: [solde-de-tout-compte, fin-de-bail, depot-de-garantie, impayes]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
 ---
 

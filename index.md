@@ -8,7 +8,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Administrateur d'agence]] — « agent ++ » : administration, paramétrages, vue retards.
 - [[Agent immobilier]] — gestion locative quotidienne ; limité à ses mandats (V3).
 - [[Propriétaire bailleur]] — deux personas V3 : mandant (aucun accès, compte rendu mensuel reçu) vs gestion directe (accès complet).
-- [[Artisan]] — intervenant sur incidents ; pièces auto-gérées, décennale, score composite.
+- [[Artisan]] — intervenant sur incidents ; pièces auto-gérées, **décennale et RC pro** en cours pour valider l'inscription (27/09), score composite ; réseau ouvert par commune × métier (28/09).
 - [[Locataire]] — occupant ; incidents, quittances, assurance annuelle, portail restreint.
 
 ## Processus
@@ -24,7 +24,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
-- [[Onboarding et abonnement]] — création d'agence, invitations, essai 14 j.
+- [[Onboarding et abonnement]] — création d'agence, invitations, essai 14 j sans carte puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU).
 - [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées et conservation des signalements ; réalisation et preuves séparées des fonctionnalités restantes.
 
 ## Concepts
@@ -44,7 +44,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Types de baux]] — panorama des 10 régimes locatifs ; périmètre V3 vs hors périmètre.
 - [[Structure du modèle-type de bail]] — les 11 sections du formulaire officiel, blueprint du générateur 1.16 ; 7 champs manquants.
 - [[État des lieux]] — constat mobile pièce par pièce ; sans EDL d'entrée, pas de retenue.
-- [[Signature électronique]] — circuit Yousign : simple, séquentiel, bailleur en dernier.
+- [[Signature électronique]] — circuit Yousign : simple, séquentiel, bailleur en dernier ; **non activée au lancement** du 30/09 (circuit de transition V0).
 - [[Marque blanche]] — logo + couleurs par agence ; mention Gerimmo conservée.
 - [[Dépôt de garantie]] — plafonné, jamais révisé ; colocation à bail commun nue/meublée clarifiée le 14/09.
 - [[Garantie]] — caution solidaire (acte Yousign) et garanties externes.
@@ -56,16 +56,16 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Intervention]] — mission de l'artisan ; compte rendu + photo obligatoires.
 - [[Document]] — GED sans arborescence ; le type pilote droits et conservation.
 - [[Période de loyer]] — le loyer attendu du code actuel ; cible : appel/encaissement.
-- [[Abonnement]] — souscription SaaS Stripe de l'organisation.
+- [[Abonnement]] — souscription SaaS Stripe de l'organisation ; grille du 28/09 (formules particuliers, tranches agences), franchise de TVA, portail Stripe limité à la résiliation.
 - [[Agenda et échéances]] — écran unique agenda + 27 types d'alertes, escalade nominative. Contient le relevé du 19/09 : l'écran de traitement contredisait RM-14.3.2 (« fermeture par l'action, jamais par marquage »), et les **douze** types d'alerte qui se referment d'eux-mêmes.
-- [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. **Un mois pour vous, un mois pour lui** : essai du filleul porté à 30 jours, un mois offert au parrain quand son filleul devient client payant. **28/09** : avantages « en attente » pour la nouvelle grille, jusqu'à arbitrage.
+- [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. **Un mois pour vous, un mois pour lui** : essai du filleul porté à 30 jours, un mois offert au parrain quand son filleul devient client payant. **Depuis le 28/09** : recommandation enregistrée **sans avantage tarifaire** (pas de cumul avec la nouvelle grille).
 
 ## Règles métier
-- [[Grille tarifaire]] — **28/09/2026** : particuliers Solo 5,99 € → Patrimoine 29,99 € TTC/mois (annuel = 2 mois offerts, +1 €/bien au-delà de 20) ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives ; plus de premier bien offert ; grilles antérieures en historique.
+- [[Grille tarifaire]] — **28/09/2026** : particuliers Solo 5,99 € → Patrimoine 29,99 € TTC/mois (annuel = 2 mois offerts, +1 €/bien au-delà de 20) ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives ; plus de premier bien offert ; franchise en base de TVA (art. 293 B du CGI) ; grilles antérieures en historique.
 - [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
 - [[Mentions obligatoires du bail]] — modèle-type et compléments DPE, servitude, clauses et honoraires revus le 14/09/2026 ; revue de tous les régimes encore ouverte.
 - [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.
-- [[Cycle de vie de l'abonnement]] — essai 14 j → paiement ou suspension.
+- [[Cycle de vie de l'abonnement]] — essai 14 j → paiement, ou **gel en lecture seule** (consultable, exportable) ; résiliation en fin de période, préavis de révision d'un mois (art. 8.8), rétractation 14 j (art. 8.9), préavis de modification d'un mois (art. 16).
 - [[Archivage plutôt que suppression]] — on archive, on ne supprime pas.
 - [[Isolation multi-organisation]] — RLS partout + test d'isolation par table.
 - [[RGPD]] — droits des personnes, durées de conservation, purge encadrée.
@@ -76,9 +76,11 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Vétusté et décote]] — grille de durées de vie, décote linéaire ; amorti = zéro retenue.
 - [[Plan de reprise d'activité]] — RPO 24 h / RTO 4 h, test de restauration documenté.
 - [[Socle de sécurité]] — MFA super administrateur, contrôle AAL2 et séparation des droits de supervision et de signature.
+- [[Ouverture du réseau d'artisans]] — **28/09** : gestion locative nationale ; seul le réseau d'artisans s'ouvre, commune (INSEE) × métier, par le super admin (`/admin/couverture`) ; artisan validé, SIRET vérifié, public, rattaché ; « Signaler mon intérêt » en zone fermée ; carnet personnel toujours utilisable.
 
 ## Sources
 - [[2026-09-28-decision-tarification|Décision tarifaire du 28/09/2026]] — consigne du porteur : formules particuliers, tranches agences, fin du premier bien offert, règles d'essai, de changement et de migration.
+- [[2026-09-28-reseau-national-ouvertures-locales|Réseau national, ouvertures locales (PR #132)]] — doc et migration du 28/09 : ouverture du réseau d'artisans par commune × métier, intérêts signalés, carnet personnel.
 - [[2026-09-20-cahier-des-charges-maitre-v3|Cahier maître V3 — audit des 100 sections]] — référence prioritaire ; couverture réelle, écarts et plan V1 documentés dans app/docs.
 - [[2026-09-14-service-public-depot-colocation]] — source officielle : bail commun nu/meublé et plafond du dépôt hors charges.
 - [[Dépôt Gerimmo-V3]] — le code (2026-07-21) : SQL, services, état réel.
@@ -146,15 +148,15 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Expansion territoriale autonome]] — **19/09** : Gerimmo gagne du terrain seule, département après département (Essonne → voisins → région → région suivante choisie par score, automatiquement). Boucle mensuelle, sources publiques (INSEE, SIRENE, zones tendues), limites d'argent, de loi (particuliers jamais démarchés ; publicité Instagram/Facebook autorisée), de santé et de rythme ; ordre de construction.
 - [[Charte visuelle de l'espace agent]] — complète le design-system V3 : 6 patterns validés en recette, états d'interface, formats, accessibilité. ⚠ Valeurs supplantées par la charte v3.
 - [[Coherence maquette-application|Cohérence maquette ↔ application]] — audit du 14/08 : conformités des écrans Tableau de bord/Parc/Personnes et **tableau des écarts assumés** (à lire avant toute recette visuelle).
-- [[État du projet et décisions ouvertes]] — arbitrages quasi tous clos (25/07) ; reste les montants PD.
+- [[État du projet et décisions ouvertes]] — arbitrages tranchés (tarifs, TVA, préavis, rétractation au 28–29/09) ; reste l'identité de l'éditeur.
 - [[Divergences code et référentiel V3]] — les écarts à résorber par la migration.
 - [[Audit espaces locataire et proprietaire|Audit des espaces locataire et propriétaire]] — audit pré-recette du 06/09 : 10 bloquants (congé en ligne vs RM-A3, colocataires, préavis, storage des justificatifs, déconnexion mobile, impasse détention PD…), conformités vérifiées, plan de correction en 3 vagues.
 - [[Analyse concurrentielle]] — panorama FR/BE, différenciateur incidents/artisans.
-- [[Grille tarifaire agence — proposition]] — barème par tranches sans marche ; **en attente d'arbitrage**.
+- [[Grille tarifaire agence — proposition]] — barème par tranches sans marche du 12/09 ; **supplantée le 28/09** par [[Grille tarifaire]].
 - [[Fonctionnalités par persona]] — matrice qui-fait-quoi (implémenté vs cible).
 - [[Etat des lieux generation de documents]] — **catalogue complet (16/09)** : 55 entrées, **55 générables** ; la facture d’honoraires clôt la liste — numérotation continue, mentions de l’émetteur, TVA extraite du TTC. Épreuves historiques toujours absentes ; avoir, Cerfa CAF/MSA et livrables techniques restent ouverts.
 - [[Documents a generer et automatisation WhatsApp]] — blueprint des documents (bail, EDL, congés…) : champ par champ AUTO vs à demander, données manquantes, surface de questions minimale pour le bot.
-- [[Récapitulatif fonctionnel et lacunes de spécification]] — **archivée** (snapshot du 2026-07-22, supplanté par le référentiel V3).
+- [[Récapitulatif fonctionnel et lacunes de spécification]] — **archivée** (statut `stable`, contenu figé) (snapshot du 2026-07-22, supplanté par le référentiel V3).
 
 ## Livrables (dossier `livrables/` — projets de documents)
 - [[Contrat de sous-traitance RGPD (modele)|Contrat de sous-traitance RGPD]] — annexe art. 28 des contrats d'agence (matrice A2, mesures A4, sous-traitants).
@@ -167,6 +169,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Reste a faire V0 - sprints et ecarts maquette|Reste à faire V0]] — détail fin S8/S9b + inventaire des écarts maquette ↔ app du 26/08 ; S9a et « Alertes & documents » livrés le 30/08 (§3, §5 bis).
 - [[Recette S3-S8 - scenarios]] — les 24 scénarios de recette humaine remis le 05/08 (référence de numérotation).
 - [[Recette - test par sprint et persona]] — **le fichier central de recette** (ex « Recette S3-S8 - tests par sprint et persona », renommé le 23/08) : Partie 1 recetté OK / Partie 2 reste à recetter (re-tests du 23/08, Sprint 7 incidents, sprints jamais déroulés, transverse).
+- [[Recette Sprint 2 - scenarios]] — les scénarios de recette du Sprint 2 (le parc) remis le 30/07 : pop-up d'alertes, mise en location depuis la fiche du bien.
 - [[Recette S7 - incidents]] — les scénarios détaillés du Sprint 7 (déclaration locataire, qualification, clôture, réouverture, pop-up de traitement).
 
 - [[Référentiel vérifiable Gerimmo du 12 septembre 2026]] — 465 exigences et neuf personas ; minimum demandé, couverture à prouver dans la version publiée.

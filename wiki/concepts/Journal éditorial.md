@@ -32,7 +32,7 @@ change), le gabarit laisse un **trou explicite** : `[[à compléter : …]]`. Un
 déclencheur de base **refuse la parution** tant qu'il en reste un, en nommant le
 passage fautif. L'écran d'écriture les liste et désactive le bouton de parution.
 
-> C'est la règle « ne jamais inventer de fait métier » ([[CLAUDE.md]]) rendue
+> C'est la règle « ne jamais inventer de fait métier » (`CLAUDE.md`, le schéma du wiki) rendue
 > **mécanique** plutôt que confiée à la vigilance. Il vaut mieux une file qui
 > attend qu'un article qui affirme.
 

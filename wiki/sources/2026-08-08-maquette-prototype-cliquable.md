@@ -46,7 +46,7 @@ Charte portée dans `app/` sur le périmètre validé bloc 0 → S3 : jetons de
 `globals.css` (marque blanche préservée : les composants ne portent aucune couleur
 en dur), layout agence, connexion, espaces, tableau de bord, alertes, parc.
 La maquette a aussi servi de spécification au retour recette sur les
-[[Module 14 — agenda et alertes|alertes]] : assignation obligatoire, « Tout le
+[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes|alertes]] : assignation obligatoire, « Tout le
 monde », alertes confiées grisées, modale de traitement.
 
 > [!warning] Points à trancher / contradictions

@@ -31,8 +31,7 @@ administrée par un syndic **tiers**.
    qui transmet à l'agence — l'agence n'est pas destinataire directe. Conséquence :
    elle dépend d'un tiers pour un document indispensable, d'où le parcours de
    **relance 0c.6** (« pas un confort, une nécessité »). → [[Appel de charges]]
-2. **Deux natures de charges** : **récupérable** (locataire → [[Régularisation des
-   charges]] 3.9 — ascenseur, eau, chauffage, ménage) vs **non récupérable**
+2. **Deux natures de charges** : **récupérable** (locataire → [[Régularisation des charges]] 3.9 — ascenseur, eau, chauffage, ménage) vs **non récupérable**
    (propriétaire → rapport de gestion 6.2 — travaux, honoraires du syndic, fonds
    ALUR). « Une erreur de ventilation ne se voit pas : elle produit une régularisation
    plausible mais fausse » — le locataire à qui on facture le ravalement.

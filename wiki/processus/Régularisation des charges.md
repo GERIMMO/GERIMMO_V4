@@ -80,7 +80,6 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
 >   confirmés et détaillés par le module 3 (année civile, justificatifs bloquants,
 >   prorata en jours).
 > - ~~Le solde transite-t-il par une période ajustée ou un objet dédié ?~~ → **tranché
->   (module 3)** : appel complémentaire ou avoir, et intégration au [[Solde de tout
->   compte]] en fin de bail.
+>   (module 3)** : appel complémentaire ou avoir, et intégration au [[Solde de tout compte]] en fin de bail.
 > - Nature exacte du justificatif accepté (facture, décompte de copropriété, relevé…) —
 >   toujours ouverte, probablement précisée au module 12.

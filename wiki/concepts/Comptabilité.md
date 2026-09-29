@@ -105,8 +105,7 @@ encaissement (4.2) et restitution (4.1) produisent simplement **deux écritures*
 ## Relations
 - **Amont module 3 (2026-07-24)** : « chaque encaissement produit une écriture » ; le
   module 3 confirme l'absence de synchronisation bancaire (saisie manuelle, décision
-  actée — cohérent avec le choix humain du 2026-07-22). Voir [[Quittancement des
-  loyers]] et [[Solde de tout compte]].
+  actée — cohérent avec le choix humain du 2026-07-22). Voir [[Quittancement des loyers]] et [[Solde de tout compte]].
 - Consomme : [[Période de loyer]], [[Régularisation des charges]], [[Intervention]] (coûts).
 - Sert : reporting financier du [[Propriétaire bailleur]] ([[2026-07-21-fonctionnalites-par-persona-v0]]),
   [[Fiscalité]].

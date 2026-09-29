@@ -28,15 +28,12 @@ tient le référentiel d'un parc (biens, lots, baux, personnes, mandats), produi
 les documents de la location, suit les loyers et les incidents, et ouvre à
 chaque partie prenante un espace propre.
 
-Elles forment, avec la [[Politique de confidentialite (projet)|politique de
-confidentialité]] et — lorsque le Client traite des données pour le compte
-d'autrui — le [[Contrat de sous-traitance RGPD (modele)|contrat de
-sous-traitance]], l'intégralité de l'accord entre le Client et l'Éditeur.
+Elles forment, avec la [[Politique de confidentialite (projet)|politique de confidentialité]] et — lorsque le Client traite des données pour le compte
+d'autrui — le [[Contrat de sous-traitance RGPD (modele)|contrat de sous-traitance]], l'intégralité de l'accord entre le Client et l'Éditeur.
 
 ## Article 2 — Définitions
 
-**Éditeur** : la société identifiée aux [[Mentions legales (projet)|mentions
-légales]].
+**Éditeur** : la société identifiée aux [[Mentions legales (projet)|mentions légales]].
 
 **Service** : l'application Gerimmo, ses espaces, ses documents générés et ses
 exports.
@@ -238,13 +235,11 @@ une disponibilité annoncée est une obligation contractuelle.]`
 
 ## Article 11 — Données personnelles
 
-Le traitement des données est décrit dans la [[Politique de confidentialite
-(projet)|politique de confidentialité]].
+Le traitement des données est décrit dans la [[Politique de confidentialite (projet)|politique de confidentialité]].
 
 **Répartition des rôles.** Pour les données de gestion locative (baux, pièces,
 loyers, incidents, messages), **le Client est responsable de traitement et
-l'Éditeur sous-traitant** : leurs rapports sont régis par le [[Contrat de
-sous-traitance RGPD (modele)|contrat de sous-traitance]], qui fait partie
+l'Éditeur sous-traitant** : leurs rapports sont régis par le [[Contrat de sous-traitance RGPD (modele)|contrat de sous-traitance]], qui fait partie
 intégrante du présent accord. Pour les traitements de plateforme (comptes,
 authentification, facturation), l'Éditeur est responsable.
 
@@ -318,8 +313,7 @@ Les présentes conditions sont soumises au **droit français**.
 En cas de litige, les parties recherchent une solution amiable. À défaut :
 
 - **Client consommateur ou non-professionnel** : recours gratuit au médiateur
-  de la consommation désigné aux [[Mentions legales (projet)|mentions
-  légales]], puis juridiction compétente selon les règles de droit commun.
+  de la consommation désigné aux [[Mentions legales (projet)|mentions légales]], puis juridiction compétente selon les règles de droit commun.
 - **Client professionnel** : `[à compléter — attribution de compétence
   éventuelle]`.
 

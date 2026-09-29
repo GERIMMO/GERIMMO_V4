@@ -9,8 +9,7 @@ sources: ["[[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite]]", "[[2026-07-
 
 # Rapport de gestion
 
-**En une phrase :** le document mensuel envoyé au [[Propriétaire bailleur|propriétaire
-mandant]] — **son seul contact avec le service** (« c'est à travers lui qu'il juge la
+**En une phrase :** le document mensuel envoyé au [[Propriétaire bailleur|propriétaire mandant]] — **son seul contact avec le service** (« c'est à travers lui qu'il juge la
 qualité — et décide de renouveler son mandat »).
 Source : [[2026-07-24-gerimmo-v3-module-6-rapport-et-fiscalite|Module 6]].
 

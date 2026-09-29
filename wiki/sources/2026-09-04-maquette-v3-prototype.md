@@ -13,7 +13,7 @@ source-date: 2026-09-04
 # Maquette v3 — prototype cliquable (4 septembre 2026)
 
 Troisième version du prototype cliquable remis par Tahir (les deux premières :
-[[Maquette — prototype cliquable (charte v2)]] du 8/08 et la révision du 23/08).
+[[2026-08-08-maquette-prototype-cliquable|Maquette — prototype cliquable (charte v2)]] du 8/08 et la révision du 23/08).
 Déposée dans `raw/maquettes/2026-09-04-gerimmo-prototype-v3.html`. Demande
 associée : **intégrer à l'application les fonctionnalités et le visuel**.
 

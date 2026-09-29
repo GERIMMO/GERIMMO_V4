@@ -97,8 +97,7 @@ uniquement**, essai **14 jours**, EUR.
 « **Gerimmo compte, Stripe encaisse et facture** » (RM-18.6.9). **Trois flux** : mise
 en route (une fois), **abonnement exclusivement mensuel** (RM-18.6.7), **redevance
 annuelle** à la date anniversaire. **Deux modèles** : agences **par palier de lots**,
-propriétaires directs **par bien**. **Comptage automatique : lot sous [[Mandat de
-gestion|mandat]] actif au dernier jour du mois** (vacant compté, sans mandat non).
+propriétaires directs **par bien**. **Comptage automatique : lot sous [[Mandat de gestion|mandat]] actif au dernier jour du mois** (vacant compté, sans mandat non).
 Essai **14 jours** sans restriction → alerte J-3 → **lecture seule** (données
 conservées). Échec de prélèvement → relance puis suspension (module 18.4), **jamais
 suppression**.

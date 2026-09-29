@@ -74,8 +74,7 @@ Trois jeux de seuils déjà spécifiés par le socle :
   pour vente (RM-1.11.6) ; **extinction de solidarité** d'un colocataire parti
   (RM-1.3.5) ; alertes d'[[État des lieux]] d'entrée (à la signature) et de sortie
   (au congé).
-- **Garanties** (module 2) : **délai de [[Restitution du dépôt de garantie|restitution
-  du dépôt]]** — compteur lancé à la remise des clés (1 ou 2 mois, US-2.4.4 : alerte à
+- **Garanties** (module 2) : **délai de [[Restitution du dépôt de garantie|restitution du dépôt]]** — compteur lancé à la remise des clés (1 ou 2 mois, US-2.4.4 : alerte à
   l'approche du terme légal) ; **échéance de garantie** ([[Garantie]] — fin d'engagement
   d'un garant, extinction liée à celle du colocataire couvert).
 - **Loyers** (module 3) : **impayés** (circuit à seuils paramétrés, relances

@@ -57,8 +57,7 @@ voir [[RGPD]].
 
 `organizations.signature_path` : l'image de signature (PNG/JPEG ≤ 1 Mo) que le
 **responsable** (admin d'agence ou propriétaire direct) dépose au profil de
-l'organisation, apposée sur les documents émis seuls ([[Signature
-électronique]]). Lecture Storage par policy dédiée (le fichier n'a pas de ligne
+l'organisation, apposée sur les documents émis seuls ([[Signature électronique]]). Lecture Storage par policy dédiée (le fichier n'a pas de ligne
 `documents`) ; au remplacement ou au retrait, l'ancien fichier part en file de
 purge (`purge_fichiers`) — une signature manuscrite est une donnée personnelle,
 rien ne traîne ([[RGPD]]).

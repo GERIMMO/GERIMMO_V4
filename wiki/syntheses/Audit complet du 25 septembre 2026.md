@@ -44,8 +44,7 @@ Trois audits de code en lecture seule, menés en parallèle sur `main`
 | Écrans propriétaire + locataire | 32 écrans, 64 captures | 44 défauts uniques, 5 P1 |
 | Écrans artisan + public + console | 46 écrans, 92 captures | 57 défauts uniques, 6 P1 |
 
-Chaque écran a été jugé à la même aune que le 24/09 ([[Design system
-Gerimmo]] : un seul bandeau, tout le carré se clique, pas de clic pour rien,
+Chaque écran a été jugé à la même aune que le 24/09 ([[Design system Gerimmo]] : un seul bandeau, tout le carré se clique, pas de clic pour rien,
 44 px au doigt, les mots du persona) et, pour la console, à l'aune de
 l'objectif du porteur : *ce qu'on voit d'abord, ce qui coûte un clic, ce qui
 est de l'information sans décision, ce qui manque pour décider*.

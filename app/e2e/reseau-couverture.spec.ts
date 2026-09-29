@@ -23,10 +23,8 @@ test.describe("Couverture du réseau depuis le bien", () => {
     await page.getByRole("link", { name: "Vérifier les artisans disponibles pour ce bien" }).click();
     await page.getByLabel("Métier recherché", { exact: true }).selectOption("plomberie");
     await page.getByRole("button", { name: "Vérifier pour ce bien" }).click();
-    await expect(page.getByText("Complétez l’adresse du bien et confirmez sa commune pour vérifier la disponibilité du réseau.", { exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Signaler mon intérêt" })).toHaveCount(0);
-    await page.getByLabel("Commune exacte du bien").selectOption("69123");
-    await page.getByRole("button", { name: "Confirmer la commune", exact: true }).click();
+    // Audit 29/09 : la commune évidente (69003 → Lyon, 69123) est proposée et
+    // confirmée dès la création du bien — plus d'étape de confirmation ici.
     await expect(page.getByText("Le réseau d’artisans Gerimmo n’est pas encore disponible pour ce métier dans cette zone.", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Signaler mon intérêt" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Aucune demande d’intervention" })).toBeVisible();

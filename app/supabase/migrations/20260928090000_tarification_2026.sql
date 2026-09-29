@@ -12,7 +12,7 @@
 --     cumulatives. Plus de plafond « sur devis » à 600 lots.
 --   · Essai de 14 jours sans carte ; à son terme, souscription explicite.
 --
--- LA MÊME GRILLE VIT DANS src/lib/tarifs.ts ; `tests/tarifs-grille-sql.test.ts`
+-- LA MÊME GRILLE VIT DANS src/lib/tarifs.ts ; `tests/tarification-2026.test.ts`
 -- compare les deux unité par unité.
 --
 -- LES ORGANISATIONS EXISTANTES (décisions du porteur, même jour) : « le

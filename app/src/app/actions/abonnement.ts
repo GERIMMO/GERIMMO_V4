@@ -8,10 +8,8 @@ import {
   assurerClientStripe,
   clientStripe,
   configurationStripe,
-  creerSessionPaiement,
   ouvrirPortailFacturation,
-  prixPour,
-  type PublicTarif,
+  verifierClientDeLOrganisation,
 } from "@/lib/stripe";
 import { origineDeRetour } from "@/lib/site";
 import { REGIME_TVA } from "@/lib/editeur";
@@ -20,10 +18,13 @@ import {
   apercuChangement,
   appliquerHausse,
   creerSessionOffre,
+  libererEcheancierDe,
   offrePour,
   resilierAEcheance,
+  type ChoixOffre,
 } from "@/lib/stripe-offres";
-import { offreAgence, offreParticulier, type Periodicite } from "@/lib/tarifs";
+import { clientDeService } from "@/lib/supabase/service";
+import { offreAgence, offreParticulier, type Offre, type Periodicite } from "@/lib/tarifs";
 
 export type EtatAbonnementAction = { erreur?: string };
 
@@ -55,9 +56,11 @@ async function origineDeLaRequete(): Promise<string | null> {
  *
  * QUI PEUT L'APPELER. Les trois gardes tiennent en base : `abonnement_client_pose`
  * et `mon_client_stripe` sont réservées au responsable de l'organisation. Cette
- * action ne porte AUCUNE clé de service — souscrire est un geste d'utilisateur
- * connecté, pas une tâche de plateforme. La seule clé qu'elle touche est celle
- * de Stripe, qui ne donne accès qu'à la facturation.
+ * action ne porte la clé de service que pour deux gestes d'exception, chacun
+ * APRÈS qu'une lecture réservée au responsable a prouvé le droit : remplacer
+ * un client Stripe supprimé, et quitter la grille historique sans
+ * souscription vivante (audit 29/09). Elle touche aussi la clé de Stripe, qui
+ * ne donne accès qu'à la facturation.
  *
  * ELLE MARCHE MÊME SI LE COMPTE EST FERMÉ, et c'est le point délicat : la garde
  * d'écriture des comptes suspendus exclut délibérément les tables d'abonnement
@@ -115,6 +118,72 @@ async function lireEtat(orgId: string) {
 }
 
 /**
+ * « explicite » quand l'offre coûte plus que celle qui couvre le portefeuille
+ * d'aujourd'hui : le client a choisi une formule supérieure (ou des lots en
+ * réserve). La tâche de nuit ne la rabaisse pas d'elle-même à l'échéance.
+ */
+function choixDe(offre: Offre, unitesACouvrir: number): ChoixOffre {
+  const couvrante =
+    offre.public === "agence" ? offreAgence(unitesACouvrir) : offreParticulier(unitesACouvrir, offre.periodicite);
+  return offre.montantCents > couvrante.montantCents || offre.capacite > Math.max(couvrante.capacite, unitesACouvrir)
+    ? "explicite"
+    : "auto";
+}
+
+/**
+ * Le client Stripe de l'organisation, retrouvé, créé ou REMPLACÉ, puis
+ * enregistré. Un client supprimé chez Stripe (audit 29/09, point 12) est
+ * remplacé par le chemin de service : `abonnement_client_pose` ne remplace
+ * jamais un client existant, et c'est voulu — l'identifiant suivi ne vient
+ * pas du navigateur. Le remplacement n'a lieu qu'après que `mon_client_stripe`
+ * (réservée au responsable) a rendu l'ancien identifiant, et que Stripe a dit,
+ * à nous, qu'il est supprimé.
+ */
+async function assurerEtEnregistrerClient(
+  stripe: ReturnType<typeof clientStripe>,
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  orgId: string,
+  org: { name: string; email_contact: string | null }
+): Promise<{ ok: true; customer: string } | { ok: false; erreur: string }> {
+  const { data: clientExistant } = await supabase.rpc("mon_client_stripe", { p_org: orgId });
+  const existant = (clientExistant as string | null) ?? null;
+  const client = await assurerClientStripe(stripe, {
+    orgId,
+    nom: org.name,
+    email: org.email_contact ?? null,
+    existant,
+  });
+  if (!client.ok) return client;
+  // Le client Stripe doit porter l'identifiant de CETTE organisation, relu
+  // chez Stripe par le serveur, avant tout enregistrement (audit sécurité
+  // 29/09).
+  const appartient = await verifierClientDeLOrganisation(stripe, client.customer, orgId);
+  if (!appartient.ok) return appartient;
+  if (client.remplace && existant) {
+    const service = clientDeService();
+    if (!service) {
+      return { ok: false, erreur: "Votre dossier de paiement doit être recréé : écrivez-nous, nous le faisons aussitôt." };
+    }
+    const { error } = await service.rpc("abonnement_client_remplace", {
+      p_org: orgId,
+      p_ancien: existant,
+      p_nouveau: client.customer,
+    });
+    if (error) return { ok: false, erreur: sansJargon(error.message) };
+    return { ok: true, customer: client.customer };
+  }
+  // On enregistre le client AVANT d'ouvrir la page de paiement. Dans l'autre
+  // ordre, un client qui paie puis ferme son onglet laisserait un webhook
+  // portant un identifiant qu'on ne saurait rattacher à personne.
+  const { error: erreurPose } = await supabase.rpc("abonnement_client_pose", {
+    p_org: orgId,
+    p_customer: client.customer,
+  });
+  if (erreurPose) return { ok: false, erreur: sansJargon(erreurPose.message) };
+  return { ok: true, customer: client.customer };
+}
+
+/**
  * Souscrire : ouvrir la page de paiement de Stripe, avec le MONTANT que le
  * client vient de lire. Grille du 28/09/2026 : formule et périodicité
  * choisies, formule plus chère que nécessaire seulement si elle est choisie
@@ -129,7 +198,7 @@ export async function demarrerAbonnement(
   const { supabase, org, etat, paiement, erreur } = await lireEtat(orgId);
   if (erreur) return { erreur: sansJargon(erreur) };
   if (!org || !etat) return { erreur: "Votre organisation n'a pas pu être lue. Rechargez la page." };
-  if (etat.grille !== GRILLE) return demarrerAbonnementHistorique(orgId);
+  if (etat.grille !== GRILLE) return basculerVersGrilleActuelle(orgId, paiement);
 
   if (paiement?.souscrit) {
     return { erreur: "Un abonnement est déjà en cours : changez de formule depuis cette page plutôt que d'en ouvrir un second." };
@@ -159,20 +228,9 @@ export async function demarrerAbonnement(
   const origine = await origineDeLaRequete();
   if (!origine) return { erreur: "L'adresse du site n'a pas pu être déterminée. Rechargez la page." };
 
-  const { data: clientExistant } = await supabase.rpc("mon_client_stripe", { p_org: orgId });
   const stripe = clientStripe(reglages.config);
-  const client = await assurerClientStripe(stripe, {
-    orgId,
-    nom: org.name,
-    email: org.email_contact ?? null,
-    existant: (clientExistant as string | null) ?? null,
-  });
+  const client = await assurerEtEnregistrerClient(stripe, supabase, orgId, org);
   if (!client.ok) return { erreur: client.erreur };
-  const { error: erreurPose } = await supabase.rpc("abonnement_client_pose", {
-    p_org: orgId,
-    p_customer: client.customer,
-  });
-  if (erreurPose) return { erreur: sansJargon(erreurPose.message) };
 
   const retour = `${origine}/agence/${orgId}/abonnement`;
   const session = await creerSessionOffre(stripe, {
@@ -183,6 +241,7 @@ export async function demarrerAbonnement(
     retourOk: `${retour}?paiement=ok`,
     retourAnnule: `${retour}?paiement=annule`,
     essaiFin: etat.statut === "essai" ? etat.essai_fin : null,
+    choix: choixDe(offre, unites),
   });
   if (!session.ok) return { erreur: session.erreur };
   redirect(session.url);
@@ -219,7 +278,13 @@ export async function confirmerHausse(
   }
   const offre = offrePour(etat.public_tarif, unites, paiement.periodicite, String(formData.get("formule") ?? ""));
   if (!offre) return { erreur: "Cette formule ne couvre pas le nombre de biens demandé." };
-  if ((paiement.montant_periode_cents ?? 0) >= offre.montantCents) {
+  // Une hausse de CAPACITÉ au même prix reste une hausse à confirmer (une
+  // agence de 5 lots qui en confie un 6ᵉ reste dans le socle) : elle n'est
+  // refusée que si elle n'augmente ni le montant ni la capacité.
+  if (
+    (paiement.montant_periode_cents ?? 0) >= offre.montantCents &&
+    offre.capacite <= (paiement.unites_souscrites ?? 0)
+  ) {
     return { erreur: "Ce changement ne coûte pas plus cher : une baisse s'applique d'elle-même à la prochaine échéance." };
   }
   if (lireEntier(formData.get("montant_attendu_cents")) !== offre.montantCents) {
@@ -247,14 +312,24 @@ export async function confirmerHausse(
     regime: REGIME_TVA,
     orgId,
     prorationDate,
+    choix: choixDe(offre, etat.unites_a_couvrir ?? 0),
   });
   if (!r.ok) {
     return { erreur: `Le changement n'a pas été appliqué, rien n'a été modifié : ${r.erreur}` };
   }
+  // L'échéancier libéré emportait une baisse ou une périodicité programmée :
+  // la tâche de nuit la reprogrammera, sur la nouvelle offre.
+  if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
   redirect(`/agence/${orgId}/abonnement?changement=ok`);
 }
 
-/** Demander une autre périodicité pour la prochaine échéance (particuliers). */
+/**
+ * Demander une autre périodicité pour la prochaine échéance (particuliers),
+ * ou revenir sur cette demande. Un échéancier déjà programmé par la tâche de
+ * nuit est libéré (audit 29/09, point 5) : sinon, une demande ANNULÉE
+ * s'appliquerait quand même à l'échéance. La tâche de nuit reprogramme ce qui
+ * reste à faire (la demande remet l'échéance « à préparer »).
+ */
 export async function demanderPeriodicite(
   orgId: string,
   _etat: EtatAbonnementAction,
@@ -268,6 +343,18 @@ export async function demanderPeriodicite(
     p_periodicite: periodicite,
   });
   if (error) return { erreur: sansJargon(error.message) };
+  const reglages = configurationStripe();
+  if (reglages.pret) {
+    const { data: souscription } = await supabase.rpc("ma_souscription_stripe", { p_org: orgId });
+    if (souscription) {
+      const r = await libererEcheancierDe(clientStripe(reglages.config), souscription as string);
+      if (!r.ok) {
+        return {
+          erreur: `Votre demande est enregistrée, mais le changement déjà programmé chez notre prestataire de paiement n'a pas pu être retiré (${r.erreur}). Réessayez dans un instant.`,
+        };
+      }
+    }
+  }
   redirect(`/agence/${orgId}/abonnement?periodicite=programmee`);
 }
 
@@ -289,106 +376,43 @@ export async function resilierAbonnement(
     resilier,
   });
   if (!r.ok) return { erreur: r.erreur };
+  // Un échéancier libéré (audit 29/09, point 5) : si la résiliation est levée,
+  // la tâche de nuit doit pouvoir reprogrammer l'échéance.
+  if (r.echeancierLibere) await supabase.rpc("abonnement_changements_a_recalculer", { p_org: orgId });
   redirect(`/agence/${orgId}/abonnement?resiliation=${resilier ? "programmee" : "annulee"}`);
 }
 
-async function demarrerAbonnementHistorique(orgId: string): Promise<EtatAbonnementAction> {
-  const reglages = configurationStripe();
-  if (!reglages.pret) {
+/**
+ * Grille historique : plus de nouvelle souscription à l'ancienne grille.
+ *
+ * Audit 29/09, point 10. Une organisation restée sur la grille historique SANS
+ * souscription vivante tombait sur « votre premier bien est offert, il n'y a
+ * rien à payer » — alors que la décision du 28/09 supprime cette gratuité et
+ * gèle le compte jusqu'au paiement : une impasse. Elle bascule désormais sur
+ * la grille actuelle (chemin de service, après la preuve que l'appelant est
+ * le responsable : `mon_abonnement` ne rend rien à un autre), puis revient
+ * sur « Mon abonnement », qui présente les formules et le montant exact avant
+ * toute page de paiement. Celle qui paie encore à l'ancienne garde sa
+ * souscription : elle se gère dans le portail.
+ */
+async function basculerVersGrilleActuelle(
+  orgId: string,
+  paiement: PaiementLu | null
+): Promise<EtatAbonnementAction> {
+  if (!paiement) return { erreur: "Réservé au responsable de l'organisation." };
+  if (paiement.souscrit) {
     return {
       erreur:
-        "Le paiement en ligne n'est pas encore ouvert. Écrivez-nous : nous prolongeons votre accès le temps de le mettre en place.",
+        "Votre abonnement est en cours sur l'ancienne grille : il n'y a rien à souscrire de nouveau. Carte, factures et résiliation se règlent depuis « Carte et factures ».",
     };
   }
-  const origine = await origineDeLaRequete();
-  if (!origine) {
-    return { erreur: "L'adresse du site n'a pas pu être déterminée. Rechargez la page." };
+  const service = clientDeService();
+  if (!service) {
+    return { erreur: "La souscription n'a pas pu être ouverte. Écrivez-nous : nous prolongeons votre accès le temps de régler cela." };
   }
-
-  const supabase = await createClient();
-  const [{ data: org, error: erreurOrg }, { data: etatBrut, error: erreurEtat }] =
-    await Promise.all([
-      supabase
-        .from("organizations")
-        .select("id, name, type, email_contact")
-        .eq("id", orgId)
-        .maybeSingle(),
-      supabase.rpc("etat_abonnement", { p_org: orgId }),
-    ]);
-  if (erreurOrg || !org) {
-    return { erreur: "Votre organisation n'a pas pu être lue. Rechargez la page." };
-  }
-  if (erreurEtat) return { erreur: sansJargon(erreurEtat.message) };
-
-  const etat = ((etatBrut ?? []) as {
-    statut: string;
-    essai_fin: string | null;
-    unites_facturees: number;
-    en_ligne_possible: boolean;
-    unite: string;
-  }[])[0];
-  const quantite = etat?.unites_facturees ?? 0;
-  if (quantite < 1) {
-    return {
-      erreur:
-        org.type === "agence"
-          ? "Aucun lot n'est encore sous mandat actif : il n'y a rien à facturer."
-          : "Votre premier bien est offert, à vie : il n'y a rien à payer tant que vous n'en gérez qu'un.",
-    };
-  }
-  // AU-DELÀ DU SEUIL, ON NE VEND PAS EN LIGNE. Un portefeuille de cette taille
-  // suppose une reprise comptable, une formation, un engagement : le laisser
-  // souscrire d'un clic, c'est promettre un accompagnement qu'on n'a pas prévu.
-  if (etat && !etat.en_ligne_possible) {
-    return {
-      erreur:
-        "Au-delà de 600 lots, l'abonnement se met en place avec nous : écrivez-nous, nous préparons votre devis et la reprise de votre portefeuille.",
-    };
-  }
-
-  const tarif = prixPour(
-    reglages.config,
-    (org.type === "agence" ? "agence" : "proprietaire_direct") as PublicTarif
-  );
-  if (!tarif.ok) return { erreur: tarif.erreur };
-
-  const { data: clientExistant } = await supabase.rpc("mon_client_stripe", { p_org: orgId });
-  const stripe = clientStripe(reglages.config);
-  const client = await assurerClientStripe(stripe, {
-    orgId,
-    nom: org.name,
-    email: org.email_contact ?? null,
-    existant: (clientExistant as string | null) ?? null,
-  });
-  if (!client.ok) return { erreur: client.erreur };
-
-  // On enregistre le client AVANT d'ouvrir la page de paiement. Dans l'autre
-  // ordre, un client qui paie puis ferme son onglet laisserait un webhook
-  // portant un identifiant qu'on ne saurait rattacher à personne.
-  const { error: erreurPose } = await supabase.rpc("abonnement_client_pose", {
-    p_org: orgId,
-    p_customer: client.customer,
-  });
-  if (erreurPose) return { erreur: sansJargon(erreurPose.message) };
-
-  const retour = `${origine}/agence/${orgId}/abonnement`;
-  // SOUSCRIRE PENDANT L'ESSAI NE FAIT PAS PAYER PLUS TÔT (décision du 24/09) :
-  // la fin d'essai part chez Stripe, qui n'y débite la carte qu'à cette date.
-  // Elle n'a de sens que pour un compte encore en essai — un compte actif ou
-  // suspendu n'a pas d'essai à reporter, et un essai déjà passé est écarté par
-  // l'adaptateur lui-même. La base tient `trialing` pour payé depuis les
-  // migrations 20260911300000 et 20260912090000 : rien à migrer.
-  const session = await creerSessionPaiement(stripe, {
-    prix: tarif.prix,
-    customer: client.customer,
-    quantite,
-    orgId,
-    retourOk: `${retour}?paiement=ok`,
-    retourAnnule: `${retour}?paiement=annule`,
-    essaiFin: etat?.statut === "essai" ? etat.essai_fin : null,
-  });
-  if (!session.ok) return { erreur: session.erreur };
-  redirect(session.url);
+  const { error } = await service.rpc("abonnement_basculer_grille", { p_org: orgId });
+  if (error) return { erreur: sansJargon(error.message) };
+  redirect(`/agence/${orgId}/abonnement?grille=actuelle`);
 }
 
 /**

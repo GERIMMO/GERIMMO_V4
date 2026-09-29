@@ -24,6 +24,8 @@ vi.mock("@/lib/relances-paiement", () => ({ envoyerRelancesDues: async () => ({ 
 import { POST } from "@/app/api/stripe/webhook/route";
 
 const cle = process.env.GERIMMO_STRIPE_TEST_KEY;
+/** Les RPC qui rendent une table (lues ligne à ligne). */
+const FONCTIONS_TABLE = new Set(["abonnement_par_client"]);
 const secret = `whsec_${randomBytes(24).toString("hex")}`;
 const suivi: { stripe?: Stripe; db?: Client; client?: string; produit?: string; prix?: string; abonnement?: string; session?: string; org?: string } = {};
 
@@ -54,14 +56,19 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
       abonnement_evenement_rejouable: ["p_event_id"],
       abonnement_appliquer: ["p_customer", "p_subscription", "p_statut", "p_quantite", "p_periode_fin", "p_annulation"],
       abonnement_details: ["p_customer", "p_periodicite", "p_formule", "p_unites", "p_montant_periode_cents", "p_periode_debut"],
+      abonnement_par_client: ["p_customer"],
+      abonnement_facture_payee: ["p_customer", "p_subscription"],
     };
     transport.rpc.mockImplementation(async (nom: string, params: Record<string, unknown>) => {
       const noms = argumentsRpc[nom]; if (!noms) throw new Error("Appel hors du périmètre de recette.");
       await suivi.db!.query("savepoint appel_recette; set local role service_role");
       try {
-        const r = await suivi.db!.query(`select public.${nom}(${noms.map((_, i) => `$${i + 1}`).join(",")}) as resultat`, noms.map(n => params[n]));
+        const appel = `public.${nom}(${noms.map((_, i) => `$${i + 1}`).join(",")})`;
+        // Une fonction qui rend une TABLE se lit ligne à ligne, comme PostgREST.
+        const enTable = FONCTIONS_TABLE.has(nom);
+        const r = await suivi.db!.query(enTable ? `select * from ${appel}` : `select ${appel} as resultat`, noms.map(n => params[n]));
         await suivi.db!.query("reset role; release savepoint appel_recette");
-        return { data: r.rows[0].resultat, error: null };
+        return { data: enTable ? r.rows : r.rows[0].resultat, error: null };
       } catch {
         await suivi.db!.query("rollback to savepoint appel_recette; reset role; release savepoint appel_recette");
         return { data: null, error: { message: "Règle SQL refusée pendant la recette." } };
@@ -73,7 +80,10 @@ describe.skipIf(!cle)("Paiements simulés chez Stripe et application dans Gerimm
     const echecs: string[] = [];
     const nettoyer = async (nom: string, action: () => Promise<unknown>) => { try { await action(); } catch { echecs.push(nom); } };
     if (suivi.stripe) {
-      if (suivi.session) await nettoyer("page de paiement", () => suivi.stripe!.checkout.sessions.expire(suivi.session!));
+      if (suivi.session) await nettoyer("page de paiement", async () => {
+        const cs = await suivi.stripe!.checkout.sessions.retrieve(suivi.session!);
+        if (cs.status === "open") await suivi.stripe!.checkout.sessions.expire(cs.id);
+      });
       if (suivi.abonnement) await nettoyer("abonnement", async () => {
         const s = await suivi.stripe!.subscriptions.retrieve(suivi.abonnement!);
         if (s.status !== "canceled") await suivi.stripe!.subscriptions.cancel(s.id);
@@ -189,14 +199,18 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
         abonnement_evenement_rejouable: ["p_event_id"],
         abonnement_appliquer: ["p_customer", "p_subscription", "p_statut", "p_quantite", "p_periode_fin", "p_annulation"],
         abonnement_details: ["p_customer", "p_periodicite", "p_formule", "p_unites", "p_montant_periode_cents", "p_periode_debut"],
+        abonnement_par_client: ["p_customer"],
+        abonnement_facture_payee: ["p_customer", "p_subscription"],
       };
       const liste = noms[nom];
       if (!liste) throw new Error("Appel hors du périmètre de recette.");
       await nouvelle.db!.query("savepoint appel; set local role service_role");
       try {
-        const r = await nouvelle.db!.query(`select public.${nom}(${liste.map((_, i) => `$${i + 1}`).join(",")}) as resultat`, liste.map((n) => params[n]));
+        const appel = `public.${nom}(${liste.map((_, i) => `$${i + 1}`).join(",")})`;
+        const enTable = FONCTIONS_TABLE.has(nom);
+        const r = await nouvelle.db!.query(enTable ? `select * from ${appel}` : `select ${appel} as resultat`, liste.map((n) => params[n]));
         await nouvelle.db!.query("reset role; release savepoint appel");
-        return { data: r.rows[0].resultat, error: null };
+        return { data: enTable ? r.rows : r.rows[0].resultat, error: null };
       } catch (e) {
         await nouvelle.db!.query("rollback to savepoint appel; reset role; release savepoint appel");
         return { data: null, error: { message: (e as Error).message } };
@@ -208,7 +222,10 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     const echecs: string[] = [];
     const nettoyer = async (nom: string, action: () => Promise<unknown>) => { try { await action(); } catch { echecs.push(nom); } };
     if (nouvelle.stripe) {
-      for (const s of nouvelle.sessions) await nettoyer("session", () => nouvelle.stripe!.checkout.sessions.expire(s));
+      for (const s of nouvelle.sessions) await nettoyer("session", async () => {
+        const cs = await nouvelle.stripe!.checkout.sessions.retrieve(s);
+        if (cs.status === "open") await nouvelle.stripe!.checkout.sessions.expire(s);
+      });
       for (const e of nouvelle.echeanciers) await nettoyer("échéancier", async () => {
         const sc = await nouvelle.stripe!.subscriptionSchedules.retrieve(e);
         if (sc.status === "active" || sc.status === "not_started") await nouvelle.stripe!.subscriptionSchedules.release(e);
@@ -314,34 +331,42 @@ describe.skipIf(!cle)("Grille du 28/09/2026 chez Stripe (mode test)", () => {
     await nouvelle.stripe!.subscriptions.update(s.id, { default_payment_method: visa.id });
   }, 120000);
 
-  it("baisse à l'échéance : aucun prorata, la prochaine facture porte la formule inférieure", async () => {
+  it("baisse à l'échéance : par échéancier, aucun prorata, la période en cours et la capacité payée restent entières", async () => {
     const s0 = await nouvelle.stripe!.subscriptions.retrieve(nouvelle.abonnements[0]);
     const avant = (await nouvelle.stripe!.invoices.list({ subscription: s0.id })).data.length;
     const r = await appliquerBaisseAEcheance(nouvelle.stripe!, { subscription: s0.id, offre: offreParticulier(2, "mensuel"), regime: FRANCHISE, orgId: nouvelle.org! });
     if (!r.ok) throw new Error(r.erreur);
+    nouvelle.echeanciers.push(r.echeancier);
     expect((await nouvelle.stripe!.invoices.list({ subscription: s0.id })).data.length).toBe(avant);
-    const prochaine = await nouvelle.stripe!.invoices.createPreview({ customer: nouvelle.client!, subscription: s0.id });
-    expect(prochaine.amount_due).toBe(999);
-    await webhook(r.souscription);
-    expect(await miroir()).toMatchObject({ formule: "bailleur", unites_souscrites: 3, montant: 999 });
+    const sc = await nouvelle.stripe!.subscriptionSchedules.retrieve(r.echeancier);
+    expect(sc.phases).toHaveLength(2);
+    expect(sc.phases[1].start_date).toBe(sc.phases[0].end_date);
+    expect(sc.phases[1].metadata).toMatchObject({ gerimmo_formule: "bailleur", gerimmo_unites: "3" });
+    // D'ici l'échéance, rien ne change : la souscription facture Investisseur.
+    const s1 = await nouvelle.stripe!.subscriptions.retrieve(s0.id);
+    expect(s1.metadata.gerimmo_formule).toBe("investisseur");
+    await webhook(s1);
+    expect(await miroir()).toMatchObject({ formule: "investisseur", unites_souscrites: 10, montant: 1999 });
   }, 120000);
 
   it("passage à l'annuel programmé à l'échéance, jamais en cours de période", async () => {
     const s0 = await nouvelle.stripe!.subscriptions.retrieve(nouvelle.abonnements[0]);
     const r = await programmerPeriodicite(nouvelle.stripe!, { subscription: s0.id, offre: offreParticulier(2, "annuel"), regime: FRANCHISE, orgId: nouvelle.org! });
     if (!r.ok) throw new Error(r.erreur);
-    nouvelle.echeanciers.push(r.echeancier);
+    if (!nouvelle.echeanciers.includes(r.echeancier)) nouvelle.echeanciers.push(r.echeancier);
     const sc = await nouvelle.stripe!.subscriptionSchedules.retrieve(r.echeancier);
     expect(sc.phases).toHaveLength(2);
+    expect(sc.phases[0].start_date).toBe(sc.current_phase?.start_date);
     expect(sc.phases[1].start_date).toBe(sc.phases[0].end_date);
     const s1 = await nouvelle.stripe!.subscriptions.retrieve(s0.id);
     expect(s1.items.data[0].price.recurring?.interval).toBe("month"); // la période en cours ne change pas
   }, 120000);
 
   it("résiliation pour l'échéance : l'accès reste ouvert jusqu'au bout de la période payée", async () => {
-    if (nouvelle.echeanciers[0]) await nouvelle.stripe!.subscriptionSchedules.release(nouvelle.echeanciers.shift()!);
     const r = await resilierAEcheance(nouvelle.stripe!, { subscription: nouvelle.abonnements[0], resilier: true });
     if (!r.ok) throw new Error(r.erreur);
+    expect(r.echeancierLibere).toBe(true);
+    expect(r.souscription.schedule).toBeNull();
     expect(r.souscription.cancel_at_period_end).toBe(true);
     await webhook(r.souscription);
     expect(await miroir()).toMatchObject({ status: "active", annulation_demandee: true });

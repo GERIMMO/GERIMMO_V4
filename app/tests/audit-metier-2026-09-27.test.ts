@@ -6,6 +6,7 @@
  * à la fin de chaque test. Nécessite SUPABASE_DB_URL (base locale).
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -117,6 +118,7 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
       `insert into public.baux (${cols.join(",")}) values (${cols.map((_, i) => `$${i + 1}`).join(",")}) returning id`,
       Object.values(donnees)
     );
+    await couvrirParMandat(db, b.id);
     return b.id;
   }
 

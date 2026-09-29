@@ -64,7 +64,19 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const ctx = await bailConcerne(texte(r.bail_id));
       if (ctx.bail.charges_mode === "forfait") throw new RefusDocument("Les charges forfaitaires ne font pas l’objet d’une régularisation annuelle.");
       contenu = `${section(`Charges de l’exercice ${texte(r.annee)}`)}${lignesTableau(f,[r],[["Provisions versées","provisions","montant"],["Charges réelles","charges_reelles","montant"],["Écart enregistré","ecart","montant"]])}
-        <p>${libelleSoldeRegularisation(montant(r.ecart))}.</p>`;
+        <p>${libelleSoldeRegularisation(montant(r.ecart))}.</p>${
+          // Audit gestion du 29/09 : quote-part d'un contrat individuel de
+          // colocation, et régularisation tardive (art. 23 loi 89-462).
+          r.quote_part_colocation != null
+            ? `<p>Contrat individuel de colocation : charges du logement imputées à hauteur de ${Math.round(montant(r.quote_part_colocation) * 1000) / 10} % (surface de la chambre sur la surface cumulée des chambres), puis au prorata des jours d’occupation.</p>`
+            : ""
+        }${
+          Array.isArray(r.etalement_12_mois) && r.etalement_12_mois.length
+            ? `<p>À la demande du locataire, le complément est réglé en douze mensualités (régularisation tardive, art. 23 de la loi du 6 juillet 1989) :</p>${lignesTableau(f, r.etalement_12_mois as Record<string, unknown>[], [["Mensualité","rang","texte"],["Échéance","echeance","date"],["Montant","montant","montant"]])}`
+            : r.tardive && montant(r.ecart) < 0
+              ? `<p>Régularisation effectuée après le terme de l’année civile suivant l’exercice : le locataire peut demander à régler ce complément par douzièmes (art. 23 de la loi du 6 juillet 1989).</p>`
+              : ""
+        }`;
       if (code !== "consultation_charges") contenu += `${section("Décompte et répartition")}
         <p>${f.champ(texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
         <p>Justificatif annexé : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;

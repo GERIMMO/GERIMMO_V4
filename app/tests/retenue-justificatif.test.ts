@@ -15,6 +15,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -129,6 +130,7 @@ describe.skipIf(!DB_URL)("Retenue — le justificatif ne survit pas au refus", (
        values ($1,$2,$3,$4,$4) returning id`,
       [orgA, lot, locataire, depot]
     );
+    await couvrirParMandat(db, lot);
     await db.query(`select public.encaisser_depot($1,$2,current_date,'virement',null,null)`, [bail, depot]);
     return bail;
   }
@@ -142,7 +144,7 @@ describe.skipIf(!DB_URL)("Retenue — le justificatif ne survit pas au refus", (
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
   }
 
   async function restitutionOuverte(depot = 900): Promise<string> {
@@ -158,8 +160,11 @@ describe.skipIf(!DB_URL)("Retenue — le justificatif ne survit pas au refus", (
     const {
       rows: [c],
     } = await db.query(
-      `select (select count(*) from public.documents where organization_id=$1)::int as documents,
-              (select count(*) from public.document_liens where organization_id=$1)::int as liens`,
+      // La preuve de signature de l'EDL d'entrée (audit 29/09) n'est pas une
+      // pièce de retenue : elle sort du décompte.
+      `select (select count(*) from public.documents where organization_id=$1 and type <> 'etat_des_lieux')::int as documents,
+              (select count(*) from public.document_liens l join public.documents d on d.id = l.document_id
+                where l.organization_id=$1 and d.type <> 'etat_des_lieux')::int as liens`,
       [orgA]
     );
     return c;
@@ -249,7 +254,7 @@ describe.skipIf(!DB_URL)("Retenue — le justificatif ne survit pas au refus", (
     expect(n).toBe(0);
 
     // Et la pièce est bien lisible par le gérant dans la GED de son agence
-    const ged = await db.query(`select titre from public.documents where organization_id=$1`, [orgA]);
+    const ged = await db.query(`select titre from public.documents where organization_id=$1 and type <> 'etat_des_lieux'`, [orgA]);
     expect(ged.rows.map((d) => d.titre)).toEqual(["Devis/facture — Peinture salon"]);
   });
 
@@ -272,20 +277,35 @@ describe.skipIf(!DB_URL)("Retenue — le justificatif ne survit pas au refus", (
     expect(await compterGed()).toEqual({ documents: 0, liens: 0 });
   });
 
-  it("sans EDL d'entrée (RM-2.4.3) : refus, et aucune pièce déposée au passage", async () => {
+  // Audit gestion du 29/09 : sans EDL d'entrée, le locataire est PRÉSUMÉ
+  // avoir reçu le logement en bon état (art. 1731 C. civ.) — une retenue
+  // justifiée passe ; sans pièce, elle est refusée et rien n'est déposé.
+  it("sans EDL d'entrée (art. 1731) : la retenue justifiée passe, sans pièce elle est refusée", async () => {
     const bail = await bailAvecDepotEncaisse(700);
     const {
       rows: [{ id: rst }],
     } = await db.query(`select public.demarrer_restitution($1,current_date,false) as id`, [bail]);
-    const p = piece("empreinte-devis-sans-edl");
 
     await attendreEchec(
       db,
-      /aucune retenue n'est possible/,
-      `select public.ajouter_retenue_avec_justificatif($1,'Peinture',300,null,null,$2,$3,$4,$5)`,
-      [rst, p.chemin, p.mime, p.taille, p.empreinte]
+      /doit être justifiée/,
+      `select public.ajouter_retenue($1,'Peinture',300,null,null,null)`,
+      [rst]
     );
     expect(await compterGed()).toEqual({ documents: 0, liens: 0 });
+
+    const p = piece("empreinte-devis-sans-edl");
+    const {
+      rows: [{ montant }],
+    } = await db.query(
+      `select public.ajouter_retenue_avec_justificatif($1,'Peinture',300,null,null,$2,$3,$4,$5) as montant`,
+      [rst, p.chemin, p.mime, p.taille, p.empreinte]
+    );
+    expect(Number(montant)).toBe(300);
+    const {
+      rows: [r],
+    } = await db.query(`select sans_edl_entree from public.restitutions where id=$1`, [rst]);
+    expect(r.sans_edl_entree).toBe(true);
   });
 
   it("décompte finalisé : refus, et aucune pièce déposée au passage", async () => {
@@ -668,6 +688,7 @@ describe.skipIf(!DB_URL)("Action serveur — la fiche ne précède plus la règl
        values ($1,$2,$3,900,900) returning id`,
       [orgA, lot, loc]
     );
+    await couvrirParMandat(db, lot);
     bailId = bail;
     await db.query(`select public.encaisser_depot($1,900,current_date,'virement',null,null)`, [bail]);
     const {
@@ -678,7 +699,7 @@ describe.skipIf(!DB_URL)("Action serveur — la fiche ne précède plus la règl
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     const {
       rows: [{ id }],
     } = await db.query(`select public.demarrer_restitution($1,current_date,true) as id`, [bail]);
@@ -693,8 +714,11 @@ describe.skipIf(!DB_URL)("Action serveur — la fiche ne précède plus la règl
     const {
       rows: [c],
     } = await db.query(
-      `select (select count(*) from public.documents where organization_id=$1)::int as documents,
-              (select count(*) from public.document_liens where organization_id=$1)::int as liens`,
+      // La preuve de signature de l'EDL d'entrée (audit 29/09) n'est pas une
+      // pièce de retenue : elle sort du décompte.
+      `select (select count(*) from public.documents where organization_id=$1 and type <> 'etat_des_lieux')::int as documents,
+              (select count(*) from public.document_liens l join public.documents d on d.id = l.document_id
+                where l.organization_id=$1 and d.type <> 'etat_des_lieux')::int as liens`,
       [orgA]
     );
     return c;

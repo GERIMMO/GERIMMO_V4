@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { abandonnerPieceGed, preparerFichierGed } from "@/lib/ged-depot";
 
 export type EtatEdl = {
   compteur?: { id: string; type: string; numero: string | null; releve: number | null };
@@ -168,18 +169,45 @@ export async function majGrilleEdl(
       };
   }
 
+  if (signer) {
+    // Audit gestion du 29/09 : un clic de l'agent ne vaut pas signature. L'EDL
+    // se fige sur PREUVE — l'état des lieux signé par les parties (art. 3-2
+    // loi 89-462), ou le constat du commissaire de justice. La pièce monte
+    // au Storage, sa fiche naît dans la transaction de la signature.
+    const mode = String(formData.get("mode_signature") ?? "");
+    if (mode !== "pdf_signe" && mode !== "constat_commissaire")
+      return { erreur: "Indiquez la preuve de signature : état des lieux signé par les parties, ou constat de commissaire de justice." };
+    const fichier = formData.get("preuve_signature");
+    if (!(fichier instanceof File) || fichier.size === 0)
+      return { erreur: "Déposez l’état des lieux signé par les deux parties (ou le constat du commissaire de justice) : sans cette preuve, il ne peut pas être figé." };
+    const prep = await preparerFichierGed(supabase, orgId, fichier);
+    if (prep.erreur || !prep.fichier) return { erreur: prep.erreur ?? "Échec du dépôt de la preuve de signature." };
+    const piece = prep.fichier;
+    const { error: erreurSignature } = await supabase.rpc("enregistrer_grille_edl_avec_preuve", {
+      p_edl: edlId,
+      p_lignes,
+      p_mode: mode,
+      p_storage_path: piece.chemin,
+      p_mime: piece.mime,
+      p_taille: piece.taille,
+      p_empreinte: piece.empreinte,
+    });
+    if (erreurSignature) {
+      await abandonnerPieceGed(supabase, piece);
+      return { erreur: sansJargon(erreurSignature.message) };
+    }
+    revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
+    revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+    const base = "État des lieux signé — il est figé, avec sa preuve de signature.";
+    return { succes: prep.avertissement ? `${base} ${prep.avertissement}` : base };
+  }
+
   const { error } = await supabase.rpc("enregistrer_grille_edl", {
     p_edl: edlId,
     p_lignes,
-    p_signer: signer,
+    p_signer: false,
   });
   if (error) return { erreur: sansJargon(error.message) };
-
-  if (signer) {
-    revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
-    revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-    return { succes: "État des lieux signé — il est figé." };
-  }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}/edl/${edlId}`);
   return { succes: "Grille enregistrée." };

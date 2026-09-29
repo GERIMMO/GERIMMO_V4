@@ -154,7 +154,7 @@ describe.skipIf(!DB_URL)("Sprint 4 — état des lieux", () => {
     const bail = await creerBailAvecEquipement();
     const edl = await creerEdl(bail);
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
-    await attendreEchec(db, /sans état/, `select public.signer_edl($1)`, [edl]);
+    await attendreEchec(db, /sans état/, `select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
   });
 
   it("une fois toutes les lignes renseignées, l'EDL se signe et se fige", async () => {
@@ -162,7 +162,7 @@ describe.skipIf(!DB_URL)("Sprint 4 — état des lieux", () => {
     const edl = await creerEdl(bail);
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
 
     const e = await db.query(`select etat, signe_le from public.etats_des_lieux where id=$1`, [edl]);
     expect(e.rows[0].etat).toBe("signe");

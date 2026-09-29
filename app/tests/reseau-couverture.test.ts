@@ -123,9 +123,21 @@ describe.skipIf(!DB)("Réseau communal — gestion nationale et décisions expli
     await devenir(owner); await expect(essai("select public.reseau_confirmer_commune($1,$2,$3)",[org,b,paire.autre])).rejects.toThrow(/adresse du bien/);
     await db.query("select public.reseau_confirmer_commune($1,$2,$3)",[org,b,paire.code]); expect((await dispo(b)).commune_code).toBe(paire.code);
   });
-  it("une correction d’adresse invalide la confirmation antérieure", async () => {
+  // Audit gestion du 29/09 : une correction de voie ne fait plus perdre la
+  // commune confirmée ; seule une adresse désignant une AUTRE commune l'efface.
+  it("une correction d’adresse ne garde la confirmation que si la commune reste la même", async () => {
     await postgres(); const b=await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city,commune_insee) values($1,'Bien vide','appartement','1 rue Test','91300','Massy','91377') returning id",[org]);
-    await devenir(owner); await db.query("update public.biens set address_line1='2 rue Test' where id=$1",[b]); expect((await dispo(b)).etat).toBe('adresse_incomplete');
+    await devenir(owner); await db.query("update public.biens set address_line1='2 rue Test', city='MASSY' where id=$1",[b]);
+    expect((await dispo(b)).commune_code).toBe('91377');
+    await db.query("update public.biens set postal_code='91120', city='Palaiseau' where id=$1",[b]); expect((await dispo(b)).etat).toBe('adresse_incomplete');
+  });
+  it("le nom de la ville tolère casse, accents, tirets, arrondissement et « St » pour « Saint »", async () => {
+    await postgres(); const b=await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Bien Saint-Étienne','appartement','1 rue Test','42000','ST ETIENNE') returning id",[org]);
+    await devenir(owner); await db.query("select public.reseau_confirmer_commune($1,$2,'42218')",[org,b]);
+    expect((await dispo(b)).commune_code).toBe('42218');
+    await postgres(); const p=await id("insert into public.biens(organization_id,nom,type,address_line1,postal_code,city) values($1,'Bien Paris 12','appartement','1 rue Test','75012','Paris 12e arrondissement') returning id",[org]);
+    await devenir(owner); await db.query("select public.reseau_confirmer_commune($1,$2,'75056')",[org,p]);
+    expect((await dispo(p)).commune_code).toBe('75056');
   });
   it("un appel direct ne crée ni consultation ni sollicitation dans une zone fermée", async () => {
     await devenir(owner); await expect(essai("select public.ouvrir_consultation($1,$2,'plomberie','entretien_courant')",[org,paris.incident])).rejects.toThrow(/pas encore disponible/);

@@ -272,7 +272,7 @@ describe.skipIf(!DB_URL)("Recette 22/08 — mandat vide figé, grille d'EDL rég
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat = 'bon' where edl_id = $1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     await attendreEchec(db, /ne se régénère pas/, `select public.generer_grille_edl($1)`, [edl]);
   });
 });

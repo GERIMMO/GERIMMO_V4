@@ -23,8 +23,13 @@ test.describe("Couverture du réseau depuis le bien", () => {
     await page.getByRole("link", { name: "Vérifier les artisans disponibles pour ce bien" }).click();
     await page.getByLabel("Métier recherché", { exact: true }).selectOption("plomberie");
     await page.getByRole("button", { name: "Vérifier pour ce bien" }).click();
-    // Audit 29/09 : la commune évidente (69003 → Lyon, 69123) est proposée et
-    // confirmée dès la création du bien — plus d'étape de confirmation ici.
+    // Audit 29/09 : la commune évidente est proposée et confirmée dès la
+    // création du bien. Si le code postal reste ambigu, on la confirme ici.
+    const commune = page.getByLabel("Commune exacte du bien");
+    if (await commune.isVisible().catch(() => false)) {
+      await commune.selectOption("69123");
+      await page.getByRole("button", { name: "Confirmer la commune", exact: true }).click();
+    }
     await expect(page.getByText("Le réseau d’artisans Gerimmo n’est pas encore disponible pour ce métier dans cette zone.", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Signaler mon intérêt" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Aucune demande d’intervention" })).toBeVisible();

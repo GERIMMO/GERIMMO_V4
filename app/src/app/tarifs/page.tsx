@@ -50,7 +50,8 @@ export default function PageTarifs() {
           <ul className="list-disc space-y-1 pl-5">
             <li>Mensuel uniquement, sans engagement, selon les lots distincts sous mandat actif — vacants compris.</li>
             <li>Le socle de 39 €{avec(HT)} s&apos;applique dès la souscription, même sous dix lots. Aucun abonnement ne démarre à la création du compte.</li>
-            <li>Sans supplément : les comptes de vos collaborateurs, les accès des propriétaires que vous invitez et ceux de vos locataires. Un propriétaire invité n&apos;a pas d&apos;abonnement à prendre pour consulter les biens que vous gérez.</li>
+            <li>Sans supplément : les comptes de vos collaborateurs et les accès de vos locataires. Vos propriétaires reçoivent leurs rapports de gestion sans abonnement à prendre.</li>
+            <li>L&apos;essai de 14 jours, sans carte, s&apos;ouvre sur demande : écrivez-nous depuis l&apos;accueil, rubrique Agences.</li>
             <li>Aucun frais d&apos;installation pour démarrer seul ; une reprise manuelle de vos données peut vous être proposée sur devis, jamais facturée d&apos;office.</li>
           </ul>
         </Article>

@@ -219,24 +219,19 @@ describe("une organisation suspendue ne crée plus", () => {
     await identite(null);
   });
 
-  it("ne parle pas d'argent aux tiers : locataire et artisan reçoivent un refus neutre", async () => {
-    // Le refus s'applique à QUICONQUE écrit — un locataire qui envoie un
-    // message, un artisan qui dépose un devis. Ni l'un ni l'autre n'a
-    // d'abonnement à réactiver, et l'état de paiement de l'agence ne les
-    // regarde pas : leur dire « Réactivez l'abonnement » est à la fois
-    // inutilisable et indiscret.
+  it("ne bloque pas les tiers : locataire et artisan ne sont pas gelés par l'abonnement de l'agence", async () => {
+    // Audit du 29/09 : le gel refusait aussi le signalement d'une fuite par un
+    // locataire ou la facture d'un artisan. Désormais seul le gérant est gelé ;
+    // ce qu'un tiers peut écrire reste borné par la RLS (contournée ici : la
+    // connexion de test est propriétaire des tables) — le gel, lui, laisse
+    // passer un compte identifié qui n'est pas gérant.
     const org = await creerOrg("Suspendue", "suspendue");
     await identite(await creerUtilisateur()); // un compte qui n'est pas gérant
     const erreur = await refusee(
       "insert into public.persons (organization_id, nom) values ($1, 'Dupont')",
       [org]
     );
-    expect(erreur).toMatch(/n'enregistre plus de nouvelles saisies/);
-    expect(erreur).not.toMatch(/[Aa]bonnement suspendu/);
-    expect(erreur).not.toMatch(/Mon abonnement/);
-    // Il garde l'essentiel : ses documents, et à qui s'adresser.
-    expect(erreur).toMatch(/consultables/);
-    expect(erreur).toMatch(/contactez-la directement/);
+    expect(erreur).toBe("");
     await identite(null);
   });
 

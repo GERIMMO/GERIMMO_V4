@@ -328,8 +328,7 @@ export default async function PageAdministration(
         )}
         <p className="mt-4 text-sm text-muted-foreground">
           Les mandats en préavis restent comptés tant qu’ils courent. Vos
-          collaborateurs, les propriétaires que vous invitez et vos locataires
-          n’ajoutent rien à la facture.
+          collaborateurs et vos locataires n’ajoutent rien à la facture.
         </p>
       </div>
 

@@ -106,7 +106,7 @@ const FAQ: [string, string][] = [
   ],
   [
     "Et pour une agence ?",
-    `Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. Mensuel${avec(HT)}, selon les lots sous mandat actif : 39 € jusqu'à 10 lots, puis 2 € du 11ᵉ au 50ᵉ, 1,50 € du 51ᵉ au 200ᵉ et 1 € au-delà — tranches cumulatives. Collaborateurs, propriétaires invités et locataires inclus.`,
+    `Mandats, honoraires, rapports de gestion, portefeuilles par agent : l'espace agence couvre la gérance complète. Mensuel${avec(HT)}, selon les lots sous mandat actif : 39 € jusqu'à 10 lots, puis 2 € du 11ᵉ au 50ᵉ, 1,50 € du 51ᵉ au 200ᵉ et 1 € au-delà — tranches cumulatives. Comptes des collaborateurs et accès des locataires inclus ; les rapports de gestion sont envoyés à vos propriétaires.`,
   ],
   [
     "Que se passe-t-il si j'arrête ?",
@@ -420,8 +420,8 @@ export default async function PageVitrine() {
               <ul className="mt-5 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
                 {[
                   "Mensuel, sans engagement, selon les lots sous mandat actif",
-                  "Collaborateurs, propriétaires invités et locataires inclus",
-                  "Essai gratuit de 14 jours, sans carte",
+                  "Collaborateurs et locataires inclus, rapports envoyés à vos propriétaires",
+                  "Essai de 14 jours ouvert sur demande, sans carte",
                   "Reprise manuelle de vos données possible, sur devis",
                 ].map((l) => (
                   <li key={l} className="flex gap-2.5">

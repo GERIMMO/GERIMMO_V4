@@ -523,7 +523,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           </li>
           <li>
             {estAgence
-              ? "Sans supplément : les accès de vos locataires, des propriétaires que vous invitez et de vos collaborateurs."
+              ? "Sans supplément : les accès de vos locataires et les comptes de vos collaborateurs."
               : "Sans supplément : les accès de vos locataires."}
           </li>
           <li>

@@ -41,6 +41,13 @@ function montantMaxDepuisOptions(brut: string | undefined): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+// Art. 22-1, avant-dernier alinéa (texte légal exact) : un cautionnement sans
+// durée — c'est le cas de l'acte, qui couvre « la durée du bail et de ses
+// renouvellements » — est résiliable unilatéralement par la caution, la
+// résiliation prenant effet au terme du contrat en cours (audit 29/09).
+export const RESILIATION_CAUTION_DUREE_INDETERMINEE =
+  "Lorsque le cautionnement d'obligations résultant d'un contrat de location conclu en application du présent titre ne comporte aucune indication de durée ou lorsque la durée du cautionnement est stipulée indéterminée, la caution peut le résilier unilatéralement. La résiliation prend effet au terme du contrat de location, qu'il s'agisse du contrat initial ou d'un contrat reconduit ou renouvelé, au cours duquel le bailleur reçoit notification de la résiliation.";
+
 const LIBELLES_BAIL: Record<string, string> = {
   nu: "de location — logement nu",
   meuble: "de location — logement meublé",
@@ -150,6 +157,8 @@ export async function assemblerCautionnement(
     intérêts et, le cas échéant, des pénalités ou intérêts de retard dus par le locataire au titre du
     bail. L'engagement vaut pour la durée du bail et celle de ses renouvellements, dans la limite
     d'un montant maximal, principal et accessoires compris, de ${montantMaxHtml}.</p>
+    <p>L'engagement ne comporte pas de durée déterminée. Conformément à l'avant-dernier alinéa de
+    l'article 22-1 de la loi n° 89-462 du 6 juillet 1989 : « ${RESILIATION_CAUTION_DUREE_INDETERMINEE} »</p>
     ${
       locataireCouvert && ctx.locataires.length > 1
         ? `<p class="mentions">Colocation — cautionnement nominatif : l'engagement s'éteint à

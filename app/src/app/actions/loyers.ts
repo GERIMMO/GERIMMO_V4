@@ -334,14 +334,24 @@ export async function reviserLoyer(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim());
-  const dateEffet = String(formData.get("date_effet") ?? "").trim();
-  if (!nouv || !dateEffet)
-    return { erreur: "Indice IRL du trimestre et date d'effet obligatoires.", valeurs };
+  const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim().replace(",", "."));
+  // Audit 29/09 : on saisit la date de la DEMANDE, pas la date d'effet. La
+  // base en déduit l'effet — l'anniversaire si la demande tombe ce jour-là,
+  // sinon la date de la demande, sans rétroactivité (art. 17-1 I).
+  const dateDemande = String(formData.get("date_demande") ?? "").trim();
+  // Constat 21 : l'indice nouveau est celui du trimestre de référence du bail.
+  const trimestre = String(formData.get("irl_trimestre_numero") ?? "").trim();
+  const anneeIndice = String(formData.get("irl_trimestre_annee") ?? "").trim();
+  if (!nouv || !dateDemande || !trimestre || !anneeIndice)
+    return {
+      erreur: "Indice IRL, trimestre et année de l'indice, et date de la demande obligatoires.",
+      valeurs,
+    };
   const { data, error } = await supabase.rpc("reviser_loyer", {
     p_bail: bailId,
     p_irl_nouveau: nouv,
-    p_date_effet: dateEffet,
+    p_irl_trimestre: `T${trimestre} ${anneeIndice}`,
+    p_date_demande: dateDemande,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);

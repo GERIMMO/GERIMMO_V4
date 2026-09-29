@@ -33,7 +33,7 @@ change rien aux baux en cours.
 
 | Aspect | Bail nu | Bail meublé |
 |---|---|---|
-| Durée minimale | 3 ans (personne physique, RM-1.1.8) | **1 an — 9 mois étudiant** (sans reconduction) ; reconduction tacite **d'1 an** hors étudiant ([[2026-08-05-bailpdf-modele-bail-meuble]], section III) |
+| Durée minimale | 3 ans (personne physique, RM-1.1.8 ; aussi **SCI familiale** et **indivision de personnes physiques**) — **6 ans** si un bailleur est une personne morale autre qu'une SCI familiale (art. 10 et 13 de la loi du 6 juillet 1989, audit des parcours métier du 29/09) | **1 an — 9 mois étudiant** (sans reconduction) ; reconduction tacite **d'1 an** hors étudiant ([[2026-08-05-bailpdf-modele-bail-meuble]], section III) |
 | Préavis locataire | 3 mois (1 mois en zone tendue) | **1 mois toujours** |
 | Préavis bailleur | 6 mois | 3 mois |
 | [[Dépôt de garantie]] max | **1 mois** hors charges | **2 mois** — jamais révisé en cours de bail (RM-2.1.5) |
@@ -104,6 +104,12 @@ conservation calée sur le bail — hypothèse à confirmer). Voir
   ne libère pas des dettes antérieures (RM-1.3.7).
 - **Chaque garant couvre un colocataire identifié** (RM-1.3.8), jamais le bail en
   bloc ; sa solidarité suit celle de son colocataire.
+- **Départ d'un colocataire sur un bail signé** (audit des parcours métier du 29/09, art. 8-1) : la
+  personne **ne se retire plus** du bail (seul un brouillon se corrige) ; on
+  **enregistre son départ** à la date d'effet de son congé. Sa solidarité s'éteint
+  **six mois** après cette date, ou à cette date si un **nouveau colocataire figurant
+  au bail** le remplace. Le garant qui le couvre reste rattaché au bail et son
+  engagement s'éteint à la même date.
 - Couple marié/pacsé : solidarité légale automatique. Contrats séparés (1.4) et
   remplacement (1.5) : **V2** (imposeront sous-lots ou assouplissement de RM-1.1.3).
 
@@ -124,11 +130,18 @@ pendant le préavis l'interrompt. → alerte d'[[État des lieux]] de sortie.
 
 **Congé du bailleur (1.11)** : au terme uniquement, préavis 6 mois (nu) / 3 mois
 (meublé) — **insuffisant = blocage (le congé serait nul)**. Trois motifs : reprise
-(bénéficiaire familial identifié), **vente** (prix obligatoire — le congé vaut offre,
-**alerte de préemption à 2 mois**, le droit de préemption lui-même hors périmètre),
+(bénéficiaire familial identifié), **vente** (en location **nue**, prix obligatoire —
+le congé vaut offre, art. 15 II, **alerte de préemption à 2 mois**, le droit de
+préemption lui-même hors périmètre ; en **meublé**, art. 25-8, pas d'offre de vente ni
+de prix obligatoire),
 motif légitime et sérieux. Locataire protégé (> 65 ans, ressources modestes) : alerte
 forte, génération sous responsabilité de l'agence. Notification **hors plateforme en
 LRAR/acte** ([[Notification et valeur probante]]) ; l'agent enregistre la date.
+Le PDF du congé (audit des parcours métier du 29/09) prend pour date d'effet le **terme du bail calculé
+par la base** — la même règle que l'enregistrement du congé, durée selon la qualité
+des bailleurs — pour la date de présentation prévue (le terme suivant si le préavis
+n'y tient plus) ; il imprime le prix et refuse un congé pour vente d'un logement nu
+sans prix.
 
 **Reconduction tacite (1.8)** : alerte à l'agent **6 mois avant le terme** (sinon le
 congé bailleur devient impossible) — jamais de reconduction silencieuse. **Avenant

@@ -35,6 +35,7 @@ import {
 import { periodeConstruction, mentionsEnergie, destinationServitude, clauseResolutoire, honorairesLocation, encadrementLocation, fixationLoyer, dateConclusion } from "./mentions-location";
 import { designationIndividuelle } from "./designation-individuelle";
 import type { Assemblage } from "./index";
+import { dureeBailNuAnnees } from "@/lib/qualite-bailleur";
 
 
 
@@ -93,7 +94,7 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     <p>Le présent contrat est conclu entre les soussignés :</p>
     ${sousSection("Le bailleur")}
     <p>Nom et prénom(s) ou dénomination : ${f.champ(nomPersonne(bailleurPrincipal), "nom et prénom(s), ou dénomination")}
-    — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, SCI, indivision…")}<br/>
+    — Qualité : ${f.champ(bailleurPrincipal?.qualite, "personne physique, indivision, SCI familiale, SCI, personne morale")}<br/>
     Domicile ou siège social : ${f.champ(adressePersonne(bailleurPrincipal), "domicile ou siège social")}<br/>
     Adresse électronique : ${f.champ(bailleurPrincipal?.email, "adresse électronique")} — Numéro de
     téléphone portable : ${facultatif(bailleurPrincipal?.telephone)}</p>
@@ -172,7 +173,9 @@ export function construireBailNu(ctx: ContexteBail, options: { dpeClasse: string
     ${dateConclusion(ctx, f)}
     <p>Date de prise d'effet : ${f.date(ctx.bail.date_debut)}.<br/>
     Durée du contrat : ${f.champ(
-      bailleurPrincipal?.qualite && bailleurPrincipal.qualite !== "Personne physique" ? "six ans" : "trois ans",
+      // Art. 10 et 13 : 6 ans dès qu'un bailleur est une personne morale autre
+      // qu'une SCI familiale, 3 ans sinon — la règle de la base (audit 29/09).
+      dureeBailNuAnnees(ctx.bailleurs.map((b) => b.qualite)) === 6 ? "six ans" : "trois ans",
       "durée applicable au régime du bail"
     )}, reconduite tacitement aux mêmes conditions à défaut de congé donné dans les formes et délais légaux.</p>
     ${

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { verifierGerant } from "@/lib/ged-acces";
 import { motifLitteral } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
+import { QUALITES_BAILLEUR, estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 export type EtatPersonne = {
   erreur?: string;
@@ -274,7 +275,11 @@ export async function modifierPersonne(
   const adresse = String(formData.get("address_line1") ?? "").trim();
   const codePostal = String(formData.get("postal_code") ?? "").trim();
   const ville = String(formData.get("city") ?? "").trim();
-  const qualite = String(formData.get("qualite") ?? "").trim();
+  // Liste fermée (audit 29/09) : la durée du bail nu en dépend.
+  const qualite = normaliserQualiteBailleur(String(formData.get("qualite") ?? ""));
+  if (qualite !== null && !estQualiteBailleur(qualite)) {
+    return { erreur: `Qualité inconnue : choisissez parmi ${QUALITES_BAILLEUR.join(", ")}.`, valeurs };
+  }
 
   if (!nom) return { erreur: "Le nom (ou la raison sociale) est obligatoire.", valeurs };
   // Une personne physique (fiche avec prénom) garde un prénom — même règle

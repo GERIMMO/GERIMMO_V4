@@ -72,9 +72,12 @@ export function ChoixEspace({
                 defaultValue={v.qualite ?? "Personne physique"}
                 className="h-11 w-full rounded-lg border border-input bg-transparent px-3 text-sm"
               >
-                <option>Personne physique</option>
-                <option>SCI</option>
-                <option>Indivision</option>
+                {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend. */}
+                <option value="Personne physique">Personne physique</option>
+                <option value="Indivision (personnes physiques)">Indivision (personnes physiques)</option>
+                <option value="SCI familiale">SCI familiale (entre parents et alliés)</option>
+                <option value="SCI">SCI (non familiale)</option>
+                <option value="Personne morale">Autre personne morale (société…)</option>
               </select>
             </div>
             <label className="flex items-start gap-2 text-sm">

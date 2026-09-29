@@ -855,7 +855,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     const {
       rows: [revision],
     } = await db.query(
-      `select public.reviser_loyer($1, 148.03, (current_date - 30)::date) as loyer`,
+      `select public.reviser_loyer($1, 148.03, 'T2 2026', (current_date - 30)::date) as loyer`,
       [bail]
     );
     expect(Number(revision.loyer)).toBe(611.82);
@@ -874,10 +874,10 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // L'ABUS 2 : réviser une seconde fois dans l'année — un mois après, puis en
     // antidatant. Un refus avorte la transaction : chaque tentative a son point
     // de reprise.
-    for (const effet of ["current_date", "(current_date - 200)::date"]) {
+    for (const effet of ["current_date", "(current_date - 10)::date"]) {
       await db.query("savepoint irl");
       await expect(
-        db.query(`select public.reviser_loyer($1, 152.00, ${effet})`, [bail])
+        db.query(`select public.reviser_loyer($1, 152.00, 'T2 2027', ${effet})`, [bail])
       ).rejects.toThrow(/Révision annuelle/i);
       await db.query("rollback to savepoint irl");
     }
@@ -912,7 +912,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     ]) {
       await db.query("savepoint irl");
       await expect(
-        db.query(`select public.reviser_loyer($1, 152.00, ${effet})`, [bail])
+        db.query(`select public.reviser_loyer($1, 152.00, 'T2 2027', ${effet})`, [bail])
       ).rejects.toThrow(/Révision anticipée/i);
       await db.query("rollback to savepoint irl");
     }
@@ -932,13 +932,13 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     const {
       rows: [anDernier],
     } = await db.query(
-      `select public.reviser_loyer($1, 148.03, (current_date - interval '1 year')::date) as loyer`,
+      `select public.reviser_loyer($1, 148.03, 'T2 2026', (current_date - interval '1 year')::date) as loyer`,
       [bailSuite.id]
     );
     expect(Number(anDernier.loyer)).toBe(611.82);
     const {
       rows: [cetteAnnee],
-    } = await db.query(`select public.reviser_loyer($1, 152.00, current_date) as loyer`, [
+    } = await db.query(`select public.reviser_loyer($1, 152.00, 'T2 2027', current_date) as loyer`, [
       bailSuite.id,
     ]);
     expect(Number(cetteAnnee.loyer)).toBe(628.23);
@@ -956,7 +956,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
     // saisi » du parcours 3.8), jamais un calcul approximé sur un indice deviné.
     await db.query("savepoint irl");
     await expect(
-      db.query(`select public.reviser_loyer($1, 148.03, (current_date - 30)::date)`, [
+      db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', (current_date - 30)::date)`, [
         bailSansIndice.id,
       ])
     ).rejects.toThrow(/Indice de référence absent du bail/i);

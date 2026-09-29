@@ -167,7 +167,7 @@ export function FormulaireConge({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="conge-prix" className="text-sm">
-                Prix de vente proposé (vente)
+                Prix de vente proposé (vente — obligatoire en location nue)
               </Label>
               <Input id="conge-prix" name="prix_vente" inputMode="decimal" placeholder="ex. 250000" defaultValue={etat.valeurs?.prix_vente} />
             </div>

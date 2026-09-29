@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-29
 sources: ["[[Fonctionnalités par persona]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]"]
 ---
 
@@ -25,7 +25,7 @@ ce que le banc a prouvé tient en production.
 ## Acteurs
 - Le porteur du projet, avec deux boîtes mail qu'il contrôle (une pour
   l'agence de recette, une pour un « locataire » de recette) et une carte
-  bancaire réelle pour l'abonnement (à rembourser ensuite depuis Stripe).
+  bancaire réelle pour l'[[Abonnement|abonnement]] (à rembourser ensuite depuis Stripe).
 - L'agent LLM, pour lire les journaux et consigner.
 
 ## Avant de commencer
@@ -81,6 +81,14 @@ ce que le banc a prouvé tient en production.
   Stripe → carte réelle → retour dans l'espace, statut **active** ;
   `/admin` compte une active de plus ; Stripe montre l'abonnement avec la
   bonne quantité.
+  > [!note] Supplanté le 28/09/2026
+  > Plus de « premier bien gratuit » : dès le premier bien, souscrire une formule
+  > (Solo 5,99 €/mois ou 59,90 €/an…) ; à la fin de l'essai de 14 jours sans
+  > souscription, l'espace doit passer **en lecture seule** (consultable,
+  > exportable). Vérifier aussi la mention « TVA non applicable, art. 293 B du
+  > CGI » sur la facture Stripe et que le portail client ne propose que la
+  > résiliation en fin de période — [[Grille tarifaire]],
+  > [[2026-09-28-decision-tarification]].
 - Rembourser depuis Stripe après la recette ; vérifier que le webhook
   `customer.subscription.deleted` repasse l'organisation en lecture seule si
   l'on résilie.

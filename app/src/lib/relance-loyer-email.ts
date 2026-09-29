@@ -29,6 +29,42 @@ export type RelanceLoyer = {
   lien: string;
 };
 
+/**
+ * Information de la caution (audit gestion du 29/09). Au niveau 2 de relance,
+ * la caution du bail est informée de la défaillance du locataire (art. 2303 du
+ * Code civil : information de la caution personne physique dès le premier
+ * incident de paiement non régularisé dans le mois). Le courrier informe, il
+ * ne met pas la caution en demeure de payer — ce geste reste au gérant.
+ */
+export type InformationCaution = {
+  emetteur: string;
+  locataire: string | null;
+  lot: string;
+  periode: string;
+  dateEcheance: string;
+  totalDu: number;
+};
+
+export function sujetInformationCaution(c: Pick<InformationCaution, "lot">): string {
+  return `Information de la caution — loyer impayé (${c.lot})`;
+}
+
+export function corpsInformationCaution(c: InformationCaution): string {
+  const mois = moisDeLaPeriode(c.periode);
+  const qui = c.locataire?.trim() ? `<strong>${c.locataire.trim()}</strong>` : "le locataire dont vous êtes la caution";
+  return `
+    <div style="font-family:sans-serif;font-size:14px;color:#111">
+      <h2>Information de la caution</h2>
+      <p>Madame, Monsieur,</p>
+      <p>En votre qualité de caution, nous vous informons que ${qui} n’a pas réglé le loyer de <strong>${mois}</strong>
+        (échéance du ${formaterDate(c.dateEcheance)}) pour ${c.lot}, malgré une première relance.</p>
+      <p>À ce jour, <strong>${eur(c.totalDu)}</strong> restent dus sur le bail, tous termes échus confondus.</p>
+      <p>Ce message vous informe de l’incident de paiement ; il ne vous demande aucun règlement à ce stade.
+        Pour toute question, écrivez au gestionnaire du bail.</p>
+      <p>— ${c.emetteur}</p>
+    </div>`;
+}
+
 export function sujetRelanceLoyer(r: Pick<RelanceLoyer, "niveau" | "periode">): string {
   const mois = moisDeLaPeriode(r.periode);
   return r.niveau === "relance_1"

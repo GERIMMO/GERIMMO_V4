@@ -8,8 +8,13 @@
  * La page de paiement, elle, décide quelque chose depuis le 24/09 (la fin
  * d'essai) : on regarde donc ce qu'elle envoie, sans regarder ce qui revient.
  */
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  assurerClientStripe,
+  assurerConfigurationPortail,
+  MARQUE_PORTAIL,
+  verifierAucuneSouscriptionVivante,
+  verifierClientDeLOrganisation,
   configurationStripe,
   creerSessionPaiement,
   finDePeriode,
@@ -302,8 +307,12 @@ describe("la page de paiement porte la fin d'essai — quand elle le peut", () =
   function faux() {
     const appels: Record<string, unknown>[] = [];
     const stripe = {
+      subscriptions: { list: async () => ({ data: [] }) },
+      customers: { update: async () => ({}) },
       checkout: {
         sessions: {
+          list: async () => ({ data: [] }),
+          expire: async () => ({}),
           create: async (corps: Record<string, unknown>) => {
             appels.push(corps);
             return { url: "https://checkout.stripe.test/s" };
@@ -348,5 +357,160 @@ describe("la page de paiement porte la fin d'essai — quand elle le peut", () =
       expect(corps.subscription_data).toEqual({ metadata: { organization_id: "org-1" } });
       expect("trial_end" in (corps.subscription_data as object)).toBe(false);
     }
+  });
+});
+
+// ── Audit du 29/09/2026 ─────────────────────────────────────────────────────
+
+describe("jamais deux souscriptions (audit 29/09, point 1)", () => {
+  function stripeAvec(souscriptions: { id: string; status: string }[], ouvertes: string[] = []) {
+    const expirees: string[] = [];
+    const creees: unknown[] = [];
+    const stripe = {
+      subscriptions: { list: vi.fn(async () => ({ data: souscriptions })) },
+      customers: { update: vi.fn(async () => ({})) },
+      checkout: {
+        sessions: {
+          list: vi.fn(async () => ({ data: ouvertes.map((id) => ({ id })) })),
+          expire: vi.fn(async (id: string) => { expirees.push(id); return {}; }),
+          create: vi.fn(async (p: unknown) => { creees.push(p); return { url: "https://checkout.stripe.test/s" }; }),
+        },
+      },
+    };
+    return { stripe, expirees, creees };
+  }
+
+  it("une souscription vivante chez Stripe refuse une nouvelle page de paiement", async () => {
+    const { stripe, creees } = stripeAvec([{ id: "sub_a", status: "canceled" }, { id: "sub_b", status: "past_due" }]);
+    const r = await creerSessionPaiement(stripe as never, {
+      prix: "price_bien", customer: "cus_1", quantite: 2, orgId: "org-1", retourOk: "https://x/ok", retourAnnule: "https://x/annule",
+    });
+    expect(r.ok).toBe(false);
+    expect(creees).toHaveLength(0);
+    expect(stripe.subscriptions.list).toHaveBeenCalledWith({ customer: "cus_1", status: "all", limit: 100 });
+  });
+
+  it("seules des souscriptions terminées : les pages restées ouvertes sont expirées, puis la nouvelle s'ouvre", async () => {
+    const { stripe, expirees, creees } = stripeAvec(
+      [{ id: "sub_a", status: "canceled" }, { id: "sub_c", status: "incomplete_expired" }],
+      ["cs_ancienne"]
+    );
+    expect(await verifierAucuneSouscriptionVivante(stripe as never, "cus_1")).toEqual({ ok: true });
+    expect(expirees).toEqual(["cs_ancienne"]);
+    const r = await creerSessionPaiement(stripe as never, {
+      prix: "price_bien", customer: "cus_1", quantite: 2, orgId: "org-1", retourOk: "https://x/ok", retourAnnule: "https://x/annule",
+    });
+    expect(r.ok).toBe(true);
+    expect(creees).toHaveLength(1);
+    // Le pied de facture suit le régime déclaré (franchise : mention 293 B).
+    expect(stripe.customers.update).toHaveBeenCalledWith("cus_1", {
+      invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." },
+    });
+  });
+});
+
+describe("le client Stripe (audit 29/09, points 6 et 12)", () => {
+  function stripeClients(existant: Record<string, unknown> | "absent") {
+    const creations: { corps: Record<string, unknown>; options: Record<string, unknown> }[] = [];
+    const stripe = {
+      customers: {
+        retrieve: vi.fn(async () => {
+          if (existant === "absent") throw Object.assign(new Error("No such customer: 'cus_vieux'"), { code: "resource_missing" });
+          return existant;
+        }),
+        create: vi.fn(async (corps: Record<string, unknown>, options: Record<string, unknown>) => {
+          creations.push({ corps, options });
+          return { id: "cus_neuf" };
+        }),
+        update: vi.fn(async () => ({})),
+      },
+    };
+    return { stripe, creations };
+  }
+
+  it("un client supprimé chez Stripe est recréé, avec une clé d'idempotence qui change, et signalé à remplacer", async () => {
+    const { stripe, creations } = stripeClients({ id: "cus_vieux", deleted: true });
+    const r = await assurerClientStripe(stripe as never, { orgId: "org-1", nom: "Org", email: null, existant: "cus_vieux" });
+    expect(r).toEqual({ ok: true, customer: "cus_neuf", remplace: true });
+    expect(creations[0].options).toEqual({ idempotencyKey: "client:org-1:cus_vieux" });
+    expect(creations[0].corps).toMatchObject({
+      metadata: { organization_id: "org-1" },
+      invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." },
+    });
+  });
+
+  it("un client introuvable (purgé) est traité comme supprimé", async () => {
+    const { stripe } = stripeClients("absent");
+    const r = await assurerClientStripe(stripe as never, { orgId: "org-1", nom: "Org", email: null, existant: "cus_vieux" });
+    expect(r).toMatchObject({ ok: true, customer: "cus_neuf", remplace: true });
+  });
+
+  it("premier client : clé « nouveau », rien à remplacer", async () => {
+    const { stripe, creations } = stripeClients({});
+    const r = await assurerClientStripe(stripe as never, { orgId: "org-1", nom: "Org", email: null, existant: null });
+    expect(r).toEqual({ ok: true, customer: "cus_neuf", remplace: false });
+    expect(creations[0].options).toEqual({ idempotencyKey: "client:org-1:nouveau" });
+  });
+
+  it("client existant : la mention de TVA est posée si elle manque, RETIRÉE si l'éditeur est assujetti", async () => {
+    const { stripe } = stripeClients({ id: "cus_1", invoice_settings: { footer: null }, metadata: { organization_id: "org-1" } });
+    await assurerClientStripe(stripe as never, { orgId: "org-1", nom: "Org", email: null, existant: "cus_1" });
+    expect(stripe.customers.update).toHaveBeenLastCalledWith("cus_1", {
+      invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." },
+    });
+    const assujetti = stripeClients({ id: "cus_2", invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } });
+    await assurerClientStripe(assujetti.stripe as never, {
+      orgId: "org-1", nom: "Org", email: null, existant: "cus_2", regime: { nature: "assujetti", tauxPourcent: 20 },
+    });
+    expect(assujetti.stripe.customers.update).toHaveBeenLastCalledWith("cus_2", { invoice_settings: { footer: "" } });
+    // Déjà juste : aucun appel.
+    const juste = stripeClients({ id: "cus_3", invoice_settings: { footer: "TVA non applicable, art. 293 B du CGI." } });
+    await assurerClientStripe(juste.stripe as never, { orgId: "org-1", nom: "Org", email: null, existant: "cus_3" });
+    expect(juste.stripe.customers.update).not.toHaveBeenCalled();
+  });
+
+  it("audit sécurité : un client Stripe d'une autre organisation est refusé", async () => {
+    const autre = stripeClients({ id: "cus_x", metadata: { organization_id: "org-autre" } });
+    expect((await verifierClientDeLOrganisation(autre.stripe as never, "cus_x", "org-1")).ok).toBe(false);
+    const sans = stripeClients({ id: "cus_y", metadata: {} });
+    expect((await verifierClientDeLOrganisation(sans.stripe as never, "cus_y", "org-1")).ok).toBe(false);
+    const supprime = stripeClients({ id: "cus_z", deleted: true });
+    expect((await verifierClientDeLOrganisation(supprime.stripe as never, "cus_z", "org-1")).ok).toBe(false);
+    const sien = stripeClients({ id: "cus_1", metadata: { organization_id: "org-1" } });
+    expect(await verifierClientDeLOrganisation(sien.stripe as never, "cus_1", "org-1")).toEqual({ ok: true });
+  });
+});
+
+describe("le portail suit l'adresse publique (audit 29/09, point 12)", () => {
+  function stripePortail(configs: Record<string, unknown>[]) {
+    const stripe = {
+      billingPortal: {
+        configurations: {
+          list: vi.fn(() => (async function* () { for (const c of configs) yield c; })()),
+          update: vi.fn(async () => ({})),
+          create: vi.fn(async () => ({ id: "bpc_neuve" })),
+        },
+      },
+    };
+    return stripe;
+  }
+
+  it("une configuration existante aux liens périmés est mise à jour, pas recréée", async () => {
+    const stripe = stripePortail([
+      { id: "bpc_1", metadata: { gerimmo: MARQUE_PORTAIL }, business_profile: { privacy_policy_url: "https://preprod.x/confidentialite", terms_of_service_url: "https://preprod.x/conditions" } },
+    ]);
+    expect(await assurerConfigurationPortail(stripe as never, "https://www.gerimmo.app")).toBe("bpc_1");
+    expect(stripe.billingPortal.configurations.update).toHaveBeenCalledWith("bpc_1", {
+      business_profile: { privacy_policy_url: "https://www.gerimmo.app/confidentialite", terms_of_service_url: "https://www.gerimmo.app/conditions" },
+    });
+    expect(stripe.billingPortal.configurations.create).not.toHaveBeenCalled();
+  });
+
+  it("liens déjà justes : aucune écriture", async () => {
+    const stripe = stripePortail([
+      { id: "bpc_1", metadata: { gerimmo: MARQUE_PORTAIL }, business_profile: { privacy_policy_url: "https://www.gerimmo.app/confidentialite", terms_of_service_url: "https://www.gerimmo.app/conditions" } },
+    ]);
+    await assurerConfigurationPortail(stripe as never, "https://www.gerimmo.app");
+    expect(stripe.billingPortal.configurations.update).not.toHaveBeenCalled();
   });
 });

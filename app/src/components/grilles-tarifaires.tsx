@@ -6,22 +6,30 @@ import {
   FORMULES_PARTICULIER,
   SUPPLEMENT_BIEN_CENTS,
   TRANCHES_AGENCE,
+  etiquetteTaxes,
   euros,
   offreAgence,
   offreParticulier,
 } from "@/lib/tarifs";
+import { REGIME_TVA } from "@/lib/editeur";
+
+// 29/09 : l'étiquette « TTC » / « HT » suit le régime de TVA de l'éditeur. En
+// franchise en base, aucune TVA n'est facturée : « HT » laissait croire le
+// contraire. La mention de franchise est affichée par la page, sous la grille.
+const avec = (etiquette: string | null) => (etiquette ? ` ${etiquette}` : "");
 
 export function TableauParticuliers() {
+  const t = avec(etiquetteTaxes("ttc", REGIME_TVA));
   return (
     <div>
       <table className="w-full text-left text-[14px]">
-        <caption className="sr-only">Formules pour les particuliers et SCI gérant leurs propres biens, prix TTC</caption>
+        <caption className="sr-only">Formules pour les particuliers et SCI gérant leurs propres biens{t ? `, prix${t}` : ""}</caption>
         <thead>
           <tr className="border-b border-[var(--filet)] text-[var(--texte-secondaire)]">
             <th scope="col" className="py-2 pr-3 font-medium">Formule</th>
             <th scope="col" className="py-2 pr-3 font-medium">Biens</th>
-            <th scope="col" className="py-2 pr-3 text-right font-medium">Par mois TTC</th>
-            <th scope="col" className="py-2 text-right font-medium">Par an TTC</th>
+            <th scope="col" className="py-2 pr-3 text-right font-medium">Par mois{t}</th>
+            <th scope="col" className="py-2 text-right font-medium">Par an{t}</th>
           </tr>
         </thead>
         <tbody>
@@ -42,8 +50,8 @@ export function TableauParticuliers() {
         </tbody>
       </table>
       <p className="mt-2 text-[13px] text-[var(--texte-secondaire)]">
-        Exemple : 25 biens = {euros(offreParticulier(25, "mensuel").montantCents)} TTC par mois, ou{" "}
-        {euros(offreParticulier(25, "annuel").montantCents)} TTC par an prélevés en une fois. L&apos;annuel équivaut à
+        Exemple : 25 biens = {euros(offreParticulier(25, "mensuel").montantCents)}{t} par mois, ou{" "}
+        {euros(offreParticulier(25, "annuel").montantCents)}{t} par an prélevés en une fois. L&apos;annuel équivaut à
         deux mois offerts.
       </p>
     </div>
@@ -51,15 +59,16 @@ export function TableauParticuliers() {
 }
 
 export function TableauAgences() {
+  const t = avec(etiquetteTaxes("ht", REGIME_TVA));
   const exemples = [10, 20, 50, 100, 200, 300, 500];
   return (
     <div>
       <table className="w-full text-left text-[14px]">
-        <caption className="sr-only">Tarif mensuel des agences par tranche de lots sous mandat actif, prix HT</caption>
+        <caption className="sr-only">Tarif mensuel des agences par tranche de lots sous mandat actif{t ? `, prix${t}` : ""}</caption>
         <thead>
           <tr className="border-b border-[var(--filet)] text-[var(--texte-secondaire)]">
             <th scope="col" className="py-2 pr-3 font-medium">Lots sous mandat actif</th>
-            <th scope="col" className="py-2 text-right font-medium">Tarif mensuel HT</th>
+            <th scope="col" className="py-2 text-right font-medium">Tarif mensuel{t}</th>
           </tr>
         </thead>
         <tbody>
@@ -89,7 +98,7 @@ export function TableauAgences() {
             {i < exemples.length - 1 ? " · " : " "}
           </span>
         ))}
-        (HT par mois).
+        ({t ? `${t.trim()} ` : ""}par mois).
       </p>
     </div>
   );

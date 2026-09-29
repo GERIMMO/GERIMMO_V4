@@ -24,7 +24,8 @@ import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
 import {
   STATUTS_APPEL_LOYER,
   COULEURS_STATUT_APPEL_LOYER,
-  derniereDateAnniversaire,
+  datesRevisionIrl,
+  numeroTrimestreIrl,
   exerciceRegularisationParDefaut,
 } from "@/lib/baux";
 import { ChampFichier } from "@/components/champ-fichier";
@@ -68,6 +69,10 @@ export type Quittance = {
 export type Revision = {
   id: string;
   date_effet: string;
+  /** Anniversaire de rattachement et date de la demande (audit 29/09) — null avant. */
+  date_echeance?: string | null;
+  date_demande?: string | null;
+  irl_trimestre?: string | null;
   ancien_loyer: number;
   nouveau_loyer: number;
   irl_reference: number;
@@ -88,6 +93,12 @@ export type RegulLigne = {
   provisions: number;
   charges_reelles: number;
   ecart: number;
+  /** Faite après le 31/12 de l'année suivant l'exercice (art. 23 loi 89-462). */
+  tardive?: boolean | null;
+  /** Complément étalé sur 12 mois à la demande du locataire. */
+  etalement_12_mois?: { rang: number; echeance: string; montant: number }[] | null;
+  /** Contrat individuel de colocation : part du logement retenue. */
+  quote_part_colocation?: number | null;
 };
 
 const NIVEAU_RELANCE: Record<string, string> = {
@@ -261,11 +272,14 @@ export function FormulaireLoyers({
   // Audit du 27/09 : l'exercice proposé est couvert par le bail.
   const anneeDefaut = exerciceRegularisationParDefaut(dateDebut, dateFin, aujourdhui);
   // Révision IRL : l'indice de référence est celui de la dernière révision,
-  // à défaut celui figé au bail (RM-3.8.7) ; l'effet tombe à une date
-  // anniversaire du bail (wiki « Révision annuelle IRL »).
+  // à défaut celui figé au bail (RM-3.8.7). Audit 29/09 : l'effet vaut
+  // max(anniversaire, date de la demande) — jamais rétroactif (art. 17-1 I).
   const derniereRevision = [...revisions].sort((a, b) => b.date_effet.localeCompare(a.date_effet))[0];
   const irlReferenceCourante = derniereRevision ? Number(derniereRevision.irl_nouveau) : irlReference;
-  const anniversaire = derniereDateAnniversaire(dateDebut, aujourdhui);
+  const datesDuJour = aujourdhui ? datesRevisionIrl(dateDebut, aujourdhui) : null;
+  const trimestreReference =
+    numeroTrimestreIrl(irlTrimestre) ??
+    numeroTrimestreIrl([...revisions].sort((a, b) => a.date_effet.localeCompare(b.date_effet))[0]?.irl_trimestre);
 
   const totalDu = echeancier.reduce((s, l) => s + Number(l.montant_du), 0);
   const totalEncaisse = encaissements.reduce((s, e) => s + Number(e.montant), 0);
@@ -518,7 +532,11 @@ export function FormulaireLoyers({
               {revisions.map((r) => (
                 <li key={r.id} className="flex flex-wrap items-center gap-2">
                   {formaterDate(r.date_effet)} : {eur(r.ancien_loyer)} → {eur(r.nouveau_loyer)} (IRL{" "}
-                  {r.irl_reference} → {r.irl_nouveau})
+                  {r.irl_reference} → {r.irl_nouveau}
+                  {r.irl_trimestre ? `, ${r.irl_trimestre}` : ""})
+                  {r.date_demande && r.date_echeance && r.date_demande > r.date_echeance
+                    ? ` · demandée le ${formaterDate(r.date_demande)}, après l'échéance du ${formaterDate(r.date_echeance)}`
+                    : ""}
                   {/* Documents-0 : la lettre de révision (23) */}
                   <BoutonGenererDocument
                     orgId={orgId}
@@ -551,9 +569,44 @@ export function FormulaireLoyers({
               <Label htmlFor="irl-nouv" className="text-sm">IRL nouveau</Label>
               <Input id="irl-nouv" name="irl_nouveau" type="number" step="0.01" defaultValue={etatRev.valeurs?.irl_nouveau} className="h-9 w-28" />
             </div>
+            {/* Constat 21 : l'indice nouveau est celui du MÊME trimestre que
+                l'indice de référence du bail, publié pour l'année suivante. */}
             <div className="space-y-1">
-              <Label htmlFor="irl-date" className="text-sm">Date d&apos;effet</Label>
-              <Input id="irl-date" name="date_effet" type="date" defaultValue={etatRev.valeurs?.date_effet ?? anniversaire ?? undefined} className="h-9" />
+              <Label htmlFor="irl-trim" className="text-sm">Trimestre</Label>
+              <select
+                id="irl-trim"
+                name="irl_trimestre_numero"
+                defaultValue={etatRev.valeurs?.irl_trimestre_numero ?? (trimestreReference ? String(trimestreReference) : "")}
+                className="h-9 rounded-md border border-input bg-transparent px-2 text-sm"
+              >
+                <option value="" disabled>
+                  —
+                </option>
+                {[1, 2, 3, 4].map((t) => (
+                  <option key={t} value={t}>
+                    T{t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="irl-annee" className="text-sm">Année de l&apos;indice</Label>
+              <Input
+                id="irl-annee"
+                name="irl_trimestre_annee"
+                type="number"
+                min="2000"
+                max="2100"
+                step="1"
+                defaultValue={etatRev.valeurs?.irl_trimestre_annee}
+                className="h-9 w-24"
+              />
+            </div>
+            {/* Audit 29/09 : on date la DEMANDE (par défaut aujourd'hui) ; la
+                date d'effet s'en déduit, jamais avant la demande. */}
+            <div className="space-y-1">
+              <Label htmlFor="irl-demande" className="text-sm">Demandée le</Label>
+              <InputDateJour id="irl-demande" name="date_demande" className="h-9" valeurSoumise={etatRev.valeurs?.date_demande} />
             </div>
             <BoutonEnvoi size="sm" variant="outline">
               Réviser le loyer
@@ -564,10 +617,21 @@ export function FormulaireLoyers({
           <p className="text-sm text-muted-foreground">
             Nouveau loyer = loyer actuel × IRL nouveau / IRL de référence. L&apos;indice de
             référence est celui de la dernière révision, à défaut celui figé au bail à sa
-            signature {/* RM-3.8.2, RM-3.8.7 */} ; il ne se saisit pas ici. La révision prend
-            effet à une date anniversaire du bail, une seule fois par année de bail ; interdite
-            si DPE F/G ; le dépôt et les provisions ne changent pas.
+            signature {/* RM-3.8.2, RM-3.8.7 */} ; il ne se saisit pas ici. Le nouvel indice est
+            celui du même trimestre{trimestreReference ? ` (T${trimestreReference})` : ""}. La
+            révision prend effet à la date anniversaire si elle est demandée ce jour-là ; demandée
+            après, elle prend effet à la date de la demande, sans rétroactivité, et au plus tard
+            un an après l&apos;anniversaire (art. 17-1 de la loi du 6 juillet 1989). Une seule
+            révision par année de bail ; interdite si DPE F/G ; le dépôt et les provisions ne
+            changent pas.
           </p>
+          {datesDuJour && (
+            <p className="text-sm text-muted-foreground">
+              Demandée aujourd&apos;hui, la révision de l&apos;échéance du{" "}
+              {formaterDate(datesDuJour.echeance)} prendrait effet le{" "}
+              <span className="font-medium text-foreground">{formaterDate(datesDuJour.dateEffet)}</span>.
+            </p>
+          )}
         </div>
       )}
 
@@ -645,6 +709,13 @@ export function FormulaireLoyers({
                 <span className={r.ecart >= 0 ? "text-success-soft-foreground" : "text-destructive"}>
                   {r.ecart >= 0 ? `trop-perçu ${eur(r.ecart)}` : `complément ${eur(-r.ecart)}`}
                 </span>
+                {r.quote_part_colocation != null &&
+                  ` · part de la chambre : ${Math.round(Number(r.quote_part_colocation) * 1000) / 10} % du logement`}
+                {r.etalement_12_mois?.length
+                  ? ` · étalé sur 12 mois (${eur(Number(r.etalement_12_mois[0].montant))}/mois à partir de ${formaterDate(r.etalement_12_mois[0].echeance)})`
+                  : r.tardive && r.ecart < 0
+                    ? " · régularisation tardive : le locataire peut demander un paiement en 12 mensualités (art. 23)"
+                    : ""}
               </li>
             ))}
           </ul>
@@ -680,6 +751,14 @@ export function FormulaireLoyers({
             <Label htmlFor="reg-just" className="text-sm">Justificatif</Label>
             <ChampFichier id="reg-just" name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required />
           </div>
+          {/* Audit gestion du 29/09 — art. 23 loi 89-462 : une régularisation
+              faite après le 31/12 de l'année suivant l'exercice se paie par
+              douzièmes si le locataire le demande. La base refuse l'option
+              hors de ce cas. */}
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="etaler" className="size-4" defaultChecked={etatReg.valeurs?.etaler === "on"} />
+            Régularisation tardive : le locataire demande l&apos;étalement sur 12 mois
+          </label>
           <BoutonEnvoi size="sm" variant="outline">
             Régulariser
           </BoutonEnvoi>
@@ -692,7 +771,9 @@ export function FormulaireLoyers({
             Saisissez les charges de l&apos;année entière : la quote-part du locataire est
             ensuite calculée au prorata de ses jours d&apos;occupation (ne saisissez pas une
             part déjà proratisée). Provisions calculées depuis les appels de l&apos;année ;
-            justificatif obligatoire, joint au décompte du locataire.
+            justificatif obligatoire, joint au décompte du locataire. Contrat individuel de
+            colocation : seule la part de la chambre (sa surface sur celle des chambres) est
+            imputée. Un complément ne se réclame plus au-delà de trois ans (art. 7-1).
           </p>
         )}
       </div>

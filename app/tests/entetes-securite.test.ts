@@ -31,7 +31,10 @@ describe("politique de sécurité du contenu", () => {
 
   it("n'admet aucun script tiers hors de l'outillage Vercel", () => {
     const tiers = csp["script-src"].filter((v) => v.startsWith("http"));
-    expect(tiers.every((v) => /vercel\.live|va\.vercel-scripts\.com/.test(v))).toBe(true);
+    expect(tiers).toEqual(["https://vercel.live"]);
+    // Aucun module de mesure d'audience n'est installé (29/09) : le domaine
+    // de Vercel Analytics n'a rien à faire dans la politique.
+    expect(Object.values(csp).flat().join(" ")).not.toContain("va.vercel-scripts.com");
     // Aucune adresse Stripe ni Google dans les scripts : le produit n'en charge pas.
     expect(csp["script-src"].join(" ")).not.toMatch(/stripe|google/);
   });

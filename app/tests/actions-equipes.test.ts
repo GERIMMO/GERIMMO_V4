@@ -62,6 +62,7 @@ beforeEach(() => {
   vi.stubEnv("VERCEL_PROJECT_ID", "prj");
   vi.stubEnv("GERIMMO_CODEX_ENABLED", "true");
   vi.stubEnv("CRON_SECRET", "secret");
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://gerimmo.test");
   mocks.headers.mockResolvedValue(new Headers({ host: "gerimmo.test", "x-forwarded-proto": "https" }));
 });
 afterEach(() => {
@@ -113,6 +114,24 @@ describe("« Lancer maintenant » (B4)", () => {
     const [url, options] = mocks.fetch.mock.calls[0] as [string, { headers: Record<string, string> }];
     expect(url).toBe("https://gerimmo.test/api/cron/equipes?mission=quittances");
     expect(options.headers.authorization).toBe("Bearer secret");
+  });
+
+  it("n'envoie jamais le secret vers l'hôte annoncé par la requête (audit 29/09)", async () => {
+    base();
+    mocks.headers.mockResolvedValue(new Headers({ host: "attaquant.example", "x-forwarded-host": "attaquant.example", "x-forwarded-proto": "https" }));
+    mocks.fetch.mockResolvedValue({ status: 200, json: async () => ({ envoyees: 0, echecs: 0 }) });
+    await commanderMission({}, form({ mission: "quittances", commande: "lancer" }));
+    const [url] = mocks.fetch.mock.calls[0] as [string];
+    expect(url).toBe("https://gerimmo.test/api/cron/equipes?mission=quittances");
+  });
+
+  it("sans adresse configurée, ne lance rien plutôt que de deviner", async () => {
+    base();
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
+    const r = await commanderMission({}, form({ mission: "quittances", commande: "lancer" }));
+    expect(r.erreur).toMatch(/adresse du service est inconnue/);
+    expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
   it("quand la route travaille encore, dit que le passage se poursuit au lieu d'échouer", async () => {

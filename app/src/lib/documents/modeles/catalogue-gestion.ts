@@ -64,7 +64,19 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const ctx = await bailConcerne(texte(r.bail_id));
       if (ctx.bail.charges_mode === "forfait") throw new RefusDocument("Les charges forfaitaires ne font pas l’objet d’une régularisation annuelle.");
       contenu = `${section(`Charges de l’exercice ${texte(r.annee)}`)}${lignesTableau(f,[r],[["Provisions versées","provisions","montant"],["Charges réelles","charges_reelles","montant"],["Écart enregistré","ecart","montant"]])}
-        <p>${libelleSoldeRegularisation(montant(r.ecart))}.</p>`;
+        <p>${libelleSoldeRegularisation(montant(r.ecart))}.</p>${
+          // Audit gestion du 29/09 : quote-part d'un contrat individuel de
+          // colocation, et régularisation tardive (art. 23 loi 89-462).
+          r.quote_part_colocation != null
+            ? `<p>Contrat individuel de colocation : charges du logement imputées à hauteur de ${Math.round(montant(r.quote_part_colocation) * 1000) / 10} % (surface de la chambre sur la surface cumulée des chambres), puis au prorata des jours d’occupation.</p>`
+            : ""
+        }${
+          Array.isArray(r.etalement_12_mois) && r.etalement_12_mois.length
+            ? `<p>À la demande du locataire, le complément est réglé en douze mensualités (régularisation tardive, art. 23 de la loi du 6 juillet 1989) :</p>${lignesTableau(f, r.etalement_12_mois as Record<string, unknown>[], [["Mensualité","rang","texte"],["Échéance","echeance","date"],["Montant","montant","montant"]])}`
+            : r.tardive && montant(r.ecart) < 0
+              ? `<p>Régularisation effectuée après le terme de l’année civile suivant l’exercice : le locataire peut demander à régler ce complément par douzièmes (art. 23 de la loi du 6 juillet 1989).</p>`
+              : ""
+        }`;
       if (code !== "consultation_charges") contenu += `${section("Décompte et répartition")}
         <p>${f.champ(texte(r.note)||null,"détail des dépenses par nature et clé de répartition")}</p>
         <p>Justificatif annexé : ${r.justificatif_document ? "pièce enregistrée dans le dossier, à joindre" : f.champ(null,"décompte justificatif à déposer et joindre")}.</p>`;
@@ -131,7 +143,7 @@ export async function assemblerComplementGestion(code: typeof CODES_COMPLEMENTS_
       const fiscal = recapitulatifFiscal(ecritures as EcritureFiscale[],annee,{lotsMeubles:lot.meuble?new Set([cibleId]):new Set(),ventilationLoyers:new Map(baux.map(b=>[texte(b.id),{loyerHc:montant(b.loyer_hc),charges:montant(b.charges)}]))});
       contenu = `${section(`Exercice ${annee}`)}<p>Récapitulatif du lot à 100 %, avant ventilation entre propriétaires. Les dépôts de garantie sont exclus et les contre-écritures déduites. Périmètre : ${ecritures.length} écritures enregistrées.</p>`;
       if (lot.meuble) contenu += `<p>Recettes enregistrées : ${eur(fiscal.meuble.recettes)} ; dépenses enregistrées : ${eur(fiscal.meuble.depenses)}.</p><p>Les amortissements, emprunts et retraitements BIC sont à établir avec le comptable ; aucun résultat fiscal n’est certifié ici.</p>`;
-      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p>`;
+      else contenu += lignesTableau(f,fiscal.rubriques.map(r=>({...r,montant:r.code==="250"?interetsEmprunt:r.montant})),[["Rubrique","code","texte"],["Libellé","libelle","texte"],["Montant enregistré","montant","montant"]])+`<p>Fonds de travaux ALUR suivis séparément : ${eur(fiscal.fondsTravauxAlur)}.</p><p>Hors déclaration (charges récupérables) : ${eur(fiscal.chargesRecuperees)} de provisions et régularisations de charges encaissées${fiscal.teomExclue ? `, ${eur(fiscal.teomExclue)} de taxe d’enlèvement des ordures ménagères` : ""} — ni revenus, ni charges déductibles.</p>`;
       contenu += "<p>Aide à la préparation de la déclaration. Vérifiez les pièces, la quote-part, les intérêts d’emprunt et les dépenses externes avant déclaration. Les loyers et provisions sont ventilés selon les montants du bail enregistrés lors de la génération.</p>";
     } else if (code === "ecriture_rectificative" || code === "cloture_mensuelle") {
       if (code === "ecriture_rectificative") {

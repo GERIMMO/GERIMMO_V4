@@ -168,7 +168,7 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     return bail;
   }
 
@@ -356,7 +356,7 @@ describe.skipIf(!DB_URL)("Alertes liées à leur événement d'origine", () => {
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     await db.query("reset role");
     const a = await alerte(sortie);
     expect(a.statut).toBe("fermee");

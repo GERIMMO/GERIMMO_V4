@@ -176,7 +176,9 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
     } = await db.query(`select remplace_id from public.documents where id = $1`, [v2]);
     expect(doc2.remplace_id).toBe(v1);
 
-    // L'agent valide la v2 — la v1 remplacée est refusée
+    // L'agent valide la v2 — la v1 remplacée est refusée. (Audit 29/09 : la
+    // validation exige que le locataire soit dans son portefeuille.)
+    await confierLocataireAuPortefeuille();
     await simuler(db, agentA);
     await attendreEchec(
       db,
@@ -376,7 +378,7 @@ describe.skipIf(!DB_URL)("Recette 21/08 — EDL d'entrée (règle revue le 29/08
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     await db.query(`select public.activer_bail($1)`, [bail]);
     await db.query("reset role");
 

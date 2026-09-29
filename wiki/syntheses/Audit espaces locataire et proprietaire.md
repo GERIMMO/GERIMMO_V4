@@ -3,11 +3,16 @@ type: synthesis
 tags: [audit, locataire, proprietaire-direct, portail, qualite]
 status: stable
 created: 2026-09-06
-updated: 2026-09-06
-sources: ["[[2026-09-05-espace-locataire-v10|Maquette espace locataire v10]]", "[[2026-09-05-espace-proprietaire-v1|Maquette espace propriétaire v1]]", "[[Notification et valeur probante]]", "[[Restitution du dépôt de garantie]]", "[[Grille tarifaire]]"]
+updated: 2026-09-29
+sources: ["raw/maquettes/2026-09-05-espace-locataire-v10.html (non ingérée)", "raw/maquettes/2026-09-05-espace-proprietaire-v1.html (non ingérée)", "[[Notification et valeur probante]]", "[[Restitution du dépôt de garantie]]", "[[Grille tarifaire]]"]
 ---
 
 # Audit des espaces locataire et propriétaire (2026-09-06)
+
+> [!note] Sources non ingérées (29/09/2026)
+> Les maquettes `raw/maquettes/2026-09-05-espace-locataire-v10.html` et
+> `raw/maquettes/2026-09-05-espace-proprietaire-v1.html` n'ont pas encore de page
+> dans `wiki/sources/` : les liens vers elles ont été retirés en attendant leur ingest.
 
 > [!success] Corrections appliquées le 2026-09-06 (carte blanche)
 > Les 10 bloquants et l'essentiel des majeures/mineures sont **corrigés et

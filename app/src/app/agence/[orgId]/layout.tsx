@@ -103,16 +103,17 @@ export default async function LayoutAgence({
     // rapports à valider. Un seul calcul, mémorisé par requête — la page qui
     // suit le relit sans nouvel aller-retour.
     compterActionsDuJour(supabase, orgId, { userId: user.id, portefeuille }),
-    essaiEchu
-      ? supabase.rpc("etat_abonnement", { p_org: orgId })
-      : Promise.resolve({ data: null }),
+    // Lu pour TOUTE organisation (audit 29/09) : l'écriture se ferme aussi
+    // hors essai — souscription résiliée, prélèvement en défaut —, et l'écran
+    // doit le dire au lieu de laisser chaque bouton échouer un à un.
+    supabase.rpc("etat_abonnement", { p_org: orgId }),
   ]);
   const etatAbonnement =
     ((etatAbonnementBrut ?? []) as { ecriture_ouverte: boolean; unites_facturees: number }[])[0] ??
     null;
   // Fermée seulement si la base le dit : une lecture en échec ne ferme rien à
   // l'écran (la base, elle, refuse déjà les écritures si c'est le cas).
-  const ecritureFermee = essaiEchu && etatAbonnement?.ecriture_ouverte === false;
+  const ecritureFermee = etatAbonnement?.ecriture_ouverte === false;
   const badgeIncidents = ((incidentsOuverts ?? []) as { lot_id: string | null }[]).filter(
     (i) => !portefeuille || (i.lot_id != null && portefeuille.has(i.lot_id))
   ).length;
@@ -171,11 +172,12 @@ export default async function LayoutAgence({
   // Essai fini, écriture ouverte : rien à régler, et la barre le dit en ton
   // neutre plutôt qu'en rouge « terminé » (25/09). Sans lecture de l'état,
   // on n'affirme ni l'un ni l'autre.
+  // Grille du 28/09 : plus rien d'offert après l'essai — la phrase « rien à
+  // régler » ne vaut plus que pour une organisation restée sur l'ancienne
+  // grille (quantité nulle).
   const rienARegler =
-    essaiEchu && etatAbonnement && etatAbonnement.ecriture_ouverte
-      ? organisation.type === "agence"
-        ? "Rien à régler tant qu'aucun lot n'est sous mandat actif"
-        : "Rien à régler tant que vous ne gérez qu'un bien"
+    essaiEchu && etatAbonnement && etatAbonnement.ecriture_ouverte && etatAbonnement.unites_facturees === 0
+      ? "Rien à régler pour l'instant"
       : null;
   const essai =
     estResponsable && organisation.status === "essai" && organisation.essai_fin
@@ -253,7 +255,10 @@ export default async function LayoutAgence({
             qui s'adresser. Le responsable, lui, a le lien. */}
         {ecritureFermee && (
           <p className="border-b border-[var(--trait)] bg-[var(--warning-soft)] px-4 py-1.5 text-center text-xs text-[var(--warning-soft-foreground)]">
-            Période d&apos;essai terminée —{" "}
+            {organisation.status === "essai"
+              ? "Période d'essai terminée — lecture seule"
+              : "Abonnement inactif ou impayé — lecture seule"}{" "}
+            —{" "}
             {estResponsable ? (
               <>
                 activez l&apos;abonnement pour continuer à saisir.{" "}

@@ -3,14 +3,13 @@ type: process
 tags: [solde-de-tout-compte, fin-de-bail, depot-de-garantie, impayes]
 status: draft
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]"]
 ---
 
 # Solde de tout compte
 
-**En une phrase :** le décompte final de fin de [[Bail]], établi **après l'[[État des
-lieux]] de sortie** (RM-3.11.4), qui agrège **toutes les créances réciproques** en un
+**En une phrase :** le décompte final de fin de [[Bail]], établi **après l'[[État des lieux]] de sortie** (RM-3.11.4), qui agrège **toutes les créances réciproques** en un
 document unique — **émis quel que soit le sens du solde** (décision révisée,
 RM-3.11.2) : le locataire doit comprendre le calcul, qu'on lui restitue 450 € ou qu'il
 doive encore 340 €.

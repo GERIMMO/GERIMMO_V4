@@ -67,8 +67,7 @@ Pour toute question sur le site ou le service : `[à compléter — adresse de
 contact]`.
 
 Pour l'exercice des droits sur les données personnelles, la marche à suivre est
-décrite dans la [[Politique de confidentialite (projet)|politique de
-confidentialité]] — et, s'agissant des données de votre dossier de gestion
+décrite dans la [[Politique de confidentialite (projet)|politique de confidentialité]] — et, s'agissant des données de votre dossier de gestion
 locative, **c'est à votre agence qu'il faut vous adresser**, non à Gerimmo.
 
 ## 5. Médiation de la consommation

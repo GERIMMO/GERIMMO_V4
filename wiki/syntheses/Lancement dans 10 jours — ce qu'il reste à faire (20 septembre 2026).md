@@ -3,7 +3,7 @@ type: synthesis
 tags: [lancement, production, configuration, stripe, e-mails, rgpd, checklist]
 status: stable
 created: 2026-09-20
-updated: 2026-09-20
+updated: 2026-09-29
 sources: ["[[État du projet et décisions ouvertes]]", "[[Gerimmo en autonomie]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Grille tarifaire]]", "[[Canaux de communication]]", "[[Fonctionnalités par persona]]"]
 ---
 # Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)
@@ -51,6 +51,10 @@ Dans l'ordre où je les ferais.
 - Créer les deux prix chez Stripe conformes à [[Grille tarifaire]] :
   propriétaire direct **par bien** (1ᵉʳ bien gratuit, puis 5,99 €/bien/mois) ;
   agence **par palier de lots** (tarif gradué).
+  *(**Supplanté le 28/09/2026** : plus de premier bien gratuit ; formules Solo à
+  Patrimoine pour les particuliers, tranches cumulatives dès 39 € HT pour les
+  agences, montants passés à Stripe par la grille (`price_data`) — [[Grille tarifaire]],
+  [[2026-09-28-decision-tarification]].)*
 - Déclarer le point de terminaison `/api/stripe/webhook` avec les événements
   `customer.subscription.created / updated / deleted / paused / resumed`.
 - **Tester de bout en bout** avec une vraie carte : inscription d'un

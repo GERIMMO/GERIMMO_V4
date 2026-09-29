@@ -350,8 +350,9 @@ describe.skipIf(!DB_URL)("Audit agence 27/09 — en base", () => {
         [enc.id]
       );
       await refuse(/vient d'un encaissement/, `select public.contre_ecriture($1,'test')`, [loyer.id]);
+      // Audit 29/09 : l'INSERT direct ne pose même plus `contre_ecriture_de`.
       await refuse(
-        /vient d'un encaissement/,
+        /vient d'un encaissement|permission denied/,
         `insert into public.ecritures (organization_id, categorie, sens, montant, date_piece,
            date_imputation, libelle, contre_ecriture_de, motif)
          values ($1,'loyer','depense',300,current_date,current_date,'Forgée',$2,'motif')`,

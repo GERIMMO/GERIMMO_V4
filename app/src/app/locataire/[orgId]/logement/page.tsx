@@ -69,6 +69,9 @@ export default async function PageLogementLocataire(
   // que le serveur (enregistrer_conge).
   const bailMeuble = bail.type === "meuble" || (bail.type === "colocation" && bail.meuble);
   const preavisMois = bailMeuble || bail.zone_tendue ? 1 : 3;
+  // Audit gestion du 29/09 : zone tendue non vérifiée par le gestionnaire —
+  // l'écran ne tranche pas à la place de la loi.
+  const zoneInconnue = !bailMeuble && bail.zone_tendue == null;
   const forfait = bail.charges_mode === "forfait";
   const depotDu = Number(depot?.depot_du ?? 0);
   const depotRecu = Number(depot?.encaisse ?? 0);
@@ -147,8 +150,12 @@ export default async function PageLogementLocataire(
           <div className="ligne-info">
             <span>Préavis si vous partez</span>
             <span className="text-right">
-              {preavisMois} mois
-              {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue : secteur où les logements à louer manquent, la loi y réduit le préavis)") : ""}
+              {zoneInconnue
+                ? "1 mois si le logement est en zone tendue, 3 mois sinon (zone en cours de vérification par votre gestionnaire)"
+                : <>
+                    {preavisMois} mois
+                    {preavisMois === 1 ? (bailMeuble ? " (logement meublé)" : " (zone tendue : secteur où les logements à louer manquent, la loi y réduit le préavis)") : ""}
+                  </>}
             </span>
           </div>
           <div className="ligne-info">

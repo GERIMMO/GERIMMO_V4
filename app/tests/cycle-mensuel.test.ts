@@ -15,6 +15,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -83,6 +84,7 @@ async function bailActif(org: string, gerant: string, moisEnArriere: number): Pr
      returning id`,
     [org, lot, loc, moisEnArriere]
   );
+  await couvrirParMandat(db, id);
   return id;
 }
 

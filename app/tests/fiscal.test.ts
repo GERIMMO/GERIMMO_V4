@@ -13,7 +13,9 @@ import {
 describe("Récapitulatif fiscal — rubriques 2044", () => {
   it("range les catégories libres du livre dans les lignes de la 2044", () => {
     expect(rubriqueDe("loyer", "recette")).toBe("211");
-    expect(rubriqueDe("Charges récupérables", "recette")).toBe("212");
+    // Audit 29/09 : les charges remboursées par le locataire sortent de la 2044
+    expect(rubriqueDe("Charges récupérables", "recette")).toBe("hors");
+    expect(rubriqueDe("TEOM 2026", "depense")).toBe("hors");
     expect(rubriqueDe("Assurance PNO", "depense")).toBe("223");
     expect(rubriqueDe("Travaux plomberie", "depense")).toBe("224");
     expect(rubriqueDe("Taxe foncière", "depense")).toBe("227");
@@ -130,10 +132,12 @@ describe("recapitulatifFiscal — quote-part et meublé (BIC)", () => {
   });
 });
 
-// ——— Ventilation 211/212 des encaissements de loyer (audit du 09/09, P1) ———
+// ——— Ventilation loyer / charges des encaissements (audit du 09/09, P1) ———
 // L'écriture d'encaissement porte le montant total (loyer + provision) : la
 // part charges se reconstitue au prorata du bail, reliquat de centime en 211.
-describe("recapitulatifFiscal — ventilation loyers/charges (211/212)", () => {
+// Audit gestion du 29/09 : cette part charges n'est PAS un revenu foncier —
+// elle sort des recettes (chargesRecuperees), la ligne 212 reste à zéro.
+describe("recapitulatifFiscal — ventilation loyers/charges (211 / hors 2044)", () => {
   const cle = new Map([["bail-1", { loyerHc: 780, charges: 60 }]]);
   const ligne = (recap: ReturnType<typeof recapitulatifFiscal>, code: string) =>
     recap.rubriques.find((r) => r.code === code)?.montant;
@@ -148,9 +152,10 @@ describe("recapitulatifFiscal — ventilation loyers/charges (211/212)", () => {
     }));
     const recap = recapitulatifFiscal(mois, 2026, { ventilationLoyers: cle });
     expect(ligne(recap, "211")).toBe(2340);
-    expect(ligne(recap, "212")).toBe(180);
-    // 211 + 212 se réconcilie exactement avec le total encaissé
-    expect(recap.totalRecettes).toBe(2520);
+    expect(ligne(recap, "212")).toBe(0);
+    // 211 + charges récupérées se réconcilie exactement avec le total encaissé
+    expect(recap.chargesRecuperees).toBe(180);
+    expect(recap.totalRecettes).toBe(2340);
   });
 
   it("ventile un paiement partiel, reliquat de centime en 211", () => {
@@ -162,8 +167,8 @@ describe("recapitulatifFiscal — ventilation loyers/charges (211/212)", () => {
       { ventilationLoyers: cle }
     );
     expect(ligne(recap, "211")).toBe(92.86);
-    expect(ligne(recap, "212")).toBe(7.14);
-    expect(recap.totalRecettes).toBe(100);
+    expect(recap.chargesRecuperees).toBe(7.14);
+    expect(recap.totalRecettes).toBe(92.86);
   });
 
   it("sans clé de ventilation, ou sans charges au bail, tout reste en 211", () => {
@@ -200,6 +205,60 @@ describe("recapitulatifFiscal — ventilation loyers/charges (211/212)", () => {
       { ventilationLoyers: cle, quoteParts: new Map([["indiv", 50]]) }
     );
     expect(recap.rubriques.find((r) => r.code === "211")?.montantQuotePart).toBe(390);
-    expect(recap.rubriques.find((r) => r.code === "212")?.montantQuotePart).toBe(30);
+    expect(recap.rubriques.find((r) => r.code === "212")?.montantQuotePart).toBe(0);
+    expect(recap.chargesRecuperees).toBe(60);
+  });
+});
+
+// ——— Audit gestion du 29/09 : charges récupérables et TEOM hors 2044 ———
+describe("recapitulatifFiscal — charges récupérables, TEOM, copropriété", () => {
+  const ligne = (recap: ReturnType<typeof recapitulatifFiscal>, code: string) =>
+    recap.rubriques.find((r) => r.code === code)?.montant;
+
+  it("une régularisation de charges encaissée n'est pas une recette", () => {
+    const recap = recapitulatifFiscal(
+      [
+        { categorie: "loyer", sens: "recette", montant: 700, date_piece: "2026-02-05" },
+        { categorie: "Régularisation de charges 2025", sens: "recette", montant: 120, date_piece: "2026-03-01" },
+      ],
+      2026
+    );
+    expect(recap.totalRecettes).toBe(700);
+    expect(recap.chargesRecuperees).toBe(120);
+  });
+
+  it("la TEOM sort de la ligne 227 : seule la taxe foncière se déduit", () => {
+    const recap = recapitulatifFiscal(
+      [
+        { categorie: "Taxe foncière", sens: "depense", montant: 900, date_piece: "2026-10-15" },
+        { categorie: "TEOM", sens: "depense", montant: 150, date_piece: "2026-10-15" },
+        { categorie: "Taxe d'enlèvement des ordures ménagères", sens: "depense", montant: 50, date_piece: "2026-10-15" },
+      ],
+      2026
+    );
+    expect(ligne(recap, "227")).toBe(900);
+    expect(recap.teomExclue).toBe(200);
+    expect(recap.totalCharges).toBe(900);
+  });
+
+  it("ligne 229 : seule la part non récupérable des charges de copropriété se déduit", () => {
+    const recap = recapitulatifFiscal(
+      [
+        { categorie: "Appel de charges copropriété", sens: "depense", montant: 1000, date_piece: "2026-01-10", lot_id: "lot-1" },
+        { categorie: "Appel de charges copropriété", sens: "depense", montant: 300, date_piece: "2026-01-10", lot_id: "lot-2" },
+      ],
+      2026,
+      { chargesCoproRecuperables: new Map([["lot-1", 600], ["lot-2", 500]]) }
+    );
+    // lot-1 : 1 000 − 600 ; lot-2 : la part récupérable ne rend pas la ligne négative
+    expect(ligne(recap, "229")).toBe(400);
+    expect(recap.coproRecuperableExclue).toBe(900);
+  });
+
+  it("les libellés de lignes suivent la notice 2044", () => {
+    const vide = recapitulatifFiscal([], 2026);
+    expect(vide.rubriques.find((r) => r.code === "212")?.libelle).toMatch(/par convention à la charge des locataires/);
+    expect(vide.rubriques.find((r) => r.code === "227")?.libelle).toMatch(/hors TEOM/);
+    expect(vide.rubriques.find((r) => r.code === "229")?.libelle).toMatch(/non récupérable/);
   });
 });

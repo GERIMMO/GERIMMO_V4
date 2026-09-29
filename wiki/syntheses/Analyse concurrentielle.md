@@ -3,7 +3,7 @@ type: synthesis
 tags: [concurrence, marche, positionnement]
 status: in-progress
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-09-29
 sources: ["[[2026-07-22-rentila-site-web]]", "[[2026-07-22-smovin-site-web]]", "[[2026-07-22-oskar-la-boite-immo]]"]
 ---
 
@@ -65,6 +65,10 @@ web du 2026-07-22 pour les tarifs, les limites et les concurrents non mentionné
    ~49 €/an, GERIMMO facture 19 €/mois + 49 € de mise en place ([[Grille tarifaire]]) —
    soit ~5× plus cher. Le prix ne tiendra que si le module incidents/artisans est perçu
    comme la valeur principale. Côté agences, Oskar ne publie pas ses prix (au mandat).
+   *(**Supplanté le 28/09/2026** : la grille de juillet citée ici n'existe plus. Formule
+   Solo 5,99 €/mois ou 59,90 €/an TTC pour 1 bien, sans frais de mise en place ni bien
+   offert ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives — [[Grille tarifaire]].
+   L'écart avec Rentila (gratuit pour 1 bien) reste à réévaluer.)*
 4. **Positionnement gagnant probable** : « l'outil qui gère les *problèmes* (incidents,
    artisans, terrain) là où les autres gèrent les *papiers* (bail, compta) » — au prix
    d'un socle administratif à compléter pour être crédible face aux standards.

@@ -3,7 +3,7 @@ type: concept
 tags: [garantie, caution, garant, visale, gli, caution-bancaire, bail]
 status: draft
 created: 2026-07-24
-updated: 2026-08-05
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -38,10 +38,25 @@ Conforme au droit : **le garant ne signe pas le bail** — il signe un **acte de
 cautionnement distinct, annexé au bail**, reproduisant loyer, révision et durée de
 l'engagement ([[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]).
 
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+
 **En colocation** : chaque garant couvre **un colocataire identifié** (RM-2.2.4 =
 RM-1.3.8), jamais le bail en bloc ; **son engagement s'éteint avec la solidarité du
 colocataire qu'il couvre** (RM-2.2.5, US-2.2.1) — extinction calculée et tracée au
-module 1.
+module 1. Depuis l'audit des parcours métier du 29/09 : au départ du colocataire, le garant **reste
+rattaché au bail** (il n'est plus supprimé) et sa fin d'engagement est fixée à la fin de
+solidarité du colocataire — six mois après la date d'effet de son congé, ou cette date
+s'il est remplacé par un nouveau colocataire au bail (art. 8-1).
+
+**Cautionnement sans durée — faculté de résiliation** (art. 22-1, avant-dernier
+alinéa). L'acte généré par Gerimmo engage la caution « pour la durée du bail et de ses
+renouvellements », sans durée déterminée : il reproduit donc le texte légal —
+« Lorsque le cautionnement d'obligations résultant d'un contrat de location conclu en
+application du présent titre ne comporte aucune indication de durée ou lorsque la
+durée du cautionnement est stipulée indéterminée, la caution peut le résilier
+unilatéralement. La résiliation prend effet au terme du contrat de location, qu'il
+s'agisse du contrat initial ou d'un contrat reconduit ou renouvelé, au cours duquel le
+bailleur reçoit notification de la résiliation. »
 
 ## Garanties externes (2.3)
 

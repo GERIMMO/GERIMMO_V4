@@ -11,6 +11,37 @@ export type DisponibiliteReseau = {
   interet_enregistre: boolean;
 };
 export type CommuneReseau = { code: string; nom: string; codes_postaux: string[]; departement: string };
+
+/**
+ * Même normalisation que `reseau_nom_commune` en base (audit gestion du
+ * 29/09) : casse, accents, ligatures, tirets et apostrophes ignorés ;
+ * « St »/« Ste » valent « Saint »/« Sainte » ; « Cedex » et l'arrondissement
+ * (« Paris 12e ») sont retirés.
+ */
+export function nomCommuneNormalise(nom: string | null | undefined): string {
+  return (nom ?? "")
+    .replace(/œ/g, "oe").replace(/Œ/g, "oe").replace(/æ/g, "ae").replace(/Æ/g, "ae")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+cedex(\s*\d+)?\s*$/, "")
+    .replace(/\s*\d+\s*(er|e|eme)?(\s*arrondissement)?\s*$/, "")
+    .replace(/(^|[^a-z0-9])ste(?=[^a-z0-9]|$)/g, "$1sainte")
+    .replace(/(^|[^a-z0-9])st(?=[^a-z0-9]|$)/g, "$1saint")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * La commune qui s'impose pour un code postal et une ville : la seule
+ * desservie par ce code postal, ou la seule qui porte le nom saisi. Sinon
+ * (plusieurs candidates, aucune au bon nom), rien — l'utilisateur choisit.
+ */
+export function communeEvidente(communes: CommuneReseau[], ville: string | null | undefined): CommuneReseau | null {
+  if (communes.length === 1) return communes[0];
+  const cible = nomCommuneNormalise(ville);
+  if (!cible) return null;
+  const memeNom = communes.filter((c) => nomCommuneNormalise(c.nom) === cible);
+  return memeNom.length === 1 ? memeNom[0] : null;
+}
 export type LignePilotageReseau = {
   commune_code: string; nom: string; ouverte: boolean; preparee: boolean;
   artisans: number; eligibles: number; interets: number; biens_interesses: number; demandes: number;

@@ -3,7 +3,7 @@ type: process
 tags: [charges, regularisation, loyer]
 status: draft
 created: 2026-07-22
-updated: 2026-08-05
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -80,7 +80,34 @@ Le module 3 confirme et précise les décisions du 2026-07-22 :
 >   confirmés et détaillés par le module 3 (année civile, justificatifs bloquants,
 >   prorata en jours).
 > - ~~Le solde transite-t-il par une période ajustée ou un objet dédié ?~~ → **tranché
->   (module 3)** : appel complémentaire ou avoir, et intégration au [[Solde de tout
->   compte]] en fin de bail.
+>   (module 3)** : appel complémentaire ou avoir, et intégration au [[Solde de tout compte]] en fin de bail.
 > - Nature exacte du justificatif accepté (facture, décompte de copropriété, relevé…) —
 >   toujours ouverte, probablement précisée au module 12.
+
+## Audit de gestion du 29/09/2026 — colocation, prescription, régularisation tardive
+
+- **Colocation à contrats individuels** : chaque contrat recevait les charges du
+  **logement entier** (trois contrats × 1 200 € = 3 600 € réclamés). Désormais, un
+  contrat de chambre ne porte que la **part de sa chambre** — surface de la chambre sur
+  la surface cumulée des chambres du logement (parts égales si aucune surface n'est
+  connue) — puis le prorata des jours d'occupation. La part d'une chambre vacante reste
+  au bailleur. Trois chambres louées toute l'année : la somme des régularisations égale
+  les charges du logement. La quote-part est conservée avec la régularisation et citée
+  au décompte.
+- **Prescription triennale** (art. 7-1 loi 89-462) : un **complément** n'est plus
+  réclamable pour un exercice clos depuis plus de trois ans — refus. Un **trop-perçu**
+  peut toujours être rendu au locataire.
+- **Régularisation tardive** (art. 23 loi 89-462) : faite après le 31/12 de l'année
+  suivant l'exercice, elle est marquée « tardive » et le locataire **peut demander un
+  paiement par douzièmes**. Option « étalement sur 12 mois » : l'échéancier (12
+  mensualités, la dernière absorbant l'arrondi) est conservé avec la régularisation et
+  reproduit au décompte ; l'option est refusée hors régularisation tardive ou sans
+  complément.
+
+> [!warning] Limites connues (29/09/2026)
+> - La régularisation n'écrit toujours pas au journal ni aux appels de loyer : les
+>   mensualités d'étalement sont **tracées**, pas encore appelées automatiquement.
+> - Point de départ de la prescription retenu : fin de l'exercice. La jurisprudence
+>   (Cass. 3e civ.) fait courir le délai du jour où le bailleur connaît le montant réel
+>   des charges — à confirmer avec une source avant d'assouplir.
+> Source : [[Audit complet du 29 septembre 2026]].

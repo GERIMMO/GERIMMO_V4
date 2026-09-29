@@ -3,8 +3,8 @@ type: process
 tags: [onboarding, abonnement, saas]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-28
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]"]
+updated: 2026-09-29
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-16-onboarding-et-invitations]]", "[[2026-09-28-decision-tarification]]"]
 ---
 
 # Onboarding et abonnement
@@ -57,9 +57,11 @@ lacune sur l'arrivée du [[Propriétaire bailleur|propriétaire gestion directe]
 publique lui permet de créer seul son compte et son organisation
 (`independent_owner`), de démarrer l'**essai 14 jours**, puis de souscrire
 l'**abonnement** via Stripe (formules Solo à Patrimoine selon le nombre de biens
-depuis le 28/09/2026, sans gratuité permanente — [[Grille tarifaire]] ; le
-« 1ᵉʳ bien gratuit » ne vaut plus que pour les organisations de la grille
-historique). Pas de circuit commercial : il est indépendant de bout en
+depuis le 28/09/2026 — [[Grille tarifaire]]). **Règle en vigueur (28/09/2026) :
+aucun bien n'est offert, à personne** ; seuls 14 jours d'essai sans carte sont
+offerts, puis l'espace est **gelé en lecture seule** (consultable et exportable)
+jusqu'au paiement. Les organisations existantes basculent sur la nouvelle grille
+dès l'ajout d'un bien ([[2026-09-28-decision-tarification]]). Pas de circuit commercial : il est indépendant de bout en
 bout. En complément, le [[Super Admin]] peut **créer manuellement tout profil**,
 PD compris (voie de secours/support — précision du 2026-08-19). **Écran à construire au sprint 9a** (sprint dédié au PD, scission décidée le
 2026-08-19), le paiement Stripe restant au sprint 11 — cohérent avec
@@ -67,6 +69,11 @@ l'auto-inscription `createOrganization` du code hérité.
 
 ## Cycle de vie ensuite
 - Voir [[Cycle de vie de l'abonnement]] (essai → paiement/suspension via Stripe + Vercel Cron).
+- Depuis le 28/09/2026 : fin d'essai → **gel en lecture seule** jusqu'au paiement ;
+  résiliation en fin de période via le portail Stripe (changement de formule
+  désactivé) ; préavis d'au moins un mois avant toute révision tarifaire (CGU
+  art. 8.9) ; droit de rétractation de 14 jours pour le consommateur (CGU art. 8.10).
+  Aucun avantage tarifaire lié au [[Parrainage]].
 
 ## Automatisations
 - Événement `trial.started` → e-mail de bienvenue/essai (Resend). Voir [[Canaux de communication]].

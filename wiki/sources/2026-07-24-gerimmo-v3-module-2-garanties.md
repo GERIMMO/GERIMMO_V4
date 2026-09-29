@@ -3,7 +3,7 @@ type: source
 tags: [depot-de-garantie, caution, garant, visale, gli, vetuste, restitution, module-2]
 status: stable
 created: 2026-07-24
-updated: 2026-07-24
+updated: 2026-09-29
 source-file: raw/assets/GERIMMO-V3-Module-2-Garanties.md
 source-type: module du référentiel des parcours clients (V3)
 source-date: 2026-07-24
@@ -23,8 +23,7 @@ des lieux du module 1 ; alimente le solde de tout compte (3.11) et la comptabili
 
 1. **Le dépôt de garantie n'est pas un solde comptable — décision actée** (RM-2.1.3) :
    un montant **encaissé à l'entrée, restitué à la sortie**. Pas de compte mandant, pas
-   de séquestre, pas de suivi d'intérêts — « cohérent avec la [[Comptabilité|comptabilité
-   déclarative]] retenue au module 4 ». Seul le dépôt se restitue ; caution et garanties
+   de séquestre, pas de suivi d'intérêts — « cohérent avec la [[Comptabilité|comptabilité déclarative]] retenue au module 4 ». Seul le dépôt se restitue ; caution et garanties
    externes **s'éteignent avec le bail**. → [[Dépôt de garantie]]
 2. **Plafonds légaux bloquants** (RM-2.1.1/2) : 1 mois de loyer **hors charges** en nu,
    2 mois en meublé, interdit en bail mobilité (hors périmètre). Le dépôt n'est **jamais

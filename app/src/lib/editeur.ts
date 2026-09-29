@@ -211,7 +211,11 @@ export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAI
 // que `CONDITIONS_DATE`.
 // 28/09/2026 : nouvelle grille tarifaire (article 8), fin du premier bien
 // offert.
-export const CONDITIONS_VERSION = "2026-09-28";
+// 29/09/2026 : conditions générales d'utilisation ET DE VENTE — reconduction
+// de l'annuel (art. L. 215-1 du code de la consommation), conservation,
+// disponibilité, plafond de responsabilité, mise en demeure, annexe
+// « article 28 du RGPD ».
+export const CONDITIONS_VERSION = "2026-09-29";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "28 septembre 2026";
+export const CONDITIONS_DATE = "29 septembre 2026";

@@ -132,6 +132,7 @@ describe("Régularisation : une absence de montant ne crée pas de remboursement
       p_mime: "application/pdf",
       p_taille: 18,
       p_empreinte: "e".repeat(64),
+      p_etaler: false,
     });
     expect(banc.abandon).not.toHaveBeenCalled();
   });

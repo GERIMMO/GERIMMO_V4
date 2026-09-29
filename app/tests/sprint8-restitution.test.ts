@@ -6,6 +6,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -116,6 +117,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
        values ($1,$2,$3,$4,$5) returning id`,
       [orgA, lot, locataire, depot, loyerHc]
     );
+    await couvrirParMandat(db, lot);
     return bail;
   }
 
@@ -134,7 +136,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
   }
 
   it("décote linéaire, impayés imputés d'abord, solde et alerte à la finalisation", async () => {
@@ -189,7 +191,10 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
     expect(al.rows.map((a) => a.type)).toContain("decompte_lrar");
   });
 
-  it("sans état des lieux d'entrée : aucune retenue possible (restitution intégrale)", async () => {
+  // Audit gestion du 29/09 : sans EDL d'entrée, le locataire est présumé avoir
+  // reçu le logement en bon état (art. 1731 C. civ.) — seule une retenue NON
+  // justifiée est refusée ; sans retenue, le dépôt revient en entier.
+  it("sans état des lieux d'entrée : retenue non justifiée refusée, restitution intégrale sans retenue", async () => {
     const bail = await bailAvecDepot(700);
     await encaisserDepot(bail, 700);
     const {
@@ -201,7 +206,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
 
     await attendreEchec(
       db,
-      /état des lieux d'entrée/,
+      /état des lieux d'entrée, une retenue doit être justifiée/,
       `select public.ajouter_retenue($1,'Peinture',900,7,3,null)`,
       [rst]
     );
@@ -225,6 +230,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
        values ($1,$2,$3,900,700)`,
       [orgA, lot, locataire]
     );
+    await couvrirParMandat(db, lot);
 
     // Au plafond, le bail existe — et l'encaissement reste borné à ce plafond
     const {
@@ -234,6 +240,7 @@ describe.skipIf(!DB_URL)("Sprint 8 — restitution du dépôt", () => {
        values ($1,$2,$3,700,700) returning id`,
       [orgA, lot, locataire]
     );
+    await couvrirParMandat(db, lot);
     await attendreEchec(
       db,
       /dépasse le dépôt dû restant/,

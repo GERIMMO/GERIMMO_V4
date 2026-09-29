@@ -3,7 +3,7 @@ type: persona
 tags: [role, proprietaire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-08-30
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -54,6 +54,8 @@ Le module 0 officialise la scission en **deux personas distincts, aux droits opp
 - La **détention** se rattache au **[[Lot]]**, avec quote-part datée jamais supprimée
   (l'historique garantit les rapports passés). Ventilation par indivisaire : hors
   périmètre (acté).
+
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 
 ## Propriétaire direct ↔ mandant (Livrable A1, 2026-07-24)
 Le référentiel V3 distingue le **propriétaire direct** (gère lui-même) du **mandant**

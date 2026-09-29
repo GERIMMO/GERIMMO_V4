@@ -98,9 +98,11 @@ export function FormulaireConge({
   // Colocation à bail unique : le meublé du logement fait foi (même règle
   // que le serveur — audit de vérification 06/09)
   meubleLot?: boolean;
-  zoneTendue?: boolean;
+  /** null = zone tendue non vérifiée (audit gestion du 29/09). */
+  zoneTendue?: boolean | null;
 }) {
   const action = enregistrerConge.bind(null, orgId, bailId);
+  const zoneInconnue = zoneTendue === null;
   const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
   const [par, setPar] = useState<"locataire" | "bailleur">("locataire");
   const [reduit, setReduit] = useState(false);
@@ -167,7 +169,7 @@ export function FormulaireConge({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="conge-prix" className="text-sm">
-                Prix de vente proposé (vente)
+                Prix de vente proposé (vente — obligatoire en location nue)
               </Label>
               <Input id="conge-prix" name="prix_vente" inputMode="decimal" placeholder="ex. 250000" defaultValue={etat.valeurs?.prix_vente} />
             </div>
@@ -195,16 +197,24 @@ export function FormulaireConge({
               />
               Préavis réduit à 1 mois (mutation, santé, perte d&apos;emploi, RSA/AAH…)
             </label>
-            <p className="text-sm text-muted-foreground">
-              En zone tendue, le préavis d&apos;un mois s&apos;applique de plein droit : inutile
-              de cocher, aucun justificatif n&apos;est exigible (la zone est celle figée au bail à sa signature).
-            </p>
+            {zoneInconnue ? (
+              <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
+                Zone tendue non renseignée pour ce bail : un congé à 1 mois est accepté
+                sans justificatif, puis signalé à vérifier (le locataire en zone tendue
+                y a droit de plein droit). Renseignez la zone sur la fiche du bien.
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                En zone tendue, le préavis d&apos;un mois s&apos;applique de plein droit : inutile
+                de cocher, aucun justificatif n&apos;est exigible (la zone est celle figée au bail à sa signature).
+              </p>
+            )}
             {reduit && (
               <div>
                 <Label htmlFor={idJustificatifPreavis} className="text-sm">
-                  Justificatif du préavis réduit
+                  Justificatif du préavis réduit{zoneInconnue ? " (facultatif tant que la zone n’est pas vérifiée)" : ""}
                 </Label>
-                <ChampFichier id={idJustificatifPreavis} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required />
+                <ChampFichier id={idJustificatifPreavis} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={!zoneInconnue} />
               </div>
             )}
           </div>

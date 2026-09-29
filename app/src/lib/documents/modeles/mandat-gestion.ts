@@ -3,6 +3,11 @@
 // l'agence (mandataire) la gestion de lots, chacun avec son taux d'honoraires
 // (une ligne de mandat par lot). Acte des parties : cadres de signature,
 // jamais de signature d'émetteur. Cible : le mandat.
+// Audit 29/09 : un mandant PERSONNE PHYSIQUE est un consommateur. Le mandat
+// porte alors le droit de rétractation de 14 jours (contrat conclu à distance
+// ou hors établissement, art. L221-18 du code de la consommation) et son
+// formulaire type, le médiateur de la consommation (art. L612-1 et L616-1) et
+// l'information sur la reconduction tacite (art. L215-1).
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
@@ -27,6 +32,64 @@ import {
   type PersonneDocument,
 } from "./communs";
 import type { Assemblage, LienDocument } from "./index";
+import { estPersonnePhysique } from "@/lib/qualite-bailleur";
+
+// Mentions dues au mandant consommateur — exportées pour les tests.
+export function mentionsConsommateur(
+  f: Fusion,
+  numero: string,
+  mandataire: { nom: string; adresse?: string | null; email?: string | null; mediateur?: string | null }
+): string {
+  return `
+    ${section(`${numero} — Informations du mandant consommateur`)}
+    <p><b>Droit de rétractation.</b> Lorsque le présent mandat est conclu à distance ou hors
+    établissement, le mandant dispose d'un délai de <b>quatorze jours</b> à compter de sa
+    conclusion pour exercer son droit de rétractation, sans avoir à motiver sa décision ni à
+    supporter d'autres coûts que ceux prévus par la loi (articles L221-18 et suivants du code de
+    la consommation). Il l'exerce en adressant au mandataire, avant l'expiration de ce délai, le
+    formulaire de rétractation reproduit en annexe ou toute autre déclaration dénuée d'ambiguïté
+    exprimant sa volonté de se rétracter. Si le mandant demande expressément que l'exécution du
+    mandat commence avant la fin de ce délai, il reste redevable, en cas de rétractation, des
+    honoraires correspondant au service fourni jusqu'à la communication de sa décision
+    (article L221-25).</p>
+    <p><b>Médiation de la consommation.</b> En cas de litige non résolu par une réclamation écrite
+    préalable auprès du mandataire, le mandant peut recourir gratuitement au médiateur de la
+    consommation dont relève le mandataire (articles L612-1 et L616-1 du code de la
+    consommation) — nom, adresse et site internet du médiateur :
+    ${
+      mandataire.mediateur?.trim()
+        ? echapper(mandataire.mediateur.trim())
+        : // Aucune fiche d'agence ne porte encore son médiateur : un blanc à
+          // compléter à la main, qui ne bloque pas la génération (un champ de
+          // fusion vide refuserait tout mandat de particulier).
+          "………………………………………………………………………………"
+    }.</p>
+    <p><b>Reconduction tacite.</b> Conformément à l'article L215-1 du code de la consommation, le
+    mandataire informe le mandant par écrit, par lettre nominative ou courrier électronique
+    dédiés, au plus tôt trois mois et au plus tard un mois avant le terme de la période
+    autorisant le rejet de la reconduction, de la possibilité de ne pas reconduire le mandat ;
+    cette information mentionne, dans un encadré apparent, la date limite de non-reconduction.
+    À défaut, le mandant peut mettre gratuitement un terme au mandat, à tout moment à compter de
+    la date de reconduction.</p>
+
+    <div class="encadre">
+      <p class="etiquette">Annexe — Formulaire de rétractation</p>
+      <p>(Veuillez compléter et renvoyer le présent formulaire uniquement si vous souhaitez vous
+      rétracter du contrat.)</p>
+      <p>À l'attention de ${echapper(mandataire.nom)}, ${f.champ(mandataire.adresse, "adresse du mandataire")}${
+        mandataire.email ? `, ${echapper(mandataire.email)}` : ""
+      } :</p>
+      <p>Je/Nous (*) vous notifie/notifions (*) par la présente ma/notre (*) rétractation du contrat
+      pour la prestation de services ci-dessous : mandat de gestion locative.<br/>
+      Commandé le (*)/reçu le (*) : ……………………<br/>
+      Nom du (des) consommateur(s) : ……………………<br/>
+      Adresse du (des) consommateur(s) : ……………………<br/>
+      Signature du (des) consommateur(s) (uniquement en cas de notification du présent formulaire
+      sur papier) : ……………………<br/>
+      Date : ……………………</p>
+      <p>(*) Rayez la mention inutile.</p>
+    </div>`;
+}
 
 type BienLigne = {
   nom: string;
@@ -102,6 +165,13 @@ export async function assemblerMandatGestion(
   const jourRapport = mandat.date_rapport === 1 ? "1er" : String(mandat.date_rapport);
 
   const nomMandant = f.champ(nomPersonne(mandant), "nom et prénom(s), ou dénomination du mandant");
+  // Mandant consommateur (personne physique ou indivision de personnes
+  // physiques) : mentions du code de la consommation, section insérée avant
+  // la reddition de comptes.
+  const consommateur = estPersonnePhysique(mandant.qualite, mandant.prenom);
+  const num = consommateur
+    ? { reddition: "VI", signatures: "VII" }
+    : { reddition: "V", signatures: "VI" };
   const libelleLot = (lot: LotLigne): string => {
     const bien = premier(lot.bien);
     const adresse = bien
@@ -180,14 +250,16 @@ export async function assemblerMandatGestion(
     ans. Chaque partie peut le dénoncer à tout moment, par lettre recommandée avec avis de
     réception, en respectant un préavis de <b>${mandat.preavis_mois} mois</b>.</p>
 
-    ${section("V — Reddition de comptes")}
+    ${consommateur ? mentionsConsommateur(f, "V", { nom: organisation.name, adresse: exp.adresse, email: organisation.email_contact }) : ""}
+
+    ${section(`${num.reddition} — Reddition de comptes`)}
     <p>Le mandataire rend compte de sa gestion <b>chaque mois</b> : il remet au mandant un relevé
     détaillant les sommes encaissées et décaissées pour son compte, ses honoraires, et le solde qui
     lui revient, dont le versement accompagne le relevé. Les fonds détenus pour le compte du
     mandant sont couverts par la garantie financière désignée à l'article I.</p>
 
     <div class="bloc-signataires">
-    ${section("VI — Date et signatures")}
+    ${section(`${num.signatures} — Date et signatures`)}
     ${faitA(f, exp.ville, new Date().toISOString(), ", en deux exemplaires originaux, dont un est remis au mandant.")}
     <div class="signatures">
       ${cadreSignature("Le mandant", `${nomMandant}<br/>Signature précédée de la mention « Bon pour mandat »`)}

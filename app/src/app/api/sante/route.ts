@@ -33,11 +33,15 @@ export async function GET(request: Request) {
     );
   }
 
-  // Une lecture minuscule, en tête seulement : si elle échoue, la base ne
-  // répond pas — c'est la seule chose qu'on veut savoir ici.
+  // Une lecture minuscule : si elle échoue, la base ne répond pas — c'est la
+  // seule chose qu'on veut savoir ici. Audit sécurité 29/09 : jamais de
+  // `count: "exact"` sur un appel anonyme — un comptage complet de la table,
+  // à la demande de n'importe qui, est une amplification gratuite. Une ligne
+  // au plus suffit à prouver que la base répond.
   const { error: erreurBase } = await supabase
     .from("organizations")
-    .select("id", { count: "exact", head: true });
+    .select("id")
+    .limit(1);
   if (erreurBase) {
     return Response.json(
       { ok: false, base: false, commit, revision, motif: "La base ne répond pas." },

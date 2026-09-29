@@ -1,4 +1,5 @@
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -113,6 +114,7 @@ describe.skipIf(!DB_URL)("Contrats individuels sur un même logement", () => {
     );
     await db.query(`update public.lots set etat='disponible' where id=$1`, [lot]);
     await simuler(db, admin);
+    await couvrirParMandat(db, lot);
     return lot;
   }
 
@@ -224,7 +226,7 @@ describe.skipIf(!DB_URL)("Contrats individuels sur un même logement", () => {
     const {rows:[edl]}=await db.query("insert into public.etats_des_lieux(organization_id,bail_id,type) values($1,$2,'sortie') returning id",[org,premier]);
     await db.query('select public.generer_grille_edl($1)',[edl.id]);
     await db.query("update public.edl_lignes set etat='bon' where edl_id=$1",[edl.id]);
-    await db.query('select public.signer_edl($1)',[edl.id]);
+    await db.query("select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)",[edl.id]);
     await db.query('select public.terminer_bail($1)',[premier]);
     expect((await db.query('select etat from public.lots where id=$1',[lot])).rows[0].etat).toBe('loue');
     expect((await db.query('select etat from public.baux where id=$1',[second])).rows[0].etat).toBe('actif');

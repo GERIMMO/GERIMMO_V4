@@ -93,6 +93,8 @@ describe("journal des gestes (majeur 5)", () => {
 describe("« Lancer maintenant » est journalisé avant l'appel (majeur 5)", () => {
   it("sans ligne d'audit, le passage n'est pas lancé", async () => {
     vi.stubEnv("CRON_SECRET", "secret");
+    // Audit 29/09 : l'adresse vient de la configuration, plus des en-têtes.
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "http://localhost:3000");
     mocks.headers.mockResolvedValue(new Headers({ host: "localhost:3000" }));
     const appel = vi.fn();
     vi.stubGlobal("fetch", appel);

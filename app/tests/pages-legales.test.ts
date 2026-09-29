@@ -123,3 +123,110 @@ describe("les pages légales ne promettent que ce qui existe", () => {
     expect(fs.existsSync(route)).toBe(true);
   });
 });
+
+// Relevé du 29/09 : des conditions d'utilisation qui portaient aussi la vente,
+// des prix « TTC » et « HT » sous un régime de franchise, une résiliation
+// « sans préavis » contredite par l'article 8.6, une conservation « à venir »
+// alors que l'accueil promettait que rien n'est supprimé.
+describe("conditions générales d'utilisation et de vente (29/09)", () => {
+  const cgu = lire("app/conditions/page.tsx");
+
+  it("portent leur vrai nom, partout où on les nomme", () => {
+    expect(cgu).toContain('titre="Conditions générales d\'utilisation et de vente"');
+    expect(lire("app/inscription/formulaire-inscription.tsx")).toContain("conditions générales d&apos;utilisation et de vente");
+    expect(lire("components/chrome-public.tsx")).toContain('["/conditions", "Conditions générales"]');
+  });
+
+  it("disent la même chose de la résiliation aux articles 8.6 et 15", () => {
+    expect(cgu).not.toContain("sans\n          frais ni préavis");
+    expect(cgu).not.toMatch(/sans\s+frais\s+ni\s+préavis/);
+    const art15 = cgu.slice(cgu.indexOf('titre="15.'), cgu.indexOf('titre="16.'));
+    expect(art15).toContain("prochaine échéance");
+  });
+
+  it("prévoient l'information avant reconduction de l'annuel (art. L. 215-1)", () => {
+    expect(cgu).toContain("L. 215-1");
+    expect(cgu).toMatch(/au plus tôt trois mois et au plus tard\s+un mois avant le terme/);
+  });
+
+  it("n'annoncent pas de prix TTC ou HT sous la franchise en base", () => {
+    expect(cgu).toContain('{FRANCHISE ? "" : ", prix toutes taxes comprises"}');
+    expect(cgu).toContain('{FRANCHISE ? "" : " hors taxes"}');
+  });
+
+  it("arrêtent conservation, disponibilité, plafond et mise en demeure", () => {
+    for (const cle of ["conservation", "disponibilite", "plafond", "delaiMiseEnDemeure"]) {
+      expect(cgu).not.toMatch(new RegExp(`\\n  ${cle}: null,`));
+    }
+    expect(cgu).toContain("jamais supprimées automatiquement");
+    expect(cgu).toContain("dix ans");
+    expect(cgu).toContain("douze mois précédant le fait générateur");
+    expect(cgu).toContain('delaiMiseEnDemeure: "trente jours"');
+    // La réversibilité ne promet plus une suppression au terme d'un délai.
+    const art9 = cgu.slice(cgu.indexOf('titre="9. Réversibilité"'), cgu.indexOf('titre="10.'));
+    expect(art9).not.toContain("supprimées ou anonymisées");
+  });
+
+  it("portent l'annexe « article 28 » avec ses clauses obligatoires", () => {
+    const annexe = cgu.slice(cgu.indexOf("Annexe — Traitement de données pour le compte du Client"));
+    for (const clause of [
+      "Instructions documentées",
+      "Confidentialité",
+      "Sécurité",
+      "Sous-traitants ultérieurs",
+      "Droits des personnes",
+      "analyse d&apos;impact",
+      "Violation de données",
+      "Fin du contrat",
+      "Information et audit",
+    ]) {
+      expect(annexe).toContain(clause);
+    }
+    // Les sous-traitants sont ceux des autres pages légales, pas une liste recopiée.
+    expect(annexe).toContain("<TableauPrestataires />");
+  });
+
+  it("« rien n'est supprimé automatiquement » se dit de la même façon partout", () => {
+    for (const fichier of ["app/page.tsx", "app/tarifs/page.tsx"]) {
+      const texte = lire(fichier).replace(/&apos;/g, "'");
+      expect(texte).toMatch(/rien n'est supprimé automatiquement du fait de l'arrêt/i);
+      expect(texte).toContain("tant que le compte existe");
+    }
+  });
+});
+
+describe("confidentialité (29/09)", () => {
+  const page = lire("app/confidentialite/page.tsx");
+
+  it("donne la base légale de chaque traitement", () => {
+    for (const base of ["Exécution du contrat", "obligation légale", "Intérêt légitime", "consentement"]) {
+      expect(page).toContain(base);
+    }
+  });
+
+  it("dit comment les transferts hors UE sont encadrés, sans certifier personne", () => {
+    expect(page).toContain("clauses contractuelles types de la");
+    expect(page).toContain("Data Privacy Framework UE–États-Unis, selon le prestataire");
+    expect(page).toContain("GitHub Actions");
+    expect(page).not.toMatch(/hébergées <b className="font-semibold">dans\s+l&apos;Union/);
+  });
+
+  it("conserve les factures dix ans et la preuve d'acceptation le temps du contrat plus cinq ans", () => {
+    expect(page).toContain("10 ans (obligation légale)");
+    expect(page).toContain("Durée du contrat, puis 5 ans");
+  });
+
+  it("n'envoie plus exercer ses droits par le formulaire de devis", () => {
+    const droits = page.slice(page.indexOf('titre="Vos droits"'));
+    expect(droits).not.toContain("OuNousEcrire");
+    expect(droits).toContain('href="/assistance"');
+    // L'adresse de l'éditeur dès qu'elle est fournie ; sa réserve, sinon.
+    expect(droits).toContain("adresse de contact de l'éditeur");
+  });
+
+  it("est annoncée au moment de l'inscription", () => {
+    const formulaire = lire("app/inscription/formulaire-inscription.tsx");
+    const avantBouton = formulaire.slice(0, formulaire.indexOf("<BoutonEnvoi"));
+    expect(avantBouton).toContain('href="/confidentialite"');
+  });
+});

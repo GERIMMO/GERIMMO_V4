@@ -112,9 +112,26 @@ describe("Ce que Stripe dit, et ce que ça fait au compte", () => {
 
   it("« past_due » NE FERME RIEN — Stripe relance, une carte expirée n'est pas un impayé", async () => {
     await appliquer(client, "active");
+    // Ce client a déjà payé une facture (webhook invoice.paid).
+    await db.query("select public.abonnement_facture_payee($1, null)", [client]);
     // Le prélèvement échoue. Couper ici ferait perdre sa journée à une agence
     // pour une raison qu'elle ignore encore : sa banque a refusé.
     expect(await appliquer(client, "past_due")).toBe("active");
+  });
+
+  it("audit 29/09 : un PREMIER prélèvement refusé gèle aussitôt — pas de grâce pour qui n'a jamais payé", async () => {
+    await appliquer(client, "trialing");
+    // L'essai Gerimmo est échu (Stripe débite le lendemain de sa fin).
+    await db.query("select public.tache_systeme()");
+    await db.query("update public.organizations set essai_fin = current_date - 1 where id = $1", [org]);
+    await db.query("select set_config('gerimmo.systeme', '', true)");
+    // La facture d'essai à 0 € ne compte pas : aucun paiement n'est enregistré.
+    expect(await appliquer(client, "past_due")).toBe("suspendue");
+    const { rows } = await db.query<{ o: boolean }>("select public.org_ecriture_ouverte($1) as o", [org]);
+    expect(rows[0].o).toBe(false);
+    // Le paiement passe : tout rouvre.
+    await db.query("select public.abonnement_facture_payee($1, null)", [client]);
+    expect(await appliquer(client, "active")).toBe("active");
   });
 
   it("« past_due » se voit dans l'écran, sans fermer", async () => {

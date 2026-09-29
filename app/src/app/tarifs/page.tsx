@@ -3,24 +3,25 @@ import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { Article } from "@/components/coquille-legale";
 import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
 import { REGIME_TVA } from "@/lib/editeur";
-import { JOURS_ESSAI, MENTION_REGIME_INCONNU } from "@/lib/tarifs";
+import { JOURS_ESSAI, etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
-export const metadata = {
-  title: "Tarifs — Gerimmo",
-  description:
-    "Particuliers et SCI : de Solo (1 bien, 5,99 € TTC/mois) à Patrimoine (20 biens), mensuel ou annuel. Agences : dès 39 € HT/mois, tranches cumulatives. Essai gratuit de 14 jours.",
-};
+const TTC = etiquetteTaxes("ttc", REGIME_TVA);
+const HT = etiquetteTaxes("ht", REGIME_TVA);
+const avec = (e: string | null) => (e ? ` ${e}` : "");
+
+export const metadata = metadonneesPubliques({
+  titre: "Tarifs — Gerimmo",
+  description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel. Agences : dès 39 €${avec(HT)}/mois, tranches cumulatives.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de 14 jours.`,
+  chemin: "/tarifs",
+});
 
 // La page des tarifs (grille du 28/09/2026). Les tableaux sont rendus depuis
 // lib/tarifs.ts, le module qui sert aussi à facturer : aucun prix n'est
 // recopié ici. Ce qui n'est pas proposé est dit — pas de promesse sur des
 // services externes dont le coût n'est pas défini.
 export default function PageTarifs() {
-  const mentionTaxes = !REGIME_TVA
-    ? MENTION_REGIME_INCONNU
-    : REGIME_TVA.nature === "franchise"
-      ? "TVA non applicable, art. 293 B du CGI : les prix HT des agences sont aussi les montants payés."
-      : `Particuliers : prix TTC, TVA ${REGIME_TVA.tauxPourcent} % incluse. Agences : prix HT, TVA ${REGIME_TVA.tauxPourcent} % en sus, détaillée avant paiement.`;
+  const mentionTaxes = mentionTaxesPubliques(REGIME_TVA);
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
       <EnTetePublic />
@@ -48,8 +49,9 @@ export default function PageTarifs() {
           <TableauAgences />
           <ul className="list-disc space-y-1 pl-5">
             <li>Mensuel uniquement, sans engagement, selon les lots distincts sous mandat actif — vacants compris.</li>
-            <li>Le socle de 39 € HT s&apos;applique dès la souscription, même sous dix lots. Aucun abonnement ne démarre à la création du compte.</li>
-            <li>Sans supplément : les comptes de vos collaborateurs, les accès des propriétaires que vous invitez et ceux de vos locataires. Un propriétaire invité n&apos;a pas d&apos;abonnement à prendre pour consulter les biens que vous gérez.</li>
+            <li>Le socle de 39 €{avec(HT)} s&apos;applique dès la souscription, même sous dix lots. Aucun abonnement ne démarre à la création du compte.</li>
+            <li>Sans supplément : les comptes de vos collaborateurs et les accès de vos locataires. Vos propriétaires reçoivent leurs rapports de gestion sans abonnement à prendre.</li>
+            <li>L&apos;essai de 14 jours, sans carte, s&apos;ouvre sur demande : écrivez-nous depuis l&apos;accueil, rubrique Agences.</li>
             <li>Aucun frais d&apos;installation pour démarrer seul ; une reprise manuelle de vos données peut vous être proposée sur devis, jamais facturée d&apos;office.</li>
           </ul>
         </Article>
@@ -59,7 +61,7 @@ export default function PageTarifs() {
             <li>Toute augmentation vous est présentée avant d&apos;être appliquée : nouveau montant, date d&apos;effet et prorata. Rien n&apos;est prélevé sans votre confirmation.</li>
             <li>Une baisse s&apos;applique d&apos;elle-même à la prochaine échéance, quand votre parc le permet.</li>
             <li>Souscrire pendant l&apos;essai ne le raccourcit pas : le premier prélèvement part à sa fin, date affichée.</li>
-            <li>À la fin de l&apos;essai ou des droits payés, vos données restent consultables et exportables en lecture seule. Rien n&apos;est supprimé automatiquement.</li>
+            <li>À la fin de l&apos;essai ou des droits payés, vos données restent consultables et exportables en lecture seule, tant que le compte existe. Rien n&apos;est supprimé automatiquement du fait de l&apos;arrêt ; vous pouvez demander la suppression après export (article 9 des conditions générales).</li>
           </ul>
         </Article>
 
@@ -76,7 +78,7 @@ export default function PageTarifs() {
             Commencer l&apos;essai gratuit
           </Link>
           <Link href="/conditions" className="btn-secondaire">
-            Conditions générales
+            Conditions générales d&apos;utilisation et de vente
           </Link>
         </div>
       </main>

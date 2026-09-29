@@ -3,7 +3,7 @@ type: concept
 tags: [edl, etat-des-lieux, bail, depot-de-garantie, mobile]
 status: draft
 created: 2026-07-24
-updated: 2026-09-09
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -20,7 +20,7 @@ Source : [[2026-07-24-gerimmo-v3-module-1-bail|Module 1]], parcours 1.12/1.13.
 **Décision actée : saisie native, pièce par pièce, sur mobile** — pas un PDF déposé.
 Fonctionne **hors ligne** avec synchronisation au retour du réseau (RM-1.12.4 — module
 19 : « le parcours mobile le plus exigeant »). Signature **tactile sur place** = un
-consentement recueilli en présence, pas une signature électronique eIDAS (RM-13.1.6,
+consentement recueilli en présence, pas une [[Signature électronique|signature électronique]] eIDAS (RM-13.1.6,
 RM-A3.7 — [[Notification et valeur probante]]).
 
 ## La structure
@@ -121,3 +121,17 @@ au congé ([[Agenda et échéances]]) ; grille issue du [[Lot]] ; écarts consom
   pendant le préavis — signé trop tôt, il rendait le congé inannulable ; la
   grille s'enregistre désormais en une seule transaction
   (`enregistrer_grille_edl`).
+
+## Signature sur preuve (audit de gestion du 29/09/2026)
+
+Un clic de l'agent suffisait à figer l'EDL « signé ». Désormais la signature exige une
+**preuve déposée en GED** :
+
+- l'**EDL signé par le bailleur (ou son mandataire) et le locataire** (PDF ou image) ;
+- ou le **constat d'un commissaire de justice** (EDL établi à défaut d'accord
+  amiable, art. 3-2 loi 89-462).
+
+La pièce naît dans la même transaction que la signature (un refus ne laisse rien en
+GED), elle est rattachée au bail, et le mode de preuve est conservé avec l'EDL. Une
+écriture directe « signé » sans preuve est refusée. La clôture du bail continue
+d'exiger un EDL de sortie **signé**. Source : [[Audit complet du 29 septembre 2026]].

@@ -3,7 +3,7 @@ type: concept
 tags: [bail, contrat, alur, signature, colocation, preavis]
 status: in-progress
 created: 2026-07-22
-updated: 2026-09-14
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -33,7 +33,7 @@ change rien aux baux en cours.
 
 | Aspect | Bail nu | Bail meublé |
 |---|---|---|
-| Durée minimale | 3 ans (personne physique, RM-1.1.8) | **1 an — 9 mois étudiant** (sans reconduction) ; reconduction tacite **d'1 an** hors étudiant ([[2026-08-05-bailpdf-modele-bail-meuble]], section III) |
+| Durée minimale | 3 ans (personne physique, RM-1.1.8 ; aussi **SCI familiale** et **indivision de personnes physiques**) — **6 ans** si un bailleur est une personne morale autre qu'une SCI familiale (art. 10 et 13 de la loi du 6 juillet 1989, audit des parcours métier du 29/09) | **1 an — 9 mois étudiant** (sans reconduction) ; reconduction tacite **d'1 an** hors étudiant ([[2026-08-05-bailpdf-modele-bail-meuble]], section III) |
 | Préavis locataire | 3 mois (1 mois en zone tendue) | **1 mois toujours** |
 | Préavis bailleur | 6 mois | 3 mois |
 | [[Dépôt de garantie]] max | **1 mois** hors charges | **2 mois** — jamais révisé en cours de bail (RM-2.1.5) |
@@ -59,6 +59,8 @@ foi**, rapatrié avec horodatage (dossier de preuve Yousign —
 [[Notification et valeur probante]]). Aucune modification pendant la signature.
 Bail préexistant à l'arrivée sur Gerimmo : dépôt du PDF signé (décision 2026-07-22,
 inchangée).
+
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 
 ### Validation du bail en V0 (décision 2026-08-29)
 Le bail se **valide** (bouton « Valider » en bas de la fiche), il ne s'« active »
@@ -102,6 +104,12 @@ conservation calée sur le bail — hypothèse à confirmer). Voir
   ne libère pas des dettes antérieures (RM-1.3.7).
 - **Chaque garant couvre un colocataire identifié** (RM-1.3.8), jamais le bail en
   bloc ; sa solidarité suit celle de son colocataire.
+- **Départ d'un colocataire sur un bail signé** (audit des parcours métier du 29/09, art. 8-1) : la
+  personne **ne se retire plus** du bail (seul un brouillon se corrige) ; on
+  **enregistre son départ** à la date d'effet de son congé. Sa solidarité s'éteint
+  **six mois** après cette date, ou à cette date si un **nouveau colocataire figurant
+  au bail** le remplace. Le garant qui le couvre reste rattaché au bail et son
+  engagement s'éteint à la même date.
 - Couple marié/pacsé : solidarité légale automatique. Contrats séparés (1.4) et
   remplacement (1.5) : **V2** (imposeront sous-lots ou assouplissement de RM-1.1.3).
 
@@ -122,11 +130,18 @@ pendant le préavis l'interrompt. → alerte d'[[État des lieux]] de sortie.
 
 **Congé du bailleur (1.11)** : au terme uniquement, préavis 6 mois (nu) / 3 mois
 (meublé) — **insuffisant = blocage (le congé serait nul)**. Trois motifs : reprise
-(bénéficiaire familial identifié), **vente** (prix obligatoire — le congé vaut offre,
-**alerte de préemption à 2 mois**, le droit de préemption lui-même hors périmètre),
+(bénéficiaire familial identifié), **vente** (en location **nue**, prix obligatoire —
+le congé vaut offre, art. 15 II, **alerte de préemption à 2 mois**, le droit de
+préemption lui-même hors périmètre ; en **meublé**, art. 25-8, pas d'offre de vente ni
+de prix obligatoire),
 motif légitime et sérieux. Locataire protégé (> 65 ans, ressources modestes) : alerte
 forte, génération sous responsabilité de l'agence. Notification **hors plateforme en
 LRAR/acte** ([[Notification et valeur probante]]) ; l'agent enregistre la date.
+Le PDF du congé (audit des parcours métier du 29/09) prend pour date d'effet le **terme du bail calculé
+par la base** — la même règle que l'enregistrement du congé, durée selon la qualité
+des bailleurs — pour la date de présentation prévue (le terme suivant si le préavis
+n'y tient plus) ; il imprime le prix et refuse un congé pour vente d'un logement nu
+sans prix.
 
 **Reconduction tacite (1.8)** : alerte à l'agent **6 mois avant le terme** (sinon le
 congé bailleur devient impossible) — jamais de reconduction silencieuse. **Avenant
@@ -232,3 +247,24 @@ Deux PDF, nu et meublé, utilisent la charte existante, décrivent le périmètr
 Sources primaires : [Service Public — bail individuel](https://www.service-public.gouv.fr/particuliers/vosdroits/F34661) et [article 8-1 de la loi du 6 juillet 1989](https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000041587279/2026-04-29). La partie privative doit atteindre 9 m² **et** 20 m³ ; l’appréciation de la décence inclut le logement partagé. La valeur du plafond local doit être vérifiée par le gestionnaire.
 
 Recette : 8 essais SQL ciblés (double activation, plafond, chevauchement, départ, annulation, surfaces, état des lieux, confidentialité), 2 essais de contenu PDF et rendu réel des deux contrats (4 et 5 pages). Suite complète locale : 1 056 tests réussis. Parcours navigateur : plafond, création de chambre, création du bail, génération et rangement GED. La migration 20260914180000 précède la publication de l’interface.
+
+## Zone tendue inconnue et honoraires (audit de gestion du 29/09/2026)
+
+- **Zone tendue « non vérifiée »** : la zone d'un bien peut désormais être **oui, non
+  ou non vérifiée** (elle valait « non » par défaut). Aucun référentiel communal de zone
+  tendue n'est en base. Choix **protecteur du locataire** : tant que la zone du bail est
+  inconnue, un **congé du locataire à 1 mois est accepté** (sans justificatif), marqué
+  « zone tendue à vérifier » avec une alerte ; un avertissement s'affiche sur le bail en
+  brouillon, et une alerte naît à l'activation. Une zone déclarée « non » exige toujours
+  le justificatif du préavis réduit. La zone reste figée au bail une fois connue
+  (RM-1.1.7).
+- **Honoraires à la charge du locataire** : la **surface habitable** est exigée dès
+  qu'une part locataire est demandée (le plafond est en €/m²) ; la part locataire est
+  contrôlée **même sans part bailleur saisie** (comptée 0 €) ; les barèmes sont une
+  table datée par zone, et **au-delà du dernier barème connu, c'est lui qui
+  s'applique** (plus de « pas de plafond » pour une année non publiée).
+
+> [!warning] Mise à jour du 29/09/2026
+> Remplace, pour les honoraires, la phrase « Un barème futur inconnu n'est pas
+> projeté » (réalisation du 14/09) : le dernier barème connu s'applique désormais aux
+> années suivantes, à réviser à chaque arrêté. Source : [[Audit complet du 29 septembre 2026]].

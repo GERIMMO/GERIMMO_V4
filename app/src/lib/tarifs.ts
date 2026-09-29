@@ -3,7 +3,7 @@
 // Le site public, « Mon abonnement », l'accueil, la console et Stripe lisent
 // tous ce fichier. La base porte les MÊMES chiffres (tables `tarif_formules`
 // et `tarif_tranches`, migration 20260928090000) parce que ses propres gardes
-// en ont besoin ; `tests/tarifs-grille-sql.test.ts` compare les deux, unité
+// en ont besoin ; `tests/tarification-2026.test.ts` compare les deux, unité
 // par unité, pour que l'un ne change jamais seul.
 //
 // DEUX PUBLICS, DEUX GRILLES, et la frontière est l'USAGE, pas la forme
@@ -275,6 +275,30 @@ export function montants(prixCents: Centimes, base: "ttc" | "ht", regime: Regime
   }
   const tva = Math.round((prixCents * t) / 100);
   return { connu: true, htCents: prixCents, tvaCents: tva, ttcCents: prixCents + tva, mention: `TVA ${t} % en sus.` };
+}
+
+/**
+ * L'étiquette de taxe à accoler à un prix PUBLIÉ (vitrine, conditions) :
+ * « TTC » ou « HT » pour un éditeur assujetti, ou tant que le régime n'est pas
+ * renseigné (c'est alors ce que fixe la grille) ; RIEN en franchise en base —
+ * « 39 € HT » laisserait croire qu'une TVA s'ajoute, alors qu'aucune n'est
+ * facturée (art. 293 B du CGI). La mention de franchise s'affiche à côté
+ * (`mentionTaxesPubliques`).
+ */
+export function etiquetteTaxes(base: "ttc" | "ht", regime: RegimeTva | null): "TTC" | "HT" | null {
+  if (regime?.nature === "franchise") return null;
+  return base === "ttc" ? "TTC" : "HT";
+}
+
+/**
+ * La phrase de taxes des pages publiques, la même partout (tarifs, accueil).
+ */
+export function mentionTaxesPubliques(regime: RegimeTva | null): string {
+  if (!regime) return MENTION_REGIME_INCONNU;
+  if (regime.nature === "franchise") {
+    return "TVA non applicable, art. 293 B du CGI : les prix affichés sont les montants payés, pour les particuliers comme pour les agences.";
+  }
+  return `Particuliers : prix TTC, TVA ${regime.tauxPourcent} % incluse. Agences : prix HT, TVA ${regime.tauxPourcent} % en sus, détaillée avant paiement.`;
 }
 
 export function montantsOffre(o: Offre, regime: RegimeTva | null): Montants {

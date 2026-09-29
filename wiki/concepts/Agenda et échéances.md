@@ -3,7 +3,7 @@ type: concept
 tags: [agenda, echeances, rdv, alertes, produit-v0]
 status: draft
 created: 2026-07-21
-updated: 2026-09-19
+updated: 2026-09-29
 sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-1-bail]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-10-rdv-et-planning]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]"]
 ---
 
@@ -21,7 +21,7 @@ d'alertes consolidés.
 - **Trois criticités** : critique (escalade **7 j**), normale (**15 j**),
   informative (jamais).
 - **Seuils légaux figés** (préavis, restitution, prescription IRL, diagnostics,
-  préemption — lecture seule avec fondement, mis à jour par le super admin seul) vs
+  préemption — lecture seule avec fondement, mis à jour par le [[Super Admin|super admin]] seul) vs
   **seuils de confort paramétrables** par l'agence (impayés, rappels, escalades).
   Une alerte légale ne se désactive pas (RM-14.2.3).
 - **Fermeture par l'action, jamais par marquage** (RM-14.3.2) ; report = date +
@@ -74,8 +74,7 @@ Trois jeux de seuils déjà spécifiés par le socle :
   pour vente (RM-1.11.6) ; **extinction de solidarité** d'un colocataire parti
   (RM-1.3.5) ; alertes d'[[État des lieux]] d'entrée (à la signature) et de sortie
   (au congé).
-- **Garanties** (module 2) : **délai de [[Restitution du dépôt de garantie|restitution
-  du dépôt]]** — compteur lancé à la remise des clés (1 ou 2 mois, US-2.4.4 : alerte à
+- **Garanties** (module 2) : **délai de [[Restitution du dépôt de garantie|restitution du dépôt]]** — compteur lancé à la remise des clés (1 ou 2 mois, US-2.4.4 : alerte à
   l'approche du terme légal) ; **échéance de garantie** ([[Garantie]] — fin d'engagement
   d'un garant, extinction liée à celle du colocataire couvert).
 - **Loyers** (module 3) : **impayés** (circuit à seuils paramétrés, relances

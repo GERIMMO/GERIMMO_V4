@@ -7,6 +7,7 @@
  * Nécessite SUPABASE_DB_URL. Sans elle, tests ignorés avec avertissement.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -185,6 +186,7 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
        values ($1, $2, $3, $4, 750, 50, 5, current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
+    await couvrirParMandat(db, lot);
     await db.query(`select public.activer_bail($1)`, [bail]);
     return bail;
   }
@@ -405,7 +407,7 @@ describe.skipIf(!DB_URL)("Sprint 2 — le parc : biens, lots, diagnostics", () =
       `update public.edl_lignes set etat = 'bon'::public.etat_element where edl_id = $1`,
       [edlSortie]
     );
-    await db.query(`select public.signer_edl($1)`, [edlSortie]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edlSortie]);
     await db.query(`select public.terminer_bail($1)`, [bail]);
     const libere = await db.query(`select etat from public.lots where id = $1`, [lot]);
     expect(libere.rows[0].etat).toBe("disponible");

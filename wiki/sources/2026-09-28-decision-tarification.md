@@ -3,7 +3,7 @@ type: source
 tags: [tarifs, abonnement, stripe, decision]
 status: stable
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-29
 sources: []
 source-file: "Consigne du porteur, session du 28/09/2026 (pas de document dans raw/)"
 source-type: décision du porteur
@@ -37,7 +37,7 @@ le barème agence du 12/09. Détail normatif : [[Grille tarifaire]].
   Agences : lots distincts sous mandat actif, sans contournement par archivage.
 - **Inclus** : accès locataires, propriétaires invités par une agence,
   collaborateurs. Travaux d'artisans toujours sur devis, hors abonnement ; aucune
-  promesse de signature électronique, SMS ou services bancaires illimités.
+  promesse de [[Signature électronique|signature électronique]], SMS ou services bancaires illimités.
 - **Changements** : hausse après présentation (montant, date d'effet, prorata)
   et confirmation ; baisse à l'échéance ; pas de conversion annuel → mensuel en
   cours de période.

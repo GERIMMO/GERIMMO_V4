@@ -208,8 +208,21 @@ describe.skipIf(!DB_URL)("Sprint 1 — GED, alertes, rétention", () => {
 
   it("log_document_access trace pour un gérant et refuse un locataire (journal d'accès)", async () => {
     const docA = await insererDocument(orgA, "piece_identite", "CNI");
+    const horsPortefeuille = await insererDocument(orgA, "piece_identite", "CNI hors portefeuille");
+    // Audit 29/09 : l'agent restreint ne consigne que ce qu'il voit — la pièce
+    // est rattachée à son mandat.
+    await db.query(
+      `insert into public.document_liens (document_id, organization_id, entite, entite_id)
+       values ($1, $2, 'mandat', $3)`,
+      [docA, orgA, mandatA]
+    );
 
     await simuler(db, agentA);
+    await db.query("savepoint hors_portefeuille");
+    await expect(
+      db.query(`select public.log_document_access($1, 'consultation')`, [horsPortefeuille])
+    ).rejects.toThrow(/acces refuse/);
+    await db.query("rollback to savepoint hors_portefeuille");
     await db.query(`select public.log_document_access($1, 'consultation')`, [docA]);
     await db.query(`select public.log_document_access($1, 'telechargement')`, [docA]);
 

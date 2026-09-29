@@ -35,7 +35,11 @@ function originesSupabase(): { http: string; ws: string } {
   }
 }
 
-const OUTILLAGE_VERCEL = ["https://vercel.live", "https://va.vercel-scripts.com"];
+// 29/09 : va.vercel-scripts.com (Vercel Analytics) retiré — aucun module de
+// mesure d'audience n'est installé, et la page confidentialité affirme
+// qu'aucun traceur ne l'est. Seule la barre d'outils des prévisualisations
+// reste admise.
+const OUTILLAGE_VERCEL = ["https://vercel.live"];
 // Autocomplétion d'adresse de la fiche d'un bien (parc/formulaire-bien.tsx) :
 // le navigateur interroge la Base Adresse Nationale. Absente de connect-src,
 // elle était bloquée sans un mot (audit du 27/09). Déclarée dans PRESTATAIRES

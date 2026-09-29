@@ -3,7 +3,7 @@ type: business-rule
 tags: [securite, mfa, mot-de-passe, session, chiffrement, antivirus]
 status: draft
 created: 2026-07-25
-updated: 2026-09-27
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
 ---
 
@@ -68,7 +68,7 @@ organisation ; les émissions automatiques serveur restent autorisées.
 
 Preuves : 15 tests dédiés (SQL et actions/rendu), 1 045 tests locaux au total ;
 profil visité en supervision : message explicite et aucune action de signature.
-La signature électronique Yousign reste un développement distinct.
+La [[Signature électronique|signature électronique]] Yousign reste un développement distinct.
 
 ## Mots de passe et sessions
 

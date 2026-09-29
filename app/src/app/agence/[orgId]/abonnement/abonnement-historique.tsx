@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { BoutonPortail, BoutonSouscrire } from "./boutons-abonnement";
 import { verifierAccesEspace } from "@/lib/espace";
 import { eur, formaterDate } from "@/lib/ged";
-import { finEssaiPourStripe } from "@/lib/stripe";
 import {
   EncadreLectureImpossible,
   EnteteReglages,
@@ -110,12 +109,6 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
   const ferme = etat ? !etat.ecriture_ouverte : false;
   const enEssai = etat?.statut === "essai";
   const jours = etat?.jours_essai_restants ?? null;
-  // 24/09 : souscrire pendant l'essai ne fait pas payer plus tôt — la carte
-  // n'est débitée qu'à la fin de l'essai. L'écran ne le promet que si
-  // `demarrerAbonnement` le tiendra : même fonction, même règle (Stripe
-  // refuse une fin d'essai à moins de 48 h ; en deçà, le prélèvement part à
-  // la validation, et la phrase le dit tel quel).
-  const debitDiffere = enEssai && finEssaiPourStripe(etat?.essai_fin) !== undefined;
 
   // Retour de Stripe. `annule` n'est pas une erreur : le client a fermé la page
   // de paiement, ce qui est son droit — on le lui dit sans le gronder.
@@ -397,12 +390,23 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
             cet instant. */}
         {!erreurBiens && (
           <div className="mt-4 space-y-3 border-t border-border pt-4">
-            {rienAPayer ? (
-              <p className="mesure-lecture text-sm text-muted-foreground">
-                {estAgence
-                  ? "Rien à régler pour l'instant : la facturation démarre au premier lot confié sous mandat actif."
-                  : "Rien à régler pour l'instant : votre premier bien est offert, à vie. Le paiement s'ouvrira le jour où vous en ajouterez un second."}
-              </p>
+            {/* AUDIT 29/09, point 10 : plus d'impasse « rien à payer ». Sans
+                souscription en cours, la grille historique n'a plus cours
+                (décision du 28/09) : le bouton fait passer l'organisation
+                aux formules actuelles, présentées avec leur montant exact
+                avant toute page de paiement. */}
+            {!paiement?.paye && !paiement?.paiement_en_retard ? (
+              <>
+                <p className="mesure-lecture text-sm text-muted-foreground">
+                  {rienAPayer && !estAgence
+                    ? "Depuis le 28 septembre 2026, le premier bien n'est plus offert : l'abonnement se fait par formule, selon le nombre de biens que vous gérez. "
+                    : ""}
+                  Choisissez votre formule : le montant exact vous est présenté avant tout paiement, et rien n&apos;est
+                  prélevé sans votre confirmation.
+                </p>
+                <BoutonSouscrire orgId={orgId} libelle={ferme ? "Rouvrir mon compte — voir les formules" : "Voir les formules et souscrire"} />
+                {paiement?.stripe_statut && <BoutonPortail orgId={orgId} />}
+              </>
             ) : surDevis && !paiement?.paye ? (
               /* AU-DELÀ DU SEUIL, ON NE VEND PAS D'UN CLIC. Un portefeuille de
                  cette taille suppose une reprise comptable et une formation :
@@ -437,41 +441,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
                 </p>
                 <BoutonPortail orgId={orgId} />
               </>
-            ) : (
-              <>
-                {/* 24/09, matin : la phrase promettait que souscrire pendant
-                    l'essai ne le raccourcissait pas, alors que la page de
-                    paiement ne portait aucune période d'essai. 24/09, soir :
-                    la fin d'essai part chez Stripe (`trial_end`), et la
-                    promesse revient — exacte, datée, et seulement quand elle
-                    sera tenue. À moins de 48 h de la fin, Stripe la refuse :
-                    l'écran garde alors la phrase du prélèvement immédiat. La
-                    date a la forme de celle de l'encadré d'essai, juste
-                    dessous : deux écritures d'un même jour se lisent comme
-                    deux jours. */}
-                <p className="mesure-lecture text-sm text-muted-foreground">
-                  {ferme
-                    ? "Votre compte rouvre dès le premier paiement, avec toutes vos données là où vous les avez laissées."
-                    : debitDiffere && etat?.essai_fin
-                      ? `Vous pouvez souscrire dès maintenant : votre carte ne sera débitée qu'à la fin de l'essai, le ${formaterDate(etat.essai_fin)}.`
-                      : enEssai
-                        ? "Le premier prélèvement part à la validation du paiement, même pendant l'essai. Pour que rien ne s'interrompe, souscrivez avant sa fin."
-                        : "Le premier prélèvement part à la validation du paiement."}
-                </p>
-                <BoutonSouscrire
-                  orgId={orgId}
-                  libelle={
-                    ferme
-                      ? `Rouvrir mon compte — ${eur(total)} par mois`
-                      : `S'abonner — ${eur(total)} par mois`
-                  }
-                />
-                {/* Un client peut avoir un dossier chez Stripe sans abonnement
-                    actif (résiliation, paiement abandonné) : ses anciennes
-                    factures lui restent dues, il doit pouvoir les retrouver. */}
-                {paiement?.stripe_statut && <BoutonPortail orgId={orgId} />}
-              </>
-            )}
+            ) : null}
           </div>
         )}
       </div>
@@ -493,12 +463,8 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
               vous ne pouvez plus rien saisir de nouveau.
               {/* La phrase sur la souscription vit dans la carte, à côté du
                   bouton : la redire ici, 190 px plus bas, faisait deux fois la
-                  même promesse (24/09). */}
-              {rienAPayer
-                ? estAgence
-                  ? " Tant qu'aucun lot n'est sous mandat actif, rien n'est à régler."
-                  : " Tant que vous ne gérez qu'un bien, rien n'est à régler : votre compte reste ouvert."
-                : ""}
+                  même promesse (24/09). La gratuité « tant qu'un seul bien »
+                  n'existe plus depuis le 28/09 : elle n'est plus promise. */}
             </span>
           </p>
         </div>

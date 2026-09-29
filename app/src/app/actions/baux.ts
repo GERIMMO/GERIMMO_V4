@@ -759,12 +759,63 @@ export async function supprimerBailPersonne(
 ): Promise<EtatBail> {
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
-  const { error } = await supabase
+  // Audit 29/09 : seul un brouillon se corrige. Sur un bail signé, retirer un
+  // colocataire ou un garant effaçait la solidarité de six mois (art. 8-1) :
+  // on enregistre son départ (la base refuse aussi la suppression).
+  const { data: bail } = await supabase
+    .from("baux")
+    .select("etat")
+    .eq("id", bailId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+  if (!bail) return { erreur: "Bail introuvable." };
+  if (bail.etat !== "brouillon") {
+    return {
+      erreur:
+        "Le bail est signé : la personne ne se retire plus. Enregistrez le départ du colocataire — sa solidarité et celle de son garant courent encore six mois (art. 8-1 de la loi du 6 juillet 1989).",
+    };
+  }
+  const { data, error } = await supabase
     .from("bail_personnes")
     .delete()
     .eq("id", ligneId)
-    .eq("organization_id", orgId);
+    .eq("bail_id", bailId)
+    .eq("organization_id", orgId)
+    .select("id");
   if (error) return { erreur: sansJargon(error.message) };
+  if (!data?.length) return { erreur: "Cette personne n'a pas pu être retirée du bail. Rechargez la page." };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   return { succes: "Personne retirée du bail." };
+}
+
+// Départ d'un colocataire d'un bail signé (art. 8-1 de la loi du 6 juillet
+// 1989) : la ligne reste au bail ; sa solidarité — et l'engagement du garant
+// qui le couvre — s'éteignent six mois après la date d'effet de son congé, ou
+// à cette date si un nouveau colocataire, figurant au bail, le remplace.
+export async function enregistrerDepartColocataire(
+  orgId: string,
+  bailId: string,
+  ligneId: string,
+  _etat: EtatBail,
+  formData: FormData
+): Promise<EtatBail> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const valeurs = valeursDuFormulaire(formData);
+  const dateEffet = String(formData.get("date_effet_conge") ?? "").trim();
+  const remplacant = String(formData.get("remplacant") ?? "").trim();
+  if (!dateEffet) return { erreur: "Indiquez la date d'effet du congé du colocataire.", valeurs };
+  const { data, error } = await supabase.rpc("enregistrer_depart_colocataire", {
+    p_ligne: ligneId,
+    p_date_effet_conge: dateEffet,
+    p_remplacant: remplacant || null,
+  });
+  if (error) return { erreur: sansJargon(error.message), valeurs };
+  revalidatePath(`/agence/${orgId}/baux/${bailId}`);
+  const fin = typeof data === "string" ? data.split("-").reverse().join("/") : null;
+  return {
+    succes: fin
+      ? `Départ enregistré — solidarité (et garant lié) jusqu'au ${fin}.`
+      : "Départ enregistré.",
+  };
 }

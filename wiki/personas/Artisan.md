@@ -3,8 +3,8 @@ type: persona
 tags: [role, artisan, incident]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-27
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]"]
+updated: 2026-09-29
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-7-incidents]]", "[[2026-07-24-gerimmo-v3-module-8-artisans]]", "[[2026-07-24-gerimmo-v3-module-11-notation]]", "[[2026-07-24-gerimmo-v3-module-19-mobile]]", "[[2026-07-24-gerimmo-v3-a2-conservation-rgpd]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
 # Artisan
@@ -109,6 +109,13 @@ l'intervention humaine** (RM-A2.11 — obligation d'information de l'artisan).
   Seuils **J-60/J-30/J-7/J+0**.
 - **Recherche d'affectation** : métier + zone + décennale (filtre non désactivable) +
   exclusion des blacklistés, **triée par score**.
+- **Zone d'intervention — supplanté le 28/09/2026 pour le réseau** : la « zone par
+  codes postaux » ci-dessus ne suffit plus à rendre un artisan proposable par le
+  réseau. Depuis la PR #132, le réseau s'ouvre **commune (code INSEE) × métier** par
+  le [[Super Admin]] ; l'artisan doit être **validé** (statut valide, SIRET vérifié),
+  en **visibilité publique**, et **rattaché aux communes** pour chacun de ses
+  métiers. Un artisan du carnet personnel d'un gérant reste sollicitable partout.
+  Voir [[Ouverture du réseau d'artisans]].
 - **Désactivation** (neutre) ≠ **blacklist** (motivée, conservée) : locale (admin
   agence, n'engage que son agence) vs **globale** (super admin seul, faits objectifs,
   réversible par lui seul). Jamais avec intervention en cours ; devis annulés.

@@ -316,4 +316,170 @@ describe.skipIf(!DB_URL)("grille tarifaire du 28/09/2026 — base", () => {
       expect((await un<{ e: string }>("select etat as e from public.avantages_parrainage where parrainage_id = $1", [p])).e).toBe("sans_objet");
     });
   });
+  describe("audit de la facturation du 29/09/2026", () => {
+    async function mandatActif(o: string, lots: string[]): Promise<string> {
+      const mandant = (await un<{ id: string }>("insert into public.persons (organization_id, nom) values ($1,'Mandant') returning id", [o])).id;
+      const mandat = (await un<{ id: string }>(
+        `insert into public.mandats (organization_id, person_id, etat, date_debut) values ($1,$2,'brouillon',current_date - 30) returning id`,
+        [o, mandant]
+      )).id;
+      for (const l of lots) {
+        await db.query("insert into public.detentions (organization_id, lot_id, person_id, quote_part) values ($1,$2,$3,100)", [o, l, mandant]);
+        await db.query(
+          "insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires, date_debut) values ($1,$2,$3,7,current_date - 1)",
+          [o, mandat, l]
+        );
+      }
+      await db.query("update public.mandats set etat = 'actif' where id = $1", [mandat]);
+      return mandat;
+    }
+    const grille = async (o: string) =>
+      (await un<{ g: string }>("select grille_tarifaire as g from public.organizations where id = $1", [o])).g;
+
+    it("point 8 : au-delà de la capacité, un lot déjà compté qui change d'état n'est pas refusé ; un lot archivé qui revient l'est", async () => {
+      const o = await org("proprietaire_direct");
+      const b = await bien(o, 4); // posé avant la souscription
+      await db.query("update public.lots set etat = 'archive' where id = $1", [b.lots[3]]);
+      await souscrire(o, 2, "bailleur"); // 3 biens gérés pour 2 payés : capacité dépassée
+      await db.query("update public.lots set etat = 'brouillon' where id = $1", [b.lots[0]]); // aucune unité de plus : passe
+      // La réactivation (archive → brouillon) exige une session de responsable
+      // (règle du lot) : le déclencheur de garde se lit donc dans sa définition.
+      const { d } = await un<{ d: string }>(
+        "select pg_get_triggerdef(oid) as d from pg_trigger where tgname = 'lots_garde_capacite_reactivation'"
+      );
+      expect(d).toMatch(/old\.etat = 'archive'.*new\.etat <> 'archive'/);
+      expect(
+        (await un<{ d: string }>("select pg_get_triggerdef(oid) as d from pg_trigger where tgname = 'lots_garde_capacite'")).d
+      ).toMatch(/AFTER INSERT ON public\.lots/);
+    });
+
+    it("point 8 : un mandat qui passe d'actif à préavis, une ligne de brouillon, passent ; un mandat qui entre en vigueur est gardé", async () => {
+      const o = await org("agence");
+      const { lots } = await bien(o, 3);
+      const mandat = await mandatActif(o, lots.slice(0, 2));
+      await souscrire(o, 1); // capacité (1) déjà dépassée (2 lots sous mandat)
+      await db.query("update public.mandats set etat = 'preavis' where id = $1", [mandat]);
+      // Un second mandat : ses lignes en brouillon ne comptent pas encore…
+      const mandant = (await un<{ id: string }>("insert into public.persons (organization_id, nom) values ($1,'Second') returning id", [o])).id;
+      const second = (await un<{ id: string }>(
+        "insert into public.mandats (organization_id, person_id, etat, date_debut) values ($1,$2,'brouillon',current_date - 1) returning id",
+        [o, mandant]
+      )).id;
+      await db.query("insert into public.detentions (organization_id, lot_id, person_id, quote_part) values ($1,$2,$3,100)", [o, lots[2], mandant]);
+      await db.query(
+        "insert into public.mandat_lignes (organization_id, mandat_id, lot_id, taux_honoraires, date_debut) values ($1,$2,$3,7,current_date)",
+        [o, second, lots[2]]
+      );
+      // … son activation, elle, porterait un lot de plus : refusée.
+      const r = await refus("update public.mandats set etat = 'actif' where id = $1", [second]);
+      expect(r.code).toBe("GRM01");
+    });
+
+    it("point 9 : la garde est VOLATILE (le verrou relu après attente voit l'autre ajout)", async () => {
+      const { v } = await un<{ v: string }>("select provolatile as v from pg_proc where proname = 'garde_capacite'");
+      expect(v).toBe("v");
+      expect((await un<{ d: string }>("select pg_get_functiondef('public.garde_capacite(uuid,integer)'::regprocedure) as d")).d).toMatch(/pg_advisory_xact_lock/);
+    });
+
+    it("point 4 : une organisation qui paie sur la grille historique ne bascule pas en ajoutant un bien", async () => {
+      const o = await org("proprietaire_direct", "active", "historique");
+      await db.query(
+        "insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut) values ($1,'cus_h_'||gen_random_uuid(),'sub_h','past_due')",
+        [o]
+      );
+      await bien(o);
+      expect(await grille(o)).toBe("historique");
+    });
+
+    it("point 10 : la fin d'une souscription historique fait passer à la grille actuelle", async () => {
+      const o = await org("proprietaire_direct", "active", "historique");
+      const c = (await un<{ c: string }>(
+        "insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut, premiere_facture_payee) values ($1,'cus_f_'||gen_random_uuid(),'sub_f','active',true) returning stripe_customer_id as c",
+        [o]
+      )).c;
+      await db.query("select public.abonnement_appliquer($1,'sub_f','canceled',1,now(),false)", [c]);
+      expect(await grille(o)).toBe("2026-09-28");
+    });
+
+    it("point 10 : la bascule à la demande est réservée au service, et refusée sous une souscription vivante", async () => {
+      const { a } = await un<{ a: boolean }>(
+        "select has_function_privilege('authenticated', 'public.abonnement_basculer_grille(uuid)', 'EXECUTE') as a"
+      );
+      expect(a).toBe(false);
+      const o = await org("proprietaire_direct", "essai", "historique");
+      expect((await un<{ r: boolean }>("select public.abonnement_basculer_grille($1) as r", [o])).r).toBe(true);
+      expect(await grille(o)).toBe("2026-09-28");
+      const o2 = await org("proprietaire_direct", "active", "historique");
+      await db.query(
+        "insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut) values ($1,'cus_v_'||gen_random_uuid(),'sub_v','active')",
+        [o2]
+      );
+      expect((await refus("select public.abonnement_basculer_grille($1)", [o2])).message).toMatch(/ancienne grille/);
+    });
+
+    it("point 3 : une capacité enregistrée inférieure au portefeuille est tracée", async () => {
+      const o = await org("proprietaire_direct", "essai");
+      await bien(o);
+      await bien(o);
+      const c = (await un<{ c: string }>(
+        "insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut) values ($1,'cus_c_'||gen_random_uuid(),'sub_c','trialing') returning stripe_customer_id as c",
+        [o]
+      )).c;
+      await db.query("select public.abonnement_details($1,'mensuel','solo',1,599,now())", [c]);
+      const j = await un<{ d: { capacite: number; a_couvrir: number } }>(
+        "select details as d from public.audit_log where organization_id = $1 and action = 'abonnement_capacite_insuffisante'",
+        [o]
+      );
+      expect(j.d).toEqual({ capacite: 1, a_couvrir: 2 });
+    });
+
+    it("point 12 : le remplacement d'un client Stripe exige l'ancien identifiant exact, et reste au service", async () => {
+      const o = await org("proprietaire_direct");
+      await db.query("insert into public.abonnements (organization_id, stripe_customer_id) values ($1,'cus_ancien')", [o]);
+      expect((await un<{ r: boolean }>("select public.abonnement_client_remplace($1,'cus_autre','cus_neuf') as r", [o])).r).toBe(false);
+      expect((await un<{ r: boolean }>("select public.abonnement_client_remplace($1,'cus_ancien','cus_neuf') as r", [o])).r).toBe(true);
+      expect((await un<{ c: string }>("select stripe_customer_id as c from public.abonnements where organization_id = $1", [o])).c).toBe("cus_neuf");
+      const { a } = await un<{ a: boolean }>(
+        "select has_function_privilege('authenticated', 'public.abonnement_client_remplace(uuid,text,text)', 'EXECUTE') as a"
+      );
+      expect(a).toBe(false);
+    });
+
+    it("point 12 : lot_equipements et cle_repartition_lignes sont gelés avec leur organisation", async () => {
+      const o = await org("proprietaire_direct", "essai");
+      const b = await bien(o, 1);
+      const eq = (await un<{ id: string }>(
+        "insert into public.equipements_catalogue (organization_id, nom) values ($1, 'Four') returning id",
+        [o]
+      )).id;
+      const cle = (await un<{ id: string }>(
+        "insert into public.cles_repartition (bien_id, organization_id) values ($1,$2) returning id",
+        [b.bien, o]
+      )).id;
+      await db.query("select public.tache_systeme()");
+      await db.query("update public.organizations set essai_fin = current_date - 1 where id = $1", [o]);
+      await db.query("select set_config('gerimmo.systeme', '', true)");
+      expect((await refus("insert into public.lot_equipements (lot_id, equipement_id) values ($1,$2)", [b.lots[0], eq])).message).toMatch(/suspendu|saisies/);
+      expect((await refus("insert into public.cle_repartition_lignes (cle_id, lot_id, pourcentage) values ($1,$2,100)", [cle, b.lots[0]])).message).toMatch(/suspendu|saisies/);
+    });
+
+    it("L215-1 : l'avis de reconduction d'un abonnement annuel est dû entre 90 et 30 jours, une fois par échéance", async () => {
+      const o = await org("proprietaire_direct");
+      await souscrire(o, 3, "bailleur");
+      await db.query(
+        "update public.abonnements set periodicite = 'annuel', montant_periode_cents = 9990, periode_fin = now() + interval '60 days' where organization_id = $1",
+        [o]
+      );
+      const dus = async () =>
+        (await db.query("select * from public.abonnements_avis_reconduction_dus(500) where organization_id = $1", [o])).rows;
+      expect(await dus()).toHaveLength(1);
+      await db.query("select public.abonnement_avis_reconduction_envoye($1, (select periode_fin from public.abonnements where organization_id = $1))", [o]);
+      expect(await dus()).toHaveLength(0);
+      // Trop tôt (plus de 90 jours) ou mensuel : rien.
+      await db.query("update public.abonnements set avis_reconduction_periode_fin = null, periode_fin = now() + interval '120 days' where organization_id = $1", [o]);
+      expect(await dus()).toHaveLength(0);
+      await db.query("update public.abonnements set periodicite = 'mensuel', periode_fin = now() + interval '60 days' where organization_id = $1", [o]);
+      expect(await dus()).toHaveLength(0);
+    });
+  });
 });

@@ -1,9 +1,8 @@
 'use server';
 import {revalidatePath} from 'next/cache';
-import {headers} from 'next/headers';
 import {createClient} from '@/lib/supabase/server';
 import {bilanMission,estMission} from '@/lib/missions';
-import {origineDeRetour} from '@/lib/site';
+import {adresseDuSite} from '@/lib/site';
 import {journaliserSupervision} from '@/lib/journal-supervision';
 export type RetourMission={erreur?:string;succes?:string};
 // « Lancer maintenant » attend la route au plus ce délai (25/09). Au-delà, la
@@ -18,8 +17,10 @@ export async function commanderMission(_etat:RetourMission,form:FormData):Promis
  if(error||ok!==true)return {erreur:'Cette commande demande votre compte de supervision et sa double vérification.'};
  if(commande==='lancer'){
   if(!process.env.CRON_SECRET)return {erreur:'La connexion des traitements doit être configurée dans la santé du service.'};
-  const h=await headers();
-  const origine=origineDeRetour(h.get('x-forwarded-host')??h.get('host'),h.get('x-forwarded-proto'));
+  // Audit sécurité 29/09 : le secret des tâches ne part JAMAIS vers une
+  // adresse tirée des en-têtes de la requête (Host / X-Forwarded-Host sont
+  // fournis par l'appelant). Seule l'adresse configurée du service fait foi.
+  const origine=adresseDuSite();
   if(!origine)return {erreur:'L’adresse du service est inconnue : le passage ne peut pas être lancé d’ici.'};
   // Audit console 27/09 : le lancement est journalisé AVANT l'appel — un
   // passage lancé sans trace est exactement ce qu'on ne veut plus.

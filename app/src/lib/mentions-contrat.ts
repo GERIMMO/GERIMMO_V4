@@ -20,15 +20,28 @@ export const CHAMPS_MENTIONS_CONTRAT = [
   'clause_resolutoire_assurance', 'clause_resolutoire_troubles', 'clause_resolutoire_servitude',
 ] as const;
 
-// Plafonds TTC de l'arrêté du 13 novembre 2025, applicables en 2026.
-// Aucune projection d'indexation pour les années futures.
+// Plafonds TTC par m² de surface habitable des honoraires à la charge du
+// locataire (décret n° 2014-890 du 1er août 2014, art. 1 et 2), par zone.
+// Barèmes datés, du plus ancien au plus récent : chacun s'applique aux baux
+// conclus à partir de sa date. Audit gestion du 29/09 : au-delà du dernier
+// barème connu, c'est ce DERNIER qui s'applique (plus de « pas de plafond »
+// pour 2027) — à compléter ici à chaque nouvel arrêté de révision.
+export const BAREMES_HONORAIRES: readonly {
+  depuis: string;
+  location: Readonly<Record<'tres_tendue' | 'tendue' | 'autre', number>>;
+  edl: number;
+  source: string;
+}[] = [
+  { depuis: '2014-09-15', location: { tres_tendue: 12, tendue: 10, autre: 8 }, edl: 3, source: 'décret n° 2014-890' },
+  { depuis: '2026-01-01', location: { tres_tendue: 12.10, tendue: 10.09, autre: 8.07 }, edl: 3.03, source: 'arrêté du 13 novembre 2025' },
+];
+
 export function plafondsHonoraires(date: string | null | undefined, zone: string | null | undefined) {
-  const annee = date?.slice(0, 4);
-  const tarifs = annee === '2026' ? { tres_tendue: 12.10, tendue: 10.09, autre: 8.07 }
-    : annee && annee >= '2014' && annee <= '2025' ? { tres_tendue: 12, tendue: 10, autre: 8 } : null;
+  const jour = date && /^\d{4}-\d{2}-\d{2}/.test(date) ? date.slice(0, 10) : null;
+  const bareme = jour ? [...BAREMES_HONORAIRES].reverse().find((b) => jour >= b.depuis) ?? null : null;
   return {
-    location: tarifs && zone && zone in tarifs ? tarifs[zone as keyof typeof tarifs] : null,
-    edl: tarifs ? (annee === '2026' ? 3.03 : 3) : null,
+    location: bareme && zone && zone in bareme.location ? bareme.location[zone as keyof typeof bareme.location] : null,
+    edl: bareme ? bareme.edl : null,
   };
 }
 
@@ -73,13 +86,19 @@ export function verifierHonorairesContrat(b: MentionsContrat & { honoraires_bail
   const partLocataire = Number(b.honoraires_locataire ?? 0) > 0 || Number(b.honoraires_edl_locataire ?? 0) > 0;
   if (partLocataire && (!b.date_conclusion_prevue || !b.zone_honoraires))
     return 'Honoraires à la charge du locataire : renseignez la date prévue de conclusion et la zone des honoraires, sans lesquelles le plafond réglementaire ne peut pas être vérifié.';
+  // Audit gestion du 29/09 : sans surface, le plafond (€/m²) ne se calcule
+  // pas — la part du locataire passait alors sans contrôle.
+  if (partLocataire && !(surface != null && surface > 0))
+    return 'Honoraires à la charge du locataire : renseignez la surface habitable du logement, sans laquelle le plafond réglementaire (en €/m²) ne peut pas être vérifié.';
   for (const [titre, bailleur, locataire, plafond] of [
     ['Visite, dossier et bail', b.honoraires_bailleur, b.honoraires_locataire, plafonds.location],
     ['État des lieux', b.honoraires_edl_bailleur, b.honoraires_edl_locataire, plafonds.edl],
   ] as const) {
-    if (locataire != null && bailleur != null && Number(locataire) > Number(bailleur))
-      return `${titre} : la part du locataire ne peut pas dépasser celle du bailleur.`;
-    if (locataire != null && plafond != null && surface != null && surface > 0 && Math.round(Number(locataire) * 100) > Math.round(plafond * surface * 100))
+    // Une part locataire sans part bailleur saisie se compare à zéro : la loi
+    // (art. 5 loi 89-462) plafonne la part du locataire à celle du bailleur.
+    if (Number(locataire ?? 0) > 0 && Number(locataire) > Number(bailleur ?? 0))
+      return `${titre} : la part du locataire ne peut pas dépasser celle du bailleur${bailleur == null ? ' (non renseignée, comptée pour 0 €)' : ''}.`;
+    if (Number(locataire ?? 0) > 0 && plafond != null && surface != null && surface > 0 && Math.round(Number(locataire) * 100) > Math.round(plafond * surface * 100))
       return `${titre} : la part du locataire dépasse le plafond de ${(Math.round(plafond * surface * 100) / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2 })} € TTC pour ce logement.`;
   }
   return null;

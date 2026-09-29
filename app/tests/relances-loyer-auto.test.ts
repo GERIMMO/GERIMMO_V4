@@ -10,6 +10,7 @@
  * Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -123,6 +124,7 @@ beforeEach(async () => {
     [org, lot, loc]
   );
   bail = b;
+  await couvrirParMandat(db, bail);
   // Un mois appelé, rien encaissé : le terme est impayé.
   await simuler(gerant);
   await db.query(`select public.generer_appels_loyer($1)`, [bail]);
@@ -243,5 +245,51 @@ describe.skipIf(!DB_URL)("la mise en demeure ne s'automatise pas, et personne d'
     await expect(
       db.query(`select public.relance_loyer_consigner($1, 'relance_1', 'x')`, [bail])
     ).rejects.toThrow(/permission denied|droit|refus/i);
+  });
+});
+
+// Audit gestion du 29/09 : seuil minimal et information de la caution.
+describe.skipIf(!DB_URL)("seuil minimal et caution (audit 29/09)", () => {
+  it("un reliquat sous le seuil de l'organisation (5 € par défaut) n'est pas relancé", async () => {
+    await echeanceIlYA(10);
+    await simuler(gerant);
+    await db.query(
+      `insert into public.encaissements (organization_id, bail_id, montant, date_paiement) values ($1,$2,746, current_date)`,
+      [org, bail]
+    );
+    expect(await dues()).toEqual([]); // 4 € restants < 5 €
+    await db.query("reset role");
+    await db.query(`update public.organizations set relance_seuil_montant = 3 where id=$1`, [org]);
+    const l = await dues();
+    expect(l).toHaveLength(1);
+    expect(Number(l[0].reste)).toBe(4);
+  });
+
+  it("la caution du bail est rendue au niveau 2 seulement", async () => {
+    await db.query("reset role");
+    const {
+      rows: [{ id: garant }],
+    } = await db.query<{ id: string }>(
+      `insert into public.persons (organization_id, nom, prenom, email) values ($1,'Garant','Paul','paul.garant@exemple.fr') returning id`,
+      [org]
+    );
+    await db.query(
+      `insert into public.bail_personnes (organization_id, bail_id, person_id, role) values ($1,$2,$3,'garant')`,
+      [org, bail, garant]
+    );
+    await echeanceIlYA(16);
+    type AvecGarants = Due & { garants: string[]; locataire: string };
+    const niveau1 = (await dues()) as AvecGarants[];
+    expect(niveau1[0].niveau).toBe("relance_1");
+    expect(niveau1[0].garants).toEqual([]);
+    await db.query("reset role");
+    await db.query(
+      `insert into public.relances (organization_id, bail_id, niveau, date_envoi) values ($1,$2,'relance_1', current_date - 10)`,
+      [org, bail]
+    );
+    const niveau2 = (await dues()) as AvecGarants[];
+    expect(niveau2[0].niveau).toBe("relance_2");
+    expect(niveau2[0].garants).toEqual(["paul.garant@exemple.fr"]);
+    expect(niveau2[0].locataire).toBe("Claire Martin");
   });
 });

@@ -3,11 +3,22 @@ type: synthesis
 tags: [autonomie, exploitation, debogage, evolution, routines, securite, france, rgpd]
 status: draft
 created: 2026-09-19
-updated: 2026-09-19
-sources: ["[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
+updated: 2026-09-29
+sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-14-agenda-et-alertes]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
 # Gerimmo en autonomie — exploitation, débogage, évolution
+
+> [!note] Précision du 28/09/2026 — gestion nationale, réseau local
+> La **gestion locative est nationale** : un propriétaire ou une agence peut gérer
+> des biens partout en France, quel que soit le département « ouvert » au sens de
+> cette page. Seul le **réseau d'artisans** s'ouvre explicitement, **commune (code
+> INSEE) × métier**, par le [[Super Admin]] dans Supervision → Couverture
+> (`/admin/couverture`, PR #132). Aucun département, aucune commune ni aucun métier
+> n'est ouvert par défaut ; le **filtre Essonne** de l'administration est un
+> réglage d'affichage, **pas une ouverture**. L'« ouverture d'un département »
+> décrite ci-dessous reste une idée d'expansion commerciale (marketing, prospection
+> d'agences) non construite. Voir [[Ouverture du réseau d'artisans]].
 
 > [!warning] Cette page a répondu à une lecture technique de la question
 > Le porteur du projet a précisé le 19/09 que « se développer en France en

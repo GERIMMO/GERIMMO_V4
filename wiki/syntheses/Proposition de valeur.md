@@ -3,7 +3,7 @@ type: synthesis
 tags: [vision, proposition-de-valeur, strategie]
 status: stable
 created: 2026-09-10
-updated: 2026-09-10
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-09-04-maquette-v3-prototype]]", "[[2026-09-08-maquette-espace-agence-v6]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]"]
 ---
 
@@ -74,6 +74,8 @@ travail elle-même ; les bots conversationnels de la note produit v0.
    paiement, conversation).
 4. Métrique de réussite à instrumenter : **le temps de gérant par lot et par
    mois** — c'est elle que « mieux, plus vite, moins cher » engage.
+
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
 
 > [!warning] Points à trancher / contradictions
 > - ~~**Jusqu'où « faire le travail d'une agence » ?**~~ → **tranché par Tahir

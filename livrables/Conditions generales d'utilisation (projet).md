@@ -1,5 +1,13 @@
 # Conditions générales d'utilisation — Gerimmo (projet)
 
+> [!warning] Supplanté par la version en production (mise à jour du 29/09/2026)
+> Ce projet du 11/09 est **historique**. Le texte qui fait foi est celui publié
+> sur `/conditions` (`app/src/app/conditions/page.tsx`), **version du 28/09/2026**
+> (`CONDITIONS_VERSION = "2026-09-28"`), complétée le 29/09 (art. 8.9 et 16). Les
+> articles 8 et 16 ci-dessous ont été réalignés sur la production ; les autres
+> articles n'ont pas été re-confrontés ligne à ligne. Reste à fournir : l'identité
+> de l'éditeur (voir [[État du projet et décisions ouvertes]]).
+
 > **Projet rédigé par l'agent (2026-09-11).** Il comble le manque le plus grave
 > relevé à l'audit du jour : **la case d'inscription fait accepter « les
 > conditions d'utilisation », l'action serveur refuse l'inscription sans elle,
@@ -28,15 +36,12 @@ tient le référentiel d'un parc (biens, lots, baux, personnes, mandats), produi
 les documents de la location, suit les loyers et les incidents, et ouvre à
 chaque partie prenante un espace propre.
 
-Elles forment, avec la [[Politique de confidentialite (projet)|politique de
-confidentialité]] et — lorsque le Client traite des données pour le compte
-d'autrui — le [[Contrat de sous-traitance RGPD (modele)|contrat de
-sous-traitance]], l'intégralité de l'accord entre le Client et l'Éditeur.
+Elles forment, avec la [[Politique de confidentialite (projet)|politique de confidentialité]] et — lorsque le Client traite des données pour le compte
+d'autrui — le [[Contrat de sous-traitance RGPD (modele)|contrat de sous-traitance]], l'intégralité de l'accord entre le Client et l'Éditeur.
 
 ## Article 2 — Définitions
 
-**Éditeur** : la société identifiée aux [[Mentions legales (projet)|mentions
-légales]].
+**Éditeur** : la société identifiée aux [[Mentions legales (projet)|mentions légales]].
 
 **Service** : l'application Gerimmo, ses espaces, ses documents générés et ses
 exports.
@@ -160,34 +165,53 @@ ouvrir cet espace et pour y publier les documents qui les concernent.
 
 ## Article 8 — Prix, essai et facturation
 
-**8.1 — Grille.** Le **premier bien est offert, sans limite de durée et sans
-carte bancaire**. Chaque bien supplémentaire est facturé **5,99 € par mois**,
-sans engagement de durée.
+> [!note] Réaligné le 29/09/2026 sur la production (décision tarifaire du
+> 28/09/2026 — [[2026-09-28-decision-tarification]], [[Grille tarifaire]]).
 
-**8.2 — Essai.** L'ouverture d'un compte donne accès à un **essai gratuit de
-14 jours** couvrant la formule complète. À son terme, à défaut de souscription,
-le compte retombe sur le premier bien offert. `[à confirmer — comportement exact
-attendu en fin d'essai ; le code porte les statuts essai / actif / suspendu /
-expiré / résilié, la règle de bascule n'est pas écrite au wiki]`
+**8.1 — Grilles.** Le prix dépend du nombre de biens gérés, ou de lots sous
+mandat actif pour une agence ; les fonctions sont les mêmes quelle que soit la
+formule. Particuliers et sociétés civiles gérant leurs propres biens : formules
+Solo (1 bien), Bailleur (jusqu'à 3), Investisseur (jusqu'à 10) et Patrimoine
+(jusqu'à 20, puis un supplément par bien), mensuel ou annuel, prix TTC. Agences
+gérant pour des tiers : tarif mensuel HT par tranches cumulatives de lots sous
+mandat actif, avec un socle dès la souscription. Montants publiés sur `/tarifs`.
+**Aucune formule n'est gratuite en permanence ; aucun bien n'est offert.**
+~~Le premier bien est offert, sans limite de durée~~ (supprimé le 28/09/2026).
 
-**8.3 — Facturation.** `[à compléter — périodicité, date de prélèvement, moyen
-de paiement, prestataire, émission des factures. Le référentiel prévoit Stripe
-et des frais de mise en place ; l'implémentation n'est pas vérifiée à ce jour.]`
+**8.2 — Essai.** Essai gratuit de **14 jours**, sans moyen de paiement ; aucun
+abonnement ne démarre sans souscription explicite. À son terme, à défaut de
+souscription, la saisie de nouvelles données est suspendue (**gel en lecture
+seule**) ; les données restent consultables et exportables et ne sont pas
+supprimées automatiquement. Une souscription pendant l'essai n'en réduit pas la
+durée.
 
-**8.4 — TVA.** Les prix sont indiqués `[à compléter — hors taxes ou toutes
-taxes comprises]`.
+**8.3 — Facturation.** Par Stripe (texte exact dans la production).
 
-**8.5 — Révision.** Toute évolution tarifaire est notifiée au Client
-`[à compléter — préavis]` avant sa prise d'effet. Le Client qui la refuse peut
-résilier sans frais avant cette date.
+**8.4 — Taxes.** **Franchise en base de TVA** : aucune TVA n'est facturée ;
+mention « TVA non applicable, art. 293 B du CGI ».
 
-> [!warning] Droit de rétractation — à trancher
-> Le Client particulier (propriétaire bailleur non professionnel) qui souscrit
-> à distance dispose en principe de **quatorze jours de rétractation**
-> (art. L. 221-18 du code de la consommation). L'exécution immédiate du service
-> à sa demande expresse n'éteint pas ce droit : elle le rend seulement payable
-> au prorata. Un article dédié, avec le formulaire type, est à ajouter après
-> avis juridique.
+**8.5 — Changements.** Hausse appliquée seulement après présentation du nouveau
+montant, de sa date d'effet et du prorata, et confirmation du Client ; baisse à
+la prochaine échéance ; pas de conversion annuel → mensuel en cours de période.
+
+**8.6 — Résiliation.** À tout moment depuis « Mon abonnement », effet à la
+prochaine échéance ; l'accès payé reste ouvert jusqu'à cette date.
+
+**8.7 — Hors abonnement.** Travaux d'artisans sur devis, facturés séparément ; la
+disponibilité du réseau d'artisans dépend de la commune du bien et du métier
+([[Ouverture du réseau d'artisans]]).
+
+**8.8 — Révision.** Toute évolution tarifaire est notifiée au Client **au moins
+un mois** avant sa prise d'effet. Le Client qui la refuse peut résilier sans
+frais avant cette date.
+
+**8.9 — Rétractation.** Le Client **consommateur** dispose de **quatorze jours** à
+compter de la souscription d'un abonnement payant pour se rétracter, sans motif
+(art. L. 221-18 et suivants du code de la consommation), par le **formulaire
+type** ou toute déclaration dénuée d'ambiguïté. L'Éditeur rembourse
+**l'intégralité** des sommes versées, sans frais, sous quatorze jours, par le
+même moyen de paiement. La période d'essai ne réduit pas ce délai. **Non ouvert
+au Client professionnel.**
 
 ## Article 9 — Réversibilité
 
@@ -238,13 +262,11 @@ une disponibilité annoncée est une obligation contractuelle.]`
 
 ## Article 11 — Données personnelles
 
-Le traitement des données est décrit dans la [[Politique de confidentialite
-(projet)|politique de confidentialité]].
+Le traitement des données est décrit dans la [[Politique de confidentialite (projet)|politique de confidentialité]].
 
 **Répartition des rôles.** Pour les données de gestion locative (baux, pièces,
 loyers, incidents, messages), **le Client est responsable de traitement et
-l'Éditeur sous-traitant** : leurs rapports sont régis par le [[Contrat de
-sous-traitance RGPD (modele)|contrat de sous-traitance]], qui fait partie
+l'Éditeur sous-traitant** : leurs rapports sont régis par le [[Contrat de sous-traitance RGPD (modele)|contrat de sous-traitance]], qui fait partie
 intégrante du présent accord. Pour les traitements de plateforme (comptes,
 authentification, facturation), l'Éditeur est responsable.
 
@@ -299,14 +321,19 @@ ne l'est pas, l'article ne peut pas l'affirmer.
 ## Article 16 — Modification des conditions
 
 L'Éditeur peut modifier les présentes conditions. Toute modification est
-notifiée au Client `[à compléter — préavis]` avant sa prise d'effet. Le Client
-qui la refuse peut résilier sans frais avant cette date ; la poursuite de
-l'utilisation après cette date vaut acceptation.
+notifiée au Client **au moins un mois** avant sa prise d'effet (préavis fixé
+le 29/09/2026). Le Client qui la refuse peut résilier sans frais avant cette
+date ; la poursuite de l'utilisation après cette date vaut acceptation.
 
 L'Éditeur conserve **chaque version** et la date de son acceptation par le
 Client.
 
-> [!warning] À faire côté produit
+> [!note] Mise à jour du 29/09/2026
+> La production indique désormais que la **version acceptée et sa date** sont
+> conservées avec le compte (`/conditions`, version du 28/09/2026). L'encadré
+> ci-dessous décrit l'état du 11/09.
+
+> [!warning] À faire côté produit (état du 11/09)
 > Cette conservation n'existe pas aujourd'hui : la base enregistre que la case
 > a été cochée, pas **quelle version** a été acceptée ni **quand**. Sans cela,
 > l'Éditeur ne peut pas prouver le contenu du contrat le jour de sa formation.
@@ -318,8 +345,7 @@ Les présentes conditions sont soumises au **droit français**.
 En cas de litige, les parties recherchent une solution amiable. À défaut :
 
 - **Client consommateur ou non-professionnel** : recours gratuit au médiateur
-  de la consommation désigné aux [[Mentions legales (projet)|mentions
-  légales]], puis juridiction compétente selon les règles de droit commun.
+  de la consommation désigné aux [[Mentions legales (projet)|mentions légales]], puis juridiction compétente selon les règles de droit commun.
 - **Client professionnel** : `[à compléter — attribution de compétence
   éventuelle]`.
 
@@ -330,9 +356,9 @@ En cas de litige, les parties recherchent une solution amiable. À défaut :
 | Manque | Pourquoi il n'est pas comblé ici |
 |---|---|
 | Identité de l'éditeur, immatriculation, contact | Faits d'entreprise — voir [[Mentions legales (projet)]] |
-| Modalités de facturation (art. 8.3) | Le référentiel prévoit Stripe ; l'implémentation n'est pas vérifiée |
-| Comportement exact en fin d'essai (art. 8.2) | Les statuts existent en base, la règle de bascule n'est écrite nulle part |
-| Droit de rétractation (art. 8) | Décision juridique : le service s'adresse aussi à des particuliers |
+| ~~Modalités de facturation (art. 8.3)~~ | Tranché le 28/09 : Stripe, grille du 28/09 |
+| ~~Comportement exact en fin d'essai (art. 8.2)~~ | Tranché le 28/09 : gel en lecture seule jusqu'au paiement |
+| ~~Droit de rétractation (art. 8)~~ | Rédigé et mis en production le 29/09 (art. 8.9) |
 | Plafond de responsabilité (art. 14) | Se calibre, ne se copie pas |
 | Engagement de disponibilité (art. 10) | Ne rien promettre qui ne soit mesuré |
 | Acceptation côté locataire (art. 7) | Le produit n'en demande aucune — c'est une décision de conception |

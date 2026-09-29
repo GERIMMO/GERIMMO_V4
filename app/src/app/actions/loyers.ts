@@ -203,6 +203,10 @@ export async function regulariserCharges(
     p_mime: piece.mime,
     p_taille: piece.taille,
     p_empreinte: piece.empreinte,
+    // Audit gestion du 29/09 : régularisation tardive (après le 31/12 de
+    // l'année suivant l'exercice) — le locataire peut demander de régler le
+    // complément par douzièmes (art. 23 loi 89-462).
+    p_etaler: formData.get("etaler") === "on",
   });
   if (error) {
     await abandonnerPieceGed(supabase, piece);
@@ -213,7 +217,9 @@ export async function regulariserCharges(
     ecart > 0
       ? `Trop-perçu de ${eur(ecart)} à rembourser au locataire.`
       : ecart < 0
-        ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
+        ? formData.get("etaler") === "on"
+          ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, étalé sur 12 mensualités.`
+          : `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // Audit du 27/09 : la régularisation n'écrit PAS au journal (aucun appel
@@ -334,14 +340,24 @@ export async function reviserLoyer(
   const { supabase, user } = await verifierGerant(orgId);
   if (!user) return { erreur: "Accès refusé." };
   const valeurs = valeursDuFormulaire(formData);
-  const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim());
-  const dateEffet = String(formData.get("date_effet") ?? "").trim();
-  if (!nouv || !dateEffet)
-    return { erreur: "Indice IRL du trimestre et date d'effet obligatoires.", valeurs };
+  const nouv = Number(String(formData.get("irl_nouveau") ?? "").trim().replace(",", "."));
+  // Audit 29/09 : on saisit la date de la DEMANDE, pas la date d'effet. La
+  // base en déduit l'effet — l'anniversaire si la demande tombe ce jour-là,
+  // sinon la date de la demande, sans rétroactivité (art. 17-1 I).
+  const dateDemande = String(formData.get("date_demande") ?? "").trim();
+  // Constat 21 : l'indice nouveau est celui du trimestre de référence du bail.
+  const trimestre = String(formData.get("irl_trimestre_numero") ?? "").trim();
+  const anneeIndice = String(formData.get("irl_trimestre_annee") ?? "").trim();
+  if (!nouv || !dateDemande || !trimestre || !anneeIndice)
+    return {
+      erreur: "Indice IRL, trimestre et année de l'indice, et date de la demande obligatoires.",
+      valeurs,
+    };
   const { data, error } = await supabase.rpc("reviser_loyer", {
     p_bail: bailId,
     p_irl_nouveau: nouv,
-    p_date_effet: dateEffet,
+    p_irl_trimestre: `T${trimestre} ${anneeIndice}`,
+    p_date_demande: dateDemande,
   });
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);

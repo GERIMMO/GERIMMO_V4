@@ -18,6 +18,9 @@
 // garantir qu'un jour l'un des deux changera seul.
 
 import Stripe from "stripe";
+import { REGIME_TVA } from "@/lib/editeur";
+import { adresseDuSite } from "@/lib/site";
+import type { RegimeTva } from "@/lib/tarifs";
 
 export type Echec = { ok: false; erreur: string };
 export type Reussite<T> = { ok: true } & T;
@@ -155,33 +158,155 @@ export function quantiteFacturee(s: Stripe.Subscription): number {
   return s.items?.data?.[0]?.quantity ?? 0;
 }
 
+/** La mention de facture exigée par le régime (franchise en base, art. 293 B). */
+export function piedDeFacturePour(regime: RegimeTva): string | undefined {
+  return regime.nature === "franchise" ? "TVA non applicable, art. 293 B du CGI." : undefined;
+}
+
+/**
+ * Poser — ou RETIRER — la mention de TVA sur les factures du client.
+ *
+ * Audit 29/09, point 6 : la mention n'était posée que sur le chemin de la
+ * nouvelle grille, et jamais retirée. Un éditeur qui sort de la franchise
+ * aurait continué d'imprimer « TVA non applicable » sur des factures qui en
+ * portent. Régime inconnu (`null`) : on ne touche à rien — une mention ne
+ * s'invente pas plus qu'un taux. `actuel` (le pied déjà posé, s'il est connu)
+ * évite un appel inutile.
+ */
+export async function appliquerPiedDeFacture(
+  stripe: Stripe,
+  customer: string,
+  regime: RegimeTva | null = REGIME_TVA,
+  actuel?: string | null
+): Promise<void> {
+  if (!regime) return;
+  const voulu = piedDeFacturePour(regime) ?? "";
+  if (actuel !== undefined && (actuel ?? "") === voulu) return;
+  await stripe.customers.update(customer, { invoice_settings: { footer: voulu } });
+}
+
 /**
  * Retrouver ou créer le client Stripe d'une organisation.
  *
- * `idempotencyKey` sur l'organisation : deux clics sur « S'abonner » ne créent
- * pas deux clients. Sans elle, le second clic fabrique un doublon qui portera
- * sa propre facture et son propre moyen de paiement.
+ * `idempotencyKey` sur l'organisation ET l'identifiant déjà connu : deux clics
+ * sur « S'abonner » ne créent pas deux clients. Sans elle, le second clic
+ * fabrique un doublon qui portera sa propre facture et son propre moyen de
+ * paiement. L'identifiant connu en fait partie (audit 29/09, point 12) : après
+ * la suppression d'un client chez Stripe, la même clé rendait pendant 24 h la
+ * réponse mémorisée — le client SUPPRIMÉ.
+ *
+ * `remplace` dit à l'appelant que l'ancien client n'existe plus : il doit
+ * enregistrer le nouveau par le chemin de service (`abonnement_client_remplace`),
+ * `abonnement_client_pose` ne remplaçant jamais un client existant.
  */
 export async function assurerClientStripe(
   stripe: Stripe,
-  params: { orgId: string; nom: string; email: string | null; existant: string | null }
-): Promise<Reussite<{ customer: string }> | Echec> {
+  params: {
+    orgId: string;
+    nom: string;
+    email: string | null;
+    existant: string | null;
+    regime?: RegimeTva | null;
+  }
+): Promise<Reussite<{ customer: string; remplace: boolean }> | Echec> {
+  const regime = params.regime === undefined ? REGIME_TVA : params.regime;
   try {
     if (params.existant) {
-      const trouve = await stripe.customers.retrieve(params.existant);
-      if (!trouve.deleted) return { ok: true, customer: trouve.id };
+      let trouve: Stripe.Customer | Stripe.DeletedCustomer | null = null;
+      try {
+        trouve = await stripe.customers.retrieve(params.existant);
+      } catch (e) {
+        // « No such customer » : purgé, ou d'un autre mode. Même traitement
+        // qu'un client supprimé ; toute autre erreur remonte.
+        if ((e as { code?: string }).code !== "resource_missing") throw e;
+      }
+      if (trouve && !trouve.deleted) {
+        await appliquerPiedDeFacture(stripe, trouve.id, regime, trouve.invoice_settings?.footer ?? null);
+        return { ok: true, customer: trouve.id, remplace: false };
+      }
       // Client supprimé chez Stripe : on en refait un plutôt que d'échouer.
       // Le cas est rare et vient toujours d'un geste manuel côté Stripe.
     }
+    const pied = regime ? piedDeFacturePour(regime) : undefined;
     const cree = await stripe.customers.create(
       {
         name: params.nom,
         email: params.email ?? undefined,
         metadata: { organization_id: params.orgId },
+        ...(pied ? { invoice_settings: { footer: pied } } : {}),
       },
-      { idempotencyKey: `client:${params.orgId}` }
+      { idempotencyKey: `client:${params.orgId}:${params.existant ?? "nouveau"}` }
     );
-    return { ok: true, customer: cree.id };
+    return { ok: true, customer: cree.id, remplace: Boolean(params.existant) };
+  } catch (e) {
+    return { ok: false, erreur: lireErreurStripe(e) };
+  }
+}
+
+/**
+ * Le client Stripe appartient-il bien à CETTE organisation ?
+ *
+ * Audit sécurité du 29/09 : avant d'enregistrer un identifiant client pour
+ * une organisation, le serveur le relit chez Stripe et compare la métadonnée
+ * `organization_id` que `assurerClientStripe` pose à la création. Un
+ * identifiant qui désigne le client d'une autre organisation — quelle qu'en
+ * soit l'origine — est refusé : rattaché, il ferait appliquer à l'une les
+ * paiements (et les résiliations) de l'autre.
+ */
+export async function verifierClientDeLOrganisation(
+  stripe: Stripe,
+  customer: string,
+  orgId: string
+): Promise<Reussite<object> | Echec> {
+  try {
+    const c = await stripe.customers.retrieve(customer);
+    if (c.deleted) {
+      return { ok: false, erreur: "Ce dossier de paiement a été supprimé chez notre prestataire. Rechargez la page." };
+    }
+    if (c.metadata?.organization_id !== orgId) {
+      return {
+        ok: false,
+        erreur:
+          "Ce dossier de paiement n'appartient pas à votre organisation : rien n'a été enregistré. Écrivez-nous pour le rattacher.",
+      };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, erreur: lireErreurStripe(e) };
+  }
+}
+
+/** Les statuts d'une souscription qui ne facture plus et ne facturera plus. */
+const SOUSCRIPTION_TERMINEE = new Set(["canceled", "incomplete_expired"]);
+
+/**
+ * Avant toute page de paiement : aucune souscription vivante chez Stripe.
+ *
+ * Audit 29/09, point 1. La base peut ignorer une souscription (webhook en
+ * retard, deux onglets, deux clics) ; Stripe, lui, la connaît. Une seconde
+ * page de paiement ouverte à côté d'une souscription vivante, c'est deux
+ * prélèvements. Les pages de paiement restées ouvertes pour ce client sont
+ * expirées : une ancienne page validée plus tard ferait la même chose.
+ */
+export async function verifierAucuneSouscriptionVivante(
+  stripe: Stripe,
+  customer: string
+): Promise<Reussite<object> | Echec> {
+  try {
+    const souscriptions = await stripe.subscriptions.list({ customer, status: "all", limit: 100 });
+    const vivante = souscriptions.data.find((s) => !SOUSCRIPTION_TERMINEE.has(s.status));
+    if (vivante) {
+      return {
+        ok: false,
+        erreur:
+          "Un abonnement existe déjà pour ce compte chez notre prestataire de paiement : rechargez la page dans quelques secondes. S'il n'apparaît pas, écrivez-nous — rien ne sera prélevé deux fois.",
+      };
+    }
+    const ouvertes = await stripe.checkout.sessions.list({ customer, status: "open", limit: 100 });
+    for (const session of ouvertes.data) {
+      await stripe.checkout.sessions.expire(session.id);
+    }
+    return { ok: true };
   } catch (e) {
     return { ok: false, erreur: lireErreurStripe(e) };
   }
@@ -259,7 +384,10 @@ export async function creerSessionPaiement(
   // Posée seulement quand Stripe l'acceptera (voir `finEssaiPourStripe`) ;
   // sinon la clé n'apparaît pas du tout dans ce qu'on envoie.
   const trialEnd = finEssaiPourStripe(params.essaiFin);
+  const libre = await verifierAucuneSouscriptionVivante(stripe, params.customer);
+  if (!libre.ok) return libre;
   try {
+    await appliquerPiedDeFacture(stripe, params.customer);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: params.customer,
@@ -296,16 +424,31 @@ export const MARQUE_PORTAIL = "portail-2026-09-28";
  *   portail : ils passent par Gerimmo, qui montre montant, date d'effet et
  *   prorata avant toute hausse ;
  * - carte, adresse, e-mail et historique des factures modifiables/consultables.
+ *
+ * Les liens des conditions et de la politique de confidentialité suivent
+ * l'adresse PUBLIQUE du site (`adresseDuSite`), pas l'origine de la requête
+ * (audit 29/09, point 12) : la configuration est partagée par tous les
+ * clients, et une première ouverture depuis une préproduction y inscrivait
+ * pour toujours des liens de préproduction. Une configuration existante dont
+ * les liens diffèrent est mise à jour.
  */
-export async function assurerConfigurationPortail(stripe: Stripe, origine: string): Promise<string> {
+export async function assurerConfigurationPortail(stripe: Stripe, site: string): Promise<string> {
+  const profil = {
+    privacy_policy_url: `${site}/confidentialite`,
+    terms_of_service_url: `${site}/conditions`,
+  };
   for await (const c of stripe.billingPortal.configurations.list({ active: true, limit: 100 })) {
-    if (c.metadata?.gerimmo === MARQUE_PORTAIL) return c.id;
+    if (c.metadata?.gerimmo !== MARQUE_PORTAIL) continue;
+    if (
+      c.business_profile?.privacy_policy_url !== profil.privacy_policy_url ||
+      c.business_profile?.terms_of_service_url !== profil.terms_of_service_url
+    ) {
+      await stripe.billingPortal.configurations.update(c.id, { business_profile: profil });
+    }
+    return c.id;
   }
   const cree = await stripe.billingPortal.configurations.create({
-    business_profile: {
-      privacy_policy_url: `${origine}/confidentialite`,
-      terms_of_service_url: `${origine}/conditions`,
-    },
+    business_profile: profil,
     features: {
       customer_update: { enabled: true, allowed_updates: ["email", "address", "name"] },
       invoice_history: { enabled: true },
@@ -342,7 +485,10 @@ export async function ouvrirPortailFacturation(
   params: { customer: string; retour: string }
 ): Promise<Reussite<{ url: string }> | Echec> {
   try {
-    const configuration = await assurerConfigurationPortail(stripe, new URL(params.retour).origin);
+    // L'adresse publique d'abord ; l'origine du retour ne sert que si aucune
+    // adresse n'est configurée (développement local).
+    const site = adresseDuSite() ?? new URL(params.retour).origin;
+    const configuration = await assurerConfigurationPortail(stripe, site);
     const session = await stripe.billingPortal.sessions.create({
       customer: params.customer,
       return_url: params.retour,

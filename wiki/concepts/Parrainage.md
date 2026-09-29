@@ -3,7 +3,7 @@ type: concept
 tags: [parrainage, croissance, expansion, acquisition, proprietaire-direct, agence]
 status: stable
 created: 2026-09-19
-updated: 2026-09-28
+updated: 2026-09-29
 sources: ["[[2026-09-28-decision-tarification]]"]
 ---
 
@@ -87,6 +87,5 @@ recommandent est un département sain).
 
 ## Relations
 
-[[Expansion territoriale autonome]] (le pourquoi) · [[Onboarding et
-abonnement]] (où le code entre) · [[Organisation]] (le code y vit) ·
+[[Expansion territoriale autonome]] (le pourquoi) · [[Onboarding et abonnement]] (où le code entre) · [[Organisation]] (le code y vit) ·
 [[Abonnement]] (l'avantage : avoir sur facture).

@@ -1,7 +1,14 @@
-import { Article, CoquilleLegale, OuNousEcrire, TableauPrestataires } from "@/components/coquille-legale";
-import { documentsIncomplets, prestatairesIncomplets } from "@/lib/editeur";
+import Link from "next/link";
+import { AFournir, Article, CoquilleLegale, TableauPrestataires } from "@/components/coquille-legale";
+import { courrielDeContact, documentsIncomplets, prestatairesIncomplets } from "@/lib/editeur";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
-export const metadata = { title: "Confidentialité — Gerimmo" };
+export const metadata = metadonneesPubliques({
+  titre: "Confidentialité — Gerimmo",
+  description:
+    "Quelles données Gerimmo traite, sur quelle base légale, où elles sont hébergées, combien de temps elles sont conservées et comment exercer vos droits.",
+  chemin: "/confidentialite",
+});
 
 // Information de confidentialité. Elle portait son propre en-tête avant le
 // 11/09, comme les deux autres pages légales — chacune le sien, tous
@@ -16,6 +23,11 @@ export const metadata = { title: "Confidentialité — Gerimmo" };
 // est dit aussi. Une relecture par un conseil reste prévue avant que
 // l'encadré « en cours de finalisation » ne disparaisse.
 export default function PageConfidentialite() {
+  // 29/09 : les droits ne s'exercent plus par le formulaire de devis de
+  // l'accueil (une demande commerciale) : « Aide et retours » pour qui a un
+  // compte, l'adresse de contact de l'éditeur pour tous, dès qu'elle est
+  // fournie (lib/editeur.ts).
+  const contact = courrielDeContact();
   return (
     <CoquilleLegale
       titre="Confidentialité"
@@ -45,6 +57,67 @@ export default function PageConfidentialite() {
           devis et les retours envoyés depuis le site — sont traitées{" "}
           <b className="font-semibold">par Gerimmo, en tant que responsable de
           traitement</b>. Pour celles-là, écrivez-nous directement.
+        </p>
+      </Article>
+
+      <Article titre="Pourquoi, et sur quelle base légale">
+        <p>
+          Chaque traitement dont Gerimmo est responsable repose sur une base
+          prévue par le règlement général sur la protection des données
+          (article 6) :
+        </p>
+        <div className="tableau-defilant tableau-fiches">
+          <table className="tableau">
+            <thead>
+              <tr>
+                <th>Traitement</th>
+                <th>Base légale</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Création et gestion du compte, authentification, fourniture du service, support (« Aide et retours »)</td>
+                <td data-libelle="Base légale">Exécution du contrat (conditions générales)</td>
+              </tr>
+              <tr>
+                <td>Abonnement, encaissement et facturation</td>
+                <td data-libelle="Base légale">Exécution du contrat ; conservation des factures : obligation légale</td>
+              </tr>
+              <tr>
+                <td>Preuve de l&apos;acceptation des conditions générales (version et date)</td>
+                <td data-libelle="Base légale">Intérêt légitime : pouvoir établir le contenu du contrat</td>
+              </tr>
+              <tr>
+                <td>Sécurité du service : journaux techniques, journal d&apos;audit, consultations des pièces sensibles, second facteur</td>
+                <td data-libelle="Base légale">Intérêt légitime : protéger le service et vos données</td>
+              </tr>
+              <tr>
+                <td>Réponse aux demandes de devis envoyées depuis le site</td>
+                <td data-libelle="Base légale">Intérêt légitime : répondre à la demande que vous avez faite</td>
+              </tr>
+              <tr>
+                <td>Annuaire des artisans et évaluations laissées par les agences</td>
+                <td data-libelle="Base légale">Exécution du contrat conclu avec l&apos;artisan</td>
+              </tr>
+              <tr>
+                <td>Journal public et sa diffusion sur la page Facebook de Gerimmo</td>
+                <td data-libelle="Base légale">Intérêt légitime : informer le public ; aucune donnée des lecteurs n&apos;est collectée</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Aucun traitement ne repose aujourd&apos;hui sur votre consentement :
+          ni traceur de mesure d&apos;audience, ni publicité. Si un traitement
+          de ce type venait à être ajouté, il ne serait mis en œuvre
+          qu&apos;avec votre consentement préalable, que vous pourriez retirer
+          à tout moment.
+        </p>
+        <p>
+          Pour les données de gestion locative, la base légale est déterminée
+          par votre agence ou votre propriétaire bailleur, responsable de
+          traitement (en général l&apos;exécution du bail ou du mandat, et les
+          obligations légales qui s&apos;y attachent).
         </p>
       </Article>
 
@@ -94,11 +167,25 @@ export default function PageConfidentialite() {
 
       <Article titre="Où vos données sont hébergées, et qui y accède">
         <p>
-          Vos données sont hébergées <b className="font-semibold">dans
-          l&apos;Union européenne</b> (base, fichiers, application). Certains
-          services annexes sont rendus par des prestataires établis hors de
-          l&apos;Union : la colonne « Localisation » le dit pour chacun, et la
-          colonne « Rôle » précise ce qui lui est transmis, et seulement cela.
+          Les serveurs principaux du service — base de données, fichiers et
+          application — sont situés dans des{" "}
+          <b className="font-semibold">régions de l&apos;Union européenne</b>{" "}
+          (Paris). Plusieurs prestataires sont toutefois des
+          sociétés établies hors de l&apos;Union, notamment aux États-Unis, ou
+          rattachées à des sociétés qui le sont. Les sauvegardes quotidiennes
+          sont produites et chiffrées par un service d&apos;automatisation
+          situé aux États-Unis (GitHub Actions), sur les machines duquel les
+          données transitent le temps du chiffrement ; la copie chiffrée est
+          ensuite stockée à Paris. La colonne « Localisation » le dit pour
+          chaque prestataire, et la colonne « Rôle » précise ce qui lui est
+          transmis, et seulement cela.
+        </p>
+        <p>
+          <b className="font-semibold">Garanties des transferts.</b> Lorsque
+          des données sont transférées ou accessibles hors de l&apos;Union,
+          le transfert est encadré par les clauses contractuelles types de la
+          Commission européenne et/ou par la certification du prestataire au
+          Data Privacy Framework UE–États-Unis, selon le prestataire.
         </p>
         {/* La même liste que les mentions légales (lib/editeur.ts). */}
         <TableauPrestataires />
@@ -172,6 +259,21 @@ export default function PageConfidentialite() {
                 <td>24 mois, puis suppression</td>
                 <td>Dépôt</td>
               </tr>
+              <tr>
+                <td>Factures d&apos;abonnement émises par Gerimmo</td>
+                <td>10 ans (obligation légale)</td>
+                <td>Émission</td>
+              </tr>
+              <tr>
+                <td>Preuve de l&apos;acceptation des conditions générales</td>
+                <td>Durée du contrat, puis 5 ans</td>
+                <td>Fin du contrat</td>
+              </tr>
+              <tr>
+                <td>Compte et données de l&apos;organisation cliente</td>
+                <td>Tant que le compte existe (article 9 des conditions générales)</td>
+                <td>Ouverture du compte</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -179,8 +281,21 @@ export default function PageConfidentialite() {
           Les cinq ans correspondent à la prescription des actions nées du bail
           d&apos;habitation ; les dix ans à l&apos;obligation de conservation
           comptable. Un contentieux en cours suspend le compte à rebours
-          jusqu&apos;à sa clôture. Votre compte est conservé tant qu&apos;il est
-          ouvert.
+          jusqu&apos;à sa clôture.
+        </p>
+        <p>
+          <b className="font-semibold">Votre compte.</b> Comme le prévoit
+          l&apos;article 9 des{" "}
+          <Link href="/conditions" className="lien-texte">
+            conditions générales
+          </Link>
+          , le compte et ses données sont conservés tant que le compte existe.
+          À la fin de l&apos;essai ou de l&apos;abonnement, ils restent
+          consultables et exportables en lecture seule : rien n&apos;est
+          supprimé automatiquement du fait de cette fin, en dehors des durées
+          propres aux pièces listées ci-dessus. Vous pouvez demander la
+          suppression de votre compte à tout moment, après avoir exporté ce
+          que vous souhaitez garder.
         </p>
       </Article>
 
@@ -232,9 +347,21 @@ export default function PageConfidentialite() {
           gestion locative, à votre agence ou à votre propriétaire bailleur,
           depuis la messagerie de votre espace. Pour votre compte, la
           facturation, l&apos;annuaire des artisans ou une demande envoyée
-          depuis le site, à Gerimmo, <OuNousEcrire objet="données personnelles" />.
-          Chaque demande reçoit une réponse dans le mois, après vérification de
-          l&apos;identité du demandeur.
+          depuis le site, à Gerimmo : si vous avez un compte, depuis la page{" "}
+          <Link href="/assistance" className="lien-texte">
+            « Aide et retours »
+          </Link>{" "}
+          de votre espace, en précisant « données personnelles » ; dans tous
+          les cas, à l&apos;adresse{" "}
+          {contact ? (
+            <a href={`mailto:${contact}?subject=${encodeURIComponent("Données personnelles")}`} className="lien-texte">
+              {contact}
+            </a>
+          ) : (
+            <AFournir quoi="adresse de contact de l'éditeur" />
+          )}
+          . Chaque demande reçoit une réponse dans le mois, après vérification
+          de l&apos;identité du demandeur.
         </p>
         <p>
           Si vous estimez que vos droits ne sont pas respectés, vous pouvez

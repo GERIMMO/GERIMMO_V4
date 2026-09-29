@@ -5571,3 +5571,29 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Art. 16 : préavis de modification des conditions, au moins un mois.
 - Reste à fournir : identité de l'éditeur (le formulaire de rétractation en a besoin).
 - Pages : [[Cycle de vie de l'abonnement]], [[État du projet et décisions ouvertes]].
+
+## [2026-09-29] lint | Contrôle de santé du wiki et corrections
+- Tarifs alignés sur la décision du 28/09 ([[2026-09-28-decision-tarification]]) : [[Onboarding et abonnement]] (fin du « 1ᵉʳ bien gratuit grille historique » ; essai 14 j puis gel en lecture seule), [[Abonnement]] (grille 28/09, franchise de TVA, portail Stripe, callout final), [[Super Admin]] (facturation 18.6). Notes « supplanté le 28/09 » dans [[Design system Gerimmo]], [[Recette de production]], [[Analyse concurrentielle]], [[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]].
+- CGU projet ([[Conditions generales d'utilisation (projet)]]) : encadré « supplanté par `/conditions`, version du 28/09/2026 » ; art. 8 (8.1 sans bien offert, 8.4 franchise en base, 8.8 préavis d'un mois, 8.9 rétractation) et art. 16 réalignés.
+- Réseau d'artisans (PR #132) : source [[2026-09-28-reseau-national-ouvertures-locales]] (doc `app/docs` + migration `20260928081000`) et règle [[Ouverture du réseau d'artisans]] créées ; notes dans [[Artisan]], [[Demande et sélection de devis]], [[Expansion territoriale autonome]], [[Gerimmo en autonomie]] (gestion nationale ; seul le réseau s'ouvre commune × métier ; le filtre Essonne n'est pas une ouverture).
+- Signature électronique non activée au lancement : note → [[Signature électronique]] dans [[Bail]], [[Mandat de gestion]], [[Garantie]], [[Locataire]], [[Propriétaire bailleur]], [[Proposition de valeur]].
+- Liens : liens coupés sur deux lignes recollés (14 fichiers) ; liens morts corrigés (`CLAUDE.md`, maquette charte v2, module 14) ; maquettes espaces locataire v10 / propriétaire v1 déliées (non ingérées, à ingérer). Liens ajoutés vers [[Abonnement]], [[Super Admin]], [[Signature électronique]] sur quelques pages.
+- Frontmatter : [[2026-09-20-cahier-des-charges-maitre-v3]] (ajouté, lié depuis [[État du projet et décisions ouvertes]]) ; [[Récapitulatif fonctionnel et lacunes de spécification]] `archived` → `stable` ; sources renseignées sur [[Accueil]] et [[Gérant]].
+- [[Accueil]] rafraîchi (état au lancement du 30/09, audits 11/09, 20/09, 25/09, 27/09) ; callout de [[État du projet et décisions ouvertes]] scindé « tranché » / « reste : identité de l'éditeur » ; [[index]] mis à jour (grille agence supplantée, gel/préavis/rétractation, parrainage sans avantage, signature non activée, artisan décennale + RC pro, Recette Sprint 2, nouvelles pages).
+
+## [2026-09-29] lint | Audit complet du 29/09 : corrections et mise en production
+- Cinq revues (sécurité, facturation, site public et légal, parcours métier, wiki),
+  puis corrections fusionnées sur `claude/compassionate-euler-qpqjp6`.
+- CGU/CGV (version du 29/09) : renumérotation — 8.7 reconduction de l'annuel
+  (L. 215-1), 8.9 révision tarifaire, 8.10 rétractation ; clauses conservation,
+  disponibilité, plafond de responsabilité, mise en demeure (30 j), annexe art. 28 RGPD.
+- Gel : seules les saisies des gérants sont refusées ; locataires, artisans et
+  mandants continuent. Bandeau « lecture seule » pour toute organisation gelée.
+- Accueil et tarifs : plus de « propriétaires invités » (fonction inexistante) ;
+  essai agence ouvert sur demande.
+- Baux et gestion : révision IRL non rétroactive, durée 3 ans SCI familiale et
+  indivision, caution (art. 22-1), départ d'un colocataire (solidarité 6 mois),
+  congé pour vente avec prix, mandat avec mentions consommateur ; voir les pages
+  Révision annuelle IRL, Bail, Garantie, Mandat de gestion.
+- Pages : [[Cycle de vie de l'abonnement]], [[Abonnement]], [[Grille tarifaire]],
+  [[Onboarding et abonnement]], [[État du projet et décisions ouvertes]].

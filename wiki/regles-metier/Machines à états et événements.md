@@ -3,7 +3,7 @@ type: business-rule
 tags: [etats, transitions, evenements, webhooks, idempotence, transverse]
 status: draft
 created: 2026-07-24
-updated: 2026-08-21
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]"]
 ---
 
@@ -66,7 +66,7 @@ Règles techniques :
 - **Signature de webhook vérifiée**, événement non signé rejeté + alerte (RM-A5.5) ;
 - **Idempotence** : identifiant unique par événement, stocké à la première réception —
   un doublon est ignoré sans erreur (RM-A5.6/A5.7) ;
-- **Conservation 30 jours** (RM-A5.8) + **rejeu manuel super admin** (RM-A5.9, console
+- **Conservation 30 jours** (RM-A5.8) + **rejeu manuel [[Super Admin|super admin]]** (RM-A5.9, console
   module 18) — couvre le cas du bug applicatif que le prestataire ne voit pas ;
 - Réponse immédiate, traitement asynchrone (RM-A5.10) ; alerte après 3 échecs (RM-A5.11).
 

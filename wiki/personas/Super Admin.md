@@ -3,8 +3,8 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-09
-sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]"]
+updated: 2026-09-29
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
 # Super Admin
@@ -50,10 +50,18 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
   lots gérés = base de facturation, volumes) et **six files d'attente** (demandes de
   modèles, contestations de notes, modèles WhatsApp, bugs, correctifs, idées).
 - **Facturation (18.6)** : comptage automatique des lots sous mandat au dernier jour
-  du mois → Stripe prélève et facture ; paliers agences / par bien PD ; mise en
-  route + mensuel + redevance annuelle ; échec → relance puis **suspension en lecture
+  du mois → Stripe prélève et facture ; échec → relance puis **suspension en lecture
   seule** (export toujours possible), résiliation → **archivage jamais suppression**,
-  réactivation par lui seul.
+  réactivation par lui seul. *Le modèle V3 « paliers + mise en route + mensuel +
+  redevance annuelle » est **supplanté le 28/09/2026*** : particuliers Solo /
+  Bailleur / Investisseur / Patrimoine (5,99 € à 29,99 € TTC/mois, annuel à deux
+  mois offerts), agences 39 € HT jusqu'à 10 lots puis tranches cumulatives, aucun
+  bien offert, essai 14 jours puis gel en lecture seule, franchise en base de TVA —
+  voir [[Grille tarifaire]], [[Abonnement]], [[2026-09-28-decision-tarification]].
+- **Réseau d'artisans (depuis le 28/09/2026)** : ouvre et ferme le réseau
+  **commune × métier** dans Supervision → Couverture (`/admin/couverture`), valide les
+  artisans et les rattache aux communes, lit les « intérêts signalés » — voir
+  [[Ouverture du réseau d'artisans]].
 - Met à jour les **seuils légaux** des alertes (RM-14.2.5) et crée les agences (16.1).
 - **Création manuelle de tout profil** *(décision du 2026-08-19)* : au-delà des
   agences, il peut créer **n'importe quel profil à la main**, y compris un

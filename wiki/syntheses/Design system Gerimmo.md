@@ -3,7 +3,7 @@ type: synthesis
 tags: [design-system, charte, ux, ergonomie, animation, marque-blanche, personas]
 status: stable
 created: 2026-09-24
-updated: 2026-09-26
+updated: 2026-09-29
 sources: ["[[Charte visuelle v3 bleue]]", "[[Charte visuelle de l'espace agent]]", "[[2026-08-08-maquette-prototype-cliquable]]", "[[Marque blanche]]"]
 ---
 
@@ -243,7 +243,7 @@ Ce que le tour a fixé comme règles, en plus des principes du § 1 :
 Le porteur a demandé de trancher « de manière logique » : à chaque fois, la promesse déjà faite à l'utilisateur ou la règle déjà écrite l'emporte.
 
 - **Abonnement pendant l'essai** — *tenu* : la session Stripe reçoit `trial_end` (fin de l'essai, si elle est à plus de 48 h) ; la carte n'est débitée qu'à la fin de l'essai, et la page le redit avec la date. Sous 48 h, prélèvement immédiat et phrase adaptée.
-- **Fin d'essai et bien offert** — *les conditions l'emportent* : `org_ecriture_ouverte` laisse l'écriture ouverte quand la quantité facturable est nulle (propriétaire d'un seul bien, agence sans lot sous mandat actif — personne ne doit rien). Migration `20260924200000_essai_fini_rien_a_payer`, appliquée ; tests SQL mis à jour.
+- **Fin d'essai et bien offert** — *les conditions l'emportent* : `org_ecriture_ouverte` laisse l'écriture ouverte quand la quantité facturable est nulle (propriétaire d'un seul bien, agence sans lot sous mandat actif — personne ne doit rien). Migration `20260924200000_essai_fini_rien_a_payer`, appliquée ; tests SQL mis à jour. *(**Supplanté le 28/09/2026** : aucun bien n'est plus offert ; essai de 14 jours puis gel en lecture seule jusqu'au paiement — [[Grille tarifaire]], [[2026-09-28-decision-tarification]].)*
 - **Comptabilité de l'agent** — *la décision du 12/09 tient, sans impasse* : hors du menu principal, mais « Écritures & rapports » dans son groupe « Plus », puisque la validation des rapports de gestion n'existe que là et que son tableau de bord l'y envoie.
 - **Barre basse à quatre entrées** — *inchangée* : la règle du § 3 ; « Menu » s'allume et porte les compteurs des entrées qu'il cache.
 - **Titres d'onglet « — Gerimmo »** — *inchangés* dans l'espace agence (l'équipe d'une agence se sert de l'outil Gerimmo).

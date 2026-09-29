@@ -154,9 +154,11 @@ export async function assemblerDecompteRestitution(
     }
     ${
       restitution.sans_edl_entree
-        ? `<div class="encadre"><p>Sans état des lieux d'entrée signé, aucune retenue pour dégradation
-           n'est opposable au locataire : le dépôt est restitué intégralement, déduction faite des
-           seuls impayés.</p></div>`
+        ? `<div class="encadre"><p>Aucun état des lieux d'entrée n'a été établi. Le locataire est présumé
+           avoir reçu le logement en bon état de réparations locatives (article 1731 du Code civil), sauf
+           preuve contraire ; cette présomption ne peut être invoquée par le bailleur qui a fait obstacle à
+           l'établissement de l'état des lieux (article 3-2 de la loi du 6 juillet 1989). Chaque retenue
+           ci-dessous est appuyée d'un justificatif.</p></div>`
         : ""
     }
 

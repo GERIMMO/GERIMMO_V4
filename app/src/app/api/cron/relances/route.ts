@@ -26,7 +26,13 @@
 // 25/09, R2) : le bilan portait déjà un `details` en texte libre, il porte
 // désormais la même structure que les quittances et les avis d'échéance.
 import { envoyerEmail } from "@/lib/email";
-import { corpsRelanceLoyer, sujetRelanceLoyer, type NiveauRelanceAuto } from "@/lib/relance-loyer-email";
+import {
+  corpsInformationCaution,
+  corpsRelanceLoyer,
+  sujetInformationCaution,
+  sujetRelanceLoyer,
+  type NiveauRelanceAuto,
+} from "@/lib/relance-loyer-email";
 import { clientDeService } from "@/lib/supabase/service";
 import { consignerTache } from "@/lib/tache";
 import { adresseDuSite } from "@/lib/site";
@@ -48,6 +54,10 @@ type Ligne = {
   total_du?: number | string | null;
   /** Colocataires titulaires : la relance vise tous les colocataires (audit 27/09). */
   autres_destinataires?: string[] | null;
+  /** Cautions du bail, rendues au niveau 2 seulement (audit 29/09). */
+  garants?: string[] | null;
+  /** Nom du locataire principal, pour l'information de la caution. */
+  locataire?: string | null;
 };
 
 /** Un échec tel qu'il se consigne : de quoi retrouver le dossier, jamais l'adresse. */
@@ -140,6 +150,30 @@ export async function GET(request: Request) {
       if (copie.erreur)
         echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: `colocataire : ${copie.erreur}` });
     }
+    // Audit gestion du 29/09 : au niveau 2, la caution est informée de la
+    // défaillance (art. 2303 C. civ.). Un échec se consigne sans empêcher la
+    // trace de la relance, partie au locataire.
+    const cautionsInformees: string[] = [];
+    if (l.niveau === "relance_2") {
+      for (const caution of l.garants ?? []) {
+        const info = await envoyerEmail({
+          organisation: { db: supabase, id: l.organization_id },
+          to: caution,
+          subject: sujetInformationCaution({ lot: l.lot }),
+          html: corpsInformationCaution({
+            emetteur: l.emetteur,
+            locataire: l.locataire ?? null,
+            lot: l.lot,
+            periode: l.periode,
+            dateEcheance: l.date_echeance,
+            totalDu: Number(l.total_du ?? l.reste),
+          }),
+        });
+        if (info.erreur)
+          echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "envoi", motif: `caution : ${info.erreur}` });
+        else cautionsInformees.push(caution);
+      }
+    }
     // Envoyé : on consigne. Un échec ici laisse la relance sans trace — le
     // pire cas est un second envoi demain, que le journal de la tâche signale.
     const { error: erreurTrace } = await supabase.rpc("relance_loyer_consigner", {
@@ -147,7 +181,7 @@ export async function GET(request: Request) {
       p_niveau: l.niveau,
       p_note: `E-mail automatique à ${[l.destinataire, ...(l.autres_destinataires ?? [])].join(", ")} — reste ${Number(l.reste).toFixed(2)} € sur le terme du ${l.periode}${
         l.total_du != null ? `, ${Number(l.total_du).toFixed(2)} € dus au total` : ""
-      }`,
+      }${cautionsInformees.length ? ` — caution informée (${cautionsInformees.join(", ")})` : ""}`,
     });
     if (erreurTrace) {
       echecs.push({ bail_id: l.bail_id, organization_id: l.organization_id, niveau: l.niveau, etape: "consignation", motif: erreurTrace.message.slice(0, 200) });

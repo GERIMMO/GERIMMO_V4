@@ -96,9 +96,12 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
                 defaultValue={etat.valeurs?.qualite ?? "Personne physique"}
                 className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:text-sm"
               >
-                <option>Personne physique</option>
-                <option>SCI</option>
-                <option>Indivision</option>
+                {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend. */}
+                <option value="Personne physique">Personne physique</option>
+                <option value="Indivision (personnes physiques)">Indivision (personnes physiques)</option>
+                <option value="SCI familiale">SCI familiale (entre parents et alliés)</option>
+                <option value="SCI">SCI (non familiale)</option>
+                <option value="Personne morale">Autre personne morale (société…)</option>
               </select>
             </div>
           </div>
@@ -175,7 +178,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               <span>
                 J&apos;accepte les{" "}
                 <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">
-                  conditions générales d&apos;utilisation (CGU)
+                  conditions générales d&apos;utilisation et de vente
                 </Link>
               </span>
             </label>
@@ -192,6 +195,16 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               {etat.erreur}
             </p>
           )}
+          {/* Information RGPD au moment de la collecte (art. 13) : une phrase
+              et le lien, au plus près du bouton qui envoie les données. */}
+          <p className="text-xs text-muted-foreground">
+            Vos données servent à créer et gérer votre compte et votre
+            abonnement. Pour en savoir plus et exercer vos droits, consultez la{" "}
+            <Link href="/confidentialite" target="_blank" rel="noopener" className="lien-texte">
+              page confidentialité
+            </Link>
+            .
+          </p>
           <BoutonEnvoi enCoursTexte="Ouverture…" className="w-full">
             Ouvrir mon espace
           </BoutonEnvoi>

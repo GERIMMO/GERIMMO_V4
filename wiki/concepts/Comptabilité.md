@@ -3,7 +3,7 @@ type: concept
 tags: [comptabilite, finances, gerant]
 status: draft
 created: 2026-07-22
-updated: 2026-08-30
+updated: 2026-09-29
 sources: ["[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-07-24-gerimmo-v3-module-4-comptabilite]]", "[[2026-07-24-gerimmo-v3-a6-doctrine-financiere]]"]
 ---
 
@@ -105,8 +105,7 @@ encaissement (4.2) et restitution (4.1) produisent simplement **deux écritures*
 ## Relations
 - **Amont module 3 (2026-07-24)** : « chaque encaissement produit une écriture » ; le
   module 3 confirme l'absence de synchronisation bancaire (saisie manuelle, décision
-  actée — cohérent avec le choix humain du 2026-07-22). Voir [[Quittancement des
-  loyers]] et [[Solde de tout compte]].
+  actée — cohérent avec le choix humain du 2026-07-22). Voir [[Quittancement des loyers]] et [[Solde de tout compte]].
 - Consomme : [[Période de loyer]], [[Régularisation des charges]], [[Intervention]] (coûts).
 - Sert : reporting financier du [[Propriétaire bailleur]] ([[2026-07-21-fonctionnalites-par-persona-v0]]),
   [[Fiscalité]].

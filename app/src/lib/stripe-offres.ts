@@ -17,7 +17,14 @@
 // ne souscrit pas — un montant de taxe ne s'invente pas.
 
 import type Stripe from "stripe";
-import { lireErreurStripe, type Echec, type Reussite } from "@/lib/stripe";
+import {
+  appliquerPiedDeFacture,
+  lireErreurStripe,
+  piedDeFacturePour,
+  verifierAucuneSouscriptionVivante,
+  type Echec,
+  type Reussite,
+} from "@/lib/stripe";
 import {
   formuleParCode,
   offreAgence,
@@ -83,8 +90,15 @@ export async function assurerTauxTva(
 
 /** La mention de facture exigée par le régime (franchise en base). */
 export function piedDeFacture(regime: RegimeTva): string | undefined {
-  return regime.nature === "franchise" ? "TVA non applicable, art. 293 B du CGI." : undefined;
+  return piedDeFacturePour(regime);
 }
+
+/**
+ * « explicite » : le client a choisi une offre plus chère que celle qui couvre
+ * son portefeuille (formule supérieure, lots en réserve). La tâche de nuit ne
+ * la rabaisse alors pas d'elle-même à l'échéance (audit 29/09, point 11).
+ */
+export type ChoixOffre = "explicite" | "auto";
 
 export type LigneStripe = {
   produit: string;
@@ -128,8 +142,9 @@ export async function lignesStripe(
 }
 
 /** Ce que la souscription porte en métadonnées : ce que le webhook recopie. */
-export function metadonneesOffre(orgId: string, offre: Offre): Record<string, string> {
+export function metadonneesOffre(orgId: string, offre: Offre, choix: ChoixOffre = "auto"): Record<string, string> {
   return {
+    gerimmo_choix: choix,
     organization_id: orgId,
     gerimmo_grille: GRILLE,
     gerimmo_public: offre.public,
@@ -170,14 +185,17 @@ export async function creerSessionOffre(
     retourOk: string;
     retourAnnule: string;
     essaiFin?: string | null;
+    /** « explicite » si le client a choisi plus que ce qui couvre son portefeuille. */
+    choix?: ChoixOffre;
   }
 ): Promise<Reussite<{ url: string; premierPrelevement: number | null }> | Echec> {
+  // Jamais une seconde souscription à côté d'une vivante (audit 29/09, point 1).
+  const libre = await verifierAucuneSouscriptionVivante(stripe, params.customer);
+  if (!libre.ok) return libre;
   try {
     const lignes = await lignesStripe(stripe, params.offre, params.regime);
-    const pied = piedDeFacture(params.regime);
-    if (pied) {
-      await stripe.customers.update(params.customer, { invoice_settings: { footer: pied } });
-    }
+    // Posée en franchise, RETIRÉE sinon (audit 29/09, point 6).
+    await appliquerPiedDeFacture(stripe, params.customer, params.regime);
     const trialEnd = finEssaiPreservee(params.essaiFin);
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -199,7 +217,7 @@ export async function creerSessionOffre(
       // Le formulaire fait lire au client le montant exact avant validation ;
       // Stripe l'affiche encore, TTC, taxes détaillées, avant la carte.
       subscription_data: {
-        metadata: metadonneesOffre(params.orgId, params.offre),
+        metadata: metadonneesOffre(params.orgId, params.offre, params.choix),
         ...(trialEnd ? { trial_end: trialEnd } : {}),
       },
       metadata: { organization_id: params.orgId, gerimmo_grille: GRILLE },
@@ -293,72 +311,107 @@ export async function apercuChangement(
 }
 
 /**
+ * Libérer l'échéancier Stripe attaché à la souscription, s'il y en a un.
+ *
+ * Audit 29/09, point 5. Un échéancier (baisse ou périodicité programmée pour
+ * l'échéance) REPREND la main à sa phase suivante : une résiliation, une
+ * hausse ou une nouvelle demande de périodicité posée à côté serait écrasée
+ * par la phase programmée. On le libère d'abord — la souscription garde son
+ * état présent — et la tâche de nuit reprogrammera ce qui doit l'être.
+ * Rend vrai si un échéancier a été libéré.
+ */
+export async function libererEcheancier(stripe: Stripe, s: Stripe.Subscription): Promise<boolean> {
+  const id = typeof s.schedule === "string" ? s.schedule : (s.schedule?.id ?? null);
+  if (!id) return false;
+  const echeancier = await stripe.subscriptionSchedules.retrieve(id);
+  if (echeancier.status !== "active" && echeancier.status !== "not_started") return false;
+  await stripe.subscriptionSchedules.release(id);
+  return true;
+}
+
+/**
  * Appliquer une HAUSSE confirmée : prorata facturé et prélevé aussitôt
  * (`always_invoice`), et refus net si la carte échoue (`error_if_incomplete`)
  * — la capacité n'est alors pas relevée. Pendant l'essai Stripe, aucun
- * prorata : le premier prélèvement portera la nouvelle formule.
+ * prorata : le premier prélèvement portera la nouvelle formule. Un échéancier
+ * en place est libéré avant (sa phase suivante écraserait la hausse).
  */
 export async function appliquerHausse(
   stripe: Stripe,
-  params: { subscription: string; offre: Offre; regime: RegimeTva; orgId: string; prorationDate: number }
-): Promise<Reussite<{ souscription: Stripe.Subscription }> | Echec> {
+  params: {
+    subscription: string;
+    offre: Offre;
+    regime: RegimeTva;
+    orgId: string;
+    prorationDate: number;
+    choix?: ChoixOffre;
+  }
+): Promise<Reussite<{ souscription: Stripe.Subscription; echeancierLibere: boolean }> | Echec> {
   try {
     const s = await stripe.subscriptions.retrieve(params.subscription);
+    const echeancierLibere = await libererEcheancier(stripe, s);
     const lignes = await lignesStripe(stripe, params.offre, params.regime);
     const enEssai = s.status === "trialing";
     const maj = await stripe.subscriptions.update(params.subscription, {
       items: elementsDeMiseAJour(s.items.data, lignes),
       proration_behavior: enEssai ? "none" : "always_invoice",
       ...(enEssai ? {} : { proration_date: params.prorationDate, payment_behavior: "error_if_incomplete" as const }),
-      metadata: metadonneesOffre(params.orgId, params.offre),
+      metadata: metadonneesOffre(params.orgId, params.offre, params.choix),
     });
-    return { ok: true, souscription: maj };
+    return { ok: true, souscription: maj, echeancierLibere };
   } catch (e) {
     return { ok: false, erreur: lireErreurStripe(e) };
   }
 }
 
-/**
- * Appliquer une BAISSE à l'échéance : sans prorata (la période payée n'est pas
- * remboursée ni refacturée) ; la prochaine facture porte le nouveau montant.
- * Appelée par la tâche de nuit dans les jours qui précèdent l'échéance.
- */
-export async function appliquerBaisseAEcheance(
-  stripe: Stripe,
-  params: { subscription: string; offre: Offre; regime: RegimeTva; orgId: string }
-): Promise<Reussite<{ souscription: Stripe.Subscription }> | Echec> {
-  try {
-    const s = await stripe.subscriptions.retrieve(params.subscription);
-    const lignes = await lignesStripe(stripe, params.offre, params.regime);
-    const maj = await stripe.subscriptions.update(params.subscription, {
-      items: elementsDeMiseAJour(s.items.data, lignes),
-      proration_behavior: "none",
-      metadata: metadonneesOffre(params.orgId, params.offre),
-    });
-    return { ok: true, souscription: maj };
-  } catch (e) {
-    return { ok: false, erreur: lireErreurStripe(e) };
-  }
+/** Le choix du client a-t-il été explicite (formule plus chère que nécessaire) ? */
+export function choixExplicite(s: Pick<Stripe.Subscription, "metadata">): boolean {
+  return s.metadata?.gerimmo_choix === "explicite";
+}
+
+/** La phase EN COURS d'un échéancier : celle qui contient maintenant. */
+function phaseEnCours(
+  echeancier: Stripe.SubscriptionSchedule,
+  maintenant: number
+): Stripe.SubscriptionSchedule.Phase {
+  const courante = echeancier.current_phase;
+  const parCourante = courante
+    ? echeancier.phases.find((p) => p.start_date === courante.start_date && p.end_date === courante.end_date)
+    : undefined;
+  return (
+    parCourante ??
+    echeancier.phases.find((p) => p.start_date <= maintenant && maintenant < p.end_date) ??
+    echeancier.phases[0]
+  );
 }
 
 /**
- * Changer de périodicité À L'ÉCHÉANCE, jamais en cours de période : un
- * échéancier Stripe garde la période en cours telle quelle, puis ouvre la
- * suivante avec la nouvelle périodicité, et se retire.
+ * Programmer une offre pour la PROCHAINE période, sans rien changer à la
+ * période en cours : un échéancier Stripe garde la phase actuelle telle
+ * quelle (prix, quantités, métadonnées, fin d'essai), puis ouvre la suivante
+ * avec l'offre donnée, et se retire. La capacité enregistrée chez nous ne
+ * bouge qu'à l'ouverture de la nouvelle période, quand Stripe recopie les
+ * métadonnées de la phase sur la souscription (webhook).
+ *
+ * Audit 29/09, point 5 : la première phase est celle qui CONTIENT maintenant
+ * (`current_phase`), pas la dernière de l'échéancier — un échéancier déjà
+ * programmé aurait sinon « prolongé » sa phase future à la place de la
+ * présente. Une souscription en essai garde sa fin d'essai.
  */
-export async function programmerPeriodicite(
+export async function programmerEcheance(
   stripe: Stripe,
-  params: { subscription: string; offre: Offre; regime: RegimeTva; orgId: string }
+  params: { subscription: string; offre: Offre; regime: RegimeTva; orgId: string; choix?: ChoixOffre; maintenant?: number }
 ): Promise<Reussite<{ echeancier: string }> | Echec> {
   try {
     const s = await stripe.subscriptions.retrieve(params.subscription);
     const lignes = await lignesStripe(stripe, params.offre, params.regime);
-    const existant =
-      typeof s.schedule === "string" ? s.schedule : (s.schedule?.id ?? null);
+    const existant = typeof s.schedule === "string" ? s.schedule : (s.schedule?.id ?? null);
     const echeancier = existant
       ? await stripe.subscriptionSchedules.retrieve(existant)
       : await stripe.subscriptionSchedules.create({ from_subscription: s.id });
-    const phase = echeancier.phases[echeancier.phases.length - 1];
+    const maintenant = params.maintenant ?? Math.floor(Date.now() / 1000);
+    const phase = phaseEnCours(echeancier, maintenant);
+    const finEssai = s.status === "trialing" && typeof s.trial_end === "number" ? s.trial_end : null;
     const maj = await stripe.subscriptionSchedules.update(echeancier.id, {
       end_behavior: "release",
       proration_behavior: "none",
@@ -372,6 +425,7 @@ export async function programmerPeriodicite(
             ...(i.tax_rates?.length ? { tax_rates: i.tax_rates.map((t) => (typeof t === "string" ? t : t.id)) } : {}),
           })),
           metadata: s.metadata,
+          ...(finEssai ? { trial_end: finEssai } : {}),
         },
         {
           items: lignes.map((l) => ({
@@ -386,7 +440,7 @@ export async function programmerPeriodicite(
             ...(l.tax_rates ? { tax_rates: l.tax_rates } : {}),
           })),
           duration: { interval: params.offre.periodicite === "annuel" ? "year" : "month", interval_count: 1 },
-          metadata: metadonneesOffre(params.orgId, params.offre),
+          metadata: metadonneesOffre(params.orgId, params.offre, params.choix ?? (choixExplicite(s) ? "explicite" : "auto")),
         },
       ],
     });
@@ -396,16 +450,61 @@ export async function programmerPeriodicite(
   }
 }
 
-/** Résilier pour la prochaine échéance (ou revenir sur cette demande). */
+/**
+ * Appliquer une BAISSE à l'échéance : sans prorata (la période payée n'est
+ * pas remboursée ni refacturée). Audit 29/09, point 11 : par un échéancier —
+ * la mise à jour directe changeait le prix ET la capacité sur-le-champ, au
+ * milieu d'une période déjà payée. La nouvelle offre commence à la prochaine
+ * période ; d'ici là, la capacité payée reste entière.
+ * Appelée par la tâche de nuit dans les jours qui précèdent l'échéance.
+ */
+export async function appliquerBaisseAEcheance(
+  stripe: Stripe,
+  params: { subscription: string; offre: Offre; regime: RegimeTva; orgId: string }
+): Promise<Reussite<{ echeancier: string }> | Echec> {
+  return programmerEcheance(stripe, params);
+}
+
+/**
+ * Changer de périodicité À L'ÉCHÉANCE, jamais en cours de période (même
+ * mécanique que la baisse : un échéancier qui ouvre la période suivante).
+ */
+export async function programmerPeriodicite(
+  stripe: Stripe,
+  params: { subscription: string; offre: Offre; regime: RegimeTva; orgId: string }
+): Promise<Reussite<{ echeancier: string }> | Echec> {
+  return programmerEcheance(stripe, params);
+}
+
+/**
+ * Résilier pour la prochaine échéance (ou revenir sur cette demande). Un
+ * échéancier en place est libéré d'abord : sa phase suivante rouvrirait une
+ * période que le client vient de refuser.
+ */
 export async function resilierAEcheance(
   stripe: Stripe,
   params: { subscription: string; resilier: boolean }
-): Promise<Reussite<{ souscription: Stripe.Subscription }> | Echec> {
+): Promise<Reussite<{ souscription: Stripe.Subscription; echeancierLibere: boolean }> | Echec> {
   try {
+    const s = await stripe.subscriptions.retrieve(params.subscription);
+    const echeancierLibere = await libererEcheancier(stripe, s);
     const maj = await stripe.subscriptions.update(params.subscription, {
       cancel_at_period_end: params.resilier,
     });
-    return { ok: true, souscription: maj };
+    return { ok: true, souscription: maj, echeancierLibere };
+  } catch (e) {
+    return { ok: false, erreur: lireErreurStripe(e) };
+  }
+}
+
+/** Libérer l'échéancier d'une souscription donnée par son identifiant. */
+export async function libererEcheancierDe(
+  stripe: Stripe,
+  subscription: string
+): Promise<Reussite<{ echeancierLibere: boolean }> | Echec> {
+  try {
+    const s = await stripe.subscriptions.retrieve(subscription);
+    return { ok: true, echeancierLibere: await libererEcheancier(stripe, s) };
   } catch (e) {
     return { ok: false, erreur: lireErreurStripe(e) };
   }

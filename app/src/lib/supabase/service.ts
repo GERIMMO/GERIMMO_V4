@@ -7,10 +7,16 @@
 // accès universel. Elle ne sert qu'aux routes `/api/cron/*`, elles-mêmes
 // fermées par `CRON_SECRET`.
 //
+// Exceptions tenues à la main, chacune APRÈS une lecture réservée qui prouve
+// le droit de l'appelant : le webhook Stripe (signé), et, dans les actions
+// d'abonnement, le remplacement d'un client Stripe supprimé et la sortie de
+// la grille historique (audit du 29/09/2026).
+//
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.
 
+import "server-only";
 import { createClient as creerClientSupabase } from "@supabase/supabase-js";
 
 export function clientDeService() {

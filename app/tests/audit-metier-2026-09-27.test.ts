@@ -6,6 +6,7 @@
  * à la fin de chaque test. Nécessite SUPABASE_DB_URL (base locale).
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -117,6 +118,7 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
       `insert into public.baux (${cols.join(",")}) values (${cols.map((_, i) => `$${i + 1}`).join(",")}) returning id`,
       Object.values(donnees)
     );
+    await couvrirParMandat(db, b.id);
     return b.id;
   }
 
@@ -150,13 +152,13 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
     const {
       rows: [an1],
     } = await db.query(
-      `select public.reviser_loyer($1, 148.03, (current_date - interval '1 year')::date) as loyer`,
+      `select public.reviser_loyer($1, 148.03, 'T2 2025', (current_date - interval '1 year')::date) as loyer`,
       [b]
     );
     expect(Number(an1.loyer)).toBe(764.78); // l'exemple du wiki
     const {
       rows: [an2],
-    } = await db.query(`select public.reviser_loyer($1, 150.00, current_date) as loyer`, [b]);
+    } = await db.query(`select public.reviser_loyer($1, 150.00, 'T2 2026', current_date) as loyer`, [b]);
     // Juste : 764,78 × 150 / 148,03 = 774,96 € (l'ancien calcul donnait 790,23 €)
     expect(Number(an2.loyer)).toBe(774.96);
     const { rows } = await db.query(
@@ -178,11 +180,11 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
     );
     await enGerant();
     // 14 jours après la prise d'effet (constat de l'audit agence)
-    await echec(/date anniversaire/i, `select public.reviser_loyer($1, 148.03, current_date)`, [b]);
+    await echec(/date anniversaire/i, `select public.reviser_loyer($1, 148.03, 'T2 2026', current_date)`, [b]);
     // Avant même le début du bail
     await echec(
       /date anniversaire/i,
-      `select public.reviser_loyer($1, 148.03, (current_date - 30)::date)`,
+      `select public.reviser_loyer($1, 148.03, 'T2 2026', (current_date - 30)::date)`,
       [b]
     );
   });
@@ -194,10 +196,10 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
       [b]
     );
     await enGerant();
-    await db.query(`select public.reviser_loyer($1, 148.03, current_date)`, [b]);
+    await db.query(`select public.reviser_loyer($1, 148.03, 'T2 2026', current_date)`, [b]);
     await echec(
       /plus récente/i,
-      `select public.reviser_loyer($1, 147.00, (current_date - interval '1 year')::date)`,
+      `select public.reviser_loyer($1, 147.00, 'T2 2025', (current_date - interval '1 year')::date)`,
       [b]
     );
   });
@@ -214,7 +216,7 @@ describe.skipIf(!DB_URL)("Audit métier du 27/09 — corrections en base", () =>
     await enGerant();
     const {
       rows: [r],
-    } = await db.query(`select public.reviser_loyer($1, 144, current_date) as loyer`, [b]);
+    } = await db.query(`select public.reviser_loyer($1, 144, 'T2 2026', current_date) as loyer`, [b]);
     expect(Number(r.loyer)).toBe(644.76); // l'exemple de l'audit, autrefois bloqué
     // Le solde du dépôt s'encaisse toujours, au plafond du loyer de signature
     const {

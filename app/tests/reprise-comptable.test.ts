@@ -15,6 +15,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -155,6 +156,7 @@ beforeEach(async () => {
      values($1,$2,$3,'actif',current_date-400,700,50,700) returning id`,
     [org, lot, locataire]
   );
+  await couvrirParMandat(db, bail);
 });
 
 describe.skipIf(!DB_URL)("le contrôle dit ce que la bascule fera", () => {

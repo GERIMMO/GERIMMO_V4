@@ -3,7 +3,7 @@ type: synthesis
 tags: [audit, production, console, supervision, point-du-matin, notifications, ergonomie, personas, ci]
 status: stable
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-29
 sources: ["[[Design system Gerimmo]]", "[[Gerimmo en autonomie]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Fonctionnalités par persona]]", "[[Modèle de rôles et permissions]]"]
 ---
 # Audit complet du 25 septembre 2026
@@ -44,8 +44,7 @@ Trois audits de code en lecture seule, menés en parallèle sur `main`
 | Écrans propriétaire + locataire | 32 écrans, 64 captures | 44 défauts uniques, 5 P1 |
 | Écrans artisan + public + console | 46 écrans, 92 captures | 57 défauts uniques, 6 P1 |
 
-Chaque écran a été jugé à la même aune que le 24/09 ([[Design system
-Gerimmo]] : un seul bandeau, tout le carré se clique, pas de clic pour rien,
+Chaque écran a été jugé à la même aune que le 24/09 ([[Design system Gerimmo]] : un seul bandeau, tout le carré se clique, pas de clic pour rien,
 44 px au doigt, les mots du persona) et, pour la console, à l'aune de
 l'objectif du porteur : *ce qu'on voit d'abord, ce qui coûte un clic, ce qui
 est de l'information sans décision, ce qui manque pour décider*.

@@ -134,7 +134,11 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
     } else if (enGestion > (capacite ?? 0)) {
       cible = offreParticulier(enGestion, paiement.periodicite);
     }
-    if (cible && cible.montantCents <= actuelle.montantCents) cible = null;
+    // Audit 29/09, point 3 : une hausse de CAPACITÉ au même prix (agence
+    // passée de 5 à 6 lots dans le socle) reste nécessaire — la garde refuse
+    // le 6ᵉ lot tant qu'elle n'est pas confirmée. Seul ce qui n'augmente ni
+    // le montant ni la capacité est écarté.
+    if (cible && cible.montantCents <= actuelle.montantCents && cible.capacite <= (capacite ?? 0)) cible = null;
   }
   let apercu: { immediatCents: number; prorationDate: number; enEssai: boolean } | null = null;
   let erreurApercu: string | null = null;
@@ -152,12 +156,15 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
   }
 
   // ── Les changements programmés, calculés comme la tâche de nuit les appliquera.
+  // Comme la tâche de nuit : jamais au-delà de la capacité payée (une hausse
+  // attend une confirmation, audit 29/09).
   const periodiciteSuivante = paiement.periodicite_suivante ?? paiement.periodicite;
+  const baseEcheance = Math.min(enGestion, capacite ?? enGestion);
   const aEcheance: Offre | null =
     souscrit && actuelle && !paiement.annulation_demandee
       ? publicTarif === "agence"
-        ? offreAgence(enGestion)
-        : offreParticulier(enGestion, periodiciteSuivante)
+        ? offreAgence(baseEcheance)
+        : offreParticulier(baseEcheance, periodiciteSuivante)
       : null;
   const baisseProgrammee =
     aEcheance && actuelle && (aEcheance.montantCents < actuelle.montantCents || aEcheance.periodicite !== actuelle.periodicite)
@@ -197,6 +204,14 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         <div role="status" className="loc-carte">
           <p className="mesure-lecture text-sm text-muted-foreground">
             Paiement interrompu : rien n&apos;a été prélevé, et rien n&apos;a changé.
+          </p>
+        </div>
+      )}
+      {retour("grille") === "actuelle" && (
+        <div role="status" className="loc-carte">
+          <p className="mesure-lecture text-sm text-muted-foreground">
+            Votre compte relève désormais des formules actuelles. Choisissez ci-dessous celle qui vous convient : le
+            montant exact vous est présenté avant tout paiement.
           </p>
         </div>
       )}
@@ -508,7 +523,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
           </li>
           <li>
             {estAgence
-              ? "Sans supplément : les accès de vos locataires, des propriétaires que vous invitez et de vos collaborateurs."
+              ? "Sans supplément : les accès de vos locataires et les comptes de vos collaborateurs."
               : "Sans supplément : les accès de vos locataires."}
           </li>
           <li>

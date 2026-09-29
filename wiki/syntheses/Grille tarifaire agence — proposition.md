@@ -3,7 +3,7 @@ type: synthesis
 tags: [tarifs, agence, abonnement, stripe, proposition]
 status: draft
 created: 2026-09-12
-updated: 2026-09-28
+updated: 2026-09-29
 sources: ["[[2026-09-28-decision-tarification]]", "[[Grille tarifaire]]", "[[Analyse concurrentielle]]", "[[Mandat de gestion]]", "[[Cycle de vie de l'abonnement]]", "[[Abonnement]]"]
 ---
 
@@ -45,8 +45,7 @@ découle — relevés de gestion, régularisations, fiscalité — devient faux.
 honoraires mensuels : un tiers de son chiffre d'affaires. Elle ne signera pas.
 
 **Les trois rythmes.** Mensuel + mise en route + redevance annuelle, c'est
-**deux abonnements Stripe** (il refuse de mélanger deux rythmes — [[Grille
-tarifaire]]), deux factures, et deux choses à expliquer. Pour le client comme
+**deux abonnements Stripe** (il refuse de mélanger deux rythmes — [[Grille tarifaire]]), deux factures, et deux choses à expliquer. Pour le client comme
 pour nous.
 
 ## La proposition : un barème par tranches, sans marche

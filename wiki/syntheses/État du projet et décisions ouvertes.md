@@ -45,19 +45,30 @@ validée (1ᵉʳ bien gratuit, prix par bien révisé à **5,99 €/bien/mois** 
 2026-09-05 — remplace les 2,50 € du 25/07, sans mise en place) et grille agences
 actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 
-> [!warning] 28/09/2026 — nouvelle grille, décisions ouvertes
+> [!warning] 28/09/2026 — nouvelle grille : ce qui est tranché, ce qui reste
 > La grille ci-dessus est **supplantée** : formules particuliers Solo → Patrimoine,
-> agences par tranches cumulatives dès 39 € HT, plus de premier bien offert
-> ([[2026-09-28-decision-tarification]]). Restent à trancher : régime de TVA de
-> l'éditeur, unité « bien » (lot loué séparément), sort des clients de la grille
-> historique (D1–D4), parrainage (D5), préavis de révision (art. 8.8).
-> **Tranché le jour même** : 3 logements = 3 biens ; plus de premier bien offert
-> pour personne (14 jours puis gel en lecture seule) ; bascule dès l'ajout de
-> bien ; pas de cumul avec le parrainage ; TVA : franchise en base (art. 293 B du
-> CGI) ; préavis de révision : au moins un mois (art. 8.8). Le 29/09 : préavis de
-> modification des conditions d'un mois (art. 16) et clause de rétractation
-> rédigée (art. 8.9). Restent : identité de l'éditeur (dénomination, siège,
-> SIRET, e-mail, médiateur) dans `src/lib/editeur.ts`.
+> agences par tranches cumulatives dès 39 € HT ([[2026-09-28-decision-tarification]],
+> [[Grille tarifaire]]).
+>
+> **Tranché (28–29/09/2026)**
+> - 3 logements = 3 biens (chaque lot loué séparément compte).
+> - Plus de premier bien offert pour personne : 14 jours d'essai sans carte, puis
+>   **gel en lecture seule** (consultable, exportable) jusqu'au paiement.
+> - Organisations existantes : bascule sur la nouvelle grille dès l'ajout d'un bien.
+> - Pas de cumul avec le [[Parrainage]] (recommandation enregistrée, sans avantage
+>   tarifaire) ni avec les anciennes promotions.
+> - TVA : **franchise en base** (art. 293 B du CGI).
+> - Préavis de révision tarifaire : au moins un mois (CGU art. 8.9).
+> - Rétractation du consommateur : 14 jours, remboursement intégral, formulaire
+>   type, non ouverte aux professionnels (CGU art. 8.10, 29/09).
+> - Préavis de modification des conditions : au moins un mois (CGU art. 16, 29/09).
+> - Portail client Stripe imposé par le code : résiliation en fin de période,
+>   changement de formule désactivé.
+>
+> **Reste à fournir par le porteur : l'identité de l'éditeur** (dans
+> `app/src/lib/editeur.ts`) — dénomination, siège, SIRET/RCS, e-mail de contact,
+> directeur de la publication, médiateur de la consommation. Le formulaire de
+> rétractation et les [[Mentions legales (projet)|mentions légales]] en dépendent.
 
 > [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
 > **Une même personne ne peut pas être à la fois propriétaire gestion directe et
@@ -178,6 +189,7 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 
 ## D. Prochaines sources
 
-Entretiens
+Référence produit prioritaire depuis le 20/09 : le
+[[2026-09-20-cahier-des-charges-maitre-v3|cahier des charges maître V3]]. Entretiens
 utilisateurs ; rafraîchissement périodique de l'[[Analyse concurrentielle]].
 Les `docs/` du dépôt (vides ou obsolètes) seraient à réécrire depuis le wiki.

@@ -3,7 +3,7 @@ type: concept
 tags: [bail, typologie, perimetre, mobilite, saisonnier, commercial]
 status: draft
 created: 2026-08-05
-updated: 2026-09-04
+updated: 2026-09-29
 sources: ["[[2026-08-05-bailpdf-contrat-de-bail]]", "[[2026-08-05-bailpdf-modele-bail-non-meuble]]", "[[2026-08-05-bailpdf-modele-bail-meuble]]"]
 ---
 
@@ -20,7 +20,7 @@ Source : [[2026-08-05-bailpdf-contrat-de-bail|BailPDF]].
 
 | Type | Durée | Dépôt de garantie | Préavis locataire | Gerimmo V3 |
 |---|---|---|---|---|
-| **Bail vide (nu)** | 3 ans min. (6 ans personne morale) | 1 mois HC | 3 mois (1 mois zone tendue) | ✅ **Périmètre** ([[Bail]]) |
+| **Bail vide (nu)** | 3 ans min. (personne physique, SCI familiale, indivision) — 6 ans personne morale hors SCI familiale | 1 mois HC | 3 mois (1 mois zone tendue) | ✅ **Périmètre** ([[Bail]]) |
 | **Bail meublé** | 1 an min. | 2 mois HC | 1 mois | ✅ **Périmètre** ([[Bail]]) |
 | **Bail étudiant** | 9 mois, **jamais reconduit tacitement** ([[2026-08-05-bailpdf-modele-bail-meuble\|formulaire officiel]]) | 2 mois HC | 1 mois | ✅ Variante du meublé ([[Bail]]) |
 | **Colocation (bail unique)** | selon type | selon type | selon type | ✅ **Périmètre** — solidarité 6 mois ([[Bail]]) |

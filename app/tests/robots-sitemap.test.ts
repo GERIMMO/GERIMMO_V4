@@ -41,7 +41,7 @@ describe("robots.txt", () => {
       .filter((nom) => !publics.has(nom) || nom === "artisan");
     for (const nom of prives) expect(interdits).toContain(`/${nom}`);
     // Aucune page publique n'est fermée aux robots.
-    for (const nom of ["conditions", "confidentialite", "mentions-legales", "journal", "tarifs", "connexion", "inscription"]) {
+    for (const nom of ["conditions", "confidentialite", "mentions-legales", "journal", "tarifs", "outils", "connexion", "inscription"]) {
       expect(interdits).not.toContain(`/${nom}`);
     }
     // /artisan est privé, sauf son inscription (règle la plus longue).
@@ -67,6 +67,12 @@ describe("sitemap.xml", () => {
       "https://www.gerimmo.app",
       "https://www.gerimmo.app/tarifs",
       "https://www.gerimmo.app/journal",
+      "https://www.gerimmo.app/outils",
+      "https://www.gerimmo.app/outils/calcul-irl",
+      "https://www.gerimmo.app/outils/quittance-de-loyer",
+      "https://www.gerimmo.app/outils/comparateur-gli-visale",
+      "https://www.gerimmo.app/outils/simulateur-lmnp",
+      "https://www.gerimmo.app/outils/rentabilite-locative",
       "https://www.gerimmo.app/conditions",
       "https://www.gerimmo.app/mentions-legales",
       "https://www.gerimmo.app/confidentialite",

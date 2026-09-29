@@ -14,6 +14,7 @@ import { REGIME_TVA } from "@/lib/editeur";
 import { etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
+import { OUTILS } from "@/lib/outils/catalogue";
 
 export const metadata = metadonneesPubliques({
   titre: "Gerimmo — La gérance immobilière, tenue au carré",
@@ -443,6 +444,31 @@ export default async function PageVitrine() {
               Tout le détail des tarifs →
             </Link>
           </p>
+        </section>
+
+        {/* ------------------------------------------------ Outils gratuits */}
+        {/* 29/09 : les outils gratuits, sans compte. Une ligne de liens, pas
+            une section de plus à faire défiler : la liste vit sur /outils. */}
+        <section className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-7">
+          <div className="border-t border-[var(--filet)] pt-10">
+            <div className="entete-carte">
+              <div>
+                <TitreSection sur="Outils gratuits" titre="Vos calculs de bailleur, sans compte" />
+              </div>
+              <Link href="/outils" className="lien-discret text-[13.5px]">
+                Tous les outils →
+              </Link>
+            </div>
+            <ul className="mt-6 flex flex-wrap gap-2">
+              {OUTILS.map((o) => (
+                <li key={o.chemin}>
+                  <Link href={o.chemin} className="btn-secondaire">
+                    {o.titre}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         {/* --------------------------------------------------------- Journal */}

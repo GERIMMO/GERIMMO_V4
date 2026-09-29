@@ -53,7 +53,7 @@ Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locat
     tarifaire).
   - Portail client Stripe imposé par le code : résiliation en fin de période,
     changement de formule désactivé ; préavis d'au moins un mois avant révision
-    tarifaire (CGU art. 8.8) ; rétractation de 14 jours pour le consommateur (art. 8.9).
+    tarifaire (CGU art. 8.9) ; rétractation de 14 jours pour le consommateur (art. 8.10).
 
 ## Relations
 - Souscrit par [[Administrateur d'agence]] ou [[Propriétaire bailleur]] ; administré par [[Super Admin]].

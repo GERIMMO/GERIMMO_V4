@@ -58,9 +58,9 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > - Pas de cumul avec le [[Parrainage]] (recommandation enregistrée, sans avantage
 >   tarifaire) ni avec les anciennes promotions.
 > - TVA : **franchise en base** (art. 293 B du CGI).
-> - Préavis de révision tarifaire : au moins un mois (CGU art. 8.8).
+> - Préavis de révision tarifaire : au moins un mois (CGU art. 8.9).
 > - Rétractation du consommateur : 14 jours, remboursement intégral, formulaire
->   type, non ouverte aux professionnels (CGU art. 8.9, 29/09).
+>   type, non ouverte aux professionnels (CGU art. 8.10, 29/09).
 > - Préavis de modification des conditions : au moins un mois (CGU art. 16, 29/09).
 > - Portail client Stripe imposé par le code : résiliation en fin de période,
 >   changement de formule désactivé.

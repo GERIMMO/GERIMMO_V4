@@ -72,7 +72,7 @@ l'auto-inscription `createOrganization` du code hérité.
 - Depuis le 28/09/2026 : fin d'essai → **gel en lecture seule** jusqu'au paiement ;
   résiliation en fin de période via le portail Stripe (changement de formule
   désactivé) ; préavis d'au moins un mois avant toute révision tarifaire (CGU
-  art. 8.8) ; droit de rétractation de 14 jours pour le consommateur (CGU art. 8.9).
+  art. 8.9) ; droit de rétractation de 14 jours pour le consommateur (CGU art. 8.10).
   Aucun avantage tarifaire lié au [[Parrainage]].
 
 ## Automatisations

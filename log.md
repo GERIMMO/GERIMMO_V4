@@ -5580,3 +5580,20 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Liens : liens coupés sur deux lignes recollés (14 fichiers) ; liens morts corrigés (`CLAUDE.md`, maquette charte v2, module 14) ; maquettes espaces locataire v10 / propriétaire v1 déliées (non ingérées, à ingérer). Liens ajoutés vers [[Abonnement]], [[Super Admin]], [[Signature électronique]] sur quelques pages.
 - Frontmatter : [[2026-09-20-cahier-des-charges-maitre-v3]] (ajouté, lié depuis [[État du projet et décisions ouvertes]]) ; [[Récapitulatif fonctionnel et lacunes de spécification]] `archived` → `stable` ; sources renseignées sur [[Accueil]] et [[Gérant]].
 - [[Accueil]] rafraîchi (état au lancement du 30/09, audits 11/09, 20/09, 25/09, 27/09) ; callout de [[État du projet et décisions ouvertes]] scindé « tranché » / « reste : identité de l'éditeur » ; [[index]] mis à jour (grille agence supplantée, gel/préavis/rétractation, parrainage sans avantage, signature non activée, artisan décennale + RC pro, Recette Sprint 2, nouvelles pages).
+
+## [2026-09-29] lint | Audit complet du 29/09 : corrections et mise en production
+- Cinq revues (sécurité, facturation, site public et légal, parcours métier, wiki),
+  puis corrections fusionnées sur `claude/compassionate-euler-qpqjp6`.
+- CGU/CGV (version du 29/09) : renumérotation — 8.7 reconduction de l'annuel
+  (L. 215-1), 8.9 révision tarifaire, 8.10 rétractation ; clauses conservation,
+  disponibilité, plafond de responsabilité, mise en demeure (30 j), annexe art. 28 RGPD.
+- Gel : seules les saisies des gérants sont refusées ; locataires, artisans et
+  mandants continuent. Bandeau « lecture seule » pour toute organisation gelée.
+- Accueil et tarifs : plus de « propriétaires invités » (fonction inexistante) ;
+  essai agence ouvert sur demande.
+- Baux et gestion : révision IRL non rétroactive, durée 3 ans SCI familiale et
+  indivision, caution (art. 22-1), départ d'un colocataire (solidarité 6 mois),
+  congé pour vente avec prix, mandat avec mentions consommateur ; voir les pages
+  Révision annuelle IRL, Bail, Garantie, Mandat de gestion.
+- Pages : [[Cycle de vie de l'abonnement]], [[Abonnement]], [[Grille tarifaire]],
+  [[Onboarding et abonnement]], [[État du projet et décisions ouvertes]].

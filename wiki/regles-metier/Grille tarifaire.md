@@ -145,7 +145,7 @@ Les deux dernières tranches restent sur devis.
 >   grille.
 > - ~~Parrainage~~ — **tranché le 28/09 : pas de cumul** ([[Parrainage]]).
 > - ~~Préavis de révision tarifaire~~ — **tranché le 28/09 : au moins un mois**
->   (conditions, art. 8.8), résiliation sans frais possible avant la date d'effet.
+>   (conditions, art. 8.9), résiliation sans frais possible avant la date d'effet.
 > - Les points qui suivent concernent les grilles supplantées :
 >   `agency_301_600` sur devis ; prix annuels de V3.
 > - Voir [[Cycle de vie de l'abonnement]], [[Analyse concurrentielle]].

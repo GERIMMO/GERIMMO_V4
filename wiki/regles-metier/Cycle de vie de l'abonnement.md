@@ -25,8 +25,14 @@ sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 >   aucun changement de formule ni de quantité (ils passent par Gerimmo) ; carte,
 >   adresse, e-mail et factures accessibles.
 > - **Révision tarifaire** : notifiée au moins un mois avant sa prise d'effet
->   (CGU art. 8.8) ; résiliation sans frais possible avant cette date.
-> - **Rétractation** (consommateurs, CGU art. 8.9) : 14 jours à compter de la
+>   (CGU art. 8.9) ; résiliation sans frais possible avant cette date.
+> - **Reconduction de l'annuel** (particuliers, CGU art. 8.7, C. consom. L. 215-1) :
+>   courriel automatique entre 90 et 30 jours avant l'échéance (date, montant,
+>   faculté de ne pas reconduire) ; sans cet avis, résiliation gratuite à tout moment.
+> - **Gel et tiers** (29/09) : le gel ne bloque que les saisies des gérants ;
+>   locataires, artisans et mandants continuent (incidents, documents, factures).
+>   Premier prélèvement refusé après l'essai → gel immédiat, sans délai de grâce.
+> - **Rétractation** (consommateurs, CGU art. 8.10) : 14 jours à compter de la
 >   souscription payante (C. consom. L. 221-18 s.), remboursement intégral sous
 >   14 jours, formulaire type fourni ; l'essai gratuit ne réduit pas ce délai.
 >   Non ouverte aux professionnels. Modification des CGU : préavis d'un mois (art. 16).

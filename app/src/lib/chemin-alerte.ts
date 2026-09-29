@@ -52,6 +52,9 @@ const ANCRES_BAIL = new Map<string, string>([
   ["decompte", "#restitution"],
   ["decompte_lrar", "#restitution"],
   ["loyer_impaye", "#loyers"],
+  // Audit gestion du 29/09 : alerte_zone_tendue_inconnue / enregistrer_conge
+  // (20260929130000) posent {bail_id, lot_id[, conge_id]}.
+  ["zone_tendue_a_verifier", ""],
 ]);
 
 /**
@@ -96,6 +99,7 @@ const LIBELLES = new Map<string, string>([
   ["facture_artisan_a_valider", "Contrôler la facture de l’artisan"],
   ["creneaux_arbitrage", "Fixer le rendez-vous"],
   ["loyer_impaye", "Ouvrir les loyers du bail"],
+  ["zone_tendue_a_verifier", "Vérifier la zone tendue du bail"],
   ["message_locataire", "Lire et répondre au message"],
   ["piece_deposee", "Contrôler la pièce déposée"],
   ["restitution_echeance", "Ouvrir la restitution"],

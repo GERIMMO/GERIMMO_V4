@@ -93,6 +93,12 @@ export type RegulLigne = {
   provisions: number;
   charges_reelles: number;
   ecart: number;
+  /** Faite après le 31/12 de l'année suivant l'exercice (art. 23 loi 89-462). */
+  tardive?: boolean | null;
+  /** Complément étalé sur 12 mois à la demande du locataire. */
+  etalement_12_mois?: { rang: number; echeance: string; montant: number }[] | null;
+  /** Contrat individuel de colocation : part du logement retenue. */
+  quote_part_colocation?: number | null;
 };
 
 const NIVEAU_RELANCE: Record<string, string> = {
@@ -703,6 +709,13 @@ export function FormulaireLoyers({
                 <span className={r.ecart >= 0 ? "text-success-soft-foreground" : "text-destructive"}>
                   {r.ecart >= 0 ? `trop-perçu ${eur(r.ecart)}` : `complément ${eur(-r.ecart)}`}
                 </span>
+                {r.quote_part_colocation != null &&
+                  ` · part de la chambre : ${Math.round(Number(r.quote_part_colocation) * 1000) / 10} % du logement`}
+                {r.etalement_12_mois?.length
+                  ? ` · étalé sur 12 mois (${eur(Number(r.etalement_12_mois[0].montant))}/mois à partir de ${formaterDate(r.etalement_12_mois[0].echeance)})`
+                  : r.tardive && r.ecart < 0
+                    ? " · régularisation tardive : le locataire peut demander un paiement en 12 mensualités (art. 23)"
+                    : ""}
               </li>
             ))}
           </ul>
@@ -738,6 +751,14 @@ export function FormulaireLoyers({
             <Label htmlFor="reg-just" className="text-sm">Justificatif</Label>
             <ChampFichier id="reg-just" name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required />
           </div>
+          {/* Audit gestion du 29/09 — art. 23 loi 89-462 : une régularisation
+              faite après le 31/12 de l'année suivant l'exercice se paie par
+              douzièmes si le locataire le demande. La base refuse l'option
+              hors de ce cas. */}
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="etaler" className="size-4" defaultChecked={etatReg.valeurs?.etaler === "on"} />
+            Régularisation tardive : le locataire demande l&apos;étalement sur 12 mois
+          </label>
           <BoutonEnvoi size="sm" variant="outline">
             Régulariser
           </BoutonEnvoi>
@@ -750,7 +771,9 @@ export function FormulaireLoyers({
             Saisissez les charges de l&apos;année entière : la quote-part du locataire est
             ensuite calculée au prorata de ses jours d&apos;occupation (ne saisissez pas une
             part déjà proratisée). Provisions calculées depuis les appels de l&apos;année ;
-            justificatif obligatoire, joint au décompte du locataire.
+            justificatif obligatoire, joint au décompte du locataire. Contrat individuel de
+            colocation : seule la part de la chambre (sa surface sur celle des chambres) est
+            imputée. Un complément ne se réclame plus au-delà de trois ans (art. 7-1).
           </p>
         )}
       </div>

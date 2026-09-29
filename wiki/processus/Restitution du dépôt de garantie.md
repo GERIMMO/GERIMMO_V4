@@ -3,7 +3,7 @@ type: process
 tags: [restitution, depot-de-garantie, retenue, decompte, delai-legal, vetuste]
 status: draft
 created: 2026-07-24
-updated: 2026-08-30
+updated: 2026-09-29
 sources: ["[[2026-07-24-gerimmo-v3-module-2-garanties]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -41,8 +41,13 @@ Source : [[2026-07-24-gerimmo-v3-module-2-garanties|Module 2]], parcours 2.4 / 2
 
 ## Règles d'imputation
 
-- **Sans EDL d'entrée : BLOCAGE des retenues, restitution intégrale imposée**
-  (RM-2.4.3 = RM-1.13.4, US-2.4.3) — le logement est réputé avoir été remis en bon état.
+- **Sans EDL d'entrée : retenues possibles, mais uniquement justifiées** (corrigé le
+  29/09/2026). À défaut d'état des lieux, le locataire est **présumé avoir reçu le
+  logement en bon état de réparations locatives** (art. 1731 du Code civil), sauf
+  preuve contraire — présomption que le bailleur **ne peut pas invoquer s'il a fait
+  obstacle** à l'établissement de l'EDL (art. 3-2 loi 89-462). L'application refuse une
+  retenue **sans justificatif** (devis, facture, constat) et le décompte porte la mention
+  « sans EDL d'entrée » avec ce rappel. Voir l'avertissement en fin de page.
 - **Les impayés (loyers, charges) s'imputent sur le dépôt AVANT les retenues de
   dégradation** (RM-2.4.7).
 - **Provision de 20 % maximum** conservable si une régularisation de charges est en
@@ -109,3 +114,13 @@ Voir [[Agenda et échéances]] (alerte liée à son événement d'origine).
   (« Décompte finalisé »). L'alerte « Décompte à envoyer » porte désormais
   l'échéance légale. Cron `alertes-restitutions-quotidiennes` (4 h 15). Voir
   [[Agenda et échéances]].
+
+> [!warning] Correction du 29/09/2026 — règle « sans EDL d'entrée » (art. 1731 C. civ.)
+> L'ancienne règle RM-2.4.3 (« sans EDL d'entrée, aucune retenue : restitution
+> intégrale ») inversait la présomption légale : l'art. 1731 du Code civil présume que
+> le preneur a reçu les lieux **en bon état** quand aucun état des lieux n'a été fait —
+> il doit donc les rendre tels, sauf preuve contraire. Le blocage est levé le 29/09/2026
+> (migration `20260929130000_audit_gestion`) : retenue admise si elle est **justifiée**,
+> mention conservée au décompte, et rappel que la présomption tombe si le bailleur a fait
+> obstacle à l'EDL (art. 3-2 loi 89-462). Le référentiel V3 (RM-2.4.3 = RM-1.13.4) reste
+> à mettre à jour dans ce sens. Source : [[Audit complet du 29 septembre 2026]].

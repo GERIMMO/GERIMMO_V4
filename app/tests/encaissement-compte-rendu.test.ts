@@ -22,6 +22,7 @@
  *      l'écriture du jour (date_paiement vaut CURRENT_DATE par défaut).
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { createElement } from "react";
@@ -297,6 +298,7 @@ describe.skipIf(!DB_URL)("Encaissement en base — la règle impute au plus anci
       [org, lot.id, locataire]
     );
     bail = b.id;
+    await couvrirParMandat(db, bail);
     // Deux termes de 500 € : le mois précédent (impayé) et le mois affiché.
     const { rows: periodes } = await db.query(
       `insert into public.appels_loyer (organization_id, bail_id, periode, date_echeance,

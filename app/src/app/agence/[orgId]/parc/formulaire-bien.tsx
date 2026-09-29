@@ -7,6 +7,8 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { createClient } from "@/lib/supabase/client";
+import { communeEvidente, type CommuneReseau } from "@/lib/reseau";
 
 type SuggestionAdresse = {
   label: string;
@@ -25,7 +27,10 @@ export type BienFormulaire = {
   city: string;
   annee_construction: number | null;
   copropriete: boolean;
-  zone_tendue: boolean;
+  /** NULL = zone non vérifiée (audit 29/09) : jamais « non » par défaut. */
+  zone_tendue: boolean | null;
+  /** Commune INSEE confirmée (réseau d'artisans). */
+  commune_insee?: string | null;
   parties_communes: string | null;
   acces_tic: string | null;
 };
@@ -57,6 +62,35 @@ export function FormulaireBien({
   const [ville, setVille] = useState(bien?.city ?? "");
   const [suggestions, setSuggestions] = useState<SuggestionAdresse[]>([]);
   const minuterieRecherche = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Audit gestion du 29/09 : la commune du bien (réseau d'artisans) se choisit
+  // dès la saisie, parmi les communes desservies par le code postal. Une seule
+  // commune possible, ou une seule qui porte le nom saisi : elle est proposée
+  // d'office. La base vérifie la cohérence (reseau_controler_commune_bien).
+  const [communes, setCommunes] = useState<CommuneReseau[]>([]);
+  const [commune, setCommune] = useState<string>(bien?.commune_insee ?? "");
+  useEffect(() => {
+    const cp = codePostal.trim();
+    if (!/^\d{5}$/.test(cp)) return;
+    let abandon = false;
+    createClient()
+      .from("reseau_communes")
+      .select("code,nom,codes_postaux,departement")
+      .contains("codes_postaux", [cp])
+      .order("nom")
+      .then(({ data }) => {
+        if (abandon) return;
+        setCommunes((data ?? []) as CommuneReseau[]);
+      });
+    return () => {
+      abandon = true;
+    };
+  }, [codePostal]);
+  const communesDuCodePostal = /^\d{5}$/.test(codePostal.trim()) ? communes : [];
+  const communeProposee = communeEvidente(communesDuCodePostal, ville);
+  const communeRetenue = communesDuCodePostal.some((c) => c.code === commune)
+    ? commune
+    : communeProposee?.code ?? "";
 
   useEffect(() => () => {
     if (minuterieRecherche.current) clearTimeout(minuterieRecherche.current);
@@ -220,6 +254,29 @@ export function FormulaireBien({
           />
         </div>
       </div>
+      {communesDuCodePostal.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="bien-commune">Commune (réseau d&apos;artisans)</Label>
+          <select
+            id="bien-commune"
+            name="commune_insee"
+            value={communeRetenue}
+            onChange={(e) => setCommune(e.target.value)}
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="">À confirmer plus tard</option>
+            {communesDuCodePostal.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.nom} ({c.departement})
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-muted-foreground">
+            Un code postal peut desservir plusieurs communes : choisissez celle
+            de l&apos;adresse. Elle ouvre le réseau d&apos;artisans pour ce bien.
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -248,21 +305,28 @@ export function FormulaireBien({
           />
           <Label htmlFor="bien-copro">En copropriété</Label>
         </div>
-        {/* Case et libellé sur une ligne, la mention dessous (25/09 : « En
-            zone / tendue » se coupait à côté de la parenthèse). */}
+        {/* Audit gestion du 29/09 : trois réponses, dont « non vérifiée » —
+            une case décochée valait « hors zone tendue » pour un bien que
+            personne n'avait qualifié. */}
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <input
-              id="bien-zone-tendue"
-              name="zone_tendue"
-              type="checkbox"
-              defaultChecked={etat.valeurs ? etat.valeurs.zone_tendue === "on" : bien?.zone_tendue}
-              className="size-4"
-            />
-            <Label htmlFor="bien-zone-tendue" className="whitespace-nowrap">En zone tendue</Label>
-          </div>
-          <p className="pl-6 text-sm text-muted-foreground">
-            Préavis du locataire d&apos;1 mois de plein droit.
+          <Label htmlFor="bien-zone-tendue">Zone tendue</Label>
+          <select
+            id="bien-zone-tendue"
+            name="zone_tendue"
+            defaultValue={
+              etat.valeurs?.zone_tendue ??
+              (bien?.zone_tendue === true ? "oui" : bien?.zone_tendue === false ? "non" : "")
+            }
+            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
+          >
+            <option value="">Non vérifiée</option>
+            <option value="oui">Oui — commune en zone tendue</option>
+            <option value="non">Non — hors zone tendue</option>
+          </select>
+          <p className="text-sm text-muted-foreground">
+            Zone tendue : préavis du locataire d&apos;1 mois de plein droit. Tant
+            qu&apos;elle n&apos;est pas vérifiée, un congé à 1 mois est accepté
+            et signalé à vérifier.
           </p>
         </div>
       </div>

@@ -121,3 +121,17 @@ au congé ([[Agenda et échéances]]) ; grille issue du [[Lot]] ; écarts consom
   pendant le préavis — signé trop tôt, il rendait le congé inannulable ; la
   grille s'enregistre désormais en une seule transaction
   (`enregistrer_grille_edl`).
+
+## Signature sur preuve (audit de gestion du 29/09/2026)
+
+Un clic de l'agent suffisait à figer l'EDL « signé ». Désormais la signature exige une
+**preuve déposée en GED** :
+
+- l'**EDL signé par le bailleur (ou son mandataire) et le locataire** (PDF ou image) ;
+- ou le **constat d'un commissaire de justice** (EDL établi à défaut d'accord
+  amiable, art. 3-2 loi 89-462).
+
+La pièce naît dans la même transaction que la signature (un refus ne laisse rien en
+GED), elle est rattachée au bail, et le mode de preuve est conservé avec l'EDL. Une
+écriture directe « signé » sans preuve est refusée. La clôture du bail continue
+d'exiger un EDL de sortie **signé**. Source : [[Audit complet du 29 septembre 2026]].

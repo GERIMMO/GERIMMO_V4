@@ -6,6 +6,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -144,6 +145,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'termine',600,0,'2025-01-01','2025-04-10') returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     await db.query(`select public.generer_appels_loyer($1)`, [bail]);
     const r = await db.query(
       `select periode, montant_du, prorata from public.appels_loyer
@@ -172,6 +174,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'termine',900,0,'2025-06-11','2025-06-20') returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     await db.query(`select public.generer_appels_loyer($1)`, [bail]);
     const r = await db.query(`select montant_du from public.appels_loyer where bail_id=$1`, [bail]);
     expect(r.rows).toHaveLength(1);
@@ -193,6 +196,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
       `insert into public.baux (organization_id, lot_id, locataire_principal, etat) values ($1,$2,$3,'actif') returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     const edls: string[] = [];
     for (const type of ["entree", "sortie"]) {
       const {
@@ -210,14 +214,14 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
       `update public.edl_lignes set etat='mauvais' where edl_id=$1 and libelle='Sols' and piece='Chambre'`,
       [edls[1]]
     );
-    await db.query(`select public.signer_edl($1)`, [edls[0]]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edls[0]]);
     // Un EDL de SORTIE ne se signe que pendant le préavis : le congé du
     // locataire d'abord (bail nu hors zone tendue → 3 mois, sans justificatif).
     await db.query(
       `select public.enregistrer_conge($1,'locataire',current_date,3::smallint,null,null)`,
       [bail]
     );
-    await db.query(`select public.signer_edl($1)`, [edls[1]]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edls[1]]);
 
     const lignes = await db.query(`select piece, libelle, ecart from public.comparatif_edl($1)`, [bail]);
     const nbLignesEntree = await db.query(
@@ -242,6 +246,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'termine',700,700) returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     // EDL d'entrée signé (sinon aucune retenue possible)
     const {
       rows: [{ id: edl }],
@@ -251,7 +256,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
 
     const {
       rows: [{ id: rst }],
@@ -300,6 +305,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'actif','colocation',700,1400) returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     // 1400 = 2 mois : accepté car le logement est meublé
     const {
       rows: [{ cumul }],
@@ -323,6 +329,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'meuble','actif',600,50,'forfait','2025-01-01') returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     const {
       rows: [{ id: doc }],
     } = await db.query(
@@ -349,6 +356,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'termine',600,0,'2025-01-01','2025-02-28') returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     await db.query(`select public.generer_appels_loyer($1)`, [bail]);
     // Janvier payé en entier, février à moitié
     await db.query(
@@ -385,6 +393,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'preavis',700,700) returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     await db.query(`select public.encaisser_depot($1,700,current_date,'virement',null,null)`, [bail]);
     const rec = await db.query(
       `select sens, montant from public.ecritures
@@ -404,7 +413,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     const {
       rows: [{ id: rst }],
     } = await db.query(`select public.demarrer_restitution($1,current_date,true) as id`, [bail]);
@@ -439,6 +448,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'actif','nu') returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     // Bail NU : hors zone tendue ce serait 3 mois, ou 1 mois sur justificatif.
     // En zone tendue, 1 mois sans justificatif.
     await db.query(
@@ -454,7 +464,10 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
   });
 
   it("hors zone tendue : le préavis réduit exige toujours un justificatif", async () => {
-    const l = await lot(); // creer_bien_avec_lot → zone_tendue false par défaut
+    const l = await lot();
+    // Audit 29/09 : une zone jamais qualifiée est « inconnue » (NULL), plus
+    // « non » par défaut — le bien est déclaré hors zone tendue ici.
+    await db.query(`update public.biens set zone_tendue=false where id=(select bien_id from public.lots where id=$1)`, [l]);
     const {
       rows: [{ id: bail }],
     } = await requeteProprietaire(
@@ -463,6 +476,7 @@ describe.skipIf(!DB_URL)("Correctifs d'audit", () => {
        values ($1,$2,$3,'actif','nu') returning id`,
       [orgA, l, locataire]
     );
+    await couvrirParMandat(db, l);
     await attendreEchec(
       db,
       /justificatif est obligatoire/,

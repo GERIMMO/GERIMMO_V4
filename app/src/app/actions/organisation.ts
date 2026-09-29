@@ -83,6 +83,13 @@ export async function modifierProfilOrganisation(
   if (relance2 <= relance1) {
     return { erreur: "La seconde relance doit venir après la première : augmentez son délai.", valeurs };
   }
+  // Audit gestion du 29/09 : pas de relance pour un reliquat de quelques
+  // centimes — seuil de dette totale, 5 € par défaut, 0 à 1 000 €.
+  const seuilSaisi = String(formData.get("relance_seuil_montant") ?? "").trim().replace(",", ".");
+  const seuil = seuilSaisi === "" ? 5 : Number(seuilSaisi);
+  if (!Number.isFinite(seuil) || seuil < 0 || seuil > 1000) {
+    return { erreur: "Le seuil de relance doit être un montant entre 0 et 1 000 €.", valeurs };
+  }
   const { error, data } = await supabase
     .from("organizations")
     .update({
@@ -108,6 +115,7 @@ export async function modifierProfilOrganisation(
       relances_envoi_auto: formData.get("relances_envoi_auto") !== null,
       relance_1_jours: relance1,
       relance_2_jours: relance2,
+      relance_seuil_montant: Math.round(seuil * 100) / 100,
       ...(estAgence ? {
         ...(logo !== undefined ? { logo_url: logo } : {}),
         couleur_primaire: couleurPrimaire,

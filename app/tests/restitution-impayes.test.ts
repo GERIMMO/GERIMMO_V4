@@ -13,6 +13,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -121,6 +122,7 @@ describe.skipIf(!DB_URL)("Restitution — instantané des impayés, daté et ré
        values ($1,$2,$3,900,900) returning id`,
       [orgA, lot, locataire]
     );
+    await couvrirParMandat(db, lot);
     await db.query(`select public.encaisser_depot($1,900,current_date,'virement',null,null)`, [bail]);
     // EDL d'entrée signé, sinon les retenues sont bloquées (RM-2.4.3)
     const {
@@ -131,7 +133,7 @@ describe.skipIf(!DB_URL)("Restitution — instantané des impayés, daté et ré
     );
     await db.query(`select public.generer_grille_edl($1)`, [edl]);
     await db.query(`update public.edl_lignes set etat='bon'::public.etat_element where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     return bail;
   }
 
@@ -432,6 +434,7 @@ describe.skipIf(!DB_URL)("Restitution — réarrêté et finalisation ne se croi
        values ($1,$2,$3,900,900) returning id`,
       [org, lot, p.id]
     );
+    await couvrirParMandat(semeur, lot);
     await semeur.query(`select public.encaisser_depot($1,900,current_date,'virement',null,null)`, [bail]);
     await semeur.query(
       `insert into public.appels_loyer (organization_id, bail_id, periode, montant_du, date_echeance)

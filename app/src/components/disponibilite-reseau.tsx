@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useId } from "react";
-import { confirmerCommuneBien, signalerInteretReseau, type EtatReseau } from "@/app/actions/reseau";
+import { confirmerCommuneBien, confirmerCommunesEvidentes, signalerInteretReseau, type EtatReseau } from "@/app/actions/reseau";
 import { messageDisponibilite, type DisponibiliteReseau, type CommuneReseau } from "@/lib/reseau";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 
@@ -25,6 +25,18 @@ export function MessageReseau({ orgId, bienId, disponibilite: d }: { orgId: stri
     {d.etat === "adresse_incomplete" && <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4">Compléter la localisation du bien</Link>}
     <p className="mt-2 text-xs text-muted-foreground">Le suivi de vos incidents et travaux et votre carnet de contacts restent disponibles.</p>
   </div>;
+}
+
+/** Confirmation groupée des communes évidentes (audit gestion du 29/09). */
+export function ConfirmerCommunesEvidentes({ orgId, nbSansCommune }: { orgId: string; nbSansCommune: number }) {
+  const [etat, action] = useActionState(confirmerCommunesEvidentes.bind(null, orgId), {});
+  if (nbSansCommune === 0 && !etat.succes) return null;
+  return <form action={action} className="space-y-2 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-4">
+    <p className="text-sm font-medium">{nbSansCommune} bien{nbSansCommune > 1 ? "s" : ""} sans commune confirmée</p>
+    <p className="text-xs text-muted-foreground">Le réseau d’artisans se décide commune par commune. Confirmez en une fois les biens dont le code postal ne dessert qu’une commune (ou une seule au nom de la ville saisie) ; les autres restent à choisir un par un ci-dessous.</p>
+    <BoutonEnvoi variant="outline" enCoursTexte="Confirmation…">Confirmer les communes évidentes</BoutonEnvoi>
+    <RetourReseau etat={etat} />
+  </form>;
 }
 
 export function ConfirmerCommuneBien({ orgId, bienId, communes, communeActuelle }: { orgId: string; bienId: string; communes: CommuneReseau[]; communeActuelle: string | null }) {

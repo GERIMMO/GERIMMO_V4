@@ -31,6 +31,7 @@ type Organisation = {
   relances_envoi_auto: boolean;
   relance_1_jours: number;
   relance_2_jours: number;
+  relance_seuil_montant?: number | null;
   logo_url: string | null;
   couleur_primaire: string | null;
   couleur_secondaire: string | null;
@@ -108,6 +109,7 @@ function Formulaire({
       | "relances_envoi_auto"
       | "relance_1_jours"
       | "relance_2_jours"
+      | "relance_seuil_montant"
       | "tva_franchise"
     >
   ) =>
@@ -373,6 +375,19 @@ function Formulaire({
               className="mt-1"
             />
           </label>
+          <label htmlFor="pr-relance-seuil" className="text-sm">
+            <span className="block text-xs text-muted-foreground">Ne pas relancer une dette inférieure à (€)</span>
+            <Input
+              id="pr-relance-seuil"
+              type="number"
+              name="relance_seuil_montant"
+              min={0}
+              max={1000}
+              step="0.01"
+              defaultValue={organisation.relance_seuil_montant ?? 5}
+              className="mt-1"
+            />
+          </label>
         </div>
         <p className="text-sm text-muted-foreground">
           Chaque matin, le terme impayé le plus ancien de chaque bail reçoit sa
@@ -380,7 +395,9 @@ function Formulaire({
           second — jamais deux courriers le même jour, et une relance que vous
           avez saisie vous-même compte. La mise en demeure reste votre geste :
           c&apos;est un recommandé. Chaque relance envoyée s&apos;inscrit sur
-          le bail, comme si vous l&apos;aviez saisie.
+          le bail, comme si vous l&apos;aviez saisie. Une dette totale sous le
+          seuil n&apos;est pas relancée ; à la seconde relance, la caution du
+          bail (si son e-mail est connu) est informée de l&apos;incident.
         </p>
       </SousSection>
       {etat.erreur && (

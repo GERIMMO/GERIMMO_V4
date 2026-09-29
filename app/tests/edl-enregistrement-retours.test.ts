@@ -15,8 +15,11 @@ const banc = vi.hoisted(() => ({
   erreurLecture: null as { message: string } | null,
   rpc: vi.fn(),
   revalider: vi.fn(),
+  preparer: vi.fn(),
+  abandonner: vi.fn(),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: banc.revalider }));
+vi.mock("@/lib/ged-depot", () => ({ preparerFichierGed: banc.preparer, abandonnerPieceGed: banc.abandonner }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/ged-acces", () => ({
   verifierGerant: async () => ({
@@ -58,13 +61,20 @@ beforeEach(() => {
   };
   banc.erreurLecture = null;
   banc.rpc.mockResolvedValue({ error: null });
+  banc.preparer.mockResolvedValue({
+    fichier: { chemin: "org-test/preuve.pdf", mime: "application/pdf", taille: 1234, empreinte: "abc" },
+  });
 });
 
-function saisie(signer = false) {
+function saisie(signer = false, preuve = true) {
   const form = new FormData();
   form.set("etat_ligne-test", "bon");
   form.set("commentaire_ligne-test", "  Observation conservée  ");
-  if (signer) form.set("signer", "1");
+  if (signer) {
+    form.set("signer", "1");
+    form.set("mode_signature", "pdf_signe");
+    if (preuve) form.set("preuve_signature", new File(["%PDF-1.4"], "edl-signe.pdf", { type: "application/pdf" }));
+  }
   return form;
 }
 
@@ -93,15 +103,45 @@ describe("Enregistrement EDL : un succès correspond à une grille effectivement
     expect(banc.rpc).not.toHaveBeenCalled();
   });
 
-  it.each([false, true])("transmet la saisie complète avec son intention de signature (%s)", async (signer) => {
-    const resultat = await enregistrer(saisie(signer));
+  it("transmet la saisie complète, sans signature", async () => {
+    const resultat = await enregistrer(saisie(false));
     expect(resultat.erreur).toBeUndefined();
     expect(banc.rpc).toHaveBeenCalledWith("enregistrer_grille_edl", {
       p_edl: "edl-test",
       p_lignes: [{ id: "ligne-test", etat: "bon", commentaire: "Observation conservée" }],
-      p_signer: signer,
+      p_signer: false,
     });
-    expect(resultat.succes).toBe(signer ? "État des lieux signé — il est figé." : "Grille enregistrée.");
+    expect(resultat.succes).toBe("Grille enregistrée.");
+  });
+
+  // Audit gestion du 29/09 : la signature se fige sur preuve déposée.
+  it("signe avec la preuve : la grille et la pièce partent dans la même transaction", async () => {
+    const resultat = await enregistrer(saisie(true));
+    expect(resultat.erreur).toBeUndefined();
+    expect(banc.rpc).toHaveBeenCalledWith("enregistrer_grille_edl_avec_preuve", {
+      p_edl: "edl-test",
+      p_lignes: [{ id: "ligne-test", etat: "bon", commentaire: "Observation conservée" }],
+      p_mode: "pdf_signe",
+      p_storage_path: "org-test/preuve.pdf",
+      p_mime: "application/pdf",
+      p_taille: 1234,
+      p_empreinte: "abc",
+    });
+    expect(resultat.succes).toContain("État des lieux signé");
+  });
+
+  it("refuse la signature sans preuve déposée, sans rien écrire", async () => {
+    const resultat = await enregistrer(saisie(true, false));
+    expect(resultat.erreur).toContain("preuve");
+    expect(banc.rpc).not.toHaveBeenCalled();
+    expect(banc.preparer).not.toHaveBeenCalled();
+  });
+
+  it("un refus de la base abandonne la pièce montée", async () => {
+    banc.rpc.mockResolvedValue({ error: { message: "Aucune ligne ne peut rester sans état (1 à compléter)" } });
+    const resultat = await enregistrer(saisie(true));
+    expect(resultat.erreur).toBeTruthy();
+    expect(banc.abandonner).toHaveBeenCalledTimes(1);
   });
 
   it("autorise une ligne volontairement laissée sans état dans un brouillon", async () => {

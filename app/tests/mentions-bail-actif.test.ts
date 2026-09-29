@@ -15,6 +15,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { mentionsObligatoiresManquantes } from "../src/lib/baux";
 import { config } from "dotenv";
@@ -131,6 +132,7 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
     );
     await db.query(`update public.lots set etat='disponible' where id=$1`, [lot]);
     await simuler(db, admin);
+    await couvrirParMandat(db, lot);
     return lot;
   }
 
@@ -308,6 +310,7 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
        values ($1,$2,$3,'actif', current_date - 200) returning id`,
       [org, lot, locataire]
     );
+    await couvrirParMandat(db, lot);
     await db.query(`update public.lots set etat='loue' where id=$1`, [lot]);
     await db.query(
       `select public.enregistrer_conge($1,'locataire'::public.conge_par, current_date, 3::smallint)`,
@@ -405,6 +408,7 @@ describe.skipIf(!DB_URL)("Mentions obligatoires exigées à l'activation du bail
        values ($1,$2,$3,'actif', current_date - 300, 5) returning id`,
       [org, lot, locataire]
     );
+    await couvrirParMandat(db, lot);
     await db.query(`update public.lots set etat='loue' where id=$1`, [lot]);
     await db.query(`update public.baux set loyer_hc = 620 where id=$1`, [bail]);
     const { rows } = await db.query(`select etat, loyer_hc from public.baux where id=$1`, [bail]);

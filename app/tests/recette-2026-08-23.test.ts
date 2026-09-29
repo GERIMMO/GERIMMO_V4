@@ -196,7 +196,7 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
       [edl, orgA]
     );
     await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [edl]);
-    await db.query(`select public.signer_edl($1)`, [edl]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edl]);
     // Après signature : tout est figé
     await attendreEchec(
       db,
@@ -225,7 +225,7 @@ describe.skipIf(!DB_URL)("Revue 23/08 — EDL figé, sortie miroir, requalificat
     );
     await db.query(`select public.generer_grille_edl($1)`, [entree]); // générique (pas de pièces)
     await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [entree]);
-    await db.query(`select public.signer_edl($1)`, [entree]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [entree]);
 
     // Les pièces arrivent APRÈS l'entrée
     await db.query(

@@ -411,7 +411,7 @@ export default async function PagePaiementsLocataire(
               restitué sous {restitution.delai_mois} mois
               {restitution.delai_mois === 2
                 ? restitution.sans_edl_entree
-                  ? " (sans état des lieux d'entrée, la restitution est intégrale)"
+                  ? " (sans état des lieux d'entrée, toute retenue devra être justifiée, pièces à l'appui)"
                   : " (des écarts ont été relevés à l'état des lieux — les retenues seront justifiées, pièces à l'appui)"
                 : " (état des lieux conforme)"}
               . Le décompte détaillé apparaîtra ici dès qu&apos;il sera établi.

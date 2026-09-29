@@ -3,7 +3,7 @@ type: concept
 tags: [bien, lot, immobilier]
 status: in-progress
 created: 2026-07-21
-updated: 2026-07-24
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a5-etats-et-evenements]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]"]
 ---
 
@@ -63,3 +63,16 @@ du bail signé. Voir [[Lot]] et [[Machines à états et événements]].
 >   disponible/loué/**préavis**/archivé — « préavis » manque en code, « travaux » manque
 >   au registre. Correspondance et migration à définir ([[Machines à états et événements]]).
 >
+
+## Commune et zone tendue (audit de gestion du 29/09/2026)
+
+- **Commune (réseau d'artisans)** : le formulaire du bien propose les communes
+  desservies par le code postal (référentiel officiel) ; une seule possible — ou une
+  seule au nom de la ville saisie — est présélectionnée. Pour les biens existants, un
+  geste groupé « Confirmer les communes évidentes » (page Réseau) confirme bien par bien
+  les cas sans ambiguïté. La comparaison du nom de ville tolère casse, accents, tirets,
+  « St »/« Saint », arrondissement et « Cedex ». Une correction d'adresse **ne fait plus
+  perdre** la commune tant qu'elle reste cohérente.
+- **Zone tendue** : trois réponses — oui, non, **non vérifiée** (voir [[Bail]]).
+
+Source : [[Audit complet du 29 septembre 2026]].

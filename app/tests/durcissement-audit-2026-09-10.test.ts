@@ -4,6 +4,7 @@
  * sans empêcher le geste légitime. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { requeteProprietaire } from "./fixtures/requete-proprietaire";
 import { config } from "dotenv";
 import { Client } from "pg";
@@ -76,6 +77,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
        values ($1,$2,'nu'::public.bail_type,'actif'::public.bail_etat,600,50,current_date - 90, 5) returning id`,
       [org, lot]
     );
+    await couvrirParMandat(db, lot);
     bail = b.id;
   });
 
@@ -147,6 +149,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
        values ($1,$2,'nu'::public.bail_type,'termine'::public.bail_etat,600,50,current_date - 400,5)`,
       [org, lot]
     );
+    await couvrirParMandat(db, lot);
   });
 
   it("une révision IRL ne se rejoue pas à la même date d'effet", async () => {
@@ -205,6 +208,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
        returning id`,
       [org, lot]
     );
+    await couvrirParMandat(db, lot);
     // Bail encore en préavis, mais décompte de restitution déjà finalisé
     const {
       rows: [lotSortie],
@@ -1203,7 +1207,7 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       `update public.edl_lignes set etat = 'bon'::public.etat_element where edl_id = $1`,
       [edlSortie]
     );
-    await db.query(`select public.signer_edl($1)`, [edlSortie]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [edlSortie]);
     await db.query(`select public.terminer_bail($1)`, [bail]);
     const {
       rows: [apresCloture],

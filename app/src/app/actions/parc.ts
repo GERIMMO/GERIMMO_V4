@@ -25,6 +25,21 @@ export type EtatParc = {
   valeurs?: Record<string, string>;
 };
 
+// Zone tendue saisie : « oui », « non » ou non vérifiée (NULL). Un ancien
+// formulaire à case à cocher envoie « on » (audit gestion du 29/09).
+function zoneTendueSaisie(formData: FormData): boolean | null {
+  const v = String(formData.get("zone_tendue") ?? "");
+  if (v === "oui" || v === "on") return true;
+  if (v === "non") return false;
+  return null;
+}
+
+// Code INSEE choisi dans le formulaire du bien, ou rien.
+function communeSaisie(formData: FormData): string | null {
+  const v = String(formData.get("commune_insee") ?? "").trim();
+  return /^[0-9AB]{5}$/.test(v) ? v : null;
+}
+
 export async function creerBien(
   orgId: string,
   _etat: EtatParc,
@@ -132,7 +147,7 @@ export async function creerBien(
     const { error: erreurZone } = await supabase
       .from("biens")
       .update({
-        zone_tendue: formData.get("zone_tendue") === "on",
+        zone_tendue: zoneTendueSaisie(formData),
         parties_communes: partiesCommunes,
         acces_tic: accesTic,
       })
@@ -142,6 +157,13 @@ export async function creerBien(
       return {
         erreur: `Bien créé, mais ses informations complémentaires n'ont pas pu être enregistrées : ${sansJargon(erreurZone.message)} — complétez-les depuis la fiche du bien.`,
       };
+    }
+    // Commune choisie à la création (réseau d'artisans, audit 29/09). Un
+    // refus (ville saisie différente de la commune choisie) ne bloque pas la
+    // création : la commune reste à confirmer depuis « Réseau d'artisans ».
+    const commune = communeSaisie(formData);
+    if (commune) {
+      await supabase.rpc("reseau_confirmer_commune", { p_org: orgId, p_bien: bienId, p_commune: commune });
     }
   }
 
@@ -295,7 +317,10 @@ export async function modifierBien(
       city: ville,
       annee_construction: Number(annee),
       copropriete: formData.get("copropriete") === "on",
-      zone_tendue: formData.get("zone_tendue") === "on",
+      zone_tendue: zoneTendueSaisie(formData),
+      // Commune du réseau : posée si choisie ; sinon la base garde celle déjà
+      // confirmée tant qu'elle reste cohérente avec l'adresse (audit 29/09).
+      ...(communeSaisie(formData) ? { commune_insee: communeSaisie(formData) } : {}),
       // Désignation du bail (art. 3 loi 89-462) — saisis en édition seulement
       parties_communes: String(formData.get("parties_communes") ?? "").trim() || null,
       acces_tic: String(formData.get("acces_tic") ?? "").trim() || null,

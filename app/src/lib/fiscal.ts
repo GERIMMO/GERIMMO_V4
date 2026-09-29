@@ -7,9 +7,17 @@
 // d'emprunt ne sont pas suivis (rubrique vide, à compléter) ; le fonds travaux
 // ALUR est signalé à part (déductible l'année des travaux, pas du versement).
 // Les catégories du livre sont libres : le rangement se fait par mots-clés,
-// le reste tombe dans « autres » pour que rien ne disparaisse. Les
-// encaissements de loyer (écrits au montant total au livre) sont ventilés
-// entre 211 et 212 au prorata loyer/charges du bail — voir ventilerLoyer.
+// le reste tombe dans « autres » pour que rien ne disparaisse.
+//
+// Audit gestion du 29/09 — CHARGES RÉCUPÉRABLES HORS 2044. Les provisions de
+// charges remboursées par le locataire ne sont pas un revenu foncier, et les
+// charges récupérables payées par le bailleur ne sont pas déductibles (BOI-
+// RFPI-BASE-20-10 ; notice 2044). La part « provision de charges » d'un
+// encaissement de loyer (reconstituée au prorata du bail — voir
+// ventilerLoyer) sort donc des recettes, comme les régularisations et la taxe
+// d'enlèvement des ordures ménagères (TEOM, récupérable) qui sort aussi de la
+// ligne 227. Ligne 229 : seule la part NON récupérable des charges de
+// copropriété se déduit, quand le décompte du syndic la distingue.
 
 export type EcritureFiscale = {
   categorie: string;
@@ -33,11 +41,14 @@ export type OptionsFiscales = {
   // Lots meublés : leurs écritures relèvent des BIC, pas de la 2044 —
   // exclues du récapitulatif et totalisées à part (décision du 2026-09-04).
   lotsMeubles?: Set<string>;
-  // Clé de ventilation 211/212 par bail : loyer HC et provision de charges du
-  // bail. L'écriture d'encaissement du livre porte le TOTAL (catégorie
-  // « loyer », trigger ecrire_encaissement) : la part charges n'est pas
-  // récupérable depuis les écritures, elle se reconstitue au prorata du bail.
+  // Clé de ventilation loyer / charges par bail : loyer HC et provision de
+  // charges du bail. L'écriture d'encaissement du livre porte le TOTAL
+  // (catégorie « loyer », trigger ecrire_encaissement) : la part charges se
+  // reconstitue au prorata du bail et sort des recettes (charges récupérées).
   ventilationLoyers?: Map<string, { loyerHc: number; charges: number }>;
+  // Part RÉCUPÉRABLE des charges de copropriété de l'année, par lot (postes
+  // « récupérable » des appels ventilés) : retirée de la ligne 229.
+  chargesCoproRecuperables?: Map<string, number>;
 };
 
 export type RubriqueFiscale = {
@@ -68,6 +79,12 @@ export type RecapitulatifFiscal = {
   // Écritures des lots meublés, tenues hors récapitulatif (BIC)
   meuble: { recettes: number; depenses: number; nbEcritures: number };
   nbEcritures: number;
+  // Hors 2044 (audit 29/09) : provisions et régularisations de charges
+  // remboursées par les locataires, TEOM payée, part récupérable des charges
+  // de copropriété — ni revenus, ni charges déductibles.
+  chargesRecuperees: number;
+  teomExclue: number;
+  coproRecuperableExclue: number;
 };
 
 type Regle = {
@@ -79,16 +96,27 @@ type Regle = {
 
 // Ordre = ordre des rubriques sur l'imprimé 2044
 const REGLES: Regle[] = [
-  { code: "211", libelle: "Loyers bruts encaissés", sens: "recette", mots: ["loyer", "recette", "indemnit"] },
-  { code: "212", libelle: "Charges récupérées auprès des locataires", sens: "recette", mots: ["charge", "provision", "regularisation", "régularisation"] },
+  { code: "211", libelle: "Loyers bruts encaissés (hors provisions de charges)", sens: "recette", mots: ["loyer", "recette", "indemnit"] },
+  // Ligne 212 de la notice : dépenses du bailleur mises par convention à la
+  // charge du locataire (ex. grosses réparations) — le livre ne les distingue
+  // pas. Ce ne sont PAS les charges récupérables, qui sortent de la 2044.
+  { code: "212", libelle: "Dépenses mises par convention à la charge des locataires", sens: "recette", mots: [] },
   { code: "221", libelle: "Frais d'administration et de gestion", sens: "depense", mots: ["honoraire", "gestion", "administration", "frais"] },
   { code: "222", libelle: "Autres frais de gestion (forfait)", sens: "depense", mots: [] },
   { code: "223", libelle: "Primes d'assurance (PNO, GLI…)", sens: "depense", mots: ["assurance", "pno", "gli"] },
   { code: "224", libelle: "Dépenses de réparation, d'entretien et d'amélioration", sens: "depense", mots: ["travaux", "reparation", "réparation", "entretien", "plomb", "electric", "électric", "chauff", "peinture", "amelioration", "amélioration", "intervention", "incident", "facture"] },
-  { code: "227", libelle: "Taxe foncière et taxes annexes", sens: "depense", mots: ["taxe", "foncier", "fonciere", "foncière", "impot", "impôt", "teom"] },
-  { code: "229", libelle: "Charges de copropriété non récupérables", sens: "depense", mots: ["copro", "syndic", "appel de charges"] },
+  { code: "227", libelle: "Taxe foncière et taxes annexes (hors TEOM)", sens: "depense", mots: ["taxe", "foncier", "fonciere", "foncière", "impot", "impôt"] },
+  { code: "229", libelle: "Provisions pour charges de copropriété (part non récupérable)", sens: "depense", mots: ["copro", "syndic", "appel de charges"] },
   { code: "250", libelle: "Intérêts d'emprunt", sens: "depense", mots: [] },
 ];
+
+// Hors 2044 (audit 29/09) : charges remboursées par le locataire (recettes)
+// et taxe d'enlèvement des ordures ménagères, récupérable (dépense).
+const MOTS_CHARGES_RECUPEREES = ["charge", "provision", "regularisation", "régularisation"];
+const MOTS_TEOM = ["teom", "ordures", "enlevement des ordures"];
+
+/** « hors » : l'écriture ne relève pas de la 2044 (charges récupérables, TEOM). */
+export const HORS_2044 = "hors";
 
 const MOTS_ALUR = ["fonds travaux", "fonds de travaux", "fonds alur", "alur"];
 
@@ -100,6 +128,8 @@ function normaliser(s: string): string {
 // règles, dans le sens de l'écriture ; sinon la rubrique « autres » du sens.
 export function rubriqueDe(categorie: string, sens: string): string {
   const c = normaliser(categorie);
+  if (MOTS_TEOM.some((m) => c.includes(normaliser(m)))) return HORS_2044;
+  if (sens === "recette" && MOTS_CHARGES_RECUPEREES.some((m) => c.includes(normaliser(m)))) return HORS_2044;
   for (const r of REGLES) {
     if (r.sens !== sens) continue;
     if (r.mots.some((m) => c.includes(normaliser(m)))) return r.code;
@@ -144,7 +174,11 @@ export function recapitulatifFiscal(
   const categories = new Map<string, Set<string>>();
   let fondsTravauxAlur = 0;
   let nbEcritures = 0;
+  let chargesRecuperees = 0;
+  let teomExclue = 0;
   const meuble = { recettes: 0, depenses: 0, nbEcritures: 0 };
+  // Ligne 229 par lot : la part récupérable s'en retire en fin de calcul
+  const copro229ParLot = new Map<string, number>();
 
   const quotePartDe = (lot: string | null | undefined) => {
     if (!lot) return 100;
@@ -174,17 +208,26 @@ export function recapitulatifFiscal(
       continue;
     }
     const code = rubriqueDe(e.categorie, sensOrigine);
+    if (code === HORS_2044) {
+      if (sensOrigine === "recette") chargesRecuperees += montant;
+      else teomExclue += montant;
+      continue;
+    }
     // Encaissement de loyer (écriture au montant total, provision comprise) :
-    // ventilé entre 211 et 212 au prorata du bail — les contre-écritures
-    // (montant négatif) se ventilent avec la même clé et s'annulent donc bien.
+    // la part provision de charges, reconstituée au prorata du bail, sort des
+    // recettes (audit 29/09) — les contre-écritures (montant négatif) se
+    // ventilent avec la même clé et s'annulent donc bien.
     const parts: [string, number][] = [[code, montant]];
     const cle = e.bail_id ? options.ventilationLoyers?.get(e.bail_id) : undefined;
     if (code === "211" && cle && normaliser(e.categorie).includes("loyer")) {
       const { part211, part212 } = ventilerLoyer(montant, cle.loyerHc, cle.charges);
       if (part212 !== 0) {
         parts[0] = ["211", part211];
-        parts.push(["212", part212]);
+        chargesRecuperees += part212;
       }
+    }
+    if (code === "229" && e.lot_id) {
+      copro229ParLot.set(e.lot_id, (copro229ParLot.get(e.lot_id) ?? 0) + montant);
     }
     for (const [c, m] of parts) {
       montants.set(c, (montants.get(c) ?? 0) + m);
@@ -195,6 +238,17 @@ export function recapitulatifFiscal(
       if (!categories.has(c)) categories.set(c, new Set());
       categories.get(c)!.add(e.categorie);
     }
+  }
+
+  // Ligne 229 : la part récupérable des charges de copropriété (décompte du
+  // syndic ventilé) se retire, lot par lot, sans rendre la ligne négative.
+  let coproRecuperableExclue = 0;
+  for (const [lot, recuperable] of options.chargesCoproRecuperables ?? []) {
+    const retrait = Math.min(Math.max(recuperable, 0), Math.max(copro229ParLot.get(lot) ?? 0, 0));
+    if (retrait <= 0) continue;
+    coproRecuperableExclue += retrait;
+    montants.set("229", (montants.get("229") ?? 0) - retrait);
+    montantsQuotePart.set("229", (montantsQuotePart.get("229") ?? 0) - (retrait * quotePartDe(lot)) / 100);
   }
 
   const rubriques: RubriqueFiscale[] = REGLES.map((r) => ({
@@ -247,6 +301,9 @@ export function recapitulatifFiscal(
       nbEcritures: meuble.nbEcritures,
     },
     nbEcritures,
+    chargesRecuperees: arrondir(chargesRecuperees),
+    teomExclue: arrondir(teomExclue),
+    coproRecuperableExclue: arrondir(coproRecuperableExclue),
   };
 }
 

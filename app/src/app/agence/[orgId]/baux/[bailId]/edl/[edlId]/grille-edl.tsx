@@ -185,6 +185,11 @@ export function GrilleEdl({
   );
   const [confirmeSignature, setConfirmeSignature] = useState(false);
   const boutonSigner = useRef<HTMLButtonElement>(null);
+  // Audit gestion du 29/09 : la signature se fige sur PREUVE — l'EDL signé
+  // par les parties, ou le constat d'un commissaire de justice. La modale est
+  // rendue hors du formulaire (portail) : la pièce voyage par l'état.
+  const [modePreuve, setModePreuve] = useState<"pdf_signe" | "constat_commissaire">("pdf_signe");
+  const [preuve, setPreuve] = useState<File | null>(null);
   const manquantes = lignes.filter((l) => !etats[l.id]).length;
   // Une grille SANS ligne n'a rien à signer, et la base le refuse déjà
   // (`signer_edl` : « Grille vide : générez la grille avant de signer »).
@@ -383,6 +388,10 @@ export function GrilleEdl({
           const donnees = new FormData(event.currentTarget);
           if (submitter instanceof HTMLButtonElement && submitter.name)
             donnees.set(submitter.name, submitter.value);
+          if (donnees.get("signer") === "1") {
+            donnees.set("mode_signature", modePreuve);
+            if (preuve) donnees.set("preuve_signature", preuve);
+          }
           const soumis = { etats: { ...etats }, commentaires: { ...commentaires } };
           verrouEnvoi.current = true;
           setEnCoursMaj(true);
@@ -597,30 +606,18 @@ export function GrilleEdl({
             {/* Un seul geste : la signature enregistre la grille puis la fige.
                 En sortie comparée, une confirmation annonce d'abord ce que les
                 écarts déclencheront (maquette v3). */}
-            {reference ? (
-              <>
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={enCoursMaj || manquantes > 0 || grilleVide}
-                  onClick={() => setConfirmeSignature(true)}
-                >
-                  Enregistrer et signer
-                </Button>
-                <button type="submit" name="signer" value="1" ref={boutonSigner} hidden />
-              </>
-            ) : (
-              <BoutonEnvoi
-                enCours={enCoursMaj}
-                enCoursTexte="…"
-                name="signer"
-                value="1"
-                size="sm"
-                disabled={manquantes > 0 || grilleVide}
-              >
-                Enregistrer et signer
-              </BoutonEnvoi>
-            )}
+            {/* La signature passe toujours par la modale : elle demande la
+                preuve (EDL signé ou constat) avant de figer la grille. */}
+            <Button
+              type="button"
+              size="sm"
+              disabled={enCoursMaj || manquantes > 0 || grilleVide}
+              onClick={() => setConfirmeSignature(true)}
+            >
+              {enCoursMaj ? "…" : "Enregistrer et signer"}
+            </Button>
+            <button type="submit" name="signer" value="1" ref={boutonSigner} hidden />
+
           </span>
           {/* Indicateur permanent de synchronisation (RM-19.1.6, bloquant) :
               l'agent sait toujours si sa saisie a quitté l'appareil */}
@@ -667,8 +664,8 @@ export function GrilleEdl({
         </div>
         {confirmeSignature && (
           <Modale
-            titre="Signer l'état des lieux de sortie"
-            surtitre="Sortie de bail"
+            titre={reference ? "Signer l'état des lieux de sortie" : "Signer l'état des lieux"}
+            surtitre={reference ? "Sortie de bail" : "Preuve de signature"}
             fermer={() => setConfirmeSignature(false)}
             pied={
               <div className="flex justify-end gap-2">
@@ -678,29 +675,72 @@ export function GrilleEdl({
                 <Button
                   type="button"
                   size="sm"
+                  disabled={!preuve}
                   onClick={() => {
                     setConfirmeSignature(false);
                     boutonSigner.current?.click();
                   }}
                 >
-                  Signer
+                  Figer avec cette preuve
                 </Button>
               </div>
             }
           >
+            {reference && (
+              <p className="text-sm">
+                {degradees > 0
+                  ? `${degradees} élément${degradees > 1 ? "s" : ""} dégradé${degradees > 1 ? "s" : ""} par rapport à l'entrée : ils alimenteront le décompte de restitution du dépôt de garantie — retenues à justifier, vétusté déduite.`
+                  : "Aucun élément dégradé par rapport à l'entrée : sauf sommes restant dues, le dépôt de garantie devra être restitué en totalité."}
+              </p>
+            )}
             <p className="text-sm">
-              {degradees > 0
-                ? `${degradees} élément${degradees > 1 ? "s" : ""} dégradé${degradees > 1 ? "s" : ""} par rapport à l'entrée : ils alimenteront le décompte de restitution du dépôt de garantie — retenues à justifier, vétusté déduite.`
-                : "Aucun élément dégradé par rapport à l'entrée : sauf sommes restant dues, le dépôt de garantie devra être restitué en totalité."}{" "}
-              La signature des deux parties clôt la saisie et fige la grille.
+              L&apos;état des lieux est établi contradictoirement par les parties
+              (ou, à défaut, par un commissaire de justice). Déposez la preuve de
+              cette signature : c&apos;est elle qui fige la grille.
             </p>
+            <fieldset className="space-y-1.5 text-sm">
+              <legend className="font-medium">Preuve de signature</legend>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="mode_signature_choix"
+                  value="pdf_signe"
+                  checked={modePreuve === "pdf_signe"}
+                  onChange={() => setModePreuve("pdf_signe")}
+                  className="size-4"
+                />
+                État des lieux signé par le bailleur (ou son mandataire) et le locataire
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="mode_signature_choix"
+                  value="constat_commissaire"
+                  checked={modePreuve === "constat_commissaire"}
+                  onChange={() => setModePreuve("constat_commissaire")}
+                  className="size-4"
+                />
+                Constat de commissaire de justice
+              </label>
+            </fieldset>
+            <label className="block space-y-1 text-sm">
+              <span className="font-medium">Document signé (PDF, JPEG ou PNG)</span>
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => setPreuve(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm"
+              />
+            </label>
             {/* Cette fenêtre annonçait la suite sans jamais l'offrir : l'agent
                 repassait par « ← Bail » puis défilait jusqu'à la carte
                 (relevé du 11/09). */}
-            <p className="text-sm text-muted-foreground">
-              Une fois signé, cet écran proposera de démarrer la restitution du
-              dépôt de garantie.
-            </p>
+            {reference && (
+              <p className="text-sm text-muted-foreground">
+                Une fois signé, cet écran proposera de démarrer la restitution du
+                dépôt de garantie.
+              </p>
+            )}
           </Modale>
         )}
         </fieldset>

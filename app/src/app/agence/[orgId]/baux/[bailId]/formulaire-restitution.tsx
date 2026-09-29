@@ -223,8 +223,10 @@ export function FormulaireRestitution({
 
       {restitution.sans_edl_entree && (
         <p className="border-l-[3px] border-l-warning bg-warning-soft px-3 py-2 text-sm text-warning-soft-foreground">
-          Sans état des lieux d&apos;entrée signé, aucune retenue n&apos;est possible :
-          restitution intégrale du dépôt.
+          Sans état des lieux d&apos;entrée signé, le locataire est présumé avoir reçu le
+          logement en bon état (art. 1731 du Code civil) : une retenue reste possible, mais
+          seulement justifiée (devis, facture, constat) — et la présomption tombe si le
+          bailleur a fait obstacle à l&apos;état des lieux. Le décompte le mentionne.
         </p>
       )}
 
@@ -249,13 +251,14 @@ export function FormulaireRestitution({
         </ul>
       )}
 
-      {!finalise && !restitution.sans_edl_entree && (
+      {!finalise && (
         <FormRetenue
           orgId={orgId}
           bailId={bailId}
           restitutionId={restitution.id}
           nbRetenues={retenues.length}
           ecarts={ecarts}
+          justificatifObligatoire={restitution.sans_edl_entree}
         />
       )}
 
@@ -362,12 +365,15 @@ function FormRetenue({
   restitutionId,
   nbRetenues,
   ecarts,
+  justificatifObligatoire = false,
 }: {
   orgId: string;
   bailId: string;
   restitutionId: string;
   nbRetenues: number;
   ecarts: EcartEdl[];
+  /** Sans EDL d'entrée (audit 29/09) : la retenue n'est admise que justifiée. */
+  justificatifObligatoire?: boolean;
 }) {
   const [etat, action] = useActionState<EtatRestit, FormData>(
     ajouterRetenue.bind(null, orgId, bailId, restitutionId),
@@ -380,7 +386,12 @@ function FormRetenue({
           enregistrée : React remet alors les champs non contrôlés à leur
           défaut, l'aperçu de décote doit repartir avec eux. L'état de l'action
           (erreur, succès, avertissement) vit au-dessus et survit au remontage. */}
-      <ChampsRetenue key={`retenue-${nbRetenues}`} valeurs={etat.valeurs} ecarts={ecarts} />
+      <ChampsRetenue
+        key={`retenue-${nbRetenues}`}
+        valeurs={etat.valeurs}
+        ecarts={ecarts}
+        justificatifObligatoire={justificatifObligatoire}
+      />
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {/* L'action rend un avertissement AVEC son succès (« ce fichier est en
           réalité un PDF malgré son extension ») : il était jeté, seul l'échec
@@ -397,9 +408,11 @@ function FormRetenue({
 function ChampsRetenue({
   valeurs,
   ecarts,
+  justificatifObligatoire,
 }: {
   valeurs?: Record<string, string>;
   ecarts: EcartEdl[];
+  justificatifObligatoire: boolean;
 }) {
   const idLibelle = useId();
   const idJustificatif = useId();
@@ -518,7 +531,7 @@ function ChampsRetenue({
         <Label htmlFor={idJustificatif} className="sr-only">
           Justificatif de la retenue
         </Label>
-        <ChampFichier id={idJustificatif} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" />
+        <ChampFichier id={idJustificatif} name="justificatif" accept=".pdf,.jpg,.jpeg,.png" required={justificatifObligatoire} />
         <BoutonEnvoi size="sm" variant="outline" disabled={amorti}>
           Ajouter la retenue
         </BoutonEnvoi>

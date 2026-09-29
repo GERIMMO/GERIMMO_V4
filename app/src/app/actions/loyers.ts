@@ -203,6 +203,10 @@ export async function regulariserCharges(
     p_mime: piece.mime,
     p_taille: piece.taille,
     p_empreinte: piece.empreinte,
+    // Audit gestion du 29/09 : régularisation tardive (après le 31/12 de
+    // l'année suivant l'exercice) — le locataire peut demander de régler le
+    // complément par douzièmes (art. 23 loi 89-462).
+    p_etaler: formData.get("etaler") === "on",
   });
   if (error) {
     await abandonnerPieceGed(supabase, piece);
@@ -213,7 +217,9 @@ export async function regulariserCharges(
     ecart > 0
       ? `Trop-perçu de ${eur(ecart)} à rembourser au locataire.`
       : ecart < 0
-        ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
+        ? formData.get("etaler") === "on"
+          ? `Complément de ${eur(Math.abs(ecart))} dû par le locataire, étalé sur 12 mensualités.`
+          : `Complément de ${eur(Math.abs(ecart))} dû par le locataire.`
         : "Charges équilibrées (aucun écart).";
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
   // Audit du 27/09 : la régularisation n'écrit PAS au journal (aucun appel

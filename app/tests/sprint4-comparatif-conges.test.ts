@@ -3,6 +3,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -142,10 +143,11 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
        values ($1,$2,$3,$4,700,current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
+    await couvrirParMandat(db, lot);
     // Cycle de vie réel : EDL d'entrée signé → bail actif → congé (préavis) →
     // EDL de sortie. Un EDL de sortie ne se signe que pendant le préavis.
     const entree = await edlSigne(bail, "entree", "bon");
-    await db.query(`select public.signer_edl($1)`, [entree]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [entree]);
     await db.query(`select public.activer_bail($1)`, [bail]);
     await db.query(
       `select public.enregistrer_conge($1,'locataire',current_date,3::smallint,null,null)`,
@@ -158,7 +160,7 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
       `update public.edl_lignes set etat='mauvais' where edl_id=$1 and libelle='Sols'`,
       [sortie]
     );
-    await db.query(`select public.signer_edl($1)`, [sortie]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [sortie]);
 
     const comp = await db.query(
       `select libelle, etat_entree, etat_sortie, ecart from public.comparatif_edl($1) where ecart`,
@@ -172,6 +174,8 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
 
   it("un congé passe le bail en préavis et fixe la date d'effet", async () => {
     const lot = await lotLouable();
+    // Audit 29/09 : zone tendue inconnue par défaut — le bien est déclaré hors zone.
+    await db.query(`update public.biens set zone_tendue=false where id=(select bien_id from public.lots where id=$1)`, [lot]);
     const {
       rows: [{ id: doc }],
     } = await db.query(
@@ -187,6 +191,7 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
        values ($1,$2,$3,$4,700,current_date) returning id`,
       [orgA, lot, locataire, doc]
     );
+    await couvrirParMandat(db, lot);
     // EDL d'entrée signé : prérequis de la validation (29/08)
     const {
       rows: [{ id: entree }],
@@ -196,7 +201,7 @@ describe.skipIf(!DB_URL)("Sprint 4 — comparatif EDL + congés", () => {
     );
     await db.query(`select public.generer_grille_edl($1)`, [entree]);
     await db.query(`update public.edl_lignes set etat='bon' where edl_id=$1`, [entree]);
-    await db.query(`select public.signer_edl($1)`, [entree]);
+    await db.query(`select public.signer_edl_avec_preuve($1,'pdf_signe',(select organization_id::text from public.etats_des_lieux where id=$1)||'/edl-'||gen_random_uuid()||'.pdf','application/pdf',1000,gen_random_uuid()::text)`, [entree]);
     await db.query(`select public.activer_bail($1)`, [bail]);
 
     // Préavis réduit sans justificatif : refusé

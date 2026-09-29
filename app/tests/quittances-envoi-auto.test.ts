@@ -14,6 +14,7 @@
  * Nécessite SUPABASE_DB_URL. Transaction annulée à la fin.
  */
 import { verifierBaseDeTest } from "./garde-base";
+import { couvrirParMandat } from "./fixtures/mandat";
 import { config } from "dotenv";
 import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
@@ -109,6 +110,7 @@ beforeEach(async () => {
     [org, lot, loc]
   );
   bail = b;
+  await couvrirParMandat(db, bail);
 
   // Un mois appelé, encaissé intégralement : la quittance existe et n'est pas
   // partie (email_envoye_at null).

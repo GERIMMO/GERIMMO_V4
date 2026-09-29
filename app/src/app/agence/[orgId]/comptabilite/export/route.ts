@@ -59,7 +59,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ orgId: string }
         // Deux clés étrangères relient lots à biens (dont une composite qui garde
         // l'agence cohérente) : il faut nommer celle qu'on suit.
         " lot:lots!ecritures_lot_id_fkey(nom, bien:biens!lots_bien_id_fkey(nom))," +
-        " mandat:mandats(person:persons(nom, prenom))"
+        // Idem pour les mandats depuis l'audit du 29/09 (clé composite).
+        " mandat:mandats!ecritures_mandat_id_fkey(person:persons(nom, prenom))"
     )
     .eq("organization_id", orgId)
     .order("date_imputation")

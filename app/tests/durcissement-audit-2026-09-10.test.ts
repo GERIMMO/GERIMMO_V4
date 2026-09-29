@@ -439,19 +439,21 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
 
     // Et la comptabilité du mois en cours reste vivante : une écriture du jour
     // entre toujours, tandis que le mois clos, lui, la refuse.
+    // (Audit 29/09 : la saisie libre ne pose plus `bail_id` — seules les
+    // fonctions comptables le posent ; le lot suffit à l'écriture du jour.)
     await db.query(
-      `insert into public.ecritures (organization_id, bail_id, lot_id, categorie, sens,
+      `insert into public.ecritures (organization_id, lot_id, categorie, sens,
          montant, date_piece, date_imputation, libelle)
-       values ($1,$2,$3,'loyer','recette',650,current_date,current_date,'Loyer du jour')`,
-      [org, bail, lot]
+       values ($1,$2,'loyer','recette',650,current_date,current_date,'Loyer du jour')`,
+      [org, lot]
     );
     await db.query("savepoint cloture");
     await expect(
       db.query(
-        `insert into public.ecritures (organization_id, bail_id, lot_id, categorie, sens,
+        `insert into public.ecritures (organization_id, lot_id, categorie, sens,
            montant, date_piece, date_imputation, libelle)
-         values ($1,$2,$3,'loyer','recette',650,current_date,${mois("- interval '1 month'")},'Loyer du mois clos')`,
-        [org, bail, lot]
+         values ($1,$2,'loyer','recette',650,current_date,${mois("- interval '1 month'")},'Loyer du mois clos')`,
+        [org, lot]
       )
     ).rejects.toThrow(/Mois clôturé/i);
     await db.query("rollback to savepoint cloture");
@@ -1069,9 +1071,9 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       rows: [libre],
     } = await db.query(
       `insert into public.ecritures (organization_id, categorie, sens, montant, date_piece,
-         date_imputation, libelle, bail_id, lot_id)
-       values ($1,'travaux','depense',80,current_date,current_date,'Origine',$2,$3) returning id`,
-      [org, bail, lot]
+         date_imputation, libelle, lot_id)
+       values ($1,'travaux','depense',80,current_date,current_date,'Origine',$2) returning id`,
+      [org, lot]
     );
     await db.query("savepoint a66");
     await expect(
@@ -1296,13 +1298,15 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
 
     // 1 ─ LE DÉFAUT : la contre-écriture forgée sans motif est refusée. Chaque
     // refus est isolé par un savepoint (une contrainte qui lâche avorte tout).
+    // Audit 29/09 : la porte est désormais fermée en amont — `contre_ecriture_de`
+    // (comme `bail_id`, `motif`, `systeme`…) n'est plus insérable par PostgREST.
     await db.query("savepoint a66bis");
-    await expect(forger(null)).rejects.toThrow(/Motif de contre-écriture obligatoire/i);
+    await expect(forger(null)).rejects.toThrow(/permission denied|Motif de contre-écriture obligatoire/i);
     await db.query("rollback to savepoint a66bis");
 
     // 2 ─ Un motif blanc ne vaut pas motif : la même porte reste fermée.
     await db.query("savepoint a66bis");
-    await expect(forger("   ")).rejects.toThrow(/Motif de contre-écriture obligatoire/i);
+    await expect(forger("   ")).rejects.toThrow(/permission denied|Motif de contre-écriture obligatoire/i);
     await db.query("rollback to savepoint a66bis");
 
     // 3 ─ GESTE LÉGITIME VOISIN : l'écriture ORDINAIRE, sans lien d'annulation,
@@ -1313,10 +1317,14 @@ describe.skipIf(!DB_URL)("Audit 2026-09-10 — durcissement", () => {
       [org]
     );
 
-    // 4 ─ GESTE LÉGITIME VOISIN : on n'exige QUE le motif (RM-A6.6), pas le
-    // sens ni le montant. Une contre-écriture saisie à la main avec son motif
-    // passe toujours.
-    await forger("Erreur de saisie constatée au rapprochement");
+    // 4 ─ GESTE LÉGITIME VOISIN : on n'exige QUE le motif (RM-A6.6). Depuis
+    // l'audit du 29/09, la contre-écriture manuelle passe par sa fonction
+    // (celle du bouton « Annuler l'écriture ») : l'INSERT direct, même motivé,
+    // est refusé.
+    await db.query("savepoint a66bis");
+    await expect(forger("Erreur de saisie constatée au rapprochement")).rejects.toThrow(/permission denied/i);
+    await db.query("rollback to savepoint a66bis");
+    await db.query(`select public.contre_ecriture($1, $2)`, [origine.id, "Erreur de saisie constatée au rapprochement"]);
     const {
       rows: [forgee],
     } = await db.query(`select motif from public.ecritures where contre_ecriture_de = $1`, [

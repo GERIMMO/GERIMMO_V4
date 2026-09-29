@@ -176,7 +176,9 @@ describe.skipIf(!DB_URL)("Recette 21/08 — attestation et alertes", () => {
     } = await db.query(`select remplace_id from public.documents where id = $1`, [v2]);
     expect(doc2.remplace_id).toBe(v1);
 
-    // L'agent valide la v2 — la v1 remplacée est refusée
+    // L'agent valide la v2 — la v1 remplacée est refusée. (Audit 29/09 : la
+    // validation exige que le locataire soit dans son portefeuille.)
+    await confierLocataireAuPortefeuille();
     await simuler(db, agentA);
     await attendreEchec(
       db,

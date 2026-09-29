@@ -3,7 +3,7 @@ type: synthesis
 tags: [etat-projet, decisions, contradictions]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-28
+updated: 2026-09-29
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
 ---
 
@@ -54,8 +54,10 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > **Tranché le jour même** : 3 logements = 3 biens ; plus de premier bien offert
 > pour personne (14 jours puis gel en lecture seule) ; bascule dès l'ajout de
 > bien ; pas de cumul avec le parrainage ; TVA : franchise en base (art. 293 B du
-> CGI) ; préavis de révision : au moins un mois (art. 8.8). Reste : préavis de
-> modification des conditions (art. 16).
+> CGI) ; préavis de révision : au moins un mois (art. 8.8). Le 29/09 : préavis de
+> modification des conditions d'un mois (art. 16) et clause de rétractation
+> rédigée (art. 8.9). Restent : identité de l'éditeur (dénomination, siège,
+> SIRET, e-mail, médiateur) dans `src/lib/editeur.ts`.
 
 > [!note] Décision 2026-08-19 — exclusivité PD / PM assumée
 > **Une même personne ne peut pas être à la fois propriétaire gestion directe et

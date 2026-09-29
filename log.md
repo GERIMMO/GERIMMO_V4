@@ -5560,3 +5560,14 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   fin de période sans prorata, changement de formule désactivé.
 - Pages mises à jour : [[Grille tarifaire]], [[Cycle de vie de l'abonnement]],
   [[État du projet et décisions ouvertes]], [[2026-09-28-decision-tarification]].
+
+## [2026-09-29] decision | CGU : rétractation (art. 8.9) et préavis de modification (art. 16)
+- Consigne du porteur : « rédige les deux et mets en prod ».
+- Art. 8.9 : rétractation du consommateur, 14 jours à compter de la souscription
+  payante (C. consom. L. 221-18 s.), remboursement intégral sous 14 jours par le
+  même moyen de paiement, formulaire type ; non ouverte aux professionnels.
+  Choix de l'agent : remboursement intégral (pas de retenue au prorata, qui
+  exigerait un accord exprès recueilli à la souscription).
+- Art. 16 : préavis de modification des conditions, au moins un mois.
+- Reste à fournir : identité de l'éditeur (le formulaire de rétractation en a besoin).
+- Pages : [[Cycle de vie de l'abonnement]], [[État du projet et décisions ouvertes]].

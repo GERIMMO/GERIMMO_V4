@@ -3,7 +3,7 @@ type: business-rule
 tags: [abonnement, essai, stripe]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-28
+updated: 2026-09-29
 sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -26,6 +26,10 @@ sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 >   adresse, e-mail et factures accessibles.
 > - **Révision tarifaire** : notifiée au moins un mois avant sa prise d'effet
 >   (CGU art. 8.8) ; résiliation sans frais possible avant cette date.
+> - **Rétractation** (consommateurs, CGU art. 8.9) : 14 jours à compter de la
+>   souscription payante (C. consom. L. 221-18 s.), remboursement intégral sous
+>   14 jours, formulaire type fourni ; l'essai gratuit ne réduit pas ce délai.
+>   Non ouverte aux professionnels. Modification des CGU : préavis d'un mois (art. 16).
 > - **Échec de paiement** : inchangé (15 jours, puis lecture seule).
 
 

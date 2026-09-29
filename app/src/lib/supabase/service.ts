@@ -11,6 +11,7 @@
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées
 // au seul `service_role`, et chacune ne rend que ce dont la tâche a besoin.
 
+import "server-only";
 import { createClient as creerClientSupabase } from "@supabase/supabase-js";
 
 export function clientDeService() {

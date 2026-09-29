@@ -140,7 +140,9 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
     expect(pieces.rows[0].verifie_le).toBeNull();
 
     // L'agence valide : toujours une seule pièce, validée
-    await simuler(db, compteAgent);
+    // Audit 29/09 : un agent sans mandat n'a aucun locataire en portefeuille ;
+    // la validation se fait ici par l'admin de l'agence.
+    await simuler(db, compteAdmin);
     await db.query(`select public.valider_attestation($1, $2)`, [orgA, doc1]);
     await simuler(db, compteLo);
     pieces = await db.query(
@@ -165,7 +167,9 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
     expect(pieces.rows[1].verifie_le).not.toBeNull(); // doc1 validée, en vigueur
 
     // Validation du renouvellement : l'ancienne s'efface, une seule reste
-    await simuler(db, compteAgent);
+    // Audit 29/09 : un agent sans mandat n'a aucun locataire en portefeuille ;
+    // la validation se fait ici par l'admin de l'agence.
+    await simuler(db, compteAdmin);
     await db.query(`select public.valider_attestation($1, $2)`, [orgA, doc2]);
     await simuler(db, compteLo);
     pieces = await db.query(
@@ -320,7 +324,9 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
     await simuler(db, compteLo);
     const doc1 = await deposerAttestation(100);
     await deposerAttestation(400); // remplace doc1
-    await simuler(db, compteAgent);
+    // Audit 29/09 : un agent sans mandat n'a aucun locataire en portefeuille ;
+    // la validation se fait ici par l'admin de l'agence.
+    await simuler(db, compteAdmin);
     await expect(
       db.query(`select public.valider_attestation($1, $2)`, [orgA, doc1])
     ).rejects.toThrow(/plus récente/);

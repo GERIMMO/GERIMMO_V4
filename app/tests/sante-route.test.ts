@@ -6,10 +6,18 @@
  * qui rassure à tort est pire qu'aucun.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+// Un faux client de service, posé test par test ; sinon le vrai module.
+const service = vi.hoisted(() => ({ client: null as unknown }));
+vi.mock("@/lib/supabase/service", async (original) => {
+  const vrai = await original<typeof import("@/lib/supabase/service")>();
+  return { clientDeService: () => service.client ?? vrai.clientDeService() };
+});
 import { GET } from "../src/app/api/sante/route";
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  service.client = null;
 });
 
 describe("la route de santé", () => {
@@ -39,5 +47,23 @@ describe("la route de santé", () => {
     vi.stubEnv("VERCEL_GIT_COMMIT_SHA", sha);
     const r = await GET(new Request("https://exemple.fr/api/sante"));
     expect(await r.json()).toMatchObject({ commit: "0123456", revision: sha });
+  });
+
+  it("sans secret, sonde la base par une ligne au plus — jamais un comptage (audit 29/09)", async () => {
+    const options: unknown[] = [];
+    const limites: number[] = [];
+    service.client = {
+      from: () => ({
+        select: (_colonnes: string, opts?: unknown) => {
+          options.push(opts);
+          return { limit: async (n: number) => (limites.push(n), { data: [], error: null }) };
+        },
+      }),
+    };
+    const r = await GET(new Request("https://exemple.fr/api/sante"));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ ok: true, base: true });
+    expect(options).toEqual([undefined]);
+    expect(limites).toEqual([1]);
   });
 });

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { BoutonAssistance } from "@/components/bouton-assistance";
+import { OPEN_GRAPH_PAR_DEFAUT } from "@/lib/metadonnees-publiques";
+import { adresseCanonique } from "@/lib/site";
 
 // Charte v3 — bleu (17/09/2026). Deux polices, deux rôles : Manrope, ronde et
 // géométrique, pour la marque, les titres et les chiffres clés ; Figtree, la
@@ -33,13 +35,21 @@ const interface_ = localFont({
   display: "swap",
 });
 
+const DESCRIPTION = "Gestion locative pour agences et propriétaires";
+
+// 29/09 : `metadataBase` rend absolues les adresses canoniques et les images
+// de partage ; la carte Open Graph par défaut vaut pour toute page qui n'en
+// pose pas. L'icône Apple est un PNG 180 × 180 (public/apple-touch-icon.png,
+// tiré de gerimmo-mark.svg) : iOS n'accepte pas le SVG.
 export const metadata: Metadata = {
+  metadataBase: new URL(adresseCanonique()),
   title: "Gerimmo",
-  description: "Gestion locative pour agences et propriétaires",
+  description: DESCRIPTION,
+  openGraph: { ...OPEN_GRAPH_PAR_DEFAUT, title: "Gerimmo", description: DESCRIPTION },
   icons: {
     icon: "/logo/gerimmo-mark.svg",
     shortcut: "/logo/gerimmo-mark.svg",
-    apple: "/logo/gerimmo-mark.svg",
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
   },
 };
 

@@ -9,9 +9,13 @@ import Link from "next/link";
 // La pastille de la marque, pas son nom : hors de tout espace, on ne sait pas
 // de quelle agence vient la personne, et le locataire ne lit jamais
 // « Gerimmo » dans les écrans de son agence (25/09, D04).
+//
+// 29/09 : le titre porte la marque, comme les autres pages. Plus de
+// `robots` ici : Next.js pose déjà « noindex » sur toute réponse 404, et la
+// page en portait deux. Le visiteur sans compte a aussi ses sorties : la
+// vitrine et le journal (« mon espace » le menait à la connexion).
 export const metadata: Metadata = {
-  title: "Page introuvable",
-  robots: { index: false },
+  title: "Page introuvable — Gerimmo",
 };
 
 export default function PageIntrouvable() {
@@ -33,6 +37,17 @@ export default function PageIntrouvable() {
             Retour à mon espace
           </Link>
         </div>
+        <p className="mt-4 text-sm text-[var(--texte-secondaire)]">
+          Pas encore de compte&nbsp;?{" "}
+          <Link href="/" className="lien-texte">
+            Découvrir Gerimmo
+          </Link>{" "}
+          ou{" "}
+          <Link href="/journal" className="lien-texte">
+            lire le journal
+          </Link>
+          .
+        </p>
       </div>
     </main>
   );

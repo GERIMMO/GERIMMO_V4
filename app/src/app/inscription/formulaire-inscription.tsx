@@ -175,7 +175,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               <span>
                 J&apos;accepte les{" "}
                 <Link href="/conditions" target="_blank" rel="noopener" className="lien-texte">
-                  conditions générales d&apos;utilisation (CGU)
+                  conditions générales d&apos;utilisation et de vente
                 </Link>
               </span>
             </label>
@@ -192,6 +192,16 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
               {etat.erreur}
             </p>
           )}
+          {/* Information RGPD au moment de la collecte (art. 13) : une phrase
+              et le lien, au plus près du bouton qui envoie les données. */}
+          <p className="text-xs text-muted-foreground">
+            Vos données servent à créer et gérer votre compte et votre
+            abonnement. Pour en savoir plus et exercer vos droits, consultez la{" "}
+            <Link href="/confidentialite" target="_blank" rel="noopener" className="lien-texte">
+              page confidentialité
+            </Link>
+            .
+          </p>
           <BoutonEnvoi enCoursTexte="Ouverture…" className="w-full">
             Ouvrir mon espace
           </BoutonEnvoi>

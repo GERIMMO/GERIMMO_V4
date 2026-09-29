@@ -65,9 +65,10 @@ const LIENS_PIED: [string, string][] = [
   ["/inscription", "Créer mon compte"],
   ["/#agences", "Nous écrire (agence)"],
   ["/mentions-legales", "Mentions légales"],
-  // Un seul nom pour le document : « Conditions générales d'utilisation »,
-  // « CGU » partout où la place manque (25/09, P5).
-  ["/conditions", "CGU"],
+  // Un seul nom pour le document : « Conditions générales d'utilisation et
+  // de vente » (29/09 : le document porte aussi le prix, la facturation et la
+  // résiliation), « Conditions générales » là où la place manque.
+  ["/conditions", "Conditions générales"],
   ["/confidentialite", "Confidentialité"],
 ];
 

@@ -1,8 +1,24 @@
 import Link from "next/link";
-import { Article, CoquilleLegale, Fait } from "@/components/coquille-legale";
+import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
 import { CONDITIONS_DATE, EDITEUR, REGIME_TVA, documentsIncomplets, type FaitEditeur } from "@/lib/editeur";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
-export const metadata = { title: "Conditions générales d'utilisation — Gerimmo" };
+export const metadata = metadonneesPubliques({
+  titre: "Conditions générales d'utilisation et de vente — Gerimmo",
+  description:
+    "Les conditions générales d'utilisation et de vente du logiciel de gestion locative Gerimmo : service, prix, essai, facturation, résiliation, données et responsabilités.",
+  chemin: "/conditions",
+});
+
+// 29/09 : le document porte aussi le prix, la facturation, la reconduction et
+// la résiliation — ce sont des conditions de VENTE autant que d'utilisation.
+// Il s'appelle donc « Conditions générales d'utilisation et de vente » partout
+// (pied de page, case d'inscription), sous la même adresse /conditions.
+
+// Les prix publiés s'entendent selon le régime de TVA de l'éditeur : en
+// franchise en base, écrire « toutes taxes comprises » d'un côté et « hors
+// taxes » de l'autre contredisait l'article 8.4 (aucune TVA facturée).
+const FRANCHISE = REGIME_TVA?.nature === "franchise";
 
 // Le contrat que la case d'inscription fait accepter.
 //
@@ -48,17 +64,25 @@ const CLAUSES: Record<
   // Décision du porteur, 28/09/2026 : un mois.
   preavisTarif: "au moins un mois",
   retractation: null,
-  conservation: null,
-  disponibilite: null,
-  plafond: null,
-  delaiMiseEnDemeure: null,
+  // 29/09 : formulations standard prudentes, cohérentes avec « rien n'est
+  // supprimé automatiquement » (accueil, tarifs) et avec le mode lecture
+  // seule de fin d'abonnement (tests/abonnement-lecture-seule.test.ts). Les
+  // seules suppressions automatiques sont les durées de conservation
+  // légales de certaines pièces, que la page confidentialité détaille.
+  conservation:
+    "tant que le compte existe. À la fin de l'essai ou de l'abonnement, elles restent consultables et exportables en lecture seule ; elles ne sont jamais supprimées automatiquement du fait de cette fin, tant que le compte existe. Seules certaines pièces suivent leur durée de conservation propre, décrite dans la page confidentialité (par exemple les pièces du dossier locataire, supprimées cinq ans après la fin du dernier bail). Le Client peut demander à tout moment, après avoir exporté ce qu'il souhaite garder, la suppression de son compte et de ses données. Les factures émises par l'Éditeur sont conservées dix ans, conformément à ses obligations légales",
+  disponibilite:
+    "L'Éditeur ne garantit pas une disponibilité ininterrompue. Les opérations de maintenance programmées sont annoncées à l'avance lorsque c'est possible, de préférence en dehors des heures ouvrées. Le support est assuré par écrit depuis la page « Aide et retours » de l'application ; l'Éditeur y répond dans les meilleurs délais.",
+  plafond:
+    "Sauf faute lourde ou dolosive, la responsabilité de l'Éditeur est limitée aux dommages directs et plafonnée, toutes causes confondues, au montant payé par le Client au titre du Service au cours des douze mois précédant le fait générateur. Cette limitation ne s'applique pas lorsque des dispositions impératives protégeant le Client consommateur ou non-professionnel l'interdisent.",
+  delaiMiseEnDemeure: "trente jours",
   preavisModification: null,
 };
 
 export default function PageConditions() {
   return (
     <CoquilleLegale
-      titre="Conditions générales d'utilisation"
+      titre="Conditions générales d'utilisation et de vente"
       chapo={`Version du ${CONDITIONS_DATE}, en vigueur depuis cette date.`}
       chemin="/conditions"
       incomplet={documentsIncomplets() || Object.values(CLAUSES).some((c) => !c)}
@@ -74,7 +98,8 @@ export default function PageConditions() {
           propre.
         </p>
         <p>
-          Elles forment, avec la{" "}
+          Elles forment, avec l&apos;annexe relative au traitement de
+          données pour le compte du Client, la{" "}
           <Link href="/confidentialite" className="lien-texte">
             page confidentialité
           </Link>{" "}
@@ -250,11 +275,15 @@ export default function PageConditions() {
           Les particuliers et les sociétés civiles qui gèrent leurs propres
           biens relèvent des formules Solo (1 bien), Bailleur (jusqu&apos;à 3),
           Investisseur (jusqu&apos;à 10) et Patrimoine (jusqu&apos;à 20, puis
-          un supplément par bien), en paiement mensuel ou annuel, prix toutes
-          taxes comprises. Les agences qui gèrent pour des tiers relèvent
-          d&apos;un tarif mensuel hors taxes par tranches cumulatives de lots
-          sous mandat actif, avec un socle dès la souscription. Les montants en
-          vigueur sont publiés sur la page{" "}
+          un supplément par bien), en paiement mensuel ou annuel
+          {FRANCHISE ? "" : ", prix toutes taxes comprises"}. Les agences qui
+          gèrent pour des tiers relèvent d&apos;un tarif mensuel
+          {FRANCHISE ? "" : " hors taxes"} par tranches cumulatives de lots
+          sous mandat actif, avec un socle dès la souscription.
+          {FRANCHISE
+            ? " L'Éditeur ne facturant pas de TVA (article 8.4), les prix publiés sont, pour tous, les montants payés."
+            : ""}{" "}
+          Les montants en vigueur sont publiés sur la page{" "}
           <a href="/tarifs" className="underline">Tarifs</a> et rappelés avant
           toute souscription. Aucune formule n&apos;est gratuite en permanence.
         </p>
@@ -287,14 +316,30 @@ export default function PageConditions() {
         </p>
         <p>
           <b className="font-semibold">8.6 — Résiliation.</b> Le Client résilie
-          à tout moment depuis « Mon abonnement ». La résiliation prend effet
-          à la prochaine échéance, mensuelle ou annuelle ; l&apos;accès payé
-          reste ouvert jusqu&apos;à cette date. L&apos;abonnement annuel est
-          payé en une fois pour douze mois et se renouvelle pour douze mois à sa
-          date anniversaire, sauf résiliation préalable.
+          à tout moment depuis « Mon abonnement », sans frais. La résiliation
+          prend effet à la prochaine échéance, mensuelle ou annuelle ;
+          l&apos;accès payé reste ouvert jusqu&apos;à cette date, et la
+          période en cours n&apos;est pas remboursée.
         </p>
         <p>
-          <b className="font-semibold">8.7 — Hors abonnement.</b> Les travaux et
+          <b className="font-semibold">8.7 — Reconduction de
+          l&apos;abonnement annuel.</b> L&apos;abonnement annuel est payé en une
+          fois pour douze mois et se renouvelle par tacite reconduction pour
+          douze mois à sa date anniversaire, sauf résiliation préalable.
+          Lorsque le Client est un consommateur ou un non-professionnel,
+          l&apos;Éditeur l&apos;informe par écrit, par courrier électronique,{" "}
+          <b className="font-semibold">au plus tôt trois mois et au plus tard
+          un mois avant le terme</b> de la période en cours, de la possibilité
+          de ne pas reconduire l&apos;abonnement ; ce choix s&apos;exerce depuis
+          « Mon abonnement ». À défaut de cette information, le Client
+          consommateur ou non-professionnel peut mettre fin gratuitement à
+          l&apos;abonnement à tout moment à compter de la date de reconduction,
+          et les sommes versées pour la période postérieure à la résiliation
+          lui sont remboursées dans un délai de trente jours (article L. 215-1
+          du code de la consommation).
+        </p>
+        <p>
+          <b className="font-semibold">8.8 — Hors abonnement.</b> Les travaux et
           interventions d&apos;artisans sont proposés sur devis et facturés
           séparément ; ils ne sont jamais compris dans l&apos;abonnement. La
           disponibilité du réseau d&apos;artisans dépend de la commune du bien
@@ -302,13 +347,13 @@ export default function PageConditions() {
           un démarrage autonome.
         </p>
         <p>
-          <b className="font-semibold">8.8 — Révision.</b> Toute évolution
+          <b className="font-semibold">8.9 — Révision.</b> Toute évolution
           tarifaire est notifiée au Client{" "}
           <Fait valeur={CLAUSES.preavisTarif} quoi="préavis" /> avant sa prise d&apos;effet. Le Client qui
           la refuse peut résilier sans frais avant cette date.
         </p>
         <p>
-          <b className="font-semibold">8.9 — Rétractation.</b>{" "}
+          <b className="font-semibold">8.10 — Rétractation.</b>{" "}
           <Fait
             valeur={CLAUSES.retractation}
             quoi="droit de rétractation du client particulier — article à rédiger avec le formulaire type"
@@ -326,18 +371,18 @@ export default function PageConditions() {
           consultables et téléchargeables un par un depuis son espace.
         </p>
         <p>
-          À la résiliation, les données sont conservées{" "}
-          <Fait valeur={CLAUSES.conservation} quoi="durée" /> pour permettre l&apos;export, puis
-          supprimées ou anonymisées.
+          <b className="font-semibold">Conservation.</b> Les données du Client
+          sont conservées <Fait valeur={CLAUSES.conservation} quoi="durée" />.
         </p>
       </Article>
 
       <Article titre="10. Disponibilité, maintenance et support">
         <p>
-          L&apos;Éditeur s&apos;engage à une obligation de{" "}
-          <b className="font-semibold">moyens</b>. Le Service peut être
-          interrompu pour maintenance ; l&apos;Éditeur en informe le Client dès
-          qu&apos;il le peut.
+          L&apos;Éditeur est tenu d&apos;une obligation de{" "}
+          <b className="font-semibold">moyens</b> : il met en œuvre les
+          moyens raisonnables pour assurer l&apos;accès au Service et sa
+          continuité. Le Service peut être interrompu pour maintenance ;
+          l&apos;Éditeur en informe le Client dès qu&apos;il le peut.
         </p>
         <p>
           <Fait
@@ -362,6 +407,13 @@ export default function PageConditions() {
           traitement et l&apos;Éditeur sous-traitant</b>. Pour les traitements
           de plateforme (comptes, authentification, facturation),
           l&apos;Éditeur est responsable.
+        </p>
+        <p>
+          Pour les données qu&apos;il traite pour le compte du Client,
+          l&apos;Éditeur s&apos;engage dans les termes de l&apos;annexe «
+          Traitement de données pour le compte du Client », qui fait partie
+          des présentes conditions (article 28 du règlement général sur la
+          protection des données).
         </p>
       </Article>
 
@@ -414,7 +466,8 @@ export default function PageConditions() {
       <Article titre="15. Suspension et résiliation">
         <p>
           <b className="font-semibold">Par le Client</b> : à tout moment, sans
-          frais ni préavis, depuis son espace ou par simple demande. La
+          frais, depuis « Mon abonnement ». La résiliation prend effet à la
+          prochaine échéance, dans les conditions des articles 8.6 et 8.7. La
           réversibilité de l&apos;article 9 s&apos;applique.
         </p>
         <p>
@@ -459,6 +512,88 @@ export default function PageConditions() {
           </Link>
           , avant toute saisine du juge.
         </p>
+      </Article>
+      <Article titre="Annexe — Traitement de données pour le compte du Client (article 28 du RGPD)">
+        <p>
+          <b className="font-semibold">Objet.</b> Pour les données de gestion
+          locative (article 11), l&apos;Éditeur agit en qualité de
+          sous-traitant du Client, responsable de traitement. Le traitement a
+          pour seule finalité la fourniture du Service, pendant la durée du
+          contrat. Il porte sur les données saisies ou déposées par le Client
+          et ses utilisateurs : identité et coordonnées des locataires,
+          garants, propriétaires mandants et intervenants, pièces des
+          dossiers, baux, états des lieux, loyers, incidents et messages.
+        </p>
+        <ul className="ml-4 list-disc space-y-1">
+          <li>
+            <b className="font-semibold">Instructions documentées.</b>{" "}
+            L&apos;Éditeur ne traite ces données que sur instruction du
+            Client, constituée des présentes conditions et des réglages et
+            actions du Client dans le Service. Il l&apos;informe si une
+            instruction lui paraît contraire à la réglementation.
+          </li>
+          <li>
+            <b className="font-semibold">Confidentialité.</b> Les personnes
+            autorisées à traiter ces données sont soumises à une obligation de
+            confidentialité.
+          </li>
+          <li>
+            <b className="font-semibold">Sécurité.</b> L&apos;Éditeur met en
+            œuvre les mesures décrites à l&apos;article 5 et dans la page
+            confidentialité (chiffrement, cloisonnement par organisation,
+            contrôle des accès, journalisation des consultations sensibles,
+            sauvegardes chiffrées).
+          </li>
+          <li>
+            <b className="font-semibold">Sous-traitants ultérieurs.</b> Le
+            Client autorise le recours aux prestataires ci-dessous, les mêmes
+            que ceux des mentions légales et de la page confidentialité.
+            L&apos;Éditeur leur impose des obligations équivalentes à la
+            présente annexe et informe le Client de tout ajout ou
+            remplacement, afin qu&apos;il puisse s&apos;y opposer en résiliant
+            sans frais.
+          </li>
+        </ul>
+        <TableauPrestataires />
+        <ul className="ml-4 list-disc space-y-1">
+          <li>
+            <b className="font-semibold">Droits des personnes.</b>{" "}
+            L&apos;Éditeur aide le Client, dans la mesure du possible, à
+            répondre aux demandes d&apos;exercice de droits des personnes
+            concernées, et lui transmet sans délai toute demande reçue
+            directement.
+          </li>
+          <li>
+            <b className="font-semibold">Assistance.</b> L&apos;Éditeur aide
+            le Client à garantir la sécurité du traitement et, le cas échéant,
+            à réaliser une analyse d&apos;impact et à consulter l&apos;autorité
+            de contrôle, compte tenu des informations dont il dispose.
+          </li>
+          <li>
+            <b className="font-semibold">Violation de données.</b>{" "}
+            L&apos;Éditeur notifie au Client toute violation de données à
+            caractère personnel{" "}
+            <b className="font-semibold">dans les meilleurs délais</b> après en
+            avoir pris connaissance, avec les informations utiles à la
+            notification que le Client doit, le cas échéant, adresser à la
+            CNIL.
+          </li>
+          <li>
+            <b className="font-semibold">Fin du contrat.</b> Au terme du
+            contrat, et au choix du Client, l&apos;Éditeur restitue les données
+            (export de l&apos;article 9) puis les supprime, ou les supprime
+            directement, sauf obligation légale de conservation. Les copies de
+            sauvegarde disparaissent au terme de leur cycle de conservation.
+          </li>
+          <li>
+            <b className="font-semibold">Information et audit.</b>{" "}
+            L&apos;Éditeur met à la disposition du Client les informations
+            nécessaires pour démontrer le respect de la présente annexe, et
+            permet la réalisation d&apos;audits, y compris d&apos;inspections,
+            par le Client ou un auditeur qu&apos;il mandate, soumis à la
+            confidentialité, sur préavis raisonnable.
+          </li>
+        </ul>
       </Article>
     </CoquilleLegale>
   );

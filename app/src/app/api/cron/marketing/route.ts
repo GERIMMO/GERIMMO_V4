@@ -1,7 +1,8 @@
 import {clientDeService} from '@/lib/supabase/service';
 import {consignerTache,porteurDuSecret} from '@/lib/tache';
 import {sujetMarketing} from '@/lib/contenu-marketing';
-import {sujetDeVeille} from '@/lib/sujet-veille-marketing';
+import {estSujetLogement,sujetDeVeille} from '@/lib/sujet-veille-marketing';
+import {couperAuMot} from '@/lib/utils';
 import {lireSourceEtude} from '@/lib/analyse-veille';
 import {creerVisuelMarketing} from '@/lib/visuel-marketing';
 import {envoyerSurFacebook} from '@/lib/facebook';
@@ -49,11 +50,12 @@ export async function GET(request:Request){
    if(infos?.length){
     const utilises=await db.from('publications').select('veille_source_id').in('veille_source_id',infos.map(i=>i.id));
     if(utilises.error)return bilan({erreur:'L’historique des sujets est indisponible.'},503);
-    const info=infos.find(i=>!utilises.data?.some(p=>p.veille_source_id===i.id));
+    // 29/09 : seul un sujet de logement ou de location passe au journal public.
+    const info=infos.find(i=>estSujetLogement(i.titre)&&!utilises.data?.some(p=>p.veille_source_id===i.id));
     if(info)try{await lireSourceEtude(info.source_url);sujet=sujetDeVeille(info);source=info.id;}catch{return bilan({erreur:'La source officielle doit être vérifiée avant sa diffusion.'},503);}
    }
   }
-  const creation=await db.from('publications').insert({marketing_jour:paris.date,veille_source_id:source,periode:`marketing-auto-${paris.date}`,statut:'brouillon',titre:sujet.titre,slug:`${paris.date}-${sujet.cle}`,chapo:sujet.chapo,corps:sujet.corps,sources:[`audience:${sujet.audience}`,source?'veille-officielle-gerimmo':'contenu-editorial-gerimmo'],seo_description:sujet.chapo.slice(0,160),facebook_texte:sujet.facebook,publie_le:null}).select(CHAMPS).single();
+  const creation=await db.from('publications').insert({marketing_jour:paris.date,veille_source_id:source,periode:`marketing-auto-${paris.date}`,statut:'brouillon',titre:sujet.titre,slug:`${paris.date}-${sujet.cle}`,chapo:sujet.chapo,corps:sujet.corps,sources:[`audience:${sujet.audience}`,source?'veille-officielle-gerimmo':'contenu-editorial-gerimmo'],seo_description:couperAuMot(sujet.chapo,160),facebook_texte:sujet.facebook,publie_le:null}).select(CHAMPS).single();
   if(creation.error||!creation.data)return bilan({erreur:'La préparation n’a pas été enregistrée. Aucun envoi effectué.'},503);
   article=creation.data;
  }

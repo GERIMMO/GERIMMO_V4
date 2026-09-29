@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
+import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 
-export const metadata = {
-  title: "Journal — Gerimmo",
+// 29/09 : la description ne promet plus des sujets précis (révision,
+// régularisation, impayés) que le journal ne traite pas forcément : elle dit
+// ce qu'il est.
+export const metadata = metadonneesPubliques({
+  titre: "Journal — Gerimmo",
   description:
-    "Ce qu'un bailleur doit savoir, au moment où ça compte : révision des loyers, régularisation des charges, restitution du dépôt, impayés.",
-};
+    "Le journal de Gerimmo : actualités et repères sur la gestion locative, pour les propriétaires bailleurs, les agences et les locataires.",
+  chemin: "/journal",
+});
 
 function jour(d: string | null) {
   if (!d) return "";
@@ -79,7 +85,7 @@ export default async function PageJournal() {
                 >
                   <p className="mono-discret sans-majuscules">{jour(a.publie_le)}</p>
                   <h2 className="mt-1.5 font-heading text-[19px] leading-snug text-[var(--encre)] group-hover:underline">
-                    {a.titre}
+                    {titreSansDoublon(a.titre)}
                   </h2>
                   {a.chapo && (
                     <p className="mt-2 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">

@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { Article, CoquilleLegale, Fait, TableauPrestataires } from "@/components/coquille-legale";
 import { EDITEUR, documentsIncomplets, prestatairesIncomplets, type FaitEditeur } from "@/lib/editeur";
+import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
-export const metadata = { title: "Mentions légales — Gerimmo" };
+export const metadata = metadonneesPubliques({
+  titre: "Mentions légales — Gerimmo",
+  description:
+    "Mentions légales du site Gerimmo : éditeur du service, directeur de la publication, hébergement et prestataires techniques, contact.",
+  chemin: "/mentions-legales",
+});
 
 // Obligation de l'article 6-III de la LCEN : un service en ligne doit dire qui
 // l'édite et qui l'héberge. La page n'existait pas avant le 11/09, sur un site
@@ -65,12 +71,16 @@ export default function PageMentionsLegales() {
         <p>
           {/* Audit 27/09 : la phrase précédait un tableau qui contient des
               prestataires américains. Même formulation que la page
-              confidentialité. */}
-          Les données sont hébergées <b className="font-semibold">dans
-          l&apos;Union européenne</b> (base, fichiers, application). Certains
-          services annexes sont rendus par des prestataires établis hors de
-          l&apos;Union : la colonne « Localisation » le dit pour chacun. Le
-          service s&apos;appuie sur les prestataires suivants :
+              confidentialité (29/09 : serveurs principaux en région UE,
+              prestataires parfois établis hors de l'Union). */}
+          Les serveurs principaux du service — base de données, fichiers et
+          application — sont situés dans des{" "}
+          <b className="font-semibold">régions de l&apos;Union européenne</b>{" "}
+          (Paris). Plusieurs prestataires sont des sociétés établies hors de
+          l&apos;Union, notamment aux États-Unis : la colonne « Localisation »
+          le dit pour chacun, et la page confidentialité décrit les garanties
+          des transferts. Le service s&apos;appuie sur les prestataires
+          suivants :
         </p>
         {/* La même liste que la page confidentialité (lib/editeur.ts). */}
         <TableauPrestataires />

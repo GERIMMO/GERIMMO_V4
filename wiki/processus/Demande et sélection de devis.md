@@ -4,7 +4,7 @@ tags: [devis, incident, artisan]
 status: in-progress
 created: 2026-07-21
 updated: 2026-09-11
-sources: ["[[Dépôt Gerimmo-V3]]"]
+sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
 # Demande et sélection de devis
@@ -56,3 +56,14 @@ globale. L'écran n'en refait aucun morceau.
 > - **Retirer une mission** laissait le devis « retenu » et rendait l'incident
 >   inaffectable définitivement. L'annulation libère maintenant le devis, comme
 >   le fait le refus de l'artisan.
+
+> [!note] Mise à jour du 28/09/2026 — le réseau s'ouvre par commune × métier
+> Le filtre « zone par code postal exact » décrit ci-dessus est **supplanté pour
+> les artisans du réseau** (PR #132) : un artisan du réseau n'est proposable que si
+> la **commune INSEE** du bien est **ouverte pour le métier** demandé par le
+> [[Super Admin]], et si l'artisan y est rattaché, validé et public. L'adresse du
+> bien doit être complète et sa commune **confirmée** (un code postal peut couvrir
+> plusieurs communes). Dans une commune fermée, le gérant peut « Signaler mon
+> intérêt » et **solliciter ses contacts personnels du carnet**. La demande de
+> devis reste dans l'incident, après qualification ; les contrôles sont refaits en
+> base à l'envoi. Voir [[Ouverture du réseau d'artisans]].

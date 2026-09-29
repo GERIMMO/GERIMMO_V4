@@ -1,3 +1,15 @@
+---
+type: source
+tags: [cahier-des-charges, referentiel, v3, priorite]
+status: stable
+created: 2026-09-20
+updated: 2026-09-29
+sources: []
+source-file: "GERIMMO — Cahier des charges maître V3 (PDF, 26 pages, 100 sections), pièce jointe du porteur non déposée dans raw/ ; empreinte SHA-256 ci-dessous"
+source-type: cahier des charges
+source-date: 2026-09-20
+---
+
 # Gerimmo — référence maître V3 et ordre de travail
 
 Adopté le 20 septembre 2026 à la demande explicite du porteur : « Respecte ce derniers cahier des charges ».

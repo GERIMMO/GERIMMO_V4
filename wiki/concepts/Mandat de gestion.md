@@ -48,6 +48,8 @@ continuent** (RM-5.5.2) mais les lots n'alimentent plus aucun rapport (RM-5.5.3)
 **dernier rapport + récapitulatif fiscal émis avant extinction** (RM-5.5.4).
 Vente de tous les lots : mandat sans objet. Décès : hors périmètre, traitement manuel.
 
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+
 ## Relations
 
 Lie [[Propriétaire bailleur]] (mandant) et l'agence sur des [[Lot|lots]] ; conditionne

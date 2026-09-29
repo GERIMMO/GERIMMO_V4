@@ -55,6 +55,8 @@ Le module 0 officialise la scission en **deux personas distincts, aux droits opp
   (l'historique garantit les rapports passés). Ventilation par indivisaire : hors
   périmètre (acté).
 
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+
 ## Propriétaire direct ↔ mandant (Livrable A1, 2026-07-24)
 Le référentiel V3 distingue le **propriétaire direct** (gère lui-même) du **mandant**
 (a confié ses lots à une agence). Le [[Compte, personne et adhésion|modèle d'identité]]

@@ -1,7 +1,7 @@
 ---
 type: synthesis
 tags: [recap, fonctionnalites, specifications, roadmap, archive]
-status: archived
+status: stable
 created: 2026-07-22
 updated: 2026-07-25
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[Fonctionnalités par persona]]"]
@@ -10,6 +10,10 @@ sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0
 # Récapitulatif fonctionnel et lacunes de spécification
 
 > [!warning] Page archivée (2026-07-25, décision humaine)
+> *Note du 29/09/2026 : le statut de frontmatter passe de `archived` (valeur hors
+> schéma) à `stable` — le contenu est figé ; l'archivage reste signalé par le tag
+> `archive` et par cet encadré.*
+>
 > Snapshot du 2026-07-22, **antérieur au référentiel V3** qui l'a supplanté : les
 > lacunes de spécification listées ici sont couvertes par les 22 modules et les
 > livrables A1–A6. Conservée pour l'historique, **ne plus s'y référer** — voir

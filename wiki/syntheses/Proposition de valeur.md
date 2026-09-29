@@ -75,6 +75,8 @@ travail elle-même ; les bots conversationnels de la note produit v0.
 4. Métrique de réussite à instrumenter : **le temps de gérant par lot et par
    mois** — c'est elle que « mieux, plus vite, moins cher » engage.
 
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+
 > [!warning] Points à trancher / contradictions
 > - ~~**Jusqu'où « faire le travail d'une agence » ?**~~ → **tranché par Tahir
 >   le 2026-09-10 : Gerimmo reste l'outil qui exécute le travail** — il n'a pas

@@ -49,6 +49,8 @@ portail **LOCATAIRE** (le plus restreint). Aussi `bien_occupants.occupant_type =
   régularisations **avec justificatifs**, relances reçues — jamais les commentaires
   internes de l'agence (RM-3.12.2).
 
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+
 ## Permissions clés
 - Portail le plus restreint : `view:dashboard/incidents/documents/communication` uniquement.
 - **Aucune** capacité de gestion (`manage:*`) ni de supervision.

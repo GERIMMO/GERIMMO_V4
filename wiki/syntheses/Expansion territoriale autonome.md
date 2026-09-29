@@ -4,7 +4,7 @@ tags: [expansion, territoire, croissance, acquisition, publicite, parrainage, fr
 status: draft
 created: 2026-09-19
 updated: 2026-09-19
-sources: ["[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]"]
+sources: ["[[2026-09-28-reseau-national-ouvertures-locales]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]"]
 ---
 
 # Expansion territoriale autonome
@@ -18,6 +18,17 @@ c'est le plus pertinent, et recommence. Décision du porteur du projet le
 jamais démarchés directement** (interdit sans consentement) mais Gerimmo est
 **autorisée à faire de la publicité sur Instagram et Facebook** ; tout se fait
 **dans des limites** — d'argent, de loi, de santé, de rythme.
+
+> [!note] Précision du 28/09/2026 — gestion nationale, réseau local
+> La **gestion locative est nationale** : un propriétaire ou une agence peut gérer
+> des biens partout en France, quel que soit le département « ouvert » au sens de
+> cette page. Seul le **réseau d'artisans** s'ouvre explicitement, **commune (code
+> INSEE) × métier**, par le [[Super Admin]] dans Supervision → Couverture
+> (`/admin/couverture`, PR #132). Aucun département, aucune commune ni aucun métier
+> n'est ouvert par défaut ; le **filtre Essonne** de l'administration est un
+> réglage d'affichage, **pas une ouverture**. L'« ouverture d'un département »
+> décrite ci-dessous reste une idée d'expansion commerciale (marketing, prospection
+> d'agences) non construite. Voir [[Ouverture du réseau d'artisans]].
 
 ## Ce que l'expansion n'est pas
 

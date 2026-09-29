@@ -60,6 +60,8 @@ foi**, rapatrié avec horodatage (dossier de preuve Yousign —
 Bail préexistant à l'arrivée sur Gerimmo : dépôt du PDF signé (décision 2026-07-22,
 inchangée).
 
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+
 ### Validation du bail en V0 (décision 2026-08-29)
 Le bail se **valide** (bouton « Valider » en bas de la fiche), il ne s'« active »
 plus. Prérequis contrôlés en base, dans l'ordre : locataire principal · **bail signé

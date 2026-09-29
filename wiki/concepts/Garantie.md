@@ -38,6 +38,8 @@ Conforme au droit : **le garant ne signe pas le bail** — il signe un **acte de
 cautionnement distinct, annexé au bail**, reproduisant loyer, révision et durée de
 l'engagement ([[2026-08-05-bailpdf-contrat-de-bail|BailPDF]]).
 
+> [!note] Signature électronique non activée au lancement (30/09/2026, décision du 27/09) → [[Signature électronique]]
+
 **En colocation** : chaque garant couvre **un colocataire identifié** (RM-2.2.4 =
 RM-1.3.8), jamais le bail en bloc ; **son engagement s'éteint avec la solidarité du
 colocataire qu'il couvre** (RM-2.2.5, US-2.2.1) — extinction calculée et tracée au

@@ -5,7 +5,7 @@ status: in-progress
 created: 2026-07-22
 updated: 2026-07-22
 aliases: [Gestionnaire]
-sources: []
+sources: ["[[2026-07-21-fonctionnalites-par-persona-v0]]"]
 ---
 
 # Gérant

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { createClient } from "@supabase/supabase-js";
 import { adresseCanonique } from "@/lib/site";
+import { OUTILS } from "@/lib/outils/catalogue";
 
 // sitemap.xml (29/09) : les pages publiques et chaque article paru du journal,
 // en adresses absolues. Les articles se lisent comme le journal les lit
@@ -16,6 +17,9 @@ const PAGES: { chemin: string; frequence: "daily" | "weekly" | "monthly"; priori
   { chemin: "/", frequence: "weekly", priorite: 1 },
   { chemin: "/tarifs", frequence: "monthly", priorite: 0.9 },
   { chemin: "/journal", frequence: "daily", priorite: 0.8 },
+  // Les outils gratuits (29/09), depuis leur catalogue.
+  { chemin: "/outils", frequence: "monthly", priorite: 0.8 },
+  ...OUTILS.map((o) => ({ chemin: o.chemin, frequence: "monthly" as const, priorite: 0.7 })),
   { chemin: "/conditions", frequence: "monthly", priorite: 0.3 },
   { chemin: "/mentions-legales", frequence: "monthly", priorite: 0.3 },
   { chemin: "/confidentialite", frequence: "monthly", priorite: 0.3 },

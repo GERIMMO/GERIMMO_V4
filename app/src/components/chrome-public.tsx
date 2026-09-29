@@ -60,6 +60,7 @@ export function EnTetePublic() {
 /** Les liens du pied, dans leur ordre d'affichage. */
 const LIENS_PIED: [string, string][] = [
   ["/tarifs", "Tarifs"],
+  ["/outils", "Outils gratuits"],
   ["/journal", "Journal"],
   ["/connexion", "Se connecter"],
   ["/inscription", "Créer mon compte"],

@@ -1,11 +1,11 @@
 import type { MetadataRoute } from "next";
 import { adresseCanonique } from "@/lib/site";
 
-// robots.txt (29/09). Le site public — vitrine, tarifs, journal, pages
-// légales, connexion et inscription — est ouvert aux robots ; les espaces
-// privés ne le sont pas. Ils exigent de toute façon une session (src/proxy.ts),
-// mais un robot n'a pas à y être invité : chaque adresse privée qu'il suit le
-// ramène à la page de connexion.
+// robots.txt (29/09). Le site public — vitrine, tarifs, outils gratuits,
+// journal, pages légales, connexion et inscription — est ouvert aux robots ;
+// les espaces privés ne le sont pas. Ils exigent de toute façon une session
+// (src/proxy.ts), mais un robot n'a pas à y être invité : chaque adresse
+// privée qu'il suit le ramène à la page de connexion.
 //
 // La liste suit les premiers segments privés de src/app (SEGMENTS_CONNUS dans
 // src/proxy.ts, hors pages publiques). /artisan est privé, sauf son inscription.

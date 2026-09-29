@@ -420,6 +420,42 @@
     "dynamic": ""
   },
   {
+    "path": "/outils",
+    "persona": "public",
+    "label": "Outils gratuits (index)",
+    "dynamic": ""
+  },
+  {
+    "path": "/outils/calcul-irl",
+    "persona": "public",
+    "label": "Outil gratuit — calcul de la révision IRL",
+    "dynamic": ""
+  },
+  {
+    "path": "/outils/quittance-de-loyer",
+    "persona": "public",
+    "label": "Outil gratuit — quittance de loyer",
+    "dynamic": ""
+  },
+  {
+    "path": "/outils/comparateur-gli-visale",
+    "persona": "public",
+    "label": "Outil gratuit — comparateur GLI / Visale",
+    "dynamic": ""
+  },
+  {
+    "path": "/outils/simulateur-lmnp",
+    "persona": "public",
+    "label": "Outil gratuit — simulateur LMNP",
+    "dynamic": ""
+  },
+  {
+    "path": "/outils/rentabilite-locative",
+    "persona": "public",
+    "label": "Outil gratuit — rentabilité locative",
+    "dynamic": ""
+  },
+  {
     "path": "/connexion",
     "persona": "public",
     "label": "Connexion",

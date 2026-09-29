@@ -5597,3 +5597,11 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   Révision annuelle IRL, Bail, Garantie, Mandat de gestion.
 - Pages : [[Cycle de vie de l'abonnement]], [[Abonnement]], [[Grille tarifaire]],
   [[Onboarding et abonnement]], [[État du projet et décisions ouvertes]].
+
+## [2026-09-29] decision | Outils gratuits publics sur gerimmo.app
+- Demande du porteur : les outils sur le site Gerimmo (pas de site séparé).
+- `/outils` : révision IRL (indices saisis, aucun indice embarqué), quittance de
+  loyer (reçu partiel si paiement incomplet), comparateur GLI / Visale (règles
+  vérifiées le 29/09/2026, à revoir chaque janvier), simulateur LMNP (micro-BIC
+  / réel), rentabilité locative (brute, nette, cash-flow).
+- Chaque outil renvoie vers la création de compte (essai de 14 jours).

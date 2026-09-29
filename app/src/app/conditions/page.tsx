@@ -29,7 +29,6 @@ const CLAUSES: Record<
   | "facturation"
   | "tva"
   | "preavisTarif"
-  | "retractation"
   | "conservation"
   | "disponibilite"
   | "plafond"
@@ -47,12 +46,12 @@ const CLAUSES: Record<
       : `Les prix des formules particuliers s'entendent toutes taxes comprises, TVA de ${REGIME_TVA.tauxPourcent} % incluse. Les prix des agences s'entendent hors taxes ; la TVA de ${REGIME_TVA.tauxPourcent} % s'y ajoute et est détaillée avant tout paiement.`,
   // Décision du porteur, 28/09/2026 : un mois.
   preavisTarif: "au moins un mois",
-  retractation: null,
   conservation: null,
   disponibilite: null,
   plafond: null,
   delaiMiseEnDemeure: null,
-  preavisModification: null,
+  // Décision du porteur, 29/09/2026 : un mois, comme la révision tarifaire.
+  preavisModification: "au moins un mois",
 };
 
 export default function PageConditions() {
@@ -308,12 +307,50 @@ export default function PageConditions() {
           la refuse peut résilier sans frais avant cette date.
         </p>
         <p>
-          <b className="font-semibold">8.9 — Rétractation.</b>{" "}
-          <Fait
-            valeur={CLAUSES.retractation}
-            quoi="droit de rétractation du client particulier — article à rédiger avec le formulaire type"
-          />
+          <b className="font-semibold">8.9 — Rétractation.</b> Le Client
+          consommateur dispose d&apos;un délai de{" "}
+          <b className="font-semibold">quatorze jours</b> à compter de la
+          souscription d&apos;un abonnement payant pour se rétracter, sans avoir
+          à motiver sa décision (articles L. 221-18 et suivants du code de la
+          consommation). Il notifie sa décision avant l&apos;expiration de ce
+          délai, au moyen du formulaire ci-dessous ou de toute autre déclaration
+          dénuée d&apos;ambiguïté, adressée à{" "}
+          <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> ou depuis
+          la page « Aide et retours » de son espace.
         </p>
+        <p>
+          L&apos;Éditeur rembourse <b className="font-semibold">l&apos;intégralité</b>{" "}
+          des sommes versées au titre de cet abonnement, sans frais, au plus
+          tard quatorze jours après avoir été informé de la décision, par le
+          même moyen de paiement que celui utilisé. L&apos;abonnement prend fin ;
+          les données du Client restent consultables et exportables en lecture
+          seule, dans les conditions de l&apos;article 9. La période d&apos;essai
+          gratuite ne réduit pas ce délai. Ce droit n&apos;est pas ouvert au
+          Client professionnel.
+        </p>
+        <div className="rounded-lg border border-[var(--filet)] p-4 text-[13px]">
+          <p className="font-semibold">Formulaire de rétractation</p>
+          <p className="mt-2">
+            (Veuillez compléter et renvoyer le présent formulaire uniquement si
+            vous souhaitez vous rétracter du contrat.)
+          </p>
+          <p className="mt-2">
+            À l&apos;attention de{" "}
+            <Fait valeur={EDITEUR.denomination} quoi="dénomination de l'éditeur" />,{" "}
+            <Fait valeur={EDITEUR.siege} quoi="adresse du siège" />,{" "}
+            <Fait valeur={EDITEUR.email} quoi="adresse de contact" /> :
+          </p>
+          <p className="mt-2">
+            Je vous notifie par la présente ma rétractation du contrat portant
+            sur la prestation de services ci-dessous : abonnement Gerimmo
+            (formule et organisation concernées).
+          </p>
+          <p className="mt-2">Souscrit le :</p>
+          <p>Nom du consommateur :</p>
+          <p>Adresse du consommateur :</p>
+          <p>Signature du consommateur (uniquement en cas de notification sur papier) :</p>
+          <p>Date :</p>
+        </div>
       </Article>
 
       <Article titre="9. Réversibilité">

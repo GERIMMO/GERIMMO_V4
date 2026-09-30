@@ -18,7 +18,7 @@ export default async function PageSignalerIncident(
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const { data: baux, error: erreurBail } = await supabase.rpc("mon_bail_locataire", { p_org: orgId });
-  const bailActif = adhesionActive && !erreurBail && (baux ?? []).some((b: {etat:string}) => b.etat === "actif");
+  const bailActif = adhesionActive && !erreurBail && (baux ?? []).some((b: {etat:string}) => ["actif", "preavis"].includes(b.etat));
   // Depuis la revue du 11/09 l'entrée de menu « Signaler un problème » mène
   // ici et non plus à la liste : le suivi doit rester à un clic, avec son
   // compte — sinon le raccourci ferait perdre l'accès à ce qu'on a déclaré.

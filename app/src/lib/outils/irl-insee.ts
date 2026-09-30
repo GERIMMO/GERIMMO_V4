@@ -115,6 +115,42 @@ export function trimestreDeDate(iso: string): { trimestre: CodeTrimestre; annee:
   return { annee: Number(m[1]), trimestre: `T${Math.ceil(mois / 3)}` as CodeTrimestre };
 }
 
+/**
+ * L'indice de référence d'un bail (art. 17-1 de la loi du 6 juillet 1989) :
+ * à défaut de clause, c'est le DERNIER indice publié à la date de signature —
+ * souvent le trimestre précédent, pas celui de la date. L'Insee publie l'IRL
+ * d'un trimestre vers le 15 du mois qui suit sa fin (T1 mi-avril, T2
+ * mi-juillet, T3 mi-octobre, T4 mi-janvier de l'année suivante) ; on retient
+ * cette date théorique. Avec `trimestre` imposé (clause du bail), rend la
+ * dernière occurrence de ce trimestre déjà publiée à la date.
+ */
+export function referencePublieeA(
+  iso: string,
+  trimestre?: CodeTrimestre,
+): { trimestre: CodeTrimestre; annee: number } | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? "");
+  if (!m) return null;
+  const annee = Number(m[1]);
+  const mois = Number(m[2]);
+  const jour = Number(m[3]);
+  if (mois < 1 || mois > 12) return null;
+  const publication = (q: number, a: number) => {
+    const moisPub = q * 3 + 1; // 4, 7, 10, 13
+    return moisPub === 13 ? { a: a + 1, m: 1 } : { a, m: moisPub };
+  };
+  const publie = (q: number, a: number) => {
+    const p = publication(q, a);
+    return p.a < annee || (p.a === annee && (p.m < mois || (p.m === mois && jour >= 15)));
+  };
+  for (let a = annee; a >= annee - 2; a--) {
+    for (let q = 4; q >= 1; q--) {
+      if (trimestre && `T${q}` !== trimestre) continue;
+      if (publie(q, a)) return { trimestre: `T${q}` as CodeTrimestre, annee: a };
+    }
+  }
+  return null;
+}
+
 export type SelectionIndices = {
   /** Même trimestre, année de la signature ou de la dernière révision. */
   reference: ObservationIrl | null;

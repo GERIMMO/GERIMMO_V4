@@ -15,6 +15,7 @@ import {
   lireSerieSdmx,
   numeroTrimestre,
   trimestreDeDate,
+  referencePublieeA,
 } from "../src/lib/outils/irl-insee";
 import { calculerRevisionIrl } from "../src/lib/outils/irl";
 
@@ -124,5 +125,19 @@ describe("aucune valeur d'indice dans le code", () => {
   it("le module de lecture ne contient aucun indice", () => {
     const src = readFileSync(path.resolve(__dirname, "../src/lib/outils/irl-insee.ts"), "utf8");
     expect(src.match(/\b1[0-9]\d\.\d{2}\b/g) ?? []).toEqual([]);
+  });
+});
+
+describe("indice de référence à la signature (art. 17-1)", () => {
+  it("prend le dernier indice PUBLIÉ à la date, pas le trimestre de la date", () => {
+    expect(referencePublieeA("2025-05-14")).toEqual({ trimestre: "T1", annee: 2025 });
+    expect(referencePublieeA("2025-07-20")).toEqual({ trimestre: "T2", annee: 2025 });
+    expect(referencePublieeA("2025-07-10")).toEqual({ trimestre: "T1", annee: 2025 });
+    expect(referencePublieeA("2026-01-05")).toEqual({ trimestre: "T3", annee: 2025 });
+    expect(referencePublieeA("2026-01-20")).toEqual({ trimestre: "T4", annee: 2025 });
+  });
+  it("trimestre imposé par le bail : sa dernière occurrence publiée", () => {
+    expect(referencePublieeA("2025-05-14", "T2")).toEqual({ trimestre: "T2", annee: 2024 });
+    expect(referencePublieeA("2025-08-01", "T2")).toEqual({ trimestre: "T2", annee: 2025 });
   });
 });

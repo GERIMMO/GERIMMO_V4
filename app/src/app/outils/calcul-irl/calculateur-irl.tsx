@@ -25,7 +25,7 @@ import {
 import {
   choisirIndices,
   numeroTrimestre,
-  trimestreDeDate,
+  referencePublieeA,
   type CodeTrimestre,
   type ObservationIrl,
 } from "@/lib/outils/irl-insee";
@@ -81,8 +81,11 @@ function ACompleter({ quoi }: { quoi: string }) {
 function dateExemple(serie: ObservationIrl[] | null): string {
   const dernier = serie?.[serie.length - 1];
   if (!dernier) return "";
-  const mois = String((numeroTrimestre(dernier.trimestre) - 1) * 3 + 1).padStart(2, "0");
-  return `${dernier.annee - 1}-${mois}-01`;
+  // Signé juste après la publication du même trimestre, un an plus tôt : la
+  // référence est ce trimestre-là, le nouvel indice le dernier publié.
+  const q = numeroTrimestre(dernier.trimestre);
+  const moisPub = q * 3 + 1;
+  return moisPub === 13 ? `${dernier.annee}-01-20` : `${dernier.annee - 1}-${String(moisPub).padStart(2, "0")}-20`;
 }
 
 export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
@@ -93,7 +96,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
 
   // Parcours automatique
   const [dateBail, setDateBail] = useState(() => dateExemple(serie));
-  const [trimBail, setTrimBail] = useState<CodeTrimestre>(() => trimestreDeDate(dateExemple(serie))?.trimestre ?? "T2");
+  const [trimBail, setTrimBail] = useState<CodeTrimestre>(() => referencePublieeA(dateExemple(serie))?.trimestre ?? "T2");
   const [saisieManuelle, setSaisieManuelle] = useState(false);
 
   // Saisie manuelle
@@ -125,8 +128,9 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
   const gel = revisionInterditeDpe(dpe);
 
   // Les indices retenus, selon le parcours.
-  const tDate = trimestreDeDate(dateBail);
-  const choixAuto = tDate ? { trimestre: trimBail, annee: tDate.annee } : null;
+  // Référence : la dernière occurrence du trimestre retenu déjà publiée à la
+  // signature (art. 17-1), pas le trimestre de la date elle-même.
+  const choixAuto = referencePublieeA(dateBail, trimBail);
   const selection = auto && choixAuto ? choisirIndices(serie, choixAuto) : null;
   const dernier = serie?.[serie.length - 1] ?? null;
 
@@ -155,7 +159,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
 
   function changerDate(v: string) {
     setDateBail(v);
-    const t = trimestreDeDate(v);
+    const t = referencePublieeA(v);
     if (t) setTrimBail(t.trimestre);
   }
 
@@ -188,7 +192,7 @@ export function CalculateurIrl({ serie }: { serie: ObservationIrl[] | null }) {
   // Ce qui manque pour conclure, en clair.
   let manque: ReactNode = null;
   if (!r.ok) {
-    if (auto && !tDate) manque = "Renseignez la date de signature du bail ou de la dernière révision.";
+    if (auto && !choixAuto) manque = "Renseignez la date de signature du bail ou de la dernière révision.";
     else if (auto && selection && !selection.reference)
       manque = `Aucun indice publié par l'Insee pour le ${libelleTrimestre(tRef)} : vérifiez la date saisie.`;
     else if (auto && selection && !selection.nouveau)

@@ -3,7 +3,7 @@ type: process
 tags: [irl, revision, loyer, prescription]
 status: draft
 created: 2026-07-24
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[2026-07-24-gerimmo-v3-module-3-loyers-et-charges]]", "[[2026-08-05-bailpdf-contrat-de-bail]]"]
 ---
 
@@ -86,3 +86,13 @@ dépend du [[Diagnostic]] DPE du lot.
 >   ce texte n'est pas encore une source ingérée dans `raw/` — à ajouter (Légifrance).
 > - Une demande antérieure à l'anniversaire (notifiée d'avance) n'est pas saisissable :
 >   Gerimmo n'enregistre qu'une demande datée d'une échéance déjà atteinte.
+
+> [!note] Outil public (30/09/2026)
+> L'outil gratuit `/outils/calcul-irl` lit la série officielle de l'Insee (IRL
+> France métropolitaine, série 001515333) côté serveur et choisit lui-même les
+> indices : référence = dernier indice **publié** à la signature (art. 17-1, à
+> défaut de clause), nouvel indice = même trimestre, dernière année publiée.
+> Corse et outre-mer : indices spécifiques, saisie manuelle. DPE F ou G : révision
+> interdite. L'application agence, elle, garde la saisie de l'indice (pas de
+> récupération automatique en V1).
+

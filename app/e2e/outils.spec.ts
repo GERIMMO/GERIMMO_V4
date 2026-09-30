@@ -1,5 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { debordementHorizontal } from "./aides";
+import { dureeEssai } from "../src/lib/tarifs";
+
+const CTA_ESSAI = `Créer mon compte — ${dureeEssai()} d'essai`;
 
 // OUTILS GRATUITS (29/09) — pages publiques, sans session. Chaque outil
 // affiche son résultat clé, tient dans 390 px sans défilement horizontal,
@@ -30,7 +33,7 @@ async function verifierPage(page: Page, erreurs: string[]) {
       .map((el) => el.id || el.textContent?.trim() || el.tagName)
   );
   expect(petites, "cibles de moins de 44 px").toEqual([]);
-  const cta = page.getByRole("link", { name: "Créer mon compte — 2 mois d'essai" });
+  const cta = page.getByRole("link", { name: CTA_ESSAI });
   await expect(cta).toHaveAttribute("href", "/inscription");
   expect(erreurs, "erreurs de console").toEqual([]);
 }
@@ -84,7 +87,7 @@ test("calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'u
   await page.emulateMedia({ media: "print" });
   await expect(page.locator("#lettre")).toBeVisible();
   await expect(page.getByLabel("Loyer actuel hors charges")).toBeHidden();
-  await expect(page.getByRole("link", { name: "Créer mon compte — 2 mois d'essai" })).toBeHidden();
+  await expect(page.getByRole("link", { name: CTA_ESSAI })).toBeHidden();
   await expect(page.locator("footer")).toBeHidden();
   await page.emulateMedia({ media: "screen" });
   // DPE F : révision interdite, aucune lettre.

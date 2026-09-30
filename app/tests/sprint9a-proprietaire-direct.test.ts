@@ -95,10 +95,10 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     const {
       rows: [{ juste }],
     } = await db.query(
-      `select essai_fin = (current_date + interval '2 months')::date as juste from public.organizations where id=$1`,
+      `select essai_fin = public.essai_ordinaire_fin() as juste from public.organizations where id=$1`,
       [org]
     );
-    // Essai porté de 14 jours à 2 mois calendaires (décision du 30/09/2026).
+    // L'essai ordinaire du jour (offre de lancement : 2 mois jusqu'au 31/12/2026, puis 1 mois).
     expect(juste).toBe(true);
 
     const { rows: adhesions } = await db.query(

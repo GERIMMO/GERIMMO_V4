@@ -88,6 +88,14 @@ describe("agences : barème marginal, jamais le tarif de la dernière tranche su
     expect(offreAgence(lots).montantCents).toBe(cents);
   });
 
+  it("le socle couvre ses 10 lots même quand l'agence en gère moins (30/09)", () => {
+    // Une agence souscrite à 0 lot recevait une capacité de 0 : plus rien à créer.
+    expect(offreAgence(0).capacite).toBe(10);
+    expect(offreAgence(4).capacite).toBe(10);
+    expect(offreAgence(10).capacite).toBe(10);
+    expect(offreAgence(25).capacite).toBe(25);
+  });
+
   it("le détail d'une facture se recalcule à la main", () => {
     expect(offreAgence(300).lignes.map((l) => [l.quantite, l.prixUnitaireCents, l.totalCents])).toEqual([
       [1, 3900, 3900],

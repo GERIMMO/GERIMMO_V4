@@ -138,7 +138,7 @@ export default async function PageAdmin() {
           <Indicateur libelle="Actives" valeur={orgs.error ? "—" : parStatut("active")} accent="vert"
             precision="abonnement en cours" href="/admin/clients" />
           <Indicateur libelle="En essai" valeur={orgs.error ? "—" : parStatut("essai")} accent="ambre"
-            precision="14 jours, sans carte" href="/admin/clients" />
+            precision="2 mois, sans carte" href="/admin/clients" />
           <Indicateur libelle="Suspendues" valeur={orgs.error ? "—" : suspendues} accent={!orgs.error && suspendues > 0 ? "rouge" : undefined}
             precision="lecture seule, export ouvert" href="/admin/clients" />
           <Indicateur libelle="Lots gérés" valeur={lots.error ? "—" : lots.count ?? 0} accent="bleu"

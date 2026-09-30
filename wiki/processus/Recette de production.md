@@ -3,7 +3,7 @@ type: process
 tags: [recette, production, lancement, personas, qualite]
 status: draft
 created: 2026-09-20
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[Fonctionnalités par persona]]", "[[Audit de nuit — fonctionnalités, personas et automatisation (20 septembre 2026)]]", "[[Lancement dans 10 jours — ce qu'il reste à faire (20 septembre 2026)]]", "[[Onboarding et abonnement]]", "[[Quittancement des loyers]]", "[[Cycle de vie d'un incident]]"]
 ---
 
@@ -75,7 +75,7 @@ ce que le banc a prouvé tient en production.
 
 ### 4. [[Propriétaire bailleur|Propriétaire gestion directe]]
 - `/inscription` avec une troisième adresse → e-mail **« Confirmez votre
-  adresse »** en français → confirmation → organisation en **essai 14 jours**
+  adresse »** en français → confirmation → organisation en **essai de 2 mois** (14 jours avant le 30/09/2026)
   visible dans `/admin` (« En essai »).
 - Premier bien (gratuit) puis deuxième → **souscrire** : page d'abonnement →
   Stripe → carte réelle → retour dans l'espace, statut **active** ;
@@ -83,7 +83,7 @@ ce que le banc a prouvé tient en production.
   bonne quantité.
   > [!note] Supplanté le 28/09/2026
   > Plus de « premier bien gratuit » : dès le premier bien, souscrire une formule
-  > (Solo 5,99 €/mois ou 59,90 €/an…) ; à la fin de l'essai de 14 jours sans
+  > (Solo 5,99 €/mois ou 59,90 €/an…) ; à la fin de l'essai (2 mois depuis le 30/09/2026) sans
   > souscription, l'espace doit passer **en lecture seule** (consultable,
   > exportable). Vérifier aussi la mention « TVA non applicable, art. 293 B du
   > CGI » sur la facture Stripe et que le portail client ne propose que la

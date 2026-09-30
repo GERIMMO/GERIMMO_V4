@@ -18,10 +18,10 @@ import { Client } from "pg";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
   JOURS_ESSAI_FILLEUL,
-  JOURS_ESSAI_ORDINAIRE,
   JOURS_OFFERTS_PARRAIN,
   PARRAINAGE_EN_REVISION,
 } from "@/lib/parrainage";
+import { DUREE_ESSAI } from "@/lib/tarifs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -181,8 +181,13 @@ describe("l'avantage du filleul : trente jours, tout de suite", () => {
     const parrain = await organisation("Parrain");
     const filleul = await organisation("Filleul long", "essai", "current_date + 60");
     const compte = await membre(filleul.id);
-    await rattacher(filleul.id, compte, parrain.code);
+    const parrainage = await rattacher(filleul.id, compte, parrain.code);
     expect(await essaiDe(filleul.id)).toBe(await dans(60));
+    // Rien n'a été allongé : la ligne le dit (30/09/2026 — un essai
+    // ordinaire de 2 mois dépasse toujours les trente jours du filleul).
+    expect(await avantages(parrainage)).toMatchObject([
+      { nature: "essai_filleul", jours: null, etat: "sans_objet" },
+    ]);
   });
 
   it("le dit « sans objet » plutôt que de faire semblant, si le filleul paie déjà", async () => {
@@ -332,7 +337,7 @@ describe("le registre ne se forge pas, et ne fuit pas", () => {
 describe("la base et l'écran annoncent le même chiffre", () => {
   it("ne laisse pas la promesse affichée diverger de la durée appliquée", async () => {
     // Deux sources : la base APPLIQUE, l'écran ANNONCE. Une page qui promet
-    // trente jours pendant que la base en pose quatorze est un mensonge
+    // trente jours pendant que la base en pose moins est un mensonge
     // commercial — ce test est le seul lien entre les deux.
     await db.query("reset role");
     const { rows } = await db.query<{ filleul: number; parrain: number }>(
@@ -342,7 +347,7 @@ describe("la base et l'écran annoncent le même chiffre", () => {
     expect(rows[0].parrain).toBe(JOURS_OFFERTS_PARRAIN);
     // L'écran n'annonce plus d'avantage (décision du 29/09, pas de cumul) :
     // il dit l'essai ordinaire, et ne promet jamais les trente jours.
-    expect(PARRAINAGE_EN_REVISION).toContain(String(JOURS_ESSAI_ORDINAIRE));
+    expect(PARRAINAGE_EN_REVISION).toContain(DUREE_ESSAI);
     expect(PARRAINAGE_EN_REVISION).not.toContain(String(JOURS_ESSAI_FILLEUL));
   });
 

@@ -3,14 +3,15 @@ type: business-rule
 tags: [abonnement, essai, stripe]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
 # Cycle de vie de l'abonnement
 
 > [!info] Nouvelle grille (28/09/2026)
-> - **Essai** 14 jours sans carte ; à son terme, **lecture seule** tant qu'il n'y a
+> - **Essai** de **2 mois** sans carte (14 jours jusqu'au 29/09 ; porté à 2 mois le
+>   30/09/2026, essais en cours prolongés) ; à son terme, **lecture seule** tant qu'il n'y a
 >   pas de souscription — même avec un seul bien (fin du « premier bien offert »).
 > - **Souscription pendant l'essai** : les jours restants sont préservés, premier
 >   prélèvement à la fin de l'essai (date affichée).
@@ -47,7 +48,7 @@ l'essai et transitions réservées.
 - Services `business-service.ts`, `stripe-service.ts`, `automations/lifecycle-emails.ts`.
 
 ## Règles
-- **R3 — Essai 14 jours, expiration automatique** : à l'échéance sans abonnement actif, la
+- **R3 — Essai (14 jours dans le code hérité ; 2 mois depuis le 30/09/2026), expiration automatique** : à l'échéance sans abonnement actif, la
   souscription passe en **`suspended`** (« Essai terminé sans abonnement actif »), avec historique
   + événement `trial.expired` idempotent. `trial_days` borné 0–90.
 - **R4 — Statuts contrôlés** : `status ∈ {trial, active, suspended, expired, cancelled}` ;

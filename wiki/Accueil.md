@@ -3,7 +3,7 @@ type: synthesis
 tags: [accueil, vue-ensemble]
 status: in-progress
 created: 2026-07-20
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[2026-09-20-cahier-des-charges-maitre-v3]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -47,7 +47,7 @@ Gerimmo est publiée le 30/09/2026 sur `gerimmo.app`. Ce qui vaut au lancement :
   SCI Solo (1 bien, 5,99 €/mois ou 59,90 €/an), Bailleur (≤ 3, 9,99 €),
   Investisseur (≤ 10, 19,99 €), Patrimoine (≤ 20, 29,99 €), +1 €/mois par bien
   au-delà ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives. **Aucun bien
-  offert** : essai de 14 jours sans carte, puis gel en lecture seule jusqu'au
+  offert** : essai de 2 mois sans carte (depuis le 30/09/2026), puis gel en lecture seule jusqu'au
   paiement. **Franchise en base de TVA** (art. 293 B du CGI). [[Parrainage]] sans
   avantage tarifaire. CGU en production (`/conditions`) : préavis d'un mois
   (art. 8.8 et 16), rétractation de 14 jours (art. 8.9).

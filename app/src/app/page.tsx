@@ -19,7 +19,7 @@ import { TuileOutil, outilsPresentes } from "@/components/outils/icones-outils";
 export const metadata = metadonneesPubliques({
   titre: "Gerimmo — La gérance immobilière, tenue au carré",
   description:
-    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Essai gratuit de 14 jours, sans carte.",
+    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Essai gratuit de 2 mois, sans carte.",
   chemin: "/",
 });
 
@@ -95,7 +95,7 @@ const FONCTIONNALITES: [string, string][] = [
 const FAQ: [string, string][] = [
   [
     "Combien coûte Gerimmo pour un particulier ?",
-    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de 14 jours, sans carte ; aucune formule n'est gratuite ensuite.`,
+    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de 2 mois, sans carte ; aucune formule n'est gratuite ensuite.`,
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
@@ -179,7 +179,7 @@ export default async function PageVitrine() {
                     ici « Commencer », ailleurs « Créer mon compte » ou
                     « Découvrir la gestion en direct ». */}
                 <Link href="/inscription" className="btn-or !px-5 !py-3 !text-[15px]">
-                  Créer mon compte — 14 jours d&apos;essai
+                  Créer mon compte — 2 mois d&apos;essai
                 </Link>
                 <a href="#agences" className="btn-secondaire">
                   Je suis une agence →
@@ -194,7 +194,7 @@ export default async function PageVitrine() {
                 <span aria-hidden>→</span>
               </Link>
               <p className="mt-5 text-[13px] text-[var(--libelle)]">
-                Essai de 14 jours, sans carte bancaire. Aucun honoraire de
+                Essai de 2 mois, sans carte bancaire. Aucun honoraire de
                 gestion, jamais.
               </p>
             </div>
@@ -438,7 +438,7 @@ export default async function PageVitrine() {
               </div>
               <ul className="mt-5 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
                 {[
-                  "Essai gratuit de 14 jours, sans carte bancaire",
+                  "Essai gratuit de 2 mois, sans carte bancaire",
                   "Mensuel sans engagement, ou annuel payé en une fois",
                   "Mêmes fonctions dans chaque formule ; accès locataires inclus",
                   "Aucuns frais d'installation",
@@ -469,7 +469,7 @@ export default async function PageVitrine() {
                 {[
                   "Mensuel, sans engagement, selon les lots sous mandat actif",
                   "Collaborateurs et locataires inclus, rapports envoyés à vos propriétaires",
-                  "Essai de 14 jours ouvert sur demande, sans carte",
+                  "Essai de 2 mois ouvert sur demande, sans carte",
                   "Reprise manuelle de vos données possible, sur devis",
                 ].map((l) => (
                   <li key={l} className="flex gap-2.5">

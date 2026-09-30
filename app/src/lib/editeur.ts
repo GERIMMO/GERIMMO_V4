@@ -215,7 +215,8 @@ export function prestatairesIncomplets(liste: readonly Prestataire[] = PRESTATAI
 // de l'annuel (art. L. 215-1 du code de la consommation), conservation,
 // disponibilité, plafond de responsabilité, mise en demeure, annexe
 // « article 28 du RGPD ».
-export const CONDITIONS_VERSION = "2026-09-29";
+// 30/09/2026 : essai gratuit porté de 14 jours à 2 mois (article 8.2).
+export const CONDITIONS_VERSION = "2026-09-30";
 
 /** Date d'entrée en vigueur affichée en tête des conditions. */
-export const CONDITIONS_DATE = "29 septembre 2026";
+export const CONDITIONS_DATE = "30 septembre 2026";

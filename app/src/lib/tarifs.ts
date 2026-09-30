@@ -13,8 +13,8 @@
 //
 // CE QUI N'EXISTE PLUS. Le premier bien offert à vie (grille du 05/09) et le
 // plafond de 600 lots au-delà duquel une agence passait par un devis. Aucune
-// formule n'est gratuite en permanence : l'essai de 14 jours est la seule
-// période sans paiement.
+// formule n'est gratuite en permanence : l'essai de 2 mois est la seule
+// période sans paiement (porté de 14 jours à 2 mois le 30/09/2026).
 
 /** Toute somme de ce module est un nombre ENTIER de centimes. */
 export type Centimes = number;
@@ -68,7 +68,13 @@ export const TRANCHES_AGENCE: readonly Tranche[] = [
   { du: 201, au: null, prixLotCents: 100, forfaitCents: 0 },
 ];
 
-export const JOURS_ESSAI = 14;
+// L'ESSAI GRATUIT (décision du porteur du 30/09/2026) : 2 mois, pour tous —
+// particuliers, SCI et agences. Il se compte en MOIS CALENDAIRES, comme en
+// base (`current_date + interval '2 months'`, migration 20260930100000) : un
+// nombre de jours fixe dirait faux un mois sur deux.
+export const MOIS_ESSAI = 2;
+/** La durée de l'essai telle qu'on l'écrit : « 2 mois ». */
+export const DUREE_ESSAI = `${MOIS_ESSAI} mois`;
 
 // ── Calculs ─────────────────────────────────────────────────────────────────
 

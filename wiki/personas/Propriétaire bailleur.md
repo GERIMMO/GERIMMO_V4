@@ -3,7 +3,7 @@ type: persona
 tags: [role, proprietaire]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-module-0b-dossier-locataire]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-0c-copropriete]]", "[[2026-07-24-gerimmo-v3-module-5-mandat-de-gestion]]"]
 ---
 
@@ -76,7 +76,7 @@ même si le lot change de propriétaire.
 
 ## Arrivée dans l'application (décision 2026-08-19)
 **Voie normale :** il **s'inscrit seul en ligne** — page d'inscription publique →
-création de son compte et de son organisation `independent_owner` → essai 14 jours →
+création de son compte et de son organisation `independent_owner` → essai (14 jours ; **2 mois** depuis le 30/09/2026) →
 abonnement par bien via Stripe. Pas de commerciaux, indépendant de bout en bout.
 **Voie de secours :** le [[Super Admin]] peut aussi **créer manuellement tout
 profil**, PD compris (support, cas particuliers). Détail : [[Onboarding et abonnement]]. **Priorisé le 2026-08-19** :

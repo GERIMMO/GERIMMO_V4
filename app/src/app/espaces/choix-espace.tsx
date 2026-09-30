@@ -47,7 +47,7 @@ export function ChoixEspace({
           <span className="min-w-0 flex-1">
             <span className="block font-medium">Je gère mes propres biens</span>
             <span className="block text-xs text-muted-foreground">
-              Pour les biens que vous gérez vous-même — espace et abonnement distincts de ceux de votre agence ; essai gratuit de 14 jours
+              Pour les biens que vous gérez vous-même — espace et abonnement distincts de ceux de votre agence ; essai gratuit de 2 mois
             </span>
           </span>
           {!ouvert && <span className="text-sm font-medium text-[var(--marque-sombre)]">Ouvrir →</span>}

@@ -81,7 +81,7 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     return org;
   }
 
-  it("inscription : organisation en essai 14 jours, adhésion et fiche du propriétaire — idempotente", async () => {
+  it("inscription : organisation en essai de 2 mois, adhésion et fiche du propriétaire — idempotente", async () => {
     const compte = await creerCompte(db, { nom: "Moreau", prenom: "Claire", espace: "proprietaire_direct" });
     const org = await ouvrirEspace(compte);
 
@@ -93,9 +93,13 @@ describe.skipIf(!DB_URL)("Sprint 9a — propriétaire direct", () => {
     expect(o.type).toBe("proprietaire_direct");
     expect(o.status).toBe("essai");
     const {
-      rows: [{ jours }],
-    } = await db.query(`select (essai_fin - current_date) as jours from public.organizations where id=$1`, [org]);
-    expect(Number(jours)).toBe(14);
+      rows: [{ juste }],
+    } = await db.query(
+      `select essai_fin = (current_date + interval '2 months')::date as juste from public.organizations where id=$1`,
+      [org]
+    );
+    // Essai porté de 14 jours à 2 mois calendaires (décision du 30/09/2026).
+    expect(juste).toBe(true);
 
     const { rows: adhesions } = await db.query(
       `select role, status from public.memberships where account_id=$1 and organization_id=$2`,

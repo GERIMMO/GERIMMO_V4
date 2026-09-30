@@ -3,7 +3,7 @@ type: persona
 tags: [role, plateforme]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-24-gerimmo-v3-module-0-biens-et-lots]]", "[[2026-07-24-gerimmo-v3-module-12-documents-et-ged]]", "[[2026-07-24-gerimmo-v3-module-18-administration]]", "[[2026-07-24-gerimmo-v3-module-20-retours-utilisateurs]]", "[[2026-07-24-gerimmo-v3-a4-socle-securite]]", "[[2026-09-28-decision-tarification]]", "[[2026-09-28-reseau-national-ouvertures-locales]]"]
 ---
 
@@ -56,7 +56,7 @@ Fonction SQL `is_super_admin()` qui court-circuite quasi toutes les policies RLS
   redevance annuelle » est **supplanté le 28/09/2026*** : particuliers Solo /
   Bailleur / Investisseur / Patrimoine (5,99 € à 29,99 € TTC/mois, annuel à deux
   mois offerts), agences 39 € HT jusqu'à 10 lots puis tranches cumulatives, aucun
-  bien offert, essai 14 jours puis gel en lecture seule, franchise en base de TVA —
+  bien offert, essai de 2 mois (depuis le 30/09/2026 ; 14 jours avant) puis gel en lecture seule, franchise en base de TVA —
   voir [[Grille tarifaire]], [[Abonnement]], [[2026-09-28-decision-tarification]].
 - **Réseau d'artisans (depuis le 28/09/2026)** : ouvre et ferme le réseau
   **commune × métier** dans Supervision → Couverture (`/admin/couverture`), valide les

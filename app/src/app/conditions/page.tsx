@@ -289,7 +289,7 @@ export default function PageConditions() {
         <p>
           <b className="font-semibold">8.2 — Essai.</b> L&apos;ouverture
           d&apos;un compte donne accès à un{" "}
-          <b className="font-semibold">essai gratuit de 14 jours</b>, sans
+          <b className="font-semibold">essai gratuit de 2 mois</b>, sans
           moyen de paiement. Aucun abonnement ne démarre sans souscription
           explicite. À son terme, à défaut de souscription, la saisie de
           nouvelles données est suspendue ; les données restent consultables et

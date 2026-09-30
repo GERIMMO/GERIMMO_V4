@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
-import { JOURS_ESSAI } from "@/lib/tarifs";
+import { DUREE_ESSAI } from "@/lib/tarifs";
 import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-outils";
 
 // LA COQUILLE DES OUTILS GRATUITS (29/09, habillée le 30/09) : en-tête et
@@ -162,14 +162,14 @@ export function AppelEssai() {
           </h2>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
             Quittances envoyées d&apos;elles-mêmes, révisions de loyer préparées à la date anniversaire, relances
-            d&apos;impayés, aide à la déclaration : la gestion locative tenue au carré. Essai gratuit de {JOURS_ESSAI} jours,
+            d&apos;impayés, aide à la déclaration : la gestion locative tenue au carré. Essai gratuit de {DUREE_ESSAI},
             sans carte bancaire.
           </p>
           <Link
             href="/inscription"
             className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-[11px] bg-[var(--ivoire)] px-5 py-2.5 text-[14.5px] font-semibold text-[var(--encre)] shadow-[0_6px_20px_rgb(0_0_0/0.14)] transition-colors hover:bg-[var(--marque-clair)]"
           >
-            Créer mon compte — {JOURS_ESSAI} jours d&apos;essai
+            Créer mon compte — {DUREE_ESSAI} d&apos;essai
             <span aria-hidden>→</span>
           </Link>
         </div>

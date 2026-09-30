@@ -29,6 +29,8 @@ export async function inviterLocataire(
     email: String(email),
     motif: "invitation_locataire",
     next: "/nouveau-mot-de-passe",
+    // 30 liens par organisation et par heure (audit du 30/09, M4).
+    organisation: orgId,
   });
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);

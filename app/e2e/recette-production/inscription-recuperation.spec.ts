@@ -7,12 +7,14 @@ import { lireComptes } from "./cible";
 // Compte neuf, mot de passe propre à la recette, courriers vers le puits de
 // test Resend. Les liens à usage unique sont lus seulement pour CE compte,
 // sans être affichés ni joints au rapport. On ne lit aucune boîte humaine.
-// La confirmation d'inscription passe par Supabase puis revient dans Gerimmo
-// avec le code PKCE, comme le lien du modèle par défaut. La récupération
-// (30/09) est un lien fabriqué par Gerimmo : /auth/confirm?token_hash=…, qui
-// mène à un bouton ; c'est le clic qui consomme le jeton. La remise dans une
-// boîte humaine reste hors de cet essai : les boîtes resend.dev sont des
-// puits de test.
+// Depuis le 30/09, la confirmation d'inscription ET la récupération sont des
+// liens fabriqués par Gerimmo (auth.admin.generateLink) :
+// /auth/confirm?token_hash=…&type=signup|recovery, qui mènent à un bouton ;
+// c'est le clic qui consomme le jeton, dans n'importe quel navigateur. La
+// base garde l'empreinte du jeton (confirmation_token / recovery_token) :
+// exactement le `token_hash` que porte l'e-mail. La remise dans une boîte
+// humaine reste hors de cet essai : les boîtes resend.dev sont des puits de
+// test.
 test("inscription, confirmation et récupération d'un compte fictif", SANS_TRACE, async ({ page, context }) => {
   test.skip(!process.env.PGPASSWORD, "Lecture du seul lien de test réservée au chantier autonome.");
   test.setTimeout(240_000);
@@ -43,22 +45,22 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     await cliquer(page.getByRole("button", { name: "Ouvrir mon espace", exact: true }));
     await expect(page.getByText(/Vérifiez votre boîte mail/)).toBeVisible();
 
-    const lien = async (colonne: "confirmation_token" | "recovery_token", type: "signup" | "recovery", next: string) => {
-      let jeton = "";
+    // Le jeton est l'empreinte que `generateLink` a posée en base : exactement
+    // le `token_hash` que porte l'e-mail de Gerimmo. Un jeton `pkce_…` dirait
+    // que l'ancien parcours (Supabase envoie) est revenu : refus.
+    const lien = async (colonne: "confirmation_token" | "recovery_token", type: "signup" | "recovery", next: string, bouton: string) => {
+      let empreinte = "";
       await expect(async () => {
         const r = await db.query(`select ${colonne} as token from auth.users where email=$1 and raw_user_meta_data->>'nom'=$2`, [email, nom]);
-        jeton = r.rows[0]?.token ?? "";
-        expect(Boolean(jeton), "un lien réservé au compte fictif est créé").toBe(true);
+        empreinte = r.rows[0]?.token ?? "";
+        expect(/^[a-f0-9]{56}$/.test(empreinte), `un lien ${type} fabriqué par Gerimmo est créé pour le compte fictif`).toBe(true);
       }).toPass({ timeout: 20_000, intervals: [1000, 2000] });
-      if (!/^pkce_[a-f0-9]{32,128}$/.test(jeton)) throw new Error("Le lien de test doit utiliser le parcours de confirmation PKCE.");
-      const url = new URL("https://rddlxunppddzpsaatdaz.supabase.co/auth/v1/verify");
-      url.searchParams.set("token", jeton);
-      url.searchParams.set("type", type);
-      url.searchParams.set("redirect_to", `https://www.gerimmo.app/auth/confirm?next=${next}`);
-      try { await page.goto(url.toString()); } catch { throw new Error("Le lien de confirmation de recette n'a pas pu être ouvert."); }
-      jeton = "";
+      await page.goto(`/auth/confirm?token_hash=${empreinte}&type=${type}&next=${next}`);
+      empreinte = "";
+      // La page du bouton : le jeton n'a pas été consommé à l'ouverture.
+      await cliquer(page.getByRole("button", { name: bouton, exact: true }));
     };
-    await lien("confirmation_token", "signup", "/espaces");
+    await lien("confirmation_token", "signup", "/espaces", "Confirmer mon adresse");
     await page.waitForURL(/\/agence\/[a-f0-9-]{36}/, { timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1, name: /Bonjour/ })).toBeVisible();
     const r = await db.query("select email_confirmed_at is not null as confirme from auth.users where email=$1", [email]);
@@ -66,23 +68,11 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
 
     // Nouveau contexte déconnecté ; le compte n'a jamais payé ni signé de bail.
     await context.clearCookies();
-    // Les envois d'un même compte ont une limite de fréquence chez Supabase.
-    await new Promise(resolve => setTimeout(resolve, 65_000));
     await page.goto("/mot-de-passe-oublie");
     await saisir(page.getByLabel("Adresse e-mail"), email);
     await cliquer(page.getByRole("button", { name: "Envoyer le lien", exact: true }));
     await expect(page.getByText(/Si un compte existe pour cette adresse/)).toBeVisible();
-    // Le jeton de récupération est l'empreinte que `generateLink` a posée :
-    // exactement le `token_hash` que porte l'e-mail.
-    let empreinte = "";
-    await expect(async () => {
-      const r = await db.query("select recovery_token as token from auth.users where email=$1 and raw_user_meta_data->>'nom'=$2", [email, nom]);
-      empreinte = r.rows[0]?.token ?? "";
-      expect(/^[a-f0-9]{56}$/.test(empreinte), "un lien de récupération fabriqué par Gerimmo est créé").toBe(true);
-    }).toPass({ timeout: 20_000, intervals: [1000, 2000] });
-    await page.goto(`/auth/confirm?token_hash=${empreinte}&type=recovery&next=/nouveau-mot-de-passe`);
-    empreinte = "";
-    await cliquer(page.getByRole("button", { name: "Choisir mon mot de passe", exact: true }));
+    await lien("recovery_token", "recovery", "/nouveau-mot-de-passe", "Choisir mon mot de passe");
     await expect(page.getByLabel("Nouveau mot de passe")).toBeVisible();
     const nouveau = `${c.motDePasse}-nouveau`;
     await page.getByLabel("Nouveau mot de passe").fill(nouveau);

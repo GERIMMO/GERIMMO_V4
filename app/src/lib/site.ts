@@ -82,6 +82,14 @@ export function adresseDeRetour(): string {
 }
 
 /**
+ * Ce qu'on dit quand un e-mail qui doit porter un lien ne peut pas partir
+ * faute d'adresse configurée (audit du 30/09, B4/M2) : un lien relatif dans
+ * un e-mail est un lien mort, on ne l'envoie pas.
+ */
+export const MESSAGE_SITE_NON_CONFIGURE =
+  "L’adresse publique du site n’est pas configurée (NEXT_PUBLIC_SITE_URL) : l’e-mail, qui doit porter un lien, n’a pas été envoyé.";
+
+/**
  * L'origine des adresses ABSOLUES que le site publie sur lui-même : balise
  * canonique, aperçus de partage (Open Graph), robots.txt et sitemap.xml
  * (29/09). Ici, pas de « pas de lien plutôt qu'un lien mort » : ces fichiers

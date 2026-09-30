@@ -2,7 +2,8 @@
 //
 // Reproduit le sous-ensemble de l'API Supabase que l'application utilise
 // réellement (relevé du 2026-09-10) au-dessus du Postgres local monté par
-// preparer-base.sh : auth (mot de passe, session, inscription), REST
+// preparer-base.sh : auth (mot de passe, session, inscription, liens fabriqués
+// par la clé de service — admin/generate_link), REST
 // PostgREST-lite (filtres, embeds imbriqués, !fk, !inner, count, single),
 // RPC (fonctions SQL réelles), storage (fichiers sur disque + RLS).
 //
@@ -273,7 +274,9 @@ async function sousIdentite(claims, fn) {
   const client = await pool.connect();
   try {
     await client.query("begin");
-    const role = claims?.role === "authenticated" ? "authenticated" : "anon";
+    // `service_role` : la clé de service (CLE_SERVICE), comme en production —
+    // les fonctions réservées au service (limites des liens) lui répondent.
+    const role = ["authenticated", "service_role"].includes(claims?.role) ? claims.role : "anon";
     await client.query("select set_config('request.jwt.claims', $1, true)", [
       JSON.stringify(claims ?? { role: "anon" }),
     ]);
@@ -610,6 +613,22 @@ async function utilisateurParId(id) {
   const { rows } = await admin((c) => c.query("select * from auth.users where id = $1", [id]));
   return rows[0] ?? null;
 }
+// Un compte confirmé d'emblée : le banc n'envoie aucun courrier.
+async function creerUtilisateur(email, motDePasse, meta) {
+  const { rows } = await admin((c) =>
+    c.query(
+      `insert into auth.users (instance_id, id, aud, role, email, encrypted_password,
+         email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+         confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)
+       values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
+         $1, extensions.crypt($2, extensions.gen_salt('bf')), now(),
+         '{"provider":"email","providers":["email"]}'::jsonb, $3::jsonb, now(), now(), '', '', '', '', '')
+       returning *`,
+      [email, motDePasse, JSON.stringify(meta)],
+    ),
+  );
+  return rows[0];
+}
 
 async function routerAuth(methode, chemin, url, corps, claims) {
   if (chemin === 'factors' || chemin.startsWith('factors/')) {
@@ -644,25 +663,49 @@ async function routerAuth(methode, chemin, url, corps, claims) {
     return { statut: 400, corps: { error: "unsupported_grant_type" } };
   }
   if (chemin === "signup" && methode === "POST") {
-    const meta = corps.data ?? {};
     try {
-      const { rows } = await admin((c) =>
-        c.query(
-          `insert into auth.users (instance_id, id, aud, role, email, encrypted_password,
-             email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-             confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)
-           values ('00000000-0000-0000-0000-000000000000', gen_random_uuid(), 'authenticated', 'authenticated',
-             $1, extensions.crypt($2, extensions.gen_salt('bf')), now(),
-             '{"provider":"email","providers":["email"]}'::jsonb, $3::jsonb, now(), now(), '', '', '', '', '')
-           returning *`,
-          [corps.email, corps.password, JSON.stringify(meta)],
-        ),
-      );
-      return { statut: 200, corps: sessionPour(rows[0]) };
+      const u = await creerUtilisateur(corps.email, corps.password, corps.data ?? {});
+      return { statut: 200, corps: sessionPour(u) };
     } catch (e) {
       if (e.code === "23505") return { statut: 422, corps: { code: "user_already_exists", msg: "User already registered" } };
       throw e;
     }
+  }
+  // L'API d'administration qui fabrique les liens (src/lib/lien-mot-de-passe.ts,
+  // 30/09) : réservée à la clé de service. `signup` crée le compte — confirmé
+  // d'emblée, comme `signup` ci-dessus : le banc n'a pas de courrier, et
+  // l'application ouvre alors la session tout de suite. Les autres types
+  // posent un jeton de récupération. Le lien ne sera jamais vérifié ici
+  // (`verify` non géré) : la réponse suffit à l'application.
+  if (chemin === "admin/generate_link" && methode === "POST") {
+    if (claims?.role !== "service_role") return { statut: 401, corps: { code: "not_admin", msg: "User not allowed" } };
+    const email = String(corps.email ?? "").trim().toLowerCase();
+    const { rows } = await admin((c) => c.query("select * from auth.users where email = $1 and deleted_at is null", [email]));
+    let u = rows[0] ?? null;
+    const jeton = crypto.randomBytes(28).toString("hex");
+    if (corps.type === "signup") {
+      if (u?.email_confirmed_at) {
+        return { statut: 422, corps: { code: "email_exists", msg: "A user with this email address has already been registered" } };
+      }
+      if (!u) u = await creerUtilisateur(email, corps.password, corps.data ?? {});
+      await admin((c) => c.query("update auth.users set confirmation_token = $1 where id = $2", [jeton, u.id]));
+    } else if (["recovery", "magiclink", "invite"].includes(corps.type)) {
+      if (!u) return { statut: 404, corps: { code: "user_not_found", msg: "User with this email not found" } };
+      await admin((c) => c.query("update auth.users set recovery_token = $1 where id = $2", [jeton, u.id]));
+    } else {
+      return { statut: 400, corps: { msg: `generate_link type ${corps.type} non géré en mode local` } };
+    }
+    return {
+      statut: 200,
+      corps: {
+        action_link: `http://127.0.0.1:${PORT}/auth/v1/verify?token=${jeton}&type=${corps.type}`,
+        email_otp: "",
+        hashed_token: jeton,
+        redirect_to: corps.redirect_to ?? "",
+        verification_type: corps.type,
+        ...utilisateurJson(await utilisateurParId(u.id)),
+      },
+    };
   }
   if (chemin === "user" && methode === "GET") {
     if (!claims?.sub) return { statut: 401, corps: { code: "no_authorization", msg: "Jeton absent ou invalide" } };
@@ -922,6 +965,12 @@ const serveur = http.createServer(async (req, res) => {
 
 await chargerCatalogue();
 fs.mkdirSync(STOCKAGE, { recursive: true });
+// La clé de service du banc : un JWT `service_role` signé du secret local. À
+// poser dans SUPABASE_SERVICE_ROLE_KEY du serveur Next pour que les liens de
+// connexion (inscription, mot de passe oublié, invitations) se fabriquent.
+const CLE_SERVICE = signer({ role: "service_role", iss: "supabase-local" });
+
 serveur.listen(PORT, "127.0.0.1", () => {
   console.log(`Émulateur Supabase local prêt : http://127.0.0.1:${PORT} → ${DB_URL}`);
+  console.log(`SUPABASE_SERVICE_ROLE_KEY=${CLE_SERVICE}`);
 });

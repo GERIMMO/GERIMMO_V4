@@ -9,8 +9,7 @@ import { normaliserCode } from "@/lib/parrainage";
 import { ACTIVITY_COOKIE } from "@/lib/session-policy";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription";
-import { adresseDeRetour } from "@/lib/site";
-import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
+import { envoyerLienMotDePasse, inscrireEtEnvoyerConfirmation } from "@/lib/lien-mot-de-passe";
 import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
@@ -131,8 +130,9 @@ export type EtatInscription = {
 };
 
 // Le compte est créé par Supabase Auth (politique de mot de passe, fuites
-// connues, confirmation d'email selon la configuration du projet). Nom et
-// prénom voyagent dans les métadonnées du compte : c'est la fonction
+// connues), par l'API d'administration : Gerimmo envoie lui-même le lien de
+// confirmation (lib/lien-mot-de-passe.ts, 30/09). Nom et prénom voyagent dans
+// les métadonnées du compte : c'est la fonction
 // `initialiser_espace_proprietaire` — appelée depuis /espaces dès qu'une
 // session existe — qui ouvre l'organisation, l'adhésion et la fiche.
 export async function inscrireProprietaire(
@@ -171,61 +171,74 @@ export async function inscrireProprietaire(
     };
   }
 
-  const origine = adresseDeRetour();
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
+  // Le compte est créé par la fabrique de liens (lib/lien-mot-de-passe.ts,
+  // 30/09) : `auth.admin.generateLink` type `signup`, qui pose ces
+  // métadonnées et rend NOTRE lien de confirmation — valable dans n'importe
+  // quel navigateur, consommé au clic sur un bouton, jamais à l'ouverture.
+  return finirInscription({
     email,
-    password: motDePasse,
-    options: {
-      data: {
-        nom,
-        prenom,
-        espace: "proprietaire_direct",
-        telephone: String(formData.get("telephone") ?? "").trim(),
-        adresse: String(formData.get("adresse") ?? "").trim(),
-        code_postal: String(formData.get("code_postal") ?? "").trim(),
-        ville: String(formData.get("ville") ?? "").trim(),
-        qualite: qualiteDeLaListe(formData.get("qualite")),
-        // Ce qui a été accepté. Les métadonnées restent modifiables par le
-        // titulaire du compte (audit du 27/09) : la PREUVE est la ligne que
-        // la base inscrit, à la création du compte et à l'heure du serveur,
-        // dans `acceptations_cgu` (ajout seul, ni mise à jour ni suppression).
-        cgu_version: CONDITIONS_VERSION,
-        cgu_acceptee_le: new Date().toISOString(),
-        // Consommé à la naissance de l'organisation, sur /espaces.
-        ...(codeParrainage ? { code_parrainage: codeParrainage } : {}),
-      },
-      emailRedirectTo: `${origine}/auth/confirm?next=/espaces`,
+    motDePasse,
+    valeurs,
+    next: "/espaces",
+    metadonnees: {
+      nom,
+      prenom,
+      espace: "proprietaire_direct",
+      telephone: String(formData.get("telephone") ?? "").trim(),
+      adresse: String(formData.get("adresse") ?? "").trim(),
+      code_postal: String(formData.get("code_postal") ?? "").trim(),
+      ville: String(formData.get("ville") ?? "").trim(),
+      qualite: qualiteDeLaListe(formData.get("qualite")),
+      // Ce qui a été accepté. Les métadonnées restent modifiables par le
+      // titulaire du compte (audit du 27/09) : la PREUVE est la ligne que
+      // la base inscrit, à la création du compte et à l'heure du serveur,
+      // dans `acceptations_cgu` (ajout seul, ni mise à jour ni suppression).
+      cgu_version: CONDITIONS_VERSION,
+      cgu_acceptee_le: new Date().toISOString(),
+      // Consommé à la naissance de l'organisation, sur /espaces.
+      ...(codeParrainage ? { code_parrainage: codeParrainage } : {}),
     },
   });
-  if (error) {
-    const issue = classerErreurInscription(error);
-    // Audit du 27/09 : jamais « un compte existe déjà » (énumération de
-    // comptes). Le titulaire reçoit de quoi se reconnecter ; l'écran dit la
-    // même chose qu'à une adresse neuve (lib/inscription.ts).
-    if (issue.type === "adresse_deja_inscrite") {
-      await prevenirTitulaire(email);
-      return { message: MESSAGE_BOITE_MAIL };
-    }
-    if (issue.type === "mot_de_passe_faible") return { erreur: issue.erreur, valeurs };
-    return { erreur: `Inscription impossible : ${sansJargon(issue.message)}`, valeurs };
-  }
-
-  // Confirmation d'email exigée par le projet : pas de session tant que le
-  // lien n'est pas cliqué — il mène à /espaces, qui finit l'ouverture.
-  if (!data.session) {
-    return { message: MESSAGE_BOITE_MAIL };
-  }
-  redirect("/espaces");
 }
 
 /**
- * L'adresse a déjà un compte : on écrit à son titulaire un lien pour se
- * reconnecter (le même que « mot de passe oublié »), et on ne dit rien à
- * l'écran. L'échec de l'envoi est ignoré : la réponse reste neutre.
+ * La fin commune des deux inscriptions (propriétaire, artisan) : création du
+ * compte et envoi du lien de confirmation, puis la réponse à l'écran.
+ *
+ * Audit du 27/09 : jamais « un compte existe déjà » (énumération de comptes).
+ * Une adresse déjà confirmée vaut à son titulaire un lien de reconnexion, et
+ * l'écran dit la même chose qu'à une adresse neuve (lib/inscription.ts). Une
+ * adresse inscrite mais jamais confirmée reçoit un nouveau lien de
+ * confirmation : même écran. Seule la limite de fréquence se dit — elle vaut
+ * pour toute adresse et ne révèle rien.
  */
-async function prevenirTitulaire(email: string) {
-  await envoyerLienMotDePasse({ email, motif: "compte_existant", next: "/nouveau-mot-de-passe" });
+async function finirInscription(params: {
+  email: string;
+  motDePasse: string;
+  metadonnees: Record<string, unknown>;
+  next: string;
+  valeurs: Record<string, string>;
+}): Promise<EtatInscription> {
+  const { email, motDePasse, metadonnees, next, valeurs } = params;
+  const resultat = await inscrireEtEnvoyerConfirmation({ email, motDePasse, metadonnees, next });
+  if ("erreur" in resultat) {
+    if (resultat.limite) return { erreur: resultat.erreur, valeurs };
+    const issue = classerErreurInscription({ code: resultat.code, message: resultat.erreur });
+    if (issue.type === "mot_de_passe_faible") return { erreur: issue.erreur, valeurs };
+    // « adresse déjà inscrite » est traité par la fabrique elle-même (état
+    // `compte_existant`) : ici il ne reste que les autres erreurs.
+    const message = issue.type === "autre" ? issue.message : resultat.erreur;
+    return { erreur: `Inscription impossible : ${sansJargon(message)}`, valeurs };
+  }
+  if (resultat.etat === "deja_confirme") {
+    // Projet sans confirmation d'adresse (banc local) : la session s'ouvre
+    // tout de suite, comme le faisait `signUp` autoconfirmé.
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password: motDePasse });
+    if (error) return { erreur: `Inscription impossible : ${sansJargon(error.message)}`, valeurs };
+    redirect(next);
+  }
+  return { message: MESSAGE_BOITE_MAIL };
 }
 
 // ============================================================
@@ -261,33 +274,21 @@ export async function creerCompteArtisan(
     return { erreur: "Acceptez les conditions d'utilisation pour continuer.", valeurs };
   }
 
-  const origine = adresseDeRetour();
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
+  // Le lien de confirmation mène à next=/artisan/inscription, où la fiche de
+  // l'entreprise se remplit une fois connecté.
+  return finirInscription({
     email,
-    password: motDePasse,
-    options: {
-      data: {
-        // Lu par /espaces : un compte artisan sans fiche est renvoyé vers
-        // l'inscription de l'entreprise, jamais vers un espace propriétaire.
-        espace: "artisan",
-        cgu_version: CONDITIONS_VERSION,
-        cgu_acceptee_le: new Date().toISOString(),
-      },
-      emailRedirectTo: `${origine}/auth/confirm?next=/artisan/inscription`,
+    motDePasse,
+    valeurs,
+    next: "/artisan/inscription",
+    metadonnees: {
+      // Lu par /espaces : un compte artisan sans fiche est renvoyé vers
+      // l'inscription de l'entreprise, jamais vers un espace propriétaire.
+      espace: "artisan",
+      cgu_version: CONDITIONS_VERSION,
+      cgu_acceptee_le: new Date().toISOString(),
     },
   });
-  if (error) {
-    const issue = classerErreurInscription(error);
-    if (issue.type === "adresse_deja_inscrite") {
-      await prevenirTitulaire(email);
-      return { message: MESSAGE_BOITE_MAIL };
-    }
-    if (issue.type === "mot_de_passe_faible") return { erreur: issue.erreur, valeurs };
-    return { erreur: `Inscription impossible : ${sansJargon(issue.message)}`, valeurs };
-  }
-  if (!data.session) return { message: MESSAGE_BOITE_MAIL };
-  redirect("/artisan/inscription");
 }
 
 // ============================================================

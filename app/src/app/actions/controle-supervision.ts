@@ -58,6 +58,8 @@ export async function renvoyerInvitation(orgId: string, _etat: EtatControle, for
     email: courriel,
     motif: "renvoi_supervision",
     next: "/nouveau-mot-de-passe",
+    // Le renvoi compte dans la limite de l'organisation (30/h, audit du 30/09, M4).
+    organisation: orgId,
   });
   // Le geste est journalisé, réussi ou non : un renvoi tenté est une action.
   const journal = await journaliserSupervision(supabase, "invitation_renvoyee", { envoyee: !erreurMail }, orgId);

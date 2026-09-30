@@ -2,6 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { doitVerifierSecondFacteur } from "@/lib/mfa";
 import { ACTIVITY_COOKIE, lireActivite, secretDActivite, signerActivite, strictestLimits } from "@/lib/session-policy";
+import { COOKIES_SESSION } from "@/lib/supabase/cookies";
+import { statutRedirection } from "@/lib/redirection";
 
 // Accessibles sans session. /auth/confirm traite les liens reçus par email
 // (réinitialisation…) : il doit rester traversable même connecté.
@@ -101,6 +103,7 @@ export async function proxy(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
+      cookieOptions: COOKIES_SESSION,
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -146,7 +149,7 @@ export async function proxy(request: NextRequest) {
     const demandee = pathname + request.nextUrl.search;
     url.pathname = "/connexion";
     url.search = demandee && demandee !== "/" ? `?suite=${encodeURIComponent(demandee)}` : "";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, statutRedirection(request.method));
   }
 
   // Sessions par rôle (RM-A4.5) : la limite la plus stricte des adhésions actives.
@@ -186,7 +189,9 @@ export async function proxy(request: NextRequest) {
     url.search = aRetenir
       ? `?raison=session-expiree&suite=${encodeURIComponent(demandee)}`
       : "?raison=session-expiree";
-    const redirect = NextResponse.redirect(url);
+    // 303 pour un POST (audit du 30/09, M6) : un 307 rejouerait l'action
+    // serveur sur /connexion.
+    const redirect = NextResponse.redirect(url, statutRedirection(request.method));
     response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
     redirect.cookies.delete(ACTIVITY_COOKIE);
     return redirect;

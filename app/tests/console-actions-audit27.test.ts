@@ -117,7 +117,8 @@ describe("renvoyer l'invitation (majeur 7)", () => {
     expect((await renvoyerInvitation(ID, {}, form({ email: "resp@agence.fr" }))).erreur).toMatch(/Confirmez/);
     const r = await renvoyerInvitation(ID, {}, form({ email: "resp@agence.fr", confirmation: "oui" }));
     expect(r.succes).toMatch(/Invitation renvoyée/);
-    expect(mocks.lien).toHaveBeenCalledWith({ email: "resp@agence.fr", motif: "renvoi_supervision", next: "/nouveau-mot-de-passe" });
+    // 30/09 (M4) : le renvoi compte dans la limite de liens de l'organisation.
+    expect(mocks.lien).toHaveBeenCalledWith({ email: "resp@agence.fr", motif: "renvoi_supervision", next: "/nouveau-mot-de-passe", organisation: ID });
     expect(c.appels).toContainEqual(["journaliser_supervision", { p_action: "invitation_renvoyee", p_organisation: ID, p_details: { envoyee: true } }]);
   });
   it("dit quand l'invitation n'est pas partie, et le journalise", async () => {

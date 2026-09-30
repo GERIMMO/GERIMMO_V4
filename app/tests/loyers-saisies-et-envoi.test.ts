@@ -79,6 +79,9 @@ import { ajouterRelance, envoyerQuittance, regulariserCharges } from "@/app/acti
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  // Les liens des e-mails suivent la configuration, jamais l'en-tête Origin.
+  vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://www.gerimmo.app");
   banc.autorise = true;
   banc.erreurMemo = null;
   banc.erreurLectureQuittance = null;
@@ -228,6 +231,16 @@ describe("Email de quittance : distinguer un envoi refusé d'un envoi déjà par
     expect(resultat.succes).toContain("envoyée à locataire@recette.test");
     expect(banc.email).toHaveBeenCalledOnce();
     expect(banc.update).toHaveBeenCalledOnce();
+    expect(String(banc.email.mock.calls[0]?.[0]?.html)).toContain("https://www.gerimmo.app/quittance/quittance-test");
+  });
+
+  it("sans adresse publique configurée, refuse d'envoyer plutôt qu'un lien relatif (audit 30/09, B4)", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "");
+    const resultat = await envoyerQuittance("org-test", "bail-test", "quittance-test");
+    expect(resultat.erreur).toContain("NEXT_PUBLIC_SITE_URL");
+    expect(banc.email).not.toHaveBeenCalled();
+    expect(banc.update).not.toHaveBeenCalled();
   });
 
   it("reste un succès explicite si l'email est parti mais sa mémorisation échoue", async () => {

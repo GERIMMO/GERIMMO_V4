@@ -61,6 +61,7 @@ export function FormulaireBien({
   const [codePostal, setCodePostal] = useState(bien?.postal_code ?? "");
   const [ville, setVille] = useState(bien?.city ?? "");
   const [suggestions, setSuggestions] = useState<SuggestionAdresse[]>([]);
+  const adresseFocalisee = useRef(false);
   const minuterieRecherche = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Audit gestion du 29/09 : la commune du bien (réseau d'artisans) se choisit
@@ -112,7 +113,7 @@ export function FormulaireBien({
         const donnees = (await reponse.json()) as {
           features?: { properties: SuggestionAdresse }[];
         };
-        setSuggestions((donnees.features ?? []).map((f) => f.properties));
+        if (adresseFocalisee.current) setSuggestions((donnees.features ?? []).map((f) => f.properties));
       } catch {
         // Hors ligne ou API indisponible : la saisie manuelle reste possible
       }
@@ -198,7 +199,9 @@ export function FormulaireBien({
           maxLength={200}
           value={adresse}
           onChange={(e) => rechercherAdresse(e.target.value)}
-          placeholder="Taper le n° et la voie — suggestions automatiques"
+          onFocus={() => { adresseFocalisee.current = true; }}
+          onBlur={() => { adresseFocalisee.current = false; setTimeout(() => setSuggestions([]), 150); }}
+          placeholder="Adresse libre ou proposée — les suggestions sont facultatives"
           autoComplete="off"
         />
         {suggestions.length > 0 && (
@@ -273,7 +276,7 @@ export function FormulaireBien({
           </select>
           <p className="text-sm text-muted-foreground">
             Un code postal peut desservir plusieurs communes : choisissez celle
-            de l&apos;adresse. Elle ouvre le réseau d&apos;artisans pour ce bien.
+            de l&apos;adresse. Elle permet de vérifier les métiers disponibles pour ce bien, selon les zones ouvertes par Gerimmo.
           </p>
         </div>
       )}

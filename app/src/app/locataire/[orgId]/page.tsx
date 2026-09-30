@@ -214,7 +214,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
       action: "Mes paiements",
     });
   }
-  if (bail && !assuranceAJour) {
+  if (adhesionActive && !assuranceAJour) {
     aFaire.push({
       cle: "assurance",
       titre: derniere
@@ -434,7 +434,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
           </div>
           <div className={CARTE_KPI}>
             <p className="text-[13px] font-semibold text-[var(--encre)]">Mes documents</p>
-            {ePieces || eEcheancier ? (
+            {ePieces || eEcheancier || eDemandes ? (
               <div className="mt-2">
                 <LectureImpossible quoi="vos documents" />
               </div>
@@ -450,15 +450,19 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 </p>
                 <span
                   className={`loc-tag mt-2.5 ${
-                    !bail
+                    nbPiecesDemandees > 0
+                      ? "ambre"
+                      : !bail
                       ? "bleu"
                       : renouvellementDepose || assuranceEnVerification || assuranceARenouveler || !attestationValide
                         ? "ambre"
                         : "vert"
                   }`}
                 >
-                  {!bail
-                    ? "Aucune pièce attendue"
+                  {nbPiecesDemandees > 0
+                    ? `${nbPiecesDemandees} pièce${nbPiecesDemandees > 1 ? "s" : ""} à déposer`
+                    : !bail
+                    ? attestationValide ? "✓ Assurance à jour" : assuranceEnVerification ? "Assurance en cours de vérification" : "Assurance à déposer"
                     : renouvellementDepose
                       ? "Renouvellement déposé — en cours de vérification"
                       : assuranceARenouveler && derniere

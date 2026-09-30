@@ -55,8 +55,7 @@ function questions(orgId: string): { question: string; reponse: ReactNode }[] {
       reponse: (
         <>
           Par lettre recommandée avec accusé de réception adressée à votre
-          gestionnaire — c&apos;est elle qui fait courir le préavis, dès sa première
-          présentation. Prévenez-le d&apos;abord depuis {rubrique("logement", "Mon logement")}{" "}
+          gestionnaire — c&apos;est elle qui fait courir le préavis, à sa réception effective par le destinataire. Un recommandé non retiré ne fait pas courir ce délai. Prévenez-le d&apos;abord depuis {rubrique("logement", "Mon logement")}{" "}
           (deux minutes) : il attendra votre courrier et confirmera votre date de
           fin de bail. Préavis : 1 mois en meublé ou en zone tendue, 3 mois sinon —
           ramené à 1 mois pour certaines situations (mutation, perte d&apos;emploi,

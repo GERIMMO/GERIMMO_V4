@@ -83,7 +83,7 @@ export function CarteConge({
                 réception
               </b>{" "}
               à votre gestionnaire — c&apos;est elle qui fait courir votre
-              préavis, à compter de sa première présentation
+              préavis, à compter de sa réception effective
             </span>
           </div>
           <div className="loc-etape">
@@ -125,7 +125,7 @@ export function CarteConge({
             Votre préavis sera d&apos;environ{" "}
             <b className="font-semibold">{preavisMois} mois</b>
             {preavisMois === 1 ? " (logement meublé ou zone tendue)" : ""} : il
-            court à compter de la première présentation de votre{" "}
+            court à compter de la réception effective de votre{" "}
             <b className="font-semibold">lettre recommandée</b> — l&apos;annonce
             faite ici prévient votre gestionnaire, elle ne remplace pas le
             courrier.

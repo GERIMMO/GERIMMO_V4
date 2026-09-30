@@ -2,7 +2,7 @@
 import { cheminFicheAlerte } from "@/lib/chemin-alerte";
 import { afficherEcheance, dateDeReference } from "@/lib/echeances";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CRITICITES, ORDRE_CRITICITE } from "@/lib/ged";
 import { buttonVariants } from "@/components/ui/button";
@@ -66,6 +66,7 @@ export function SyntheseAlertes({
   estResponsable?: boolean;
 }) {
   const [ouverte, setOuverte] = useState(false);
+  const ouvertureExaminee = useRef(false);
   const [toutAfficher, setToutAfficher] = useState(false);
   // Pop-up de traitement OUVERTE SUR PLACE (recette 24/08) : son état vit au
   // niveau de la cloche — la synthèse se referme, la modale de traitement
@@ -78,6 +79,8 @@ export function SyntheseAlertes({
   // ce composant puis redirige aussitôt — poser le drapeau à l'ouverture y
   // « consommait » la synthèse sans que personne ne l'ait vue.
   useEffect(() => {
+    if (ouvertureExaminee.current) return;
+    ouvertureExaminee.current = true;
     if (alertes.length === 0 || sessionStorage.getItem(CLE_SESSION_ALERTES)) return;
     // Ouverture différée d'un tick : évite un re-rendu en cascade à l'hydratation
     const minuterie = setTimeout(() => setOuverte(true), 0);

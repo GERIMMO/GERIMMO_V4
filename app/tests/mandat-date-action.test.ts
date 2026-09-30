@@ -1,0 +1,11 @@
+import {beforeEach, expect, it, vi} from 'vitest';
+const b=vi.hoisted(()=>({autorise:true,ligne:true,erreur:null as null|{message:string},filtres:{} as Record<string,string>,modifications:[] as unknown[]}));
+vi.mock('next/cache',()=>({revalidatePath:vi.fn()}));
+vi.mock('@/lib/ged-acces',()=>({verifierGerant:async()=>({user:b.autorise?{id:'agent'}:null,supabase:{from:()=>{const q={update:(v:unknown)=>{b.modifications.push(v);return q},eq:(k:string,v:string)=>{b.filtres[k]=v;return q},select:()=>q,maybeSingle:async()=>({data:b.ligne?{id:'m'}:null,error:b.erreur})};return q}}})}));
+import {modifierDateMandat} from '@/app/actions/mandats';
+beforeEach(()=>{b.autorise=true;b.ligne=true;b.erreur=null;b.filtres={};b.modifications=[]});
+const form=(date:string)=>{const f=new FormData();f.set('date_debut',date);return f};
+it('refuse sans accès agence',async()=>{b.autorise=false;expect((await modifierDateMandat('o','p','m',{},form('2026-10-01'))).erreur).toBeTruthy();expect(b.modifications).toHaveLength(0)});
+it.each(['','2026-02-30','texte'])('refuse date invalide %s',async d=>{expect((await modifierDateMandat('o','p','m',{},form(d))).erreur).toBeTruthy();expect(b.modifications).toHaveLength(0)});
+it('limite la modification au brouillon de la personne et de l’agence',async()=>{expect((await modifierDateMandat('o','p','m',{},form('2026-10-01'))).succes).toBeTruthy();expect(b.modifications).toEqual([{date_debut:'2026-10-01'}]);expect(b.filtres).toEqual({id:'m',organization_id:'o',person_id:'p',etat:'brouillon'})});
+it('ne prétend pas modifier un mandat signé ou inaccessible',async()=>{b.ligne=false;expect((await modifierDateMandat('o','p','m',{},form('2026-10-01'))).erreur).toBeTruthy()});

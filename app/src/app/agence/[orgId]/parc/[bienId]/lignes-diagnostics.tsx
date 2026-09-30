@@ -64,17 +64,19 @@ export function LignesDiagnostics({
         const d = deposesParType.get(type);
         const statut = d ? statutDiagnostic(d.date_expiration) : null;
         const manquant = !d;
-        const obligatoire = attendus.includes(type);
+        const conditionnel = ["gaz", "electricite", "termites"].includes(type);
+        const obligatoire = attendus.includes(type) && !conditionnel;
         const enAlerte = (manquant && obligatoire) || statut === "expire";
 
         return (
           <li key={type} className="py-2.5">
+            {conditionnel && !d && <p className="text-xs text-muted-foreground">{type === "gaz" ? "À prévoir si le logement possède une installation de gaz de plus de 15 ans. Un chauffage électrique ne suffit pas à exclure une installation de gaz." : type === "electricite" ? "À prévoir pour une installation électrique de plus de 15 ans." : "Vérifiez les obligations locales avant de commander ce diagnostic."}</p>}
             <div className="flex flex-wrap items-center gap-2 text-sm">
               {/* min-w-[9rem] : sur écran étroit, les badges passent à la ligne
                   au lieu de compresser le libellé (seule identification) */}
               <span className="min-w-[9rem] flex-1 font-medium">
                 {TYPES_DIAGNOSTIC[type]?.libelle ?? type}
-                {!obligatoire && (
+                {!obligatoire && !conditionnel && (
                   <span className="ml-1.5 text-xs font-normal text-muted-foreground">
                     (hors obligation)
                   </span>
@@ -83,7 +85,7 @@ export function LignesDiagnostics({
 
               {manquant ? (
                 <BadgeStatut ton={obligatoire ? "retard" : "neutre"}>
-                  {obligatoire ? "Manquant" : "Non déposé"}
+                  {conditionnel ? "Applicabilité à vérifier" : obligatoire ? "Manquant" : "Non déposé"}
                 </BadgeStatut>
               ) : (
                 <>

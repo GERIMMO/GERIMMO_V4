@@ -17,6 +17,8 @@ export default async function PageSignalerIncident(
   const { orgId } = await props.params;
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
+  const { data: baux, error: erreurBail } = await supabase.rpc("mon_bail_locataire", { p_org: orgId });
+  const bailActif = adhesionActive && !erreurBail && (baux ?? []).some((b: {etat:string}) => b.etat === "actif");
   // Depuis la revue du 11/09 l'entrée de menu « Signaler un problème » mène
   // ici et non plus à la liste : le suivi doit rester à un clic, avec son
   // compte — sinon le raccourci ferait perdre l'accès à ce qu'on a déclaré.
@@ -39,14 +41,14 @@ export default async function PageSignalerIncident(
           Suivre mes demandes{enCours > 0 ? ` (${enCours} en cours)` : ""}{"\u00a0"}→
         </Link>
       </div>
-      {adhesionActive && (
+      {bailActif && (
         <p className="text-sm text-muted-foreground">
           Vous saurez qui prend la réparation en charge après examen par votre
           gestionnaire.
         </p>
       )}
 
-      {adhesionActive ? (
+      {bailActif ? (
         <>
           <ReflexesUrgence />
           <FormulaireIncidentLocataire orgId={orgId} />
@@ -54,7 +56,7 @@ export default async function PageSignalerIncident(
       ) : (
         <div className="loc-carte">
           <p className="text-sm text-muted-foreground">
-            Votre bail est terminé : la déclaration d&apos;incident est fermée.
+            {erreurBail ? "Votre bail ne peut pas être vérifié pour le moment. Réessayez ou contactez votre gestionnaire." : "La déclaration nécessite un bail actif. Contactez votre gestionnaire pour vérifier votre dossier."}
             Vos anciens signalements restent consultables dans{" "}
             <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
               Mes demandes

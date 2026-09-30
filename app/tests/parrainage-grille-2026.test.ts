@@ -65,8 +65,8 @@ async function abonnement(
   const { c } = await un<{ c: string }>(
     `insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut,
        periodicite, montant_periode_cents, montant_mensuel_cents, unites_souscrites, formule, premiere_facture_payee)
-     values ($1, 'cus_'||gen_random_uuid(), 'sub_'||gen_random_uuid(), $2, $3, $4,
-       case when $3 = 'annuel' then round($4 / 12.0)::bigint else $4 end, 1, 'solo', $5)
+     values ($1, 'cus_'||gen_random_uuid(), 'sub_'||gen_random_uuid(), $2, $3, $4::bigint,
+       case when $3 = 'annuel' then round($4::bigint / 12.0)::bigint else $4::bigint end, 1, 'solo', $5)
      returning stripe_customer_id as c`,
     [org, statutStripe, periodicite, montantPeriodeCents, premiereFacturePayee]
   );

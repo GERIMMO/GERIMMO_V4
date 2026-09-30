@@ -194,8 +194,9 @@ export default async function LayoutArtisan({
           role="status"
           className="border-b border-[var(--warning)] bg-[var(--warning-soft)] px-4 py-2.5 text-center text-[0.9375rem] text-[var(--warning-soft-foreground)]"
         >
-          Inscription en cours de validation par Gerimmo. Déposez vos
-          attestations : aucune agence ne peut vous solliciter avant.
+          Inscription en cours de validation par Gerimmo. Retrouvez vos pièces
+          déposées et les justificatifs encore attendus dans « Mes attestations ».
+          Aucune agence ne peut vous solliciter avant la validation.
         </p>
       )}
       {refuse && (

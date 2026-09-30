@@ -66,6 +66,11 @@ le barème agence du 12/09. Détail normatif : [[Grille tarifaire]].
   Paris) reçoit 2 mois ; à compter du 1er janvier 2027, l'essai ordinaire est
   d'un mois. CGU art. 8.2 rédigé pour les deux périodes (version du 30/09/2026
   inchangée) ; migration `20260930110000_offre_lancement_essai`.
+- **30/09 : parrainage réactivé — 1 mois offert au parrain à la conversion du
+  filleul** (première facture non nulle payée) : avoir de son mensuel courant
+  (annuel ÷ 12) ou un mois d'essai de plus ; rien de plus pour le filleul ; une
+  récompense par filleul. Le « pas de cumul » est levé pour cette seule
+  récompense. CGU art. 8.11 ; migration `20260930120000_parrainage_grille_2026`.
 
 ## Pages touchées
 [[Grille tarifaire]] · [[Abonnement]] · [[Cycle de vie de l'abonnement]] ·

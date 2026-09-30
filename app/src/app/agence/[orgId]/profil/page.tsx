@@ -8,7 +8,8 @@ import { signatureOrganisation } from "@/lib/documents/modeles/communs";
 import {
   lienDeParrainage,
   libelleAvantage,
-  PARRAINAGE_EN_REVISION,
+  PARRAINAGE_PROGRAMME,
+  PROMESSE_PARRAIN,
   type AvantageParrainage,
 } from "@/lib/parrainage";
 import { eur } from "@/lib/ged";
@@ -87,6 +88,14 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
     .select("nature, jours, montant_cents, etat")
     .order("created_at", { ascending: false });
   const mesAvantages = (avantagesLus ?? []) as unknown as AvantageParrainage[];
+  // Côté parrain (30/09) : un mois par filleul converti. « Obtenus » = déjà
+  // appliqués (essai prolongé, avoir porté au solde) ; « en cours » = avoir
+  // acquis qui attend la prochaine facture ; « en attente » = filleuls pas
+  // encore convertis (aucune ligne côté parrain pour eux).
+  const cotesParrain = mesAvantages.filter((a) => a.nature !== "essai_filleul");
+  const recompensesObtenues = cotesParrain.filter((a) => a.etat === "applique").length;
+  const recompensesEnCours = cotesParrain.filter((a) => a.etat === "a_appliquer").length;
+  const filleulsAConvertir = Math.max(0, filleuls - cotesParrain.length);
 
   const manquants = [
     !profil.address_line1 && "adresse",
@@ -146,12 +155,23 @@ export default async function PageProfil(props: PageProps<"/agence/[orgId]/profi
             {filleuls} filleul{filleuls > 1 ? "s" : ""}
           </span>
         </div>
+        {/* Décision du porteur (30/09) : le parrainage est réactivé — un mois
+            offert au parrain à la conversion de chaque filleul ; rien de plus
+            pour le filleul. Même phrase pour toutes les organisations. */}
+        <p className="mb-1 text-sm font-semibold">{PROMESSE_PARRAIN}</p>
         <p className="mesure-lecture mb-3 text-sm text-muted-foreground">
-          {/* Décision du porteur (29/09) : pas de cumul, pour personne. La
-              promesse « un mois pour vous, un mois pour lui » n'est plus
-              affichée, même aux organisations de la grille historique. */}
-          {PARRAINAGE_EN_REVISION}
+          {PARRAINAGE_PROGRAMME}
         </p>
+        {filleuls > 0 && (
+          <p className="mb-3 text-sm">
+            Récompenses : {recompensesObtenues} obtenue{recompensesObtenues > 1 ? "s" : ""}
+            {"\u00a0· "}
+            {recompensesEnCours} en cours
+            {"\u00a0· "}
+            {filleulsAConvertir} filleul{filleulsAConvertir > 1 ? "s" : ""} pas encore
+            converti{filleulsAConvertir > 1 ? "s" : ""}
+          </p>
+        )}
         {mesAvantages.length > 0 && (
           <ul className="mb-3 space-y-1">
             {mesAvantages.map((a, i) => (

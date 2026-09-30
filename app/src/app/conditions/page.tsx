@@ -401,6 +401,26 @@ export default function PageConditions() {
           <p>Signature du consommateur (uniquement en cas de notification sur papier) :</p>
           <p>Date :</p>
         </div>
+        <p>
+          <b className="font-semibold">8.11 — Parrainage.</b> Chaque
+          organisation dispose d&apos;un code de parrainage. Lorsqu&apos;une
+          nouvelle organisation (le « filleul ») s&apos;inscrit avec ce code,
+          le Client qui l&apos;a recommandée (le « parrain ») reçoit{" "}
+          <b className="font-semibold">un mois offert</b> dès que le filleul
+          devient client payant, c&apos;est-à-dire au paiement de sa première
+          facture d&apos;un montant non nul — jamais à la seule inscription.
+          Ce mois prend la forme d&apos;un avoir égal au montant mensuel de
+          l&apos;abonnement du parrain (un douzième du montant annuel pour un
+          abonnement annuel), imputé sur ses prochaines factures, ou, si le
+          parrain est encore en période d&apos;essai, d&apos;une prolongation
+          d&apos;un mois de cet essai. Le filleul ne reçoit pas d&apos;avantage
+          supplémentaire : l&apos;essai ordinaire s&apos;applique. Une seule
+          récompense est accordée par filleul ; l&apos;avoir n&apos;a aucune
+          valeur monétaire, n&apos;est ni remboursable ni convertible en
+          espèces, et ne profite pas à un parrain dont le compte est clos.
+          Tout usage frauduleux (organisation fictive, auto-parrainage,
+          contournement) entraîne l&apos;annulation des avantages concernés.
+        </p>
       </Article>
 
       <Article titre="9. Réversibilité">

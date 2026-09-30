@@ -49,8 +49,9 @@ Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locat
     (tranches cumulatives).
   - **TVA** : franchise en base (art. 293 B du CGI), aucune TVA facturée.
   - Organisations existantes : bascule sur la nouvelle grille dès l'ajout d'un bien.
-  - Pas de cumul avec le [[Parrainage]] (recommandation enregistrée, sans avantage
-    tarifaire).
+  - Pas de cumul avec le [[Parrainage]], sauf depuis le 30/09 le **mois offert au
+    parrain** à la conversion de son filleul : avoir de son mensuel courant (annuel
+    ÷ 12) porté au solde client Stripe, ou un mois d'essai de plus.
   - Portail client Stripe imposé par le code : résiliation en fin de période,
     changement de formule désactivé ; préavis d'au moins un mois avant révision
     tarifaire (CGU art. 8.9) ; rétractation de 14 jours pour le consommateur (art. 8.10).

@@ -5645,3 +5645,21 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Pages mises à jour : [[Grille tarifaire]], [[Abonnement]], [[Cycle de vie de l'abonnement]],
   [[Onboarding et abonnement]], [[Parrainage]], [[État du projet et décisions ouvertes]],
   [[2026-09-28-decision-tarification]].
+
+## [2026-09-30] decision | Parrainage réactivé : 1 mois offert au parrain
+- Décision du porteur : sur la grille du 28/09/2026, le **parrain** reçoit **un mois
+  offert** quand son filleul devient client payant — à la **première facture payée
+  d'un montant non nul**, jamais à l'inscription ni au passage `active` d'un essai
+  Stripe (facture à 0 €). Parrain abonné → avoir de son mensuel courant (annuel ÷ 12,
+  arrondi au centime), porté au solde Stripe par la tâche `/api/cron/abonnements`
+  (idempotente) ; parrain en essai → essai prolongé d'un mois ; archivé / sans montant
+  → sans objet. Une récompense par filleul.
+- **Filleul** : aucun avantage supplémentaire (essai ordinaire) ; les 30 jours
+  historiques ne s'appliquent pas (« sans objet »). Le « pas de cumul » n'est levé
+  que pour la récompense du parrain. Grille historique inchangée.
+- Application : migration `20260930120000_parrainage_grille_2026` (`parrainage_recompenser`,
+  déclencheur sur `abonnements.premiere_facture_payee`) ; profil (code, lien, filleuls,
+  récompenses obtenues / en cours), inscription, CGU art. 8.11 (version du 30/09/2026
+  inchangée).
+- Pages mises à jour : [[Parrainage]], [[Grille tarifaire]], [[Abonnement]],
+  [[État du projet et décisions ouvertes]], [[2026-09-28-decision-tarification]].

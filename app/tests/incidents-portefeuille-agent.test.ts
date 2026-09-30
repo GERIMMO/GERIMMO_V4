@@ -269,4 +269,36 @@ describe.skipIf(!DB_URL)("Incidents dans le portefeuille de l'agent", () => {
     expect((await db.query(`select has_function_privilege('authenticated',
       'public.incident_creer(uuid,uuid,uuid,uuid,public.incident_canal,text,text,text,text,public.incident_urgence,uuid)','EXECUTE') permis`)).rows[0].permis).toBe(false);
   });
+  async function factureDeRecette() {
+    await postgres();
+    return id(`insert into public.intervention_factures(organization_id,intervention_id,artisan_id,numero,montant_ttc_cents,montant_reference_cents,document_id)
+      values($1,$2,$3,'RECETTE-VALIDATION',17765,17765,$4) returning id`, [org,intervention,artisan,document]);
+  }
+  it("la facture ne peut pas être validée par un locataire ou un agent hors portefeuille", async () => {
+    const facture = await factureDeRecette();
+    for (const compteId of [locataireCompte, agentB, artisanCompte]) {
+      await devenir(compteId);
+      await db.query("savepoint refus_facture");
+      await expect(db.query("select public.valider_facture_artisan($1,$2,'Contrôle')",[org,facture])).rejects.toThrow("Accès refusé");
+      await db.query("rollback to refus_facture");
+    }
+  });
+  it("valider deux fois une facture conserve une seule décision sans paiement", async () => {
+    const facture = await factureDeRecette();
+    await devenir(agentA);
+    await db.query("select public.valider_facture_artisan($1,$2,'Pièce et prix vérifiés')",[org,facture]);
+    await db.query("select public.valider_facture_artisan($1,$2,'Second clic')",[org,facture]);
+    const decision=(await db.query("select * from public.intervention_factures where id=$1",[facture])).rows[0];
+    expect(decision.validee_le).toBeTruthy();
+    expect(decision.decision_motif).toBe('Pièce et prix vérifiés');
+    expect((await db.query("select id from public.incident_evenements where type='facture_validee' and details->>'facture_id'=$1",[facture])).rows).toHaveLength(1);
+  });
+  it("clore une alerte ne masque pas une facture encore à contrôler", async () => {
+    const facture = await factureDeRecette();
+    const alerteFacture=await id(`insert into public.alerts(organization_id,type,criticite,titre,details)
+      values($1,'facture_artisan_a_valider','normale','Facture à contrôler',jsonb_build_object('facture_id',$2::text)) returning id`,[org,facture]);
+    await db.query("update public.alerts set statut='fermee',closed_at=now() where id=$1",[alerteFacture]);
+    expect((await db.query("select statut from public.alerts where id=$1",[alerteFacture])).rows[0].statut).toBe('ouverte');
+  });
+
 });

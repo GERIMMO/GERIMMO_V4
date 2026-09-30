@@ -303,7 +303,7 @@ describe.skipIf(!DB_URL)("grille tarifaire du 28/09/2026 — base", () => {
   });
 
   describe("le parrainage ne se cumule pas avec la nouvelle grille", () => {
-    it("le filleul de la nouvelle grille garde 14 jours ; aucun avantage, pas de cumul", async () => {
+    it("le filleul de la nouvelle grille garde l'essai ordinaire (2 mois) ; aucun avantage, pas de cumul", async () => {
       const parrain = await org("proprietaire_direct");
       const filleul = await org("proprietaire_direct", "essai");
       const avant = (await un<{ d: string }>("select essai_fin::text as d from public.organizations where id = $1", [filleul])).d;

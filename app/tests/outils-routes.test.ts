@@ -8,6 +8,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { OUTILS } from "../src/lib/outils/catalogue";
+import { DUREE_ESSAI } from "../src/lib/tarifs";
 
 const mocks = vi.hoisted(() => ({ client: vi.fn() }));
 vi.mock("@supabase/ssr", () => ({ createServerClient: mocks.client }));
@@ -57,10 +58,11 @@ describe("routes des outils gratuits", () => {
     expect(page).toMatch(/CoquilleOutil|AppelEssai/);
   });
 
-  it("l'invitation mène à l'inscription, 14 jours d'essai", () => {
+  it("l'invitation mène à l'inscription, 2 mois d'essai", () => {
     const coquille = lire("components/outils/coquille-outil.tsx");
     expect(coquille).toContain('href="/inscription"');
-    expect(coquille).toContain("Créer mon compte — {JOURS_ESSAI} jours d&apos;essai");
+    expect(coquille).toContain("Créer mon compte — {DUREE_ESSAI} d&apos;essai");
+    expect(DUREE_ESSAI).toBe("2 mois");
   });
 
   it("le pied de page public et l'accueil y renvoient", () => {

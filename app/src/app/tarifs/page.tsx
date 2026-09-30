@@ -4,7 +4,7 @@ import { EncartOutils } from "@/components/outils/encart-outils";
 import { Article } from "@/components/coquille-legale";
 import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
 import { REGIME_TVA } from "@/lib/editeur";
-import { JOURS_ESSAI, etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
+import { DUREE_ESSAI, etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 const TTC = etiquetteTaxes("ttc", REGIME_TVA);
@@ -13,7 +13,7 @@ const avec = (e: string | null) => (e ? ` ${e}` : "");
 
 export const metadata = metadonneesPubliques({
   titre: "Tarifs — Gerimmo",
-  description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel. Agences : dès 39 €${avec(HT)}/mois, tranches cumulatives.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de 14 jours.`,
+  description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel. Agences : dès 39 €${avec(HT)}/mois, tranches cumulatives.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${DUREE_ESSAI}.`,
   chemin: "/tarifs",
 });
 
@@ -32,7 +32,7 @@ export default function PageTarifs() {
         </div>
         <p className="mesure-lecture text-[15px] text-[var(--texte-secondaire)]">
           Les fonctions de gestion sont les mêmes dans chaque formule : seul le nombre de biens, ou de lots sous mandat
-          pour une agence, fait le prix. Essai gratuit de {JOURS_ESSAI} jours, sans carte bancaire.
+          pour une agence, fait le prix. Essai gratuit de {DUREE_ESSAI}, sans carte bancaire.
         </p>
 
         <Article titre="Particuliers et SCI gérant leurs propres biens">
@@ -52,7 +52,7 @@ export default function PageTarifs() {
             <li>Mensuel uniquement, sans engagement, selon les lots distincts sous mandat actif — vacants compris.</li>
             <li>Le socle de 39 €{avec(HT)} s&apos;applique dès la souscription, même sous dix lots. Aucun abonnement ne démarre à la création du compte.</li>
             <li>Sans supplément : les comptes de vos collaborateurs et les accès de vos locataires. Vos propriétaires reçoivent leurs rapports de gestion sans abonnement à prendre.</li>
-            <li>L&apos;essai de 14 jours, sans carte, s&apos;ouvre sur demande : écrivez-nous depuis l&apos;accueil, rubrique Agences.</li>
+            <li>L&apos;essai de {DUREE_ESSAI}, sans carte, s&apos;ouvre sur demande : écrivez-nous depuis l&apos;accueil, rubrique Agences.</li>
             <li>Aucun frais d&apos;installation pour démarrer seul ; une reprise manuelle de vos données peut vous être proposée sur devis, jamais facturée d&apos;office.</li>
           </ul>
         </Article>

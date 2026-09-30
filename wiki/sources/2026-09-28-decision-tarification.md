@@ -3,7 +3,7 @@ type: source
 tags: [tarifs, abonnement, stripe, decision]
 status: stable
 created: 2026-09-28
-updated: 2026-09-29
+updated: 2026-09-30
 sources: []
 source-file: "Consigne du porteur, session du 28/09/2026 (pas de document dans raw/)"
 source-type: décision du porteur
@@ -28,7 +28,7 @@ le barème agence du 12/09. Détail normatif : [[Grille tarifaire]].
   cumulatives. Socle dû dès la souscription, même sous 10 lots.
 - **Distinction par l'usage** : SCI gérant ses biens → particuliers ; agence
   gérant pour des tiers → agences.
-- **Essai** 14 jours sans carte ; aucune gratuité permanente ; souscription
+- **Essai** 14 jours sans carte *(porté à **2 mois** le 30/09 — voir arbitrages)* ; aucune gratuité permanente ; souscription
   explicite à la fin ; jours restants préservés si souscription anticipée.
 - **Résiliation** pour la prochaine échéance, accès payé conservé ; données en
   lecture seule et exportables ensuite, jamais supprimées automatiquement.
@@ -57,6 +57,10 @@ le barème agence du 12/09. Détail normatif : [[Grille tarifaire]].
 - **TVA : franchise en base** (art. 293 B du CGI) — aucune TVA facturée ;
   factures avec la mention « TVA non applicable, art. 293 B du CGI ».
 - Mise en production demandée une fois tout au vert.
+- **30/09 : essai porté à 2 mois** (« 2 mois gratuits »), pour tous — particuliers,
+  SCI et agences — en mois calendaires ; les essais en cours sont prolongés à
+  2 mois depuis l'ouverture ; CGU version du 30/09/2026 (art. 8.2). Le délai de
+  rétractation du consommateur reste de 14 jours.
 
 ## Pages touchées
 [[Grille tarifaire]] · [[Abonnement]] · [[Cycle de vie de l'abonnement]] ·

@@ -3,7 +3,7 @@ type: concept
 tags: [abonnement, saas, stripe, facturation]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 ---
 
@@ -35,7 +35,8 @@ Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locat
   (récurrent)~~ — modèle hérité du code (`subscription_plans`), **supplanté le 28/09/2026** :
   une seule redevance, mensuelle ou annuelle (particuliers), sans frais de mise en place
   ([[2026-09-28-decision-tarification]]).
-- Essai de 14 jours sans carte, puis **gel en lecture seule** (consultable, exportable)
+- Essai de **2 mois** sans carte (14 jours jusqu'au 29/09/2026 ; décision du
+  30/09), puis **gel en lecture seule** (consultable, exportable)
   jusqu'au paiement ; **aucun bien offert**.
 
 ## Rôle dans le métier

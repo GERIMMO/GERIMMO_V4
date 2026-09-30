@@ -101,17 +101,19 @@ export function FormulaireOuverture({
         </label>
         {!active && (
           <div className="space-y-2">
-            <Label htmlFor={`${base}-jours`}>Durée de l&apos;essai, en jours</Label>
+            <Label htmlFor={`${base}-jours`}>Durée de l&apos;essai, en jours (vide : 2 mois)</Label>
             <Input
               id={`${base}-jours`}
               name="essai_jours"
               type="number"
               min={0}
               max={365}
-              defaultValue={valeur("essai_jours", "14")}
+              placeholder="2 mois"
+              defaultValue={valeur("essai_jours", "")}
               className="max-w-32"
             />
             <p className="text-xs text-muted-foreground">
+              Laissé vide, l&apos;essai standard de 2 mois s&apos;applique.
               À son terme, le compte passe en lecture seule : l&apos;agence garde
               l&apos;accès à tout et à ses exports, mais ne saisit plus rien.
             </p>

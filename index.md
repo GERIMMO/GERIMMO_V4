@@ -24,7 +24,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
-- [[Onboarding et abonnement]] — création d'agence, invitations, essai 14 j sans carte puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU).
+- [[Onboarding et abonnement]] — création d'agence, invitations, essai 2 mois sans carte (30/09) puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU).
 - [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées et conservation des signalements ; réalisation et preuves séparées des fonctionnalités restantes.
 
 ## Concepts
@@ -65,7 +65,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
 - [[Mentions obligatoires du bail]] — modèle-type et compléments DPE, servitude, clauses et honoraires revus le 14/09/2026 ; revue de tous les régimes encore ouverte.
 - [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.
-- [[Cycle de vie de l'abonnement]] — essai 14 j → paiement, ou **gel en lecture seule** (consultable, exportable) ; résiliation en fin de période, préavis de révision d'un mois (art. 8.8), rétractation 14 j (art. 8.9), préavis de modification d'un mois (art. 16).
+- [[Cycle de vie de l'abonnement]] — essai 2 mois (30/09 ; 14 j avant) → paiement, ou **gel en lecture seule** (consultable, exportable) ; résiliation en fin de période, préavis de révision d'un mois (art. 8.8), rétractation 14 j (art. 8.9), préavis de modification d'un mois (art. 16).
 - [[Archivage plutôt que suppression]] — on archive, on ne supprime pas.
 - [[Isolation multi-organisation]] — RLS partout + test d'isolation par table.
 - [[RGPD]] — droits des personnes, durées de conservation, purge encadrée.

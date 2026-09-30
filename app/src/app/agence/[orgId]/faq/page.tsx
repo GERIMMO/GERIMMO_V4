@@ -34,7 +34,7 @@ const QUESTIONS: [string, string][] = [
   // lib/tarifs.ts.
   [
     "Combien ça coûte ?",
-    "Le prix dépend du nombre de biens que vous gérez, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 € TTC par mois — ou 59,90 €, 99,90 €, 199,90 € et 299,90 € par an, prélevés en une fois. Au-delà de 20 biens : 1 € par mois ou 10 € par an et par bien. L'essai gratuit de 14 jours est sans carte ; à son terme, la saisie se suspend jusqu'à votre souscription, vos données restent consultables et exportables. Un bien retiré (depuis sa fiche : «\u00a0Retirer ce bien\u00a0») n'est plus compté : une formule inférieure s'applique à la prochaine échéance. Le détail est dans «\u00a0Mon abonnement\u00a0».",
+    "Le prix dépend du nombre de biens que vous gérez, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 € TTC par mois — ou 59,90 €, 99,90 €, 199,90 € et 299,90 € par an, prélevés en une fois. Au-delà de 20 biens : 1 € par mois ou 10 € par an et par bien. L'essai gratuit de 2 mois est sans carte ; à son terme, la saisie se suspend jusqu'à votre souscription, vos données restent consultables et exportables. Un bien retiré (depuis sa fiche : «\u00a0Retirer ce bien\u00a0») n'est plus compté : une formule inférieure s'applique à la prochaine échéance. Le détail est dans «\u00a0Mon abonnement\u00a0».",
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",

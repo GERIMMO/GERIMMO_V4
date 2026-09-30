@@ -8,7 +8,7 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { JOURS_ESSAI_ORDINAIRE } from "@/lib/parrainage";
+import { DUREE_ESSAI } from "@/lib/tarifs";
 
 export function FormulaireInscription({ codeParrain }: { codeParrain?: string | null }) {
   const [etat, action] = useActionState<EtatInscription, FormData>(
@@ -130,7 +130,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
             <p className="text-xs text-muted-foreground">
               Si quelqu&apos;un vous a recommandé Gerimmo, indiquez son code : la
               recommandation est enregistrée. L&apos;essai reste de{" "}
-              {JOURS_ESSAI_ORDINAIRE} jours, sans carte, pour tous : le
+              {DUREE_ESSAI}, sans carte, pour tous : le
               parrainage n&apos;ouvre pas d&apos;avantage tarifaire. Sinon,
               laissez vide.
             </p>

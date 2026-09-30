@@ -3,7 +3,7 @@ type: synthesis
 tags: [etat-projet, decisions, contradictions]
 status: in-progress
 created: 2026-07-21
-updated: 2026-09-29
+updated: 2026-09-30
 sources: ["[[Dépôt Gerimmo-V3]]", "[[2026-07-21-fonctionnalites-par-persona-v0]]", "[[Analyse concurrentielle]]", "[[2026-07-24-gerimmo-v3-a1-modele-identite]]", "[[2026-07-24-gerimmo-v3-a3-documents-canaux-preuve]]", "[[2026-07-24-gerimmo-v3-matrice-tracabilite]]", "[[2026-07-24-gerimmo-v3-architecture-lot-0]]"]
 ---
 
@@ -52,7 +52,8 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 >
 > **Tranché (28–29/09/2026)**
 > - 3 logements = 3 biens (chaque lot loué séparément compte).
-> - Plus de premier bien offert pour personne : 14 jours d'essai sans carte, puis
+> - Plus de premier bien offert pour personne : essai sans carte (14 jours, porté à
+>   **2 mois** le 30/09 pour tous, particuliers, SCI et agences), puis
 >   **gel en lecture seule** (consultable, exportable) jusqu'au paiement.
 > - Organisations existantes : bascule sur la nouvelle grille dès l'ajout d'un bien.
 > - Pas de cumul avec le [[Parrainage]] (recommandation enregistrée, sans avantage

@@ -5614,3 +5614,17 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   adresse, date du bail ; référence = dernier indice publié à la signature
   (art. 17-1) ; Corse / outre-mer en saisie manuelle ; DPE F/G → révision interdite.
 - Page : [[Révision annuelle IRL]].
+
+## [2026-09-30] decision | Essai gratuit porté à 2 mois
+- Décision du porteur : l'essai gratuit passe de 14 jours à **2 mois** (« 2 mois
+  gratuits »), pour tous — particuliers, SCI et agences — en mois calendaires.
+- Application : `MOIS_ESSAI` / `DUREE_ESSAI` (`src/lib/tarifs.ts`), textes du
+  site, de l'inscription, de la FAQ, des outils et de la console ; CGU art. 8.2,
+  version du 30/09/2026. Base : migration `20260930100000_essai_deux_mois`
+  (inscription, ouverture par la console, essais en cours prolongés à 2 mois
+  depuis l'ouverture, jamais raccourcis).
+- Inchangé : le délai de rétractation du consommateur (14 jours, CGU art. 8.10).
+- Pages mises à jour : [[Grille tarifaire]], [[Abonnement]], [[Cycle de vie de l'abonnement]],
+  [[Onboarding et abonnement]], [[Parrainage]], [[État du projet et décisions ouvertes]],
+  [[2026-09-28-decision-tarification]], [[Recette de production]],
+  [[Propriétaire bailleur]], [[Super Admin]], [[Accueil]].

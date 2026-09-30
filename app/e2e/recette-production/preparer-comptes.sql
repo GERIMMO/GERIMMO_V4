@@ -3,7 +3,7 @@
 -- CE QUE FAIT CE SCRIPT. Il crée, pour UN passage de recette identifié par son
 -- suffixe, les trois personas que la recette Playwright
 -- (e2e/recette-production/) parcourt :
---   · une agence « <nom_agence> <suffixe> » en essai de 14 jours, et son admin
+--   · une agence « <nom_agence> <suffixe> » en essai de 2 mois, et son admin
 --     d'agence ;
 --   · un propriétaire direct et son parc (« Parc de Paul Recette-<suffixe> »),
 --     avec UN bien déjà saisi : le premier bien est offert à vie, c'est le
@@ -67,7 +67,7 @@ declare
   v_suffixe text := current_setting('recette.suffixe');
   v_mdp text := current_setting('recette.mot_de_passe');
   v_nom_agence text := btrim(current_setting('recette.nom_agence'));
-  v_version_cgu constant text := '2026-09-28'; -- CONDITIONS_VERSION (src/lib/editeur.ts)
+  v_version_cgu constant text := '2026-09-30'; -- CONDITIONS_VERSION (src/lib/editeur.ts)
   v_email_admin text;
   v_email_proprio text;
   v_email_locataire text;
@@ -135,9 +135,9 @@ begin
     end if;
   end loop;
 
-  -- 1. L'agence et son admin (ouvrir_organisation, type agence, essai 14 j).
+  -- 1. L'agence et son admin (ouvrir_organisation, type agence, essai de 2 mois).
   insert into public.organizations (name, type, status, essai_fin)
-  values (v_nom_agence || ' ' || v_suffixe, 'agence', 'essai', current_date + 14)
+  values (v_nom_agence || ' ' || v_suffixe, 'agence', 'essai', public.essai_ordinaire_fin())
   returning id into v_org_agence;
   select id into strict v_uid from public.accounts where lower(email) = v_email_admin;
   insert into public.memberships (account_id, organization_id, role)
@@ -146,7 +146,8 @@ begin
   values (v_org_agence, 'organisation_ouverte',
           jsonb_build_object('nom', v_nom_agence || ' ' || v_suffixe, 'type', 'agence',
                              'role', 'admin_agence', 'responsable', v_email_admin,
-                             'compte_existant', false, 'essai_jours', 14, 'recette', v_suffixe));
+                             'compte_existant', false, 'essai_jours', public.essai_ordinaire_fin() - current_date,
+                             'essai_fin', public.essai_ordinaire_fin(), 'recette', v_suffixe));
 
   -- 2. Le parc du propriétaire direct (initialiser_espace_proprietaire).
   select id into strict v_uid from public.accounts where lower(email) = v_email_proprio;

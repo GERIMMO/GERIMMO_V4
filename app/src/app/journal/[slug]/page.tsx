@@ -100,7 +100,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
             )}
           </p>
           <Link href="/inscription" className="btn-or mt-4">
-            Créer mon compte — 14 jours d&apos;essai
+            Créer mon compte — 2 mois d&apos;essai
           </Link>
         </aside>
         <div className="mt-6">

@@ -10,6 +10,10 @@ export const metadata = metadonneesPubliques({
   chemin: "/outils/comparateur-gli-visale",
 });
 
+// L'essai annoncé change le 1er janvier 2027 (fin de l'offre de lancement) :
+// la page se reconstruit au plus tard toutes les heures.
+export const revalidate = 3600;
+
 export default function PageComparateurGliVisale() {
   return (
     <CoquilleOutil

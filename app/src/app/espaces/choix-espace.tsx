@@ -6,6 +6,7 @@ import { ouvrirEspaceProprietaire, type EtatOuvertureEspace } from "@/app/action
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { dureeEssai } from "@/lib/tarifs";
 
 /**
  * « Que voulez-vous faire ? » — l'écran d'un compte connecté sans aucun espace.
@@ -47,7 +48,7 @@ export function ChoixEspace({
           <span className="min-w-0 flex-1">
             <span className="block font-medium">Je gère mes propres biens</span>
             <span className="block text-xs text-muted-foreground">
-              Pour les biens que vous gérez vous-même — espace et abonnement distincts de ceux de votre agence ; essai gratuit de 2 mois
+              Pour les biens que vous gérez vous-même — espace et abonnement distincts de ceux de votre agence ; essai gratuit de {dureeEssai()}
             </span>
           </span>
           {!ouvert && <span className="text-sm font-medium text-[var(--marque-sombre)]">Ouvrir →</span>}

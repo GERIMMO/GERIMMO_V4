@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
-import { DUREE_ESSAI } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai, offreLancementActive } from "@/lib/tarifs";
 import { IconeTrait, PucesGratuit, TuileOutil, outilsPresentes } from "./icones-outils";
 
 // LA COQUILLE DES OUTILS GRATUITS (29/09, habillée le 30/09) : en-tête et
@@ -152,24 +152,35 @@ function CocheClaire() {
 
 /** L'invitation à créer un compte, sous chaque outil. */
 export function AppelEssai() {
+  // Lu au rendu (pages revalidées toutes les heures) : l'offre de lancement
+  // s'efface d'elle-même le 1er janvier 2027.
+  const duree = dureeEssai();
+  const lancement = offreLancementActive();
   return (
     <section className="vitrine-bandeau outil-appel print:hidden" aria-labelledby="appel-essai">
       <div className="relative grid gap-8 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <div>
           <p className="eyebrow !text-[var(--sur-marque)]">Et chaque mois, sans y penser</p>
+          <p
+            className={`mt-3 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold ${
+              lancement ? "bg-[var(--ivoire)] text-[var(--encre)]" : "border border-white/30 text-[var(--sur-marque)]"
+            }`}
+          >
+            {badgeEssai()}
+          </p>
           <h2 id="appel-essai" className="mt-2 max-w-[26ch] text-balance font-heading font-bold leading-[1.18] text-[var(--sur-marque)]">
             Ce calcul, Gerimmo le fait chaque mois pour vous
           </h2>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--sur-marque)]/85">
             Quittances envoyées d&apos;elles-mêmes, révisions de loyer préparées à la date anniversaire, relances
-            d&apos;impayés, aide à la déclaration : la gestion locative tenue au carré. Essai gratuit de {DUREE_ESSAI},
+            d&apos;impayés, aide à la déclaration : la gestion locative tenue au carré. Essai gratuit de {duree},
             sans carte bancaire.
           </p>
           <Link
             href="/inscription"
             className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-[11px] bg-[var(--ivoire)] px-5 py-2.5 text-[14.5px] font-semibold text-[var(--encre)] shadow-[0_6px_20px_rgb(0_0_0/0.14)] transition-colors hover:bg-[var(--marque-clair)]"
           >
-            Créer mon compte — {DUREE_ESSAI} d&apos;essai
+            Créer mon compte — {duree} d&apos;essai
             <span aria-hidden>→</span>
           </Link>
         </div>

@@ -8,9 +8,16 @@ import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { DUREE_ESSAI } from "@/lib/tarifs";
 
-export function FormulaireInscription({ codeParrain }: { codeParrain?: string | null }) {
+// `dureeEssai` vient de la page (calculé côté serveur, à la date du jour) :
+// le texte du formulaire suit l'offre de lancement sans écart d'hydratation.
+export function FormulaireInscription({
+  codeParrain,
+  dureeEssai,
+}: {
+  codeParrain?: string | null;
+  dureeEssai: string;
+}) {
   const [etat, action] = useActionState<EtatInscription, FormData>(
     inscrireProprietaire,
     {}
@@ -130,7 +137,7 @@ export function FormulaireInscription({ codeParrain }: { codeParrain?: string | 
             <p className="text-xs text-muted-foreground">
               Si quelqu&apos;un vous a recommandé Gerimmo, indiquez son code : la
               recommandation est enregistrée. L&apos;essai reste de{" "}
-              {DUREE_ESSAI}, sans carte, pour tous : le
+              {dureeEssai}, sans carte, pour tous : le
               parrainage n&apos;ouvre pas d&apos;avantage tarifaire. Sinon,
               laissez vide.
             </p>

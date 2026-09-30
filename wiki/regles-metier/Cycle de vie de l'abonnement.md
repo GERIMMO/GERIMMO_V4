@@ -10,8 +10,10 @@ sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]"]
 # Cycle de vie de l'abonnement
 
 > [!info] Nouvelle grille (28/09/2026)
-> - **Essai** de **2 mois** sans carte (14 jours jusqu'au 29/09 ; porté à 2 mois le
->   30/09/2026, essais en cours prolongés) ; à son terme, **lecture seule** tant qu'il n'y a
+> - **Essai** sans carte : **2 mois** pour toute ouverture jusqu'au 31/12/2026
+>   inclus (**offre de lancement**, décision du 30/09/2026), **1 mois** à compter
+>   du 01/01/2027 — date de Paris, mois calendaires (14 jours jusqu'au 29/09 ;
+>   essais en cours au 30/09 prolongés à 2 mois) ; à son terme, **lecture seule** tant qu'il n'y a
 >   pas de souscription — même avec un seul bien (fin du « premier bien offert »).
 > - **Souscription pendant l'essai** : les jours restants sont préservés, premier
 >   prélèvement à la fin de l'essai (date affichée).
@@ -48,7 +50,7 @@ l'essai et transitions réservées.
 - Services `business-service.ts`, `stripe-service.ts`, `automations/lifecycle-emails.ts`.
 
 ## Règles
-- **R3 — Essai (14 jours dans le code hérité ; 2 mois depuis le 30/09/2026), expiration automatique** : à l'échéance sans abonnement actif, la
+- **R3 — Essai (14 jours dans le code hérité ; 2 mois du 30/09 au 31/12/2026 — offre de lancement —, 1 mois à compter du 01/01/2027), expiration automatique** : à l'échéance sans abonnement actif, la
   souscription passe en **`suspended`** (« Essai terminé sans abonnement actif »), avec historique
   + événement `trial.expired` idempotent. `trial_days` borné 0–90.
 - **R4 — Statuts contrôlés** : `status ∈ {trial, active, suspended, expired, cancelled}` ;

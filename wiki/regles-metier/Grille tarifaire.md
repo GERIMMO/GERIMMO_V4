@@ -11,9 +11,13 @@ sources: ["[[2026-09-28-decision-tarification]]", "[[Dépôt Gerimmo-V3]]", "[[2
 
 ## Grille en vigueur — décision du 28/09/2026 ([[2026-09-28-decision-tarification]])
 
-**Plus aucune gratuité permanente** : l'essai de **2 mois** sans carte (14 jours
-jusqu'au 29/09 ; porté à 2 mois par décision du porteur du 30/09/2026, pour
-tous) est la seule période sans paiement. Implémentation : `app/src/lib/tarifs.ts` (source unique, en
+**Plus aucune gratuité permanente** : l'essai sans carte est la seule période
+sans paiement, pour tous. Sa durée (14 jours jusqu'au 29/09) suit une **offre de lancement** (décision du porteur du 30/09/2026) : **2 mois** pour toute inscription ou ouverture jusqu'au **31/12/2026 inclus** (date de Paris), **1 mois** à compter du 1er janvier 2027.
+Code : `FIN_OFFRE_LANCEMENT`, `moisEssai()`, `dureeEssai()`, `offreLancementActive()`
+dans `app/src/lib/tarifs.ts` ; base : `essai_ordinaire_fin()` (migration
+`20260930110000_offre_lancement_essai`). Le site affiche le badge « Offre de
+lancement — 2 mois gratuits jusqu'au 31/12/2026 » tant qu'elle court, puis
+« 1 mois d'essai gratuit » (pages publiques revalidées toutes les heures). Implémentation : `app/src/lib/tarifs.ts` (source unique, en
 centimes) et tables `tarif_formules` / `tarif_tranches` (grille `2026-09-28`),
 comparées unité par unité par les tests.
 
@@ -52,7 +56,7 @@ du CGI, décision du 28/09) — aucune TVA facturée, mention « TVA non applica
 art. 293 B du CGI » sur les factures ; le prix affiché est le prix payé. Voir [[Cycle de vie de l'abonnement]].
 
 **Organisations antérieures** (décision du porteur, 28/09) : plus de premier bien
-offert pour personne — seuls les 2 mois d'essai (14 jours avant le 30/09) sont offerts, puis **gel en
+offert pour personne — seul l'essai est offert (2 mois pendant l'offre de lancement, jusqu'au 31/12/2026 ; 1 mois ensuite ; 14 jours avant le 30/09), puis **gel en
 lecture seule** jusqu'au paiement. Toute organisation sans souscription en cours
 bascule à la mise en production ; une organisation qui paie encore sur l'ancienne
 grille bascule **dès son prochain ajout de bien**. **Pas de cumul** avec le

@@ -4,18 +4,25 @@ import { EncartOutils } from "@/components/outils/encart-outils";
 import { Article } from "@/components/coquille-legale";
 import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
 import { REGIME_TVA } from "@/lib/editeur";
-import { DUREE_ESSAI, etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 
 const TTC = etiquetteTaxes("ttc", REGIME_TVA);
 const HT = etiquetteTaxes("ht", REGIME_TVA);
 const avec = (e: string | null) => (e ? ` ${e}` : "");
 
-export const metadata = metadonneesPubliques({
-  titre: "Tarifs — Gerimmo",
-  description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel. Agences : dès 39 €${avec(HT)}/mois, tranches cumulatives.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${DUREE_ESSAI}.`,
-  chemin: "/tarifs",
-});
+// La durée de l'essai dépend du jour (offre de lancement jusqu'au 31/12/2026,
+// 1 mois ensuite) : métadonnées calculées au rendu, page reconstruite au plus
+// tard toutes les heures.
+export const revalidate = 3600;
+
+export function generateMetadata() {
+  return metadonneesPubliques({
+    titre: "Tarifs — Gerimmo",
+    description: `Particuliers et SCI : de Solo (1 bien, 5,99 €${avec(TTC)}/mois) à Patrimoine (20 biens), mensuel ou annuel. Agences : dès 39 €${avec(HT)}/mois, tranches cumulatives.${REGIME_TVA?.nature === "franchise" ? " TVA non applicable, art. 293 B du CGI." : ""} Essai gratuit de ${dureeEssai()}.`,
+    chemin: "/tarifs",
+  });
+}
 
 // La page des tarifs (grille du 28/09/2026). Les tableaux sont rendus depuis
 // lib/tarifs.ts, le module qui sert aussi à facturer : aucun prix n'est
@@ -23,6 +30,8 @@ export const metadata = metadonneesPubliques({
 // services externes dont le coût n'est pas défini.
 export default function PageTarifs() {
   const mentionTaxes = mentionTaxesPubliques(REGIME_TVA);
+  const duree = dureeEssai();
+  const offre = libelleOffreLancement();
   return (
     <div className="flex min-h-full flex-1 flex-col bg-[var(--creme)]">
       <EnTetePublic />
@@ -30,9 +39,15 @@ export default function PageTarifs() {
         <div className="entete-page">
           <h1>Tarifs</h1>
         </div>
+        <p
+          className="inline-flex rounded-full border border-[var(--marque)] bg-[var(--marque-clair)] px-3 py-1 text-[13px] font-semibold text-[var(--encre)]"
+          title={offre ?? undefined}
+        >
+          {badgeEssai()}
+        </p>
         <p className="mesure-lecture text-[15px] text-[var(--texte-secondaire)]">
           Les fonctions de gestion sont les mêmes dans chaque formule : seul le nombre de biens, ou de lots sous mandat
-          pour une agence, fait le prix. Essai gratuit de {DUREE_ESSAI}, sans carte bancaire.
+          pour une agence, fait le prix. Essai gratuit de {duree}, sans carte bancaire.
         </p>
 
         <Article titre="Particuliers et SCI gérant leurs propres biens">
@@ -52,7 +67,7 @@ export default function PageTarifs() {
             <li>Mensuel uniquement, sans engagement, selon les lots distincts sous mandat actif — vacants compris.</li>
             <li>Le socle de 39 €{avec(HT)} s&apos;applique dès la souscription, même sous dix lots. Aucun abonnement ne démarre à la création du compte.</li>
             <li>Sans supplément : les comptes de vos collaborateurs et les accès de vos locataires. Vos propriétaires reçoivent leurs rapports de gestion sans abonnement à prendre.</li>
-            <li>L&apos;essai de {DUREE_ESSAI}, sans carte, s&apos;ouvre sur demande : écrivez-nous depuis l&apos;accueil, rubrique Agences.</li>
+            <li>L&apos;essai de {duree}, sans carte, s&apos;ouvre sur demande : écrivez-nous depuis l&apos;accueil, rubrique Agences.</li>
             <li>Aucun frais d&apos;installation pour démarrer seul ; une reprise manuelle de vos données peut vous être proposée sur devis, jamais facturée d&apos;office.</li>
           </ul>
         </Article>

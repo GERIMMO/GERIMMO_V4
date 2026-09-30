@@ -53,7 +53,9 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 > **Tranché (28–29/09/2026)**
 > - 3 logements = 3 biens (chaque lot loué séparément compte).
 > - Plus de premier bien offert pour personne : essai sans carte (14 jours, porté à
->   **2 mois** le 30/09 pour tous, particuliers, SCI et agences), puis
+>   **2 mois** le 30/09 pour tous, particuliers, SCI et agences — **offre de
+>   lancement** jusqu'au 31/12/2026 inclus, puis **1 mois** à compter du
+>   01/01/2027), puis
 >   **gel en lecture seule** (consultable, exportable) jusqu'au paiement.
 > - Organisations existantes : bascule sur la nouvelle grille dès l'ajout d'un bien.
 > - Pas de cumul avec le [[Parrainage]] (recommandation enregistrée, sans avantage

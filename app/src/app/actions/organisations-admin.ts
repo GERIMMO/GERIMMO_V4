@@ -38,8 +38,8 @@ export async function ouvrirOrganisation(
   const type = String(formData.get("type") ?? "agence");
   const email = String(formData.get("email") ?? "").trim();
   const active = formData.get("active") !== null;
-  // Champ vide : l'essai standard de 2 mois calendaires, que la base calcule
-  // (décision du 30/09/2026). Un nombre : une durée négociée, en jours.
+  // Champ vide : l'essai standard, en mois calendaires, que la base calcule
+  // (2 mois jusqu'au 31/12/2026 — offre de lancement —, 1 mois ensuite). Un nombre : une durée négociée, en jours.
   const joursSaisis = String(formData.get("essai_jours") ?? "").trim();
   const jours = joursSaisis === "" ? null : Number(joursSaisis);
   const demande = String(formData.get("demande_id") ?? "").trim();
@@ -72,7 +72,7 @@ export async function ouvrirOrganisation(
     p_nom: nom,
     p_type: type,
     p_email_responsable: email,
-    // `undefined` : le paramètre est omis, la base applique les 2 mois.
+    // `undefined` : le paramètre est omis, la base applique l'essai ordinaire.
     p_essai_jours: active ? 0 : (jours ?? undefined),
     p_active_immediatement: active,
   });

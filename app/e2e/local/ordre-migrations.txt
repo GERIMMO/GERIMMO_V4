@@ -269,3 +269,4 @@
 20260929140000_gel_sans_bloquer_locataires_artisans.sql
 20260929150000_conge_fusion_audits.sql
 20260930100000_essai_deux_mois.sql
+20260930110000_offre_lancement_essai.sql

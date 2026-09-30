@@ -11,17 +11,23 @@ import {
 } from "./apercus-produit";
 import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
 import { REGIME_TVA } from "@/lib/editeur";
-import { etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
+import { badgeEssai, dureeEssai, etiquetteTaxes, libelleOffreLancement, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { TuileOutil, outilsPresentes } from "@/components/outils/icones-outils";
 
-export const metadata = metadonneesPubliques({
-  titre: "Gerimmo — La gérance immobilière, tenue au carré",
-  description:
-    "Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Essai gratuit de 2 mois, sans carte.",
-  chemin: "/",
-});
+// 30/09 : la durée de l'essai dépend du jour (offre de lancement : 2 mois
+// jusqu'au 31/12/2026, 1 mois ensuite). Métadonnées et textes sont calculés
+// au rendu ; la page, si elle devient statique, se reconstruit toutes les heures.
+export const revalidate = 3600;
+
+export function generateMetadata() {
+  return metadonneesPubliques({
+    titre: "Gerimmo — La gérance immobilière, tenue au carré",
+    description: `Baux, quittances automatiques, incidents, états des lieux, fiscalité : la gestion locative partout en France pour les propriétaires bailleurs et les agences. Essai gratuit de ${dureeEssai()}, sans carte.`,
+    chemin: "/",
+  });
+}
 
 // 29/09 : l'étiquette de taxe suit le régime de l'éditeur (lib/editeur.ts).
 // En franchise en base, « 39 € HT » laissait croire qu'une TVA s'ajoutait :
@@ -92,10 +98,10 @@ const FONCTIONNALITES: [string, string][] = [
   ],
 ];
 
-const FAQ: [string, string][] = [
+const faq = (duree: string): [string, string][] => [
   [
     "Combien coûte Gerimmo pour un particulier ?",
-    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de 2 mois, sans carte ; aucune formule n'est gratuite ensuite.`,
+    `Le prix dépend du nombre de biens, les fonctions sont les mêmes : Solo (1 bien) 5,99 €, Bailleur (jusqu'à 3) 9,99 €, Investisseur (jusqu'à 10) 19,99 €, Patrimoine (jusqu'à 20) 29,99 €${avec(TTC)} par mois — ou dix mensualités par an en paiement annuel. Au-delà de 20 biens, 1 € par bien et par mois. Essai gratuit de ${duree}, sans carte ; aucune formule n'est gratuite ensuite.`,
   ],
   [
     "Gerimmo lit-il mes comptes bancaires ?",
@@ -153,6 +159,8 @@ export default async function PageVitrine() {
     .eq("statut", "publiee")
     .order("publie_le", { ascending: false })
     .limit(3);
+  const duree = dureeEssai();
+  const offre = libelleOffreLancement();
 
   return (
     <div className="min-h-full bg-[var(--creme)]">
@@ -164,6 +172,17 @@ export default async function PageVitrine() {
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_0.95fr]">
             <div>
               <p className="eyebrow text-[var(--marque-sombre)]">Gestion locative · partout en France</p>
+              <Link
+                href="/tarifs"
+                title={offre ?? undefined}
+                className={`mt-4 inline-flex rounded-full px-3.5 py-1.5 text-[13.5px] font-semibold ${
+                  offre
+                    ? "border border-[var(--marque)] bg-[var(--marque-clair)] text-[var(--encre)]"
+                    : "border border-[var(--or-filet)] bg-[var(--ivoire)] text-[var(--marque-sombre)]"
+                }`}
+              >
+                {badgeEssai()}
+              </Link>
               <h1 className="mt-4 max-w-[14ch] text-balance font-heading text-[40px] font-extrabold leading-[1.05] tracking-[-0.025em] text-[var(--encre)] sm:text-[56px]">
                 Le sérieux d&apos;une agence, sans les honoraires.
               </h1>
@@ -179,7 +198,7 @@ export default async function PageVitrine() {
                     ici « Commencer », ailleurs « Créer mon compte » ou
                     « Découvrir la gestion en direct ». */}
                 <Link href="/inscription" className="btn-or !px-5 !py-3 !text-[15px]">
-                  Créer mon compte — 2 mois d&apos;essai
+                  Créer mon compte — {duree} d&apos;essai
                 </Link>
                 <a href="#agences" className="btn-secondaire">
                   Je suis une agence →
@@ -194,7 +213,7 @@ export default async function PageVitrine() {
                 <span aria-hidden>→</span>
               </Link>
               <p className="mt-5 text-[13px] text-[var(--libelle)]">
-                Essai de 2 mois, sans carte bancaire. Aucun honoraire de
+                Essai de {duree}, sans carte bancaire. Aucun honoraire de
                 gestion, jamais.
               </p>
             </div>
@@ -438,7 +457,7 @@ export default async function PageVitrine() {
               </div>
               <ul className="mt-5 space-y-2.5 text-[14px] text-[var(--texte-secondaire)]">
                 {[
-                  "Essai gratuit de 2 mois, sans carte bancaire",
+                  `Essai gratuit de ${duree}, sans carte bancaire`,
                   "Mensuel sans engagement, ou annuel payé en une fois",
                   "Mêmes fonctions dans chaque formule ; accès locataires inclus",
                   "Aucuns frais d'installation",
@@ -469,7 +488,7 @@ export default async function PageVitrine() {
                 {[
                   "Mensuel, sans engagement, selon les lots sous mandat actif",
                   "Collaborateurs et locataires inclus, rapports envoyés à vos propriétaires",
-                  "Essai de 2 mois ouvert sur demande, sans carte",
+                  `Essai de ${duree} ouvert sur demande, sans carte`,
                   "Reprise manuelle de vos données possible, sur devis",
                 ].map((l) => (
                   <li key={l} className="flex gap-2.5">
@@ -539,7 +558,7 @@ export default async function PageVitrine() {
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
           <TitreSection sur="Questions fréquentes" titre="Ce qu'on nous demande" />
           <div className="mt-10 grid gap-x-10 gap-y-7 sm:grid-cols-2">
-            {FAQ.map(([q, r]) => (
+            {faq(duree).map(([q, r]) => (
               <div key={q} className="border-t border-[var(--filet)] pt-5">
                 <h3 className="text-[16px] font-semibold text-[var(--encre)]">{q}</h3>
                 <p className="mt-2 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">

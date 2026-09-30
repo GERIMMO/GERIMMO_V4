@@ -5628,3 +5628,20 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   [[Onboarding et abonnement]], [[Parrainage]], [[État du projet et décisions ouvertes]],
   [[2026-09-28-decision-tarification]], [[Recette de production]],
   [[Propriétaire bailleur]], [[Super Admin]], [[Accueil]].
+
+## [2026-09-30] decision | Offre de lancement : 2 mois jusqu'au 31/12/2026, puis 1 mois
+- Décision du porteur : l'essai de 2 mois devient une **offre de lancement**.
+  Toute inscription (ou ouverture par la console) jusqu'au **31/12/2026 inclus**
+  (date de Paris) reçoit 2 mois ; à compter du **1er janvier 2027**, l'essai
+  ordinaire est d'**un mois** (mois calendaires).
+- Application : `FIN_OFFRE_LANCEMENT`, `moisEssai()`, `dureeEssai()`,
+  `offreLancementActive()`, `badgeEssai()` (`src/lib/tarifs.ts`) ; badge « Offre de
+  lancement — 2 mois gratuits jusqu'au 31/12/2026 » sur l'accueil, les tarifs,
+  l'inscription et les bandeaux des outils, « 1 mois d'essai gratuit » ensuite ;
+  pages publiques revalidées toutes les heures. CGU art. 8.2 rédigé pour les deux
+  périodes (version du 30/09/2026 inchangée). Base : migration
+  `20260930110000_offre_lancement_essai` (`essai_ordinaire_fin()` sur la date de Paris).
+- Inchangé : rétractation du consommateur (14 jours).
+- Pages mises à jour : [[Grille tarifaire]], [[Abonnement]], [[Cycle de vie de l'abonnement]],
+  [[Onboarding et abonnement]], [[Parrainage]], [[État du projet et décisions ouvertes]],
+  [[2026-09-28-decision-tarification]].

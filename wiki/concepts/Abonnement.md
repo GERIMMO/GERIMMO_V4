@@ -35,8 +35,7 @@ Stripe). À **ne pas confondre** avec les [[Période de loyer|loyers]] des locat
   (récurrent)~~ — modèle hérité du code (`subscription_plans`), **supplanté le 28/09/2026** :
   une seule redevance, mensuelle ou annuelle (particuliers), sans frais de mise en place
   ([[2026-09-28-decision-tarification]]).
-- Essai de **2 mois** sans carte (14 jours jusqu'au 29/09/2026 ; décision du
-  30/09), puis **gel en lecture seule** (consultable, exportable)
+- Essai sans carte : **offre de lancement** (décision du porteur du 30/09/2026) : **2 mois** pour toute inscription ou ouverture jusqu'au **31/12/2026 inclus** (date de Paris), **1 mois** à compter du 1er janvier 2027 (14 jours jusqu'au 29/09/2026) ; puis **gel en lecture seule** (consultable, exportable)
   jusqu'au paiement ; **aucun bien offert**.
 
 ## Rôle dans le métier

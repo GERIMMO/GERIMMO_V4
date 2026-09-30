@@ -289,8 +289,13 @@ export default function PageConditions() {
         <p>
           <b className="font-semibold">8.2 — Essai.</b> L&apos;ouverture
           d&apos;un compte donne accès à un{" "}
-          <b className="font-semibold">essai gratuit de 2 mois</b>, sans
-          moyen de paiement. Aucun abonnement ne démarre sans souscription
+          <b className="font-semibold">essai gratuit de deux mois pour toute
+          inscription jusqu&apos;au 31 décembre 2026 inclus</b> (offre de
+          lancement), <b className="font-semibold">d&apos;un mois pour toute
+          inscription à compter du 1er janvier 2027</b>, sans moyen de
+          paiement. La durée applicable est celle en vigueur au jour de
+          l&apos;ouverture du compte (heure de Paris) ; elle se compte en mois
+          calendaires. Aucun abonnement ne démarre sans souscription
           explicite. À son terme, à défaut de souscription, la saisie de
           nouvelles données est suspendue ; les données restent consultables et
           exportables et ne sont pas supprimées automatiquement. Une

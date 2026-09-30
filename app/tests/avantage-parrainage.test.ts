@@ -21,7 +21,6 @@ import {
   JOURS_OFFERTS_PARRAIN,
   PARRAINAGE_EN_REVISION,
 } from "@/lib/parrainage";
-import { DUREE_ESSAI } from "@/lib/tarifs";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 
@@ -184,7 +183,8 @@ describe("l'avantage du filleul : trente jours, tout de suite", () => {
     const parrainage = await rattacher(filleul.id, compte, parrain.code);
     expect(await essaiDe(filleul.id)).toBe(await dans(60));
     // Rien n'a été allongé : la ligne le dit (30/09/2026 — un essai
-    // ordinaire de 2 mois dépasse toujours les trente jours du filleul).
+    // ordinaire de 2 mois — offre de lancement — dépasse les trente jours du
+    // filleul).
     expect(await avantages(parrainage)).toMatchObject([
       { nature: "essai_filleul", jours: null, etat: "sans_objet" },
     ]);
@@ -347,7 +347,8 @@ describe("la base et l'écran annoncent le même chiffre", () => {
     expect(rows[0].parrain).toBe(JOURS_OFFERTS_PARRAIN);
     // L'écran n'annonce plus d'avantage (décision du 29/09, pas de cumul) :
     // il dit l'essai ordinaire, et ne promet jamais les trente jours.
-    expect(PARRAINAGE_EN_REVISION).toContain(DUREE_ESSAI);
+    expect(PARRAINAGE_EN_REVISION).toContain("2 mois pour toute inscription jusqu'au 31 décembre 2026");
+    expect(PARRAINAGE_EN_REVISION).toContain("1 mois ensuite");
     expect(PARRAINAGE_EN_REVISION).not.toContain(String(JOURS_ESSAI_FILLEUL));
   });
 

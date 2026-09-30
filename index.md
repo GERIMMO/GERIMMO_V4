@@ -24,7 +24,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Restitution du dépôt de garantie]] — délai légal 1/2 mois, imputabilité des écarts d'EDL.
 - [[Régularisation des charges]] — provisions vs réel, année civile, justificatifs bloquants.
 - [[Relances et mise en demeure]] — impayés à seuils paramétrables, relances = preuve.
-- [[Onboarding et abonnement]] — création d'agence, invitations, essai 2 mois sans carte (30/09) puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU).
+- [[Onboarding et abonnement]] — création d'agence, invitations, essai sans carte — 2 mois jusqu'au 31/12/2026 (offre de lancement), 1 mois ensuite — puis **gel en lecture seule** jusqu'au paiement ; aucun bien offert (28/09) ; préavis d'un mois et rétractation de 14 jours (CGU).
 - [[Retours utilisateurs]] — suivi privé, contestations, revue mensuelle des idées et conservation des signalements ; réalisation et preuves séparées des fonctionnalités restantes.
 
 ## Concepts
@@ -61,7 +61,7 @@ Point d'entrée pour toute recherche. Voir [[Accueil]] pour la vue d'ensemble.
 - [[Parrainage]] — **19/09** : savoir qui a amené qui — un code par organisation, un parrain au plus par filleul, saisi à l'inscription ou à l'ouverture d'une agence ; le seul levier de croissance autorisé vers les particuliers. **Un mois pour vous, un mois pour lui** : essai du filleul porté à 30 jours, un mois offert au parrain quand son filleul devient client payant. **Depuis le 28/09** : recommandation enregistrée **sans avantage tarifaire** (pas de cumul avec la nouvelle grille).
 
 ## Règles métier
-- [[Grille tarifaire]] — **28/09/2026** : particuliers Solo 5,99 € → Patrimoine 29,99 € TTC/mois (annuel = 2 mois offerts, +1 €/bien au-delà de 20) ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives ; plus de premier bien offert ; franchise en base de TVA (art. 293 B du CGI) ; grilles antérieures en historique.
+- [[Grille tarifaire]] — **28/09/2026** : particuliers Solo 5,99 € → Patrimoine 29,99 € TTC/mois (annuel = 2 mois offerts, +1 €/bien au-delà de 20) ; agences 39 € HT jusqu'à 10 lots puis tranches cumulatives ; plus de premier bien offert ; essai 2 mois jusqu'au 31/12/2026 (offre de lancement), puis 1 mois ; franchise en base de TVA (art. 293 B du CGI) ; grilles antérieures en historique.
 - [[Quittance conforme]] — loyer/charges séparés, identité légale du bailleur.
 - [[Mentions obligatoires du bail]] — modèle-type et compléments DPE, servitude, clauses et honoraires revus le 14/09/2026 ; revue de tous les régimes encore ouverte.
 - [[Clauses abusives et clauses résolutoires]] — 9 clauses non écrites, 4 résolutoires admises.

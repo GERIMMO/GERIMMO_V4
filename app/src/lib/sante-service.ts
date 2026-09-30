@@ -138,7 +138,7 @@ export function domaineDeLAdresse(adresse: string): string | null {
 export function etatConfiguration(env: Env, regimeTva: RegimeTva | null = REGIME_TVA): Verification[] {
   const verifications: Omit<Verification, "prestataire">[] = [];
 
-  // ── Stripe : sans lui, l'essai de 2 mois ferme l'écriture sans issue.
+  // ── Stripe : sans lui, la fin de l'essai ferme l'écriture sans issue.
   const cleStripe = valeur(env, "STRIPE_SECRET_KEY");
   verifications.push({
     cle: "STRIPE_SECRET_KEY",

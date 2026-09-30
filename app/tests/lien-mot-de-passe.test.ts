@@ -201,3 +201,15 @@ describe("/auth/confirm", () => {
     expect(auth.verifyOtp).not.toHaveBeenCalled();
   });
 });
+
+describe("POST /auth/confirm — contrôle d'origine (30/09)", () => {
+  it("accepte Origin: null (page servie en no-referrer) et Sec-Fetch-Site same-origin", async () => {
+    const { requeteMemeOrigine } = await import("@/lib/meme-origine");
+    const r = (h: Record<string, string>) => new Request("https://www.gerimmo.app/auth/confirm", { method: "POST", headers: h });
+    expect(requeteMemeOrigine(r({ origin: "null" }))).toBe(true);
+    expect(requeteMemeOrigine(r({ "sec-fetch-site": "same-origin", origin: "null" }))).toBe(true);
+    expect(requeteMemeOrigine(r({ origin: "https://www.gerimmo.app", host: "www.gerimmo.app" }))).toBe(true);
+    expect(requeteMemeOrigine(r({ "sec-fetch-site": "cross-site", origin: "null" }))).toBe(false);
+    expect(requeteMemeOrigine(r({ origin: "https://evil.example", host: "www.gerimmo.app" }))).toBe(false);
+  });
+});

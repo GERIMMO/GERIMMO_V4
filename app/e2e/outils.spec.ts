@@ -61,8 +61,11 @@ test("calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'u
   // les indices lui-même ; sinon (réseau fermé, comme en local), saisie
   // manuelle. Le test saisit ses propres indices dans les deux cas.
   const manuel = page.getByRole("button", { name: "Saisir les indices moi-même" });
+  const indisponible = page.getByTestId("irl-serie-indisponible");
+  // Attendre que l'un des deux états soit rendu avant de trancher : `isVisible`
+  // ne patiente pas, et tranchait parfois avant l'hydratation (CI du 30/09).
+  await expect(manuel.or(indisponible).first()).toBeVisible();
   if (await manuel.isVisible()) await manuel.click();
-  else await expect(page.getByTestId("irl-serie-indisponible")).toBeVisible();
   await page.getByLabel("Loyer actuel hors charges").fill("850");
   const reference = page.getByRole("group", { name: "Indice de référence" });
   const nouveau = page.getByRole("group", { name: "Nouvel indice" });

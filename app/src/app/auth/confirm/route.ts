@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { destinationSure } from "@/lib/destination-sure";
+import { requeteMemeOrigine } from "@/lib/meme-origine";
 
 // Point d'entrée des liens envoyés par e-mail (invitations, mot de passe
 // oublié, confirmation d'inscription).
@@ -67,18 +68,7 @@ export async function GET(request: NextRequest) {
  * l'ouvrir sur un compte qui n'est pas le sien (connexion forcée).
  */
 export async function POST(request: NextRequest) {
-  const site = request.headers.get("sec-fetch-site");
-  const origine = request.headers.get("origin");
-  const hote = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  let memeOrigine = !site || site === "same-origin";
-  if (memeOrigine && origine) {
-    try {
-      memeOrigine = new URL(origine).host === hote;
-    } catch {
-      memeOrigine = false;
-    }
-  }
-  if (!memeOrigine) return new NextResponse("Requête refusée.", { status: 403 });
+  if (!requeteMemeOrigine(request)) return new NextResponse("Requête refusée.", { status: 403 });
 
   const form = await request.formData().catch(() => null);
   const tokenHash = String(form?.get("token_hash") ?? "");

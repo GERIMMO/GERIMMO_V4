@@ -58,8 +58,9 @@ actuelle conservée → [[Grille tarifaire]]. **Feu vert au développement.**
 >   01/01/2027), puis
 >   **gel en lecture seule** (consultable, exportable) jusqu'au paiement.
 > - Organisations existantes : bascule sur la nouvelle grille dès l'ajout d'un bien.
-> - Pas de cumul avec le [[Parrainage]] (recommandation enregistrée, sans avantage
->   tarifaire) ni avec les anciennes promotions.
+> - Pas de cumul avec les anciennes promotions. [[Parrainage]] : sans avantage du
+>   28/09 au 30/09 ; **30/09 : parrainage réactivé — 1 mois offert au parrain à la
+>   conversion du filleul** (rien de plus pour le filleul).
 > - TVA : **franchise en base** (art. 293 B du CGI).
 > - Préavis de révision tarifaire : au moins un mois (CGU art. 8.9).
 > - Rétractation du consommateur : 14 jours, remboursement intégral, formulaire

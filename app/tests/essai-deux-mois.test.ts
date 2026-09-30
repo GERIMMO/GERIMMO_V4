@@ -36,7 +36,7 @@ import {
   moisEssai,
   offreLancementActive,
 } from "../src/lib/tarifs";
-import { PARRAINAGE_EN_REVISION } from "../src/lib/parrainage";
+import { PARRAINAGE_PROGRAMME } from "../src/lib/parrainage";
 import { CONDITIONS_DATE, CONDITIONS_VERSION } from "../src/lib/editeur";
 
 config({ path: ".env.local" });
@@ -90,7 +90,7 @@ describe("offre de lancement : 2 mois jusqu'au 31/12/2026, puis 1 mois", () => {
   });
 
   it("le parrainage dit les deux durées, sans dépendre du jour", () => {
-    expect(PARRAINAGE_EN_REVISION).toContain(
+    expect(PARRAINAGE_PROGRAMME).toContain(
       "2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite"
     );
   });

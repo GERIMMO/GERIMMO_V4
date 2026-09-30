@@ -135,11 +135,11 @@ export function FormulaireInscription({
               defaultValue={etat.valeurs?.code_parrainage ?? codeParrain ?? ""}
             />
             <p className="text-xs text-muted-foreground">
-              Si quelqu&apos;un vous a recommandé Gerimmo, indiquez son code : la
-              recommandation est enregistrée. L&apos;essai reste de{" "}
-              {dureeEssai}, sans carte, pour tous : le
-              parrainage n&apos;ouvre pas d&apos;avantage tarifaire. Sinon,
-              laissez vide.
+              Si quelqu&apos;un vous a recommandé Gerimmo, indiquez son code
+              pour faire gagner un mois à la personne qui vous recommande, dès
+              votre premier paiement. Pour vous, l&apos;essai reste de{" "}
+              {dureeEssai}, sans carte, comme pour tous : le code ne vous
+              ouvre pas d&apos;avantage supplémentaire. Sinon, laissez vide.
             </p>
           </div>
           <div className="space-y-2">

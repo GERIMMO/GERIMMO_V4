@@ -60,7 +60,8 @@ offert pour personne — seul l'essai est offert (2 mois pendant l'offre de lanc
 lecture seule** jusqu'au paiement. Toute organisation sans souscription en cours
 bascule à la mise en production ; une organisation qui paie encore sur l'ancienne
 grille bascule **dès son prochain ajout de bien**. **Pas de cumul** avec le
-parrainage.
+parrainage — sauf, depuis le 30/09, le **mois offert au parrain** à la
+conversion de son filleul ([[Parrainage]]).
 
 ## Historique des grilles (supplantées le 28/09/2026)
 
@@ -148,7 +149,9 @@ Les deux dernières tranches restent sur devis.
 > - ~~Clients existants~~ — **tranché le 28/09** : bascule, gel après les 14 jours
 >   d'essai, bascule dès l'ajout de bien pour ceux qui paient encore l'ancienne
 >   grille.
-> - ~~Parrainage~~ — **tranché le 28/09 : pas de cumul** ([[Parrainage]]).
+> - ~~Parrainage~~ — **tranché le 28/09 : pas de cumul** ; **30/09 : parrainage
+>   réactivé — 1 mois offert au parrain à la conversion du filleul**, rien de plus
+>   pour le filleul ([[Parrainage]]).
 > - ~~Préavis de révision tarifaire~~ — **tranché le 28/09 : au moins un mois**
 >   (conditions, art. 8.9), résiliation sans frais possible avant la date d'effet.
 > - Les points qui suivent concernent les grilles supplantées :

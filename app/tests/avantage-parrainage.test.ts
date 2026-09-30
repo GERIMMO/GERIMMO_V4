@@ -19,7 +19,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import {
   JOURS_ESSAI_FILLEUL,
   JOURS_OFFERTS_PARRAIN,
-  PARRAINAGE_EN_REVISION,
+  PARRAINAGE_PROGRAMME,
+  PROMESSE_PARRAIN,
 } from "@/lib/parrainage";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -55,9 +56,8 @@ async function organisation(
   const {
     rows: [ligne],
   } = await db.query<Org>(
-    // Grille historique : les avantages s'y appliquent automatiquement. Dans
-    // la grille du 28/09/2026, ils attendent l'arbitrage du porteur
-    // (« en_attente », tests/tarification-2026.test.ts).
+    // Grille historique : mécanique d'origine (19/09). La grille du
+    // 28/09/2026 (décision du 30/09) : tests/parrainage-grille-2026.test.ts.
     `insert into public.organizations (name, status, type, essai_fin, grille_tarifaire)
      values ($1, $2::public.organization_status, 'agence', ${essaiFin ?? "null"}, 'historique')
      returning id, code_parrainage as code`,
@@ -345,16 +345,19 @@ describe("la base et l'écran annoncent le même chiffre", () => {
     );
     expect(rows[0].filleul).toBe(JOURS_ESSAI_FILLEUL);
     expect(rows[0].parrain).toBe(JOURS_OFFERTS_PARRAIN);
-    // L'écran n'annonce plus d'avantage (décision du 29/09, pas de cumul) :
-    // il dit l'essai ordinaire, et ne promet jamais les trente jours.
-    expect(PARRAINAGE_EN_REVISION).toContain("2 mois pour toute inscription jusqu'au 31 décembre 2026");
-    expect(PARRAINAGE_EN_REVISION).toContain("1 mois ensuite");
-    expect(PARRAINAGE_EN_REVISION).not.toContain(String(JOURS_ESSAI_FILLEUL));
+    // L'écran annonce le programme du 30/09 : un mois au parrain à la
+    // conversion, l'essai ordinaire pour le filleul — jamais les trente jours.
+    expect(PROMESSE_PARRAIN).toBe("1 mois offert à la conversion de chaque filleul");
+    expect(PARRAINAGE_PROGRAMME).toContain("première facture");
+    expect(PARRAINAGE_PROGRAMME).toContain("2 mois pour toute inscription jusqu'au 31 décembre 2026");
+    expect(PARRAINAGE_PROGRAMME).toContain("1 mois ensuite");
+    expect(PARRAINAGE_PROGRAMME).not.toContain(String(JOURS_ESSAI_FILLEUL));
   });
 
   it("le profil affiche la même phrase à toutes les organisations, historiques comprises", () => {
     const page = readFileSync(path.resolve(__dirname, "../src/app/agence/[orgId]/profil/page.tsx"), "utf8");
-    expect(page).toContain("{PARRAINAGE_EN_REVISION}");
+    expect(page).toContain("{PARRAINAGE_PROGRAMME}");
+    expect(page).toContain("{PROMESSE_PARRAIN}");
     expect(page).not.toContain("PROMESSE_PARRAINAGE");
     expect(page).not.toContain("grilleHistorique");
   });

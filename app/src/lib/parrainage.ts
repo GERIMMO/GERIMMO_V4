@@ -4,16 +4,19 @@
 // les particuliers, Gerimmo n'a pas le droit de démarcher : le seul moteur est
 // le bouche-à-oreille, et il ne se mesure que si l'on sait qui a amené qui.
 //
-// L'AVANTAGE, décidé le 19/09 : **un mois pour vous, un mois pour lui**. Le
-// filleul entre un code et son essai passe de quatorze à trente jours, tout de
-// suite. (Historique : depuis le 30/09/2026 l'essai ordinaire est de 2 mois
-// jusqu'au 31/12/2026 — offre de lancement —, puis d'un mois ; la base garde
-// toujours le plus long des deux.) Le parrain reçoit un mois quand son filleul devient client PAYANT —
-// jamais à sa simple inscription, sinon on financerait des organisations
-// fictives ouvertes avec son propre code. Selon qu'il est encore en essai ou
-// déjà abonné, ce mois lui arrive en jours d'essai ou en avoir sur sa facture.
+// L'AVANTAGE. Décidé le 19/09 (« un mois pour vous, un mois pour lui »),
+// suspendu le 28-29/09 avec la nouvelle grille (« pas de cumul »), puis
+// RÉACTIVÉ le 30/09/2026 pour le seul parrain : **1 mois offert au parrain à
+// la conversion de chaque filleul**. La conversion, c'est la première facture
+// non nulle payée du filleul (grille du 28/09) — jamais sa simple inscription,
+// sinon on financerait des organisations fictives ouvertes avec son propre
+// code. Le parrain déjà abonné reçoit un avoir de son mensuel courant (annuel
+// ÷ 12) déduit de sa prochaine facture ; encore en essai, un mois d'essai de
+// plus. Le filleul n'a pas d'avantage supplémentaire : il garde l'essai
+// ordinaire (2 mois jusqu'au 31/12/2026 — offre de lancement —, puis 1 mois).
+// La grille historique garde sa mécanique d'origine (trente jours).
 //
-// Les durées vivent aussi en base (`parrainage_jours_filleul`,
+// Les durées historiques vivent aussi en base (`parrainage_jours_filleul`,
 // `parrainage_jours_parrain`) : là elles s'appliquent, ici elles s'affichent.
 // Les deux doivent dire la même chose — le test `avantage-parrainage` compare.
 
@@ -54,15 +57,13 @@ export function codeDeLaRecherche(recherche: URLSearchParams | Record<string, st
 
 /** L'essai du filleul de la grille historique, code entré : trente jours AU
  * TOTAL — jamais moins que l'essai ordinaire (`dureeEssai()`, 2 mois pendant
- * l'offre de lancement), que la base garde s'il est plus long. */
+ * l'offre de lancement), que la base garde s'il est plus long. Sans objet sur
+ * la grille du 28/09/2026. */
 export const JOURS_ESSAI_FILLEUL = 30;
-/** Ce que gagne le parrain quand son filleul devient payant : trente jours. */
+/** Grille historique : ce que gagne le parrain encore en essai, trente jours. */
 export const JOURS_OFFERTS_PARRAIN = 30;
-
-// La promesse « un mois pour vous, un mois pour lui » n'est plus affichée
-// (décision du porteur du 29/09 : pas de cumul avec la grille, pour aucune
-// organisation). Les durées ci-dessus restent le miroir de la base, que le
-// test `avantage-parrainage` compare ; l'écran affiche PARRAINAGE_EN_REVISION.
+/** Grille du 28/09/2026 (décision du 30/09) : un mois offert au parrain. */
+export const MOIS_OFFERTS_PARRAIN = 1;
 
 export type NatureAvantage = "essai_filleul" | "essai_parrain" | "avoir_parrain";
 export type EtatAvantage = "a_appliquer" | "applique" | "sans_objet" | "en_attente";
@@ -80,8 +81,8 @@ export type AvantageParrainage = {
  * s'expliquer, pas disparaître de la liste.
  */
 export function libelleAvantage(a: AvantageParrainage, eur: (cents: number) => string): string {
-  // Grille du 28/09/2026 : l'avantage est enregistré, pas appliqué, tant que
-  // le porteur n'a pas arbitré son articulation avec la nouvelle grille.
+  // État hérité du 28/09 (avantage en attente d'arbitrage) : conservé pour
+  // d'éventuelles anciennes lignes.
   if (a.etat === "en_attente") {
     return a.nature === "essai_filleul"
       ? "Recommandation enregistrée — avantage en cours de révision avec la nouvelle grille"
@@ -89,26 +90,30 @@ export function libelleAvantage(a: AvantageParrainage, eur: (cents: number) => s
   }
   if (a.etat === "sans_objet") {
     if (a.nature === "essai_filleul" && a.jours === 0) {
-      return "Recommandation enregistrée — sans avantage tarifaire (pas de cumul avec la grille)";
+      return "Code de parrainage enregistré — pas d'avantage pour le filleul : l'essai ordinaire s'applique";
     }
     return a.nature === "essai_filleul"
       ? "Essai déjà ouvert ou abonnement en cours : rien à rallonger."
-      : "Aucun montant à créditer au moment de l'acquisition.";
+      : "Filleul converti — aucun montant à créditer à ce moment-là.";
   }
   if (a.nature === "essai_filleul") return `Essai porté à ${a.jours} jours`;
-  if (a.nature === "essai_parrain") return `${a.jours} jours d'essai offerts`;
+  if (a.nature === "essai_parrain") {
+    return a.jours ? `Un mois d'essai offert (+${a.jours} jours)` : "Un mois d'essai offert";
+  }
   const montant = eur(a.montant_cents ?? 0);
   return a.etat === "applique"
     ? `Un mois offert — ${montant} portés à votre solde`
     : `Un mois offert — ${montant} déduits de votre prochaine facture`;
 }
 
+/** La promesse, telle que le profil l'affiche en titre de carte. */
+export const PROMESSE_PARRAIN = "1 mois offert à la conversion de chaque filleul";
+
 /**
- * Ce que l'on dit du programme à une organisation de la grille du 28/09/2026 :
- * pas de cumul (décision du porteur). Les recommandations sont enregistrées,
- * sans avantage tarifaire ; les avantages déjà acquis restent acquis.
+ * Le programme, tel qu'on l'explique à chaque organisation (décision du
+ * 30/09/2026). Texte fixe, vrai avant comme après la fin de l'offre de
+ * lancement (FIN_OFFRE_LANCEMENT dans tarifs.ts) : il ne dépend pas du jour
+ * du rendu.
  */
-// Texte fixe, vrai avant comme après la fin de l'offre de lancement
-// (FIN_OFFRE_LANCEMENT dans tarifs.ts) : il ne dépend pas du jour du rendu.
-export const PARRAINAGE_EN_REVISION =
-  "Vos recommandations sont enregistrées. Le parrainage n'ouvre pas d'avantage tarifaire : l'essai gratuit est le même pour tous — 2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite —, sans cumul avec la grille. Les avantages déjà acquis sont conservés.";
+export const PARRAINAGE_PROGRAMME =
+  "Partagez votre code : quand une organisation inscrite avec lui paie sa première facture, vous recevez un mois offert — un avoir égal à votre mensuel courant (un douzième de l'annuel), déduit de votre prochaine facture, ou un mois d'essai de plus si vous êtes encore en essai. Une récompense par filleul. Votre filleul garde l'essai ordinaire — 2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite —, sans avantage supplémentaire.";

@@ -238,6 +238,32 @@ describe.skipIf(!DB_URL)("grille tarifaire du 28/09/2026 — base", () => {
 
   });
 
+  describe("agence sous le socle (30/09/2026)", () => {
+    it("une agence souscrite avec 0 lot crée ses biens et ses lots : seuls les lots sous mandat comptent", async () => {
+      const o = await org("agence", "active", "2026-09-28");
+      await souscrire(o, 0);
+      // Avant le 30/09 : « Votre abonnement couvre 0 lot sous mandat » dès le premier bien.
+      const b = await bien(o, 2);
+      expect(b.lots).toHaveLength(2);
+    });
+
+    it("abonnement_details ne descend jamais la capacité d'une agence sous le socle", async () => {
+      const o = await org("agence", "active", "2026-09-28");
+      const client = "cus_" + o;
+      await db.query(
+        `insert into public.abonnements (organization_id, stripe_customer_id, stripe_subscription_id, stripe_statut)
+         values ($1, $2, 'sub_'||gen_random_uuid(), 'trialing')`,
+        [o, client]
+      );
+      await db.query("select public.abonnement_details($1,'mensuel',null,0,3900,now())", [client]);
+      const { u } = await un<{ u: number }>("select unites_souscrites as u from public.abonnements where organization_id=$1", [o]);
+      expect(u).toBe(10);
+      await db.query("select public.abonnement_details($1,'mensuel',null,25,6400,now())", [client]);
+      const { u: u2 } = await un<{ u: number }>("select unites_souscrites as u from public.abonnements where organization_id=$1", [o]);
+      expect(u2).toBe(25);
+    });
+  });
+
   describe("le miroir de Stripe", () => {
     it("abonnement_details enregistre formule, périodicité, capacité, montant, et le journalise", async () => {
       const o = await org("proprietaire_direct");

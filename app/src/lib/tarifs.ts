@@ -279,11 +279,16 @@ export function offreAgence(lots: number): OffreAgence {
       });
     }
   });
+  // Le socle couvre ses lots même quand l'agence en gère moins (30/09 : une
+  // agence souscrite à 0 lot recevait une capacité de 0 et ne pouvait plus
+  // rien créer). La capacité est ce que le montant couvre, jamais moins que
+  // le socle.
+  const socle = TRANCHES_AGENCE.find((t) => t.forfaitCents > 0)?.au ?? 0;
   return {
     public: "agence",
     periodicite: "mensuel",
     lots: n,
-    capacite: n,
+    capacite: Math.max(n, socle),
     montantCents: lignes.reduce((s, l) => s + l.totalCents, 0),
     lignes,
   };

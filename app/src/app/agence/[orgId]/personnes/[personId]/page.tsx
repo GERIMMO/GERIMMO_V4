@@ -29,6 +29,7 @@ import {
 import { FormulaireIdentite, BoutonArchiverPersonne } from "./formulaire-identite";
 import {
   FormulaireMandat,
+  FormulaireDateMandat,
   FormulaireLigneMandat,
   BoutonsEtatMandat,
   SelectTitulaireMandat,
@@ -153,7 +154,7 @@ export default async function PagePersonne(
       .or(`date_fin.is.null,date_fin.gte.${aujourdhui}`),
     supabase
       .from("mandats")
-      .select("id, etat, date_rapport, seuil_delegation, agent_account_id")
+      .select("id, etat, date_rapport, seuil_delegation, agent_account_id, date_debut")
       .eq("organization_id", orgId)
       .eq("person_id", personId)
       .order("created_at"),
@@ -333,7 +334,7 @@ export default async function PagePersonne(
     estProprietaire
   );
   // Même libellé que la puce de la liste pour une fiche sans lien vivant
-  const sansRole = estProprietaire ? "Sans bail en cours" : "Sans rôle en cours";
+  const sansRole = estProprietaire ? "Sans bail en cours" : "Fiche à rattacher à un lot ou à un bail";
   const estSaFiche = personne.account_id === user.id;
 
   // Les baux vivants, vus depuis la personne : principal, colocataire, garant
@@ -583,7 +584,7 @@ export default async function PagePersonne(
           sur celle d'un propriétaire mandant, que l'invitation ferait entrer
           dans un espace LOCATAIRE (24/09). Une fiche sans rôle la garde :
           c'est souvent un locataire dont le bail n'est pas encore signé. */}
-      {!estSaFiche && (estLocataire || estGarant || roles.length === 0) && (
+      {!estSaFiche && (estLocataire || (roles.length === 0 && (detentions ?? []).length === 0)) && (
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Accès locataire</CardTitle>
@@ -591,7 +592,7 @@ export default async function PagePersonne(
               à donner un accès déjà donné brouillait l'état. */}
           {!personne.account_id && (
             <CardDescription>
-              Donnez à cette personne l&apos;accès à son espace (dépôt d&apos;attestation,
+              Si cette personne est un futur locataire, donnez-lui l&apos;accès à son espace (dépôt d&apos;attestation,
               suivi) via une invitation par email.
             </CardDescription>
           )}
@@ -798,7 +799,7 @@ export default async function PagePersonne(
           <CardTitle className="text-base">Mandats de gestion</CardTitle>
           <CardDescription>
             Un mandat porte sur des lots détenus par cette personne — chaque lot
-            avec son propre taux d&apos;honoraires (défaut 7 %).
+            avec son propre taux d&apos;honoraires, à renseigner selon le contrat.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -815,6 +816,7 @@ export default async function PagePersonne(
                   key={m.id}
                   className={`rounded-lg border border-border p-3 ${historise ? "bg-muted opacity-70" : ""}`}
                 >
+                  {m.etat === "brouillon" && <FormulaireDateMandat orgId={orgId} personId={personId} mandatId={m.id} dateDebut={m.date_debut} />}
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     {/* flex-wrap : au téléphone, le résumé passe sous la puce
                         au lieu de s'y serrer en colonne étroite (24/09) */}
@@ -937,7 +939,7 @@ export default async function PagePersonne(
             </p>
           ) : (
             <p className="border-t border-border pt-4 text-sm text-muted-foreground">
-              Tous les lots détenus sont déjà sous mandat.
+              Tous les lots détenus figurent déjà dans un mandat, en préparation ou actif. Consultez son état ci-dessus.
             </p>
           )}
         </CardContent>

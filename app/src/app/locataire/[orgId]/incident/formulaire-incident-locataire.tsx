@@ -116,6 +116,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
   const actionLiee = declarerMonIncident.bind(null, orgId);
   const [etat, action] = useActionState<EtatIncidentAction, FormData>(actionLiee, {});
   const [categorie, setCategorie] = useState(etat.valeurs?.categorie ?? "");
+  const [piece, setPiece] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const champPhotos = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -260,7 +261,7 @@ export function FormulaireIncidentLocataire({ orgId }: { orgId: string }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="piece">Dans quelle pièce ?</Label>
-            <select id="piece" name="piece" defaultValue={etat.valeurs?.piece ?? ""} className={classeSelect}>
+            <select id="piece" name="piece" value={piece} onChange={(e) => setPiece(e.target.value)} className={classeSelect}>
               <option value="">—</option>
               {PIECES_INCIDENT.map((p) => (
                 <option key={p} value={p}>

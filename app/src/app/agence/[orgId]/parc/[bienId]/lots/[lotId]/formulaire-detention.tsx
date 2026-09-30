@@ -239,7 +239,7 @@ export function FormulaireDetention({
               // détention) — sur un bouton, elle garde son sens.
               if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
                 e.preventDefault();
-                if (refNom.current?.reportValidity() && refEmail.current?.reportValidity()) {
+                if ([...e.currentTarget.querySelectorAll<HTMLInputElement>("input")].every(input => input.reportValidity())) {
                   setModaleOuverte(false);
                 }
               }
@@ -256,10 +256,7 @@ export function FormulaireDetention({
                   onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })}
                 />
               </div>
-              {nouveau.prenom && <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5"><Label htmlFor="detention-naissance">Date de naissance *</Label><Input id="detention-naissance" type="date" required value={nouveau.dateNaissance} onChange={(e) => setNouveau({ ...nouveau, dateNaissance: e.target.value })} /></div>
-                <div className="space-y-1.5"><Label htmlFor="detention-commune-naissance">Commune de naissance *</Label><Input id="detention-commune-naissance" required value={nouveau.communeNaissance} onChange={(e) => setNouveau({ ...nouveau, communeNaissance: e.target.value })} /></div>
-              </div>}
+
               <div className="space-y-1.5"><Label htmlFor="detention-adresse">Adresse *</Label><Input id="detention-adresse" required value={nouveau.adresse} onChange={(e) => setNouveau({ ...nouveau, adresse: e.target.value })} /></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5"><Label htmlFor="detention-cp">Code postal *</Label><Input id="detention-cp" required value={nouveau.codePostal} onChange={(e) => setNouveau({ ...nouveau, codePostal: e.target.value })} /></div>
@@ -274,6 +271,10 @@ export function FormulaireDetention({
                   onChange={(e) => setNouveau({ ...nouveau, prenom: e.target.value })}
                 />
               </div>
+              {nouveau.prenom && <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5"><Label htmlFor="detention-naissance">Date de naissance *</Label><Input id="detention-naissance" type="date" required value={nouveau.dateNaissance} onChange={(e) => setNouveau({ ...nouveau, dateNaissance: e.target.value })} /></div>
+                <div className="space-y-1.5"><Label htmlFor="detention-commune-naissance">Commune de naissance *</Label><Input id="detention-commune-naissance" required value={nouveau.communeNaissance} onChange={(e) => setNouveau({ ...nouveau, communeNaissance: e.target.value })} /></div>
+              </div>}
               <div className="space-y-1.5">
                 <Label htmlFor="detention-email">Adresse email *</Label>
                 <Input
@@ -297,7 +298,8 @@ export function FormulaireDetention({
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => {
+                  onClick={(e) => {
+                    if (![...e.currentTarget.closest(".space-y-3")!.querySelectorAll<HTMLInputElement>("input")].every(input => input.reportValidity())) return;
                     // Validation native des deux champs obligatoires avant de
                     // refermer — la création réelle part avec la détention.
                     if (!refNom.current?.reportValidity()) return;

@@ -23,6 +23,8 @@ export async function creerMandat(
   if (!user) return { erreur: "Accès refusé." };
 
   const valeurs = valeursDuFormulaire(formData);
+  const dateDebut = String(formData.get("date_debut") ?? "");
+  if (!dateMandatValide(dateDebut)) return { erreur: "Renseignez une date de prise d’effet valide.", valeurs };
   const dateRapport = Number(formData.get("date_rapport") ?? 10);
   const seuilRaw = String(formData.get("seuil_delegation") ?? "").trim();
 
@@ -30,6 +32,7 @@ export async function creerMandat(
     organization_id: orgId,
     person_id: personId,
     etat: "brouillon",
+    date_debut: dateDebut,
     date_rapport: dateRapport >= 1 && dateRapport <= 28 ? dateRapport : 10,
     seuil_delegation: seuilRaw ? Number(seuilRaw) : null,
     created_by: user.id,
@@ -237,4 +240,22 @@ export async function changerTitulaireMandat(
   revalidatePath(`/agence/${orgId}`);
   revalidatePath(`/agence/${orgId}/parc`);
   return { succes: brut ? "Mandat confié." : "Mandat suivi par toute l'agence." };
+}
+
+function dateMandatValide(value:string):boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value;
+}
+
+export async function modifierDateMandat(orgId:string, personId:string, mandatId:string, _etat:EtatMandat, formData:FormData):Promise<EtatMandat> {
+  const {supabase,user}=await verifierGerant(orgId);
+  if(!user) return {erreur:"Accès refusé."};
+  const valeurs=valeursDuFormulaire(formData);
+  const dateDebut=String(formData.get("date_debut")??"");
+  if(!dateMandatValide(dateDebut)) return {erreur:"Renseignez une date de prise d’effet valide.",valeurs};
+  const {data,error}=await supabase.from("mandats").update({date_debut:dateDebut})
+    .eq("id",mandatId).eq("organization_id",orgId).eq("person_id",personId).eq("etat","brouillon").select("id").maybeSingle();
+  if(error) return {erreur:sansJargon(error.message),valeurs};
+  if(!data) return {erreur:"Seul un mandat en brouillon peut être modifié.",valeurs};
+  revalidatePath(`/agence/${orgId}/personnes/${personId}`);
+  return {succes:"Date de prise d’effet enregistrée."};
 }

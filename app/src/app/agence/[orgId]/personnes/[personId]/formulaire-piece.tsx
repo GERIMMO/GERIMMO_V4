@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import {
   deposerPieceDossier,
   validerAttestation,
@@ -16,6 +16,7 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
   const action = deposerPieceDossier.bind(null, orgId, personId);
   const [etat, formAction] = useActionState<EtatDossier, FormData>(action, {});
   const formulaire = useRef<HTMLFormElement>(null);
+  const [etatModifie, setEtatModifie] = useState<typeof etat | null>(null);
 
   useEffect(() => {
     if (etat.succes) formulaire.current?.reset();
@@ -23,6 +24,7 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
 
   return (
     <form
+      onChange={() => setEtatModifie(etat)}
       ref={formulaire}
       action={formAction}
       className="flex flex-wrap items-end gap-2 border-t border-border pt-4"
@@ -79,7 +81,7 @@ export function FormulairePiece({ orgId, personId }: { orgId: string; personId: 
         </BoutonEnvoi>
       </div>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && (
+      {etat.succes && etatModifie !== etat && (
         <p className="w-full text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
     </form>

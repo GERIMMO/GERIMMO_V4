@@ -40,6 +40,7 @@ export function FormulaireCle({
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const [mode, setMode] = useState<"surface" | "tantiemes" | "parts_egales">("surface");
   const [modifier, setModifier] = useState(false);
+  const [nouvelleCle, setNouvelleCle] = useState(false);
   // Rangée compacte (nom du lot · champ · « % ») : un libellé visible la
   // casserait, il n'existe donc que pour la synthèse vocale. Identifiants
   // tirés de useId(), un par lot — jamais de chaîne en dur.
@@ -64,8 +65,9 @@ export function FormulaireCle({
   // Sans surface saisie sur les lots, la proposition par surface n'a pas de sens
   const surfacesConnues = lots.every((l) => l.surface_m2 !== null && l.surface_m2 > 0);
 
+  if (etat.succes && !nouvelleCle) return <div role="status" className="space-y-2"><p>Clé de répartition validée.</p><Button type="button" variant="outline" onClick={() => {setNouvelleCle(true); setModifier(true);}}>Préparer une nouvelle répartition</Button></div>;
   return (
-    <form action={action} className="space-y-3 border-t border-border pt-4">
+    <form action={async (data) => {setNouvelleCle(false); action(data);}} className="space-y-3 border-t border-border pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-medium">
           {modifier ? "Ajuster la clé" : "Clé proposée"}

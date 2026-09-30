@@ -658,6 +658,7 @@ export async function deposerDiagnostic(
   const referentiel = TYPES_DIAGNOSTIC[type];
   if (!referentiel) return { erreur: "Type de diagnostic invalide.", valeurs };
   if (!realisation) return { erreur: "La date de réalisation est obligatoire.", valeurs };
+  if (referentiel.validite_mois != null && !expiration) return { erreur: "La date d’expiration de ce diagnostic est obligatoire.", valeurs };
 
   // Rattachement bien OU lot selon la nature du diagnostic (RM-0.6.2) ;
   // le dépôt archive l'ancien du même type et lève seul le blocage (RM-0.8.5)

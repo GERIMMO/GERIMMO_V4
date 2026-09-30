@@ -18,7 +18,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { clientDeService } from "@/lib/supabase/service";
 import { sansJargon } from "@/lib/erreurs";
-import { adresseDeRetour } from "@/lib/site";
+import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
 import { journaliserSupervision } from "@/lib/journal-supervision";
 
 export type EtatControle = { erreur?: string; succes?: string };
@@ -54,13 +54,15 @@ export async function renvoyerInvitation(orgId: string, _etat: EtatControle, for
     .flatMap((r) => (Array.isArray(r.account) ? r.account : r.account ? [r.account] : []))
     .map((a) => a.email.toLowerCase());
   if (!courriel || !adresses.includes(courriel)) return { erreur: "Choisissez le responsable rattaché à cette organisation." };
-  const { error: erreurMail } = await supabase.auth.resetPasswordForEmail(courriel, {
-    redirectTo: `${adresseDeRetour()}/auth/confirm?next=/nouveau-mot-de-passe`,
+  const { erreur: erreurMail } = await envoyerLienMotDePasse({
+    email: courriel,
+    motif: "renvoi_supervision",
+    next: "/nouveau-mot-de-passe",
   });
   // Le geste est journalisé, réussi ou non : un renvoi tenté est une action.
   const journal = await journaliserSupervision(supabase, "invitation_renvoyee", { envoyee: !erreurMail }, orgId);
   revalidatePath(`/admin/organisations/${orgId}`);
-  if (erreurMail) return { erreur: `L’invitation n’est pas partie : ${sansJargon(erreurMail.message)}` };
+  if (erreurMail) return { erreur: `L’invitation n’est pas partie : ${erreurMail}` };
   return { succes: `Invitation renvoyée à ${courriel}.${journal ? "" : " Sa ligne au journal d’audit n’a pas pu être écrite : signalez-le."}` };
 }
 

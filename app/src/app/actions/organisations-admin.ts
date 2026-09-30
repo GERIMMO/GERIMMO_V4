@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { normaliserCode } from "@/lib/parrainage";
 import { sansJargon } from "@/lib/erreurs";
 import { valeursDuFormulaire } from "@/lib/formulaires";
-import { adresseDeRetour } from "@/lib/site";
+import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
 
 export type EtatOuverture = {
   erreur?: string;
@@ -88,11 +88,14 @@ export async function ouvrirOrganisation(
   // L'invitation : le responsable définit son mot de passe par le lien reçu.
   // Si elle échoue, on ne perd PAS l'organisation — on le dit, et le super
   // admin peut renvoyer l'invitation depuis la fiche.
-  const origine = adresseDeRetour();
-  const { error: erreurMail } = await supabase.auth.resetPasswordForEmail(
-    ligne.email_responsable,
-    { redirectTo: `${origine}/auth/confirm?next=/nouveau-mot-de-passe` }
-  );
+  // Le lien est fabriqué côté serveur (lib/lien-mot-de-passe.ts) : il marche
+  // dans le navigateur du DESTINATAIRE, pas seulement dans celui du super
+  // admin qui l'a demandé (incident du 30/09, flux PKCE).
+  const { erreur: erreurMail } = await envoyerLienMotDePasse({
+    email: ligne.email_responsable,
+    motif: "invitation_responsable",
+    next: "/nouveau-mot-de-passe",
+  });
 
   if (demande) {
     // La demande qui a mené à cette ouverture n'a plus à être retraitée.
@@ -114,7 +117,7 @@ export async function ouvrirOrganisation(
   if (erreurMail) {
     redirect(
       `/admin/organisations/${ligne.organization_id}?ouverte=1&mail=${encodeURIComponent(
-        sansJargon(erreurMail.message)
+        sansJargon(erreurMail)
       )}`
     );
   }

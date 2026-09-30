@@ -19,7 +19,7 @@ describe("adresse de retour des e-mails", () => {
     expect(adresseDeRetour()).toBe("");
   });
 
-  it.each(["auth", "invitations", "organisations-admin", "loyers", "baux"])(
+  it.each(["auth", "loyers", "baux"])(
     "l'action %s ne lit plus l'en-tête Origin",
     (fichier) => {
       const source = readFileSync(new URL(`../src/app/actions/${fichier}.ts`, import.meta.url), "utf-8");
@@ -27,4 +27,22 @@ describe("adresse de retour des e-mails", () => {
       expect(source).toContain("adresseDeRetour()");
     }
   );
+
+  // 30/09 : les invitations passent par la fabrique de liens de mot de passe,
+  // qui lit la configuration (adresseDuSite) et jamais la requête.
+  it.each(["invitations", "organisations-admin", "controle-supervision"])(
+    "l'action %s confie son lien à lib/lien-mot-de-passe.ts",
+    (fichier) => {
+      const source = readFileSync(new URL(`../src/app/actions/${fichier}.ts`, import.meta.url), "utf-8");
+      expect(source).not.toMatch(/get\(["']origin["']\)/);
+      expect(source).not.toContain("resetPasswordForEmail");
+      expect(source).toContain("envoyerLienMotDePasse(");
+    }
+  );
+
+  it("la fabrique de liens suit la configuration, pas l'en-tête Origin", () => {
+    const source = readFileSync(new URL("../src/lib/lien-mot-de-passe.ts", import.meta.url), "utf-8");
+    expect(source).not.toMatch(/get\(["']origin["']\)/);
+    expect(source).toContain("adresseDuSite()");
+  });
 });

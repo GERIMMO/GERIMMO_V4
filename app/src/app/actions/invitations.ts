@@ -3,7 +3,7 @@
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
-import { adresseDeRetour } from "@/lib/site";
+import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
 
 export type EtatInvitation = { erreur?: string; succes?: string };
 
@@ -25,15 +25,16 @@ export async function inviterLocataire(
   });
   if (error) return { erreur: sansJargon(error.message) };
 
-  const origine = adresseDeRetour();
-  const { error: erreurMail } = await supabase.auth.resetPasswordForEmail(String(email), {
-    redirectTo: `${origine}/auth/confirm?next=/nouveau-mot-de-passe`,
+  const { erreur: erreurMail } = await envoyerLienMotDePasse({
+    email: String(email),
+    motif: "invitation_locataire",
+    next: "/nouveau-mot-de-passe",
   });
 
   revalidatePath(`/agence/${orgId}/personnes/${personId}`);
   if (erreurMail) {
     return {
-      succes: `Compte locataire créé pour ${email}. L'email n'a pas pu partir (${sansJargon(erreurMail.message)}) — SMTP à configurer (Resend).`,
+      succes: `Compte locataire créé pour ${email}. L'email n'a pas pu partir (${erreurMail}).`,
     };
   }
   return {

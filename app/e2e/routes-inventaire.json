@@ -552,6 +552,12 @@
     "dynamic": ""
   },
   {
+    "path": "/auth/confirmer",
+    "persona": "public",
+    "label": "Lien reçu par e-mail — bouton de confirmation",
+    "dynamic": ""
+  },
+  {
     "path": "/quittance/QUITTANCE",
     "persona": "locataire",
     "label": "Quittance / reçu imprimable (aussi vue côté agence)",

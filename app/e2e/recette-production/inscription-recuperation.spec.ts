@@ -7,9 +7,12 @@ import { lireComptes } from "./cible";
 // Compte neuf, mot de passe propre à la recette, courriers vers le puits de
 // test Resend. Les liens à usage unique sont lus seulement pour CE compte,
 // sans être affichés ni joints au rapport. On ne lit aucune boîte humaine.
-// Le lien passe par Supabase puis revient dans Gerimmo avec le code PKCE,
-// comme le lien du modèle par défaut. La remise dans une boîte humaine reste
-// hors de cet essai : les boîtes resend.dev sont des puits de test.
+// La confirmation d'inscription passe par Supabase puis revient dans Gerimmo
+// avec le code PKCE, comme le lien du modèle par défaut. La récupération
+// (30/09) est un lien fabriqué par Gerimmo : /auth/confirm?token_hash=…, qui
+// mène à un bouton ; c'est le clic qui consomme le jeton. La remise dans une
+// boîte humaine reste hors de cet essai : les boîtes resend.dev sont des
+// puits de test.
 test("inscription, confirmation et récupération d'un compte fictif", SANS_TRACE, async ({ page, context }) => {
   test.skip(!process.env.PGPASSWORD, "Lecture du seul lien de test réservée au chantier autonome.");
   test.setTimeout(240_000);
@@ -69,7 +72,17 @@ test("inscription, confirmation et récupération d'un compte fictif", SANS_TRAC
     await saisir(page.getByLabel("Adresse e-mail"), email);
     await cliquer(page.getByRole("button", { name: "Envoyer le lien", exact: true }));
     await expect(page.getByText(/Si un compte existe pour cette adresse/)).toBeVisible();
-    await lien("recovery_token", "recovery", "/nouveau-mot-de-passe");
+    // Le jeton de récupération est l'empreinte que `generateLink` a posée :
+    // exactement le `token_hash` que porte l'e-mail.
+    let empreinte = "";
+    await expect(async () => {
+      const r = await db.query("select recovery_token as token from auth.users where email=$1 and raw_user_meta_data->>'nom'=$2", [email, nom]);
+      empreinte = r.rows[0]?.token ?? "";
+      expect(/^[a-f0-9]{56}$/.test(empreinte), "un lien de récupération fabriqué par Gerimmo est créé").toBe(true);
+    }).toPass({ timeout: 20_000, intervals: [1000, 2000] });
+    await page.goto(`/auth/confirm?token_hash=${empreinte}&type=recovery&next=/nouveau-mot-de-passe`);
+    empreinte = "";
+    await cliquer(page.getByRole("button", { name: "Choisir mon mot de passe", exact: true }));
     await expect(page.getByLabel("Nouveau mot de passe")).toBeVisible();
     const nouveau = `${c.motDePasse}-nouveau`;
     await page.getByLabel("Nouveau mot de passe").fill(nouveau);

@@ -10,7 +10,11 @@
 // Exceptions tenues à la main, chacune APRÈS une lecture réservée qui prouve
 // le droit de l'appelant : le webhook Stripe (signé), et, dans les actions
 // d'abonnement, le remplacement d'un client Stripe supprimé et la sortie de
-// la grille historique (audit du 29/09/2026).
+// la grille historique (audit du 29/09/2026). Et la fabrique des liens de mot
+// de passe (src/lib/lien-mot-de-passe.ts, 30/09/2026) : `auth.admin.generateLink`
+// pour UNE adresse, appelée après le contrôle de l'action (superviseur, admin
+// d'agence) ou, pour « mot de passe oublié », après la limite de fréquence
+// `autoriser_lien_mot_de_passe` — l'API d'administration n'a pas celle d'Auth.
 //
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées

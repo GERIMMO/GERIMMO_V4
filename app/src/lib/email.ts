@@ -4,8 +4,9 @@ import { chargerMarque } from "./marque-organisation-serveur";
 import { emailValide, enteteMarqueHtml, liensMarque, nomMarque } from "./marque-organisation";
 
 // Envoi d'emails transactionnels via l'API Resend (quittances, décomptes…).
-// Les emails d'AUTHENTIFICATION (invitation, mot de passe) passent, eux, par le
-// SMTP Resend configuré dans Supabase — pas par ce helper.
+// Les liens de mot de passe (invitations, mot de passe oublié) passent aussi
+// par ici depuis le 30/09 (lib/lien-mot-de-passe.ts). Seule la confirmation
+// d'inscription part encore par le SMTP configuré dans Supabase.
 // Nécessite RESEND_API_KEY dans l'environnement (.env.local) et un domaine vérifié.
 
 /**

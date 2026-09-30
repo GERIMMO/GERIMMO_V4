@@ -1042,7 +1042,7 @@ function ConsultationOuverte({
                         </div>
                       )}
                     </div>
-                    <p className="whitespace-pre-line text-sm text-muted-foreground">{d.description}</p>
+                    <p className="whitespace-pre-line text-sm text-muted-foreground">{d.description.replace(/(\d+)\.(\d{2})0{3,}(?= €| %)/g, '$1,$2')}</p>
                     <DetailDevis lignes={d.lignes} />
                     <a href={`/api/devis/${d.sollicitation_id}/pdf`} target="_blank" rel="noreferrer" className="lien-discret">Télécharger le détail du devis (PDF)</a>
                     {d.document_id && (

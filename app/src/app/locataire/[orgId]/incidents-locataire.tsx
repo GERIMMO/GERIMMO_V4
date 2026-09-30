@@ -114,6 +114,7 @@ function CarteIncident({
   >(signalerProblemePersiste.bind(null, orgId, incident.id), {});
 
   const charge = priseEnCharge(incident);
+  const suiviHistorique = suivi?.etape === "terminee" && ["rouvert", "qualifie"].includes(incident.etat);
   // Contestation et réouverture : réservées au déclarant (les colocataires
   // sont informés mais les fonctions en base n'acceptent que lui)
   const peutContester =
@@ -149,7 +150,7 @@ function CarteIncident({
   // propriétaire » (qui paie) au même emplacement, alors que la seconde en
   // était à « nous cherchons un artisan ». Dès qu'une intervention existe,
   // la pastille suit son étape ; la prise en charge reste dans sa rangée.
-  const etapePastille = suivi && incident.etat !== "clos" ? etapeCourte(suivi.etape) : null;
+  const etapePastille = suivi && !suiviHistorique && !["clos", "rouvert"].includes(incident.etat) ? etapeCourte(suivi.etape) : null;
   const textePastille =
     etapePastille ?? libelleEtatLocataire(incident.etat, incident.imputation);
   // Ce que la pastille dit déjà, la rangée « Qui prend en charge » ne le
@@ -204,7 +205,15 @@ function CarteIncident({
           </div>
         ))}
 
-      {suivi && (
+      {incident.etat === "rouvert" && (
+        <p role="status">Votre demande est rouverte. Votre gestionnaire examine le problème persistant ; l’intervention précédente reste dans l’historique.</p>
+      )}
+      {suiviHistorique && suivi && (
+        <details className="border-t pt-2"><summary className="cursor-pointer">Consulter l’intervention précédente</summary>
+          <SuiviInterventionLocataire orgId={orgId} suivi={suivi} creneaux={[]} peutAgir={false} />
+        </details>
+      )}
+      {suivi && !suiviHistorique && incident.etat !== "rouvert" && (
         <SuiviInterventionLocataire
           orgId={orgId}
           suivi={suivi}

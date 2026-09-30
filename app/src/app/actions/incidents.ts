@@ -848,3 +848,14 @@ export async function deciderAvenant(
   revaliderIncident(orgId);
   return { succes: accepter ? "Avenant accepté. L’artisan peut terminer au nouveau montant." : "Avenant refusé. Le dernier montant accepté reste le plafond autorisé." };
 }
+
+export async function validerFactureArtisan(orgId: string, factureId: string, _etat: EtatIncidentAction, formData: FormData): Promise<EtatIncidentAction> {
+  const { supabase, user } = await verifierGerant(orgId);
+  if (!user) return { erreur: "Accès refusé." };
+  const { error } = await supabase.rpc("valider_facture_artisan", {
+    p_org: orgId, p_facture: factureId, p_motif: String(formData.get("motif") ?? "").trim(),
+  });
+  if (error) return { erreur: sansJargon(error.message) };
+  revaliderIncident(orgId);
+  return { succes: "Facture validée. Aucun paiement bancaire n’a été effectué." };
+}

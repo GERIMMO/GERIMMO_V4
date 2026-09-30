@@ -5605,3 +5605,12 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   vérifiées le 29/09/2026, à revoir chaque janvier), simulateur LMNP (micro-BIC
   / réel), rentabilité locative (brute, nette, cash-flow).
 - Chaque outil renvoie vers la création de compte (essai de 14 jours).
+
+## [2026-09-30] decision | Outils gratuits : refonte visuelle, mise en avant, IRL automatique
+- Pages d'outils refaites (résultat mis en valeur, graphiques simples, documents
+  façon papier) ; « Outils gratuits » dans l'en-tête, vitrine sous le héros de
+  l'accueil, encarts sur Tarifs et le Journal.
+- IRL : indices lus chez l'Insee (série 001515333) ; l'utilisateur saisit loyer,
+  adresse, date du bail ; référence = dernier indice publié à la signature
+  (art. 17-1) ; Corse / outre-mer en saisie manuelle ; DPE F/G → révision interdite.
+- Page : [[Révision annuelle IRL]].

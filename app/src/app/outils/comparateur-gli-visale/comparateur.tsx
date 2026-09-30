@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Alerte, CLASSE_CARTE, Case, Champ, Chiffre, Choix, Groupe } from "@/components/outils/champs";
+import { Alerte, CarteSaisie, Case, Champ, Choix, Groupe, Segments } from "@/components/outils/champs";
+import {
+  Barres,
+  DispositionOutil,
+  LigneDetail,
+  ListeDetail,
+  PanneauResultat,
+  Pastille,
+} from "@/components/outils/resultats";
 import {
   COUVERTURE_VISALE,
   SITUATIONS_TRENTE_PLUS,
@@ -42,88 +50,132 @@ export function ComparateurGliVisale() {
   });
   const gli = coutGli({ loyerCc: loyer, taux: tauxSaisi == null ? null : tauxSaisi / 100, tmi: Number(tmi) });
 
-  return (
-    <div className="space-y-5">
-      <section className={`${CLASSE_CARTE} space-y-5`} aria-labelledby="cmp-saisie">
-        <h2 id="cmp-saisie" className="text-[length:var(--pas-section)]">
-          Le logement et le locataire
-        </h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Champ id="cmp-loyer" libelle="Loyer mensuel charges comprises" valeur={loyerCc} onChange={setLoyerCc} suffixe="€" decimal />
-          <Choix id="cmp-zone" libelle="Situation du logement" valeur={zone} onChange={setZone} options={ZONES_VISALE} />
-          <Choix id="cmp-age" libelle="Âge du locataire" valeur={age} onChange={setAge} options={[...AGES]} />
-          {age === "30-plus" && (
-            <Choix
-              id="cmp-situation"
-              libelle="Situation du locataire"
-              valeur={situation}
-              onChange={setSituation}
-              options={SITUATIONS_TRENTE_PLUS}
-            />
-          )}
-        </div>
+  const saisie = (
+    <CarteSaisie id="cmp-saisie" titre="Le logement et le locataire">
+      <Groupe legende="Le logement">
+        <Champ id="cmp-loyer" libelle="Loyer mensuel charges comprises" valeur={loyerCc} onChange={setLoyerCc} suffixe="€" decimal />
+        <Choix id="cmp-zone" libelle="Situation du logement" valeur={zone} onChange={setZone} options={ZONES_VISALE} />
+      </Groupe>
+      <Groupe legende="Le locataire">
+        <Segments nom="cmp-age" libelle="Âge du locataire" valeur={age} onChange={setAge} options={[...AGES]} />
+        {age === "30-plus" && (
+          <Choix
+            id="cmp-situation"
+            libelle="Situation du locataire"
+            valeur={situation}
+            onChange={setSituation}
+            options={SITUATIONS_TRENTE_PLUS}
+          />
+        )}
         <Case id="cmp-etudiant" coche={etudiant} onChange={setEtudiant} libelle="Le locataire est étudiant, sans revenus" />
+      </Groupe>
+      <Groupe legende="Votre assurance loyers impayés (GLI)">
+        <Champ
+          id="cmp-taux"
+          libelle="Taux de la prime"
+          valeur={taux}
+          onChange={setTaux}
+          suffixe="%"
+          decimal
+          aide="Du loyer charges comprises annuel ; selon le contrat de l'assureur."
+        />
+        <Segments
+          nom="cmp-tmi"
+          libelle="Tranche marginale d'imposition"
+          valeur={tmi}
+          onChange={setTmi}
+          options={TMI}
+          colonnes="grid-cols-5"
+        />
+      </Groupe>
+    </CarteSaisie>
+  );
+
+  const resultat = (
+    <PanneauResultat
+      id="cmp-resultat"
+      titre="Comparaison"
+      pastille={
+        visale.eligible ? <Pastille ton="succes">Visale possible</Pastille> : <Pastille ton="erreur">Visale exclue</Pastille>
+      }
+    >
+      <section aria-labelledby="cmp-visale" className="space-y-3">
+        <h3 id="cmp-visale" className="text-[13.5px] font-medium text-[var(--texte-secondaire)]">
+          Visale (Action Logement)
+        </h3>
+        <p
+          data-testid="cmp-visale-verdict"
+          className={`font-heading text-[28px] font-extrabold leading-[1.1] tracking-[-0.02em] ${
+            visale.eligible ? "text-[var(--success)]" : "text-[var(--destructive-soft-foreground)]"
+          }`}
+        >
+          {visale.eligible ? "Visale est possible" : "Visale est exclue"}
+        </p>
+        {visale.motifs.map((m) => (
+          <Alerte key={m} gravite="erreur">
+            {m}
+          </Alerte>
+        ))}
+        <p className="text-[13.5px] text-[var(--texte-secondaire)]">
+          Plafond de loyer charges comprises retenu :{" "}
+          <b className="montant text-[var(--encre)]">{formaterEuros(visale.plafond)}</b>. Coût pour le bailleur : aucun.
+        </p>
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <section className={`${CLASSE_CARTE} space-y-4`} aria-labelledby="cmp-visale" aria-live="polite">
-          <h2 id="cmp-visale" className="text-[length:var(--pas-section)]">
-            Visale (Action Logement)
-          </h2>
-          <p
-            data-testid="cmp-visale-verdict"
-            className={`font-heading text-[20px] font-bold ${visale.eligible ? "text-[var(--success)]" : "text-[var(--destructive)]"}`}
-          >
-            {visale.eligible ? "Visale est possible" : "Visale est exclue"}
+      <section aria-labelledby="cmp-gli" className="space-y-4 border-t border-[var(--filet-leger)] pt-5">
+        <h3 id="cmp-gli" className="text-[13.5px] font-medium text-[var(--texte-secondaire)]">
+          Assurance loyers impayés (GLI)
+        </h3>
+        {gli ? (
+          <>
+            <Barres
+              libelle="Coût annuel pour le bailleur"
+              barres={[
+                ...(visale.eligible
+                  ? [{ libelle: "Visale", valeur: 0, texte: "Gratuit", ton: "succes" as const }]
+                  : []),
+                { libelle: "GLI, coût brut", valeur: gli.brutAnnuel, texte: formaterEuros(gli.brutAnnuel), ton: "pale" as const },
+                {
+                  libelle: "GLI, net d'impôt (régime réel)",
+                  valeur: gli.netAnnuel,
+                  texte: formaterEuros(gli.netAnnuel),
+                  ton: "marque" as const,
+                },
+              ]}
+            />
+            <ListeDetail libelle="Coût de la GLI">
+              <LigneDetail libelle="Coût brut par an" valeur={formaterEuros(gli.brutAnnuel)} testId="cmp-gli-brut" />
+              <LigneDetail libelle="Coût net d'impôt par mois" valeur={formaterEuros(gli.netMensuel)} />
+              <LigneDetail libelle="Coût net d'impôt par an" valeur={formaterEuros(gli.netAnnuel)} testId="cmp-gli-net" fort />
+            </ListeDetail>
+          </>
+        ) : (
+          <p className="rounded-xl bg-[var(--creme)] px-4 py-4 text-[14px] text-[var(--texte-secondaire)]">
+            Renseignez le loyer et le taux.
           </p>
-          {visale.motifs.map((m) => (
-            <Alerte key={m} gravite="erreur">
-              {m}
-            </Alerte>
-          ))}
-          <p className="text-[14px] text-[var(--texte-secondaire)]">
-            Plafond de loyer charges comprises retenu :{" "}
-            <b className="montant text-[var(--encre)]">{formaterEuros(visale.plafond)}</b>. Coût pour le bailleur : aucun.
-          </p>
-          <ul className="list-disc space-y-1 pl-5 text-[14px]">
-            {COUVERTURE_VISALE.map((c) => (
-              <li key={c}>{c}</li>
-            ))}
-          </ul>
-        </section>
+        )}
+      </section>
+    </PanneauResultat>
+  );
 
-        <section className={`${CLASSE_CARTE} space-y-4`} aria-labelledby="cmp-gli" aria-live="polite">
-          <h2 id="cmp-gli" className="text-[length:var(--pas-section)]">
-            Assurance loyers impayés (GLI)
-          </h2>
-          <Groupe legende="Votre contrat et votre imposition">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Champ
-                id="cmp-taux"
-                libelle="Taux de la prime"
-                valeur={taux}
-                onChange={setTaux}
-                suffixe="%"
-                decimal
-                aide="Du loyer charges comprises annuel ; selon le contrat de l'assureur."
-              />
-              <Choix id="cmp-tmi" libelle="Tranche marginale d'imposition" valeur={tmi} onChange={setTmi} options={TMI} />
-            </div>
-          </Groupe>
-          {gli ? (
-            <div className="grid grid-cols-2 gap-4">
-              <Chiffre libelle="Coût brut par an" valeur={formaterEuros(gli.brutAnnuel)} testId="cmp-gli-brut" />
-              <Chiffre libelle="Coût net d'impôt par an" valeur={formaterEuros(gli.netAnnuel)} testId="cmp-gli-net" accent />
-            </div>
-          ) : (
-            <p className="text-[14px] text-[var(--texte-secondaire)]">Renseignez le loyer et le taux.</p>
-          )}
-          <p className="text-[13px] text-[var(--texte-secondaire)]">
-            Net = brut × (1 − (tranche marginale + 17,2 % de prélèvements sociaux)) : la prime se déduit des revenus
-            fonciers au régime réel. Au micro-foncier, elle ne se déduit pas : le coût net est le coût brut.
-          </p>
-        </section>
-      </div>
+  return (
+    <div className="space-y-6">
+      <DispositionOutil saisie={saisie} resultat={resultat} />
+      <section className="outil-saisie print:hidden" aria-labelledby="cmp-couverture">
+        <h2 id="cmp-couverture" className="outil-carte-titre">
+          Ce que couvre Visale
+        </h2>
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+          {COUVERTURE_VISALE.map((c) => (
+            <li key={c} className="flex gap-3 rounded-xl bg-[var(--creme)] px-4 py-3 text-[14px] leading-snug text-[var(--corps)]">
+              <svg viewBox="0 0 20 20" aria-hidden className="mt-0.5 size-4 shrink-0 fill-none stroke-[var(--success)] stroke-[2.2]">
+                <path d="m4.5 10.5 3.5 3.5 7.5-8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span>{c}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }

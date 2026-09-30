@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture de test : format SDMX-ML StructureSpecific de la BDM de l'Insee.
+     Seules 2025-Q2 et 2026-Q2 portent des valeurs réelles (146,68 et 148,37) ;
+     les autres trimestres sont des valeurs FACTICES (111.11, 122.22…). -->
+<message:StructureSpecificData xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:ss="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/structurespecific">
+  <message:Header><message:ID>SERIES_BDM</message:ID></message:Header>
+  <message:DataSet ss:dataScope="DataStructure" ss:structureRef="IRL">
+    <Series IDBANK="001515333" FREQ="T" TITLE_FR="Indice de référence des loyers (IRL)" DECIMALS="2">
+      <Obs TIME_PERIOD="2026-Q3" OBS_VALUE="133.33" OBS_STATUS="A" OBS_QUAL="DEF" OBS_TYPE="A"/>
+      <Obs OBS_STATUS="A" OBS_VALUE="148.37" TIME_PERIOD="2026-Q2" OBS_QUAL="DEF"/>
+      <Obs TIME_PERIOD="2026-Q1" OBS_VALUE="122.22" OBS_STATUS="A"></Obs>
+      <Obs TIME_PERIOD="2025-Q4" OBS_VALUE="111.11" OBS_STATUS="A"/>
+      <Obs TIME_PERIOD="2025-Q3" OBS_VALUE="" OBS_STATUS="O"/>
+      <Obs TIME_PERIOD="2025-Q2" OBS_VALUE="146.68" OBS_STATUS="A"/>
+      <Obs TIME_PERIOD="2024-Q2" OBS_VALUE="101.01" OBS_STATUS="A"/>
+    </Series>
+  </message:DataSet>
+</message:StructureSpecificData>

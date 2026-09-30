@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
+import { EncartOutils } from "@/components/outils/encart-outils";
 import { Article } from "@/components/coquille-legale";
 import { TableauAgences, TableauParticuliers } from "@/components/grilles-tarifaires";
 import { REGIME_TVA } from "@/lib/editeur";
@@ -71,6 +72,12 @@ export default function PageTarifs() {
             <li>La signature électronique n&apos;est pas encore proposée. Aucun envoi de SMS ni service bancaire n&apos;est inclus.</li>
           </ul>
         </Article>
+
+        <EncartOutils
+          titre="Avant de vous lancer : nos outils gratuits"
+          chapo="Chiffrez votre projet sans créer de compte : rentabilité d'un achat, fiscalité d'une location meublée, garantie des loyers."
+          chemins={["/outils/rentabilite-locative", "/outils/simulateur-lmnp", "/outils/comparateur-gli-visale"]}
+        />
 
         <p className="text-[13px] text-[var(--texte-secondaire)]">{mentionTaxes}</p>
         <div className="flex flex-wrap gap-3">

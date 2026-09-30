@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
+import { EncartOutils } from "@/components/outils/encart-outils";
 import { TexteMarkdown } from "@/components/texte-markdown";
 import { OPEN_GRAPH_PAR_DEFAUT, descriptionArticle } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
@@ -102,6 +103,9 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
             Créer mon compte — 14 jours d&apos;essai
           </Link>
         </aside>
+        <div className="mt-6">
+          <EncartOutils chapo="Révision de loyer, quittance, garantie des loyers, fiscalité du meublé, rentabilité : les calculs du bailleur, sans compte." />
+        </div>
       </main>
 
       <PiedPublic />

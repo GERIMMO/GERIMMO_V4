@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CLASSE_CARTE, Case, Champ, Chiffre, Choix, Groupe } from "@/components/outils/champs";
+import { Alerte, CarteSaisie, Case, Champ, Groupe, Segments } from "@/components/outils/champs";
+import {
+  Barres,
+  ChiffreHero,
+  DispositionOutil,
+  FeuillePapier,
+  IconeImprimer,
+  LigneDetail,
+  ListeDetail,
+  PanneauResultat,
+  Pastille,
+} from "@/components/outils/resultats";
 import {
   CLE_STOCKAGE_QUITTANCE,
   MENTIONS_QUITTANCE,
@@ -24,7 +35,7 @@ const MODES = [
 ];
 
 function ACompleter({ quoi }: { quoi: string }) {
-  return <span className="italic text-[var(--libelle)]">[{quoi}]</span>;
+  return <span className="a-completer">[{quoi}]</span>;
 }
 
 // Le stockage local peut être absent ou refusé (navigation privée, quota) :
@@ -110,181 +121,222 @@ export function GenerateurQuittance() {
   const nomBailleur = bailleurNom || <ACompleter quoi="Nom du bailleur" />;
   const nomLocataire = locataireNom || <ACompleter quoi="Nom du locataire" />;
 
-  return (
-    <div className="space-y-5">
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] print:hidden">
-        <section className={`${CLASSE_CARTE} space-y-5`} aria-labelledby="q-saisie">
-          <h2 id="q-saisie" className="text-[length:var(--pas-section)]">
-            Le terme
-          </h2>
-          <Groupe legende="Période et paiement">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Champ id="q-periode" type="month" libelle="Mois" valeur={periode} onChange={setPeriode} />
-              <Champ id="q-date" type="date" libelle="Date du paiement" valeur={datePaiement} onChange={setDatePaiement} />
-            </div>
-            <button type="button" onClick={moisSuivantClic} className="btn-secondaire">
-              Mois suivant
-            </button>
-          </Groupe>
-          <Groupe legende="Montants">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Champ id="q-loyer" libelle="Loyer hors charges" valeur={loyerHc} onChange={setLoyerHc} suffixe="€" decimal />
-              <Champ id="q-charges" libelle="Provision pour charges" valeur={charges} onChange={setCharges} suffixe="€" decimal />
-              <Champ
-                id="q-recu"
-                libelle="Montant reçu"
-                valeur={recuTexte}
-                onChange={setRecuSaisi}
-                suffixe="€"
-                decimal
-                aide={recuSaisi == null ? "Suit le total tant que vous ne le modifiez pas." : undefined}
-              />
-              <Choix id="q-mode" libelle="Mode de paiement" valeur={mode} onChange={setMode} options={MODES} />
-            </div>
-            {recuSaisi != null && (
-              <button type="button" onClick={() => setRecuSaisi(null)} className="lien-discret text-[13.5px]">
-                Reprendre le total du terme
-              </button>
-            )}
-          </Groupe>
-          <Groupe legende="Bailleur, locataire, logement">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Champ id="q-bailleur" libelle="Nom du bailleur" valeur={bailleurNom} onChange={setBailleurNom} autoComplete="name" />
-              <Champ id="q-bailleur-adresse" libelle="Adresse du bailleur" valeur={bailleurAdresse} onChange={setBailleurAdresse} />
-              <Champ id="q-locataire" libelle="Nom du locataire" valeur={locataireNom} onChange={setLocataireNom} />
-              <Champ id="q-logement" libelle="Adresse du logement loué" valeur={logementAdresse} onChange={setLogementAdresse} />
-            </div>
-            <Case
-              id="q-memoriser"
-              coche={memoriser}
-              onChange={setMemoriser}
-              libelle="Retenir le bailleur, le locataire, le logement et les montants sur cet appareil"
-            />
-          </Groupe>
-        </section>
-
-        <section className={`${CLASSE_CARTE} space-y-4`} aria-labelledby="q-resultat" aria-live="polite">
-          <h2 id="q-resultat" className="text-[length:var(--pas-section)]">
-            Document produit
-          </h2>
-          <p data-testid="q-type" className="font-heading text-[20px] font-bold text-[var(--encre)]">
-            {r.titre}
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <Chiffre libelle="Total du terme" valeur={formaterEuros(r.total)} testId="q-total" />
-            <Chiffre libelle="Reste dû" valeur={formaterEuros(r.resteDu)} testId="q-reste" accent={!r.estQuittance} />
-          </div>
-          {!r.estQuittance && (
-            <p className="text-[14px] text-[var(--texte-secondaire)]">
-              Le terme n&apos;est pas soldé : le document est un reçu de paiement partiel, qui ne vaut pas quittance.
-            </p>
-          )}
-          <button type="button" onClick={() => window.print()} className="btn-or">
-            Imprimer {r.estQuittance ? "la quittance" : "le reçu"}
+  const saisie = (
+    <CarteSaisie id="q-saisie" titre="Le terme">
+      <Groupe legende="Période et paiement">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Champ id="q-periode" type="month" libelle="Mois" valeur={periode} onChange={setPeriode} />
+          <Champ id="q-date" type="date" libelle="Date du paiement" valeur={datePaiement} onChange={setDatePaiement} />
+        </div>
+        <button type="button" onClick={moisSuivantClic} className="btn-secondaire min-h-11">
+          Mois suivant
+          <span aria-hidden>→</span>
+        </button>
+      </Groupe>
+      <Groupe legende="Montants">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Champ id="q-loyer" libelle="Loyer hors charges" valeur={loyerHc} onChange={setLoyerHc} suffixe="€" decimal />
+          <Champ id="q-charges" libelle="Provision pour charges" valeur={charges} onChange={setCharges} suffixe="€" decimal />
+        </div>
+        <Champ
+          id="q-recu"
+          libelle="Montant reçu"
+          valeur={recuTexte}
+          onChange={setRecuSaisi}
+          suffixe="€"
+          decimal
+          aide={recuSaisi == null ? "Suit le total tant que vous ne le modifiez pas." : undefined}
+        />
+        {recuSaisi != null && (
+          <button type="button" onClick={() => setRecuSaisi(null)} className="lien-discret min-h-11 text-[13.5px]">
+            Reprendre le total du terme
           </button>
-        </section>
-      </div>
+        )}
+        <Segments
+          nom="q-mode"
+          libelle="Mode de paiement"
+          valeur={mode}
+          onChange={setMode}
+          options={MODES}
+          colonnes="grid-cols-2 sm:grid-cols-4"
+        />
+      </Groupe>
+      <Groupe legende="Bailleur, locataire, logement">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Champ id="q-bailleur" libelle="Nom du bailleur" valeur={bailleurNom} onChange={setBailleurNom} autoComplete="name" />
+          <Champ id="q-bailleur-adresse" libelle="Adresse du bailleur" valeur={bailleurAdresse} onChange={setBailleurAdresse} />
+          <Champ id="q-locataire" libelle="Nom du locataire" valeur={locataireNom} onChange={setLocataireNom} />
+          <Champ id="q-logement" libelle="Adresse du logement loué" valeur={logementAdresse} onChange={setLogementAdresse} />
+        </div>
+        <Case
+          id="q-memoriser"
+          coche={memoriser}
+          onChange={setMemoriser}
+          libelle="Retenir le bailleur, le locataire, le logement et les montants sur cet appareil"
+          aide="Enregistré dans ce navigateur seulement ; décochez pour tout effacer."
+        />
+      </Groupe>
+    </CarteSaisie>
+  );
 
-      <article
-        id="quittance"
-        aria-label={r.titre}
-        className="loc-carte space-y-4 text-[14.5px] leading-relaxed text-[var(--corps)] print:border-0 print:p-0 print:shadow-none"
-      >
-        <header className="border-b border-[var(--filet)] pb-3">
-          <h2 className="font-heading text-[22px] font-bold text-[var(--encre)]">{r.titre}</h2>
-          <p className="text-[13.5px] text-[var(--texte-secondaire)]">
-            Période du {du} au {au}
-            {periode && ` (${libellePeriode(periode)})`} — article 21 de la loi n° 89-462 du 6 juillet 1989
-          </p>
-        </header>
-        <dl className="grid gap-3 sm:grid-cols-3">
-          <div>
-            <dt className="eyebrow">Bailleur</dt>
-            <dd>
-              {nomBailleur}
-              <br />
-              {bailleurAdresse || <ACompleter quoi="Adresse du bailleur" />}
-            </dd>
-          </div>
-          <div>
-            <dt className="eyebrow">Locataire</dt>
-            <dd>{nomLocataire}</dd>
-          </div>
-          <div>
-            <dt className="eyebrow">Logement loué</dt>
-            <dd>{logementAdresse || <ACompleter quoi="Adresse du logement" />}</dd>
-          </div>
-        </dl>
-        <p>
-          Je soussigné(e) {nomBailleur}, bailleur du logement désigné ci-dessus, déclare avoir reçu de {nomLocataire} la
-          somme de <b className="montant">{formaterEuros(r.recu)}</b>, au titre du loyer et des charges pour la période du{" "}
-          {du} au {au}
-          {r.estQuittance ? (
-            <>
-              , et lui en donne <b>quittance</b>, sous réserve de tous mes droits.
-            </>
-          ) : (
-            ", à valoir sur le terme désigné ci-dessous."
-          )}
+  const resultat = (
+    <PanneauResultat
+      id="q-resultat"
+      titre="Document produit"
+      pastille={
+        r.estQuittance ? (
+          <Pastille ton="succes">Terme soldé</Pastille>
+        ) : (
+          <Pastille ton="attention">Paiement partiel</Pastille>
+        )
+      }
+    >
+      <div>
+        <p data-testid="q-type" className="font-heading text-[22px] font-extrabold leading-tight tracking-[-0.015em] text-[var(--encre)]">
+          {r.titre}
         </p>
-        <div className="tableau-defilant">
-          <table className="tableau">
-            <thead>
-              <tr>
-                <th>Nature</th>
-                <th className="nombre">Montant</th>
-              </tr>
-            </thead>
+        <p className="mt-1 text-[13.5px] text-[var(--texte-secondaire)]">
+          {periode ? libellePeriode(periode) : "Période à choisir"} · du {du} au {au}
+        </p>
+      </div>
+      <ChiffreHero libelle="Total du terme" valeur={formaterEuros(r.total)} testId="q-total" />
+      <Barres
+        libelle="Part du terme réglée"
+        max={r.total}
+        barres={[
+          {
+            libelle: "Montant reçu",
+            valeur: r.recu,
+            texte: formaterEuros(r.recu),
+            ton: r.estQuittance ? "succes" : "attention",
+          },
+        ]}
+      />
+      <ListeDetail libelle="Détail du terme">
+        <LigneDetail libelle="Loyer hors charges" valeur={formaterEuros(loyer ?? 0)} />
+        <LigneDetail libelle="Provision pour charges" valeur={formaterEuros(provision ?? 0)} />
+        <LigneDetail libelle="Montant reçu" valeur={formaterEuros(r.recu)} />
+        <LigneDetail libelle="Reste dû" valeur={formaterEuros(r.resteDu)} testId="q-reste" fort />
+      </ListeDetail>
+      {!r.estQuittance && (
+        <Alerte gravite="attention">
+          Le terme n&apos;est pas soldé : le document est un reçu de paiement partiel, qui ne vaut pas quittance.
+        </Alerte>
+      )}
+      <button type="button" onClick={() => window.print()} className="btn-or min-h-11 w-full justify-center !py-3 !text-[14.5px]">
+        <IconeImprimer />
+        Imprimer {r.estQuittance ? "la quittance" : "le reçu"}
+      </button>
+    </PanneauResultat>
+  );
+
+  return (
+    <div className="space-y-10">
+      <DispositionOutil saisie={saisie} resultat={resultat} />
+
+      <FeuillePapier
+        id="quittance"
+        libelle={r.titre}
+        legende={
+          <>
+            <p className="eyebrow">Aperçu du document</p>
+            <p className="text-[12.5px] text-[var(--texte-secondaire)]">Format A4, prêt à imprimer ou à enregistrer en PDF</p>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <header className="space-y-1 border-b border-[color-mix(in_srgb,var(--encre)_18%,transparent)] pb-4">
+            <p className="papier-mention">Article 21 de la loi n° 89-462 du 6 juillet 1989</p>
+            <h2 className="papier-titre">{r.titre}</h2>
+            <p className="text-[14px] text-[var(--texte-secondaire)]">
+              Période du {du} au {au}
+              {periode && ` (${libellePeriode(periode)})`}
+            </p>
+          </header>
+          <dl className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <dt className="papier-mention">Bailleur</dt>
+              <dd className="mt-1">
+                {nomBailleur}
+                <br />
+                {bailleurAdresse || <ACompleter quoi="Adresse du bailleur" />}
+              </dd>
+            </div>
+            <div>
+              <dt className="papier-mention">Locataire</dt>
+              <dd className="mt-1">{nomLocataire}</dd>
+            </div>
+            <div>
+              <dt className="papier-mention">Logement loué</dt>
+              <dd className="mt-1">{logementAdresse || <ACompleter quoi="Adresse du logement" />}</dd>
+            </div>
+          </dl>
+          <p>
+            Je soussigné(e) {nomBailleur}, bailleur du logement désigné ci-dessus, déclare avoir reçu de {nomLocataire} la
+            somme de <b className="montant">{formaterEuros(r.recu)}</b>, au titre du loyer et des charges pour la période
+            du {du} au {au}
+            {r.estQuittance ? (
+              <>
+                , et lui en donne <b>quittance</b>, sous réserve de tous mes droits.
+              </>
+            ) : (
+              ", à valoir sur le terme désigné ci-dessous."
+            )}
+          </p>
+          <table className="papier-montants">
             <tbody>
               {r.estQuittance ? (
                 <>
                   <tr>
                     <td>Loyer hors charges</td>
-                    <td className="nombre">{formaterEuros(loyer ?? 0)}</td>
+                    <td>{formaterEuros(loyer ?? 0)}</td>
                   </tr>
                   <tr>
                     <td>Provision pour charges</td>
-                    <td className="nombre">{formaterEuros(provision ?? 0)}</td>
+                    <td>{formaterEuros(provision ?? 0)}</td>
                   </tr>
                   <tr className="total">
                     <td>Total du terme</td>
-                    <td className="nombre">{formaterEuros(r.total)}</td>
+                    <td>{formaterEuros(r.total)}</td>
                   </tr>
                 </>
               ) : (
                 <>
                   <tr>
                     <td>Total du terme</td>
-                    <td className="nombre">{formaterEuros(r.total)}</td>
+                    <td>{formaterEuros(r.total)}</td>
                   </tr>
                   <tr>
                     <td>Montant encaissé</td>
-                    <td className="nombre">{formaterEuros(r.recu)}</td>
+                    <td>{formaterEuros(r.recu)}</td>
                   </tr>
                   <tr className="total">
                     <td>Solde restant dû</td>
-                    <td className="nombre">{formaterEuros(r.resteDu)}</td>
+                    <td>{formaterEuros(r.resteDu)}</td>
                   </tr>
                 </>
               )}
             </tbody>
           </table>
+          <p>
+            Règlement reçu le {formaterDateIso(datePaiement) || <ACompleter quoi="date" />} par {mode}.
+          </p>
+          <div className="space-y-2 border-t border-[color-mix(in_srgb,var(--encre)_12%,transparent)] pt-4 text-[13px] leading-relaxed text-[var(--texte-secondaire)]">
+            {(r.estQuittance ? MENTIONS_QUITTANCE : MENTIONS_RECU_PARTIEL).map((m) => (
+              <p key={m}>{m}</p>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-6 pt-2">
+            <p>Fait le {formaterDateIso(datePaiement) || <ACompleter quoi="date" />}.</p>
+            <p className="min-w-[200px] font-bold">
+              {nomBailleur}
+              <span className="mt-10 block border-t border-[color-mix(in_srgb,var(--encre)_25%,transparent)] pt-1 text-[12.5px] font-normal text-[var(--texte-secondaire)]">
+                Signature
+              </span>
+            </p>
+          </div>
         </div>
-        <p>
-          Règlement reçu le {formaterDateIso(datePaiement) || <ACompleter quoi="date" />} par{" "}
-          {mode}.
-        </p>
-        <div className="space-y-2 border-t border-[var(--filet)] pt-3 text-[13px] text-[var(--texte-secondaire)]">
-          {(r.estQuittance ? MENTIONS_QUITTANCE : MENTIONS_RECU_PARTIEL).map((m) => (
-            <p key={m}>{m}</p>
-          ))}
-        </div>
-        <p>Fait le {formaterDateIso(datePaiement) || <ACompleter quoi="date" />}.</p>
-        <p className="pt-6 font-semibold">
-          {nomBailleur}
-          <span className="block text-[13px] font-normal text-[var(--texte-secondaire)]">Signature</span>
-        </p>
-      </article>
+      </FeuillePapier>
     </div>
   );
 }

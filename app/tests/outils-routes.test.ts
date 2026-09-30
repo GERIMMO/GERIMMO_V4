@@ -67,4 +67,35 @@ describe("routes des outils gratuits", () => {
     expect(lire("components/chrome-public.tsx")).toContain('["/outils", "Outils gratuits"]');
     expect(lire("app/page.tsx")).toContain('href="/outils"');
   });
+
+  it("l'en-tête public les montre à toutes les largeurs (30/09)", () => {
+    const chrome = lire("components/chrome-public.tsx");
+    const entete = chrome.slice(chrome.indexOf("export function EnTetePublic"), chrome.indexOf("function BandeauPublic"));
+    // La ligne du téléphone (jusqu'à 768 px) et le lien de la navigation (au-delà).
+    expect(entete).toMatch(/aria-label="Outils gratuits"[\s\S]*md:hidden/);
+    expect(chrome).toMatch(/href="\/outils"\s+className="hidden [^"]*md:inline-flex"/);
+  });
+
+  it("l'accueil présente les outils juste sous le héros, et le héros y invite", () => {
+    const accueil = lire("app/page.tsx");
+    expect(accueil).toContain("Essayer nos outils gratuits");
+    const vitrine = accueil.indexOf('aria-labelledby="outils-gratuits"');
+    expect(vitrine).toBeGreaterThan(accueil.indexOf("</header>"));
+    expect(vitrine).toBeLessThan(accueil.indexOf("Ce que Gerimmo remplace"));
+    expect(accueil).toContain("outilsPresentes()");
+  });
+
+  it("les tarifs et les articles du journal renvoient aux outils", () => {
+    expect(lire("app/tarifs/page.tsx")).toContain("<EncartOutils");
+    expect(lire("app/journal/[slug]/page.tsx")).toContain("<EncartOutils");
+  });
+
+  it("chaque outil a son en-tête, « Comment c'est calculé » et « Bon à savoir »", () => {
+    for (const o of OUTILS) {
+      const page = lire(`app${o.chemin}/page.tsx`);
+      expect(page).toContain(`chemin="${o.chemin}"`);
+      expect(page).toMatch(/calcul=\{/);
+      expect(page).toMatch(/bonASavoir=\{/);
+    }
+  });
 });

@@ -51,24 +51,47 @@ test("index /outils : les cinq outils, sans débordement", async ({ page }) => {
   await verifierPage(page, erreurs);
 });
 
-test("calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'un an", async ({ page }) => {
+test("calcul IRL : 850 € × 148,37 ÷ 146,68 = 859,79 €, alerte au-delà d'un an, DPE F bloque", async ({ page }) => {
   const erreurs = surveillerConsole(page);
   await page.goto("/outils/calcul-irl");
+  // 30/09 : la série de l'Insee est lue côté serveur. Chargée, l'outil choisit
+  // les indices lui-même ; sinon (réseau fermé, comme en local), saisie
+  // manuelle. Le test saisit ses propres indices dans les deux cas.
+  const manuel = page.getByRole("button", { name: "Saisir les indices moi-même" });
+  if (await manuel.isVisible()) await manuel.click();
+  else await expect(page.getByTestId("irl-serie-indisponible")).toBeVisible();
+  await page.getByLabel("Loyer actuel hors charges").fill("850");
+  const reference = page.getByRole("group", { name: "Indice de référence" });
+  const nouveau = page.getByRole("group", { name: "Nouvel indice" });
+  await reference.getByRole("radio", { name: "T2" }).check();
+  await reference.getByLabel("Année").selectOption("2025");
+  await reference.getByLabel("Valeur de l'indice").fill("146,68");
+  await nouveau.getByRole("radio", { name: "T2" }).check();
+  await nouveau.getByLabel("Année").selectOption("2026");
+  await nouveau.getByLabel("Valeur de l'indice").fill("148,37");
   await expect(page.getByTestId("irl-nouveau-loyer")).toHaveText(/859,79\s€/);
+  await expect(page.getByTestId("irl-etat")).toHaveText("Indices cohérents");
   await expect(page.locator("#lettre")).toContainText("859,79");
-  await expect(page.getByRole("link", { name: /série de l'IRL publiée par l'Insee/ })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /série de l'IRL publiée par l'Insee/ }).first()).toHaveAttribute(
     "href",
     "https://www.insee.fr/fr/statistiques/serie/001515333"
   );
   await verifierPage(page, erreurs);
-  await page.getByLabel("Année").nth(1).selectOption("2027");
+  await nouveau.getByLabel("Année").selectOption("2027");
   await expect(page.getByTestId("irl-alertes")).toContainText("Plus d'un an");
+  await nouveau.getByLabel("Année").selectOption("2026");
   // À l'impression, seule la lettre part sur papier.
   await page.emulateMedia({ media: "print" });
   await expect(page.locator("#lettre")).toBeVisible();
   await expect(page.getByLabel("Loyer actuel hors charges")).toBeHidden();
   await expect(page.getByRole("link", { name: "Créer mon compte — 14 jours d'essai" })).toBeHidden();
   await expect(page.locator("footer")).toBeHidden();
+  await page.emulateMedia({ media: "screen" });
+  // DPE F : révision interdite, aucune lettre.
+  await page.getByRole("group", { name: "Classe énergétique (DPE) du logement" }).getByRole("radio", { name: "F" }).check();
+  await expect(page.getByTestId("irl-gel-dpe")).toContainText("24 août 2022");
+  await expect(page.getByTestId("irl-nouveau-loyer")).toHaveCount(0);
+  await expect(page.locator("#lettre")).toHaveCount(0);
 });
 
 test("quittance : 850 + 120, reçu 500 → reçu de paiement partiel, reste dû 470,00 €", async ({ page }) => {
@@ -112,7 +135,7 @@ test("comparateur : GLI 314,28 € brut, 165,94 € net ; 30 ans et plus « Autr
   await expect(page.getByTestId("cmp-gli-brut")).toHaveText(/314,28\s€/);
   await expect(page.getByTestId("cmp-gli-net")).toHaveText(/165,94\s€/);
   await expect(page.getByTestId("cmp-visale-verdict")).toHaveText("Visale est possible");
-  await page.getByLabel("Âge du locataire").selectOption("30-plus");
+  await page.getByRole("radio", { name: "30 ans ou plus" }).check();
   await page.getByLabel("Situation du locataire").selectOption("autre");
   await expect(page.getByTestId("cmp-visale-verdict")).toHaveText("Visale est exclue");
   await expect(page.getByText(/revérifier chaque mois de janvier/)).toBeVisible();

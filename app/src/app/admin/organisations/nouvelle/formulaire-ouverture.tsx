@@ -5,6 +5,7 @@ import { ouvrirOrganisation, type EtatOuverture } from "@/app/actions/organisati
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { dureeEssai } from "@/lib/tarifs";
 
 export function FormulaireOuverture({
   prefill,
@@ -101,19 +102,19 @@ export function FormulaireOuverture({
         </label>
         {!active && (
           <div className="space-y-2">
-            <Label htmlFor={`${base}-jours`}>Durée de l&apos;essai, en jours (vide : 2 mois)</Label>
+            <Label htmlFor={`${base}-jours`}>Durée de l&apos;essai, en jours (vide : {dureeEssai()})</Label>
             <Input
               id={`${base}-jours`}
               name="essai_jours"
               type="number"
               min={0}
               max={365}
-              placeholder="2 mois"
+              placeholder={dureeEssai()}
               defaultValue={valeur("essai_jours", "")}
               className="max-w-32"
             />
             <p className="text-xs text-muted-foreground">
-              Laissé vide, l&apos;essai standard de 2 mois s&apos;applique.
+              Laissé vide, l&apos;essai standard s&apos;applique : 2 mois pour une ouverture jusqu&apos;au 31/12/2026 (offre de lancement), 1 mois ensuite.
               À son terme, le compte passe en lecture seule : l&apos;agence garde
               l&apos;accès à tout et à ses exports, mais ne saisit plus rien.
             </p>

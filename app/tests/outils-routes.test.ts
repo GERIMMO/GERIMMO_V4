@@ -8,7 +8,7 @@ import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { OUTILS } from "../src/lib/outils/catalogue";
-import { DUREE_ESSAI } from "../src/lib/tarifs";
+import { dureeEssai } from "../src/lib/tarifs";
 
 const mocks = vi.hoisted(() => ({ client: vi.fn() }));
 vi.mock("@supabase/ssr", () => ({ createServerClient: mocks.client }));
@@ -58,11 +58,14 @@ describe("routes des outils gratuits", () => {
     expect(page).toMatch(/CoquilleOutil|AppelEssai/);
   });
 
-  it("l'invitation mène à l'inscription, 2 mois d'essai", () => {
+  it("l'invitation mène à l'inscription, avec la durée d'essai du jour", () => {
     const coquille = lire("components/outils/coquille-outil.tsx");
     expect(coquille).toContain('href="/inscription"');
-    expect(coquille).toContain("Créer mon compte — {DUREE_ESSAI} d&apos;essai");
-    expect(DUREE_ESSAI).toBe("2 mois");
+    expect(coquille).toContain("Créer mon compte — {duree} d&apos;essai");
+    expect(coquille).toContain("const duree = dureeEssai();");
+    expect(coquille).toContain("{badgeEssai()}");
+    expect(dureeEssai(new Date("2026-12-31T12:00:00+01:00"))).toBe("2 mois");
+    expect(dureeEssai(new Date("2027-01-01T12:00:00+01:00"))).toBe("1 mois");
   });
 
   it("le pied de page public et l'accueil y renvoient", () => {

@@ -55,12 +55,12 @@ Le module 16 ne décrivait que la création d'**agence** (par le super admin) ; 
 lacune sur l'arrivée du [[Propriétaire bailleur|propriétaire gestion directe]] a été
 **tranchée le 2026-08-19 : auto-inscription en ligne**. Une page d'inscription
 publique lui permet de créer seul son compte et son organisation
-(`independent_owner`), de démarrer l'**essai** (14 jours à l'origine, **2 mois** depuis le 30/09/2026), puis de souscrire
+(`independent_owner`), de démarrer l'**essai** (14 jours à l'origine ; **2 mois** pour toute inscription jusqu'au 31/12/2026 — offre de lancement —, **1 mois** à compter du 01/01/2027), puis de souscrire
 l'**abonnement** via Stripe (formules Solo à Patrimoine selon le nombre de biens
 depuis le 28/09/2026 — [[Grille tarifaire]]). **Règle en vigueur (28/09/2026) :
-aucun bien n'est offert, à personne** ; seuls 2 mois d'essai sans carte (14 jours
-avant le 30/09/2026) sont
-offerts, puis l'espace est **gelé en lecture seule** (consultable et exportable)
+aucun bien n'est offert, à personne** ; seul l'essai sans carte est offert (2 mois
+jusqu'au 31/12/2026 — offre de lancement —, 1 mois ensuite ; 14 jours avant le
+30/09/2026), puis l'espace est **gelé en lecture seule** (consultable et exportable)
 jusqu'au paiement. Les organisations existantes basculent sur la nouvelle grille
 dès l'ajout d'un bien ([[2026-09-28-decision-tarification]]). Pas de circuit commercial : il est indépendant de bout en
 bout. En complément, le [[Super Admin]] peut **créer manuellement tout profil**,
@@ -84,7 +84,8 @@ l'auto-inscription `createOrganization` du code hérité.
 L'auto-inscription du propriétaire direct est en place (`/inscription` →
 Supabase Auth → `initialiser_espace_proprietaire`, essai 14 jours porté par
 `organizations.essai_fin` — **2 mois** depuis le 30/09/2026, migration
-`20260930100000_essai_deux_mois`). La création d'agence reste réservée au super admin.
+`20260930100000_essai_deux_mois` ; offre de lancement jusqu'au 31/12/2026, puis
+**1 mois**, migration `20260930110000_offre_lancement_essai`, date de Paris). La création d'agence reste réservée au super admin.
 Détail : [[Propriétaire bailleur]].
 
 ## Livré le 2026-09-11 — l'ouverture et le chemin

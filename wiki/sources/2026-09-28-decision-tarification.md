@@ -61,6 +61,11 @@ le barème agence du 12/09. Détail normatif : [[Grille tarifaire]].
   SCI et agences — en mois calendaires ; les essais en cours sont prolongés à
   2 mois depuis l'ouverture ; CGU version du 30/09/2026 (art. 8.2). Le délai de
   rétractation du consommateur reste de 14 jours.
+- **30/09 : 2 mois = offre de lancement jusqu'au 31/12/2026, puis 1 mois.** Toute
+  inscription (ou ouverture par la console) jusqu'au 31/12/2026 inclus (date de
+  Paris) reçoit 2 mois ; à compter du 1er janvier 2027, l'essai ordinaire est
+  d'un mois. CGU art. 8.2 rédigé pour les deux périodes (version du 30/09/2026
+  inchangée) ; migration `20260930110000_offre_lancement_essai`.
 
 ## Pages touchées
 [[Grille tarifaire]] · [[Abonnement]] · [[Cycle de vie de l'abonnement]] ·

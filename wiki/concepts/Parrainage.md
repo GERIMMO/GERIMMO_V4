@@ -12,7 +12,7 @@ sources: ["[[2026-09-28-decision-tarification]]"]
 > [!warning] Grille du 28/09/2026 : pas de cumul (décision du porteur)
 > Pour une organisation de la nouvelle grille ([[Grille tarifaire]]), le
 > parrainage reste **enregistré** (qui a amené qui) mais n'ouvre **aucun
-> avantage** : l'essai reste l'essai ordinaire (2 mois depuis le 30/09/2026, 14 jours auparavant), aucun mois n'est offert ; l'avantage est
+> avantage** : l'essai reste l'essai ordinaire (2 mois pour toute inscription du 30/09 au 31/12/2026 — offre de lancement —, 1 mois à compter du 01/01/2027, 14 jours auparavant), aucun mois n'est offert ; l'avantage est
 > inscrit « sans objet ». Les avantages déjà accordés (grille historique) sont
 > conservés.
 

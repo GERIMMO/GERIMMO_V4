@@ -2,13 +2,19 @@ import { CoquilleAuth } from "@/components/coquille-auth";
 import { codeDeLaRecherche } from "@/lib/parrainage";
 import { FormulaireInscription } from "./formulaire-inscription";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
+import { badgeEssai, dureeEssai, offreLancementActive } from "@/lib/tarifs";
 
-export const metadata = metadonneesPubliques({
-  titre: "Ouvrir mon espace propriétaire — Gerimmo",
-  description:
-    "Créez votre compte Gerimmo et gérez vos locations en direct : baux, quittances, incidents, états des lieux. Essai gratuit de 2 mois, sans carte bancaire.",
-  chemin: "/inscription",
-});
+// La durée de l'essai dépend du jour de l'inscription (offre de lancement :
+// 2 mois jusqu'au 31/12/2026, 1 mois ensuite) : tout est calculé au rendu.
+export const revalidate = 3600;
+
+export function generateMetadata() {
+  return metadonneesPubliques({
+    titre: "Ouvrir mon espace propriétaire — Gerimmo",
+    description: `Créez votre compte Gerimmo et gérez vos locations en direct : baux, quittances, incidents, états des lieux. Essai gratuit de ${dureeEssai()}, sans carte bancaire.`,
+    chemin: "/inscription",
+  });
+}
 
 // Auto-inscription du propriétaire bailleur en gestion directe (S9a) : la
 // seule porte d'entrée publique — une agence, elle, est créée par le super
@@ -18,18 +24,34 @@ export const metadata = metadonneesPubliques({
 // le lien `/inscription?parrain=…` que le parrain a partagé (wiki : Parrainage).
 export default async function PageInscription(props: PageProps<"/inscription">) {
   const codeParrain = codeDeLaRecherche((await props.searchParams) as Record<string, string | string[] | undefined>);
+  const duree = dureeEssai();
+  const lancement = offreLancementActive();
   return (
     <CoquilleAuth
       promesse="Gérez vos locations vous-même, au carré."
       sousPromesse="Vos lots, vos baux, vos quittances, votre livre recettes-dépenses et l'aide à la déclaration des revenus fonciers — partout en France, sans agence, sans commission. Le réseau d’artisans dépend de la commune du bien et du métier disponible."
-      mention="2 mois d'essai, sans carte bancaire"
+      mention={`${duree} d'essai, sans carte bancaire`}
       titre="Ouvrir mon espace propriétaire"
       // La réassurance « sans carte bancaire » passe dans le chapo (24/09) : la
       // mention du panneau est masquée sur téléphone, où elle n'apparaissait pas.
-      chapo={"Un compte, votre parc, 2 mois pour l'essayer — sans\u00a0carte\u00a0bancaire."}
+      chapo={
+        <>
+          <span
+            className={`mb-2 inline-flex rounded-full px-3 py-1 text-[12.5px] font-semibold ${
+              lancement
+                ? "border border-[var(--marque)] bg-[var(--marque-clair)] text-[var(--encre)]"
+                : "border border-border text-[var(--texte-secondaire)]"
+            }`}
+          >
+            {badgeEssai()}
+          </span>
+          <br />
+          {`Un compte, votre parc, ${duree} pour l'essayer — sans\u00a0carte\u00a0bancaire.`}
+        </>
+      }
       largeur="380px"
     >
-      <FormulaireInscription codeParrain={codeParrain} />
+      <FormulaireInscription codeParrain={codeParrain} dureeEssai={duree} />
     </CoquilleAuth>
   );
 }

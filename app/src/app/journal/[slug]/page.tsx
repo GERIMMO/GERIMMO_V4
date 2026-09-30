@@ -6,6 +6,12 @@ import { EncartOutils } from "@/components/outils/encart-outils";
 import { TexteMarkdown } from "@/components/texte-markdown";
 import { OPEN_GRAPH_PAR_DEFAUT, descriptionArticle } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
+import { dureeEssai } from "@/lib/tarifs";
+
+// L'essai annoncé suit le jour (offre de lancement : 2 mois jusqu'au
+// 31/12/2026, 1 mois ensuite) : la page se reconstruit au plus tard toutes
+// les heures.
+export const revalidate = 3600;
 
 async function charger(slug: string) {
   const supabase = await createClient();
@@ -100,7 +106,7 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
             )}
           </p>
           <Link href="/inscription" className="btn-or mt-4">
-            Créer mon compte — 2 mois d&apos;essai
+            Créer mon compte — {dureeEssai()} d&apos;essai
           </Link>
         </aside>
         <div className="mt-6">

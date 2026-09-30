@@ -4,6 +4,7 @@ import { familleOrganisation } from "@/lib/clients-supervision";
 import { faitsManquants } from "@/lib/editeur";
 import { chargerDecisionsAttendues } from "@/lib/decisions-attendues";
 import { MesureAutonomie } from "@/components/mesure-autonomie";
+import { dureeEssai } from "@/lib/tarifs";
 
 // Le nom de l'entrée de menu (audit 25/09, C8) : « Vue d'ensemble ».
 export const metadata = { title: "Chiffres et clients — Gerimmo" };
@@ -138,7 +139,7 @@ export default async function PageAdmin() {
           <Indicateur libelle="Actives" valeur={orgs.error ? "—" : parStatut("active")} accent="vert"
             precision="abonnement en cours" href="/admin/clients" />
           <Indicateur libelle="En essai" valeur={orgs.error ? "—" : parStatut("essai")} accent="ambre"
-            precision="2 mois, sans carte" href="/admin/clients" />
+            precision={`${dureeEssai()} à l'ouverture ce jour, sans carte`} href="/admin/clients" />
           <Indicateur libelle="Suspendues" valeur={orgs.error ? "—" : suspendues} accent={!orgs.error && suspendues > 0 ? "rouge" : undefined}
             precision="lecture seule, export ouvert" href="/admin/clients" />
           <Indicateur libelle="Lots gérés" valeur={lots.error ? "—" : lots.count ?? 0} accent="bleu"

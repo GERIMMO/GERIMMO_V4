@@ -11,6 +11,10 @@ export const metadata = metadonneesPubliques({
   chemin: "/outils",
 });
 
+// L'essai annoncé change le 1er janvier 2027 (fin de l'offre de lancement) :
+// la page se reconstruit au plus tard toutes les heures.
+export const revalidate = 3600;
+
 // Les outils gratuits (29/09, vitrine du 30/09) : ouverts à tous, sans
 // compte, et rien de ce qu'on y saisit n'est envoyé à nos serveurs. Le
 // catalogue vit dans lib/outils/catalogue.ts (partagé avec l'accueil et le

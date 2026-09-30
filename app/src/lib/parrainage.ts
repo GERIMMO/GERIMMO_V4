@@ -6,8 +6,9 @@
 //
 // L'AVANTAGE, décidé le 19/09 : **un mois pour vous, un mois pour lui**. Le
 // filleul entre un code et son essai passe de quatorze à trente jours, tout de
-// suite. (Historique : depuis le 30/09/2026 l'essai ordinaire est de 2 mois,
-// plus long que ces trente jours — l'avantage filleul n'allonge plus rien.) Le parrain reçoit un mois quand son filleul devient client PAYANT —
+// suite. (Historique : depuis le 30/09/2026 l'essai ordinaire est de 2 mois
+// jusqu'au 31/12/2026 — offre de lancement —, puis d'un mois ; la base garde
+// toujours le plus long des deux.) Le parrain reçoit un mois quand son filleul devient client PAYANT —
 // jamais à sa simple inscription, sinon on financerait des organisations
 // fictives ouvertes avec son propre code. Selon qu'il est encore en essai ou
 // déjà abonné, ce mois lui arrive en jours d'essai ou en avoir sur sa facture.
@@ -16,7 +17,6 @@
 // `parrainage_jours_parrain`) : là elles s'appliquent, ici elles s'affichent.
 // Les deux doivent dire la même chose — le test `avantage-parrainage` compare.
 
-import { DUREE_ESSAI } from "./tarifs";
 
 /** Huit caractères hexadécimaux en capitales, tels que la base les engendre. */
 export const FORME_CODE = /^[0-9A-F]{8}$/;
@@ -53,8 +53,8 @@ export function codeDeLaRecherche(recherche: URLSearchParams | Record<string, st
 // ── L'avantage, tel qu'on l'annonce ────────────────────────────────────────
 
 /** L'essai du filleul de la grille historique, code entré : trente jours AU
- * TOTAL — jamais moins que l'essai ordinaire de 2 mois (`DUREE_ESSAI`), que
- * la base garde s'il est plus long. */
+ * TOTAL — jamais moins que l'essai ordinaire (`dureeEssai()`, 2 mois pendant
+ * l'offre de lancement), que la base garde s'il est plus long. */
 export const JOURS_ESSAI_FILLEUL = 30;
 /** Ce que gagne le parrain quand son filleul devient payant : trente jours. */
 export const JOURS_OFFERTS_PARRAIN = 30;
@@ -108,5 +108,7 @@ export function libelleAvantage(a: AvantageParrainage, eur: (cents: number) => s
  * pas de cumul (décision du porteur). Les recommandations sont enregistrées,
  * sans avantage tarifaire ; les avantages déjà acquis restent acquis.
  */
+// Texte fixe, vrai avant comme après la fin de l'offre de lancement
+// (FIN_OFFRE_LANCEMENT dans tarifs.ts) : il ne dépend pas du jour du rendu.
 export const PARRAINAGE_EN_REVISION =
-  `Vos recommandations sont enregistrées. Le parrainage n'ouvre pas d'avantage tarifaire : l'essai gratuit est de ${DUREE_ESSAI} pour tous, sans cumul avec la grille. Les avantages déjà acquis sont conservés.`;
+  "Vos recommandations sont enregistrées. Le parrainage n'ouvre pas d'avantage tarifaire : l'essai gratuit est le même pour tous — 2 mois pour toute inscription jusqu'au 31 décembre 2026 (offre de lancement), 1 mois ensuite —, sans cumul avec la grille. Les avantages déjà acquis sont conservés.";

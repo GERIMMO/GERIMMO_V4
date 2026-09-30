@@ -9,6 +9,10 @@ export const metadata = metadonneesPubliques({
   chemin: "/outils/rentabilite-locative",
 });
 
+// L'essai annoncé change le 1er janvier 2027 (fin de l'offre de lancement) :
+// la page se reconstruit au plus tard toutes les heures.
+export const revalidate = 3600;
+
 export default function PageRentabiliteLocative() {
   return (
     <CoquilleOutil

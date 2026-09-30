@@ -8,7 +8,7 @@ import { verifierGerant } from "@/lib/ged-acces";
 import { couleurValide, domaineValide, emailValide, LOGO_MAX_OCTETS, typeImageLogo } from "@/lib/marque-organisation";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { envoyerEmail } from "@/lib/email";
-import { headers } from "next/headers";
+import { adresseDuSite, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 
 export type EtatProfilOrganisation = {
   erreur?: string;
@@ -167,26 +167,34 @@ export async function inviterAgent(
   const ligne = ((data ?? []) as { email: string; compte_deja_existant: boolean }[])[0];
   if (!ligne) return { erreur: "L'invitation n'a pas pu être enregistrée. Réessayez.", valeurs };
 
-  const origine = (await headers()).get("origin") ?? "";
   let erreurMail: string | undefined;
   if (ligne.compte_deja_existant) {
-    const envoi = await envoyerEmail({
-      organisation: { db: supabase, id: orgId },
-      to: ligne.email,
-      subject: "Vous rejoignez l’équipe de l’agence sur Gerimmo",
-      html: `
+    // Audit du 30/09 (M2) : le lien suit la configuration (adresseDuSite),
+    // jamais l'en-tête `Origin` de la requête — un en-tête se forge. Sans
+    // adresse configurée, pas de lien mort : l'e-mail ne part pas, on le dit.
+    const origine = adresseDuSite();
+    if (!origine) {
+      erreurMail = MESSAGE_SITE_NON_CONFIGURE;
+    } else {
+      const envoi = await envoyerEmail({
+        organisation: { db: supabase, id: orgId },
+        to: ligne.email,
+        subject: "Vous rejoignez l’équipe de l’agence sur Gerimmo",
+        html: `
     <div style="font-family:sans-serif;font-size:14px;color:#111">
       <p>Bonjour,</p>
       <p>Vous avez été ajouté comme agent à l’équipe de l’agence. Connectez-vous avec votre compte habituel : l’agence apparaît dans vos espaces.</p>
       <p><a href="${origine}/espaces">Ouvrir mes espaces</a></p>
     </div>`,
-    });
-    erreurMail = envoi.erreur;
+      });
+      erreurMail = envoi.erreur;
+    }
   } else {
     const envoiLien = await envoyerLienMotDePasse({
       email: ligne.email,
       motif: "invitation_agent",
       next: "/nouveau-mot-de-passe",
+      organisation: orgId,
     });
     erreurMail = envoiLien.erreur;
   }

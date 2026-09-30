@@ -66,6 +66,46 @@ describe.skipIf(!DB_URL)("autoriser_lien_mot_de_passe", () => {
     expect(await autoriser("  ")).toBe(false);
   });
 
+  // La variante par clé (20260930140000_limite_invitations.sql, audit 30/09 M4) :
+  // les invitations d'une organisation, 30 par heure.
+  const autoriserCle = async (cle: string, max = 30) =>
+    (await db.query<{ ok: boolean }>("select public.autoriser_lien_mot_de_passe_cle($1, $2) as ok", [cle, max])).rows[0].ok;
+
+  it("par clé : p_max demandes par heure, une clé n'en pénalise pas une autre", async () => {
+    for (let i = 0; i < 3; i++) expect(await autoriserCle("organisation:org-a", 3)).toBe(true);
+    expect(await autoriserCle("organisation:org-a", 3)).toBe(false);
+    expect(await autoriserCle("organisation:org-b", 3)).toBe(true);
+    // Le défaut de p_max est 30.
+    for (let i = 0; i < 30; i++) expect(await autoriserCle("organisation:org-c")).toBe(true);
+    expect(await autoriserCle("organisation:org-c")).toBe(false);
+  });
+
+  it("par clé : une clé ne se confond jamais avec une adresse, et l'ancienneté libère", async () => {
+    // « moi@exemple.fr » utilisée comme clé ne touche pas au compteur de l'adresse.
+    for (let i = 0; i < 3; i++) expect(await autoriserCle("moi@exemple.fr", 3)).toBe(true);
+    expect(await autoriser("moi@exemple.fr")).toBe(true);
+    await db.query("reset role");
+    await db.query("update public.demandes_lien_mot_de_passe set cree_le = now() - interval '61 minutes'");
+    const { rows } = await db.query("select empreinte_email, ip from public.demandes_lien_mot_de_passe");
+    expect(rows.every((r) => !String(r.empreinte_email).includes("@") && !String(r.empreinte_email).includes("org"))).toBe(true);
+    await db.query("set local role service_role");
+    expect(await autoriserCle("moi@exemple.fr", 3)).toBe(true);
+  });
+
+  it("par clé : refuse une clé vide ou un maximum absurde", async () => {
+    expect(await autoriserCle("  ")).toBe(false);
+    expect(await autoriserCle("organisation:x", 0)).toBe(false);
+  });
+
+  it("par clé : réservée au service", async () => {
+    await db.query("reset role");
+    const { rows } = await db.query(`
+      select has_function_privilege('anon', 'public.autoriser_lien_mot_de_passe_cle(text,integer)', 'EXECUTE') as anon_fn,
+             has_function_privilege('authenticated', 'public.autoriser_lien_mot_de_passe_cle(text,integer)', 'EXECUTE') as auth_fn,
+             has_function_privilege('service_role', 'public.autoriser_lien_mot_de_passe_cle(text,integer)', 'EXECUTE') as service_fn`);
+    expect(rows[0]).toEqual({ anon_fn: false, auth_fn: false, service_fn: true });
+  });
+
   it("n'est ouverte qu'au service : ni anon ni authenticated n'appellent la fonction ni ne lisent la table", async () => {
     await db.query("reset role");
     const { rows } = await db.query(`

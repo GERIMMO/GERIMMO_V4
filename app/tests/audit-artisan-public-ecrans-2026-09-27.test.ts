@@ -11,7 +11,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ENTETES_SECURITE, politiqueDeSecurite } from "../next.config";
 import { PRESTATAIRES } from "../src/lib/editeur";
-import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "../src/lib/inscription";
+import { classerErreurInscription, compteFantome, MESSAGE_BOITE_MAIL } from "../src/lib/inscription";
 import { cheminFicheAlerte, gesteAlerte } from "../src/lib/chemin-alerte";
 import { TYPES_EVENEMENT_INCIDENT } from "../src/lib/incidents";
 
@@ -37,7 +37,8 @@ describe("inscription d'un artisan sans compte (bloquant n° 2)", () => {
     const auth = lire("app/actions/auth.ts");
     const creation = auth.slice(auth.indexOf("export async function creerCompteArtisan"));
     expect(creation).toMatch(/espace: "artisan"/);
-    expect(creation).toContain("next=/artisan/inscription");
+    // 30/09 : la destination est celle du lien de confirmation que Gerimmo envoie.
+    expect(creation).toMatch(/next: "\/artisan\/inscription"/);
     expect(lire("app/espaces/page.tsx")).toMatch(
       /user_metadata\?\.espace === "artisan"[\s\S]{0,40}\)\s*\{\s*redirect\("\/artisan\/inscription"\)/
     );
@@ -52,6 +53,13 @@ describe("énumération de comptes à l'inscription (majeur)", () => {
       .toEqual({ type: "adresse_deja_inscrite" });
     expect(classerErreurInscription({ code: "weak_password", message: "weak" }).type).toBe("mot_de_passe_faible");
     expect(MESSAGE_BOITE_MAIL).not.toMatch(/existe/i);
+    // 30/09 (H2) : l'erreur explicite de l'API d'administration, et la
+    // réponse « sans erreur » de signUp (utilisateur factice sans identité).
+    expect(classerErreurInscription({ code: "email_exists", message: "A user with this email address has already been registered" }))
+      .toEqual({ type: "adresse_deja_inscrite" });
+    expect(compteFantome({ identities: [] })).toBe(true);
+    expect(compteFantome({ identities: [{ id: "i1" }] })).toBe(false);
+    expect(compteFantome(null)).toBe(false);
   });
 
   it("aucune action d'inscription ne dit plus « Un compte existe déjà »", () => {

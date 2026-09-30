@@ -104,7 +104,13 @@ export const ENTETES_SECURITE: { key: string; value: string }[] = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/(.*)", headers: ENTETES_SECURITE }];
+    return [
+      { source: "/(.*)", headers: ENTETES_SECURITE },
+      // Audit du 30/09 (M5) : l'adresse des pages /auth/confirm et
+      // /auth/confirmer porte le jeton d'un lien reçu par e-mail. Ni le
+      // navigateur ni un relais ne doivent en garder copie.
+      { source: "/auth/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+    ];
   },
   // Audit 09/09 (P1) : sur Vercel, le bundler embarquait @sparticuz/chromium
   // et son dossier bin/ (le navigateur compressé) était perdu au déploiement —

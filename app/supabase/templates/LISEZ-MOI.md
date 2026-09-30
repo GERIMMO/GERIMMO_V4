@@ -1,45 +1,79 @@
 # Modèles d'e-mails d'authentification (Supabase Auth)
 
-Les e-mails d'**inscription**, de **réinitialisation de mot de passe** et
-d'**invitation** ne partent pas de l'application : Supabase Auth les envoie,
-avec ses propres modèles. Par défaut, ces modèles sont **en anglais**
-(« Confirm your signup », « Reset Password ») et signés Supabase. Un locataire
-invité par son agence recevrait donc un courrier anglais titré « Reset
-Password » : c'est ce que ce dossier corrige.
+> **État au 30/09/2026 : Supabase n'envoie plus les e-mails de connexion de
+> Gerimmo.** Confirmation d'inscription, réinitialisation du mot de passe et
+> invitations partent de l'application elle-même (Resend, même expéditeur que
+> les quittances), avec des liens fabriqués par `src/lib/lien-mot-de-passe.ts`.
+> Seul le **changement d'adresse** depuis « Mon compte » passe encore par
+> Supabase Auth et son modèle `email_change.html`.
 
-## Où les coller
+## Pourquoi l'application envoie elle-même
 
-Tableau de bord Supabase → projet **Gerimmo V4** → *Authentication* →
-*Email Templates*. Pour chaque modèle : coller le **sujet** et le **corps**
-ci-dessous, puis *Save*. Aucun déploiement de l'application n'est nécessaire.
+Les liens de Supabase (flux PKCE) ne marchaient que dans le navigateur qui
+avait **demandé** le lien — celui de l'admin qui invite, pas celui du
+destinataire — et étaient consommés dès l'ouverture, y compris par les
+antivirus de messagerie qui pré-ouvrent les liens. Depuis le 30/09 :
 
-| Modèle Supabase | Fichier | Sujet à saisir | Quand il part |
+- le jeton est fabriqué par l'API d'administration (`auth.admin.generateLink`,
+  type `recovery` pour un mot de passe, type `signup` pour une inscription —
+  ce dernier crée aussi le compte, sans qu'aucun e-mail ne parte de Supabase) ;
+- le lien est `https://www.gerimmo.app/auth/confirm?token_hash=…&type=…&next=…` ;
+- il mène à une page avec un bouton (`/auth/confirmer`) ; c'est le clic (POST)
+  qui consomme le jeton, dans n'importe quel navigateur ;
+- le courrier est en français, signé Gerimmo, envoyé par Resend
+  (`RESEND_API_KEY`, `RESEND_EXPEDITEUR`) — le SMTP de Supabase n'est plus
+  sollicité pour ces courriers.
+
+Les fichiers `confirmation.html` et `recovery.html` restent ici pour mémoire
+et pour le cas où l'on rebrancherait un envoi par Supabase : ils ne sont
+**plus utilisés**.
+
+## Ce qui reste à régler dans Supabase
+
+Tableau de bord Supabase → projet **Gerimmo V4** → *Authentication*.
+
+| Modèle Supabase | Fichier | Sujet à saisir | État |
 |---|---|---|---|
-| **Confirm signup** | `confirmation.html` | `Confirmez votre adresse — Gerimmo` | Inscription d'un propriétaire bailleur ou d'un artisan |
-| **Reset password** | `recovery.html` | `Votre accès Gerimmo` | Mot de passe oublié **et invitation** (locataire, agent, organisation ouverte par la supervision) — l'application utilise le même flux pour les deux, d'où un texte qui couvre les deux cas |
-| **Change email address** | `email_change.html` | `Confirmez votre nouvelle adresse — Gerimmo` | Changement d'adresse depuis « Mon compte » |
-| Magic link, Invite user | — | — | Non utilisés par l'application ; laisser tels quels |
+| **Change email address** | `email_change.html` | `Confirmez votre nouvelle adresse — Gerimmo` | **Utilisé** : changement d'adresse depuis « Mon compte » |
+| Confirm signup | `confirmation.html` | — | Plus utilisé (l'application envoie) |
+| Reset password | `recovery.html` | — | Plus utilisé (l'application envoie) |
+| Magic link, Invite user | — | — | Non utilisés |
 
-## Réglages qui vont avec (même écran, *Authentication* → *URL Configuration*)
+### *URL Configuration* (indispensable)
 
-- **Site URL** : `https://gerimmo.app`
-- **Redirect URLs** : `https://gerimmo.app/auth/confirm` (et l'adresse Vercel
-  de prévisualisation si l'on veut tester une branche). Sans cette entrée,
-  le lien du courrier est refusé et la personne atterrit sur
-  `/connexion?raison=lien-invalide`.
-- **SMTP personnalisé** (*Project Settings* → *Authentication* → *SMTP
-  Settings*) : le service d'envoi intégré de Supabase est limité à quelques
-  courriers par heure — un après-midi d'inscriptions le sature. Renseigner le
-  SMTP de Resend (`smtp.resend.com`, port 465, utilisateur `resend`, mot de
-  passe = clé d'API) avec l'expéditeur `Gerimmo <no-reply@gerimmo.app>`, une
-  fois le domaine vérifié chez Resend.
+- **Site URL** : `https://www.gerimmo.app`
+- **Redirect URLs** : `https://www.gerimmo.app/**` (couvre `/auth/confirm`,
+  qui reçoit encore les anciens liens `?code=` envoyés avant le 30/09, et le
+  retour du changement d'adresse). Ajouter l'adresse Vercel de
+  prévisualisation si l'on veut tester une branche.
 
-## Ce que les modèles contiennent
+### *Email* → « Confirm email »
+
+Laisser **activé** : c'est ce réglage qui fait qu'un compte créé à
+l'inscription reste inutilisable tant que le lien envoyé par Gerimmo n'a pas
+été cliqué. Il ne déclenche plus d'envoi par Supabase, puisque l'application
+ne passe plus par `signUp`.
+
+### SMTP personnalisé
+
+Il ne sert plus qu'au changement d'adresse. Le laisser sur Resend
+(`smtp.resend.com`, port 465, utilisateur `resend`, mot de passe = clé d'API,
+expéditeur `Gerimmo <no-reply@gerimmo.app>`) évite la limite du service
+d'envoi intégré.
+
+## Variables d'environnement côté application
+
+- `NEXT_PUBLIC_SITE_URL` : l'origine des liens envoyés. **Sans elle, aucun
+  lien de connexion ne part** (l'action le dit).
+- `SUPABASE_SERVICE_ROLE_KEY` : nécessaire à `auth.admin.generateLink`.
+- `RESEND_API_KEY`, `RESEND_EXPEDITEUR` : l'envoi (voir `.env.example`).
+
+## Ce que les modèles contiennent (mémoire)
 
 - `{{ .ConfirmationURL }}` : le lien signé par Supabase. Il passe par
-  `/auth/confirm`, qui établit la session puis mène à la bonne page
-  (`/espaces` après inscription, `/nouveau-mot-de-passe` pour un accès).
+  `/auth/confirm?code=…`, qui échange le code puis mène à la bonne page.
 - Aucune image, aucun style externe : un courrier d'accès doit passer les
   filtres et se lire dans n'importe quel client.
 - Le ton est celui du produit : on dit ce qui se passe et quoi faire si l'on
-  n'a rien demandé.
+  n'a rien demandé. La durée d'un lien s'écrit « pour une durée limitée » :
+  la valeur exacte est un réglage du projet, pas une promesse du texte.

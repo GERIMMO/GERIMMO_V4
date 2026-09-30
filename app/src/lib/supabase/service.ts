@@ -13,8 +13,12 @@
 // la grille historique (audit du 29/09/2026). Et la fabrique des liens de mot
 // de passe (src/lib/lien-mot-de-passe.ts, 30/09/2026) : `auth.admin.generateLink`
 // pour UNE adresse, appelée après le contrôle de l'action (superviseur, admin
-// d'agence) ou, pour « mot de passe oublié », après la limite de fréquence
-// `autoriser_lien_mot_de_passe` — l'API d'administration n'a pas celle d'Auth.
+// d'agence — bornée à 30 liens par organisation et par heure) ou, pour « mot
+// de passe oublié » et l'INSCRIPTION (`generateLink` type `signup`, qui crée
+// le compte sans faire partir l'e-mail PKCE de Supabase), après la limite de
+// fréquence `autoriser_lien_mot_de_passe` — l'API d'administration n'a pas
+// celle d'Auth. Dans tous ces cas la clé ne lit ni n'écrit aucune donnée
+// métier : elle fabrique un jeton pour l'adresse que l'action a validée.
 //
 // Ce que le client peut faire est en outre borné côté base : les fonctions que
 // les tâches appellent sont révoquées de `anon` et `authenticated` et accordées

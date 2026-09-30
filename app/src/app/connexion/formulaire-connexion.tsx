@@ -35,7 +35,7 @@ const MESSAGES: Record<string, Message> = {
     // le remède vaut aussi pour une invitation : le compte existe déjà, il
     // suffit d'un nouveau lien pour créer son mot de passe.
     texte:
-      "Ce lien n'est plus valable : il a expiré ou a déjà été utilisé (un lien ne sert qu'une fois). Invitation ou mot de passe oublié, un nouveau lien vous permet de choisir votre mot de passe.",
+      "Ce lien n'est plus valable : il a expiré, a déjà été utilisé (un lien ne sert qu'une fois) ou a été ouvert dans un autre navigateur que celui de la demande (anciens liens). Invitation, inscription ou mot de passe oublié, un nouveau lien vous permet de continuer.",
     ton: "attention",
     lien: { href: "/mot-de-passe-oublie", libelle: "Recevoir un nouveau lien" },
   },

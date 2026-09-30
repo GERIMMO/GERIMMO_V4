@@ -17,7 +17,7 @@ import { eur } from "@/lib/ged";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { emettreRecusQuittances, libelleEmission } from "@/lib/quittances";
 import { compteRenduEncaissement, type EtatAppel } from "@/lib/imputation";
-import { adresseDeRetour } from "@/lib/site";
+import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 
 export type EtatLoyers = {
   erreur?: string;
@@ -84,7 +84,11 @@ export async function envoyerQuittance(
   if (manquants.length > 0) return { erreur: motifQuittanceIncomplete(manquants, q.est_quittance) };
   const libelleEnvoi = q.est_quittance ? "Quittance envoyée" : "Reçu de paiement partiel envoyé";
 
+  // Audit du 30/09 (B4) : sans adresse configurée, le lien de la quittance
+  // serait relatif — mort dans un e-mail. On ne l'envoie pas, on dit quoi
+  // configurer.
   const origine = adresseDeRetour();
+  if (!origine) return { erreur: MESSAGE_SITE_NON_CONFIGURE };
   // Le corps vit dans lib/quittance-email : la tâche planifiée envoie le même
   // document, et deux mises en forme pour une même quittance ne s'expliquent
   // pas au locataire qui la conserve.

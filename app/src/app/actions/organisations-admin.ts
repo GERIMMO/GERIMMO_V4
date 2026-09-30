@@ -95,6 +95,8 @@ export async function ouvrirOrganisation(
     email: ligne.email_responsable,
     motif: "invitation_responsable",
     next: "/nouveau-mot-de-passe",
+    // L'invitation compte dans la limite de l'organisation née (30/h, audit du 30/09, M4).
+    organisation: ligne.organization_id,
   });
 
   if (demande) {

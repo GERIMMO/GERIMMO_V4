@@ -14,7 +14,7 @@ import { valeursDuFormulaire } from "@/lib/formulaires";
 import { envoyerEmail } from "@/lib/email";
 import { echapperHtml } from "@/lib/quittance-email";
 import { moisDepotGarantie } from "@/lib/depot-garantie";
-import { adresseDeRetour } from "@/lib/site";
+import { adresseDeRetour, MESSAGE_SITE_NON_CONFIGURE } from "@/lib/site";
 
 export type BlocageActionable = { message: string; href: string; libelle: string };
 export type EtatBail = {
@@ -514,7 +514,10 @@ export async function envoyerBailSigne(orgId: string, bailId: string): Promise<E
     : { data: null };
   if (!loc?.email) return { erreur: "Le locataire n'a pas d'email renseigné." };
 
+  // Audit du 30/09 (B4) : sans adresse configurée, le lien serait relatif —
+  // mort dans un e-mail. On ne l'envoie pas, on dit quoi configurer.
   const origine = adresseDeRetour();
+  if (!origine) return { erreur: MESSAGE_SITE_NON_CONFIGURE };
   const lot = (Array.isArray(bail.lot) ? bail.lot[0] : bail.lot) as { nom: string } | null;
   const html = `
     <div style="font-family:sans-serif;font-size:14px;color:#111">

@@ -340,7 +340,7 @@ export async function deposerMaPiece(
   return {
     succes:
       type === "decennale"
-        ? "Décennale enregistrée. Vous êtes à nouveau proposé pour les travaux qui l'exigent."
+        ? "Décennale enregistrée. Ce dépôt ne vaut pas validation de votre inscription ni ouverture de votre zone d’intervention."
         : "Attestation enregistrée. Elle remplace la précédente du même type.",
   };
 }

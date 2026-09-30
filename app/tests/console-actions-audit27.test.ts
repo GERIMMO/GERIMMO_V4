@@ -8,11 +8,13 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ createClient: vi.fn(), service: vi.fn(), revalidate: vi.fn(), headers: vi.fn() }));
+const mocks = vi.hoisted(() => ({ createClient: vi.fn(), service: vi.fn(), revalidate: vi.fn(), headers: vi.fn(), lien: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/lib/supabase/service", () => ({ clientDeService: mocks.service }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
 vi.mock("next/headers", () => ({ headers: mocks.headers }));
+// Le lien de mot de passe est fabriqué par lib/lien-mot-de-passe.ts (30/09) : testé à part.
+vi.mock("@/lib/lien-mot-de-passe", () => ({ envoyerLienMotDePasse: mocks.lien }));
 
 import { marquerDevisTraitee } from "../src/app/actions/devis-admin";
 import { controlerCompte, controlerOrganisation, renvoyerInvitation } from "../src/app/actions/controle-supervision";
@@ -35,7 +37,7 @@ function client(reponses: Record<string, { data?: unknown; error?: { message: st
     q.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: lignes[table] ?? [], error: null }).then(ok);
     return q;
   });
-  const auth = { getUser: vi.fn(async () => ({ data: { user: { id: MOI } } })), resetPasswordForEmail: vi.fn(async () => ({ error: null })) };
+  const auth = { getUser: vi.fn(async () => ({ data: { user: { id: MOI } } })) };
   mocks.createClient.mockResolvedValue({ rpc, from, auth });
   return { rpc, from, auth, appels };
 }
@@ -109,12 +111,21 @@ describe("« Lancer maintenant » est journalisé avant l'appel (majeur 5)", () 
 describe("renvoyer l'invitation (majeur 7)", () => {
   it("n'envoie qu'au responsable rattaché, et journalise le renvoi", async () => {
     const c = client({}, { memberships: [{ account: { email: "resp@agence.fr" } }] });
+    mocks.lien.mockResolvedValue({});
     expect((await renvoyerInvitation(ID, {}, form({ email: "autre@pirate.fr", confirmation: "oui" }))).erreur).toMatch(/responsable rattaché/);
-    expect(c.auth.resetPasswordForEmail).not.toHaveBeenCalled();
+    expect(mocks.lien).not.toHaveBeenCalled();
     expect((await renvoyerInvitation(ID, {}, form({ email: "resp@agence.fr" }))).erreur).toMatch(/Confirmez/);
     const r = await renvoyerInvitation(ID, {}, form({ email: "resp@agence.fr", confirmation: "oui" }));
     expect(r.succes).toMatch(/Invitation renvoyée/);
+    expect(mocks.lien).toHaveBeenCalledWith({ email: "resp@agence.fr", motif: "renvoi_supervision", next: "/nouveau-mot-de-passe" });
     expect(c.appels).toContainEqual(["journaliser_supervision", { p_action: "invitation_renvoyee", p_organisation: ID, p_details: { envoyee: true } }]);
+  });
+  it("dit quand l'invitation n'est pas partie, et le journalise", async () => {
+    const c = client({}, { memberships: [{ account: { email: "resp@agence.fr" } }] });
+    mocks.lien.mockResolvedValue({ erreur: "Le service d’e-mail a refusé l’envoi." });
+    const r = await renvoyerInvitation(ID, {}, form({ email: "resp@agence.fr", confirmation: "oui" }));
+    expect(r.erreur).toMatch(/n’est pas partie : Le service d’e-mail a refusé/);
+    expect(c.appels).toContainEqual(["journaliser_supervision", { p_action: "invitation_renvoyee", p_organisation: ID, p_details: { envoyee: false } }]);
   });
 });
 

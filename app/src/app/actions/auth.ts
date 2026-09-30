@@ -10,6 +10,7 @@ import { ACTIVITY_COOKIE } from "@/lib/session-policy";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { classerErreurInscription, MESSAGE_BOITE_MAIL } from "@/lib/inscription";
 import { adresseDeRetour } from "@/lib/site";
+import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
 import { estQualiteBailleur, normaliserQualiteBailleur } from "@/lib/qualite-bailleur";
 
 // La qualité voyage dans les métadonnées jusqu'à la fiche personne, dont la
@@ -45,14 +46,18 @@ export async function demanderReinitialisation(
   const email = String(formData.get("email") ?? "").trim();
   if (!email) return { erreur: "Saisissez votre adresse e-mail." };
 
-  const origine = adresseDeRetour();
-  const supabase = await createClient();
-  // Le lien du mail passe par /auth/confirm qui établit la session de
-  // récupération puis mène à /nouveau-mot-de-passe
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origine}/auth/confirm?next=/nouveau-mot-de-passe`,
+  // Le lien du mail passe par /auth/confirm, puis par un bouton qui établit
+  // la session de récupération et mène à /nouveau-mot-de-passe
+  // (lib/lien-mot-de-passe.ts : lien valable dans n'importe quel navigateur,
+  // limite de fréquence par adresse et par IP).
+  const envoi = await envoyerLienMotDePasse({
+    email,
+    motif: "mot_de_passe_oublie",
+    next: "/nouveau-mot-de-passe",
   });
-  // Erreur éventuelle volontairement ignorée : réponse neutre dans tous les cas
+  // Seule la limite de fréquence se dit : elle vaut pour toute adresse, avec
+  // ou sans compte, et ne révèle donc rien. Le reste : réponse neutre.
+  if (envoi.limite) return { erreur: envoi.erreur };
   return { message: MESSAGE_NEUTRE };
 }
 
@@ -199,7 +204,7 @@ export async function inscrireProprietaire(
     // comptes). Le titulaire reçoit de quoi se reconnecter ; l'écran dit la
     // même chose qu'à une adresse neuve (lib/inscription.ts).
     if (issue.type === "adresse_deja_inscrite") {
-      await prevenirTitulaire(supabase, email, origine);
+      await prevenirTitulaire(email);
       return { message: MESSAGE_BOITE_MAIL };
     }
     if (issue.type === "mot_de_passe_faible") return { erreur: issue.erreur, valeurs };
@@ -219,14 +224,8 @@ export async function inscrireProprietaire(
  * reconnecter (le même que « mot de passe oublié »), et on ne dit rien à
  * l'écran. L'échec de l'envoi est ignoré : la réponse reste neutre.
  */
-async function prevenirTitulaire(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  email: string,
-  origine: string
-) {
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origine}/auth/confirm?next=/nouveau-mot-de-passe`,
-  });
+async function prevenirTitulaire(email: string) {
+  await envoyerLienMotDePasse({ email, motif: "compte_existant", next: "/nouveau-mot-de-passe" });
 }
 
 // ============================================================
@@ -281,7 +280,7 @@ export async function creerCompteArtisan(
   if (error) {
     const issue = classerErreurInscription(error);
     if (issue.type === "adresse_deja_inscrite") {
-      await prevenirTitulaire(supabase, email, origine);
+      await prevenirTitulaire(email);
       return { message: MESSAGE_BOITE_MAIL };
     }
     if (issue.type === "mot_de_passe_faible") return { erreur: issue.erreur, valeurs };

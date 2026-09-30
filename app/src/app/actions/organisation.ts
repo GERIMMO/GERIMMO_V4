@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { sansJargon } from "@/lib/erreurs";
+import { envoyerLienMotDePasse } from "@/lib/lien-mot-de-passe";
 import { valeursDuFormulaire } from "@/lib/formulaires";
 import { verifierGerant } from "@/lib/ged-acces";
 import { couleurValide, domaineValide, emailValide, LOGO_MAX_OCTETS, typeImageLogo } from "@/lib/marque-organisation";
@@ -182,10 +183,12 @@ export async function inviterAgent(
     });
     erreurMail = envoi.erreur;
   } else {
-    const { error: erreurLien } = await supabase.auth.resetPasswordForEmail(ligne.email, {
-      redirectTo: `${origine}/auth/confirm?next=/nouveau-mot-de-passe`,
+    const envoiLien = await envoyerLienMotDePasse({
+      email: ligne.email,
+      motif: "invitation_agent",
+      next: "/nouveau-mot-de-passe",
     });
-    erreurMail = erreurLien ? sansJargon(erreurLien.message) : undefined;
+    erreurMail = envoiLien.erreur;
   }
 
   revalidatePath(`/agence/${orgId}/administration`);

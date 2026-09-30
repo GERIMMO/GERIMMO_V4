@@ -271,3 +271,4 @@
 20260930100000_essai_deux_mois.sql
 20260930110000_offre_lancement_essai.sql
 20260930120000_parrainage_grille_2026.sql
+20260930130000_limite_liens_mot_de_passe.sql

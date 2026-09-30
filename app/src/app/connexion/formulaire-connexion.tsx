@@ -31,9 +31,13 @@ const MESSAGES: Record<string, Message> = {
   // Un lien mort est une erreur, pas une information : ton d'attention, et le
   // geste qui la règle est dans le message plutôt que trois lignes plus bas.
   "lien-invalide": {
-    texte: "Ce lien est invalide, expiré ou déjà utilisé.",
+    // 30/09 : dire POURQUOI (un lien sert une fois et pour un temps), et que
+    // le remède vaut aussi pour une invitation : le compte existe déjà, il
+    // suffit d'un nouveau lien pour créer son mot de passe.
+    texte:
+      "Ce lien n'est plus valable : il a expiré ou a déjà été utilisé (un lien ne sert qu'une fois). Invitation ou mot de passe oublié, un nouveau lien vous permet de choisir votre mot de passe.",
     ton: "attention",
-    lien: { href: "/mot-de-passe-oublie", libelle: "Redemander un e-mail de réinitialisation" },
+    lien: { href: "/mot-de-passe-oublie", libelle: "Recevoir un nouveau lien" },
   },
 };
 

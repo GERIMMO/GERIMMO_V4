@@ -149,7 +149,7 @@ function CarteIncident({
   // propriétaire » (qui paie) au même emplacement, alors que la seconde en
   // était à « nous cherchons un artisan ». Dès qu'une intervention existe,
   // la pastille suit son étape ; la prise en charge reste dans sa rangée.
-  const etapePastille = suivi && incident.etat !== "clos" ? etapeCourte(suivi.etape) : null;
+  const etapePastille = suivi && !["clos", "rouvert"].includes(incident.etat) ? etapeCourte(suivi.etape) : null;
   const textePastille =
     etapePastille ?? libelleEtatLocataire(incident.etat, incident.imputation);
   // Ce que la pastille dit déjà, la rangée « Qui prend en charge » ne le
@@ -204,7 +204,10 @@ function CarteIncident({
           </div>
         ))}
 
-      {suivi && (
+      {incident.etat === "rouvert" && (
+        <p role="status">Votre demande est rouverte. Votre gestionnaire examine le problème persistant ; l’intervention précédente reste dans l’historique.</p>
+      )}
+      {suivi && incident.etat !== "rouvert" && (
         <SuiviInterventionLocataire
           orgId={orgId}
           suivi={suivi}

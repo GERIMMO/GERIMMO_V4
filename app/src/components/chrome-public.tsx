@@ -15,7 +15,57 @@ import { MarqueGerimmo } from "@/components/marque-gerimmo";
  * deux rejoignent celui-ci.
  */
 
+/** L'icône des outils gratuits (calculette au trait), pour l'en-tête. */
+function IconeOutils() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden
+      className="size-[17px] shrink-0 fill-none stroke-current"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="5" y="2.8" width="14" height="18.4" rx="2.4" />
+      <path d="M8.5 6.8h7M8.6 11.2h.01M12 11.2h.01M15.4 11.2h.01M8.6 14.6h.01M12 14.6h.01M15.4 14.6h.01M8.6 18h.01M12 18h3.4" />
+    </svg>
+  );
+}
+
+/**
+ * 30/09 : « Outils gratuits » entre dans l'en-tête, à toutes les largeurs.
+ * Dès 768 px, dans la navigation (le journal suit dès 1024 px). En dessous,
+ * le trio logo + connexion + action occupe déjà la ligne (voir plus bas) :
+ * les outils prennent une seconde ligne, sous le bandeau, qui défile avec la
+ * page (le bandeau collant ne grandit pas).
+ */
 export function EnTetePublic() {
+  return (
+    <>
+      <BandeauPublic />
+      <nav
+        aria-label="Outils gratuits"
+        className="border-b border-[var(--filet)] bg-[var(--marque-clair)]/60 md:hidden print:hidden"
+      >
+        <Link
+          href="/outils"
+          className="mx-auto flex min-h-11 w-full max-w-6xl items-center gap-2 px-4 text-[13.5px] font-semibold text-[var(--marque-sombre)]"
+        >
+          <IconeOutils />
+          Outils gratuits
+          <span className="rounded-full bg-[var(--ivoire)] px-2 py-0.5 text-[11px] font-semibold text-[var(--success-soft-foreground)]">
+            Sans compte
+          </span>
+          <span aria-hidden className="ml-auto">
+            →
+          </span>
+        </Link>
+      </nav>
+    </>
+  );
+}
+
+function BandeauPublic() {
   return (
     <div className="sticky top-0 z-30 border-b border-[var(--filet)] bg-[var(--ivoire)]/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-7">
@@ -33,8 +83,15 @@ export function EnTetePublic() {
               passaient chacun sur deux lignes et l'en-tête montait à 87 px.
               Libellés courts sous 640 px, et jamais de retour à la ligne. */}
           <Link
+            href="/outils"
+            className="hidden min-h-11 items-center gap-1.5 rounded-lg px-3 text-[13.5px] font-semibold text-[var(--marque-sombre)] hover:bg-[var(--survol)] md:inline-flex"
+          >
+            <IconeOutils />
+            Outils gratuits
+          </Link>
+          <Link
             href="/journal"
-            className="hidden rounded-lg px-3 py-2.5 text-[13.5px] font-medium text-[var(--texte-secondaire)] hover:bg-[var(--survol)] hover:text-[var(--encre)] sm:inline-block"
+            className="hidden rounded-lg px-3 py-2.5 text-[13.5px] font-medium text-[var(--texte-secondaire)] hover:bg-[var(--survol)] hover:text-[var(--encre)] lg:inline-block"
           >
             Journal
           </Link>

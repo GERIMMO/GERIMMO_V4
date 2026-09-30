@@ -2926,3 +2926,446 @@ h2 { font-size: 1.3125rem; }
   .tableau-fiches .tableau td[data-libelle]::before { content: attr(data-libelle); display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--libelle); margin-bottom: 2px; }
 }
 
+
+/* ==================================================================== */
+/* OUTILS GRATUITS (30/09) — la mise en page des cinq outils publics :  */
+/* en-tête d'outil, carte de saisie, panneau de résultat, contrôles     */
+/* segmentés, interrupteurs, barres, feuille de papier. Jetons de la    */
+/* charte uniquement (marque blanche) ; le mouvement s'éteint sous      */
+/* prefers-reduced-motion. Hors couche (comme la RESPIRATION ci-dessus) */
+/* : les règles `h1`/`h2` non étagées l'emporteraient sinon.            */
+/* ==================================================================== */
+.outil-entete {
+  background:
+    radial-gradient(55% 90% at 92% 0%, color-mix(in srgb, var(--marque) 12%, transparent), transparent 70%),
+    var(--ivoire);
+  border-bottom: 1px solid var(--filet);
+}
+.outil-tuile {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, var(--marque-clair), color-mix(in srgb, var(--marque-clair) 45%, var(--ivoire)));
+  color: var(--marque-sombre);
+  box-shadow: inset 0 0 0 1px var(--or-filet);
+}
+.outil-puce {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--success-soft);
+  color: var(--success-soft-foreground);
+}
+.outil-puce::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+.outil-puce-claire { background: color-mix(in srgb, var(--sur-marque) 16%, transparent); color: var(--sur-marque); }
+
+/* La carte de saisie : blanche, douce, groupes séparés par un filet. */
+.outil-saisie {
+  background: var(--ivoire);
+  border: 1px solid var(--filet);
+  border-radius: 20px;
+  box-shadow: var(--ombre-portee);
+  padding: 26px 28px 28px;
+}
+.outil-carte-titre {
+  font-family: var(--font-titres), system-ui, sans-serif;
+  font-size: 19px !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--encre);
+}
+.outil-groupe { margin-top: 22px; }
+.outil-groupe + .outil-groupe { border-top: 1px solid var(--filet-leger); padding-top: 22px; }
+.outil-groupe-titre {
+  float: left;
+  width: 100%;
+  margin-bottom: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--marque-sombre);
+}
+.outil-groupe-titre + * { clear: both; }
+.outil-champ {
+  height: 44px;
+  width: 100%;
+  min-width: 0;
+  border-radius: 11px;
+  border: 1px solid var(--filet);
+  background: var(--ivoire);
+  padding-inline: 13px;
+  font-size: 15px;
+  color: var(--corps);
+  transition: border-color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease;
+}
+.outil-champ::placeholder { color: var(--libelle); }
+.outil-champ.outil-champ-suffixe { padding-right: 46px; }
+.outil-champ.outil-champ-suffixe-large { padding-right: 62px; }
+.outil-champ:hover { border-color: color-mix(in srgb, var(--marque) 35%, var(--filet)); }
+.outil-champ:focus-visible,
+.outil-champ:focus {
+  outline: none;
+  border-color: var(--marque);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--marque) 22%, transparent);
+}
+.outil-liste {
+  appearance: none;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2353617a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  text-overflow: ellipsis;
+}
+.outil-suffixe {
+  pointer-events: none;
+  position: absolute;
+  inset-block: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  background: var(--filet-leger);
+  padding-inline: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--texte-secondaire);
+}
+
+/* Contrôle segmenté : des radios natives, invisibles mais cliquables sur
+   toute la surface du segment (44 px). */
+.outil-segments {
+  gap: 4px;
+  padding: 4px;
+  border-radius: 13px;
+  background: var(--filet-leger);
+  border: 1px solid var(--filet);
+}
+.outil-segments.flex > .outil-segment { flex: 1 1 0; }
+.outil-segment {
+  position: relative;
+  display: flex;
+  min-height: 44px;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 6px 10px;
+  text-align: center;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--texte-secondaire);
+  transition: background-color var(--duree-rapide) ease, color var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease;
+}
+.outil-segment input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.outil-segment:hover { color: var(--encre); background: color-mix(in srgb, var(--ivoire) 60%, transparent); }
+.outil-segment:has(input:checked) {
+  background: var(--ivoire);
+  color: var(--marque-sombre);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 10%, transparent), 0 0 0 1px var(--or-filet);
+}
+.outil-segment:has(input:focus-visible) { outline: 2px solid var(--marque); outline-offset: 1px; }
+
+/* Interrupteur : une case native, dessinée. */
+.outil-interrupteur {
+  appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--libelle) 45%, var(--filet));
+  cursor: pointer;
+  transition: background-color var(--duree) var(--courbe);
+}
+.outil-interrupteur::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--ivoire);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--encre) 25%, transparent);
+  transition: transform var(--duree) var(--courbe);
+}
+.outil-interrupteur:checked { background: var(--marque); }
+.outil-interrupteur:checked::before { transform: translateX(18px); }
+.outil-interrupteur:focus-visible { outline: 2px solid var(--marque); outline-offset: 2px; }
+
+/* Le panneau de résultat : filet de marque en tête. */
+.outil-resultat {
+  position: relative;
+  overflow: hidden;
+  background: var(--ivoire);
+  border: 1px solid var(--or-filet);
+  border-radius: 20px;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--encre) 5%, transparent), 0 14px 36px color-mix(in srgb, var(--marque) 10%, transparent);
+  padding: 24px 26px 26px;
+}
+.outil-resultat::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--marque), color-mix(in srgb, var(--marque) 45%, var(--turquoise)));
+}
+.outil-hero {
+  margin-top: 2px;
+  font-family: var(--font-titres), system-ui, sans-serif;
+  font-size: clamp(34px, 8vw, 46px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-variant-numeric: lining-nums tabular-nums;
+  overflow-wrap: anywhere;
+}
+.outil-chiffre {
+  border-radius: 12px;
+  background: var(--creme);
+  padding: 10px 12px;
+}
+.outil-pastille {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.outil-pastille-point { width: 7px; height: 7px; flex-shrink: 0; border-radius: 999px; background: currentColor; }
+.outil-pastille-succes { background: var(--success-soft); color: var(--success-soft-foreground); }
+.outil-pastille-attention { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+.outil-pastille-erreur { background: var(--destructive-soft); color: var(--destructive-soft-foreground); }
+.outil-pastille-info { background: var(--turquoise-doux); color: var(--turquoise-texte); }
+.outil-pastille-neutre { background: var(--filet-leger); color: var(--texte-secondaire); }
+
+.outil-detail { border-top: 1px solid var(--filet-leger); }
+.outil-detail-ligne {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 9px;
+  border-bottom: 1px solid var(--filet-leger);
+  font-size: 13.5px;
+}
+.outil-detail-ligne dt { min-width: 0; color: var(--texte-secondaire); }
+.outil-detail-ligne dd { flex-shrink: 0; text-align: right; font-weight: 600; color: var(--encre); }
+.outil-detail-total { border-bottom: 0; padding-top: 11px; }
+.outil-detail-total dt { font-weight: 600; color: var(--encre); }
+.outil-detail-total dd { font-family: var(--font-titres), system-ui, sans-serif; font-weight: 800; font-size: 15px; }
+
+.outil-piste {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--filet-leger);
+  overflow: hidden;
+}
+.outil-barre {
+  display: block;
+  height: 100%;
+  min-width: 3px;
+  border-radius: 999px;
+  transition: width var(--duree-lente) var(--courbe);
+}
+.outil-barre-marque { background: linear-gradient(90deg, var(--marque), color-mix(in srgb, var(--marque) 70%, var(--ivoire))); }
+.outil-barre-encre { background: var(--encre); }
+.outil-barre-succes { background: var(--success); }
+.outil-barre-attention { background: var(--warning); }
+.outil-barre-pale { background: color-mix(in srgb, var(--marque) 30%, var(--filet)); }
+
+.outil-alerte {
+  display: flex;
+  gap: 10px;
+  border-radius: 12px;
+  border: 1px solid;
+  padding: 11px 13px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.outil-alerte-erreur { background: var(--destructive-soft); border-color: color-mix(in srgb, var(--destructive) 30%, transparent); color: var(--destructive-soft-foreground); }
+.outil-alerte-attention { background: var(--warning-soft); border-color: color-mix(in srgb, var(--warning) 30%, transparent); color: var(--warning-soft-foreground); }
+.outil-alerte-info { background: var(--turquoise-doux); border-color: color-mix(in srgb, var(--turquoise) 25%, transparent); color: var(--turquoise-texte); }
+.outil-alerte-succes { background: var(--success-soft); border-color: color-mix(in srgb, var(--success) 25%, transparent); color: var(--success-soft-foreground); }
+
+/* « Comment c'est calculé » (repliable) et « Bon à savoir ». */
+.outil-repli {
+  background: var(--ivoire);
+  border: 1px solid var(--filet);
+  border-radius: 18px;
+}
+.outil-repli > summary {
+  display: flex;
+  min-height: 60px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  list-style: none;
+  border-radius: 18px;
+}
+.outil-repli > summary::-webkit-details-marker { display: none; }
+.outil-repli > summary:hover { background: var(--survol); }
+.outil-repli-chevron { color: var(--texte-secondaire); transition: transform var(--duree) var(--courbe); }
+.outil-repli[open] .outil-repli-chevron { transform: rotate(180deg); }
+.outil-repli-corps {
+  border-top: 1px solid var(--filet-leger);
+  padding: 16px 20px 20px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--texte-secondaire);
+}
+.outil-repli-corps > * + * { margin-top: 10px; }
+.outil-formule {
+  display: block;
+  border-radius: 12px;
+  background: var(--creme);
+  border: 1px solid var(--filet-leger);
+  padding: 12px 14px;
+  font-family: var(--font-titres), system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--encre);
+}
+.outil-bon-a-savoir {
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--turquoise) 22%, var(--filet));
+  background: color-mix(in srgb, var(--turquoise-doux) 38%, var(--ivoire));
+  padding: 18px 20px 20px;
+}
+.outil-prose { font-size: 14px; line-height: 1.65; color: var(--corps); }
+.outil-prose ul { list-style: none; padding: 0; }
+.outil-prose li { position: relative; padding-left: 18px; }
+.outil-prose li + li { margin-top: 8px; }
+.outil-prose li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.62em;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--turquoise);
+}
+.outil-prose > * + * { margin-top: 10px; }
+
+/* Les cartes-liens (autres outils, encarts). */
+.outil-lien-carte {
+  display: flex;
+  height: 100%;
+  align-items: flex-start;
+  gap: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--filet);
+  background: var(--ivoire);
+  padding: 14px 16px;
+  transition: transform var(--duree-rapide) ease, box-shadow var(--duree-rapide) ease, border-color var(--duree-rapide) ease;
+}
+.outil-lien-carte:hover { transform: translateY(-2px); border-color: var(--or-filet); box-shadow: var(--ombre-portee); }
+
+/* L'invitation à l'essai : un halo discret dans le bandeau. */
+.outil-appel { position: relative; overflow: hidden; }
+.outil-appel::after {
+  content: "";
+  position: absolute;
+  right: -80px;
+  top: -80px;
+  width: 280px;
+  height: 280px;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--sur-marque) 16%, transparent), transparent 70%);
+  pointer-events: none;
+}
+
+/* Le document à imprimer : une feuille posée sur le bureau. */
+.outil-bureau {
+  border-radius: 22px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--marque) 7%, var(--creme)), var(--creme));
+  border: 1px solid var(--filet);
+  padding: 28px 16px;
+}
+.outil-papier {
+  margin-inline: auto;
+  max-width: 800px;
+  background: var(--ivoire);
+  color: var(--corps);
+  border-radius: 4px;
+  box-shadow:
+    0 1px 1px color-mix(in srgb, var(--encre) 8%, transparent),
+    0 10px 30px color-mix(in srgb, var(--encre) 12%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--encre) 5%, transparent);
+  padding: 56px 64px 64px;
+  font-size: 15.5px;
+  line-height: 1.6;
+}
+.outil-papier .papier-titre {
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: 0.005em;
+  color: var(--encre);
+}
+.outil-papier .papier-mention { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--libelle); }
+.outil-papier .papier-filet { border-top: 1px solid color-mix(in srgb, var(--encre) 18%, transparent); }
+.outil-papier .papier-montants { width: 100%; border-collapse: collapse; font-variant-numeric: lining-nums tabular-nums; }
+.outil-papier .papier-montants td { padding: 8px 0; border-bottom: 1px solid color-mix(in srgb, var(--encre) 10%, transparent); }
+.outil-papier .papier-montants td:last-child { text-align: right; white-space: nowrap; padding-left: 16px; }
+.outil-papier .papier-montants tr.total td { border-bottom: 0; border-top: 1.5px solid var(--encre); font-weight: 700; padding-top: 10px; }
+.outil-papier .a-completer { font-style: italic; color: var(--libelle); }
+
+@media (max-width: 640px) {
+  .outil-saisie { padding: 20px 18px 22px; border-radius: 18px; }
+  .outil-resultat { padding: 20px 18px 22px; border-radius: 18px; }
+  .outil-bureau { padding: 12px 8px; border-radius: 16px; }
+  .outil-papier { padding: 26px 20px 30px; font-size: 14.5px; }
+  .outil-papier .papier-titre { font-size: 21px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .outil-barre, .outil-interrupteur, .outil-interrupteur::before, .outil-repli-chevron, .outil-segment, .outil-champ, .outil-lien-carte { transition: none; }
+  .outil-lien-carte:hover { transform: none; }
+}
+@media print {
+  .outil-bureau { border: 0; background: none; padding: 0; border-radius: 0; }
+  .outil-papier { max-width: none; box-shadow: none; border-radius: 0; padding: 0; font-size: 12pt; color: #000; }
+}
+
+/* Les titres des outils : leur taille est portée par une classe, pas par un
+   utilitaire (les règles h1/h2 de la RESPIRATION, hors couche, gagneraient). */
+.outil-titre { font-size: 27px; letter-spacing: -0.02em; }
+.outil-h2 { font-size: 19px; }
+.outil-h3 { font-size: 16px; }
+.outil-panneau-titre { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--marque-sombre); }
+.outil-appel h2 { font-size: 24px; }
+.outil-vitrine-titre { font-size: 30px; letter-spacing: -0.025em; }
+@media (min-width: 640px) {
+  .outil-titre { font-size: 36px; }
+  .outil-appel h2 { font-size: 30px; }
+  .outil-vitrine-titre { font-size: 44px; }
+}

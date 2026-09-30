@@ -14,7 +14,7 @@ import { REGIME_TVA } from "@/lib/editeur";
 import { etiquetteTaxes, mentionTaxesPubliques } from "@/lib/tarifs";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
-import { OUTILS } from "@/lib/outils/catalogue";
+import { TuileOutil, outilsPresentes } from "@/components/outils/icones-outils";
 
 export const metadata = metadonneesPubliques({
   titre: "Gerimmo — La gérance immobilière, tenue au carré",
@@ -185,6 +185,14 @@ export default async function PageVitrine() {
                   Je suis une agence →
                 </a>
               </div>
+              <Link
+                href="/outils"
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--or-filet)] bg-[var(--ivoire)] py-1.5 pr-4 pl-1.5 text-[14px] font-semibold text-[var(--marque-sombre)] transition-colors hover:border-[var(--marque)] hover:bg-[var(--survol)]"
+              >
+                <span className="outil-puce">Gratuit</span>
+                Essayer nos outils gratuits
+                <span aria-hidden>→</span>
+              </Link>
               <p className="mt-5 text-[13px] text-[var(--libelle)]">
                 Essai de 14 jours, sans carte bancaire. Aucun honoraire de
                 gestion, jamais.
@@ -201,6 +209,45 @@ export default async function PageVitrine() {
       </header>
 
       <main>
+        {/* ------------------------------------------------ Outils gratuits */}
+        {/* 30/09 : les outils gratuits montent juste sous le héros — cinq
+            cartes, sans compte. Ils étaient une ligne de liens en bas de page. */}
+        <section aria-labelledby="outils-gratuits" className="mx-auto w-full max-w-6xl px-4 py-12 sm:px-7 sm:py-16">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="eyebrow text-[var(--marque-sombre)]">Outils gratuits · sans compte</p>
+              <h2
+                id="outils-gratuits"
+                className="mt-2 max-w-[24ch] text-balance font-heading font-bold leading-[1.15] tracking-[-0.015em] text-[var(--encre)]"
+              >
+                Vos calculs de bailleur, en une minute
+              </h2>
+            </div>
+            <Link href="/outils" className="lien-discret text-[13.5px]">
+              Tous les outils →
+            </Link>
+          </div>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {outilsPresentes().map((o) => (
+              <li key={o.chemin} className="min-w-0">
+                <Link href={o.chemin} className="vitrine-carte group flex h-full flex-col !p-5">
+                  <TuileOutil chemin={o.chemin} />
+                  <h3 className="mt-4 font-heading text-[16px] font-bold leading-snug text-[var(--encre)] group-hover:text-[var(--marque-sombre)]">
+                    {o.court}
+                  </h3>
+                  <p className="mt-1.5 flex-1 text-[13.5px] leading-relaxed text-[var(--texte-secondaire)]">{o.accroche}</p>
+                  <span className="mt-4 flex items-center justify-between gap-2">
+                    <span className="outil-puce">Gratuit</span>
+                    <span className="text-[13.5px] font-semibold text-[var(--marque-sombre)]">
+                      Essayer <span aria-hidden>→</span>
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
         {/* --------------------------------------------- Ce que ça remplace */}
         <section className="border-y border-[var(--filet)] bg-[var(--ivoire)]">
           <div className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
@@ -444,31 +491,6 @@ export default async function PageVitrine() {
               Tout le détail des tarifs →
             </Link>
           </p>
-        </section>
-
-        {/* ------------------------------------------------ Outils gratuits */}
-        {/* 29/09 : les outils gratuits, sans compte. Une ligne de liens, pas
-            une section de plus à faire défiler : la liste vit sur /outils. */}
-        <section className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-7">
-          <div className="border-t border-[var(--filet)] pt-10">
-            <div className="entete-carte">
-              <div>
-                <TitreSection sur="Outils gratuits" titre="Vos calculs de bailleur, sans compte" />
-              </div>
-              <Link href="/outils" className="lien-discret text-[13.5px]">
-                Tous les outils →
-              </Link>
-            </div>
-            <ul className="mt-6 flex flex-wrap gap-2">
-              {OUTILS.map((o) => (
-                <li key={o.chemin}>
-                  <Link href={o.chemin} className="btn-secondaire">
-                    {o.titre}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
         </section>
 
         {/* --------------------------------------------------------- Journal */}

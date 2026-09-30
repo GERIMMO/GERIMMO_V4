@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture de test : format SDMX-ML Generic. Seules 2025-Q2 et 2026-Q2
+     portent des valeurs réelles ; les autres sont FACTICES. -->
+<message:GenericData xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message" xmlns:generic="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/generic">
+  <message:DataSet>
+    <generic:Series>
+      <generic:SeriesKey><generic:Value id="IDBANK" value="001515333"/></generic:SeriesKey>
+      <generic:Obs>
+        <generic:ObsDimension value="2026-Q2"/>
+        <generic:ObsValue value="148.37"/>
+        <generic:Attributes><generic:Value id="OBS_STATUS" value="A"/></generic:Attributes>
+      </generic:Obs>
+      <generic:Obs>
+        <generic:ObsDimension id="TIME_PERIOD" value="2025-Q2"/>
+        <generic:ObsValue value="146.68"/>
+      </generic:Obs>
+      <generic:Obs>
+        <generic:ObsDimension value="2026-Q1"/>
+        <generic:ObsValue value="122.22"/>
+      </generic:Obs>
+      <generic:Obs>
+        <generic:ObsDimension value="pas-une-periode"/>
+        <generic:ObsValue value="999.99"/>
+      </generic:Obs>
+    </generic:Series>
+  </message:DataSet>
+</message:GenericData>

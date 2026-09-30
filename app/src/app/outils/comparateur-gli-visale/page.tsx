@@ -13,16 +13,31 @@ export const metadata = metadonneesPubliques({
 export default function PageComparateurGliVisale() {
   return (
     <CoquilleOutil
+      chemin="/outils/comparateur-gli-visale"
       titre="Comparateur GLI / Visale"
-      chapo={
+      promesse={
         <>
           Visale, la garantie gratuite d&apos;Action Logement, ou une assurance loyers impayés payée par le bailleur ?
-          Vérifiez l&apos;éligibilité de votre locataire à Visale et chiffrez le coût réel d&apos;une GLI.
+          Vérifiez l&apos;éligibilité de votre locataire et chiffrez le coût réel d&apos;une GLI, après impôt.
         </>
       }
-      apres={
+      calcul={
         <>
-          <p className="rounded-lg border border-[var(--filet)] bg-[var(--ivoire)] px-3 py-2.5 text-[var(--encre)]">
+          <p className="outil-formule">Coût brut = loyer charges comprises × 12 × taux de la prime</p>
+          <p className="outil-formule">Coût net = brut × (1 − (tranche marginale + 17,2 % de prélèvements sociaux))</p>
+          <p>
+            La prime se déduit des revenus fonciers au régime réel : c&apos;est ce qui donne le coût net. Au
+            micro-foncier, elle ne se déduit pas : le coût net est le coût brut.
+          </p>
+          <p>
+            Visale : le loyer charges comprises est comparé au plafond de la zone (plafond réduit pour un étudiant sans
+            revenus) ; à partir de 30 ans, seules certaines situations ouvrent la garantie.
+          </p>
+        </>
+      }
+      bonASavoir={
+        <>
+          <p className="rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] px-3.5 py-2.5 text-[var(--encre)]">
             Règles Visale vérifiées le {DATE_VERIFICATION_VISALE} auprès d&apos;Action Logement. Les plafonds changent
             chaque année : ils sont à revérifier chaque mois de janvier, sur{" "}
             <a href="https://www.visale.fr" target="_blank" rel="noopener noreferrer" className="lien-texte">
@@ -30,7 +45,7 @@ export default function PageComparateurGliVisale() {
             </a>
             .
           </p>
-          <ul className="list-disc space-y-1 pl-5">
+          <ul>
             <li>
               Visale ne se cumule ni avec une assurance loyers impayés, ni avec une caution personne physique : il faut
               choisir.

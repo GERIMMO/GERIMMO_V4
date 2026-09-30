@@ -71,7 +71,13 @@ jobs:
         run: |
           node e2e/local/serveur-supabase-local.mjs > /tmp/gerimmo-api.log 2>&1 &
           for tentative in {1..30}; do
-            if curl --silent --fail http://127.0.0.1:54321/health > /dev/null; then exit 0; fi
+            if curl --silent --fail http://127.0.0.1:54321/health > /dev/null; then
+              # La clé de service du banc (liens de mot de passe et inscription,
+              # 30/09) : l'émulateur l'affiche au démarrage, les étapes suivantes
+              # la reçoivent.
+              grep '^SUPABASE_SERVICE_ROLE_KEY=' /tmp/gerimmo-api.log >> "$GITHUB_ENV"
+              exit 0
+            fi
             sleep 1
           done
           cat /tmp/gerimmo-api.log

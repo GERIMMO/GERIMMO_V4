@@ -50,7 +50,16 @@ export function SectionLot({
     };
     ouvrirSiCible();
     window.addEventListener("hashchange", ouvrirSiCible);
-    return () => window.removeEventListener("hashchange", ouvrirSiCible);
+    // Revenir à la même rubrique après l'avoir repliée ne change pas le hash.
+    const ouvrirDepuisLien = (event: MouseEvent) => {
+      const cible = event.target instanceof Element ? event.target.closest("a") : null;
+      if (cible?.getAttribute("href") === `#${id}`) setOuvert(true);
+    };
+    document.addEventListener("click", ouvrirDepuisLien);
+    return () => {
+      window.removeEventListener("hashchange", ouvrirSiCible);
+      document.removeEventListener("click", ouvrirDepuisLien);
+    };
   }, [id]);
 
   return (

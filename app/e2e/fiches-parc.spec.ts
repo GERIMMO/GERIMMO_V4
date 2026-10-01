@@ -61,7 +61,8 @@ test("fiche lot : la location passe avant les caractéristiques", async ({ page 
   expect(location, "la location doit précéder le bloc du lot").toBeLessThan(leLot);
 
   // Le locataire et le loyer se lisent sans rien déplier.
-  await expect(page.getByText("Locataire E2E")).toBeVisible();
+  await expect(page.locator(".dossier-chiffres").getByText("Locataire E2E", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Ouvrir le bail/ }).getByText("Locataire E2E", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /Ouvrir le bail/ })).toBeVisible();
 });
 

@@ -120,9 +120,9 @@ export function calculerAmortissement({ capital, taux, dureeAns, debut }) {
 // ── Rendu Chromium ──────────────────────────────────────────────────────────
 let navigateur;
 export async function ouvrirNavigateur() {
-  // GERIMMO_CHROMIUM permet de pointer un Chromium déjà installé quand la
+  // GERIMMO_CHROME permet de pointer un Chromium déjà installé quand la
   // version attendue par Playwright n'est pas téléchargée (conteneurs).
-  const executablePath = process.env.GERIMMO_CHROMIUM || undefined;
+  const executablePath = process.env.GERIMMO_CHROME || undefined;
   navigateur ??= await chromium.launch(executablePath ? { executablePath } : {});
   return navigateur;
 }

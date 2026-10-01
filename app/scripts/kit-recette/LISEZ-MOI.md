@@ -5,9 +5,9 @@ Fabrique le dossier remis à un testeur (« À lire en premier », fiche de test
 fictives), puis l'archive zip.
 
 ```bash
-# depuis app/ ; GERIMMO_CHROMIUM pointe un Chromium déjà installé si celui
+# depuis app/ ; GERIMMO_CHROME pointe un Chromium déjà installé si celui
 # attendu par Playwright n'est pas téléchargé
-GERIMMO_CHROMIUM=/opt/pw-browsers/chromium \
+GERIMMO_CHROME=/opt/pw-browsers/chromium \
   node scripts/kit-recette/fabriquer.mjs --sortie /tmp/kits
 ```
 

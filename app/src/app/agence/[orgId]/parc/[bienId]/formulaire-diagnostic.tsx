@@ -32,6 +32,7 @@ export function FormulaireDiagnostic({
   const actionLiee = deposerDiagnostic.bind(null, orgId, bienId, lotId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
   const formulaire = useRef<HTMLFormElement>(null);
+  const [etatModifie, setEtatModifie] = useState<typeof etat | null>(null);
   const [type, setType] = useState(typeInitial ?? types[0]?.[0] ?? "");
   const [realisation, setRealisation] = useState("");
   const [expiration, setExpiration] = useState("");
@@ -80,7 +81,7 @@ export function FormulaireDiagnostic({
   }, [etat]);
 
   return (
-    <form ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
+    <form onChange={() => setEtatModifie(etat)} ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">
         {typeInitial
           ? `Déposer : ${TYPES_DIAGNOSTIC[typeInitial]?.libelle ?? typeInitial}`
@@ -171,13 +172,14 @@ export function FormulaireDiagnostic({
           <Label htmlFor={`diag-expiration-${niveau}`}>Expire le</Label>
           <Input
             id={`diag-expiration-${niveau}`}
+            required={TYPES_DIAGNOSTIC[type]?.validite_mois != null}
             name="date_expiration"
             type="date"
             value={expiration}
             onChange={(e) => setExpiration(e.target.value)}
           />
           <p className="text-sm text-muted-foreground">
-            Laisser vide pour une validité illimitée.
+            {TYPES_DIAGNOSTIC[type]?.validite_mois != null ? "Date d’expiration obligatoire : vérifiez la date indiquée sur le rapport." : "Laisser vide uniquement si le rapport ne prévoit pas de date d’expiration."}
           </p>
         </div>
         <div className="space-y-1.5 sm:col-span-2">
@@ -193,7 +195,7 @@ export function FormulaireDiagnostic({
         </div>
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
-      {etat.succes && (
+      {etat.succes && etatModifie !== etat && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
       <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Dépôt…">

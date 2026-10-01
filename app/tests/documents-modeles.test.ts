@@ -192,6 +192,21 @@ describe("Modèles 14/15 — états des lieux", () => {
     expect(doc.manquants).toContain("neuf, bon, usagé, mauvais");
   });
 
+  it.each([311.02, 8412, 0, "311.020"])("imprime l'index %s reçu de la base sans perdre le zéro", (releve) => {
+    const doc = construireEdl(donnees({
+      compteurs: [{ type: "Eau froide", numero: "RCT-0317", releve }],
+    }));
+    expect(doc.html).toContain(`>${String(releve)}<`);
+    expect(doc.manquants).not.toContain("index");
+  });
+
+  it.each([null, ""])("signale un index non renseigné (%s)", (releve) => {
+    const doc = construireEdl(donnees({
+      compteurs: [{ type: "Eau froide", numero: "RCT-0317", releve }],
+    }));
+    expect(doc.manquants).toContain("index");
+  });
+
   // Le 11/09, l'état des lieux de sortie s'est mis à reprendre les clés de
   // l'entrée pour éviter de les retaper. Elles arrivaient avec `nombre = 0`.
   // Or les deux parties SIGNENT ce document : « 0 » y atteste que le locataire

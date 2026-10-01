@@ -114,6 +114,7 @@ function CarteIncident({
   >(signalerProblemePersiste.bind(null, orgId, incident.id), {});
 
   const charge = priseEnCharge(incident);
+  const suiviHistorique = suivi?.etape === "terminee" && ["rouvert", "qualifie"].includes(incident.etat);
   // Contestation et réouverture : réservées au déclarant (les colocataires
   // sont informés mais les fonctions en base n'acceptent que lui)
   const peutContester =
@@ -149,7 +150,7 @@ function CarteIncident({
   // propriétaire » (qui paie) au même emplacement, alors que la seconde en
   // était à « nous cherchons un artisan ». Dès qu'une intervention existe,
   // la pastille suit son étape ; la prise en charge reste dans sa rangée.
-  const etapePastille = suivi && incident.etat !== "clos" ? etapeCourte(suivi.etape) : null;
+  const etapePastille = suivi && !suiviHistorique && !["clos", "rouvert"].includes(incident.etat) ? etapeCourte(suivi.etape) : null;
   const textePastille =
     etapePastille ?? libelleEtatLocataire(incident.etat, incident.imputation);
   // Ce que la pastille dit déjà, la rangée « Qui prend en charge » ne le
@@ -168,7 +169,16 @@ function CarteIncident({
         <h3 className="text-base font-medium">{titreIncident(incident.categorie)}</h3>
         <span className={pastille}>{textePastille}</span>
       </div>
-      {incident.description && <p className="line-clamp-2 text-sm">{incident.description}</p>}
+      {incident.description && (
+        incident.description.length > 180 ? (
+          <details className="rounded-xl bg-muted/40 p-3 text-sm">
+            <summary className="cursor-pointer py-1 font-medium focus-visible:outline-2 focus-visible:outline-offset-2">
+              Lire la description complète
+            </summary>
+            <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{incident.description}</p>
+          </details>
+        ) : <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{incident.description}</p>
+      )}
       {/* Plus de « INC-2026-0001 » (25/09, D41) : aucun code interne à
           l'écran — la date, la pièce et les photos suffisent à reconnaître
           sa demande. */}
@@ -204,7 +214,15 @@ function CarteIncident({
           </div>
         ))}
 
-      {suivi && (
+      {incident.etat === "rouvert" && (
+        <p role="status">Votre demande est rouverte. Votre gestionnaire examine le problème persistant ; l’intervention précédente reste dans l’historique.</p>
+      )}
+      {suiviHistorique && suivi && (
+        <details className="border-t pt-2"><summary className="cursor-pointer">Consulter l’intervention précédente</summary>
+          <SuiviInterventionLocataire orgId={orgId} suivi={suivi} creneaux={[]} peutAgir={false} />
+        </details>
+      )}
+      {suivi && !suiviHistorique && incident.etat !== "rouvert" && (
         <SuiviInterventionLocataire
           orgId={orgId}
           suivi={suivi}

@@ -63,7 +63,7 @@ function offreActuelle(p: Paiement, publicTarif: "agence" | "proprietaire_direct
 }
 
 function libelleOffre(o: Offre): string {
-  if (o.public === "agence") return `${o.lots} lot${o.lots > 1 ? "s" : ""} sous mandat`;
+  if (o.public === "agence") return o.lots <= 10 ? "Socle agence — jusqu’à 10 lots" : `Capacité agence — ${o.lots} lots`;
   return o.biensSupplementaires > 0
     ? `Formule ${o.formule.nom} + ${o.biensSupplementaires} bien${o.biensSupplementaires > 1 ? "s" : ""} supplémentaire${o.biensSupplementaires > 1 ? "s" : ""}`
     : `Formule ${o.formule.nom}`;
@@ -305,7 +305,7 @@ export async function PageAbonnement2026(props: PageProps<"/agence/[orgId]/abonn
         {souscrit && (
           <>
             <div className="ligne-info">
-              <span>{estAgence ? "Lots facturés" : "Capacité de votre formule"}</span>
+              <span>{estAgence ? "Capacité incluse dans votre abonnement" : "Capacité de votre formule"}</span>
               <span className="montant">{capacite ?? "—"}</span>
             </div>
             <div className="ligne-info">

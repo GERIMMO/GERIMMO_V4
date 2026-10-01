@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   creerMandat,
+  modifierDateMandat,
   ajouterLigneMandat,
   changerEtatMandat,
   changerTitulaireMandat,
@@ -29,6 +30,8 @@ export function FormulaireMandat({ orgId, personId }: { orgId: string; personId:
   return (
     <form action={formAction} className="space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">Nouveau mandat</p>
+      <Label htmlFor="m-debut">Date de prise d’effet prévue *</Label>
+      <Input id="m-debut" name="date_debut" type="date" required defaultValue={etat.valeurs?.date_debut} />
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor="m-rapport">Date de rapport (jour du mois)</Label>
@@ -80,7 +83,7 @@ export function FormulaireLigneMandat({
     return (
       <p className="text-sm text-muted-foreground">
         {nbLotsDetenus > 0
-          ? "Tous les lots de cette personne sont déjà couverts par un mandat — rien à ajouter ici."
+          ? "Tous les lots de cette personne figurent déjà dans un mandat, en préparation ou actif — rien à ajouter ici."
           : "Cette personne ne détient aucun lot — ajoutez d'abord une détention sur un lot du parc pour composer le mandat."}
       </p>
     );
@@ -299,4 +302,15 @@ export function BoutonsEtatMandat({
       )}
     </form>
   );
+}
+
+export function FormulaireDateMandat({orgId, personId, mandatId, dateDebut}: {orgId:string; personId:string; mandatId:string; dateDebut:string|null}) {
+  const [etat, action] = useActionState(modifierDateMandat.bind(null, orgId, personId, mandatId), {} as EtatMandat);
+  return <form action={action} className="space-y-2 my-3">
+    <Label htmlFor={`mandat-debut-${mandatId}`}>Date de prise d’effet prévue *</Label>
+    <Input id={`mandat-debut-${mandatId}`} name="date_debut" type="date" required defaultValue={etat.valeurs?.date_debut ?? dateDebut ?? ""} />
+    <BoutonEnvoi variant="outline">Enregistrer la date</BoutonEnvoi>
+    {etat.erreur && <p role="alert">{etat.erreur}</p>}
+    {etat.succes && <p role="status">{etat.succes}</p>}
+  </form>;
 }

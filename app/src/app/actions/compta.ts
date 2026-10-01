@@ -1,5 +1,6 @@
 "use server";
 
+import { ventilerTeom } from "@/lib/ventilation-teom";
 import { sansJargon } from "@/lib/erreurs";
 import { revalidatePath } from "next/cache";
 import { verifierGerant } from "@/lib/ged-acces";
@@ -88,17 +89,22 @@ export async function ajouterEcriture(
   const montant = Number(String(formData.get("montant") ?? "").trim());
   if (!categorie) return { erreur: "Catégorie obligatoire.", valeurs };
   if (sens !== "recette" && sens !== "depense") return { erreur: "Sens invalide.", valeurs };
-  if (!montant || montant <= 0) return { erreur: "Montant invalide.", valeurs };
-  const { error } = await supabase.from("ecritures").insert({
+  if (!Number.isFinite(montant) || montant <= 0) return { erreur: "Montant invalide.", valeurs };
+  let parts;
+  try {
+    parts = ventilerTeom(montant, Number(String(formData.get("teom") ?? "0").replace(",", ".")), categorie, sens);
+  } catch (erreur) {
+    return { erreur: (erreur as Error).message, valeurs };
+  }
+  const { error } = await supabase.from("ecritures").insert(parts.map((part) => ({
     organization_id: orgId,
-    categorie,
+    ...part,
     sens,
-    montant,
     date_piece: String(formData.get("date_piece") ?? "").trim() || undefined,
     date_imputation: String(formData.get("date_imputation") ?? "").trim() || undefined,
     libelle: String(formData.get("libelle") ?? "").trim() || null,
     lot_id: String(formData.get("lot_id") ?? "").trim() || null,
-  });
+  })));
   if (error) return { erreur: sansJargon(error.message), valeurs };
   revalidatePath(`/agence/${orgId}/comptabilite`);
   // Le journal alimente aussi le récapitulatif fiscal du propriétaire direct.

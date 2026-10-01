@@ -155,6 +155,7 @@ export const TYPES_EVENEMENT_INCIDENT: Record<string, string> = {
   // Audit du 27/09 (migrations 20260927122000 et 20260927123000).
   creneaux_refuses: "Dates du locataire refusées par l'artisan",
   facture_deposee: "Facture de l'artisan déposée",
+  facture_validee: "Facture contrôlée et validée",
 };
 
 export const PIECES_INCIDENT = [

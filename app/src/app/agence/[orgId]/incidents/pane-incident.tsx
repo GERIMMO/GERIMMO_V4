@@ -1,3 +1,4 @@
+import { FacturesIncident } from "./factures-incident";
 import { BilanContactIncident } from "@/components/bilan-contact-incident";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -170,7 +171,7 @@ export async function PaneIncident({
   // quand le locataire la conteste (la requalification efface la contestation
   // en base) ; sinon on montre la décision, et « Requalifier » se déplie.
   const decisionRequise =
-    etatIncident !== "qualifie" || Boolean(incident.imputation_contestation);
+    ["declare", "rouvert"].includes(etatIncident) || !incident.imputation || Boolean(incident.imputation_contestation);
   const motifsCloture = transitionIncidentPossible(etatIncident, "clos")
     ? (MOTIFS_CLOTURE_PAR_ETAT[etatIncident] ?? [])
     : [];
@@ -292,7 +293,7 @@ export async function PaneIncident({
               "—"
             )}
             {incident.piece ? ` · ${incident.piece}` : ""}
-            {" · déclaré par "}
+            {incident.canal === "espace_locataire" ? " · déclaré par " : " · contact du logement : "}
             {declarant ? (
               <>
                 {/* Vers le fil de messages de la fiche (#messages), pas vers son
@@ -633,6 +634,7 @@ export async function PaneIncident({
             lotId={incident.lot_id}
           />
 
+          <FacturesIncident orgId={orgId} incidentId={incidentId} />
           <Card id="cloture">
             <CardHeader>
               <CardTitle className="text-base">

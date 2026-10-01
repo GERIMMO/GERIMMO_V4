@@ -300,6 +300,11 @@ export function FormulaireEcriture({
         <Label htmlFor="ec-montant" className="text-sm">Montant (€)</Label>
         <Input id="ec-montant" name="montant" type="number" inputMode="decimal" step="0.01" min="0.01" defaultValue={etat.valeurs?.montant} className="h-9 w-full sm:w-28" />
       </div>
+      {estProprietaire && <div className="w-full space-y-1">
+        <Label htmlFor="ec-teom">Taxe foncière : dont enlèvement des ordures ménagères (€)</Label>
+        <Input id="ec-teom" name="teom" type="number" min="0" step="0.01" inputMode="decimal" defaultValue={etat.valeurs?.teom ?? "0"} className="h-9 sm:max-w-48" aria-describedby="ec-teom-aide" />
+        <p id="ec-teom-aide" className="text-sm text-muted-foreground">Pour une taxe foncière, saisissez le total dans « Montant », puis la part de TEOM ici : les deux parts seront enregistrées séparément. Pour toute autre dépense, laissez zéro.</p>
+      </div>}
       <div className="w-full space-y-1 sm:w-auto">
         <Label htmlFor="ec-piece" className="text-sm">Date pièce</Label>
         <InputDateJour id="ec-piece"   className="h-9 w-full sm:w-auto" name="date_piece" />

@@ -51,7 +51,7 @@ export type DonneesEdl = {
   adresseRestitutionDepot: string | null;
   observations: string | null;
   lignes: LigneEdl[];
-  compteurs: { type: string; numero: string | null; releve: string | null }[];
+  compteurs: { type: string; numero: string | null; releve: number | string | null }[];
   cles: { libelle: string; nombre: number | null; reference: string | null }[];
   comparatif: { libelle: string; etat_entree: string | null; etat_sortie: string | null; ecart: boolean }[];
   retenues: { libelle: string; cout: number | null; duree_vie_ans: number | null; age_ans: number | null; montant_retenu: number }[];
@@ -123,7 +123,9 @@ export function construireEdl(d: DonneesEdl) {
             d.compteurs.map((c) => [
               echapper(c.type),
               c.numero ? echapper(c.numero) : f.champ(null, "numéro de compteur"),
-              c.releve ? echapper(c.releve) : f.champ(null, "index"),
+              c.releve !== null && c.releve !== ""
+                ? echapper(String(c.releve))
+                : f.champ(null, "index"),
             ])
           )
         : `<p>${f.champ(null, "relevés de compteurs")}</p>`

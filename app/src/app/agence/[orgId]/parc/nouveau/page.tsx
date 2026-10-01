@@ -97,8 +97,7 @@ export default async function PageNouveauBien(
         <CardHeader>
           <CardTitle className="text-base">Adresse et caractéristiques</CardTitle>
           <CardDescription>
-            Le bien porte l&apos;adresse et les diagnostics communs. Son lot
-            unique est créé automatiquement : c&apos;est lui qui se loue.
+            Le bien porte l&apos;adresse et les diagnostics communs. Les lots renseignés ci-dessous sont créés avec le bien : ce sont eux qui se louent.
           </CardDescription>
         </CardHeader>
         <CardContent>

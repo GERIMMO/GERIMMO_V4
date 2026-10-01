@@ -100,7 +100,7 @@ export function Carte({
       id={id}
       // scroll-mt : le bandeau du haut est collant, l'ancre ne doit pas
       // s'arrêter dessous.
-      className={`artisan-carte ${id ? "scroll-mt-28" : ""} ${className}`}
+      className={`artisan-carte min-w-0 space-y-3 ${id ? "scroll-mt-28" : ""} ${className}`}
     >
       {children}
     </section>

@@ -274,3 +274,4 @@
 20260930130000_limite_liens_mot_de_passe.sql
 20260930140000_limite_invitations.sql
 20260930150000_capacite_agence_socle.sql
+20260930220000_validation_factures_artisan.sql

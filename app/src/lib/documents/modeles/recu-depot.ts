@@ -76,6 +76,7 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
         ...(reste > 0 ? [["Reste à percevoir", f.montant(reste)]] : []),
       ]
     )}
+    <div class="bloc-signataires">
     ${section("Conditions de restitution")}
     <div class="mentions">
       <p>Le montant du dépôt ne peut excéder ${d.plafond} (plafond légal applicable à ce bail).
@@ -86,6 +87,7 @@ export function construireRecuDepot(d: DonneesRecuDepot) {
     </div>
     ${faitA(f, d.exp.ville, d.dateVersement)}
     ${blocSignatureEmetteur(d.exp.nom, d.signatureImg ?? null)}
+    </div>
   `;
   return assemblerPage({
     f,

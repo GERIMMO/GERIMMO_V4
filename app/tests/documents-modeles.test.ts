@@ -96,7 +96,8 @@ describe("Modèle 01 — bail nu", () => {
     expect(doc.html).toContain("individuel ou collectif, énergie");
     expect(doc.html).toContain("fibre, câble, TNT…");
     expect(doc.manquants).toContain("commune de naissance");
-    expect(doc.manquants).toContain("cuisine équipée, sanitaires, placards…");
+    expect(doc.manquants).toContain("équipements du logement");
+    expect(doc.manquants).toContain("chauffage du logement");
     expect(doc.manquants).toContain("libre, plafonnement, réévaluation après travaux…");
     expect(doc.manquants).toContain("valeur de l'indice");
     // Sans date de début, le prorata de la première échéance est incalculable

@@ -57,10 +57,15 @@ export class Fusion {
 
   // Une valeur présente s'imprime ; absente, le libellé de l'épreuve reste
   // en réserve et le champ est compté manquant (une seule fois par libellé).
-  champ(valeur: string | number | null | undefined, libelle: string): string {
+  // `nom`, s'il est donné, est ce que la liste des manquants affiche à la
+  // place du libellé d'épreuve : « cave, grenier, balcon… » reste imprimé sur
+  // les pointillés du contrat, mais l'utilisateur lit « autres parties du
+  // logement » et sait quel champ ouvrir (retour recette 01/10).
+  champ(valeur: string | number | null | undefined, libelle: string, nom?: string): string {
     const v = valeur === null || valeur === undefined ? "" : String(valeur).trim();
     if (v !== "") return `<span class="v">${echapper(v)}</span>`;
-    if (!this.manquants.includes(libelle)) this.manquants.push(libelle);
+    const manquant = nom ?? libelle;
+    if (!this.manquants.includes(manquant)) this.manquants.push(manquant);
     return `<span class="fusion">${echapper(libelle)}</span>`;
   }
 

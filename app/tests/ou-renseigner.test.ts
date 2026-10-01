@@ -43,7 +43,7 @@ describe("lienPourManquant", () => {
 
   it("l'identité du bailleur part vers les détentions (lot), jamais au profil", () => {
     expect(lienPourManquant("nom et prénom(s), ou dénomination", org, avecLot)?.href).toBe(
-      "/agence/org-1/parc?sel=lot:l1"
+      "/agence/org-1/lots/l1?vers=detention"
     );
     expect(lienPourManquant("nom et prénom(s), ou dénomination", org, liens)?.href).toBe(
       "/agence/org-1/baux/b1"
@@ -63,15 +63,23 @@ describe("lienPourManquant", () => {
 
   it("le logement pointe le lot quand il est rattaché, sinon le bail", () => {
     expect(lienPourManquant("adresse complète, étage, porte", org, avecLot)?.href).toBe(
-      "/agence/org-1/parc?sel=lot:l1"
+      "/agence/org-1/lots/l1?vers=bien"
     );
     expect(lienPourManquant("adresse complète, étage, porte", org, liens)?.href).toBe(
       "/agence/org-1/baux/b1"
     );
-    expect(lienPourManquant("en m²", org, avecLot)?.href).toBe("/agence/org-1/parc?sel=lot:l1");
-    expect(lienPourManquant("nombre", org, avecLot)?.href).toBe("/agence/org-1/parc?sel=lot:l1");
+    // Ce qui se saisit dans « Modifier le lot » ouvre le formulaire (01/10)
+    const formulaire = "/agence/org-1/lots/l1?modifier=1&vers=caracteristiques";
+    expect(lienPourManquant("en m²", org, avecLot)?.href).toBe(formulaire);
+    expect(lienPourManquant("nombre", org, avecLot)?.href).toBe(formulaire);
+    expect(lienPourManquant("chauffage du logement", org, avecLot)?.href).toBe(formulaire);
+    expect(lienPourManquant("identifiant fiscal du logement", org, avecLot)?.href).toBe(formulaire);
+    expect(lienPourManquant("autres parties du logement", org, avecLot)?.href).toBe(formulaire);
+    expect(lienPourManquant("équipements du logement", org, avecLot)?.href).toBe(
+      "/agence/org-1/lots/l1?vers=equipements"
+    );
     expect(lienPourManquant("cuisine équipée, sanitaires, placards…", org, avecLot)?.href).toBe(
-      "/agence/org-1/parc?sel=lot:l1"
+      "/agence/org-1/lots/l1?vers=equipements"
     );
   });
 

@@ -40,6 +40,9 @@ export default async function PageLot(
   props: PageProps<"/agence/[orgId]/parc/[bienId]/lots/[lotId]">
 ) {
   const { orgId, bienId, lotId } = await props.params;
+  // `?modifier=1` : arrivée depuis un « à renseigner » (renvoi /lots/[lotId]),
+  // le formulaire des caractéristiques s'ouvre de lui-même (01/10).
+  const { modifier } = ((await props.searchParams) ?? {}) as { modifier?: string };
   exigerUuids(bienId, lotId);
   const { supabase, role } = await verifierAccesEspace(orgId);
 
@@ -409,7 +412,7 @@ export default async function PageLot(
         <CardContent className="space-y-2">
           {/* Caractéristiques (récap + Modifier) */}
           <div id="caracteristiques" className="scroll-mt-20">
-            <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} />
+            <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} modifierInitial={modifier === "1"} />
           </div>
           <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="btn-secondaire inline-flex">Vérifier les artisans disponibles pour ce bien</Link>
 

@@ -55,6 +55,8 @@ function iso(d) {
 const aujourdhui = new Date();
 const dateJour = iso(aujourdhui);
 const premierDuMois = `${dateJour.slice(0, 7)}-01`;
+// Un terme antérieur reste impayé, même lorsque la recette tourne le 1er.
+const debutBailRecette = new Date(Date.UTC(aujourdhui.getUTCFullYear(), aujourdhui.getUTCMonth() - 1, 1)).toISOString().slice(0, 10);
 function plusMois(nb) {
   const d = new Date(aujourdhui);
   d.setUTCMonth(d.getUTCMonth() + nb);
@@ -627,7 +629,7 @@ if (!bail) {
         etat: "brouillon",
         type: "nu",
         locataire_principal: ficheLocataire.id,
-        date_debut: premierDuMois,
+        date_debut: debutBailRecette,
         loyer_hc: 650,
         charges: 50,
         charges_mode: "provision",

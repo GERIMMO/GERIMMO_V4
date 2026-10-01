@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { RepereDossier, type EtapeDossier } from "@/components/repere-dossier";
+import { House, Users, Wallet, FileText } from "lucide-react";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -40,8 +42,7 @@ export default async function PageLot(
   props: PageProps<"/agence/[orgId]/parc/[bienId]/lots/[lotId]">
 ) {
   const { orgId, bienId, lotId } = await props.params;
-  // `?modifier=1` : arrivée depuis un « à renseigner » (renvoi /lots/[lotId]),
-  // le formulaire des caractéristiques s'ouvre de lui-même (01/10).
+  // Conserver le lien direct vers la modification des caractéristiques.
   const { modifier } = ((await props.searchParams) ?? {}) as { modifier?: string };
   exigerUuids(bienId, lotId);
   const { supabase, role } = await verifierAccesEspace(orgId);
@@ -269,8 +270,17 @@ export default async function PageLot(
       ? Number(bailEnCours.loyer_hc) + Number(bailEnCours.charges ?? 0)
       : null;
 
+  const etapesDossier: EtapeDossier[] = [
+    { titre: "Caractéristiques", detail: "Surface et configuration", href: "#caracteristiques", renseignee: lot.surface_m2 != null && lot.pieces != null },
+    { titre: "Propriétaires", detail: `${totalQuoteParts} % de propriété renseignée`, href: "#detention", renseignee: totalQuoteParts === 100, inconnue: Boolean(erreurDetentions) },
+    { titre: "Pièces et équipements", detail: `${piecesLot?.length ?? 0} pièce(s) · ${nbEquip} équipement(s)`, href: "#pieces", renseignee: (piecesLot?.length ?? 0) > 0, inconnue: Boolean(erreurPieces || erreurEquipesLot) },
+    { titre: "Diagnostics du lot", detail: `${nbDiag} document(s) déposé(s)`, href: "#diagnostics", renseignee: manquants.length === 0, inconnue: Boolean(erreurDiagnostics) },
+    { titre: `Diagnostics ${duBien}`, detail: `${nbDiagBien} document(s) déposé(s)`, href: "#diagnostics-immeuble", renseignee: manquantsBien.length === 0, inconnue: Boolean(erreurDiagnosticsBien) },
+    { titre: "Locataire et bail", detail: nbBaux ? `${nbBaux} bail(s) dans le dossier` : "Bail à préparer", href: "#baux", renseignee: nbBaux > 0, inconnue: Boolean(erreurBaux) },
+  ];
+
   return (
-    <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
+    <main className="dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7">
       <EnteteFiche
         retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: bien.nom }}
         // Le nom du bien est dans le lien retour, juste au-dessus : le
@@ -292,6 +302,17 @@ export default async function PageLot(
         ]}
       />
 
+      <nav className="dossier-raccourcis" aria-label="Accès rapides au logement">
+        <a href="#location-apercu">Vue d’ensemble</a><a href="#caracteristiques">Le logement</a><a href="#diagnostics">Diagnostics</a><a href="#baux">Baux et états des lieux</a>
+        <Link href={`/agence/${orgId}/reseau?bien=${bienId}`}>Artisans disponibles</Link>
+      </nav>
+      <div className="dossier-chiffres">
+        <div><Wallet aria-hidden="true" /><span>Loyer charges comprises</span><strong>{loyerCc === null ? "À définir" : eur(loyerCc)}</strong><small>{bauxEnCours.length > 1 ? "Premier contrat · détail ci-dessous" : "Par mois"}</small></div>
+        <div><Users aria-hidden="true" /><span>Locataire</span><strong>{erreurPersonnes || erreurBaux ? "À réessayer" : recapLocataire ?? "Aucun bail actif"}</strong><a href="#baux">Voir le dossier →</a></div>
+        <div><House aria-hidden="true" /><span>Le logement</span><strong>{lot.surface_m2 == null ? "Surface à renseigner" : formaterSurface(lot.surface_m2)}</strong><small>{lot.pieces == null ? "Pièces à renseigner" : `${lot.pieces} pièce(s)`}</small></div>
+        <div><FileText aria-hidden="true" /><span>Diagnostics déposés</span><strong>{erreurDiagnostics || erreurDiagnosticsBien ? "À réessayer" : nbDiag + nbDiagBien}</strong><a href="#diagnostics">Consulter et compléter →</a></div>
+      </div>
+      <div className="dossier-grille"><div className="min-w-0 space-y-5">
       <EchecLecture quoi={echecs} />
       <AttentionFiche points={attention} />
 
@@ -302,7 +323,7 @@ export default async function PageLot(
           rangées de caractéristiques dont quatre vides — précédés d'un
           paragraphe expliquant le cycle de vie d'un lot, affiché à chaque
           visite, qui occupait à lui seul le premier écran d'un téléphone. */}
-      <Card>
+      <Card id="location-apercu">
         <CardHeader>
           {/* « Mettre en location » est le bouton qui fait passer un lot en
               préparation à disponible ; un lot déjà disponible attend son
@@ -757,6 +778,7 @@ export default async function PageLot(
           )}
         </CardContent>
       </Card>
+      </div><RepereDossier etapes={etapesDossier} /></div>
     </main>
   );
 }

@@ -11,13 +11,16 @@ export function RecapLot({
   bienId,
   lot,
   verrouille,
+  modifierInitial = false,
 }: {
   orgId: string;
   bienId: string;
   lot: LotFormulaire;
   verrouille: boolean;
+  /** Formulaire déjà ouvert à l'arrivée (lien « renseigner » d'un document). */
+  modifierInitial?: boolean;
 }) {
-  const [modifier, setModifier] = useState(false);
+  const [modifier, setModifier] = useState(modifierInitial);
 
   if (modifier) {
     return (

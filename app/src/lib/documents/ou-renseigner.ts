@@ -13,12 +13,15 @@ export type LienManquant = { href: string; ecran: string };
 type Liens = { entite: "bail" | "personne" | "lot" | "mandat"; entiteId: string }[];
 type Cible = "organisation" | "personne" | "lot" | "bail" | "complements";
 
-type Regle = { motifs: string[]; cible: Cible; cibleBail?: Cible };
+// Pour un lot : la section de sa fiche (`vers`) et, pour les caractéristiques
+// saisies dans « Modifier le lot », l'ouverture directe du formulaire.
+type Regle = { motifs: string[]; cible: Cible; cibleBail?: Cible; section?: string; modifier?: boolean };
+const CARACTERISTIQUES: Regle = { motifs: [], cible: "lot", section: "caracteristiques", modifier: true };
 
 const REGLES: Regle[] = [
-  { motifs: ["chambre", "surface privative", "volume privatif", "espaces partagés", "équipements privatifs", "loyer maximum du logement entier"], cible: "lot" },
+  { motifs: ["chambre", "surface privative", "volume privatif", "espaces partagés", "équipements privatifs", "loyer maximum du logement entier"], cible: "lot", section: "chambres" },
   { motifs: ["libre, plafonnement", "dépenses annuelles", "prix de l’énergie", "date prévue de conclusion", "servitude de résidence", "application des loyers de référence", "plafond de location", "plafond état des lieux", "honoraires état des lieux", "honoraires visite", "date du dernier versement", "date de dernière révision"], cible: "complements" },
-  { motifs: ["classe dpe du logement"], cible: "lot" },
+  { motifs: ["classe dpe du logement"], cible: "lot", section: "diagnostics" },
   // L'état civil du locataire (bail) — avant « commune » tout court (faitA)
   {
     motifs: ["commune de naissance", "adresse actuelle", "nom et prénom(s) du ou des locataires"],
@@ -27,7 +30,7 @@ const REGLES: Regle[] = [
   // L'identité du bailleur : le nom de l'organisation n'est jamais vide, donc
   // ce libellé ne peut venir que du bloc bailleur — les détenteurs se
   // renseignent sur la fiche du lot (détentions du bien)
-  { motifs: ["ou dénomination", "personne physique, sci"], cible: "lot" },
+  { motifs: ["ou dénomination", "personne physique, sci"], cible: "lot", section: "detention" },
   // Les conditions financières et clauses du contrat
   {
     motifs: [
@@ -55,24 +58,31 @@ const REGLES: Regle[] = [
     ],
     cible: "bail",
   },
-  // Le logement lui-même
+  // Le logement lui-même — ses équipements (case à cocher sur la fiche), ce
+  // qui se saisit dans « Modifier le lot », et ce qui appartient au BIEN
+  // (adresse, régime, année, parties communes, accès internet).
+  { motifs: ["cuisine équipée", "équipements du logement"], cible: "lot", section: "equipements" },
   {
     motifs: [
-      "adresse complète",
       "en m²",
       "identifiant fiscal",
       "le cas échéant",
-      "immeuble collectif",
-      "monopropriété",
-      "avant 1949",
       "cave, grenier",
-      "cuisine équipée",
+      "autres parties du logement",
       "individuel ou collectif",
+      "chauffage du logement",
+      "eau chaude du logement",
       "cave, parking",
-      "hall, ascenseur",
-      "fibre",
+      "locaux privatifs du logement",
     ],
     cible: "lot",
+    section: "caracteristiques",
+    modifier: true,
+  },
+  {
+    motifs: ["adresse complète", "immeuble collectif", "monopropriété", "avant 1949", "hall, ascenseur", "fibre"],
+    cible: "lot",
+    section: "bien",
   },
   // L'identité professionnelle de l'émetteur (bail, mandat de gestion)
   {
@@ -103,7 +113,7 @@ export function lienPourManquant(
   const personne = liens.find((x) => x.entite === "personne");
   const lot = liens.find((x) => x.entite === "lot");
 
-  const vers = (cible: Cible): LienManquant | null => {
+  const vers = (cible: Cible, regle?: Regle): LienManquant | null => {
     switch (cible) {
       case "organisation":
         return { href: `/agence/${orgId}/profil`, ecran: "profil de l'organisation" };
@@ -112,7 +122,16 @@ export function lienPourManquant(
           return { href: `/agence/${orgId}/personnes/${personne.entiteId}`, ecran: "fiche de la personne" };
         break;
       case "lot":
-        if (lot) return { href: `/agence/${orgId}/parc?sel=lot:${lot.entiteId}`, ecran: "fiche du lot" };
+        // La fiche complète, par le renvoi `/lots/[lotId]` (le bien n'est pas
+        // connu ici) : section demandée, formulaire ouvert s'il y a lieu.
+        if (lot) {
+          const section = regle?.section ?? "caracteristiques";
+          const requete = `${regle?.modifier ? "modifier=1&" : ""}vers=${section}`;
+          return {
+            href: `/agence/${orgId}/lots/${lot.entiteId}?${requete}`,
+            ecran: section === "bien" ? "fiche du bien" : "fiche du lot",
+          };
+        }
         break;
       case "complements":
         if (bail) return { href: `/agence/${orgId}/baux/${bail.entiteId}#complements`, ecran: "compléments du contrat" };
@@ -126,11 +145,11 @@ export function lienPourManquant(
 
   // « nombre » (pièces principales du bail type) est un libellé d'un seul mot :
   // en fragment il matcherait trop large, on le prend en égalité stricte
-  if (l === "nombre") return vers("lot");
+  if (l === "nombre") return vers("lot", CARACTERISTIQUES);
 
   for (const r of REGLES) {
     if (r.motifs.some((m) => l.includes(m))) {
-      return vers(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel"].includes(modele ?? "") && r.cibleBail ? r.cibleBail : r.cible);
+      return vers(["bail_nu", "bail_meuble", "bail_colocation", "bail_individuel"].includes(modele ?? "") && r.cibleBail ? r.cibleBail : r.cible, r);
     }
   }
   if (personne) {

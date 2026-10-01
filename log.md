@@ -5663,3 +5663,31 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   inchangée).
 - Pages mises à jour : [[Parrainage]], [[Grille tarifaire]], [[Abonnement]],
   [[État du projet et décisions ouvertes]], [[2026-09-28-decision-tarification]].
+
+## [2026-10-01] ops    | Purge des comptes de test en production
+- Demande du porteur : effacer les sessions de test (artisan, propriétaire, agence,
+  locataire) pour que ses testeurs recommencent, **après** annulation des abonnements
+  Stripe (« annule puis efface »). Les deux abonnements (horizon gestion, 39 € dû le
+  2/10 ; Parc de Sophie LEMAIRE, 9,99 €) ont été annulés par le porteur dans Stripe.
+- Purge SQL ciblée (dérivée de `app/e2e/recette-production/purger.sql`, identifiants
+  explicites, garde-fous : aucun compte hors liste, superviseur exclu) : simulation
+  (rollback) puis exécution réelle. 2 organisations, 6 comptes, 449 lignes supprimées.
+  Il ne reste que le superviseur ; aucune organisation.
+- `storage.objects` refuse la suppression directe : 31 fichiers restent à retirer
+  à la main dans le bucket `documents` (dossiers des deux organisations).
+
+## [2026-10-01] kit    | Kit de recette « Propriétaire bailleur » refait
+- Demande du porteur après la purge des comptes de test : un kit différent pour
+  le testeur propriétaire. Nouveau personnage **Julien Morel** (Orsay), deux
+  biens (Appartement du Prototype, Orsay 1931 ; Studio du Gabarit, Arpajon 2011),
+  bail au 21/09/2026 (680 € + 70 €, prorata de septembre 250 €), incident
+  « vitre fêlée », taxe foncière 1 286 €, prêt 132 000 € à 2,45 %. Locataire
+  (Thomas Girard) et artisan (Karim Haddad) inchangés pour rester cohérents avec
+  les kits locataire et artisan.
+- Règles mises à jour par rapport au kit du 27/09 : essai de 2 mois (offre de
+  lancement), formules Solo / Bailleur / Investisseur / Patrimoine (2 biens →
+  Bailleur 9,99 € TTC), plus de premier bien offert, parrainage « un mois au
+  parrain », liens de courriel à bouton.
+- Générateur versionné : `app/scripts/kit-recette/` (HTML → PDF par Chromium,
+  pièces fictives filigranées, xlsx par openpyxl). Le kit (zip) a été remis au
+  porteur ; il n'est pas versionné.

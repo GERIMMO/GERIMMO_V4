@@ -185,7 +185,7 @@ export function construireBailMeuble(
     ${designationIndividuelle(ctx, f)}
     ${sousSection("A. Consistance du logement")}
     <p>Localisation du logement : ${f.champ(adresseLogement(ctx.lot, ctx.bien), "adresse complète, étage, porte")}<br/>
-    Identifiant fiscal du logement : ${f.champ(ctx.lot.identifiant_fiscal, "le cas échéant")}<br/>
+    Identifiant fiscal du logement : ${f.champ(ctx.lot.identifiant_fiscal, "le cas échéant", "identifiant fiscal du logement")}<br/>
     Type d'habitat : ${f.champ(
       ctx.bien.type === "appartement" || ctx.bien.type === "immeuble" ? "immeuble collectif" : "individuel",
       "immeuble collectif ou individuel"
@@ -195,17 +195,17 @@ export function construireBailMeuble(
       ctx.lot.surface_m2 !== null ? `${ctx.lot.surface_m2} m²` : null,
       "en m²"
     )} — Nombre de pièces principales : ${f.champ(ctx.lot.pieces, "nombre")}<br/>
-    Autres parties du logement : ${f.champ(ctx.lot.description, "cave, grenier, balcon, terrasse, jardin…")}<br/>
-    Éléments d'équipement du logement : ${f.champ(ctx.lot.equipements.join(", "), "cuisine équipée, sanitaires, placards…")}<br/>
-    Modalité de production de chauffage : ${f.champ(ctx.lot.chauffage, "individuel ou collectif, énergie")} — Modalité de
-    production d'eau chaude sanitaire : ${f.champ(ctx.lot.eau_chaude, "individuel ou collectif, énergie")}</p>
+    Autres parties du logement : ${f.champ(ctx.lot.description, "cave, grenier, balcon, terrasse, jardin…", "autres parties du logement")}<br/>
+    Éléments d'équipement du logement : ${f.champ(ctx.lot.equipements.join(", "), "cuisine équipée, sanitaires, placards…", "équipements du logement")}<br/>
+    Modalité de production de chauffage : ${f.champ(ctx.lot.chauffage, "individuel ou collectif, énergie", "chauffage du logement")} — Modalité de
+    production d'eau chaude sanitaire : ${f.champ(ctx.lot.eau_chaude, "individuel ou collectif, énergie", "eau chaude du logement")}</p>
     ${mentionsEnergie(ctx, options.dpeClasse, f)}
     ${sousSection("B. Destination des locaux")}
     <p>Le logement, loué meublé, est à usage exclusif d'habitation, à titre de résidence principale
     du locataire. Le mobilier mis à disposition est décrit dans l'inventaire annexé au présent contrat.</p>
     ${destinationServitude(ctx, f)}
     ${sousSection("C. Désignation des locaux et équipements accessoires")}
-    <p>Locaux et équipements à usage privatif : ${ctx.chambre ? f.champ([ctx.chambre.nom, ctx.chambre.equipements].filter(Boolean).join(" — "), "chambre et équipements privatifs") : f.champ(ctx.lot.locaux_privatifs, "cave, parking, garage… avec numéro")}<br/>
+    <p>Locaux et équipements à usage privatif : ${ctx.chambre ? f.champ([ctx.chambre.nom, ctx.chambre.equipements].filter(Boolean).join(" — "), "chambre et équipements privatifs") : f.champ(ctx.lot.locaux_privatifs, "cave, parking, garage… avec numéro", "locaux privatifs du logement")}<br/>
     Locaux, parties, équipements et accessoires à usage commun : ${ctx.chambre ? f.champ(ctx.chambre.espaces_partages, "espaces partagés autorisés par ce contrat") : f.champ(ctx.bien.parties_communes, "hall, ascenseur, local vélos…")}<br/>
     Équipements d'accès aux technologies de l'information et de la communication : ${f.champ(ctx.bien.acces_tic, "fibre, câble, TNT…")}</p>
     ${

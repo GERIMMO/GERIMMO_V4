@@ -252,6 +252,12 @@
     "dynamic": "orgId, bienId, lotId"
   },
   {
+    "path": "/agence/ORG/lots/LOT?vers=caracteristiques",
+    "persona": "agent",
+    "label": "Renvoi d'un lot vers sa fiche (liens « à renseigner » d'un document)",
+    "dynamic": "orgId, lotId"
+  },
+  {
     "path": "/agence/ORG/parc/import",
     "persona": "admin-agence",
     "label": "Importer un parc",

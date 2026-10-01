@@ -293,7 +293,7 @@ export async function PaneIncident({
               "—"
             )}
             {incident.piece ? ` · ${incident.piece}` : ""}
-            {" · déclaré par "}
+            {incident.canal === "espace_locataire" ? " · déclaré par " : " · contact du logement : "}
             {declarant ? (
               <>
                 {/* Vers le fil de messages de la fiche (#messages), pas vers son

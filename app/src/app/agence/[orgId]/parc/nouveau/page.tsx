@@ -58,9 +58,11 @@ export default async function PageNouveauBien(
         ← {estProprietaire ? "Mes lots" : "Parc de l'agence"}
       </Link>
       <div className="entete-page">
+        <div>
         <p className="dossier-surtitre">Votre patrimoine, bien organisé</p>
         <h1>Nouveau bien</h1>
         <p className="mt-2 text-sm text-muted-foreground">Commencez votre dossier de location par l’adresse et les caractéristiques du bien.</p>
+        </div>
       </div>
       {depassement && (
         <div className="loc-carte mb-4 border-l-4 border-l-[var(--or)]">

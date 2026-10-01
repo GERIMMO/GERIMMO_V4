@@ -37,6 +37,7 @@ const TYPES_COMPTEUR = [
   "Eau froide",
   "Eau chaude",
   "Gaz",
+  "Électricité (Base)",
   "Électricité (HP)",
   "Électricité (HC)",
 ];

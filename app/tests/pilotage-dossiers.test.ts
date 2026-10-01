@@ -21,7 +21,7 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   const lotA=await lot(org),lotB=await lot(autreOrg);
   const personne=await id("insert into public.persons(organization_id,nom) values($1,'Locataire fictif') returning id",[org]);
   bail=await id("insert into public.baux(organization_id,lot_id,locataire_principal,etat,date_debut,loyer_hc,charges) values($1,$2,$3,'brouillon',current_date,700,50) returning id",[org,lotA,personne]);
-  appel=await id("insert into public.appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance) values($1,$2,current_date,700,50,750,current_date) returning id",[org,bail]);
+  appel=await id("insert into public.appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance) values($1,$2,date_trunc('month',current_date)::date,700,50,750,current_date) returning id",[org,bail]);
   const creerIncident=(org:string,lot:string)=>id("insert into public.incidents(organization_id,lot_id,numero,canal,categorie,description) values($1,$2,'INC-PILOTAGE','agence','plomberie_canalisation','Incident fictif de pilotage') returning id",[org,lot]);
   incident=await creerIncident(org,lotA);incidentB=await creerIncident(autreOrg,lotB);
  });
@@ -65,7 +65,8 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await agir(sa);const m=await mesurer(null);expect(m.sans_appel).toBe(0);expect(m.avec_appel).toBe(1);
  });
  const quittance=async(mois:number)=>{
-  const appelQ=await id("insert into public.appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance) values($1,$2,(date_trunc('month',now())-make_interval(months=>$3))::date,700,50,750,current_date) returning id",[org,bail,mois]);
+  // Le mois courant existe déjà dans la préparation, même le premier du mois.
+  const appelQ=mois===0 ? appel : await id("insert into public.appels_loyer(organization_id,bail_id,periode,loyer_hc,charges,montant_du,date_echeance) values($1,$2,(date_trunc('month',now())-make_interval(months=>$3))::date,700,50,750,current_date) returning id",[org,bail,mois]);
   return id("insert into public.quittances(organization_id,bail_id,appel_id,montant) values($1,$2,$3,750) returning id",[org,bail,appelQ]);
  };
  it("compte un envoi groupé par mois terminé et exclut mois courant, trace absente et envoi humain",async()=>{

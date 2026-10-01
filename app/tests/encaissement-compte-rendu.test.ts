@@ -145,7 +145,8 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
 
     expect(rendu).toContain("juillet 2026 soldé, 500,00\u00A0€ → quittance");
     expect(rendu).not.toContain("août");
-    expect(rendu).toContain("RM-3.3.2");
+    expect(rendu).toContain("du plus ancien au plus récent");
+    expect(rendu).not.toContain("RM-");
   });
 
   it("dit qu'un paiement partiel produit un REÇU, et pourquoi (RM-3.4.2)", () => {
@@ -156,7 +157,7 @@ describe("Compte rendu d'encaissement — dire sur quel terme l'argent est allé
     const rendu = compteRenduEncaissement(300, AVANT, apres);
 
     expect(rendu).toContain("juillet 2026 réglé en partie, 300,00\u00A0€ (reste 200,00\u00A0€) → reçu");
-    expect(rendu).toContain("la quittance ne libère qu'au solde (RM-3.4.2)");
+    expect(rendu).toContain("La quittance sera disponible lorsque le loyer sera entièrement payé.");
     expect(rendu).not.toContain("→ quittance");
   });
 
@@ -622,7 +623,7 @@ describe("L'écran de quittancement — il dit ce qu'il vient de faire, et ne pr
 
   it("AFFICHE le compte rendu que l'action lui rend — il n'est plus jeté", () => {
     etatSimule.valeur = {
-      succes: "500,00\u00A0€ encaissés · imputés du terme le plus ancien au plus récent (RM-3.3.2) : juillet 2026 soldé, 500,00\u00A0€ → quittance.",
+      succes: "500,00\u00A0€ encaissés · affectés aux loyers du plus ancien au plus récent : juillet 2026 soldé, 500,00\u00A0€ → quittance.",
     };
     try {
       expect(corpsDesLignes(rendre(ligneAvecDetteAnterieure))).toContain(

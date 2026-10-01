@@ -101,7 +101,7 @@ export function compteRenduEncaissement(
   phrases.push(
     imputations.length === 0
       ? "aucun terme à couvrir"
-      : `imputés du terme le plus ancien au plus récent (RM-3.3.2) : ${libelleImputation(imputations)}`
+      : `affectés aux loyers du plus ancien au plus récent : ${libelleImputation(imputations)}`
   );
   if (avance > CENTIME) phrases.push(`${eur(avance)} en avance sur le prochain appel`);
 
@@ -109,7 +109,7 @@ export function compteRenduEncaissement(
   // c'est renoncer au solde (RM-3.4.2). Le reçu sera promu au solde (RM-3.4.1).
   const partiel = imputations.some((i) => !i.solde);
   const note = partiel
-    ? " Un reçu constate le versement ; la quittance ne libère qu'au solde (RM-3.4.2)."
+    ? " Un reçu confirme ce paiement partiel. La quittance sera disponible lorsque le loyer sera entièrement payé."
     : "";
   return `${phrases.join(" · ")}.${note}`;
 }

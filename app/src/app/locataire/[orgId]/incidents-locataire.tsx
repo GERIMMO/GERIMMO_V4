@@ -169,7 +169,16 @@ function CarteIncident({
         <h3 className="text-base font-medium">{titreIncident(incident.categorie)}</h3>
         <span className={pastille}>{textePastille}</span>
       </div>
-      {incident.description && <p className="line-clamp-2 text-sm">{incident.description}</p>}
+      {incident.description && (
+        incident.description.length > 180 ? (
+          <details className="rounded-xl bg-muted/40 p-3 text-sm">
+            <summary className="cursor-pointer py-1 font-medium focus-visible:outline-2 focus-visible:outline-offset-2">
+              Lire la description complète
+            </summary>
+            <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed">{incident.description}</p>
+          </details>
+        ) : <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{incident.description}</p>
+      )}
       {/* Plus de « INC-2026-0001 » (25/09, D41) : aucun code interne à
           l'écran — la date, la pièce et les photos suffisent à reconnaître
           sa demande. */}

@@ -431,12 +431,13 @@ describe.skipIf(!DB_URL)("l'impayé se constate tout seul", () => {
     expect(a.criticite).toBe("critique");
 
     // Le locataire règle tout sauf un terme : la dette baisse, l'alerte le dit
-    // sans se rouvrir ailleurs.
+    // sans se rouvrir ailleurs. On ne règle ici que les termes déjà échus :
+    // le loyer dû aujourd’hui n’est pas encore en retard, notamment le 1er.
     await simuler(gerant);
     const {
       rows: [{ du }],
     } = await db.query<{ du: string }>(
-      `select (sum(montant_du) - 750)::text as du from public.appels_loyer where bail_id=$1`,
+      `select (sum(montant_du) - 750)::text as du from public.appels_loyer where bail_id=$1 and date_echeance < current_date`,
       [bail]
     );
     await db.query(

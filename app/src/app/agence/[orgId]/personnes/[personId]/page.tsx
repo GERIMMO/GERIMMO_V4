@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { EnteteFiche } from "@/components/fiche-parc";
-import { aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
+import { TYPES_DOCUMENT, aujourdhuiParis, eur, formaterDate } from "@/lib/ged";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -658,7 +658,7 @@ export default async function PagePersonne(
                     <li key={p.document_id} className="py-2">
                       <div className="flex flex-wrap items-center gap-3">
                         <span className="badge-statut text-muted-foreground">
-                          {TYPES_PIECE_DOSSIER[p.type] ?? p.type}
+                          {TYPES_PIECE_DOSSIER[p.type] ?? TYPES_DOCUMENT[p.type.toLowerCase()] ?? "Document"}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-sm">
                           {p.titre || "Sans titre"}

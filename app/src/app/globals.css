@@ -3369,3 +3369,63 @@ h2 { font-size: 1.3125rem; }
   .outil-appel h2 { font-size: 30px; }
   .outil-vitrine-titre { font-size: 44px; }
 }
+
+/* Direction visuelle octobre : dossiers lisibles, bleu Gerimmo et repères de saisie.
+   Les couleurs d’organisation restent prioritaires via les jetons de marque. */
+.coquille-corps {
+  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--marque) 5%, transparent), transparent 48%), var(--surface-2);
+}
+.coquille-corps [data-slot="card"] {
+  border-radius: 14px;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--encre) 4%, transparent);
+}
+.coquille-corps [data-slot="card-header"] { row-gap: 7px; }
+.coquille-corps .tableau th { background: color-mix(in srgb, var(--marque) 5%, var(--surface)); }
+.coquille-corps .tableau th:first-child { border-radius: 8px 0 0 8px; padding-left: 10px; }
+.coquille-corps .tableau th:last-child { border-radius: 0 8px 8px 0; padding-right: 10px; }
+.coquille-corps .tableau td:first-child { padding-left: 10px; }
+.coquille-corps .tableau td:last-child { padding-right: 10px; }
+.dossier-surtitre { color: var(--marque-sombre); font-size: 12px; font-weight: 650; margin-bottom: 8px; }
+.dossier-grille { display: grid; grid-template-columns: minmax(0, 1fr) 275px; gap: 22px; align-items: start; }
+.dossier-grille > * { min-width: 0; }
+.dossier-reperes { display: grid; gap: 16px; position: sticky; top: 76px; }
+.dossier-panneau { border: 1px solid var(--trait); border-radius: 14px; background: var(--surface); padding: 20px; box-shadow: 0 5px 22px color-mix(in srgb, var(--encre) 4%, transparent); }
+.dossier-panneau-titre { display: flex; align-items: center; gap: 8px; color: var(--marque-sombre); margin-bottom: 12px; }
+.dossier-panneau-titre h2, .dossier-conseil h2 { font-size: 15px; font-weight: 650; margin: 0; }
+.dossier-progression { display: block; width: 100%; height: 7px; margin: 16px 0; border: 0; border-radius: 99px; overflow: hidden; background: var(--marque-clair); accent-color: var(--marque); }
+.dossier-progression::-webkit-progress-bar { background: var(--marque-clair); }
+.dossier-progression::-webkit-progress-value { background: var(--marque); border-radius: 99px; }
+.dossier-progression::-moz-progress-bar { background: var(--marque); }
+.dossier-etapes { display: grid; gap: 5px; list-style: none; padding: 0; margin: 14px 0; }
+.dossier-etapes a, .dossier-plan > li { display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 8px; border-radius: 9px; }
+.dossier-etapes a:hover, .dossier-etapes .a-poursuivre { background: color-mix(in srgb, var(--marque) 7%, var(--surface)); }
+.dossier-etapes strong { display: block; font-size: 13px; line-height: 1.4; color: var(--encre); }
+.dossier-etapes small { display: block; font-size: 11.5px; line-height: 1.5; color: var(--texte-secondaire); margin-top: 3px; }
+.dossier-etapes a > svg { margin-left: auto; flex-shrink: 0; color: var(--texte-secondaire); }
+.dossier-numero { display: inline-flex; width: 25px; height: 25px; flex-shrink: 0; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; border-radius: 50%; background: var(--marque-clair); color: var(--marque-sombre); }
+.dossier-numero.fait { background: var(--success-soft); color: var(--success-soft-foreground); }
+.dossier-numero.courant { background: var(--marque); color: var(--sur-marque); }
+.dossier-poursuivre { display: flex; justify-content: center; gap: 8px; width: 100%; font-size: 12px; }
+.dossier-conseil { display: flex; gap: 10px; padding: 18px; border-radius: 12px; background: color-mix(in srgb, var(--marque) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--marque) 16%, var(--surface)); }
+.dossier-conseil > svg { flex-shrink: 0; color: var(--marque-sombre); }
+.dossier-conseil p { margin-top: 8px; font-size: 12px; line-height: 1.65; color: var(--texte-secondaire); }
+.dossier-raccourcis { display: flex; flex-wrap: wrap; gap: 4px 20px; border-bottom: 1px solid var(--trait); }
+.dossier-raccourcis a { display: inline-flex; align-items: center; min-height: 44px; font-size: 13px; font-weight: 550; border-bottom: 2px solid transparent; padding: 0 2px; }
+.dossier-raccourcis a:hover, .dossier-raccourcis a:focus-visible { color: var(--marque-sombre); border-bottom-color: var(--marque); }
+.dossier-chiffres { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; }
+.dossier-chiffres > div { display: grid; grid-template-columns: 26px minmax(0,1fr); align-content: start; column-gap: 10px; row-gap: 5px; padding: 18px; border: 1px solid var(--trait); border-radius: 12px; background: var(--surface); }
+.dossier-chiffres svg { grid-row: span 3; width: 23px; height: 23px; color: var(--marque); margin-top: 2px; }
+.dossier-chiffres span { font-size: 12px; color: var(--texte-secondaire); }
+.dossier-chiffres strong { font-size: 16px; color: var(--encre); overflow-wrap: anywhere; }
+.dossier-chiffres small, .dossier-chiffres a { font-size: 12px; color: var(--texte-secondaire); }
+.dossier-chiffres a { color: var(--marque-sombre); min-height: 30px; display: flex; align-items: center; }
+.saisie-repere { display: flex; align-items: center; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--trait); }
+.saisie-repere > span { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; color: var(--sur-marque); background: var(--marque); font-weight: 650; }
+.saisie-repere h2 { font-size: 16px; font-weight: 650; }
+.saisie-repere p { font-size: 12px; color: var(--texte-secondaire); margin-top: 3px; }
+.saisie-bien input:not([type=checkbox]), .saisie-bien select { min-height: 42px; border-radius: 8px; background: var(--surface); }
+.dossier-location .rang-section { min-height: 68px; }
+.dossier-location .rang-section[aria-expanded=true] { background: color-mix(in srgb, var(--marque) 5%, var(--surface)); margin-bottom: 15px; }
+@media (max-width: 1199px) { .dossier-grille { grid-template-columns: minmax(0,1fr); } .dossier-reperes { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); } .dossier-chiffres { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 640px) { .dossier-reperes { grid-template-columns: minmax(0,1fr); } .dossier-chiffres { gap: 8px; } .dossier-chiffres > div { grid-template-columns: minmax(0,1fr); padding: 13px; } .dossier-chiffres svg { grid-row: auto; } .dossier-chiffres a { min-height: 44px; } .dossier-raccourcis { gap: 0 14px; } .dossier-panneau { padding: 16px; } }
+@media print { .dossier-reperes, .dossier-raccourcis { display: none; } .dossier-grille { display: block; } }

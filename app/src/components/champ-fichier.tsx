@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type Ref } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type ChangeEvent, type Ref } from "react";
 
 // CHAMP FICHIER EN FRANÇAIS (relevé du 25/09, D10). Un `<input type="file">`
 // nu rend le libellé du navigateur — « Choose File / No file chosen » sur un
@@ -38,6 +38,20 @@ export function ChampFichier({
   "aria-label"?: string;
 }) {
   const [noms, setNoms] = useState<string[]>([]);
+  const champ = useRef<HTMLInputElement>(null);
+  useImperativeHandle(ref, () => champ.current!);
+  useEffect(() => {
+    const formulaire = champ.current?.form;
+    const effacer = (event: Event) => {
+      // Les actions React remettent aussi le formulaire à zéro après un refus.
+      // Ne pas afficher un nom de fichier qui n’est plus joint au formulaire.
+      queueMicrotask(() => {
+        if (!event.defaultPrevented) setNoms([]);
+      });
+    };
+    formulaire?.addEventListener("reset", effacer);
+    return () => formulaire?.removeEventListener("reset", effacer);
+  }, []);
   const mot = libelle ?? (multiple ? "Choisir des fichiers" : "Choisir un fichier");
   const resume =
     noms.length === 0
@@ -51,7 +65,7 @@ export function ChampFichier({
     >
       {/* Le champ natif, présent pour le formulaire et le clavier, invisible à l'œil */}
       <input
-        ref={ref}
+        ref={champ}
         id={id}
         name={name}
         type="file"

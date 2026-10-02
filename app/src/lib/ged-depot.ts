@@ -28,6 +28,7 @@ export type FichierPrepareGed = {
 };
 
 export type ResultatPreparationGed = {
+  documentExistantId?: string;
   fichier?: FichierPrepareGed;
   erreur?: string;
   doublonId?: string;
@@ -51,7 +52,8 @@ const NOMS_FORMAT: Record<string, string> = {
 export async function preparerFichierGed(
   supabase: SupabaseClient,
   orgId: string,
-  fichier: File
+  fichier: File,
+  reutiliserReglement = false
 ): Promise<ResultatPreparationGed> {
   if (fichier.size > TAILLE_MAX_OCTETS) {
     return { erreur: "Fichier trop volumineux (10 Mo maximum)." };
@@ -88,12 +90,15 @@ export async function preparerFichierGed(
   const empreinte = createHash("sha256").update(octets).digest("hex");
   const { data: doublon } = await supabase
     .from("documents")
-    .select("id, titre")
+    .select("id, titre, type")
     .eq("organization_id", orgId)
     .eq("empreinte", empreinte)
     .is("purged_at", null)
     .maybeSingle();
   if (doublon) {
+    if (reutiliserReglement && doublon.type === "reglement_copropriete") {
+      return { documentExistantId: doublon.id, avertissement: "Le règlement déjà enregistré a été réutilisé, sans copie supplémentaire." };
+    }
     return {
       // Détection par empreinte du CONTENU (recette 22/08 : le titre peut
       // différer, c'est bien le même fichier octet pour octet — le dire).
@@ -139,9 +144,11 @@ export async function deposerFichierGed(
   titre: string,
   // La fiche document est immuable (update révoqué en base) : le versionnage
   // (remplace_id) et l'expiration se posent À L'INSERTION, jamais après coup.
-  options?: { remplaceId?: string; expireLe?: string }
+  options?: { remplaceId?: string; expireLe?: string; reutiliserReglement?: boolean }
 ): Promise<ResultatDepotGed> {
-  const prepare = await preparerFichierGed(supabase, orgId, fichier);
+  const prepare = await preparerFichierGed(supabase, orgId, fichier,
+    options?.reutiliserReglement === true && type === "reglement_copropriete" && !options.remplaceId);
+  if (prepare.documentExistantId) return { documentId: prepare.documentExistantId, avertissement: prepare.avertissement };
   if (prepare.erreur || !prepare.fichier) {
     return { erreur: prepare.erreur ?? "Échec du dépôt du fichier.", doublonId: prepare.doublonId };
   }

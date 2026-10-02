@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { definirEquipementsLot, type EtatParc } from "@/app/actions/parc";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
@@ -26,8 +27,7 @@ export function FormulaireEquipementsLot({
   if (catalogue.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        Le catalogue de l&apos;agence est vide — l&apos;admin l&apos;alimente
-        depuis la page Parc.
+        Aucun équipement n’est encore disponible dans votre catalogue. <Link className="underline" href={`/agence/${orgId}/parc`}>Compléter le catalogue depuis la liste des biens</Link>.
       </p>
     );
   }

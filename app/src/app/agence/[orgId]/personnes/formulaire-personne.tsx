@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { creerPersonne, type EtatPersonne } from "@/app/actions/personnes";
 import { Button } from "@/components/ui/button";
@@ -52,13 +53,16 @@ export function FormulairePersonne({
   orgId,
   lots,
   estBailleurDirect = false,
+  dansParcours = false,
 }: {
   orgId: string;
   lots: LotRattachable[];
   // Espace propriétaire direct : pas de « propriétaire mandant » — le
   // propriétaire, c'est lui.
   estBailleurDirect?: boolean;
+  dansParcours?: boolean;
 }) {
+  const router = useRouter();
   const action = creerPersonne.bind(null, orgId);
   const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
   const formulaire = useRef<HTMLFormElement>(null);
@@ -74,6 +78,7 @@ export function FormulairePersonne({
   useEffect(() => {
     if (etat.succes) {
       formulaire.current?.reset();
+      router.refresh();
       // Fiche créée : l'assistant repart de l'étape 1. Réinitialisation
       // pilotée par la réponse du serveur, pas un état dérivé du rendu.
       /* eslint-disable react-hooks/set-state-in-effect */
@@ -82,7 +87,7 @@ export function FormulairePersonne({
       setMorale(false);
       /* eslint-enable react-hooks/set-state-in-effect */
     }
-  }, [etat]);
+  }, [etat, router]);
 
   const estProprio = role === "proprietaire_mandant";
 
@@ -169,6 +174,7 @@ export function FormulairePersonne({
       {etape === 2 && role && (
         <form ref={formulaire} action={formAction} className="space-y-3">
           <input type="hidden" name="role" value={role} />
+          {dansParcours && <input type="hidden" name="rester_dans_parcours" value="1" />}
           <p className="text-sm text-muted-foreground">
             {ROLES.find((r) => r.cle === role)?.libelle}
             {" · "}

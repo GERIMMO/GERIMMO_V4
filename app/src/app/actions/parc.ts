@@ -280,7 +280,7 @@ export async function creerBien(
   const lotUniqueId = (lotsCrees ?? []).length === 1 ? (lotsCrees ?? [])[0].id : null;
   redirect(
     lotUniqueId
-      ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}`
+      ? `/agence/${orgId}/parc/${bienId}/lots/${lotUniqueId}${formData.get("parcours") === "1" ? "?parcours=1&etape=logement" : ""}`
       : `/agence/${orgId}/parc/${bienId}`
   );
 }

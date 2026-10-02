@@ -15,7 +15,9 @@ export function FormulaireBailLot({
   lotId,
   personnes,
   chambres,
+  parcours = false,
 }: {
+  parcours?: boolean;
   orgId: string;
   bienId: string;
   lotId: string;
@@ -26,7 +28,7 @@ export function FormulaireBailLot({
   const router = useRouter();
   const { etat, soumettre: formAction, enCours } = useActionFormulaire<EtatBail>(async (precedent, donnees) => {
     const retour = await action(precedent, donnees);
-    if (retour.bailCree) router.push(`/agence/${orgId}/baux/${retour.bailCree}`);
+    if (retour.bailCree) router.push(parcours ? `/agence/${orgId}/parc/${bienId}/lots/${lotId}?parcours=1&etape=finalisation` : `/agence/${orgId}/baux/${retour.bailCree}`);
     return retour;
   });
 

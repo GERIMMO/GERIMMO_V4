@@ -5702,3 +5702,13 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   renvoi `/agence/[orgId]/lots/[lotId]` mène à la fiche complète du lot, section
   visée, « Modifier le lot » déjà ouvert. Pages concernées : [[Bail]],
   [[Recette de production]].
+
+## [2026-10-02] correction | Retours du testeur artisan (inscription, attestations)
+- Zone d'intervention par **département** (91, 94, 2A, 974) en plus des codes
+  postaux : règle unique `zone_artisan_couvre()` (migration
+  `20261002100000`, appliquée en production) et `lib/zone-artisan.ts` ;
+  même saisie côté agence. Les métiers cochés ne se vident plus après un
+  refus du formulaire d'inscription (réinitialisation React bloquée). Une
+  attestation ne peut plus être émise dans le futur ni expirer avant son
+  émission. PR #155 fusionnée et déployée. Pages : [[Artisan]], [[Réseau
+  d'artisans]].

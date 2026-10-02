@@ -56,9 +56,9 @@ test("fiche lot : la location passe avant les caractéristiques", async ({ page 
     page.locator('[data-slot="card-title"]', { hasText: "La location en cours" })
   ).toBeVisible();
 
-  const location = await hauteur(page, "text=La location en cours");
-  const leLot = await hauteur(page, "text=Le lot");
-  expect(location, "la location doit précéder le bloc du lot").toBeLessThan(leLot);
+  const onglets = page.getByRole("navigation", { name: "Rubriques du logement" });
+  await expect(onglets.getByRole("button", { name: "Vue d’ensemble", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("region", { name: "Logement", exact: true })).toBeHidden();
 
   // Le locataire et le loyer se lisent sans rien déplier.
   await expect(page.locator(".dossier-chiffres").getByText("Locataire E2E", { exact: true })).toBeVisible();
@@ -81,6 +81,7 @@ test("fiche lot : l'état n'est dit qu'une fois de trop, pas quatre", async ({ p
 
 test("fiche lot : les caractéristiques vides ne prennent pas de place", async ({ page }) => {
   await page.goto(CHEMIN_LOT);
+  await page.getByRole("navigation", { name: "Rubriques du logement" }).getByRole("button", { name: "Logement", exact: true }).click();
   await expect(page.getByText("Non renseigné :")).toBeVisible();
   // Aucune rangée « libellé ↔ — » : les champs vides sont réunis en une phrase.
   const tirets = await page.locator("main dd", { hasText: /^—$/ }).count();
@@ -91,6 +92,7 @@ test("fiche lot : une section se déplie en touchant sa rangée, pas un bouton l
   page,
 }) => {
   await page.goto(CHEMIN_LOT);
+  await page.getByRole("navigation", { name: "Rubriques du logement" }).getByRole("button", { name: "Diagnostics", exact: true }).click();
   const rangee = page.getByRole("button", { name: /Diagnostics du lot/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "false");
 
@@ -142,7 +144,7 @@ test("les deux fiches tiennent dans 390 px", async ({ page }) => {
   // celle qu'on teste (échec intermittent constaté à l'écriture du test).
   for (const [url, attendu] of [
     [CHEMIN_BIEN, /^Le lot$|^Les \d+ lots/],
-    [CHEMIN_LOT, /^Le lot$/],
+    [CHEMIN_LOT, /^La location en cours$/],
   ] as const) {
     await page.goto(url);
     await expect(

@@ -23,6 +23,9 @@ returns boolean language sql immutable parallel safe set search_path = '' as $$
 $$;
 comment on function public.zone_artisan_couvre(text, text) is
   'Une zone d''artisan (code postal ou département) couvre-t-elle ce code postal ? Règle miroir de src/lib/zone-artisan.ts.';
+-- Fonction interne : jamais exposée par /rest/v1/rpc (garde-fou
+-- tests/aucune-fonction-ouverte-a-anon).
+revoke execute on function public.zone_artisan_couvre(text, text) from public, anon, authenticated;
 
 alter table public.artisan_zones drop constraint if exists artisan_zones_code_postal_forme;
 alter table public.artisan_zones add constraint artisan_zones_code_postal_forme
@@ -67,3 +70,6 @@ language sql stable security definer set search_path = '' as $$
   select 1 from public.artisan_zones z
    where z.artisan_id = p_artisan and public.zone_artisan_couvre(z.code_postal, p_cp)));
 $$;
+
+-- Les droits par défaut d'un CREATE sont refermés, comme à chaque migration.
+select public.fermer_fonctions_a_anon();

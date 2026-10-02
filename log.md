@@ -5712,3 +5712,10 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   attestation ne peut plus être émise dans le futur ni expirer avant son
   émission. PR #155 fusionnée et déployée. Pages : [[Artisan]], [[Réseau
   d'artisans]].
+
+## [2026-10-02] lint   | Audit des refus de doublon (GED)
+- À la demande du porteur, après le blocage d'un testeur sur une notice
+  regénérée : trois relectures parallèles des vingt circuits de dépôt (gérant,
+  locataire, artisan, générations). Cinq bloquants, huit gênants, cinq détails ;
+  aucun refus silencieux côté cron (aucun PDF n'y est rangé). Synthèse :
+  [[Audit des refus de doublon du 2 octobre 2026]].

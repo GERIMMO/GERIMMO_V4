@@ -29,3 +29,52 @@ for (const largeur of [390, 1440]) {
     await page.screenshot({ path: `e2e/.results/dossier-${largeur}.png`, fullPage: true });
   });
 }
+
+test('propriétaire : un refus d’enregistrement reste visible sans perdre la saisie', async ({ page }) => {
+  await page.goto(`/agence/${ORG}/parc`);
+  await page.getByRole('button', { name: /Appartement T2/ }).first().click();
+  const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
+  await page.goto(href! + '?parcours=1&etape=bien');
+  const formulaire = page.locator('form.saisie-bien');
+  await formulaire.locator('[name="nom"]').fill('   ');
+  await formulaire.locator('[name="annee_construction"]').fill('1990');
+  await formulaire.locator('[name="parties_communes"]').fill('Néant — essai de refus');
+  await formulaire.locator('[name="acces_tic"]').fill('Fibre — saisie à conserver');
+  // Les espaces passent le contrôle HTML required, mais le serveur les refuse
+  // avant toute écriture. Aucune donnée du bien n’est changée par cet essai.
+  for (let tentative = 0; tentative < 2; tentative++) {
+    await formulaire.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+    const erreur = formulaire.getByRole('alert');
+    await expect(erreur).toHaveText('La référence du bien est obligatoire.');
+    await expect(erreur).toBeFocused();
+    await expect(erreur).toBeInViewport();
+    await expect(formulaire.locator('[name="parties_communes"]')).toHaveValue('Néant — essai de refus');
+    await expect(formulaire.locator('[name="acces_tic"]')).toHaveValue('Fibre — saisie à conserver');
+  }
+});
+
+for (const largeur of [390, 1440]) {
+  test(`propriétaire : parcours guidé et saisies conservées à ${largeur}px`, async ({ page }) => {
+    await page.setViewportSize({ width: largeur, height: 1000 });
+    await page.goto(`/agence/${ORG}/parc`);
+    await page.getByRole('button', { name: /Appartement T2/ }).first().click();
+    await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).click();
+    await page.getByRole('link', { name: 'Préparer cette location étape par étape' }).click();
+    const navigation = page.getByRole('navigation', { name: 'Étapes de la location' });
+    await expect(navigation.getByRole('button')).toHaveCount(7);
+    const bien = page.getByRole('region', { name: 'Étape Bien', exact: true });
+    await bien.locator('[name="nom"]').fill('Saisie non enregistrée');
+    await navigation.getByRole('button', { name: /3 Logement/ }).click();
+    await expect(bien).not.toBeVisible();
+    await expect(page.getByRole('region', { name: 'Étape Logement', exact: true })).toBeVisible();
+    await navigation.getByRole('button', { name: /1 Bien/ }).click();
+    await expect(bien.locator('[name="nom"]')).toHaveValue('Saisie non enregistrée');
+    for (const nom of [/2 Lot/, /3 Logement/, /4 Diagnostics/, /5 Locataires/, /6 Bail/, /7 Finalisation/]) {
+      await navigation.getByRole('button', { name: nom }).click();
+      await expect(page.locator('.assistant-panneau:visible')).toHaveCount(1);
+      expect(await debordementHorizontal(page)).toBe(0);
+    }
+    await navigation.getByRole('button', { name: /3 Logement/ }).click();
+    await page.screenshot({ path: `e2e/.results/parcours-${largeur}.png`, fullPage: true });
+  });
+}

@@ -78,3 +78,28 @@ for (const largeur of [390, 1440]) {
     await page.screenshot({ path: `e2e/.results/parcours-${largeur}.png`, fullPage: true });
   });
 }
+
+test('propriétaire : créer le locataire puis le bail sans quitter le guide', async ({ page }) => {
+  await page.goto(`/agence/${ORG}/parc`);
+  await page.getByRole('button', { name: /Appartement T2/ }).first().click();
+  const href = await page.getByRole('link', { name: 'Ouvrir la fiche complète', exact: true }).getAttribute('href');
+  await page.goto(href! + '?parcours=1&etape=locataires');
+  const nom = `Guide${Date.now()}`;
+  const region = page.getByRole('region', { name: 'Étape Locataires', exact: true });
+  await region.getByRole('button', { name: /Locataire.*Occupe/ }).click();
+  for (const [champ, valeur] of Object.entries({ nom, prenom:'Camille', email:'guide-local@example.invalid', date_naissance:'1990-01-01', commune_naissance:'Lyon', address_line1:'1 rue des Essais', postal_code:'69003', city:'Lyon' })) {
+    await region.locator(`[name="${champ}"]`).fill(valeur);
+  }
+  await region.getByRole('button', { name:'Créer la fiche', exact:true }).click();
+  await expect(region.getByText('Fiche créée. Vous pouvez sélectionner cette personne à l’étape Bail.', { exact:true })).toBeVisible();
+  await page.getByRole('navigation', { name:'Étapes de la location' }).getByRole('button', { name:/6 Bail/ }).click();
+  const bail = page.getByRole('region', { name:'Étape Bail', exact:true });
+  await bail.locator('[name="locataire_principal"]').selectOption({ label:`${nom} Camille` });
+  for (const [champ, valeur] of Object.entries({ date_debut:'2026-12-01', loyer_hc:'700', charges:'50', depot_garantie:'700' })) {
+    await bail.locator(`[name="${champ}"]`).fill(valeur);
+  }
+  await bail.getByRole('button', { name:'Créer le bail', exact:true }).click();
+  await expect(page).toHaveURL(/etape=finalisation/);
+  await expect(page.getByRole('region', { name:'Étape Finalisation', exact:true })).toBeVisible();
+  await expect(page.getByRole('link', { name:/Vérifier le bail et les documents/ }).first()).toBeVisible();
+});

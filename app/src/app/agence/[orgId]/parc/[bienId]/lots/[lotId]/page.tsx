@@ -712,7 +712,7 @@ export default async function PageLot(
           rangées de caractéristiques dont quatre vides — précédés d'un
           paragraphe expliquant le cycle de vie d'un lot, affiché à chaque
           visite, qui occupait à lui seul le premier écran d'un téléphone. */}
-      <OngletsDossier onglets={[
+      <OngletsDossier initial={modifier === "1" ? 1 : 0} onglets={[
         {titre: "Vue d’ensemble", ancres:["location-apercu"], contenu:apercuLocation},
         {titre: "Logement", ancres:["caracteristiques","detention","pieces","equipements"], contenu:<Card><CardContent className="space-y-5 pt-5"><div id="caracteristiques"><RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} modifierInitial={modifier === "1"} /></div>{rubriqueDetention}{rubriquePieces}{rubriqueEquipements}</CardContent></Card>},
         {titre: "Diagnostics", ancres:["diagnostics","diagnostics-immeuble"], contenu:<Card><CardContent className="space-y-5 pt-5">{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</CardContent></Card>},

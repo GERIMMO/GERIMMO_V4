@@ -52,6 +52,9 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
   const idFichier = useId();
 
   const dateExigee = type !== "certification";
+  // Une attestation ne s'émet pas dans le futur (retour recette du 02/10) ;
+  // le serveur refuse aussi, ceci n'est que la butée du calendrier.
+  const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
 
   return (
     // `deposer` : l'ancre visée par l'état vide et par « Encore attendues ».
@@ -90,6 +93,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
               id={idEmise}
               name="emise_le"
               type="date"
+              max={aujourdhui}
               defaultValue={etat.valeurs?.emise_le}
               className={CLASSE_CHAMP}
             />

@@ -1,3 +1,4 @@
+import { lireZones } from "@/lib/zone-artisan";
 // Référentiel du module artisan côté AGENCE — les libellés français des
 // énumérations posées par la migration 20260911180000 (module 8/9/10/11).
 //
@@ -213,15 +214,10 @@ export function centsEnEuros(cents: number | null | undefined): number | null {
 // chiffres, clé primaire (artisan_id, code_postal)). Ni préfixe départemental,
 // ni rayon : rien dans le wiki ne les autorise.
 export function codesPostauxValides(saisie: string): { erreur?: string; codes?: string[] } {
-  const codes = saisie
-    .split(/[\s,;]+/)
-    .map((c) => c.trim())
-    .filter(Boolean);
-  const fautif = codes.find((c) => !/^[0-9]{5}$/.test(c));
-  if (fautif) {
-    return { erreur: `« ${fautif} » n'est pas un code postal à cinq chiffres.` };
-  }
-  return { codes: [...new Set(codes)] };
+  // Codes postaux ou départements, même règle que l'auto-inscription de
+  // l'artisan (lib/zone-artisan, retour recette du 02/10).
+  const lu = lireZones(saisie);
+  return lu.erreur ? { erreur: lu.erreur } : { codes: lu.zones };
 }
 
 // Le SIRET : quatorze chiffres, espaces tolérés à la saisie (les artisans le

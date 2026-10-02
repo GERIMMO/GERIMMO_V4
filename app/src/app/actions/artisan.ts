@@ -1,6 +1,8 @@
 "use server";
 
 import { lireLignesDevis, montantEnCentimes } from "@/lib/devis-structure";
+import { lireZones } from "@/lib/zone-artisan";
+import { aujourdhuiParis } from "@/lib/ged";
 
 import { createHash, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -178,15 +180,10 @@ function lireMetiers(formData: FormData): string[] {
     .filter((m) => (LISTE_METIERS as readonly string[]).includes(m));
 }
 
-/** « 75011, 75012 » ou « 75011 75012 » → ["75011","75012"]. */
+/** « 91300, 91 » → ["91300","91"] : codes postaux ou départements (lib/zone-artisan). */
 function lireCodesPostaux(brut: string): { codes?: string[]; erreur?: string } {
-  const codes = brut
-    .split(/[\s,;]+/)
-    .map((c) => c.trim())
-    .filter(Boolean);
-  const fautif = codes.find((c) => !/^\d{5}$/.test(c));
-  if (fautif) return { erreur: `« ${fautif} » n'est pas un code postal à cinq chiffres.` };
-  return { codes: [...new Set(codes)] };
+  const lu = lireZones(brut);
+  return lu.erreur ? { erreur: lu.erreur } : { codes: lu.zones };
 }
 
 export async function inscrireMonEntreprise(
@@ -301,6 +298,14 @@ export async function deposerMaPiece(
   const emiseLe = String(formData.get("emise_le") ?? "").trim();
   const expireLe = String(formData.get("expire_le") ?? "").trim();
   const fichier = formData.get("fichier");
+  // Retour recette du 02/10 : une attestation ne peut pas être émise demain,
+  // ni expirer avant d'avoir été émise. Contrôlé AVANT la montée du fichier.
+  if (emiseLe && emiseLe > aujourdhuiParis()) {
+    return { erreur: "La date d'émission ne peut pas être dans le futur.", valeurs };
+  }
+  if (emiseLe && expireLe && expireLe < emiseLe) {
+    return { erreur: "La fin de validité ne peut pas précéder la date d'émission.", valeurs };
+  }
 
   if (!["decennale", "rc_pro", "urssaf", "kbis", "certification"].includes(type)) {
     return { erreur: "Choisissez le type d'attestation.", valeurs };

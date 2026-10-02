@@ -1,4 +1,8 @@
 import Link from "next/link";
+import { OngletsDossier } from "@/components/onglets-dossier";
+import { ParcoursLocation } from "@/components/parcours-location";
+import { FormulaireBien } from "../../../formulaire-bien";
+import { FormulairePersonne } from "../../../../personnes/formulaire-personne";
 import { RepereDossier, type EtapeDossier } from "@/components/repere-dossier";
 import { House, Users, Wallet, FileText } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -43,7 +47,7 @@ export default async function PageLot(
 ) {
   const { orgId, bienId, lotId } = await props.params;
   // Conserver le lien direct vers la modification des caractéristiques.
-  const { modifier } = ((await props.searchParams) ?? {}) as { modifier?: string };
+  const { modifier, parcours, etape } = ((await props.searchParams) ?? {}) as { modifier?: string; parcours?: string; etape?: string };
   exigerUuids(bienId, lotId);
   const { supabase, role } = await verifierAccesEspace(orgId);
 
@@ -72,7 +76,7 @@ export default async function PageLot(
       .maybeSingle(),
     supabase
       .from("biens")
-      .select("id, nom, type, address_line1, city, annee_construction, copropriete")
+      .select("id, nom, type, address_line1, address_line2, postal_code, city, annee_construction, copropriete, zone_tendue, commune_insee, parties_communes, acces_tic")
       .eq("id", bienId)
       .eq("organization_id", orgId)
       .maybeSingle(),
@@ -279,51 +283,277 @@ export default async function PageLot(
     { titre: "Locataire et bail", detail: nbBaux ? `${nbBaux} bail(s) dans le dossier` : "Bail à préparer", href: "#baux", renseignee: nbBaux > 0, inconnue: Boolean(erreurBaux) },
   ];
 
-  return (
-    <main className="dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7">
-      <EnteteFiche
-        retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: bien.nom }}
-        // Le nom du bien est dans le lien retour, juste au-dessus : le
-        // surtitre dit l'adresse (24/09).
-        surtitre={[bien.address_line1, bien.city].filter(Boolean).join(" · ") || undefined}
-        titre={lot.nom}
-        badge={
-          <span className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}>
-            {ETATS_LOT[lot.etat] ?? lot.etat}
-          </span>
-        }
-        faits={[
-          ...(loyerCc !== null
-            ? [{ libelle: "Loyer charges comprises", valeur: eur(loyerCc) }]
-            : []),
-          ...(lot.surface_m2 !== null
-            ? [{ libelle: "Surface", valeur: formaterSurface(lot.surface_m2) }]
-            : []),
-        ]}
-      />
-
-      <nav className="dossier-raccourcis" aria-label="Accès rapides au logement">
-        <a href="#location-apercu">Vue d’ensemble</a><a href="#caracteristiques">Le logement</a><a href="#diagnostics">Diagnostics</a><a href="#baux">Baux et états des lieux</a>
-        <Link href={`/agence/${orgId}/reseau?bien=${bienId}`}>Artisans disponibles</Link>
-      </nav>
-      <div className="dossier-chiffres">
-        <div><Wallet aria-hidden="true" /><span>Loyer charges comprises</span><strong>{loyerCc === null ? "À définir" : eur(loyerCc)}</strong><small>{bauxEnCours.length > 1 ? "Premier contrat · détail ci-dessous" : "Par mois"}</small></div>
-        <div><Users aria-hidden="true" /><span>Locataire</span><strong>{erreurPersonnes || erreurBaux ? "À réessayer" : recapLocataire ?? "Aucun bail actif"}</strong><a href="#baux">Voir le dossier →</a></div>
-        <div><House aria-hidden="true" /><span>Le logement</span><strong>{lot.surface_m2 == null ? "Surface à renseigner" : formaterSurface(lot.surface_m2)}</strong><small>{lot.pieces == null ? "Pièces à renseigner" : `${lot.pieces} pièce(s)`}</small></div>
-        <div><FileText aria-hidden="true" /><span>Diagnostics déposés</span><strong>{erreurDiagnostics || erreurDiagnosticsBien ? "À réessayer" : nbDiag + nbDiagBien}</strong><a href="#diagnostics">Consulter et compléter →</a></div>
-      </div>
-      <div className="dossier-grille"><div className="min-w-0 space-y-5">
-      <EchecLecture quoi={echecs} />
-      <AttentionFiche points={attention} />
-
-      {/* LA LOCATION D'ABORD, et c'est le correctif de fond du 11/09. Pour un
-          lot loué, la seule question qui se pose en ouvrant la fiche est : qui
-          habite, pour combien, jusqu'à quand. Ces trois faits étaient au FOND
-          de la page, repliés sous « Baux & état des lieux », derrière neuf
-          rangées de caractéristiques dont quatre vides — précédés d'un
-          paragraphe expliquant le cycle de vie d'un lot, affiché à chaque
-          visite, qui occupait à lui seul le premier écran d'un téléphone. */}
-      <Card id="location-apercu">
+  const rubriqueDetention = (<SectionLot ouvertParDefaut={parcours === "1"}
+            id="detention"
+            titre={
+              role === "proprietaire_direct"
+                ? "Détention & quotes-parts"
+                : "Propriétaires mandants du lot"
+            }
+            alerte={totalQuoteParts !== 100 ? `${totalQuoteParts} % sur 100 %` : undefined}
+            resume={
+              detentionsActives.length === 0
+                ? "Aucun propriétaire"
+                : `${totalQuoteParts} % — ${detentionsActives
+                    .map((d) =>
+                      nomPersonne(d.person as unknown as { nom: string; prenom: string | null })
+                    )
+                    .join(", ")}`
+            }
+          >
+            <div className="space-y-4">
+              <p
+                className={`text-sm ${totalQuoteParts === 100 ? "text-success-soft-foreground" : "text-warning-soft-foreground"}`}
+              >
+                Détention active : {totalQuoteParts} %
+              </p>
+              {(detentions ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {role === "proprietaire_direct"
+                    ? "Aucune détention enregistrée. Le lot ne pourra pas être mis en location tant que la propriété n'est pas répartie à 100 % — en indivision, chaque quote-part compte pour votre récapitulatif fiscal."
+                    : "Aucun propriétaire mandant enregistré. Le lot ne pourra pas être mis en location tant que la propriété n'est pas répartie à 100 %."}
+                </p>
+              ) : (
+                <ul className="divide-y divide-border">
+                  {(detentions ?? []).map((d) => (
+                    <li key={d.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                      <span
+                        className={`min-w-0 flex-1 truncate ${d.date_fin ? "text-muted-foreground line-through" : ""}`}
+                      >
+                        {nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
+                      </span>
+                      <span className="shrink-0">{Number(d.quote_part)} %</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {formaterDate(d.date_debut)}
+                        {d.date_fin ? ` → ${formaterDate(d.date_fin)}` : ""}
+                      </span>
+                      {!d.date_fin && (
+                        <BoutonCloreDetention
+                          orgId={orgId}
+                          bienId={bienId}
+                          lotId={lotId}
+                          detentionId={d.id}
+                        />
+                      )}
+                      {!d.date_fin && (baux ?? []).length === 0 && (
+                        /* Ce bouton SUPPRIME : au doigt, on l'écarte de
+                           « Fermer » pour éviter le tap voisin. */
+                        <span className="pointer-coarse:ml-2">
+                          <BoutonSupprimerDetention
+                            orgId={orgId}
+                            bienId={bienId}
+                            lotId={lotId}
+                            detentionId={d.id}
+                            proprietaire={nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
+                            quotePart={Number(d.quote_part)}
+                          />
+                        </span>
+                      )}
+                      {d.date_fin && (
+                        <BoutonRouvrirDetention
+                          orgId={orgId}
+                          bienId={bienId}
+                          lotId={lotId}
+                          detentionId={d.id}
+                        />
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <FormulaireDetention
+                orgId={orgId}
+                bienId={bienId}
+                lotId={lotId}
+                personnes={personnes ?? []}
+                proprietairesIds={[...new Set((proprietaires ?? []).map((d) => d.person_id))]}
+                premierProprietaire={detentionsActives.length === 0}
+              />
+            </div>
+          </SectionLot>);
+  const rubriqueDiagnostics = (<SectionLot ouvertParDefaut={parcours === "1"}
+            id="diagnostics"
+            titre="Diagnostics du lot"
+            // Le titre dit déjà le niveau : la pastille ne le répète pas
+            // entre parenthèses, et le résumé ne redit pas ce qui manque — le
+            // bandeau du haut le dit, avec « Régler » (24/09).
+            alerte={alerteDiagnostics(manquants.map((m) => m.type), diagnostics ?? [])}
+            resume={
+              nbDiag === 0
+                ? "Aucun diagnostic déposé"
+                : `${nbDiag} déposé${nbDiag > 1 ? "s" : ""}`
+            }
+          >
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                DPE, électricité, gaz, plomb, amiante privatif… Ceux {duBien}{" "}
+                se déposent juste en dessous.
+              </p>
+              <LignesDiagnostics
+                orgId={orgId}
+                bienId={bienId}
+                lotId={lotId}
+                niveau="lot"
+                attendus={exigiblesLot.map((e) => e.type)}
+                diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
+              />
+            </div>
+          </SectionLot>);
+  const rubriqueDiagnosticsImmeuble = (<SectionLot ouvertParDefaut={parcours === "1"}
+            id="diagnostics-immeuble"
+            titre={`Diagnostics ${duBien}`}
+            alerte={alerteDiagnostics(manquantsBien.map((m) => m.type), diagnosticsBien ?? [])}
+            resume={
+              nbDiagBien === 0
+                ? "Aucun diagnostic déposé"
+                : `${nbDiagBien} déposé${nbDiagBien > 1 ? "s" : ""}`
+            }
+          >
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                ERP, termites, amiante des parties communes… Ils valent pour
+                tout le bien « {bien.nom} » : un dépôt fait ici sert à chacun de
+                ses lots, et se retrouve sur la fiche du bien.
+              </p>
+              <LignesDiagnostics
+                orgId={orgId}
+                bienId={bienId}
+                lotId={lotId}
+                niveau="bien"
+                attendus={exigiblesBien.map((e) => e.type)}
+                diagnostics={(diagnosticsBien ?? []) as DiagnosticDepose[]}
+              />
+            </div>
+          </SectionLot>);
+  const rubriqueEquipements = (<SectionLot ouvertParDefaut={parcours === "1"}
+            id="equipements"
+            titre="Équipements"
+            resume={
+              // Le logement, pas la case du formulaire (24/09)
+              nbEquip === 0
+                ? "Aucun équipement renseigné"
+                : `${nbEquip} équipement${nbEquip > 1 ? "s" : ""} renseigné${nbEquip > 1 ? "s" : ""}`
+            }
+          >
+            <FormulaireEquipementsLot
+              orgId={orgId}
+              bienId={bienId}
+              lotId={lotId}
+              catalogue={catalogue ?? []}
+              selection={(equipesLot ?? []).map((e) => e.equipement_id)}
+            />
+          </SectionLot>);
+  const rubriquePieces = (<SectionLot ouvertParDefaut={parcours === "1"}
+            id="pieces"
+            titre="Pièces (état des lieux)"
+            alerte={(piecesLot ?? []).length === 0 ? "À définir" : undefined}
+            resume={
+              (piecesLot ?? []).length === 0
+                ? "Aucune pièce définie"
+                : (piecesLot as PieceLot[]).map((p) => p.nom).join(", ")
+            }
+          >
+            <FormulairePiecesLot
+              orgId={orgId}
+              bienId={bienId}
+              lotId={lotId}
+              pieces={(piecesLot ?? []) as PieceLot[]}
+            />
+          </SectionLot>);
+  const rubriqueBaux = (<SectionLot
+            id="baux"
+            titre="Baux & état des lieux"
+            // Seule exception au principe « toutes les sections repliées »
+            // (voir section-lot.tsx) : un lot DISPONIBLE et SANS AUCUN BAIL n'a
+            // qu'une suite possible, et c'est ce formulaire — l'unique porte
+            // d'entrée de la création d'un bail dans toute l'application
+            // (relevé du 11/09 : ni route /baux, ni bouton « Nouveau bail »).
+            // La création reste un simple brouillon : tous les contrôles de
+            // mise en location vivent à l'activation (controler_mise_en_location).
+            ouvertParDefaut={parcours === "1" || lot.etat === "disponible" && (baux ?? []).length === 0}
+            resume={
+              nbBaux === 0
+                ? "Aucun bail"
+                : `${nbBaux > 1 ? `${nbBaux} baux` : "1 bail"} · ${(baux ?? [])
+                    .map((b) => ETATS_BAIL[b.etat] ?? b.etat)
+                    .join(", ")}`
+            }
+          >
+            <div className="space-y-4">
+              {(baux ?? []).length > 0 && (
+                <ul className="space-y-2">
+                  {(baux ?? []).map((b) => (
+                    <li key={b.id} className="flex items-center gap-3">
+                      <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
+                        {ETATS_BAIL[b.etat] ?? b.etat}
+                      </span>
+                      {/* Recette 21/08 puis 22/08 : la vue macro dit qui
+                          habite, pour combien et depuis quand — avant
+                          d'ouvrir. */}
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        Bail {b.chambre_id ? `individuel · ${chambres?.find(c => c.id === b.chambre_id)?.nom ?? "chambre"}` : (TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
+                        {b.locataire_principal && nomsParId.get(b.locataire_principal)
+                          ? ` — ${nomsParId.get(b.locataire_principal)}`
+                          : ""}
+                        {(b.loyer_hc != null || b.date_debut || b.date_fin) && (
+                          <span className="block truncate text-xs text-muted-foreground sm:inline sm:before:content-['_·_']">
+                            {[
+                              b.loyer_hc != null
+                                ? `${eur(Number(b.loyer_hc) + Number(b.charges ?? 0))} charges comprises`
+                                : null,
+                              b.date_debut ? `entrée le ${formaterDate(b.date_debut)}` : null,
+                              b.date_fin ? `fin le ${formaterDate(b.date_fin)}` : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        )}
+                      </span>
+                      <Link
+                        href={`/agence/${orgId}/baux/${b.id}`}
+                        className={buttonVariants({ variant: "ghost", size: "sm" })}
+                      >
+                        Ouvrir
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {detentionsActives.length === 0 ? (
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
+                    de créer un bail.
+                  </p>
+                  {/* Le message dit où aller : la section Détention de cette
+                      fiche, et la création de la fiche du locataire. */}
+                  <p className="flex flex-wrap gap-x-4 gap-y-1">
+                    <a href="#detention" className="lien-discret">
+                      Ajouter un propriétaire →
+                    </a>
+                    <Link href={`/agence/${orgId}/personnes#creer-fiche`} className="lien-discret">
+                      Créer la fiche du locataire →
+                    </Link>
+                  </p>
+                </div>
+              ) : (
+                <FormulaireBailLot
+                  parcours={parcours === "1"}
+                  orgId={orgId}
+                  bienId={bienId}
+                  lotId={lotId}
+                  // Le propriétaire du lot n'est pas son locataire (audit du
+                  // 27/09) : « Moreau Claire » se voyait proposée comme
+                  // locataire principal de son propre bien.
+                  personnes={(personnes ?? []).filter(
+                    (p) => !detentionsActives.some((d) => d.person_id === p.id)
+                  )}
+                  chambres={chambres ?? []}
+                />
+              )}
+            </div>
+          </SectionLot>);
+  const apercuLocation = (<Card id="location-apercu">
         <CardHeader>
           {/* « Mettre en location » est le bouton qui fait passer un lot en
               préparation à disponible ; un lot déjà disponible attend son
@@ -424,316 +654,70 @@ export default async function PageLot(
             bailHref={bailEnCours ? `/agence/${orgId}/baux/${bailEnCours.id}` : undefined}
           />
         </CardContent>
-      </Card>
+      </Card>);
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Le lot</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {/* Caractéristiques (récap + Modifier) */}
-          <div id="caracteristiques" className="scroll-mt-20">
-            <RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} modifierInitial={modifier === "1"} />
-          </div>
-          <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="btn-secondaire inline-flex">Vérifier les artisans disponibles pour ce bien</Link>
+  if (parcours === "1") return <main className="mx-auto w-full max-w-7xl p-4 sm:p-7">
+    <Link href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`} className="inline-flex min-h-11 items-center text-sm">← Retour au logement</Link>
+    <div className="entete-page"><div><h1>Préparer la location</h1><p className="mt-2 text-sm text-muted-foreground">{bien.nom} · {lot.nom}. Complétez votre dossier, étape par étape.</p></div></div>
+    <EchecLecture quoi={echecs} />
+    <ParcoursLocation key={etape ?? "logement"} initiale={etape ?? "logement"} resume={<div className="space-y-2"><strong>{lot.nom}</strong><p>{bien.address_line1}<br />{bien.postal_code} {bien.city}</p><p>{lot.surface_m2 == null ? "Surface à compléter" : formaterSurface(lot.surface_m2)}</p><p>{ETATS_LOT[lot.etat] ?? lot.etat}</p></div>} contenus={[
+      <FormulaireBien key="bien" orgId={orgId} bien={bien} />,
+      <div key="lot" className="space-y-5"><RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} modifierInitial={modifier === "1"} />{rubriqueDetention}</div>,
+      <div key="logement" className="space-y-5">{rubriquePieces}{rubriqueEquipements}</div>,
+      <div key="diagnostics" className="space-y-5">{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</div>,
+      <div key="locataires" className="space-y-5"><p className="text-sm">Si la personne existe déjà, sélectionnez-la à l’étape Bail. Sinon, créez sa fiche ci-dessous. La création de la fiche n’envoie pas d’invitation.</p><FormulairePersonne orgId={orgId} lots={[{id:lotId,libelle:lot.nom}]} estBailleurDirect={role === "proprietaire_direct"} /></div>,
+      <div key="bail">{rubriqueBaux}</div>,
+      <div key="finalisation" className="space-y-5"><p className="text-sm">Vérifiez le dossier avant toute mise en location. Ouvrez le bail pour préparer les documents, l’état des lieux et la signature. Aucune activation ni aucun envoi ne se fait en changeant d’étape.</p>{apercuLocation}<ul className="space-y-3">{(baux ?? []).map(b => <li key={b.id}><Link className="btn-secondaire" href={`/agence/${orgId}/baux/${b.id}`}>Vérifier le bail et les documents · {ETATS_BAIL[b.etat] ?? b.etat}</Link></li>)}</ul>{!baux?.length && <p>Aucun bail enregistré. Revenez à l’étape Bail pour préparer le contrat.</p>}</div>
+    ]} />
+  </main>;
+  return (
+    <main className="dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7">
+      <EnteteFiche
+        retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: bien.nom }}
+        // Le nom du bien est dans le lien retour, juste au-dessus : le
+        // surtitre dit l'adresse (24/09).
+        surtitre={[bien.address_line1, bien.city].filter(Boolean).join(" · ") || undefined}
+        titre={lot.nom}
+        badge={
+          <span className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}>
+            {ETATS_LOT[lot.etat] ?? lot.etat}
+          </span>
+        }
+        faits={[
+          ...(loyerCc !== null
+            ? [{ libelle: "Loyer charges comprises", valeur: eur(loyerCc) }]
+            : []),
+          ...(lot.surface_m2 !== null
+            ? [{ libelle: "Surface", valeur: formaterSurface(lot.surface_m2) }]
+            : []),
+        ]}
+      />
 
-          {/* Détention — rouverte au propriétaire bailleur (audit 06/09) :
-              l'indivision et la quote-part fiscale se saisissent ici, et le
-              blocage « détention incomplète » pointe cette section. */}
-          <SectionLot
-            id="detention"
-            titre={
-              role === "proprietaire_direct"
-                ? "Détention & quotes-parts"
-                : "Propriétaires mandants du lot"
-            }
-            alerte={totalQuoteParts !== 100 ? `${totalQuoteParts} % sur 100 %` : undefined}
-            resume={
-              detentionsActives.length === 0
-                ? "Aucun propriétaire"
-                : `${totalQuoteParts} % — ${detentionsActives
-                    .map((d) =>
-                      nomPersonne(d.person as unknown as { nom: string; prenom: string | null })
-                    )
-                    .join(", ")}`
-            }
-          >
-            <div className="space-y-4">
-              <p
-                className={`text-sm ${totalQuoteParts === 100 ? "text-success-soft-foreground" : "text-warning-soft-foreground"}`}
-              >
-                Détention active : {totalQuoteParts} %
-              </p>
-              {(detentions ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  {role === "proprietaire_direct"
-                    ? "Aucune détention enregistrée. Le lot ne pourra pas être mis en location tant que la propriété n'est pas répartie à 100 % — en indivision, chaque quote-part compte pour votre récapitulatif fiscal."
-                    : "Aucun propriétaire mandant enregistré. Le lot ne pourra pas être mis en location tant que la propriété n'est pas répartie à 100 %."}
-                </p>
-              ) : (
-                <ul className="divide-y divide-border">
-                  {(detentions ?? []).map((d) => (
-                    <li key={d.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-                      <span
-                        className={`min-w-0 flex-1 truncate ${d.date_fin ? "text-muted-foreground line-through" : ""}`}
-                      >
-                        {nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
-                      </span>
-                      <span className="shrink-0">{Number(d.quote_part)} %</span>
-                      <span className="shrink-0 text-xs text-muted-foreground">
-                        {formaterDate(d.date_debut)}
-                        {d.date_fin ? ` → ${formaterDate(d.date_fin)}` : ""}
-                      </span>
-                      {!d.date_fin && (
-                        <BoutonCloreDetention
-                          orgId={orgId}
-                          bienId={bienId}
-                          lotId={lotId}
-                          detentionId={d.id}
-                        />
-                      )}
-                      {!d.date_fin && (baux ?? []).length === 0 && (
-                        /* Ce bouton SUPPRIME : au doigt, on l'écarte de
-                           « Fermer » pour éviter le tap voisin. */
-                        <span className="pointer-coarse:ml-2">
-                          <BoutonSupprimerDetention
-                            orgId={orgId}
-                            bienId={bienId}
-                            lotId={lotId}
-                            detentionId={d.id}
-                            proprietaire={nomPersonne(d.person as unknown as { nom: string; prenom: string | null })}
-                            quotePart={Number(d.quote_part)}
-                          />
-                        </span>
-                      )}
-                      {d.date_fin && (
-                        <BoutonRouvrirDetention
-                          orgId={orgId}
-                          bienId={bienId}
-                          lotId={lotId}
-                          detentionId={d.id}
-                        />
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <FormulaireDetention
-                orgId={orgId}
-                bienId={bienId}
-                lotId={lotId}
-                personnes={personnes ?? []}
-                proprietairesIds={[...new Set((proprietaires ?? []).map((d) => d.person_id))]}
-                premierProprietaire={detentionsActives.length === 0}
-              />
-            </div>
-          </SectionLot>
+      <Link className="btn-or mb-4 inline-flex" href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}?parcours=1&etape=bien`}>Préparer cette location étape par étape</Link>
+      <Link className="btn-secondaire mb-4 inline-flex ml-2" href={`/agence/${orgId}/reseau?bien=${bienId}`}>Artisans disponibles</Link>
+      <div className="dossier-chiffres">
+        <div><Wallet aria-hidden="true" /><span>Loyer charges comprises</span><strong>{loyerCc === null ? "À définir" : eur(loyerCc)}</strong><small>{bauxEnCours.length > 1 ? "Premier contrat · détail ci-dessous" : "Par mois"}</small></div>
+        <div><Users aria-hidden="true" /><span>Locataire</span><strong>{erreurPersonnes || erreurBaux ? "À réessayer" : recapLocataire ?? "Aucun bail actif"}</strong><a href="#baux">Voir le dossier →</a></div>
+        <div><House aria-hidden="true" /><span>Le logement</span><strong>{lot.surface_m2 == null ? "Surface à renseigner" : formaterSurface(lot.surface_m2)}</strong><small>{lot.pieces == null ? "Pièces à renseigner" : `${lot.pieces} pièce(s)`}</small></div>
+        <div><FileText aria-hidden="true" /><span>Diagnostics déposés</span><strong>{erreurDiagnostics || erreurDiagnosticsBien ? "À réessayer" : nbDiag + nbDiagBien}</strong><a href="#diagnostics">Consulter et compléter →</a></div>
+      </div>
+      <div className="dossier-grille"><div className="min-w-0 space-y-5">
+      <EchecLecture quoi={echecs} />
+      <AttentionFiche points={attention} />
 
-          {/* Diagnostics */}
-          <SectionLot
-            id="diagnostics"
-            titre="Diagnostics du lot"
-            // Le titre dit déjà le niveau : la pastille ne le répète pas
-            // entre parenthèses, et le résumé ne redit pas ce qui manque — le
-            // bandeau du haut le dit, avec « Régler » (24/09).
-            alerte={alerteDiagnostics(manquants.map((m) => m.type), diagnostics ?? [])}
-            resume={
-              nbDiag === 0
-                ? "Aucun diagnostic déposé"
-                : `${nbDiag} déposé${nbDiag > 1 ? "s" : ""}`
-            }
-          >
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                DPE, électricité, gaz, plomb, amiante privatif… Ceux {duBien}{" "}
-                se déposent juste en dessous.
-              </p>
-              <LignesDiagnostics
-                orgId={orgId}
-                bienId={bienId}
-                lotId={lotId}
-                niveau="lot"
-                attendus={exigiblesLot.map((e) => e.type)}
-                diagnostics={(diagnostics ?? []) as DiagnosticDepose[]}
-              />
-            </div>
-          </SectionLot>
-
-          {/* Diagnostics de l'immeuble, DEPUIS la fiche lot (relevé du 11/09).
-              Le rattachement ne se décide PAS ici : `deposerDiagnostic` le lit
-              dans le référentiel (`TYPES_DIAGNOSTIC[type].niveau`) et écrit
-              `bien_id` pour un diagnostic d'immeuble, quel que soit le lot d'où
-              part le dépôt (RM-0.6.2) ; l'archivage de l'ancien du même type
-              est inchangé (RM-0.8.5). On lui passe quand même `lotId` : c'est
-              ce qui lui fait revalider CETTE page, sans quoi le blocage « ERP
-              absent ou expiré » resterait affiché après le dépôt. Ce qui change
-              pour l'utilisateur : il ne quitte plus le lot pour le lever. */}
-          <SectionLot
-            id="diagnostics-immeuble"
-            titre={`Diagnostics ${duBien}`}
-            alerte={alerteDiagnostics(manquantsBien.map((m) => m.type), diagnosticsBien ?? [])}
-            resume={
-              nbDiagBien === 0
-                ? "Aucun diagnostic déposé"
-                : `${nbDiagBien} déposé${nbDiagBien > 1 ? "s" : ""}`
-            }
-          >
-            <div className="space-y-3">
-              <p className="text-xs text-muted-foreground">
-                ERP, termites, amiante des parties communes… Ils valent pour
-                tout le bien « {bien.nom} » : un dépôt fait ici sert à chacun de
-                ses lots, et se retrouve sur la fiche du bien.
-              </p>
-              <LignesDiagnostics
-                orgId={orgId}
-                bienId={bienId}
-                lotId={lotId}
-                niveau="bien"
-                attendus={exigiblesBien.map((e) => e.type)}
-                diagnostics={(diagnosticsBien ?? []) as DiagnosticDepose[]}
-              />
-            </div>
-          </SectionLot>
-
-          {/* Équipements */}
-          <SectionLot
-            id="equipements"
-            titre="Équipements"
-            resume={
-              // Le logement, pas la case du formulaire (24/09)
-              nbEquip === 0
-                ? "Aucun équipement renseigné"
-                : `${nbEquip} équipement${nbEquip > 1 ? "s" : ""} renseigné${nbEquip > 1 ? "s" : ""}`
-            }
-          >
-            <FormulaireEquipementsLot
-              orgId={orgId}
-              bienId={bienId}
-              lotId={lotId}
-              catalogue={catalogue ?? []}
-              selection={(equipesLot ?? []).map((e) => e.equipement_id)}
-            />
-          </SectionLot>
-
-          {/* Pièces (pour la grille d'état des lieux) */}
-          <SectionLot
-            id="pieces"
-            titre="Pièces (état des lieux)"
-            alerte={(piecesLot ?? []).length === 0 ? "À définir" : undefined}
-            resume={
-              (piecesLot ?? []).length === 0
-                ? "Aucune pièce définie"
-                : (piecesLot as PieceLot[]).map((p) => p.nom).join(", ")
-            }
-          >
-            <FormulairePiecesLot
-              orgId={orgId}
-              bienId={bienId}
-              lotId={lotId}
-              pieces={(piecesLot ?? []) as PieceLot[]}
-            />
-          </SectionLot>
-
-          {/* Baux & état des lieux */}
-          <SectionLot
-            id="baux"
-            titre="Baux & état des lieux"
-            // Seule exception au principe « toutes les sections repliées »
-            // (voir section-lot.tsx) : un lot DISPONIBLE et SANS AUCUN BAIL n'a
-            // qu'une suite possible, et c'est ce formulaire — l'unique porte
-            // d'entrée de la création d'un bail dans toute l'application
-            // (relevé du 11/09 : ni route /baux, ni bouton « Nouveau bail »).
-            // La création reste un simple brouillon : tous les contrôles de
-            // mise en location vivent à l'activation (controler_mise_en_location).
-            ouvertParDefaut={lot.etat === "disponible" && (baux ?? []).length === 0}
-            resume={
-              nbBaux === 0
-                ? "Aucun bail"
-                : `${nbBaux > 1 ? `${nbBaux} baux` : "1 bail"} · ${(baux ?? [])
-                    .map((b) => ETATS_BAIL[b.etat] ?? b.etat)
-                    .join(", ")}`
-            }
-          >
-            <div className="space-y-4">
-              {(baux ?? []).length > 0 && (
-                <ul className="space-y-2">
-                  {(baux ?? []).map((b) => (
-                    <li key={b.id} className="flex items-center gap-3">
-                      <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
-                        {ETATS_BAIL[b.etat] ?? b.etat}
-                      </span>
-                      {/* Recette 21/08 puis 22/08 : la vue macro dit qui
-                          habite, pour combien et depuis quand — avant
-                          d'ouvrir. */}
-                      <span className="min-w-0 flex-1 truncate text-sm">
-                        Bail {b.chambre_id ? `individuel · ${chambres?.find(c => c.id === b.chambre_id)?.nom ?? "chambre"}` : (TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
-                        {b.locataire_principal && nomsParId.get(b.locataire_principal)
-                          ? ` — ${nomsParId.get(b.locataire_principal)}`
-                          : ""}
-                        {(b.loyer_hc != null || b.date_debut || b.date_fin) && (
-                          <span className="block truncate text-xs text-muted-foreground sm:inline sm:before:content-['_·_']">
-                            {[
-                              b.loyer_hc != null
-                                ? `${eur(Number(b.loyer_hc) + Number(b.charges ?? 0))} charges comprises`
-                                : null,
-                              b.date_debut ? `entrée le ${formaterDate(b.date_debut)}` : null,
-                              b.date_fin ? `fin le ${formaterDate(b.date_fin)}` : null,
-                            ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                        )}
-                      </span>
-                      <Link
-                        href={`/agence/${orgId}/baux/${b.id}`}
-                        className={buttonVariants({ variant: "ghost", size: "sm" })}
-                      >
-                        Ouvrir
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {detentionsActives.length === 0 ? (
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <p>
-                    Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
-                    de créer un bail.
-                  </p>
-                  {/* Le message dit où aller : la section Détention de cette
-                      fiche, et la création de la fiche du locataire. */}
-                  <p className="flex flex-wrap gap-x-4 gap-y-1">
-                    <a href="#detention" className="lien-discret">
-                      Ajouter un propriétaire →
-                    </a>
-                    <Link href={`/agence/${orgId}/personnes#creer-fiche`} className="lien-discret">
-                      Créer la fiche du locataire →
-                    </Link>
-                  </p>
-                </div>
-              ) : (
-                <FormulaireBailLot
-                  orgId={orgId}
-                  bienId={bienId}
-                  lotId={lotId}
-                  // Le propriétaire du lot n'est pas son locataire (audit du
-                  // 27/09) : « Moreau Claire » se voyait proposée comme
-                  // locataire principal de son propre bien.
-                  personnes={(personnes ?? []).filter(
-                    (p) => !detentionsActives.some((d) => d.person_id === p.id)
-                  )}
-                  chambres={chambres ?? []}
-                />
-              )}
-            </div>
-          </SectionLot>
-
-          {/* La colocation ne concerne qu'un logement : la section se tait
-              sur un parking, un local ou un terrain — sauf si des chambres ou
-              un plafond y sont déjà saisis (on ne cache pas une donnée). */}
-          {/* … et elle se tait aussi sur un lot loué en bail unique qui n'a
-              aucune chambre (24/09) : la rangée y était sans objet. */}
-          {colocationPertinente && !(bailEnCours && nbChambres === 0) && (
+      {/* LA LOCATION D'ABORD, et c'est le correctif de fond du 11/09. Pour un
+          lot loué, la seule question qui se pose en ouvrant la fiche est : qui
+          habite, pour combien, jusqu'à quand. Ces trois faits étaient au FOND
+          de la page, repliés sous « Baux & état des lieux », derrière neuf
+          rangées de caractéristiques dont quatre vides — précédés d'un
+          paragraphe expliquant le cycle de vie d'un lot, affiché à chaque
+          visite, qui occupait à lui seul le premier écran d'un téléphone. */}
+      <OngletsDossier onglets={[
+        {titre: "Vue d’ensemble", ancres:["location-apercu"], contenu:apercuLocation},
+        {titre: "Logement", ancres:["caracteristiques","detention","pieces","equipements"], contenu:<Card><CardContent className="space-y-5 pt-5"><div id="caracteristiques"><RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} modifierInitial={modifier === "1"} /></div>{rubriqueDetention}{rubriquePieces}{rubriqueEquipements}</CardContent></Card>},
+        {titre: "Diagnostics", ancres:["diagnostics","diagnostics-immeuble"], contenu:<Card><CardContent className="space-y-5 pt-5">{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</CardContent></Card>},
+        {titre: "Baux et états des lieux", ancres:["baux"], contenu:<Card><CardContent className="pt-5">{rubriqueBaux}</CardContent></Card>},
+        ...((bien.copropriete || colocationPertinente) ? [{titre:"Gestion complémentaire", ancres:["charges","chambres"], contenu:<Card><CardContent className="space-y-5 pt-5">          {colocationPertinente && !(bailEnCours && nbChambres === 0) && (
             <SectionLot
               id="chambres"
               titre="Colocation · contrats individuels"
@@ -775,9 +759,8 @@ export default async function PageLot(
                 anneeCourante={new Date().getFullYear()}
               />
             </SectionLot>
-          )}
-        </CardContent>
-      </Card>
+          )}</CardContent></Card>}] : []),
+      ]} />
       </div><RepereDossier etapes={etapesDossier} /></div>
     </main>
   );

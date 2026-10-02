@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 
-export function OngletsDossier({ onglets }: { onglets: { titre: string; ancres: string[]; contenu: ReactNode }[] }) {
-  const [actif, setActif] = useState(0);
+export function OngletsDossier({ onglets, initial = 0 }: { initial?: number; onglets: { titre: string; ancres: string[]; contenu: ReactNode }[] }) {
+  const [actif, setActif] = useState(initial);
   useEffect(() => {
     function synchroniser() {
       const ancre = window.location.hash.slice(1);

@@ -304,7 +304,7 @@ export function FormulaireBien({
         </div>
       )}
 
-      <div className="saisie-repere"><span>2</span><div><h2>Caractéristiques du bâtiment</h2><p>Ces informations servent à préparer le dossier et ses documents.</p></div></div>
+      <div className="saisie-repere">{!guideActif && <span>2</span>}<div><h2>Caractéristiques du bâtiment</h2><p>Ces informations servent à préparer le dossier et ses documents.</p></div></div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="bien-annee">Année de construction *</Label>
@@ -395,7 +395,7 @@ export function FormulaireBien({
       <div hidden={guideActif && etapeCreation !== 1}>
       {!bien && (
         <div className="space-y-6 border-t border-border pt-6">
-          <div className="saisie-repere"><span>3</span><div><h2>{multiLots ? "Les lots à gérer" : "Le logement"}</h2><p>Renseignez chaque unité que vous louez séparément.</p></div></div>
+          <div className="saisie-repere"><span>{guideActif ? 2 : 3}</span><div><h2>{multiLots ? "Les lots à gérer" : "Le lot à louer"}</h2><p>Renseignez chaque unité que vous louez séparément.</p></div></div>
           {/* Types divisibles hors immeuble : la question précède la suite */}
           {!nonDecoupable && type !== "immeuble" && (
             <label className="flex items-center gap-2 text-sm">

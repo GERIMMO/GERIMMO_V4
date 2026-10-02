@@ -69,6 +69,18 @@ export async function genererDocument(
       modele.typeGed,
       assemblage.titreGed
     );
+    // Regénéré sans qu'aucune donnée n'ait changé : le PDF est identique à
+    // celui déjà rangé. Ce n'est pas une erreur (retour recette du 02/10 :
+    // « la notice ne marche pas ») — on montre le document existant.
+    if (depot.doublonId && !depot.documentId) {
+      revalidatePath(`/agence/${orgId}/documents`);
+      return {
+        documentId: depot.doublonId,
+        manquants: [],
+        liens: assemblage.liens,
+        succes: `${assemblage.titreGed} inchangé : rien n'a été modifié depuis la dernière génération, le PDF déjà rangé dans Documents est à jour.`,
+      };
+    }
     if (depot.erreur || !depot.documentId) {
       return { erreur: depot.erreur ?? "Échec du rangement en GED." };
     }

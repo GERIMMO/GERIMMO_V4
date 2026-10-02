@@ -11,6 +11,9 @@ import { sansJargon } from "@/lib/erreurs";
 export type ResultatDepotGed = {
   documentId?: string;
   erreur?: string;
+  // Le même contenu, octet pour octet, est déjà rangé : son identifiant, pour
+  // qu'un document GÉNÉRÉ à l'identique soit montré plutôt que refusé (02/10).
+  doublonId?: string;
   // Le fichier a été accepté, mais son extension mentait sur son contenu :
   // on le dit plutôt que de corriger en silence.
   avertissement?: string;
@@ -27,6 +30,7 @@ export type FichierPrepareGed = {
 export type ResultatPreparationGed = {
   fichier?: FichierPrepareGed;
   erreur?: string;
+  doublonId?: string;
   avertissement?: string;
 };
 
@@ -94,6 +98,7 @@ export async function preparerFichierGed(
       // Détection par empreinte du CONTENU (recette 22/08 : le titre peut
       // différer, c'est bien le même fichier octet pour octet — le dire).
       erreur: `Un fichier au contenu strictement identique existe déjà dans la GED, sous le nom « ${doublon.titre ?? "sans titre"} ». Rattachez cette pièce existante plutôt que de la déposer en double.`,
+      doublonId: doublon.id,
     };
   }
 
@@ -138,7 +143,7 @@ export async function deposerFichierGed(
 ): Promise<ResultatDepotGed> {
   const prepare = await preparerFichierGed(supabase, orgId, fichier);
   if (prepare.erreur || !prepare.fichier) {
-    return { erreur: prepare.erreur ?? "Échec du dépôt du fichier." };
+    return { erreur: prepare.erreur ?? "Échec du dépôt du fichier.", doublonId: prepare.doublonId };
   }
   const { chemin, mime, taille, empreinte } = prepare.fichier;
 

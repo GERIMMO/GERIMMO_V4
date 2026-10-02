@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PlanCreationBien } from "@/components/repere-dossier";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
   Card,
@@ -47,7 +48,7 @@ export default async function PageNouveauBien(
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl p-4 sm:p-7">
+    <main className="mx-auto w-full max-w-7xl p-4 sm:p-7">
       {/* Le retour « ← Parent » au-dessus de l'en-tête, nommé comme l'entrée
           du menu (25/09 : aucun retour, ni fil ni flèche). */}
       <Link
@@ -57,7 +58,11 @@ export default async function PageNouveauBien(
         ← {estProprietaire ? "Mes lots" : "Parc de l'agence"}
       </Link>
       <div className="entete-page">
+        <div>
+        <p className="dossier-surtitre">Votre patrimoine, bien organisé</p>
         <h1>Nouveau bien</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Commencez votre dossier de location par l’adresse et les caractéristiques du bien.</p>
+        </div>
       </div>
       {depassement && (
         <div className="loc-carte mb-4 border-l-4 border-l-[var(--or)]">
@@ -93,7 +98,7 @@ export default async function PageNouveauBien(
           </div>
         </div>
       ) : (
-      <Card>
+      <div className="dossier-grille"><Card>
         <CardHeader>
           <CardTitle className="text-base">Adresse et caractéristiques</CardTitle>
           <CardDescription>
@@ -103,7 +108,7 @@ export default async function PageNouveauBien(
         <CardContent>
           <FormulaireBien orgId={orgId} />
         </CardContent>
-      </Card>
+      </Card><PlanCreationBien /></div>
       )}
     </main>
   );

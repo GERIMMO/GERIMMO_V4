@@ -5691,3 +5691,14 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Générateur versionné : `app/scripts/kit-recette/` (HTML → PDF par Chromium,
   pièces fictives filigranées, xlsx par openpyxl). Le kit (zip) a été remis au
   porteur ; il n'est pas versionné.
+
+## [2026-10-01] correction | « À renseigner » d'un bail : vers le formulaire du lot
+- Retour du testeur propriétaire (Julien Morel, kit du 01/10) : « aucun endroit
+  où remplir ces infos ». Les manquants d'un bail généré affichaient le libellé
+  d'épreuve du contrat (« le cas échéant », « cave, grenier… ») et renvoyaient à
+  la fenêtre résumé du parc, sans formulaire ; le lot n'avait ni chauffage, ni
+  identifiant fiscal, ni équipements saisis.
+- PR #153 (fusionnée, déployée) : les manquants nomment le champ ; une page de
+  renvoi `/agence/[orgId]/lots/[lotId]` mène à la fiche complète du lot, section
+  visée, « Modifier le lot » déjà ouvert. Pages concernées : [[Bail]],
+  [[Recette de production]].

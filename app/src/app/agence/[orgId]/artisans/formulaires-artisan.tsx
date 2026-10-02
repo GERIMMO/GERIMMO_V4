@@ -67,7 +67,7 @@ function ChampsMetiersEtZones({
         </div>
       </fieldset>
       <div className="space-y-1.5">
-        <Label htmlFor={idCodes}>Zone d&apos;intervention — codes postaux *</Label>
+        <Label htmlFor={idCodes}>Zone d&apos;intervention — codes postaux ou départements *</Label>
         <Input
           id={idCodes}
           name="codes_postaux"

@@ -56,7 +56,10 @@ export function FormulaireInscription() {
   const base = useId();
 
   return (
-    <form action={action} className="space-y-5">
+    // `onReset` : React 19 réinitialise le formulaire à la fin de l'action ;
+    // les cases « métiers » (contrôlées) se décochaient alors à l'écran même
+    // quand l'état les gardait cochées (retour recette du 02/10).
+    <form action={action} onReset={(event) => event.preventDefault()} className="space-y-5">
       <div className="space-y-1.5">
         <label htmlFor={idRaison} className={CLASSE_LIBELLE}>
           Nom de votre entreprise
@@ -162,7 +165,8 @@ export function FormulaireInscription() {
           Votre zone d&apos;intervention
         </label>
         <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-          Les codes postaux où vous vous déplacez, séparés par des virgules.
+          Des codes postaux (91300) ou des départements entiers (91, 94, 77),
+          séparés par des virgules.
         </p>
         <input
           id={idZones}
@@ -170,6 +174,7 @@ export function FormulaireInscription() {
           type="text"
           inputMode="text"
           defaultValue={etat.valeurs?.codes_postaux}
+          placeholder="91, 94, 77300"
           className={CLASSE_CHAMP}
         />
       </div>

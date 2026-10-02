@@ -220,8 +220,8 @@ export function FormulaireMetiersZones({
             Ma zone d&apos;intervention
           </label>
           <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
-            Les codes postaux où vous vous déplacez, séparés par des virgules.
-            Ils sont comparés au code postal du logement, à l&apos;identique.
+            Des codes postaux (91300) ou des départements entiers (91, 94, 77),
+            séparés par des virgules. Un département couvre tous ses codes postaux.
           </p>
           <input
             id={idZones}

@@ -129,7 +129,12 @@ export async function abandonnerPieceGed(
   supabase: SupabaseClient,
   piece: FichierPrepareGed
 ): Promise<void> {
-  await supabase.rpc("purger_fichier_sans_fiche", { p_storage_path: piece.chemin });
+  try {
+    const { error } = await supabase.rpc("purger_fichier_sans_fiche", { p_storage_path: piece.chemin });
+    if (error) console.warn("[ged] La mise en file de purge du fichier sans fiche a échoué.");
+  } catch {
+    console.warn("[ged] La mise en file de purge du fichier sans fiche est indisponible.");
+  }
 }
 
 // Cœur du dépôt GED, partagé entre le formulaire Documents et les dépôts
@@ -171,6 +176,9 @@ export async function deposerFichierGed(
     .select("id")
     .single();
   if (erreurInsert || !document) {
+    // L'octet est déjà monté : un refus de fiche ne doit pas le laisser
+    // indéfiniment dans le stockage, même lors d'une course anti-doublon.
+    await abandonnerPieceGed(supabase, prepare.fichier);
     // 23505 : anti-doublon OU unicité de version (revue 26/08) — le nom de
     // la contrainte départage
     if (erreurInsert?.code === "23505") {

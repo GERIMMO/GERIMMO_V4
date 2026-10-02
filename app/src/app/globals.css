@@ -3445,13 +3445,6 @@ h2 { font-size: 1.3125rem; }
 .assistant-resume { display: grid; gap: 16px; position: sticky; top: 78px; }
 .assistant-resume h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 650; margin-bottom: 10px; }
 .assistant-resume p { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
-.assistant-resume progress { width: 100%; height: 8px; accent-color: var(--marque); margin: 12px 0; }
-.assistant-resume .assistant-note { font-size: 11px; }
-.assistant-resume ol { margin-top: 14px; display: grid; gap: 5px; }
-.assistant-resume li button { display: flex; width: 100%; gap: 8px; align-items: center; min-height: 40px; padding: 6px; font-size: 12px; border-radius: 6px; text-align: left; }
-.assistant-resume li button[aria-current=step] { color: var(--marque-sombre); background: var(--marque-clair); font-weight: 650; }
-.assistant-resume li button:disabled { opacity: .55; }
-.assistant-resume small { margin-left: auto; }
 .assistant-conseil { padding: 20px; border-radius: 12px; background: var(--marque-clair); }
 .assistant-titre { display: flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 650; scroll-margin-top: 85px; }
 .assistant-titre > span { display: grid; place-items: center; height: 36px; width: 36px; border-radius: 50%; background: var(--marque); color: var(--sur-marque); font-size: 17px; }
@@ -3462,7 +3455,16 @@ h2 { font-size: 1.3125rem; }
 @media (max-width: 1100px) { .assistant-grille { grid-template-columns: minmax(0,1fr); } .assistant-resume { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); } .assistant-etapes { gap: 8px; } .assistant-etapes small { display: none; } .assistant-etapes button { flex-direction: column; align-items: flex-start; } }
 @media (max-width: 640px) { .assistant-etapes { display: flex; overflow-x: auto; padding: 5px 3px 8px; } .assistant-etapes button { min-width: 88px; } .assistant-carte { padding: 16px; } .assistant-resume { grid-template-columns: minmax(0,1fr); } .assistant-titre { font-size: 19px; } }
 
-.assistant-resume progress { appearance: none; border: 0; border-radius: 10px; overflow: hidden; background: var(--trait); }
-.assistant-resume progress::-webkit-progress-bar { background: var(--trait); border-radius: 10px; }
-.assistant-resume progress::-webkit-progress-value { background: var(--marque); border-radius: 10px; }
-.assistant-resume progress::-moz-progress-bar { background: var(--marque); border-radius: 10px; }
+
+/* Repères doux : les informations à compléter ne sont pas des erreurs. */
+.assistant-contenu > .assistant-carte { border-top: 3px solid color-mix(in srgb,var(--marque) 45%,var(--surface)); }
+.assistant-logement { background: linear-gradient(145deg,#eefaf7,var(--surface) 75%); border-color: #d5eae4; }
+.assistant-logement h2 { color: #226757; }
+.assistant-conseil { background: #f3f0fc; border: 1px solid #e6dff4; }
+.assistant-conseil h2 { color: #615080; }
+.assistant-location .rang-section.a-completer { border-left-color: transparent; }
+.assistant-location .rang-section .puce-prep { background: #edf2fa; color: #50617d; }
+.assistant-location .rang-section { padding-left: 12px; padding-right: 12px; }
+.assistant-location .assistant-panneau > section { border-radius: 10px; }
+
+.assistant-location .fiche-informations-attendues { background: #f3f6fb; color: #50617d; border: 1px solid #e1e8f2; border-radius: 10px; }

@@ -171,6 +171,7 @@ export async function creerPersonne(
     };
   }
   revalidatePath(`/agence/${orgId}/personnes`);
+  if (formData.get("rester_dans_parcours") === "1") return { succes: "Fiche créée. Vous pouvez sélectionner cette personne à l’étape Bail." };
   redirect(`/agence/${orgId}/personnes/${cree.id}`);
 }
 

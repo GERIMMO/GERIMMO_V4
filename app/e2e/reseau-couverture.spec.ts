@@ -16,11 +16,13 @@ test.describe("Couverture du réseau depuis le bien", () => {
     await page.getByLabel(/Année de construction/).fill("1998");
     await page.getByLabel(/Parties communes/).fill("Hall et local vélos");
     await page.getByLabel(/\(TIC\)/).fill("Fibre et TNT");
-    await page.getByLabel(/Surface.*m²/).fill("42");
+    await page.getByRole("button", { name: "Étape suivante", exact: true }).click();
+  await page.getByLabel(/Surface.*m²/).fill("42");
     await page.getByLabel("Nombre de pièces").fill("2");
     await page.getByRole("button", { name: /Créer le bien/ }).click();
-    await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+$/);
-    await page.getByRole("link", { name: "Vérifier les artisans disponibles pour ce bien" }).click();
+    await expect(page).toHaveURL(/\/parc\/[0-9a-f-]+\/lots\/[0-9a-f-]+\?parcours=1&etape=logement$/);
+    await page.getByRole("link", { name: "Retour au logement", exact: false }).click();
+    await page.getByRole("link", { name: "Artisans disponibles", exact: true }).click();
     await page.getByLabel("Métier recherché", { exact: true }).selectOption("plomberie");
     await page.getByRole("button", { name: "Vérifier pour ce bien" }).click();
     // Audit 29/09 : la commune évidente est proposée et confirmée dès la

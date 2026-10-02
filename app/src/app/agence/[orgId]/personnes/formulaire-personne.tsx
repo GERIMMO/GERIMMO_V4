@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { creerPersonne, type EtatPersonne } from "@/app/actions/personnes";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ export function FormulairePersonne({
   // propriétaire, c'est lui.
   estBailleurDirect?: boolean;
 }) {
+  const router = useRouter();
   const action = creerPersonne.bind(null, orgId);
   const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
   const formulaire = useRef<HTMLFormElement>(null);
@@ -74,6 +76,7 @@ export function FormulairePersonne({
   useEffect(() => {
     if (etat.succes) {
       formulaire.current?.reset();
+      router.refresh();
       // Fiche créée : l'assistant repart de l'étape 1. Réinitialisation
       // pilotée par la réponse du serveur, pas un état dérivé du rendu.
       /* eslint-disable react-hooks/set-state-in-effect */
@@ -82,7 +85,7 @@ export function FormulairePersonne({
       setMorale(false);
       /* eslint-enable react-hooks/set-state-in-effect */
     }
-  }, [etat]);
+  }, [etat, router]);
 
   const estProprio = role === "proprietaire_mandant";
 

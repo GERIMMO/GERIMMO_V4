@@ -1,5 +1,6 @@
 "use client";
 
+import { CadreParcours } from "@/components/parcours-location";
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { creerBien, modifierBien, type EtatParc } from "@/app/actions/parc";
 import { TYPES_BIEN, TYPES_NON_DECOUPABLES } from "@/lib/parc";
@@ -39,14 +40,32 @@ export type BienFormulaire = {
 export function FormulaireBien({
   orgId,
   bien,
+  guide = false,
 }: {
   orgId: string;
   bien?: BienFormulaire;
+  guide?: boolean;
 }) {
+  const [etapeCreation, setEtapeCreation] = useState(0);
+  const groupeBien = useRef<HTMLDivElement>(null);
+  const guideActif = guide && !bien;
+  function changerEtape(i: number) {
+    if (i === 1) {
+      const champs = groupeBien.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea");
+      for (const champ of champs ?? []) if (!champ.reportValidity()) return;
+    }
+    setEtapeCreation(i);
+  }
   const actionLiee = bien
     ? modifierBien.bind(null, orgId, bien.id)
     : creerBien.bind(null, orgId);
   const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const erreurRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (!etat.erreur) return;
+    erreurRef.current?.focus({ preventScroll: true });
+    erreurRef.current?.scrollIntoView({ block: "center" });
+  }, [etat]);
 
   // Identifiants tirés de useId() — jamais une chaîne en dur : la page peut
   // rendre deux fois le même formulaire, et des id identiques décrocheraient
@@ -151,8 +170,11 @@ export function FormulaireBien({
     setLots([{ nom: "", surface: "", pieces: "" }]);
   };
 
-  return (
-    <form action={action} className="saisie-bien space-y-6">
+  const contenu = (
+    <form action={action} className="saisie-bien space-y-6" noValidate={guideActif} onSubmit={(e) => { if (!guideActif) return; const champs = e.currentTarget.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>("input, select, textarea"); for (const champ of champs) { if (!champ.validity.valid) { e.preventDefault(); setEtapeCreation(groupeBien.current?.contains(champ) ? 0 : 1); requestAnimationFrame(() => champ.reportValidity()); break; } } }}>
+      {etat.erreur && <p ref={erreurRef} role="alert" tabIndex={-1} className="scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">{etat.erreur}</p>}
+      {guideActif && <input type="hidden" name="parcours" value="1" />}
+      <div ref={groupeBien} hidden={guideActif && etapeCreation !== 0} className="space-y-6">
       <div className="saisie-repere"><span>1</span><div><h2>Adresse et localisation</h2><p>Identifiez le bien et sa commune.</p></div></div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
@@ -369,6 +391,8 @@ export function FormulaireBien({
         </div>
       )}
 
+      </div>
+      <div hidden={guideActif && etapeCreation !== 1}>
       {!bien && (
         <div className="space-y-6 border-t border-border pt-6">
           <div className="saisie-repere"><span>3</span><div><h2>{multiLots ? "Les lots à gérer" : "Le logement"}</h2><p>Renseignez chaque unité que vous louez séparément.</p></div></div>
@@ -486,17 +510,21 @@ export function FormulaireBien({
         </div>
       )}
 
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      </div>
       {etat.succes && (
-        <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
+        <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <BoutonEnvoi enCoursTexte="Enregistrement…">
+      <div className="assistant-pied">
+      {guideActif && etapeCreation === 1 && <Button type="button" variant="outline" onClick={() => changerEtape(0)}>Étape précédente</Button>}
+      {guideActif && etapeCreation === 0 ? <Button type="button" onClick={() => changerEtape(1)}>Étape suivante</Button> : <BoutonEnvoi enCoursTexte="Enregistrement…">
         {bien
           ? "Enregistrer"
           : multiLots
             ? `Créer le bien et ses ${lots.length} lot${lots.length > 1 ? "s" : ""}`
             : "Créer le bien et son lot unique"}
-      </BoutonEnvoi>
+      </BoutonEnvoi>}
+      </div>
     </form>
   );
+  return guideActif ? <CadreParcours etape={etapeCreation} changer={changerEtape} accessibles={2} resume={<div className="space-y-2"><p>{adresse || "Adresse à renseigner"}</p><p>{codePostal} {ville}</p><p>Le bien et ses lots seront enregistrés à la fin de l’étape 2. Vous pourrez ensuite compléter chaque logement.</p></div>}><div className="assistant-carte">{contenu}</div></CadreParcours> : contenu;
 }

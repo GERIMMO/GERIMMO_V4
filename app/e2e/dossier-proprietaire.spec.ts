@@ -87,7 +87,7 @@ test('propriétaire : créer le locataire puis le bail sans quitter le guide', a
   const nom = `Guide${Date.now()}`;
   const region = page.getByRole('region', { name: 'Étape Locataires', exact: true });
   await region.getByRole('button', { name: /Locataire.*Occupe/ }).click();
-  for (const [champ, valeur] of Object.entries({ nom, prenom:'Camille', email:'guide-local@example.invalid', date_naissance:'1990-01-01', commune_naissance:'Lyon', address_line1:'1 rue des Essais', postal_code:'69003', city:'Lyon' })) {
+  for (const [champ, valeur] of Object.entries({ nom, prenom:'Camille', email:`${nom.toLowerCase()}@example.invalid`, date_naissance:'1990-01-01', commune_naissance:'Lyon', address_line1:'1 rue des Essais', postal_code:'69003', city:'Lyon' })) {
     await region.locator(`[name="${champ}"]`).fill(valeur);
   }
   await region.getByRole('button', { name:'Créer la fiche', exact:true }).click();

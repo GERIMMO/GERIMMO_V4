@@ -95,6 +95,19 @@ describe.skipIf(!DB_URL)("Documents — pas d'appropriation hors portefeuille", 
     expect((await db.query("select id from public.documents where id=$1", [documentA])).rows).toHaveLength(1);
   });
 
+  it("reprend un rattachement avec ON CONFLICT sans modifier les liens existants", async () => {
+    await devenir(agentA);
+    const sql = "insert into public.document_liens(document_id,organization_id,entite,entite_id) values($1,$2,'incident',$3),($1,$2,'lot',$4) on conflict(document_id,entite,entite_id) do nothing";
+    await db.query(sql, [documentA, org, incidentA, lotA]);
+    await db.query(sql, [documentA, org, incidentA, lotA]);
+    expect((await db.query("select entite from public.document_liens where document_id=$1", [documentA])).rows.map(r => r.entite).sort()).toEqual(["incident", "lot"]);
+  });
+
+  it("ON CONFLICT ne permet pas de rattacher le document du collègue", async () => {
+    await devenir(agentB);
+    await tenterSansFuite("insert into public.document_liens(document_id,organization_id,entite,entite_id) values($1,$2,'lot',$3) on conflict(document_id,entite,entite_id) do nothing", [documentA, org, lotB]);
+  });
+
   it("une suppression sans filtre ne retire pas les liens du collègue", async () => {
     await devenir(agentB);
     await expect(db.query("delete from public.document_liens")).rejects.toMatchObject({ code: "42501" });

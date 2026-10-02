@@ -24,11 +24,7 @@ export function CadreParcours({ etape, changer, accessibles = 7, resume, childre
     </nav>
     <div className="assistant-grille"><div className="assistant-contenu">{children}</div>
       <aside className="assistant-resume" aria-label="Votre location en préparation">
-        <section className="assistant-carte"><h2>Votre progression</h2><p>Étape {etape + 1} sur 7</p><progress value={etape + 1} max={7} aria-label="Étape du parcours" />
-          <p className="assistant-note">Ce repère indique votre position dans le parcours. Les vérifications du dossier restent nécessaires.</p>
-          <ol>{ETAPES_LOCATION.map((e, i) => <li key={e.cle}><button type="button" disabled={i >= accessibles} onClick={() => changer(i)} aria-current={i === etape ? "step" : undefined}><span>{i + 1}</span>{e.titre}{i === etape && <small>En cours</small>}</button></li>)}</ol>
-        </section>
-        <section className="assistant-carte"><h2><House size={18} aria-hidden="true" /> Votre logement</h2>{resume}</section>
+        <section className="assistant-carte assistant-logement"><h2><House size={18} aria-hidden="true" /> Votre logement</h2>{resume}</section>
         <section className="assistant-conseil"><h2>Chaque étape à votre rythme</h2><p>Enregistrez les rubriques que vous modifiez. Vous pourrez reprendre votre dossier depuis la fiche du logement.</p></section>
       </aside>
     </div>

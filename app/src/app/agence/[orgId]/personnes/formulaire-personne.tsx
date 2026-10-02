@@ -53,12 +53,14 @@ export function FormulairePersonne({
   orgId,
   lots,
   estBailleurDirect = false,
+  dansParcours = false,
 }: {
   orgId: string;
   lots: LotRattachable[];
   // Espace propriétaire direct : pas de « propriétaire mandant » — le
   // propriétaire, c'est lui.
   estBailleurDirect?: boolean;
+  dansParcours?: boolean;
 }) {
   const router = useRouter();
   const action = creerPersonne.bind(null, orgId);
@@ -172,6 +174,7 @@ export function FormulairePersonne({
       {etape === 2 && role && (
         <form ref={formulaire} action={formAction} className="space-y-3">
           <input type="hidden" name="role" value={role} />
+          {dansParcours && <input type="hidden" name="rester_dans_parcours" value="1" />}
           <p className="text-sm text-muted-foreground">
             {ROLES.find((r) => r.cle === role)?.libelle}
             {" · "}

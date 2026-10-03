@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { NOTE_SIGNALEMENT_FERME } from "./types";
 import { useActionState, useId, useState } from "react";
 import {
   contesterImputation,
@@ -313,6 +314,7 @@ export function IncidentsLocataire({
   suivis = [],
   creneaux = [],
   peutAgir = true,
+  peutSignaler = true,
   lectureEnEchec = false,
 }: {
   orgId: string;
@@ -323,6 +325,8 @@ export function IncidentsLocataire({
   creneaux?: CreneauPropose[];
   /** Adhésion active : bail terminé, la lecture reste, les gestes non. */
   peutAgir?: boolean;
+  /** Bail actif : sans lui, la déclaration est refusée (recette 03/10). */
+  peutSignaler?: boolean;
   // La lecture a échoué : « Rien en cours » serait un mensonge rassurant
   lectureEnEchec?: boolean;
 }) {
@@ -342,11 +346,15 @@ export function IncidentsLocataire({
           réparation en charge avant toute intervention, et vous suivrez chaque
           étape ici.
         </p>
-        <span className="geste">
-          <Link href={`/locataire/${orgId}/incident`} className="btn-or">
-            Signaler un problème
-          </Link>
-        </span>
+        {peutSignaler ? (
+          <span className="geste">
+            <Link href={`/locataire/${orgId}/incident`} className="btn-or">
+              Signaler un problème
+            </Link>
+          </span>
+        ) : (
+          <p className="explication">{NOTE_SIGNALEMENT_FERME}</p>
+        )}
       </div>
     );
   }

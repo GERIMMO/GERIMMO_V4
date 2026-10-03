@@ -42,8 +42,12 @@ jobs:
       - name: Tester les contrôles de publication sans connexion externe
         run: node --test scripts/deploiement/controle.test.mjs scripts/atelier/controle.test.mjs scripts/sauvegarde/fichiers.test.mjs
       - run: npm ci
-      - name: Vérifier les vulnérabilités connues des dépendances
-        run: npm audit --audit-level=high
+      # 03/10 (décision du porteur) : seules les dépendances livrées comptent.
+      # Les outils de développement (CLI shadcn, greffon ESLint) tirent des
+      # avis sans version corrigée (braces, GHSA-vfj7-8cjw-p6xm) qui
+      # bloquaient la CI sans rien changer au code en production.
+      - name: Vérifier les vulnérabilités connues des dépendances livrées
+        run: npm audit --audit-level=high --omit=dev
       # L'exercice de restauration (tests/exercice-restauration.test.ts) lance
       # un vrai pg_dump : le client doit être de la version du serveur (18).
       - name: Client PostgreSQL 18 (même version que le serveur)

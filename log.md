@@ -5719,3 +5719,13 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   locataire, artisan, générations). Cinq bloquants, huit gênants, cinq détails ;
   aucun refus silencieux côté cron (aucun PDF n'y est rangé). Synthèse :
   [[Audit des refus de doublon du 2 octobre 2026]].
+
+## [2026-10-03] lint   | Audit d'acquisition (posture acquéreur)
+- À la demande du porteur : « comme si tu voulais l'acheter, le plus critique
+  possible, fonctionnel et esthétique, sans correction ». Trois relectures
+  parallèles (produit, technique, commercial-juridique) recoupées dans le code,
+  plus la revue des captures de recette (six profils, mobile et bureau). Cinq
+  rédhibitoires, dix manques classés, critique esthétique écran par écran,
+  treize constats techniques, dix points commerciaux et juridiques, cinq actifs.
+  Rien n'a été modifié dans l'application. Synthèse :
+  [[Audit d'acquisition du 3 octobre 2026]].

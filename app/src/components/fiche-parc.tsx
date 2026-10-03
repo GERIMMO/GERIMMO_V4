@@ -108,7 +108,7 @@ export function AttentionFiche({
   return (
     <section
       aria-label="Ce qui attend un geste"
-      className="border-l-[3px] border-l-warning bg-warning-soft px-4 py-3 text-sm text-warning-soft-foreground"
+      className="fiche-informations-attendues border-l-[3px] border-l-warning bg-warning-soft px-4 py-3 text-sm text-warning-soft-foreground"
     >
       <ul>
         {points.map((p) => (

@@ -33,6 +33,7 @@ test("créer un bien depuis le téléphone : formulaire → fiche du parc", asyn
   await page.getByLabel(/Année de construction/).fill("2005");
   await page.getByLabel(/Parties communes/).fill("Hall et cour intérieure");
   await page.getByLabel(/\(TIC\)/).fill("Fibre optique et TNT");
+  await page.getByRole("button", { name: "Étape suivante", exact: true }).click();
   await page.getByLabel(/Surface.*m²/).fill("51");
   await page.getByLabel("Nombre de pièces").fill("3");
   await page.getByRole("button", { name: /Créer le bien/ }).click();

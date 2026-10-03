@@ -413,7 +413,7 @@ async function deposerPieceBail(
     }
   }
 
-  const res = await deposerFichierGed(supabase, user, orgId, fichier, piece.type, piece.titre);
+  const res = await deposerFichierGed(supabase, user, orgId, fichier, piece.type, piece.titre, { reutiliserReglement: piece.colonne === "reglement_copropriete" });
   if (res.erreur || !res.documentId) return { erreur: res.erreur ?? "Échec du dépôt." };
 
   const { error } = await supabase

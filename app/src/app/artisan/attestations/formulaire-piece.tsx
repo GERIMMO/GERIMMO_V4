@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useId, useState } from "react";
+import { jourAttestation } from "@/lib/dates-attestation";
 import { useFormStatus } from "react-dom";
 import { deposerMaPiece, type EtatArtisanAction } from "@/app/actions/artisan";
 import { ChampFichier } from "@/components/champ-fichier";
@@ -54,7 +55,7 @@ export function FormulairePiece({ typeSuggere }: { typeSuggere?: string }) {
   const dateExigee = type !== "certification";
   // Une attestation ne s'émet pas dans le futur (retour recette du 02/10) ;
   // le serveur refuse aussi, ceci n'est que la butée du calendrier.
-  const aujourdhui = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Paris" });
+  const aujourdhui = jourAttestation();
 
   return (
     // `deposer` : l'ancre visée par l'état vide et par « Encore attendues ».

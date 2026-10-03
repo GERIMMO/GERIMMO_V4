@@ -69,46 +69,41 @@ export async function genererDocument(
       modele.typeGed,
       assemblage.titreGed
     );
-    // Regénéré sans qu'aucune donnée n'ait changé : le PDF est identique à
-    // celui déjà rangé. Ce n'est pas une erreur (retour recette du 02/10 :
-    // « la notice ne marche pas ») — on montre le document existant.
-    if (depot.doublonId && !depot.documentId) {
-      revalidatePath(`/agence/${orgId}/documents`);
-      return {
-        documentId: depot.doublonId,
-        manquants: [],
-        liens: assemblage.liens,
-        succes: `${assemblage.titreGed} inchangé : rien n'a été modifié depuis la dernière génération, le PDF déjà rangé dans Documents est à jour.`,
-      };
-    }
-    if (depot.erreur || !depot.documentId) {
+    // Un nouvel essai doit aussi réparer les liens si le premier dépôt a
+    // enregistré le PDF mais échoué au rattachement au dossier.
+    const documentId = depot.documentId ?? depot.doublonId;
+    const reutilise = !depot.documentId && Boolean(depot.doublonId);
+    if (!documentId) {
       return { erreur: depot.erreur ?? "Échec du rangement en GED." };
     }
 
     // Rattachements : le dépôt GED lie déjà à l'organisation ; on ajoute les
     // objets métier (bail, personne, lot) pour la navigation documentaire.
     if (assemblage.liens.length > 0) {
-      const { error: erreurLiens } = await supabase.from("document_liens").insert(
+      const { error: erreurLiens } = await supabase.from("document_liens").upsert(
         assemblage.liens.map((l) => ({
-          document_id: depot.documentId,
+          document_id: documentId,
           organization_id: orgId,
           entite: l.entite,
           entite_id: l.entiteId,
-        }))
+        })),
+        { onConflict: "document_id,entite,entite_id", ignoreDuplicates: true }
       );
       if (erreurLiens) {
         revalidatePath(`/agence/${orgId}/documents`);
-        return { documentId: depot.documentId, erreur: "Le PDF a été enregistré dans Documents, mais son rattachement au dossier a échoué. Ouvrez le document pour corriger ses liens avant de le partager." };
+        return { documentId, erreur: "Le PDF a été enregistré dans Documents, mais son rattachement au dossier a échoué. Ouvrez le document pour corriger ses liens avant de le partager." };
       }
     }
 
     revalidatePath(cheminRetour.startsWith(`/agence/${orgId}/`) ? cheminRetour : `/agence/${orgId}/documents`);
     revalidatePath(`/agence/${orgId}/documents`);
     return {
-      documentId: depot.documentId,
+      documentId,
       manquants: [],
       liens: assemblage.liens,
-      succes: `${assemblage.titreGed} généré — tous les champs sont renseignés et le PDF est rangé dans Documents.${
+      succes: reutilise
+        ? `${assemblage.titreGed} déjà disponible : le PDF existant est rattaché à ce dossier.`
+        : `${assemblage.titreGed} généré — tous les champs sont renseignés et le PDF est rangé dans Documents.${
         assemblage.avertissement ? ` Attention : ${assemblage.avertissement}` : ""
       }`,
     };

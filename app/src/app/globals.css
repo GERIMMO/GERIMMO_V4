@@ -3429,3 +3429,42 @@ h2 { font-size: 1.3125rem; }
 @media (max-width: 1199px) { .dossier-grille { grid-template-columns: minmax(0,1fr); } .dossier-reperes { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); } .dossier-chiffres { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 640px) { .dossier-reperes { grid-template-columns: minmax(0,1fr); } .dossier-chiffres { gap: 8px; } .dossier-chiffres > div { grid-template-columns: minmax(0,1fr); padding: 13px; } .dossier-chiffres svg { grid-row: auto; } .dossier-chiffres a { min-height: 44px; } .dossier-raccourcis { gap: 0 14px; } .dossier-panneau { padding: 16px; } }
 @media print { .dossier-reperes, .dossier-raccourcis { display: none; } .dossier-grille { display: block; } }
+
+/* Assistant de location : une étape visible, saisies conservées entre panneaux. */
+.assistant-etapes { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 12px; margin: 24px 0; }
+.assistant-etapes button { display: flex; align-items: center; gap: 9px; text-align: left; min-height: 60px; border-bottom: 3px solid var(--trait); padding-bottom: 12px; }
+.assistant-etapes button[aria-current=step] { border-color: var(--marque); color: var(--marque-sombre); }
+.assistant-etapes strong { display: block; font-size: 13px; }
+.assistant-etapes small { display: block; font-size: 11px; line-height: 1.45; color: var(--texte-secondaire); margin-top: 4px; }
+.assistant-etapes button:disabled { opacity: .55; cursor: default; }
+.assistant-rond { display: grid; place-items: center; width: 30px; height: 30px; flex-shrink: 0; border-radius: 50%; background: var(--marque-clair); color: var(--marque-sombre); font-weight: 650; }
+[aria-current=step] > .assistant-rond { background: var(--marque); color: var(--sur-marque); box-shadow: 0 0 0 4px var(--marque-clair); }
+.assistant-grille { display: grid; grid-template-columns: minmax(0,1fr) 280px; gap: 22px; align-items: start; }
+.assistant-contenu { min-width: 0; }
+.assistant-carte { padding: 24px; border: 1px solid var(--trait); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 18px color-mix(in srgb,var(--encre) 3%,transparent); }
+.assistant-resume { display: grid; gap: 16px; position: sticky; top: 78px; }
+.assistant-resume h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 650; margin-bottom: 10px; }
+.assistant-resume p { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
+.assistant-conseil { padding: 20px; border-radius: 12px; background: var(--marque-clair); }
+.assistant-titre { display: flex; align-items: center; gap: 12px; font-size: 21px; font-weight: 650; scroll-margin-top: 85px; }
+.assistant-titre > span { display: grid; place-items: center; height: 36px; width: 36px; border-radius: 50%; background: var(--marque); color: var(--sur-marque); font-size: 17px; }
+.assistant-introduction { color: var(--texte-secondaire); font-size: 13px; margin: 12px 0 24px; padding-bottom: 18px; border-bottom: 1px solid var(--trait); }
+.assistant-panneau:not([hidden]) { display: grid; gap: 20px; }
+.assistant-pied { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; padding-top: 22px; margin-top: 24px; border-top: 1px solid var(--trait); }
+.assistant-pied button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
+@media (max-width: 1100px) { .assistant-grille { grid-template-columns: minmax(0,1fr); } .assistant-resume { position: static; grid-template-columns: repeat(2,minmax(0,1fr)); } .assistant-etapes { gap: 8px; } .assistant-etapes small { display: none; } .assistant-etapes button { flex-direction: column; align-items: flex-start; } }
+@media (max-width: 640px) { .assistant-etapes { display: flex; overflow-x: auto; padding: 5px 3px 8px; } .assistant-etapes button { min-width: 88px; } .assistant-carte { padding: 16px; } .assistant-resume { grid-template-columns: minmax(0,1fr); } .assistant-titre { font-size: 19px; } }
+
+
+/* Repères doux : les informations à compléter ne sont pas des erreurs. */
+.assistant-contenu > .assistant-carte { border-top: 3px solid color-mix(in srgb,var(--marque) 45%,var(--surface)); }
+.assistant-logement { background: linear-gradient(145deg,#eefaf7,var(--surface) 75%); border-color: #d5eae4; }
+.assistant-logement h2 { color: #226757; }
+.assistant-conseil { background: #f3f0fc; border: 1px solid #e6dff4; }
+.assistant-conseil h2 { color: #615080; }
+.assistant-location .rang-section.a-completer { border-left-color: transparent; }
+.assistant-location .rang-section .puce-prep { background: #edf2fa; color: #50617d; }
+.assistant-location .rang-section { padding-left: 12px; padding-right: 12px; }
+.assistant-location .assistant-panneau > section { border-radius: 10px; }
+
+.assistant-location .fiche-informations-attendues { background: #f3f6fb; color: #50617d; border: 1px solid #e1e8f2; border-radius: 10px; }

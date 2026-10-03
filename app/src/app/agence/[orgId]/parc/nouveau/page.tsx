@@ -1,13 +1,5 @@
 import Link from "next/link";
-import { PlanCreationBien } from "@/components/repere-dossier";
 import { verifierAccesEspace } from "@/lib/espace";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { FormulaireBien } from "../formulaire-bien";
 import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 
@@ -60,7 +52,7 @@ export default async function PageNouveauBien(
       <div className="entete-page">
         <div>
         <p className="dossier-surtitre">Votre patrimoine, bien organisé</p>
-        <h1>Nouveau bien</h1>
+        <h1>Ajouter une location</h1>
         <p className="mt-2 text-sm text-muted-foreground">Commencez votre dossier de location par l’adresse et les caractéristiques du bien.</p>
         </div>
       </div>
@@ -98,17 +90,7 @@ export default async function PageNouveauBien(
           </div>
         </div>
       ) : (
-      <div className="dossier-grille"><Card>
-        <CardHeader>
-          <CardTitle className="text-base">Adresse et caractéristiques</CardTitle>
-          <CardDescription>
-            Le bien porte l&apos;adresse et les diagnostics communs. Les lots renseignés ci-dessous sont créés avec le bien : ce sont eux qui se louent.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormulaireBien orgId={orgId} />
-        </CardContent>
-      </Card><PlanCreationBien /></div>
+      <FormulaireBien orgId={orgId} guide />
       )}
     </main>
   );

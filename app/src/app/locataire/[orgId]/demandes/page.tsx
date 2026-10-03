@@ -4,6 +4,7 @@ import { IncidentsLocataire, type IncidentLocataire } from "../incidents-locatai
 import { aEchoue, PanneLecture } from "../panne-lecture";
 import { ReflexesUrgence } from "../reflexes-urgence";
 import type { CreneauPropose, SuiviIntervention } from "./suivi-intervention";
+import { signalementOuvert } from "../types";
 
 export const metadata = { title: "Mes demandes" };
 
@@ -30,6 +31,7 @@ export default async function PageDemandesLocataire(
     { data: incidentsBruts, error: eIncidents },
     { data: suivisBruts, error: eSuivis },
     { data: creneauxBruts, error: eCreneaux },
+    { data: baux },
   ] = await Promise.all([
     supabase.rpc("mes_incidents_locataire", { p_org: orgId }),
     supabase.rpc("mon_suivi_intervention", { p_org: orgId }),
@@ -38,7 +40,10 @@ export default async function PageDemandesLocataire(
     adhesionActive
       ? supabase.rpc("mes_creneaux_locataire", { p_org: orgId })
       : Promise.resolve({ data: [], error: null }),
+    // Recette 03/10 : le bouton « Signaler » ne sort que sur un bail actif.
+    supabase.rpc("mon_bail_locataire", { p_org: orgId }),
   ]);
+  const peutSignaler = adhesionActive && signalementOuvert(baux as { etat: string }[] | null);
 
   const incidents = (incidentsBruts ?? []) as IncidentLocataire[];
   const suivis = (suivisBruts ?? []) as SuiviIntervention[];
@@ -55,7 +60,7 @@ export default async function PageDemandesLocataire(
   // Le bouton de signalement ne sort que s'il y a une liste à dépasser — ou
   // si la lecture est tombée, auquel cas l'état vide (qui porte son propre
   // bouton or vers /incident) n'est pas affiché du tout (relevé 11/09).
-  const boutonSignaler = adhesionActive && (incidents.length > 0 || aEchoue(eIncidents));
+  const boutonSignaler = peutSignaler && (incidents.length > 0 || aEchoue(eIncidents));
 
   return (
     <div className="space-y-4">
@@ -113,7 +118,7 @@ export default async function PageDemandesLocataire(
           formulaire sur /incident : une consigne d'urgence ne se déménage
           pas, elle se trouve là où le locataire atterrit. */}
       <ReflexesUrgence
-        hrefSignalement={adhesionActive ? `/locataire/${orgId}/incident` : undefined}
+        hrefSignalement={peutSignaler ? `/locataire/${orgId}/incident` : undefined}
       />
 
       {/* Chaque signalement porte sa propre carte, avec son fil d'étapes */}
@@ -123,6 +128,7 @@ export default async function PageDemandesLocataire(
         suivis={suivis}
         creneaux={creneaux}
         peutAgir={adhesionActive}
+        peutSignaler={peutSignaler}
         lectureEnEchec={aEchoue(eIncidents)}
       />
     </div>

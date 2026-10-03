@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { BoutonGenererDocument } from "@/components/bouton-generer-document";
 import { InputDateJour } from "@/components/input-date-jour";
@@ -189,7 +190,7 @@ function BoutonGenererRapport({
         <p className="w-full text-xs text-muted-foreground">
           {nomMois.charAt(0).toUpperCase() + nomMois.slice(1)} n&apos;est pas clôturé —{" "}
           {peutCloturer
-            ? "clôturez-le d'abord (ci-dessus)."
+            ? <Link className="font-medium text-primary underline" href={`/agence/${orgId}/comptabilite?vue=cloture`}>Clôturer ce mois</Link>
             : "la clôture revient au responsable de l'agence."}
         </p>
       )}

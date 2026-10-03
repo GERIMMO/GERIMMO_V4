@@ -5729,3 +5729,13 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   treize constats techniques, dix points commerciaux et juridiques, cinq actifs.
   Rien n'a été modifié dans l'application. Synthèse :
   [[Audit d'acquisition du 3 octobre 2026]].
+
+## [2026-10-03] correction | Dépôt du bail signé impossible depuis un iPhone
+- Retour du testeur propriétaire (Zakaria, Firefox iOS) : « je ne peux toujours
+  pas déposer le bail signé ». Journaux : aucune tentative n'a jamais atteint
+  le serveur (ni contrôle de mise en location, ni montée en Storage) ; la base
+  ne bloque rien (mentions, diagnostics, lot disponible). Le champ fichier du
+  bail signé et du règlement de copropriété n'acceptait que l'extension
+  « .pdf », seul cas dans l'application : iOS grise alors les PDF dans le
+  sélecteur. Le champ accepte désormais aussi le type MIME ; le contrôle du
+  contenu reste côté serveur. Pages : [[Bail]], [[Recette de production]].

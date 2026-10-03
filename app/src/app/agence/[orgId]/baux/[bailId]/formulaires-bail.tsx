@@ -37,7 +37,11 @@ function FormulairePieceBail({
         <Label htmlFor={id} className="text-sm">
           {libelle}
         </Label>
-        <ChampFichier id={id} name="fichier" accept=".pdf" required />
+        {/* Recette 03/10 (testeur sur iPhone) : avec la seule extension
+            « .pdf », iOS grise les PDF dans le sélecteur de fichiers — le
+            dépôt n'a jamais atteint le serveur. Le type MIME, lui, est
+            honoré ; le contrôle réel du contenu reste côté serveur. */}
+        <ChampFichier id={id} name="fichier" accept=".pdf,application/pdf" required />
       </div>
       <BoutonEnvoi enCoursTexte="Dépôt…" size="sm" variant="outline">
         {bouton}

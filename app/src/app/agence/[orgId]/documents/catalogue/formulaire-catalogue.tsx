@@ -1,4 +1,5 @@
 "use client";
+import { lienPourManquant } from "@/lib/documents/ou-renseigner";
 import { useState } from "react";
 import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import Link from "next/link";
@@ -23,11 +24,18 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:str
       c.type==="textarea"?<textarea name={c.cle} rows={3} maxLength={6000} className={style} required/>:
       <input name={c.cle} type={c.type??"text"} step={c.type==="number"?"any":undefined} maxLength={500} className={style} required defaultValue={c.cle==="annee"?new Date().getFullYear():c.cle==="interets_emprunt"?"0":undefined}/>}
       {c.aide&&<span className="block text-xs font-normal text-muted-foreground">{c.aide}</span>}</label>)}</div>
-    <p className="text-sm text-muted-foreground">Les informations du dossier sont reprises automatiquement. Le PDF est créé uniquement lorsque tous ses champs obligatoires sont renseignés. La génération ne déclenche aucun envoi.</p>
-    <Button disabled={enCours||!cible||!choix.length} type="submit">{enCours?"Préparation du PDF…":"Générer et ranger dans Documents"}</Button>
-    {etat.erreur&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
+    <p className="text-sm text-muted-foreground">Le PDF sera enregistré dans Documents. Aucun envoi automatique.</p>
+    <Button disabled={enCours||!cible||!choix.length} type="submit">{enCours?"Préparation du PDF…":"Générer le PDF"}</Button>
+    {etat.erreur&&!etat.manquants?.length&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}
     {etat.documentId&&<Link className="block font-medium text-primary underline" href={`/agence/${orgId}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
-    {!!etat.manquants?.length&&<details open className="rounded-lg border p-4"><summary className="cursor-pointer text-sm font-medium">{etat.manquants.length} informations à compléter avant utilisation</summary><ul className="mt-3 list-disc space-y-1 pl-5 text-sm">{etat.manquants.map(m=><li key={m}>{m}</li>)}</ul></details>}
+    {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+      <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>
+      <p className="mt-1 text-sm text-muted-foreground">Complétez le dossier, puis revenez générer le PDF.</p>
+      <ul className="mt-3 divide-y divide-blue-100">{etat.manquants.map(m=>{
+        const destination=lienPourManquant(m,orgId,etat.liens??[],modeleId);
+        return <li key={m} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm"><span className="min-w-0 flex-1">{m}</span>{destination&&<Link className="font-medium text-primary underline underline-offset-4" href={destination.href} aria-label={`Compléter : ${m} (${destination.ecran})`}>Compléter →</Link>}</li>;
+      })}</ul>
+    </section>}
   </form>;
 }

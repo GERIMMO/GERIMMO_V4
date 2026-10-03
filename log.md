@@ -5739,3 +5739,13 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   « .pdf », seul cas dans l'application : iOS grise alors les PDF dans le
   sélecteur. Le champ accepte désormais aussi le type MIME ; le contrôle du
   contenu reste côté serveur. Pages : [[Bail]], [[Recette de production]].
+
+## [2026-10-03] correction | Locataire : le signalement attend un bail actif
+- Retour du testeur locataire (Sophien) : « les deux liens me ramènent ici ».
+  Son bail était en brouillon (bail signé non déposé) ; l'accueil, la carte
+  d'urgence et « Mes demandes » l'invitaient à signaler, et la page de
+  signalement le renvoyait à son gestionnaire. Les trois écrans lisent
+  désormais l'état du bail (`signalementOuvert`) : sans bail actif, le bouton
+  cède la place à une phrase qui dit ce qui manque, et la page de signalement
+  l'explique aussi (espace manquant après le point corrigé). Pages :
+  [[Incident]], [[Locataire]].

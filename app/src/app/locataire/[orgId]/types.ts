@@ -19,3 +19,16 @@ export type BailLocataire = {
   ville: string | null;
   zone_tendue: boolean | null;
 };
+
+// Recette 03/10 : un locataire dont le bail est encore en brouillon (le
+// gestionnaire n'a pas déposé le contrat signé) voyait partout « Signaler un
+// problème », et la page de signalement le renvoyait à son gestionnaire. La
+// base n'accepte une déclaration que sur un bail actif ou en préavis
+// (RM-7.1) : c'est ici que les écrans le lisent, une fois pour tous.
+export function signalementOuvert(baux: { etat: string }[] | null | undefined): boolean {
+  return (baux ?? []).some((b) => b.etat === "actif" || b.etat === "preavis");
+}
+
+/** Ce qui se lit à la place du bouton tant que le bail n'est pas actif. */
+export const NOTE_SIGNALEMENT_FERME =
+  "Le signalement s'ouvrira dès que votre bail sera actif, c'est-à-dire une fois le contrat signé déposé par votre gestionnaire.";

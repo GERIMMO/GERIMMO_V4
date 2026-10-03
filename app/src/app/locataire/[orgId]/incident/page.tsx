@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NOTE_SIGNALEMENT_FERME, signalementOuvert } from "../types";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { ReflexesUrgence } from "../reflexes-urgence";
 import { FormulaireIncidentLocataire } from "./formulaire-incident-locataire";
@@ -18,7 +19,10 @@ export default async function PageSignalerIncident(
   const { supabase, adhesionActive } = await verifierAccesEspaceLocataire(orgId);
 
   const { data: baux, error: erreurBail } = await supabase.rpc("mon_bail_locataire", { p_org: orgId });
-  const bailActif = adhesionActive && !erreurBail && (baux ?? []).some((b: {etat:string}) => ["actif", "preavis"].includes(b.etat));
+  const bailActif = adhesionActive && !erreurBail && signalementOuvert(baux as { etat: string }[] | null);
+  // Bail en préparation (recette 03/10) : dire ce qui manque, pas seulement
+  // « contactez votre gestionnaire ».
+  const bailEnPreparation = !bailActif && ((baux ?? []) as { etat: string }[]).some((b) => b.etat === "brouillon");
   // Depuis la revue du 11/09 l'entrée de menu « Signaler un problème » mène
   // ici et non plus à la liste : le suivi doit rester à un clic, avec son
   // compte — sinon le raccourci ferait perdre l'accès à ce qu'on a déclaré.
@@ -56,7 +60,11 @@ export default async function PageSignalerIncident(
       ) : (
         <div className="loc-carte">
           <p className="text-sm text-muted-foreground">
-            {erreurBail ? "Votre bail ne peut pas être vérifié pour le moment. Réessayez ou contactez votre gestionnaire." : "La déclaration nécessite un bail actif. Contactez votre gestionnaire pour vérifier votre dossier."}
+            {erreurBail
+              ? "Votre bail ne peut pas être vérifié pour le moment. Réessayez ou contactez votre gestionnaire."
+              : bailEnPreparation
+                ? `La déclaration nécessite un bail actif. ${NOTE_SIGNALEMENT_FERME}`
+                : "La déclaration nécessite un bail actif. Contactez votre gestionnaire pour vérifier votre dossier."}{" "}
             Vos anciens signalements restent consultables dans{" "}
             <Link href={`/locataire/${orgId}/demandes`} className="lien-discret">
               Mes demandes

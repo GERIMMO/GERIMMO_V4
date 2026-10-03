@@ -78,9 +78,22 @@ type Ecriture = {
   lot_id: string | null;
 };
 
-export default async function PageComptabilite(props: { params: Promise<{ orgId: string }> }) {
+export default async function PageComptabilite(props: {
+  params: Promise<{ orgId: string }>;
+  searchParams?: Promise<{ vue?: string | string[]; page?: string | string[] }>;
+}) {
   const { orgId } = await props.params;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  const recherche = await props.searchParams ?? {};
+  const vues = [
+    { id: "journal", libelle: "Journal" },
+    { id: "saisie", libelle: "Ajouter une écriture" },
+    ...(role !== "agent" ? [{ id: "cloture", libelle: "Clôture" }] : []),
+    ...(!estProprietaire ? [{ id: "rapports", libelle: "Rapports" }] : []),
+  ];
+  const vue = vues.find((v) => v.id === recherche.vue)?.id ?? "journal";
+  const hrefVue = (id: string) => `/agence/${orgId}/comptabilite?vue=${id}`;
+
   // « Mon portefeuille » (maquette v3, RM-18.1.3) : l'agent lit sa
   // comptabilité à travers ses mandats — null : il voit tout.
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
@@ -189,6 +202,13 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
   // La base a rendu une page pleine : il y a (très probablement) plus ancien
   // derrière. Le dire, sinon le journal passe pour complet.
   const journalTronque = toutesLesLignes.length >= LIGNES_JOURNAL;
+  const taillePage = 20;
+  const nombrePages = Math.max(1, Math.ceil(lignes.length / taillePage));
+  const numeroDemande = typeof recherche.page === "string" ? Number(recherche.page) : 1;
+  const pageJournal = Number.isSafeInteger(numeroDemande)
+    ? Math.min(nombrePages, Math.max(1, numeroDemande)) : 1;
+  const lignesPage = lignes.slice((pageJournal - 1) * taillePage, pageJournal * taillePage);
+
   const t = (Array.isArray(totaux) ? totaux[0] : totaux) as
     | { recettes: number | string; depenses: number | string }
     | null;
@@ -266,16 +286,6 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             {moisEnFrancais(moisCourant)} ouvert
           </span>
         </div>
-        {/* Un seul mot pour la même notion : « annulation » — dans cette
-            phrase, dans la note des totaux, sur les lignes du journal et sur
-            le bouton (24/09 : « écriture inverse », « contre-écriture » et
-            « Annuler » se côtoyaient). La clôture, elle, s'explique dans sa
-            propre carte. */}
-        <p className="text-sm text-muted-foreground">
-          {estProprietaire
-            ? "Vos encaissements et vos dépenses, sans honoraires. Une écriture ne se modifie pas : on l'annule par une écriture d'annulation, qui reste visible."
-            : "Le journal des encaissements et des dépenses de l'agence. Une écriture ne se modifie pas : on l'annule par une écriture d'annulation, qui reste visible."}
-        </p>
         {/* La reprise des comptes ne concerne qu'une agence qui arrive avec un
             portefeuille : on la propose au responsable, et on ne l'affiche plus
             une fois la balance d'ouverture passée — la mention la remplace. */}
@@ -308,6 +318,17 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         )}
       </div>
 
+      <nav aria-label="Comptabilité" className="flex flex-wrap gap-2 border-b border-border pb-3">
+        {vues.map((v) => (
+          <Link key={v.id} href={hrefVue(v.id)} aria-current={vue === v.id ? "page" : undefined}
+            className={`inline-flex min-h-11 items-center rounded-lg px-4 py-2 text-sm font-medium ${vue === v.id
+              ? "bg-primary text-primary-foreground" : "bg-muted/50 text-foreground hover:bg-muted"}`}>
+            {v.libelle}
+          </Link>
+        ))}
+      </nav>
+
+      {vue === "journal" && <>
       {/* Solde en tuiles KPI (maquette) — même motif que le tableau de bord.
           Ces trois chiffres portent TOUT le livre depuis son ouverture : lus
           comme le mois en cours, ils faisaient croire à un mois énorme. La
@@ -385,7 +406,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                       ).length;
                       return `${regles} sur ${lignesQuittancement.length} réglé${regles > 1 ? "s" : ""} en entier`;
                     })()}
-                {" — "}encaisser, envoyer les quittances et relancer se font sur « Loyers &amp; charges ».
+
               </CardDescription>
               <CardAction className="max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-3 max-sm:justify-self-start">
                 <span className="lien-discret">Loyers &amp; charges →</span>
@@ -395,6 +416,8 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
         </Link>
       )}
 
+      </>}
+      {vue === "saisie" && (
       <Card>
         <CardHeader>
           <CardTitle>Saisir une écriture</CardTitle>
@@ -413,23 +436,24 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             estProprietaire={estProprietaire}
             estAgent={role === "agent"}
           />
-          <div className="border-t border-border pt-4">
-            <p className="mb-2 text-sm font-medium">
-              Dépense sur tout le bien, répartie entre ses lots
-            </p>
+          <details className="rounded-lg border border-border p-3">
+            <summary className="cursor-pointer py-2 text-sm font-medium">
+              Répartir une dépense entre plusieurs lots
+            </summary>
             <FormulaireVentilation
               orgId={orgId}
               biens={(biens ?? []) as { id: string; nom: string }[]}
             />
-          </div>
+          </details>
         </CardContent>
       </Card>
+      )}
 
       {/* LA CLÔTURE A SA PROPRE CARTE (24/09). Le geste le plus lourd de la
           page — irréversible — était posé sans titre au fond de « Saisir une
           écriture ». Elle vient juste avant les rapports qu'elle débloque.
           C'est un geste d'admin : la base la refuse à l'agent. */}
-      {role !== "agent" && (
+      {vue === "cloture" && role !== "agent" && (
         <Card>
           <CardHeader>
             <CardTitle>Clôturer un mois</CardTitle>
@@ -451,7 +475,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       )}
 
       {/* Un rapport se rend à un mandant : le propriétaire direct n'en a pas */}
-      {!estProprietaire && (
+      {vue === "rapports" && !estProprietaire && (
       <Card>
         <CardHeader>
           <CardTitle>Rapports de gestion</CardTitle>
@@ -474,6 +498,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
       </Card>
       )}
 
+      {vue === "journal" && (
       <Card>
         <CardHeader>
           <div className="entete-carte !mb-0">
@@ -518,9 +543,8 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             <div className="vide-guide">
               <p className="titre">Aucune écriture pour l&apos;instant</p>
               <p className="explication">
-                {estProprietaire
-                  ? "Les loyers encaissés s'inscrivent tout seuls, à mesure que vous les encaissez. Une dépense (travaux, charges, assurance) se saisit à la main, ci-dessus."
-                  : "Les honoraires se créent tout seuls à chaque encaissement de loyer. Une dépense ou une recette d'agence se saisit à la main, ci-dessus."}
+                Les encaissements alimentent automatiquement le journal.
+                <Link href={hrefVue("saisie")} className="mt-2 block font-medium text-primary underline">Ajouter une écriture</Link>
               </p>
             </div>
           ) : (
@@ -528,7 +552,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
             {/* Sous sm, le journal passe en lignes empilées : montant et
                 annulation restent à portée sans défilement horizontal. */}
             <ul className="space-y-3 sm:hidden">
-              {lignes.map((e) => {
+              {lignesPage.map((e) => {
                 const clot = moisClotures.has(e.date_imputation.slice(0, 7));
                 return (
                   <li
@@ -579,7 +603,7 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                   </tr>
                 </thead>
                 <tbody>
-                  {lignes.map((e) => {
+                  {lignesPage.map((e) => {
                     const clot = moisClotures.has(e.date_imputation.slice(0, 7));
                     return (
                       <tr key={e.id}>
@@ -622,10 +646,20 @@ export default async function PageComptabilite(props: { params: Promise<{ orgId:
                 </tbody>
               </table>
             </div>
+            {nombrePages > 1 && <nav aria-label="Pages du journal" className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4 text-sm">
+              {pageJournal > 1 ? <Link className="inline-flex min-h-11 items-center text-primary underline" href={`${hrefVue("journal")}&page=${pageJournal - 1}`}>Précédent</Link> : <span />}
+              <span>Page {pageJournal} sur {nombrePages}</span>
+              {pageJournal < nombrePages ? <Link className="inline-flex min-h-11 items-center text-primary underline" href={`${hrefVue("journal")}&page=${pageJournal + 1}`}>Suivant</Link> : <span />}
+            </nav>}
             </>
           )}
+          <details className="mt-4 text-sm text-muted-foreground">
+            <summary className="cursor-pointer py-2">Corriger une écriture</summary>
+            <p>Une écriture ne se modifie pas. Son annulation crée une écriture liée et conserve l’historique.</p>
+          </details>
         </CardContent>
       </Card>
+      )}
     </main>
   );
 }

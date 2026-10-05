@@ -179,8 +179,8 @@ export async function envoyerPourSignature(
   revalidatePath(`/agence/${orgId}/documents`);
   return {
     succes: envoi.envoyee
-      ? "Envoyé pour signature — le signataire est prévenu par e-mail ; le document apparaît dans « À signer » de son espace et vous serez alerté au retour du signé."
-      : "Envoyé pour signature — le document apparaît dans « À signer » de son espace ; vous serez alerté au retour du signé.",
+      ? "Demande de signature manuelle créée — le signataire est prévenu par e-mail. Depuis « À signer », il doit télécharger le document, le signer puis déposer la copie signée. Vous serez alerté à son retour."
+      : "Demande de signature manuelle créée — le document apparaît dans « À signer ». Le signataire doit le télécharger, le signer puis déposer la copie signée. Vous serez alerté à son retour.",
     avertissement: envoi.envoyee
       ? undefined
       : envoi.motif === "sans_adresse"

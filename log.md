@@ -5712,3 +5712,40 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   attestation ne peut plus être émise dans le futur ni expirer avant son
   émission. PR #155 fusionnée et déployée. Pages : [[Artisan]], [[Réseau
   d'artisans]].
+
+## [2026-10-02] lint   | Audit des refus de doublon (GED)
+- À la demande du porteur, après le blocage d'un testeur sur une notice
+  regénérée : trois relectures parallèles des vingt circuits de dépôt (gérant,
+  locataire, artisan, générations). Cinq bloquants, huit gênants, cinq détails ;
+  aucun refus silencieux côté cron (aucun PDF n'y est rangé). Synthèse :
+  [[Audit des refus de doublon du 2 octobre 2026]].
+
+## [2026-10-03] lint   | Audit d'acquisition (posture acquéreur)
+- À la demande du porteur : « comme si tu voulais l'acheter, le plus critique
+  possible, fonctionnel et esthétique, sans correction ». Trois relectures
+  parallèles (produit, technique, commercial-juridique) recoupées dans le code,
+  plus la revue des captures de recette (six profils, mobile et bureau). Cinq
+  rédhibitoires, dix manques classés, critique esthétique écran par écran,
+  treize constats techniques, dix points commerciaux et juridiques, cinq actifs.
+  Rien n'a été modifié dans l'application. Synthèse :
+  [[Audit d'acquisition du 3 octobre 2026]].
+
+## [2026-10-03] correction | Dépôt du bail signé impossible depuis un iPhone
+- Retour du testeur propriétaire (Zakaria, Firefox iOS) : « je ne peux toujours
+  pas déposer le bail signé ». Journaux : aucune tentative n'a jamais atteint
+  le serveur (ni contrôle de mise en location, ni montée en Storage) ; la base
+  ne bloque rien (mentions, diagnostics, lot disponible). Le champ fichier du
+  bail signé et du règlement de copropriété n'acceptait que l'extension
+  « .pdf », seul cas dans l'application : iOS grise alors les PDF dans le
+  sélecteur. Le champ accepte désormais aussi le type MIME ; le contrôle du
+  contenu reste côté serveur. Pages : [[Bail]], [[Recette de production]].
+
+## [2026-10-03] correction | Locataire : le signalement attend un bail actif
+- Retour du testeur locataire (Sophien) : « les deux liens me ramènent ici ».
+  Son bail était en brouillon (bail signé non déposé) ; l'accueil, la carte
+  d'urgence et « Mes demandes » l'invitaient à signaler, et la page de
+  signalement le renvoyait à son gestionnaire. Les trois écrans lisent
+  désormais l'état du bail (`signalementOuvert`) : sans bail actif, le bouton
+  cède la place à une phrase qui dit ce qui manque, et la page de signalement
+  l'explique aussi (espace manquant après le point corrigé). Pages :
+  [[Incident]], [[Locataire]].

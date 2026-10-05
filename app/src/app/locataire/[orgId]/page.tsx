@@ -7,7 +7,7 @@ import { CarteGestionnaire, type Gestionnaire } from "./cartes-laterales";
 import { aEchoue, LectureImpossible, PanneLecture } from "./panne-lecture";
 import type { IncidentLocataire } from "./incidents-locataire";
 import { ReflexesUrgence } from "./reflexes-urgence";
-import type { BailLocataire } from "./types";
+import { NOTE_SIGNALEMENT_FERME, signalementOuvert, type BailLocataire } from "./types";
 
 // Les cartes indicateurs se cliquent EN ENTIER (24/09), comme les tuiles
 // a.kpi de l'agence : seul le lien de 12 px du bas réagissait, le gros
@@ -59,6 +59,10 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
     supabase.rpc("mes_creneaux_locataire", { p_org: orgId }),
   ]);
   const bail = ((baux ?? []) as BailLocataire[])[0];
+  // Recette 03/10 : la porte vers le signalement ne s'ouvre que sur un bail
+  // actif ; en brouillon, la page d'en face refusait et le locataire tournait
+  // en rond entre l'accueil et « Signaler un problème ».
+  const peutSignaler = adhesionActive && signalementOuvert(baux as BailLocataire[] | null);
   const lignes = (echeancier ?? []) as {
     periode: string;
     montant_du: number;
@@ -540,10 +544,13 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
                 entière mène au suivi (24/09) : le lien vers la liste est
                 donc toujours là, même sans demande en cours. */}
             <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-              {adhesionActive && (
+              {peutSignaler && (
                 <Link href={`/locataire/${orgId}/incident`} className={LIEN_KPI_SECONDAIRE}>
                   Signaler un problème{"\u00a0"}→
                 </Link>
+              )}
+              {adhesionActive && !peutSignaler && (
+                <span className="text-xs text-muted-foreground">{NOTE_SIGNALEMENT_FERME}</span>
               )}
               <Link
                 href={`/locataire/${orgId}/demandes`}
@@ -564,7 +571,7 @@ export default async function PageAccueilLocataire(props: PageProps<"/locataire/
               sur « Mes demandes » et le signalement, numéros soulignés tous
               les deux, et « signalez ici » qui mène au formulaire. */}
           <ReflexesUrgence
-            hrefSignalement={adhesionActive ? `/locataire/${orgId}/incident` : undefined}
+            hrefSignalement={peutSignaler ? `/locataire/${orgId}/incident` : undefined}
           />
         </div>
       </div>

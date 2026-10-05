@@ -444,7 +444,7 @@ export default async function PageVitrine() {
 
         {/* ---------------------------------------------------------- Tarifs */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
-          <TitreSection sur="Tarifs" titre="Un prix selon la taille de votre parc, tout compris" />
+          <TitreSection sur="Tarifs" titre="Un prix selon la taille de votre parc" />
           <div className="mt-10 grid gap-5 lg:grid-cols-2">
             <div className="vitrine-carte vitrine-carte-mise-en-avant min-w-0">
               <p className="eyebrow text-[var(--marque-sombre)]">Particuliers et SCI gérant leurs biens</p>
@@ -557,14 +557,16 @@ export default async function PageVitrine() {
         {/* ------------------------------------------------------------- FAQ */}
         <section className="mx-auto w-full max-w-6xl px-4 section-vitrine sm:px-7">
           <TitreSection sur="Questions fréquentes" titre="Ce qu'on nous demande" />
-          <div className="mt-10 grid gap-x-10 gap-y-7 sm:grid-cols-2">
+          <div className="mt-6 grid items-start gap-x-10 sm:grid-cols-2">
             {faq(duree).map(([q, r]) => (
-              <div key={q} className="border-t border-[var(--filet)] pt-5">
-                <h3 className="text-[16px] font-semibold text-[var(--encre)]">{q}</h3>
-                <p className="mt-2 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
+              <details key={q} className="border-t border-[var(--filet)]">
+                <summary className="min-h-11 cursor-pointer rounded-sm py-4 text-[16px] font-semibold text-[var(--encre)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--marque)]">
+                  {q}
+                </summary>
+                <p className="pb-5 text-[14px] leading-relaxed text-[var(--texte-secondaire)]">
                   {r}
                 </p>
-              </div>
+              </details>
             ))}
           </div>
         </section>

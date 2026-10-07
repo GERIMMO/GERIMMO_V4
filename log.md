@@ -5762,5 +5762,8 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   les cinq minutes avec jeton généré en base ; illustration en tête d'article,
   en vignette et en Open Graph, repli de la charte ; rédaction IA de la veille
   ancrée dans la page officielle (citations vérifiées) ; seize sujets
-  éditoriaux réécrits. Pages : [[Guide de ton du journal]],
+  éditoriaux réécrits. PR #168 fusionnée ; migration `20261007100000`
+  appliquée en production (pg_net installé, tâche pg_cron
+  « marketing-declencheur » toutes les cinq minutes, jeton généré). Pages :
+  [[Guide de ton du journal]],
   [[Réécriture des six articles parus (propositions du 7 octobre 2026)]].

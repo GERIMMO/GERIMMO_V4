@@ -135,6 +135,14 @@ export async function deciderDecisionDuMatin(id: string, validee: boolean, motif
       break;
     }
     case "publication": {
+      // 06/10 : un post programmé par l'agent marketing se décide par la
+      // fonction de veto (journalisée) ; les brouillons gardent leur chemin.
+      const { data: etat } = await supabase.from("publications").select("statut").eq("id", decision.source_id).maybeSingle();
+      if (etat?.statut === "programmee") {
+        const { error } = await supabase.rpc("decider_publication_marketing", { p_id: decision.source_id, p_action: validee ? "valider" : "refuser", p_motif: motif || null });
+        effet = error ? { erreur: sansJargon(error.message) } : { succes: validee ? "Le post paraîtra à l’heure prévue." : "Post refusé : il ne partira pas." };
+        break;
+      }
       if (validee) {
         const { data: pub } = await supabase.from("publications").select("corps").eq("id", decision.source_id).maybeSingle();
         if (!pub?.corps || pub.corps.trim().length < 200 || pub.corps.includes("[[")) return { erreur: "Le texte n’est pas complet : relisez-le dans l’éditeur avant de le faire paraître." };

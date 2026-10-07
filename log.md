@@ -5749,3 +5749,18 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
   cède la place à une phrase qui dit ce qui manque, et la page de signalement
   l'explique aussi (espace manquant après le point corrigé). Pages :
   [[Incident]], [[Locataire]].
+
+## [2026-10-07] dev    | Agent marketing : fenêtre de veto, pertinence, heure de Paris, images, rédaction
+- Constat du porteur (06/10) : six posts publiés sans relecture, un relais de
+  veille hors cible (décarbonation, 29/09), parution à 10 h 37 au lieu de 9 h.
+  Livré (PR en cours) : préparation la veille à 18 h, statut « programmee »,
+  quatre gestes du superviseur (publier maintenant, modifier, reporter,
+  refuser) journalisés, réglage « validation obligatoire », blocage en base de
+  tout texte « [[à compléter » ; filtre de pertinence sur titre et résumé
+  avec mots inclus/exclus réglables et publics de l'étude ; heure de Paris
+  calculée en base (`instant_paris`) et déclencheur pg_cron + pg_net toutes
+  les cinq minutes avec jeton généré en base ; illustration en tête d'article,
+  en vignette et en Open Graph, repli de la charte ; rédaction IA de la veille
+  ancrée dans la page officielle (citations vérifiées) ; seize sujets
+  éditoriaux réécrits. Pages : [[Guide de ton du journal]],
+  [[Réécriture des six articles parus (propositions du 7 octobre 2026)]].

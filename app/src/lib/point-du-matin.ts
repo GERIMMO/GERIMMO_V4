@@ -37,7 +37,7 @@ export type PointAssemble={equipe:Equipe;contenu:ContenuPoint;decisions:Decision
 
 export type Attentes={
  developpements:{id:string;titre:string;probleme:string|null;risque:string;statut:string;revision:string|null}[];
- publications:{id:string;titre:string;statut:string;corps:string|null}[];
+ publications:{id:string;titre:string;statut:string;corps:string|null;programmee_pour?:string|null;valide_le?:string|null}[];
  artisans:{artisan_id:string;raison_sociale:string;siret_etat:string;decennale_valide:boolean|null;rc_pro_deposee:boolean|null;nb_pieces:number|null}[];
  retours:{id:string;titre:string;nature:string;gravite:string;etat:string}[];
  veille:{id:string;titre:string;source_nom:string;etude:{resume?:string;action?:string;publics?:string[]}|null}[];
@@ -70,6 +70,15 @@ function decisionsDeLEquipe(equipe:Equipe,a:Attentes):DecisionAssemblee[]{
    lien:`/admin/retours?nature=${r.nature}`,source:'retour',source_id:r.id,validation:true,refus:idee});
  }
  if(EQUIPE_DES_SOURCES.publication===equipe)for(const p of a.publications){
+  // 06/10 : un post programmé par l'agent marketing attend le veto du
+  // superviseur jusqu'à son heure ; valider = laisser paraître, refuser = retirer.
+  if(p.statut==='programmee'){
+   const quand=p.programmee_pour?new Date(p.programmee_pour).toLocaleString('fr-FR',{timeZone:'Europe/Paris',weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'à l’heure prévue';
+   d.push({cle:`publication:${p.id}`,titre:`Laisser paraître « ${p.titre} »`,pourquoi:`Post préparé par l’agent marketing, parution ${quand} (journal et Facebook).${p.valide_le?' Déjà validé.':' Sans geste de votre part, il part à l’heure dite.'}`,
+    options:['Laisser paraître','Refuser avec un motif','Relire, modifier ou reporter dans l’écran marketing'],recommandation:'Relire le texte et le visuel dans l’écran marketing ; le refus retire le post, il ne partira jamais.',
+    lien:'/admin/marketing#veto',source:'publication',source_id:p.id,validation:!p.valide_le,refus:true});
+   continue;
+  }
   if(!['proposition','brouillon'].includes(p.statut))continue;
   const complet=Boolean(p.corps&&p.corps.trim().length>=200&&!p.corps.includes('[['));
   d.push({cle:`publication:${p.id}`,titre:`Faire paraître « ${p.titre} »`,pourquoi:p.statut==='proposition'?'Sujet proposé par l’équipe, texte à rédiger dans l’éditeur.':complet?'Brouillon relu par l’équipe, prêt à paraître dans le journal.':'Brouillon incomplet : des passages restent à compléter dans l’éditeur.',
@@ -124,7 +133,7 @@ type Lecteur=Pick<SupabaseClient,'from'|'rpc'>;
 export async function lireAttentes(db:Lecteur):Promise<{attentes:Attentes;indisponibles:string[]}>{
  const [dev,pub,art,ret,vei]=await Promise.all([
   db.from('development_proposals').select('id,titre,probleme,risque,statut,revision').eq('statut','autorisation').order('updated_at',{ascending:false}).limit(30),
-  db.from('publications').select('id,titre,statut,corps').in('statut',['proposition','brouillon']).order('propose_le',{ascending:false}).limit(30),
+  db.from('publications').select('id,titre,statut,corps,programmee_pour,valide_le').in('statut',['proposition','brouillon','programmee']).order('propose_le',{ascending:false}).limit(30),
   db.rpc('artisans_a_valider'),
   db.from('retours_utilisateurs').select('id,titre,nature,gravite,etat').in('etat',['nouveau','en_examen']).or('nature.eq.idee,and(nature.eq.bug,gravite.eq.N1)').order('cree_le',{ascending:false}).limit(30),
   db.from('regulatory_watch').select('id,titre,source_nom,etude').eq('statut','a_examiner').not('analyse_le','is',null).order('reperage_le',{ascending:false}).limit(30),

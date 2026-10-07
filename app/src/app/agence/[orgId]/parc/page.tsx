@@ -334,45 +334,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             </div>
             {biensVisibles.map((bien) => (
               <div key={bien.id}>
-                <Link
-                  href={`/agence/${orgId}/parc?sel=bien:${bien.id}`}
-                  className={`tete-groupe${selectionBien?.id === bien.id ? " actif" : ""}`}
-                >
-                  {/* Deux lignes plutôt qu'une coupe (24/09) : l'adresse
-                      perdait son code postal et sa ville — ce qui distingue
-                      deux immeubles homonymes. Le texte entier en `title`. */}
-                  <span className="min-w-0">
-                    <b className="block truncate text-[13.5px] font-medium" title={bien.nom}>
-                      {bien.nom}
-                    </b>
-                    <span
-                      className="mono-discret line-clamp-2 normal-case"
-                      title={`${TYPES_BIEN[bien.type] ?? bien.type} · ${bien.address_line1}, ${bien.postal_code} ${bien.city}`}
-                    >
-                      {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1},{" "}
-                      {bien.postal_code} {bien.city}
-                    </span>
-                  </span>
-                  <span className="puce puce-encre shrink-0">
-                    {bien.lotsVisibles.length === 0
-                      ? "aucun lot"
-                      : `${bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length}/${bien.lotsVisibles.length} loué${
-                          bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis")
-                            .length > 1
-                            ? "s"
-                            : ""
-                        }`}
-                  </span>
-                  <IndicateurLien />
-                </Link>
-                {/* Le rang du lot n'est plus un lien : il OUVRE la fenêtre,
-                    sur place. Hors fenêtre (navigateur sans JS), BoutonLot
-                    retombe sur le lien vers la fiche complète. */}
-                {/* Le rang « aucun lot » porte un geste (D01) : la fiche du
-                    bien, où l'on retrouve ses lots archivés et d'où l'on agit. */}
                 {bien.lotsVisibles.length === 0 && (
                   <Link href={`/agence/${orgId}/parc/${bien.id}`} className="rang-lot">
                     <span className="min-w-0 flex-1 text-[13px]">
+                      <b className="block font-medium">{bien.nom}</b>
+                      <span className="block text-xs text-muted-foreground">
+                        {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1}, {bien.postal_code} {bien.city}
+                      </span>
                       Aucun lot actif
                       <span className="block text-xs text-muted-foreground">
                         {estProprietaire
@@ -387,20 +355,26 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
                   <BoutonLot
                     key={lot.id}
                     lotId={lot.id}
+                    libelle={`${bien.nom} · ${lot.nom}`}
                     href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
                     className="rang-lot"
                   >
                     <span
-                      className="line-clamp-2 min-w-0 flex-1 text-left text-[13px]"
-                      title={lot.nom}
+                      className="min-w-0 flex-1 text-left text-[13px]"
                     >
-                      {lot.nom}
-                      {lot.surface_m2 !== null && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · {formaterSurface(lot.surface_m2)}
-                        </span>
-                      )}
+                      <b className="block font-medium break-words">{bien.nom}</b>
+                      <span className="block text-xs text-muted-foreground break-words">
+                        {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1}, {bien.postal_code} {bien.city}
+                      </span>
+                      <span className="mt-1 block">
+                        {bien.lotsVisibles.length > 1 || lot.nom !== "Lot unique" ? lot.nom : ""}
+                        {lot.surface_m2 !== null && (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            {bien.lotsVisibles.length > 1 || lot.nom !== "Lot unique" ? "· " : ""}{formaterSurface(lot.surface_m2)}
+                          </span>
+                        )}
+                      </span>
                     </span>
                     <span
                       className={`${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"} shrink-0`}

@@ -28,6 +28,8 @@ alter table public.publications
   add column if not exists valide_le timestamptz,
   add column if not exists reporte_motif text check (reporte_motif is null or length(reporte_motif) <= 1000);
 create index if not exists publications_programmees_idx on public.publications(programmee_pour) where statut = 'programmee';
+-- Toute clé étrangère porte un index couvrant (tests/schema-performance-securite).
+create index if not exists publications_valide_par_idx on public.publications(valide_par);
 comment on column public.publications.programmee_pour is
   'Instant exact de parution d''un post « programmee » (heure de Paris convertie en timestamptz). Null hors programmation.';
 

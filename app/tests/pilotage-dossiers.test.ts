@@ -209,6 +209,9 @@ describe.skipIf(!DB_URL)("Pilotage des dossiers et continuité",()=>{
   await db.query("update public.marketing_reglages set actif=false where singleton");
   expect((await db.query("select public.publier_article_automatique($1) ok",[pub])).rows[0].ok).toBe(false);
   await db.query("update public.marketing_reglages set actif=true,publication_automatique=true,diffusion_version=1 where singleton");
+  // 06/10 : la parution automatique ne concerne qu'un post programmé et échu (fenêtre de veto).
+  expect((await db.query("select public.publier_article_automatique($1) ok",[pub])).rows[0].ok).toBe(false);
+  expect((await db.query("select public.programmer_publication_marketing($1, now() - interval '1 minute') ok",[pub])).rows[0].ok).toBe(true);
   expect((await db.query("select public.publier_article_automatique($1) ok",[pub])).rows[0].ok).toBe(true);
   await agir(admin);expect(await refus("select public.reserver_diffusion_facebook($1,false)",[pub])).toMatch(/supervision/);
   expect(await refus("select public.reserver_diffusion_facebook($1,true)",[pub])).toMatch(/marketing/);

@@ -21,7 +21,7 @@ export const MISSIONS={
  rappels:{nom:'Rendez-vous et suivi des dossiers',equipe:'incidents',heure:'8 h (heure de Paris, 7 h en hiver)',lien:'/admin/autonomie?equipe=incident'},
  abonnements:{nom:'Abonnements',equipe:'finance',heure:'6 h (heure de Paris, 5 h en hiver)',lien:'/admin/clients'},
  signatures:{nom:'Signatures et classement',equipe:'conformite',heure:'5 h (heure de Paris, 4 h en hiver)',lien:'/admin/autonomie?equipe=document'},
- marketing:{nom:'Publications et publicité',equipe:'marketing',heure:'10 h (heure de Paris, 9 h en hiver)',lien:'/admin/marketing'},
+ marketing:{nom:'Publications et publicité',equipe:'marketing',heure:'préparation la veille à 18 h, parution à l’heure réglée (heure de Paris)',lien:'/admin/marketing'},
  territoire:{nom:'Étude des départements',equipe:'territoire',heure:'7 h (heure de Paris, 6 h en hiver)',lien:'/admin/territoire'},
  // 27/09 (audit sécurité) : la suppression physique des fichiers purgés ne
  // dépend plus d'un clic dans Journaux ; elle suit la purge nocturne de pg_cron.

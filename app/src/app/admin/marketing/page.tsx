@@ -8,13 +8,14 @@ import { formaterDateHeureLongueParis } from "@/lib/heure-paris";
 import { ActualisationAuto } from "./actualisation-auto";
 import { FormulaireCampagne } from "./formulaire-campagne";
 import { ReglagesAutomatiques } from "./reglages-automatiques";
+import { VetoPost, type PostProgramme } from "./veto-post";
 
 export const metadata = { title: "Agent marketing — Gerimmo" };
 export const dynamic = "force-dynamic";
 
 type Campagne = { id: string; nom: string; description: string | null; canal: string; nature: string; objectif: string; statut: string; publication_prevue_le: string | null; budget_cents: number | null; cree_le: string };
 type Publication = { id: string; titre: string; statut: string; slug: string | null; propose_le: string; publie_le: string | null; facebook_post_id: string | null; facebook_publie_le: string | null; facebook_erreur: string | null; facebook_image_url: string | null };
-type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number };
+type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number; validation_obligatoire: boolean; veille_mots_inclus: string[]; veille_mots_exclus: string[] };
 
 const JOURS: Record<number, string> = { 1: "lundi", 2: "mardi", 3: "mercredi", 4: "jeudi", 5: "vendredi", 6: "samedi", 7: "dimanche" };
 // À l'heure de Paris (25/09) : sans fuseau, le serveur affichait l'heure UTC.
@@ -66,24 +67,27 @@ function Canal({ nom, relie, detail }: { nom: string; relie: boolean | null; det
 
 export default async function PageAgentMarketing() {
   const supabase = await createClient();
-  const [campagnesResultat, publicationsResultat, reglagesResultat, depenses, facebook, meta] = await Promise.all([
+  const [campagnesResultat, publicationsResultat, reglagesResultat, depenses, facebook, meta, programmesResultat] = await Promise.all([
     supabase.from("marketing_campagnes").select("id,nom,description,canal,nature,objectif,statut,publication_prevue_le,budget_cents,cree_le").order("publication_prevue_le", { ascending: true, nullsFirst: false }),
     supabase.from("publications").select("id,titre,statut,slug,propose_le,publie_le,facebook_post_id,facebook_publie_le,facebook_erreur,facebook_image_url").order("propose_le", { ascending: false }).limit(100),
-    supabase.from("marketing_reglages").select("actif,publication_automatique,publicite_active,jours_semaine,heure_paris,budget_mensuel_cents").eq("singleton", true).single(),
+    supabase.from("marketing_reglages").select("actif,publication_automatique,publicite_active,jours_semaine,heure_paris,budget_mensuel_cents,validation_obligatoire,veille_mots_inclus,veille_mots_exclus").eq("singleton", true).single(),
     depenseFacebookDuMois(),
     santeFacebook(),
     campagnesFacebook(),
+    // 06/10 : les posts en fenêtre de veto, du plus proche au plus lointain.
+    supabase.from("publications").select("id,titre,chapo,facebook_texte,facebook_image_url,programmee_pour,valide_le,veille_source_id,slug").eq("statut", "programmee").order("programmee_pour", { ascending: true }).limit(5),
   ]);
+  const programmes = (programmesResultat.data ?? []) as PostProgramme[];
   const campagnes = (campagnesResultat.data ?? []) as Campagne[];
   const publications = (publicationsResultat.data ?? []) as Publication[];
-  const reglages = (reglagesResultat.data ?? { actif: false, publication_automatique: false, publicite_active: false, jours_semaine: [2, 5], heure_paris: 9, budget_mensuel_cents: 0 }) as Reglages;
+  const reglages = (reglagesResultat.data ?? { actif: false, publication_automatique: false, publicite_active: false, jours_semaine: [2, 5], heure_paris: 9, budget_mensuel_cents: 0, validation_obligatoire: false, veille_mots_inclus: [], veille_mots_exclus: [] }) as Reglages;
   const depenseMois = depenses.cents;
   const futures = campagnes.filter((c) => ["idee", "planifiee"].includes(c.statut));
   const actives = meta.campagnes.filter((c) => ["ACTIVE", "IN_PROCESS", "PENDING_REVIEW"].includes(c.statut));
   const anciennesMeta = meta.campagnes.filter((c) => !actives.includes(c));
   const parutionsFacebook = publications.filter((p) => p.facebook_post_id);
   const aDiffuser = publications.filter((p) => p.statut === "publiee" && !p.facebook_post_id);
-  const aRelire = publications.filter((p) => ["proposition", "brouillon"].includes(p.statut));
+  const aRelire = publications.filter((p) => ["proposition", "brouillon", "reportee"].includes(p.statut));
   const facebookOperationnel = facebook.configure && !facebook.erreur;
   const metaOperationnel = meta.configure && !meta.erreur;
   const jours = reglages.jours_semaine.map((jour) => JOURS[jour]).filter(Boolean).join(" et ") || "mardi et vendredi";
@@ -102,7 +106,7 @@ export default async function PageAgentMarketing() {
     <div className="entete-page">
       <div className="min-w-0 flex-[1_1_20rem]"><h1>Agent marketing</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">L’agent choisit des sujets utiles, prépare les articles, les diffuse sur Facebook et centralise les résultats. Vous gardez ici les décisions, le budget et l’historique.</p></div>
       <div className="flex flex-wrap items-center gap-3">
-        <span className="mono-discret">{reglages.actif ? `Deux sujets ${jours}, le matin · ${reglages.publication_automatique && facebookOperationnel ? "diffusion automatique" : "brouillons à valider"}` : "Préparation des brouillons en pause"}</span>
+        <span className="mono-discret">{reglages.actif ? `Deux posts ${jours} à ${reglages.heure_paris} h, préparés la veille · ${reglages.validation_obligatoire ? "validation obligatoire" : reglages.publication_automatique && facebookOperationnel ? "parution sauf veto" : "brouillons à valider"}` : "Préparation des brouillons en pause"}</span>
         {prochaine && <Link href={prochaine.href} className="btn-secondaire max-w-full"><span className="truncate">{prochaine.libelle}</span> <ArrowRight className="size-4 shrink-0" /></Link>}
         <Link href="/admin/publications/nouvelle" className="btn-or"><PenLine className="size-4" /> Créer un article</Link>
       </div>
@@ -120,6 +124,16 @@ export default async function PageAgentMarketing() {
       <div className={`kpi ${facebookOperationnel ? "" : "ambre"}`}><span className="libelle-champ">Facebook</span><div className="chiffre montant">{parutionsFacebook.length}</div><span className="mono-discret sans-majuscules">publications envoyées · {facebookOperationnel ? (facebook.abonnes == null ? "audience en lecture" : `${nombre(facebook.abonnes)} abonnés`) : "Page à relier"}</span></div>
       <Link href="#calendrier" className="kpi"><span className="libelle-champ">Intentions éditoriales</span><div className="chiffre montant">{futures.length}</div><span className="mono-discret sans-majuscules">notes de travail, sans diffusion automatique</span></Link>
       <div className={`kpi ${depassement ? "rouge" : depenses.erreur ? "ambre" : ""}`}><span className="libelle-champ">Dépenses ce mois</span><div className="chiffre montant">{argent(depenseMois)}</div><span className="mono-discret sans-majuscules">seuil d’alerte : {argent(reglages.budget_mensuel_cents)}{depenses.erreur && <span className="mt-1 block">{depenses.erreur}</span>}</span></div>
+    </section>
+
+    {/* La fenêtre de veto (06/10) : le post de demain, préparé la veille,
+        attend ici jusqu'à son heure. */}
+    <section id="veto" className="section-ecran scroll-mt-6"><div className="entete-carte"><div><p className="libelle-champ">Fenêtre de veto</p><h2>Prochain post</h2><p className="mt-1 text-sm text-[var(--texte-secondaire)]">Préparé la veille à 18 h (texte et visuel). Vous pouvez le publier maintenant, le modifier, le reporter ou le refuser ; sinon il part à l’heure réglée.</p></div></div>
+      <div className="mt-4 space-y-4">
+        {programmes.length === 0
+          ? <p className="text-sm text-[var(--texte-secondaire)]">Aucun post en attente. Le prochain sera préparé la veille du prochain jour de publication ({jours}), à 18 h.</p>
+          : programmes.map((p) => <VetoPost key={p.id} post={p} validationObligatoire={reglages.validation_obligatoire} quand={date(p.programmee_pour)} />)}
+      </div>
     </section>
 
     {/* Le travail du jour d'abord (24/09) : la publication « À diffuser »

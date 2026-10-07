@@ -5,6 +5,7 @@ import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { EncartOutils } from "@/components/outils/encart-outils";
 import { TexteMarkdown } from "@/components/texte-markdown";
 import { OPEN_GRAPH_PAR_DEFAUT, descriptionArticle } from "@/lib/metadonnees-publiques";
+import { ImageJournal, imageArticle } from "@/components/image-journal";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 import { dureeEssai } from "@/lib/tarifs";
 
@@ -19,7 +20,7 @@ async function charger(slug: string) {
   // mais on garde le filtre par sécurité si la politique changeait un jour.
   const { data } = await supabase
     .from("publications")
-    .select("titre, chapo, corps, publie_le, seo_description, sources, veine")
+    .select("titre, chapo, corps, publie_le, seo_description, sources, veine, facebook_image_url")
     .eq("slug", slug)
     .eq("statut", "publiee")
     .maybeSingle();
@@ -32,6 +33,10 @@ export async function generateMetadata({ params }: PageProps<"/journal/[slug]">)
   if (!a) return { title: "Article introuvable — Gerimmo" };
   const description = descriptionArticle(a);
   const chemin = `/journal/${slug}`;
+  // 06/10 : l'aperçu de partage montre l'illustration de l'article (1536×1024,
+  // telle quelle : Facebook et LinkedIn recadrent), et non plus le logo carré.
+  const image = imageArticle(a.facebook_image_url);
+  const images = image.repli ? OPEN_GRAPH_PAR_DEFAUT.images : [{ url: image.src, width: 1536, height: 1024, alt: titreSansDoublon(a.titre) }];
   return {
     title: `${titreSansDoublon(a.titre)} — Journal Gerimmo`,
     description,
@@ -42,8 +47,10 @@ export async function generateMetadata({ params }: PageProps<"/journal/[slug]">)
       title: titreSansDoublon(a.titre),
       description,
       url: chemin,
+      images,
       ...(a.publie_le ? { publishedTime: a.publie_le } : {}),
     },
+    twitter: { card: "summary_large_image", title: titreSansDoublon(a.titre), description, images: images.map((i) => i.url) },
   };
 }
 
@@ -74,6 +81,8 @@ export default async function PageArticle({ params }: PageProps<"/journal/[slug]
           {titreSansDoublon(a.titre)}
         </h1>
         {paruLe && <p className="mono-discret mt-2.5">Paru le {paruLe}</p>}
+        {/* 06/10 : l'illustration de l'article en tête, format large. */}
+        <ImageJournal url={a.facebook_image_url} titre={titreSansDoublon(a.titre)} priorite className="mt-6" />
         {a.chapo && (
           <p className="mt-5 border-l-2 border-[var(--or)] pl-4 text-[16px] leading-relaxed text-[var(--texte-secondaire)]">
             {a.chapo}

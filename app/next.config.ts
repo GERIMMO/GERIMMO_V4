@@ -101,8 +101,26 @@ export const ENTETES_SECURITE: { key: string; value: string }[] = [
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 
+/** L'hôte Supabase des visuels du journal (bucket public `marketing-visuels`), pour next/image. */
+function hoteSupabase(): string | null {
+  try {
+    const brut = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+    return brut ? new URL(brut).hostname : null;
+  } catch {
+    return null;
+  }
+}
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // 06/10 : les illustrations des articles viennent du Storage Supabase ; sans
+  // domaine déclaré, next/image refuse de les servir. À défaut d'adresse au
+  // moment du build, toute origine *.supabase.co.
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: hoteSupabase() ?? "*.supabase.co", pathname: "/storage/v1/object/public/**" },
+    ],
+  },
   async headers() {
     return [
       { source: "/(.*)", headers: ENTETES_SECURITE },

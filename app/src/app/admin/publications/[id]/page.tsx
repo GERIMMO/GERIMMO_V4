@@ -11,6 +11,8 @@ export const metadata = { title: "Modifier l’article — Supervision" };
 const ETATS: Record<string, string> = {
   proposition: "Proposition",
   brouillon: "Brouillon",
+  programmee: "Programmé",
+  reportee: "Reporté",
   refusee: "Écarté",
   archivee: "Retiré du journal",
 };

@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { enregistrerReglagesMarketing, type EtatCampagne } from "./actions";
 
-type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number };
+type Reglages = { actif: boolean; publication_automatique: boolean; publicite_active: boolean; jours_semaine: number[]; heure_paris: number; budget_mensuel_cents: number; validation_obligatoire: boolean; veille_mots_inclus: string[]; veille_mots_exclus: string[] };
 const JOURS = [[1,"Lundi"],[2,"Mardi"],[3,"Mercredi"],[4,"Jeudi"],[5,"Vendredi"],[6,"Samedi"],[7,"Dimanche"]] as const;
 
 // Une seule façon d'habiller un champ sur la rangée (24/09) : sélecteurs nus,
@@ -32,8 +32,15 @@ export function ReglagesAutomatiques({ reglages, comptePublicitaire, pageReliee 
       <label className="grid gap-1"><span className="libelle-champ">Deuxième jour</span><select className={champ} name="jour_2" defaultValue={reglages.jours_semaine[1] ?? 5}>{JOURS.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
       {/* Le créneau n'est pas réglable : il s'affiche comme un champ, en
           lecture seule, au lieu d'une boîte d'un autre style. */}
-      <div className="grid gap-1"><span className="libelle-champ">Créneau</span><p className={`${champ} text-[var(--texte-secondaire)]`}>Le matin</p><input type="hidden" name="heure_paris" value={reglages.heure_paris} /></div>
+      {/* 06/10 : l'heure est réglable et respectée (heure de Paris, été
+          comme hiver) ; le post est préparé la veille à 18 h. */}
+      <label className="grid gap-1"><span className="libelle-champ">Heure de parution (Paris)</span><select className={champ} name="heure_paris" defaultValue={reglages.heure_paris}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{h} h</option>)}</select></label>
       <label className="grid gap-1"><span className="libelle-champ">Seuil d’alerte mensuel</span><span className={champAvecUnite}><input name="budget" type="number" min="0" max="1000" step="0.01" defaultValue={(reglages.budget_mensuel_cents/100).toFixed(2)} className="min-w-0 flex-1 bg-transparent py-2 outline-none" /><span aria-hidden className="text-[var(--texte-secondaire)]">€</span></span></label>
+    </div>
+    <label className={caseACocher}><input type="checkbox" name="validation_obligatoire" defaultChecked={reglages.validation_obligatoire} className="mt-1" /><span><b>Validation obligatoire</b><small className="mt-1 block text-[var(--texte-secondaire)]">Décoché : le post préparé la veille part à l’heure dite sauf si vous le reportez ou le refusez. Coché : rien ne part sans « Valider » ou « Publier maintenant ».</small></span></label>
+    <div className="grid gap-3 md:grid-cols-2">
+      <label className="grid gap-1"><span className="libelle-champ">Veille : mots qui rendent un sujet éligible</span><textarea name="veille_mots_inclus" rows={4} defaultValue={reglages.veille_mots_inclus.join(", ")} className={champ} /><small className="text-xs text-[var(--texte-secondaire)]">Séparés par des virgules. Lus dans le titre et le résumé de l’étude ; pluriels admis.</small></label>
+      <label className="grid gap-1"><span className="libelle-champ">Veille : mots qui écartent un sujet</span><textarea name="veille_mots_exclus" rows={4} defaultValue={reglages.veille_mots_exclus.join(", ")} className={champ} /><small className="text-xs text-[var(--texte-secondaire)]">Un seul mot exclu suffit. Sans sujet éligible, le créneau prend un sujet éditorial.</small></label>
     </div>
     <p className="text-xs text-[var(--texte-secondaire)]">Le seuil d’alerte compare les dépenses Meta constatées : au-delà, la tuile « Dépenses ce mois » passe au rouge. Il n’engage aucune dépense. Chaque illustration est créée pour son sujet ; la création d’images utilise votre connexion IA et sa facturation.</p><div className="flex flex-wrap items-center gap-3"><button className="btn-or" disabled={attente}>{attente ? "Enregistrement…" : "Enregistrer les réglages"}</button>{etat.erreur && <p role="alert" className="err">{etat.erreur}</p>}{etat.succes && <p role="status" className="text-sm text-[var(--success)]">{etat.succes}</p>}</div>
   </form>;

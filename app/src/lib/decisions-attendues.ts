@@ -127,7 +127,7 @@ export async function chargerDecisionsAttendues(
 // COURANT avant d'agir, et ne diffuse jamais une information écartée entre-temps.
 const ETAT_ATTENDU: Record<SourceDecision, { table: string; colonne: string; valeurs: string[] }> = {
   developpement: { table: "development_proposals", colonne: "statut", valeurs: ["autorisation"] },
-  publication: { table: "publications", colonne: "statut", valeurs: ["proposition", "brouillon"] },
+  publication: { table: "publications", colonne: "statut", valeurs: ["proposition", "brouillon", "programmee"] },
   artisan: { table: "artisans", colonne: "statut_plateforme", valeurs: ["en_attente"] },
   retour: { table: "retours_utilisateurs", colonne: "etat", valeurs: ["nouveau", "en_examen"] },
   veille: { table: "regulatory_watch", colonne: "statut", valeurs: ["a_examiner"] },

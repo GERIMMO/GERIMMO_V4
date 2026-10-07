@@ -46,9 +46,9 @@ describe('Journal : ce que la veille y relaie',()=>{
   // Une description déjà tronquée en base est recalculée depuis le chapô.
   expect(descriptionArticle({seo_description:long.slice(0,100),chapo:long})).toBe(couperAuMot(long,160));
  });
- it('le relais automatique ne choisit qu\'un sujet de logement',()=>{
+ it('le relais automatique ne choisit qu\'un sujet pertinent (filtre réglable, 06/10)',()=>{
   const route=readFileSync(path.resolve(__dirname,'../src/app/api/cron/marketing/route.ts'),'utf8');
-  expect(route).toContain('estSujetLogement(i.titre)');
+  expect(route).toContain('evaluerPertinence(');
   expect(route).toContain('seo_description:couperAuMot(');
  });
  it('l\'encadré « Ces règles… » ne suit qu\'un article de règle (veine éditoriale)',()=>{

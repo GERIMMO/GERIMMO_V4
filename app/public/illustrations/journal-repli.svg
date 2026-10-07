@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1536 1024" width="1536" height="1024" role="img" aria-label="Journal Gerimmo">
+  <defs>
+    <linearGradient id="fond" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f2f5fb"/>
+      <stop offset="1" stop-color="#dfe9ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1536" height="1024" fill="url(#fond)"/>
+  <!-- Toits de la ville, en encre, sur un trait de marque -->
+  <g fill="none" stroke="#0f2352" stroke-width="10" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M160 700 L160 520 L300 420 L440 520 L440 700"/>
+    <path d="M440 700 L440 440 L600 320 L760 440 L760 700"/>
+    <path d="M760 700 L760 500 L880 420 L1000 500 L1000 700"/>
+    <path d="M1000 700 L1000 380 L1180 260 L1360 380 L1360 700"/>
+    <rect x="520" y="520" width="80" height="100" rx="6"/>
+    <rect x="640" y="520" width="80" height="100" rx="6"/>
+    <rect x="1120" y="440" width="90" height="110" rx="6"/>
+    <rect x="1240" y="440" width="90" height="110" rx="6"/>
+    <rect x="220" y="580" width="60" height="120" rx="6"/>
+    <rect x="860" y="600" width="60" height="100" rx="6"/>
+  </g>
+  <rect x="120" y="700" width="1296" height="10" rx="5" fill="#2457f5"/>
+  <!-- La clé de la marque -->
+  <g transform="translate(1180 760)" fill="none" stroke="#2457f5" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="40" cy="40" r="34"/>
+    <path d="M70 60 L200 190"/>
+    <path d="M160 150 L190 120"/>
+    <path d="M185 175 L215 145"/>
+  </g>
+  <text x="120" y="860" font-family="Manrope, Figtree, Segoe UI, sans-serif" font-size="56" font-weight="700" fill="#0f2352">Journal Gerimmo</text>
+  <text x="120" y="920" font-family="Figtree, Segoe UI, sans-serif" font-size="30" fill="#53617a">La gestion locative, expliquée quand elle sert.</text>
+</svg>

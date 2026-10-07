@@ -277,3 +277,4 @@
 20260930220000_validation_factures_artisan.sql
 20261002100000_zone_artisan_departement.sql
 20261002200000_dates_attestations_artisans.sql
+20261007100000_marketing_fenetre_de_veto.sql

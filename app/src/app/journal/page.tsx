@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EnTetePublic, PiedPublic } from "@/components/chrome-public";
 import { metadonneesPubliques } from "@/lib/metadonnees-publiques";
+import { ImageJournal } from "@/components/image-journal";
 import { titreSansDoublon } from "@/lib/sujet-veille-marketing";
 
 // 29/09 : la description ne promet plus des sujets précis (révision,
@@ -27,7 +28,7 @@ export default async function PageJournal() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("publications")
-    .select("id, titre, slug, chapo, publie_le")
+    .select("id, titre, slug, chapo, publie_le, facebook_image_url")
     .eq("statut", "publiee")
     .order("publie_le", { ascending: false })
     .limit(50);
@@ -83,6 +84,9 @@ export default async function PageJournal() {
                   href={`/journal/${a.slug}`}
                   className="group -m-3 block rounded-xl p-3 hover:bg-[var(--survol)]"
                 >
+                  {/* 06/10 : la vignette de l'article (son illustration Facebook,
+                      ou le repli de la charte). */}
+                  <ImageJournal url={a.facebook_image_url} titre={a.titre} tailles="(min-width: 1024px) 360px, (min-width: 640px) 50vw, 100vw" className="mb-3" />
                   <p className="mono-discret sans-majuscules">{jour(a.publie_le)}</p>
                   <h2 className="mt-1.5 font-heading text-[19px] leading-snug text-[var(--encre)] group-hover:underline">
                     {titreSansDoublon(a.titre)}

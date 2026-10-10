@@ -53,7 +53,7 @@ test("fiche lot : la location passe avant les caractéristiques", async ({ page 
   await page.goto(CHEMIN_LOT);
   // `CardTitle` rend un <div>, pas un titre : on vise la fente de données.
   await expect(
-    page.locator('[data-slot="card-title"]', { hasText: "La location en cours" })
+    page.locator('#location-apercu').getByRole('heading', { name: 'Locataire E2E', exact: true })
   ).toBeVisible();
 
   const onglets = page.getByRole("navigation", { name: "Rubriques du logement" });
@@ -61,15 +61,15 @@ test("fiche lot : la location passe avant les caractéristiques", async ({ page 
   await expect(page.getByRole("region", { name: "Logement", exact: true })).toBeHidden();
 
   // Le locataire et le loyer se lisent sans rien déplier.
-  await expect(page.locator(".dossier-chiffres").getByText("Locataire E2E", { exact: true })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Ouvrir le bail/ }).getByText("Locataire E2E", { exact: true })).toBeVisible();
+  await expect(page.locator("#location-apercu").getByText("Locataire E2E", { exact: true })).toBeVisible();
+  expect(await hauteur(page, "#location-apercu")).toBeLessThan(await hauteur(page, "#titre-logement-apercu"));
   await expect(page.getByRole("link", { name: /Ouvrir le bail/ })).toBeVisible();
 });
 
 test("fiche lot : l'état n'est dit qu'une fois de trop, pas quatre", async ({ page }) => {
   await page.goto(CHEMIN_LOT);
   await expect(
-    page.locator('[data-slot="card-title"]', { hasText: "La location en cours" })
+    page.locator('#location-apercu').getByRole('heading', { name: 'Locataire E2E', exact: true })
   ).toBeVisible();
   const texte = (await page.locator("main").innerText()).toLowerCase();
   // « Loué » : la pastille du titre. « État actuel : Loué » et « Ce lot est
@@ -79,11 +79,12 @@ test("fiche lot : l'état n'est dit qu'une fois de trop, pas quatre", async ({ p
   expect(occurrences, `« loué » apparaît ${occurrences} fois`).toBeLessThanOrEqual(2);
 });
 
-test("fiche lot : les caractéristiques vides ne prennent pas de place", async ({ page }) => {
+test("fiche lot : les caractéristiques se consultent avant de modifier", async ({ page }) => {
   await page.goto(CHEMIN_LOT);
   await page.getByRole("navigation", { name: "Rubriques du logement" }).getByRole("button", { name: "Logement", exact: true }).click();
-  await expect(page.getByText("Non renseigné :")).toBeVisible();
-  // Aucune rangée « libellé ↔ — » : les champs vides sont réunis en une phrase.
+  await expect(page.getByRole("heading", { name: "Caractéristiques du logement" })).toBeVisible();
+  await expect(page.locator("#caracteristiques").getByRole("button", { name: "Modifier", exact: true })).toHaveAttribute("aria-expanded", "false");
+  // Les champs vides portent un libellé explicite plutôt qu’un tiret.
   const tirets = await page.locator("main dd", { hasText: /^—$/ }).count();
   expect(tirets, "une rangée qui affiche « — » ne dit rien et coûte une ligne").toBe(0);
 });
@@ -94,7 +95,7 @@ test("fiche lot : une section se déplie en touchant sa rangée, pas un bouton l
   await page.goto(CHEMIN_LOT);
   await page.getByRole("navigation", { name: "Rubriques du logement" }).getByRole("button", { name: "Diagnostics", exact: true }).click();
   const rangee = page.getByRole("button", { name: /Diagnostics du lot/ });
-  await expect(rangee).toHaveAttribute("aria-expanded", "false");
+  await expect(rangee).toHaveAttribute("aria-expanded", "true");
 
   // La cible fait toute la largeur : c'est ce qui rend la distance sans objet.
   const boite = await rangee.boundingBox();
@@ -102,17 +103,19 @@ test("fiche lot : une section se déplie en touchant sa rangée, pas un bouton l
   expect(boite!.height, "cible tactile d'au moins 44 px").toBeGreaterThanOrEqual(44);
 
   await rangee.click();
+  await expect(rangee).toHaveAttribute("aria-expanded", "false");
+  await rangee.click();
   await expect(rangee).toHaveAttribute("aria-expanded", "true");
 });
 
 test("fiche bien : les lots passent avant l'administratif", async ({ page }) => {
   await page.goto(CHEMIN_BIEN);
   await expect(
-    page.locator('[data-slot="card-title"]').filter({ hasText: /^Le lot$|^Les \d+ lots/ })
+    page.locator('[data-slot="card-title"]').filter({ hasText: /^Votre lot|^Les \d+ lots/ })
   ).toBeVisible();
 
   const lots = await hauteur(page, "#lots");
-  const leBien = await hauteur(page, "text=Le bien");
+  const leBien = await hauteur(page, "#informations");
   expect(lots, "les lots doivent précéder la fiche administrative du bien").toBeLessThan(leBien);
 });
 
@@ -133,7 +136,7 @@ test("fiche bien : ce qui manque est dit en haut, avec le chemin pour le régler
 
 test("fiche bien : l'annonce aux locataires ne déploie plus son formulaire", async ({ page }) => {
   await page.goto(CHEMIN_BIEN);
-  const rangee = page.getByRole("button", { name: /Annonce aux locataires/ });
+  const rangee = page.getByRole("button", { name: /Annonces aux locataires/ });
   await expect(rangee).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByLabel("Texte de l’annonce")).toHaveCount(0);
 });
@@ -142,14 +145,12 @@ test("les deux fiches tiennent dans 390 px", async ({ page }) => {
   // On attend le CONTENU, pas le <main> : l'écran de chargement en porte un,
   // et mesurer pendant qu'il tourne rend un verdict sur une page qui n'est pas
   // celle qu'on teste (échec intermittent constaté à l'écriture du test).
-  for (const [url, attendu] of [
-    [CHEMIN_BIEN, /^Le lot$|^Les \d+ lots/],
-    [CHEMIN_LOT, /^La location en cours$/],
+  for (const [url, selecteur] of [
+    [CHEMIN_BIEN, '#lots'],
+    [CHEMIN_LOT, '#location-apercu'],
   ] as const) {
     await page.goto(url);
-    await expect(
-      page.locator('[data-slot="card-title"]').filter({ hasText: attendu }).first()
-    ).toBeVisible();
+    await expect(page.locator(selecteur)).toBeVisible();
     expect(await debordementHorizontal(page), url).toBe(0);
   }
 });

@@ -765,7 +765,7 @@ function OngletResume({
             )}
           </Carte>
         )}
-        <Carte titre={multiple ? "Contrats de location" : "Contrat de location"}
+        <Carte titre={locataire ? "Mon bail" : multiple ? "Contrats de location" : "Contrat de location"}
           badge={!multiple && fiche.bail_etat ? ETATS_BAIL[fiche.bail_etat] : undefined}>
           {multiple ? <div className="space-y-3">{fiche.contrats?.map(c => (
             <div key={c.id} className="border-b border-[var(--filet)] pb-3 last:border-0">

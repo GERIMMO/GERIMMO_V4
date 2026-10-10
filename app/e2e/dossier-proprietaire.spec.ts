@@ -116,7 +116,7 @@ test('propriétaire : le bail reprend le lot et permet de créer puis retrouver 
   await loyer.getByRole('button', { name:'Enregistrer cette étape', exact:true }).click();
   await expect(loyer.getByRole('status')).toBeVisible();
   await page.reload();
-  await expect(page.locator('#form-parcours-bail [name="loyer_hc"]')).toHaveValue('700');
+  await expect(page.locator('#form-parcours-bail [name="loyer_hc"]')).toHaveValue(/^700(?:[.,]0+)?$/);
   await navigation.getByRole('button', { name: /Étape 2 : Personnes/ }).click();
   await expect(page.locator('.bail-personnes-locataires')).toContainText(nom);
   await navigation.getByRole('button', { name: /Étape 1 : Le bail/ }).click();

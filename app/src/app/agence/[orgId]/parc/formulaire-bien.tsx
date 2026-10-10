@@ -77,6 +77,7 @@ export function FormulaireBien({
       setLotUnique(lot => lot.nom === undefined ? {...lot, nom: nomBien} : lot);
     }
     setEtapeCreation(i);
+    if (guideActif) actualiserReperes();
     requestAnimationFrame(() => {
       document.getElementById("assistant-titre")?.focus({preventScroll:true});
       document.getElementById("assistant-lot-navigation")?.scrollIntoView({block:"start"});

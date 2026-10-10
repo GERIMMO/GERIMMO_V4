@@ -35,6 +35,7 @@ test("créer un bien depuis le téléphone : formulaire → fiche du parc", asyn
   await page.getByLabel(/Accès internet, téléphone, TV/).fill("Fibre optique et TNT");
   await page.getByRole("button", { name: "Suivant", exact: true }).click();
   await expect(page.getByLabel("Nom du lot", { exact: true })).toHaveValue(nom);
+  await expect(page.getByRole("button", { name: "Étape 2 : Le lot — 2 à compléter", exact: true })).toBeVisible();
   await page.getByLabel("Nom du lot", { exact: true }).fill(`${nom} — appartement`);
   await page.getByRole("button", { name: "Précédent", exact: true }).click();
   await page.getByRole("button", { name: "Suivant", exact: true }).click();

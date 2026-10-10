@@ -1,0 +1,50 @@
+.entete { display:flex; align-items:center; flex-wrap:wrap; gap:16px; padding:22px; background:var(--surface); border:1px solid var(--trait); border-radius:12px; }
+.entete h1 { font-size:clamp(22px,2.3vw,30px); font-weight:400; overflow-wrap:anywhere; }
+.icone { display:grid; place-items:center; width:54px; height:54px; flex-shrink:0; border-radius:14px; background:var(--marque-clair); color:var(--marque); }
+.surtitre { font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--texte-secondaire); margin-bottom:6px; }
+.chiffres { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.chiffres > div { padding:15px; border:1px solid var(--trait); border-radius:12px; background:var(--surface); }
+.chiffres dt { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--texte-secondaire); }
+.chiffres dt svg { color:var(--marque); flex-shrink:0; }
+.chiffres dd { margin:9px 0 4px; font-size:19px; font-weight:650; overflow-wrap:anywhere; }
+.chiffres small { display:block; font-size:11px; color:var(--texte-secondaire); line-height:1.6; }
+.attention { padding:16px 18px; border:1px solid color-mix(in srgb,var(--or) 40%,var(--trait)); border-radius:12px; background:var(--warning-soft); }
+.page :global(.dossier-nav) { gap:8px; }
+.page :global(.dossier-rubrique) { border-radius:14px; overflow:clip; }
+.page :global(.dossier-rubrique > summary) { padding:16px 18px; }
+.page :global(.dossier-rubrique .dossier-rubrique) { border:1px solid var(--trait); box-shadow:none; }
+.page :global(.dossier-rubrique .dossier-rubrique > summary) { background:color-mix(in srgb,var(--marque) 4%,var(--surface)); }
+.page :global([data-slot=card]) { --card-spacing:18px; box-shadow:none; }
+.page :global([data-slot=card-description]) { max-width:75ch; font-size:12px; line-height:1.6; }
+@media(max-width:850px) { .chiffres { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:500px) { .entete { padding:16px; gap:12px; } .entete > a { width:100%; justify-content:center; } .chiffres > div { padding:12px; } .chiffres dd { font-size:16px; } .chiffres dt { align-items:start; font-size:11px; } }
+
+.guide { border:1px solid var(--trait); border-radius:12px; padding:18px; background:var(--surface); }
+.guide h2 { font-size:22px; font-weight:400; }
+.guide p { margin-top:8px; font-size:13px; color:var(--texte-secondaire); max-width:75ch; }
+.guide a { margin-top:14px; display:inline-flex; }
+@media(max-width:600px) {
+  .page :global(.dossier-rubrique .dossier-rubrique > .dossier-rubrique-contenu) { padding:10px; }
+  .page :global(.dossier-rubrique .dossier-rubrique .dossier-rubrique > summary) { padding:12px; }
+}
+
+/* Le résumé du brouillon est rassemblé dans l’en-tête du contrat. */
+.resumeBrouillon { display:flex; flex-wrap:wrap; flex-basis:100%; gap:10px 28px; margin-top:0; padding-top:10px; border-top:1px solid var(--filet-leger); }
+.resumeBrouillon > div { display:flex; align-items:center; gap:10px; }
+.resumeBrouillon svg { color:var(--prestige-champagne-texte); flex-shrink:0; }
+.resumeBrouillon dt { color:var(--texte-secondaire); font-size:11px; line-height:1.5; }
+.resumeBrouillon dd { margin:0; color:var(--encre); font-size:15px; font-weight:600; }
+@media(max-width:500px) { .resumeBrouillon { gap:8px; } .resumeBrouillon > div { flex-basis:100%; } }
+
+/* En-tête compact pour la préparation du bail. */
+.entete:has(.resumeBrouillon) { padding:14px 20px; gap:10px 14px; }
+.entete:has(.resumeBrouillon) .icone { width:44px; height:44px; border-radius:11px; }
+.entete:has(.resumeBrouillon) h1 { font-size:26px; }
+.entete:has(.resumeBrouillon) .surtitre { margin-bottom:3px; }
+.entete:has(.resumeBrouillon) > div > p:last-child { margin-top:4px; }
+.resumeBrouillon > div > div { display:flex; flex-wrap:wrap; align-items:baseline; gap:3px 10px; }
+@media(max-width:500px) {
+  .entete:has(.resumeBrouillon) { padding:12px 14px; gap:10px; }
+  .entete:has(.resumeBrouillon) h1 { font-size:22px; }
+  .resumeBrouillon > div > div { column-gap:8px; }
+}

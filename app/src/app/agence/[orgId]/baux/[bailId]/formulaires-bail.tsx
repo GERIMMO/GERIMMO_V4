@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
 import { useActionState, useId, useState } from "react";
 import {
   deposerBailSigne,
@@ -30,9 +31,9 @@ function FormulairePieceBail({
   bouton: string;
   action: (etat: EtatBail, formData: FormData) => Promise<EtatBail>;
 }) {
-  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
+  const {etat, soumettre:formAction, enCours, version} = useActionFormulaire<EtatBail>(action, true);
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2">
+    <form key={version} onSubmit={formAction} className="flex flex-wrap items-end gap-2">
       <div className="space-y-1.5">
         <Label htmlFor={id} className="text-sm">
           {libelle}
@@ -43,7 +44,7 @@ function FormulairePieceBail({
             honoré ; le contrôle réel du contenu reste côté serveur. */}
         <ChampFichier id={id} name="fichier" accept=".pdf,application/pdf" required />
       </div>
-      <BoutonEnvoi enCoursTexte="Dépôt…" size="sm" variant="outline">
+      <BoutonEnvoi enCours={enCours} enCoursTexte="Dépôt…" size="sm" variant="outline">
         {bouton}
       </BoutonEnvoi>
       {etat.erreur && <p className="w-full text-sm text-destructive">{etat.erreur}</p>}
@@ -70,7 +71,7 @@ function FormulairePieceBail({
 export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: string }) {
   return (
     <FormulairePieceBail
-      id="bail-signe"
+      id="depot-bail-signe"
       libelle="Bail signé (PDF uniquement) — son dépôt active le bail et loue le lot"
       bouton="Déposer le bail signé"
       action={deposerBailSigne.bind(null, orgId, bailId)}
@@ -81,8 +82,8 @@ export function FormulaireBailSigne({ orgId, bailId }: { orgId: string; bailId: 
 export function FormulaireReglementCopropriete({ orgId, bailId }: { orgId: string; bailId: string }) {
   return (
     <FormulairePieceBail
-      id="reglement-copro"
-      libelle="Règlement de copropriété (PDF, facultatif)"
+      id="depot-reglement-copro"
+      libelle="Extrait du règlement de copropriété (PDF)"
       bouton="Déposer le règlement"
       action={deposerReglementCopropriete.bind(null, orgId, bailId)}
     />

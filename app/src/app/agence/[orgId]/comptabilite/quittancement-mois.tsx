@@ -137,6 +137,7 @@ export function QuittancementMois({
   moisLabel,
   lignes,
   proprietaire = false,
+  envoiGroupe = true,
 }: {
   orgId: string;
   // « YYYY-MM » du mois affiché (celui de l'envoi groupé)
@@ -145,6 +146,7 @@ export function QuittancementMois({
   lignes: LigneQuittancement[];
   // Propriétaire direct : pas de mandat, donc jamais d'honoraires
   proprietaire?: boolean;
+  envoiGroupe?: boolean;
 }) {
   const [etatEnvoi, actionEnvoi] = useActionState<EtatLoyers, FormData>(
     async () => envoyerQuittancesMois(orgId, mois),
@@ -177,7 +179,7 @@ export function QuittancementMois({
             semblait compter des quittances (24/09). Sur téléphone, le bloc
             passe sous le titre au lieu de le comprimer. */}
         <CardAction className="flex flex-wrap items-center justify-end gap-3 max-sm:col-start-1 max-sm:row-span-1 max-sm:row-start-2 max-sm:justify-self-start max-sm:justify-start">
-          {nonEnvoyes.length > 0 && (
+          {envoiGroupe && nonEnvoyes.length > 0 && (
             <form action={actionEnvoi}>
               <BoutonEnvoi enCoursTexte="Envoi…" size="sm" variant="outline">
                 {libelleEnvoi}
@@ -190,6 +192,7 @@ export function QuittancementMois({
         </CardAction>
       </CardHeader>
       <CardContent className="space-y-3">
+        {!envoiGroupe && nonEnvoyes.length > 0 && <p className="text-xs text-muted-foreground">Pour envoyer les quittances du mois en groupe, sélectionnez « Tous les biens ».</p>}
         {(etatEnvoi.succes || etatEnvoi.erreur) && (
           <p className={`text-sm ${etatEnvoi.erreur ? "text-destructive" : "text-success-soft-foreground"}`}>
             {etatEnvoi.succes ?? etatEnvoi.erreur}

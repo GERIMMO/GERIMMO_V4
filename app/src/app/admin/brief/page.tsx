@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { faitsManquants } from "@/lib/editeur";
@@ -58,7 +59,7 @@ export default async function PageBrief({ searchParams }: { searchParams: Promis
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Aujourd’hui</h1>
+        <TitreEcran rubrique="suivi">Aujourd’hui</TitreEcran>
         <span className="mono-discret">Le point du matin · {dateLongue(jour)}</span>
       </div>
       {duJour.erreur && <p role="alert" className="err mb-5">Le point du matin est indisponible. Aucun état ne peut être confirmé.</p>}

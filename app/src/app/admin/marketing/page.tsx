@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Lightbulb, Megaphone, PenLine, Radar, TriangleAlert } from "lucide-react";
@@ -104,7 +105,7 @@ export default async function PageAgentMarketing() {
         slogan et ses trois cartes vitrées occupaient un à deux écrans. Les
         deux liens deviennent les boutons communs, cibles tactiles comprises. */}
     <div className="entete-page">
-      <div className="min-w-0 flex-[1_1_20rem]"><h1>Agent marketing</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">L’agent choisit des sujets utiles, prépare les articles, les diffuse sur Facebook et centralise les résultats. Vous gardez ici les décisions, le budget et l’historique.</p></div>
+      <div className="min-w-0 flex-[1_1_20rem]"><TitreEcran rubrique="journal">Agent marketing</TitreEcran><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">L’agent choisit des sujets utiles, prépare les articles, les diffuse sur Facebook et centralise les résultats. Vous gardez ici les décisions, le budget et l’historique.</p></div>
       <div className="flex flex-wrap items-center gap-3">
         <span className="mono-discret">{reglages.actif ? `Deux posts ${jours} à ${reglages.heure_paris} h, préparés la veille · ${reglages.validation_obligatoire ? "validation obligatoire" : reglages.publication_automatique && facebookOperationnel ? "parution sauf veto" : "brouillons à valider"}` : "Préparation des brouillons en pause"}</span>
         {prochaine && <Link href={prochaine.href} className="btn-secondaire max-w-full"><span className="truncate">{prochaine.libelle}</span> <ArrowRight className="size-4 shrink-0" /></Link>}

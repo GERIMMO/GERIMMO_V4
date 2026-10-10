@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { DEPARTEMENTS } from "@/lib/territoire";
@@ -11,7 +12,7 @@ const projection = "id,raison_sociale,statut_plateforme,siret_etat,visibilite,ac
 export default async function Couverture({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const supabase = await createClient();
   const { data: autorise, error: refus } = await supabase.rpc("is_super_admin");
-  if (refus || autorise !== true) return <main className="p-7"><h1>Accès réservé à la supervision</h1></main>;
+  if (refus || autorise !== true) return <main className="p-7"><TitreEcran rubrique="territoire">Accès réservé à la supervision</TitreEcran></main>;
   const params = await searchParams;
   const texte = (cle: string) => typeof params[cle] === "string" ? params[cle] as string : "";
   const departement = DEPARTEMENTS.some(d => d.code === texte("departement")) ? texte("departement") : "91";
@@ -40,7 +41,7 @@ export default async function Couverture({ searchParams }: { searchParams: Promi
   });
   const lienPage = (numero: number) => `/admin/couverture?${new URLSearchParams({ departement, metier, artisan: recherche, page: String(numero), ...(commune ? { commune } : {}) })}#recherche-artisan`;
   return <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 sm:p-7">
-    <div className="entete-page"><div><h1>Réseau d’artisans</h1><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">La gestion immobilière est disponible partout en France. Vous ouvrez uniquement la mise en relation avec le réseau, commune par commune et métier par métier.</p></div><Link href="/admin/artisans" className="btn-secondaire">Artisans à valider</Link></div>
+    <div className="entete-page"><div><TitreEcran rubrique="territoire">Réseau d’artisans</TitreEcran><p className="mesure-lecture mt-2 text-sm text-[var(--texte-secondaire)]">La gestion immobilière est disponible partout en France. Vous ouvrez uniquement la mise en relation avec le réseau, commune par commune et métier par métier.</p></div><Link href="/admin/artisans" className="btn-secondaire">Artisans à valider</Link></div>
     <div className="rounded-xl border border-[var(--filet)] bg-[var(--marque-clair)] p-4 text-sm">Une inscription ou une validation d’artisan n’ouvre jamais une zone. Sans décision de votre part, elle reste fermée. Les codes postaux déclarés servent de repère ; les ouvertures utilisent les communes officielles.</div>
     <section id="interets-nationaux" className="loc-carte scroll-mt-24 space-y-3"><div className="entete-carte"><h2>Où le réseau est attendu</h2><span className="puce puce-encre">Toute la France</span></div><p className="text-sm text-muted-foreground">Les intérêts exprimés, regroupés par commune et métier, du plus demandé au moins demandé. Ce sont des besoins à étudier pour le recrutement, pas des interventions à envoyer.</p>
       {demandeNationale.error ? <p role="alert" className="err">Les intérêts nationaux sont indisponibles. Rechargez la page.</p> : !interetsNationaux.length ? <p className="text-sm">{pageInterets === 1 ? "Aucun intérêt enregistré pour le moment." : "Aucun autre résultat sur cette page."}</p> : <ul className="space-y-3">{interetsNationaux.map(i => <li key={`${i.commune_code}-${i.metier}`} className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--filet)] py-2 text-sm"><div><b>{i.commune_nom} ({i.departement}) · {METIERS_ARTISAN[i.metier]}</b><p className="text-xs text-muted-foreground">{i.interets} intérêt{Number(i.interets)>1 ? "s" : ""} · {i.biens_interesses} bien{Number(i.biens_interesses)>1 ? "s" : ""} · dernier signalement le {new Date(i.dernier_interet).toLocaleDateString("fr-FR")}</p></div><Link href={`/admin/couverture?departement=${i.departement}&metier=${i.metier}&commune=${i.commune_code}#artisans-commune`} className="btn-secondaire">Étudier cette commune<span className="sr-only"> · {i.commune_nom} · {METIERS_ARTISAN[i.metier]}</span></Link></li>)}</ul>}

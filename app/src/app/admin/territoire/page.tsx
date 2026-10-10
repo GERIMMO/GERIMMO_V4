@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from 'next/link';
 import {appliquerEtudes,type EtudeTerritoriale} from '@/lib/etudes-territoriales';
 import {FormulaireEtude} from './etude';
@@ -81,7 +82,7 @@ export default async function PageTerritoire() {
     {/* L'en-tête commun de la console (24/09) : le pavé bleu nuit à photo et
         slogan faisait un à deux écrans de téléphone avant le premier chiffre. */}
     <div className="entete-page">
-      <div className="min-w-0 flex-[1_1_20rem]"><h1>Développement territorial</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">Le marché locatif, le réseau d’artisans et les résultats commerciaux, comparés département par département. Gerimmo propose une priorité et dit ce qu’il faut encore vérifier avant de recruter.</p></div>
+      <div className="min-w-0 flex-[1_1_20rem]"><TitreEcran rubrique="territoire">Développement territorial</TitreEcran><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">Le marché locatif, le réseau d’artisans et les résultats commerciaux, comparés département par département. Gerimmo propose une priorité et dit ce qu’il faut encore vérifier avant de recruter.</p></div>
       <span className="mono-discret">{echec ? 'Présence indisponible' : pluriel(empreinte.lignes.length, 'département présent', 'départements présents')}</span>
     </div>
     <p className="text-sm">La gestion locative est déjà accessible partout en France. Les priorités de recrutement ne conditionnent pas l’inscription. <Link href="/admin/couverture" className="underline">Décider des ouvertures du réseau d’artisans, par commune et métier →</Link></p>

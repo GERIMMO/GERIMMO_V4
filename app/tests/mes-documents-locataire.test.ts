@@ -78,7 +78,7 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
   let db: Client;
   let orgA: string;
   let compteLo: string;
-  let compteAgent: string;
+  let _compteAgent: string;
   let compteAdmin: string;
 
   beforeAll(async () => {
@@ -98,7 +98,7 @@ describe.skipIf(!DB_URL)("Mes documents locataire (recette 26/08)", () => {
     );
     orgA = org;
     ({ compte: compteLo } = await creerCompte(db, orgA, "locataire", "Occupant"));
-    ({ compte: compteAgent } = await creerCompte(db, orgA, "agent", "Agent"));
+    ({ compte: _compteAgent } = await creerCompte(db, orgA, "agent", "Agent"));
     // C'est l'admin d'agence qui constitue le parc (wiki : « Agent immobilier » —
     // l'agent travaille sur son portefeuille, il ne crée pas les biens).
     ({ compte: compteAdmin } = await creerCompte(db, orgA, "admin_agence", "Admin"));

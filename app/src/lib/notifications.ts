@@ -1145,7 +1145,10 @@ export async function envoyerRappelsGestes(service: SupabaseClient, maintenant: 
 
   const { data: pieces } = await service
     .from("pieces_demandees")
-    .select("id, organization_id, person_id, libelle, demandee_le")
+    .select("id, organization_id, person_id, libelle, demandee_le, personne:persons!inner(account_id, archived_at)")
+    // Une demande préparée avant invitation n'est pas encore relançable.
+    .not("personne.account_id", "is", null)
+    .is("personne.archived_at", null)
     .is("satisfaite_le", null)
     .is("relancee_le", null)
     .lte("demandee_le", avant(DELAIS_RAPPEL.piece_demandee))

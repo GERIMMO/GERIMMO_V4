@@ -270,6 +270,10 @@ export async function modifierComplementsBail(
     return brut ? Number(brut) : null;
   };
 
+  const situation = texte("precedente_location");
+  if (situation && !["premiere", "ancienne", "recente"].includes(situation)) return { erreur: "Choisissez la situation de la précédente location.", valeurs };
+  const revision = texte("precedent_loyer_revise");
+  if (revision && !["true", "false"].includes(revision)) return { erreur: "Précisez si le précédent loyer a été révisé.", valeurs };
   const { mentions, erreur: erreurMentions } = lireMentionsContrat(formData);
   if (erreurMentions) return { erreur: erreurMentions, valeurs };
   for (const champ of ['irl_valeur', 'travaux_recents_montant', 'honoraires_bailleur', 'honoraires_locataire', 'loyer_reference', 'loyer_reference_majore', 'complement_loyer', 'dernier_loyer']) {
@@ -310,6 +314,8 @@ export async function modifierComplementsBail(
       dernier_loyer: nombre("dernier_loyer"),
       dernier_loyer_versement: texte("dernier_loyer_versement"),
       dernier_loyer_revision: texte("dernier_loyer_revision"),
+      ...(formData.has("precedente_location") ? { precedente_location: situation } : {}),
+      ...(formData.has("precedent_loyer_revise") ? { precedent_loyer_revise: revision === null ? null : revision === "true" } : {}),
       meuble_etudiant: formData.get("meuble_etudiant") === "on",
     })
     .eq("id", bailId)
@@ -322,7 +328,7 @@ export async function modifierComplementsBail(
   }
 
   revalidatePath(`/agence/${orgId}/baux/${bailId}`);
-  return { succes: "Compléments enregistrés." };
+  return { succes: "Compléments enregistrés.", valeurs };
 }
 
 // Blocages de mise en location, chacun transformé en action cliquable

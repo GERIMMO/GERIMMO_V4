@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -57,7 +58,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page">
-          <h1>Mandats &amp; versements</h1>
+          <TitreEcran rubrique="finances">Mandats &amp; versements</TitreEcran>
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -116,7 +117,7 @@ export default async function PageMandats(props: PageProps<"/agence/[orgId]/mand
   return (
     <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page">
-        <h1>Mandats &amp; versements</h1>
+        <TitreEcran rubrique="finances">Mandats &amp; versements</TitreEcran>
         {/* La requête écarte les mandats résiliés : dire « en cours », sinon
             le compte de tête se lit comme le nombre de mandats de l'agence. */}
         <span className="mono-discret">

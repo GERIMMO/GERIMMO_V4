@@ -39,12 +39,14 @@ export function ChampsBail({
   defauts = {},
   prefixe = "bail",
   valeurs,
+  personnesDansEtape = false,
 }: {
   personnes: Personne[];
   chambres?: { id: string; nom: string }[];
   defauts?: BailDefauts;
   prefixe?: string;
   valeurs?: Record<string, string>;
+  personnesDansEtape?: boolean;
 }) {
   // Création rapide d'un locataire (recette Tahir 09/09) : même patron que le
   // « + Nouvelle personne… » de la détention — saisie en pop-up, valeurs
@@ -64,6 +66,13 @@ export function ChampsBail({
     codePostal: valeurs?.nouveau_locataire_code_postal ?? "",
     ville: valeurs?.nouveau_locataire_ville ?? "",
   });
+  const refNouveau = useRef<HTMLDivElement>(null);
+  function validerNouveau() {
+    for (const champ of refNouveau.current?.querySelectorAll<HTMLInputElement>("input") ?? []) {
+      if (!champ.reportValidity()) return;
+    }
+    setModaleOuverte(false);
+  }
   const refNom = useRef<HTMLInputElement>(null);
   const refEmail = useRef<HTMLInputElement>(null);
 
@@ -109,7 +118,7 @@ export function ChampsBail({
         <p className="text-xs text-muted-foreground">Un seul locataire, son propre loyer et son dépôt. Sans solidarité avec les autres chambres.
           {chambres.length === 0 && " Ajoutez d’abord les chambres dans la fiche du logement."}</p>
       </div>}
-      <div className="space-y-1.5">
+      {personnesDansEtape ? <div className="space-y-1.5"><span className="text-sm font-medium">Locataire</span><input type="hidden" name="locataire_principal" value={defauts.locataire_principal ?? ""} /><p className="text-sm text-muted-foreground">{personnes.find(p => p.id === defauts.locataire_principal) ? nomComplet(personnes.find(p => p.id === defauts.locataire_principal)!) : "À sélectionner"} · <a href="#etape-bail-2" className="underline">Modifier à l’étape Les personnes</a></p></div> : <div className="space-y-1.5">
         <Label htmlFor={`${prefixe}-locataire`}>{type === "colocation_individuelle" ? "Locataire du contrat" : "Locataire principal"}</Label>
         <select
           id={`${prefixe}-locataire`}
@@ -158,7 +167,7 @@ export function ChampsBail({
             )}
           </>
         )}
-      </div>
+      </div>}
       {/* Pop-up « nouveau locataire » : fiche créée à la volée avec le bail —
           mêmes règles que la détention (email obligatoire et unique dans
           l'agence), fiche complétable ensuite dans Personnes. */}
@@ -169,15 +178,14 @@ export function ChampsBail({
           fermer={fermerModale}
         >
           <div
+            ref={refNouveau}
             className="space-y-3"
             onKeyDown={(e) => {
               // Entrée dans un champ valide la pop-up (sans soumettre le
               // bail) — sur un bouton, elle garde son sens.
               if (e.key === "Enter" && (e.target as HTMLElement).tagName === "INPUT") {
                 e.preventDefault();
-                if (refNom.current?.reportValidity() && refEmail.current?.reportValidity()) {
-                  setModaleOuverte(false);
-                }
+                validerNouveau();
               }
             }}
           >
@@ -235,11 +243,7 @@ export function ChampsBail({
                 type="button"
                 size="sm"
                 onClick={() => {
-                  // Validation native des deux champs obligatoires avant de
-                  // refermer — la création réelle part avec le bail.
-                  if (!refNom.current?.reportValidity()) return;
-                  if (!refEmail.current?.reportValidity()) return;
-                  setModaleOuverte(false);
+                  validerNouveau();
                 }}
               >
                 Valider
@@ -330,7 +334,7 @@ export function ChampsBail({
         </p>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${prefixe}-irl`}>Trimestre de l&apos;indice de référence des loyers (IRL)</Label>
+        <Label htmlFor={`${prefixe}-irl`}>Trimestre IRL — Obligatoire si révision annuelle</Label>
         <select
           id={`${prefixe}-irl`}
           name="irl_trimestre"
@@ -356,7 +360,7 @@ export function ChampsBail({
           defaultChecked={valeurs ? valeurs.revision_irl === "on" : defauts.revision_irl ?? true}
           className="size-4"
         />
-        <Label htmlFor={`${prefixe}-revision`}>Révision annuelle du loyer (IRL)</Label>
+        <Label htmlFor={`${prefixe}-revision`}>Révision annuelle du loyer (IRL) — Facultatif</Label>
       </div>
       <p className="text-xs text-muted-foreground sm:col-span-2">
         * Mentions indispensables au contrat et à ses calculs. Saisissez 0

@@ -1,0 +1,2 @@
+.pastille { display:inline-block; flex-shrink:0; width:9px; height:9px; margin-left:3px; border-radius:50%; background:#c63737; box-shadow:0 0 0 3px #c6373714; vertical-align:middle; }
+@media (forced-colors:active) { .pastille { background:Mark; border:2px solid Mark; } }

@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
@@ -70,7 +71,7 @@ export default async function PageStatistiques(
     return (
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
         <div className="entete-page">
-          <h1>Statistiques</h1>
+          <TitreEcran rubrique="supervision">Statistiques</TitreEcran>
         </div>
         <div className="err" role="alert">
           <p className="font-medium">
@@ -207,7 +208,7 @@ export default async function PageStatistiques(
       {/* Le titre reprend le menu, comme les pages sœurs : la mention « Mon
           portefeuille » dit déjà le périmètre de l'agent (24/09). */}
       <div className="entete-page">
-        <h1>Statistiques</h1>
+        <TitreEcran rubrique="supervision">Statistiques</TitreEcran>
         <span className="mono-discret">
           {perimetre ? "Mon portefeuille · " : ""}
           {incidents.length} incident{incidents.length > 1 ? "s" : ""} au total

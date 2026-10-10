@@ -61,7 +61,7 @@ export function ListePersonnes({
           24/09 : « Filtrer », pas « Chercher » — la barre du haut porte déjà
           « Rechercher » (tout l'espace) ; ce champ-ci ne fait que trier la
           liste affichée, deux verbes voisins pour deux portées le cachaient. */}
-      <div>
+      <div className="recherche-personnes">
         <Label htmlFor={idRecherche} className="sr-only">
           Filtrer les fiches
         </Label>
@@ -94,7 +94,7 @@ export function ListePersonnes({
             <EchecLecture quoi={["les fiches de l'agence"]} />
           </div>
         ) : visibles.length === 0 ? (
-          <div className="vide-guide">
+          <div className="vide-guide" data-ton="violet">
             {personnes.length === 0 ? (
               <>
                 <p className="titre">Aucune personne</p>

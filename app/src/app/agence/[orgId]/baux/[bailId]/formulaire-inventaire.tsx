@@ -1,6 +1,7 @@
 "use client";
+import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
-import { useActionState } from "react";
+
 import {
   ajouterInventaireLigne,
   supprimerInventaireLigne,
@@ -8,7 +9,7 @@ import {
 } from "@/app/actions/baux";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { LabelBail as Label, PastilleBail } from "@/components/pastille-bail";
 
 export type LigneInventaire = {
   id: string;
@@ -43,7 +44,7 @@ const LIBELLE_ETAT: Record<string, string> = {
 };
 
 function BoutonSupprimer({ orgId, bailId, ligneId }: { orgId: string; bailId: string; ligneId: string }) {
-  const [etat, action] = useActionState<EtatBail, FormData>(
+  const [etat, action] = useActionStateSuivi<EtatBail, FormData>(
     () => supprimerInventaireLigne(orgId, bailId, ligneId), {}
   );
   return (
@@ -64,7 +65,7 @@ export function FormulaireInventaire({
   lignes: LigneInventaire[];
 }) {
   const action = ajouterInventaireLigne.bind(null, orgId, bailId);
-  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionStateSuivi<EtatBail, FormData>(action, {});
 
   return (
     <div className="space-y-4">
@@ -77,7 +78,7 @@ export function FormulaireInventaire({
       </div>
 
       {lignes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Aucun meuble inventorié. L&apos;inventaire est une annexe obligatoire du bail meublé : ajoutez les meubles ci-dessous.</p>
+        <p className="text-sm text-muted-foreground"><PastilleBail champ="inventaire"/> Aucun meuble inventorié. L&apos;inventaire est une annexe obligatoire du bail meublé : ajoutez les meubles ci-dessous.</p>
       ) : (
         <ul className="divide-y divide-border">
           {lignes.map((l) => (
@@ -104,7 +105,7 @@ export function FormulaireInventaire({
         {/* En erreur, la saisie est reposée via etat.valeurs (recette 22/08) */}
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label htmlFor="inv-designation" className="text-sm">
+            <Label champ="inventaire" htmlFor="inv-designation" className="text-sm">
               Désignation
             </Label>
             <Input id="inv-designation" name="designation" required maxLength={120} placeholder="Canapé, lit 140, table…" defaultValue={etat.valeurs?.designation} />

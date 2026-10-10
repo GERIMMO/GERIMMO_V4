@@ -28,6 +28,7 @@ export type EntreeNav = {
   icone: string;
   /** L'entrée ne s'allume que sur son chemin exact (l'accueil). */
   exact?: boolean;
+  alias?: string[];
   /** Le mot qui tient sous une icône de barre basse ; le nom accessible reste `libelle`. */
   court?: string;
   /** Nombre d'éléments qui attendent un geste ; 0 = pas de pastille. */
@@ -37,6 +38,7 @@ export type EntreeNav = {
 };
 
 export type NavigationEspace = {
+  separateurEnTete?: boolean;
   /** Neuf au plus, toujours visibles. */
   principales: EntreeNav[];
   /** Le reste, sous « Plus » : accessible, pas mis en avant. */
@@ -96,7 +98,9 @@ export function navigationEspace({
 
   if (role === "proprietaire_direct") {
     const lots: EntreeNav = { href: `${base}/parc`, libelle: "Mes lots", icone: "cle", court: "Lots" };
+    const finances: EntreeNav = { ...loyers, libelle: "Finances", court: "Finances", alias: [`${base}/comptabilite`] };
     return {
+      separateurEnTete: true,
       // Tour du 24/09 : le livre (l'écran d'argent du bailleur, vers lequel
       // Loyers et Fiscalité renvoient) et les statistiques sortent de « Plus » ;
       // Paramètres, déjà atteignable par le menu du compte, y entre.
@@ -104,26 +108,18 @@ export function navigationEspace({
         tableauDeBord,
         lots,
         { href: `${base}/personnes`, libelle: "Locataires & garants", icone: "gens", court: "Locataires" },
-        loyers,
-        { href: `${base}/comptabilite`, libelle: "Livre recettes-dépenses", icone: "livre", court: "Livre" },
+        finances,
         incidents,
         alertes,
         agenda,
-        statistiques,
         messages,
       ],
       secondaires: [
-        {href:`/veille?public=bailleur&retour=${encodeURIComponent(base)}`,libelle:'Les règles à connaître',icone:'livre'},
-        // Le titre de l'écran qu'il ouvre (audit du 27/09) : « Paramètres »
-        // menait à une page intitulée « Mon profil ».
-        { ...parametres, libelle: "Mon profil" },
-        { href: `${base}/comptabilite/fiscal`, libelle: "Fiscalité", icone: "livre" },
         documents,
-        artisans,
         abonnement,
         { href: `${base}/faq`, libelle: "Aide", icone: "quest" },
       ],
-      barreBasse: [tableauDeBord, lots, loyers, alertes],
+      barreBasse: [tableauDeBord, lots, finances, alertes],
     };
   }
 
@@ -209,7 +205,7 @@ export function navigationEspace({
 export function entreeActive(entrees: EntreeNav[], chemin: string): EntreeNav | null {
   let meilleure: EntreeNav | null = null;
   for (const e of entrees) {
-    const touche = e.exact ? chemin === e.href.split("?")[0] : chemin === e.href.split("?")[0] || chemin.startsWith(`${e.href.split("?")[0]}/`);
+    const touche = e.alias?.some(a => chemin === a || chemin.startsWith(`${a}/`)) || (e.exact ? chemin === e.href.split("?")[0] : chemin === e.href.split("?")[0] || chemin.startsWith(`${e.href.split("?")[0]}/`));
     if (touche && (!meilleure || e.href.length > meilleure.href.length)) meilleure = e;
   }
   return meilleure;

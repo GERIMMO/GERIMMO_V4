@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { formaterDateHeure } from "@/lib/ged";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +20,7 @@ export default async function PageDevisAdmin() {
   if (error) {
     return (
       <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
-        <h1>Demandes commerciales</h1>
+        <TitreEcran rubrique="finances">Demandes commerciales</TitreEcran>
         <div className="vide mt-4">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
@@ -43,7 +44,7 @@ export default async function PageDevisAdmin() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Demandes commerciales</h1>
+        <TitreEcran rubrique="finances">Demandes commerciales</TitreEcran>
         {/* « 0 en attente / 0 » se lisait comme une fraction (24/09). */}
         <span className="mono-discret">
           {demandes.length === 0

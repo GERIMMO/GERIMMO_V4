@@ -94,7 +94,7 @@ export default async function PageAgendaArtisan() {
 
   return (
     <div className="space-y-6">
-      <EnteteSousPage titre="Mon agenda" mention={jourLong(new Date().toISOString())} />
+      <EnteteSousPage rubrique="agenda" titre="Mon agenda" mention={jourLong(new Date().toISOString())} />
 
       {agenda.erreur && (
         <Erreur>

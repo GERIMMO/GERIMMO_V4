@@ -1,6 +1,7 @@
 "use client";
+import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   archiverPersonne,
   modifierPersonne,
@@ -22,7 +23,7 @@ export function BoutonArchiverPersonne({
   personId: string;
 }) {
   const action = archiverPersonne.bind(null, orgId, personId);
-  const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
+  const [etat, formAction] = useActionStateSuivi<EtatPersonne, FormData>(action, {});
   const [confirmation, setConfirmation] = useState(false);
 
   if (!confirmation) {
@@ -69,6 +70,7 @@ export function FormulaireIdentite({
   // ouvert — la consigne sans geste renvoyait chercher le bouton en haut de
   // page, hors écran au téléphone (24/09).
   ouvertInitial = false,
+  integre = false,
 }: {
   orgId: string;
   personId: string;
@@ -83,21 +85,22 @@ export function FormulaireIdentite({
   ville: string | null;
   qualite: string | null;
   ouvertInitial?: boolean;
+  integre?: boolean;
 }) {
   const action = modifierPersonne.bind(null, orgId, personId);
-  const [etat, formAction] = useActionState<EtatPersonne, FormData>(action, {});
+  const [etat, formAction] = useActionStateSuivi<EtatPersonne, FormData>(action, {});
   const [ouvert, setOuvert] = useState(ouvertInitial);
 
   // Fiche mise à jour : le formulaire se replie, la page se recharge d'elle-même.
   // Repli piloté par la réponse du serveur, pas un état dérivé du rendu.
   useEffect(() => {
-    if (!etat.succes) return;
+    if (!etat.succes || integre) return;
     /* eslint-disable react-hooks/set-state-in-effect */
     setOuvert(false);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [etat]);
+  }, [etat, integre]);
 
-  if (!ouvert) {
+  if (!ouvert && !integre) {
     return (
       <div className="flex items-center gap-3">
         <Button type="button" variant="outline" size="sm" onClick={() => setOuvert(true)}>
@@ -113,20 +116,20 @@ export function FormulaireIdentite({
   return (
     // w-full : dans la rangée d'actions, le formulaire ouvert se serrait contre
     // « Archiver la fiche » — 200 px de large au téléphone (24/09).
-    <form action={formAction} className="mt-2 w-full max-w-xl space-y-3 rounded-lg border border-border bg-card p-4">
-      <p className="text-sm font-medium">Modifier la fiche</p>
+    <form onReset={event => { if (integre) event.preventDefault(); }} action={formAction} className={integre ? "w-full space-y-3" : "mt-2 w-full max-w-xl space-y-3 rounded-lg border border-border bg-card p-4"}>
+      {!integre && <p className="text-sm font-medium">Modifier la fiche</p>}
       {/* En erreur, l'action renvoie la saisie (etat.valeurs) : le reset React
           retombe sur les corrections, pas sur les valeurs d'origine. */}
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="ident-nom">Nom ou raison sociale *</Label>
-          <Input id="ident-nom" name="nom" required maxLength={120} defaultValue={etat.valeurs?.nom ?? nom} />
+          <Label htmlFor={`ident-nom-${personId}`}>Nom ou raison sociale *</Label>
+          <Input id={`ident-nom-${personId}`} name="nom" required maxLength={120} defaultValue={etat.valeurs?.nom ?? nom} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-prenom">Prénom{prenom ? " *" : ""}</Label>
+          <Label htmlFor={`ident-prenom-${personId}`}>Prénom{prenom ? " *" : ""}</Label>
           {/* Une personne physique garde un prénom ; une raison sociale n'en a pas */}
           <Input
-            id="ident-prenom"
+            id={`ident-prenom-${personId}`}
             name="prenom"
             maxLength={120}
             required={Boolean(prenom)}
@@ -134,9 +137,9 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-email">Adresse email *</Label>
+          <Label htmlFor={`ident-email-${personId}`}>Adresse email *</Label>
           <Input
-            id="ident-email"
+            id={`ident-email-${personId}`}
             name="email"
             type="email"
             required
@@ -145,13 +148,13 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-tel">Téléphone</Label>
-          <Input id="ident-tel" name="telephone" type="tel" autoComplete="tel" maxLength={40} defaultValue={etat.valeurs?.telephone ?? telephone ?? ""} />
+          <Label htmlFor={`ident-tel-${personId}`}>Téléphone — Facultatif</Label>
+          <Input id={`ident-tel-${personId}`} name="telephone" type="tel" autoComplete="tel" maxLength={40} defaultValue={etat.valeurs?.telephone ?? telephone ?? ""} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-naissance">Date de naissance{prenom ? " *" : ""}</Label>
+          <Label htmlFor={`ident-naissance-${personId}`}>Date de naissance{prenom ? " *" : ""}</Label>
           <Input
-            id="ident-naissance"
+            id={`ident-naissance-${personId}`}
             name="date_naissance"
             type="date"
             required={Boolean(prenom)}
@@ -159,9 +162,9 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-commune-naissance">Commune de naissance{prenom ? " *" : ""}</Label>
+          <Label htmlFor={`ident-commune-naissance-${personId}`}>Commune de naissance{prenom ? " *" : ""}</Label>
           <Input
-            id="ident-commune-naissance"
+            id={`ident-commune-naissance-${personId}`}
             name="commune_naissance"
             maxLength={120}
             required={Boolean(prenom)}
@@ -169,9 +172,9 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="ident-adresse">Adresse *</Label>
+          <Label htmlFor={`ident-adresse-${personId}`}>Adresse *</Label>
           <Input
-            id="ident-adresse"
+            id={`ident-adresse-${personId}`}
             name="address_line1"
             maxLength={200}
             required
@@ -179,9 +182,9 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-cp">Code postal *</Label>
+          <Label htmlFor={`ident-cp-${personId}`}>Code postal *</Label>
           <Input
-            id="ident-cp"
+            id={`ident-cp-${personId}`}
             name="postal_code"
             maxLength={12}
             required
@@ -191,9 +194,9 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="ident-ville">Ville *</Label>
+          <Label htmlFor={`ident-ville-${personId}`}>Ville *</Label>
           <Input
-            id="ident-ville"
+            id={`ident-ville-${personId}`}
             name="city"
             maxLength={120}
             required
@@ -201,13 +204,13 @@ export function FormulaireIdentite({
           />
         </div>
         <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="ident-qualite">Qualité (bail)</Label>
+          <Label htmlFor={`ident-qualite-${personId}`}>Qualité (bail)</Label>
           {/* Liste fermée (audit 29/09) : la durée du bail nu en dépend —
               3 ans pour une personne physique, une indivision de personnes
               physiques ou une SCI familiale, 6 ans pour une autre personne
               morale (art. 10 et 13 de la loi du 6 juillet 1989). */}
           <select
-            id="ident-qualite"
+            id={`ident-qualite-${personId}`}
             name="qualite"
             defaultValue={etat.valeurs?.qualite ?? normaliserQualiteBailleur(qualite) ?? ""}
             className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
@@ -221,11 +224,12 @@ export function FormulaireIdentite({
           </select>
         </div>
       </div>
+      {integre && etat.succes && <p role="status" className="text-sm text-success-soft-foreground">{etat.succes}</p>}
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       <div className="flex items-center gap-2">
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
+        {!integre && <Button type="button" variant="ghost" size="sm" onClick={() => setOuvert(false)}>
           Annuler
-        </Button>
+        </Button>}
         <BoutonEnvoi size="sm" enCoursTexte="Enregistrement…">
           Enregistrer
         </BoutonEnvoi>

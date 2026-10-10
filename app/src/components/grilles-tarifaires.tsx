@@ -22,6 +22,7 @@ export function TableauParticuliers() {
   const t = avec(etiquetteTaxes("ttc", REGIME_TVA));
   return (
     <div>
+      <div className="grille-tarifaire-defilante" role="region" aria-label="Tableau des tarifs" tabIndex={0}>
       <table className="w-full text-left text-[14px]">
         <caption className="sr-only">Formules pour les particuliers et SCI gérant leurs propres biens{t ? `, prix${t}` : ""}</caption>
         <thead>
@@ -49,6 +50,7 @@ export function TableauParticuliers() {
           </tr>
         </tbody>
       </table>
+      </div>
       <p className="mt-2 text-[13px] text-[var(--texte-secondaire)]">
         Exemple : 25 biens = {euros(offreParticulier(25, "mensuel").montantCents)}{t} par mois, ou{" "}
         {euros(offreParticulier(25, "annuel").montantCents)}{t} par an prélevés en une fois. L&apos;annuel équivaut à
@@ -63,6 +65,7 @@ export function TableauAgences() {
   const exemples = [10, 20, 50, 100, 200, 300, 500];
   return (
     <div>
+      <div className="grille-tarifaire-defilante" role="region" aria-label="Tableau des tarifs" tabIndex={0}>
       <table className="w-full text-left text-[14px]">
         <caption className="sr-only">Tarif mensuel des agences par tranche de lots sous mandat actif{t ? `, prix${t}` : ""}</caption>
         <thead>
@@ -88,6 +91,7 @@ export function TableauAgences() {
           ))}
         </tbody>
       </table>
+      </div>
       <p className="mt-2 text-[13px] text-[var(--texte-secondaire)]">
         Tranches cumulatives : chaque lot est facturé au prix de sa tranche.{" "}
         {exemples.map((n, i) => (

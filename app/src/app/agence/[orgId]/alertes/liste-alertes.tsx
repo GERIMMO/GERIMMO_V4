@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BellCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cheminFicheAlerte as cheminFiche } from "@/lib/chemin-alerte";
@@ -292,7 +293,8 @@ export function ListeAlertes({
       )}
 
       {miennes.length === 0 && autres.length === 0 ? (
-        <div className="vide-guide">
+        <div className="vide-guide" data-ton={filtre === "toutes" && actionsAuDessus === 0 ? "vert" : "bleu"}>
+          <BellCheck className="vide-icone" size={27} aria-hidden="true" />
           <p className="titre">
             {filtre !== "toutes"
               ? "Aucune alerte à ce niveau"
@@ -302,13 +304,13 @@ export function ListeAlertes({
           </p>
           <p className="explication">
             {filtre !== "toutes"
-              ? "Le filtre est peut-être trop étroit — les autres niveaux, eux, ont peut-être de quoi faire."
+              ? "Consultez tous les niveaux pour retrouver les autres alertes."
               : actionsAuDessus > 0
                 ? "Ce qui vous attend est listé au-dessus ; Gerimmo posera ici les alertes dès qu’il y aura autre chose à faire."
               : /* Les exemples (« diagnostic périmé, état des lieux… ») et
                    « ce qui ne rentre pas dans ces cases » sont dits par la
                    carte « Créer une alerte », juste à côté (24/09). */
-                "Gerimmo pose les alertes tout seul : elles s’afficheront ici dès qu’il y aura quelque chose à faire."}
+                "Les prochaines alertes apparaîtront ici automatiquement."}
           </p>
           {filtre !== "toutes" && (
             <span className="geste">
@@ -323,8 +325,7 @@ export function ListeAlertes({
               On le dit, et on y mène. */}
           {filtre === "toutes" && estProprietaire && (
             <p className="explication">
-              Ce qui reste à régler avant de louer un lot (diagnostics, pièces) n&apos;est
-              pas une alerte : il se lit sur la fiche du lot, dans{" "}
+              Les diagnostics et pièces à compléter avant de louer restent dans{" "}
               <Link href={`/agence/${orgId}/parc`} className="lien-discret">
                 Mes lots
               </Link>

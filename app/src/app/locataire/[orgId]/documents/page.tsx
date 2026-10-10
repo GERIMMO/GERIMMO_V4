@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import { libelleDocumentLoyer } from "@/lib/documents-loyer";
 import Link from "next/link";
 import { CONSERVATION_DOCUMENTS_LOCATAIRE } from "@/lib/locataire-textes";
@@ -121,7 +122,7 @@ export default async function PageDocumentsLocataire(
   return (
     <div className="space-y-4">
       <div className="entete-page">
-        <h1>Mes documents</h1>
+        <TitreEcran rubrique="documents">Mes documents</TitreEcran>
         {/* Un seul compte, un seul mot — celui du menu (24/09 : « 2 pièces »
             ici, « 2 documents » sur la carte en dessous). */}
         {total > 0 && (

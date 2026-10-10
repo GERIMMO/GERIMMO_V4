@@ -6,20 +6,20 @@
 // celui de la mise en page racine (docs generate-metadata, « Merging »). Les
 // champs communs vivent donc ici, et chaque page les reprend.
 
+import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 import type { Metadata } from "next";
 import { couperAuMot } from "@/lib/utils";
 
 export const NOM_DU_SITE = "Gerimmo";
 
 /**
- * L'image des aperçus : le logo carré du dépôt (public/logo), faute d'un
- * visuel de partage dédié.
+ * Le logo officiel sert aussi aux aperçus de partage.
  */
 const IMAGE_PARTAGE = {
-  url: "/logo/gerimmo-profile-1024.png",
-  width: 1024,
-  height: 1024,
-  alt: "Gerimmo",
+  url: CHARTE_GERIMMO.logo,
+  width: CHARTE_GERIMMO.logoLargeur,
+  height: CHARTE_GERIMMO.logoHauteur,
+  alt: "Gerimmo — L’immobilier en confiance",
 };
 
 export const OPEN_GRAPH_PAR_DEFAUT = {

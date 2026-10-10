@@ -1,0 +1,29 @@
+.page { display:grid; gap:24px; margin-top:24px; }
+.section { min-width:0; padding-top:22px; border-top:1px solid var(--filet); scroll-margin-top:100px; }
+.entete { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px; }
+.entete > svg { color:var(--prestige-champagne-texte); flex-shrink:0; }
+.entete h3 { flex:1; min-width:170px; font-size:17px; font-weight:600; }
+.page p, .depot p { color:var(--texte-secondaire); font-size:13px; line-height:1.6; }
+.liste { padding:0; margin:16px 0; list-style:none; }
+.liste > li { display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--filet-leger); }
+.liste > li > svg { color:var(--texte-secondaire); flex-shrink:0; }
+.identite { min-width:180px; flex:1; }
+.identite strong { display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:var(--encre); font-size:13px; font-weight:600; }
+.identite small { display:block; margin-top:4px; color:var(--texte-secondaire); font-size:11px; line-height:1.6; }
+.classe { padding:2px 6px; background:var(--marque-clair); border-radius:4px; font-size:10px; }
+.etat { display:inline-flex; align-items:center; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600; color:var(--texte-secondaire); background:var(--creme); }
+.etat[data-ton="ok"] { background:#edf6f1; color:#28604a; }
+.etat[data-ton="attention"] { background:#fbf3e3; color:#806536; }
+.actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; }
+.actions a, .actions button { display:inline-flex; align-items:center; gap:5px; min-height:36px; font-size:12px; color:var(--encre); }
+.actions a:hover, .actions button:hover { text-decoration:underline; text-underline-offset:3px; }
+.editionClasse { flex-basis:100%; }
+.editionClasse[hidden], .depot[hidden] { display:none; }
+.depot { margin-top:14px; padding:16px; border:1px solid var(--filet); border-radius:10px; background:var(--creme); }
+.depot > form { border-top:0; padding-top:12px; }
+.annexes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
+.annexes .actions { margin-top:14px; }
+.vide { padding:12px 0; }
+.aide { margin-top:14px; }
+.page :global([data-slot="card-header"]) { padding-top:0; }
+@media(max-width:700px) { .annexes { grid-template-columns:1fr; gap:22px; } .liste > li { gap:8px; } .actions { flex-basis:100%; } .depot { padding:12px; } }

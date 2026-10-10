@@ -1,0 +1,114 @@
+.presentation { min-width: 0; }
+.navigation {
+  margin: 14px 0 18px;
+  padding: 12px 16px 4px;
+  background: var(--carte);
+  border: 1px solid var(--filet);
+  border-radius: 14px;
+  box-shadow: var(--ombre-portee);
+}
+.navigationEntete { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px 8px; }
+.surtitre { color: var(--prestige-champagne-texte); font-size: 10px; font-weight: 650; letter-spacing: .13em; text-transform: uppercase; }
+.position { color: var(--texte-secondaire); font-size: 12px; }
+.position strong { color: var(--encre); }
+.etapes { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); padding: 0; margin: 0; list-style: none; }
+.etapes li { min-width: 0; position: relative; }
+.etapes li:not(:last-child)::after { content: ""; position: absolute; top: 20px; left: calc(50% + 22px); right: calc(-50% + 22px); height: 1px; background: var(--filet); pointer-events: none; }
+.etape { position: relative; display: flex; flex-direction: column; align-items: center; width: 100%; min-height: 88px; padding: 4px 4px 8px; border-bottom: 2px solid transparent; border-radius: 8px 8px 0 0; color: var(--texte-secondaire); text-align: center; transition: background-color .15s, border-color .15s; }
+.etape:hover { background: var(--creme); }
+.etape:focus-visible { outline: 2px solid var(--prestige-champagne); outline-offset: 2px; }
+.numero { display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--filet); border-radius: 50%; color: var(--texte-secondaire); background: #fff; font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; margin-bottom: 5px; }
+.nomEtape { font-size: 12px; line-height: 1.35; font-weight: 600; min-height: 26px; display: flex; align-items: center; justify-content: center; }
+.statut { margin-top: 2px; font-size: 10px; line-height: 1.4; color: var(--texte-secondaire); }
+.etape[data-statut="complet"] .numero { background: #edf6f1; color: #28604a; border-color: #cbded3; }
+.etape[data-statut="complet"] .statut { color: #28604a; }
+.etape[aria-current="step"] { color: var(--encre); background: linear-gradient(180deg, #fff, #fbf8f1); border-bottom-color: var(--prestige-champagne); }
+.etape[aria-current="step"] .numero { background: var(--prestige-nuit); color: #fff; border-color: var(--prestige-nuit); box-shadow: 0 0 0 4px #f3eee4; }
+.etape[aria-current="step"] .nomEtape { font-weight: 700; }
+.etape[aria-current="step"] .statut { color: var(--prestige-champagne-texte); }
+.navigationMobile { display: none; }
+.presentation .cadre:global(.assistant-carte) { min-width: 0; padding: 0; overflow: clip; border-radius: 14px; }
+.entete { display: flex; align-items: center; gap: 16px; padding: 26px 28px 22px; border-bottom: 1px solid var(--filet-leger); background: linear-gradient(115deg, #fbfcfd, #fff); }
+.icone { display: grid; place-items: center; flex: 0 0 46px; height: 46px; border: 1px solid #e5dcc9; border-radius: 12px; background: #faf7ef; color: var(--prestige-champagne-texte); }
+.presentation .entete h2 { font-size: 28px; margin: 4px 0 6px; scroll-margin-top: calc(var(--hauteur-haut, 76px) + 20px); }
+.presentation .entete h2:focus { outline: none; }
+.entete p { font-size: 13px; line-height: 1.6; color: var(--texte-secondaire); }
+.corps { padding: 24px 28px 0; }
+.validee { display: flex; align-items: center; gap: 9px; margin-bottom: 22px; color: #28604a; font-size: 12px; }
+.validee svg { flex-shrink: 0; }
+.presentation .pied:global(.assistant-pied) { margin: 24px 0 0; padding: 18px 28px; background: #fbfcfd; border-color: var(--filet-leger); }
+.pied :global(.btn-or) { background: var(--prestige-nuit); border: 1px solid var(--prestige-nuit); color: #fff; box-shadow: 0 3px 8px #14304f12; }
+.pied :global(.btn-or):hover { background: #244565; }
+.aide { color: var(--texte-secondaire); font-size: 11px; line-height: 1.7; margin: 0 0 16px; }
+@media (min-width: 1400px) { .nomEtape { font-size: 13px; } .statut { font-size: 11px; } }
+@media (max-width: 760px) {
+  .navigation { padding: 10px 10px 8px; }
+  .navigationEntete { padding: 0 6px 6px; }
+  .etape { min-height: 44px; padding: 5px 0 7px; }
+  .numero { width: 30px; height: 30px; margin: 0; font-size: 11px; }
+  .etapes li:not(:last-child)::after { top: 20px; left: calc(50% + 18px); right: calc(-50% + 18px); }
+  .nomEtape, .statut { display: none; }
+  .navigationMobile { position: relative; display: block; margin-top: 6px; }
+  .navigationMobile select { appearance: none; width: 100%; min-height: 44px; padding: 8px 32px 8px 12px; border: 1px solid var(--filet); border-radius: 8px; background: var(--creme); color: var(--encre); font-weight: 500; }
+  .navigationMobile > svg { position: absolute; top: 14px; right: 10px; pointer-events: none; }
+  .entete { padding: 20px 18px; gap: 12px; }
+  .presentation .entete h2 { font-size: 25px; }
+  .icone { flex-basis: 40px; height: 40px; border-radius: 10px; }
+  .corps { padding: 20px 18px 0; }
+  .presentation .pied:global(.assistant-pied) { padding: 16px 18px; }
+  .pied button { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .etape { transition: none; } }
+
+.verification { color:var(--texte-secondaire); font-size:12px; margin:-8px 0 16px; }
+.verificationErreur { color:var(--destructive); font-size:13px; margin:-8px 0 16px; }
+
+.legendePastille { display:inline-block; width:8px; height:8px; margin-right:5px; border-radius:50%; background:#c63737; vertical-align:middle; }
+
+/* Création du lot : même gabarit, formulaire initial et repères en direct. */
+.etape:disabled { cursor:not-allowed; opacity:.55; }
+.etape:disabled:hover { background:transparent; }
+.parcoursLot { scroll-margin-top:calc(var(--hauteur-haut,76px) + 20px); }
+.parcoursLot .entete { flex-wrap:wrap; padding:18px 24px; gap:12px; }
+.parcoursLot .entete h2 { font-size:26px; margin:3px 0; }
+.resumeLot { margin-left:auto; max-width:360px; color:var(--texte-secondaire); font-size:12px; line-height:1.7; text-align:right; }
+.resumeLot strong { color:var(--encre); font-weight:600; }
+.resumeLot p { font-size:12px; margin:0; }
+.parcoursLot .corps { padding:22px 24px 0; }
+.parcoursLot :global([hidden]) { display:none !important; }
+.creation :global([data-bien-groupes]) { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:32px; align-items:start; }
+.creation :global([data-bien-groupes]) > div { min-width:0; margin-top:0; }
+.creation :global([data-bien-section]) { display:grid; gap:18px; }
+.creation :global([data-bien-section]) > * { margin-top:0; }
+.creation :global(.saisie-repere) { padding-bottom:12px; }
+.creation :global(.saisie-repere > span) { display:none; }
+.creation :global(.saisie-repere h2) { font-family:var(--font-interface),sans-serif; font-size:15px; }
+.creation :global(.saisie-repere p) { font-size:12px; }
+.parcoursLot :global(label):has(~ :is(input,textarea,select):required:invalid)::after { content:""; width:8px; height:8px; flex-shrink:0; display:inline-block; border-radius:50%; background:#c63737; margin-left:4px; }
+.creation :global(input:required:invalid) { box-shadow:none; }
+.creation :global(.text-sm.text-muted-foreground) { font-size:12px; line-height:1.6; }
+.creation :global([data-lots-section]) { border:0; padding-top:0; }
+.creation :global(.assistant-pied) { margin:24px -24px 0; padding:16px 24px; background:#fbfcfd; border-color:var(--filet-leger); }
+.creation :global(.assistant-pied > button:last-child) { background:var(--prestige-nuit); border-color:var(--prestige-nuit); color:#fff; }
+.creation :global(.assistant-pied > button:last-child):hover { background:#244565; }
+.creationNote { display:flex; align-items:flex-start; gap:8px; padding:12px 14px; border:1px solid #e6dfd0; background:#fcfaf4; border-radius:9px; color:var(--texte-secondaire); font-size:12px; line-height:1.6; }
+.creationNote svg { flex-shrink:0; color:var(--prestige-champagne-texte); margin-top:2px; }
+.lotLigne { display:grid; grid-template-columns:minmax(0,1fr) 140px 120px auto; gap:12px; align-items:end; padding:14px; border:1px solid var(--filet); border-radius:10px; background:#fbfcfd; }
+.lotLigne input { width:100%; }
+.pageCreation { max-width:1152px; }
+.enteteCreation { display:flex; align-items:center; gap:14px; margin:6px 0 18px; padding:17px 22px; border:1px solid var(--filet); border-left:3px solid var(--prestige-champagne); border-radius:12px; background:linear-gradient(110deg,#f3f6f9,#fff 65%,#fcfaf5); }
+.enteteCreation h1 { margin:3px 0; font-size:30px; }
+.enteteCreation p { color:var(--texte-secondaire); font-size:12px; line-height:1.6; }
+.enteteCreation > svg { color:var(--prestige-nuit); flex-shrink:0; }
+@media(max-width:960px) { .creation :global([data-bien-groupes]) { grid-template-columns:minmax(0,1fr); gap:26px; } }
+@media(max-width:760px) {
+ .parcoursLot .entete { padding:16px 18px; }
+ .parcoursLot .corps { padding:18px 18px 0; }
+ .resumeLot { flex-basis:100%; max-width:none; margin-left:0; text-align:left; padding-top:8px; border-top:1px solid var(--filet-leger); }
+ .creation :global(.assistant-pied) { margin-inline:-18px; padding:14px 18px; }
+ .lotLigne { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+ .lotLigne > div:first-child { grid-column:1/-1; }
+ .lotLigne > button { grid-column:1/-1; justify-self:end; }
+ .enteteCreation { padding:14px 16px; }
+ .enteteCreation h1 { font-size:25px; }
+}

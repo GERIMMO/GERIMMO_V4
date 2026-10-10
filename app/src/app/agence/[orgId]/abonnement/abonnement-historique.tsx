@@ -140,7 +140,7 @@ export async function PageAbonnementHistorique(props: PageProps<"/agence/[orgId]
     <main className="mx-auto w-full max-w-3xl space-y-4 p-4 sm:p-7">
       {/* 24/09 : le nom de l'agence est déjà dans la barre latérale et dans
           la barre haute — la mention ne sert qu'au propriétaire. */}
-      <EnteteReglages
+      <EnteteReglages rubrique="abonnement"
         titre="Mon abonnement"
         mention={estAgence ? undefined : organisation.name}
       >

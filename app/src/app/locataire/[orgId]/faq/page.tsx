@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default async function PageFaqLocataire(props: PageProps<"/locataire/[org
   return (
     <div className="space-y-4">
       <div className="entete-page">
-        <h1>Questions fréquentes</h1>
+        <TitreEcran rubrique="aide">Questions fréquentes</TitreEcran>
         {/* Plus de « 6 réponses » en capitales (25/09, D26) : le chiffre
             n'apprenait rien, la liste est sous les yeux. */}
       </div>

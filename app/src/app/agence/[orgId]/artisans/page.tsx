@@ -1,4 +1,6 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
+import { CarnetProprietaire } from "./carnet-proprietaire";
 import { verifierAccesEspace } from "@/lib/espace";
 import { ROLES_RESPONSABLES } from "@/lib/ged";
 import { IndicateurLien } from "@/components/ui/indicateur-lien";
@@ -78,6 +80,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
   // Le propriétaire direct n'a pas d'agence (24/09) : l'écran lui parle de
   // son parc, comme le reste de son espace.
   const bailleurDirect = role === "proprietaire_direct";
+  if (bailleurDirect) return <CarnetProprietaire orgId={orgId} />;
   const chezVous = bailleurDirect ? "votre parc" : "votre agence";
 
   const { data: relationsBrutes, error: erreurRelations } = await supabase
@@ -155,7 +158,7 @@ export default async function PageArtisans(props: PageProps<"/agence/[orgId]/art
           d'aide passe sous le filet, comme sur « Loyers & charges ». */}
       <div className="mb-6">
         <div className="entete-page">
-          <h1>Carnet d&apos;artisans</h1>
+          <TitreEcran rubrique="incidents">Carnet d&apos;artisans</TitreEcran>
           <div className="flex flex-wrap items-center gap-3">
             <span className="mono-discret">
               {erreurRelations

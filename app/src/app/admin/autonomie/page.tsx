@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from 'next/link';
 import {SuiviCorrection} from './suivi-correction';
 import { createClient } from '@/lib/supabase/server';
@@ -28,7 +29,7 @@ export default async function PageAutonomie({searchParams}:{searchParams:Promise
  return <main className="mx-auto max-w-6xl space-y-6 p-4 sm:p-7">
   {/* L'en-tête commun de la console (24/09) : le titre reprend le nom de
       l'entrée de barre. L'actualisation, geste principal, est ici. */}
-  <div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><h1>Développement du site</h1><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">La prochaine étape de chaque dossier et les améliorations du logiciel qui attendent votre accord.</p></div><div className="flex flex-wrap items-center gap-3"><span className="mono-discret">Actualisé chaque matin</span><ActualiserDossiers /></div></div>
+  <div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><TitreEcran rubrique="suivi">Développement du site</TitreEcran><p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">La prochaine étape de chaque dossier et les améliorations du logiciel qui attendent votre accord.</p></div><div className="flex flex-wrap items-center gap-3"><span className="mono-discret">Actualisé chaque matin</span><ActualiserDossiers /></div></div>
   <section id="dossiers" className={carte}><div className="entete-carte"><h2 className="text-xl font-semibold">Les prochaines étapes</h2><span className="mono-discret">{dossiers.error?'indisponible':`${total} dossier${total>1?'s':''}`}</span></div><p className="mt-1 text-sm text-muted-foreground">Les envois autorisés continuent selon les réglages de chaque organisation.</p>
   {!vide||filtreActif?<nav aria-label="Filtrer par équipe" className="my-4 flex flex-wrap gap-2">{Object.entries(filtres).map(([k,v])=><Link key={k} href={k==='tous'?'/admin/autonomie':`/admin/autonomie?equipe=${k}`} scroll={false} aria-current={equipe===k?'true':undefined} className={`filtre${equipe===k?' actif':''}`}>{v}</Link>)}</nav>:null}
   {/* Toute la carte est le lien (24/09). */}

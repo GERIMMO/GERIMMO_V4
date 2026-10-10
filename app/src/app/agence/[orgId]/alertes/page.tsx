@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import { aujourdhuiParis } from "@/lib/ged";
 import { verifierAccesEspace } from "@/lib/espace";
 import { CRITICITES, formaterDateHeure, ROLES_RESPONSABLES } from "@/lib/ged";
@@ -150,7 +151,7 @@ export default async function PageAlertes(
       <div className="mb-6">
         {/* L'écart sous le filet est celui de .entete-page (24/09). */}
         <div className="entete-page">
-          <h1>Alertes</h1>
+          <TitreEcran rubrique="alertes">Alertes</TitreEcran>
           <div className="flex flex-wrap items-center gap-4">
             {/* Le chiffre de la tuile « À faire » et de la pastille : ce que
                 cette page liste, et rien d'autre. */}
@@ -195,8 +196,8 @@ export default async function PageAlertes(
           390. Le navigateur ne débordait pas : il DÉZOOMAIT, et tout l'écran
           se lisait 17 % plus petit que partout ailleurs. Le parc et le tableau
           de bord, eux, tenaient dans leurs 390 px. */}
-      <div className="grid gap-6 md:grid-cols-[1fr_20rem]">
-        <div className="min-w-0 space-y-6">
+      <div className="grid gap-4 md:grid-cols-[1fr_20rem]">
+        <div className="min-w-0 space-y-4">
           {/* CE QUE LA PASTILLE COMPTE SE TROUVE ICI (24/09). « Alertes · 2 »
               dans la barre, un seul rang sur cette page : le compte
               additionnait les baux bloqués et les rapports à valider, que
@@ -249,19 +250,17 @@ export default async function PageAlertes(
             />
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Fermées récemment</CardTitle>
+          <details className="historique-carte">
+            <summary>Historique des alertes{erreurFermees ? " · Indisponible" : ""}</summary>
+            <div className="historique-contenu">
               {/* « Les 30 dernières » au-dessus de deux alertes se lisait comme
                   faux : le plafond ne se dit que s'il est atteint (24/09). */}
-              <CardDescription>
+              <p className="text-xs text-muted-foreground">
                 {(fermees ?? []).length >= FERMEES_AFFICHEES
                   ? `Les ${FERMEES_AFFICHEES} dernières. `
                   : ""}
                 Gardées un an après leur fermeture, puis supprimées.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              </p>
               {erreurFermees ? (
                 <p className="err mb-0" role="alert">
                   Impossible de lire l&apos;historique des alertes fermées —
@@ -293,17 +292,15 @@ export default async function PageAlertes(
                   ))}
                 </ul>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </details>
         </div>
 
-        <Card id="creer-alerte" className="h-fit min-w-0 scroll-mt-20">
+        <Card id="creer-alerte" data-ton="or" className="carte-rubrique h-fit min-w-0 scroll-mt-20">
           <CardHeader>
             <CardTitle className="text-base">Créer une alerte</CardTitle>
             <CardDescription>
-              Gerimmo en crée déjà tout seul — diagnostic périmé, état des lieux
-              à faire, rapport à valider. Servez-vous d&apos;ici pour ce qui ne
-              rentre pas dans ces cases.
+              Ajoutez un rappel personnel. Gerimmo crée déjà les alertes liées à vos dossiers.
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -1,8 +1,10 @@
 "use client";
+import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
+import { EtapeComplementsBail } from "@/lib/etape-complements-bail";
 import type { MentionsContrat } from "@/lib/mentions-contrat";
 import { MentionsContratFormulaire } from "./mentions-contrat";
-import { useActionState, useState } from "react";
+import { useContext, useState } from "react";
 import { modifierComplementsBail, type EtatBail } from "@/app/actions/baux";
 import { BoutonEnvoi } from "@/components/ui/bouton-envoi";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,8 @@ export type ComplementsBailDefauts = MentionsContrat & {
   dernier_loyer: number | null;
   dernier_loyer_versement: string | null;
   dernier_loyer_revision: string | null;
+  precedente_location?: string | null;
+  precedent_loyer_revise?: boolean | null;
   meuble_etudiant: boolean;
 };
 
@@ -44,11 +48,8 @@ const classeSelect = "h-9 w-full rounded-md border border-input bg-transparent p
 const classeTextarea =
   "w-full rounded-md border border-input bg-transparent px-2.5 py-1.5 text-sm";
 
-// Compléments du contrat : les conditions détaillées que le contrat type
-// imprime. Tous les champs sont facultatifs (règle d'honnêteté 31/08 : un vide
-// s'imprime en libellé d'épreuve ou en « — », il ne bloque jamais la
-// génération). Le bloc « zone tendue » n'apparaît que si le bien y est, le
-// bail étudiant que pour un meublé, les honoraires que pour une agence.
+// Les champs restent montés dans un seul formulaire : changer d’étape
+// conserve la saisie et l’enregistrement transmet toutes les valeurs.
 export function FormulaireComplementsBail({
   orgId,
   bailId,
@@ -67,8 +68,13 @@ export function FormulaireComplementsBail({
   modifiable: boolean;
 }) {
   const action = modifierComplementsBail.bind(null, orgId, bailId);
-  const [etat, formAction] = useActionState<EtatBail, FormData>(action, {});
+  const [etat, formAction] = useActionStateSuivi<EtatBail, FormData>(action, {});
   const [encadrement, setEncadrement] = useState(defauts.encadrement_loyer === true);
+
+  const [situation, setSituation] = useState(defauts.precedente_location ?? (defauts.dernier_loyer != null ? "recente" : ""));
+  const [revisionPrecedente, setRevisionPrecedente] = useState(defauts.precedent_loyer_revise == null ? (defauts.dernier_loyer_revision ? "true" : "") : String(defauts.precedent_loyer_revise));
+  const parcours = useContext(EtapeComplementsBail);
+  const etape = parcours?.etape ?? "tous";
 
   // Le contrat signé fige ses conditions : passé le brouillon, lecture seule.
   if (!modifiable) {
@@ -134,10 +140,13 @@ export function FormulaireComplementsBail({
     etat.valeurs?.[nom] ?? (defaut == null ? "" : String(defaut));
 
   return (
-    <form action={formAction} className="space-y-3">
-      <MentionsContratFormulaire defauts={defauts} valeurs={etat.valeurs} agence={agence} modifiable onEncadrementChange={setEncadrement} />
+    <form onReset={event => event.preventDefault()} action={formAction} className="space-y-5" onInvalidCapture={event => {
+      const groupe = (event.target as HTMLElement).closest<HTMLElement>("[data-complement]");
+      if (groupe?.dataset.complement) parcours?.ouvrir(groupe.dataset.complement);
+    }}>
+      <MentionsContratFormulaire defauts={defauts} valeurs={etat.valeurs} agence={agence} modifiable etape={etape === "tous" ? undefined : etape} onEncadrementChange={setEncadrement} />
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
+        <div hidden={etape !== "tous" && etape !== "paiement"} data-complement="paiement" className="space-y-1.5">
           <Label htmlFor="comp-fixation">Fixation initiale du loyer</Label>
           <select
             id="comp-fixation"
@@ -151,7 +160,7 @@ export function FormulaireComplementsBail({
             <option value="reevaluation">Réévaluation après travaux</option>
           </select>
         </div>
-        <div className="space-y-1.5">
+        <div hidden={etape !== "tous" && etape !== "paiement"} data-complement="paiement" className="space-y-1.5">
           <Label htmlFor="comp-echeance">Paiement du loyer</Label>
           <select
             id="comp-echeance"
@@ -163,7 +172,7 @@ export function FormulaireComplementsBail({
             <option value="echu">À terme échu</option>
           </select>
         </div>
-        <div className="space-y-1.5">
+        <div hidden={etape !== "tous" && etape !== "paiement"} data-complement="paiement" className="space-y-1.5">
           <Label htmlFor="comp-lieu">Lieu de paiement</Label>
           <Input
             id="comp-lieu"
@@ -173,8 +182,8 @@ export function FormulaireComplementsBail({
             defaultValue={d("lieu_paiement", defauts.lieu_paiement)}
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="comp-irl-valeur">Valeur de l&apos;IRL de référence</Label>
+        <div hidden={etape !== "tous" && etape !== "paiement"} data-complement="paiement" className="space-y-1.5">
+          <Label htmlFor="comp-irl-valeur">Valeur de l&apos;IRL — Facultatif sans révision annuelle</Label>
           <Input
             id="comp-irl-valeur"
             name="irl_valeur"
@@ -185,9 +194,9 @@ export function FormulaireComplementsBail({
             defaultValue={d("irl_valeur", defauts.irl_valeur)}
           />
         </div>
-        <div className="space-y-1.5 sm:col-span-2">
+        <div hidden={etape !== "tous" && etape !== "conditions"} data-complement="conditions" className="space-y-1.5 sm:col-span-2">
           <Label htmlFor="comp-duree-reduite">
-            Événement justifiant une durée réduite (le cas échéant)
+            Événement justifiant une durée réduite — Facultatif si durée normale
           </Label>
           <Input
             id="comp-duree-reduite"
@@ -197,8 +206,8 @@ export function FormulaireComplementsBail({
             defaultValue={d("duree_reduite_evenement", defauts.duree_reduite_evenement)}
           />
         </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="comp-travaux">Travaux récents du bailleur (nature)</Label>
+        <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="comp-travaux">Travaux récents du bailleur (nature) — Facultatif</Label>
           <textarea
             id="comp-travaux"
             name="travaux_recents"
@@ -209,8 +218,8 @@ export function FormulaireComplementsBail({
             className={classeTextarea}
           />
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="comp-travaux-montant">Montant des travaux récents (€)</Label>
+        <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5">
+          <Label htmlFor="comp-travaux-montant">Montant des travaux récents (€) — Obligatoire si travaux renseignés</Label>
           <Input
             id="comp-travaux-montant"
             name="travaux_recents_montant"
@@ -220,8 +229,8 @@ export function FormulaireComplementsBail({
             defaultValue={d("travaux_recents_montant", defauts.travaux_recents_montant)}
           />
         </div>
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="comp-travaux-locataire">Travaux à la charge du locataire</Label>
+        <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="comp-travaux-locataire">Travaux à la charge du locataire — Facultatif</Label>
           <textarea
             id="comp-travaux-locataire"
             name="travaux_locataire"
@@ -234,7 +243,7 @@ export function FormulaireComplementsBail({
         </div>
         {agence && (
           <>
-            <div className="space-y-1.5">
+            <div hidden={etape !== "tous" && etape !== "honoraires"} data-complement="honoraires" className="space-y-1.5">
               <Label htmlFor="comp-hono-bailleur">Visite, dossier et bail — part du bailleur (€ TTC)</Label>
               <Input
                 id="comp-hono-bailleur"
@@ -245,7 +254,7 @@ export function FormulaireComplementsBail({
                 defaultValue={d("honoraires_bailleur", defauts.honoraires_bailleur)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div hidden={etape !== "tous" && etape !== "honoraires"} data-complement="honoraires" className="space-y-1.5">
               <Label htmlFor="comp-hono-locataire">Visite, dossier et bail — part du locataire (€ TTC)</Label>
               <Input
                 id="comp-hono-locataire"
@@ -258,8 +267,8 @@ export function FormulaireComplementsBail({
             </div>
           </>
         )}
-        <div className="space-y-1.5 sm:col-span-2">
-          <Label htmlFor="comp-clauses">Clauses particulières</Label>
+        <div hidden={etape !== "tous" && etape !== "travaux"} data-complement="travaux" className="space-y-1.5 sm:col-span-2">
+          <Label htmlFor="comp-clauses">Clauses particulières — Facultatif</Label>
           <textarea
             id="comp-clauses"
             name="clauses_particulieres"
@@ -272,11 +281,11 @@ export function FormulaireComplementsBail({
         </div>
         {(
           <>
-            <p className="border-t border-border pt-3 text-sm font-medium sm:col-span-2">
+            <p hidden={etape !== "tous" && etape !== "precedent"} className="text-sm font-medium sm:col-span-2">
               Informations sur la précédente location
             </p>
-            {encadrement && <>
-            <div className="space-y-1.5">
+            <fieldset disabled={!encadrement} hidden={!encadrement} className="contents">
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
               <Label htmlFor="comp-loyer-ref">Loyer de référence (€/m²)</Label>
               <Input
                 id="comp-loyer-ref"
@@ -287,7 +296,7 @@ export function FormulaireComplementsBail({
                 defaultValue={d("loyer_reference", defauts.loyer_reference)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
               <Label htmlFor="comp-loyer-ref-majore">Loyer de référence majoré (€/m²)</Label>
               <Input
                 id="comp-loyer-ref-majore"
@@ -298,8 +307,8 @@ export function FormulaireComplementsBail({
                 defaultValue={d("loyer_reference_majore", defauts.loyer_reference_majore)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="comp-complement">Complément de loyer (€)</Label>
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
+              <Label htmlFor="comp-complement">Complément de loyer (€) — Facultatif</Label>
               <Input
                 id="comp-complement"
                 name="complement_loyer"
@@ -309,8 +318,8 @@ export function FormulaireComplementsBail({
                 defaultValue={d("complement_loyer", defauts.complement_loyer)}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="comp-complement-justif">Justification du complément</Label>
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
+              <Label htmlFor="comp-complement-justif">Justification — Obligatoire si complément de loyer</Label>
               <Input
                 id="comp-complement-justif"
                 name="complement_justification"
@@ -319,8 +328,15 @@ export function FormulaireComplementsBail({
                 defaultValue={d("complement_justification", defauts.complement_justification)}
               />
             </div>
-            </>}
-            <div className="space-y-1.5">
+            </fieldset>
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="comp-situation">Précédente location</Label>
+              <select id="comp-situation" name="precedente_location" value={situation} onChange={e=>setSituation(e.target.value)} className={classeSelect}>
+                <option value="">À confirmer</option><option value="premiere">Première location</option><option value="ancienne">Ancien locataire parti depuis au moins 18 mois</option><option value="recente">Ancien locataire parti depuis moins de 18 mois</option>
+              </select>
+            </div>
+            <fieldset disabled={situation !== "recente"} hidden={situation !== "recente"} className="contents">
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
               <Label htmlFor="comp-dernier-loyer">
                 Dernier loyer de l&apos;ancien locataire (€)
               </Label>
@@ -333,7 +349,7 @@ export function FormulaireComplementsBail({
                 defaultValue={d("dernier_loyer", defauts.dernier_loyer)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
               <Label htmlFor="comp-dernier-versement">Date du dernier versement</Label>
               <Input
                 id="comp-dernier-versement"
@@ -342,7 +358,14 @@ export function FormulaireComplementsBail({
                 defaultValue={d("dernier_loyer_versement", defauts.dernier_loyer_versement)}
               />
             </div>
-            <div className="space-y-1.5">
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
+              <Label htmlFor="comp-revise">Ce précédent loyer a-t-il été révisé ?</Label>
+              <select id="comp-revise" name="precedent_loyer_revise" value={revisionPrecedente} onChange={e=>setRevisionPrecedente(e.target.value)} className={classeSelect}>
+                <option value="">À confirmer</option><option value="true">Oui</option><option value="false">Non, aucune révision</option>
+              </select>
+            </div>
+            <fieldset disabled={revisionPrecedente !== "true"} hidden={revisionPrecedente !== "true"} className="contents">
+            <div hidden={etape !== "tous" && etape !== "precedent"} data-complement="precedent" className="space-y-1.5">
               <Label htmlFor="comp-derniere-revision">Date de la dernière révision</Label>
               <Input
                 id="comp-derniere-revision"
@@ -351,10 +374,11 @@ export function FormulaireComplementsBail({
                 defaultValue={d("dernier_loyer_revision", defauts.dernier_loyer_revision)}
               />
             </div>
+            </fieldset></fieldset>
           </>
         )}
         {meuble && (
-          <div className="flex items-center gap-2 pt-1 sm:col-span-2">
+          <div hidden={etape !== "tous" && etape !== "conditions"} data-complement="conditions" className="flex items-center gap-2 pt-1 sm:col-span-2">
             <input
               id="comp-etudiant"
               name="meuble_etudiant"
@@ -366,16 +390,14 @@ export function FormulaireComplementsBail({
               className="size-4"
             />
             <Label htmlFor="comp-etudiant">
-              Bail étudiant — 9 mois, non reconduit tacitement
+              Bail étudiant — Facultatif · 9 mois, non reconduit tacitement
             </Label>
           </div>
         )}
       </div>
       {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
-      <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">
-        Enregistrer les compléments
-      </BoutonEnvoi>
+      <BoutonEnvoi enCoursTexte="Enregistrement…" size="sm" variant="outline">Enregistrer</BoutonEnvoi>
     </form>
   );
 }

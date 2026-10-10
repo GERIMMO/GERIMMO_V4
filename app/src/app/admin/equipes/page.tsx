@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from 'next/link';
 import {createClient} from '@/lib/supabase/server';
 import {EQUIPES,MISSIONS,type Mission} from '@/lib/missions';
@@ -21,7 +22,7 @@ export default async function Page(){
  // « Lancer maintenant » n'est proposé que si la connexion des traitements est
  // posée, comme sur Santé (audit console 27/09).
  const lancement=Boolean(process.env.CRON_SECRET?.trim());
- return <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 p-4 sm:p-7"><div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><h1>Travail des équipes</h1><p className="mesure-lecture mt-2 text-sm text-muted-foreground">Ce que Gerimmo fait seul chaque jour : les quittances, les relances, la veille, les publications. Pour chaque tâche, son dernier passage et son résultat ; « Lancer maintenant » la refait tout de suite, « Mettre en pause » l’arrête jusqu’à nouvel ordre. Les réglages de chaque agence, les validations et les plafonds restent applicables.</p></div></div>
+ return <main className="mx-auto w-full max-w-6xl flex-1 space-y-8 p-4 sm:p-7"><div className="entete-page"><div className="min-w-0 flex-[1_1_20rem]"><TitreEcran rubrique="personnes">Travail des équipes</TitreEcran><p className="mesure-lecture mt-2 text-sm text-muted-foreground">Ce que Gerimmo fait seul chaque jour : les quittances, les relances, la veille, les publications. Pour chaque tâche, son dernier passage et son résultat ; « Lancer maintenant » la refait tout de suite, « Mettre en pause » l’arrête jusqu’à nouvel ordre. Les réglages de chaque agence, les validations et les plafonds restent applicables.</p></div></div>
  {!disponible&&<p role="alert" className="err">Le suivi est indisponible. Aucun état « à jour » ne peut être confirmé.</p>}
  {!lancement&&<p className="text-sm text-muted-foreground">« Lancer maintenant » sera possible une fois la connexion sécurisée des tâches programmées configurée : voir <Link href="/admin/sante" className="lien-discret">Santé et connexions</Link>.</p>}
  {/* La carte commune de la console (nuit du 25/09), avec plus d'air entre les cartes. */}

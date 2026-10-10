@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -230,7 +231,7 @@ export default async function PageDocuments(
           sous le filet. */}
       <div className="mb-6">
         <div className="entete-page">
-          <h1>Documents</h1>
+          <TitreEcran rubrique="documents">Documents</TitreEcran>
           <div className="flex flex-wrap items-center gap-3">
             <span className="mono-discret">
               {portefeuille ? "Mon portefeuille · " : ""}
@@ -270,7 +271,7 @@ export default async function PageDocuments(
           aucun débordement horizontal au niveau page. Les deux dates, courtes,
           partagent la leur (24/09). Parc vide : rien à filtrer, pas de barre. */}
       {parcVide ? (
-        <div className="vide-guide">
+        <div className="vide-guide" data-ton="bleu">
           <p className="titre">Aucun document pour l&apos;instant</p>
           <p className="explication">
             Baux, diagnostics et justificatifs déposés ailleurs dans
@@ -285,7 +286,7 @@ export default async function PageDocuments(
         </div>
       ) : (
         <>
-          <form method="get" className="mb-4 flex flex-wrap items-end gap-2">
+          <form method="get" className="barre-filtres mb-4 flex flex-wrap items-end gap-2">
             <div className="w-full sm:w-auto">
               <label htmlFor="type" className="libelle-champ mb-1 block">
                 Type
@@ -362,7 +363,7 @@ export default async function PageDocuments(
               sous 900px quand une sélection existe — la fiche (ou le formulaire
               de dépôt) remplace la liste au lieu d'être rendue dessous, avec un
               lien retour en tête. */}
-          <div className={`split${sel ? " detail-actif" : ""}`}>
+          <div className={`split${sel ? " detail-actif" : " split-apercu"}`}>
             <div className="colonne-liste-split volet-liste">
               <div className="tete-liste">
                 {/* L'intitulé de la colonne dit ce qu'elle CONTIENT : « tous les
@@ -391,7 +392,7 @@ export default async function PageDocuments(
                 /* Retrait du cadre de colonne, comme l'encart d'erreur : le
                    pointillé arrondi ne bute plus sur ses angles droits (24/09) */
                 <div className="p-3.5">
-                  <div className="vide-guide">
+                  <div className="vide-guide" data-ton="bleu">
                     {filtresActifs ? (
                       <>
                         <p className="titre">Aucun document ne correspond</p>
@@ -525,7 +526,7 @@ export default async function PageDocuments(
             ) : (
               <div className="space-y-3.5">
                 {aRenouveler.length > 0 && (
-                  <Card className="border-l-[3px] border-l-[var(--destructive)]">
+                  <Card data-tone="critical">
                     {/* Sans pt-5 : la Card pose déjà sa marge (24/09) */}
                     <CardContent>
                       <div className="entete-carte">
@@ -557,10 +558,10 @@ export default async function PageDocuments(
                   </Card>
                 )}
 
-                <Card>
+                <Card className="carte-rubrique" data-ton="bleu">
                   <CardContent>
                     <div className="entete-carte">
-                      <h3 className="text-base font-medium">Par type</h3>
+                      <h3 className="text-base font-medium">Répartition des documents</h3>
                     </div>
                     {entreesTypes.length === 0 ? (
                       <p className="vide">Aucun document à répartir pour l&apos;instant.</p>

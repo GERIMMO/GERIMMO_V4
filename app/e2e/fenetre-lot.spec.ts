@@ -44,7 +44,8 @@ test.describe("Côté agence", () => {
     // `first()` : le mandant est nommé deux fois — comme détenteur (avec sa
     // quote-part) et comme mandant. C'est voulu : les deux rôles peuvent être
     // tenus par des personnes différentes, et l'agent doit voir les deux.
-    await expect(f.getByText("E2E Locataire")).toBeVisible();
+    await expect(f.getByText("Locataire", { exact: true })).toBeVisible();
+    await expect(f.getByText("E2E", { exact: true })).toBeVisible();
     await expect(f.getByText(/E2E Mandant/).first()).toBeVisible();
     // On n'a pas changé de page : c'est une fenêtre, pas une navigation.
     expect(page.url()).toBe(urlAvant);
@@ -126,7 +127,8 @@ test.describe("Côté agence", () => {
     await expect(fenetre(page)).toBeVisible();
     expect(await debordementHorizontal(page)).toBe(0);
     // Le bouton de fermeture reste atteignable au doigt (audit mobile 10/09).
-    const fermer = fenetre(page).getByRole("button", { name: "Fermer" });
+    // Viser la croix du header : le bouton du footer apparaît après le chargement.
+    const fermer = fenetre(page).getByLabel("Fermer", { exact: true });
     const boite = await fermer.boundingBox();
     expect(boite).not.toBeNull();
     expect(boite!.x + boite!.width).toBeLessThanOrEqual(390);

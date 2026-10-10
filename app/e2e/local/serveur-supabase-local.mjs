@@ -545,11 +545,14 @@ function preparerValeur(v, type) {
 }
 
 // ── RPC ────────────────────────────────────────────────────────────────────
-async function appelerRpc(claims, nom, corps, url) {
+async function appelerRpc(claims, nom, corps, url, methode, entetes) {
   const fn = catalogue.fns.get(nom);
   if (!fn) throw erreurRest(404, "PGRST202", `Fonction public.${nom} introuvable`);
-  const args = corps ?? {};
   const noms = (fn.arg_noms ?? []).slice(0, (fn.arg_types ?? []).length);
+  const lecture = methode === "HEAD" || methode === "GET";
+  const args = lecture ? Object.fromEntries([...url.searchParams].filter(([cle]) => noms.includes(cle))) : corps ?? {};
+  const urlFiltres = new URL(url);
+  if (lecture) for (const nom of noms) urlFiltres.searchParams.delete(nom);
   const fournis = noms
     .map((n, i) => ({ nom: n, type: (fn.arg_types ?? [])[i] }))
     .filter((a) => Object.prototype.hasOwnProperty.call(args, a.nom));
@@ -559,9 +562,13 @@ async function appelerRpc(claims, nom, corps, url) {
     if (fn.retourne_set || fn.type_retour.startsWith("TABLE") || fn.type_retour.startsWith("SETOF")) {
       // Les RPC setof de PostgREST acceptent les mêmes filtres SQL que les
       // tables. Les ignorer donnait de faux résultats dans la recherche GED.
-      const { clauses, ordre, limite, decalage } = clausesDepuisParams(url, params, new Set());
+      const { clauses, ordre, limite, decalage } = clausesDepuisParams(urlFiltres, params, new Set());
       let selection = `select * from public."${nom}"(${listeArgs})`;
       if (clauses.length) selection += ` where ${clauses.join(" and ")}`;
+      const total = (entetes.prefer ?? "").includes("count=exact")
+        ? Number((await client.query(`select count(*) from (${selection}) compte`, params)).rows[0].count)
+        : null;
+      if (methode === "HEAD") return { donnees: [], total };
       if (ordre) selection += ` order by ${ordre}`;
       if (limite !== null) selection += ` limit ${limite}`;
       if (decalage !== null) selection += ` offset ${decalage}`;
@@ -569,14 +576,14 @@ async function appelerRpc(claims, nom, corps, url) {
         `select coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) as j from (${selection}) t`,
         params,
       );
-      return r.rows[0].j;
+      return { donnees: r.rows[0].j, total };
     }
     if (fn.type_retour === "void") {
       await client.query(`select public."${nom}"(${listeArgs})`, params);
-      return null;
+      return { donnees: null, total: null };
     }
     const r = await client.query(`select to_jsonb(public."${nom}"(${listeArgs})) as j`, params);
-    return r.rows[0].j;
+    return { donnees: r.rows[0].j, total: null };
   });
 }
 
@@ -895,7 +902,12 @@ const serveur = http.createServer(async (req, res) => {
     // /rest/v1/rpc/:fn
     if (segments[0] === "rest" && segments[1] === "v1" && segments[2] === "rpc") {
       const corps = brut.length ? JSON.parse(brut.toString()) : {};
-      const resultat = await appelerRpc(claims, segments[3], corps, url);
+      const { donnees: resultat, total } = await appelerRpc(claims, segments[3], corps, url, req.method, entetes);
+      const extra = total !== null ? { "Content-Range": `*/${total}` } : {};
+      if (req.method === "HEAD") {
+        res.writeHead(200, { "Content-Type": "application/json", ...CORS, ...extra });
+        return res.end();
+      }
       const accept = entetes.accept ?? "";
       if (accept.includes("vnd.pgrst.object")) {
         const tableau = Array.isArray(resultat) ? resultat : [resultat];
@@ -904,7 +916,7 @@ const serveur = http.createServer(async (req, res) => {
         }
         return repondreJson(200, tableau[0]);
       }
-      return repondreJson(200, resultat);
+      return repondreJson(200, resultat, extra);
     }
     // /rest/v1/:table
     if (segments[0] === "rest" && segments[1] === "v1" && segments[2]) {

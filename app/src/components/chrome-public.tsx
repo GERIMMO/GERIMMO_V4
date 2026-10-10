@@ -67,7 +67,7 @@ export function EnTetePublic() {
 
 function BandeauPublic() {
   return (
-    <div className="sticky top-0 z-30 border-b border-[var(--filet)] bg-[var(--ivoire)]/90 backdrop-blur">
+    <div className="bandeau-public sticky top-0 z-30 border-b border-[var(--filet)] bg-[var(--ivoire)]/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-7">
         {/* Sous 640 px, le mot-marque se resserre (14 px, interlettrage
             réduit) : c'est ce qui laisse « Se connecter · Créer mon compte »

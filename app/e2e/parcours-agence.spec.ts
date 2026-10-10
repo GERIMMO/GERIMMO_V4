@@ -26,17 +26,23 @@ test("créer un bien depuis le téléphone : formulaire → fiche du parc", asyn
   const nom = `Bien E2E mobile ${Date.now() % 1e6}`;
 
   await page.goto(`/agence/${orgId}/parc/nouveau`);
-  await page.getByLabel("Référence interne").fill(nom);
+  await page.getByLabel("Nom du bien", { exact: true }).fill(nom);
   await page.getByLabel("Adresse", { exact: true }).fill("12 rue du Téléphone");
   await page.getByLabel("Code postal").fill("69001");
   await page.getByLabel("Ville").fill("Lyon");
   await page.getByLabel(/Année de construction/).fill("2005");
   await page.getByLabel(/Parties communes/).fill("Hall et cour intérieure");
-  await page.getByLabel(/\(TIC\)/).fill("Fibre optique et TNT");
-  await page.getByRole("button", { name: "Étape suivante", exact: true }).click();
+  await page.getByLabel(/Accès internet, téléphone, TV/).fill("Fibre optique et TNT");
+  await page.getByRole("button", { name: "Suivant", exact: true }).click();
+  await expect(page.getByLabel("Nom du lot", { exact: true })).toHaveValue(nom);
+  await expect(page.getByRole("button", { name: "Étape 2 : Le lot — 2 à compléter", exact: true })).toBeVisible();
+  await page.getByLabel("Nom du lot", { exact: true }).fill(`${nom} — appartement`);
+  await page.getByRole("button", { name: "Précédent", exact: true }).click();
+  await page.getByRole("button", { name: "Suivant", exact: true }).click();
+  await expect(page.getByLabel("Nom du lot", { exact: true })).toHaveValue(`${nom} — appartement`);
   await page.getByLabel(/Surface.*m²/).fill("51");
   await page.getByLabel("Nombre de pièces").fill("3");
-  await page.getByRole("button", { name: /Créer le bien/ }).click();
+  await page.getByRole("button", { name: "Créer le lot et continuer", exact: true }).click();
 
   // La création débouche sur la fiche (ou le parc) où le bien existe
   await expect(page.locator("body")).toContainText(nom, { timeout: 20_000 });
@@ -66,6 +72,7 @@ test("créer, ouvrir, fermer puis traiter une alerte au doigt", async ({ page })
   await page.reload();
   await expect(page.getByRole("heading", { name: "Alertes", exact: true })).toBeVisible();
   await expect(page.locator('.rang-alerte').filter({ hasText: titre })).toHaveCount(0);
+  await page.locator("details.historique-carte > summary").click();
   await expect(page.getByText(titre, { exact: true })).toBeVisible();
 });
 

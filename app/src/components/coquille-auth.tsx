@@ -37,7 +37,7 @@ export function CoquilleAuth({
   children: ReactNode;
 }) {
   return (
-    <main className="grid min-h-full flex-1 md:grid-cols-[1.05fr_1fr]">
+    <main className="coquille-auth grid min-h-full flex-1 md:grid-cols-[1.05fr_1fr]">
       <div className="panneau-marque hidden flex-col justify-between p-13 text-[var(--sur-marque)] md:flex">
         {/* La marque ramène à la vitrine (24/09), comme sur la vitrine, le
             journal et les pages légales : c'était ici le seul logo inerte. */}
@@ -66,7 +66,7 @@ export function CoquilleAuth({
               <MarqueGerimmo />
             </Link>
           </div>
-          <h1 className="!text-[length:var(--pas-section)]">{titre}</h1>
+          <h1>{titre}</h1>
           {chapo && (
             <p className="mt-1.5 mb-5 text-sm leading-relaxed text-muted-foreground">{chapo}</p>
           )}

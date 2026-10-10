@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { FormulaireOuverture } from "./formulaire-ouverture";
@@ -36,7 +37,7 @@ export default async function PageOuvrirOrganisation(
         ← Tous les clients
       </Link>
       <div className="entete-page mb-6 mt-2">
-        <h1>Ouvrir une organisation</h1>
+        <TitreEcran rubrique="entreprise">Ouvrir une organisation</TitreEcran>
       </div>
 
       <p className="mesure-lecture mb-5 text-sm text-muted-foreground">

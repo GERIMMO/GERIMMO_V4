@@ -1,6 +1,8 @@
 "use client";
+import { useActionFormulaire } from "@/lib/use-action-formulaire";
+import { expirationDiagnostic } from "@/lib/documents-bail";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { deposerDiagnostic, type EtatParc } from "@/app/actions/parc";
 import { TYPES_DIAGNOSTIC, type NiveauDiagnostic } from "@/lib/parc";
 import { aujourdhuiParis } from "@/lib/ged";
@@ -18,6 +20,9 @@ export function FormulaireDiagnostic({
   lotId,
   niveau,
   typeInitial,
+  tousNiveaux = false,
+  initialiserDate = true,
+  actionDepot,
 }: {
   orgId: string;
   bienId: string;
@@ -25,12 +30,15 @@ export function FormulaireDiagnostic({
   niveau: NiveauDiagnostic;
   // Dépôt depuis la ligne d'un diagnostic précis : le type est déjà choisi
   typeInitial?: string;
+  tousNiveaux?: boolean;
+  initialiserDate?: boolean;
+  actionDepot?: (etat:EtatParc,form:FormData)=>Promise<EtatParc>;
 }) {
   const types = Object.entries(TYPES_DIAGNOSTIC).filter(
-    ([, t]) => t.niveau === niveau
+    ([, t]) => tousNiveaux || t.niveau === niveau
   );
-  const actionLiee = deposerDiagnostic.bind(null, orgId, bienId, lotId);
-  const [etat, action] = useActionState<EtatParc, FormData>(actionLiee, {});
+  const actionLiee = actionDepot ?? deposerDiagnostic.bind(null, orgId, bienId, lotId);
+  const {etat, soumettre: action, enCours} = useActionFormulaire<EtatParc>(actionLiee);
   const formulaire = useRef<HTMLFormElement>(null);
   const [etatModifie, setEtatModifie] = useState<typeof etat | null>(null);
   const [type, setType] = useState(typeInitial ?? types[0]?.[0] ?? "");
@@ -39,16 +47,13 @@ export function FormulaireDiagnostic({
 
   // Pré-remplissage de l'expiration : date de réalisation + validité du type
   const majExpiration = (leType: string, laRealisation: string) => {
-    const validite = TYPES_DIAGNOSTIC[leType]?.validite_mois;
-    if (!laRealisation || validite === null || validite === undefined) return;
-    const d = new Date(laRealisation);
-    d.setMonth(d.getMonth() + validite);
-    setExpiration(d.toISOString().slice(0, 10));
+    setExpiration(expirationDiagnostic(leType, laRealisation));
   };
 
   // Date de réalisation pré-remplie à aujourd'hui (retour recette S2) —
   // posée après l'hydratation pour rester cohérente avec le rendu serveur
   useEffect(() => {
+    if (!initialiserDate) return;
     const minuterie = setTimeout(() => {
       const aujourdhui = aujourdhuiParis();
       setRealisation((r) => r || aujourdhui);
@@ -81,7 +86,7 @@ export function FormulaireDiagnostic({
   }, [etat]);
 
   return (
-    <form onChange={() => setEtatModifie(etat)} ref={formulaire} action={action} className="space-y-3 border-t border-border pt-4">
+    <form onChange={() => setEtatModifie(etat)} ref={formulaire} onSubmit={action} className="space-y-3 border-t border-border pt-4">
       <p className="text-sm font-medium">
         {typeInitial
           ? `Déposer : ${TYPES_DIAGNOSTIC[typeInitial]?.libelle ?? typeInitial}`
@@ -100,7 +105,7 @@ export function FormulaireDiagnostic({
           </div>
         ) : (
           <div className="space-y-1.5">
-            <Label htmlFor={`diag-type-${niveau}`}>Type</Label>
+            <Label htmlFor={`diag-type-${niveau}`}>Type de diagnostic</Label>
             <select
               id={`diag-type-${niveau}`}
               name="type"
@@ -118,7 +123,7 @@ export function FormulaireDiagnostic({
               ))}
             </select>
             {TYPES_DIAGNOSTIC[type] && (
-              <p className="text-sm text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}</p>
+              <p className="text-sm text-muted-foreground">{TYPES_DIAGNOSTIC[type].aide}{tousNiveaux && ` · ${TYPES_DIAGNOSTIC[type].niveau === "lot" ? "Logement" : "Bâtiment"}`}</p>
             )}
           </div>
         )}
@@ -139,6 +144,7 @@ export function FormulaireDiagnostic({
             <select
               id={`diag-classe-${niveau}`}
               name="classe_dpe"
+              required={Boolean(actionDepot)}
               defaultValue={etat.valeurs?.classe_dpe ?? ""}
               className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
             >
@@ -160,6 +166,7 @@ export function FormulaireDiagnostic({
             id={`diag-realisation-${niveau}`}
             name="date_realisation"
             type="date"
+            max={aujourdhuiParis()}
             required
             value={realisation}
             onChange={(e) => {
@@ -175,6 +182,7 @@ export function FormulaireDiagnostic({
             required={TYPES_DIAGNOSTIC[type]?.validite_mois != null}
             name="date_expiration"
             type="date"
+            min={realisation || undefined}
             value={expiration}
             onChange={(e) => setExpiration(e.target.value)}
           />
@@ -188,17 +196,16 @@ export function FormulaireDiagnostic({
           </Label>
           <ChampFichier id={`diag-fichier-${niveau}`} name="fichier" accept=".pdf,.jpg,.jpeg,.png" required />
           <p className="text-sm text-muted-foreground">
-            Obligatoire — le diagnostic est annexé au bail. PDF, JPEG ou PNG
-            (10 Mo maximum), classé dans les documents et lié au diagnostic, chaque
-            consultation tracée.
+            Rapport requis. PDF, JPEG ou PNG
+            (10 Mo maximum), à déposer avec les dates et la classe figurant sur le rapport.
           </p>
         </div>
       </div>
-      {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
+      {etat.erreur && <p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
       {etat.succes && etatModifie !== etat && (
         <p className="text-sm text-success-soft-foreground">{etat.succes}</p>
       )}
-      <BoutonEnvoi size="sm" variant="outline" enCoursTexte="Dépôt…">
+      <BoutonEnvoi enCours={enCours} size="sm" variant="outline" enCoursTexte="Dépôt…">
         Déposer
       </BoutonEnvoi>
     </form>

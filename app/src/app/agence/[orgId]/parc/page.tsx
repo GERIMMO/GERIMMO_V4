@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { TitreEcran } from "@/components/titre-ecran";
+import { BoutonResumeBien } from "@/components/resume-bien";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
 import { ROLES_RESPONSABLES, eur } from "@/lib/ged";
@@ -6,8 +8,6 @@ import { resumerBlocage } from "@/lib/echeances";
 import { etiqueterNiveau } from "@/lib/diagnostics";
 import {
   TYPES_BIEN,
-  ETATS_LOT,
-  COULEURS_ETAT_LOT,
   formaterSurface,
   cibleBlocage,
 } from "@/lib/parc";
@@ -186,13 +186,13 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
     <FenetreLotProvider orgId={orgId} lotInitial={lotInitial} estProprietaire={estProprietaire}>
       <main className="mx-auto w-full max-w-5xl p-4 sm:p-7">
       <div className="entete-page">
-        <h1>
+        <TitreEcran rubrique="lots">
           {estProprietaire
             ? "Mes lots"
             : role === "agent"
               ? "Mon portefeuille"
               : "Parc de l'agence"}
-        </h1>
+        </TitreEcran>
         <div className="flex flex-wrap items-center gap-4">
           {/* Plus de préfixe « Mon portefeuille · » (24/09) : il répétait le
               titre posé sur la même ligne, et l'entrée active du menu. */}
@@ -240,7 +240,7 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
 
       {/* Parc illisible : ni liste ni état vide — l'encart ci-dessus a déjà dit
           pourquoi, et proposer « créer mon premier bien » serait un mensonge. */}
-      {erreurBiens ? null : biensVisibles.length === 0 ? (
+      {erreurBiens ? null : biensVisibles.length === 0 && biensRetires.length === 0 ? (
         // État vide de la charte (.vide-guide) : ce qu'il n'y a pas, pourquoi,
         // et le geste qui le remplit — à la place d'un .vide remonté à la main.
         <div className="vide-guide">
@@ -334,98 +334,60 @@ export default async function PageParc(props: PageProps<"/agence/[orgId]/parc">)
             </div>
             {biensVisibles.map((bien) => (
               <div key={bien.id}>
-                <Link
-                  href={`/agence/${orgId}/parc?sel=bien:${bien.id}`}
-                  className={`tete-groupe${selectionBien?.id === bien.id ? " actif" : ""}`}
-                >
-                  {/* Deux lignes plutôt qu'une coupe (24/09) : l'adresse
-                      perdait son code postal et sa ville — ce qui distingue
-                      deux immeubles homonymes. Le texte entier en `title`. */}
-                  <span className="min-w-0">
-                    <b className="block truncate text-[13.5px] font-medium" title={bien.nom}>
-                      {bien.nom}
-                    </b>
-                    <span
-                      className="mono-discret line-clamp-2 normal-case"
-                      title={`${TYPES_BIEN[bien.type] ?? bien.type} · ${bien.address_line1}, ${bien.postal_code} ${bien.city}`}
-                    >
-                      {TYPES_BIEN[bien.type] ?? bien.type} · {bien.address_line1},{" "}
-                      {bien.postal_code} {bien.city}
-                    </span>
-                  </span>
-                  <span className="puce puce-encre shrink-0">
-                    {bien.lotsVisibles.length === 0
-                      ? "aucun lot"
-                      : `${bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis").length}/${bien.lotsVisibles.length} loué${
-                          bien.lotsVisibles.filter((l) => l.etat === "loue" || l.etat === "preavis")
-                            .length > 1
-                            ? "s"
-                            : ""
-                        }`}
-                  </span>
-                  <IndicateurLien />
-                </Link>
-                {/* Le rang du lot n'est plus un lien : il OUVRE la fenêtre,
-                    sur place. Hors fenêtre (navigateur sans JS), BoutonLot
-                    retombe sur le lien vers la fiche complète. */}
-                {/* Le rang « aucun lot » porte un geste (D01) : la fiche du
-                    bien, où l'on retrouve ses lots archivés et d'où l'on agit. */}
                 {bien.lotsVisibles.length === 0 && (
-                  <Link href={`/agence/${orgId}/parc/${bien.id}`} className="rang-lot">
-                    <span className="min-w-0 flex-1 text-[13px]">
-                      Aucun lot actif
-                      <span className="block text-xs text-muted-foreground">
-                        {estProprietaire
-                          ? "Ce bien compte dans votre abonnement tant qu'il est au parc : ouvrez-le pour le retirer."
-                          : "Ce bien n'a plus de lot en gestion."}
+                  <BoutonResumeBien orgId={orgId} bien={bien} className="rang-lot">
+                    <span className="min-w-0 flex-1 text-left text-[13px]">
+                      <b className="block break-words font-medium">{bien.nom}</b>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {TYPES_BIEN[bien.type] ?? bien.type} · Surface non renseignée
+                      </span>
+                      <span className="mt-1 block break-words text-xs text-muted-foreground">
+                        {bien.address_line1}, {bien.postal_code} {bien.city}
                       </span>
                     </span>
-                    <span className="lien-discret shrink-0 text-xs">Ouvrir le bien&nbsp;→</span>
-                  </Link>
+                  </BoutonResumeBien>
                 )}
                 {bien.lotsVisibles.map((lot) => (
                   <BoutonLot
                     key={lot.id}
                     lotId={lot.id}
+                    libelle={`${bien.nom} · ${lot.nom}`}
                     href={`/agence/${orgId}/parc/${bien.id}/lots/${lot.id}`}
                     className="rang-lot"
                   >
-                    <span
-                      className="line-clamp-2 min-w-0 flex-1 text-left text-[13px]"
-                      title={lot.nom}
-                    >
-                      {lot.nom}
-                      {lot.surface_m2 !== null && (
-                        <span className="text-muted-foreground">
-                          {" "}
-                          · {formaterSurface(lot.surface_m2)}
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={`${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"} shrink-0`}
-                    >
-                      {ETATS_LOT[lot.etat] ?? lot.etat}
+                    <span className="min-w-0 flex-1 text-left text-[13px]">
+                      <b className="block break-words font-medium">{lot.nom === "Lot unique" ? bien.nom : lot.nom}</b>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        {TYPES_BIEN[bien.type] ?? bien.type} · {lot.surface_m2 !== null ? formaterSurface(lot.surface_m2) : "Surface non renseignée"}
+                      </span>
+                      <span className="mt-1 block break-words text-xs text-muted-foreground">
+                        {bien.address_line1}, {bien.postal_code} {bien.city}
+                      </span>
                     </span>
                   </BoutonLot>
                 ))}
               </div>
             ))}
-            {biensRetires.length > 0 && (
-              <div>
-                <p className="tete-groupe text-xs text-muted-foreground">
-                  Biens retirés{estProprietaire ? " — hors abonnement" : ""}
-                </p>
-                {biensRetires.map((bien) => (
-                  <Link key={bien.id} href={`/agence/${orgId}/parc/${bien.id}`} className="rang-lot">
-                    <span className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
-                      {bien.nom}
-                    </span>
-                    <span className="lien-discret shrink-0 text-xs">Ouvrir&nbsp;→</span>
-                  </Link>
-                ))}
-              </div>
-            )}
+            {biensRetires.map((bien) => (
+              <BoutonResumeBien
+                key={bien.id}
+                orgId={orgId}
+                bien={bien}
+                className="rang-lot rang-lot-retire"
+              >
+                <span className="min-w-0 flex-1 text-left text-[13px]">
+                  <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <b className="min-w-0 break-words font-medium">{bien.nom}</b>
+                    <span className="lot-etiquette-archive">Archivé</span>
+                  </span>
+                  <span className="mt-1 block text-xs">
+                    {TYPES_BIEN[bien.type] ?? bien.type}
+                    {(bien.lots as LotResume[]).length === 1 && (bien.lots as LotResume[])[0].surface_m2 !== null && <> · {formaterSurface((bien.lots as LotResume[])[0].surface_m2)}</>}
+                  </span>
+                  <span className="mt-1 block break-words text-xs">{bien.address_line1}, {bien.postal_code} {bien.city}</span>
+                </span>
+              </BoutonResumeBien>
+            ))}
           </div>
 
           {selectionBien ? (

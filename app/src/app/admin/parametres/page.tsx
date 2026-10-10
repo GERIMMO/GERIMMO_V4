@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { faitsManquants } from "@/lib/editeur";
 
@@ -19,7 +20,7 @@ export default function PageParametres() {
     <main className="mx-auto w-full max-w-4xl flex-1 space-y-6 p-4 sm:p-7">
       <div className="entete-page">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <h1>Paramètres</h1>
+          <TitreEcran rubrique="profil">Paramètres</TitreEcran>
           <p className="mt-2 max-w-3xl text-sm text-[var(--texte-secondaire)]">
             Ce qui se règle une fois : l’identité de Gerimmo sur les pages légales, la sécurité de votre compte et
             l’ouverture d’une organisation.

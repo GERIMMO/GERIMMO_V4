@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { eur, formaterDate } from "@/lib/ged";
 import { CONSERVATION_DOCUMENTS_LOCATAIRE } from "@/lib/locataire-textes";
@@ -139,7 +140,7 @@ export default async function PagePaiementsLocataire(
   return (
     <div className="space-y-4">
       <div className="entete-page">
-        <h1>Mes paiements</h1>
+        <TitreEcran rubrique="finances">Mes paiements</TitreEcran>
         {bail?.jour_echeance != null && (
           <span className="mono-discret">
             Loyer dû le {bail.jour_echeance === 1 ? "1ᵉʳ" : bail.jour_echeance} du mois

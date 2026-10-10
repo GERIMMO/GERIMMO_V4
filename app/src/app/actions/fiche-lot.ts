@@ -1,5 +1,7 @@
 "use server";
 
+import { aujourdhuiParis } from "@/lib/ged";
+import { personnesDuResume, type BailResume, type IdentiteResume, type LienPersonneResume, type PersonneResume } from "@/lib/resume-location";
 import { createClient } from "@/lib/supabase/server";
 import { sansJargon } from "@/lib/erreurs";
 import { remettreRapportMensuel } from "@/lib/rapports-mensuels";
@@ -24,6 +26,8 @@ export type PorteeLot = "gerant" | "locataire";
 export type ContratDuLot = { id: string; chambre: string; locataire: string; etat: string; loyer_hc: number; charges: number; date_fin: string | null; impaye_echu: number; termes_impayes: number };
 
 export type FicheLot = {
+  details_resume?: { aujourdHui: string; locataires: PersonneResume[]; garants: PersonneResume[]; baux: BailResume[]; dpe: { classe_dpe: string | null; date_realisation: string; date_expiration: string | null } | null };
+  erreur_resume?: string;
   contrats?: ContratDuLot[];
   portee: PorteeLot;
   lot_id: string; lot_nom: string; lot_etat: string;
@@ -92,7 +96,29 @@ export async function chargerFicheLot(lotId: string): Promise<Chargement<FicheLo
   if (!ligne) return { erreur: "Ce lot ne fait pas partie de votre portefeuille." };
   const individuels = (contrats ?? []) as ContratDuLot[];
   const multiple = individuels.length > 1;
-  return { donnees: { ...ligne, contrats: individuels, ...(multiple ? {
+  // L'autorisation de la RPC précède toute lecture d'identité. Ces données
+  // supplémentaires restent strictement réservées aux gestionnaires.
+  let details_resume: FicheLot["details_resume"];
+  let erreur_resume: string | undefined;
+  if (ligne.portee === "gerant") {
+    const ids = [...new Set([ligne.bail_id, ...individuels.map(c => c.id)].filter((id): id is string => !!id))];
+    const [bauxDetail, liens, dpe] = await Promise.all([
+      ids.length ? supabase.from("baux").select("id, locataire_principal, date_debut, date_fin, loyer_hc, charges").eq("lot_id", lotId).in("id", ids) : Promise.resolve({ data: [], error: null }),
+      ids.length ? supabase.from("bail_personnes").select("bail_id, person_id, role, garant_de, date_depart").in("bail_id", ids) : Promise.resolve({ data: [], error: null }),
+      supabase.from("diagnostics").select("classe_dpe, date_realisation, date_expiration").eq("lot_id", lotId).eq("type", "dpe").is("archived_at", null).order("date_realisation", { ascending: false }).limit(1),
+    ]);
+    const baux = (bauxDetail.data ?? []) as BailResume[];
+    const liaisons = (liens.data ?? []) as LienPersonneResume[];
+    const personnesIds = [...new Set([...baux.map(b => b.locataire_principal), ...liaisons.map(l => l.person_id)].filter((id): id is string => !!id))];
+    const identites = personnesIds.length ? await supabase.from("persons").select("id, nom, prenom, date_naissance, telephone").in("id", personnesIds) : { data: [], error: null };
+    if (bauxDetail.error || liens.error || dpe.error || identites.error || baux.length !== ids.length) {
+      erreur_resume = "Les informations détaillées n’ont pas pu être chargées. Fermez puis rouvrez le résumé pour réessayer.";
+    } else {
+      details_resume = { aujourdHui: aujourdhuiParis(), ...personnesDuResume(baux, liaisons, (identites.data ?? []) as IdentiteResume[]), baux, dpe: dpe.data?.[0] ?? null };
+    }
+  }
+
+  return { donnees: { ...ligne, details_resume, erreur_resume, contrats: individuels, ...(multiple ? {
     bail_id: null, bail_etat: null, locataire: null, locataire_email: null, locataire_telephone: null,
     date_debut: null, date_fin: null, jour_echeance: null, depot_garantie: null,
     loyer_hc: individuels.reduce((s, c) => s + Number(c.loyer_hc), 0), charges: individuels.reduce((s, c) => s + Number(c.charges), 0),

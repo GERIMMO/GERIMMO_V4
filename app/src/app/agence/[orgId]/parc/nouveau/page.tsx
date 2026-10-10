@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { HousePlus } from "lucide-react";
+import styles from "@/components/presentation-parcours.module.css";
 import { verifierAccesEspace } from "@/lib/espace";
 import { FormulaireBien } from "../formulaire-bien";
 import { euros, offreParticulier, parPeriode, type Periodicite } from "@/lib/tarifs";
 
-export const metadata = { title: "Nouveau bien — Gerimmo" };
+export const metadata = { title: "Créer un lot — Gerimmo" };
 
 export default async function PageNouveauBien(
   props: PageProps<"/agence/[orgId]/parc/nouveau">
@@ -40,7 +42,7 @@ export default async function PageNouveauBien(
   }
 
   return (
-    <main className="mx-auto w-full max-w-7xl p-4 sm:p-7">
+    <main className={`mx-auto w-full p-4 sm:p-7 ${styles.pageCreation}`}>
       {/* Le retour « ← Parent » au-dessus de l'en-tête, nommé comme l'entrée
           du menu (25/09 : aucun retour, ni fil ni flèche). */}
       <Link
@@ -49,13 +51,14 @@ export default async function PageNouveauBien(
       >
         ← {estProprietaire ? "Mes lots" : "Parc de l'agence"}
       </Link>
-      <div className="entete-page">
+      <header className={styles.enteteCreation}>
+        <HousePlus size={27} aria-hidden="true"/>
         <div>
-        <p className="dossier-surtitre">Votre patrimoine, bien organisé</p>
-        <h1>Ajouter une location</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Commencez votre dossier de location par l’adresse et les caractéristiques du bien.</p>
+        <span className={styles.surtitre}>Nouveau logement</span>
+        <h1>Créer un lot</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Renseignez votre logement, étape par étape. Ses informations seront reprises dans le bail.</p>
         </div>
-      </div>
+      </header>
       {depassement && (
         <div className="loc-carte mb-4 border-l-4 border-l-[var(--or)]">
           <p className="mesure-lecture text-sm">
@@ -90,7 +93,7 @@ export default async function PageNouveauBien(
           </div>
         </div>
       ) : (
-      <FormulaireBien orgId={orgId} guide />
+      <FormulaireBien orgId={orgId} guide proprietaireAutomatique={role === "proprietaire_direct"} />
       )}
     </main>
   );

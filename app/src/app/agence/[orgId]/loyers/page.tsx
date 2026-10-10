@@ -1,3 +1,4 @@
+import { PageFinances } from "@/components/page-finances";
 import Link from "next/link";
 import { verifierAccesEspace } from "@/lib/espace";
 import { lotsDuPortefeuille } from "@/lib/portefeuille";
@@ -9,7 +10,10 @@ import { QuittancementMois } from "../comptabilite/quittancement-mois";
 
 // L'onglet dit l'écran, comme ses voisins (24/09 : il n'affichait que
 // « Gerimmo »).
-export const metadata = { title: "Loyers & charges — Gerimmo" };
+export async function generateMetadata({ params }: { params: Promise<{ orgId: string }> }) {
+  const { estProprietaire } = await verifierAccesEspace((await params).orgId);
+  return { title: `${estProprietaire ? "Finances" : "Loyers & charges"} — Gerimmo` };
+}
 
 /**
  * LOYERS & CHARGES — l'écran du mois (refonte v4, phase D, validée le 19/09).
@@ -23,9 +27,10 @@ export const metadata = { title: "Loyers & charges — Gerimmo" };
  * Même portée que la comptabilité : l'agent y lit son portefeuille, l'admin
  * et le propriétaire tout.
  */
-export default async function PageLoyers({ params }: PageProps<"/agence/[orgId]/loyers">) {
+export default async function PageLoyers({ params, searchParams }: PageProps<"/agence/[orgId]/loyers">) {
   const { orgId } = await params;
   const { supabase, user, role, estProprietaire } = await verifierAccesEspace(orgId);
+  if (estProprietaire) return <PageFinances orgId={orgId} recherche={await searchParams} />;
   const portefeuille = await lotsDuPortefeuille(supabase, orgId, role, user.id);
   const dansPortefeuille = (lotId: string | null | undefined) =>
     !portefeuille || (lotId != null && portefeuille.has(lotId));

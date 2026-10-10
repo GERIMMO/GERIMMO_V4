@@ -1,6 +1,7 @@
 "use client";
+import { useActionStateSuivi } from "@/lib/suivi-enregistrement";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import {
   ajouterBailPersonne,
   enregistrerDepartColocataire,
@@ -33,7 +34,7 @@ type Personne = { id: string; nom: string };
 // L'erreur de l'action s'affiche sous la ligne — avant, elle était jetée
 // (audit vie du bail 09/09).
 function BoutonRetirer({ orgId, bailId, ligneId }: { orgId: string; bailId: string; ligneId: string }) {
-  const [etat, formAction] = useActionState<EtatBail, FormData>(
+  const [etat, formAction] = useActionStateSuivi<EtatBail, FormData>(
     () => supprimerBailPersonne(orgId, bailId, ligneId),
     {}
   );
@@ -64,7 +65,7 @@ function DepartColocataire({
   remplacants: Personne[];
 }) {
   const [ouvert, setOuvert] = useState(false);
-  const [etat, formAction] = useActionState<EtatBail, FormData>(
+  const [etat, formAction] = useActionStateSuivi<EtatBail, FormData>(
     enregistrerDepartColocataire.bind(null, orgId, bailId, ligneId),
     {}
   );
@@ -162,9 +163,9 @@ export function FormulaireColocation({
   ];
 
   const actionColoc = ajouterBailPersonne.bind(null, orgId, bailId);
-  const [etatC, formColoc] = useActionState<EtatBail, FormData>(actionColoc, {});
+  const [etatC, formColoc] = useActionStateSuivi<EtatBail, FormData>(actionColoc, {});
   const actionGarant = ajouterBailPersonne.bind(null, orgId, bailId);
-  const [etatG, formGarant] = useActionState<EtatBail, FormData>(actionGarant, {});
+  const [etatG, formGarant] = useActionStateSuivi<EtatBail, FormData>(actionGarant, {});
 
   const totalQp =
     colocataires.reduce((s, c) => s + (c.quote_part ?? 0), 0);

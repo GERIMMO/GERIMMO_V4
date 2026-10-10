@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { FormulairePiece } from "./formulaire-piece";
 import { useActionState, useId } from "react";
 import {
   demanderPieceLocataire,
@@ -34,10 +36,12 @@ function BoutonsDemande({
   orgId,
   personId,
   demandeId,
+  peutRelancer,
 }: {
   orgId: string;
   personId: string;
   demandeId: string;
+  peutRelancer: boolean;
 }) {
   const [etatRel, actionRel] = useActionState<EtatPieceDemandee, FormData>(
     async () => relancerPieceDemandee(orgId, personId, demandeId),
@@ -49,16 +53,18 @@ function BoutonsDemande({
   );
   return (
     <span className="flex shrink-0 items-center gap-1">
-      <form action={actionRel}>
+      {peutRelancer && <form action={actionRel}>
         <BoutonEnvoi variant="outline" size="sm">
           Relancer
         </BoutonEnvoi>
-      </form>
+      </form>}
       <form action={actionAnn}>
         <BoutonEnvoi variant="ghost" size="sm">
           Annuler
         </BoutonEnvoi>
       </form>
+      {etatRel.succes && <span role="status" className="text-xs text-success-soft-foreground">{etatRel.succes}</span>}
+      {etatRel.avertissement && <span role="status" className="text-xs text-warning-soft-foreground">{etatRel.avertissement}</span>}
       {(etatRel.erreur || etatAnn.erreur) && (
         <span className="text-xs text-destructive">{etatRel.erreur ?? etatAnn.erreur}</span>
       )}
@@ -75,11 +81,13 @@ export function CartePiecesDemandees({
   // La fiche ne charge que les demandes les plus récentes : la carte le dit
   // plutôt que de laisser croire à un historique complet.
   tronquees = false,
+  aUnAcces = true,
 }: {
   orgId: string;
   personId: string;
   demandes: PieceDemandee[];
   tronquees?: boolean;
+  aUnAcces?: boolean;
 }) {
   const [etat, action] = useActionState<EtatPieceDemandee, FormData>(
     demanderPieceLocataire.bind(null, orgId, personId),
@@ -92,6 +100,7 @@ export function CartePiecesDemandees({
 
   return (
     <div className="space-y-3">
+      {!aUnAcces && <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">Les demandes restent enregistrées dans la fiche. <Link href="#acces-locataire" className="underline underline-offset-4">Invitez la personne à son espace</Link> pour qu’elle puisse déposer ses documents.</p>}
       {enAttente.length > 0 && (
         <ul className="divide-y divide-border">
           {enAttente.map((d) => (
@@ -104,8 +113,12 @@ export function CartePiecesDemandees({
                   {d.note ? ` · ${d.note}` : ""}
                 </small>
               </span>
-              <span className="puce puce-prep shrink-0">en attente</span>
-              <BoutonsDemande orgId={orgId} personId={personId} demandeId={d.id} />
+              <span className="puce puce-prep shrink-0">{aUnAcces ? "En attente" : "À inviter"}</span>
+              <BoutonsDemande orgId={orgId} personId={personId} demandeId={d.id} peutRelancer={aUnAcces} />
+              <details className="w-full rounded-lg border border-border bg-muted/20 px-3">
+                <summary className="cursor-pointer py-2 text-xs font-medium">J’ai le document — le déposer moi-même</summary>
+                <FormulairePiece orgId={orgId} personId={personId} demande={d} />
+              </details>
             </li>
           ))}
         </ul>
@@ -164,6 +177,7 @@ export function CartePiecesDemandees({
           <input
             id={idLibelle}
             name="libelle"
+            maxLength={120}
             placeholder="Pièce à demander (ex. : RIB)"
             defaultValue={etat.valeurs?.libelle}
             // h-8 rounded-lg : la boîte de <Input>, comme le reste de la fiche
@@ -187,9 +201,10 @@ export function CartePiecesDemandees({
           </select>
           {/* Taille par défaut (h-8) : à côté d'un champ h-8, le bouton sm
               paraissait plus petit que son voisin (24/09). */}
-          <BoutonEnvoi variant="outline">Demander</BoutonEnvoi>
+          <BoutonEnvoi variant="outline">{aUnAcces ? "Envoyer la demande" : "Préparer la demande"}</BoutonEnvoi>
         </div>
         {etat.succes && <p className="text-sm text-success-soft-foreground">{etat.succes}</p>}
+        {etat.avertissement && <p role="status" className="text-sm text-warning-soft-foreground">{etat.avertissement}</p>}
         {etat.erreur && <p className="text-sm text-destructive">{etat.erreur}</p>}
         {/* Plus de note de pied (24/09) : elle redisait la description de la
             carte, en appelant « locataire » ce que celle-ci nomme « personne ». */}

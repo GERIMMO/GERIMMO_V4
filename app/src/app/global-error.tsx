@@ -1,5 +1,6 @@
 "use client";
 
+import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 import { useEffect } from "react";
 import { signalerErreurEcran } from "@/app/actions/erreurs";
 
@@ -27,12 +28,14 @@ export default function ErreurGlobale({
           margin: 0,
           padding: "48px 24px",
           fontFamily: "system-ui, sans-serif",
-          color: "#151b2b",
-          background: "#f2f5fb",
+          color: CHARTE_GERIMMO.corps,
+          background: CHARTE_GERIMMO.creme,
         }}
       >
         <main style={{ maxWidth: 560, margin: "0 auto" }}>
-          <h1 style={{ fontSize: 22, margin: "0 0 12px" }}>Gerimmo n&apos;a pas pu s&apos;ouvrir</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element -- secours sans le layout ni le service d’optimisation */}
+          <img src={CHARTE_GERIMMO.logo} alt="Gerimmo — L’immobilier en confiance" width={120} height={95} style={{ display: "block", marginBottom: 24 }} />
+          <h1 style={{ fontFamily: "Georgia, serif", fontWeight: 400, fontSize: 30, margin: "0 0 12px" }}>Gerimmo n&apos;a pas pu s&apos;ouvrir</h1>
           <p style={{ margin: "0 0 20px", lineHeight: 1.5 }}>
             L&apos;incident est noté. Réessayez dans un instant ; si cela persiste,
             écrivez-nous en indiquant la référence ci-dessous.
@@ -41,10 +44,10 @@ export default function ErreurGlobale({
             type="button"
             onClick={reset}
             style={{
-              background: "#2457f5",
+              background: CHARTE_GERIMMO.marque,
               color: "#fff",
               border: 0,
-              borderRadius: 10,
+              borderRadius: 7,
               padding: "10px 18px",
               fontSize: 14,
               fontWeight: 600,
@@ -54,7 +57,7 @@ export default function ErreurGlobale({
             Réessayer
           </button>
           {error.digest && (
-            <p style={{ marginTop: 16, fontSize: 12, color: "#4b5870" }}>réf. {error.digest}</p>
+            <p style={{ marginTop: 16, fontSize: 12, color: CHARTE_GERIMMO.texteSecondaire }}>réf. {error.digest}</p>
           )}
         </main>
       </body>

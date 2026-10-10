@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { SuiviEnregistrement } from "./suivi-enregistrement";
+import { useContext, useRef, useState, type FormEvent } from "react";
 
 type Retour = { erreur?: string; succes?: string };
 /** Le retour métier ne dépend pas du commit de la transition de revalidation. */
 export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees: FormData) => Promise<T>, resetApresSucces = false) {
+  const notifier = useContext(SuiviEnregistrement);
   const [etat, setEtat] = useState<T>({} as T);
   const [enCours, setEnCours] = useState(false);
   const [version, setVersion] = useState(0);
@@ -22,6 +24,7 @@ export function useActionFormulaire<T extends Retour>(action: (etat: T, donnees:
     try {
       const retour = await action(etat, donnees);
       setEtat(retour);
+      if (retour.succes) notifier?.();
       if (retour.succes && resetApresSucces) setVersion((v) => v + 1);
     } catch {
       setEtat({ erreur: "La confirmation n’a pas pu être reçue. Votre saisie est conservée ; rouvrez le dossier pour vérifier le résultat avant de recommencer." } as T);

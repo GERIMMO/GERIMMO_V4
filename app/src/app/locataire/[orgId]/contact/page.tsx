@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { verifierAccesEspaceLocataire } from "@/lib/espace";
 import { Interlocuteur, type Gestionnaire } from "../cartes-laterales";
@@ -45,7 +46,7 @@ export default async function PageContactLocataire(
       {/* L'en-tête standard de l'espace (24/09) : le titre était posé nu sur
           le fond, seule page avec « Nouveau signalement » à s'en passer. */}
       <div className="entete-page">
-        <h1>Mon gestionnaire</h1>
+        <TitreEcran rubrique="messages">Mon gestionnaire</TitreEcran>
         {/* La puce ne redit pas l'état vide (25/09, D26) : un chiffre, ou rien */}
         {!aEchoue(eFil) && messages.length > 0 && (
           <span className="mono-discret">

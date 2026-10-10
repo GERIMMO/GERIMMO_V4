@@ -474,7 +474,7 @@ export async function VoletArtisan({
           L'artisan est le seul à avoir vu la cause réelle ; l'agent tranche, et
           il doit trancher avant la facture. */}
       {revisionAttendue && compteRenduCourant && (
-        <Card className="border-l-[3px] border-l-[var(--destructive)]">
+        <Card data-tone="critical">
           <CardHeader>
             <p className="eyebrow" style={{ color: "var(--destructive)" }}>
               L&apos;artisan signale une autre cause — à trancher avant facturation

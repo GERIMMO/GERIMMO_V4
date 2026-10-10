@@ -29,7 +29,7 @@ export function FormulaireCatalogue({orgId,modeleId,choix,garants=[]}:{orgId:str
     {etat.erreur&&!etat.manquants?.length&&<p role="alert" className="text-sm text-destructive">{etat.erreur}</p>}
     {etat.succes&&<p role="status" className="text-sm text-success">{etat.succes}</p>}
     {etat.documentId&&<Link className="block font-medium text-primary underline" href={`/agence/${orgId}/documents/${etat.documentId}/fichier`} target="_blank" rel="noopener">Ouvrir le PDF</Link>}
-    {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+    {!!etat.manquants?.length&&<section aria-label="Informations à compléter" role="status" className="rounded-xl border border-[var(--or-filet)] bg-[var(--or-clair)] p-4">
       <h3 className="text-sm font-semibold">Encore {etat.manquants.length} {etat.manquants.length===1?"information":"informations"} à compléter</h3>
       <p className="mt-1 text-sm text-muted-foreground">Complétez le dossier, puis revenez générer le PDF.</p>
       <ul className="mt-3 divide-y divide-blue-100">{etat.manquants.map(m=>{

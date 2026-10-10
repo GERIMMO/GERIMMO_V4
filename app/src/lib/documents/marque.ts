@@ -1,3 +1,4 @@
+import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 import { couleurLisible, couleurValide, domaineValide, echapperMarque, enteteMarqueHtml, nomMarque, type MarqueOrganisation } from "../marque-organisation";
 import { domaineDuSite } from "../site";
 import type { DocumentAssemble } from "./gabarit";
@@ -5,8 +6,8 @@ import type { DocumentAssemble } from "./gabarit";
 /** Only validated inline images enter the PDF; an agency logo cannot make Chromium fetch a remote URL. */
 export function appliquerMarqueDocument(document: DocumentAssemble, marque: MarqueOrganisation | null): DocumentAssemble {
   if (!marque) return document;
-  const accent = couleurLisible(couleurValide(marque.couleur_primaire) ? marque.couleur_primaire : "#2457f5");
-  const encre = couleurLisible(couleurValide(marque.couleur_secondaire) ? marque.couleur_secondaire : "#0f2352");
+  const accent = couleurLisible(couleurValide(marque.couleur_primaire) ? marque.couleur_primaire : CHARTE_GERIMMO.marque);
+  const encre = couleurLisible(couleurValide(marque.couleur_secondaire) ? marque.couleur_secondaire : CHARTE_GERIMMO.encre);
   const css = `<style>:root{--encre:${encre};--sur-encre:#fff;--laiton:${accent};--laiton-filet:${accent};--creme:#f6f7fb}</style>`;
   const nom = echapperMarque(nomMarque(marque));
   return {

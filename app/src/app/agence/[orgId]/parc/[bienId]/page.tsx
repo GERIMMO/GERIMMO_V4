@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { IconeTrait } from "@/components/icone-trait";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
@@ -22,13 +23,13 @@ import {
 } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { BadgeStatut } from "@/components/badge-statut";
-import { AttentionFiche, EnteteFiche } from "@/components/fiche-parc";
+import { AttentionFiche } from "@/components/fiche-parc";
 import { EchecLecture, PageEchecLecture } from "../echec-lecture";
 import { BlocagesLocation, ListeBlocages } from "../blocages-location";
 import type { BienFormulaire } from "../formulaire-bien";
 import { BoutonsEtatLot } from "./lots/[lotId]/boutons-etat-lot";
 import { SectionLot } from "./lots/[lotId]/section-lot";
-import { FenetreLotProvider, BoutonLot } from "@/components/fenetre-lot";
+import { FenetreLotProvider } from "@/components/fenetre-lot";
 import { RecapBien } from "./recap-bien";
 import { LignesDiagnostics, type DiagnosticDepose } from "./lignes-diagnostics";
 import { FormulaireDecoupage } from "./formulaire-decoupage";
@@ -80,7 +81,7 @@ export default async function PageBien(
       .order("created_at"),
     supabase
       .from("diagnostics")
-      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id")
+      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe")
       .eq("bien_id", bienId)
       .is("archived_at", null)
       .order("type"),
@@ -221,7 +222,7 @@ export default async function PageBien(
   if ((bien as { archived_at?: string | null }).archived_at) {
     attention.push({
       cle: "retrait",
-      texte: "Ce bien est retiré du parc : il ne figure plus dans la liste ni dans l’abonnement.",
+      texte: "Ce bien est retiré du parc : il apparaît grisé et ne compte plus dans l’abonnement.",
       ancre: "retrait",
     });
   }
@@ -260,31 +261,31 @@ export default async function PageBien(
 
   return (
     <FenetreLotProvider orgId={orgId} estProprietaire={estProprietaire}>
-      <main className="mx-auto w-full max-w-5xl space-y-[1.125rem] p-4 sm:p-7">
-      <EnteteFiche
-        retour={{ href: `/agence/${orgId}/parc`, libelle: libelleParc }}
-        surtitre={TYPES_BIEN[bien.type] ?? bien.type}
-        titre={bien.nom}
-        sousTitre={
-          <>
-            {bien.address_line1}
-            {bien.address_line2 ? `, ${bien.address_line2}` : ""}, {bien.postal_code}{" "}
-            {bien.city}
-            {bien.copropriete ? " · copropriété" : ""}
-          </>
-        }
-        // Sur un bien à lot unique, « Lot 1 » et « Loués 1/1 » disent deux fois
-        // ce que la carte juste dessous montre en entier (état, nom, surface).
-        // Les chiffres ne servent que là où on ne peut plus tout voir d'un coup.
-        faits={
-          multiLots
-            ? [
-                { libelle: "Lots", valeur: String(lotsActifs.length) },
-                { libelle: "Loués", valeur: `${loues} / ${lotsActifs.length}` },
-              ]
-            : undefined
-        }
-      />
+      <main className="mx-auto w-full max-w-5xl bien-visuel space-y-[1.125rem] p-4 sm:p-7">
+      <Link href={`/agence/${orgId}/parc`} className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-primary">← {libelleParc}</Link>
+      <header className="bien-visuel-entete">
+        <div className="bien-visuel-identite">
+          <span className="bien-visuel-embleme"><IconeTrait nom={estImmeuble ? "parc" : "maison"} /></span>
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex flex-wrap items-center gap-2"><span className="eyebrow">{TYPES_BIEN[bien.type] ?? bien.type}</span><BadgeStatut ton={bien.archived_at ? "neutre" : "ok"}>{bien.archived_at ? "Retiré du parc" : "Au parc"}</BadgeStatut></div>
+            <h1>{bien.nom}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{bien.address_line1}{bien.address_line2 ? `, ${bien.address_line2}` : ""} · {bien.postal_code} {bien.city}</p>
+          </div>
+        </div>
+        <nav aria-label="Rubriques du bien" className="mt-4 flex flex-wrap gap-2">
+          <a href="#informations" className={buttonVariants({variant:"outline",size:"sm"})}>Informations du bien</a>
+          <a href="#diagnostics" className={buttonVariants({variant:"outline",size:"sm"})}>Diagnostics</a>
+          <Link href={estProprietaire ? `/agence/${orgId}/loyers?bien=${bienId}` : `/agence/${orgId}/loyers`} className={buttonVariants({variant:"outline",size:"sm"})}>{estProprietaire ? "Voir les finances" : "Loyers et charges"}</Link>
+        </nav>
+        <dl className="bien-visuel-chiffres">
+          {[
+            {icone:"cle",label:"Lots actifs",valeur:erreurLots ? "Indisponible" : String(lotsActifs.length)},
+            {icone:"maison",label:"Lots loués",valeur:erreurLots ? "Indisponible" : lotsActifs.length ? `${loues} / ${lotsActifs.length}` : "Aucun"},
+            {icone:"parc",label:"Surface des lots actifs",valeur:!erreurLots && lotsActifs.length > 0 && lotsActifs.every(l=>l.surface_m2 != null) ? formaterSurface(lotsActifs.reduce((total,l)=>total+Number(l.surface_m2),0)) : "Non renseignée"},
+            {icone:"doc",label:"Diagnostics du bien",valeur:erreurDiagnostics ? "Indisponible" : `${(diagnostics ?? []).length} déposé${(diagnostics ?? []).length > 1 ? "s" : ""}`},
+          ].map(f=><div key={f.label}><IconeTrait nom={f.icone} /><div><dt>{f.label}</dt><dd>{f.valeur}</dd></div></div>)}
+        </dl>
+      </header>
 
       <EchecLecture quoi={echecs} />
       <AttentionFiche points={attention} />
@@ -297,7 +298,7 @@ export default async function PageBien(
       <Card id="lots" className="scroll-mt-20">
         <CardHeader>
           <CardTitle className="text-base">
-            {multiLots ? `Les ${lotsActifs.length} lots` : "Le lot"}
+            <span className="bien-visuel-titre"><IconeTrait nom="cle" />{multiLots ? `Les ${lotsActifs.length} lots` : lotsAffiches.length ? "Votre lot" : "Lots du bien"}</span>
             {lotsArchives.length > 0
               ? ` · ${lotsArchives.length} archivé${lotsArchives.length > 1 ? "s" : ""}`
               : ""}
@@ -326,21 +327,15 @@ export default async function PageBien(
             titre="À régler pour l’ensemble des lots"
           />
 
+          {!erreurLots && lotsAffiches.length === 0 && <div className="bien-visuel-vide"><span><IconeTrait nom="cle" /></span><div><p className="font-medium">Aucun lot rattaché</p><p className="mt-1 text-sm text-muted-foreground">Les lots et leur situation locative apparaîtront ici.</p></div></div>}
           <ul className="divide-y divide-border">
             {lotsAffiches.map((lot) => {
               const blocages = blocagesParLot.get(lot.id) ?? [];
               const propres = blocages.filter((b) => !blocagesCommuns.includes(b));
               return (
-                <li key={lot.id} className="space-y-2 py-3">
-                  {/* Depuis le 12/09, le lot s'ouvre EN FENÊTRE : locataire,
-                      propriétaire, documents et comptabilité sans quitter le
-                      bien. La fiche complète reste au pied de la fenêtre.
-                      Depuis le 24/09, c'est TOUT le rang qui ouvre, pas le seul
-                      bouton (« je veux que tout le carré soit cliquable ») ;
-                      un bouton ne prend pas la largeur tout seul, d'où w-[…]. */}
-                  <BoutonLot
-                    lotId={lot.id}
-                    libelle={lot.nom}
+                <li key={lot.id} className={`space-y-2 py-3 ${lot.etat === "archive" ? "opacity-60" : ""}`}>
+                  {/* Depuis la fiche du bien, ouvrir directement le dossier complet. */}
+                  <Link
                     href={`/agence/${orgId}/parc/${bienId}/lots/${lot.id}`}
                     className="-mx-2 flex w-[calc(100%+1rem)] flex-wrap items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-[var(--survol)]"
                   >
@@ -371,12 +366,12 @@ export default async function PageBien(
                         className: "hidden shrink-0 sm:inline-flex",
                       })}
                     >
-                      Voir le lot →
+                      Ouvrir la fiche complète →
                     </span>
                     {/* Au téléphone, la flèche seule garde l'affordance (25/09,
                         même règle que « Fiche mandant » sur les mandats). */}
                     <span aria-hidden className="shrink-0 text-muted-foreground sm:hidden">→</span>
-                  </BoutonLot>
+                  </Link>
 
                   {/* Points propres à ce lot — repliés, la ligne reste lisible */}
                   {propres.length > 0 && (
@@ -420,14 +415,12 @@ export default async function PageBien(
 
 
       {/* Le bien : condensé + sections repliables (consulter d'abord, éditer sur clic) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Le bien</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <RecapBien orgId={orgId} bien={bien as BienFormulaire} />
-          <Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="btn-secondaire inline-flex">Vérifier les artisans disponibles pour ce bien</Link>
-
+      <Card id="informations" className="scroll-mt-20">
+        <CardHeader><CardTitle className="bien-visuel-titre"><IconeTrait nom="maison" />Informations du bien</CardTitle></CardHeader>
+        <CardContent><RecapBien orgId={orgId} bien={bien as BienFormulaire} /></CardContent>
+      </Card>
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-1"><h2 className="text-lg font-semibold">Le dossier du bien</h2><Link href={`/agence/${orgId}/reseau?bien=${bienId}`} className="lien-discret inline-flex min-h-11 items-center gap-2 text-sm"><IconeTrait nom="outil" className="size-4" />Trouver un artisan →</Link></div>
+      <div className="bien-visuel-dossier">
           {/* Diagnostics du bien */}
           <SectionLot
             id="diagnostics"
@@ -462,8 +455,8 @@ export default async function PageBien(
               rangée nommait le propriétaire sans mener à lui — déplier, puis
               cliquer le nom, pour une liste en lecture seule qui tient à
               l'écran. Chaque propriétaire est un rang entier cliquable. */}
-          <div className="border-t border-border py-3">
-            <p className="text-sm font-medium">
+          <div className="bien-visuel-proprietaires">
+            <p className="bien-visuel-titre text-sm font-medium"><IconeTrait nom="gens" />
               {estProprietaire ? "Détention du bien" : "Propriétaires mandants"}
             </p>
             {proprietairesBien.length === 0 ? (
@@ -559,7 +552,8 @@ export default async function PageBien(
 
           {/* Informations pratiques destinées au locataire */}
           <SectionLot
-            titre="Informations pratiques (locataire)"
+            id="infos-pratiques"
+            titre="Informations pratiques"
             // Rubrique facultative : un résumé neutre, pas l'injonction d'un
             // manque (24/09).
             resume={infosRenseignees ? "Renseignées" : "Non renseignées"}
@@ -577,7 +571,7 @@ export default async function PageBien(
               reste à un clic, et son résumé dit s'il y a quelque chose
               d'affiché chez les locataires en ce moment. */}
           <SectionLot
-            titre="Annonce aux locataires du bien"
+            titre="Annonces aux locataires"
             resume={
               (annonces ?? []).length === 0
                 ? "Aucune annonce en cours"
@@ -597,8 +591,7 @@ export default async function PageBien(
               />
             </div>
           </SectionLot>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Retirer le bien du parc (audit du 27/09) : l'abonnement promettait
           « un bien retiré n'est plus compté » sans qu'aucun geste existe.

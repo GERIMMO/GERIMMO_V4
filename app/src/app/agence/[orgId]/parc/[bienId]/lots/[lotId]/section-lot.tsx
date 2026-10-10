@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useContext, useEffect, useId, useState, type ReactNode } from "react";
+
+import { RubriquesDirectes } from "@/components/rubrique-dossier";
 
 // Section pliable de la fiche : un résumé (replié) + le détail éditable.
 // Toutes les sections restent repliées — une section incomplète le signale par
@@ -37,6 +39,7 @@ export function SectionLot({
   alerte?: string;
   ouvertParDefaut?: boolean;
 }) {
+  const direct = useContext(RubriquesDirectes);
   const [ouvert, setOuvert] = useState(ouvertParDefaut);
   const idContenu = useId();
 
@@ -61,6 +64,11 @@ export function SectionLot({
       document.removeEventListener("click", ouvrirDepuisLien);
     };
   }, [id]);
+
+  if (direct) return <section id={id} className="space-y-4 scroll-mt-24">
+    <header><h3 className="text-base font-semibold">{titre}</h3><p className="mt-1 text-sm text-muted-foreground">{resume}</p></header>
+    {children}
+  </section>;
 
   return (
     <div id={id} className="scroll-mt-20 border-t border-border">

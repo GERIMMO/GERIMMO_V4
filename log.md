@@ -5664,6 +5664,9 @@ Correction de l'audit du 27/09 (périmètre artisan, pages publiques, compte). C
 - Pages mises à jour : [[Parrainage]], [[Grille tarifaire]], [[Abonnement]],
   [[État du projet et décisions ouvertes]], [[2026-09-28-decision-tarification]].
 
+## 30/09/2026 — corrections issues des recettes agence/locataire
+Date de mandat enfin renseignable avant génération PDF ; correction des confirmations, priorités documentaires, garde de déclaration d'incident et textes de facturation/diagnostics/congé. Détail et limites : app/docs/recette/2026-09-30-corrections.md. Aucun changement de donnée métier ni de facturation de production.
+
 ## [2026-10-01] ops    | Purge des comptes de test en production
 - Demande du porteur : effacer les sessions de test (artisan, propriétaire, agence,
   locataire) pour que ses testeurs recommencent, **après** annulation des abonnements

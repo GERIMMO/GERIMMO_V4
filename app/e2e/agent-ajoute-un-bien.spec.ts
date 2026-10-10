@@ -31,17 +31,17 @@ test("l'agent voit « Ajouter un bien » sur son portefeuille", async ({ page })
 test("le formulaire lui répond — et le bien qu'il crée reste visible", async ({ page }) => {
   const nom = `Bien agent ${Date.now()}`;
   await page.goto(`/agence/${ORG}/parc/nouveau`);
-  await page.getByLabel("Référence interne").fill(nom);
+  await page.getByLabel("Nom du bien", { exact: true }).fill(nom);
   await page.getByLabel("Adresse", { exact: true }).fill("9 rue de l’Essai");
   await page.getByLabel("Code postal").fill("75011");
   await page.getByLabel("Ville").fill("Paris");
   await page.getByLabel(/Année de construction/).fill("1998");
   await page.getByLabel(/Parties communes/).fill("Hall et local vélos");
-  await page.getByLabel(/\(TIC\)/).fill("Fibre optique et TNT");
-  await page.getByRole("button", { name: "Étape suivante", exact: true }).click();
+  await page.getByLabel(/Accès internet, téléphone, TV/).fill("Fibre optique et TNT");
+  await page.getByRole("button", { name: "Suivant", exact: true }).click();
   await page.getByLabel(/Surface.*m²/).fill("42");
   await page.getByLabel("Nombre de pièces").fill("2");
-  await page.getByRole("button", { name: /Créer le bien/ }).click();
+  await page.getByRole("button", { name: "Créer le lot et continuer", exact: true }).click();
 
   // LA MOITIÉ QUI ÉCHOUAIT : relire ce qu'on vient d'écrire. Avant le 12/09,
   // l'agent recevait « new row violates row-level security policy ».

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TitreEcran } from "@/components/titre-ecran";
 import { verifierAccesEspace } from "@/lib/espace";
 import { premier, type UnOuPlusieurs } from "@/lib/postgrest";
 import {
@@ -55,7 +56,7 @@ export default async function PageNouvelIncident(
           ← Incidents
         </Link>
         <div className="entete-page">
-          <h1>Déclarer un incident</h1>
+          <TitreEcran rubrique="incidents">Déclarer un incident</TitreEcran>
         </div>
         <p className="text-sm text-muted-foreground">
           {/* Les mots du propriétaire, pas ceux du gestionnaire d'agence
@@ -81,7 +82,7 @@ export default async function PageNouvelIncident(
           </CardContent>
         </Card>
 
-        <Card className="h-fit">
+        <Card className="carte-rubrique h-fit" data-ton="or">
           <CardHeader>
             <CardTitle className="text-base">Ce qui va se passer</CardTitle>
             <CardDescription>

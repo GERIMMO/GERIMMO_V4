@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { familleOrganisation } from "@/lib/clients-supervision";
@@ -78,7 +79,7 @@ export default async function PageAdmin() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-6">
-        <h1>Chiffres et clients</h1>
+        <TitreEcran rubrique="supervision">Chiffres et clients</TitreEcran>
         <div className="flex flex-wrap items-center gap-3">
           <span className="mono-discret">
             {orgs.error ? "Organisations indisponibles" : `${organisations.length} organisation${organisations.length > 1 ? "s" : ""}`}

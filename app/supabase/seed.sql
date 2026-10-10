@@ -135,7 +135,13 @@ begin
   insert into public.biens (organization_id, nom, type, address_line1, postal_code, city,
                             annee_construction, copropriete, zone_tendue)
   values (v_org_pd, 'Studio du Rhône', 'appartement', '7 quai Claude Bernard', '69007', 'Lyon',
-          2004, true, true);
+          2004, true, true)
+  returning id into v_bien;
+
+  -- Un bien de démonstration suit aussi l'invariant métier : au moins un lot.
+  -- Ses caractéristiques restent à compléter, sans données fictives ajoutées.
+  insert into public.lots (organization_id, bien_id, nom, etat)
+  values (v_org_pd, v_bien, 'Studio du Rhône', 'brouillon');
 
   insert into public.persons (organization_id, nom, prenom, email, telephone)
   values (v_org_pd, 'Bernard', 'Lucas', 'locataire.pd@gerimmo-demo.fr', '06 12 34 56 78')

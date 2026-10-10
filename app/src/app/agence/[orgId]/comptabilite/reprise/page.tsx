@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
@@ -59,7 +60,7 @@ export default async function PageRepriseComptable(
           ← {organisation.type === "proprietaire_direct" ? "Livre recettes-dépenses" : "Écritures & rapports"}
         </Link>
         <div className="entete-page">
-          <h1>Reprendre mes comptes</h1>
+          <TitreEcran rubrique="finances">Reprendre mes comptes</TitreEcran>
           <span className="mono-discret">
             Balance d&apos;ouverture ·{" "}
             {dateReprise ? `reprise le ${formaterDate(dateReprise)}` : "aucune reprise"}

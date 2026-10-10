@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -175,7 +176,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
   if (e1 || e2 || e3 || e4 || e5) {
     return (
       <main className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-7">
-        <h1>Historique et conservation</h1>
+        <TitreEcran rubrique="suivi">Historique et conservation</TitreEcran>
         <div className="vide mt-4">
           Impossible de charger la page pour l&apos;instant — rechargez dans un
           instant.
@@ -209,7 +210,7 @@ export default async function PageJournaux({ searchParams }: { searchParams: Pro
           en premier (audit 25/09, C11) ; les règles et le nettoyage, en bas. */}
       <div className="entete-page mb-6">
         <div className="min-w-0 flex-[1_1_20rem]">
-          <h1>Historique et conservation</h1>
+          <TitreEcran rubrique="suivi">Historique et conservation</TitreEcran>
           <p className="mt-2 text-sm text-muted-foreground">
             Les actions sensibles, le travail automatique et les consultations de
             pièces, puis les règles qui fixent combien de temps tout cela est gardé.

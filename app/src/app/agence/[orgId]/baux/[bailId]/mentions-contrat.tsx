@@ -26,9 +26,11 @@ const groupes: { titre: string; aide: string; agence?: boolean; champs: Champ[] 
   ] },
 ];
 
-export function MentionsContratFormulaire({ defauts, valeurs, agence, modifiable, onEncadrementChange }: { defauts: MentionsContrat; valeurs?: Record<string, string>; agence: boolean; modifiable: boolean; onEncadrementChange?: (actif: boolean) => void }) {
-  return <div className="space-y-3">{groupes.filter(g => !g.agence || agence).map(g => <details key={g.titre} className="rounded-lg border border-border bg-muted/20 p-3">
-    <summary className="cursor-pointer text-sm font-semibold pointer-coarse:-my-3 pointer-coarse:py-3">{g.titre}</summary>
+export function MentionsContratFormulaire({ defauts, valeurs, agence, modifiable, onEncadrementChange, etape }: { defauts: MentionsContrat; valeurs?: Record<string, string>; agence: boolean; modifiable: boolean; onEncadrementChange?: (actif: boolean) => void; etape?: string }) {
+  const Groupe = etape ? "section" : "details";
+  const Titre = etape ? "h3" : "summary";
+  return <div className="space-y-3">{groupes.filter(g => !g.agence || agence).map((g, i) => <Groupe hidden={etape !== undefined && etape !== ["conditions", "energie", "honoraires"][i]} open={etape !== undefined} data-complement={["conditions", "energie", "honoraires"][i]} key={g.titre} className={etape ? "space-y-3" : "rounded-lg border border-border bg-muted/20 p-3"}>
+    <Titre className={etape ? "text-sm font-semibold" : "cursor-pointer text-sm font-semibold pointer-coarse:-my-3 pointer-coarse:py-3"}>{g.titre}</Titre>
     <p className="mt-2 text-sm text-muted-foreground">{g.aide}</p>
     <div className="mt-3 grid gap-3 sm:grid-cols-2">{g.champs.map(c => {
       const actuel = defauts[c.nom];
@@ -42,5 +44,5 @@ export function MentionsContratFormulaire({ defauts, valeurs, agence, modifiable
         {c.aide && <p className="text-xs text-muted-foreground">{c.aide}</p>}
       </div>;
     })}</div>
-  </details>)}</div>;
+  </Groupe>)}</div>;
 }

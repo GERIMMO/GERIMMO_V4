@@ -1,0 +1,571 @@
+/* Thème commun à toutes les routes, activé dans le layout racine.
+ * Les couleurs d’état restent sémantiques et les marques d’organisation
+ * explicitement configurées conservent leurs propres jetons. */
+:root,
+body.gerimmo-prestige,
+.gerimmo-prestige {
+  --prestige-nuit: #14304f;
+  --prestige-champagne: #b7975a;
+  --prestige-champagne-texte: #826838;
+  --marque: #14304f;
+  --marque-sombre: #293a51;
+  --marque-clair: #edf0f4;
+  --sur-marque: #fff;
+  --or: #b7975a;
+  --or-sombre: #826838;
+  --or-texte: #826838;
+  --sur-or: #16243a;
+  --or-clair: #fbf8f1;
+  --or-filet: #e3d6bc;
+  --encre: #16243a;
+  --graphite: #293a51;
+  --sur-encre: #fff;
+  --encre-profond: #14304f;
+  --corps: #16243a;
+  --texte-secondaire: #4b5870;
+  --libelle: #4b5870;
+  --survol: #f1f3f6;
+  --creme: #f7f8fa;
+  --ivoire: #fff;
+  --carte: #fff;
+  --filet: #dce2e9;
+  --filet-leger: #edf0f4;
+  --ardoise: #edf0f4;
+  --bleu: #293a51;
+  --background: var(--creme);
+  --foreground: var(--corps);
+  --card: var(--carte);
+  --card-foreground: var(--corps);
+  --popover: var(--carte);
+  --popover-foreground: var(--corps);
+  --primary: var(--marque);
+  --primary-foreground: var(--sur-marque);
+  --secondary: var(--filet-leger);
+  --secondary-foreground: var(--encre);
+  --muted: var(--filet-leger);
+  --muted-foreground: var(--texte-secondaire);
+  --accent: var(--ardoise);
+  --accent-foreground: var(--encre);
+  --border: var(--filet);
+  --input: var(--filet);
+  --ring: var(--prestige-champagne);
+  --chart-1: var(--or);
+  --chart-2: var(--encre);
+  --chart-3: var(--bleu);
+  --sidebar: var(--creme);
+  --sidebar-foreground: var(--corps);
+  --sidebar-primary: var(--encre);
+  --sidebar-primary-foreground: var(--sur-encre);
+  --sidebar-accent: var(--filet-leger);
+  --sidebar-accent-foreground: var(--encre);
+  --sidebar-border: var(--filet);
+  --sidebar-ring: var(--or);
+  --surface: var(--carte);
+  --surface-2: var(--creme);
+  --trait: var(--filet);
+  --trait-doux: var(--filet-leger);
+  --texte: var(--corps);
+  --texte-2: var(--texte-secondaire);
+  --texte-3: var(--libelle);
+  --ombre-portee: 0 8px 30px #15233b05;
+  --largeur-late: 275px;
+  --largeur-etape: 175px;
+  --hauteur-haut: 76px;
+  background: var(--creme);
+  color: var(--corps);
+}
+
+.gerimmo-prestige :is(h1, h2) {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -.025em;
+  color: var(--encre);
+  line-height: 1.2;
+}
+.gerimmo-prestige h1 { font-size: clamp(29px, 3vw, 38px); }
+.gerimmo-prestige h2 { font-size: 24px; }
+.gerimmo-prestige h3 { font-family: var(--font-interface), sans-serif; font-size: 16px; }
+.gerimmo-prestige :is(.eyebrow, .dossier-surtitre) {
+  color: var(--prestige-champagne-texte);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+.gerimmo-prestige :is(.coquille-corps, .loc-corps) { background: var(--creme); }
+.gerimmo-prestige .coquille-corps > main,
+.gerimmo-prestige .loc-corps { max-width: 1400px; padding: 32px 36px 64px; }
+.gerimmo-prestige .entete-page:not(.accueil-bandeau) {
+  padding: 0 0 24px;
+  margin-bottom: 24px;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.gerimmo-prestige :is(.coquille-haut, .loc-haut) {
+  min-height: 76px;
+  padding: 16px 36px;
+  background: #fff;
+  border-bottom: 1px solid var(--filet);
+}
+.gerimmo-prestige .coquille-haut .recherche-ouvrir {
+  min-height: 42px;
+  max-width: 420px;
+  border: 1px solid var(--filet);
+  border-radius: 7px;
+  padding: 10px 12px;
+  background: #fff;
+}
+.gerimmo-prestige .loc-avat { background: #edf0f4; color: #16243a; }
+.gerimmo-prestige :is(.coquille-late, .loc-late) {
+  background: var(--prestige-nuit);
+  color: #cbd5e0;
+  border-right: 0;
+}
+.gerimmo-prestige.loc-app { grid-template-columns: 275px minmax(0, 1fr); }
+.gerimmo-prestige .coquille-marque {
+  min-height: 100px;
+  padding: 20px;
+  background: none;
+}
+.gerimmo-prestige :is(.coquille-marque > a, .loc-logo > a) {
+  background: #fff;
+  padding: 10px 12px;
+  border-radius: 7px;
+}
+.gerimmo-prestige .loc-logo { padding: 20px; gap: 14px; border-bottom: 1px solid #ffffff24; }
+.gerimmo-prestige .loc-logo-texte { color: #aebccc; }
+.gerimmo-prestige .coquille-separateur-entete { margin: 0 20px; background: #ffffff24; }
+.gerimmo-prestige :is(.coquille-menu, .loc-menu) { padding: 18px 15px; gap: 5px; }
+.gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a {
+  min-height: 44px;
+  padding: 11px 12px;
+  color: #cbd5e0;
+  font-size: 13px;
+  font-weight: 400;
+  border-radius: 7px;
+  box-shadow: none;
+}
+.gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a:hover,
+.gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a.actif {
+  background: #293a51;
+  color: #fff;
+}
+.gerimmo-prestige :is(.coquille-late .coquille-menu, .loc-late .loc-menu) a.actif {
+  box-shadow: inset 3px 0 var(--prestige-champagne);
+}
+.gerimmo-prestige .coquille-groupe > p { color: #aebccc; }
+.gerimmo-prestige :is(.coquille-pied, .coquille-groupe) { border-color: #ffffff24; }
+.gerimmo-prestige .coquille-essai { background: #1b2b40; color: #cbd5e0; border-radius: 7px; }
+.gerimmo-prestige .coquille-essai b { color: #fff; }
+.gerimmo-prestige .coquille-essai.termine b { color: #ffd69d; }
+.gerimmo-prestige .coquille-essai:hover { background: #293a51; color: #fff; }
+.gerimmo-prestige .coquille-badge:not(.critique),
+.gerimmo-prestige .loc-badge { background: #e3d6bc; color: #16243a; }
+
+/* Panneaux, champs et actions : les mêmes proportions dans tous les dossiers. */
+.gerimmo-prestige :is([data-slot="card"], .loc-carte, .artisan-carte, .assistant-carte, .dossier-panneau) {
+  background: #fff;
+  border: 1px solid var(--filet);
+  border-radius: 12px;
+  box-shadow: var(--ombre-portee);
+}
+.gerimmo-prestige :is(.loc-carte, .artisan-carte, .assistant-carte, .dossier-panneau) { padding: 28px; }
+.gerimmo-prestige [data-slot="card"] { --tw-ring-shadow: 0 0 #0000; }
+.gerimmo-prestige [data-slot="card-title"] { font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 400; letter-spacing: -.025em; }
+body.gerimmo-prestige :where(input, select, textarea):not(:where([type="checkbox"], [type="radio"], [type="hidden"], [type="range"], [type="color"], [type="submit"], [type="button"], [role="combobox"], [hidden], .sr-only)) {
+  min-height: 44px;
+  border: 1px solid var(--filet);
+  border-radius: 7px;
+  background-color: #fff;
+  padding: 10px var(--champ-marge-droite, 12px) 10px 12px;
+  font-family: var(--font-interface), sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--corps);
+  box-shadow: none;
+}
+/* Les entrées masquées et les contrôles composés conservent leur géométrie. */
+body.gerimmo-prestige input[type="file"]::file-selector-button {
+  border: 0;
+  border-radius: 4px;
+  background: var(--filet-leger);
+  color: var(--encre);
+  padding: 4px 8px;
+  margin-right: 10px;
+}
+body.gerimmo-prestige textarea { min-height: 100px; }
+body.gerimmo-prestige :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--destructive); }
+body.gerimmo-prestige :is(input, select, textarea):disabled { background-color: var(--filet-leger); opacity: .65; }
+body.gerimmo-prestige :is(input, select, textarea, button, a, summary):focus-visible {
+  outline: 2px solid var(--prestige-champagne-texte);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+.gerimmo-prestige :is(label, [data-slot="label"]) { font-size: 12px; font-weight: 600; }
+.gerimmo-prestige :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) {
+  min-height: 44px;
+  height: auto;
+  border-radius: 7px;
+  padding: 10px 18px;
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: none;
+}
+.gerimmo-prestige .btn-or { background: var(--marque); color: #fff; }
+.gerimmo-prestige .btn-or:hover { background: var(--marque-sombre); transform: none; box-shadow: none; }
+.gerimmo-prestige .btn-secondaire { background: #fff; border-color: var(--filet); }
+.gerimmo-prestige :is(.bouton-gerimmo-icone, [data-slot="button"][data-size^="icon"]) { min-width: 44px; padding: 10px; }
+.gerimmo-prestige .tableau th { background: #f7f8fa; color: var(--texte-secondaire); }
+
+/* Les étapes gardent tous leurs libellés et états, y compris sur téléphone. */
+.gerimmo-prestige .assistant-etapes { gap: 10px; margin: 20px 0 26px; padding: 3px 3px 10px; scroll-padding: 3px; }
+.gerimmo-prestige .assistant-etapes button {
+  align-items: flex-start;
+  padding: 14px 12px;
+  border: 1px solid var(--filet);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--texte-secondaire);
+  min-height: 88px;
+}
+.gerimmo-prestige .assistant-etapes button:hover:not(:disabled) { border-color: var(--prestige-champagne); }
+.gerimmo-prestige .assistant-etapes button[aria-current="step"] {
+  background: #fbf8f1;
+  border-color: var(--prestige-champagne);
+  box-shadow: inset 0 0 0 1px var(--prestige-champagne);
+  color: var(--encre);
+}
+.gerimmo-prestige .assistant-etapes strong { font-size: 12px; font-weight: 600; }
+.gerimmo-prestige .assistant-rond { width: 25px; height: 25px; font-size: 12px; background: var(--prestige-nuit); color: #fff; }
+.gerimmo-prestige .assistant-etapes button[data-statut="complet"] .assistant-rond { background: var(--success-soft); color: var(--success-soft-foreground); }
+.gerimmo-prestige .assistant-etapes button[aria-current="step"] .assistant-rond { background: var(--prestige-nuit); color: #fff; }
+.gerimmo-prestige .assistant-grille { grid-template-columns: minmax(0, 1fr) 290px; }
+.gerimmo-prestige :is(.assistant-resume, .dossier-reperes) { top: 98px; }
+.gerimmo-prestige .assistant-resume h2 { font-family: var(--font-interface), sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 0; }
+.gerimmo-prestige .assistant-titre { font-size: 26px; }
+.gerimmo-prestige .assistant-titre > span { font-family: var(--font-interface), sans-serif; }
+.gerimmo-prestige .assistant-contenu > .assistant-carte { border-top: 1px solid var(--filet); }
+.gerimmo-prestige .assistant-logement { background: linear-gradient(140deg, #14243b, #43556e); border-color: #293a51; }
+.gerimmo-prestige .assistant-logement :is(h2, p, strong) { color: #fff; }
+.gerimmo-prestige .assistant-logement h2 { color: #e3d6bc; }
+.gerimmo-prestige :is(.assistant-conseil, .dossier-conseil) {
+  background: #fbf8f1;
+  border: 1px solid #e3d6bc;
+  border-left: 3px solid var(--prestige-champagne);
+  border-radius: 9px;
+  padding: 20px;
+}
+.gerimmo-prestige :is(.assistant-conseil, .dossier-conseil) h2 { color: var(--encre); }
+.gerimmo-prestige .assistant-bail [data-slot="card"] { background: transparent; border: 0; box-shadow: none; }
+.gerimmo-prestige .assistant-bail [data-slot="card-title"] { font-family: var(--font-interface), sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 0; }
+.gerimmo-prestige .saisie-repere h2 { font-size: 22px; }
+.gerimmo-prestige :is(.bien-visuel-entete, .loc-hero) { background: #fff; border-color: var(--filet); box-shadow: var(--ombre-portee); }
+
+@media (max-width: 1199px) {
+  .gerimmo-prestige { --largeur-late: 232px; }
+  .gerimmo-prestige.loc-app { grid-template-columns: 232px minmax(0, 1fr); }
+  .gerimmo-prestige .coquille-corps > main,
+  .gerimmo-prestige .loc-corps { padding: 24px 22px 64px; }
+  .gerimmo-prestige .assistant-grille { grid-template-columns: minmax(0, 1fr); }
+  .gerimmo-prestige .assistant-resume { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 641px) and (max-width: 1023px) {
+  .gerimmo-prestige { --largeur-late: 76px; }
+  .gerimmo-prestige .coquille-late .coquille-marque { padding: 12px 6px; }
+  .gerimmo-prestige .coquille-late .coquille-marque > a { padding: 8px; }
+  .gerimmo-prestige .coquille-late .coquille-menu { padding: 10px 8px; }
+  .gerimmo-prestige .coquille-late .coquille-menu a { padding: 12px; }
+}
+@media (min-width: 641px) and (max-width: 860px) {
+  .gerimmo-prestige.loc-app { grid-template-columns: 76px minmax(0, 1fr); }
+  .gerimmo-prestige .loc-logo { padding: 16px 6px; }
+  .gerimmo-prestige .loc-logo > a { padding: 8px; }
+  .gerimmo-prestige .loc-menu { padding: 10px 8px; }
+}
+@media (max-width: 640px) {
+  .gerimmo-prestige.loc-app { grid-template-columns: minmax(0, 1fr); }
+  .gerimmo-prestige :is(.coquille-haut, .loc-haut) { min-height: 64px; padding: 10px 12px; }
+  .gerimmo-prestige .coquille-haut .recherche-ouvrir { padding: 10px; }
+  .gerimmo-prestige .coquille-corps > main,
+  .gerimmo-prestige .loc-corps { padding: 22px 16px 88px; }
+  .gerimmo-prestige :is(.loc-carte, .artisan-carte, .assistant-carte, .dossier-panneau) { padding: 20px 16px; }
+  .gerimmo-prestige .assistant-resume { grid-template-columns: minmax(0, 1fr); }
+  .gerimmo-prestige .assistant-etapes button { flex: 0 0 185px; }
+  .gerimmo-prestige h2 { font-size: 22px; }
+  .gerimmo-prestige .loc-late { background: #fff; border-bottom: 1px solid var(--filet); }
+  .gerimmo-prestige .loc-logo { padding: 10px 12px; border: 0; }
+  .gerimmo-prestige .loc-logo > a { padding: 0; }
+  .gerimmo-prestige .loc-haut { background: transparent; border: 0; }
+  .gerimmo-prestige .assistant-pied { gap: 10px; }
+  .gerimmo-prestige .assistant-pied > :is(button, a) { flex: 1; }
+  body.gerimmo-prestige :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]) { font-size: 16px; }
+}
+
+@media print {
+  .gerimmo-prestige { background: #fff; }
+  .gerimmo-prestige :is(.assistant-carte, .loc-carte, .dossier-panneau) { box-shadow: none; }
+}
+
+/* Résumé du bail et fenêtres rendues dans un portail en dehors du layout. */
+.gerimmo-prestige .assistant-bail .assistant-resume > .assistant-carte:first-child {
+  background: linear-gradient(140deg, #14243b, #43556e);
+  border-color: #293a51;
+}
+.gerimmo-prestige .assistant-bail .assistant-resume > .assistant-carte:first-child :is(p, strong) { color: #fff; }
+.gerimmo-prestige .assistant-bail .assistant-resume > .assistant-carte:first-child h2 { color: #e3d6bc; }
+.gerimmo-prestige .assistant-bail .assistant-resume > .assistant-carte + .assistant-carte {
+  background: #fbf8f1;
+  border-color: #e3d6bc;
+  border-left: 3px solid var(--prestige-champagne);
+}
+body.gerimmo-prestige [role="dialog"] {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px #14304f33;
+}
+body.gerimmo-prestige [role="dialog"] > div:first-child :is(h2, h3) {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 24px;
+  font-weight: 400;
+}
+body.gerimmo-prestige [role="dialog"] :is(.btn-or, .btn-secondaire, .bouton-gerimmo, [data-slot="button"]) {
+  min-height: 44px;
+  border-radius: 7px;
+  padding: 10px 16px;
+}
+body.gerimmo-prestige [role="dialog"] .btn-or { background: var(--marque); color: #fff; }
+
+body.gerimmo-prestige .lot-resume-carte { background: #fff; border-color: var(--filet); }
+body.gerimmo-prestige .lot-monogramme { background: #fbf8f1; border-color: #e3d6bc; color: #826838; }
+body.gerimmo-prestige [role="dialog"] > div:last-child :is(a, button) { min-height: 44px; }
+
+.gerimmo-prestige :where([data-slot="card-header"], [data-slot="card-content"], [data-slot="card-footer"]) { padding-inline: 28px; }
+.gerimmo-prestige .formulaire-finances { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.gerimmo-prestige .formulaire-finances > div { min-width: 0; width: 100%; }
+.gerimmo-prestige .formulaire-finances :is(input, select) { width: 100%; max-width: none; }
+.gerimmo-prestige .formulaire-finances > :is(p, div:has(#ec-teom)) { grid-column: 1 / -1; }
+.gerimmo-prestige .formulaire-finances > button { justify-self: end; align-self: end; }
+@media (max-width: 640px) {
+  .gerimmo-prestige :where([data-slot="card-header"], [data-slot="card-content"], [data-slot="card-footer"]) { padding-inline: 16px; }
+  .gerimmo-prestige .formulaire-finances { grid-template-columns: minmax(0, 1fr); }
+  .gerimmo-prestige .formulaire-finances > button { width: 100%; }
+}
+
+/* Identité officielle : même image et mêmes proportions sur chaque écran. */
+.marque-gerimmo {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 96px;
+  max-width: 100%;
+  vertical-align: middle;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #14304f;
+}
+.marque-gerimmo img { display: block; width: 100%; height: auto; object-fit: contain; }
+.gerimmo-prestige :is(.coquille-marque, .loc-logo, .admin-marque) .marque-gerimmo { width: 170px; }
+.gerimmo-prestige :is(.coquille-marque > a, .loc-logo > a):has(.marque-gerimmo) { padding: 0; background: transparent; }
+.gerimmo-prestige .coquille-marque { justify-content: center; padding: 14px 20px; }
+.gerimmo-prestige .loc-logo:has(.marque-gerimmo) { align-items: center; padding: 14px 20px; }
+.gerimmo-prestige .coquille-auth .marque-gerimmo-sur-encre { width: 180px; }
+.gerimmo-prestige .coquille-auth .panneau-marque { background-color: var(--prestige-nuit); }
+.gerimmo-prestige .coquille-auth .panneau-marque > div > p:first-child { font-family: Georgia, "Times New Roman", serif; font-weight: 400; }
+.gerimmo-prestige :is(.bandeau-appli, .bandeau-public) { box-shadow: none; border-bottom: 1px solid var(--filet); }
+.gerimmo-prestige .bandeau-public .marque-gerimmo { width: 88px; }
+.gerimmo-prestige .vitrine-hero h1 { font-size: clamp(36px, 4.5vw, 56px); }
+.gerimmo-prestige :is(.accueil-bandeau, .vitrine-bandeau) :is(h1, h2) { color: var(--sur-encre); }
+.gerimmo-prestige .outil-papier .papier-titre { font-size: 26px; }
+.gerimmo-prestige .artisan-carte h2 { font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 400; }
+.gerimmo-prestige .artisan-navigation { background: var(--carte); border-color: var(--filet); }
+.gerimmo-prestige .artisan-navigation a[aria-current="page"] { background: var(--marque-clair); color: var(--marque); }
+.gerimmo-prestige .portail-ecrans .section-ecran > h2 { border-left-color: var(--prestige-champagne); }
+.gerimmo-prestige .assistant-location .fiche-informations-attendues { background: var(--or-clair); color: var(--encre); border-color: var(--or-filet); }
+.gerimmo-prestige .assistant-location .rang-section .puce-prep { background: var(--warning-soft); color: var(--warning-soft-foreground); }
+
+/* La supervision garde sa navigation et rejoint la même charte. */
+@media (min-width: 901px) {
+  .gerimmo-prestige .admin-coquille { grid-template-columns: 250px minmax(0, 1fr); }
+  .gerimmo-prestige .admin-late { background: var(--prestige-nuit); color: #cbd5e0; border: 0; }
+  .gerimmo-prestige .admin-marque { justify-content: center; padding: 14px 20px; border-color: #ffffff24; }
+  .gerimmo-prestige .admin-nav { padding: 18px 15px; gap: 5px; }
+  .gerimmo-prestige .admin-nav-lien { min-height: 44px; color: #cbd5e0; border-radius: 7px; font-weight: 400; }
+  .gerimmo-prestige .admin-nav-lien:hover,
+  .gerimmo-prestige .admin-nav-lien[aria-current="page"] { background: #293a51; color: #fff; box-shadow: none; }
+  .gerimmo-prestige .admin-nav-lien[aria-current="page"] { box-shadow: inset 3px 0 var(--prestige-champagne); }
+  .gerimmo-prestige .admin-nav-lien-bas::before { border-color: #ffffff24; }
+  .gerimmo-prestige .admin-bandeau-interieur { min-height: 76px; }
+}
+@media (min-width: 641px) and (max-width: 1023px) {
+  .gerimmo-prestige .coquille-late .coquille-marque { min-height: 76px; padding: 8px 4px; }
+  .gerimmo-prestige .coquille-late .coquille-marque .marque-gerimmo { width: 64px; }
+}
+@media (min-width: 641px) and (max-width: 860px) {
+  .gerimmo-prestige .loc-logo:has(.marque-gerimmo) { padding: 10px 4px; }
+  .gerimmo-prestige .loc-logo .marque-gerimmo { width: 64px; }
+}
+@media (max-width: 640px) {
+  .gerimmo-prestige .marque-gerimmo { width: 72px; }
+  .gerimmo-prestige :is(.bandeau-public, .coquille-marque-mobile, .loc-logo, .admin-bandeau) .marque-gerimmo { width: 64px; }
+  .gerimmo-prestige .loc-logo:has(.marque-gerimmo) { padding: 8px 12px; }
+  .gerimmo-prestige .artisan-carte h2 { font-size: 22px; }
+  .gerimmo-prestige .outil-papier .papier-titre { font-size: 21px; }
+}
+@media print {
+  .gerimmo-prestige .outil-papier .papier-titre { font-size: 18pt; }
+}
+
+/* Les outils publics utilisent les mêmes cartes et gardent leurs unités. */
+.gerimmo-prestige :is(.vitrine-carte, .outil-saisie, .outil-resultat, .outil-lien-carte, .outil-repli, .outil-bon-a-savoir) { border-radius: 12px; box-shadow: var(--ombre-portee); }
+.gerimmo-prestige .outil-resultat::before { background: var(--prestige-champagne); }
+.gerimmo-prestige .outil-champ-suffixe { --champ-marge-droite: 46px; }
+.gerimmo-prestige .outil-champ-suffixe-large { --champ-marge-droite: 62px; }
+.gerimmo-prestige .grille-tarifaire-defilante { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+@media (max-width: 380px) {
+  .gerimmo-prestige .bandeau-public > div { padding-inline: 12px; }
+  .gerimmo-prestige .bandeau-public .marque-gerimmo { width: 56px; }
+}
+
+/* Un texte de contenu ne doit pas hériter de l’encre sur un bandeau sombre. */
+.gerimmo-prestige .portail-hero { border-radius: 12px; }
+.gerimmo-prestige .portail-hero > :is(h1, h2, h3, p) { color: var(--sur-marque); }
+.gerimmo-prestige .portail-hero > .portail-surtitre { color: #d4dde7; }
+
+/* Accueil propriétaire : un fond lumineux, de bleu brume à champagne. */
+.gerimmo-prestige .portail-hero.portail-hero-accueil {
+  background: linear-gradient(115deg, #e7eef5 0%, #f5f6f3 58%, #f3e7cf 100%);
+  border: 1px solid #dde3e9;
+  box-shadow: var(--ombre-portee);
+  color: var(--encre);
+}
+.gerimmo-prestige .portail-hero-accueil > :is(h1, h2, h3, p) { color: var(--encre); }
+.gerimmo-prestige .portail-hero-accueil > p { color: #526176; }
+.gerimmo-prestige .portail-hero-accueil > .portail-surtitre { color: var(--prestige-champagne-texte); }
+
+
+.gerimmo-prestige [data-slot="card"][data-tone="warning"] { border-left: 3px solid var(--warning); }
+.gerimmo-prestige [data-slot="card"][data-tone="critical"] { border-left: 3px solid var(--destructive); }
+.gerimmo-prestige .accueil-bandeau { border-radius: 12px; box-shadow: var(--ombre-portee); }
+.gerimmo-prestige .tuile { border-color: var(--filet); box-shadow: var(--ombre-portee); }
+.gerimmo-prestige .tuile .ico { box-shadow: none; }
+.gerimmo-prestige .tuile.neutre { background: var(--carte); }
+.gerimmo-prestige .tuile.neutre .val { color: var(--encre); }
+.gerimmo-prestige .tuile.neutre .lib::before { background: var(--prestige-champagne); }
+.gerimmo-prestige .tuile.neutre .ico { background: var(--marque-clair); color: var(--marque); }
+
+
+/* La façade reste décorative, sous un voile nuit qui protège les libellés.
+ * Le haut uni accueille le fichier officiel du logo sans raccord visible. */
+@media (min-width: 641px) {
+  .gerimmo-prestige :is(.coquille-late, .loc-late) {
+    background-color: var(--prestige-nuit);
+    background-image:
+      linear-gradient(180deg, #14304f 0%, #14304ffa 22%, #14304fd1 48%, #14304fd1 82%, #14304ff2 100%),
+      url("/illustrations/quartier-gerimmo-2026.jpg");
+    background-position: center, 68% center;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+}
+@media (min-width: 901px) {
+  .gerimmo-prestige .admin-late {
+    background-color: var(--prestige-nuit);
+    background-image:
+      linear-gradient(180deg, #14304f 0%, #14304ffa 22%, #14304fd1 48%, #14304fd1 82%, #14304ff2 100%),
+      url("/illustrations/quartier-gerimmo-2026.jpg");
+    background-position: center, 68% center;
+    background-size: cover;
+    background-repeat: no-repeat;
+  }
+}
+
+/* Les biens retirés se distinguent aussi par leur motif, sans effacer le texte. */
+.gerimmo-prestige .rang-lot-retire {
+  background: repeating-linear-gradient(135deg, #eceef1 0 12px, #b8bec7 12px 24px);
+  color: #303944;
+}
+.gerimmo-prestige .rang-lot-retire:hover {
+  border-left-color: #626b78;
+  box-shadow: inset 0 0 0 1px #818a97;
+}
+
+.gerimmo-prestige .lot-etiquette-archive {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #4d5765;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* L’étape Personnes privilégie la sélection et le résumé aux formulaires ouverts. */
+.gerimmo-prestige .bail-personnes-section {
+  --personnes-ton: #4d6683;
+  --personnes-fond: #edf2f7;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--filet);
+  border-left: 3px solid var(--personnes-ton);
+  border-radius: 10px;
+  background: var(--carte);
+}
+.gerimmo-prestige .bail-personnes-proprietaires { --personnes-ton: #947642; --personnes-fond: #f8f3e9; }
+.gerimmo-prestige .bail-personnes-garants { --personnes-ton: #477563; --personnes-fond: #edf5f0; }
+.gerimmo-prestige .bail-personnes-section > button { justify-self: start; }
+.gerimmo-prestige .bail-personnes-entete { display: flex; align-items: center; gap: 10px; }
+.gerimmo-prestige .bail-personnes-entete h3 { margin: 0; font-size: 16px; }
+.gerimmo-prestige .bail-personnes-entete p { margin-top: 3px; color: var(--texte-secondaire); font-size: 12px; }
+.gerimmo-prestige .bail-personnes-icone { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 9px; color: var(--personnes-ton); background: var(--personnes-fond); }
+.gerimmo-prestige .bail-personne-resume { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 8px; background: var(--personnes-fond); }
+.gerimmo-prestige .bail-personne-avatar { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--carte); color: var(--personnes-ton); font-size: 11px; font-weight: 600; }
+.gerimmo-prestige .bail-personne-resume > div.min-w-0 { flex-basis: 180px; }
+.gerimmo-prestige .bail-personne-formulaire { padding-top: 14px; border-top: 1px solid var(--filet); }
+.gerimmo-prestige .bail-repartition { padding: 14px; border: 1px solid var(--or-filet); border-radius: 8px; background: var(--or-clair); }
+.gerimmo-prestige .bail-repartition-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+@media (max-width: 640px) {
+  .gerimmo-prestige .bail-personnes-section { padding: 12px; }
+  .gerimmo-prestige .bail-repartition { padding: 10px; }
+  .gerimmo-prestige .bail-repartition-ligne > label { flex-basis: 100%; }
+}
+
+/* Parcours du bail : sept étapes, champs regroupés et récapitulatif lisible. */
+.gerimmo-prestige .bail-groupe-champs { min-width: 0; border: 0; border-top: 1px solid var(--filet); padding: 20px 0 0; }
+.gerimmo-prestige .bail-groupe-champs > legend { float: left; width: 100%; margin-bottom: 14px; color: var(--encre); }
+.gerimmo-prestige .bail-groupe-champs > legend + * { clear: both; }
+.gerimmo-prestige .bail-groupe-champs h3 { font-size: 17px; font-weight: 600; margin-bottom: 10px; }
+.gerimmo-prestige .bail-formulaire-etape [hidden], .gerimmo-prestige .assistant-bail section[hidden], .gerimmo-prestige .assistant-bail form[hidden], .gerimmo-prestige .bail-formulaire-etape fieldset[hidden] { display: none !important; }
+.gerimmo-prestige .bail-batiment-resume { padding: 16px 18px; background: #edf2f6; border-left: 3px solid var(--prestige-champagne); border-radius: 10px; font-size: 14px; line-height: 1.65; }
+.gerimmo-prestige .bail-documents-liste { margin: 14px 0; }
+.gerimmo-prestige .bail-documents-liste li { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--filet); font-size: 14px; }
+.gerimmo-prestige .bail-documents-liste li > span:first-child { flex: 1; min-width: 160px; }
+.gerimmo-prestige .bail-documents-liste small { display: block; color: var(--texte-secondaire); }
+.gerimmo-prestige .bail-recap-grille { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
+.gerimmo-prestige .bail-recap-carte { border: 1px solid var(--filet); border-radius: 14px; padding: 18px; min-width: 0; }
+.gerimmo-prestige .bail-recap-carte header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.gerimmo-prestige .bail-recap-carte h3 { font-size: 17px; }
+.gerimmo-prestige .bail-recap-carte a { font-size: 12px; }
+.gerimmo-prestige .bail-recap-carte dl > div { display: grid; grid-template-columns: 1fr 1.3fr; gap: 12px; padding: 8px 0; border-top: 1px solid var(--filet); font-size: 13px; }
+.gerimmo-prestige .bail-recap-carte dt { color: var(--texte-secondaire); }
+.gerimmo-prestige .bail-recap-carte dd { margin: 0; overflow-wrap: anywhere; }
+.gerimmo-prestige .bail-finalisation { border: 1px solid #dbcba9; border-radius: 16px; padding: 22px; background: linear-gradient(130deg,#faf7ef,#f0f5f8); }
+.gerimmo-prestige .bail-finalisation > header { display: flex; gap: 12px; align-items: center; margin-bottom: 18px; }
+.gerimmo-prestige .bail-finalisation h3 { font-size: 22px; }
+.gerimmo-prestige .bail-finalisation header p { font-size: 14px; color: var(--texte-secondaire); }
+.gerimmo-prestige .bail-finalisation h4 { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+.gerimmo-prestige .bail-finalisation-docs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px; padding: 22px 0; }
+.gerimmo-prestige .bail-envoi-signature { padding: 20px 0; border-top: 1px solid #dbcba9; }
+@media(max-width:900px){.gerimmo-prestige .bail-recap-grille,.gerimmo-prestige .bail-finalisation-docs{grid-template-columns:1fr;}}
+@media(max-width:640px){.gerimmo-prestige .bail-finalisation{padding:16px;}.gerimmo-prestige .bail-recap-carte dl>div{grid-template-columns:1fr;gap:3px;}.gerimmo-prestige .bail-formulaire-etape select{max-width:100%;}}
+
+.gerimmo-prestige #assistant-bail-titre { scroll-margin-top: calc(var(--hauteur-haut, 76px) + 20px); }
+.gerimmo-prestige .assistant-bail .saisie-repere > span,
+.gerimmo-prestige .assistant-bail #completer-logement > header { display: none; }
+.gerimmo-prestige .assistant-bail .saisie-repere h2 { font-size: 17px; }

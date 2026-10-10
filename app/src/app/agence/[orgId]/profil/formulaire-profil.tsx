@@ -1,5 +1,6 @@
 "use client";
 
+import { CHARTE_GERIMMO } from "@/lib/charte-gerimmo";
 import type { ReactNode } from "react";
 import { MarqueOrganisation } from "@/components/marque-organisation";
 import { couleurValide, logoAffichable, styleMarque } from "@/lib/marque-organisation";
@@ -44,8 +45,8 @@ type Organisation = {
 
 // Couleurs de la charte Gerimmo, reprises tant que l'organisation n'a pas
 // choisi les siennes.
-const COULEUR_PRINCIPALE = "#2457f5";
-const COULEUR_FONCEE = "#0f2352";
+const COULEUR_PRINCIPALE = CHARTE_GERIMMO.marque;
+const COULEUR_FONCEE = CHARTE_GERIMMO.encre;
 
 // 24/09 : même accent sur toutes les cases du profil — deux couleurs
 // (marque, encre) ne distinguaient rien.

@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -115,7 +116,7 @@ export default async function PageCompte({ params }: { params: Promise<{ account
 
       <div className="entete-page mt-2 mb-6">
         <div className="min-w-0">
-          <h1 className="[overflow-wrap:anywhere] max-sm:text-2xl">{dossier.email}</h1>
+          <TitreEcran rubrique="personnes">{dossier.email}</TitreEcran>
           <p className="mono-discret sans-majuscules">
             Fiche du compte · {dossier.est_super_admin ? "compte de supervision" : `${adhesions.filter((a) => a.status === "active").length} rôle${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""} actif${adhesions.filter((a) => a.status === "active").length > 1 ? "s" : ""}`}
           </p>

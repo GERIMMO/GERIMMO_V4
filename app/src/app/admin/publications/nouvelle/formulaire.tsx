@@ -8,7 +8,8 @@ import { creerArticleIA, type EtatNouvelArticle } from "./actions";
 export function FormulaireNouvelArticle() {
   const [etat, action] = useActionState<EtatNouvelArticle, FormData>(creerArticleIA, {});
   return (
-    <form action={action} className="mt-6 space-y-5 border border-[var(--filet)] bg-[var(--ivoire)] p-5 sm:p-7">
+    <form action={action} className="formulaire-reperes mt-6 space-y-5 rounded-xl border border-[var(--filet)] bg-[var(--ivoire)] p-5 sm:p-7">
+      <p className="legende-champs"><span aria-hidden="true" />Information obligatoire à compléter.</p>
       <div className="space-y-1.5">
         <Label htmlFor="sujet" className="libelle-champ">Sujet</Label>
         <textarea id="sujet" name="sujet" rows={3} required defaultValue={etat.valeurs?.sujet}

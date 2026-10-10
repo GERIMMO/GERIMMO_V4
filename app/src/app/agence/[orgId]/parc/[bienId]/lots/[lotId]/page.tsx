@@ -1,11 +1,15 @@
+import styles from "./fiche-lot.module.css";
+import parcoursStyles from "@/components/presentation-parcours.module.css";
+import { SupprimerBailBrouillon } from "@/components/supprimer-bail-brouillon";
 import Link from "next/link";
 import { OngletsDossier } from "@/components/onglets-dossier";
-import { ParcoursLocation } from "@/components/parcours-location";
+import { ParcoursLot } from "@/components/parcours-location";
 import { FormulaireBien } from "../../../formulaire-bien";
-import { FormulairePersonne } from "../../../../personnes/formulaire-personne";
-import { RepereDossier, type EtapeDossier } from "@/components/repere-dossier";
-import { House, Users, Wallet, FileText } from "lucide-react";
-import { notFound } from "next/navigation";
+import { FormulaireLot } from "./formulaire-lot";
+import { FormulaireEquipementCatalogue } from "../../../formulaire-equipement-catalogue";
+import { retourBailDuLot } from "@/lib/parcours-lot";
+import { House, Users, Wallet, FileText, MapPin, Pencil, Wrench, ArrowRight, ArrowUpRight, Building2, KeyRound, ChevronDown, Ruler, DoorOpen, Layers3, Sofa } from "lucide-react";
+import { notFound, redirect } from "next/navigation";
 import { verifierAccesEspace } from "@/lib/espace";
 import {
   ETATS_LOT,
@@ -18,7 +22,7 @@ import { diagnosticsExigibles, diagnosticsManquants } from "@/lib/diagnostics";
 import { formaterDate, eur } from "@/lib/ged";
 import { ETATS_BAIL, COULEURS_ETAT_BAIL, TYPES_BAIL } from "@/lib/baux";
 import { nomComplet } from "@/lib/roles-personnes";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { LignesDiagnostics, type DiagnosticDepose } from "../../lignes-diagnostics";
 import { RecapLot } from "./recap-lot";
 import { SectionLot } from "./section-lot";
@@ -37,7 +41,7 @@ import { AppelsCharges, type AppelCharge } from "./formulaire-appels-charges";
 import { buttonVariants } from "@/components/ui/button";
 import { EchecLecture, PageEchecLecture } from "../../../echec-lecture";
 import { BlocagesLocation } from "../../../blocages-location";
-import { AttentionFiche, EnteteFiche } from "@/components/fiche-parc";
+import { AttentionFiche } from "@/components/fiche-parc";
 import { exigerUuids } from "@/lib/identifiants";
 
 export const metadata = { title: "Fiche lot — Gerimmo" };
@@ -47,9 +51,10 @@ export default async function PageLot(
 ) {
   const { orgId, bienId, lotId } = await props.params;
   // Conserver le lien direct vers la modification des caractéristiques.
-  const { modifier, parcours, etape } = ((await props.searchParams) ?? {}) as { modifier?: string; parcours?: string; etape?: string };
+  const { modifier, parcours, etape, retourBail, retourEtape } = ((await props.searchParams) ?? {}) as { modifier?: string; parcours?: string; etape?: string; retourBail?: string; retourEtape?: string };
   exigerUuids(bienId, lotId);
   const { supabase, role } = await verifierAccesEspace(orgId);
+  if (parcours === "1" && ["bail", "locataires"].includes(etape ?? "")) redirect(`/agence/${orgId}/parc/${bienId}/lots/${lotId}#baux`);
 
   const { data: chambres, error: erreurChambres } = await supabase.from("lot_chambres").select("*").eq("lot_id", lotId).eq("organization_id", orgId).order("nom");
 
@@ -91,7 +96,7 @@ export default async function PageLot(
       .order("date_debut", { ascending: false }),
     supabase
       .from("diagnostics")
-      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id")
+      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe")
       .eq("lot_id", lotId)
       .is("archived_at", null)
       .order("type"),
@@ -104,7 +109,7 @@ export default async function PageLot(
     // plus sa fiche.
     supabase
       .from("diagnostics")
-      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id")
+      .select("id, type, date_realisation, date_expiration, diagnostiqueur, document_id, classe_dpe")
       .eq("bien_id", bienId)
       .is("archived_at", null)
       .order("type"),
@@ -124,7 +129,7 @@ export default async function PageLot(
     supabase.rpc("lot_blocages_location", { p_lot: lotId }),
     supabase
       .from("baux")
-      .select("id, chambre_id, type, etat, locataire_principal, loyer_hc, charges, date_debut, date_fin")
+      .select("id, chambre_id, type, etat, document_signe, signe_envoye_le, locataire_principal, loyer_hc, charges, date_debut, date_fin")
       .eq("lot_id", lotId)
       .order("created_at", { ascending: false }),
     supabase
@@ -274,15 +279,6 @@ export default async function PageLot(
       ? Number(bailEnCours.loyer_hc) + Number(bailEnCours.charges ?? 0)
       : null;
 
-  const etapesDossier: EtapeDossier[] = [
-    { titre: "Caractéristiques", detail: "Surface et configuration", href: "#caracteristiques", renseignee: lot.surface_m2 != null && lot.pieces != null },
-    { titre: "Propriétaires", detail: `${totalQuoteParts} % de propriété renseignée`, href: "#detention", renseignee: totalQuoteParts === 100, inconnue: Boolean(erreurDetentions) },
-    { titre: "Pièces et équipements", detail: `${piecesLot?.length ?? 0} pièce(s) · ${nbEquip} équipement(s)`, href: "#pieces", renseignee: (piecesLot?.length ?? 0) > 0, inconnue: Boolean(erreurPieces || erreurEquipesLot) },
-    { titre: "Diagnostics du lot", detail: `${nbDiag} document(s) déposé(s)`, href: "#diagnostics", renseignee: manquants.length === 0, inconnue: Boolean(erreurDiagnostics) },
-    { titre: `Diagnostics ${duBien}`, detail: `${nbDiagBien} document(s) déposé(s)`, href: "#diagnostics-immeuble", renseignee: manquantsBien.length === 0, inconnue: Boolean(erreurDiagnosticsBien) },
-    { titre: "Locataire et bail", detail: nbBaux ? `${nbBaux} bail(s) dans le dossier` : "Bail à préparer", href: "#baux", renseignee: nbBaux > 0, inconnue: Boolean(erreurBaux) },
-  ];
-
   const rubriqueDetention = (<SectionLot ouvertParDefaut={parcours === "1"}
             id="detention"
             titre={
@@ -371,7 +367,7 @@ export default async function PageLot(
               />
             </div>
           </SectionLot>);
-  const rubriqueDiagnostics = (<SectionLot ouvertParDefaut={parcours === "1"}
+  const rubriqueDiagnostics = (<SectionLot ouvertParDefaut
             id="diagnostics"
             titre="Diagnostics du lot"
             // Le titre dit déjà le niveau : la pastille ne le répète pas
@@ -399,7 +395,7 @@ export default async function PageLot(
               />
             </div>
           </SectionLot>);
-  const rubriqueDiagnosticsImmeuble = (<SectionLot ouvertParDefaut={parcours === "1"}
+  const rubriqueDiagnosticsImmeuble = (<SectionLot ouvertParDefaut
             id="diagnostics-immeuble"
             titre={`Diagnostics ${duBien}`}
             alerte={alerteDiagnostics(manquantsBien.map((m) => m.type), diagnosticsBien ?? [])}
@@ -463,14 +459,8 @@ export default async function PageLot(
   const rubriqueBaux = (<SectionLot
             id="baux"
             titre="Baux & état des lieux"
-            // Seule exception au principe « toutes les sections repliées »
-            // (voir section-lot.tsx) : un lot DISPONIBLE et SANS AUCUN BAIL n'a
-            // qu'une suite possible, et c'est ce formulaire — l'unique porte
-            // d'entrée de la création d'un bail dans toute l'application
-            // (relevé du 11/09 : ni route /baux, ni bouton « Nouveau bail »).
-            // La création reste un simple brouillon : tous les contrôles de
-            // mise en location vivent à l'activation (controler_mise_en_location).
-            ouvertParDefaut={parcours === "1" || lot.etat === "disponible" && (baux ?? []).length === 0}
+            // L’onglet ouvre directement les contrats et leur formulaire.
+            ouvertParDefaut
             resume={
               nbBaux === 0
                 ? "Aucun bail"
@@ -481,22 +471,22 @@ export default async function PageLot(
           >
             <div className="space-y-4">
               {(baux ?? []).length > 0 && (
-                <ul className="space-y-2">
+                <ul className={styles.bauxListe}>
                   {(baux ?? []).map((b) => (
-                    <li key={b.id} className="flex items-center gap-3">
+                    <li key={b.id} className={styles.bailLigne}>
                       <span className={COULEURS_ETAT_BAIL[b.etat] ?? "puce puce-grise"}>
                         {ETATS_BAIL[b.etat] ?? b.etat}
                       </span>
                       {/* Recette 21/08 puis 22/08 : la vue macro dit qui
                           habite, pour combien et depuis quand — avant
                           d'ouvrir. */}
-                      <span className="min-w-0 flex-1 truncate text-sm">
+                      <span className={styles.bailTexte}>
                         Bail {b.chambre_id ? `individuel · ${chambres?.find(c => c.id === b.chambre_id)?.nom ?? "chambre"}` : (TYPES_BAIL[b.type] ?? b.type).toLowerCase()}
                         {b.locataire_principal && nomsParId.get(b.locataire_principal)
                           ? ` — ${nomsParId.get(b.locataire_principal)}`
                           : ""}
                         {(b.loyer_hc != null || b.date_debut || b.date_fin) && (
-                          <span className="block truncate text-xs text-muted-foreground sm:inline sm:before:content-['_·_']">
+                          <span className={styles.bailDetails}>
                             {[
                               b.loyer_hc != null
                                 ? `${eur(Number(b.loyer_hc) + Number(b.charges ?? 0))} charges comprises`
@@ -509,12 +499,15 @@ export default async function PageLot(
                           </span>
                         )}
                       </span>
+                      <div className={styles.bailActions}>
                       <Link
                         href={`/agence/${orgId}/baux/${b.id}`}
                         className={buttonVariants({ variant: "ghost", size: "sm" })}
                       >
                         Ouvrir
                       </Link>
+                      {b.etat === "brouillon" && !b.document_signe && !b.signe_envoye_le && <SupprimerBailBrouillon orgId={orgId} bailId={b.id} libelle={[lot.nom, TYPES_BAIL[b.type] ?? b.type, b.locataire_principal ? nomsParId.get(b.locataire_principal) : null, b.date_debut ? `Entrée le ${formaterDate(b.date_debut)}` : null].filter(Boolean).join(" · ")} />}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -522,8 +515,7 @@ export default async function PageLot(
               {detentionsActives.length === 0 ? (
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <p>
-                    Ajoutez un propriétaire (détention à 100 %) et une personne locataire avant
-                    de créer un bail.
+                    Ajoutez les propriétaires du lot avant de créer un bail. Le locataire sera choisi dans le parcours du bail.
                   </p>
                   {/* Le message dit où aller : la section Détention de cette
                       fiche, et la création de la fiche du locataire. */}
@@ -531,9 +523,7 @@ export default async function PageLot(
                     <a href="#detention" className="lien-discret">
                       Ajouter un propriétaire →
                     </a>
-                    <Link href={`/agence/${orgId}/personnes#creer-fiche`} className="lien-discret">
-                      Créer la fiche du locataire →
-                    </Link>
+
                   </p>
                 </div>
               ) : (
@@ -553,157 +543,128 @@ export default async function PageLot(
               )}
             </div>
           </SectionLot>);
-  const apercuLocation = (<Card id="location-apercu">
-        <CardHeader>
-          {/* « Mettre en location » est le bouton qui fait passer un lot en
-              préparation à disponible ; un lot déjà disponible attend son
-              bail : la carte s'intitule alors « Louer ce lot » (24/09). */}
-          <CardTitle className="text-base">
-            {bailEnCours
-              ? "La location en cours"
-              : lot.etat === "disponible"
-                ? "Louer ce lot"
-                : "Mettre en location"}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {bauxEnCours.length > 1 ? <div className="space-y-3">
-            <p>{bauxEnCours.length} contrats individuels en cours</p>
-            {bauxEnCours.map(b => <p key={b.id}><Link className="underline" href={`/agence/${orgId}/baux/${b.id}`}>{chambres?.find(c => c.id === b.chambre_id)?.nom ?? "Chambre"} · {nomsParId.get(b.locataire_principal) ?? "Locataire"} · {eur(Number(b.loyer_hc ?? 0) + Number(b.charges ?? 0))} / mois</Link></p>)}
-          </div> : bailEnCours ? (
-            // Trois colonnes sur une largeur de téléphone écrasent celle du
-            // milieu : le nom du locataire s'y coupait en trois lignes. Le nom
-            // et le geste tiennent une rangée, les faits du bail la suivante.
-            <div className="space-y-2">
-              {/* Tout le rang mène au bail, pas seulement le bouton (retour du 24/09) —
-                  la ligne de faits comprise : elle décrit le même bail. */}
-              <Link
-                href={`/agence/${orgId}/baux/${bailEnCours.id}`}
-                className="-mx-2 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-2 py-1.5 hover:bg-[var(--survol)]"
-              >
-                <span className={COULEURS_ETAT_BAIL[bailEnCours.etat] ?? "puce puce-grise"}>
-                  {ETATS_BAIL[bailEnCours.etat] ?? bailEnCours.etat}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  {recapLocataire ?? "Locataire non nommé"}
-                </span>
-                <span className={`shrink-0 ${buttonVariants({ variant: "outline", size: "sm" })}`}>
-                  Ouvrir le bail →
-                </span>
-                <span className="basis-full text-xs text-muted-foreground">
-                {[
-                  `Bail ${(TYPES_BAIL[bailEnCours.type] ?? bailEnCours.type).toLowerCase()}`,
-                  loyerCc !== null ? `${eur(loyerCc)} charges comprises` : null,
-                  bailEnCours.date_debut
-                    ? `entrée le ${formaterDate(bailEnCours.date_debut)}`
-                    : null,
-                  bailEnCours.date_fin ? `fin le ${formaterDate(bailEnCours.date_fin)}` : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-                </span>
-              </Link>
-            </div>
-          ) : (
-            <>
-              {/* Ce qui empêche la mise en location. C'était ici un bloc GRIS
-                  neutre, alors que le parc et la fiche bien en font une alerte
-                  ambre — même RPC, trois rendus (relevé du 11/09). */}
-              {lot.etat === "brouillon" && (
-                <BlocagesLocation
-                  motifs={(blocages ?? []) as string[]}
-                  ctx={{ orgId, bienId, lotId }}
-                  pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`}
-                  titre="Ce qui empêche la mise en location"
-                />
-              )}
-              {lot.etat === "disponible" ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Ce lot est disponible ; il sera loué dès que le bail sera activé.
-                  </p>
-                  {/* « Plus bas » est une consigne, pas un chemin : le
-                      formulaire de bail est la SEULE porte d'entrée de la
-                      création d'un bail dans l'application, et l'écran la
-                      décrivait au lieu de l'ouvrir. L'ancre déplie la section
-                      et y amène (voir section-lot.tsx). */}
-                  {/* UNE ANCRE, PAS LE BOUTON QUI CRÉE (24/09) : deux boutons
-                      bleus « Créer le bail » sur la même fiche, l'un qui
-                      défile, l'autre qui soumet. Le bleu reste au second. */}
-                  <a
-                    href="#baux"
-                    className={buttonVariants({ variant: "outline", size: "sm" })}
-                  >
-                    Remplir le bail ↓
-                  </a>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Un lot se prépare (propriétaires, diagnostics, pièces), puis
-                  passe en disponible. Le bail s’active ensuite, et c’est lui qui
-                  le rend loué.
-                </p>
-              )}
-            </>
-          )}
-          <BoutonsEtatLot
-            orgId={orgId}
-            bienId={bienId}
-            lotId={lotId}
-            etat={lot.etat}
-            bailHref={bailEnCours ? `/agence/${orgId}/baux/${bailEnCours.id}` : undefined}
-          />
-        </CardContent>
-      </Card>);
+  const bauxBrouillons = (baux ?? []).filter(b => b.etat === "brouillon");
+  const bailAReprendre = bauxBrouillons[0];
+  const bailPrincipal = bailEnCours ?? bailAReprendre;
+  const hrefBailPrincipal = bailPrincipal ? `/agence/${orgId}/baux/${bailPrincipal.id}` : "#baux";
+  const libelleBailPrincipal = bailEnCours ? "Ouvrir le bail" : bailAReprendre ? "Reprendre le bail" : "Préparer un bail";
+  const equipementsNoms = (catalogue ?? []).filter(e => (equipesLot ?? []).some(l => l.equipement_id === e.id)).map(e => e.nom);
+  const valeurLogement = (valeur: string | number | null | undefined) => valeur == null || String(valeur).trim() === "" ? "Non renseigné" : valeur;
 
-  if (parcours === "1") return <main className="mx-auto w-full max-w-7xl p-4 sm:p-7">
-    <Link href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`} className="inline-flex min-h-11 items-center text-sm">← Retour au logement</Link>
-    <div className="entete-page"><div><h1>Préparer la location</h1><p className="mt-2 text-sm text-muted-foreground">{bien.nom} · {lot.nom}. Complétez votre dossier, étape par étape.</p></div></div>
+  const vueEnsemble = <div className={styles.apercu}>
+    <section className={styles.locationResume} id="location-apercu" aria-labelledby="titre-location-lot">
+      <span className={styles.iconeLocation}><FileText size={22} aria-hidden="true" /></span>
+      <div className={styles.locationTexte}>
+        <span className={styles.surtitre}>{bailEnCours ? "Location en cours" : bailAReprendre ? "Bail en préparation" : "Votre location"}</span>
+        <h2 id="titre-location-lot">{erreurBaux ? "Les baux sont indisponibles" : bauxEnCours.length > 1 ? `${bauxEnCours.length} contrats en cours` : bailEnCours ? recapLocataire ?? "Bail actif" : bailAReprendre ? "Votre bail vous attend" : lot.etat === "archive" ? "Ce lot est archivé" : "Préparez la prochaine location"}</h2>
+        <p>{erreurBaux ? "Réessayez pour retrouver les contrats de ce lot." : bailPrincipal ? [
+          bailAReprendre && !bailEnCours && bailAReprendre.locataire_principal ? nomsParId.get(bailAReprendre.locataire_principal) : null,
+          `Bail ${(TYPES_BAIL[bailPrincipal.type] ?? bailPrincipal.type).toLowerCase()}`,
+          bailPrincipal.date_debut ? `Entrée ${bailAReprendre && !bailEnCours ? "prévue " : ""}le ${formaterDate(bailPrincipal.date_debut)}` : "Date d’entrée à préciser",
+          bauxBrouillons.length > 1 && !bailEnCours ? `Dernier des ${bauxBrouillons.length} brouillons` : null,
+        ].filter(Boolean).join(" · ") : lot.etat === "archive" ? "Retrouvez les informations et l’historique de ce logement." : "Les informations du logement seront reprises dans le bail."}</p>
+      </div>
+      {!erreurBaux && <div className={styles.locationActions}>
+        <Link href={lot.etat === "archive" ? "#baux" : hrefBailPrincipal} className="btn-or">{lot.etat === "archive" ? "Consulter les baux" : libelleBailPrincipal}<ArrowRight size={15} aria-hidden="true" /></Link>
+        {nbBaux > 1 && <a href="#baux">Voir les {nbBaux} baux</a>}
+      </div>}
+    </section>
+
+    <div className={styles.apercuGrille}>
+      <section className={styles.panneau} aria-labelledby="titre-logement-apercu">
+        <header className={styles.panneauEntete}><span className={styles.panneauIcone}><House size={18} aria-hidden="true" /></span><h2 id="titre-logement-apercu">Le logement</h2><a href="#caracteristiques">Tout voir <ArrowUpRight size={14} aria-hidden="true" /></a></header>
+        <dl className={styles.infosApercu}>
+          <div><dt>Chauffage</dt><dd>{valeurLogement(lot.chauffage)}</dd></div>
+          <div><dt>Eau chaude</dt><dd>{valeurLogement(lot.eau_chaude)}</dd></div>
+          <div><dt>Surface Carrez</dt><dd>{lot.surface_carrez == null ? "Non renseignée" : formaterSurface(lot.surface_carrez)}</dd></div>
+          <div><dt>Locaux privatifs</dt><dd>{valeurLogement(lot.locaux_privatifs)}</dd></div>
+        </dl>
+        <div className={styles.sousRubrique}><div><h3>Pièces de l’état des lieux</h3><a href="#pieces">Gérer</a></div>
+          {erreurPieces ? <p>Lecture à réessayer.</p> : piecesLot?.length ? <ul className={styles.etiquettes}>{piecesLot.map(p => <li key={p.id}>{p.nom}</li>)}</ul> : <p>Les pièces restent à définir pour préparer l’état des lieux.</p>}
+        </div>
+        <div className={styles.sousRubrique}><div><h3>Équipements</h3><a href="#equipements">{nbEquip ? "Modifier" : "Compléter"}</a></div>
+          {erreurCatalogue || erreurEquipesLot ? <p>Lecture à réessayer.</p> : equipementsNoms.length ? <ul className={styles.etiquettes}>{equipementsNoms.map(nom => <li key={nom}>{nom}</li>)}</ul> : <p>{nbEquip ? `${nbEquip} équipement(s) rattaché(s).` : "Aucun équipement renseigné."}</p>}
+        </div>
+      </section>
+      <div className={styles.colonneApercu}>
+        <section className={styles.panneau} aria-labelledby="titre-proprietaires-lot">
+          <header className={styles.panneauEntete} data-ton="or"><span className={styles.panneauIcone}><Users size={18} aria-hidden="true" /></span><h2 id="titre-proprietaires-lot">Propriétaires</h2><a href="#detention">Gérer <ArrowUpRight size={14} aria-hidden="true" /></a></header>
+          {erreurDetentions ? <p className={styles.texteVide}>Lecture à réessayer.</p> : detentionsActives.length ? <ul className={styles.proprietaires}>{detentionsActives.map(d => {
+            const personne = d.person as unknown as { nom: string; prenom: string | null } | null;
+            const nom = nomPersonne(personne);
+            return <li key={d.id}><span className={styles.avatar} aria-hidden="true">{personne ? [personne.prenom?.[0], personne.nom[0]].filter(Boolean).join("").toUpperCase() : "—"}</span><div><strong>{nom}</strong><small>Propriétaire du lot</small></div><span className={styles.quotePart}>{Number(d.quote_part)} %</span></li>;
+          })}</ul> : <p className={styles.texteVide}>Aucun propriétaire rattaché.</p>}
+        </section>
+        <section className={styles.panneau} aria-labelledby="titre-batiment-lot">
+          <header className={styles.panneauEntete} data-ton="vert"><span className={styles.panneauIcone}><Building2 size={18} aria-hidden="true" /></span><h2 id="titre-batiment-lot">Le bâtiment</h2><a href="#batiment">Modifier <ArrowUpRight size={14} aria-hidden="true" /></a></header>
+          <dl className={styles.infosApercu}>
+            <div><dt>Construction</dt><dd>{valeurLogement(bien.annee_construction)}</dd></div>
+            <div><dt>Copropriété</dt><dd>{bien.copropriete ? "Oui" : "Non"}</dd></div>
+            <div><dt>Parties communes</dt><dd>{valeurLogement(bien.parties_communes)}</dd></div>
+            <div><dt>Internet, téléphone, TV</dt><dd>{valeurLogement(bien.acces_tic)}</dd></div>
+          </dl>
+        </section>
+      </div>
+    </div>
+    <nav className={styles.actionsRapides} aria-label="Actions rapides du lot">
+      <a href="#diagnostics"><FileText size={19} aria-hidden="true" /><span><strong>Diagnostics</strong><small>Consulter les documents et leurs dates</small></span><ArrowUpRight size={15} aria-hidden="true" /></a>
+      <a href="#baux"><KeyRound size={19} aria-hidden="true" /><span><strong>Baux et états des lieux</strong><small>Retrouver les contrats du logement</small></span><ArrowUpRight size={15} aria-hidden="true" /></a>
+      <Link href={`/agence/${orgId}/reseau?bien=${bienId}`}><Wrench size={19} aria-hidden="true" /><span><strong>Artisans</strong><small>Consulter le réseau pour ce bien</small></span><ArrowUpRight size={15} aria-hidden="true" /></Link>
+    </nav>
+    <details className={styles.gestionStatut}><summary>Gérer le statut du lot <ChevronDown size={16} aria-hidden="true" /></summary><div>
+      {lot.etat === "brouillon" && !erreurBlocages && <BlocagesLocation motifs={(blocages ?? []) as string[]} ctx={{orgId,bienId,lotId}} pageCourante={`/agence/${orgId}/parc/${bienId}/lots/${lotId}`} titre="Ce qui empêche la mise en location" />}
+      <BoutonsEtatLot orgId={orgId} bienId={bienId} lotId={lotId} etat={lot.etat} bailHref={bailEnCours ? `/agence/${orgId}/baux/${bailEnCours.id}` : undefined} />
+    </div></details>
+  </div>;
+
+  const retourContrat = retourBailDuLot(orgId, retourBail, retourEtape, baux ?? []);
+  const ficheHref = `/agence/${orgId}/parc/${bienId}/lots/${lotId}`;
+  if (parcours === "1") return <main className={`mx-auto w-full p-4 sm:p-7 ${parcoursStyles.pageCreation}`}>
+    <Link href={retourContrat ?? ficheHref} className="inline-flex min-h-11 items-center text-sm">← {retourContrat ? "Revenir au bail" : "Retour au logement"}</Link>
+    <header className={parcoursStyles.enteteCreation}><House size={27} aria-hidden="true"/><div><span className={parcoursStyles.surtitre}>Votre logement</span><h1>Compléter le lot</h1><p>Les informations permanentes de {lot.nom}. Elles seront reprises dans chaque bail.</p></div></header>
     <EchecLecture quoi={echecs} />
-    <ParcoursLocation key={etape ?? "logement"} initiale={etape ?? "logement"} resume={<div className="space-y-2"><strong>{lot.nom}</strong><p>{bien.address_line1}<br />{bien.postal_code} {bien.city}</p><p>{lot.surface_m2 == null ? "Surface à compléter" : formaterSurface(lot.surface_m2)}</p><p>{ETATS_LOT[lot.etat] ?? lot.etat}</p></div>} contenus={[
+    <ParcoursLot initiale={etape ?? "lot"} resume={<div className="space-y-2"><strong>{lot.nom}</strong><p>{bien.address_line1}<br />{bien.postal_code} {bien.city}</p><p>{lot.surface_m2 == null ? "Surface à compléter" : formaterSurface(lot.surface_m2)}</p></div>} contenus={[
       <FormulaireBien key="bien" orgId={orgId} bien={bien} />,
-      <div key="lot" className="space-y-5"><RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} modifierInitial={modifier === "1"} />{rubriqueDetention}</div>,
-      <div key="logement" className="space-y-5">{rubriquePieces}{rubriqueEquipements}</div>,
+      <FormulaireLot key="lot" orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} libelleEnregistrer="Enregistrer les caractéristiques" />,
+      <div key="proprietaires">{rubriqueDetention}</div>,
+      <div key="equipements" className="space-y-5">{rubriquePieces}{rubriqueEquipements}<FormulaireEquipementCatalogue orgId={orgId} /><SectionLot id="chambres" titre="Chambres en colocation individuelle — Facultatif" resume="À préparer uniquement si chaque chambre aura son propre bail">
+        {erreurChambres ? <p role="alert">Les chambres n’ont pas pu être chargées.</p> : <ChambresLogement orgId={orgId} bienId={bienId} lotId={lotId} chambres={chambres ?? []} plafond={lot.colocation_loyer_reference} mode="chambres" />}
+      </SectionLot></div>,
       <div key="diagnostics" className="space-y-5">{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</div>,
-      <div key="locataires" className="space-y-5"><p className="text-sm">Si la personne existe déjà, sélectionnez-la à l’étape Bail. Sinon, créez sa fiche ci-dessous. La création de la fiche n’envoie pas d’invitation.</p><FormulairePersonne dansParcours orgId={orgId} lots={[{id:lotId,libelle:lot.nom}]} estBailleurDirect={role === "proprietaire_direct"} /></div>,
-      <div key="bail">{rubriqueBaux}</div>,
-      <div key="finalisation" className="space-y-5"><p className="text-sm">Vérifiez le dossier avant toute mise en location. Ouvrez le bail pour préparer les documents, l’état des lieux et la signature. Aucune activation ni aucun envoi ne se fait en changeant d’étape.</p>{apercuLocation}<ul className="space-y-3">{(baux ?? []).map(b => <li key={b.id}><Link className="btn-secondaire" href={`/agence/${orgId}/baux/${b.id}`}>Vérifier le bail et les documents · {ETATS_BAIL[b.etat] ?? b.etat}</Link></li>)}</ul>{!baux?.length && <p>Aucun bail enregistré. Revenez à l’étape Bail pour préparer le contrat.</p>}</div>
+      <div key="recapitulatif" className="space-y-5">
+        <p>Le lot possède sa propre fiche. Vous pourrez créer un bail séparément lorsque vous aurez choisi de le louer.</p>
+        <dl className="grid gap-4 sm:grid-cols-2">
+          <div><dt className="text-sm text-muted-foreground">Logement</dt><dd className="font-semibold">{lot.nom} · {lot.surface_m2 == null ? "Surface à compléter" : formaterSurface(lot.surface_m2)} · {lot.pieces ?? "—"} pièce(s)</dd></div>
+          <div><dt className="text-sm text-muted-foreground">Adresse</dt><dd>{bien.address_line1} · {bien.postal_code} {bien.city}</dd></div>
+          <div><dt className="text-sm text-muted-foreground">Propriétaires</dt><dd>{detentionsActives.map(d => `${nomPersonne(d.person as unknown as {nom:string;prenom:string|null})} (${Number(d.quote_part)} %)`).join(", ") || "À compléter"}</dd></div>
+          <div><dt className="text-sm text-muted-foreground">Dossier du logement</dt><dd>{nbEquip} équipement(s) · {nbDiag + nbDiagBien} diagnostic(s)</dd></div>
+        </dl>
+        <div className="flex flex-wrap gap-3"><Link className="btn-or" href={retourContrat ?? ficheHref}>{retourContrat ? "Revenir au bail" : "Terminer et voir le lot"}</Link>{!retourContrat && <Link className="btn-secondaire" href={`${ficheHref}#baux`}>Passer à la création d’un bail <ArrowRight size={16} aria-hidden="true" /></Link>}</div>
+        <p className="text-sm text-muted-foreground">Locataires, garants, dates, loyer, clauses et signature se renseignent dans le parcours du bail.</p>
+      </div>
     ]} />
   </main>;
   return (
-    <main className="dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7">
-      <EnteteFiche
-        retour={{ href: `/agence/${orgId}/parc/${bienId}`, libelle: bien.nom }}
-        // Le nom du bien est dans le lien retour, juste au-dessus : le
-        // surtitre dit l'adresse (24/09).
-        surtitre={[bien.address_line1, bien.city].filter(Boolean).join(" · ") || undefined}
-        titre={lot.nom}
-        badge={
-          <span className={`shrink-0 ${COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}`}>
-            {ETATS_LOT[lot.etat] ?? lot.etat}
-          </span>
-        }
-        faits={[
-          ...(loyerCc !== null
-            ? [{ libelle: "Loyer charges comprises", valeur: eur(loyerCc) }]
-            : []),
-          ...(lot.surface_m2 !== null
-            ? [{ libelle: "Surface", valeur: formaterSurface(lot.surface_m2) }]
-            : []),
-        ]}
-      />
-
-      <Link className="btn-or mb-4 inline-flex" href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}?parcours=1&etape=bien`}>Préparer cette location étape par étape</Link>
-      <Link className="btn-secondaire mb-4 inline-flex ml-2" href={`/agence/${orgId}/reseau?bien=${bienId}`}>Artisans disponibles</Link>
-      <div className="dossier-chiffres">
-        <div><Wallet aria-hidden="true" /><span>Loyer charges comprises</span><strong>{loyerCc === null ? "À définir" : eur(loyerCc)}</strong><small>{bauxEnCours.length > 1 ? "Premier contrat · détail ci-dessous" : "Par mois"}</small></div>
-        <div><Users aria-hidden="true" /><span>Locataire</span><strong>{erreurPersonnes || erreurBaux ? "À réessayer" : recapLocataire ?? "Aucun bail actif"}</strong><a href="#baux">Voir le dossier →</a></div>
-        <div><House aria-hidden="true" /><span>Le logement</span><strong>{lot.surface_m2 == null ? "Surface à renseigner" : formaterSurface(lot.surface_m2)}</strong><small>{lot.pieces == null ? "Pièces à renseigner" : `${lot.pieces} pièce(s)`}</small></div>
-        <div><FileText aria-hidden="true" /><span>Diagnostics déposés</span><strong>{erreurDiagnostics || erreurDiagnosticsBien ? "À réessayer" : nbDiag + nbDiagBien}</strong><a href="#diagnostics">Consulter et compléter →</a></div>
+    <main className={`${styles.fiche} dossier-location mx-auto w-full max-w-7xl space-y-[1.125rem] p-4 sm:p-7`}>
+      <Link href={`/agence/${orgId}/parc`} className="inline-flex min-h-11 items-center text-sm text-muted-foreground">← {role === "proprietaire_direct" ? "Mes lots" : "Mon portefeuille"}</Link>
+      <header className={styles.entete}>
+        <div className={styles.identite}><span className={styles.icone}><House size={28} aria-hidden="true" /></span><div className="min-w-0"><p className={styles.surtitre}>Fiche du lot{bien.nom !== lot.nom ? ` · ${bien.nom}` : ""}</p><div className="flex flex-wrap items-center gap-3"><h1>{lot.nom}</h1><span className={COULEURS_ETAT_LOT[lot.etat] ?? "puce puce-grise"}>{ETATS_LOT[lot.etat] ?? lot.etat}</span></div><p className={styles.adresse}><MapPin size={15} aria-hidden="true" />{[bien.address_line1, bien.address_line2, [bien.postal_code, bien.city].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "Adresse à compléter"}</p></div></div>
+        <div className={styles.actions}><Link className="btn-secondaire" href={`/agence/${orgId}/parc/${bienId}/lots/${lotId}?modifier=1#caracteristiques`}><Pencil size={15} aria-hidden="true" /> Modifier le lot</Link></div>
+        <dl className={styles.identiteFaits}>
+          <div><dt><Ruler size={14} aria-hidden="true" />Surface</dt><dd>{lot.surface_m2 == null ? "À renseigner" : formaterSurface(lot.surface_m2)}</dd></div>
+          <div><dt><DoorOpen size={14} aria-hidden="true" />Pièces</dt><dd>{lot.pieces ?? "À renseigner"}</dd></div>
+          <div><dt><Layers3 size={14} aria-hidden="true" />Étage</dt><dd>{valeurLogement(lot.etage)}</dd></div>
+          <div><dt><Sofa size={14} aria-hidden="true" />Mobilier</dt><dd>{lot.meuble ? "Meublé" : "Non meublé"}</dd></div>
+        </dl>
+      </header>
+      <div className={styles.indicateurs}>
+        <div><span className={styles.indicateurIcone}><Wallet size={20} aria-hidden="true" /></span><div><span>Loyer actif · charges comprises</span><strong>{erreurBaux ? "Lecture à réessayer" : loyerCc === null ? "Aucun bail actif" : `${eur(loyerCc)} / mois`}</strong><small>{bauxEnCours.length > 1 ? "Premier contrat · détail dans les baux" : loyerCc === null ? "Le loyer sera repris du bail activé" : "Montant mensuel du contrat en cours"}</small></div></div>
+        <div data-ton="or"><span className={styles.indicateurIcone}><Users size={20} aria-hidden="true" /></span><div><span>{bauxEnCours.length > 1 ? "Locations en cours" : "Locataire en place"}</span><strong>{erreurPersonnes || erreurBaux ? "Lecture à réessayer" : bauxEnCours.length > 1 ? `${bauxEnCours.length} contrats en cours` : recapLocataire ?? (bailEnCours ? "Locataire non renseigné" : "Aucun bail actif")}</strong><a href="#baux">Consulter les baux <ArrowRight size={12} aria-hidden="true" /></a></div></div>
+        <div data-ton="vert"><span className={styles.indicateurIcone}><FileText size={20} aria-hidden="true" /></span><div><span>Diagnostics déposés</span><strong>{erreurDiagnostics || erreurDiagnosticsBien ? "Lecture à réessayer" : `${nbDiag + nbDiagBien} document${nbDiag + nbDiagBien > 1 ? "s" : ""}`}</strong><a href="#diagnostics">Consulter et compléter <ArrowRight size={12} aria-hidden="true" /></a></div></div>
       </div>
-      <div className="dossier-grille"><div className="min-w-0 space-y-5">
+      <div className={styles.contenu}>
       <EchecLecture quoi={echecs} />
-      <AttentionFiche points={attention} />
+      {attention.length > 0 && <div className={styles.alertes}><p className="mb-2 text-sm font-semibold">À compléter dans votre dossier</p><AttentionFiche points={attention} /></div>}
 
       {/* LA LOCATION D'ABORD, et c'est le correctif de fond du 11/09. Pour un
           lot loué, la seule question qui se pose en ouvrant la fiche est : qui
@@ -713,8 +674,8 @@ export default async function PageLot(
           paragraphe expliquant le cycle de vie d'un lot, affiché à chaque
           visite, qui occupait à lui seul le premier écran d'un téléphone. */}
       <OngletsDossier initial={modifier === "1" ? 1 : 0} onglets={[
-        {titre: "Vue d’ensemble", ancres:["location-apercu"], contenu:apercuLocation},
-        {titre: "Logement", ancres:["caracteristiques","detention","pieces","equipements"], contenu:<Card><CardContent className="space-y-5 pt-5"><div id="caracteristiques"><RecapLot orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} modifierInitial={modifier === "1"} /></div>{rubriqueDetention}{rubriquePieces}{rubriqueEquipements}</CardContent></Card>},
+        {titre: "Vue d’ensemble", ancres:["location-apercu"], contenu:vueEnsemble},
+        {titre: "Logement", ancres:["caracteristiques","batiment","detention","pieces","equipements"], contenu:<Card><CardContent className="space-y-5 pt-5"><div id="caracteristiques"><RecapLot key={modifier ?? "lecture"} orgId={orgId} bienId={bienId} lot={lot} verrouille={verrouille} copropriete={bien.copropriete} modifierInitial={modifier === "1"} /></div><SectionLot id="batiment" titre="Adresse et bâtiment" resume={[bien.address_line1, bien.city].filter(Boolean).join(" · ")}><FormulaireBien orgId={orgId} bien={bien} /></SectionLot>{rubriqueDetention}{rubriquePieces}{rubriqueEquipements}</CardContent></Card>},
         {titre: "Diagnostics", ancres:["diagnostics","diagnostics-immeuble"], contenu:<Card><CardContent className="space-y-5 pt-5">{rubriqueDiagnostics}{rubriqueDiagnosticsImmeuble}</CardContent></Card>},
         {titre: "Baux et états des lieux", ancres:["baux"], contenu:<Card><CardContent className="pt-5">{rubriqueBaux}</CardContent></Card>},
         ...((bien.copropriete || colocationPertinente) ? [{titre:"Gestion complémentaire", ancres:["charges","chambres"], contenu:<Card><CardContent className="space-y-5 pt-5">          {colocationPertinente && !(bailEnCours && nbChambres === 0) && (
@@ -761,7 +722,7 @@ export default async function PageLot(
             </SectionLot>
           )}</CardContent></Card>}] : []),
       ]} />
-      </div><RepereDossier etapes={etapesDossier} /></div>
+      </div>
     </main>
   );
 }

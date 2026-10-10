@@ -90,9 +90,10 @@ export default async function PageArtisanAccueil({
 
   return (
     <div className="space-y-6">
-      <div className="portail-hero">
+      <div className="portail-hero portail-hero-accueil">
         <p className="portail-surtitre">{jourLong(new Date().toISOString())}</p>
         <h1 className="mt-0.5">Aujourd&apos;hui</h1>
+        <p className="mt-2 text-base">Vos missions, vos rendez-vous et les réponses attendues.</p>
       </div>
 
       {refus && (
@@ -136,7 +137,7 @@ export default async function PageArtisanAccueil({
       )}
 
       {rienAFaire && !lectureIncertaine ? (
-        <Carte className="border-l-4 border-l-[var(--success)]">
+        <Carte ton="vert">
           <TitreSection>Aucune mission à traiter maintenant</TitreSection>
           <p className="text-[0.9375rem] text-[var(--texte-secondaire)]">
             Les nouvelles missions et demandes de devis apparaîtront ici. Vous

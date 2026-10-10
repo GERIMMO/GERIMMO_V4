@@ -1,3 +1,4 @@
+import { TitreEcran } from "@/components/titre-ecran";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { libellePeriode } from "@/lib/periode-publication";
@@ -145,7 +146,7 @@ export default async function PageJournalAdmin() {
   return (
     <main className="mx-auto w-full max-w-4xl flex-1 p-4 sm:p-7">
       <div className="entete-page mb-2">
-        <h1>Articles du site</h1>
+        <TitreEcran rubrique="journal">Articles du site</TitreEcran>
         <Link href="/admin/publications/nouvelle" className="btn-or text-sm">Nouvel article</Link>
       </div>
       {/* Un seul « Chercher des sujets » (audit 25/09, C16) : dans la section

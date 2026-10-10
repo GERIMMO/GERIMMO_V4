@@ -97,7 +97,7 @@ export default async function LayoutLocataire({
   );
 
   return (
-    <div className="loc-app" style={styleMarque(apparence)}>
+    <div className="loc-app gerimmo-prestige" style={styleMarque(apparence)}>
       <aside className="loc-late">
         <div className="loc-logo min-w-0">
           <Link href={`/locataire/${orgId}`} aria-label="Accueil de mon espace" className="block min-w-0 max-w-full overflow-hidden">

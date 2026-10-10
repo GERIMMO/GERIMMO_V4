@@ -272,19 +272,20 @@ export async function seDeconnecterParLeMenu(page: Page) {
 /** Créer un bien et son lot unique par le formulaire du parc. Rend son nom. */
 export async function creerBien(page: Page, orgId: string, nom: string) {
   await page.goto(`/agence/${orgId}/parc/nouveau`);
-  await expect(page.getByLabel("Référence interne")).toBeVisible();
-  await saisir(page.getByLabel("Référence interne"), nom);
+  await expect(page.getByLabel("Nom du bien", { exact: true })).toBeVisible();
+  await saisir(page.getByLabel("Nom du bien", { exact: true }), nom);
   await saisir(page.getByLabel("Adresse", { exact: true }), "12 rue de la Recette");
   await saisir(page.getByLabel("Code postal"), "69001");
   await saisir(page.getByLabel("Ville"), "Lyon");
   await saisir(page.getByLabel(/Année de construction/), "2005");
   await saisir(page.getByLabel(/Parties communes/), "Hall et cour intérieure");
   await saisir(page.getByLabel(/\(TIC\)/), "Fibre optique et TNT");
+  await cliquer(page.getByRole("button", { name: "Suivant", exact: true }));
   await saisir(page.getByLabel(/Surface.*m²/), "38");
   await saisir(page.getByLabel("Nombre de pièces"), "2");
   // L'autocomplétion d'adresse peut ouvrir sa liste par-dessus le bouton.
   await page.keyboard.press("Escape");
-  await cliquer(page.getByRole("button", { name: /Créer le bien/ }));
+  await cliquer(page.getByRole("button", { name: "Créer le lot et continuer", exact: true }));
   await expect(page.locator("body")).toContainText(nom, { timeout: 30_000 });
   await expect(page.locator("body")).not.toContainText(/Création impossible|violates/i);
   return nom;
